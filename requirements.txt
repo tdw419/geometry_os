@@ -1,0 +1,10 @@
+numpy
+python-dotenv==1.0.0
+fastapi
+uvicorn
+msgpack
+scikit-learn
+faiss-cpu
+lmdb
+plyvel
+aiohttp
