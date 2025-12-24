@@ -1,0 +1,25 @@
+{
+  "title": "VectorOS v2 Performance Specification",
+  "benchmarks": {
+    "boot_performance": {
+      "target": "100ms",
+      "measurement": "From power-on to ready state",
+      "methodology": "Cold boot measurement with standard hardware"
+    },
+    "memory_performance": {
+      "target": "50MB",
+      "measurement": "Peak memory usage during normal operation",
+      "methodology": "Memory profiler during typical workload"
+    },
+    "cpu_performance": {
+      "target": "1%",
+      "measurement": "CPU overhead during idle state",
+      "methodology": "CPU usage monitoring during idle"
+    },
+    "neural_performance": {
+      "target": "10x speedup",
+      "measurement": "Inference time compared to v1",
+      "methodology": "Same models and inputs, measure execution time"
+    }
+  }
+}
