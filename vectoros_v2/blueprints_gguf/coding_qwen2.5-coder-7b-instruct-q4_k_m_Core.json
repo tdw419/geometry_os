@@ -1,0 +1,68 @@
+{
+  "id": "bp_1766596082",
+  "name": "coding_qwen2.5-coder-7b-instruct-q4_k_m_Core",
+  "type": "extracted_brain_coding",
+  "intelligence_type": "coding",
+  "tensors": {
+    "blk.0.attn_norm.weight": {
+      "shape": [
+        3584
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.ffn_down.weight": {
+      "shape": [
+        18944,
+        3584
+      ],
+      "dtype": "14",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.ffn_gate.weight": {
+      "shape": [
+        3584,
+        18944
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.ffn_up.weight": {
+      "shape": [
+        3584,
+        18944
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.ffn_norm.weight": {
+      "shape": [
+        3584
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    }
+  },
+  "metadata": {
+    "source": "qwen2.5-coder-7b-instruct-q4_k_m.gguf",
+    "extraction_date": "Wed Dec 24 11:08:02 2025",
+    "model_path": "/home/jericho/zion/ai/llms/models/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF/qwen2.5-coder-7b-instruct-q4_k_m.gguf",
+    "layers_extracted": [
+      "blk.0",
+      "blk.1"
+    ]
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "id": "bp_1766596157",
+  "name": "general_mmproj-Magistral-Small-2509-F16_Core",
+  "type": "extracted_brain_general",
+  "intelligence_type": "general",
+  "tensors": {
+    "v.blk.0.attn_k.weight": {
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "1",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "v.blk.0.attn_out.weight": {
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "1",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "v.blk.0.attn_q.weight": {
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "1",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "v.blk.0.attn_v.weight": {
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "1",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "v.blk.0.ln1.weight": {
+      "shape": [
+        1024
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    }
+  },
+  "metadata": {
+    "source": "mmproj-Magistral-Small-2509-F16.gguf",
+    "extraction_date": "Wed Dec 24 11:09:17 2025",
+    "model_path": "/home/jericho/zion/ai/llms/models/lmstudio-community/Magistral-Small-2509-GGUF/mmproj-Magistral-Small-2509-F16.gguf",
+    "layers_extracted": [
+      "blk.0",
+      "blk.1"
+    ]
+  }
+}

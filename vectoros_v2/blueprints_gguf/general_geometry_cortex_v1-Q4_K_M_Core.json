@@ -1,0 +1,66 @@
+{
+  "id": "bp_1766596108",
+  "name": "general_geometry_cortex_v1-Q4_K_M_Core",
+  "type": "extracted_brain_general",
+  "intelligence_type": "general",
+  "tensors": {
+    "blk.0.attn_k.bias": {
+      "shape": [
+        512
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.attn_k.weight": {
+      "shape": [
+        3584,
+        512
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_norm.weight": {
+      "shape": [
+        3584
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.attn_output.weight": {
+      "shape": [
+        3584,
+        3584
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_q.bias": {
+      "shape": [
+        3584
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    }
+  },
+  "metadata": {
+    "source": "geometry_cortex_v1-Q4_K_M.gguf",
+    "extraction_date": "Wed Dec 24 11:08:28 2025",
+    "model_path": "/home/jericho/zion/ai/llms/models/tdw419/geometry_cortex_v1-Q4_K_M.gguf/geometry_cortex_v1-Q4_K_M.gguf",
+    "layers_extracted": [
+      "blk.0",
+      "blk.1"
+    ]
+  }
+}

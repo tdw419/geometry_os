@@ -1,0 +1,66 @@
+{
+  "id": "bp_1766596119",
+  "name": "general_chatgpt-5-q8_0_Core",
+  "type": "extracted_brain_general",
+  "intelligence_type": "general",
+  "tensors": {
+    "blk.0.attn_k.bias": {
+      "shape": [
+        128
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.attn_k.weight": {
+      "shape": [
+        896,
+        128
+      ],
+      "dtype": "8",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_norm.weight": {
+      "shape": [
+        896
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.attn_output.weight": {
+      "shape": [
+        896,
+        896
+      ],
+      "dtype": "8",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_q.bias": {
+      "shape": [
+        896
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    }
+  },
+  "metadata": {
+    "source": "chatgpt-5-q8_0.gguf",
+    "extraction_date": "Wed Dec 24 11:08:39 2025",
+    "model_path": "/home/jericho/zion/ai/llms/models/Hack337/ChatGPT-5-Q8_0-GGUF/chatgpt-5-q8_0.gguf",
+    "layers_extracted": [
+      "blk.0",
+      "blk.1"
+    ]
+  }
+}

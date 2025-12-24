@@ -1,0 +1,66 @@
+{
+  "id": "bp_1766596063",
+  "name": "general_GLM-4-9B-0414-Q4_K_S_Core",
+  "type": "extracted_brain_general",
+  "intelligence_type": "general",
+  "tensors": {
+    "blk.0.attn_k.bias": {
+      "shape": [
+        256
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.attn_k.weight": {
+      "shape": [
+        4096,
+        256
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_norm.weight": {
+      "shape": [
+        4096
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.attn_output.weight": {
+      "shape": [
+        4096,
+        4096
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_q.bias": {
+      "shape": [
+        4096
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    }
+  },
+  "metadata": {
+    "source": "GLM-4-9B-0414-Q4_K_S.gguf",
+    "extraction_date": "Wed Dec 24 11:07:43 2025",
+    "model_path": "/home/jericho/zion/ai/llms/models/unsloth/GLM-4-9B-0414-GGUF/GLM-4-9B-0414-Q4_K_S.gguf",
+    "layers_extracted": [
+      "blk.0",
+      "blk.1"
+    ]
+  }
+}

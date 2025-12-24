@@ -1,0 +1,62 @@
+{
+  "id": "bp_1766596163",
+  "name": "general_mmproj-model-f16_Core",
+  "type": "extracted_brain_general",
+  "intelligence_type": "general",
+  "tensors": {
+    "v.blk.0.ln1.bias": {
+      "shape": [
+        1152
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "v.blk.0.ln1.weight": {
+      "shape": [
+        1152
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "v.blk.0.ln2.bias": {
+      "shape": [
+        1152
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "v.blk.0.ln2.weight": {
+      "shape": [
+        1152
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "v.blk.0.ffn_down.bias": {
+      "shape": [
+        4304
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    }
+  },
+  "metadata": {
+    "source": "mmproj-model-f16.gguf",
+    "extraction_date": "Wed Dec 24 11:09:23 2025",
+    "model_path": "/home/jericho/zion/ai/llms/models/lmstudio-community/gemma-3-27B-it-qat-GGUF/mmproj-model-f16.gguf",
+    "layers_extracted": [
+      "blk.0",
+      "blk.1"
+    ]
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "id": "bp_1766596056",
+  "name": "creative_tinyllama-1.1b-chat-v1.0.Q8_0_Core",
+  "type": "extracted_brain_creative",
+  "intelligence_type": "creative",
+  "tensors": {
+    "blk.0.attn_norm.weight": {
+      "shape": [
+        2048
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.ffn_down.weight": {
+      "shape": [
+        5632,
+        2048
+      ],
+      "dtype": "8",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.ffn_gate.weight": {
+      "shape": [
+        2048,
+        5632
+      ],
+      "dtype": "8",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.ffn_up.weight": {
+      "shape": [
+        2048,
+        5632
+      ],
+      "dtype": "8",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.ffn_norm.weight": {
+      "shape": [
+        2048
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    }
+  },
+  "metadata": {
+    "source": "tinyllama-1.1b-chat-v1.0.Q8_0.gguf",
+    "extraction_date": "Wed Dec 24 11:07:36 2025",
+    "model_path": "/home/jericho/zion/ai/llms/models/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/tinyllama-1.1b-chat-v1.0.Q8_0.gguf",
+    "layers_extracted": [
+      "blk.0",
+      "blk.1"
+    ]
+  }
+}
