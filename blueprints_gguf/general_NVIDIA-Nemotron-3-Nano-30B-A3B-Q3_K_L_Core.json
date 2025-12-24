@@ -1,0 +1,68 @@
+{
+  "id": "bp_1766596134",
+  "name": "general_NVIDIA-Nemotron-3-Nano-30B-A3B-Q3_K_L_Core",
+  "type": "extracted_brain_general",
+  "intelligence_type": "general",
+  "tensors": {
+    "blk.0.attn_norm.weight": {
+      "shape": [
+        2688
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.ssm_a": {
+      "shape": [
+        1,
+        64
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.ssm_conv1d.bias": {
+      "shape": [
+        6144
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.ssm_conv1d.weight": {
+      "shape": [
+        4,
+        6144
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.ssm_d": {
+      "shape": [
+        1,
+        64
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "metadata": {
+    "source": "NVIDIA-Nemotron-3-Nano-30B-A3B-Q3_K_L.gguf",
+    "extraction_date": "Wed Dec 24 11:08:54 2025",
+    "model_path": "/home/jericho/zion/ai/llms/models/lmstudio-community/NVIDIA-Nemotron-3-Nano-30B-A3B-GGUF/NVIDIA-Nemotron-3-Nano-30B-A3B-Q3_K_L.gguf",
+    "layers_extracted": [
+      "blk.0",
+      "blk.1"
+    ]
+  }
+}

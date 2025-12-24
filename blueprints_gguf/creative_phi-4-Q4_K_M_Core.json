@@ -1,0 +1,68 @@
+{
+  "id": "bp_1766596163",
+  "name": "creative_phi-4-Q4_K_M_Core",
+  "type": "extracted_brain_creative",
+  "intelligence_type": "creative",
+  "tensors": {
+    "blk.0.attn_norm.weight": {
+      "shape": [
+        5120
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.attn_output.weight": {
+      "shape": [
+        5120,
+        5120
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_qkv.weight": {
+      "shape": [
+        5120,
+        7680
+      ],
+      "dtype": "13",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.ffn_down.weight": {
+      "shape": [
+        17920,
+        5120
+      ],
+      "dtype": "14",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.ffn_norm.weight": {
+      "shape": [
+        5120
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    }
+  },
+  "metadata": {
+    "source": "phi-4-Q4_K_M.gguf",
+    "extraction_date": "Wed Dec 24 11:09:23 2025",
+    "model_path": "/home/jericho/zion/ai/llms/models/lmstudio-community/phi-4-GGUF/phi-4-Q4_K_M.gguf",
+    "layers_extracted": [
+      "blk.0",
+      "blk.1"
+    ]
+  }
+}

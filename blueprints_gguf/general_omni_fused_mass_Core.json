@@ -1,0 +1,68 @@
+{
+  "id": "bp_1766596105",
+  "name": "general_omni_fused_mass_Core",
+  "type": "extracted_brain_general",
+  "intelligence_type": "general",
+  "tensors": {
+    "blk.10.attn_norm.weight": {
+      "shape": [
+        2880
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.10.ffn_down.weight": {
+      "shape": [
+        11520,
+        2880
+      ],
+      "dtype": "1",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.10.ffn_gate.weight": {
+      "shape": [
+        2880,
+        11520
+      ],
+      "dtype": "1",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.10.ffn_up.weight": {
+      "shape": [
+        2880,
+        11520
+      ],
+      "dtype": "1",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.10.ffn_norm.weight": {
+      "shape": [
+        2880
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    }
+  },
+  "metadata": {
+    "source": "omni_fused_mass.gguf",
+    "extraction_date": "Wed Dec 24 11:08:25 2025",
+    "model_path": "/home/jericho/zion/ai/llms/models/tdw419/omni_fused/omni_fused_mass.gguf",
+    "layers_extracted": [
+      "blk.0",
+      "blk.1"
+    ]
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "id": "bp_1766596148",
+  "name": "general_embeddinggemma-300m-qat-Q4_0_Core",
+  "type": "extracted_brain_general",
+  "intelligence_type": "general",
+  "tensors": {
+    "blk.0.attn_k.weight": {
+      "shape": [
+        768,
+        256
+      ],
+      "dtype": "2",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_k_norm.weight": {
+      "shape": [
+        256
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.attn_norm.weight": {
+      "shape": [
+        768
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.attn_output.weight": {
+      "shape": [
+        768,
+        768
+      ],
+      "dtype": "2",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_q.weight": {
+      "shape": [
+        768,
+        768
+      ],
+      "dtype": "2",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "metadata": {
+    "source": "embeddinggemma-300m-qat-Q4_0.gguf",
+    "extraction_date": "Wed Dec 24 11:09:08 2025",
+    "model_path": "/home/jericho/zion/ai/llms/models/lmstudio-community/embeddinggemma-300m-qat-GGUF/embeddinggemma-300m-qat-Q4_0.gguf",
+    "layers_extracted": [
+      "blk.0",
+      "blk.1"
+    ]
+  }
+}

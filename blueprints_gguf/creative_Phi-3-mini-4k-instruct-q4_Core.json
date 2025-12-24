@@ -1,0 +1,68 @@
+{
+  "id": "bp_1766596086",
+  "name": "creative_Phi-3-mini-4k-instruct-q4_Core",
+  "type": "extracted_brain_creative",
+  "intelligence_type": "creative",
+  "tensors": {
+    "blk.0.attn_norm.weight": {
+      "shape": [
+        3072
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.ffn_down.weight": {
+      "shape": [
+        8192,
+        3072
+      ],
+      "dtype": "14",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.ffn_up.weight": {
+      "shape": [
+        3072,
+        16384
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.ffn_norm.weight": {
+      "shape": [
+        3072
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.attn_output.weight": {
+      "shape": [
+        3072,
+        3072
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "metadata": {
+    "source": "Phi-3-mini-4k-instruct-q4.gguf",
+    "extraction_date": "Wed Dec 24 11:08:06 2025",
+    "model_path": "/home/jericho/zion/ai/llms/models/microsoft/Phi-3-mini-4k-instruct-gguf/Phi-3-mini-4k-instruct-q4.gguf",
+    "layers_extracted": [
+      "blk.0",
+      "blk.1"
+    ]
+  }
+}

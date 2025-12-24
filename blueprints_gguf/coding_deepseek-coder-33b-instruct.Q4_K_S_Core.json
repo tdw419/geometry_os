@@ -1,0 +1,72 @@
+{
+  "id": "bp_1766596056",
+  "name": "coding_deepseek-coder-33b-instruct.Q4_K_S_Core",
+  "type": "extracted_brain_coding",
+  "intelligence_type": "coding",
+  "tensors": {
+    "blk.0.attn_q.weight": {
+      "shape": [
+        7168,
+        7168
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_k.weight": {
+      "shape": [
+        7168,
+        1024
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_v.weight": {
+      "shape": [
+        7168,
+        1024
+      ],
+      "dtype": "13",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_output.weight": {
+      "shape": [
+        7168,
+        7168
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.ffn_gate.weight": {
+      "shape": [
+        7168,
+        19200
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "metadata": {
+    "source": "deepseek-coder-33b-instruct.Q4_K_S.gguf",
+    "extraction_date": "Wed Dec 24 11:07:36 2025",
+    "model_path": "/home/jericho/zion/ai/llms/models/TheBloke/deepseek-coder-33B-instruct-GGUF/deepseek-coder-33b-instruct.Q4_K_S.gguf",
+    "layers_extracted": [
+      "blk.0",
+      "blk.1"
+    ]
+  }
+}

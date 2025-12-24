@@ -1,0 +1,72 @@
+{
+  "id": "bp_1766596087",
+  "name": "general_gemma-2b-it-q4_k_m_Core",
+  "type": "extracted_brain_general",
+  "intelligence_type": "general",
+  "tensors": {
+    "blk.0.attn_output.weight": {
+      "shape": [
+        2048,
+        2048
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_k.weight": {
+      "shape": [
+        2048,
+        256
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_v.weight": {
+      "shape": [
+        2048,
+        256
+      ],
+      "dtype": "14",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_q.weight": {
+      "shape": [
+        2048,
+        2048
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.ffn_gate.weight": {
+      "shape": [
+        2048,
+        16384
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "metadata": {
+    "source": "gemma-2b-it-q4_k_m.gguf",
+    "extraction_date": "Wed Dec 24 11:08:07 2025",
+    "model_path": "/home/jericho/zion/ai/llms/models/lmstudio-ai/gemma-2b-it-GGUF/gemma-2b-it-q4_k_m.gguf",
+    "layers_extracted": [
+      "blk.0",
+      "blk.1"
+    ]
+  }
+}

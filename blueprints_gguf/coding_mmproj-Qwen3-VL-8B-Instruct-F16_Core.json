@@ -1,0 +1,66 @@
+{
+  "id": "bp_1766596174",
+  "name": "coding_mmproj-Qwen3-VL-8B-Instruct-F16_Core",
+  "type": "extracted_brain_coding",
+  "intelligence_type": "coding",
+  "tensors": {
+    "v.blk.0.attn_out.bias": {
+      "shape": [
+        1152
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "v.blk.0.attn_out.weight": {
+      "shape": [
+        1152,
+        1152
+      ],
+      "dtype": "1",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "v.blk.0.attn_qkv.bias": {
+      "shape": [
+        3456
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "v.blk.0.attn_qkv.weight": {
+      "shape": [
+        1152,
+        3456
+      ],
+      "dtype": "1",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "v.blk.0.ffn_up.bias": {
+      "shape": [
+        4304
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    }
+  },
+  "metadata": {
+    "source": "mmproj-Qwen3-VL-8B-Instruct-F16.gguf",
+    "extraction_date": "Wed Dec 24 11:09:34 2025",
+    "model_path": "/home/jericho/zion/ai/llms/models/lmstudio-community/Qwen3-VL-8B-Instruct-GGUF/mmproj-Qwen3-VL-8B-Instruct-F16.gguf",
+    "layers_extracted": [
+      "blk.0",
+      "blk.1"
+    ]
+  }
+}

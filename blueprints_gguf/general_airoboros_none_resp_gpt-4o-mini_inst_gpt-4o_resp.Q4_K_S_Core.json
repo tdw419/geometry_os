@@ -1,0 +1,70 @@
+{
+  "id": "bp_1766596111",
+  "name": "general_airoboros_none_resp_gpt-4o-mini_inst_gpt-4o_resp.Q4_K_S_Core",
+  "type": "extracted_brain_general",
+  "intelligence_type": "general",
+  "tensors": {
+    "blk.0.attn_k.weight": {
+      "shape": [
+        4096,
+        1024
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_norm.weight": {
+      "shape": [
+        4096
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.attn_output.weight": {
+      "shape": [
+        4096,
+        4096
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_q.weight": {
+      "shape": [
+        4096,
+        4096
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_v.weight": {
+      "shape": [
+        4096,
+        1024
+      ],
+      "dtype": "13",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "metadata": {
+    "source": "airoboros_none_resp_gpt-4o-mini_inst_gpt-4o_resp.Q4_K_S.gguf",
+    "extraction_date": "Wed Dec 24 11:08:31 2025",
+    "model_path": "/home/jericho/zion/ai/llms/models/mradermacher/airoboros_none_resp_gpt-4o-mini_inst_gpt-4o_resp-GGUF/airoboros_none_resp_gpt-4o-mini_inst_gpt-4o_resp.Q4_K_S.gguf",
+    "layers_extracted": [
+      "blk.0",
+      "blk.1"
+    ]
+  }
+}

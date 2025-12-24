@@ -1,0 +1,70 @@
+{
+  "id": "bp_1766596073",
+  "name": "general_cwm-q4_k_m_Core",
+  "type": "extracted_brain_general",
+  "intelligence_type": "general",
+  "tensors": {
+    "blk.0.attn_k.weight": {
+      "shape": [
+        6144,
+        1024
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_norm.weight": {
+      "shape": [
+        6144
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.attn_output.weight": {
+      "shape": [
+        6144,
+        6144
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_q.weight": {
+      "shape": [
+        6144,
+        6144
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_v.weight": {
+      "shape": [
+        6144,
+        1024
+      ],
+      "dtype": "14",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "metadata": {
+    "source": "cwm-q4_k_m.gguf",
+    "extraction_date": "Wed Dec 24 11:07:53 2025",
+    "model_path": "/home/jericho/zion/ai/llms/models/Volko76/cwm-Q4_K_M-GGUF/cwm-q4_k_m.gguf",
+    "layers_extracted": [
+      "blk.0",
+      "blk.1"
+    ]
+  }
+}

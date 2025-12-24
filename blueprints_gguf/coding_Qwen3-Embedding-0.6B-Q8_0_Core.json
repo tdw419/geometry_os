@@ -1,0 +1,68 @@
+{
+  "id": "bp_1766596078",
+  "name": "coding_Qwen3-Embedding-0.6B-Q8_0_Core",
+  "type": "extracted_brain_coding",
+  "intelligence_type": "coding",
+  "tensors": {
+    "blk.0.attn_k.weight": {
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "8",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_k_norm.weight": {
+      "shape": [
+        128
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.attn_norm.weight": {
+      "shape": [
+        1024
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.attn_output.weight": {
+      "shape": [
+        2048,
+        1024
+      ],
+      "dtype": "8",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_q.weight": {
+      "shape": [
+        1024,
+        2048
+      ],
+      "dtype": "8",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "metadata": {
+    "source": "Qwen3-Embedding-0.6B-Q8_0.gguf",
+    "extraction_date": "Wed Dec 24 11:07:58 2025",
+    "model_path": "/home/jericho/zion/ai/llms/models/Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf",
+    "layers_extracted": [
+      "blk.0",
+      "blk.1"
+    ]
+  }
+}

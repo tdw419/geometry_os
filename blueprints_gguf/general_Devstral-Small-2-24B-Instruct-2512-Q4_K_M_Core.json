@@ -1,0 +1,70 @@
+{
+  "id": "bp_1766596169",
+  "name": "general_Devstral-Small-2-24B-Instruct-2512-Q4_K_M_Core",
+  "type": "extracted_brain_general",
+  "intelligence_type": "general",
+  "tensors": {
+    "blk.0.attn_k.weight": {
+      "shape": [
+        5120,
+        1024
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_norm.weight": {
+      "shape": [
+        5120
+      ],
+      "dtype": "0",
+      "simulated_data": [
+        0.0
+      ]
+    },
+    "blk.0.attn_output.weight": {
+      "shape": [
+        4096,
+        5120
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_q.weight": {
+      "shape": [
+        5120,
+        4096
+      ],
+      "dtype": "12",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    },
+    "blk.0.attn_v.weight": {
+      "shape": [
+        5120,
+        1024
+      ],
+      "dtype": "14",
+      "simulated_data": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "metadata": {
+    "source": "Devstral-Small-2-24B-Instruct-2512-Q4_K_M.gguf",
+    "extraction_date": "Wed Dec 24 11:09:29 2025",
+    "model_path": "/home/jericho/zion/ai/llms/models/lmstudio-community/Devstral-Small-2-24B-Instruct-2512-GGUF/Devstral-Small-2-24B-Instruct-2512-Q4_K_M.gguf",
+    "layers_extracted": [
+      "blk.0",
+      "blk.1"
+    ]
+  }
+}
