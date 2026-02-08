@@ -1,0 +1,170 @@
+{
+  "version": "1.0",
+  "genes": [
+    {
+      "id": "g1",
+      "type": "struct",
+      "name": "Point",
+      "sequence": "ATCGATCGATCGATCG",
+      "fields": [
+        {"name": "x", "type": "f64"},
+        {"name": "y", "type": "f64"}
+      ]
+    },
+    {
+      "id": "g2",
+      "type": "function",
+      "name": "manhattan_distance",
+      "sequence": "TTAACCGGTTAACCGG",
+      "parameters": [
+        {"name": "p1", "type": "Point"},
+        {"name": "p2", "type": "Point"}
+      ],
+      "return_type": "f64",
+      "body": {
+        "type": "block",
+        "statements": [
+          {
+            "type": "let",
+            "name": "dx",
+            "value_type": "f64",
+            "value": {
+              "type": "binary_op",
+              "operator": "-",
+              "left": {"type": "binary_op", "operator": ".", "left": {"type": "variable", "name": "p1"}, "right": {"type": "literal", "value": "x"}},
+              "right": {"type": "binary_op", "operator": ".", "left": {"type": "variable", "name": "p2"}, "right": {"type": "literal", "value": "x"}}
+            }
+          },
+          {
+            "type": "let",
+            "name": "dy",
+            "value_type": "f64",
+            "value": {
+              "type": "binary_op",
+              "operator": "-",
+              "left": {"type": "binary_op", "operator": ".", "left": {"type": "variable", "name": "p1"}, "right": {"type": "literal", "value": "y"}},
+              "right": {"type": "binary_op", "operator": ".", "left": {"type": "variable", "name": "p2"}, "right": {"type": "literal", "value": "y"}}
+            }
+          },
+          {
+            "type": "return",
+            "value": {
+              "type": "call",
+              "function": "abs",
+              "arguments": [
+                {
+                  "type": "binary_op",
+                  "operator": "+",
+                  "left": {"type": "variable", "name": "dx"},
+                  "right": {"type": "variable", "name": "dy"}
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "g3",
+      "type": "function",
+      "name": "clamp",
+      "sequence": "GCGCATGCATGCATGC",
+      "parameters": [
+        {"name": "value", "type": "i32"},
+        {"name": "min", "type": "i32"},
+        {"name": "max", "type": "i32"}
+      ],
+      "return_type": "i32",
+      "body": {
+        "type": "if",
+        "condition": {
+          "type": "binary_op",
+          "operator": "<",
+          "left": {"type": "variable", "name": "value"},
+          "right": {"type": "variable", "name": "min"}
+        },
+        "then_branch": {
+          "type": "variable",
+          "name": "min"
+        },
+        "else_branch": {
+          "type": "if",
+          "condition": {
+            "type": "binary_op",
+            "operator": ">",
+            "left": {"type": "variable", "name": "value"},
+            "right": {"type": "variable", "name": "max"}
+          },
+          "then_branch": {
+            "type": "variable",
+            "name": "max"
+          },
+          "else_branch": {
+            "type": "variable",
+            "name": "value"
+          }
+        }
+      }
+    },
+    {
+      "id": "g4",
+      "type": "function",
+      "name": "factorial",
+      "sequence": "TATATATATATATATA",
+      "parameters": [
+        {"name": "n", "type": "i32"}
+      ],
+      "return_type": "i32",
+      "body": {
+        "type": "if",
+        "condition": {
+          "type": "binary_op",
+          "operator": "<=",
+          "left": {"type": "variable", "name": "n"},
+          "right": {"type": "literal", "value": 1}
+        },
+        "then_branch": {
+          "type": "literal",
+          "value": 1
+        },
+        "else_branch": {
+          "type": "binary_op",
+          "operator": "*",
+          "left": {"type": "variable", "name": "n"},
+          "right": {
+            "type": "call",
+            "function": "factorial",
+            "arguments": [
+              {
+                "type": "binary_op",
+                "operator": "-",
+                "left": {"type": "variable", "name": "n"},
+                "right": {"type": "literal", "value": 1}
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "g5",
+      "type": "enum",
+      "name": "Color",
+      "sequence": "CGCGCGCGCGCGCGCG",
+      "fields": [
+        {"name": "Red", "data": "u8"},
+        {"name": "Green", "data": "u8"},
+        {"name": "Blue", "data": "u8"},
+        {"name": "Alpha"}
+      ]
+    }
+  ],
+  "regulatory_regions": {
+    "promoters": ["g1", "g2", "g3", "g4"],
+    "enhancers": ["g5"],
+    "suppressors": []
+  },
+  "author": "Geometry OS Team",
+  "description": "Complex example genome with structs, control flow, recursion, and enums",
+  "generation": 0
+}
