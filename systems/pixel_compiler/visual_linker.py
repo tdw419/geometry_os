@@ -35,9 +35,13 @@ class VisualLinker:
         except ImportError:
             raise ImportError("PIL/Pillow required")
 
-        # Read function table from Row 0 (64 entries max)
+        # Get actual image dimensions
+        height, width = pixels.shape[:2]
+
+        # Read function table from Row 0 (up to 64 entries or image width)
         functions = {}
-        for i in range(64):
+        max_entries = min(64, width)
+        for i in range(max_entries):
             r, g, b, a = pixels[0, i]
 
             # Check for empty slot (all zeros)
