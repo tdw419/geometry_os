@@ -271,6 +271,62 @@ with torch.no_grad():
     captions = model.generate(images, max_length=50)
 ```
 
+## LM Studio Integration
+
+Pixel LLM integrates with LM Studio for hybrid image captioning, combining a specialized vision encoder with powerful language models.
+
+### Quick Start
+
+```python
+from geometry_os.systems.pixel_llm.lm_studio_integration import HybridPixelLLM
+
+# Initialize hybrid model
+model = HybridPixelLLM(
+    checkpoint_path="checkpoints/vision_encoder.pt",
+    lm_studio_model="qwen2.5-coder-7b-instruct",
+)
+
+# Generate caption
+caption = model.generate(image_tensor)
+print(caption)
+```
+
+### Key Features
+
+- **Vision Feature Extraction**: Extract rich visual features using trained VisionEncoder
+- **LM Studio Integration**: Generate captions using any LM Studio model
+- **Batch Processing**: Efficiently process multiple images
+- **Custom Prompts**: Customize the generation prompt for specific use cases
+- **Flexible Architecture**: Mix and match vision encoders and language models
+
+### Usage Examples
+
+```python
+# Basic captioning
+from geometry_os.systems.pixel_llm.lm_studio_integration import HybridPixelLLM
+
+model = HybridPixelLLM("checkpoints/vision_encoder.pt")
+caption = model.generate(image)
+
+# Batch processing
+captions = model.generate_batch([image1, image2, image3])
+
+# Feature extraction only
+from geometry_os.systems.pixel_llm.lm_studio_integration import VisionFeatureExtractor
+
+extractor = VisionFeatureExtractor("checkpoints/vision_encoder.pt")
+features = extractor.extract_features(image)
+
+# Custom temperature and model
+creative_model = HybridPixelLLM(
+    checkpoint_path="checkpoints/vision_encoder.pt",
+    lm_studio_model="llama-3-70b-instruct",
+    temperature=0.9,
+)
+```
+
+For complete documentation, see [Pixel LLM LM Studio Integration Guide](pixel_llm_lm_studio_integration.md).
+
 ## Examples
 
 See `demo_pixel_llm.py` for a complete example demonstrating:
@@ -284,6 +340,12 @@ Run the demo:
 ```bash
 cd geometry_os/systems/pixel_llm
 python demo_pixel_llm.py
+```
+
+For LM Studio integration examples, see `demo_hybrid_pixel_llm.py`:
+```bash
+cd geometry_os/systems/pixel_llm
+python demo_hybrid_pixel_llm.py
 ```
 
 ## Running Tests
