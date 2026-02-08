@@ -7,7 +7,10 @@ for evolving genome specifications.
 import random
 from typing import List, Optional, Tuple
 from dataclasses import dataclass, field
-from .genome_schema import Genome, Gene, GeneType, RegulatoryRegion
+try:
+    from .genome_schema import Genome, Gene, GeneType, RegulatoryRegion
+except ImportError:
+    from genome_schema import Genome, Gene, GeneType, RegulatoryRegion
 
 
 @dataclass
