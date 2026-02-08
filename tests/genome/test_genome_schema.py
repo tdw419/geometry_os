@@ -3,7 +3,7 @@ import pytest
 import json
 from pathlib import Path
 import sys
-sys.path.insert(0, str(Path(__file__).parent.parent / "systems" / "genome" / "spec"))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "systems" / "genome" / "spec"))
 
 def test_genome_schema_validates():
     """Test that genome schema can be loaded and validated"""
