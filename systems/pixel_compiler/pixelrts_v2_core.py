@@ -194,10 +194,12 @@ def calculate_grid_size(data_size_bytes: int, bytes_per_pixel: int = 4) -> int:
     pixels_needed = math.ceil(data_size_bytes / bytes_per_pixel)
     side_len = math.ceil(math.sqrt(pixels_needed))
 
-    # Handle edge case where side_len is 0
-    if side_len == 0:
+    # Handle edge case where side_len is 0 or 1
+    # math.log2(1) = 0, which gives 2^0 = 1, a valid 1x1 grid
+    if side_len <= 1:
         return 1
 
+    # Calculate next power of 2
     return 2 ** math.ceil(math.log2(side_len))
 
 
