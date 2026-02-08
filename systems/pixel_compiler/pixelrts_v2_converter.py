@@ -105,6 +105,147 @@ def save_sidecar_metadata(output_path: str, metadata: dict, encoder_metadata: di
     print(f"Sidecar metadata saved to: {meta_path}")
 
 
+def generate_boot_script(
+    png_path: str,
+    metadata: dict,
+    output_path: str = None,
+    qemu_arch: str = "x86_64",
+    qemu_memory: str = "2G",
+    qemu_cpu: str = "host",
+    kernel_cmdline: str = None
+) -> str:
+    """
+    Generate QEMU boot script for .rts.png file.
+
+    Args:
+        png_path: Path to .rts.png file
+        metadata: Metadata dictionary from encoder
+        output_path: Path for boot script (default: png_path + '.boot.sh')
+        qemu_arch: QEMU architecture (x86_64, aarch64, riscv64)
+        qemu_memory: Memory size for QEMU (e.g., 2G, 4G)
+        qemu_cpu: CPU type for QEMU (default: host)
+        kernel_cmdline: Optional kernel command line
+
+    Returns:
+        Path to generated boot script
+    """
+    if output_path is None:
+        output_path = png_path + '.boot.sh'
+
+    # Determine QEMU binary
+    qemu_binary_map = {
+        "x86_64": "qemu-system-x86_64",
+        "aarch64": "qemu-system-aarch64",
+        "riscv64": "qemu-system-riscv64",
+        "arm": "qemu-system-arm",
+        "ppc64": "qemu-system-ppc64"
+    }
+
+    qemu_binary = qemu_binary_map.get(qemu_arch, f"qemu-system-{qemu_arch}")
+
+    # Get content type and version from metadata
+    content_type = metadata.get('type', 'binary')
+    content_name = metadata.get('name', 'data')
+    content_version = metadata.get('content_version') or metadata.get('version', '')
+
+    # Build kernel command line
+    if kernel_cmdline is None:
+        # Default command line based on content type
+        if content_type == 'kernel':
+            kernel_cmdline = "console=ttyS0 earlyprintk=serial"
+        elif content_type == 'os':
+            kernel_cmdline = "root=/dev/sda1 console=ttyS0"
+        else:
+            kernel_cmdline = ""
+
+    # Generate boot script
+    script_lines = [
+        "#!/bin/bash",
+        "#",
+        f"# PixelRTS v2 Boot Script",
+        f"# Generated for: {content_name}",
+        f"# Architecture: {qemu_arch}",
+        f"# Content Type: {content_type}",
+        "#",
+        "",
+        "set -e",
+        "",
+        "# Configuration",
+        f"PNG_FILE=\"$(dirname \"$0\")/{Path(png_path).name}\"",
+        f"EXTRACTED_DIR=\"/tmp/pixelrts_$(basename \"$PNG_FILE\" .rts.png)\"",
+        f"QEMU_ARCH=\"{qemu_arch}\"",
+        f"QEMU_BINARY=\"{qemu_binary}\"",
+        f"QEMU_MEMORY=\"{qemu_memory}\"",
+        f"QEMU_CPU=\"{qemu_cpu}\"",
+        "",
+        "# Extract data from PNG",
+        "echo \"Extracting data from $PNG_FILE...\"",
+        f"python3 -c \"import sys; sys.path.insert(0, '{Path(__file__).parent}'); from pixelrts_v2_core import PixelRTSDecoder; from pathlib import Path; import json; png_path = Path('$PNG_FILE'); meta_path = Path(str(png_path) + '.meta.json'); decoder = PixelRTSDecoder(); decoder.set_metadata(json.load(open(meta_path))) if meta_path.exists() else None; data = decoder.decode(open(png_path, 'rb').read()); output_path = Path('$EXTRACTED_DIR/data.bin'); output_path.parent.mkdir(parents=True, exist_ok=True); open(output_path, 'wb').write(data); print(f'Extracted to: {{output_path}}')\" || exit 1",
+        "",
+        "# Launch QEMU",
+        "echo \"Starting QEMU...\"",
+        "echo \"Architecture: $QEMU_ARCH\"",
+        "echo \"Memory: $QEMU_MEMORY\"",
+        "echo \"CPU: $QEMU_CPU\"",
+        ""
+    ]
+
+    # Add QEMU launch command based on content type
+    if content_type == 'kernel':
+        # Build QEMU command
+        qemu_cmd = [
+            f"$QEMU_BINARY \\",
+            f"    -m $QEMU_MEMORY \\",
+            f"    -cpu $QEMU_CPU \\",
+            f"    -kernel $EXTRACTED_DIR/data.bin \\",
+            f"    -nographic \\"
+        ]
+
+        # Add kernel command line if provided
+        if kernel_cmdline:
+            qemu_cmd.append(f"    -append '{kernel_cmdline}' \\")
+
+        qemu_cmd.append("    -monitor none")
+        script_lines.extend(qemu_cmd)
+    elif content_type == 'os':
+        script_lines.extend([
+            "# For OS images, we'd typically create a disk image",
+            "# This is a placeholder for future enhancement",
+            "echo \"Note: OS boot requires disk image setup\"",
+            "echo \"Extracted data available at: $EXTRACTED_DIR/data.bin\"",
+            "",
+            "# Example: Create disk image and boot",
+            f"# qemu-img create -f raw disk.img 1G",
+            f"# dd if=$EXTRACTED_DIR/data.bin of=disk.img bs=1M conv=notrunc",
+            f"# $QEMU_BINARY -m $QEMU_MEMORY -cpu $QEMU_CPU -drive file=disk.img,format=raw"
+        ])
+    else:
+        script_lines.extend([
+            "# Generic binary - not directly bootable",
+            "echo \"Note: This content type is not directly bootable\"",
+            "echo \"Extracted data available at: $EXTRACTED_DIR/data.bin\"",
+            "",
+            "# You can inspect or process the extracted data",
+            f"# hexdump -C $EXTRACTED_DIR/data.bin | head -20"
+        ])
+
+    script_lines.extend([
+        "",
+        'echo "Boot process terminated."',
+        ""
+    ])
+
+    # Write boot script
+    with open(output_path, 'w') as f:
+        f.write('\n'.join(script_lines))
+
+    # Make script executable
+    import os
+    os.chmod(output_path, 0o755)
+
+    return output_path
+
+
 def validate_grid_size(value: str) -> int:
     """Validate grid size is power of 2."""
     ivalue = int(value)
@@ -133,6 +274,12 @@ Examples:
 
   # Convert with explicit grid size
   %(prog)s data.bin data.rts.png --grid-size 2048
+
+  # Convert with boot script generation
+  %(prog)s kernel.bin kernel.rts.png --type kernel --generate-boot-script
+
+  # Convert with custom QEMU parameters
+  %(prog)s os.img os.rts.png --type os --generate-boot-script --qemu-arch aarch64 --qemu-memory 4G
         """
     )
 
@@ -177,6 +324,36 @@ Examples:
         '--grid-size',
         type=validate_grid_size,
         help='Explicit grid size (power of 2, e.g., 512, 1024, 2048)'
+    )
+
+    parser.add_argument(
+        '--generate-boot-script',
+        action='store_true',
+        help='Generate .boot.sh script for QEMU/KVM'
+    )
+
+    parser.add_argument(
+        '--qemu-arch',
+        choices=['x86_64', 'aarch64', 'riscv64', 'arm', 'ppc64'],
+        default='x86_64',
+        help='QEMU architecture for boot script (default: x86_64)'
+    )
+
+    parser.add_argument(
+        '--qemu-memory',
+        default='2G',
+        help='QEMU memory size (default: 2G)'
+    )
+
+    parser.add_argument(
+        '--qemu-cpu',
+        default='host',
+        help='QEMU CPU type (default: host)'
+    )
+
+    parser.add_argument(
+        '--kernel-cmdline',
+        help='Kernel command line for boot script'
     )
 
     parser.add_argument(
@@ -287,6 +464,36 @@ Examples:
     except Exception as e:
         print(f"Warning: Failed to save sidecar metadata: {e}", file=sys.stderr)
 
+    # Generate boot script if requested
+    if args.generate_boot_script:
+        try:
+            if args.verbose:
+                print("Generating boot script...")
+
+            # Combine metadata for boot script
+            boot_metadata = {**metadata, **encoder_metadata} if encoder_metadata else metadata
+
+            boot_script_path = generate_boot_script(
+                args.output,
+                boot_metadata,
+                qemu_arch=args.qemu_arch,
+                qemu_memory=args.qemu_memory,
+                qemu_cpu=args.qemu_cpu,
+                kernel_cmdline=args.kernel_cmdline
+            )
+
+            print(f"Successfully generated: {boot_script_path}")
+            print(f"  Architecture: {args.qemu_arch}")
+            print(f"  Memory: {args.qemu_memory}")
+            print(f"  CPU: {args.qemu_cpu}")
+
+            if args.kernel_cmdline:
+                print(f"  Kernel cmdline: {args.kernel_cmdline}")
+
+        except Exception as e:
+            print(f"Error: Failed to generate boot script: {e}", file=sys.stderr)
+            return 1
+
     # Print summary
     print(f"\nSummary:")
     print(f"  Input:  {args.input} ({data_size} bytes)")
@@ -294,6 +501,9 @@ Examples:
     print(f"  Grid:   {grid_size}x{grid_size}")
     print(f"  Mode:   {args.mode}")
     print(f"  Hash:   {metadata['segments'][metadata.get('name', input_path.stem)]['sha256']}")
+
+    if args.generate_boot_script:
+        print(f"  Boot script: {args.output}.boot.sh")
 
     return 0
 
