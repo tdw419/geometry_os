@@ -104,13 +104,27 @@ class VisualAssembler:
             self.pending_labels.append((label_ref, inst))
             inst.immediate = 0  # Placeholder
 
-        elif mnemonic in ['JZ', 'JNZ', 'CALL']:
+        elif mnemonic in ['JZ', 'JNZ']:
             # JZ R0, label
             dest = self._parse_register(parts[1])
             label_ref = parts[2]
             inst.dest = dest
             self.pending_labels.append((label_ref, inst))
             inst.immediate = 0  # Placeholder
+
+        elif mnemonic in ['CALL']:
+            # CALL R0 (indirect call via register) or CALL label
+            if len(parts) >= 2:
+                operand = parts[1]
+                # Check if it's a register or label
+                if operand.upper().startswith('R'):
+                    # Register indirect call
+                    dest = self._parse_register(operand)
+                    inst.dest = dest
+                else:
+                    # Direct call to label
+                    self.pending_labels.append((operand, inst))
+                    inst.immediate = 0  # Placeholder
 
         elif mnemonic in ['RET']:
             # RET R0
@@ -137,6 +151,8 @@ class VisualAssembler:
             if label_name not in self.labels:
                 raise ValueError(f"Undefined label: {label_name}")
             inst.immediate = self.labels[label_name]
+        # Clear pending labels after resolution
+        self.pending_labels = []
 
     def compile(self, source: str) -> List[Instruction]:
         """Compile full assembly source"""
