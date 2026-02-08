@@ -187,10 +187,82 @@ from systems.pixel_compiler.vasm import VisualAssembler
 **Problem:** Disassembly shows "????"
 **Solution:** File was compiled with `mode='code'`. Use `mode='standard'` for disassemblable output.
 
+## PixelRTS v2 - Visual Containers
+
+PixelRTS v2 is the next-generation format that stores binaries as viewable PNG images with RGBA dense packing and Hilbert curve mapping.
+
+### Convert to Visual Format
+
+```bash
+# Convert binary to PNG
+python3 pixelrts_v2_converter.py kernel.bin kernel.rts.png
+
+# With boot script
+python3 pixelrts_v2_converter.py alpine.rts alpine.rts.png \
+  --generate-boot-script
+
+# WASM module with semantic coloring
+python3 pixelrts_v2_converter.py module.wasm module.rts.png \
+  --mode code
+```
+
+### Extract from Visual Format
+
+```bash
+# Extract back to binary
+python3 pixelrts_v2_extractor.py kernel.rts.png -o kernel.bin
+
+# With verification
+python3 pixelrts_v2_extractor.py kernel.rts.png --verify
+
+# Show metadata only
+python3 pixelrts_v2_extractor.py kernel.rts.png --info
+```
+
+### Use with Existing Tools
+
+PixelRTS v2 integrates seamlessly with the RTS registry and tooling:
+
+```bash
+# Register in RTS catalog
+python3 rts_registry_manager.py register kernel.rts.png
+
+# List all cartridges
+python3 rts_registry_manager.py list
+
+# Find specific cartridges
+python3 rts_registry_manager.py find "kernel"
+
+# Verify integrity
+python3 rts_registry_manager.py verify kernel-id
+```
+
+### Key Features
+
+- **4 bytes/pixel RGBA dense packing** - 100% data density
+- **Hilbert space-filling curve mapping** - Locality preservation
+- **PNG tEXt chunk metadata** - Embedded + sidecar JSON
+- **SHA256 hash verification** - Guaranteed lossless
+- **Standard + Code (WASM) modes** - Generic and semantic visualization
+- **Automatic boot script generation** - QEMU/KVM integration
+- **RTS registry integration** - Centralized catalog management
+
+### Capacity Examples
+
+| Grid Size | Capacity | Max File Size |
+|-----------|----------|---------------|
+| 512×512   | 1 MB     | 1,048,576 bytes |
+| 1024×1024 | 4 MB     | 4,194,304 bytes |
+| 2048×2048 | 16 MB    | 16,777,216 bytes |
+| 4096×4096 | 64 MB    | 67,108,864 bytes |
+
+For complete PixelRTS v2 documentation, see [PIXELRTS_V2.md](PIXELRTS_V2.md).
+
 ## Next Steps
 
 - Read [PLATFORM_GUIDE.md](PLATFORM_GUIDE.md) for full documentation
 - Check [stdlib.vasm](stdlib.vasm) for standard library functions
+- See [PIXELRTS_V2.md](PIXELRTS_V2.md) for PixelRTS v2 format details
 - Run `pytest tests/` for more examples
 
 ## The Philosophy
@@ -198,6 +270,8 @@ from systems.pixel_compiler.vasm import VisualAssembler
 > **The image IS the program.**
 
 PixelRTS embodies visual computing: programs are images, execution is texture sampling, and the GPU runs your pixels directly from VRAM. Welcome to the future of visual executables.
+
+PixelRTS v2 extends this philosophy with high-density visual containers that can store any binary data - kernels, OS images, WASM modules, or arbitrary files - as viewable PNG images.
 
 ---
 
