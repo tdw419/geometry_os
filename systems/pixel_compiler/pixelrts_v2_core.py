@@ -329,6 +329,44 @@ class PixelRTSEncoder:
         """Get metadata from last encode operation."""
         return getattr(self, '_last_metadata', None)
 
+    def save(
+        self,
+        data: bytes,
+        output_path: str,
+        metadata: dict = None,
+        grid_size: int = None,
+        sidecar: bool = True
+    ):
+        """
+        Encode and save to file.
+
+        Args:
+            data: Binary data to encode
+            output_path: Output PNG file path
+            metadata: Optional metadata dict (type, name, version, etc.)
+            grid_size: Explicit grid size (auto-calculated if None)
+            sidecar: Whether to save sidecar JSON metadata file
+        """
+        png_bytes = self.encode(data, metadata, grid_size)
+        metadata = self.get_metadata()
+
+        # Write PNG file
+        with open(output_path, 'wb') as f:
+            f.write(png_bytes)
+
+        # Save sidecar JSON if requested
+        if sidecar and metadata:
+            # Determine sidecar path
+            if output_path.endswith('.rts.png'):
+                sidecar_path = output_path.replace('.rts.png', '.meta.json')
+            elif output_path.endswith('.png'):
+                sidecar_path = output_path.replace('.png', '.meta.json')
+            else:
+                sidecar_path = output_path + '.meta.json'
+
+            with open(sidecar_path, 'w') as f:
+                json.dump(metadata, f, indent=2)
+
 
 class PixelRTSDecoder:
     """
@@ -440,3 +478,62 @@ class PixelRTSDecoder:
         """
         actual_hash = PixelRTSMetadata.hash_data(data)
         return actual_hash == expected_hash
+
+    def load(self, input_path: str, verify_hash: bool = False) -> bytes:
+        """
+        Load and decode PNG file.
+
+        Args:
+            input_path: Input PNG file path
+            verify_hash: Whether to verify SHA256 hash (requires sidecar metadata)
+
+        Returns:
+            Decoded binary data
+
+        Raises:
+            ValueError: If file is invalid or hash verification fails
+        """
+        with open(input_path, 'rb') as f:
+            png_data = f.read()
+
+        # Try to load sidecar metadata
+        meta_path = Path(input_path).with_suffix('.meta.json')
+        if meta_path.exists():
+            import json
+            with open(meta_path, 'r') as f:
+                self._metadata = json.load(f)
+
+        data = self.decode(png_data)
+
+        # Verify hash if requested
+        if verify_hash and self._metadata and 'data_hash' in self._metadata:
+            expected_hash = self._metadata['data_hash']
+            actual_hash = PixelRTSMetadata.hash_data(data)
+            if actual_hash != expected_hash:
+                raise ValueError(f"Hash mismatch: expected {expected_hash}, got {actual_hash}")
+
+        return data
+
+    def info(self, input_path: str) -> dict:
+        """
+        Get metadata information from PNG file and sidecar.
+
+        Args:
+            input_path: Input PNG file path
+
+        Returns:
+            Metadata dictionary
+
+        Raises:
+            ValueError: If PNG is invalid
+        """
+        # Try to load sidecar metadata first
+        meta_path = Path(input_path).with_suffix('.meta.json')
+        if meta_path.exists():
+            import json
+            with open(meta_path, 'r') as f:
+                return json.load(f)
+
+        # Fallback: extract from PNG (not fully implemented yet)
+        # For now, raise error if no sidecar
+        raise ValueError(f"No metadata found. Please provide .meta.json sidecar file.")
