@@ -84,10 +84,9 @@ Examples:
     else:
         # Try to auto-detect sidecar file
         # Handle both .rts.png and .png extensions
-        if str(input_path).endswith('.rts.png'):
-            meta_path = input_path.with_suffix('').with_suffix('.meta.json')
-        else:
-            meta_path = input_path.with_suffix('.meta.json')
+        # For .rts.png files, metadata is at .rts.png.meta.json
+        # For .png files, metadata is at .png.meta.json
+        meta_path = Path(str(input_path) + '.meta.json')
 
         if meta_path.exists():
             with open(meta_path, 'r') as f:

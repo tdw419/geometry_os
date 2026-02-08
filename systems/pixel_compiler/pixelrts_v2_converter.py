@@ -158,12 +158,19 @@ def generate_boot_script(
         else:
             kernel_cmdline = ""
 
-    # Generate boot script
+    # Generate boot script header
     script_lines = [
         "#!/bin/bash",
         "#",
         f"# PixelRTS v2 Boot Script",
         f"# Generated for: {content_name}",
+    ]
+
+    # Add version if available
+    if content_version:
+        script_lines.append(f"# Version: {content_version}")
+
+    script_lines.extend([
         f"# Architecture: {qemu_arch}",
         f"# Content Type: {content_type}",
         "#",
@@ -188,7 +195,7 @@ def generate_boot_script(
         "echo \"Memory: $QEMU_MEMORY\"",
         "echo \"CPU: $QEMU_CPU\"",
         ""
-    ]
+    ])
 
     # Add QEMU launch command based on content type
     if content_type == 'kernel':

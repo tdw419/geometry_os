@@ -529,12 +529,22 @@ class PixelRTSDecoder:
         Raises:
             ValueError: If PNG is invalid
         """
+        import json
+
         # Try to load sidecar metadata first
-        meta_path = Path(input_path).with_suffix('.meta.json')
+        # Handle both .rts.png.meta.json and .meta.json extensions
+        meta_path = Path(str(input_path) + '.meta.json')
         if meta_path.exists():
-            import json
             with open(meta_path, 'r') as f:
                 return json.load(f)
+
+        # Try alternate path (for .png files without .rts prefix)
+        input_path_obj = Path(input_path)
+        if str(input_path_obj).endswith('.png'):
+            alt_meta_path = input_path_obj.with_suffix('.meta.json')
+            if alt_meta_path.exists():
+                with open(alt_meta_path, 'r') as f:
+                    return json.load(f)
 
         # Fallback: extract from PNG (not fully implemented yet)
         # For now, raise error if no sidecar
