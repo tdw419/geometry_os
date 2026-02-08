@@ -1,0 +1,11 @@
+{
+  "spec": "pixelrts-v2",
+  "name": "PixelRTS v2 - Visual Bootable Container Format",
+  "basePath": "/home/jericho/zion/projects/geometry_os/specs/pixelrts-v2",
+  "phase": "tasks",
+  "totalTasks": 19,
+  "taskIndex": 0,
+  "created": "2026-02-08T20:00:00Z",
+  "quickMode": true,
+  "sourcePlan": "/home/jericho/zion/projects/geometry_os/docs/plans/2026-02-08-pixelrts-v2-implementation.md"
+}
