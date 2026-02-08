@@ -493,15 +493,15 @@ class PixelRTSDecoder:
         Raises:
             ValueError: If file is invalid or hash verification fails
         """
-        with open(input_path, 'rb') as f:
-            png_data = f.read()
-
-        # Try to load sidecar metadata
+        # Try to load sidecar metadata FIRST (before decode)
         meta_path = Path(input_path).with_suffix('.meta.json')
         if meta_path.exists():
             import json
             with open(meta_path, 'r') as f:
                 self._metadata = json.load(f)
+
+        with open(input_path, 'rb') as f:
+            png_data = f.read()
 
         data = self.decode(png_data)
 
