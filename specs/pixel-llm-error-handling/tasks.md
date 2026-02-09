@@ -20,7 +20,7 @@
   - **Verify**: grep -q "class PixelLMError" geometry_os/systems/pixel_llm/errors/exceptions.py
   - **Commit**: feat(pixel-llm): add custom exception classes
 
-- [ ] 1.3 Create error classifier
+- [x] 1.3 Create error classifier
   - **Do**:
     - Create `geometry_os/systems/pixel_llm/errors/classifier.py`
     - Implement ErrorClassifier class
@@ -42,7 +42,7 @@
   - **Verify**: grep -q "ERR_" geometry_os/systems/pixel_llm/errors/codes.py
   - **Commit**: feat(pixel-llm): add error code definitions
 
-- [ ] 1.5 Create errors package init
+- [x] 1.5 Create errors package init
   - **Do**: Create `geometry_os/systems/pixel_llm/errors/__init__.py` exporting all error classes
   - **Files**: geometry_os/systems/pixel_llm/errors/__init__.py
   - **Done when**: __init__.py exports all error classes
