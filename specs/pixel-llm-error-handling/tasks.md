@@ -135,7 +135,7 @@
   - **Verify**: grep -q "class ErrorMetrics" geometry_os/systems/pixel_llm/monitoring/metrics.py
   - **Commit**: feat(pixel-llm): add error metrics collector
 
-- [ ] 3.4 Create monitoring package init
+- [x] 3.4 Create monitoring package init
   - **Do**: Create `geometry_os/systems/pixel_llm/monitoring/__init__.py` exporting monitoring classes
   - **Files**: geometry_os/systems/pixel_llm/monitoring/__init__.py
   - **Done when**: __init__.py exports all monitoring classes
