@@ -1,0 +1,18 @@
+; Counter Loop Template
+; Simple loop that counts from N down to 0
+;
+; Input: R0 = N (starting count)
+; Output: R1 = N (unchanged), R2 = loop iterations
+
+LOAD R2, 0       ; Iteration counter
+
+loop:
+    ADD R2, 1    ; Increment iteration counter
+
+    ; Do work here (currently just counting)
+    ; ADD R3, R2 ; Example: accumulate
+
+    SUB R0, 1    ; Decrement counter
+    JNZ R0, loop ; Continue if not zero
+
+RET R2           ; Return iteration count
