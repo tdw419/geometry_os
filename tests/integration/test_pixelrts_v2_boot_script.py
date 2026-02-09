@@ -12,13 +12,13 @@ import json
 from pathlib import Path
 
 # Add parent directory to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../..'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "systems" / "pixel_compiler"))
 
-from systems.pixel_compiler.pixelrts_v2_core import (
+from pixelrts_v2_core import (
     PixelRTSEncoder,
     PixelRTSMetadata
 )
-from systems.pixel_compiler.pixelrts_v2_converter import (
+from pixelrts_v2_converter import (
     generate_boot_script
 )
 

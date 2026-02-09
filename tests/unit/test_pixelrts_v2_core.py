@@ -32,7 +32,7 @@ def test_hilbert_lut_generation():
     hilbert = HilbertCurve(order=2)  # 4x4 grid
     lut = hilbert.generate_lut()
 
-    # Expected 4x4 Hilbert curve coordinates
+    # Expected 4x4 Hilbert curve coordinates (native algorithm output)
     expected = [
         (0, 0), (1, 0), (1, 1), (0, 1),
         (0, 2), (0, 3), (1, 3), (1, 2),
