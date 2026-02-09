@@ -83,6 +83,41 @@
   - **Verify**: grep -q "example_1_quick_caption\|example_2_integrator_basic" systems/pixel_llm/compositor/example.py
   - **Commit**: feat(pixel-llm): add compositor integration examples
 
+## Phase 6: Documentation
+
+- [x] 6.1 Create webcam demo documentation
+  - **Do**:
+    - Create `systems/pixel_llm/docs/webcam_demo_guide.md` with comprehensive webcam demo guide
+    - Include installation instructions, usage examples, troubleshooting
+    - Document command-line options and programmatic usage
+    - Add performance tuning tips
+  - **Files**: systems/pixel_llm/docs/webcam_demo_guide.md
+  - **Done when**: webcam_demo_guide.md exists with complete documentation
+  - **Verify**: grep -q "Webcam Demo Guide" systems/pixel_llm/docs/webcam_demo_guide.md
+  - **Commit**: docs(pixel-llm): add webcam demo documentation
+
+- [x] 6.2 Create compositor integration guide
+  - **Do**:
+    - Create `systems/pixel_llm/docs/compositor_integration_guide.md` with integration guide
+    - Document quick_caption function and CompositorIntegrator class
+    - Include configuration options, encoder types, and usage patterns
+    - Add examples for real-time captioning, batch processing, and API endpoints
+  - **Files**: systems/pixel_llm/docs/compositor_integration_guide.md
+  - **Done when**: compositor_integration_guide.md exists with complete documentation
+  - **Verify**: grep -q "Compositor Integration Guide" systems/pixel_llm/docs/compositor_integration_guide.md
+  - **Commit**: docs(pixel-llm): add compositor integration documentation
+
+- [x] 6.3 Create custom training guide
+  - **Do**:
+    - Create `systems/pixel_llm/docs/custom_training_guide.md` with training guide
+    - Document dataset preparation (text and JSON formats)
+    - Include training loop examples, checkpoint management, and best practices
+    - Add complete training script example
+  - **Files**: systems/pixel_llm/docs/custom_training_guide.md
+  - **Done when**: custom_training_guide.md exists with complete documentation
+  - **Verify**: grep -q "Custom Training Guide" systems/pixel_llm/docs/custom_training_guide.md
+  - **Commit**: docs(pixel-llm): add custom training documentation
+
 ## Phase 7: Verification
 
 - [x] 7.1 [VERIFY] End-to-end webcam demo
