@@ -313,16 +313,22 @@ class PixelRTSEncoder:
         full_metadata["data_hash"] = PixelRTSMetadata.hash_data(data)
         full_metadata["data_size"] = data_len
 
-        # Save to BytesIO with metadata
+        # Save PNG with embedded tEXt metadata
+        from PIL import PngImagePlugin
+
         buffer = BytesIO()
 
-        # PNG doesn't natively support tEXt chunks in PIL's save method
-        # We'll save without metadata and return it separately for now
-        # For full implementation, we'd use pngtext or manual chunk insertion
-        image.save(buffer, format='PNG')
+        # Create PNG tEXt chunk with metadata
+        metadata_text = PixelRTSMetadata.encode_png_text(full_metadata).decode("utf-8")
+
+        # Use PIL's text parameter to embed tEXt chunk
+        pnginfo = PngImagePlugin.PngInfo()
+        pnginfo.add_text("PixelRTS", metadata_text)
+
+        image.save(buffer, format='PNG', pnginfo=pnginfo)
         png_bytes = buffer.getvalue()
 
-        # Store metadata as sidecar (caller can save to .meta.json)
+        # Store metadata for sidecar
         self._last_metadata = full_metadata
 
         return png_bytes

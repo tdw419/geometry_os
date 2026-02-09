@@ -6,11 +6,13 @@ Tests round-trip encoding and decoding with various data sizes.
 import pytest
 import os
 import sys
+from pathlib import Path
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
+# Add systems/pixel_compiler to path for imports
+pixel_compiler_path = Path(__file__).parent.parent.parent / "systems" / "pixel_compiler"
+sys.path.insert(0, str(pixel_compiler_path))
 
-from geometry_os.systems.pixel_compiler.pixelrts_v2_core import (
+from pixelrts_v2_core import (
     PixelRTSEncoder,
     PixelRTSDecoder,
     PixelRTSMetadata,
@@ -368,3 +370,46 @@ def test_encoding_preserves_byte_exactness():
     assert len(decoded_data) == 256
     for i in range(256):
         assert decoded_data[i] == i
+
+
+def test_png_text_metadata_embedded():
+    """Test that metadata is embedded in PNG tEXt chunks."""
+    from PIL import Image
+    from io import BytesIO
+    import struct
+
+    encoder = PixelRTSEncoder(mode="standard")
+    data = b"Test data for metadata embedding"
+    metadata = {"type": "kernel", "name": "test-kernel"}
+
+    png_bytes = encoder.encode(data, metadata=metadata)
+
+    # Parse PNG chunks manually to find tEXt
+    buffer = BytesIO(png_bytes)
+    buffer.seek(0)
+    png_data = buffer.read()
+
+    # Skip PNG signature (8 bytes)
+    pos = 8
+
+    found_pixelrts_text = False
+    while pos < len(png_data):
+        # Read chunk length (4 bytes)
+        chunk_length = struct.unpack(">I", png_data[pos:pos+4])[0]
+        pos += 4
+
+        # Read chunk type (4 bytes)
+        chunk_type = png_data[pos:pos+4].decode("ascii")
+        pos += 4
+
+        if chunk_type == "tEXt":
+            # Read chunk data
+            chunk_data = png_data[pos:pos+chunk_length]
+            if b"PixelRTS" in chunk_data:
+                found_pixelrts_text = True
+                break
+
+        # Skip to next chunk (data + CRC)
+        pos += chunk_length + 4  # +4 for CRC
+
+    assert found_pixelrts_text, "No PixelRTS tEXt chunk found in PNG"
