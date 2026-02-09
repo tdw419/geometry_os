@@ -90,7 +90,8 @@ class PixelRTSVisionAnalyzer:
         """
         # Try sidecar JSON first
         # Check for .rts.png.meta.json pattern
-        meta_path = Path(self.rts_path + ".meta.json")
+        rts_path_obj = Path(self.rts_path)
+        meta_path = Path(str(rts_path_obj) + ".meta.json")
 
         if not meta_path.exists():
             # Try .meta.json without .rts prefix

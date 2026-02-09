@@ -14,7 +14,7 @@ from PIL import Image
 import io
 import base64
 
-from systems.pixel_compiler.pixelrts_vision_analyzer import PixelRTSVisionAnalyzer
+from pixelrts_vision_analyzer import PixelRTSVisionAnalyzer
 
 
 # Helper function to create test RTS PNG files
