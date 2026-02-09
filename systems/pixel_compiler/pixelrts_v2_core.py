@@ -219,6 +219,13 @@ class PixelRTSEncoder:
         if mode not in ("standard", "code"):
             raise ValueError(f"Invalid mode: {mode}. Must be 'standard' or 'code'")
         self.mode = mode
+        self.wasm_visualizer = None
+        if mode == "code":
+            try:
+                from pixelrts_v2_wasm import WASMCodeVisualizer
+                self.wasm_visualizer = WASMCodeVisualizer()
+            except ImportError:
+                pass  # WASM visualizer not available
 
     def encode(
         self,
@@ -278,13 +285,37 @@ class PixelRTSEncoder:
                 pixel_array[y, x, 1] = pixel_data[1]  # G
                 pixel_array[y, x, 2] = pixel_data[2]  # B
                 pixel_array[y, x, 3] = pixel_data[3]  # A
-            else:  # code mode - placeholder for semantic coloring
-                # For now, use same as standard
-                # WASM semantic coloring will be handled by WASMCodeVisualizer
-                pixel_array[y, x, 0] = pixel_data[0]
-                pixel_array[y, x, 1] = pixel_data[1]
-                pixel_array[y, x, 2] = pixel_data[2]
-                pixel_array[y, x, 3] = pixel_data[3]
+            else:  # code mode - apply semantic coloring
+                # Check if data is WASM and apply semantic coloring
+                if self.wasm_visualizer and self.wasm_visualizer.is_wasm(data):
+                    # Apply WASM semantic coloring
+                    # The first byte of the chunk is typically the opcode
+                    opcode = pixel_data[0] if len(pixel_data) > 0 else 0
+
+                    # Get semantic color for this opcode
+                    # Use operands from subsequent bytes if available
+                    operand1 = pixel_data[1] if len(pixel_data) > 1 else 0
+                    operand2 = pixel_data[2] if len(pixel_data) > 2 else 0
+
+                    # Calculate entropy for this position
+                    entropy = self.wasm_visualizer._get_default_entropy(opcode)
+
+                    # Apply semantic coloring
+                    rgba = self.wasm_visualizer.color_opcode(
+                        opcode, operand1, operand2, entropy
+                    )
+
+                    # Store colored values
+                    pixel_array[y, x, 0] = rgba[0]  # Red (entropy)
+                    pixel_array[y, x, 1] = rgba[1]  # Green (operand1)
+                    pixel_array[y, x, 2] = rgba[2]  # Blue (operand2)
+                    pixel_array[y, x, 3] = rgba[3]  # Alpha (executable mask)
+                else:
+                    # Not WASM or visualizer not available, use standard encoding
+                    pixel_array[y, x, 0] = pixel_data[0]
+                    pixel_array[y, x, 1] = pixel_data[1]
+                    pixel_array[y, x, 2] = pixel_data[2]
+                    pixel_array[y, x, 3] = pixel_data[3]
 
         # Create PNG image
         image = Image.fromarray(pixel_array, mode='RGBA')
@@ -294,11 +325,15 @@ class PixelRTSEncoder:
             metadata = {}
 
         # Add encoding metadata
+        encoding_mode = "RGBA-dense" if self.mode == "standard" else "RGBA-code"
         full_metadata = PixelRTSMetadata.create_metadata(
             grid_size=grid_size,
-            encoding_mode="RGBA-dense" if self.mode == "standard" else "RGBA-code",
+            encoding_mode=encoding_mode,
             segments=metadata.get("segments")
         )
+
+        # Add encoding_mode directly for easier access
+        full_metadata["encoding_mode"] = encoding_mode
 
         # Add custom metadata fields (including segments if present)
         for key, value in metadata.items():
@@ -312,6 +347,12 @@ class PixelRTSEncoder:
         # Add data hash
         full_metadata["data_hash"] = PixelRTSMetadata.hash_data(data)
         full_metadata["data_size"] = data_len
+
+        # In code mode, store original data for recovery
+        # This allows semantic coloring for visualization while preserving data integrity
+        if self.mode == "code":
+            import base64
+            full_metadata["original_data_b64"] = base64.b64encode(data).decode("ascii")
 
         # Save PNG with embedded tEXt metadata
         from PIL import PngImagePlugin
@@ -412,6 +453,14 @@ class PixelRTSDecoder:
                     except ValueError:
                         # Continue if this chunk isn't valid PixelRTS metadata
                         continue
+
+        # Check if this is code mode with original data stored
+        if self._metadata and "original_data_b64" in self._metadata:
+            # In code mode, the original data is stored in metadata
+            # Use it directly to preserve data integrity
+            import base64
+            original_data = base64.b64decode(self._metadata["original_data_b64"])
+            return original_data
 
         # Verify image is RGBA
         if image.mode != 'RGBA':

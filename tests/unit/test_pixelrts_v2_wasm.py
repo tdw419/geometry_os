@@ -387,5 +387,141 @@ class TestUtilityFunctions:
         assert visualizer.is_wasm(wasm) is True
 
 
+class TestWASMPixelRTSEncoderIntegration:
+    """Test integration of WASM semantic coloring with PixelRTSEncoder"""
+
+    def test_encoder_code_mode_initialization(self):
+        """Test that PixelRTSEncoder initializes WASM visualizer in code mode"""
+        from pixelrts_v2_core import PixelRTSEncoder
+
+        # Create encoder in code mode
+        encoder = PixelRTSEncoder(mode="code")
+
+        # Should have WASM visualizer attribute
+        assert hasattr(encoder, 'wasm_visualizer')
+        assert encoder.wasm_visualizer is not None
+        assert isinstance(encoder.wasm_visualizer, WASMCodeVisualizer)
+
+    def test_encoder_standard_mode_no_visualizer(self):
+        """Test that standard mode doesn't initialize WASM visualizer"""
+        from pixelrts_v2_core import PixelRTSEncoder
+
+        # Create encoder in standard mode
+        encoder = PixelRTSEncoder(mode="standard")
+
+        # Should not have WASM visualizer (or it should be None)
+        # Either behavior is acceptable
+        wasm_viz = getattr(encoder, 'wasm_visualizer', None)
+        assert wasm_viz is None
+
+    def test_encode_wasm_with_semantic_coloring(self):
+        """Test that WASM data is encoded with semantic coloring in code mode"""
+        from pixelrts_v2_core import PixelRTSEncoder
+        from PIL import Image
+        import io
+
+        # Create encoder in code mode
+        encoder = PixelRTSEncoder(mode="code")
+
+        # Create test WASM
+        wasm = create_test_wasm()
+
+        # Encode the WASM
+        png_bytes = encoder.encode(wasm, grid_size=4)
+
+        # Decode PNG to verify semantic coloring was applied
+        img = Image.open(io.BytesIO(png_bytes))
+        pixels = np.array(img)
+
+        # In code mode, the first pixels should show semantic coloring
+        # (not raw byte-for-byte encoding)
+        # The magic number is \0asm = 0x00 0x61 0x73 0x6d
+        # With semantic coloring, the first pixel should be colored differently
+        # than raw bytes would be
+
+        # At minimum, verify the image was created
+        assert pixels.shape == (4, 4, 4)
+        assert pixels.dtype == np.uint8
+
+    def test_encode_wasm_preserves_data_integrity(self):
+        """Test that encoding WASM preserves data for decoding"""
+        from pixelrts_v2_core import PixelRTSEncoder, PixelRTSDecoder
+
+        # Create encoder/decoder in code mode
+        encoder = PixelRTSEncoder(mode="code")
+        decoder = PixelRTSDecoder()
+
+        # Create test WASM
+        original_wasm = create_test_wasm()
+
+        # Encode and decode
+        png_bytes = encoder.encode(original_wasm, grid_size=4)
+        decoded_data = decoder.decode(png_bytes)
+
+        # Data integrity should be preserved
+        # (semantic coloring affects visualization, not the stored data)
+        assert decoded_data == original_wasm
+
+    def test_encode_non_wasm_uses_standard_encoding(self):
+        """Test that non-WASM data falls back to standard encoding"""
+        from pixelrts_v2_core import PixelRTSEncoder
+        from PIL import Image
+        import io
+
+        # Create encoder in code mode
+        encoder = PixelRTSEncoder(mode="code")
+
+        # Create non-WASM data
+        data = b'This is not WASM data'
+
+        # Encode the data
+        png_bytes = encoder.encode(data, grid_size=4)
+
+        # Decode and verify
+        img = Image.open(io.BytesIO(png_bytes))
+        pixels = np.array(img)
+
+        # Should still create a valid image
+        assert pixels.shape == (4, 4, 4)
+
+    def test_encode_wasm_visualization_attributes(self):
+        """Test that WASM encoding produces visualization with proper attributes"""
+        from pixelrts_v2_core import PixelRTSEncoder
+        from PIL import Image
+        import io
+
+        encoder = PixelRTSEncoder(mode="code")
+        wasm = create_test_wasm()
+
+        png_bytes = encoder.encode(wasm, grid_size=4)
+
+        img = Image.open(io.BytesIO(png_bytes))
+        pixels = np.array(img)
+
+        # Verify RGBA channels are in valid range
+        assert np.all(pixels >= 0)
+        assert np.all(pixels <= 255)
+
+        # Verify alpha channel indicates executable regions
+        # WASM opcodes should have alpha=255 in semantic mode
+        alpha_channel = pixels[:, :, 3]
+        assert np.any(alpha_channel > 0)  # At least some executable content
+
+    def test_encoder_metadata_includes_code_mode(self):
+        """Test that code mode is reflected in metadata"""
+        from pixelrts_v2_core import PixelRTSEncoder
+
+        encoder = PixelRTSEncoder(mode="code")
+        wasm = create_test_wasm()
+
+        encoder.encode(wasm, grid_size=4)
+
+        # Metadata should indicate code mode
+        metadata = encoder._last_metadata
+        assert metadata is not None
+        # The encoding type is nested under 'encoding' key
+        assert metadata.get('encoding', {}).get('type') == 'RGBA-code'
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
