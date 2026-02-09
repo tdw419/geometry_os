@@ -10,7 +10,11 @@ import json
 import hashlib
 import tempfile
 import subprocess
+import sys
 from pathlib import Path
+
+# Add pixel_compiler to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "systems" / "pixel_compiler"))
 
 # Test data
 TEST_DATA = b"PixelRTS v2 integration test data! This is a test cartridge."
@@ -19,7 +23,7 @@ TEST_DATA = b"PixelRTS v2 integration test data! This is a test cartridge."
 def test_register_pixelrts_v2_cartridge(tmp_path):
     """Test registering a PixelRTS v2 cartridge in the RTS registry."""
     # Create a test .rts.png file using the converter
-    from geometry_os.systems.pixel_compiler.pixelrts_v2_core import (
+    from pixelrts_v2_core import (
         PixelRTSMetadata,
         calculate_grid_size
     )

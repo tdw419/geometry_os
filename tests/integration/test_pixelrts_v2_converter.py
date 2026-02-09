@@ -12,19 +12,19 @@ from pathlib import Path
 import pytest
 
 # Add pixel_compiler to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "geometry_os" / "systems" / "pixel_compiler"))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "systems" / "pixel_compiler"))
 
 
 @pytest.fixture
 def converter_script():
     """Get path to converter script."""
-    return Path(__file__).parent.parent.parent / "geometry_os" / "systems" / "pixel_compiler" / "pixelrts_v2_converter.py"
+    return Path(__file__).parent.parent.parent / "systems" / "pixel_compiler" / "pixelrts_v2_converter.py"
 
 
 @pytest.fixture
 def test_data_dir():
     """Get path to test data directory."""
-    return Path(__file__).parent.parent / "data" / "test_binary"
+    return Path(__file__).parent.parent.parent / "tests" / "data" / "test_binary"
 
 
 class TestConverterCLI:
