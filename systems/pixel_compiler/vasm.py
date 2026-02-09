@@ -691,30 +691,91 @@ Examples:
         parser.print_help()
         sys.exit(1)
 
-    # Watch mode, verify mode, stats mode, normal compile
-    # (These are stubs for now - full implementation in Task 1)
+    # Watch mode
     if args.watch:
-        print_info("Watch mode not yet implemented")
-        sys.exit(1)
+        watch_file(args.input, args.output, args.mode)
+        return
 
+    # Verify mode
     if args.verify:
-        print_info("Verify mode not yet implemented")
-        sys.exit(1)
+        try:
+            from .vdisasm import VisualDisassembler
+        except ImportError:
+            from vdisasm import VisualDisassembler
 
+        # Compile
+        print_info(f"Compiling {args.input}...")
+        if not compile_file(args.input, args.output, args.mode):
+            sys.exit(1)
+
+        # Disassemble
+        print_info(f"Verifying round-trip...")
+        disasm = VisualDisassembler()
+        source_after = disasm.disassemble_file(str(Path(args.output)))
+
+        # Read original
+        with open(args.input, 'r') as f:
+            source_before = f.read()
+
+        # Compare (normalize whitespace)
+        def normalize(s):
+            return '\n'.join(line.strip() for line in s.strip().split('\n') if line.strip())
+
+        if normalize(source_before) == normalize(source_after):
+            print_success("PASS Round-trip verification PASSED")
+            sys.exit(0)
+        else:
+            print_error("FAIL Round-trip verification FAILED")
+            print_warning("Original and disassembled code differ")
+            print_info(f"Original:\n{source_before[:200]}...")
+            print_info(f"After:\n{source_after[:200]}...")
+            sys.exit(1)
+
+    # Stats mode
     if args.stats:
-        print_info("Stats mode not yet implemented")
-        sys.exit(1)
+        from collections import Counter
+
+        # Read and compile
+        with open(args.input, 'r') as f:
+            source = f.read()
+
+        assembler = VisualAssembler()
+        assembler.compile(source)
+
+        # Count opcodes
+        opcodes = {}
+        for inst in assembler.instructions:
+            opcode_name = None
+            for name, code in assembler.opcodes.items():
+                if code == inst.opcode:
+                    opcode_name = name
+                    break
+            if opcode_name:
+                opcodes[opcode_name] = opcodes.get(opcode_name, 0) + 1
+
+        print_info(f"Statistics for {args.input}:")
+        print(f"  Total instructions: {len(assembler.instructions)}")
+        print(f"  Unique opcodes: {len(opcodes)}")
+        print(f"  Labels: {len(assembler.labels)}")
+        print()
+        print("  Instruction distribution:")
+        for opcode, count in sorted(opcodes.items(), key=lambda x: -x[1]):
+            pct = count / len(assembler.instructions) * 100
+            print(f"    {opcode:6s}: {count:4d} ({pct:5.1f}%)")
+
+        # Compile to show output size
+        pixels = assembler.encode_to_pixels(args.mode)
+        h, w = pixels.shape[:2]
+        print()
+        print(f"  Output size: {w}x{h} pixels")
+        print(f"  Capacity: {w*h} instructions")
+        print(f"  Utilization: {len(assembler.instructions)/(w*h)*100:.1f}%")
+
+        return
 
     # Normal compile
-    with open(args.input, 'r') as f:
-        source = f.read()
-
-    assembler = VisualAssembler()
-    assembler.compile(source)
-
-    output_path = args.output if args.output else str(Path(args.input).with_suffix('.rts.png'))
-    assembler.save_png(output_path, args.mode)
-    print_success(f"Compiled {args.input} -> {output_path}")
+    success = compile_file(args.input, args.output, args.mode)
+    sys.exit(0 if success else 1)
 
 
 if __name__ == "__main__":
