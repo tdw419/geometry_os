@@ -29,7 +29,7 @@ Example (Advanced Module):
 
 import torch
 import torch.nn as nn
-from typing import Optional, List, Dict, Tuple, Union
+from typing import Optional, List, Dict, Tuple, Union, Any
 import requests
 from pathlib import Path
 import importlib.util
