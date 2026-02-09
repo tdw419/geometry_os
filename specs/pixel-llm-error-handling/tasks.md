@@ -9,7 +9,7 @@
   - **Verify**: ls -la geometry_os/systems/pixel_llm/errors/
   - **Commit**: chore(pixel-llm): create errors module directory
 
-- [ ] 1.2 Create custom exception classes
+- [x] 1.2 Create custom exception classes
   - **Do**:
     - Create `geometry_os/systems/pixel_llm/errors/exceptions.py`
     - Define PixelLMError base class
@@ -31,7 +31,7 @@
   - **Verify**: grep -q "class ErrorClassifier" geometry_os/systems/pixel_llm/errors/classifier.py
   - **Commit**: feat(pixel-llm): add error classifier
 
-- [ ] 1.4 Create error codes
+- [x] 1.4 Create error codes
   - **Do**:
     - Create `geometry_os/systems/pixel_llm/errors/codes.py`
     - Define error code constants
