@@ -10,8 +10,34 @@ from systems.pixel_compiler.ml.autoencoder import (
     PatternAutoencoder,
 )
 
+from .cnn_classifier import (
+    CnnBinaryClassifier,
+    ClassificationResult,
+    create_classifier,
+    list_available_models as list_cnn_models,
+)
+
+from .models import (
+    ModelType,
+    ModelConfig,
+    get_model_config,
+    get_input_size,
+    get_feature_dim,
+)
+
 __all__ = [
+    # Autoencoder
     "AnomalyResult",
     "ConvAutoencoder",
     "PatternAutoencoder",
+    # CNN Classifier
+    "CnnBinaryClassifier",
+    "ClassificationResult",
+    "create_classifier",
+    "list_cnn_models",
+    "ModelType",
+    "ModelConfig",
+    "get_model_config",
+    "get_input_size",
+    "get_feature_dim",
 ]
