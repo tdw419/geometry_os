@@ -369,7 +369,84 @@ Examples:
         help='Enable verbose output'
     )
 
+    parser.add_argument(
+        '--parallel',
+        action='store_true',
+        help='Enable parallel batch processing mode'
+    )
+
+    parser.add_argument(
+        '--workers',
+        type=int,
+        default=None,
+        metavar='N',
+        help='Number of worker processes for parallel mode (default: CPU count)'
+    )
+
+    parser.add_argument(
+        '--mmap-threshold',
+        type=int,
+        default=100,
+        metavar='MB',
+        help='File size threshold for memory mapping in MB (default: 100)'
+    )
+
     args = parser.parse_args()
+
+    # Handle parallel batch processing mode
+    if args.parallel:
+        from pixelrts_parallel import ParallelPixelRTSEncoder
+
+        input_path = Path(args.input)
+        output_path = Path(args.output)
+
+        # Check if input is a directory or file
+        if input_path.is_dir():
+            # Batch encode directory
+            print(f"Parallel batch encoding directory: {input_path}")
+            print(f"Output directory: {output_path}")
+            print(f"Workers: {args.workers or 'auto'}")
+            print(f"MMap threshold: {args.mmap_threshold} MB")
+
+            encoder = ParallelPixelRTSEncoder(
+                workers=args.workers,
+                mode=args.mode,
+                mmap_threshold=args.mmap_threshold * 1024 * 1024  # Convert MB to bytes
+            )
+
+            results = encoder.encode_directory(
+                input_dir=input_path,
+                output_dir=output_path,
+                pattern="*",
+                recursive=False
+            )
+
+            # Print summary
+            success_count = sum(1 for r in results if r['success'])
+            fail_count = len(results) - success_count
+
+            print(f"\nEncoding complete:")
+            print(f"  Total: {len(results)} files")
+            print(f"  Success: {success_count}")
+            print(f"  Failed: {fail_count}")
+
+            if fail_count > 0:
+                print("\nFailed files:")
+                for r in results:
+                    if not r['success']:
+                        print(f"  {r['input_path']}: {r['error']}")
+
+            return 0 if fail_count == 0 else 1
+
+        elif input_path.is_file():
+            # Single file - could use parallel or fall through to standard
+            # For now, fall through to standard mode for single file
+            if args.verbose:
+                print("Note: Parallel mode with single file - using standard encoding")
+            # Continue with standard processing below
+        else:
+            print(f"Error: Input path not found: {args.input}", file=sys.stderr)
+            return 1
 
     # Validate input file exists
     input_path = Path(args.input)
