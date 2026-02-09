@@ -72,11 +72,19 @@ class VisionModelClient:
         Returns:
             Structured prompt string
         """
+        # Include all metadata in the prompt
+        metadata_lines = []
+        for key, value in metadata.items():
+            metadata_lines.append(f"{key}: {value}")
+
+        metadata_str = "\n".join(metadata_lines) if metadata_lines else "No metadata available"
+
         prompt = f"""Analyze this PixelRTS v2 visual artifact.
 
 Artifact Type: {artifact_type}
-Format: {metadata.get('format', 'Unknown')}
-Source: {metadata.get('source_file', 'Unknown')}
+
+Metadata:
+{metadata_str}
 
 Please identify:
 1. Structural patterns (repeated blocks, sections, regions)
@@ -183,9 +191,19 @@ coordinates (top-left is 0,0).
     def _call_openai_compatible_api(
         self,
         messages: List[Dict[str, Any]],
-        max_tokens: int
+        max_tokens: int = 2048,
+        image_b64: Optional[str] = None
     ) -> Optional[str]:
-        """Call OpenAI-compatible API (LM Studio, OpenAI)."""
+        """Call OpenAI-compatible API (LM Studio, OpenAI).
+
+        Args:
+            messages: Formatted messages list
+            max_tokens: Maximum tokens in response (default 2048)
+            image_b64: Optional base64 image (for compatibility, already in messages)
+
+        Returns:
+            Model's text response, or None if failed
+        """
         url = f"{self.base_url}/chat/completions"
 
         headers = {"Content-Type": "application/json"}
@@ -214,9 +232,19 @@ coordinates (top-left is 0,0).
     def _call_anthropic_api(
         self,
         messages: List[Dict[str, Any]],
-        max_tokens: int
+        max_tokens: int = 2048,
+        image_b64: Optional[str] = None
     ) -> Optional[str]:
-        """Call Anthropic Claude API."""
+        """Call Anthropic Claude API.
+
+        Args:
+            messages: Formatted messages list
+            max_tokens: Maximum tokens in response (default 2048)
+            image_b64: Optional base64 image (for compatibility, already in messages)
+
+        Returns:
+            Model's text response, or None if failed
+        """
         url = f"{self.base_url}/messages"
 
         headers = {
@@ -237,8 +265,15 @@ coordinates (top-left is 0,0).
             if response.status_code == 200:
                 data = response.json()
                 # Anthropic returns content as an array of blocks
-                text_blocks = [block["text"] for block in data["content"] if block["type"] == "text"]
-                return "\n".join(text_blocks)
+                text_blocks = []
+                for block in data.get("content", []):
+                    # Handle both formats: with and without "type" field
+                    if isinstance(block, dict):
+                        if "text" in block:
+                            text_blocks.append(block["text"])
+                        elif block.get("type") == "text" and "text" in block:
+                            text_blocks.append(block["text"])
+                return "\n".join(text_blocks) if text_blocks else None
             else:
                 print(f"API error {response.status_code}: {response.text}")
                 return None
