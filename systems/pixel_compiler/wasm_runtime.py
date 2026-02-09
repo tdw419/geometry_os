@@ -5,6 +5,7 @@ import struct
 
 from .wasm_extractor import WASMExtractor
 from .wasm_gpu_bridge import WASMGPUBridge, ExecutionResult
+from .wasm_tracer import WasmTracer, TraceLevel
 
 if TYPE_CHECKING:
     from .wasm_debugger import WasmDebugger
@@ -23,6 +24,7 @@ class WASMRuntime:
         self._loaded_path: Optional[str] = None
         self._debugger: Optional['WasmDebugger'] = None
         self.last_memory_dump: Optional[bytes] = None
+        self.tracer = WasmTracer(level=TraceLevel.NONE)
         
     @classmethod
     def from_png(cls, rts_png_path: str, shader_path: Optional[str] = None) -> 'WASMRuntime':
@@ -160,4 +162,22 @@ class WASMRuntime:
     def get_loaded_path(self) -> Optional[str]:
         """Get the path of the currently loaded file"""
         return self._loaded_path
+
+    def set_trace_level(self, level: TraceLevel):
+        """Set execution trace verbosity level"""
+        self.tracer.set_level(level)
+        # Also enable bridge tracing if level > NONE
+        self.bridge.trace_enabled = (level.value > TraceLevel.NONE.value)
+
+    def get_trace_statistics(self) -> dict:
+        """Get trace execution statistics"""
+        return self.tracer.get_statistics()
+
+    def export_trace(self) -> str:
+        """Export trace as JSON string"""
+        return self.tracer.export_json()
+
+    def clear_trace(self):
+        """Clear all trace events"""
+        self.tracer.clear()
 
