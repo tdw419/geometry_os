@@ -23,7 +23,13 @@ from .models import (
     get_model_config,
     get_input_size,
     get_feature_dim,
+    list_available_models as _list_models,
 )
+
+# Combine list functions
+def list_available_models():
+    """List all available model architectures."""
+    return _list_models()
 
 __all__ = [
     # Autoencoder
@@ -34,7 +40,7 @@ __all__ = [
     "CnnBinaryClassifier",
     "ClassificationResult",
     "create_classifier",
-    "list_cnn_models",
+    "list_available_models",
     "ModelType",
     "ModelConfig",
     "get_model_config",
