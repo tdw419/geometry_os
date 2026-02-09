@@ -8,8 +8,13 @@ import pytest
 import numpy as np
 import json
 import tempfile
+import sys
 from pathlib import Path
-from systems.pixel_compiler.trace_viewer import TraceEntry, TraceVisualizer
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from trace_viewer import TraceEntry, TraceVisualizer
 
 
 class TestTraceEntry:

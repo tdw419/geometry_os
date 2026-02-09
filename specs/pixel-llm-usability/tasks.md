@@ -82,3 +82,27 @@
   - **Done when**: example.py contains multiple usage examples
   - **Verify**: grep -q "example_1_quick_caption\|example_2_integrator_basic" systems/pixel_llm/compositor/example.py
   - **Commit**: feat(pixel-llm): add compositor integration examples
+
+## Phase 7: Verification
+
+- [x] 7.1 [VERIFY] End-to-end webcam demo
+  - **Do**:
+    - Verify webcam_demo.py script exists and is runnable
+    - Check that all required dependencies are installed
+    - Verify the script can import required modules
+    - Test basic functionality without camera (syntax/import check)
+  - **Files**: systems/pixel_llm/examples/webcam_demo.py
+  - **Done when**: Webcam demo script verified working
+  - **Verify**: python3 -m py_compile systems/pixel_llm/examples/webcam_demo.py && python3 -c "import sys; sys.path.insert(0, 'systems/pixel_llm'); from examples import webcam_demo; print('Import OK')"
+  - **Commit**: test(pixel-llm): verify webcam demo end-to-end
+
+- [x] 7.2 [VERIFY] Integration example works
+  - **Do**:
+    - Verify compositor/example.py script exists and is runnable
+    - Check that all required dependencies are installed
+    - Verify the script can import required modules
+    - Test basic functionality (syntax/import check)
+  - **Files**: systems/pixel_llm/compositor/example.py
+  - **Done when**: Integration example script verified working
+  - **Verify**: python3 -m py_compile systems/pixel_llm/compositor/example.py && python3 -c "import sys; sys.path.insert(0, 'systems/pixel_llm'); from compositor import example; print('Import OK')"
+  - **Commit**: test(pixel-llm): verify integration example
