@@ -12,21 +12,57 @@ Phase 3 adds significant performance improvements to PixelRTS v2:
 
 ## Quick Start
 
-### Basic Usage
+### Unified CLI
+
+The unified `pixelrts_cli` provides access to all PixelRTS v2 features:
 
 ```bash
-# Convert a single file (standard mode)
-python -m pixel_compiler.pixelrts_v2_converter kernel.bin kernel.rts.png
+# Convert a single file
+python3 -m systems.pixel_compiler.pixelrts_cli convert kernel.bin kernel.rts.png
 
-# Convert with memory mapping for large files
-python -c "
-from pixel_compiler.pixelrts_mmap import MMapPixelRTSEncoder
-encoder = MMapPixelRTSEncoder()
-encoder.encode_file('large_file.bin', 'output.rts.png')
-"
+# Convert with parallel processing
+python3 -m systems.pixel_compiler.pixelrts_cli convert ./binaries ./output --parallel --workers 4
 
 # Run performance benchmarks
-python -m pixel_compiler.benchmark_pixelrts --sizes 1048576 10485760
+python3 -m systems.pixel_compiler.pixelrts_cli benchmark --sizes 1048576 10485760
+
+# Generate performance dashboard
+python3 -m systems.pixel_compiler.pixelrts_cli dashboard --output dashboard.html
+
+# Get file information
+python3 -m systems.pixel_compiler.pixelrts_cli info kernel.rts.png
+```
+
+### Python API Quick Start
+
+```python
+# Standard encoding
+from systems.pixel_compiler.pixelrts_v2_core import PixelRTSEncoder
+
+encoder = PixelRTSEncoder(mode="standard")
+with open('kernel.bin', 'rb') as f:
+    data = f.read()
+encoder.save(data, 'kernel.rts.png', metadata={'type': 'kernel'})
+
+# Parallel batch encoding
+from systems.pixel_compiler.pixelrts_parallel import ParallelPixelRTSEncoder
+
+encoder = ParallelPixelRTSEncoder(workers=8, mode="standard")
+results = encoder.encode_directory(
+    input_dir="./binaries",
+    output_dir="./rts_output",
+    pattern="*.bin"
+)
+
+# Memory-mapped encoding for large files
+from systems.pixel_compiler.pixelrts_mmap import MMapPixelRTSEncoder
+
+encoder = MMapPixelRTSEncoder(mode="standard")
+encoder.encode_file(
+    'huge_file.bin',
+    'huge.rts.png',
+    metadata={'name': 'Huge File', 'version': '1.0'}
+)
 ```
 
 ### Python API Quick Start
@@ -63,7 +99,69 @@ decoder.decode_file(
 
 ## Performance Features
 
-### 1. Memory-Mapped Files (MMapPixelRTSEncoder)
+### 1. Parallel Batch Processing (ParallelPixelRTSEncoder)
+
+Encode multiple files simultaneously using multiprocessing for near-linear speedup on multi-core systems.
+
+```python
+from systems.pixel_compiler.pixelrts_parallel import ParallelPixelRTSEncoder
+
+# Create encoder with 8 workers
+encoder = ParallelPixelRTSEncoder(
+    workers=8,                 # Number of worker processes
+    mode="standard",           # Encoding mode
+    use_mmap=True,            # Use memory mapping for large files
+    mmap_threshold=100*1024*1024  # MMap threshold (100MB)
+)
+
+# Encode directory of files
+results = encoder.encode_directory(
+    input_dir="./binaries",
+    output_dir="./rts_output",
+    pattern="*.bin",
+    recursive=False
+)
+
+# Print summary
+success = sum(1 for r in results if r['success'])
+print(f"Converted {success}/{len(results)} files")
+
+for result in results:
+    if result['success']:
+        print(f"  {result['input_path']} -> {result['output_path']}")
+    else:
+        print(f"  ERROR: {result['input_path']}: {result['error']}")
+
+# Encode specific files with progress callback
+def progress_callback(current, total, filename):
+    percent = (current / total) * 100
+    print(f"[{percent:.0f}%] Processing {filename}...")
+
+results = encoder.encode_batch(
+    input_files=["file1.bin", "file2.bin", "file3.bin"],
+    output_dir="./output",
+    progress_callback=progress_callback
+)
+```
+
+**Benefits**:
+- Near-linear speedup with CPU cores (e.g., 8x on 8-core system)
+- Automatic memory mapping for large files
+- Progress tracking via callbacks
+- Graceful error handling per file
+
+**CLI Usage**:
+```bash
+# Convert entire directory with parallel processing
+python3 -m systems.pixel_compiler.pixelrts_cli convert \
+    ./binaries ./output --parallel --workers 8
+
+# Recursive directory processing
+python3 -m systems.pixel_compiler.pixelrts_cli convert \
+    ./src ./output --parallel --recursive --pattern "*.c"
+```
+
+### 2. Memory-Mapped Files (MMapPixelRTSEncoder)
 
 For files larger than 100MB (configurable), use memory mapping to avoid loading the entire file into memory.
 
@@ -118,7 +216,7 @@ print(f"Name: {info.get('name')}")
 - Batch processing of large files
 - Server environments with many concurrent operations
 
-### 2. Benchmarking (PixelRTSBenchmark)
+### 3. Benchmarking and Dashboard (PixelRTSBenchmark + BenchmarkDashboard)
 
 Track performance over time and detect regressions.
 
@@ -155,13 +253,60 @@ if regressions:
 **CLI Usage**:
 ```bash
 # Run benchmarks
-python -m pixel_compiler.benchmark_pixelrts --sizes 1048576 10485760 --iterations 5
+python3 -m systems.pixel_compiler.benchmark_pixelrts --sizes 1048576 10485760 --iterations 5
 
 # Check for regressions
-python -m pixel_compiler.benchmark_pixelrts --check-regression
+python3 -m systems.pixel_compiler.benchmark_pixelrts --check-regression
+
+# Generate performance dashboard
+python3 -m systems.pixel_compiler.benchmark_dashboard --output dashboard.html
 ```
 
-### 3. Code Mode Encoding
+### 4. Performance Dashboard
+
+Generate HTML reports with interactive charts showing performance trends over time.
+
+```python
+from systems.pixel_compiler.benchmark_dashboard import BenchmarkDashboard
+
+# Create dashboard
+dashboard = BenchmarkDashboard(results_dir="benchmark_results")
+
+# Generate HTML report
+output_path = dashboard.generate_html("performance_report.html")
+print(f"Dashboard: {output_path}")
+
+# Load and analyze historical data
+history = dashboard.load_history()
+print(f"Total benchmark runs: {len(history)}")
+
+# Group by test name for analysis
+from collections import defaultdict
+by_test = defaultdict(list)
+for result in history:
+    by_test[result['test_name']].append(result)
+
+for test_name, results in by_test.items():
+    avg_throughput = sum(r['throughput_mb_sec'] for r in results) / len(results)
+    print(f"{test_name}: {avg_throughput:.2f} MB/sec avg")
+```
+
+**Dashboard Features**:
+- Interactive Chart.js line graphs
+- Statistics cards (tests, runs, throughput)
+- Test results list with detailed metrics
+- Responsive design with gradient styling
+- Historical trend analysis
+
+**CI/CD Integration**:
+The GitHub Actions workflow (`.github/workflows/pixelrts-benchmark.yml`) automatically:
+- Runs benchmarks on push/PR to main/develop
+- Runs daily on schedule (cron: 0 0 * * *)
+- Checks for performance regressions
+- Generates and uploads dashboard artifacts
+- Comments on PRs with benchmark results
+
+### 5. Code Mode Encoding
 
 Encode WASM/binary files with semantic coloring for visualization.
 
@@ -195,12 +340,12 @@ metadata = encoder.encode_file(
 
 Benchmarks from reference hardware (AMD Ryzen 9 5900X, RTX 3080, NVMe SSD):
 
-| File Size | CPU (single) | CPU (8-core) | MMap | GPU (RTX 3080) |
-|-----------|--------------|--------------|------|----------------|
-| 1MB       | 0.8s         | 0.2s         | 0.3s | 0.3s           |
-| 100MB     | 45s          | 7s           | 8s   | 12s            |
-| 1GB       | 850s         | 110s         | 95s  | 180s           |
-| 10GB      | N/A (OOM)    | 1200s        | 950s | 1900s          |
+| File Size | CPU (single) | Parallel (8-core) | MMap | GPU (RTX 3080) |
+|-----------|--------------|-------------------|------|----------------|
+| 1MB       | 0.8s         | 0.2s              | 0.3s | 0.3s           |
+| 100MB     | 45s          | 7s                | 8s   | 12s            |
+| 1GB       | 850s         | 110s              | 95s  | 180s           |
+| 10GB      | N/A (OOM)    | 1200s             | 950s | 1900s          |
 
 **Key findings**:
 - MMap provides consistent performance across file sizes
@@ -304,6 +449,76 @@ if sidecar.exists():
 ```
 
 ## API Reference
+
+### ParallelPixelRTSEncoder
+
+```python
+class ParallelPixelRTSEncoder:
+    """Parallel encoder for batch processing of multiple files."""
+
+    MMAP_THRESHOLD = 100 * 1024 * 1024  # 100MB
+
+    def __init__(
+        self,
+        workers: Optional[int] = None,
+        mode: str = "standard",
+        use_mmap: bool = True,
+        mmap_threshold: int = MMAP_THRESHOLD
+    ):
+        """
+        Initialize parallel encoder.
+
+        Args:
+            workers: Number of worker processes (default: CPU count)
+            mode: Encoding mode ("standard" or "code")
+            use_mmap: Whether to use memory mapping for large files
+            mmap_threshold: File size threshold for mmap (bytes)
+        """
+
+    def encode_batch(
+        self,
+        input_files: List[Path | str],
+        output_dir: Path | str,
+        metadata: Optional[dict] = None,
+        pattern: str = "*.rts.png",
+        progress_callback: Optional[Callable] = None
+    ) -> List[Dict]:
+        """
+        Encode multiple files in parallel.
+
+        Args:
+            input_files: List of input file paths
+            output_dir: Output directory for encoded files
+            metadata: Optional metadata to apply to all files
+            pattern: Output file pattern
+            progress_callback: Optional callback(current, total, filename)
+
+        Returns:
+            List of result dictionaries with success/error status
+        """
+
+    def encode_directory(
+        self,
+        input_dir: Path | str,
+        output_dir: Path | str,
+        pattern: str = "*",
+        recursive: bool = False,
+        **kwargs
+    ) -> List[Dict]:
+        """
+        Encode all files in a directory.
+
+        Args:
+            input_dir: Input directory path
+            output_dir: Output directory path
+            pattern: File pattern to match (default: all files)
+            recursive: Whether to search recursively
+            **kwargs: Additional arguments for encode_batch
+
+        Returns:
+            List of result dictionaries
+        """
+```
 
 ### MMapPixelRTSEncoder
 
@@ -444,9 +659,66 @@ class PixelRTSBenchmark:
         """
 ```
 
+### BenchmarkDashboard
+
+```python
+class BenchmarkDashboard:
+    """Generate HTML dashboard from benchmark results."""
+
+    def __init__(self, results_dir: str = "benchmark_results"):
+        """
+        Initialize dashboard.
+
+        Args:
+            results_dir: Directory containing benchmark results
+        """
+
+    def load_history(self) -> List[Dict]:
+        """Load benchmark history from JSONL file."""
+
+    def generate_html(self, output_path: str = "benchmark_dashboard.html") -> str:
+        """
+        Generate HTML dashboard.
+
+        Args:
+            output_path: Output HTML file path
+
+        Returns:
+            Path to generated HTML file
+        """
+```
+
 ## Examples
 
-### Example 1: Encode a Large Dataset
+### Example 1: Quick CLI Usage
+
+```bash
+# Convert single file
+python3 -m systems.pixel_compiler.pixelrts_cli convert kernel.bin kernel.rts.png
+
+# Convert with metadata
+python3 -m systems.pixel_compiler.pixelrts_cli convert \
+    os.img os.rts.png --type os --name "Geometry OS" --version 1.0
+
+# Parallel batch processing
+python3 -m systems.pixel_compiler.pixelrts_cli convert \
+    ./binaries ./output --parallel --workers 8
+
+# Recursive directory processing
+python3 -m systems.pixel_compiler.pixelrts_cli convert \
+    ./src ./output --parallel --recursive --pattern "*.c"
+
+# Get file info
+python3 -m systems.pixel_compiler.pixelrts_cli info os.rts.png
+
+# Run benchmarks
+python3 -m systems.pixel_compiler.pixelrts_cli benchmark --sizes 1048576 10485760
+
+# Generate dashboard
+python3 -m systems.pixel_compiler.pixelrts_cli dashboard --output report.html
+```
+
+### Example 2: Encode a Large Dataset
 
 ```python
 from pixel_compiler.pixelrts_mmap import MMapPixelRTSEncoder
@@ -477,7 +749,7 @@ print(f"Data hash: {metadata['data_hash']}")
 print(f"Grid size: {metadata['grid_size']}x{metadata['grid_size']}")
 ```
 
-### Example 2: Batch Processing Multiple Files
+### Example 3: Batch Processing Multiple Files
 
 ```python
 from pathlib import Path
@@ -518,7 +790,7 @@ with open(output_dir / 'batch_summary.json', 'w') as f:
 print(f"Processed {len(results)} files")
 ```
 
-### Example 3: Decode and Verify
+### Example 4: Decode and Verify
 
 ```python
 from pixel_compiler.pixelrts_mmap import MMapPixelRTSDecoder
@@ -544,7 +816,7 @@ print(f"File type: {info.get('type')}")
 print(f"Grid size: {info.get('grid_size')}")
 ```
 
-### Example 4: Performance Benchmarking
+### Example 5: Performance Benchmarking
 
 ```python
 from pixel_compiler.benchmark_pixelrts import PixelRTSBenchmark
@@ -582,7 +854,7 @@ else:
     print("\n✅ No regressions detected")
 ```
 
-### Example 5: WASM Module Encoding with Code Mode
+### Example 6: WASM Module Encoding with Code Mode
 
 ```python
 from pixel_compiler.pixelrts_mmap import MMapPixelRTSEncoder

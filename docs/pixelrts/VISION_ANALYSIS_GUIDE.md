@@ -401,8 +401,40 @@ Supported types:
 - `wasm`: WebAssembly modules
 - `binary`: Generic binary data
 
+## Pattern Detection
+
+The vision analyzer now includes advanced pattern detection capabilities using computer vision algorithms. See [Pattern Detection Guide](PATTERN_DETECTION_GUIDE.md) for full details.
+
+### Quick Reference
+
+| Feature | Method | Use Case |
+|---------|--------|----------|
+| Edge Detection | `detect_edges(method='sobel')` | Find boundaries in binary structures |
+| Fourier Analysis | `analyze_fourier()` | Detect repeating patterns (compressed data, arrays) |
+| Clustering | `detect_clusters(feature_type='position')` | Find distinct regions (code sections, data segments) |
+| Pattern Overlay | `generate_pattern_overlay()` | Visual summary of all patterns |
+
+### Example
+
+```python
+analyzer = PixelRTSVisionAnalyzer("ubuntu_kernel.rts.png")
+
+# Detect edges
+edges = analyzer.detect_edges(method='sobel')
+
+# Analyze periodic patterns
+fourier = analyzer.analyze_fourier()
+
+# Detect clusters
+clusters = analyzer.detect_clusters(feature_type='position')
+
+# Generate visual overlay
+overlay = analyzer.generate_pattern_overlay("./output")
+```
+
 ## Related Documentation
 
+- [Pattern Detection Guide](PATTERN_DETECTION_GUIDE.md)
 - [PixelRTS Architecture](PIXELRTS_ARCHITECTURE.md)
 - [PixelRTS v2 Architecture](PIXELRTS_V2_ARCHITECTURE.md)
 - [Spatial Software Guide](SPATIAL_SOFTWARE_GUIDE.md)

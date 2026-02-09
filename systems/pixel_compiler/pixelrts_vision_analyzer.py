@@ -33,6 +33,22 @@ except ImportError:
     ModelProvider = None
 
 
+try:
+    from pattern_detector import (
+        PatternDetector,
+        EdgeDetectionResult,
+        FourierAnalysisResult,
+        ClusterResult
+    )
+except ImportError:
+    # PatternDetector is optional for advanced analysis
+    PatternDetector = None
+    EdgeDetectionResult = None
+    FourierAnalysisResult = None
+    ClusterResult = None
+
+
+
 class PixelRTSVisionAnalyzer:
     """
     Analyzes PixelRTS container images for vision model processing.
@@ -519,6 +535,203 @@ class PixelRTSVisionAnalyzer:
         overlay.save(overlay_path)
 
         return overlay_path
+
+    def detect_edges(
+        self,
+        method: str = 'sobel',
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Detect edges in the PixelRTS image.
+
+        Args:
+            method: 'sobel' or 'canny'
+            **kwargs: Additional arguments passed to the detection method
+
+        Returns:
+            Dictionary with detection results
+
+        Raises:
+            ImportError: If pattern_detector is not available
+        """
+        if PatternDetector is None:
+            raise ImportError(
+                "Pattern detection requires opencv-python, scikit-learn, and scipy. "
+                "Install with: pip install opencv-python scikit-learn scipy"
+            )
+
+        detector = PatternDetector(self.rts_path)
+
+        if method == 'sobel':
+            result = detector.detect_edges_sobel(**kwargs)
+        elif method == 'canny':
+            result = detector.detect_edges_canny(**kwargs)
+        else:
+            raise ValueError(f"Unknown edge detection method: {method}")
+
+        # Convert to dict for JSON serialization
+        return {
+            'method': result.method,
+            'edge_count': result.edge_count,
+            'edge_density': result.edge_density,
+            'strong_edges_count': len(result.strong_edges),
+            'metadata': result.metadata
+        }
+
+    def analyze_fourier(
+        self,
+        max_frequencies: int = 10
+    ) -> Dict[str, Any]:
+        """
+        Analyze periodic patterns using Fourier transform.
+
+        Args:
+            max_frequencies: Maximum number of dominant frequencies to return
+
+        Returns:
+            Dictionary with Fourier analysis results
+
+        Raises:
+            ImportError: If pattern_detector is not available
+        """
+        if PatternDetector is None:
+            raise ImportError(
+                "Pattern detection requires opencv-python, scikit-learn, and scipy. "
+                "Install with: pip install opencv-python scikit-learn scipy"
+            )
+
+        detector = PatternDetector(self.rts_path)
+        result = detector.analyze_fourier(max_frequencies=max_frequencies)
+
+        return {
+            'dominant_frequency': result.dominant_frequency,
+            'has_periodic_patterns': result.has_periodic_patterns,
+            'periodic_regions': result.periodic_regions
+        }
+
+    def detect_clusters(
+        self,
+        eps: float = 5.0,
+        min_samples: int = 10,
+        feature_type: str = "position"
+    ) -> Dict[str, Any]:
+        """
+        Detect clusters of similar pixels.
+
+        Args:
+            eps: Maximum distance between samples in cluster
+            min_samples: Minimum samples in cluster
+            feature_type: 'position' or 'color'
+
+        Returns:
+            Dictionary with clustering results
+
+        Raises:
+            ImportError: If pattern_detector is not available
+        """
+        if PatternDetector is None:
+            raise ImportError(
+                "Pattern detection requires opencv-python, scikit-learn, and scipy. "
+                "Install with: pip install opencv-python scikit-learn scipy"
+            )
+
+        detector = PatternDetector(self.rts_path)
+        result = detector.detect_clusters(
+            eps=eps,
+            min_samples=min_samples,
+            feature_type=feature_type
+        )
+
+        return {
+            'num_clusters': result.num_clusters,
+            'cluster_centers': result.cluster_centers,
+            'regions_of_interest': result.regions_of_interest,
+            'noise_points': result.noise_points
+        }
+
+    def generate_pattern_overlay(
+        self,
+        output_dir: str,
+        edge_method: str = 'sobel',
+        show_clusters: bool = True,
+        show_edges: bool = True
+    ) -> str:
+        """
+        Generate overlay visualization with detected patterns.
+
+        Args:
+            output_dir: Directory to save overlay
+            edge_method: Edge detection method to use
+            show_clusters: Whether to highlight cluster regions
+            show_edges: Whether to highlight detected edges
+
+        Returns:
+            Path to generated overlay image
+
+        Raises:
+            ImportError: If pattern_detector is not available
+        """
+        if PatternDetector is None:
+            raise ImportError(
+                "Pattern detection requires opencv-python, scikit-learn, and scipy. "
+                "Install with: pip install opencv-python scikit-learn scipy"
+            )
+
+        import matplotlib.patches as patches
+
+        detector = PatternDetector(self.rts_path)
+
+        # Create figure with subplots
+        fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+        # Original image
+        axes[0].imshow(self.image)
+        axes[0].set_title('Original')
+        axes[0].axis('off')
+
+        # Pattern overlay
+        axes[1].imshow(self.image)
+        axes[1].set_title('Detected Patterns')
+        axes[1].axis('off')
+
+        # Add cluster overlay
+        if show_clusters:
+            cluster_result = detector.detect_clusters(feature_type='position')
+
+            for region in cluster_result.regions_of_interest:
+                bbox = region['bounding_box']
+                # Draw rectangle around cluster
+                rect = patches.Rectangle(
+                    (bbox['min_x'], bbox['min_y']),
+                    bbox['max_x'] - bbox['min_x'],
+                    bbox['max_y'] - bbox['min_y'],
+                    linewidth=2,
+                    edgecolor='red',
+                    facecolor='none'
+                )
+                axes[1].add_patch(rect)
+
+                # Add cluster label
+                axes[1].text(
+                    region['center_x'],
+                    region['center_y'],
+                    f"C{region['cluster_id']}",
+                    color='white',
+                    fontsize=8,
+                    bbox=dict(boxstyle='round,pad=0.3', facecolor='red', alpha=0.7)
+                )
+
+        plt.tight_layout()
+
+        # Save figure
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        overlay_file = output_path / f"{Path(self.rts_path).stem}_pattern_overlay.png"
+        plt.savefig(overlay_file, bbox_inches='tight', dpi=150)
+        plt.close(fig)
+
+        return str(overlay_file)
 
 
 def analyze_rts_directory(directory: str, pattern: str = "*.rts.png") -> Dict[str, Dict[str, Any]]:

@@ -46,6 +46,28 @@ def parse_args(argv=None):
         help="Only generate visualization overlays (skip vision analysis)"
     )
     parser.add_argument(
+        "--patterns-only",
+        action="store_true",
+        help="Generate pattern detection overlay only"
+    )
+    parser.add_argument(
+        "--edge-method",
+        choices=["sobel", "canny"],
+        default="sobel",
+        help="Edge detection method (default: sobel)"
+    )
+    parser.add_argument(
+        "--show-clusters",
+        action="store_true",
+        default=True,
+        help="Show cluster regions in overlay (default: True)"
+    )
+    parser.add_argument(
+        "--no-clusters",
+        action="store_true",
+        help="Hide cluster regions in overlay"
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Print what would be done without executing"
@@ -86,6 +108,46 @@ def main():
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
     output_dir_str = str(output_dir)
+
+    # Pattern-only mode
+    if args.patterns_only:
+        print(f"\n[*] Generating pattern detection overlay...")
+        try:
+            show_clusters = args.show_clusters and not args.no_clusters
+            overlay_path = analyzer.generate_pattern_overlay(
+                output_dir_str,
+                edge_method=args.edge_method,
+                show_clusters=show_clusters,
+                show_edges=True
+            )
+            print(f"    Saved: {overlay_path}")
+
+            # Output pattern statistics
+            print("\n[*] Pattern Statistics:")
+
+            # Edge detection
+            edges = analyzer.detect_edges(method=args.edge_method)
+            print(f"    Edge Detection ({args.edge_method}):")
+            print(f"      - Edge count: {edges['edge_count']}")
+            print(f"      - Edge density: {edges['edge_density']:.3f}")
+
+            # Fourier analysis
+            fourier = analyzer.analyze_fourier()
+            print(f"    Fourier Analysis:")
+            print(f"      - Periodic patterns: {fourier['has_periodic_patterns']}")
+            if fourier['dominant_frequency'] != (0.0, 0.0):
+                print(f"      - Dominant frequency: ({fourier['dominant_frequency'][0]:.4f}, {fourier['dominant_frequency'][1]:.4f})")
+
+            # Clustering
+            clusters = analyzer.detect_clusters(feature_type='position')
+            print(f"    Spatial Clustering:")
+            print(f"      - Clusters found: {clusters['num_clusters']}")
+            print(f"      - Noise points: {clusters['noise_points']}")
+
+            return 0
+        except Exception as e:
+            print(f"    Error: {e}", file=sys.stderr)
+            return 1
 
     # Generate entropy overlay
     print(f"\n[*] Generating entropy overlay...")
