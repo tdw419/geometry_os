@@ -14,8 +14,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 def cmd_convert(args):
     """Handle convert command."""
-    from .pixelrts_v2_core import PixelRTSEncoder, calculate_grid_size
-    from .pixelrts_parallel import ParallelPixelRTSEncoder
+    from pixelrts_v2_core import PixelRTSEncoder, calculate_grid_size
+    from pixelrts_parallel import ParallelPixelRTSEncoder
     import hashlib
     import json
 
@@ -67,7 +67,7 @@ def cmd_convert(args):
 
 def _convert_single_file(args):
     """Convert a single file."""
-    from .pixelrts_v2_core import PixelRTSEncoder, calculate_grid_size
+    from pixelrts_v2_core import PixelRTSEncoder, calculate_grid_size
     import hashlib
     import json
 
@@ -177,10 +177,24 @@ def _convert_single_file(args):
 
 def cmd_benchmark(args):
     """Handle benchmark command."""
-    from .benchmark_pixelrts import main as benchmark_main
+    from benchmarks.pattern_benchmark import main as benchmark_main
 
     # Build argv for benchmark
-    benchmark_argv = ['benchmark_pixelrts']
+    benchmark_argv = ['pattern_benchmark']
+
+    # Add flags from args if provided
+    if args.algorithm:
+        benchmark_argv.extend(['--algorithm', args.algorithm])
+    if args.sizes:
+        benchmark_argv.extend(['--sizes'] + [str(s) for s in args.sizes])
+    if args.iterations:
+        benchmark_argv.extend(['--iterations', str(args.iterations)])
+    if args.output:
+        benchmark_argv.extend(['--output', args.output])
+    if args.verbose:
+        benchmark_argv.append('--verbose')
+
+    # Add any extra args
     if args.extra_args:
         benchmark_argv.extend(args.extra_args)
 
@@ -190,7 +204,7 @@ def cmd_benchmark(args):
 
 def cmd_dashboard(args):
     """Handle dashboard command."""
-    from .benchmark_dashboard import main as dashboard_main
+    from benchmark_dashboard import main as dashboard_main
 
     # Build argv for dashboard
     dashboard_argv = ['benchmark_dashboard', '--output', args.output]
@@ -201,7 +215,7 @@ def cmd_dashboard(args):
 
 def cmd_info(args):
     """Handle info command."""
-    from .pixelrts_v2_core import PixelRTSDecoder
+    from pixelrts_v2_core import PixelRTSDecoder
     import json
 
     input_path = Path(args.input)
@@ -262,7 +276,9 @@ Commands:
 Examples:
   pixelrts convert kernel.bin kernel.rts.png
   pixelrts convert ./binaries ./output --parallel --workers 4
-  pixelrts benchmark --sizes 1048576 10485760
+  pixelrts benchmark
+  pixelrts benchmark --algorithm sobel --sizes 256 512 1024
+  pixelrts benchmark --iterations 20 --output results.json
   pixelrts dashboard
   pixelrts info kernel.rts.png
         """
@@ -302,6 +318,24 @@ Examples:
     bench_parser = subparsers.add_parser('benchmark', help='Run benchmarks')
     bench_parser.add_argument('extra_args', nargs=argparse.REMAINDER,
                              help='Arguments to pass to benchmark')
+    # Add benchmark-specific flags for convenience
+    bench_parser.add_argument('--algorithm', '-a',
+                             choices=['sobel', 'canny', 'fourier', 'all'],
+                             default=None,
+                             help='Algorithm to benchmark (default: all)')
+    bench_parser.add_argument('--sizes', '-s',
+                             type=int,
+                             nargs='+',
+                             help='Image sizes to benchmark (default: 256 512 1024 2048)')
+    bench_parser.add_argument('--iterations', '-i',
+                             type=int,
+                             help='Number of iterations per benchmark (default: 10)')
+    bench_parser.add_argument('--output', '-o',
+                             type=str,
+                             help='Output JSON file for results')
+    bench_parser.add_argument('--verbose', '-v',
+                             action='store_true',
+                             help='Enable verbose output')
 
     # Dashboard command
     dash_parser = subparsers.add_parser('dashboard', help='Generate dashboard')
