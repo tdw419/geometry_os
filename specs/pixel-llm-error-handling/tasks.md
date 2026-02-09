@@ -122,7 +122,7 @@
   - **Verify**: grep -q "class StructuredLogger" geometry_os/systems/pixel_llm/monitoring/structured_logger.py
   - **Commit**: feat(pixel-llm): add structured logger
 
-- [ ] 3.3 Create error metrics collector
+- [x] 3.3 Create error metrics collector
   - **Do**:
     - Create `geometry_os/systems/pixel_llm/monitoring/metrics.py`
     - Implement ErrorMetrics class
