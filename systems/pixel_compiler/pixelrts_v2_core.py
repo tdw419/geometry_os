@@ -66,7 +66,7 @@ class HilbertCurve:
             temp >>= 2
             s <<= 1
 
-        return y, x  # Return (y, x) to match expected orientation
+        return x, y  # Return (x, y) for standard coordinate order
 
     def _rotate(self, s: int, x: int, y: int, rx: int, ry: int) -> Tuple[int, int]:
         """Rotate/flip quadrant appropriately."""
@@ -401,6 +401,17 @@ class PixelRTSDecoder:
 
         # Load PNG image
         image = Image.open(BytesIO(png_data))
+
+        # Try to extract metadata from PNG tEXt chunks
+        if self._metadata is None:
+            for key, value in image.text.items():
+                if "PixelRTS" in key or "PixelRTS" in value:
+                    try:
+                        self._metadata = PixelRTSMetadata.decode_png_text(value.encode("utf-8"))
+                        break
+                    except ValueError:
+                        # Continue if this chunk isn't valid PixelRTS metadata
+                        continue
 
         # Verify image is RGBA
         if image.mode != 'RGBA':

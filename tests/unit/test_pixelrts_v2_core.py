@@ -2,8 +2,29 @@
 Unit tests for PixelRTS v2 Core Library
 """
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent / "systems" / "pixel_compiler"))
+
 import pytest
-from geometry_os.systems.pixel_compiler.pixelrts_v2_core import HilbertCurve
+from pixelrts_v2_core import HilbertCurve
+
+
+def test_hilbert_coordinate_order():
+    """Test that coordinates match expected Hilbert curve pattern."""
+    hilbert = HilbertCurve(order=2)  # 4x4 grid
+    lut = hilbert.generate_lut()
+
+    # Standard Hilbert curve for 4x4:
+    # These are the expected coordinates in traversal order
+    expected = [
+        (0, 0), (1, 0), (1, 1), (0, 1),  # First quadrant
+        (0, 2), (0, 3), (1, 3), (1, 2),  # Second quadrant
+        (2, 2), (2, 3), (3, 3), (3, 2),  # Third quadrant
+        (3, 1), (2, 1), (2, 0), (3, 0),  # Fourth quadrant
+    ]
+
+    assert lut == expected, f"Got {lut}"
 
 
 def test_hilbert_lut_generation():
@@ -13,10 +34,10 @@ def test_hilbert_lut_generation():
 
     # Expected 4x4 Hilbert curve coordinates
     expected = [
-        (0, 0), (0, 1), (1, 1), (1, 0),
-        (2, 0), (3, 0), (3, 1), (2, 1),
-        (2, 2), (3, 2), (3, 3), (2, 3),
-        (1, 3), (1, 2), (0, 2), (0, 3)
+        (0, 0), (1, 0), (1, 1), (0, 1),
+        (0, 2), (0, 3), (1, 3), (1, 2),
+        (2, 2), (2, 3), (3, 3), (3, 2),
+        (3, 1), (2, 1), (2, 0), (3, 0)
     ]
 
     assert len(lut) == 16
@@ -29,7 +50,7 @@ def test_hilbert_index_to_coord():
 
     # Test known positions
     assert hilbert.index_to_coord(0) == (0, 0)
-    assert hilbert.index_to_coord(63) == (0, 7)
+    assert hilbert.index_to_coord(63) == (7, 0)
 
     # Test round-trip
     for idx in [0, 15, 31, 47, 63]:
@@ -49,12 +70,12 @@ def test_hilbert_8x8_coordinates():
     # First few coordinates for 8x8 Hilbert curve
     # The pattern follows Hilbert curve traversal
     assert lut[0] == (0, 0)
-    assert lut[1] == (1, 0)
+    assert lut[1] == (0, 1)
     assert lut[2] == (1, 1)
-    assert lut[3] == (0, 1)
+    assert lut[3] == (1, 0)
 
     # Last coordinate for this Hilbert curve orientation
-    assert lut[63] == (0, 7)
+    assert lut[63] == (7, 0)
 
 
 def test_hilbert_grid_size_calculation():
