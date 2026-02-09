@@ -70,7 +70,7 @@
   - **Verify**: grep -q "def retry" geometry_os/systems/pixel_llm/resilience/retry.py
   - **Commit**: feat(pixel-llm): add retry logic with exponential backoff
 
-- [ ] 2.3 Create circuit breaker module
+- [x] 2.3 Create circuit breaker module
   - **Do**:
     - Create `geometry_os/systems/pixel_llm/resilience/circuit_breaker.py`
     - Implement CircuitBreaker class with CLOSED, OPEN, HALF_OPEN states
@@ -94,7 +94,7 @@
   - **Verify**: grep -q "class FallbackManager" geometry_os/systems/pixel_llm/resilience/fallback.py
   - **Commit**: feat(pixel-llm): add fallback strategies
 
-- [ ] 2.5 Create resilience package init
+- [x] 2.5 Create resilience package init
   - **Do**: Create `geometry_os/systems/pixel_llm/resilience/__init__.py` exporting all resilience classes
   - **Files**: geometry_os/systems/pixel_llm/resilience/__init__.py
   - **Done when**: __init__.py exports all resilience classes
