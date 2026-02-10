@@ -98,6 +98,7 @@ class PixelRTSMetadata:
 
     MAGIC = b"PixelRTS"
     VERSION = 2
+    BLUEPRINT_MAGIC = b"PixelRTS-Blueprint"
 
     @staticmethod
     def create_metadata(
@@ -173,6 +174,46 @@ class PixelRTSMetadata:
         json_str = data[len(PixelRTSMetadata.MAGIC):]
         return json.loads(json_str.decode("utf-8"))
 
+    @staticmethod
+    def encode_blueprint(blueprint) -> bytes:
+        """
+        Encode blueprint to PNG tEXt chunk format.
+
+        Args:
+            blueprint: PixelRTSBlueprint instance or dict
+
+        Returns:
+            Bytes suitable for PNG tEXt chunk with BLUEPRINT_MAGIC prefix
+        """
+        # Convert blueprint to dict if it's a PixelRTSBlueprint instance
+        if hasattr(blueprint, 'to_dict'):
+            blueprint_dict = blueprint.to_dict()
+        else:
+            blueprint_dict = blueprint
+
+        json_str = json.dumps(blueprint_dict, separators=(",", ":"))
+        return PixelRTSMetadata.BLUEPRINT_MAGIC + json_str.encode("utf-8")
+
+    @staticmethod
+    def decode_blueprint(data: bytes) -> dict:
+        """
+        Decode blueprint from PNG tEXt chunk.
+
+        Args:
+            data: Raw tEXt chunk data with BLUEPRINT_MAGIC prefix
+
+        Returns:
+            Blueprint dictionary
+
+        Raises:
+            ValueError: If data does not have correct magic prefix
+        """
+        if not data.startswith(PixelRTSMetadata.BLUEPRINT_MAGIC):
+            raise ValueError("Not a PixelRTS blueprint")
+
+        json_str = data[len(PixelRTSMetadata.BLUEPRINT_MAGIC):]
+        return json.loads(json_str.decode("utf-8"))
+
 
 def calculate_grid_size(data_size_bytes: int, bytes_per_pixel: int = 4) -> int:
     """
@@ -231,7 +272,8 @@ class PixelRTSEncoder:
         self,
         data: bytes,
         metadata: dict = None,
-        grid_size: int = None
+        grid_size: int = None,
+        blueprint: dict = None
     ) -> bytes:
         """
         Encode binary data to PNG image.
@@ -240,6 +282,7 @@ class PixelRTSEncoder:
             data: Binary data to encode
             metadata: Optional metadata dict (type, name, version, etc.)
             grid_size: Explicit grid size (auto-calculated if None)
+            blueprint: Optional blueprint dict for structural metadata
 
         Returns:
             PNG image as bytes
@@ -366,6 +409,11 @@ class PixelRTSEncoder:
         pnginfo = PngImagePlugin.PngInfo()
         pnginfo.add_text("PixelRTS", metadata_text)
 
+        # Add blueprint tEXt chunk if provided
+        if blueprint is not None:
+            blueprint_text = PixelRTSMetadata.encode_blueprint(blueprint).decode("utf-8")
+            pnginfo.add_text("PixelRTS-Blueprint", blueprint_text)
+
         image.save(buffer, format='PNG', pnginfo=pnginfo)
         png_bytes = buffer.getvalue()
 
@@ -384,7 +432,8 @@ class PixelRTSEncoder:
         output_path: str,
         metadata: dict = None,
         grid_size: int = None,
-        sidecar: bool = True
+        sidecar: bool = True,
+        blueprint: dict = None
     ):
         """
         Encode and save to file.
@@ -395,8 +444,9 @@ class PixelRTSEncoder:
             metadata: Optional metadata dict (type, name, version, etc.)
             grid_size: Explicit grid size (auto-calculated if None)
             sidecar: Whether to save sidecar JSON metadata file
+            blueprint: Optional blueprint dict for structural metadata
         """
-        png_bytes = self.encode(data, metadata, grid_size)
+        png_bytes = self.encode(data, metadata, grid_size, blueprint)
         metadata = self.get_metadata()
 
         # Write PNG file
@@ -415,6 +465,18 @@ class PixelRTSEncoder:
 
             with open(sidecar_path, 'w') as f:
                 json.dump(metadata, f, indent=2)
+
+        # Save blueprint sidecar if provided
+        if blueprint:
+            if output_path.endswith('.rts.png'):
+                blueprint_path = output_path.replace('.rts.png', '.rts.png.blueprint.json')
+            elif output_path.endswith('.png'):
+                blueprint_path = output_path.replace('.png', '.blueprint.json')
+            else:
+                blueprint_path = output_path + '.blueprint.json'
+
+            with open(blueprint_path, 'w') as f:
+                json.dump(blueprint, f, indent=2)
 
 
 class PixelRTSDecoder:
