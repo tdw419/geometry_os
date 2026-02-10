@@ -297,33 +297,6 @@ class InfiniteMapV2 {
     }
 
     /**
-     * Handle prefetch request from Tectonic Saccadic Manager (Phase 47)
-     */
-    _handlePrefetchRequest(data) {
-        const { tiles, timestamp } = data;
-
-        // Pre-load chunks for predicted tiles
-        for (const tile of tiles) {
-            const chunkX = Math.floor(tile.x / this.config.chunkSize);
-            const chunkY = Math.floor(tile.y / this.config.chunkSize);
-
-            // Queue chunk for pre-loading (non-blocking)
-            if (this.chunkManager.prefetchChunk) {
-                this.chunkManager.prefetchChunk(chunkX, chunkY);
-            }
-        }
-
-        // Mark tiles as prefetched in the manager
-        for (const tile of tiles) {
-            this.tectonicSaccadic.markTileLoaded(
-                Math.floor(tile.x / this.config.gridSize),
-                Math.floor(tile.y / this.config.gridSize),
-                { prefetched: true, timestamp }
-            );
-        }
-    }
-
-    /**
      * Handle tile update from compositor
      */
     async handleTileUpdate(msg) {
