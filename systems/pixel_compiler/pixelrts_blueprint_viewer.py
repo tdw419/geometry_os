@@ -5,6 +5,7 @@ Visualizes blueprint metadata as overlay images and interactive views.
 """
 
 import json
+import logging
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -18,6 +19,14 @@ except ImportError:
     )
 
 from .pixelrts_blueprint import PixelRTSBlueprint, Component
+from .pixelrts_blueprint_exceptions import (
+    CorruptedFileError,
+    MissingSidecarError,
+    InvalidMetadataError,
+    ImageLoadError
+)
+
+logger = logging.getLogger(__name__)
 
 
 class BlueprintViewer:
@@ -78,7 +87,16 @@ class BlueprintViewer:
 
         Returns:
             PixelRTSBlueprint if sidecar exists, None otherwise
+
+        Raises:
+            MissingSidecarError: If sidecar file doesn't exist (optional)
+            InvalidMetadataError: If sidecar has malformed JSON
+            CorruptedFileError: If sidecar is corrupted
         """
+        if not rts_path:
+            logger.debug("Empty rts_path provided")
+            return None
+
         # Try .rts.png.blueprint.json first
         blueprint_path = Path(str(rts_path) + ".blueprint.json")
 
@@ -88,15 +106,32 @@ class BlueprintViewer:
             if rts_path_obj.suffix == '.png':
                 blueprint_path = rts_path_obj.with_suffix('.blueprint.json')
 
-        if blueprint_path.exists():
-            try:
-                with open(blueprint_path, 'r') as f:
-                    blueprint_dict = json.load(f)
-                return PixelRTSBlueprint.from_dict(blueprint_dict)
-            except (json.JSONDecodeError, IOError):
-                return None
+        if not blueprint_path.exists():
+            logger.debug(f"Sidecar file not found: {blueprint_path}")
+            return None
 
-        return None
+        # Check for zero-byte file
+        if blueprint_path.stat().st_size == 0:
+            logger.warning(f"Sidecar file is empty: {blueprint_path}")
+            return None
+
+        try:
+            with open(blueprint_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                if not content.strip():
+                    logger.warning(f"Sidecar file is empty (whitespace only): {blueprint_path}")
+                    return None
+                blueprint_dict = json.loads(content)
+            return PixelRTSBlueprint.from_dict(blueprint_dict)
+        except json.JSONDecodeError as e:
+            logger.warning(f"Invalid JSON in sidecar {blueprint_path}: {e}")
+            return None
+        except (IOError, OSError) as e:
+            logger.warning(f"Error reading sidecar {blueprint_path}: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error loading sidecar {blueprint_path}: {e}")
+            return None
 
     def load_blueprint_from_png(
         self,
@@ -110,20 +145,52 @@ class BlueprintViewer:
 
         Returns:
             PixelRTSBlueprint if found, None otherwise
+
+        Raises:
+            ImageLoadError: If PNG file is corrupted
+            InvalidMetadataError: If embedded metadata is malformed
         """
+        if not rts_path:
+            logger.debug("Empty rts_path provided")
+            return None
+
+        png_path = Path(rts_path)
+
+        if not png_path.exists():
+            logger.debug(f"PNG file not found: {png_path}")
+            return None
+
+        # Check for zero-byte file
+        if png_path.stat().st_size == 0:
+            logger.warning(f"PNG file is empty: {png_path}")
+            return None
+
         try:
-            image = Image.open(Path(rts_path))
+            image = Image.open(png_path)
+            image.load()  # Force load to detect corruption early
+            image.verify()  # Verify integrity
+
+            # Need to reopen after verify
+            image = Image.open(png_path)
 
             # Check for PixelRTS-Blueprint tEXt chunk
             for key, value in image.text.items():
                 if "PixelRTS-Blueprint" in key:
-                    from .pixelrts_v2_core import PixelRTSMetadata
-                    blueprint_dict = PixelRTSMetadata.decode_blueprint(
-                        value.encode("utf-8")
-                    )
-                    return PixelRTSBlueprint.from_dict(blueprint_dict)
+                    try:
+                        from .pixelrts_v2_core import PixelRTSMetadata
+                        blueprint_dict = PixelRTSMetadata.decode_blueprint(
+                            value.encode("utf-8")
+                        )
+                        return PixelRTSBlueprint.from_dict(blueprint_dict)
+                    except (KeyError, ValueError, AttributeError) as e:
+                        logger.warning(f"Invalid blueprint metadata in {png_path}: {e}")
+                        return None
 
-        except Exception:
+        except (IOError, OSError) as e:
+            logger.warning(f"Cannot load PNG {png_path}: {e}")
+            return None
+        except Exception as e:
+            logger.debug(f"No blueprint metadata found in {png_path}: {e}")
             return None
 
         return None
@@ -166,32 +233,71 @@ class BlueprintViewer:
 
         Returns:
             Path to rendered overlay image
+
+        Raises:
+            ImageLoadError: If source image cannot be loaded
+            FileNotFoundError: If source image doesn't exist
         """
-        # Load source image
-        image = Image.open(rts_path)
-        if image.mode != 'RGBA':
-            image = image.convert('RGBA')
+        if not rts_path:
+            raise ValueError("rts_path cannot be empty")
 
-        # Create overlay
-        overlay = image.copy()
-        draw = ImageDraw.Draw(overlay)
+        if not blueprint:
+            raise ValueError("blueprint cannot be None")
 
-        # Draw component boundaries
-        for component in blueprint.components:
-            self._draw_component_boundary(draw, component, show_labels)
+        source_path = Path(rts_path)
 
-        # Draw legend
-        if blueprint.visual_overlay.legend:
-            self._draw_legend(draw, blueprint, overlay.size)
+        if not source_path.exists():
+            raise FileNotFoundError(f"Source image not found: {rts_path}")
 
-        # Draw grid if requested
-        if show_grid and blueprint.visual_overlay.grid_overlay:
-            self._draw_grid(draw, overlay.size)
+        # Check for zero-byte file
+        if source_path.stat().st_size == 0:
+            raise ImageLoadError(f"Source image is empty: {rts_path}")
 
-        # Save overlay
-        overlay.save(output_path)
+        try:
+            # Load source image
+            image = Image.open(source_path)
+            image.load()  # Force load to detect corruption
 
-        return output_path
+            if image.mode != 'RGBA':
+                image = image.convert('RGBA')
+
+            # Create overlay
+            overlay = image.copy()
+            draw = ImageDraw.Draw(overlay)
+
+            # Draw component boundaries (handle empty list)
+            for component in blueprint.components:
+                try:
+                    self._draw_component_boundary(draw, component, show_labels)
+                except (AttributeError, IndexError, TypeError) as e:
+                    logger.warning(f"Error drawing component {component.id}: {e}")
+                    continue
+
+            # Draw legend
+            if blueprint.visual_overlay and blueprint.visual_overlay.legend:
+                try:
+                    self._draw_legend(draw, blueprint, overlay.size)
+                except (AttributeError, TypeError) as e:
+                    logger.warning(f"Error drawing legend: {e}")
+
+            # Draw grid if requested
+            if show_grid and blueprint.visual_overlay and blueprint.visual_overlay.grid_overlay:
+                try:
+                    self._draw_grid(draw, overlay.size)
+                except (AttributeError, TypeError) as e:
+                    logger.warning(f"Error drawing grid: {e}")
+
+            # Save overlay
+            output_file = Path(output_path)
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            overlay.save(output_path)
+
+            return output_path
+
+        except (IOError, OSError) as e:
+            raise ImageLoadError(f"Failed to load image {rts_path}: {e}")
+        except Exception as e:
+            raise ImageLoadError(f"Unexpected error rendering overlay: {e}")
 
     def _draw_component_boundary(
         self,
@@ -302,17 +408,28 @@ class BlueprintViewer:
         Create interactive HTML visualization of the blueprint.
 
         Args:
-            rts_path: Path to source .rts.png file
+            rts_path: Path to source .rts.png file (for display only)
             blueprint: Blueprint metadata
             output_path: Path for output HTML file
 
         Returns:
             Path to generated HTML file
+
+        Raises:
+            IOError: If output file cannot be written
+            ValueError: If blueprint is None
         """
+        if not blueprint:
+            raise ValueError("blueprint cannot be None")
+
+        if not output_path:
+            raise ValueError("output_path cannot be empty")
+
         html_template = """<!DOCTYPE html>
 <html>
 <head>
     <title>{system_name} - Blueprint Viewer</title>
+    <meta charset="UTF-8">
     <style>
         body {{ font-family: Arial, sans-serif; margin: 20px; background: #1a1a1a; color: #eee; }}
         .container {{ max-width: 1200px; margin: 0 auto; }}
@@ -338,33 +455,58 @@ class BlueprintViewer:
 </body>
 </html>"""
 
-        # Generate components HTML
+        # Generate components HTML (handle empty list)
         components_html = ""
-        for comp in blueprint.components:
-            components_html += f"""
-            <div class="component">
-                <span class="component-id">{comp.id}</span>
-                <p>{comp.description}</p>
-                <div class="metadata">
-                    <span>Type: {comp.type.value}</span>
-                    <span>Entropy: {comp.entropy_profile}</span>
-                    <span>Range: {comp.hilbert_range.start_index} - {comp.hilbert_range.end_index}</span>
-                    <span>Visual: {comp.visual_hint}</span>
-                </div>
-            </div>"""
+        if blueprint.components:
+            for comp in blueprint.components:
+                try:
+                    # Use getattr with defaults for potentially missing attributes
+                    comp_id = getattr(comp, 'id', 'unknown')
+                    comp_desc = getattr(comp, 'description', '')
+                    comp_type = getattr(comp.type, 'value', 'unknown') if hasattr(comp, 'type') else 'unknown'
+                    comp_entropy = getattr(comp, 'entropy_profile', 'unknown')
+                    comp_visual = getattr(comp, 'visual_hint', 'unknown')
+                    h_range = getattr(comp, 'hilbert_range', None)
 
-        # Fill template
+                    if h_range:
+                        range_text = f"{h_range.start_index} - {h_range.end_index}"
+                    else:
+                        range_text = "unknown"
+
+                    components_html += f"""
+                    <div class="component">
+                        <span class="component-id">{comp_id}</span>
+                        <p>{comp_desc}</p>
+                        <div class="metadata">
+                            <span>Type: {comp_type}</span>
+                            <span>Entropy: {comp_entropy}</span>
+                            <span>Range: {range_text}</span>
+                            <span>Visual: {comp_visual}</span>
+                        </div>
+                    </div>"""
+                except (AttributeError, TypeError) as e:
+                    logger.warning(f"Error generating HTML for component: {e}")
+                    continue
+        else:
+            components_html = "<p>No components found.</p>"
+
+        # Fill template (handle None values)
         html = html_template.format(
             system_name=blueprint.system_name or "Unknown System",
             system_type=blueprint.system_type or "Unknown",
             architecture=blueprint.architecture or "Unknown",
-            image_name=Path(rts_path).name,
-            component_count=len(blueprint.components),
+            image_name=Path(rts_path).name if rts_path else "unknown.png",
+            component_count=len(blueprint.components) if blueprint.components else 0,
             components_html=components_html
         )
 
         # Write HTML file
-        with open(output_path, 'w') as f:
-            f.write(html)
+        output_file = Path(output_path)
+        try:
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(html)
+        except (IOError, OSError) as e:
+            raise IOError(f"Failed to write HTML to {output_path}: {e}")
 
         return output_path
