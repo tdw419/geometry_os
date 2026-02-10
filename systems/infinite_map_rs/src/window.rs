@@ -52,6 +52,25 @@ impl Default for WindowDecorations {
     }
 }
 
+/// Phase 35.9.3: Boot state for cartridge tiles
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CartridgeBootState {
+    /// Cartridge is idle, ready to boot
+    Idle,
+    /// Cartridge is currently booting
+    Booting,
+    /// Cartridge has booted successfully
+    Running,
+    /// Cartridge boot failed
+    Failed,
+}
+
+impl Default for CartridgeBootState {
+    fn default() -> Self {
+        Self::Idle
+    }
+}
+
 pub struct Window {
     pub id: usize,
     #[allow(dead_code)]
@@ -93,6 +112,8 @@ pub struct Window {
     // Phase 35.9.1: Cartridge texture (.rts.png)
     pub has_cartridge_texture: bool,
     pub cartridge_texture_id: Option<String>,
+    // Phase 35.9.3: Cartridge boot state
+    pub boot_state: CartridgeBootState,
 }
 
 impl Window {
@@ -199,6 +220,7 @@ impl WindowManager {
             custom_border_color: None,
             has_cartridge_texture: false,
             cartridge_texture_id: None,
+            boot_state: CartridgeBootState::Idle,
         };
 
         self.windows.push(window);
@@ -235,6 +257,7 @@ impl WindowManager {
             custom_border_color: None,
             has_cartridge_texture: false,
             cartridge_texture_id: None,
+            boot_state: CartridgeBootState::Idle,
         };
 
         self.windows.push(window);
@@ -359,6 +382,7 @@ impl WindowManager {
             custom_border_color: None,
             has_cartridge_texture: false,
             cartridge_texture_id: None,
+            boot_state: CartridgeBootState::Idle,
         };
 
         self.windows.push(window);
@@ -385,6 +409,27 @@ impl WindowManager {
             window.has_cartridge_texture = true;
             window.cartridge_texture_id = Some(cartridge_id.to_string());
         }
+    }
+
+    /// Phase 35.9.3: Set the boot state of a cartridge window
+    pub fn set_cartridge_boot_state(&mut self, window_id: usize, state: CartridgeBootState) {
+        if let Some(window) = self.get_window_mut(window_id) {
+            window.boot_state = state;
+            // Update border width based on state
+            window.decorations.border_width = match state {
+                CartridgeBootState::Idle => 4.0,
+                CartridgeBootState::Booting => 6.0,
+                CartridgeBootState::Running => 2.0,
+                CartridgeBootState::Failed => 8.0,
+            };
+        }
+    }
+
+    /// Phase 35.9.3: Get the boot state of a cartridge window
+    pub fn get_cartridge_boot_state(&self, window_id: usize) -> CartridgeBootState {
+        self.get_window(window_id)
+            .map(|w| w.boot_state)
+            .unwrap_or(CartridgeBootState::Idle)
     }
 
     /// Phase 35.9.1: Get window by ID (immutable)
