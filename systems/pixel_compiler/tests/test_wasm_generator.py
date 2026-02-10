@@ -12,7 +12,10 @@ from dataclasses import dataclass
 
 import pytest
 
-from systems.pixel_compiler.wasm_generator import (
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
+from wasm_generator import (
     WASMGenerator,
     IROpcode,
     IROperation,
