@@ -12,6 +12,13 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
+# Import for click.secho colored output
+try:
+    import click
+    HAS_CLICK = True
+except ImportError:
+    HAS_CLICK = False
+
 
 def cmd_convert(args):
     """Handle convert command."""
@@ -558,6 +565,59 @@ def cmd_vision(args):
         return 1
 
 
+def cmd_transpile(args):
+    """Handle transpile command - Universal Transpiler integration."""
+    from systems.pixel_compiler.universal_transpiler import UniversalTranspiler
+
+    if args.verbose:
+        print(f"[*] Starting transpilation: {args.input}")
+
+    try:
+        # Create transpiler instance
+        transpiler = UniversalTranspiler()
+
+        # Perform transpilation and conversion
+        output_path = transpiler.transpile_and_convert(
+            args.input,
+            args.output
+        )
+
+        # Success message with colored output
+        if HAS_CLICK:
+            click.secho(f"[✓] Transpilation Complete!", fg='green', bold=True)
+            click.secho(f"    Output: {output_path}", fg='green')
+        else:
+            print(f"[✓] Transpilation Complete!")
+            print(f"    Output: {output_path}")
+
+        return 0
+
+    except FileNotFoundError as e:
+        if HAS_CLICK:
+            click.secho(f"[!] Error: {e}", fg='red', bold=True)
+        else:
+            print(f"[!] Error: {e}", file=sys.stderr)
+        return 1
+    except RuntimeError as e:
+        if HAS_CLICK:
+            click.secho(f"[!] Transpilation failed: {e}", fg='red', bold=True)
+        else:
+            print(f"[!] Transpilation failed: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+    except Exception as e:
+        if HAS_CLICK:
+            click.secho(f"[!] Unexpected error: {e}", fg='red')
+        else:
+            print(f"[!] Unexpected error: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -566,6 +626,7 @@ def main():
         epilog="""
 Commands:
   convert      Convert binary files to .rts.png format
+  transpile    Transpile native software (source/binary/WASM) to PixelRTS format
   benchmark    Run performance benchmarks
   dashboard    Generate performance dashboard
   info         Display information about .rts.png file
@@ -575,6 +636,8 @@ Commands:
 
 Examples:
   pixelrts convert kernel.bin kernel.rts.png
+  pixelrts transpile program.wasm program.rts.png
+  pixelrts transpile main.c main.rts.png
   pixelrts analyze image.rts.png --method edges --edge-method sobel
   pixelrts analyze image.rts.png --method all --output results.json
   pixelrts execute fibonacci.rts.png --function fib --arguments 10
@@ -735,6 +798,16 @@ Examples:
     vision_parser.add_argument('-v', '--verbose', action='store_true',
                               help='Enable verbose output')
 
+    # Transpile command (Universal Transpiler integration)
+    transpile_parser = subparsers.add_parser(
+        'transpile',
+        help='Transpile native software to PixelRTS format'
+    )
+    transpile_parser.add_argument('input', help='Input file (source, binary, or WASM)')
+    transpile_parser.add_argument('output', nargs='?', help='Output .rts.png file path')
+    transpile_parser.add_argument('-v', '--verbose', action='store_true',
+                                 help='Enable verbose output')
+
     args = parser.parse_args()
 
     if not args.command:
@@ -744,6 +817,7 @@ Examples:
     # Dispatch to command handler
     handlers = {
         'convert': cmd_convert,
+        'transpile': cmd_transpile,
         'benchmark': cmd_benchmark,
         'dashboard': cmd_dashboard,
         'info': cmd_info,
