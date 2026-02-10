@@ -1,15 +1,13 @@
 /**
- * PredictivePrefetcherWorker - Main thread wrapper for Web Worker
+ * PredictivePrefetcherWorker - Web Worker wrapper for PredictivePrefetcher
  *
- * Provides backward-compatible API while offloading calculations to a worker.
- * Frees up 10-15ms on the main thread by moving heavy computations to worker.
+ * Phase 47 Improvement: Web Worker for Predictive Prefetching
  *
- * Phase 47: Tectonic Saccadic Optimization - Task 3
+ * This class provides the same interface as PredictivePrefetcher but
+ * offloads the CPU-intensive tile prediction calculations to a Web Worker,
+ * freeing up 10-15ms on the main thread during rapid movement.
  *
- * Usage:
- *   const prefetcher = new PredictivePrefetcherWorker({ tileSize: 100 });
- *   prefetcher.predictTiles({ x: 500, y: 500 }, { x: 100, y: 0 });
- *   prefetcher.on('prefetch', (data) => console.log('Prefetch:', data.tiles));
+ * @class PredictivePrefetcherWorker
  */
 class PredictivePrefetcherWorker {
     constructor(config = {}) {
@@ -20,353 +18,334 @@ class PredictivePrefetcherWorker {
             maxPrefetchDistance: 3,
             debounceTime: 100,
             tileSize: 100,
+            useWorker: true,  // Set to false to fall back to main thread
+            workerPath: 'predictive_prefetcher_worker.js',
             ...config
         };
 
-        // Worker reference
-        this.worker = null;
-        this.state = 'initializing';
+        // State
+        this.lastPrefetchTime = 0;
+        this.pendingTiles = new Set();
+        this.prefetchCache = new Map();
+        this.debounceTimer = null;
 
-        // Message handling
-        this.messageId = 0;
-        this.pendingMessages = new Map();
-
-        // Event listeners (main thread)
+        // Event listeners
         this.eventListeners = new Map();
 
-        // Stats cache
-        this.statsCache = null;
+        // Worker
+        this.worker = null;
+        this.workerReady = false;
+        this.pendingWorkerMessages = new Map();
 
-        // Initialize worker
-        this._initWorker();
+        // Initialize
+        this._initialize();
     }
 
     /**
-     * Initialize the Web Worker
+     * Initialize the worker
      */
-    async _initWorker() {
-        try {
-            // Create worker from inline script or external file
-            const workerCode = this._getWorkerCode();
-            const blob = new Blob([workerCode], { type: 'application/javascript' });
-            const workerUrl = URL.createObjectURL(blob);
+    async _initialize() {
+        if (!this.config.useWorker || typeof Worker === 'undefined') {
+            console.warn('PredictivePrefetcherWorker: Web Worker not available, using main thread');
+            return;
+        }
 
-            this.worker = new Worker(workerUrl);
+        try {
+            // Create worker
+            this.worker = new Worker(this.config.workerPath);
 
             // Set up message handler
-            this.worker.onmessage = this._handleWorkerMessage.bind(this);
-
-            this.worker.onerror = (error) => {
-                console.error('[PredictivePrefetcherWorker] Worker error:', error);
-                this.emit('error', { message: error.message });
+            this.worker.onmessage = (event) => {
+                this._handleWorkerMessage(event.data);
             };
 
-            // Initialize worker with config
-            await this._sendMessage('init', this.config);
+            // Wait for worker ready
+            this.workerReady = await this._waitForWorkerReady();
 
-            this.state = 'ready';
-            this.emit('ready', { config: this.config });
-
-            console.log('[PredictivePrefetcherWorker] Worker initialized');
+            if (this.workerReady) {
+                console.log('✅ PredictivePrefetcherWorker: Worker ready');
+            }
         } catch (error) {
-            console.error('[PredictivePrefetcherWorker] Failed to initialize:', error);
-            this.state = 'error';
-            this.emit('error', { message: error.message });
+            console.warn('PredictivePrefetcherWorker: Failed to create worker:', error);
+            this.worker = null;
         }
     }
 
     /**
-     * Get worker code (inline fallback)
+     * Wait for worker to be ready
      */
-    _getWorkerCode() {
-        // Try to load from external file first, otherwise use inline
-        return `
-            // PredictivePrefetcher Web Worker Code
-            let config = {
-                lookaheadTime: 500,
-                minPrefetchPadding: 0.5,
-                speedFactor: 0.002,
-                maxPrefetchDistance: 3,
-                debounceTime: 100,
-                tileSize: 100
-            };
+    _waitForWorkerReady(timeout = 1000) {
+        return new Promise((resolve) => {
+            const timeoutId = setTimeout(() => {
+                resolve(false);
+            }, timeout);
 
-            let state = {
-                lastPrefetchTime: 0,
-                pendingTiles: new Set(),
-                prefetchCache: new Map()
-            };
-
-            let debounceTimer = null;
-
-            function calculatePrefetchBounds(currentBounds, velocity) {
-                const width = currentBounds.maxX - currentBounds.minX;
-                const height = currentBounds.maxY - currentBounds.minY;
-                let paddingX = width * config.minPrefetchPadding;
-                let paddingY = height * config.minPrefetchPadding;
-                const speed = velocity.magnitude || Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
-                const dynamicPadding = speed * config.speedFactor * Math.max(width, height);
-                const dirX = velocity.x >= 0 ? 1 : -1;
-                const dirY = velocity.y >= 0 ? 1 : -1;
-                paddingX += dynamicPadding * Math.abs(velocity.x / (speed || 1));
-                paddingY += dynamicPadding * Math.abs(velocity.y / (speed || 1));
-                paddingX = Math.min(paddingX, width * config.maxPrefetchDistance);
-                paddingY = Math.min(paddingY, height * config.maxPrefetchDistance);
-                return {
-                    minX: currentBounds.minX - paddingX / 2,
-                    minY: currentBounds.minY - paddingY / 2,
-                    maxX: currentBounds.maxX + paddingX / 2,
-                    maxY: currentBounds.maxY + paddingY / 2,
-                    width: width + paddingX,
-                    height: height + paddingY
-                };
-            }
-
-            function predictTiles(position, velocity, lookaheadTime) {
-                const ahead = lookaheadTime || config.lookaheadTime;
-                const futurePosition = {
-                    x: position.x + velocity.x * ahead / 1000,
-                    y: position.y + velocity.y * ahead / 1000
-                };
-                const prefetchBounds = calculatePrefetchBounds(
-                    { minX: futurePosition.x, minY: futurePosition.y, maxX: futurePosition.x, maxY: futurePosition.y },
-                    velocity
-                );
-                const tiles = [];
-                const tileSize = config.tileSize;
-                const startTileX = Math.floor(prefetchBounds.minX / tileSize);
-                const startTileY = Math.floor(prefetchBounds.minY / tileSize);
-                const endTileX = Math.ceil(prefetchBounds.maxX / tileSize);
-                const endTileY = Math.ceil(prefetchBounds.maxY / tileSize);
-                for (let tx = startTileX; tx <= endTileX; tx++) {
-                    for (let ty = startTileY; ty <= endTileY; ty++) {
-                        tiles.push({ x: tx * tileSize, y: ty * tileSize, tileX: tx, tileY: ty });
-                    }
-                }
-                return tiles;
-            }
-
-            function prioritizeTiles(tiles, gazePoint) {
-                return tiles.map(tile => {
-                    const dx = (tile.x + config.tileSize / 2) - gazePoint.x;
-                    const dy = (tile.y + config.tileSize / 2) - gazePoint.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    const maxDist = 2000;
-                    const priority = Math.max(0, 1 - distance / maxDist);
-                    return { ...tile, priority };
-                }).sort((a, b) => b.priority - a.priority);
-            }
-
-            function executePrefetch(tiles, gazePoint) {
-                const prioritized = gazePoint
-                    ? prioritizeTiles(tiles, gazePoint)
-                    : tiles.map(t => ({ ...t, priority: 0.5 }));
-                const newTiles = prioritized.filter(tile => {
-                    const key = \`\${tile.tileX},\${tile.tileY}\`;
-                    return !state.pendingTiles.has(key) && !state.prefetchCache.has(key);
-                });
-                if (newTiles.length === 0) return;
-                for (const tile of newTiles) {
-                    state.pendingTiles.add(\`\${tile.tileX},\${tile.tileY}\`);
-                }
-                self.postMessage({
-                    type: 'prefetch',
-                    data: { tiles: newTiles, timestamp: Date.now() }
-                });
-                state.lastPrefetchTime = Date.now();
-            }
-
-            self.onmessage = function(e) {
-                const { type, data, id } = e.data;
-                try {
-                    let result;
-                    switch (type) {
-                        case 'init':
-                            config = { ...config, ...data };
-                            result = { type: 'initialized', data: { config } };
-                            break;
-                        case 'calculate_bounds':
-                            result = {
-                                type: 'bounds_calculated',
-                                data: calculatePrefetchBounds(data.bounds, data.velocity)
-                            };
-                            break;
-                        case 'predict_tiles':
-                            result = {
-                                type: 'prediction_result',
-                                data: { tiles: predictTiles(data.position, data.velocity, data.lookaheadTime), timestamp: Date.now() }
-                            };
-                            break;
-                        case 'prioritize_tiles':
-                            result = {
-                                type: 'prioritized_tiles',
-                                data: { tiles: prioritizeTiles(data.tiles, data.gazePoint) }
-                            };
-                            break;
-                        case 'request_prefetch':
-                            if (debounceTimer) clearTimeout(debounceTimer);
-                            debounceTimer = setTimeout(() => executePrefetch(data.tiles, data.gazePoint), config.debounceTime);
-                            result = { type: 'prefetch_requested', data: { timestamp: Date.now() } };
-                            break;
-                        case 'mark_loaded':
-                            const key = \`\${data.tileX},\${data.tileY}\`;
-                            state.pendingTiles.delete(key);
-                            state.prefetchCache.set(key, { data: data.data, timestamp: Date.now() });
-                            result = { type: 'tile_marked_loaded', data: { tileX: data.tileX, tileY: data.tileY } };
-                            break;
-                        case 'get_cached':
-                            const entry = state.prefetchCache.get(\`\${data.tileX},\${data.tileY}\`);
-                            result = { type: 'cached_tile', data: entry ? entry.data : null, tileX: data.tileX, tileY: data.tileY };
-                            break;
-                        case 'clear_cache':
-                            const now = Date.now();
-                            for (const [k, v] of state.prefetchCache) {
-                                if (now - v.timestamp > (data.maxAge || 30000)) state.prefetchCache.delete(k);
-                            }
-                            result = { type: 'cache_cleared', data: { pendingTiles: state.pendingTiles.size, cacheSize: state.prefetchCache.size } };
-                            break;
-                        case 'get_stats':
-                            result = { type: 'stats', data: { pendingTiles: state.pendingTiles.size, cacheSize: state.prefetchCache.size, lastPrefetchTime: state.lastPrefetchTime } };
-                            break;
-                        case 'terminate':
-                            if (debounceTimer) clearTimeout(debounceTimer);
-                            state.pendingTiles.clear();
-                            state.prefetchCache.clear();
-                            result = { type: 'terminated', data: {} };
-                            break;
-                        default:
-                            result = { type: 'error', data: { message: \`Unknown type: \${type}\` } };
-                    }
-                    if (result && id) self.postMessage({ ...result, id });
-                    else if (result && type !== 'request_prefetch') self.postMessage(result);
-                } catch (error) {
-                    self.postMessage({ type: 'error', data: { message: error.message }, id });
+            const checkReady = (event) => {
+                if (event.data.type === 'ready') {
+                    clearTimeout(timeoutId);
+                    this.worker.removeEventListener('message', checkReady);
+                    resolve(true);
                 }
             };
-            self.postMessage({ type: 'ready', data: { timestamp: Date.now() } });
-        `;
+
+            this.worker.addEventListener('message', checkReady);
+        });
     }
 
     /**
      * Handle messages from worker
      */
-    _handleWorkerMessage(e) {
-        const message = e.data;
-        const { type, data, id } = message;
-
-        // Handle pending message promises
-        if (id && this.pendingMessages.has(id)) {
-            const { resolve, reject } = this.pendingMessages.get(id);
-            this.pendingMessages.delete(id);
-
-            if (type === 'error') {
-                reject(new Error(data.message));
-            } else {
-                resolve(data);
-            }
-            return;
-        }
-
-        // Handle async events
-        switch (type) {
-            case 'prefetch':
-                this.emit('prefetch', data);
+    _handleWorkerMessage(data) {
+        switch (data.type) {
+            case 'result':
+                // Worker returned predicted tiles
+                this._handlePrefetchResult(data.tiles);
                 break;
-            case 'ready':
-                this.state = 'ready';
-                this.emit('ready', data);
+
+            case 'prioritized':
+                // Worker returned prioritized tiles
+                this._handlePrefetchResult(data.tiles);
                 break;
-            case 'error':
-                this.emit('error', data);
+
+            case 'pong':
+                // Worker health check response
                 break;
+
+            default:
+                console.warn('Unknown worker message type:', data.type);
         }
     }
 
     /**
-     * Send message to worker and wait for response
+     * Handle prefetch result from worker
      */
-    async _sendMessage(type, data = null) {
-        if (!this.worker || this.state === 'terminated') {
-            throw new Error('Worker is not available');
+    _handlePrefetchResult(tiles) {
+        // Filter out already pending/cached tiles
+        const newTiles = tiles.filter(tile => {
+            const key = `${tile.tileX},${tile.tileY}`;
+            return !this.pendingTiles.has(key) && !this.prefetchCache.has(key);
+        });
+
+        if (newTiles.length === 0) {
+            return;
         }
 
-        const id = ++this.messageId;
+        // Mark as pending
+        for (const tile of newTiles) {
+            this.pendingTiles.add(`${tile.tileX},${tile.tileY}`);
+        }
 
-        return new Promise((resolve, reject) => {
-            this.pendingMessages.set(id, { resolve, reject });
+        // Emit prefetch request
+        this.emit('prefetch', {
+            tiles: newTiles,
+            timestamp: Date.now()
+        });
 
-            // Timeout after 5 seconds
-            setTimeout(() => {
-                if (this.pendingMessages.has(id)) {
-                    this.pendingMessages.delete(id);
-                    reject(new Error('Worker message timeout'));
-                }
-            }, 5000);
+        this.lastPrefetchTime = Date.now();
+    }
 
-            this.worker.postMessage({ type, data, id });
+    /**
+     * Send message to worker
+     */
+    _sendToWorker(type, data) {
+        if (!this.worker || !this.workerReady) {
+            // Queue message for when worker is ready
+            return;
+        }
+
+        this.worker.postMessage({
+            type,
+            ...data
         });
     }
 
     /**
-     * Calculate prefetch bounds (async, worker-based)
+     * Predict which tiles will be needed soon (via worker)
      */
-    async calculatePrefetchBounds(currentBounds, velocity) {
-        return this._sendMessage('calculate_bounds', { bounds: currentBounds, velocity });
+    predictTiles(position, velocity, lookaheadTime = null) {
+        if (this.worker && this.workerReady) {
+            // Use worker for prediction
+            this._sendToWorker('predict', {
+                position,
+                velocity,
+                lookaheadTime,
+                config: this.config
+            });
+        } else {
+            // Fall back to main thread prediction
+            return this._predictTilesFallback(position, velocity, lookaheadTime);
+        }
     }
 
     /**
-     * Predict tiles (async, worker-based)
+     * Fallback prediction on main thread
      */
-    async predictTiles(position, velocity, lookaheadTime = null) {
-        return this._sendMessage('predict_tiles', { position, velocity, lookaheadTime });
+    _predictTilesFallback(position, velocity, lookaheadTime = null) {
+        const ahead = lookaheadTime || this.config.lookaheadTime;
+
+        // Predict future position
+        const futurePosition = {
+            x: position.x + velocity.x * ahead / 1000,
+            y: position.y + velocity.y * ahead / 1000
+        };
+
+        // Calculate prefetch bounds
+        const width = 0; // Center point
+        const height = 0;
+
+        const widthPx = 1000; // Assume viewport size
+        const heightPx = 1000;
+
+        const prefetchBounds = this._calculatePrefetchBounds(
+            { minX: futurePosition.x - widthPx/2, minY: futurePosition.y - heightPx/2, 
+              maxX: futurePosition.x + widthPx/2, maxY: futurePosition.y + heightPx/2 },
+            velocity
+        );
+
+        // Get tile coordinates
+        const tiles = [];
+        const tileSize = this.config.tileSize;
+
+        const startTileX = Math.floor(prefetchBounds.minX / tileSize);
+        const startTileY = Math.floor(prefetchBounds.minY / tileSize);
+        const endTileX = Math.ceil(prefetchBounds.maxX / tileSize);
+        const endTileY = Math.ceil(prefetchBounds.maxY / tileSize);
+
+        for (let tx = startTileX; tx <= endTileX; tx++) {
+            for (let ty = startTileY; ty <= endTileY; ty++) {
+                tiles.push({ x: tx * tileSize, y: ty * tileSize, tileX: tx, tileY: ty });
+            }
+        }
+
+        return tiles;
     }
 
     /**
-     * Prioritize tiles (async, worker-based)
+     * Calculate prefetch bounds (fallback)
      */
-    async prioritizeTiles(tiles, gazePoint) {
-        return this._sendMessage('prioritize_tiles', { tiles, gazePoint });
+    _calculatePrefetchBounds(currentBounds, velocity) {
+        const width = currentBounds.maxX - currentBounds.minX;
+        const height = currentBounds.maxY - currentBounds.minY;
+
+        let paddingX = width * this.config.minPrefetchPadding;
+        let paddingY = height * this.config.minPrefetchPadding;
+
+        const speed = velocity.magnitude || Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
+        const dynamicPadding = speed * this.config.speedFactor * Math.max(width, height);
+
+        paddingX += dynamicPadding * Math.abs(velocity.x / (speed || 1));
+        paddingY += dynamicPadding * Math.abs(velocity.y / (speed || 1));
+
+        paddingX = Math.min(paddingX, width * this.config.maxPrefetchDistance);
+        paddingY = Math.min(paddingY, height * this.config.maxPrefetchDistance);
+
+        return {
+            minX: currentBounds.minX - paddingX / 2,
+            minY: currentBounds.minY - paddingY / 2,
+            maxX: currentBounds.maxX + paddingX / 2,
+            maxY: currentBounds.maxY + paddingY / 2,
+            width: width + paddingX,
+            height: height + paddingY
+        };
     }
 
     /**
-     * Request prefetch (debounced, async)
+     * Prioritize tiles based on distance to gaze point
      */
-    async requestPrefetch(tiles, gazePoint = null) {
-        return this._sendMessage('request_prefetch', { tiles, gazePoint });
+    getPrioritizedTiles(tiles, gazePoint) {
+        if (this.worker && this.workerReady) {
+            // Use worker for prioritization
+            this._sendToWorker('prioritize', {
+                tiles,
+                gazePoint,
+                config: this.config
+            });
+        }
+
+        // Also return synchronous result for fallback
+        return tiles.map(tile => {
+            const dx = (tile.x + this.config.tileSize / 2) - gazePoint.x;
+            const dy = (tile.y + this.config.tileSize / 2) - gazePoint.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            const maxDist = 2000;
+            const priority = Math.max(0, 1 - distance / maxDist);
+
+            return { ...tile, priority };
+        }).sort((a, b) => b.priority - a.priority);
+    }
+
+    /**
+     * Request prefetch of tiles (debounced)
+     */
+    requestPrefetch(tiles, gazePoint = null) {
+        // Cancel previous timer
+        if (this.debounceTimer) {
+            clearTimeout(this.debounceTimer);
+        }
+
+        // Set new timer
+        this.debounceTimer = setTimeout(() => {
+            this._executePrefetch(tiles, gazePoint);
+        }, this.config.debounceTime);
+    }
+
+    /**
+     * Execute the prefetch
+     */
+    _executePrefetch(tiles, gazePoint = null) {
+        // If using worker, send prediction request
+        if (this.worker && this.workerReady && gazePoint) {
+            // For worker mode, we predict first then prioritize
+            this._sendToWorker('predict', {
+                tiles,
+                gazePoint,
+                config: this.config
+            });
+        } else {
+            // Fallback to main thread
+            const prioritized = gazePoint
+                ? this.getPrioritizedTiles(tiles, gazePoint)
+                : tiles.map(t => ({ ...t, priority: 0.5 }));
+
+            this._handlePrefetchResult(prioritized);
+        }
     }
 
     /**
      * Mark tile as loaded
      */
-    async markTileLoaded(tileX, tileY, data) {
-        return this._sendMessage('mark_loaded', { tileX, tileY, data });
+    markTileLoaded(tileX, tileY, data) {
+        const key = `${tileX},${tileY}`;
+        this.pendingTiles.delete(key);
+        this.prefetchCache.set(key, {
+            data,
+            timestamp: Date.now()
+        });
     }
 
     /**
-     * Get cached tile
+     * Get cached tile data
      */
-    async getCachedTile(tileX, tileY) {
-        return this._sendMessage('get_cached', { tileX, tileY });
+    getCachedTile(tileX, tileY) {
+        const key = `${tileX},${tileY}`;
+        return this.prefetchCache.get(key)?.data;
     }
 
     /**
-     * Clear cache
+     * Clear old cache entries
      */
-    async clearCache(maxAge = 30000) {
-        return this._sendMessage('clear_cache', { maxAge });
+    clearCache(maxAge = 30000) {
+        const now = Date.now();
+        for (const [key, entry] of this.prefetchCache) {
+            if (now - entry.timestamp > maxAge) {
+                this.prefetchCache.delete(key);
+            }
+        }
     }
 
     /**
-     * Get statistics
-     */
-    async getStats() {
-        const stats = await this._sendMessage('get_stats');
-        this.statsCache = stats;
-        return stats;
-    }
-
-    /**
-     * Event handling (main thread)
+     * Event handling
      */
     on(event, callback) {
         if (!this.eventListeners.has(event)) {
@@ -381,14 +360,6 @@ class PredictivePrefetcherWorker {
         }
     }
 
-    once(event, callback) {
-        const wrappedCallback = (data) => {
-            callback(data);
-            this.off(event, wrappedCallback);
-        };
-        this.on(event, wrappedCallback);
-    }
-
     emit(event, data) {
         if (this.eventListeners.has(event)) {
             this.eventListeners.get(event).forEach(cb => cb(data));
@@ -396,15 +367,34 @@ class PredictivePrefetcherWorker {
     }
 
     /**
-     * Terminate worker
+     * Get statistics
      */
-    async terminate() {
+    getStats() {
+        return {
+            pendingTiles: this.pendingTiles.size,
+            cacheSize: this.prefetchCache.size,
+            lastPrefetchTime: this.lastPrefetchTime,
+            workerReady: this.workerReady,
+            usingWorker: !!this.worker && this.workerReady
+        };
+    }
+
+    /**
+     * Destroy the prefetcher
+     */
+    destroy() {
+        if (this.debounceTimer) {
+            clearTimeout(this.debounceTimer);
+        }
+
         if (this.worker) {
-            await this._sendMessage('terminate');
             this.worker.terminate();
             this.worker = null;
-            this.state = 'terminated';
         }
+
+        this.eventListeners.clear();
+        this.prefetchCache.clear();
+        this.pendingTiles.clear();
     }
 }
 
