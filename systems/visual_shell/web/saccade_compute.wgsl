@@ -1,190 +1,167 @@
 /**
  * Saccade Compute Shader - GPU-accelerated eye movement calculations
  *
- * Phase 47: Tectonic Saccadic Optimization
+ * Phase 47 Improvements: GPU-Accelerated Saccade Calculations
  *
- * Implements biologically-plausible saccadic eye movements:
- * - Saccade phase: Quick jump with cubic ease-out
- * - Settling phase: Exponential decay to final position
- * - Fixation phase: Stable position with micro-tremors
+ * This compute shader processes multiple saccades in parallel using:
+ * - Exponential settling formula: factor = 1 - e^(-5t)
+ * - Cubic easing for saccade motion
+ * - Double-buffered pipeline for continuous updates
  */
 
+// Saccade state structure
 struct SaccadeState {
-    position: vec2f,        // Current position (pixels)
-    target: vec2f,          // Target position (pixels)
-    startPos: vec2f,        // Saccade start position
-    velocity: vec2f,        // Current velocity (pixels/sec)
-    settlingFactor: f32,    // 0-1, 1 = fully settled
-    phase: u32,             // 0=idle, 1=saccade, 2=settling, 3=fixation
-    saccadeStartTime: f64,  // Timestamp when saccade started
-    settlingStartTime: f64, // Timestamp when settling started
-};
+    position: vec2<f32>,      // Current position (pixels)
+    target: vec2<f32>,         // Target position (pixels)
+    start_pos: vec2<f32>,      // Saccade start position
+    velocity: vec2<f32>,       // Current velocity (pixels/second)
 
-struct SaccadeConfig {
-    saccadeDuration: f32,      // ms
-    settlingDuration: f32,     // ms
-    saccadeThreshold: f32,     // pixels
-    tremorAmount: f32,         // pixels for micro-tremors
-};
+    // Timing
+    saccade_start_time: f32,   // When saccade started (seconds)
+    settling_start_time: f32,  // When settling started (seconds)
 
-struct ComputeInput {
-    currentState: SaccadeState,
-    config: SaccadeConfig,
-    currentTime: f64,
-    deltaTime: f32,
-    velocityHistory: array<vec2f, 5>,  // Last 5 velocity samples
-    velocityHistoryCount: u32,
-};
+    // Configuration
+    saccade_duration: f32,     // Saccade phase duration (seconds)
+    settling_duration: f32,    // Settling phase duration (seconds)
+    settling_factor: f32,      // 0-1, 1 = fully settled
 
-struct ComputeOutput {
-    newState: SaccadeState,
-    averagedVelocity: vec2f,
-    predictedPosition: vec2f,
-};
-
-/**
- * Cubic ease-out function for saccade motion
- * @param t - Progress value [0, 1]
- * @returns Eased value
- */
-fn easeOutCubic(t: f32) -> f32 {
-    let one_minus_t = 1.0 - t;
-    return 1.0 - (one_minus_t * one_minus_t * one_minus_t);
+    // State flags
+    phase: u32,                // 0=idle, 1=saccade, 2=settling, 3=fixation
+    active: u32,               // Whether this saccade slot is in use
 }
 
-/**
- * Exponential settling function
- * factor = 1 - e^(-5t)
- * @param t - Normalized time [0, 1]
- * @returns Settling factor [0, 1]
- */
-fn exponentialSettling(t: f32) -> f32 {
+// Input/output storage buffers
+struct SaccadeInput {
+    states: array<SaccadeState>,
+}
+
+struct SaccadeOutput {
+    positions: array<vec2<f32>>,
+    settling_factors: array<f32>,
+    phases: array<u32>,
+}
+
+// Uniform buffer for global parameters
+struct SaccadeUniforms {
+    current_time: f32,         // Current time in seconds
+    delta_time: f32,           // Frame time in seconds
+    saccade_threshold: f32,    // Distance threshold to trigger saccade
+    tremor_amount: f32,        // Micro-tremor magnitude during fixation
+    max_saccades: u32,         // Maximum number of concurrent saccades
+}
+
+@group(0) @binding(0) var<storage, read> input: SaccadeInput;
+@group(0) @binding(1) var<storage, read_write> output: SaccadeOutput;
+@group(0) @binding(2) var<uniform> uniforms: SaccadeUniforms;
+
+// Random number generator (simple hash-based)
+fn random(co: vec2<f32>) -> f32 {
+    let dot_product = dot(co, vec2<f32>(12.9898, 78.233));
+    return fract(sin(dot_product) * 43758.5453);
+}
+
+// Cubic ease-out function
+fn ease_out_cubic(t: f32) -> f32 {
+    let t_clamped = clamp(t, 0.0, 1.0);
+    return 1.0 - pow(1.0 - t_clamped, 3.0);
+}
+
+// Exponential settling function
+fn exponential_settling(progress: f32) -> f32 {
+    let t = clamp(progress, 0.0, 1.0);
     return 1.0 - exp(-5.0 * t);
 }
 
-/**
- * Calculate distance between two points
- */
-fn distance(p1: vec2f, p2: vec2f) -> f32 {
-    let dx = p2.x - p1.x;
-    let dy = p2.y - p1.y;
-    return sqrt(dx * dx + dy * dy);
-}
-
-/**
- * Calculate velocity from position change
- */
-fn calculateVelocity(prevPos: vec2f, currPos: vec2f, deltaTime: f32) -> vec2f {
-    let dtSeconds = deltaTime / 1000.0;
-    return (currPos - prevPos) / dtSeconds;
-}
-
-/**
- * Average velocity samples
- */
-fn averageVelocity(samples: array<vec2f, 5>, count: u32) -> vec2f {
-    var sum = vec2f(0.0, 0.0);
-    for (var i: u32 = 0u; i < count; i = i + 1u) {
-        sum = sum + samples[i];
-    }
-    return sum / f32(count);
-}
-
-/**
- * Update saccade phase (quick jump to target)
- */
-fn updateSaccade(state: ptr<function, SaccadeState>, config: SaccadeConfig, currentTime: f64) -> vec2f {
-    let elapsed = f32(currentTime - (*state).saccadeStartTime);
-    let progress = min(elapsed / config.saccadeDuration, 1.0);
-    let eased = easeOutCubic(progress);
-
-    let direction = (*state).target - (*state).startPos;
-    (*state).position = (*state).startPos + direction * eased;
-
-    // Calculate instantaneous velocity
-    let velocity = direction * eased / max(elapsed / 1000.0, 0.001);
+// Update saccade phase (quick jump)
+fn update_saccade(state: ptr<function, SaccadeState>, current_time: f32) -> vec2<f32> {
+    let elapsed = current_time - (*state).saccade_start_time;
+    let progress = elapsed / (*state).saccade_duration;
 
     if (progress >= 1.0) {
-        (*state).phase = 2u;  // Transition to settling
-        (*state).settlingStartTime = currentTime;
-        (*state).settlingFactor = 0.0;
+        // Transition to settling
+        (*state).phase = 2u;  // settling
+        (*state).settling_start_time = current_time;
+        return (*state).target;
     }
 
-    return velocity;
+    // Apply cubic easing
+    let eased = ease_out_cubic(progress);
+    let new_pos = (*state).start_pos + ((*state).target - (*state).start_pos) * eased;
+    return new_pos;
 }
 
-/**
- * Update settling phase (exponential decay to final position)
- */
-fn updateSettling(state: ptr<function, SaccadeState>, config: SaccadeConfig, currentTime: f64) -> vec2f {
-    let elapsed = f32(currentTime - (*state).settlingStartTime);
-    let progress = elapsed / config.settlingDuration;
-
-    (*state).settlingFactor = exponentialSettling(progress);
-
-    // Decaying velocity as we settle
-    let decayFactor = exp(-5.0 * progress);
-    let direction = (*state).target - (*state).position;
-    let velocity = direction * (1.0 - decayFactor) * 10.0;
+// Update settling phase (exponential decay)
+fn update_settling(state: ptr<function, SaccadeState>, current_time: f32) -> vec2<f32> {
+    let elapsed = current_time - (*state).settling_start_time;
+    let progress = elapsed / (*state).settling_duration;
 
     if (progress >= 1.0) {
-        (*state).phase = 3u;  // Transition to fixation
-        (*state).settlingFactor = 1.0;
+        // Transition to fixation
+        (*state).phase = 3u;  // fixation
+        (*state).settling_factor = 1.0;
+        return (*state).target;
     }
 
-    return velocity;
+    // Apply exponential settling
+    (*state).settling_factor = exponential_settling(progress);
+
+    // Interpolate toward target based on settling factor
+    let new_pos = mix((*state).position, (*state).target, (*state).settling_factor * 0.1);
+    return new_pos;
 }
 
-/**
- * Update fixation phase (stable with micro-tremors)
- */
-fn updateFixation(state: ptr<function, SaccadeState>, config: SaccadeConfig, deltaTime: f32) -> vec2f {
+// Update fixation phase (add micro-tremors)
+fn update_fixation(state: ptr<function, SaccadeState>) -> vec2<f32> {
     // Micro-tremors: tiny random movements
-    // Using pseudo-random based on time for consistency
-    let timeHash = fract(f32(currentTime) * 0.0001);
-    let tremorX = (timeHash - 0.5) * config.tremorAmount;
-    let tremorY = (fract(timeHash * 1.618) - 0.5) * config.tremorAmount;
+    let noise_x = (random((*state).position + vec2<f32>(uniforms.current_time, 0.0)) - 0.5) * uniforms.tremor_amount;
+    let noise_y = (random((*state).position + vec2<f32>(0.0, uniforms.current_time)) - 0.5) * uniforms.tremor_amount;
 
-    (*state).position = (*state).position + vec2f(tremorX, tremorY);
-
-    return vec2f(0.0, 0.0);  // No net velocity during fixation
+    return (*state).position + vec2<f32>(noise_x, noise_y);
 }
 
-/**
- * Main compute function
- * @param input - Current state and configuration
- * @returns Updated state and computed values
- */
-@compute
-@workgroup_size(1)
-fn computeSaccade(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    // This is a placeholder for WebGPU compute pipeline
-    // Actual implementation will use storage buffers for I/O
-}
+// Main compute function
+@compute @workgroup_size(64)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+    let index = global_id.x;
 
-// Pure function version for testing (not using workgroup)
-fn computeSaccadePure(input: ComputeInput) -> ComputeOutput {
-    var state = input.currentState;
-    var velocity = vec2f(0.0, 0.0);
-
-    // Update based on current phase
-    if (state.phase == 1u) {  // saccade
-        velocity = updateSaccade(&state, input.config, input.currentTime);
-    } else if (state.phase == 2u) {  // settling
-        velocity = updateSettling(&state, input.config, input.currentTime);
-    } else if (state.phase == 3u) {  // fixation
-        velocity = updateFixation(&state, input.config, input.deltaTime);
+    // Check bounds
+    if (index >= uniforms.max_saccades) {
+        return;
     }
 
-    // Calculate averaged velocity from history
-    let avgVelocity = averageVelocity(input.velocityHistory, input.velocityHistoryCount);
+    var state = input.states[index];
 
-    // Predict future position
-    let prediction = state.position + avgVelocity * 0.2;  // 200ms ahead
+    // Skip inactive slots
+    if (state.active == 0u) {
+        output.positions[index] = vec2<f32>(0.0, 0.0);
+        output.settling_factors[index] = state.settling_factor;
+        output.phases[index] = 0u;
+        return;
+    }
 
-    return ComputeOutput(
-        state,
-        avgVelocity,
-        prediction
-    );
+    var new_pos = state.position;
+
+    // Update based on phase
+    switch state.phase {
+        case 1u: {  // saccade
+            new_pos = update_saccade(&state, uniforms.current_time);
+        }
+        case 2u: {  // settling
+            new_pos = update_settling(&state, uniforms.current_time);
+        }
+        case 3u: {  // fixation
+            new_pos = update_fixation(&state);
+        }
+        default: {  // idle
+            new_pos = state.position;
+        }
+    }
+
+    // Update position
+    state.position = new_pos;
+
+    // Write output
+    output.positions[index] = new_pos;
+    output.settling_factors[index] = state.settling_factor;
+    output.phases[index] = state.phase;
 }
