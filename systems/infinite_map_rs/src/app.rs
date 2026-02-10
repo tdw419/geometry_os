@@ -2623,6 +2623,16 @@ impl<'a> InfiniteMapApp<'a> {
             // Set window type to EvolutionZone for gold border
             self.window_manager.set_window_type(window_id, crate::window::WindowType::EvolutionZone);
 
+            // Phase 35.9.2: Configure tile decorations (no title bar)
+            let tile_decorations = crate::window::WindowDecorations {
+                show_title_bar: false,
+                border_width: 4.0,
+                title_bar_height: 0.0,
+                show_border: true,
+                close_button_hovered: false,
+            };
+            self.window_manager.set_window_decorations(window_id, tile_decorations);
+
             // Phase 35.9.1: Mark window as having cartridge texture
             if texture_loaded {
                 self.window_manager.set_window_has_cartridge_texture(window_id, &entry.id);

@@ -372,6 +372,13 @@ impl WindowManager {
         }
     }
 
+    /// Phase 35.9.2: Set window decorations
+    pub fn set_window_decorations(&mut self, window_id: usize, decorations: WindowDecorations) {
+        if let Some(window) = self.get_window_mut(window_id) {
+            window.decorations = decorations;
+        }
+    }
+
     /// Phase 35.9.1: Mark window as having a cartridge texture
     pub fn set_window_has_cartridge_texture(&mut self, window_id: usize, cartridge_id: &str) {
         if let Some(window) = self.get_window_mut(window_id) {
