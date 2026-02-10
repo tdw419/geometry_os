@@ -1893,8 +1893,19 @@ impl<'a> Renderer<'a> {
             let content_screen_h = window_h * camera.zoom;
 
             let frame_color = window.custom_border_color.unwrap_or_else(|| {
-                let color = window.window_type.border_color();
-                [color.0, color.1, color.2, 1.0]
+                // Phase 35.9.3: Use boot state color for EvolutionZone cartridges
+                if window.window_type == crate::window::WindowType::EvolutionZone {
+                    let color = match window.boot_state {
+                        crate::window::CartridgeBootState::Idle => (1.0, 0.84, 0.0), // Gold
+                        crate::window::CartridgeBootState::Booting => (0.0, 1.0, 1.0), // Cyan
+                        crate::window::CartridgeBootState::Running => (0.0, 1.0, 0.0), // Green
+                        crate::window::CartridgeBootState::Failed => (1.0, 0.0, 0.0), // Red
+                    };
+                    [color.0, color.1, color.2, 1.0]
+                } else {
+                    let color = window.window_type.border_color();
+                    [color.0, color.1, color.2, 1.0]
+                }
             });
 
             let mut surface_bind_group = None;
