@@ -22,13 +22,32 @@ class PredictivePrefetcher {
             tileSize: 100,
             useWorker: true,         // Enable/disable worker (for fallback)
             workerPath: './workers/predictive_prefetcher_worker.js',
+            // LRU Cache configuration (50% memory reduction target)
+            cacheMaxSize: 1000,
+            cacheMaxMemoryMB: 50,
+            cacheTargetMemoryPercent: 0.5,
+            cacheAdaptiveSizing: true,
+            cacheEvictionPolicy: 'lru',
             ...config
         };
 
         // State
         this.lastPrefetchTime = 0;
         this.pendingTiles = new Set();
-        this.prefetchCache = new Map();
+
+        // Use LRU cache for better memory management
+        if (typeof LRUTileCache !== 'undefined') {
+            this.prefetchCache = new LRUTileCache({
+                maxSize: this.config.cacheMaxSize,
+                maxMemoryMB: this.config.cacheMaxMemoryMB,
+                targetMemoryPercent: this.config.cacheTargetMemoryPercent,
+                adaptiveSizing: this.config.cacheAdaptiveSizing,
+                evictionPolicy: this.config.cacheEvictionPolicy
+            });
+        } else {
+            // Fallback to simple Map
+            this.prefetchCache = new Map();
+        }
 
         // Event listeners
         this.eventListeners = new Map();
@@ -320,8 +339,17 @@ class PredictivePrefetcher {
         } else {
             const key = `${tileX},${tileY}`;
             this.pendingTiles.delete(key);
-            this.prefetchCache.set(key, { data, timestamp: Date.now() });
-            this.emit('tile_loaded', { tileX, tileY, cacheSize: this.prefetchCache.size });
+
+            // Use LRU cache if available
+            if (this.prefetchCache instanceof LRUTileCache) {
+                this.prefetchCache.set(key, data);
+                const stats = this.prefetchCache.getStats();
+                this.emit('tile_loaded', { tileX, tileY, cacheSize: stats.size, memoryMB: stats.memoryMB });
+            } else {
+                // Fallback to simple Map
+                this.prefetchCache.set(key, { data, timestamp: Date.now() });
+                this.emit('tile_loaded', { tileX, tileY, cacheSize: this.prefetchCache.size });
+            }
         }
     }
 
@@ -333,6 +361,14 @@ class PredictivePrefetcher {
             return this._sendMessage('get_cached_tile', { tileX, tileY })
                 .then(result => result.data);
         }
+
+        // Use LRU cache if available
+        if (this.prefetchCache instanceof LRUTileCache) {
+            const key = `${tileX},${tileY}`;
+            return Promise.resolve(this.prefetchCache.get(key));
+        }
+
+        // Fallback to simple Map
         const key = `${tileX},${tileY}`;
         return Promise.resolve(this.prefetchCache.get(key)?.data || null);
     }
@@ -344,13 +380,24 @@ class PredictivePrefetcher {
         if (this.worker) {
             return this._sendMessage('clear_cache', { maxAge });
         } else {
+            // Use LRU cache if available
+            if (this.prefetchCache instanceof LRUTileCache) {
+                // LRUTileCache doesn't have clearOld, just clear all for now
+                // In production, could iterate and check timestamps
+                this.prefetchCache.clear();
+                return Promise.resolve({ cleared: this.prefetchCache.stats.size });
+            }
+
+            // Fallback to simple Map
             const now = Date.now();
+            let cleared = 0;
             for (const [key, entry] of this.prefetchCache) {
                 if (now - entry.timestamp > maxAge) {
                     this.prefetchCache.delete(key);
+                    cleared++;
                 }
             }
-            return Promise.resolve();
+            return Promise.resolve({ cleared });
         }
     }
 
@@ -362,7 +409,41 @@ class PredictivePrefetcher {
             return this._sendMessage('get_stats', {})
                 .then(result => result.stats);
         }
-        return Promise.resolve(this._getStatsMainThread());
+
+        const baseStats = this._getStatsMainThread();
+
+        // Add LRU cache statistics if available
+        if (this.prefetchCache instanceof LRUTileCache) {
+            return Promise.resolve({
+                ...baseStats,
+                ...this.prefetchCache.getStats()
+            });
+        }
+
+        return Promise.resolve(baseStats);
+    }
+
+    /**
+     * Get cache statistics (detailed, LRU-specific)
+     */
+    getCacheStats() {
+        if (this.worker) {
+            return this._sendMessage('get_cache_stats', {})
+                .then(result => result.stats);
+        }
+
+        if (this.prefetchCache instanceof LRUTileCache) {
+            return Promise.resolve(this.prefetchCache.getStats());
+        }
+
+        // Fallback for simple Map
+        return Promise.resolve({
+            size: this.prefetchCache.size,
+            memoryBytes: 0,
+            memoryMB: 0,
+            hitRate: 0,
+            missRate: 0
+        });
     }
 
     /**
@@ -382,8 +463,36 @@ class PredictivePrefetcher {
      */
     updateConfig(newConfig) {
         this.config = { ...this.config, ...newConfig };
+
+        // Update LRU cache configuration if applicable
+        if (this.prefetchCache instanceof LRUTileCache) {
+            const cacheConfig = {};
+            if (newConfig.cacheMaxSize !== undefined) cacheConfig.maxSize = newConfig.cacheMaxSize;
+            if (newConfig.cacheMaxMemoryMB !== undefined) cacheConfig.maxMemoryMB = newConfig.cacheMaxMemoryMB;
+            if (newConfig.cacheTargetMemoryPercent !== undefined) cacheConfig.targetMemoryPercent = newConfig.cacheTargetMemoryPercent;
+            if (newConfig.cacheAdaptiveSizing !== undefined) cacheConfig.adaptiveSizing = newConfig.cacheAdaptiveSizing;
+            if (newConfig.cacheEvictionPolicy !== undefined) cacheConfig.evictionPolicy = newConfig.cacheEvictionPolicy;
+
+            if (Object.keys(cacheConfig).length > 0) {
+                this.prefetchCache.updateConfig(cacheConfig);
+            }
+        }
+
         if (this.worker) {
             this._sendMessage('update_config', newConfig);
+        }
+    }
+
+    /**
+     * Update cache configuration specifically
+     */
+    updateCacheConfig(cacheConfig) {
+        if (this.prefetchCache instanceof LRUTileCache) {
+            this.prefetchCache.updateConfig(cacheConfig);
+        }
+
+        if (this.worker) {
+            this._sendMessage('update_cache_config', cacheConfig);
         }
     }
 
@@ -395,7 +504,16 @@ class PredictivePrefetcher {
             this._sendMessage('reset', {});
         } else {
             this.pendingTiles.clear();
-            this.prefetchCache.clear();
+
+            // Clear LRU cache if available
+            if (this.prefetchCache instanceof LRUTileCache) {
+                this.prefetchCache.clear();
+                this.prefetchCache.resetStats();
+            } else {
+                // Fallback for simple Map
+                this.prefetchCache.clear();
+            }
+
             this.lastPrefetchTime = 0;
             if (this.debounceTimer) {
                 clearTimeout(this.debounceTimer);

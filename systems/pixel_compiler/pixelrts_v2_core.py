@@ -457,9 +457,9 @@ class PixelRTSEncoder:
         if sidecar and metadata:
             # Determine sidecar path
             if output_path.endswith('.rts.png'):
-                sidecar_path = output_path.replace('.rts.png', '.meta.json')
+                sidecar_path = output_path + '.meta.json'
             elif output_path.endswith('.png'):
-                sidecar_path = output_path.replace('.png', '.meta.json')
+                sidecar_path = output_path + '.meta.json'
             else:
                 sidecar_path = output_path + '.meta.json'
 
@@ -469,9 +469,9 @@ class PixelRTSEncoder:
         # Save blueprint sidecar if provided
         if blueprint:
             if output_path.endswith('.rts.png'):
-                blueprint_path = output_path.replace('.rts.png', '.rts.png.blueprint.json')
+                blueprint_path = output_path + '.blueprint.json'
             elif output_path.endswith('.png'):
-                blueprint_path = output_path.replace('.png', '.blueprint.json')
+                blueprint_path = output_path + '.blueprint.json'
             else:
                 blueprint_path = output_path + '.blueprint.json'
 

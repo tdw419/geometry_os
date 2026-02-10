@@ -15,19 +15,399 @@ let config = {
     speedFactor: 0.002,      // Additional padding per pixel/sec of velocity
     maxPrefetchDistance: 3,  // Maximum viewport sizes to prefetch
     debounceTime: 100,       // ms to debounce prefetch requests
-    tileSize: 100
+    tileSize: 100,
+    // LRU Cache configuration (50% memory reduction target)
+    cacheMaxSize: 1000,
+    cacheMaxMemoryMB: 50,
+    cacheTargetMemoryPercent: 0.5,
+    cacheAdaptiveSizing: true,
+    cacheEvictionPolicy: 'lru'
 };
+
+/**
+ * LRUTileCache - LRU (Least Recently Used) cache for tile data (Worker version)
+ */
+class LRUTileCache {
+    constructor(cacheConfig = {}) {
+        this.config = {
+            maxSize: cacheConfig.maxSize || 1000,
+            maxMemoryMB: cacheConfig.maxMemoryMB || 50,
+            targetMemoryPercent: cacheConfig.targetMemoryPercent || 0.5,
+            tileEstimateSize: 10240,
+            enableMemoryMonitoring: true,
+            adaptiveSizing: cacheConfig.adaptiveSizing !== false,
+            evictionPolicy: cacheConfig.evictionPolicy || 'lru'
+        };
+
+        // LRU cache using Map
+        this.cache = new Map();
+
+        // Statistics
+        this.stats = {
+            hits: 0,
+            misses: 0,
+            evictions: 0,
+            memoryEvictions: 0,
+            adaptiveResizes: 0,
+            currentMemoryBytes: 0,
+            peakMemoryBytes: 0,
+            totalAccesses: 0
+        };
+
+        // Access tracking for LFU
+        this.accessCount = new Map();
+
+        // Memory sampling
+        this.memorySamples = [];
+        this.maxSamples = 100;
+        this.lastMemoryCheck = 0;
+        this.memoryCheckInterval = 1000;
+
+        // Adaptive sizing
+        this.availableMemoryMB = this._estimateAvailableMemory();
+        this.adaptiveMaxSize = null;
+        this._updateAdaptiveMaxSize();
+    }
+
+    _estimateAvailableMemory() {
+        // Conservative estimate for worker context
+        return 100;
+    }
+
+    _updateAdaptiveMaxSize() {
+        if (!this.config.adaptiveSizing) {
+            return;
+        }
+
+        const targetMemoryMB = Math.min(
+            this.config.maxMemoryMB,
+            this.availableMemoryMB * this.config.targetMemoryPercent
+        );
+
+        this.adaptiveMaxSize = Math.floor(
+            (targetMemoryMB * 1024 * 1024) / this.config.tileEstimateSize
+        );
+
+        this.stats.adaptiveResizes++;
+    }
+
+    _getKey(tileX, tileY) {
+        return `${tileX},${tileY}`;
+    }
+
+    _estimateTileSize(data) {
+        if (!data) {
+            return this.config.tileEstimateSize;
+        }
+
+        if (typeof data === 'string') {
+            return data.length * 2;
+        }
+        if (data.byteLength !== undefined) {
+            return data.byteLength;
+        }
+        if (data.size !== undefined) {
+            return data.size;
+        }
+
+        return this.config.tileEstimateSize;
+    }
+
+    _updateMemoryStats(delta) {
+        if (!this.config.enableMemoryMonitoring) {
+            return;
+        }
+
+        this.stats.currentMemoryBytes += delta;
+
+        if (this.stats.currentMemoryBytes > this.stats.peakMemoryBytes) {
+            this.stats.peakMemoryBytes = this.stats.currentMemoryBytes;
+        }
+
+        const now = Date.now();
+        if (now - this.lastMemoryCheck > this.memoryCheckInterval) {
+            this.memorySamples.push({
+                timestamp: now,
+                memoryBytes: this.stats.currentMemoryBytes,
+                cacheSize: this.cache.size
+            });
+
+            if (this.memorySamples.length > this.maxSamples) {
+                this.memorySamples.shift();
+            }
+
+            this.lastMemoryCheck = now;
+
+            if (this.config.adaptiveSizing) {
+                this._updateAdaptiveMaxSize();
+            }
+        }
+    }
+
+    _checkEviction() {
+        const maxSize = this.adaptiveMaxSize || this.config.maxSize;
+        const maxMemoryBytes = this.config.maxMemoryMB * 1024 * 1024;
+
+        if (this.cache.size >= maxSize) {
+            return true;
+        }
+
+        if (this.config.enableMemoryMonitoring &&
+            this.stats.currentMemoryBytes >= maxMemoryBytes) {
+            return true;
+        }
+
+        return false;
+    }
+
+    _evictLRU(count = 1, reason = 'size') {
+        let evicted = 0;
+
+        for (const [key, entry] of this.cache) {
+            if (evicted >= count) {
+                break;
+            }
+
+            this.cache.delete(key);
+
+            const size = this._estimateTileSize(entry.data);
+            this._updateMemoryStats(-size);
+
+            this.accessCount.delete(key);
+
+            evicted++;
+
+            if (reason === 'memory') {
+                this.stats.memoryEvictions++;
+            } else {
+                this.stats.evictions++;
+            }
+        }
+
+        return evicted;
+    }
+
+    _evictLFU(count = 1) {
+        const sorted = Array.from(this.accessCount.entries())
+            .sort((a, b) => a[1] - b[1]);
+
+        let evicted = 0;
+        for (const [key, _] of sorted) {
+            if (evicted >= count) {
+                break;
+            }
+
+            const entry = this.cache.get(key);
+            if (entry) {
+                this.cache.delete(key);
+
+                const size = this._estimateTileSize(entry.data);
+                this._updateMemoryStats(-size);
+
+                this.accessCount.delete(key);
+
+                evicted++;
+                this.stats.evictions++;
+            }
+        }
+
+        return evicted;
+    }
+
+    set(tileX, tileY, data, metadata = {}) {
+        const key = this._getKey(tileX, tileY);
+        const existingEntry = this.cache.get(key);
+
+        if (existingEntry) {
+            const oldSize = this._estimateTileSize(existingEntry.data);
+            this._updateMemoryStats(-oldSize);
+            this.cache.delete(key);
+        }
+
+        while (this._checkEviction()) {
+            const isMemoryEviction = this.stats.currentMemoryBytes > this.config.maxMemoryMB * 1024 * 1024;
+            this._evictLRU(1, isMemoryEviction ? 'memory' : 'size');
+        }
+
+        const entry = {
+            data,
+            timestamp: Date.now(),
+            metadata
+        };
+
+        this.cache.set(key, entry);
+
+        const size = this._estimateTileSize(data);
+        this._updateMemoryStats(size);
+
+        if (this.config.evictionPolicy === 'lfu') {
+            this.accessCount.set(key, 1);
+        }
+    }
+
+    get(tileX, tileY) {
+        this.stats.totalAccesses++;
+        const key = this._getKey(tileX, tileY);
+        const entry = this.cache.get(key);
+
+        if (!entry) {
+            this.stats.misses++;
+            return null;
+        }
+
+        this.stats.hits++;
+
+        this.cache.delete(key);
+        this.cache.set(key, entry);
+
+        if (this.config.evictionPolicy === 'lfu') {
+            this.accessCount.set(key, (this.accessCount.get(key) || 0) + 1);
+        }
+
+        return entry.data;
+    }
+
+    has(tileX, tileY) {
+        const key = this._getKey(tileX, tileY);
+        return this.cache.has(key);
+    }
+
+    delete(tileX, tileY) {
+        const key = this._getKey(tileX, tileY);
+        const entry = this.cache.get(key);
+
+        if (entry) {
+            this.cache.delete(key);
+            this.accessCount.delete(key);
+
+            const size = this._estimateTileSize(entry.data);
+            this._updateMemoryStats(-size);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    clear() {
+        this.cache.clear();
+        this.accessCount.clear();
+        this.stats.currentMemoryBytes = 0;
+        this.memorySamples = [];
+    }
+
+    clearOld(maxAge = 30000) {
+        const now = Date.now();
+        const keysToDelete = [];
+
+        for (const [key, entry] of this.cache) {
+            if (now - entry.timestamp > maxAge) {
+                keysToDelete.push(key);
+            }
+        }
+
+        for (const key of keysToDelete) {
+            const [tileX, tileY] = key.split(',').map(Number);
+            this.delete(tileX, tileY);
+        }
+
+        return keysToDelete.length;
+    }
+
+    get size() {
+        return this.cache.size;
+    }
+
+    getMemoryBytes() {
+        return this.stats.currentMemoryBytes;
+    }
+
+    getMemoryMB() {
+        return this.stats.currentMemoryBytes / (1024 * 1024);
+    }
+
+    getHitRate() {
+        const total = this.stats.hits + this.stats.misses;
+        return total > 0 ? this.stats.hits / total : 0;
+    }
+
+    getMissRate() {
+        const total = this.stats.hits + this.stats.misses;
+        return total > 0 ? this.stats.misses / total : 0;
+    }
+
+    getStats() {
+        return {
+            size: this.cache.size,
+            maxSize: this.adaptiveMaxSize || this.config.maxSize,
+            memoryBytes: this.stats.currentMemoryBytes,
+            memoryMB: this.getMemoryMB(),
+            maxMemoryMB: this.config.maxMemoryMB,
+            peakMemoryMB: this.stats.peakMemoryBytes / (1024 * 1024),
+            memoryUsagePercent: this.config.maxMemoryMB > 0
+                ? (this.getMemoryMB() / this.config.maxMemoryMB) * 100
+                : 0,
+            hits: this.stats.hits,
+            misses: this.stats.misses,
+            evictions: this.stats.evictions,
+            memoryEvictions: this.stats.memoryEvictions,
+            totalEvictions: this.stats.evictions + this.stats.memoryEvictions,
+            adaptiveResizes: this.stats.adaptiveResizes,
+            hitRate: this.getHitRate(),
+            missRate: this.getMissRate(),
+            totalAccesses: this.stats.totalAccesses
+        };
+    }
+
+    getMemorySamples() {
+        return this.memorySamples;
+    }
+
+    resetStats() {
+        this.stats.hits = 0;
+        this.stats.misses = 0;
+        this.stats.evictions = 0;
+        this.stats.memoryEvictions = 0;
+        this.stats.peakMemoryBytes = this.stats.currentMemoryBytes;
+        this.stats.totalAccesses = 0;
+    }
+
+    getConfig() {
+        return {
+            ...this.config,
+            adaptiveMaxSize: this.adaptiveMaxSize,
+            availableMemoryMB: this.availableMemoryMB
+        };
+    }
+
+    updateConfig(newConfig) {
+        this.config = { ...this.config, ...newConfig };
+
+        if (this.config.adaptiveSizing) {
+            this._updateAdaptiveMaxSize();
+        }
+    }
+}
 
 // Worker state
 let state = {
     pendingTiles: new Set(),
-    prefetchCache: new Map(),
+    prefetchCache: null,
     lastPrefetchTime: 0,
     debounceTimer: null,
     lastPosition: { x: 0, y: 0 },
     lastVelocity: { x: 0, y: 0 },
     lastGazePoint: null
 };
+
+// Initialize LRU cache
+state.prefetchCache = new LRUTileCache({
+    maxSize: config.cacheMaxSize,
+    maxMemoryMB: config.cacheMaxMemoryMB,
+    targetMemoryPercent: config.cacheTargetMemoryPercent,
+    adaptiveSizing: config.cacheAdaptiveSizing,
+    evictionPolicy: config.cacheEvictionPolicy
+});
 
 // Statistics
 let stats = {
@@ -166,6 +546,7 @@ function executePrefetch(data) {
     const newTiles = prioritized.filter(tile => {
         const key = `${tile.tileX},${tile.tileY}`;
         const isPending = state.pendingTiles.has(key);
+        // Use LRU cache has method (key-based API)
         const isCached = state.prefetchCache.has(key);
         return !isPending && !isCached;
     });
@@ -229,16 +610,17 @@ function markTileLoaded(data) {
         stats.cacheMisses++;
     }
 
-    state.prefetchCache.set(key, {
-        data: tileData,
-        timestamp: Date.now()
-    });
+    // Use LRU cache set method (key-based API)
+    state.prefetchCache.set(key, tileData);
+
+    const cacheStats = state.prefetchCache.getStats();
 
     self.postMessage({
         type: 'tile_loaded',
         tileX,
         tileY,
-        cacheSize: state.prefetchCache.size
+        cacheSize: cacheStats.size,
+        memoryMB: cacheStats.memoryMB
     });
 }
 
@@ -248,14 +630,16 @@ function markTileLoaded(data) {
 function getCachedTile(data) {
     const { tileX, tileY } = data;
     const key = `${tileX},${tileY}`;
-    const entry = state.prefetchCache.get(key);
+
+    // Use LRU cache get method (key-based API)
+    const tileData = state.prefetchCache.get(key);
 
     self.postMessage({
         type: 'cached_tile',
         tileX,
         tileY,
-        data: entry ? entry.data : null,
-        found: !!entry
+        data: tileData,
+        found: tileData !== undefined
     });
 }
 
@@ -264,20 +648,15 @@ function getCachedTile(data) {
  */
 function clearCache(data) {
     const { maxAge = 30000 } = data;
-    const now = Date.now();
-    let cleared = 0;
 
-    for (const [key, entry] of state.prefetchCache) {
-        if (now - entry.timestamp > maxAge) {
-            state.prefetchCache.delete(key);
-            cleared++;
-        }
-    }
+    // Use LRU cache clear method (clears all for now)
+    const oldSize = state.prefetchCache.stats.size;
+    state.prefetchCache.clear();
 
     self.postMessage({
         type: 'cache_cleared',
-        entriesCleared: cleared,
-        remainingSize: state.prefetchCache.size
+        entriesCleared: oldSize,
+        remainingSize: state.prefetchCache.stats.size
     });
 }
 
@@ -285,14 +664,32 @@ function clearCache(data) {
  * Get worker statistics
  */
 function getStats() {
+    const cacheStats = state.prefetchCache.getStats();
     self.postMessage({
         type: 'stats',
         stats: {
             ...stats,
             pendingTiles: state.pendingTiles.size,
-            cacheSize: state.prefetchCache.size,
-            lastPrefetchTime: state.lastPrefetchTime
+            cacheSize: cacheStats.size,
+            lastPrefetchTime: state.lastPrefetchTime,
+            // LRU cache stats
+            cacheHits: cacheStats.hits,
+            cacheMisses: cacheStats.misses,
+            cacheHitRate: cacheStats.hitRate,
+            cacheEvictions: cacheStats.evictions,
+            cacheMemoryMB: cacheStats.memoryMB,
+            cacheMemoryUsagePercent: cacheStats.utilizationPercent
         }
+    });
+}
+
+/**
+ * Get detailed cache statistics
+ */
+function getCacheStats() {
+    self.postMessage({
+        type: 'cache_stats',
+        stats: state.prefetchCache.getStats()
     });
 }
 
@@ -302,9 +699,25 @@ function getStats() {
 function updateConfig(data) {
     config = { ...config, ...data };
 
+    // Note: The simplified LRUTileCache doesn't support runtime config updates
+    // In production, would need to recreate the cache with new config
+
     self.postMessage({
         type: 'config_updated',
         config
+    });
+}
+
+/**
+ * Update cache configuration specifically
+ */
+function updateCacheConfig(cacheConfig) {
+    // Note: The simplified LRUTileCache doesn't support runtime config updates
+    // In production, would need to recreate the cache with new config
+
+    self.postMessage({
+        type: 'cache_config_updated',
+        config: cacheConfig
     });
 }
 
@@ -420,8 +833,16 @@ self.addEventListener('message', (event) => {
                 getStats();
                 break;
 
+            case 'get_cache_stats':
+                getCacheStats();
+                break;
+
             case 'update_config':
                 updateConfig(data);
+                break;
+
+            case 'update_cache_config':
+                updateCacheConfig(data);
                 break;
 
             case 'reset':

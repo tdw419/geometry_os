@@ -16,11 +16,11 @@ try:
 except ImportError:
     ELFTOOLS_AVAILABLE = False
 
-from pixelrts_blueprint import (
+from .pixelrts_blueprint import (
     PixelRTSBlueprint, Component, ComponentType, HilbertRange,
     MemoryRegion, SecurityInfo
 )
-from pixelrts_v2_core import HilbertCurve
+from .pixelrts_v2_core import HilbertCurve
 
 
 @dataclass
@@ -89,17 +89,22 @@ class BlueprintAnalyzer:
 
         # Analyze ELF structure if available
         if self.is_elf_binary(data) and ELFTOOLS_AVAILABLE:
-            self._analyze_elf_structure(data, blueprint)
+            self._analyze_elf_structure(data, blueprint, grid_size)
         else:
             # Fallback to entropy-based analysis
-            self._analyze_by_entropy(data, blueprint)
+            self._analyze_by_entropy(data, blueprint, grid_size)
 
         # Infer memory map
         blueprint.memory_map = self._infer_memory_map(data)
 
         return blueprint
 
-    def _analyze_elf_structure(self, data: bytes, blueprint: PixelRTSBlueprint):
+    def _analyze_elf_structure(
+        self,
+        data: bytes,
+        blueprint: PixelRTSBlueprint,
+        grid_size: Optional[int] = None
+    ):
         """Analyze ELF binary structure."""
         from io import BytesIO
 
@@ -112,20 +117,40 @@ class BlueprintAnalyzer:
                 ei_class = elf.header.e_ident['EI_CLASS']
                 blueprint.architecture = arch_map.get(ei_class, 'unknown')
 
+            # Calculate grid size if not provided
+            if grid_size is None:
+                from .pixelrts_v2_core import calculate_grid_size
+                grid_size = calculate_grid_size(len(data))
+
+            # Create Hilbert curve for coordinate mapping
+            from .pixelrts_v2_core import HilbertCurve
+            hilbert = HilbertCurve(order=int(math.log2(grid_size)))
+
             # Extract sections as components
             for section in elf.iter_sections():
                 if section.header.sh_type in ('SHT_NULL', 'SHT_NOBITS'):
                     continue
+
+                start_idx = section.header.sh_offset // 4
+                end_idx = (section.header.sh_offset + section.header.sh_size) // 4
+
+                # Calculate pixel coordinates from Hilbert index
+                try:
+                    pixel_start = hilbert.index_to_coord(start_idx % (grid_size * grid_size))
+                    pixel_end = hilbert.index_to_coord(end_idx % (grid_size * grid_size))
+                except (IndexError, ValueError):
+                    pixel_start = (0, 0)
+                    pixel_end = (0, 0)
 
                 component = Component(
                     id=section.name,
                     type=self._get_section_component_type(section),
                     description=f"Section: {section.name}",
                     hilbert_range=HilbertRange(
-                        start_index=section.header.sh_offset // 4,
-                        end_index=(section.header.sh_offset + section.header.sh_size) // 4,
-                        pixel_start=(0, 0),  # Will be calculated with grid_size
-                        pixel_end=(0, 0)
+                        start_index=start_idx,
+                        end_index=end_idx,
+                        pixel_start=pixel_start,
+                        pixel_end=pixel_end
                     ),
                     entropy_profile=self._calculate_section_entropy(section.data()),
                     visual_hint=self._get_section_visual_hint(section)
@@ -139,13 +164,35 @@ class BlueprintAnalyzer:
 
         except Exception as e:
             # Fall back to entropy analysis if ELF parsing fails
-            self._analyze_by_entropy(data, blueprint)
+            self._analyze_by_entropy(data, blueprint, grid_size)
 
-    def _analyze_by_entropy(self, data: bytes, blueprint: PixelRTSBlueprint):
+    def _analyze_by_entropy(
+        self,
+        data: bytes,
+        blueprint: PixelRTSBlueprint,
+        grid_size: Optional[int] = None
+    ):
         """Analyze by entropy regions when ELF analysis unavailable."""
+        if grid_size is None:
+            from .pixelrts_v2_core import calculate_grid_size
+            grid_size = calculate_grid_size(len(data))
+
+        from .pixelrts_v2_core import HilbertCurve
+        hilbert = HilbertCurve(order=int(math.log2(grid_size)))
         regions = self.calculate_entropy_regions(data)
 
         for i, region in enumerate(regions):
+            try:
+                pixel_start = hilbert.index_to_coord(
+                    region.offset // 4 % (grid_size * grid_size)
+                )
+                pixel_end = hilbert.index_to_coord(
+                    (region.offset + region.size) // 4 % (grid_size * grid_size)
+                )
+            except (IndexError, ValueError):
+                pixel_start = (0, 0)
+                pixel_end = (0, 0)
+
             component = Component(
                 id=f"region_{i}",
                 type=ComponentType.DATA,
@@ -153,8 +200,8 @@ class BlueprintAnalyzer:
                 hilbert_range=HilbertRange(
                     start_index=region.offset // 4,
                     end_index=(region.offset + region.size) // 4,
-                    pixel_start=(0, 0),
-                    pixel_end=(0, 0)
+                    pixel_start=pixel_start,
+                    pixel_end=pixel_end
                 ),
                 entropy_profile=region.entropy_profile,
                 visual_hint=self._entropy_to_visual_hint(region.entropy_profile)
