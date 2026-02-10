@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smooth LOD Transition Tests - Phase 47</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+            font-family: monospace;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #00d9ff;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        button {
+            background: #16213e;
+            color: #00d9ff;
+            border: 1px solid #00d9ff;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        button:hover {
+            background: #00d9ff;
+            color: #1a1a2e;
+        }
+
+        .test-result {
+            background: #16213e;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #555;
+        }
+
+        .test-result.passed {
+            border-left-color: #4caf50;
+        }
+
+        .test-result.failed {
+            border-left-color: #f44336;
+        }
+
+        .test-result h3 {
+            color: #00d9ff;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .summary {
+            background: #0f3460;
+            border-radius: 6px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .summary h2 {
+            color: #00d9ff;
+            margin-bottom: 15px;
+        }
+
+        .summary-stat {
+            display: inline-block;
+            margin-right: 30px;
+            font-size: 18px;
+        }
+
+        .summary-stat .value {
+            font-weight: bold;
+            font-size: 24px;
+        }
+
+        .passed .value { color: #4caf50; }
+        .failed .value { color: #f44336; }
+
+        pre {
+            background: #0a0a0a;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Smooth LOD Transition Tests</h1>
+        <p class="subtitle">Phase 47: Tectonic Saccadic Optimization - Task 2</p>
+
+        <button onclick="runTests()">Run All Tests</button>
+
+        <div id="results"></div>
+
+        <div id="summary" class="summary" style="display: none;">
+            <h2>Test Summary</h2>
+            <div class="summary-stat passed">
+                <span class="value" id="passedCount">0</span> Passed
+            </div>
+            <div class="summary-stat failed">
+                <span class="value" id="failedCount">0</span> Failed
+            </div>
+            <div class="summary-stat">
+                <span class="value" id="totalCount">0</span> Total
+            </div>
+        </div>
+    </div>
+
+    <!-- Load the module under test -->
+    <script src="../smooth_lod_transition.js"></script>
+
+    <!-- Load and run tests -->
+    <script src="test_smooth_lod_transition.js"></script>
+
+    <script>
+        async function runTests() {
+            const resultsDiv = document.getElementById('results');
+            const summaryDiv = document.getElementById('summary');
+
+            resultsDiv.innerHTML = '<p style="color: #888;">Running tests...</p>';
+            summaryDiv.style.display = 'none';
+
+            // Small delay to let UI update
+            await new Promise(r => setTimeout(r, 100));
+
+            try {
+                const results = await window.runSmoothLODTransitionTests();
+
+                // Display results
+                resultsDiv.innerHTML = '';
+                for (const test of results.tests) {
+                    const div = document.createElement('div');
+                    div.className = `test-result ${test.status}`;
+                    div.innerHTML = `
+                        <h3>${test.name} ${test.status === 'passed' ? '✓' : '✗'}</h3>
+                        ${test.error ? `<pre>${test.error}</pre>` : ''}
+                    `;
+                    resultsDiv.appendChild(div);
+                }
+
+                // Update summary
+                document.getElementById('passedCount').textContent = results.passed;
+                document.getElementById('failedCount').textContent = results.failed;
+                document.getElementById('totalCount').textContent = results.total;
+                summaryDiv.style.display = 'block';
+
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="test-result failed">
+                        <h3>Test Runner Error</h3>
+                        <pre>${error.message}\n${error.stack}</pre>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

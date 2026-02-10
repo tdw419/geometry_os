@@ -1,6 +1,8 @@
 /**
  * FocusTracker - Tracks user's gaze/attention point
  *
+ * Phase 47: Tectonic Saccadic Optimization - Task 5
+ *
  * Maintains a focus point for priority rendering:
  * 1. Tracks mouse/touch position with smoothing
  * 2. Decays to center when idle
@@ -14,7 +16,7 @@ class FocusTracker {
         this.config = {
             width: typeof window !== 'undefined' ? window.innerWidth : 1000,
             height: typeof window !== 'undefined' ? window.innerHeight : 800,
-            smoothingFactor: 0.15,     // Mouse position smoothing (exponential moving average)
+            smoothingFactor: 0.15,     // Mouse position smoothing
             decayRate: 0.05,           // Decay to center per 100ms
             decayDelay: 2000,           // ms before decay starts
             attentionRadius: 300,       // pixels - radius of high attention
@@ -27,7 +29,7 @@ class FocusTracker {
             y: this.config.height / 2
         };
 
-        // Raw mouse position (target for smoothing)
+        // Raw mouse position
         this.rawMouse = { ...this.focusPoint };
 
         // Current smoothed position
@@ -40,20 +42,16 @@ class FocusTracker {
         // Viewport reference (for world coordinate conversion)
         this.viewport = null;
 
-        // Event handler references (for cleanup)
-        this._handleMouseMove = null;
-        this._handleTouchMove = null;
-
-        // Bind to window events (only in browser)
-        if (typeof window !== 'undefined') {
-            this._bindEvents();
-        }
+        // Bind to window events
+        this._bindEvents();
     }
 
     /**
      * Bind to mouse/touch events
      */
     _bindEvents() {
+        if (typeof window === 'undefined') return;
+
         this._handleMouseMove = (e) => {
             this.updateMouse(e.clientX, e.clientY);
         };
@@ -83,7 +81,7 @@ class FocusTracker {
     updateTouch(touches) {
         if (touches.length === 0) return;
 
-        // Calculate centroid of all touch points
+        // Calculate centroid
         const sumX = touches.reduce((sum, t) => sum + t.clientX, 0);
         const sumY = touches.reduce((sum, t) => sum + t.clientY, 0);
 
@@ -104,12 +102,11 @@ class FocusTracker {
      * Update focus tracker (call every frame)
      */
     update(deltaTime) {
-        // Smooth toward raw mouse position using exponential moving average
-        // newPos = currentPos + (targetPos - currentPos) * smoothingFactor
+        // Smooth toward raw mouse position
         this.currentPosition.x += (this.rawMouse.x - this.currentPosition.x) * this.config.smoothingFactor;
         this.currentPosition.y += (this.rawMouse.y - this.currentPosition.y) * this.config.smoothingFactor;
 
-        // Check for idle (no mouse movement for delay period)
+        // Check for idle
         const idleTime = Date.now() - this.lastMouseMoveTime;
         if (idleTime > this.config.decayDelay) {
             this.isDecaying = true;
@@ -119,7 +116,6 @@ class FocusTracker {
         if (this.isDecaying) {
             const centerX = this.config.width / 2;
             const centerY = this.config.height / 2;
-            // Decay amount scales with deltaTime (per 100ms)
             const decayAmount = this.config.decayRate * deltaTime / 100;
 
             this.currentPosition.x += (centerX - this.currentPosition.x) * decayAmount;
@@ -144,39 +140,20 @@ class FocusTracker {
             return this.getCurrentFocus();
         }
 
-        // Use viewport's screenToWorld conversion if available
-        if (typeof this.viewport.screenToWorld === 'function') {
-            return this.viewport.screenToWorld(
-                this.focusPoint.x,
-                this.focusPoint.y
-            );
-        }
-
-        // Fallback: assume viewport has camera position
-        if (this.viewport.getCamera) {
-            const camera = this.viewport.getCamera();
-            return {
-                x: this.focusPoint.x + camera.x,
-                y: this.focusPoint.y + camera.y
-            };
-        }
-
-        return this.getCurrentFocus();
+        return this.viewport.screenToWorld(
+            this.focusPoint.x,
+            this.focusPoint.y
+        );
     }
 
     /**
      * Calculate attention weights for tiles
-     *
-     * Returns array of { tile, weight, distance } where:
-     * - weight: 0-1, 1 at focus point, 0 at attention radius
-     * - distance: pixels from focus point
      */
     getAttentionWeights(tiles) {
         const focus = this.getCurrentFocus();
         const radiusSq = this.config.attentionRadius ** 2;
 
         return tiles.map(tile => {
-            // Calculate tile center
             const tileCenterX = tile.x + (tile.width || 100) / 2;
             const tileCenterY = tile.y + (tile.height || 100) / 2;
 
@@ -184,7 +161,7 @@ class FocusTracker {
             const dy = tileCenterY - focus.y;
             const distSq = dx * dx + dy * dy;
 
-            // Weight: 1 at focus, 0 at attention radius (linear falloff)
+            // Weight 1 at focus, 0 at attention radius
             const weight = Math.max(0, 1 - distSq / radiusSq);
 
             return {
@@ -206,14 +183,14 @@ class FocusTracker {
     }
 
     /**
-     * Set viewport reference for world coordinate conversion
+     * Set viewport reference
      */
     setViewport(viewport) {
         this.viewport = viewport;
     }
 
     /**
-     * Get statistics about current state
+     * Get statistics
      */
     getStats() {
         return {
@@ -224,17 +201,13 @@ class FocusTracker {
     }
 
     /**
-     * Destroy the tracker and remove event listeners
+     * Destroy the tracker
      */
     destroy() {
-        if (this._handleMouseMove) {
+        if (typeof window !== 'undefined') {
             window.removeEventListener('mousemove', this._handleMouseMove);
-        }
-        if (this._handleTouchMove) {
             window.removeEventListener('touchmove', this._handleTouchMove);
         }
-        this._handleMouseMove = null;
-        this._handleTouchMove = null;
     }
 }
 
