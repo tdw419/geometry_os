@@ -26,6 +26,7 @@ from .routes import (
     analyze_image,
     analyze_batch,
 )
+from .vlm_health import router as vlm_health_router
 
 
 # Create FastAPI app
@@ -45,6 +46,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include VLM health router
+app.include_router(vlm_health_router)
 
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
