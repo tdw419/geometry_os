@@ -9,6 +9,7 @@
  * 3. PredictivePrefetcher - Tile pre-fetching
  * 4. MotionQualityScaler - Quality scaling
  * 5. FocusTracker - Gaze point tracking
+ * 6. VergenceController - Binocular vision simulation (Phase 47 Advanced)
  *
  * @class TectonicSaccadicManager
  */
@@ -22,6 +23,7 @@ class TectonicSaccadicManager {
             enablePrefetch: true,
             enableQualityScaling: true,
             enableFocusTracking: true,
+            enableVergence: false,  // Phase 47 Advanced: Vergence eye movements
             ...config
         };
 
@@ -91,6 +93,35 @@ class TectonicSaccadicManager {
             if (this.config.viewport) {
                 this.focusTracker.setViewport(this.config.viewport);
             }
+        }
+
+        // Vergence controller (Phase 47 Advanced)
+        if (this.config.enableVergence && typeof VergenceController !== 'undefined') {
+            this.vergenceController = new VergenceController({
+                ipd: 30,
+                maxDepth: this.config.gridSize * 10
+            });
+
+            // Integrate with focus tracker
+            if (this.focusTracker) {
+                this.vergenceController.setFocusTracker(this.focusTracker);
+            }
+
+            // Integrate with viewport
+            if (this.config.viewport) {
+                this.vergenceController.setViewport(this.config.viewport);
+            }
+
+            // Forward vergence events
+            this.vergenceController.on('depth-change', (data) => {
+                this.emit('vergence-depth-change', data);
+            });
+
+            this.vergenceController.on('convergence-complete', (data) => {
+                this.emit('vergence-convergence-complete', data);
+            });
+
+            console.log('👀 VergenceController integrated');
         }
     }
 
@@ -212,6 +243,11 @@ class TectonicSaccadicManager {
             this.focusTracker.update(deltaTime);
         }
 
+        // Update vergence controller (Phase 47 Advanced)
+        if (this.vergenceController) {
+            this.vergenceController.update(deltaTime);
+        }
+
         // Trigger prefetch if moving
         if (this.prefetcher && this.saccadicController) {
             const velocity = this.saccadicController.getVelocity();
@@ -269,6 +305,21 @@ class TectonicSaccadicManager {
             if (dist < attentionRadius) {
                 // Boost quality for tiles near focus
                 options.quality *= 1 + (1 - dist / attentionRadius) * 0.2;
+            }
+        }
+
+        // Apply vergence-based parallax offset (Phase 47 Advanced)
+        if (tilePosition && this.vergenceController) {
+            const parallaxShift = this.vergenceController.getParallaxShift('tiles');
+            options.parallaxOffset = {
+                x: parallaxShift.x,
+                y: parallaxShift.y
+            };
+
+            // Add stereo options if enabled
+            const stereoMatrices = this.vergenceController.getStereoMatrices();
+            if (stereoMatrices) {
+                options.stereo = stereoMatrices;
             }
         }
 
@@ -337,7 +388,8 @@ class TectonicSaccadicManager {
                 currentLevel: this.currentLOD?.name
             },
             prefetch: this.prefetcher?.getStats(),
-            focus: this.focusTracker?.getStats()
+            focus: this.focusTracker?.getStats(),
+            vergence: this.vergenceController?.getState()
         };
     }
 
@@ -346,6 +398,7 @@ class TectonicSaccadicManager {
      */
     destroy() {
         this.focusTracker?.destroy();
+        this.vergenceController?.destroy();
         this.eventListeners.clear();
         console.log('TectonicSaccadicManager destroyed');
     }

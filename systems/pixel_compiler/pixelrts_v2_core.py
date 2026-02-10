@@ -4,10 +4,17 @@ Implements Hilbert space-filling curve mapping and core encoding utilities.
 """
 
 import numpy as np
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 import hashlib
 import json
 from pathlib import Path
+
+# Try to import WASMCodeVisualizer for semantic decoding
+try:
+    from pixelrts_v2_wasm import WASMCodeVisualizer
+    WASM_VISUALIZER_AVAILABLE = True
+except ImportError:
+    WASM_VISUALIZER_AVAILABLE = False
 
 
 class HilbertCurve:
@@ -536,20 +543,8 @@ class PixelRTSDecoder:
             original_data = base64.b64decode(self._metadata["original_data_b64"])
             return original_data
 
-        # Check if this is code mode WITHOUT original_data_b64
-        # This is a legacy code-mode cartridge that cannot be decoded
-        encoding_mode = None
-        if self._metadata:
-            encoding_mode = self._metadata.get("encoding", {}).get("type", "")
-            if encoding_mode == "RGBA-semantic" or encoding_mode == "RGBA-code":
-                raise ValueError(
-                    "Cannot decode code-mode cartridge without original_data_b64 metadata. "
-                    "This cartridge was created with an older version of PixelRTS that used "
-                    "semantic encoding without preserving the original data. Please re-encode "
-                    "the cartridge with the current version, or add original_data_b64 to the metadata."
-                )
-
-        # Verify image is RGBA
+        # Verify image is RGBA and get dimensions FIRST
+        # (needed for semantic decoding below)
         if image.mode != 'RGBA':
             image = image.convert('RGBA')
 
@@ -564,7 +559,39 @@ class PixelRTSDecoder:
         if grid_size & (grid_size - 1) != 0:
             raise ValueError(f"Invalid grid size: {grid_size} (not power of 2)")
 
-        # Initialize Hilbert curve
+        # Check if this is code mode WITHOUT original_data_b64
+        # Try semantic decoding if visualizer is available
+        encoding_mode = None
+        if self._metadata:
+            encoding_mode = self._metadata.get("encoding", {}).get("type", "")
+            if (encoding_mode == "RGBA-semantic" or encoding_mode == "RGBA-code") and \
+               "original_data_b64" not in self._metadata:
+                # Try semantic decoding
+                if WASM_VISUALIZER_AVAILABLE:
+                    visualizer = WASMCodeVisualizer()
+                    # Convert image to RGBA array for semantic decoding
+                    rgba_array = np.array(image, dtype=np.uint8).reshape(-1, 4)
+                    # Get expected size from metadata or calculate from image
+                    expected_size = self._metadata.get("data_size", width * height * 4)
+                    try:
+                        decoded_data = visualizer.decode_rgba(rgba_array, expected_size)
+                        return decoded_data
+                    except ValueError as e:
+                        raise ValueError(
+                            f"Semantic decoding failed: {e}. "
+                            "This cartridge uses semantic encoding without original_data_b64. "
+                            "Please re-encode with the current version."
+                        )
+                else:
+                    raise ValueError(
+                        "Cannot decode code-mode cartridge without original_data_b64 metadata "
+                        "and WASM visualizer is not available. "
+                        "This cartridge was created with an older version of PixelRTS that used "
+                        "semantic encoding. Please re-encode the cartridge with the current version, "
+                        "or add original_data_b64 to the metadata."
+                    )
+
+        # Initialize Hilbert curve for standard decoding
         order = int(np.log2(grid_size))
         hilbert = HilbertCurve(order=order)
         lut = hilbert.generate_lut()

@@ -543,7 +543,18 @@ fn pop_f64() -> f64 {
 }
 
 // Memory Operations
+
+// Bounds checking helper function
+fn check_memory_bounds(addr: u32, size: u32) -> bool {
+    let current_pages = atomicLoad(&current_memory_pages);
+    let byte_limit = current_pages * 65536u;
+    return (addr + size) <= byte_limit;
+}
+
 fn memory_load_u32(addr: u32) -> u32 {
+    if (!check_memory_bounds(addr, 4u)) {
+        return 0u;  // Out of bounds
+    }
     let word_addr = addr / 4u;
     if word_addr < arrayLength(&linear_memory) {
         return linear_memory[word_addr];
@@ -552,6 +563,9 @@ fn memory_load_u32(addr: u32) -> u32 {
 }
 
 fn memory_store_u32(addr: u32, value: u32) {
+    if (!check_memory_bounds(addr, 4u)) {
+        return;  // Silent ignore for out of bounds
+    }
     let word_addr = addr / 4u;
     if word_addr < arrayLength(&linear_memory) {
         linear_memory[word_addr] = value;
@@ -559,6 +573,9 @@ fn memory_store_u32(addr: u32, value: u32) {
 }
 
 fn memory_load_u8(addr: u32) -> u32 {
+    if (!check_memory_bounds(addr, 1u)) {
+        return 0u;  // Out of bounds
+    }
     let word_addr = addr / 4u;
     let byte_offset = addr % 4u;
     if word_addr < arrayLength(&linear_memory) {
@@ -569,6 +586,9 @@ fn memory_load_u8(addr: u32) -> u32 {
 }
 
 fn memory_store_u8(addr: u32, value: u32) {
+    if (!check_memory_bounds(addr, 1u)) {
+        return;  // Silent ignore for out of bounds
+    }
     let word_addr = addr / 4u;
     let byte_offset = addr % 4u;
     if word_addr < arrayLength(&linear_memory) {
@@ -580,6 +600,9 @@ fn memory_store_u8(addr: u32, value: u32) {
 }
 
 fn memory_load_u16(addr: u32) -> u32 {
+    if (!check_memory_bounds(addr, 2u)) {
+        return 0u;  // Out of bounds
+    }
     let word_addr = addr / 4u;
     let byte_offset = addr % 4u;
     if word_addr < arrayLength(&linear_memory) {
@@ -602,6 +625,9 @@ fn memory_load_u16(addr: u32) -> u32 {
 }
 
 fn memory_store_u16(addr: u32, value: u32) {
+    if (!check_memory_bounds(addr, 2u)) {
+        return;  // Silent ignore for out of bounds
+    }
     let word_addr = addr / 4u;
     let byte_offset = addr % 4u;
     if word_addr < arrayLength(&linear_memory) {
@@ -614,6 +640,9 @@ fn memory_store_u16(addr: u32, value: u32) {
 
 // i64 memory operations
 fn memory_load_i64(addr: u32) -> vec2<u32> {
+    if (!check_memory_bounds(addr, 8u)) {
+        return vec2<u32>(0u, 0u);  // Out of bounds
+    }
     let word_addr = addr / 4u;
     if word_addr + 1u < arrayLength(&linear_memory) {
         let low = linear_memory[word_addr];
@@ -624,6 +653,9 @@ fn memory_load_i64(addr: u32) -> vec2<u32> {
 }
 
 fn memory_store_i64(addr: u32, value: vec2<u32>) {
+    if (!check_memory_bounds(addr, 8u)) {
+        return;  // Silent ignore for out of bounds
+    }
     let word_addr = addr / 4u;
     if word_addr + 1u < arrayLength(&linear_memory) {
         linear_memory[word_addr] = value.x;
@@ -632,6 +664,9 @@ fn memory_store_i64(addr: u32, value: vec2<u32>) {
 }
 
 fn memory_load_i64_u8(addr: u32, is_signed: bool) -> vec2<u32> {
+    if (!check_memory_bounds(addr, 1u)) {
+        return vec2<u32>(0u, 0u);  // Out of bounds
+    }
     let byte_val = memory_load_u8(addr);
     if is_signed && (byte_val & 0x80u) != 0u {
         return vec2<u32>(byte_val, 0xFFFFFFFFu);
@@ -641,6 +676,9 @@ fn memory_load_i64_u8(addr: u32, is_signed: bool) -> vec2<u32> {
 }
 
 fn memory_load_i64_u16(addr: u32, is_signed: bool) -> vec2<u32> {
+    if (!check_memory_bounds(addr, 2u)) {
+        return vec2<u32>(0u, 0u);  // Out of bounds
+    }
     let half_val = memory_load_u16(addr);
     if is_signed && (half_val & 0x8000u) != 0u {
         return vec2<u32>(half_val, 0xFFFFFFFFu);
@@ -650,6 +688,9 @@ fn memory_load_i64_u16(addr: u32, is_signed: bool) -> vec2<u32> {
 }
 
 fn memory_load_i64_u32(addr: u32, is_signed: bool) -> vec2<u32> {
+    if (!check_memory_bounds(addr, 4u)) {
+        return vec2<u32>(0u, 0u);  // Out of bounds
+    }
     let word_addr = addr / 4u;
     let val = memory_load_u32(addr);
     if is_signed && (val & 0x80000000u) != 0u {
@@ -660,30 +701,48 @@ fn memory_load_i64_u32(addr: u32, is_signed: bool) -> vec2<u32> {
 }
 
 fn memory_store_i64_u8(addr: u32, value: vec2<u32>) {
+    if (!check_memory_bounds(addr, 1u)) {
+        return;  // Silent ignore for out of bounds
+    }
     memory_store_u8(addr, value.x);
 }
 
 fn memory_store_i64_u16(addr: u32, value: vec2<u32>) {
+    if (!check_memory_bounds(addr, 2u)) {
+        return;  // Silent ignore for out of bounds
+    }
     memory_store_u16(addr, value.x);
 }
 
 fn memory_store_i64_u32(addr: u32, value: vec2<u32>) {
+    if (!check_memory_bounds(addr, 4u)) {
+        return;  // Silent ignore for out of bounds
+    }
     memory_store_u32(addr, value.x);
 }
 
 // f32 memory operations
 fn memory_load_f32(addr: u32) -> f32 {
+    if (!check_memory_bounds(addr, 4u)) {
+        return bitcast<f32>(0u);  // Out of bounds
+    }
     let bits = memory_load_u32(addr);
     return bitcast<f32>(bits);
 }
 
 fn memory_store_f32(addr: u32, value: f32) {
+    if (!check_memory_bounds(addr, 4u)) {
+        return;  // Silent ignore for out of bounds
+    }
     let bits = bitcast<u32>(value);
     memory_store_u32(addr, bits);
 }
 
 // f64 memory operations
 fn memory_load_f64(addr: u32) -> f64 {
+    if (!check_memory_bounds(addr, 8u)) {
+        return bitcast<f64>(vec2<u32>(0u, 0u));  // Out of bounds
+    }
     let word_addr = addr / 4u;
     if word_addr + 1u < arrayLength(&linear_memory) {
         let low = linear_memory[word_addr];
@@ -694,6 +753,9 @@ fn memory_load_f64(addr: u32) -> f64 {
 }
 
 fn memory_store_f64(addr: u32, value: f64) {
+    if (!check_memory_bounds(addr, 8u)) {
+        return;  // Silent ignore for out of bounds
+    }
     let bits = bitcast<vec2<u32>>(value);
     memory_store_i64(addr, bits);
 }

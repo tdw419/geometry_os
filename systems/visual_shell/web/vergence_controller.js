@@ -281,36 +281,61 @@ class VergenceController {
     }
 
     /**
-     * Calculate parallax shift for a layer
-     * @param {number} layerDepth - Depth of the layer (0 = closest, higher = farther)
-     * @param {number} screenX - Screen X position
-     * @returns {Object} { leftShift, rightShift }
+     * Calculate parallax shift for a layer based on depth
+     * @param {string|number} layerDepth - Layer identifier or depth value
+     * @param {Object} focusPoint - Optional focus point for relative parallax
+     * @returns {Object} { x, y, depth, relativeDepth } Parallax offset in pixels
      */
-    getParallaxShift(layerDepth, screenX = 0) {
-        const centerOffset = screenX - (this.config.width || window.innerWidth) / 2;
-        
-        // Calculate disparity based on layer depth relative to focal depth
-        const depthDifference = layerDepth - this.focalDepth;
-        const normalizedDepthDiff = depthDifference / this.config.maxDepth;
-        
-        // Parallax shift amount
-        const shift = normalizedDepthDiff * this.config.eyeSeparation * this.config.parallaxIntensity;
-        
-        // Left and right eye shifts (opposite directions)
+    getParallaxShift(layerDepth, focusPoint = null) {
+        // Resolve depth value
+        let depth;
+        if (typeof layerDepth === 'string') {
+            depth = this.config.layerDepths[layerDepth] || 0;
+        } else {
+            depth = layerDepth;
+        }
+
+        // Use focus tracker position if available
+        let focus;
+        if (focusPoint) {
+            focus = focusPoint;
+        } else if (this.focusTracker) {
+            focus = this.focusTracker.getCurrentFocus();
+        } else {
+            focus = { ...this.screenCenter };
+        }
+
+        // Calculate parallax offset
+        // Objects closer than focus move opposite to eye movement
+        // Objects farther than focus move with eye movement
+        const depthRatio = depth / this.config.maxDepth;
+        const focusDepthRatio = this.focalDepth / this.config.maxDepth;
+
+        // Relative depth from focal plane
+        const relativeDepth = depthRatio - focusDepthRatio;
+
+        // Parallax shift based on eye position offset from center
+        const eyeOffsetX = (this.leftEye.x + this.rightEye.x) / 2 - this.screenCenter.x;
+        const eyeOffsetY = (this.leftEye.y + this.rightEye.y) / 2 - this.screenCenter.y;
+
+        // Parallax intensity varies by depth
+        const parallaxStrength = relativeDepth * this.config.parallaxIntensity;
+
         return {
-            leftShift: shift + centerOffset * 0.01,  // Subtle horizontal shift
-            rightShift: -shift + centerOffset * 0.01,
-            disparity: shift * 2  // Total disparity
+            x: eyeOffsetX * parallaxStrength,
+            y: eyeOffsetY * parallaxStrength,
+            depth: depth,
+            relativeDepth: relativeDepth
         };
     }
 
     /**
      * Set depth for a specific layer
-     * @param {string|number} layerId - Layer identifier
+     * @param {string} layerName - Layer identifier
      * @param {number} depth - Depth value
      */
-    setLayerDepth(layerId, depth) {
-        this.layerDepths.set(layerId, depth);
+    setLayerDepth(layerName, depth) {
+        this.config.layerDepths[layerName] = depth;
     }
 
     /**
@@ -319,33 +344,57 @@ class VergenceController {
      * @param {number} defaultDepth - Default depth if not set
      */
     getLayerDepth(layerId, defaultDepth = 1000) {
-        return this.layerDepths.get(layerId) || defaultDepth;
+        if (typeof layerId === 'string') {
+            return this.config.layerDepths[layerId] || defaultDepth;
+        }
+        return layerId || defaultDepth;
     }
 
     /**
-     * Get rendered position for an object from specific eye perspective
-     * @param {Object} position - World position {x, y}
-     * @param {number} layerDepth - Layer depth
-     * @param {string} eye - 'left' or 'right'
+     * Get stereo render matrices for left and right eyes
+     * @returns {Object|null} { left, right } View/projection matrices or null if stereo disabled
      */
-    getEyePerspectivePosition(position, layerDepth, eye) {
-        const shift = this.getParallaxShift(layerDepth, position.x);
-        const eyeShift = eye === 'left' ? shift.leftShift : shift.rightShift;
-        
-        return {
-            x: position.x + eyeShift,
-            y: position.y  // Parallax is typically horizontal only
+    getStereoMatrices() {
+        if (!this.config.stereoMode) {
+            return null;
+        }
+
+        const separation = this.config.ipd * this.config.stereoSeparation;
+        const convergenceDistance = this.focalDepth;
+
+        // Left eye: shifted left, rotated right
+        const leftMatrix = {
+            offsetX: -separation / 2,
+            rotation: Math.atan(separation / (2 * convergenceDistance)),
+            convergence: convergenceDistance
         };
+
+        // Right eye: shifted right, rotated left
+        const rightMatrix = {
+            offsetX: separation / 2,
+            rotation: -Math.atan(separation / (2 * convergenceDistance)),
+            convergence: convergenceDistance
+        };
+
+        return { left: leftMatrix, right: rightMatrix };
     }
 
     /**
-     * Enable stereoscopic rendering mode
-     * @param {boolean} enable - Enable or disable
-     * @param {string} mode - 'sidebyside' or 'anaglyph'
+     * Enable or disable stereoscopic rendering mode
+     * @param {boolean} enable - Enable stereo mode
      */
-    enableStereoMode(enable, mode = 'sidebyside') {
-        this.config.stereoscopicMode = enable;
-        this.config.anaglyphMode = mode === 'anaglyph';
+    enableStereoMode(enable) {
+        this.config.stereoMode = enable;
+        this.emit('stereo-mode-change', { enabled: enable });
+    }
+
+    /**
+     * Toggle stereoscopic mode
+     * @returns {boolean} New stereo mode state
+     */
+    toggleStereoMode() {
+        this.enableStereoMode(!this.config.stereoMode);
+        return this.config.stereoMode;
     }
 
     /**
@@ -355,56 +404,124 @@ class VergenceController {
     update(deltaTime) {
         // Smoothly adjust focal depth to target
         const depthDiff = this.targetFocalDepth - this.focalDepth;
-        this.focalDepth += depthDiff * this.config.convergenceSpeed;
+        if (Math.abs(depthDiff) > 0.1) {
+            this.focalDepth += depthDiff * this.config.convergenceRate;
+        }
 
-        // Update eye positions based on current focal depth
-        const positions = this.getEyePositions();
-        this.leftEye = positions.left;
-        this.rightEye = positions.right;
+        // Smooth eye position changes
+        const smoothing = Math.min(1, this.config.smoothingFactor * deltaTime / 16);
 
-        // Auto-focus if focus tracker is available
-        if (this.focusTracker) {
-            // Only auto-focus periodically to avoid jitter
-            if (Math.random() < 0.05) {  // 5% chance per frame
-                this.autoFocus();
+        this.leftEye.x += (this.targetLeftEye.x - this.leftEye.x) * smoothing;
+        this.leftEye.y += (this.targetLeftEye.y - this.leftEye.y) * smoothing;
+        this.rightEye.x += (this.targetRightEye.x - this.rightEye.x) * smoothing;
+        this.rightEye.y += (this.targetRightEye.y - this.rightEye.y) * smoothing;
+
+        // Update convergence angle
+        this._updateConvergenceAngle();
+
+        // Detect convergence complete
+        const leftDiff = Math.abs(this.targetLeftEye.x - this.leftEye.x);
+        const rightDiff = Math.abs(this.targetRightEye.x - this.rightEye.x);
+        const threshold = 0.5;
+
+        if (leftDiff < threshold && rightDiff < threshold) {
+            if (this.isConverging || this.isDiverging) {
+                this.isConverging = false;
+                this.isDiverging = false;
+                this.emit('convergence-complete', {
+                    depth: this.focalDepth,
+                    angle: this.convergenceAngle
+                });
             }
         }
     }
 
     /**
-     * Apply vergence to render options for a tile
-     * @param {Object} tile - Tile object with position
-     * @param {Object} baseOptions - Base render options
+     * Get current vergence state
+     * @returns {Object} Current state information
      */
-    getVergenceRenderOptions(tile, baseOptions = {}) {
-        const layerDepth = this.getLayerDepth(tile.layerId || 0, tile.depth || 1000);
-        const shift = this.getParallaxShift(layerDepth, tile.x);
-
+    getState() {
         return {
-            ...baseOptions,
-            // Apply slight offset based on eye (for stereo rendering)
-            leftOffset: shift.leftShift,
-            rightOffset: shift.rightShift,
-            disparity: shift.disparity,
-            depth: layerDepth,
-            // Depth-based quality adjustment
-            quality: baseOptions.quality || 1.0
+            leftEye: { ...this.leftEye },
+            rightEye: { ...this.rightEye },
+            focalDepth: this.focalDepth,
+            targetFocalDepth: this.targetFocalDepth,
+            convergenceAngle: this.convergenceAngle,
+            isConverging: this.isConverging,
+            isDiverging: this.isDiverging,
+            stereoMode: this.config.stereoMode,
+            ipd: this.config.ipd
         };
     }
 
     /**
-     * Get stereoscopic render parameters
-     * @returns {Object} { mode, eyeSeparation, leftOffset, rightOffset }
+     * Event handling
+     * @param {string} event - Event name
+     * @param {Function} callback - Callback function
      */
-    getStereoParams() {
-        return {
-            mode: this.config.anaglyphMode ? 'anaglyph' : 'sidebyside',
-            enabled: this.config.stereoscopicMode,
-            eyeSeparation: this.config.eyeSeparation,
-            leftOffset: this.leftEye.x,
-            rightOffset: this.rightEye.x,
-            focalDepth: this.focalDepth
+    on(event, callback) {
+        if (!this.eventListeners.has(event)) {
+            this.eventListeners.set(event, new Set());
+        }
+        this.eventListeners.get(event).add(callback);
+    }
+
+    /**
+     * Remove event listener
+     * @param {string} event - Event name
+     * @param {Function} callback - Callback function
+     */
+    off(event, callback) {
+        if (this.eventListeners.has(event)) {
+            this.eventListeners.get(event).delete(callback);
+        }
+    }
+
+    /**
+     * Emit event
+     * @param {string} event - Event name
+     * @param {Object} data - Event data
+     */
+    emit(event, data) {
+        if (this.eventListeners.has(event)) {
+            this.eventListeners.get(event).forEach(cb => cb(data));
+        }
+    }
+
+    /**
+     * Reset to initial state
+     */
+    reset() {
+        this.focalDepth = this.config.focalDepth;
+        this.targetFocalDepth = this.config.focalDepth;
+        this.isConverging = false;
+        this.isDiverging = false;
+        this._calculateInitialPositions();
+        this.emit('reset', {});
+    }
+
+    /**
+     * Calculate initial positions
+     * @private
+     */
+    _calculateInitialPositions() {
+        const centerX = this.screenCenter.x;
+        const centerY = this.screenCenter.y;
+
+        // Initial positions: eyes at center with IPD separation
+        this.targetLeftEye = {
+            x: centerX - this.config.ipd / 2,
+            y: centerY
         };
+        this.targetRightEye = {
+            x: centerX + this.config.ipd / 2,
+            y: centerY
+        };
+
+        this.leftEye = { ...this.targetLeftEye };
+        this.rightEye = { ...this.targetRightEye };
+
+        this._updateConvergenceAngle();
     }
 
     /**
@@ -412,14 +529,11 @@ class VergenceController {
      */
     getStats() {
         return {
-            focalDepth: this.focalDepth,
-            targetFocalDepth: this.targetFocalDepth,
-            leftEye: { ...this.leftEye },
-            rightEye: { ...this.rightEye },
-            convergence: this.getEyePositions().convergence,
-            stereoscopicMode: this.config.stereoscopicMode,
-            anaglyphMode: this.config.anaglyphMode,
-            layerCount: this.layerDepths.size
+            ...this.getState(),
+            targetLeftEye: { ...this.targetLeftEye },
+            targetRightEye: { ...this.targetRightEye },
+            screenCenter: { ...this.screenCenter },
+            layerDepths: { ...this.config.layerDepths }
         };
     }
 
@@ -427,14 +541,92 @@ class VergenceController {
      * Destroy the controller
      */
     destroy() {
-        this.layerDepths.clear();
+        this.eventListeners.clear();
+        console.log('👀 VergenceController destroyed');
+    }
+}
+
+/**
+ * VergenceRenderer - Renders stereoscopic view for tile layers
+ *
+ * @class VergenceRenderer
+ */
+class VergenceRenderer {
+    constructor(vergenceController, config = {}) {
+        this.vergence = vergenceController;
+        this.config = {
+            enableAnaglyph: false,       // Red-cyan anaglyph mode
+            anaglyphLeftColor: 0xFF0000, // Red channel
+            anaglyphRightColor: 0x00FFFF,// Cyan channel
+            enableSplit: false,          // Side-by-side split
+            splitDirection: 'horizontal',// horizontal or vertical
+            ...config
+        };
+
+        this.anaglyphFilter = null;
+
+        console.log('🖼️  VergenceRenderer initialized');
+    }
+
+    /**
+     * Apply parallax to a tile sprite
+     * @param {Object} sprite - Tile sprite (or any object with x, y properties)
+     * @param {string|number} layerDepth - Layer depth
+     * @returns {Object} Parallax offset
+     */
+    applyParallax(sprite, layerDepth) {
+        const shift = this.vergence.getParallaxShift(layerDepth);
+
+        if (sprite) {
+            sprite.x += shift.x;
+            sprite.y += shift.y;
+        }
+
+        return shift;
+    }
+
+    /**
+     * Get stereo render options for a tile
+     * @param {Object} tilePosition - Tile world position
+     * @returns {Object|null} Left and right eye render options
+     */
+    getStereoRenderOptions(tilePosition) {
+        const matrices = this.vergence.getStereoMatrices();
+        if (!matrices) {
+            return null;
+        }
+
+        // Calculate parallax for this specific tile
+        const shift = this.vergence.getParallaxShift(
+            this.vergence.config.layerDepths.tiles
+        );
+
+        return {
+            left: {
+                offsetX: matrices.left.offsetX + shift.x,
+                rotation: matrices.left.rotation
+            },
+            right: {
+                offsetX: matrices.right.offsetX + shift.x,
+                rotation: matrices.right.rotation
+            }
+        };
+    }
+
+    /**
+     * Destroy the renderer
+     */
+    destroy() {
+        this.anaglyphFilter = null;
+        console.log('🖼️  VergenceRenderer destroyed');
     }
 }
 
 // Export
 if (typeof window !== 'undefined') {
     window.VergenceController = VergenceController;
+    window.VergenceRenderer = VergenceRenderer;
 }
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { VergenceController };
+    module.exports = { VergenceController, VergenceRenderer };
 }

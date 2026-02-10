@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VergenceController Tests - Phase 47</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        .test-suite {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .test-suite h2 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .results {
+            margin-top: 20px;
+        }
+
+        .summary {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+
+        .summary-item {
+            flex: 1;
+            text-align: center;
+        }
+
+        .summary-item .label {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .summary-item .value {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        .value.passed { color: #4ade80; }
+        .value.failed { color: #f87171; }
+        .value.rate { color: #fbbf24; }
+
+        .test-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            border-left: 4px solid #666;
+        }
+
+        .test-item.pass {
+            border-left-color: #4ade80;
+        }
+
+        .test-item.fail {
+            border-left-color: #f87171;
+        }
+
+        .test-status {
+            width: 60px;
+            font-weight: bold;
+        }
+
+        .test-status.pass { color: #4ade80; }
+        .test-status.fail { color: #f87171; }
+
+        .test-name {
+            flex: 1;
+        }
+
+        .test-error {
+            color: #f87171;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+
+        .demo-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .demo-section h3 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+        }
+
+        canvas {
+            background: #0a0a0a;
+            border-radius: 8px;
+            display: block;
+            margin: 10px 0;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background: #00d4ff;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #00b8de;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        button.secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .info-box {
+            padding: 15px;
+            background: rgba(0, 212, 255, 0.1);
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .info-box h4 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+
+        .info-box p {
+            color: #aaa;
+            line-height: 1.6;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👀 VergenceController Tests</h1>
+        <p class="subtitle">Phase 47: Binocular Vision Simulation - Convergence/Divergence for Depth Perception</p>
+
+        <div class="test-suite">
+            <h2>Test Results</h2>
+            <div class="summary" id="summary" style="display: none;">
+                <div class="summary-item">
+                    <div class="label">Passed</div>
+                    <div class="value passed" id="passed">0</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">Failed</div>
+                    <div class="value failed" id="failed">0</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">Success Rate</div>
+                    <div class="value rate" id="rate">0%</div>
+                </div>
+            </div>
+            <div class="results" id="results"></div>
+            <div class="controls">
+                <button onclick="runTests()">Run Tests</button>
+                <button class="secondary" onclick="clearResults()">Clear Results</button>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h3>Interactive Vergence Demo</h3>
+            <canvas id="vergenceCanvas" width="800" height="400"></canvas>
+            <div class="controls">
+                <button onclick="vergenceDemo.setNearDepth()">Near Focus (Converge)</button>
+                <button onclick="vergenceDemo.setFarDepth()">Far Focus (Diverge)</button>
+                <button onclick="vergenceDemo.toggleStereo()">Toggle Stereo Mode</button>
+                <button class="secondary" onclick="vergenceDemo.reset()">Reset</button>
+            </div>
+            <div class="info-box">
+                <h4>Current State</h4>
+                <p id="vergenceState">Focal Depth: 500px | Convergence Angle: 0.00 rad | Stereo: Off</p>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h3>Parallax Layers Demo</h3>
+            <canvas id="parallaxCanvas" width="800" height="300"></canvas>
+            <div class="info-box">
+                <h4>Parallax Effect</h4>
+                <p>Move your mouse over the canvas to see the parallax effect. Layers at different depths move at different speeds, creating a sense of depth.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="../focus_tracker.js"></script>
+    <script src="../vergence_controller.js"></script>
+
+    <script>
+        // Test runner
+        async function runTests() {
+            const resultsDiv = document.getElementById('results');
+            const summaryDiv = document.getElementById('summary');
+            resultsDiv.innerHTML = '<p style="color: #888;">Running tests...</p>';
+            summaryDiv.style.display = 'none';
+
+            if (typeof VergenceControllerTests === 'undefined') {
+                resultsDiv.innerHTML = '<p style="color: #f87171;">Error: VergenceControllerTests not available. Please ensure test_vergence_controller.js is loaded.</p>';
+                return;
+            }
+
+            const tests = new VergenceControllerTests();
+            const success = await tests.execute();
+
+            // Display results
+            displayTestResults(tests.results, tests.passed, tests.failed);
+        }
+
+        function displayTestResults(results, passed, failed) {
+            const resultsDiv = document.getElementById('results');
+            const summaryDiv = document.getElementById('summary');
+
+            // Show summary
+            summaryDiv.style.display = 'flex';
+            document.getElementById('passed').textContent = passed;
+            document.getElementById('failed').textContent = failed;
+            document.getElementById('rate').textContent = ((passed / (passed + failed)) * 100).toFixed(1) + '%';
+
+            // Show individual results
+            let html = '';
+            results.forEach(result => {
+                const statusClass = result.status === 'PASS' ? 'pass' : 'fail';
+                const statusText = result.status === 'PASS' ? '✓ PASS' : '✗ FAIL';
+                html += `
+                    <div class="test-item ${statusClass}">
+                        <span class="test-status ${statusClass}">${statusText}</span>
+                        <span class="test-name">${result.name}</span>
+                        ${result.error ? `<div class="test-error">${result.error}</div>` : ''}
+                    </div>
+                `;
+            });
+            resultsDiv.innerHTML = html;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('summary').style.display = 'none';
+        }
+
+        // Vergence demo
+        const vergenceDemo = {
+            controller: null,
+            canvas: null,
+            ctx: null,
+            mouseX: 0,
+            mouseY: 0,
+
+            init() {
+                this.canvas = document.getElementById('vergenceCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.controller = new VergenceController({
+                    ipd: 60,
+                    focalDepth: 500,
+                    parallaxIntensity: 0.5
+                });
+
+                this.canvas.addEventListener('mousemove', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.mouseX = e.clientX - rect.left;
+                    this.mouseY = e.clientY - rect.top;
+                });
+
+                this.animate();
+            },
+
+            setNearDepth() {
+                this.controller.setFocalDepth(100);
+            },
+
+            setFarDepth() {
+                this.controller.setFocalDepth(900);
+            },
+
+            toggleStereo() {
+                this.controller.toggleStereoMode();
+            },
+
+            reset() {
+                this.controller.reset();
+            },
+
+            animate() {
+                this.ctx.fillStyle = '#0a0a0a';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                this.controller.update(16);
+
+                const positions = this.controller.getEyePositions();
+                const state = this.controller.getState();
+                const stereo = this.controller.getStereoMatrices();
+
+                // Draw screen center
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                this.ctx.setLineDash([5, 5]);
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.canvas.width / 2, 0);
+                this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
+                this.ctx.moveTo(0, this.canvas.height / 2);
+                this.ctx.lineTo(this.canvas.width, this.canvas.height / 2);
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
+
+                // Draw focal plane indicator
+                const focalY = 50 + (state.focalDepth / state.maxDepth) * 300;
+                this.ctx.fillStyle = 'rgba(0, 212, 255, 0.2)';
+                this.ctx.fillRect(0, focalY - 2, this.canvas.width, 4);
+
+                // Draw left eye
+                this.ctx.beginPath();
+                this.ctx.arc(positions.left.x, focalY, 15, 0, Math.PI * 2);
+                this.ctx.fillStyle = 'rgba(255, 100, 100, 0.8)';
+                this.ctx.fill();
+                this.ctx.strokeStyle = '#ff6464';
+                this.ctx.stroke();
+                this.ctx.fillStyle = '#fff';
+                this.ctx.font = '10px sans-serif';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText('L', positions.left.x, focalY + 4);
+
+                // Draw right eye
+                this.ctx.beginPath();
+                this.ctx.arc(positions.right.x, focalY, 15, 0, Math.PI * 2);
+                this.ctx.fillStyle = 'rgba(100, 100, 255, 0.8)';
+                this.ctx.fill();
+                this.ctx.strokeStyle = '#6464ff';
+                this.ctx.stroke();
+                this.ctx.fillStyle = '#fff';
+                this.ctx.fillText('R', positions.right.x, focalY + 4);
+
+                // Draw convergence point
+                this.ctx.beginPath();
+                this.ctx.arc(this.canvas.width / 2, focalY, 5, 0, Math.PI * 2);
+                this.ctx.fillStyle = '#00d4ff';
+                this.ctx.fill();
+
+                // Draw convergence lines
+                this.ctx.strokeStyle = 'rgba(0, 212, 255, 0.5)';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(positions.left.x, focalY);
+                this.ctx.lineTo(this.canvas.width / 2, focalY);
+                this.ctx.moveTo(positions.right.x, focalY);
+                this.ctx.lineTo(this.canvas.width / 2, focalY);
+                this.ctx.stroke();
+                this.ctx.lineWidth = 1;
+
+                // Draw stereo info
+                if (stereo) {
+                    this.ctx.fillStyle = '#fbbf24';
+                    this.ctx.font = '12px sans-serif';
+                    this.ctx.textAlign = 'left';
+                    this.ctx.fillText(`STEREO: L offset=${stereo.left.offsetX.toFixed(1)} R offset=${stereo.right.offsetX.toFixed(1)}`, 10, 20);
+                }
+
+                // Update state display
+                document.getElementById('vergenceState').textContent =
+                    `Focal Depth: ${state.focalDepth.toFixed(0)}px | Convergence Angle: ${state.convergenceAngle.toFixed(3)} rad | Stereo: ${state.stereoMode ? 'On' : 'Off'}`;
+
+                requestAnimationFrame(() => this.animate());
+            }
+        };
+
+        // Parallax demo
+        const parallaxDemo = {
+            controller: null,
+            canvas: null,
+            ctx: null,
+            mouseX: 0,
+            mouseY: 0,
+
+            init() {
+                this.canvas = document.getElementById('parallaxCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.controller = new VergenceController({
+                    ipd: 30,
+                    focalDepth: 500,
+                    parallaxIntensity: 0.8
+                });
+
+                this.canvas.addEventListener('mousemove', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.mouseX = e.clientX - rect.left;
+                    this.mouseY = e.clientY - rect.top;
+                });
+
+                // Create mock focus tracker
+                const mockFocusTracker = {
+                    getCurrentFocus: () => ({ x: this.mouseX, y: this.mouseY })
+                };
+                this.controller.setFocusTracker(mockFocusTracker);
+
+                this.animate();
+            },
+
+            animate() {
+                this.ctx.fillStyle = '#0a0a0a';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                const centerX = this.canvas.width / 2;
+                const centerY = this.canvas.height / 2;
+
+                // Draw layers with parallax
+                const layers = [
+                    { name: 'background', color: 'rgba(100, 100, 100, 0.3)', size: 60 },
+                    { name: 'tiles', color: 'rgba(0, 212, 255, 0.4)', size: 40 },
+                    { name: 'foreground', color: 'rgba(255, 100, 100, 0.5)', size: 20 }
+                ];
+
+                layers.forEach(layer => {
+                    const shift = this.controller.getParallaxShift(layer.name);
+
+                    this.ctx.beginPath();
+                    this.ctx.arc(
+                        centerX + shift.x * 50,
+                        centerY + shift.y * 50,
+                        layer.size,
+                        0,
+                        Math.PI * 2
+                    );
+                    this.ctx.fillStyle = layer.color;
+                    this.ctx.fill();
+                    this.ctx.strokeStyle = layer.color.replace('0.3', '0.8').replace('0.4', '0.8').replace('0.5', '0.8');
+                    this.ctx.stroke();
+
+                    // Label
+                    this.ctx.fillStyle = '#fff';
+                    this.ctx.font = '11px sans-serif';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText(
+                        layer.name,
+                        centerX + shift.x * 50,
+                        centerY + shift.y * 50 + layer.size + 15
+                    );
+                });
+
+                // Draw cursor indicator
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                this.ctx.beginPath();
+                this.ctx.arc(this.mouseX, this.mouseY, 10, 0, Math.PI * 2);
+                this.ctx.stroke();
+
+                requestAnimationFrame(() => this.animate());
+            }
+        };
+
+        // Initialize demos on load
+        window.addEventListener('load', () => {
+            vergenceDemo.init();
+            parallaxDemo.init();
+        });
+    </script>
+</body>
+</html>
