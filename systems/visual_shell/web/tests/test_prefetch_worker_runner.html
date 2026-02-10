@@ -188,11 +188,8 @@
         };
     </script>
 
-    <!-- Original PredictivePrefetcher -->
+    <!-- Original PredictivePrefetcher (now includes worker support) -->
     <script src="../predictive_prefetcher.js"></script>
-
-    <!-- PredictivePrefetcherWorker -->
-    <script src="../predictive_prefetcher_worker_wrapper.js"></script>
 
     <!-- Test Suite -->
     <script src="test_prefetch_worker.js"></script>
@@ -236,7 +233,7 @@
 
             log('🧪 Starting PredictivePrefetcher Worker Tests...', 'info');
 
-            const tests = new PredictivePrefetcherWorkerTests();
+            const tests = new PredictivePrefetcherTests();
 
             try {
                 const start = performance.now();
@@ -282,7 +279,7 @@
             log(`Original (main thread): ${originalTime.toFixed(2)}ms for 1000 iterations`, 'info');
 
             // Test worker implementation
-            const worker = new PredictivePrefetcherWorker({ tileSize: 100 });
+            const worker = new PredictivePrefetcher({ tileSize: 100 });
             await new Promise(resolve => worker.once('ready', resolve));
 
             const workerStart = performance.now();

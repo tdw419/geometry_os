@@ -12,7 +12,7 @@
  * - 10-15ms overhead reduction on main thread
  */
 
-class PredictivePrefetcherWorkerTests extends NeuralHeatmapTests.PerformanceTest {
+class PredictivePrefetcherTests extends NeuralHeatmapTests.PerformanceTest {
     constructor() {
         super('Predictive Prefetcher Worker', {
             thresholds: {
@@ -43,7 +43,7 @@ class PredictivePrefetcherWorkerTests extends NeuralHeatmapTests.PerformanceTest
         console.log('  Test 1: Worker initializes with correct config...');
 
         // Test basic worker creation
-        const worker = new PredictivePrefetcherWorker({
+        const worker = new PredictivePrefetcher({
             tileSize: 100,
             lookaheadTime: 500
         });
@@ -73,7 +73,7 @@ class PredictivePrefetcherWorkerTests extends NeuralHeatmapTests.PerformanceTest
     async testMessagePassingForTileRequests() {
         console.log('  Test 2: Message passing for tile requests...');
 
-        const worker = new PredictivePrefetcherWorker();
+        const worker = new PredictivePrefetcher();
 
         // Set up message listener
         let receivedMessage = null;
@@ -116,7 +116,7 @@ class PredictivePrefetcherWorkerTests extends NeuralHeatmapTests.PerformanceTest
     async testWorkerSendsPrefetchResults() {
         console.log('  Test 3: Worker sends prefetch results back...');
 
-        const worker = new PredictivePrefetcherWorker();
+        const worker = new PredictivePrefetcher();
 
         const tiles = [
             { x: 100, y: 100, tileX: 1, tileY: 1, priority: 0.9 },
@@ -158,7 +158,7 @@ class PredictivePrefetcherWorkerTests extends NeuralHeatmapTests.PerformanceTest
     async testMainThreadBackwardCompatibility() {
         console.log('  Test 4: Main thread maintains backward compatibility...');
 
-        const worker = new PredictivePrefetcherWorker({
+        const worker = new PredictivePrefetcher({
             tileSize: 100,
             debounceTime: 100
         });
@@ -205,7 +205,7 @@ class PredictivePrefetcherWorkerTests extends NeuralHeatmapTests.PerformanceTest
         console.log('  Test 5: 10-15ms overhead reduction on main thread...');
 
         // Measure main thread execution with worker
-        const worker = new PredictivePrefetcherWorker();
+        const worker = new PredictivePrefetcher();
 
         const iterations = 100;
         const position = { x: 500, y: 500 };
@@ -254,7 +254,7 @@ class PredictivePrefetcherWorkerTests extends NeuralHeatmapTests.PerformanceTest
     async testWorkerStateManagement() {
         console.log('  Test 6: Worker state management...');
 
-        const worker = new PredictivePrefetcherWorker();
+        const worker = new PredictivePrefetcher();
 
         // Initial state
         NeuralHeatmapTests.Assert.assertEquals(
@@ -293,13 +293,13 @@ class PredictivePrefetcherWorkerTests extends NeuralHeatmapTests.PerformanceTest
 
 // Register test suite
 if (typeof NeuralHeatmapTests !== 'undefined') {
-    NeuralHeatmapTests.registerSuite('PredictivePrefetcherWorker', PredictivePrefetcherWorkerTests);
+    NeuralHeatmapTests.registerSuite('PredictivePrefetcher', PredictivePrefetcherTests);
 }
 
 // Export
 if (typeof window !== 'undefined') {
-    window.PredictivePrefetcherWorkerTests = PredictivePrefetcherWorkerTests;
+    window.PredictivePrefetcherTests = PredictivePrefetcherTests;
 }
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { PredictivePrefetcherWorkerTests };
+    module.exports = { PredictivePrefetcherTests };
 }

@@ -1,16 +1,13 @@
 /**
- * PredictivePrefetcher - Predictive tile pre-fetching based on movement
+ * PredictivePrefetcher - Main Thread Wrapper with Web Worker
+ *
+ * Provides backward-compatible API while offloading computations
+ * to a background Web Worker, freeing 10-15ms on the main thread.
  *
  * Phase 47: Tectonic Saccadic Optimization - Task 3
- *
- * Now uses a Web Worker to offload computations, freeing 10-15ms on main thread.
- *
- * This file provides the main PredictivePrefetcher class that can use either:
- * 1. A Web Worker for offloading (preferred)
- * 2. Main thread execution (fallback)
- *
- * @class PredictivePrefetcher
+ * @see docs/plans/2026-02-10-phase-47-web-worker-prefetch.md
  */
+
 class PredictivePrefetcher {
     constructor(config = {}) {
         this.config = {
@@ -21,7 +18,6 @@ class PredictivePrefetcher {
             debounceTime: 100,       // ms to debounce prefetch requests
             tileSize: 100,
             useWorker: true,         // Enable/disable worker (for fallback)
-            workerPath: './workers/predictive_prefetcher_worker.js',
             ...config
         };
 
@@ -30,7 +26,7 @@ class PredictivePrefetcher {
         this.pendingTiles = new Set();
         this.prefetchCache = new Map();
 
-        // Event listeners
+        // Event listeners (for backward compatibility)
         this.eventListeners = new Map();
 
         // Worker state
@@ -38,9 +34,6 @@ class PredictivePrefetcher {
         this.state = 'uninitialized';
         this.messageId = 0;
         this.pendingMessages = new Map();
-
-        // Debounce timer
-        this.debounceTimer = null;
 
         // Initialize worker or fallback to main thread
         if (this.config.useWorker && typeof Worker !== 'undefined') {
@@ -55,48 +48,31 @@ class PredictivePrefetcher {
      */
     _initWorker() {
         try {
-            this.worker = new Worker(this.config.workerPath);
+            // Create worker from external file
+            const workerPath = this.config.workerPath || './workers/predictive_prefetcher_worker.js';
+            this.worker = new Worker(workerPath);
 
             // Set up message handler
             this.worker.onmessage = (e) => {
-                const data = e.data;
-
-                // Handle ready state
-                if (data.type === 'ready') {
-                    this.state = 'ready';
-                    this.emit('ready');
-                    return;
-                }
-
-                // Handle errors
-                if (data.type === 'error') {
-                    console.error('[PredictivePrefetcher] Worker error:', data.error);
-                    this.emit('error', data);
-                    return;
-                }
-
-                // Handle prefetch events (main use case)
-                if (data.type === 'prefetch') {
-                    this.emit('prefetch', data);
-                    this.lastPrefetchTime = data.timestamp;
-                    return;
-                }
-
-                // Resolve pending promises for other message types
-                if (data.messageId && this.pendingMessages.has(data.messageId)) {
-                    const { resolve } = this.pendingMessages.get(data.messageId);
-                    this.pendingMessages.delete(data.messageId);
-                    resolve(data);
-                }
-
-                // Emit other event types
-                this.emit(data.type, data);
+                this._handleWorkerMessage(e.data);
             };
 
             // Set up error handler
             this.worker.onerror = (e) => {
                 console.error('[PredictivePrefetcher] Worker error:', e);
                 this.emit('error', { error: e });
+            };
+
+            // Wait for worker to be ready
+            this.worker.onmessage = (e) => {
+                if (e.data.type === 'ready') {
+                    this.state = 'ready';
+                    this.emit('ready');
+                    // Now set up the actual message handler
+                    this.worker.onmessage = (e) => {
+                        this._handleWorkerMessage(e.data);
+                    };
+                }
             };
 
         } catch (error) {
@@ -115,12 +91,84 @@ class PredictivePrefetcher {
     }
 
     /**
+     * Handle messages from worker
+     */
+    _handleWorkerMessage(data) {
+        const { type, ...rest } = data;
+
+        switch (type) {
+            case 'prediction_result':
+                this.emit('prediction_result', rest);
+                // Resolve pending promises
+                this._resolvePendingMessage(data);
+                break;
+
+            case 'bounds_calculated':
+                this.emit('bounds_calculated', rest);
+                this._resolvePendingMessage(data);
+                break;
+
+            case 'prefetch':
+                this.emit('prefetch', rest);
+                this.lastPrefetchTime = rest.timestamp;
+                break;
+
+            case 'prefetch_complete':
+                this.emit('prefetch_complete', rest);
+                break;
+
+            case 'tile_loaded':
+                this.emit('tile_loaded', rest);
+                this._resolvePendingMessage(data);
+                break;
+
+            case 'cached_tile':
+                this.emit('cached_tile', rest);
+                this._resolvePendingMessage(data);
+                break;
+
+            case 'cache_cleared':
+                this.emit('cache_cleared', rest);
+                this._resolvePendingMessage(data);
+                break;
+
+            case 'stats':
+                this.emit('stats', rest);
+                this._resolvePendingMessage(data);
+                break;
+
+            case 'config_updated':
+                this.config = { ...this.config, ...rest.config };
+                this.emit('config_updated', rest);
+                break;
+
+            case 'reset_complete':
+                this.pendingTiles.clear();
+                this.prefetchCache.clear();
+                this.emit('reset_complete');
+                break;
+
+            case 'predict_and_prefetch_complete':
+                this.emit('predict_and_prefetch_complete', rest);
+                break;
+
+            case 'error':
+                console.error('[PredictivePrefetcher] Worker error:', rest.error);
+                this.emit('error', rest);
+                break;
+
+            default:
+                console.warn(`[PredictivePrefetcher] Unknown message type: ${type}`);
+        }
+    }
+
+    /**
      * Send message to worker
      */
     _sendMessage(type, data = {}) {
         if (!this.worker) {
             // Main thread fallback
-            return Promise.resolve(this._handleMainThreadFallback(type, data));
+            return this._handleMainThreadMessage(type, data);
         }
 
         const messageId = ++this.messageId;
@@ -141,52 +189,49 @@ class PredictivePrefetcher {
     }
 
     /**
-     * Handle main thread fallback processing
+     * Resolve pending message promise
      */
-    _handleMainThreadFallback(type, data) {
-        switch (type) {
-            case 'calculate_bounds':
-                return { type: 'bounds_calculated', bounds: this._calculateBoundsMainThread(data.bounds, data.velocity) };
-            case 'predict_tiles':
-                return { type: 'prediction_result', tiles: this._predictTilesMainThread(data.position, data.velocity, data.lookaheadTime) };
-            case 'get_stats':
-                return { type: 'stats', stats: this._getStatsMainThread() };
-            default:
-                return { type: 'ack' };
+    _resolvePendingMessage(data) {
+        if (data.messageId && this.pendingMessages.has(data.messageId)) {
+            const { resolve } = this.pendingMessages.get(data.messageId);
+            this.pendingMessages.delete(data.messageId);
+            resolve(data);
         }
     }
 
     /**
-     * Calculate prefetch bounds based on current bounds and velocity
+     * Handle main thread fallback processing
      */
-    _calculateBoundsMainThread(currentBounds, velocity) {
-        const width = currentBounds.maxX - currentBounds.minX;
-        const height = currentBounds.maxY - currentBounds.minY;
+    _handleMainThreadMessage(type, data) {
+        // Main thread implementation for backward compatibility
+        // when worker is not available
 
-        let paddingX = width * this.config.minPrefetchPadding;
-        let paddingY = height * this.config.minPrefetchPadding;
+        switch (type) {
+            case 'predict_tiles':
+                const tiles = this._predictTilesMainThread(data.position, data.velocity, data.lookaheadTime);
+                return Promise.resolve({ type: 'prediction_result', tiles });
 
-        const speed = velocity.magnitude || Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
-        const dynamicPadding = speed * this.config.speedFactor * Math.max(width, height);
+            case 'calculate_bounds':
+                const bounds = this._calculateBoundsMainThread(data.bounds, data.velocity);
+                return Promise.resolve({ type: 'bounds_calculated', bounds });
 
-        paddingX += dynamicPadding * Math.abs(velocity.x / (speed || 1));
-        paddingY += dynamicPadding * Math.abs(velocity.y / (speed || 1));
+            case 'get_stats':
+                return Promise.resolve({
+                    type: 'stats',
+                    stats: {
+                        pendingTiles: this.pendingTiles.size,
+                        cacheSize: this.prefetchCache.size,
+                        lastPrefetchTime: this.lastPrefetchTime
+                    }
+                });
 
-        paddingX = Math.min(paddingX, width * this.config.maxPrefetchDistance);
-        paddingY = Math.min(paddingY, height * this.config.maxPrefetchDistance);
-
-        return {
-            minX: currentBounds.minX - paddingX / 2,
-            minY: currentBounds.minY - paddingY / 2,
-            maxX: currentBounds.maxX + paddingX / 2,
-            maxY: currentBounds.maxY + paddingY / 2,
-            width: width + paddingX,
-            height: height + paddingY
-        };
+            default:
+                return Promise.resolve({ type: 'ack' });
+        }
     }
 
     /**
-     * Predict tiles on main thread
+     * Main thread fallback: Predict tiles
      */
     _predictTilesMainThread(position, velocity, lookaheadTime) {
         const ahead = lookaheadTime || this.config.lookaheadTime;
@@ -218,18 +263,36 @@ class PredictivePrefetcher {
     }
 
     /**
-     * Get stats on main thread
+     * Main thread fallback: Calculate bounds
      */
-    _getStatsMainThread() {
+    _calculateBoundsMainThread(currentBounds, velocity) {
+        const width = currentBounds.maxX - currentBounds.minX;
+        const height = currentBounds.maxY - currentBounds.minY;
+
+        let paddingX = width * this.config.minPrefetchPadding;
+        let paddingY = height * this.config.minPrefetchPadding;
+
+        const speed = velocity.magnitude || Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
+        const dynamicPadding = speed * this.config.speedFactor * Math.max(width, height);
+
+        paddingX += dynamicPadding * Math.abs(velocity.x / (speed || 1));
+        paddingY += dynamicPadding * Math.abs(velocity.y / (speed || 1));
+
+        paddingX = Math.min(paddingX, width * this.config.maxPrefetchDistance);
+        paddingY = Math.min(paddingY, height * this.config.maxPrefetchDistance);
+
         return {
-            pendingTiles: this.pendingTiles.size,
-            cacheSize: this.prefetchCache.size,
-            lastPrefetchTime: this.lastPrefetchTime
+            minX: currentBounds.minX - paddingX / 2,
+            minY: currentBounds.minY - paddingY / 2,
+            maxX: currentBounds.maxX + paddingX / 2,
+            maxY: currentBounds.maxY + paddingY / 2,
+            width: width + paddingX,
+            height: height + paddingY
         };
     }
 
     /**
-     * Calculate prefetch bounds (public API)
+     * Calculate prefetch bounds based on current bounds and velocity
      */
     calculatePrefetchBounds(currentBounds, velocity) {
         if (this.worker) {
@@ -245,14 +308,14 @@ class PredictivePrefetcher {
     predictTiles(position, velocity, lookaheadTime = null) {
         if (this.worker) {
             this._sendMessage('predict_tiles', { position, velocity, lookaheadTime });
-        } else {
-            const tiles = this._predictTilesMainThread(position, velocity, lookaheadTime);
-            this.emit('prediction_result', { tiles });
+            return;
         }
+        const tiles = this._predictTilesMainThread(position, velocity, lookaheadTime);
+        this.emit('prediction_result', { tiles });
     }
 
     /**
-     * Prioritize tiles based on distance to gaze point
+     * Prioritize tiles based on distance to gaze point (main thread helper)
      */
     getPrioritizedTiles(tiles, gazePoint) {
         return tiles.map(tile => {
@@ -274,6 +337,7 @@ class PredictivePrefetcher {
         if (this.worker) {
             this._sendMessage('request_prefetch', { tiles, gazePoint });
         } else {
+            // Main thread debouncing
             if (this.debounceTimer) {
                 clearTimeout(this.debounceTimer);
             }
@@ -297,7 +361,9 @@ class PredictivePrefetcher {
             return !this.pendingTiles.has(key) && !this.prefetchCache.has(key);
         });
 
-        if (newTiles.length === 0) return;
+        if (newTiles.length === 0) {
+            return;
+        }
 
         for (const tile of newTiles) {
             this.pendingTiles.add(`${tile.tileX},${tile.tileY}`);
@@ -320,7 +386,10 @@ class PredictivePrefetcher {
         } else {
             const key = `${tileX},${tileY}`;
             this.pendingTiles.delete(key);
-            this.prefetchCache.set(key, { data, timestamp: Date.now() });
+            this.prefetchCache.set(key, {
+                data,
+                timestamp: Date.now()
+            });
             this.emit('tile_loaded', { tileX, tileY, cacheSize: this.prefetchCache.size });
         }
     }
@@ -362,7 +431,11 @@ class PredictivePrefetcher {
             return this._sendMessage('get_stats', {})
                 .then(result => result.stats);
         }
-        return Promise.resolve(this._getStatsMainThread());
+        return Promise.resolve({
+            pendingTiles: this.pendingTiles.size,
+            cacheSize: this.prefetchCache.size,
+            lastPrefetchTime: this.lastPrefetchTime
+        });
     }
 
     /**
