@@ -418,14 +418,15 @@ class WASMCodeVisualizer:
         """
         Visualize WASM bytecode with semantic coloring.
 
-        Encoding format (for lossless decoding):
-        - Red: Byte 0 of 4-byte chunk
-        - Green: Byte 1 of 4-byte chunk
-        - Blue: Byte 2 of 4-byte chunk
-        - Alpha: Byte 3 of 4-byte chunk
+        Encoding format (for code-mode):
+        - Red: Entropy value (0-255, ignored for decoding)
+        - Green: Byte at even position (0, 2, 4, ...)
+        - Blue: Byte at odd position (1, 3, 5, ...)
+        - Alpha: 255 if executable, 0 if padding
 
-        This encoding preserves all original bytes for lossless round-trip.
-        The entropy visualization is now implicit in the variation of byte values.
+        Each pixel encodes 2 bytes of WASM data in the G and B channels.
+        The R channel stores entropy for visualization purposes.
+        The A channel indicates whether the pixel represents executable code.
 
         Args:
             data: WASM bytecode
@@ -440,31 +441,48 @@ class WASMCodeVisualizer:
         if not self.is_wasm(data):
             raise ValueError("Input is not a valid WASM file (missing magic number)")
 
-        # Calculate entropy for informational purposes (not used in encoding)
+        # Calculate entropy for visualization
         entropy = self.calculate_control_flow_entropy(data)
 
-        # Pad data to multiple of 4 for RGBA
-        padding_needed = (4 - len(data) % 4) % 4
+        # Pad data to multiple of 2 (since each pixel holds 2 bytes)
+        padding_needed = (2 - len(data) % 2) % 2
         if padding_needed:
             data = data + b'\x00' * padding_needed
             entropy = np.pad(entropy, (0, padding_needed), 'constant')
 
         data_array = np.frombuffer(data, dtype=np.uint8)
         total_bytes = len(data_array)
-        total_pixels = total_bytes // 4
+        total_pixels = (total_bytes + 1) // 2  # Each pixel holds 2 bytes
 
         rgba_pixels = np.zeros((total_pixels, 4), dtype=np.uint8)
 
-        # Process each 4-byte chunk as a pixel
+        # Process each 2-byte pair as a pixel
         for i in range(total_pixels):
-            byte_idx = i * 4
+            byte_idx = i * 2
 
-            # Direct byte encoding for lossless round-trip
-            # Each of the 4 bytes maps to an RGBA channel
-            rgba_pixels[i, 0] = data_array[byte_idx]      # R = byte 0
-            rgba_pixels[i, 1] = data_array[byte_idx + 1]  # G = byte 1
-            rgba_pixels[i, 2] = data_array[byte_idx + 2]  # B = byte 2
-            rgba_pixels[i, 3] = data_array[byte_idx + 3]  # A = byte 3
+            # Get the two bytes for this pixel
+            byte0 = data_array[byte_idx]
+            byte1 = data_array[byte_idx + 1] if byte_idx + 1 < total_bytes else 0
+
+            # R = entropy of first byte (for visualization)
+            rgba_pixels[i, 0] = entropy[byte_idx]
+
+            # G = byte at even position
+            rgba_pixels[i, 1] = byte0
+
+            # B = byte at odd position
+            rgba_pixels[i, 2] = byte1
+
+            # A = 255 if executable opcode, 0 if padding
+            if byte0 in self.CONTROL_FLOW_OPCODES or \
+               byte0 in self.ARITHMETIC_OPCODES or \
+               byte0 in self.MEMORY_OPCODES or \
+               byte0 in self.PARAMETRIC_OPCODES or \
+               byte0 in self.VARIABLE_OPCODES or \
+               byte0 in self.CONSTANT_OPCODES:
+                rgba_pixels[i, 3] = 255  # Executable
+            else:
+                rgba_pixels[i, 3] = 0    # Data/padding
 
         return rgba_pixels
 
@@ -476,13 +494,13 @@ class WASMCodeVisualizer:
         from semantic RGBA coloring.
 
         Encoding format (from visualize()):
-        - Red: Byte 0 of 4-byte chunk
-        - Green: Byte 1 of 4-byte chunk
-        - Blue: Byte 2 of 4-byte chunk
-        - Alpha: Byte 3 of 4-byte chunk (if executable, else 0)
+        - Red: Entropy (ignored for decoding)
+        - Green: Byte at even position (0, 2, 4, ...)
+        - Blue: Byte at odd position (1, 3, 5, ...)
+        - Alpha: 255 if executable, 0 if padding
 
         Args:
-            rgba_pixels: RGBA pixel array as numpy array (N, 4)
+            rgba_pixels: RGBA pixel array as numpy array (N, 4) or (H, W, 4)
             expected_size: Expected size of decoded WASM data in bytes
 
         Returns:
@@ -501,20 +519,26 @@ class WASMCodeVisualizer:
         if not isinstance(rgba_pixels, np.ndarray):
             raise ValueError("rgba_pixels must be a numpy array")
 
-        if len(rgba_pixels.shape) != 2 or rgba_pixels.shape[1] != 4:
-            raise ValueError("rgba_pixels must have shape (N, 4)")
+        # Handle both 1D (N, 4) and 2D (H, W, 4) arrays
+        if len(rgba_pixels.shape) == 3 and rgba_pixels.shape[2] == 4:
+            # 2D grid array (H, W, 4) - flatten to (H*W, 4)
+            rgba_pixels = rgba_pixels.reshape(-1, 4)
+        elif len(rgba_pixels.shape) != 2 or rgba_pixels.shape[1] != 4:
+            raise ValueError("rgba_pixels must have shape (N, 4) or (H, W, 4)")
+
+        # Check for empty array
+        if rgba_pixels.shape[0] == 0:
+            raise ValueError("Decoded data is not valid WASM (empty input)")
 
         decoded_bytes = bytearray()
 
-        # Iterate through RGBA pixels and extract all 4 bytes
+        # Iterate through RGBA pixels and extract bytes from G and B channels
         for pixel in rgba_pixels:
             r, g, b, a = pixel
 
-            # Extract all 4 bytes from RGBA channels
-            decoded_bytes.append(r)  # byte 0
-            decoded_bytes.append(g)  # byte 1
-            decoded_bytes.append(b)  # byte 2
-            decoded_bytes.append(a)  # byte 3 (or 0 for padding)
+            # Extract bytes from G (even position) and B (odd position) channels
+            decoded_bytes.append(g)  # byte at even position
+            decoded_bytes.append(b)  # byte at odd position
 
         # Trim to expected size
         decoded_bytes = decoded_bytes[:expected_size]
