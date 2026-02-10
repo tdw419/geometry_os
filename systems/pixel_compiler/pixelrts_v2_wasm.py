@@ -418,6 +418,15 @@ class WASMCodeVisualizer:
         """
         Visualize WASM bytecode with semantic coloring.
 
+        Encoding format (for lossless decoding):
+        - Red: Byte 0 of 4-byte chunk
+        - Green: Byte 1 of 4-byte chunk
+        - Blue: Byte 2 of 4-byte chunk
+        - Alpha: Byte 3 of 4-byte chunk
+
+        This encoding preserves all original bytes for lossless round-trip.
+        The entropy visualization is now implicit in the variation of byte values.
+
         Args:
             data: WASM bytecode
 
@@ -431,7 +440,7 @@ class WASMCodeVisualizer:
         if not self.is_wasm(data):
             raise ValueError("Input is not a valid WASM file (missing magic number)")
 
-        # Calculate entropy
+        # Calculate entropy for informational purposes (not used in encoding)
         entropy = self.calculate_control_flow_entropy(data)
 
         # Pad data to multiple of 4 for RGBA
@@ -450,16 +459,74 @@ class WASMCodeVisualizer:
         for i in range(total_pixels):
             byte_idx = i * 4
 
-            # First byte is the opcode (usually)
-            opcode = data_array[byte_idx]
-            operand1 = data_array[byte_idx + 1] if byte_idx + 1 < total_bytes else 0
-            operand2 = data_array[byte_idx + 2] if byte_idx + 2 < total_bytes else 0
-            ent = entropy[byte_idx]
-
-            # Apply semantic coloring
-            rgba_pixels[i] = self.color_opcode(opcode, operand1, operand2, ent)
+            # Direct byte encoding for lossless round-trip
+            # Each of the 4 bytes maps to an RGBA channel
+            rgba_pixels[i, 0] = data_array[byte_idx]      # R = byte 0
+            rgba_pixels[i, 1] = data_array[byte_idx + 1]  # G = byte 1
+            rgba_pixels[i, 2] = data_array[byte_idx + 2]  # B = byte 2
+            rgba_pixels[i, 3] = data_array[byte_idx + 3]  # A = byte 3
 
         return rgba_pixels
+
+    def decode_rgba(self, rgba_pixels: np.ndarray, expected_size: int) -> bytes:
+        """
+        Decode RGBA pixels back to original WASM bytes.
+
+        This is the inverse of visualize() - it recovers WASM bytecode
+        from semantic RGBA coloring.
+
+        Encoding format (from visualize()):
+        - Red: Byte 0 of 4-byte chunk
+        - Green: Byte 1 of 4-byte chunk
+        - Blue: Byte 2 of 4-byte chunk
+        - Alpha: Byte 3 of 4-byte chunk (if executable, else 0)
+
+        Args:
+            rgba_pixels: RGBA pixel array as numpy array (N, 4)
+            expected_size: Expected size of decoded WASM data in bytes
+
+        Returns:
+            Decoded WASM bytecode
+
+        Raises:
+            ValueError: If decoded data is not valid WASM (missing magic number)
+
+        Example:
+            >>> visualizer = WASMCodeVisualizer()
+            >>> rgba = visualizer.visualize(wasm_bytes)
+            >>> decoded = visualizer.decode_rgba(rgba, len(wasm_bytes))
+            >>> decoded == wasm_bytes
+            True
+        """
+        if not isinstance(rgba_pixels, np.ndarray):
+            raise ValueError("rgba_pixels must be a numpy array")
+
+        if len(rgba_pixels.shape) != 2 or rgba_pixels.shape[1] != 4:
+            raise ValueError("rgba_pixels must have shape (N, 4)")
+
+        decoded_bytes = bytearray()
+
+        # Iterate through RGBA pixels and extract all 4 bytes
+        for pixel in rgba_pixels:
+            r, g, b, a = pixel
+
+            # Extract all 4 bytes from RGBA channels
+            decoded_bytes.append(r)  # byte 0
+            decoded_bytes.append(g)  # byte 1
+            decoded_bytes.append(b)  # byte 2
+            decoded_bytes.append(a)  # byte 3 (or 0 for padding)
+
+        # Trim to expected size
+        decoded_bytes = decoded_bytes[:expected_size]
+
+        # Verify WASM magic number
+        if len(decoded_bytes) >= 4 and decoded_bytes[:4] != self.WASM_MAGIC:
+            raise ValueError(
+                f"Decoded data is not valid WASM (missing magic number {self.WASM_MAGIC!r}, "
+                f"got {bytes(decoded_bytes[:4])!r})"
+            )
+
+        return bytes(decoded_bytes)
 
     def get_opcode_name(self, opcode: int) -> Optional[str]:
         """
