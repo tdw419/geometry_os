@@ -571,6 +571,8 @@ class EvolutionDaemonV8:
             sync_packet_provider=self.harmonic_hub.generate_sync_packet,
             daemon_bridge=self.daemon_bridge
         )
+        # Alias for compatibility with tests and plan
+        self.protocol_server = self.evolution_server
         logger.info("🔗 EvolutionDaemonBridge initialized for genome forwarding")
 
         # Initialize Phase 15 if available

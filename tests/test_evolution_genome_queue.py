@@ -26,3 +26,12 @@ def test_genome_can_be_queued():
 
     daemon.queue_genome(test_genome)
     assert daemon.get_queue_size() > 0, "Queue should have items after enqueue"
+
+def test_daemon_has_protocol_server_with_bridge():
+    """EvolutionDaemonV8 should initialize protocol server with bridge"""
+    from evolution_daemon_v8 import EvolutionDaemonV8
+    daemon = EvolutionDaemonV8()
+
+    assert hasattr(daemon, 'protocol_server'), "Should have protocol_server"
+    assert hasattr(daemon.protocol_server, 'daemon_bridge'), "Protocol server should have bridge"
+    assert daemon.protocol_server.daemon_bridge.daemon is daemon, "Bridge should reference daemon"
