@@ -2,7 +2,13 @@
 
 import pytest
 from dataclasses import asdict
-from systems.pixel_compiler.pixelrts_blueprint import (
+import sys
+from pathlib import Path
+
+# Add pixel_compiler to path for direct imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from pixelrts_blueprint import (
     ComponentType,
     Permission,
     SecurityInfo,
