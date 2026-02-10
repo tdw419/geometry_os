@@ -153,16 +153,27 @@ class WASMGPUBridge:
         Returns:
             ExecutionResult with return_value from globals[0]
         """
+        # Configure memory first to set up persistent state
+        # This allows get_memory()/set_memory() to work after execution
+        self.configure_memory(memory_pages)
+
         if self.mock:
             # Mock execution for testing pipeline without GPU
             print(f"[Mock] Executing WASM ({len(wasm_bytes)} bytes) at entry point {entry_point}")
             if arguments:
                 print(f"[Mock] Arguments: {arguments}")
-            # Simulate a successful return of 42 (common test value) or 0
+
+            # Initialize mock memory with memory_init if provided
+            if memory_init:
+                for i, byte_val in enumerate(memory_init):
+                    if i < self.memory_size:
+                        self._memory_data[i] = byte_val & 0xFF
+
+            # Return the actual memory contents and a mock return value
             return ExecutionResult(
                 success=True,
-                return_value=42, # Mock return for test validity
-                memory_dump=bytes(memory_pages * 64 * 1024),
+                return_value=42,  # Mock return for test validity
+                memory_dump=bytes(self._memory_data[:self.memory_size]),
                 trace_data=[],
                 instruction_count=10,
                 error=None
@@ -469,6 +480,71 @@ class WASMGPUBridge:
                 buffer_data = self.device.queue.read_buffer(self.memory_buffer).tobytes()
                 return buffer_data[offset:offset + size]
             return b''
+
+    def get_memory(self) -> bytes:
+        """
+        Get all of WASM linear memory as bytes.
+
+        Returns:
+            bytes: Current memory contents
+
+        Example:
+            >>> data = bridge.get_memory()
+            >>> bridge.set_memory(data)  # Restore later
+        """
+        # Auto-initialize memory with default page count if not configured
+        if self.memory_size == 0:
+            self.configure_memory(1)  # Default to 1 page (64KB)
+
+        if self.mock:
+            # Return copy of mock memory storage
+            return bytes(self._memory_data[:self.memory_size])
+        else:
+            # Read entire GPU buffer
+            if self.memory_buffer is not None:
+                return self.device.queue.read_buffer(self.memory_buffer).tobytes()
+            return b""
+
+    def set_memory(self, data: bytes) -> None:
+        """
+        Set WASM linear memory contents from bytes.
+
+        Args:
+            data: Bytes to write to memory
+
+        Example:
+            >>> snapshot = bridge.get_memory()
+            >>> # ... modify memory ...
+            >>> bridge.set_memory(snapshot)  # Restore
+
+        Raises:
+            ValueError: If data size doesn't match memory_size and memory is already configured
+        """
+        # Auto-initialize memory if not configured yet
+        if self.memory_size == 0:
+            # Calculate required pages for the data size
+            required_bytes = len(data)
+            required_pages = (required_bytes + 65535) // 65536  # Round up to 64KB pages
+            self.configure_memory(required_pages)
+        elif len(data) != self.memory_size:
+            # Memory is configured but size doesn't match
+            raise ValueError(
+                f"data size mismatch: got {len(data)} bytes, expected {self.memory_size}"
+            )
+
+        if self.mock:
+            # Write to mock memory storage
+            self._memory_data[:self.memory_size] = bytearray(data)
+        else:
+            # Write to GPU buffer
+            if self.memory_buffer is not None:
+                # Convert bytes to uint32 array
+                data_array = np.frombuffer(data, dtype=np.uint32)
+                self.device.queue.write_buffer(
+                    self.memory_buffer,
+                    offset=0,
+                    data=data_array.tobytes()
+                )
 
     def set_entry_point(self, function_index: int) -> None:
         """

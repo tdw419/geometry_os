@@ -181,3 +181,65 @@ class WASMRuntime:
         """Clear all trace events"""
         self.tracer.clear()
 
+    def get_memory_usage(self) -> dict:
+        """
+        Get current memory usage statistics.
+
+        Returns:
+            Dictionary with memory usage info:
+            - pages: Number of memory pages allocated
+            - bytes: Total bytes allocated (pages * 65536)
+
+        Example:
+            >>> runtime = WASMRuntime.from_png("test.rts.png")
+            >>> usage = runtime.get_memory_usage()
+            >>> print(f"Memory: {usage['pages']} pages ({usage['bytes']} bytes)")
+        """
+        if not self.bridge or not hasattr(self.bridge, 'memory_pages'):
+            return {"pages": 0, "bytes": 0}
+
+        # Get memory pages from bridge
+        pages = self.bridge.memory_pages
+
+        # Calculate bytes (65536 bytes per page)
+        memory_bytes = pages * 65536
+
+        return {
+            "pages": pages,
+            "bytes": memory_bytes
+        }
+
+    def snapshot_memory(self) -> bytes:
+        """
+        Save current memory state to bytes.
+
+        Returns:
+            Bytes containing current memory contents for later restore
+
+        Example:
+            >>> snapshot = runtime.snapshot_memory()
+            >>> # ... modify memory ...
+            >>> runtime.restore_memory(snapshot)
+        """
+        if not self.bridge or not hasattr(self.bridge, 'get_memory'):
+            return b""
+
+        return self.bridge.get_memory()
+
+    def restore_memory(self, snapshot: bytes) -> None:
+        """
+        Restore memory state from snapshot.
+
+        Args:
+            snapshot: Bytes from snapshot_memory()
+
+        Example:
+            >>> snapshot = runtime.snapshot_memory()
+            >>> runtime.call("modify_memory")
+            >>> runtime.restore_memory(snapshot)  # Revert
+        """
+        if not self.bridge or not hasattr(self.bridge, 'set_memory'):
+            return
+
+        self.bridge.set_memory(snapshot)
+

@@ -12,14 +12,16 @@
 This roadmap addresses critical improvements to the PixelRTS execution system, building on the recent fixes to wasmrun.py, GPU shader errors, and cartridge metadata handling. The goal is to create a production-ready WASM execution environment on GPU with support for both standard and code-mode PixelRTS v2 cartridges.
 
 ### Current Status (2026-02-10)
+- ✅ Phase 1: Core Execution Engine COMPLETED
 - ✅ GPU shader atomic operation errors fixed
 - ✅ Sidecar metadata loading fixed
 - ✅ WASM export parsing working
 - ✅ Basic function execution working
+- ✅ Code-mode cartridge decoding complete (semantic decode_rgba)
+- ✅ Memory management complete (bounds checking, snapshot/restore)
 - ⚠️ Mock mode fallback when GPU unavailable
-- ❌ Code-mode cartridge decoding incomplete
-- ❌ No parallel execution support
-- ❌ Limited host function implementations
+- ❌ No parallel execution support (Phase 2)
+- ❌ Limited host function implementations (Phase 2)
 
 ---
 
@@ -45,57 +47,58 @@ Create a high-performance, GPU-accelerated WASM execution engine for PixelRTS ca
 ---
 
 ## Phase 1: Core Execution Engine (Week 1)
+**Status:** ✅ COMPLETED (2026-02-10)
 
 ### 1.1 Complete WASM MVP Implementation
-**Priority:** HIGH | **Status:** IN PROGRESS
+**Priority:** HIGH | **Status:** ✅ COMPLETED
 
 **Tasks:**
-- [ ] Implement remaining missing opcodes (i64, f32, f64)
-- [ ] Fix floating-point operations (OP_F32_* , OP_F64_*)
-- [ ] Add proper trapping for unreachable/div-by-zero
-- [ ] Implement br_table instruction
-- [ ] Add call_indirect with type checking
+- [x] Implement remaining missing opcodes (i64, f32, f64)
+- [x] Fix floating-point operations (OP_F32_* , OP_F64_*)
+- [x] Add proper trapping for unreachable/div-by-zero
+- [x] Implement br_table instruction
+- [x] Add call_indirect with type checking
 
 **Acceptance Criteria:**
-- All WASM MVP opcodes implemented
-- Spec test suite passes >90%
-- No shader validation errors
+- [x] All WASM MVP opcodes implemented
+- [x] Spec test suite passes >90%
+- [x] No shader validation errors
 
 **Dependencies:** None
 
 ---
 
 ### 1.2 Code-Mode Cartridge Support
-**Priority:** HIGH | **Status:** PENDING
+**Priority:** HIGH | **Status:** ✅ COMPLETED
 
 **Tasks:**
-- [ ] Implement semantic decoding from RGBA to raw WASM
-- [ ] Create WASMCodeVisualizer with encode/decode symmetry
-- [ ] Add automatic mode detection (standard vs code)
-- [ ] Validate code-mode cartridges with test suite
+- [x] Implement semantic decoding from RGBA to raw WASM
+- [x] Create WASMCodeVisualizer with encode/decode symmetry
+- [x] Add automatic mode detection (standard vs code)
+- [x] Validate code-mode cartridges with test suite
 
 **Acceptance Criteria:**
-- Code-mode cartridges decode correctly
-- Original WASM recovered from semantic encoding
-- Mode detection works automatically
+- [x] Code-mode cartridges decode correctly
+- [x] Original WASM recovered from semantic encoding
+- [x] Mode detection works automatically
 
 **Dependencies:** PixelRTS v2 encoder updates
 
 ---
 
 ### 1.3 Memory Management
-**Priority:** MEDIUM | **Status:** PENDING
+**Priority:** MEDIUM | **Status:** ✅ COMPLETED
 
 **Tasks:**
-- [ ] Implement memory.grow with proper limits
-- [ ] Add memory bounds checking on all loads/stores
-- [ ] Support multiple memory pages (up to 4GB)
-- [ ] Add memory snapshot/restore for debugging
+- [x] Implement memory.grow with proper limits
+- [x] Add memory bounds checking on all loads/stores
+- [x] Support multiple memory pages (up to 4GB)
+- [x] Add memory snapshot/restore for debugging
 
 **Acceptance Criteria:**
-- memory.grow works correctly
-- Out-of-bounds access traps properly
-- Memory usage tracked and reported
+- [x] memory.grow works correctly
+- [x] Out-of-bounds access traps properly
+- [x] Memory usage tracked and reported
 
 **Dependencies:** None
 
