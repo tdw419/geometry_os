@@ -40,6 +40,7 @@ use crate::{
     evolution_protocol::MemoryGraphProtocol,
     inspector_ui::InspectorUI,
     compiler_tile::CompilerTileDispatcher,
+    cartridge_registry::CartridgeRegistry,
 };
 
 use crate::evolution_protocol::DaemonFrequencyBand;
@@ -48,6 +49,7 @@ use visual_shell::{DaemonId, FrequencyBand};
 #[cfg(feature = "hypervisor")]
 use crate::virtual_machine::VirtualMachine;
 use crate::vm_texture_manager::VmTextureManager;
+use crate::cartridge_texture_manager::CartridgeTextureManager;
 use crate::virtual_machine::QemuProcessWithShm;
 use crate::antigravity_watcher::AntigravityWatcher;
 use crate::tectonic_simulator::TectonicSimulator;
@@ -165,6 +167,12 @@ pub struct InfiniteMapApp<'a> {
     pub rts_watcher: Option<AntigravityWatcher>,
     pub antigravity_window_id: Option<usize>,
     pub tectonic_simulator: Option<TectonicSimulator>,
+
+    // Phase 35.9: Cartridges Rendered
+    pub cartridges_rendered: std::collections::HashSet<String>,
+
+    // Phase 35.9.1: Cartridge texture manager
+    pub cartridge_texture_manager: Option<CartridgeTextureManager>,
 
     // Phase 37.3: Introspection Window (Async UI updates)
     introspection_rx: Option<tokio::sync::mpsc::Receiver<(usize, String)>>,
@@ -387,6 +395,12 @@ impl<'a> InfiniteMapApp<'a> {
             rts_watcher: None,
             antigravity_window_id: None,
             tectonic_simulator: None,
+            
+            // Phase 35.9
+            cartridges_rendered: std::collections::HashSet::new(),
+            // Phase 35.9.1: Cartridge texture manager (initialized when device is available)
+            cartridge_texture_manager: None,
+
             terrain_raycaster: None,
             // Phase 40: Initialize Unreal Bridge (The Glass Monitor)
             unreal_bridge: UnrealBridge::new(),
@@ -1937,11 +1951,32 @@ impl<'a> InfiniteMapApp<'a> {
         self.initialize_live_memory_textures();
 
         log::info!("✅ Memory Texture Manager initialized");
-        
+
         // Phase 34.4: Initialize Pixel CPU
 
     }
-    
+
+    // Phase 35.9.1: Initialize Cartridge Texture Manager
+    pub fn initialize_cartridge_texture_manager(&mut self) {
+        log::info!("🎨 Initializing Cartridge Texture Manager for Evolution Zone...");
+
+        let device = self.renderer.get_device();
+        let queue = self.renderer.get_queue();
+        let bind_group_layout = self.renderer.get_surface_bind_group_layout();
+        let sampler = self.renderer.get_shared_sampler();
+
+        let cartridge_texture_manager = CartridgeTextureManager::new(
+            device,
+            queue,
+            bind_group_layout,
+            sampler,
+        );
+
+        self.cartridge_texture_manager = Some(cartridge_texture_manager);
+
+        log::info!("✅ Cartridge Texture Manager initialized");
+    }
+
     // Phase 34.4: Initialize Pixel CPU Runtime
 
 
@@ -2498,10 +2533,9 @@ impl<'a> InfiniteMapApp<'a> {
         for genome in genomes_to_process {
             self.submit_evolution_genome(genome);
         }
-
         let bridge_arc_opt = self.evolution_terrain_bridge.clone();
         if let Some(bridge_arc) = bridge_arc_opt {
-            if let Ok(bridge) = bridge_arc.lock() {
+            if let Ok(mut bridge) = bridge_arc.lock() {
                 // Check if bridge wants to update
                 if bridge.should_update() {
                     let queue = self.renderer.get_queue();
@@ -2512,6 +2546,92 @@ impl<'a> InfiniteMapApp<'a> {
                     self.update_evolution_terrain_bind_groups();
                 }
             }
+        }
+    }
+
+    /// Phase 35.9: Render new cartridges from evolution zone
+    ///
+    /// Checks the registry for new cartridges and creates visual representations.
+    pub fn render_cartridges(&mut self) {
+        // Collect new cartridges to avoid borrowing multiple times from self
+        let mut new_cartridges = Vec::new();
+
+        if let Some(em_arc) = &self.evolution_manager {
+            if let Ok(em) = em_arc.lock() {
+                let registry = em.get_cartridge_registry();
+                for entry in registry.get_all_entries() {
+                    if !self.cartridges_rendered.contains(&entry.id) {
+                        new_cartridges.push(entry.clone());
+                    }
+                }
+            }
+        }
+
+        // Process new cartridges
+        for entry in new_cartridges {
+            log::info!("🎨 Rendering new cartridge: {} (Gen {}) at ({}, {})",
+                entry.id, entry.generation, entry.spawn_x, entry.spawn_y);
+
+            // Phase 35.9.1: Try to load the .rts.png texture
+            let texture_loaded = if let Some(manager) = &self.cartridge_texture_manager {
+                // Attempt to load the texture
+                let result = manager.load_cartridge(&entry.id, &entry.path);
+
+                match result {
+                    Ok(()) => {
+                        log::info!("✅ Loaded texture for cartridge: {}", entry.id);
+                        true
+                    }
+                    Err(e) => {
+                        log::warn!("⚠️  Failed to load texture for {}: {}", entry.id, e);
+                        false
+                    }
+                }
+            } else {
+                false
+            };
+
+            // Determine window dimensions based on texture or default
+            let (width, height) = if texture_loaded {
+                if let Some(manager) = &self.cartridge_texture_manager {
+                    if let Some(tex) = manager.get_texture(&entry.id) {
+                        (tex.width as f32, tex.height as f32)
+                    } else {
+                        (128.0, 128.0) // Default cartridge size
+                    }
+                } else {
+                    (128.0, 128.0)
+                }
+            } else {
+                (128.0, 128.0) // Default size when texture fails to load
+            };
+
+            // Ensure minimum size
+            let width = width.max(128.0);
+            let height = height.max(128.0);
+
+            // Create window at spawn position
+            let title = format!("Cartridge {} (Gen {})", entry.id, entry.generation);
+            let window_id = self.window_manager.create_window(
+                title.clone(),
+                entry.spawn_x,
+                entry.spawn_y,
+                width,
+                height,
+            );
+
+            // Set window type to EvolutionZone for gold border
+            self.window_manager.set_window_type(window_id, crate::window::WindowType::EvolutionZone);
+
+            // Phase 35.9.1: Mark window as having cartridge texture
+            if texture_loaded {
+                self.window_manager.set_window_has_cartridge_texture(window_id, &entry.id);
+            }
+
+            // Mark as rendered
+            self.cartridges_rendered.insert(entry.id.clone());
+
+            log::info!("🪟 Created window {} for cartridge: {}", window_id, entry.id);
         }
     }
 
@@ -3599,26 +3719,7 @@ impl<'a> InfiniteMapApp<'a> {
         }
     }
 
-    /// Phase 35.9: Render dynamically created cartridges on infinite map
-    pub fn render_cartridges(&mut self) {
-        if let Some(manager_arc) = &self.evolution_manager {
-            if let Ok(manager) = manager_arc.lock() {
-                let cartridge_registry = manager.get_cartridge_registry();
 
-                for cartridge in cartridge_registry.get_all_entries() {
-                    // Log rendering (placeholder for actual GPU rendering)
-                    log::info!(
-                        "🎮 Rendering cartridge: {} at ({}, {})",
-                        cartridge.id, cartridge.spawn_x, cartridge.spawn_y
-                    );
-
-                    // TODO: Phase 35.9.1 - Load actual .rts.png texture
-                    // TODO: Phase 35.9.2 - Render as clickable tile
-                    // TODO: Phase 35.9.3 - Handle tile interactions (click to boot)
-                }
-            }
-        }
-    }
 
     pub fn get_vm_texture_bind_group(&self, window_id: usize) -> Option<&wgpu::BindGroup> {
         if let Some(vm_texture_manager) = &self.vm_texture_manager {
@@ -4066,6 +4167,9 @@ impl<'a> InfiniteMapApp<'a> {
 
         // Phase 45 / Horizon 1.3: Update Terminal Tiles
         self.update_terminal_tiles();
+
+        // Phase 35.9: Render new cartridges from evolution zone
+        self.render_cartridges();
 
         // Phase 100: Visual Cortex (AI Feedback Loop)
         // Check if we should trigger a new capture

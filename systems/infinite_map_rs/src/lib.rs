@@ -4,6 +4,7 @@
 //! for the Geometry OS infinite map system.
 
 pub mod entities;
+pub mod rts_texture;
 pub mod rts;
 pub mod gpu;
 pub mod rendering;
@@ -29,6 +30,10 @@ pub mod broadcast;
 // Phase 35.9: Cartridge registry for evolution zone
 pub mod cartridge_registry;
 pub use cartridge_registry::{CartridgeEntry, CartridgeRegistry};
+
+// Phase 35.9.1: Cartridge texture manager for evolution zone
+pub mod cartridge_texture_manager;
+pub use cartridge_texture_manager::{CartridgeTextureManager, CartridgeTexture, CartridgeTextureStats};
 
 // Re-export main types for convenience
 pub use compositor::Compositor;
