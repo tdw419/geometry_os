@@ -65,6 +65,7 @@ from systems.vectorland.recursive_planner import RecursiveGraphPlanner
 sys.path.append(os.path.join(os.path.dirname(__file__), "systems", "neural_cortex"))
 from harmonic_hub import HarmonicHub, DaemonRole, DaemonFrequencyBand
 from evolution_protocol_server import EvolutionProtocolServer, MessageType
+from evolution_daemon_bridge import EvolutionDaemonBridge
 
 # --- PHASE 23: EMERGENT CONSCIOUSNESS ---
 from consciousness import ConsciousnessDaemon, OverrideAction, OverrideSignal
@@ -562,10 +563,15 @@ class EvolutionDaemonV8:
 
         # 11. PHASE 3: HARMONIC DAEMON INTEGRATION
         self.harmonic_hub = HarmonicHub(socket_path="/tmp/evolution_daemon.sock")
+
+        # Create daemon bridge for genome forwarding
+        self.daemon_bridge = EvolutionDaemonBridge(self)
         self.evolution_server = EvolutionProtocolServer(
             socket_path="/tmp/evolution_daemon.sock",
-            sync_packet_provider=self.harmonic_hub.generate_sync_packet
+            sync_packet_provider=self.harmonic_hub.generate_sync_packet,
+            daemon_bridge=self.daemon_bridge
         )
+        logger.info("🔗 EvolutionDaemonBridge initialized for genome forwarding")
 
         # Initialize Phase 15 if available
         if self.phase_15_enabled:

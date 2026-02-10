@@ -3,15 +3,10 @@ Test EvolutionDaemonBridge for connecting protocol server to daemon
 """
 import pytest
 import json
-import sys
-from pathlib import Path
-
-# Add root to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 def test_bridge_forward_genome_to_daemon():
     """Bridge should forward genomes to EvolutionDaemonV8"""
-    from systems.neural_cortex.evolution_daemon_bridge import EvolutionDaemonBridge
+    from evolution_daemon_bridge import EvolutionDaemonBridge
     from evolution_daemon_v8 import EvolutionDaemonV8
 
     daemon = EvolutionDaemonV8()
