@@ -436,6 +436,10 @@ class PixelRTSDecoder:
 
         Returns:
             Decoded binary data
+
+        Raises:
+            ValueError: If the cartridge is in code mode without original_data_b64
+                        and semantic decoding is not possible
         """
         from PIL import Image
         from io import BytesIO
@@ -444,15 +448,23 @@ class PixelRTSDecoder:
         image = Image.open(BytesIO(png_data))
 
         # Try to extract metadata from PNG tEXt chunks
-        if self._metadata is None:
-            for key, value in image.text.items():
-                if "PixelRTS" in key or "PixelRTS" in value:
-                    try:
-                        self._metadata = PixelRTSMetadata.decode_png_text(value.encode("utf-8"))
-                        break
-                    except ValueError:
-                        # Continue if this chunk isn't valid PixelRTS metadata
-                        continue
+        png_metadata = None
+        for key, value in image.text.items():
+            if "PixelRTS" in value:
+                try:
+                    png_metadata = PixelRTSMetadata.decode_png_text(value.encode("utf-8"))
+                    break
+                except ValueError:
+                    # Continue if this chunk isn't valid PixelRTS metadata
+                    continue
+
+        # Merge metadata: prefer PNG metadata for original_data_b64
+        if png_metadata:
+            if self._metadata is None:
+                self._metadata = png_metadata
+            elif "original_data_b64" in png_metadata and "original_data_b64" not in self._metadata:
+                # Merge in original_data_b64 from PNG if sidecar doesn't have it
+                self._metadata["original_data_b64"] = png_metadata["original_data_b64"]
 
         # Check if this is code mode with original data stored
         if self._metadata and "original_data_b64" in self._metadata:
@@ -461,6 +473,19 @@ class PixelRTSDecoder:
             import base64
             original_data = base64.b64decode(self._metadata["original_data_b64"])
             return original_data
+
+        # Check if this is code mode WITHOUT original_data_b64
+        # This is a legacy code-mode cartridge that cannot be decoded
+        encoding_mode = None
+        if self._metadata:
+            encoding_mode = self._metadata.get("encoding", {}).get("type", "")
+            if encoding_mode == "RGBA-semantic" or encoding_mode == "RGBA-code":
+                raise ValueError(
+                    "Cannot decode code-mode cartridge without original_data_b64 metadata. "
+                    "This cartridge was created with an older version of PixelRTS that used "
+                    "semantic encoding without preserving the original data. Please re-encode "
+                    "the cartridge with the current version, or add original_data_b64 to the metadata."
+                )
 
         # Verify image is RGBA
         if image.mode != 'RGBA':
@@ -562,8 +587,16 @@ class PixelRTSDecoder:
             ValueError: If file is invalid or hash verification fails
         """
         # Try to load sidecar metadata FIRST (before decode)
-        meta_path = Path(input_path).with_suffix('.meta.json')
-        if meta_path.exists():
+        # Handle both .rts.png and .png extensions
+        path = Path(input_path)
+        if path.suffix == '.png':
+            # Remove .png or .rts.png and add .meta.json
+            base = str(path).removesuffix('.png')
+            meta_path = base + '.meta.json'
+        else:
+            meta_path = str(path) + '.meta.json'
+
+        if Path(meta_path).exists():
             import json
             with open(meta_path, 'r') as f:
                 self._metadata = json.load(f)

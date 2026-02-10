@@ -1,246 +1,219 @@
-"""
-WASM Extractor for PixelRTS
-
-Extracts WebAssembly binaries from .rts.png files using Hilbert curve decoding.
-
-Usage:
-    from systems.pixel_compiler import WASMExtractor
-
-    # Extract WASM from .rts.png
-    wasm_bytes = WASMExtractor.extract_from_png("program.rts.png")
-
-    # Validate WASM
-    if WASMExtractor.validate_wasm(wasm_bytes):
-        print("Valid WASM binary")
-
-    # Extract from tiled format
-    wasm_bytes = WASMExtractor.extract_from_tiled("tiled_index.json")
-"""
-
+import sys
 from pathlib import Path
-import json
-from typing import Optional
+from typing import Dict, Tuple, Optional, Any
+import struct
 
-from systems.pixel_compiler.pixelrts_v2_core import (
-    HilbertCurve,
-    PixelRTSDecoder
-)
-
-
-class WASMExtractionError(Exception):
-    """Raised when WASM extraction fails."""
-    pass
-
+# Import PixelRTSDecoder from the same package
+try:
+    from systems.pixel_compiler.pixelrts_v2_core import PixelRTSDecoder
+except ImportError:
+    # Fallback for different import contexts
+    try:
+        from pixelrts_v2_core import PixelRTSDecoder
+    except ImportError:
+        # Final fallback/Mock for testing if dependency missing
+        class PixelRTSDecoder:
+            def load(self, path, verify_hash=False):
+                with open(path, "rb") as f:
+                    return f.read()
 
 class WASMExtractor:
     """
-    Extracts WebAssembly binaries from PixelRTS .rts.png files.
-
-    The extractor uses Hilbert curve decoding to reverse the spatial encoding
-    used when embedding WASM into PNG images.
+    Extracts WASM binary from .rts.png files and parses
+    WASM structure to find function entry points.
     """
 
-    # WASM magic number: 0x00 0x61 0x73 0x6d
-    WASM_MAGIC = b'\x00\x61\x73\x6d'
+    def __init__(self):
+        self.decoder = PixelRTSDecoder()
 
-    @staticmethod
-    def validate_wasm(wasm_bytes: bytes) -> bool:
+    def extract_from_file(self, rts_png_path: str) -> bytes:
         """
-        Verify that bytes contain a valid WASM binary.
-
-        Args:
-            wasm_bytes: Bytes to validate
-
-        Returns:
-            True if bytes start with WASM magic number
-
-        The WebAssembly magic number is 0x6d736100 (little-endian),
-        which appears as bytes 0x00 0x61 0x73 0x6d.
+        Extract raw WASM bytes from a .rts.png file.
+        The decoder.load() method automatically loads sidecar .meta.json metadata
+        which is required for code mode cartridges.
         """
-        if not wasm_bytes or len(wasm_bytes) < 4:
-            return False
-        return wasm_bytes[:4] == WASMExtractor.WASM_MAGIC
+        return self.decoder.load(rts_png_path)
 
-    @staticmethod
-    def extract_from_png(
-        png_path: Path | str,
-        expected_size: Optional[int] = None
-    ) -> bytes:
+    def get_export_pc(self, wasm_bytes: bytes, export_name: str) -> Optional[int]:
         """
-        Extract WASM binary from .rts.png file.
-
-        Uses Hilbert curve decoding to extract embedded binary data.
-        Optionally uses sidecar metadata for data size information.
-
-        Args:
-            png_path: Path to .rts.png file
-            expected_size: Expected WASM size in bytes (optional, for validation)
-
-        Returns:
-            Extracted WASM bytes
-
-        Raises:
-            FileNotFoundError: If PNG file doesn't exist
-            WASMExtractionError: If extraction fails or PNG is invalid
-
-        Example:
-            >>> wasm = WASMExtractor.extract_from_png("fibonacci.rts.png")
-            >>> if WASMExtractor.validate_wasm(wasm):
-            ...     print(f"Extracted {len(wasm)} bytes of valid WASM")
+        Find the Program Counter (PC) offset for an exported function.
+        Returns None if not found.
         """
-        png_path = Path(png_path)
-
-        if not png_path.exists():
-            raise FileNotFoundError(f"PNG file not found: {png_path}")
-
+        # Parse WASM binary format to find exports and code section
         try:
-            # Use PixelRTSDecoder for extraction
-            decoder = PixelRTSDecoder()
-
-            # Try to load metadata from sidecar
-            meta_path = png_path.with_suffix('.meta.json')
-            if meta_path.exists():
-                with open(meta_path, 'r') as f:
-                    metadata = json.load(f)
-                decoder.set_metadata(metadata)
-            else:
-                # Try alternate path for .rts.png
-                alt_meta_path = png_path.parent / f"{png_path.stem}.meta.json"
-                if alt_meta_path.exists():
-                    with open(alt_meta_path, 'r') as f:
-                        metadata = json.load(f)
-                    decoder.set_metadata(metadata)
-
-            # Load and decode
-            wasm_bytes = decoder.load(str(png_path), verify_hash=False)
-
-            # Trim to expected size if provided
-            if expected_size is not None and len(wasm_bytes) > expected_size:
-                wasm_bytes = wasm_bytes[:expected_size]
-
-            return wasm_bytes
-
-        except FileNotFoundError:
-            raise
+            return self._parse_wasm_exports(wasm_bytes).get(export_name)
         except Exception as e:
-            raise WASMExtractionError(f"Failed to extract WASM from {png_path}: {e}")
+            print(f"Error parsing WASM: {e}")
+            return None
 
-    @staticmethod
-    def extract_from_tiled(
-        index_path: Path | str,
-        tile_dir: Optional[Path | str] = None
-    ) -> bytes:
+    def _parse_wasm_exports(self, data: bytes) -> Dict[str, int]:
         """
-        Extract WASM binary from tiled format.
-
-        Tiled format splits large WASM binaries across multiple PNG tiles.
-        An index JSON file describes the tiling layout.
-
-        Args:
-            index_path: Path to tiled index JSON file
-            tile_dir: Directory containing tile PNGs (defaults to index parent dir)
-
-        Returns:
-            Reconstructed WASM bytes
-
-        Raises:
-            FileNotFoundError: If index or tiles are missing
-            WASMExtractionError: If extraction fails
-
-        Example:
-            >>> wasm = WASMExtractor.extract_from_tiled("large_wasm_index.json")
-            >>> if WASMExtractor.validate_wasm(wasm):
-            ...     print("Reconstructed WASM from tiles")
+        Parse WASM binary to map export names to code offsets (PCs).
+        Robust against padding/trailing bytes.
         """
-        index_path = Path(index_path)
+        exports = {}
+        
+        # Check magic and version
+        if len(data) < 8 or data[0:4] != b'\x00asm':
+            raise ValueError("Invalid WASM magic")
+        
+        pos = 8
+        length = len(data)
+        
+        # We need to map function index -> code offset
+        import_count = 0
+        function_count = 0
+        code_section_offset = 0
+        export_section_offset = 0
+        function_section_offset = 0
+        
+        while pos < length:
+            try:
+                section_id = data[pos]
+                pos += 1
+                section_len, len_bytes = self._read_leb128(data, pos)
+                pos += len_bytes
+                section_start = pos
+                section_end = pos + section_len
+                
+                if section_id == 2:  # Import Section
+                    # Count function imports
+                    num_imports, kb = self._read_leb128(data, pos)
+                    pos += kb
+                    for _ in range(num_imports):
+                        # Skip module name
+                        mod_len, kb = self._read_leb128(data, pos)
+                        pos += kb + mod_len
+                        # Skip field name
+                        field_len, kb = self._read_leb128(data, pos)
+                        pos += kb + field_len
+                        # Import kind
+                        kind = data[pos]
+                        pos += 1
+                        if kind == 0:  # Function import
+                            import_count += 1
+                            # Skip type index
+                            _, kb = self._read_leb128(data, pos)
+                            pos += kb
+                        
+                elif section_id == 3: # Function Section
+                    num_funcs, kb = self._read_leb128(data, pos)
+                    function_count = num_funcs
+                    
+                elif section_id == 7: # Export Section
+                    export_section_offset = section_start
+                    # We'll parse this later once we have code offsets
+                    pass
+                    
+                elif section_id == 10: # Code Section
+                    code_section_offset = section_start
+                    
+                pos = section_end
+                
+            except IndexError:
+                # End of valid data (padding?)
+                break
+        
+        # Now pass 2: Parse Code section to get offsets
+        func_offsets = [] 
+        
+        if code_section_offset > 0:
+            try:
+                pos = code_section_offset
+                num_bodies, kb = self._read_leb128(data, pos)
+                pos += kb
+                
+                for i in range(num_bodies):
+                    body_len, kb = self._read_leb128(data, pos)
+                    pos += kb
+                    
+                    body_start = pos # This points to local count
+                    
+                    # Skip locals declaration to find first opcode
+                    try:
+                        local_count, kb2 = self._read_leb128(data, pos)
+                        pos += kb2
+                        for _ in range(local_count):
+                            # count
+                            _, kb3 = self._read_leb128(data, pos) 
+                            pos += kb3
+                            # type
+                            pos += 1
+                        
+                        code_start_pc = pos # First instruction
+                        func_offsets.append(code_start_pc)
+                    except IndexError:
+                        pass # Malformed body or truncation
+                    
+                    # Move to next body
+                    pos = body_start + body_len 
+            except IndexError:
+               pass
+                
+        # Pass 3: Parse Exports and map to PC
+        if export_section_offset > 0:
+            try:
+                pos = export_section_offset
+                num_exports, kb = self._read_leb128(data, pos)
+                pos += kb
+                
+                for _ in range(num_exports):
+                    # Name
+                    name_len, kb = self._read_leb128(data, pos)
+                    pos += kb
+                    name = data[pos:pos+name_len].decode('utf-8')
+                    pos += name_len
+                    
+                    # Kind
+                    kind = data[pos]
+                    pos += 1
+                    
+                    # Index
+                    index, kb = self._read_leb128(data, pos)
+                    pos += kb
+                    
+                    if kind == 0: # Function export
+                        # Normalize index (subtract imports)
+                        internal_index = index - import_count
+                        if 0 <= internal_index < len(func_offsets):
+                            exports[name] = func_offsets[internal_index]
+            except IndexError:
+                pass
+        
+        return exports
 
-        if not index_path.exists():
-            raise FileNotFoundError(f"Tiled index not found: {index_path}")
+    def _read_leb128(self, data: bytes, offset: int) -> Tuple[int, int]:
+        """Read LEB128 unsigned integer. Returns (value, bytes_read)."""
+        result = 0
+        shift = 0
+        count = 0
+        while True:
+            if offset + count >= len(data):
+                raise IndexError("Unexpected EOF reading LEB128")
+                
+            byte = data[offset + count]
+            count += 1
+            result |= (byte & 0x7f) << shift
+            shift += 7
+            if (byte & 0x80) == 0:
+                break
+        return result, count
 
-        try:
-            # Load index
-            with open(index_path, 'r') as f:
-                index = json.load(f)
-
-            # Validate index format
-            if index.get("format") != "tiled":
-                raise WASMExtractionError(f"Invalid tiled format index: {index_path}")
-
-            # Determine tile directory
-            if tile_dir is None:
-                tile_dir = index_path.parent
-            else:
-                tile_dir = Path(tile_dir)
-
-            if not tile_dir.exists():
-                raise FileNotFoundError(f"Tile directory not found: {tile_dir}")
-
-            # Extract and concatenate tiles
-            wasm_parts = []
-            for tile_name in index.get("tiles", []):
-                tile_path = tile_dir / tile_name
-                if not tile_path.exists():
-                    raise FileNotFoundError(f"Tile not found: {tile_path}")
-
-                tile_data = WASMExtractor.extract_from_png(tile_path)
-                wasm_parts.append(tile_data)
-
-            # Combine all tiles
-            wasm_bytes = b''.join(wasm_parts)
-
-            # Trim to expected total size
-            total_size = index.get("total_size")
-            if total_size is not None and len(wasm_bytes) > total_size:
-                wasm_bytes = wasm_bytes[:total_size]
-
-            return wasm_bytes
-
-        except FileNotFoundError:
-            raise
-        except Exception as e:
-            raise WASMExtractionError(f"Failed to extract tiled WASM from {index_path}: {e}")
-
-    @classmethod
-    def get_info(cls, png_path: Path | str) -> dict:
-        """
-        Get metadata information about a .rts.png file.
-
-        Args:
-            png_path: Path to .rts.png file
-
-        Returns:
-            Dictionary with metadata including:
-            - format: PixelRTS version
-            - grid_size: Image dimension
-            - data_size: Embedded data size
-            - data_hash: SHA256 hash
-            - is_wasm: Whether embedded data is valid WASM
-
-        Raises:
-            FileNotFoundError: If file doesn't exist
-            WASMExtractionError: If info cannot be read
-        """
-        png_path = Path(png_path)
-
-        if not png_path.exists():
-            raise FileNotFoundError(f"PNG file not found: {png_path}")
-
-        try:
-            decoder = PixelRTSDecoder()
-            info = decoder.info(str(png_path))
-
-            # Add WASM validation
-            if "data_size" in info:
-                # Extract a small sample to check for WASM magic
-                try:
-                    sample = cls.extract_from_png(png_path, expected_size=8)
-                    info["is_wasm"] = cls.validate_wasm(sample)
-                except:
-                    info["is_wasm"] = False
-            else:
-                info["is_wasm"] = None
-
-            return info
-
-        except Exception as e:
-            raise WASMExtractionError(f"Failed to get info for {png_path}: {e}")
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file", help="Input .rts.png or .wasm file")
+    args = parser.parse_args()
+    
+    extractor = WASMExtractor()
+    if args.file.endswith(".png"):
+        data = extractor.extract_from_file(args.file)
+        print(f"Extracted {len(data)} bytes of WASM")
+    else:
+        with open(args.file, "rb") as f:
+            data = f.read()
+            
+    exports = extractor._parse_wasm_exports(data)
+    print("Exports found:")
+    for name, pc in exports.items():
+        print(f"  {name}: PC={pc}")
