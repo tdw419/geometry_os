@@ -84,6 +84,15 @@ except ImportError:
     PHASE_15_AVAILABLE = False
     logging.warning("⚠️  Phase 15 components not yet available")
 
+# --- VLM HEALTH MONITORING INTEGRATION (Task 4) ---
+try:
+    from systems.pixel_compiler.vlm_health_checker import VLMHealthChecker, HealthStatus
+    from systems.pixel_compiler.vlm_self_healing_daemon import VLMSelfHealingDaemon
+    VLM_HEALTH_AVAILABLE = True
+except ImportError:
+    VLM_HEALTH_AVAILABLE = False
+    logging.warning("⚠️  VLM Health monitoring not available")
+
 # --- LOGGING ---
 logging.basicConfig(
     level=logging.INFO,
@@ -1805,14 +1814,90 @@ class EvolutionDaemonV8:
     def get_daemon_status(self, name: str) -> dict:
         """
         Get status of a specific daemon.
-        
+
         Args:
             name: Daemon name
-            
+
         Returns:
             dict: Daemon status or None if not found
         """
         return self.harmonic_hub.get_daemon_status(name)
+
+    # --- VLM HEALTH MONITORING METHODS (Task 4: Evolution Integration) ---
+
+    def vlm_health_check(self, rts_path: str, auto_heal: bool = False) -> dict:
+        """
+        Perform VLM-based health check on a PixelRTS OS image.
+
+        Args:
+            rts_path: Path to .rts.png file to check
+            auto_heal: Automatically trigger healing if issues found
+
+        Returns:
+            Dictionary with health check results
+        """
+        if not VLM_HEALTH_AVAILABLE:
+            logger.warning("VLM health check requested but not available")
+            return {
+                "status": "unavailable",
+                "message": "VLM health monitoring not available"
+            }
+
+        logger.info(f"🔍 VLM Health Check: {rts_path}")
+
+        try:
+            checker = VLMHealthChecker(rts_path=rts_path, provider="lm_studio")
+            result = checker.check_health()
+
+            response = {
+                "status": result.status.value,
+                "confidence": result.confidence,
+                "anomalies": len(result.anomalies),
+                "timestamp": result.timestamp
+            }
+
+            # Log results
+            if result.status == HealthStatus.HEALTHY:
+                logger.info(f"  ✓ Status: HEALTHY ({result.confidence:.1%})")
+            elif result.status == HealthStatus.DEGRADED:
+                logger.warning(f"  ⚠ Status: DEGRADED ({result.confidence:.1%}) - {len(result.anomalies)} anomalies")
+            else:
+                logger.error(f"  ✗ Status: UNHEALTHY ({result.confidence:.1%}) - {len(result.anomalies)} anomalies")
+
+            # Trigger healing if auto_heal enabled and unhealthy
+            if auto_heal and result.status != HealthStatus.HEALTHY:
+                logger.info("  🔄 Auto-healing triggered...")
+                self._trigger_vlm_healing(rts_path, result)
+
+            return response
+
+        except Exception as e:
+            logger.error(f"VLM health check failed: {e}")
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+
+    def _trigger_vlm_healing(self, rts_path: str, health_result):
+        """Trigger VLM-based healing actions"""
+        if not VLM_HEALTH_AVAILABLE:
+            return
+
+        try:
+            daemon = VLMSelfHealingDaemon(
+                rts_path=rts_path,
+                auto_heal=True,
+                provider="lm_studio"
+            )
+
+            # Trigger healing based on health result
+            daemon.last_check_result = health_result
+            daemon._trigger_healing(health_result)
+
+            logger.info("  ✓ VLM healing actions triggered")
+
+        except Exception as e:
+            logger.error(f"VLM healing failed: {e}")
 
 
 if __name__ == "__main__":
