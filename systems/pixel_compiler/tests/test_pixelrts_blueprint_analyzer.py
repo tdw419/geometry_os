@@ -3,8 +3,8 @@
 import pytest
 import tempfile
 from pathlib import Path
-from pixelrts_blueprint_analyzer import BlueprintAnalyzer
-from pixelrts_blueprint import PixelRTSBlueprint
+from systems.pixel_compiler.pixelrts_blueprint_analyzer import BlueprintAnalyzer
+from systems.pixel_compiler.pixelrts_blueprint import PixelRTSBlueprint
 
 
 def test_analyzer_creates_blueprint_from_binary():

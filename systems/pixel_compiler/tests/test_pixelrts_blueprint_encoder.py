@@ -58,7 +58,7 @@ def test_encode_with_blueprint_saves_sidecar():
 
     with tempfile.TemporaryDirectory() as tmpdir:
         output_path = Path(tmpdir) / "test.rts.png"
-        sidecar_path = Path(tmpdir) / "test.meta.json"
+        sidecar_path = Path(tmpdir) / "test.rts.png.meta.json"
         blueprint_path = Path(tmpdir) / "test.rts.png.blueprint.json"
 
         data = b"Test data for blueprint encoding"

@@ -618,6 +618,102 @@ def cmd_transpile(args):
         return 1
 
 
+def cmd_blueprint_generate(args):
+    """Handle blueprint generate command - Create .rts.png with blueprint."""
+    from systems.pixel_compiler.pixelrts_v2_core import PixelRTSEncoder
+    from systems.pixel_compiler.pixelrts_blueprint_analyzer import BlueprintAnalyzer
+
+    input_path = Path(args.input)
+    output_path = Path(args.output) if args.output else input_path.with_suffix('.rts.png')
+
+    # Validate input
+    if not input_path.exists():
+        print(f"Error: Input file not found: {args.input}", file=sys.stderr)
+        return 1
+
+    # Read input binary
+    with open(input_path, 'rb') as f:
+        data = f.read()
+
+    # Generate blueprint from analysis
+    analyzer = BlueprintAnalyzer()
+    blueprint = analyzer.analyze(
+        data,
+        system_name=args.system_name or input_path.stem,
+        system_type=args.system_type,
+        architecture=args.architecture
+    )
+
+    # Encode with blueprint
+    encoder = PixelRTSEncoder(mode=args.mode)
+    encoder.save(data, str(output_path), blueprint=blueprint.to_dict())
+
+    print(f"✓ Generated {output_path}")
+    print(f"  System: {blueprint.system_name}")
+    print(f"  Components: {len(blueprint.components)}")
+
+    return 0
+
+
+def cmd_blueprint_view(args):
+    """Handle blueprint view command - Generate overlay or HTML."""
+    from systems.pixel_compiler.pixelrts_blueprint_viewer import BlueprintViewer
+
+    viewer = BlueprintViewer()
+    blueprint = viewer.load_blueprint(args.rts_file)
+
+    if blueprint is None:
+        print("✗ No blueprint found. Use 'blueprint generate' to create one.", file=sys.stderr)
+        return 1
+
+    # Determine output path
+    if args.output is None:
+        if args.html:
+            output = Path(args.rts_file).stem + '_blueprint.html'
+        else:
+            output = Path(args.rts_file).stem + '_overlay.png'
+    else:
+        output = args.output
+
+    if args.html:
+        viewer.create_interactive_html(args.rts_file, blueprint, output)
+    else:
+        viewer.render_overlay(args.rts_file, blueprint, output, show_grid=args.show_grid)
+
+    print(f"✓ Generated {output}")
+    return 0
+
+
+def cmd_blueprint_analyze(args):
+    """Handle blueprint analyze command - Display blueprint info."""
+    from systems.pixel_compiler.pixelrts_blueprint_viewer import BlueprintViewer
+
+    viewer = BlueprintViewer()
+    blueprint = viewer.load_blueprint(args.rts_file)
+
+    if blueprint is None:
+        print("✗ No blueprint found.", file=sys.stderr)
+        return 1
+
+    # Display blueprint info
+    print(f"\n  System: {blueprint.system_name}")
+    print(f"  Type: {blueprint.system_type}")
+    print(f"  Architecture: {blueprint.architecture}")
+    print(f"  Entry Point: {blueprint.entry_point or 'N/A'}")
+    print(f"\n  Components ({len(blueprint.components)}):")
+
+    for comp in blueprint.components:
+        print(f"    - {comp.id} ({comp.type.value})")
+        print(f"      {comp.description}")
+        print(f"      Entropy: {comp.entropy_profile} | Visual: {comp.visual_hint}")
+
+    print(f"\n  Memory Map ({len(blueprint.memory_map)}):")
+    for region in blueprint.memory_map:
+        print(f"    - {region.region}: {region.permissions}")
+
+    return 0
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -633,6 +729,7 @@ Commands:
   analyze      Pattern detection analysis (edges, fourier, clusters)
   execute      Execute WASM embedded in .rts.png
   vision       Vision analysis (summary, entropy overlay)
+  blueprint    Blueprint management commands
 
 Examples:
   pixelrts convert kernel.bin kernel.rts.png
@@ -645,6 +742,9 @@ Examples:
   pixelrts vision kernel.rts.png --action summary
   pixelrts vision kernel.rts.png --action entropy --output-dir ./output
   pixelrts vision kernel.rts.png --action all --colormap viridis
+  pixelrts blueprint generate kernel.bin --output kernel.rts.png --system-name "Linux Kernel"
+  pixelrts blueprint view kernel.rts.png --output overlay.png
+  pixelrts blueprint analyze kernel.rts.png
         """
     )
 
@@ -808,6 +908,43 @@ Examples:
     transpile_parser.add_argument('-v', '--verbose', action='store_true',
                                  help='Enable verbose output')
 
+    # Blueprint command group
+    blueprint_parser = subparsers.add_parser(
+        'blueprint',
+        help='Blueprint management commands'
+    )
+    blueprint_subparsers = blueprint_parser.add_subparsers(dest='blueprint_command', help='Blueprint command to run')
+
+    # blueprint generate
+    blueprint_generate_parser = blueprint_subparsers.add_parser(
+        'generate',
+        help='Generate PixelRTS v2 container with blueprint metadata'
+    )
+    blueprint_generate_parser.add_argument('input', help='Input binary file')
+    blueprint_generate_parser.add_argument('--output', '-o', required=True, help='Output PNG file path')
+    blueprint_generate_parser.add_argument('--system-name', '-n', default='', help='System name for blueprint')
+    blueprint_generate_parser.add_argument('--system-type', '-t', default='', help='System type')
+    blueprint_generate_parser.add_argument('--architecture', '-a', default='', help='Architecture')
+    blueprint_generate_parser.add_argument('--mode', choices=['standard', 'code'], default='standard', help='Encoding mode')
+
+    # blueprint view
+    blueprint_view_parser = blueprint_subparsers.add_parser(
+        'view',
+        help='View blueprint overlay for PixelRTS container'
+    )
+    blueprint_view_parser.add_argument('rts_file', help='Input .rts.png file path')
+    blueprint_view_parser.add_argument('--output', '-o', help='Output overlay path (default: <input>_overlay.png)')
+    blueprint_view_parser.add_argument('--html', action='store_true', help='Generate HTML visualization instead of PNG')
+    blueprint_view_parser.add_argument('--show-grid', action='store_true', default=True, help='Show grid overlay (default: True)')
+    blueprint_view_parser.add_argument('--no-grid', action='store_false', dest='show_grid', help='Hide grid overlay')
+
+    # blueprint analyze
+    blueprint_analyze_parser = blueprint_subparsers.add_parser(
+        'analyze',
+        help='Analyze and display blueprint information'
+    )
+    blueprint_analyze_parser.add_argument('rts_file', help='Input .rts.png file path')
+
     args = parser.parse_args()
 
     if not args.command:
@@ -823,7 +960,8 @@ Examples:
         'info': cmd_info,
         'analyze': cmd_analyze,
         'execute': cmd_execute,
-        'vision': cmd_vision
+        'vision': cmd_vision,
+        'blueprint': lambda args: _dispatch_blueprint(args)
     }
 
     handler = handlers.get(args.command)
@@ -831,6 +969,32 @@ Examples:
         return handler(args)
 
     return 0
+
+
+def _dispatch_blueprint(args):
+    """Dispatch blueprint subcommands to their handlers."""
+    if not args.blueprint_command:
+        # Show blueprint help if no subcommand provided
+        import argparse
+        parser = argparse.ArgumentParser(prog='pixelrts blueprint')
+        subparsers = parser.add_subparsers(dest='blueprint_command', help='Blueprint command to run')
+        subparsers.add_parser('generate', help='Generate PixelRTS v2 container with blueprint metadata')
+        subparsers.add_parser('view', help='View blueprint overlay for PixelRTS container')
+        subparsers.add_parser('analyze', help='Analyze and display blueprint information')
+        parser.print_help()
+        return 1
+
+    blueprint_handlers = {
+        'generate': cmd_blueprint_generate,
+        'view': cmd_blueprint_view,
+        'analyze': cmd_blueprint_analyze
+    }
+
+    handler = blueprint_handlers.get(args.blueprint_command)
+    if handler:
+        return handler(args)
+
+    return 1
 
 
 if __name__ == '__main__':
