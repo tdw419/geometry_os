@@ -22,6 +22,7 @@ import queue
 import numpy as np
 from PIL import Image
 from typing import Optional
+import queue  # For internal message queues
 
 # --- PATH SETUP ---
 PROJECT_ROOT = "/home/jericho/zion/projects/geometry_os/geometry_os"
@@ -65,7 +66,7 @@ from systems.vectorland.recursive_planner import RecursiveGraphPlanner
 sys.path.append(os.path.join(os.path.dirname(__file__), "systems", "neural_cortex"))
 from harmonic_hub import HarmonicHub, DaemonRole, DaemonFrequencyBand
 from evolution_protocol_server import EvolutionProtocolServer, MessageType
-from evolution_daemon_bridge import EvolutionDaemonBridge
+from systems.neural_cortex.evolution_daemon_bridge import get_bridge
 
 # --- PHASE 23: EMERGENT CONSCIOUSNESS ---
 from consciousness import ConsciousnessDaemon, OverrideAction, OverrideSignal
@@ -605,6 +606,13 @@ class EvolutionDaemonV8:
         for daemon_name in self.harmonic_hub.get_daemon_names():
             status = self.harmonic_hub.get_daemon_status(daemon_name)
             logger.info(f"   - {status['name']}: {status['role']} @ {status['frequency_band']} (amp: {status['amplitude']:.2f})")
+
+        # 12. EVOLUTION ZONE BRIDGE (Autonomous Code Bootstrapping)
+        self.genome_queue = queue.Queue()
+        self.bridge = get_bridge()
+        self.bridge.register_daemon(self)
+        self._start_genome_processing_thread()
+        logger.info("🧬 Evolution Zone Bridge: Active & Listening for Genomes")
     
     def _init_rust_bridge(self):
         """Initialize Rust Neural Bridge for native performance."""
@@ -793,6 +801,91 @@ class EvolutionDaemonV8:
             t = threading.Thread(target=visual_loop, daemon=True)
             t.start()
             logger.info("🎨 Visual Cortex thread launched (10Hz refresh)")
+
+    def _start_genome_processing_thread(self):
+        """Run Evolver in background thread."""
+        def processing_loop():
+            while True:
+                try:
+                    genome_data = self.genome_queue.get(timeout=1.0)
+                    self._process_evolved_genome(genome_data)
+                    self.genome_queue.task_done()
+                except queue.Empty:
+                    pass
+                except Exception as e:
+                    logger.error(f"Genome processing error: {e}")
+        
+        t = threading.Thread(target=processing_loop, daemon=True)
+        t.start()
+        logger.info("🧬 Genome Processing Thread Launched (Autonomous Breeding Active)")
+
+    def _process_evolved_genome(self, genome: dict):
+        """
+        Phase 35.6: Implement actual genome breeding & compilation logic.
+        """
+        genome_id = genome.get('id', 'unknown')
+        logger.info(f"🧬 PROCESSING EVOLVED GENOME: {genome_id}")
+        
+        # 1. Extract Metadata
+        meta = genome.get('metadata', {})
+        action = meta.get('action', 'UNKNOWN')
+        spawn_x = meta.get('spawn_x', 0.0)
+        spawn_y = meta.get('spawn_y', 0.0)
+        
+        if action == "BOOT_DAEMON":
+            logger.info(f"🚀 Action: BOOTING NEW DAEMON INSTANCE at ({spawn_x}, {spawn_y})...")
+            
+            # 2. Compile to RTS Cartridge (Phase 35.7)
+            cartridge_path = self._compile_genome_to_cartridge(genome['data'], genome_id)
+            if cartridge_path:
+                logger.info(f"💾 Cartridge Compiled: {cartridge_path}")
+                
+                # 3. Place on Map (Phase 35.8)
+                # For now, we register it via Intent Bus so other systems can pick it up
+                self.intent_bus.emit_resonance({
+                    "action": "CARTRIDGE_CREATED",
+                    "path": cartridge_path,
+                    "x": spawn_x,
+                    "y": spawn_y,
+                    "genome_id": genome_id
+                })
+                
+                self.evolution_count += 1
+            else:
+                logger.error("❌ Compilation Failed")
+
+    def _compile_genome_to_cartridge(self, binary_data: list, genome_id: str) -> Optional[str]:
+        """Compile raw binary data to .rts.png visual cartridge."""
+        try:
+            # Create temp binary
+            bin_path = f"/tmp/{genome_id}.bin"
+            png_path = f"/tmp/{genome_id}.rts.png"
+            
+            with open(bin_path, 'wb') as f:
+                f.write(bytes(binary_data))
+            
+            # Call converter
+            # python3 pixelrts_v2_converter.py input output
+            cmd = [
+                "python3", 
+                os.path.join(PROJECT_ROOT, "pixelrts_v2_converter.py"),
+                bin_path,
+                png_path
+            ]
+            
+            logger.info(f"🔨 Compiling {bin_path} -> {png_path}")
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            
+            if result.returncode == 0 and os.path.exists(png_path):
+                return png_path
+            else:
+                logger.error(f"Converter failed: {result.stderr}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Compilation error: {e}")
+            return None
+
     
     async def _analyze_and_optimize(self):
         """Periodic optimization analysis."""
@@ -1050,8 +1143,30 @@ class EvolutionDaemonV8:
         logger.info(f"   Fitness: {fitness}")
         logger.info(f"   Data size: {len(genome.get('data', b''))} bytes")
 
-        # TODO: Phase 35.6 - Connect to actual breeding/compilation
-        # For now, just acknowledge receipt
+        # Phase 35.9: Emit CARTRIDGE_CREATED resonance for compositor
+        metadata = genome.get('metadata', {})
+        cartridge_path = metadata.get('cartridge_path', '')
+        spawn_x = metadata.get('spawn_x', 0.0)
+        spawn_y = metadata.get('spawn_y', 0.0)
+
+        if cartridge_path:
+            # Emit resonance event for compositor to pick up
+            resonance_payload = {
+                'cartridge_id': genome_id,
+                'cartridge_path': cartridge_path,
+                'spawn_x': spawn_x,
+                'spawn_y': spawn_y,
+                'generation': generation,
+                'fitness': fitness
+            }
+
+            self.intent_bus.broadcast_intent(
+                actor_id=f"evolution_daemon_v8",
+                explicit="CARTRIDGE_CREATED",
+                implicit=resonance_payload,
+                intensity=0.9
+            )
+            logger.info(f"📢 CARTRIDGE_CREATED resonance emitted: {genome_id} at ({spawn_x}, {spawn_y})")
 
     def run(self):
         """
