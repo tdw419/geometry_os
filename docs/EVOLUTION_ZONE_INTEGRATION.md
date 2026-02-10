@@ -180,3 +180,96 @@ pub struct CartridgeTexture {
 
 ### Quick Reference
 See [EVOLUTION_ZONE_TEXTURE_LOADING_QUICKREF.md](EVOLUTION_ZONE_TEXTURE_LOADING_QUICKREF.md) for usage examples and testing commands.
+
+---
+
+## Phase 35.9.3: Tile Interactions (Click to Boot) (2026-02-09)
+
+### Overview
+Cartridge tiles can now be clicked to boot them into RISC-V VM instances.
+
+### Features
+- Click detection for cartridge tiles
+- Visual boot state feedback (color/border changes)
+- CARTRIDGE_BOOT resonance emission
+- Console window creation for VM output
+
+### Boot States
+
+| State | Border Color | Width | Description |
+|-------|-------------|-------|-------------|
+| Idle | Gold | 4px | Ready to boot |
+| Booting | Cyan | 6px | Currently booting |
+| Running | Green | 2px | VM running |
+| Failed | Red | 8px | Boot failed |
+
+### User Interaction Flow
+
+1. User clicks on a cartridge tile (gold border)
+2. Border turns cyan and thickens to indicate booting
+3. Console window appears showing VM output
+4. Border turns green when VM is running
+
+### Implementation Details
+
+#### Click Detection
+The click handler in `InfiniteMapApp` detects cartridge tiles by checking:
+1. Window is `WindowType::EvolutionZone`
+2. Window has `has_cartridge_texture == true`
+3. Window has `cartridge_texture_id` set
+
+#### Boot Process
+```
+User Click -> boot_cartridge() -> Extract Binary -> Launch VM -> Visual Feedback
+```
+
+#### Daemon Integration
+Booting emits a `CARTRIDGE_BOOT` resonance to notify the evolution daemon:
+```json
+{
+  "action": "CARTRIDGE_BOOT",
+  "cartridge_id": "...",
+  "cartridge_path": "/path/to/file.rts.png",
+  "binary_size": 1234
+}
+```
+
+### API Reference
+
+#### InfiniteMapApp::boot_cartridge
+```rust
+pub fn boot_cartridge(&mut self, cartridge_id: &str, window_id: usize) -> Result<(), String>
+```
+Boots a cartridge by launching it as a VM.
+
+**Arguments:**
+- `cartridge_id` - The ID of the cartridge to boot
+- `window_id` - The window ID for visual feedback
+
+**Returns:**
+- `Ok(())` if boot initiated successfully
+- `Err(String)` if boot failed
+
+#### WindowManager::set_cartridge_boot_state
+```rust
+pub fn set_cartridge_boot_state(&mut self, window_id: usize, state: CartridgeBootState)
+```
+Sets the boot state of a cartridge window.
+
+### Testing
+
+Run integration tests:
+```bash
+cargo test --package infinite_map_rs cartridge_boot --lib
+cargo test --package infinite_map_rs cartridge_click --lib
+```
+
+### Files Modified
+- `systems/infinite_map_rs/src/app.rs`: Click handling updates, boot_cartridge method
+- `systems/infinite_map_rs/src/window.rs`: CartridgeBootState enum, boot_state field
+- `systems/infinite_map_rs/src/renderer.rs`: Boot state color rendering
+- `systems/infinite_map_rs/tests/test_cartridge_boot.rs`: Boot functionality tests
+- `systems/infinite_map_rs/tests/test_cartridge_click.rs`: Click detection tests
+
+### Documentation
+See [EVOLUTION_ZONE_TILE_INTERACTIONS.md](EVOLUTION_ZONE_TILE_INTERACTIONS.md) for complete user guide and API reference.
