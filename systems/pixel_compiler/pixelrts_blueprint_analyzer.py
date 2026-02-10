@@ -16,11 +16,11 @@ try:
 except ImportError:
     ELFTOOLS_AVAILABLE = False
 
-from .pixelrts_blueprint import (
+from pixelrts_blueprint import (
     PixelRTSBlueprint, Component, ComponentType, HilbertRange,
     MemoryRegion, SecurityInfo
 )
-from .pixelrts_v2_core import HilbertCurve
+from pixelrts_v2_core import HilbertCurve
 
 
 @dataclass
