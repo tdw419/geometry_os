@@ -2645,6 +2645,127 @@ impl<'a> InfiniteMapApp<'a> {
         }
     }
 
+    /// Phase 35.9.3: Boot a cartridge by launching it as a VM
+    ///
+    /// This extracts the binary from the .rts.png file and launches
+    /// a RISC-V VM instance with the cartridge code.
+    ///
+    /// # Arguments
+    /// * `cartridge_id` - The ID of the cartridge to boot
+    /// * `window_id` - The window ID for visual feedback
+    ///
+    /// # Returns
+    /// * `Ok(())` if boot initiated successfully
+    /// * `Err(String)` if boot failed
+    pub fn boot_cartridge(&mut self, cartridge_id: &str, window_id: usize) -> Result<(), String> {
+        log::info!("🚀 Booting cartridge: {} (window {})", cartridge_id, window_id);
+
+        // Get evolution manager reference
+        let em_arc = self.evolution_manager.as_ref()
+            .ok_or("Evolution manager not initialized")?;
+
+        // Get cartridge entry from registry
+        let entry = {
+            let em = em_arc.lock()
+                .map_err(|e| format!("Failed to lock evolution manager: {}", e))?;
+            em.get_cartridge_entry(cartridge_id)
+                .ok_or(format!("Cartridge {} not found in registry", cartridge_id))?
+                .clone()
+        };
+
+        // Extract binary from .rts.png
+        let binary_data = self.extract_cartridge_binary(&entry.path)?;
+
+        log::info!("📦 Extracted {} bytes from cartridge", binary_data.len());
+
+        // Emit boot resonance for daemon to handle
+        self.emit_cartridge_boot_resonance(&entry, binary_data.len())?;
+
+        // Launch VM with the binary
+        self.launch_cartridge_vm(cartridge_id, &binary_data, window_id)?;
+
+        // Visual feedback: update window to show booting state
+        if let Some(window) = self.window_manager.get_window_mut(window_id) {
+            window.decorations.border_width = 6.0; // Thicker border = booting
+        }
+
+        Ok(())
+    }
+
+    /// Emit a resonance indicating a cartridge is being booted
+    fn emit_cartridge_boot_resonance(&self, entry: &crate::cartridge_registry::CartridgeEntry, size: usize) -> Result<(), String> {
+        if let Some(ref bridge) = self.evolution_terrain_bridge {
+            if let Ok(mut bridge) = bridge.lock() {
+                let genome = crate::evolution_terrain_bridge::EvolutionGenome {
+                    id: format!("boot-{}", entry.id),
+                    data: vec![0xAF; 32], // Placeholder boot marker
+                    fitness: entry.fitness,
+                    generation: entry.generation,
+                    position: (entry.spawn_x, entry.spawn_y),
+                    metadata: serde_json::json!({
+                        "action": "CARTRIDGE_BOOT",
+                        "cartridge_id": entry.id,
+                        "cartridge_path": entry.path,
+                        "binary_size": size,
+                    }),
+                };
+                bridge.submit_genome(genome);
+                log::info!("📡 Emitted CARTRIDGE_BOOT resonance for {}", entry.id);
+                return Ok(());
+            }
+        }
+        // Fallback: log only
+        log::info!("📡 CARTRIDGE_BOOT: {} ({} bytes)", entry.id, size);
+        Ok(())
+    }
+
+    /// Launch a VM instance with cartridge binary
+    fn launch_cartridge_vm(&mut self, cartridge_id: &str, binary_data: &[u8], window_id: usize) -> Result<(), String> {
+        // TODO: Phase 35.9.4 - Actually launch VM with MultiVmManager
+        // For now, just log and create a visual window
+
+        log::info!("🎯 Would launch VM for cartridge {} ({} bytes)", cartridge_id, binary_data.len());
+
+        // Create a console window to show VM output
+        let console_window_id = self.window_manager.create_window(
+            format!("VM: {}", cartridge_id),
+            100.0, 100.0,  // Position (will be adjusted)
+            400.0, 300.0,  // Size
+        );
+
+        if let Some(window) = self.window_manager.get_window_mut(console_window_id) {
+            window.window_type = crate::window::WindowType::EvolutionZone;
+            window.has_cartridge_texture = false;
+            window.decorations.title_bar_height = 24.0;
+            window.decorations.show_title_bar = true;
+        }
+
+        log::info!("✅ Created console window {} for VM output", console_window_id);
+
+        Ok(())
+    }
+
+    /// Extract binary data from a .rts.png cartridge file
+    fn extract_cartridge_binary(&self, path: &str) -> Result<Vec<u8>, String> {
+        use std::path::Path;
+
+        let path_obj = Path::new(path);
+        if !path_obj.exists() {
+            return Err(format!("Cartridge file not found: {}", path));
+        }
+
+        // Load PNG
+        let image_data = std::fs::read(path_obj)
+            .map_err(|e| format!("Failed to read cartridge file: {}", e))?;
+
+        // Decode PNG to extract binary data using PixelRTS v2 format
+        // For now, return a placeholder
+        // TODO: Integrate with pixelrts_v2_extractor for real extraction
+        log::warn!("⚠️  Using placeholder binary extraction - real extraction pending Phase 35.9.4");
+
+        Ok(vec![0x90, 0x00, 0x00, 0x00]) // RISC-V NOP instruction placeholder
+    }
+
     /// Submit a new genome to the evolution terrain bridge
     pub fn submit_evolution_genome(&mut self, genome: crate::evolution_terrain_bridge::EvolutionGenome) {
         if let Some(bridge_arc) = &self.evolution_terrain_bridge {
@@ -5785,28 +5906,47 @@ impl<'a> InfiniteMapApp<'a> {
                             // Check for Evolution Zone interaction (Click to Boot)
                             if let Some(target_window) = self.window_manager.find_window_at_position(world_pos.x, world_pos.y) {
                                 if target_window.window_type == crate::window::WindowType::EvolutionZone {
-                                    log::info!("🧬 Clicked Evolution Zone! Initiating Autonomous Execution...");
-                                    
-                                    // Trigger evolution boot
-                                    if let Some(em_arc) = &self.evolution_manager {
-                                        if let Ok(mut em) = em_arc.lock() {
-                                            // Send a test genome or trigger daemon action
-                                            let genome = crate::evolution_protocol::EvolvedGenomeData {
-                                                id: format!("genome-boot-{}", self.frame_count),
-                                                data: vec![0xCA, 0xFE, 0xBA, 0xBE], // Minimal executable
-                                                generation: 1,
-                                                fitness: 0.99,
-                                                metadata: serde_json::json!({
-                                                    "action": "BOOT_DAEMON",
-                                                    "spawn_x": world_pos.x,
-                                                    "spawn_y": world_pos.y
-                                                }),
-                                            };
-                                            em.write_evolved_genome(genome);
+                                    // Phase 35.9.3: Check if this is a cartridge tile
+                                    if target_window.has_cartridge_texture {
+                                        if let Some(cartridge_id) = &target_window.cartridge_texture_id {
+                                            log::info!("🧬 Clicked cartridge tile: {} at ({}, {})",
+                                                cartridge_id, world_pos.x, world_pos.y);
+
+                                            // Boot the cartridge
+                                            match self.boot_cartridge(cartridge_id, target_window.id) {
+                                                Ok(()) => {
+                                                    log::info!("✅ Cartridge boot initiated: {}", cartridge_id);
+                                                }
+                                                Err(e) => {
+                                                    log::error!("❌ Failed to boot cartridge {}: {}", cartridge_id, e);
+                                                }
+                                            }
+                                            return; // Consume the click
                                         }
+                                    } else {
+                                        // Legacy behavior: generic EvolutionZone click
+                                        log::info!("🧬 Clicked Evolution Zone! Initiating Autonomous Execution...");
+
+                                        // Trigger evolution boot
+                                        if let Some(em_arc) = &self.evolution_manager {
+                                            if let Ok(mut em) = em_arc.lock() {
+                                                // Send a test genome or trigger daemon action
+                                                let genome = crate::evolution_protocol::EvolvedGenomeData {
+                                                    id: format!("genome-boot-{}", self.frame_count),
+                                                    data: vec![0xCA, 0xFE, 0xBA, 0xBE], // Minimal executable
+                                                    generation: 1,
+                                                    fitness: 0.99,
+                                                    metadata: serde_json::json!({
+                                                        "action": "BOOT_DAEMON",
+                                                        "spawn_x": world_pos.x,
+                                                        "spawn_y": world_pos.y
+                                                    }),
+                                                };
+                                                em.write_evolved_genome(genome);
+                                            }
+                                        }
+                                        return;
                                     }
-                                    // Visual feedback handled by manager state update or daemon response
-                                    return; 
                                 }
                             }
 

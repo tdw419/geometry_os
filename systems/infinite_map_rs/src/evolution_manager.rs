@@ -704,6 +704,11 @@ impl EvolutionManager {
         &self.cartridge_registry
     }
 
+    /// Phase 35.9.3: Get a cartridge entry by ID
+    pub fn get_cartridge_entry(&self, id: &str) -> Option<&CartridgeEntry> {
+        self.cartridge_registry.get_entry(id)
+    }
+
     /// Phase 35.9: Poll for CARTRIDGE_CREATED resonances from SemanticIntentBus
     fn poll_cartridge_resonances(&mut self) {
         let now = std::time::Instant::now();
