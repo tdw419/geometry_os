@@ -1491,7 +1491,7 @@ fn execute_instruction(opcode: u32, pc_ptr: ptr<function, u32>) -> bool {
             let reserved = read_u32_leb128(pc_ptr); // Table index (always 0 for MVP)
             let func_index = pop_value();
 
-            // Check if this is a host function call (func_index < 3)
+            // Check if this is a host function call
             if func_index == HOST_READ_REGION {
                 // host_read_region(x, y, width, height, data_pointer)
                 let data_pointer = pop_value();
@@ -1513,6 +1513,46 @@ fn execute_instruction(opcode: u32, pc_ptr: ptr<function, u32>) -> bool {
                 let dims = host_get_dimensions();
                 push_value(dims.y);  // Height pushed second (on top)
                 push_value(dims.x);  // Width pushed first
+            } else if func_index == HOST_SQRT {
+                // host_sqrt(x) - takes f32 from stack, returns f32
+                let x_val = pop_f32();
+                let result = host_sqrt(x_val);
+                push_f32(result);
+            } else if func_index == HOST_SIN {
+                // host_sin(x) - takes f32 radians, returns f32
+                let x_val = pop_f32();
+                let result = host_sin(x_val);
+                push_f32(result);
+            } else if func_index == HOST_COS {
+                // host_cos(x) - takes f32 radians, returns f32
+                let x_val = pop_f32();
+                let result = host_cos(x_val);
+                push_f32(result);
+            } else if func_index == HOST_TAN {
+                // host_tan(x) - takes f32 radians, returns f32
+                let x_val = pop_f32();
+                let result = host_tan(x_val);
+                push_f32(result);
+            } else if func_index == HOST_EXP {
+                // host_exp(x) - takes f32, returns f32
+                let x_val = pop_f32();
+                let result = host_exp(x_val);
+                push_f32(result);
+            } else if func_index == HOST_LOG {
+                // host_log(x) - takes f32, returns f32
+                let x_val = pop_f32();
+                let result = host_log(x_val);
+                push_f32(result);
+            } else if func_index == HOST_POW {
+                // host_pow(x, y) - takes 2 f32 values, returns f32
+                let y_val = pop_f32();
+                let x_val = pop_f32();
+                let result = host_pow(x_val, y_val);
+                push_f32(result);
+            } else if func_index == HOST_RANDOM {
+                // host_random() - returns u32
+                let result = host_random();
+                push_value(result);
             } else {
                 // Type checking would happen here in a full implementation
                 // For now, we'll do basic bounds checking for regular functions
@@ -2265,6 +2305,69 @@ fn host_get_dimensions() -> vec2<u32> {
 }
 
 // ============================================
+// MATH HOST FUNCTIONS
+// ============================================
+
+// Host function indices for math functions
+const HOST_SQRT: u32 = 3u;
+const HOST_SIN: u32 = 4u;
+const HOST_COS: u32 = 5u;
+const HOST_TAN: u32 = 6u;
+const HOST_EXP: u32 = 7u;
+const HOST_LOG: u32 = 8u;
+const HOST_POW: u32 = 9u;
+const HOST_RANDOM: u32 = 10u;
+
+// sqrt(x) - Square root function
+// Takes f32 value from stack, returns f32 result
+fn host_sqrt(x: f32) -> f32 {
+    return sqrt(x);
+}
+
+// sin(x) - Sine function (radians)
+fn host_sin(x: f32) -> f32 {
+    return sin(x);
+}
+
+// cos(x) - Cosine function (radians)
+fn host_cos(x: f32) -> f32 {
+    return cos(x);
+}
+
+// tan(x) - Tangent function (radians)
+fn host_tan(x: f32) -> f32 {
+    return tan(x);
+}
+
+// exp(x) - Exponential function (e^x)
+fn host_exp(x: f32) -> f32 {
+    return exp(x);
+}
+
+// log(x) - Natural logarithm
+fn host_log(x: f32) -> f32 {
+    return log(x);
+}
+
+// pow(x, y) - Power function (x^y)
+fn host_pow(x: f32, y: f32) -> f32 {
+    return pow(x, y);
+}
+
+// random() - Random number generation
+// Simple LCG for GPU compatibility
+var<workgroup> random_seed: atomic<u32>;
+
+fn host_random() -> u32 {
+    let seed = atomicLoad(&random_seed);
+    // Linear Congruential Generator: next = (a * seed + c) mod m
+    // Using values from Numerical Recipes: a=1664525, c=1013904223
+    let next = (1664525u * seed + 1013904223u);
+    atomicStore(&random_seed, next);
+    return next;
+}
+
+// ============================================
 // MAIN EXECUTION LOOP
 // ============================================
 
@@ -2282,6 +2385,8 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
         atomicStore(&instruction_count, 0u);
         atomicStore(&current_memory_pages, vm_config.memory_size);
         atomicStore(&output_index_counter, 0u);
+        // Initialize random seed with a non-zero value
+        atomicStore(&random_seed, 12345u);
     }
     workgroupBarrier();
     
