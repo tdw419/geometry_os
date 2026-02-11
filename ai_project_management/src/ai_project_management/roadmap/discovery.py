@@ -41,12 +41,14 @@ class RoadmapDiscovery:
         """
         self.search_root = Path(search_root)
         self.max_depth = max_depth
+        # Patterns in priority order - unified roadmaps first, then standard roadmaps
         self.patterns = [
+            "UNIFIED_ROADMAP*.md",  # Highest priority - main project roadmap
+            "unified_roadmap*.md",
+            "ROADMAP.md",
+            "roadmap.md",
             "roadmap*.md",
             "*ROADMAP*.md",
-            "*.roadmap.md",
-            "ROADMAP.md",
-            "roadmap.md"
         ]
 
     async def discover(self) -> List[DiscoveredRoadmap]:

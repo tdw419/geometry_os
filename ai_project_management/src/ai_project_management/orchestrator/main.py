@@ -127,7 +127,12 @@ class OrchestratorConfig:
             data = yaml.safe_load(f)
 
         # Resolve paths relative to config file directory
-        roadmap_path = Path(data.get("roadmap_path", "roadmap.md"))
+        # Support both old roadmap_path and new roadmap.primary_path
+        roadmap_config = data.get("roadmap", {})
+        if roadmap_config and "primary_path" in roadmap_config:
+            roadmap_path = Path(roadmap_config.get("primary_path", "roadmap.md"))
+        else:
+            roadmap_path = Path(data.get("roadmap_path", "roadmap.md"))
         if not roadmap_path.is_absolute():
             roadmap_path = config_path.parent / roadmap_path
 
@@ -141,7 +146,7 @@ class OrchestratorConfig:
         config = cls(
             roadmap_path=roadmap_path,
             openspec_output_dir=Path(data.get("openspec_output_dir", "openspec/changes")),
-            discover_roadmap=data.get("discover_roadmap", False),
+            discover_roadmap=roadmap_config.get("discovery_enabled", data.get("discover_roadmap", False)),
             roadmap_search_depth=data.get("roadmap_search_depth", 3),
             iteration_mode=IterationMode(data.get("iteration_mode", "until_complete")),
             max_iterations=data.get("max_iterations", 10),

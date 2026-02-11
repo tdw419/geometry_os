@@ -1,10 +1,14 @@
 
 import asyncio
 import os
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 import json
+
+# Setup logging for config discovery
+logger = logging.getLogger(__name__)
 
 
 def _get_config_path() -> Optional[Path]:
@@ -25,12 +29,16 @@ def _get_config_path() -> Optional[Path]:
     if env_path:
         path = Path(env_path).resolve()
         if path.exists():
+            logger.info(f"Using config from environment variable: {path}")
             return path
+        else:
+            logger.warning(f"AI_PM_CONFIG_PATH set but file not found: {env_path}")
 
     # Check current directory for .ai-pm-config.yaml
     current_dir = Path.cwd()
     local_config = current_dir / ".ai-pm-config.yaml"
     if local_config.exists():
+        logger.info(f"Using config from current directory: {local_config}")
         return local_config
 
     # Try to find AI PM project root and its config.yaml
@@ -39,11 +47,13 @@ def _get_config_path() -> Optional[Path]:
     for _ in range(5):  # Search up to 5 levels
         root_config = current / "config.yaml"
         if root_config.exists():
+            logger.info(f"Using config from project root: {root_config}")
             return root_config
         # Check for ai-pm root markers
         if (current / "pyproject.toml").exists():
             config_file = current / "config.yaml"
             if config_file.exists():
+                logger.info(f"Using config from pyproject.toml directory: {config_file}")
                 return config_file
         parent = current.parent
         if parent == current:  # Reached filesystem root
@@ -53,8 +63,10 @@ def _get_config_path() -> Optional[Path]:
     # Check parent directory as fallback
     parent_config = Path(__file__).resolve().parent.parent / "config.yaml"
     if parent_config.exists():
+        logger.info(f"Using config from parent directory: {parent_config}")
         return parent_config
 
+    logger.warning("No AI PM configuration file found in any search location")
     return None
 
 
