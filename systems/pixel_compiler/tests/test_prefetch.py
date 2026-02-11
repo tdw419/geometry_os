@@ -7,13 +7,17 @@ Tests proactive cache loading based on access predictions.
 
 import pytest
 from unittest.mock import Mock, patch
-import importlib
 import sys
 import itertools
 
-# Force reload of module to avoid pytest caching issues
-if 'systems.pixel_compiler.infinite_map_prefetch' in sys.modules:
-    del sys.modules['systems.pixel_compiler.infinite_map_prefetch']
+
+@pytest.fixture(autouse=True, scope="function")
+def reset_module_state(monkeypatch):
+    """Reset module state before each test."""
+    import systems.pixel_compiler.infinite_map_prefetch as prefetch_module
+    # Reset the global counter using monkeypatch
+    monkeypatch.setattr(prefetch_module, '_counter', itertools.count())
+
 
 from systems.pixel_compiler.infinite_map_prefetch import Prefetcher, PrefetchItem
 
@@ -47,32 +51,14 @@ def test_prefetcher_respects_cache_size():
     assert prefetcher.get_queue_size() == 0
 
 
-@pytest.fixture(autouse=True)
-def reset_prefetcher_state():
-    """Reset any module-level state between tests."""
-    import importlib
-    import sys
-    # Force module reload
-    if 'systems.pixel_compiler.infinite_map_prefetch' in sys.modules:
-        del sys.modules['systems.pixel_compiler.infinite_map_prefetch']
-    # Reset global counter
-    if 'systems.pixel_compiler.infinite_map_prefetch' in sys.modules:
-        import systems.pixel_compiler.infinite_map_prefetch
-        systems.pixel_compiler.infinite_map_prefetch._counter = itertools.count()
-
-
-def test_prefetcher_processes_queue_by_priority(reset_prefetcher_state):
+def test_prefetcher_processes_queue_by_priority():
     """Prefetcher processes higher priority files first."""
-    from systems.pixel_compiler.infinite_map_prefetch import Prefetcher
-    import itertools
-    # Reset counter
-    systems.pixel_compiler.infinite_map_prefetch._counter = itertools.count()
 
     prefetcher = Prefetcher(cache_size=1000)
 
-    prefetcher.prefetch_file("low/priority", priority=10)
-    prefetcher.prefetch_file("high/priority", priority=1)
-    prefetcher.prefetch_file("medium/priority", priority=5)
+    prefetcher.prefetch_file("low/priority", data=b"low", priority=10)
+    prefetcher.prefetch_file("high/priority", data=b"high", priority=1)
+    prefetcher.prefetch_file("medium/priority", data=b"medium", priority=5)
 
     processed = []
     for _ in range(3):
@@ -80,9 +66,9 @@ def test_prefetcher_processes_queue_by_priority(reset_prefetcher_state):
         if item:
             processed.append(item)
 
-    assert processed[0]['path'] == "high/priority"
-    assert processed[1]['path'] == "medium/priority"
-    assert processed[2]['path'] == "low/priority"
+    assert processed[0].path == "high/priority"
+    assert processed[1].path == "medium/priority"
+    assert processed[2].path == "low/priority"
 
 
 def test_prefetcher_should_prefetch_based_on_prediction():
@@ -109,11 +95,11 @@ def test_prefetcher_removes_duplicates():
     """Prefetcher removes duplicate prefetch requests."""
     prefetcher = Prefetcher(cache_size=1000)
 
-    prefetcher.prefetch_file("test/file", priority=1)
+    prefetcher.prefetch_file("test/file", data=b"test", priority=1)
     initial_size = prefetcher.get_queue_size()
 
     # Try to add same file again
-    result = prefetcher.prefetch_file("test/file", priority=1)
+    result = prefetcher.prefetch_file("test/file", data=b"test", priority=1)
     assert result is False, "Should reject duplicate"
     assert prefetcher.get_queue_size() == initial_size
 
@@ -122,8 +108,8 @@ def test_prefetcher_clear_queue():
     """Prefetcher can clear its queue."""
     prefetcher = Prefetcher(cache_size=1000)
 
-    prefetcher.prefetch_file("file1", priority=1)
-    prefetcher.prefetch_file("file2", priority=2)
+    prefetcher.prefetch_file("file1", data=b"data1", priority=1)
+    prefetcher.prefetch_file("file2", data=b"data2", priority=2)
 
     assert prefetcher.get_queue_size() == 2
 
@@ -178,14 +164,15 @@ def test_prefetcher_evicts_oldest_when_full():
     assert prefetcher.get_cache_size() == 10
 
     # Add another file that would exceed cache
-    prefetcher.prefetch_file("new", data=b"xxxxx")  # 5 bytes
+    # 10 + 8 = 18 > 15, so eviction should happen
+    prefetcher.prefetch_file("new", data=b"xxxxxxxx")  # 8 bytes
     prefetcher.process_next()
 
     # Old file should be evicted, new file cached
     cache = prefetcher.get_cache_contents()
     assert "old" not in cache
     assert "new" in cache
-    assert prefetcher.get_cache_size() == 5  # Only "new" fits
+    assert prefetcher.get_cache_size() == 8  # Only "new" fits
 
 
 def test_prefetcher_with_predictor():
