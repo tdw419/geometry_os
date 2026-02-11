@@ -9,13 +9,20 @@ import pytest
 from systems.pixel_compiler.infinite_map_compression import CompressionEngine
 
 
+# Cache for mock mode detection
+_MOCK_MODE = None
+
+
 def is_mock_mode():
     """Check if running in mock mode (zstandard not available)."""
-    try:
-        import zstandard
-        return False
-    except ImportError:
-        return True
+    global _MOCK_MODE
+    if _MOCK_MODE is None:
+        try:
+            import zstandard
+            _MOCK_MODE = False
+        except ImportError:
+            _MOCK_MODE = True
+    return _MOCK_MODE
 
 
 def test_empty_compression_stats():
@@ -158,18 +165,9 @@ def test_batch_compress():
     # Check all files were processed
     assert len(results) == 3
 
-    # Mock mode may not compress (returns None for small files)
-    # Real mode should compress files above threshold
-    if is_mock_mode():
-        # In mock mode, just check files were processed
-        for path in results:
-            # Small files may not be compressed (below 512 byte threshold)
-            assert path in results
-    else:
-        # In real mode, check compression was attempted for all
-        for path in results:
-            # Small files may still return None if below threshold
-            assert path in results
+    # Check each file was processed (same assertion for both modes)
+    for path in files:
+        assert path in results, f"File {path} not in results"
 
 
 @pytest.mark.skipif(is_mock_mode(), reason="Mock mode doesn't compress (adds prefix)")
