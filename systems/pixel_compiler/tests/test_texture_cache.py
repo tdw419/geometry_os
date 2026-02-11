@@ -981,3 +981,495 @@ def test_cluster_texture_none_on_error():
     # Should count as a miss
     stats = cache.get_statistics()
     assert stats['misses'] == 1
+
+
+# ============================================================================
+# Hot Zone Detection Tests
+# ============================================================================
+
+def test_detect_hot_zone_files_empty_vat():
+    """Test detect_hot_zone_files with empty VAT."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import VisualAllocationTable, ClusterLocation
+
+    cache = TextureCache()
+
+    # Create empty VAT
+    vat = VisualAllocationTable(
+        grid_size=2048,
+        max_entries=1000,
+        center=ClusterLocation(1024, 1024),
+        entries={}
+    )
+
+    hot_files = cache.detect_hot_zone_files(vat, threshold_distance=128.0)
+
+    assert hot_files == []
+
+
+def test_detect_hot_zone_files_with_hot_files():
+    """Test that files within threshold distance are detected as hot."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import VisualAllocationTable, ClusterLocation
+
+    cache = TextureCache()
+
+    # Create VAT with files at various distances
+    center = ClusterLocation(1024, 1024)
+    entries = {
+        '/kernel': [ClusterLocation(1024, 1024)],  # AT center (distance 0)
+        '/libc.so': [ClusterLocation(1100, 1024)],  # 76px from center - HOT
+        '/shell': [ClusterLocation(900, 1024)],   # 124px from center - HOT
+        '/app': [ClusterLocation(800, 1024)],    # 224px from center - not hot
+        '/doc': [ClusterLocation(500, 1024)],    # 524px from center - not hot
+    }
+
+    vat = VisualAllocationTable(
+        grid_size=2048,
+        max_entries=1000,
+        center=center,
+        entries=entries
+    )
+
+    hot_files = cache.detect_hot_zone_files(vat, threshold_distance=128.0)
+
+    # Should detect 3 hot files (kernel, libc.so, shell)
+    assert len(hot_files) == 3
+    assert '/kernel' in hot_files
+    assert '/libc.so' in hot_files
+    assert '/shell' in hot_files
+    assert '/app' not in hot_files
+    assert '/doc' not in hot_files
+
+
+def test_detect_hot_zone_files_with_multi_cluster_files():
+    """Test that files with multiple clusters are detected if ANY cluster is hot."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import VisualAllocationTable, ClusterLocation
+
+    cache = TextureCache()
+
+    center = ClusterLocation(1024, 1024)
+    entries = {
+        # File with clusters spanning hot and cool zones - should be detected
+        '/multi_zone': [
+            ClusterLocation(500, 1024),   # 524px - cool
+            ClusterLocation(1024, 1024),  # 0px - HOT (should trigger detection)
+            ClusterLocation(1500, 1024),  # 476px - cool
+        ],
+        # File entirely in cool zone
+        '/cool_only': [
+            ClusterLocation(500, 1024),
+            ClusterLocation(600, 1024),
+        ],
+    }
+
+    vat = VisualAllocationTable(
+        grid_size=2048,
+        max_entries=1000,
+        center=center,
+        entries=entries
+    )
+
+    hot_files = cache.detect_hot_zone_files(vat, threshold_distance=128.0)
+
+    # multi_zone should be detected because it has ONE cluster in hot zone
+    assert len(hot_files) == 1
+    assert '/multi_zone' in hot_files
+    assert '/cool_only' not in hot_files
+
+
+def test_detect_hot_zone_files_custom_threshold():
+    """Test detect_hot_zone_files with custom threshold."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import VisualAllocationTable, ClusterLocation
+
+    cache = TextureCache()
+
+    center = ClusterLocation(1024, 1024)
+    entries = {
+        '/file1': [ClusterLocation(1100, 1024)],  # 76px from center
+        '/file2': [ClusterLocation(1200, 1024)],  # 176px from center
+        '/file3': [ClusterLocation(1300, 1024)],  # 276px from center
+    }
+
+    vat = VisualAllocationTable(
+        grid_size=2048,
+        max_entries=1000,
+        center=center,
+        entries=entries
+    )
+
+    # With threshold=128, only file1 is hot
+    hot_files = cache.detect_hot_zone_files(vat, threshold_distance=128.0)
+    assert len(hot_files) == 1
+    assert '/file1' in hot_files
+
+    # With threshold=256, file1 and file2 are hot
+    hot_files = cache.detect_hot_zone_files(vat, threshold_distance=256.0)
+    assert len(hot_files) == 2
+    assert '/file1' in hot_files
+    assert '/file2' in hot_files
+
+    # With threshold=384, all files are hot (WARM zone)
+    hot_files = cache.detect_hot_zone_files(vat, threshold_distance=384.0)
+    assert len(hot_files) == 3
+
+
+def test_detect_hot_zone_files_none_vat():
+    """Test detect_hot_zone_files handles None VAT gracefully."""
+    from texture_cache import TextureCache
+
+    cache = TextureCache()
+
+    hot_files = cache.detect_hot_zone_files(None, threshold_distance=128.0)
+
+    assert hot_files == []
+
+
+def test_detect_hot_zone_files_with_empty_clusters():
+    """Test detect_hot_zone_files handles files with no clusters."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import VisualAllocationTable, ClusterLocation
+
+    cache = TextureCache()
+
+    center = ClusterLocation(1024, 1024)
+    entries = {
+        '/hot': [ClusterLocation(1024, 1024)],
+        '/empty': [],  # No clusters
+        '/cool': [ClusterLocation(500, 1024)],
+    }
+
+    vat = VisualAllocationTable(
+        grid_size=2048,
+        max_entries=1000,
+        center=center,
+        entries=entries
+    )
+
+    hot_files = cache.detect_hot_zone_files(vat, threshold_distance=128.0)
+
+    # Should only detect /hot, not /empty (no clusters) or /cool
+    assert len(hot_files) == 1
+    assert '/hot' in hot_files
+    assert '/empty' not in hot_files
+
+
+# ============================================================================
+# Auto Cache Hot Zone Tests
+# ============================================================================
+
+def test_auto_cache_hot_zone_basic():
+    """Test auto_cache_hot_zone loads hot files into cache."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import VisualAllocationTable, ClusterLocation
+
+    cache = TextureCache(max_size_mb=1, max_entries=100)
+
+    # Create VAT with hot files
+    center = ClusterLocation(1024, 1024)
+    entries = {
+        '/kernel': [ClusterLocation(1024, 1024)],  # AT center (0px)
+        '/libc': [ClusterLocation(1100, 1024)],   # 76px from center - HOT
+        '/app': [ClusterLocation(1800, 1024)],    # 776px from center - COOL zone
+    }
+
+    vat = VisualAllocationTable(
+        grid_size=2048,
+        max_entries=1000,
+        center=center,
+        entries=entries
+    )
+
+    # Create mock infinite map
+    class MockInfiniteMap:
+        def _read_cluster_raw(self, cluster):
+            return bytes([i % 256 for i in range(4096)])
+
+    mock_map = MockInfiniteMap()
+
+    # Auto-cache hot zone with WARM threshold (384px)
+    # /kernel and /libc should be hot, /app is 776px away (COOL zone)
+    cached_count = cache.auto_cache_hot_zone(vat, mock_map, threshold_distance=384.0)
+
+    # Should have cached 2 files
+    assert cached_count == 2
+
+    # Verify cache statistics
+    stats = cache.get_statistics()
+    assert stats['entries'] == 2
+    assert stats['misses'] >= 2  # Caching counts as misses initially
+
+
+def test_auto_cache_hot_zone_no_hot_files():
+    """Test auto_cache_hot_zone when no files are in hot zone."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import VisualAllocationTable, ClusterLocation
+
+    cache = TextureCache()
+
+    center = ClusterLocation(1024, 1024)
+    entries = {
+        '/cool1': [ClusterLocation(0, 0)],
+        '/cool2': [ClusterLocation(100, 100)],
+    }
+
+    vat = VisualAllocationTable(
+        grid_size=2048,
+        max_entries=1000,
+        center=center,
+        entries=entries
+    )
+
+    class MockInfiniteMap:
+        def _read_cluster_raw(self, cluster):
+            return bytes([i % 256 for i in range(4096)])
+
+    mock_map = MockInfiniteMap()
+
+    # With small threshold, no files are hot
+    cached_count = cache.auto_cache_hot_zone(vat, mock_map, threshold_distance=10.0)
+
+    assert cached_count == 0
+    assert cache.get_statistics()['entries'] == 0
+
+
+def test_auto_cache_hot_zone_with_failures():
+    """Test auto_cache_hot_zone handles cluster read failures gracefully."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import VisualAllocationTable, ClusterLocation
+
+    cache = TextureCache()
+
+    center = ClusterLocation(1024, 1024)
+    entries = {
+        '/good': [ClusterLocation(1024, 1024)],  # AT center
+        '/bad': [ClusterLocation(1025, 1024)],    # 1px from center
+    }
+
+    vat = VisualAllocationTable(
+        grid_size=2048,
+        max_entries=1000,
+        center=center,
+        entries=entries
+    )
+
+    class MockInfiniteMap:
+        def _read_cluster_raw(self, cluster):
+            # Fail for specific cluster
+            if cluster.x == 1025:
+                return None
+            return bytes([i % 256 for i in range(4096)])
+
+    mock_map = MockInfiniteMap()
+
+    cached_count = cache.auto_cache_hot_zone(vat, mock_map, threshold_distance=384.0)
+
+    # Should only cache the good cluster
+    assert cached_count == 1
+    assert cache.get_statistics()['entries'] == 1
+
+
+def test_auto_cache_hot_zone_multi_cluster_files():
+    """Test auto_cache_hot_zone caches all clusters of multi-cluster files."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import VisualAllocationTable, ClusterLocation
+
+    cache = TextureCache()
+
+    center = ClusterLocation(1024, 1024)
+    entries = {
+        '/multi': [
+            ClusterLocation(1024, 1024),  # AT center
+            ClusterLocation(1025, 1024),  # 1px from center
+            ClusterLocation(1026, 1024),  # 2px from center
+        ],  # 3 clusters
+        '/single': [ClusterLocation(1030, 1024)],  # 6px from center - 1 cluster
+    }
+
+    vat = VisualAllocationTable(
+        grid_size=2048,
+        max_entries=1000,
+        center=center,
+        entries=entries
+    )
+
+    class MockInfiniteMap:
+        def _read_cluster_raw(self, cluster):
+            return bytes([i % 256 for i in range(4096)])
+
+    mock_map = MockInfiniteMap()
+
+    cached_count = cache.auto_cache_hot_zone(vat, mock_map, threshold_distance=384.0)
+
+    # Should cache all 4 clusters (3 + 1)
+    assert cached_count == 4
+    assert cache.get_statistics()['entries'] == 4
+
+
+def test_auto_cache_hot_zone_respects_threshold():
+    """Test auto_cache_hot_zone respects threshold parameter."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import VisualAllocationTable, ClusterLocation
+
+    cache = TextureCache()
+
+    center = ClusterLocation(1024, 1024)
+    entries = {
+        '/hot1': [ClusterLocation(1024, 1024)],  # 0px from center
+        '/hot2': [ClusterLocation(1100, 1024)],  # 76px from center
+        '/warm': [ClusterLocation(1200, 1024)],  # 176px from center
+    }
+
+    vat = VisualAllocationTable(
+        grid_size=2048,
+        max_entries=1000,
+        center=center,
+        entries=entries
+    )
+
+    class MockInfiniteMap:
+        def _read_cluster_raw(self, cluster):
+            return bytes([i % 256 for i in range(4096)])
+
+    mock_map = MockInfiniteMap()
+
+    # With threshold=128, only 2 files are hot
+    cached_count = cache.auto_cache_hot_zone(vat, mock_map, threshold_distance=128.0)
+    assert cached_count == 2
+
+    # Clear cache
+    cache.clear()
+
+    # With threshold=200, all 3 files are hot
+    cached_count = cache.auto_cache_hot_zone(vat, mock_map, threshold_distance=200.0)
+    assert cached_count == 3
+
+
+def test_auto_cache_hot_zone_custom_zone_thresholds():
+    """Test auto_cache_hot_zone with different zone thresholds."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import VisualAllocationTable, ClusterLocation
+
+    cache = TextureCache()
+
+    center = ClusterLocation(1024, 1024)
+    entries = {
+        '/hot': [ClusterLocation(1024, 1024)],    # 0px
+        '/warm': [ClusterLocation(1200, 1024)],    # 176px
+        '/temperate': [ClusterLocation(1400, 1024)],  # 376px
+        '/cool': [ClusterLocation(1700, 1024)],    # 676px
+    }
+
+    vat = VisualAllocationTable(
+        grid_size=2048,
+        max_entries=1000,
+        center=center,
+        entries=entries
+    )
+
+    class MockInfiniteMap:
+        def _read_cluster_raw(self, cluster):
+            return bytes([i % 256 for i in range(4096)])
+
+    mock_map = MockInfiniteMap()
+
+    # HOT zone (128px)
+    cached_count = cache.auto_cache_hot_zone(vat, mock_map, threshold_distance=128.0)
+    assert cached_count == 1  # Only /hot
+
+    cache.clear()
+
+    # WARM zone (384px)
+    cached_count = cache.auto_cache_hot_zone(vat, mock_map, threshold_distance=384.0)
+    assert cached_count == 3  # /hot, /warm, /temperate
+
+    cache.clear()
+
+    # COOL zone (1536px)
+    cached_count = cache.auto_cache_hot_zone(vat, mock_map, threshold_distance=1536.0)
+    assert cached_count == 4  # All files
+
+
+# ============================================================================
+# Distance Calculation Edge Cases
+# ============================================================================
+
+def test_hot_zone_detection_diagonal_distance():
+    """Test that diagonal distance is calculated correctly."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import VisualAllocationTable, ClusterLocation
+
+    cache = TextureCache()
+
+    center = ClusterLocation(1024, 1024)
+    entries = {
+        '/diagonal': [ClusterLocation(1100, 1100)],  # ~108px diagonally
+    }
+
+    vat = VisualAllocationTable(
+        grid_size=2048,
+        max_entries=1000,
+        center=center,
+        entries=entries
+    )
+
+    # Diagonal distance: sqrt(76^2 + 76^2) = sqrt(11552) ≈ 107.5px
+    hot_files = cache.detect_hot_zone_files(vat, threshold_distance=108.0)
+
+    # Should detect the file
+    assert len(hot_files) == 1
+    assert '/diagonal' in hot_files
+
+
+def test_hot_zone_detection_exact_threshold():
+    """Test detection when distance equals threshold."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import VisualAllocationTable, ClusterLocation
+
+    cache = TextureCache()
+
+    center = ClusterLocation(1024, 1024)
+    # File exactly at threshold distance (using 3-4-5 triangle: 96-128-160)
+    entries = {
+        '/exact': [ClusterLocation(1152, 1024)],  # Exactly 128px from center
+    }
+
+    vat = VisualAllocationTable(
+        grid_size=2048,
+        max_entries=1000,
+        center=center,
+        entries=entries
+    )
+
+    hot_files = cache.detect_hot_zone_files(vat, threshold_distance=128.0)
+
+    # Should detect file at exact threshold (<=)
+    assert len(hot_files) == 1
+    assert '/exact' in hot_files
+
+
+def test_hot_zone_detection_just_beyond_threshold():
+    """Test detection when distance is just beyond threshold."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import VisualAllocationTable, ClusterLocation
+
+    cache = TextureCache()
+
+    center = ClusterLocation(1024, 1024)
+    entries = {
+        '/beyond': [ClusterLocation(1153, 1024)],  # 129px from center
+    }
+
+    vat = VisualAllocationTable(
+        grid_size=2048,
+        max_entries=1000,
+        center=center,
+        entries=entries
+    )
+
+    hot_files = cache.detect_hot_zone_files(vat, threshold_distance=128.0)
+
+    # Should NOT detect file just beyond threshold
+    assert len(hot_files) == 0

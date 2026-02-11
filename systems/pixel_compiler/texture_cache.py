@@ -9,6 +9,7 @@ texture data loaded from the spatial filesystem.
 """
 
 import hashlib
+import math
 import time
 from dataclasses import dataclass, field
 from typing import Dict, Optional, List, Tuple, TYPE_CHECKING
@@ -467,6 +468,107 @@ class TextureCache:
         if cache_key in self._cache:
             texture = self._cache.pop(cache_key)
             self._current_size_bytes -= texture.size_bytes
+
+    def detect_hot_zone_files(
+        self,
+        vat,
+        threshold_distance: float = 128.0
+    ) -> List[str]:
+        """
+        Detect files located in the hot zone (within threshold_distance from center).
+
+        A file is considered "hot" if ANY of its clusters are within
+        the threshold distance from the center of the map.
+
+        Args:
+            vat: VisualAllocationTable instance with file locations
+            threshold_distance: Distance in pixels from center (default: 128 = HOT zone)
+
+        Returns:
+            List of file paths that have at least one cluster in the hot zone
+
+        Example:
+            >>> hot_files = cache.detect_hot_zone_files(vat, threshold_distance=128.0)
+            >>> print(f"Found {len(hot_files)} hot files")
+        """
+        if vat is None:
+            return []
+
+        # Get center from VAT
+        center_x = vat.center.x
+        center_y = vat.center.y
+
+        # Square threshold for efficient comparison (avoid sqrt)
+        threshold_squared = threshold_distance ** 2
+
+        hot_files = []
+
+        # Iterate through all VAT entries
+        for file_path, clusters in vat.entries.items():
+            if not clusters:
+                continue
+
+            # Check each cluster in the file
+            for cluster in clusters:
+                dx = cluster.x - center_x
+                dy = cluster.y - center_y
+
+                # Calculate squared distance (avoid sqrt for efficiency)
+                distance_squared = dx * dx + dy * dy
+
+                # If any cluster is within threshold, file is hot
+                if distance_squared <= threshold_squared:
+                    hot_files.append(file_path)
+                    break  # No need to check other clusters for this file
+
+        return hot_files
+
+    def auto_cache_hot_zone(
+        self,
+        vat,
+        infinite_map: 'InfiniteMapBuilderV2',
+        threshold_distance: float = 128.0
+    ) -> int:
+        """
+        Automatically cache all hot zone files.
+
+        Detects files in the hot zone and loads their cluster textures
+        into the cache for fast access.
+
+        Args:
+            vat: VisualAllocationTable instance with file locations
+            infinite_map: InfiniteMapBuilderV2 instance to read cluster data
+            threshold_distance: Distance in pixels from center (default: 128 = HOT zone)
+
+        Returns:
+            Number of clusters successfully cached
+
+        Example:
+            >>> count = cache.auto_cache_hot_zone(vat, infinite_map)
+            >>> print(f"Cached {count} hot clusters")
+        """
+        # Detect hot zone files
+        hot_files = self.detect_hot_zone_files(vat, threshold_distance)
+
+        if not hot_files:
+            return 0
+
+        cached_count = 0
+
+        # For each hot file, cache all its clusters
+        for file_path in hot_files:
+            clusters = vat.entries.get(file_path, [])
+
+            if not clusters:
+                continue
+
+            # Cache each cluster
+            for cluster in clusters:
+                texture = self.get_cluster_texture(cluster, infinite_map)
+                if texture is not None:
+                    cached_count += 1
+
+        return cached_count
 
 
 # Convenience function for creating a default cache
