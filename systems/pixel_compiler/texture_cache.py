@@ -11,7 +11,7 @@ texture data loaded from the spatial filesystem.
 import hashlib
 import time
 from dataclasses import dataclass, field
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Tuple, TYPE_CHECKING
 from pathlib import Path
 
 try:
@@ -26,6 +26,10 @@ try:
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
+
+# Type hints for cluster support
+if TYPE_CHECKING:
+    from infinite_map_v2 import ClusterLocation, InfiniteMapBuilderV2
 
 
 @dataclass
@@ -336,6 +340,133 @@ class TextureCache:
             Internal cache storage
         """
         return self._cache
+
+    def _cluster_cache_key(self, cluster_x: int, cluster_y: int) -> str:
+        """
+        Generate cache key for cluster coordinates.
+
+        Args:
+            cluster_x: Cluster X coordinate
+            cluster_y: Cluster Y coordinate
+
+        Returns:
+            Cache key string in format "cluster:{x}:{y}"
+        """
+        return f"cluster:{cluster_x}:{cluster_y}"
+
+    def get_cluster_texture(
+        self,
+        cluster: 'ClusterLocation',
+        infinite_map: 'InfiniteMapBuilderV2'
+    ) -> Optional[CachedTexture]:
+        """
+        Get a cluster texture from the infinite map with caching.
+
+        This method:
+        1. Generates cache key from cluster coordinates
+        2. Checks if texture is already cached
+        3. On cache miss, reads 4KB cluster from infinite map
+        4. Converts to 32x32 RGBA texture (1024 pixels)
+        5. Generates SHA256 checksum
+        6. Creates CachedTexture with metadata
+        7. Adds to cache with LRU tracking
+
+        Args:
+            cluster: ClusterLocation with (x, y) coordinates
+            infinite_map: InfiniteMapBuilderV2 instance to read raw cluster data
+
+        Returns:
+            CachedTexture (32x32 RGBA) if successful, None otherwise
+        """
+        # Generate cache key
+        cache_key = self._cluster_cache_key(cluster.x, cluster.y)
+
+        # Check cache
+        if cache_key in self._cache:
+            self._hits += 1
+            texture = self._cache[cache_key]
+
+            # Update access metadata
+            texture.last_access = time.time()
+            texture.access_count += 1
+            texture.from_cache = True
+
+            return texture
+
+        # Cache miss - read cluster from infinite map
+        self._misses += 1
+
+        # Read raw 4KB cluster data
+        cluster_data = infinite_map._read_cluster_raw(cluster)
+        if cluster_data is None:
+            return None
+
+        # Convert 4KB cluster to 32x32 RGBA texture
+        # 4KB = 4096 bytes
+        # 32x32 texture = 1024 pixels * 4 bytes/pixel (RGBA) = 4096 bytes
+        texture_data = self._cluster_to_texture(cluster_data)
+
+        if texture_data is None:
+            return None
+
+        # Create cached texture
+        texture = CachedTexture(
+            data=texture_data,
+            width=32,
+            height=32,
+            path=f"cluster://{cluster.x}/{cluster.y}",
+            size_bytes=texture_data.nbytes,
+            last_access=time.time(),
+            access_count=1,
+            from_cache=False,
+            checksum=""  # Will be calculated in __post_init__
+        )
+
+        # Add to cache
+        self._add_to_cache(cache_key, texture)
+
+        return texture
+
+    def _cluster_to_texture(self, cluster_data: bytes) -> Optional['np.ndarray']:
+        """
+        Convert 4KB cluster data to 32x32 RGBA texture.
+
+        Args:
+            cluster_data: 4096 bytes of cluster data
+
+        Returns:
+            32x32x4 numpy array (RGBA) or None if conversion fails
+        """
+        if not HAS_NUMPY:
+            return None
+
+        if len(cluster_data) != 4096:
+            # Pad or truncate to exactly 4096 bytes
+            if len(cluster_data) < 4096:
+                cluster_data = cluster_data + b'\x00' * (4096 - len(cluster_data))
+            else:
+                cluster_data = cluster_data[:4096]
+
+        # Reshape bytes to 32x32 RGBA
+        # Each pixel is 4 bytes (R, G, B, A)
+        texture_array = np.frombuffer(cluster_data, dtype=np.uint8)
+        texture_array = texture_array.reshape((32, 32, 4))
+
+        return texture_array
+
+    def invalidate_cluster(self, cluster_x: int, cluster_y: int) -> None:
+        """
+        Invalidate a cached cluster texture.
+
+        Args:
+            cluster_x: Cluster X coordinate
+            cluster_y: Cluster Y coordinate
+        """
+        cache_key = self._cluster_cache_key(cluster_x, cluster_y)
+
+        if cache_key in self._cache:
+            texture = self._cache.pop(cache_key)
+            self._current_size_bytes -= texture.size_bytes
 
 
 # Convenience function for creating a default cache

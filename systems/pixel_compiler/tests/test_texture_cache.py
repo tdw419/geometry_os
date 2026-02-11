@@ -543,3 +543,441 @@ def test_invalidate_nonexistent_entry():
 
     stats = cache.get_statistics()
     assert stats['entries'] == 0
+
+
+# ============================================================================
+# Cluster Texture Cache Tests (InfiniteMap Integration)
+# ============================================================================
+
+def test_cluster_cache_key_generation():
+    """Test that cluster cache keys are generated correctly."""
+    from texture_cache import TextureCache
+
+    cache = TextureCache()
+
+    # Test cache key format
+    key1 = cache._cluster_cache_key(100, 200)
+    assert key1 == "cluster:100:200"
+
+    key2 = cache._cluster_cache_key(0, 0)
+    assert key2 == "cluster:0:0"
+
+    # Different coordinates produce different keys
+    key3 = cache._cluster_cache_key(100, 201)
+    assert key3 != key1
+
+
+def test_cluster_to_texture_conversion():
+    """Test converting 4KB cluster data to 32x32 RGBA texture."""
+    from texture_cache import TextureCache
+
+    cache = TextureCache()
+
+    # Create test cluster data (exactly 4096 bytes)
+    cluster_data = bytes(range(256)) * 16  # Repeating pattern
+
+    texture = cache._cluster_to_texture(cluster_data)
+
+    assert texture is not None
+    assert texture.shape == (32, 32, 4)
+    assert texture.dtype == np.uint8
+    assert texture.nbytes == 4096
+
+
+def test_cluster_to_texture_with_padding():
+    """Test that undersized clusters are padded with zeros."""
+    from texture_cache import TextureCache
+
+    cache = TextureCache()
+
+    # Create small cluster (less than 4096 bytes)
+    cluster_data = b"Hello, World!"  # Only 13 bytes
+
+    texture = cache._cluster_to_texture(cluster_data)
+
+    assert texture is not None
+    assert texture.shape == (32, 32, 4)
+    assert texture.nbytes == 4096
+
+
+def test_cluster_to_texture_with_truncation():
+    """Test that oversized clusters are truncated to 4096 bytes."""
+    from texture_cache import TextureCache
+
+    cache = TextureCache()
+
+    # Create large cluster (more than 4096 bytes)
+    cluster_data = b"X" * 5000
+
+    texture = cache._cluster_to_texture(cluster_data)
+
+    assert texture is not None
+    assert texture.shape == (32, 32, 4)
+    assert texture.nbytes == 4096
+
+
+def test_invalidate_cluster_removes_entry():
+    """Test that invalidating a cluster removes it from cache."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import ClusterLocation
+
+    cache = TextureCache()
+
+    # Add a fake cluster entry directly
+    from texture_cache import CachedTexture
+    import time
+
+    data = np.zeros((32, 32, 4), dtype=np.uint8)
+    texture = CachedTexture(
+        data=data,
+        width=32,
+        height=32,
+        path="cluster://100/200",
+        size_bytes=data.nbytes,
+        last_access=time.time()
+    )
+
+    cache_key = cache._cluster_cache_key(100, 200)
+    cache._cache[cache_key] = texture
+    cache._current_size_bytes += data.nbytes
+
+    assert cache.get_statistics()['entries'] == 1
+
+    # Invalidate cluster
+    cache.invalidate_cluster(100, 200)
+
+    assert cache.get_statistics()['entries'] == 0
+    assert cache_key not in cache._cache
+
+
+def test_invalidate_nonexistent_cluster():
+    """Test that invalidating non-existent cluster doesn't raise error."""
+    from texture_cache import TextureCache
+
+    cache = TextureCache()
+
+    # Should not raise
+    cache.invalidate_cluster(999, 999)
+
+    stats = cache.get_statistics()
+    assert stats['entries'] == 0
+
+
+def test_cluster_texture_checksum_generation():
+    """Test that cluster textures have valid checksums."""
+    from texture_cache import TextureCache
+
+    cache = TextureCache()
+
+    # Create test cluster data
+    cluster_data = bytes([i % 256 for i in range(4096)])
+    texture_data = cache._cluster_to_texture(cluster_data)
+
+    # Create texture to get checksum
+    from texture_cache import CachedTexture
+    import time
+
+    texture = CachedTexture(
+        data=texture_data,
+        width=32,
+        height=32,
+        path="cluster://test",
+        size_bytes=texture_data.nbytes,
+        last_access=time.time()
+    )
+
+    assert texture.checksum is not None
+    assert len(texture.checksum) == 64  # SHA256 hex length
+
+
+def test_cluster_texture_dimensions():
+    """Test that cluster textures are always 32x32."""
+    from texture_cache import TextureCache
+
+    cache = TextureCache()
+
+    # Test with various cluster sizes
+    test_cases = [
+        (b"", 0),           # Empty
+        (b"X" * 100, 100),  # Small
+        (b"X" * 4096, 4096),  # Exact size
+        (b"X" * 5000, 5000),  # Oversized
+    ]
+
+    for cluster_data, original_size in test_cases:
+        texture = cache._cluster_to_texture(cluster_data)
+
+        assert texture is not None
+        assert texture.shape == (32, 32, 4), f"Failed for size {original_size}"
+
+
+def test_cluster_to_texture_preserves_data():
+    """Test that cluster data is preserved in texture."""
+    from texture_cache import TextureCache
+
+    cache = TextureCache()
+
+    # Create patterned cluster data
+    cluster_data = bytes([i % 256 for i in range(4096)])
+    texture = cache._cluster_to_texture(cluster_data)
+
+    # Convert back to bytes and verify
+    texture_bytes = texture.tobytes()
+
+    # First 4096 bytes should match
+    for i in range(4096):
+        assert texture_bytes[i] == cluster_data[i], f"Mismatch at index {i}"
+
+
+def test_cluster_cache_key_uniqueness():
+    """Test that different cluster coordinates produce unique keys."""
+    from texture_cache import TextureCache
+
+    cache = TextureCache()
+
+    keys = set()
+    for x in range(10):
+        for y in range(10):
+            key = cache._cluster_cache_key(x, y)
+            keys.add(key)
+
+    # Should have 100 unique keys
+    assert len(keys) == 100
+
+
+def test_cluster_cache_key_format_consistency():
+    """Test that cache key format is consistent."""
+    from texture_cache import TextureCache
+
+    cache = TextureCache()
+
+    # Test that the format is predictable
+    key = cache._cluster_cache_key(123, 456)
+
+    assert key.startswith("cluster:")
+    assert ":123:" in key
+    assert key.endswith("456")
+
+
+def test_cluster_texture_rgba_order():
+    """Test that cluster data is correctly mapped to RGBA channels."""
+    from texture_cache import TextureCache
+
+    cache = TextureCache()
+
+    # Create cluster where each byte is its index (mod 256)
+    cluster_data = bytes([i % 256 for i in range(4096)])
+    texture = cache._cluster_to_texture(cluster_data)
+
+    # First pixel should be [0, 1, 2, 3] (R, G, B, A)
+    first_pixel = texture[0, 0]
+    assert tuple(first_pixel) == (0, 1, 2, 3)
+
+    # Second pixel should be [4, 5, 6, 7]
+    second_pixel = texture[0, 1]
+    assert tuple(second_pixel) == (4, 5, 6, 7)
+
+
+# ============================================================================
+# Integration Tests with InfiniteMapBuilder
+# ============================================================================
+
+def test_get_cluster_texture_from_infinite_map():
+    """Test get_cluster_texture method with mock infinite map."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import ClusterLocation
+
+    # Create cache
+    cache = TextureCache(max_size_mb=1, max_entries=10)
+
+    # Create mock infinite map
+    class MockInfiniteMap:
+        def _read_cluster_raw(self, cluster):
+            # Return predictable 4KB data
+            return bytes([((cluster.x + cluster.y + i) % 256) for i in range(4096)])
+
+    mock_map = MockInfiniteMap()
+    cluster = ClusterLocation(100, 200)
+
+    # Get cluster texture (cache miss)
+    texture = cache.get_cluster_texture(cluster, mock_map)
+
+    assert texture is not None
+    assert texture.width == 32
+    assert texture.height == 32
+    assert texture.data.shape == (32, 32, 4)
+    assert texture.from_cache is False
+
+    # Verify checksum
+    assert texture.checksum is not None
+    assert len(texture.checksum) == 64
+
+    # Get same cluster again (cache hit)
+    texture2 = cache.get_cluster_texture(cluster, mock_map)
+
+    assert texture2 is not None
+    assert texture2.from_cache is True
+    assert texture2.access_count == 2
+
+    # Verify cache statistics
+    stats = cache.get_statistics()
+    assert stats['hits'] == 1
+    assert stats['misses'] == 1
+
+
+def test_get_cluster_texture_cache_hit():
+    """Test that cache hits work correctly for cluster textures."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import ClusterLocation
+
+    cache = TextureCache()
+
+    class MockInfiniteMap:
+        def __init__(self):
+            self.read_count = 0
+
+        def _read_cluster_raw(self, cluster):
+            self.read_count += 1
+            return bytes([i % 256 for i in range(4096)])
+
+    mock_map = MockInfiniteMap()
+    cluster = ClusterLocation(50, 75)
+
+    # First access - reads from map
+    texture1 = cache.get_cluster_texture(cluster, mock_map)
+    assert texture1.from_cache is False
+    assert mock_map.read_count == 1
+
+    # Second access - cache hit
+    texture2 = cache.get_cluster_texture(cluster, mock_map)
+    assert texture2.from_cache is True
+    assert mock_map.read_count == 1  # Should not increment
+
+    # Third access - still cache hit
+    texture3 = cache.get_cluster_texture(cluster, mock_map)
+    assert texture3.from_cache is True
+    assert texture3.access_count == 3
+
+
+def test_invalidate_cluster_works():
+    """Test that invalidate_cluster removes cluster from cache."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import ClusterLocation
+
+    cache = TextureCache()
+
+    class MockInfiniteMap:
+        def _read_cluster_raw(self, cluster):
+            return bytes([i % 256 for i in range(4096)])
+
+    mock_map = MockInfiniteMap()
+    cluster = ClusterLocation(10, 20)
+
+    # Load cluster
+    texture1 = cache.get_cluster_texture(cluster, mock_map)
+    assert texture1 is not None
+
+    stats_before = cache.get_statistics()
+    assert stats_before['entries'] == 1
+
+    # Invalidate cluster
+    cache.invalidate_cluster(10, 20)
+
+    stats_after = cache.get_statistics()
+    assert stats_after['entries'] == 0
+
+    # Load again should be cache miss
+    texture2 = cache.get_cluster_texture(cluster, mock_map)
+    assert texture2.from_cache is False
+
+
+def test_multiple_clusters_in_cache():
+    """Test that multiple clusters can be cached simultaneously."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import ClusterLocation
+
+    cache = TextureCache()
+
+    class MockInfiniteMap:
+        def _read_cluster_raw(self, cluster):
+            # Unique data per cluster
+            seed = (cluster.x << 16) | cluster.y
+            return bytes([((seed + i) % 256) for i in range(4096)])
+
+    mock_map = MockInfiniteMap()
+
+    # Load multiple clusters
+    clusters = [
+        ClusterLocation(0, 0),
+        ClusterLocation(100, 100),
+        ClusterLocation(500, 500),
+        ClusterLocation(1024, 1024),
+    ]
+
+    for cluster in clusters:
+        texture = cache.get_cluster_texture(cluster, mock_map)
+        assert texture is not None
+        assert texture.from_cache is False
+
+    stats = cache.get_statistics()
+    assert stats['entries'] == 4
+    assert stats['misses'] == 4
+
+    # Access all again - all should hit
+    for cluster in clusters:
+        texture = cache.get_cluster_texture(cluster, mock_map)
+        assert texture.from_cache is True
+
+    stats = cache.get_statistics()
+    assert stats['hits'] == 4
+
+
+def test_cluster_texture_lru_eviction():
+    """Test that LRU eviction works for cluster textures."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import ClusterLocation
+
+    # Small cache to trigger eviction
+    cache = TextureCache(max_size_mb=0.01, max_entries=2)
+
+    class MockInfiniteMap:
+        def _read_cluster_raw(self, cluster):
+            return bytes([i % 256 for i in range(4096)])
+
+    mock_map = MockInfiniteMap()
+
+    # Load 3 clusters (should evict one)
+    cluster1 = ClusterLocation(0, 0)
+    cluster2 = ClusterLocation(1, 1)
+    cluster3 = ClusterLocation(2, 2)
+
+    cache.get_cluster_texture(cluster1, mock_map)
+    cache.get_cluster_texture(cluster2, mock_map)
+    cache.get_cluster_texture(cluster3, mock_map)  # Should trigger eviction
+
+    stats = cache.get_statistics()
+    assert stats['evictions'] > 0
+    assert stats['entries'] <= 2
+
+
+def test_cluster_texture_none_on_error():
+    """Test that None is returned when cluster read fails."""
+    from texture_cache import TextureCache
+    from infinite_map_v2 import ClusterLocation
+
+    cache = TextureCache()
+
+    class MockInfiniteMap:
+        def _read_cluster_raw(self, cluster):
+            return None  # Simulate read failure
+
+    mock_map = MockInfiniteMap()
+    cluster = ClusterLocation(999, 999)
+
+    texture = cache.get_cluster_texture(cluster, mock_map)
+
+    assert texture is None
+
+    # Should count as a miss
+    stats = cache.get_statistics()
+    assert stats['misses'] == 1

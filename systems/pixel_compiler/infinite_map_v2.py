@@ -21,10 +21,9 @@ import json
 import math
 import random
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Set
+from typing import Dict, List, Tuple, Optional, TYPE_CHECKING
 from datetime import datetime
 from collections import defaultdict
-from dataclasses import dataclass, field
 import numpy as np
 
 # Add parent directory to path
@@ -52,435 +51,6 @@ ZONE_WARM = 1      # < 384 from center
 ZONE_TEMPERATE = 2  # < 768 from center
 ZONE_COOL = 3      # < 1536 from center
 ZONE_COLD = 4      # < 2048 from center (edges)
-
-
-# ============================================================================
-# MEMORY PROTECTION CONSTANTS (Phase 1, Task 3)
-# ============================================================================
-
-# Violation types
-VIOLATION_NONE = 0
-VIOLATION_READ_ONLY = 1
-VIOLATION_OUT_OF_BOUNDS = 2
-VIOLATION_ISOLATION = 3
-
-# Protection flags
-FLAG_READ_ONLY = 1       # Region is read-only
-FLAG_EXECUTABLE = 2      # Region is executable
-FLAG_ISOLATED = 4        # Region is isolated
-FLAG_KERNEL = 8          # Kernel memory (privileged)
-FLAG_DMA_CAPABLE = 16    # Can perform DMA
-
-
-# ============================================================================
-# MEMORY PROTECTION CLASSES (Phase 1, Task 3)
-# ============================================================================
-
-@dataclass
-class ProtectionResult:
-    """
-    Result of a memory protection check.
-
-    Attributes:
-        valid: True if access is allowed, False otherwise
-        violation_type: Type of violation (VIOLATION_* constant)
-        address: The address being accessed
-        expected_bound: Expected boundary value (optional)
-        actual_value: Actual value that caused violation (optional)
-        region: The ProtectedRegion involved (optional)
-    """
-    valid: bool
-    violation_type: int
-    address: int
-    expected_bound: Optional[int] = None
-    actual_value: Optional[int] = None
-    region: Optional['ProtectedRegion'] = None
-
-
-class ProtectedRegion:
-    """
-    A protected memory region with bounds and access flags.
-
-    Attributes:
-        x: X coordinate of region origin
-        y: Y coordinate of region origin
-        width: Width of region in pixels
-        height: Height of region in pixels
-        flags: Protection flags (bitfield of FLAG_* constants)
-        owner: Owner identifier (string)
-    """
-
-    def __init__(
-        self,
-        x: int,
-        y: int,
-        width: int,
-        height: int,
-        flags: int,
-        owner: str
-    ):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.flags = flags
-        self.owner = owner
-
-    def contains(self, x: int, y: int) -> bool:
-        """
-        Check if a point (x, y) is within this region.
-
-        Args:
-            x: X coordinate to check
-            y: Y coordinate to check
-
-        Returns:
-            True if point is within region bounds, False otherwise
-        """
-        x_valid = x >= self.x and x < (self.x + self.width)
-        y_valid = y >= self.y and y < (self.y + self.height)
-        return x_valid and y_valid
-
-    @property
-    def read_only(self) -> bool:
-        """
-        Check if region is read-only.
-
-        Returns:
-            True if FLAG_READ_ONLY bit is set, False otherwise
-        """
-        return (self.flags & FLAG_READ_ONLY) != 0
-
-    @property
-    def executable(self) -> bool:
-        """
-        Check if region is executable.
-
-        Returns:
-            True if FLAG_EXECUTABLE bit is set, False otherwise
-        """
-        return (self.flags & FLAG_EXECUTABLE) != 0
-
-    @property
-    def isolated(self) -> bool:
-        """
-        Check if region is isolated.
-
-        Returns:
-            True if FLAG_ISOLATED bit is set, False otherwise
-        """
-        return (self.flags & FLAG_ISOLATED) != 0
-
-    @property
-    def kernel(self) -> bool:
-        """
-        Check if region is kernel memory.
-
-        Returns:
-            True if FLAG_KERNEL bit is set, False otherwise
-        """
-        return (self.flags & FLAG_KERNEL) != 0
-
-    def __repr__(self) -> str:
-        """String representation of protected region."""
-        flags_str = []
-        if self.read_only:
-            flags_str.append("RO")
-        if self.executable:
-            flags_str.append("EXEC")
-        if self.isolated:
-            flags_str.append("ISOLATED")
-        if self.kernel:
-            flags_str.append("KERNEL")
-
-        flags_display = ",".join(flags_str) if flags_str else "RW"
-        return f"ProtectedRegion(x={self.x}, y={self.y}, {self.width}x{self.height}, {flags_display}, owner='{self.owner}')"
-
-
-class MemoryProtectionValidator:
-    """
-    Python-side memory protection validator.
-
-    Provides validation for memory accesses matching the GPU shader
-    logic in memory_protection.wgsl.
-
-    Features:
-        - Bounds checking for grid access
-        - Read-only protection enforcement
-        - Region isolation for multi-process safety
-        - Violation tracking and reporting
-
-    Usage:
-        validator = MemoryProtectionValidator(grid_size=2048)
-        validator.add_protected_region(0, 0, 256, 256, read_only=True, owner="kernel")
-
-        result = validator.check_bounds(100, 100)
-        if not result.valid:
-            print(f"Access denied: {result.violation_type}")
-    """
-
-    def __init__(self, grid_size: int):
-        """
-        Initialize memory protection validator.
-
-        Args:
-            grid_size: Size of spatial grid (width = height)
-        """
-        self.grid_size = grid_size
-        self.protected_regions: List[ProtectedRegion] = []
-        self.violations: List[ProtectionResult] = []
-
-    def add_protected_region(
-        self,
-        x: int,
-        y: int,
-        width: int,
-        height: int,
-        read_only: bool = False,
-        owner: str = "unknown"
-    ) -> ProtectedRegion:
-        """
-        Add a protected memory region.
-
-        Args:
-            x: X coordinate of region origin
-            y: Y coordinate of region origin
-            width: Width of region in pixels
-            height: Height of region in pixels
-            read_only: Whether region is read-only
-            owner: Owner identifier
-
-        Returns:
-            The created ProtectedRegion object
-        """
-        flags = FLAG_READ_ONLY if read_only else 0
-
-        region = ProtectedRegion(
-            x=x,
-            y=y,
-            width=width,
-            height=height,
-            flags=flags,
-            owner=owner
-        )
-
-        self.protected_regions.append(region)
-        return region
-
-    def check_bounds(self, x: int, y: int) -> ProtectionResult:
-        """
-        Check if coordinates are within grid bounds.
-
-        Args:
-            x: X coordinate to check
-            y: Y coordinate to check
-
-        Returns:
-            ProtectionResult indicating if access is within bounds
-        """
-        # Convert to linear address for reporting
-        address = y * self.grid_size + x
-
-        # Check bounds
-        x_valid = 0 <= x < self.grid_size
-        y_valid = 0 <= y < self.grid_size
-
-        if x_valid and y_valid:
-            return ProtectionResult(
-                valid=True,
-                violation_type=VIOLATION_NONE,
-                address=address
-            )
-
-        # Out of bounds
-        return ProtectionResult(
-            valid=False,
-            violation_type=VIOLATION_OUT_OF_BOUNDS,
-            address=address,
-            expected_bound=self.grid_size - 1,
-            actual_value=max(x, y)
-        )
-
-    def check_write_permission(self, x: int, y: int) -> ProtectionResult:
-        """
-        Check if write access is allowed at coordinates.
-
-        Checks for read-only regions. Write access outside
-        any protected region is always allowed.
-
-        Args:
-            x: X coordinate to check
-            y: Y coordinate to check
-
-        Returns:
-            ProtectionResult indicating if write is allowed
-        """
-        address = y * self.grid_size + x
-
-        # Find if point is in any protected region
-        for region in self.protected_regions:
-            if region.contains(x, y):
-                if region.read_only:
-                    return ProtectionResult(
-                        valid=False,
-                        violation_type=VIOLATION_READ_ONLY,
-                        address=address,
-                        actual_value=region.flags,
-                        region=region
-                    )
-
-        # No protected region or writable region
-        return ProtectionResult(
-            valid=True,
-            violation_type=VIOLATION_NONE,
-            address=address
-        )
-
-    def check_cross_region_access(
-        self,
-        x: int,
-        y: int,
-        from_owner: str
-    ) -> ProtectionResult:
-        """
-        Check if cross-region access is allowed.
-
-        Enforces isolation by checking if requester
-        owns the region containing target coordinates.
-
-        Args:
-            x: X coordinate to access
-            y: Y coordinate to access
-            from_owner: Owner identifier making the request
-
-        Returns:
-            ProtectionResult indicating if access is allowed
-        """
-        address = y * self.grid_size + x
-
-        # Find if point is in any protected region
-        for region in self.protected_regions:
-            if region.contains(x, y):
-                # Check ownership
-                if region.owner != from_owner:
-                    return ProtectionResult(
-                        valid=False,
-                        violation_type=VIOLATION_ISOLATION,
-                        address=address,
-                        expected_bound=region.owner,
-                        actual_value=from_owner,
-                        region=region
-                    )
-
-        # No region conflict or outside all regions
-        return ProtectionResult(
-            valid=True,
-            violation_type=VIOLATION_NONE,
-            address=address
-        )
-
-    def validate_access(
-        self,
-        x: int,
-        y: int,
-        access_type: str = "read",
-        from_owner: str = "unknown"
-    ) -> ProtectionResult:
-        """
-        Perform comprehensive access validation.
-
-        Combines bounds checking, write permission checking,
-        and isolation checking.
-
-        Args:
-            x: X coordinate to access
-            y: Y coordinate to access
-            access_type: Type of access ("read" or "write")
-            from_owner: Owner identifier making the request
-
-        Returns:
-            ProtectionResult with full validation result
-        """
-        # Step 1: Check bounds first
-        bounds_result = self.check_bounds(x, y)
-        if not bounds_result.valid:
-            return bounds_result
-
-        # Step 2: Check write permissions for write access
-        if access_type.lower() == "write":
-            write_result = self.check_write_permission(x, y)
-            if not write_result.valid:
-                return write_result
-
-        # Step 3: Check isolation
-        isolation_result = self.check_cross_region_access(x, y, from_owner)
-        if not isolation_result.valid:
-            return isolation_result
-
-        # All checks passed
-        address = y * self.grid_size + x
-        return ProtectionResult(
-            valid=True,
-            violation_type=VIOLATION_NONE,
-            address=address
-        )
-
-    def get_violations(self) -> List[ProtectionResult]:
-        """
-        Get all recorded violations.
-
-        Returns:
-            List of ProtectionResult objects for violations
-        """
-        return self.violations.copy()
-
-    def clear_violations(self) -> None:
-        """Clear all recorded violations."""
-        self.violations.clear()
-
-    def get_region_at(self, x: int, y: int) -> Optional[ProtectedRegion]:
-        """
-        Find protected region containing coordinates.
-
-        Args:
-            x: X coordinate
-            y: Y coordinate
-
-        Returns:
-            First ProtectedRegion containing point, or None
-        """
-        for region in self.protected_regions:
-            if region.contains(x, y):
-                return region
-        return None
-
-    def get_regions_by_owner(self, owner: str) -> List[ProtectedRegion]:
-        """
-        Get all regions owned by a specific owner.
-
-        Args:
-            owner: Owner identifier
-
-        Returns:
-            List of ProtectedRegion objects owned by specified owner
-        """
-        return [r for r in self.protected_regions if r.owner == owner]
-
-    def remove_region(self, region: ProtectedRegion) -> bool:
-        """
-        Remove a protected region.
-
-        Args:
-            region: The ProtectedRegion to remove
-
-        Returns:
-            True if region was found and removed, False otherwise
-        """
-        try:
-            self.protected_regions.remove(region)
-            return True
-        except ValueError:
-            return False
 
 
 class ClusterLocation:
@@ -875,6 +445,13 @@ class AIPlacerV2:
         self.center = ClusterLocation(grid_size // 2, grid_size // 2)
         self.importance_overrides = importance_overrides or {}
 
+        # Compute zone thresholds dynamically based on grid size
+        self.zone_hot_threshold = grid_size // 64
+        self.zone_warm_threshold = grid_size * 3 // 64
+        self.zone_temperate_threshold = grid_size // 16
+        self.zone_cool_threshold = grid_size // 8
+        self.zone_cold_threshold = grid_size * 3 // 8
+
         # Create or store reference to VAT
         if vat is None:
             self.vat = VisualAllocationTable(grid_size)
@@ -1021,13 +598,13 @@ class AIPlacerV2:
 
     def _get_zone_from_distance(self, dist: float) -> int:
         """Get zone from distance from center."""
-        if dist < 128:
+        if dist < self.zone_hot_threshold:
             return ZONE_HOT
-        elif dist < 384:
+        elif dist < self.zone_warm_threshold:
             return ZONE_WARM
-        elif dist < 768:
+        elif dist < self.zone_temperate_threshold:
             return ZONE_TEMPERATE
-        elif dist < 1536:
+        elif dist < self.zone_cool_threshold:
             return ZONE_COOL
         else:
             return ZONE_COLD
@@ -1096,6 +673,9 @@ class InfiniteMapBuilderV2:
         order = int(math.log2(grid_size))
         self.hilbert = HilbertCurve(order=order)
         self.hilbert_lut = self.hilbert.generate_lut()
+
+        # For reading clusters from built image (for cache integration)
+        self._built_pixel_array: Optional[bytearray] = None
 
     def analyze_source(self) -> Dict:
         """Analyze source directory structure."""
@@ -1443,6 +1023,9 @@ class InfiniteMapBuilderV2:
         print(f"  Grid capacity: {self.grid_size * self.grid_size * 4} bytes")
         print(f"  Space efficiency: {efficiency:.1f}%")
 
+        # Store pixel array for cluster reading
+        self._built_pixel_array = pixel_array
+
         return {
             'path': self.output_path,
             'data_size': final_size,
@@ -1450,6 +1033,54 @@ class InfiniteMapBuilderV2:
             'grid_size': self.grid_size,
             'files': len(vat.entries)
         }
+
+    def _read_cluster_raw(self, cluster: ClusterLocation) -> Optional[bytes]:
+        """
+        Read raw 4KB cluster data from the built infinite map.
+
+        This method is used by TextureCache to retrieve cluster data
+        for texture generation.
+
+        Args:
+            cluster: ClusterLocation with (x, y) coordinates
+
+        Returns:
+            4096 bytes of cluster data, or None if cluster not found
+        """
+        if self._built_pixel_array is None:
+            # No image built yet - try to load from file
+            if not Path(self.output_path).exists():
+                return None
+
+            try:
+                from PIL import Image
+                img = Image.open(self.output_path)
+                if img.mode != 'RGBA':
+                    img = img.convert('RGBA')
+
+                img_array = np.array(img, dtype=np.uint8)
+                self._built_pixel_array = bytearray(img_array.tobytes())
+            except Exception:
+                return None
+
+        # Calculate linear index for cluster start
+        # Cluster is 4KB at cluster's Hilbert position
+        linear_idx = cluster.to_linear_index(self.grid_size)
+
+        # Each pixel is 4 bytes, so cluster starts at offset
+        cluster_start = linear_idx * 4
+
+        # Read 4KB (4096 bytes)
+        if cluster_start + 4096 > len(self._built_pixel_array):
+            # Cluster extends beyond image - pad with zeros
+            remaining = len(self._built_pixel_array) - cluster_start
+            if remaining <= 0:
+                return None
+            cluster_data = bytes(self._built_pixel_array[cluster_start:]) + b'\x00' * (4096 - remaining)
+        else:
+            cluster_data = bytes(self._built_pixel_array[cluster_start:cluster_start + 4096])
+
+        return cluster_data
 
     def build(self) -> Dict:
         """Build infinite map image with true spatial storage."""
