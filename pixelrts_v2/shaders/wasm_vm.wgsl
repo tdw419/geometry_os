@@ -1491,28 +1491,52 @@ fn execute_instruction(opcode: u32, pc_ptr: ptr<function, u32>) -> bool {
             let reserved = read_u32_leb128(pc_ptr); // Table index (always 0 for MVP)
             let func_index = pop_value();
 
-            // Type checking would happen here in a full implementation
-            // For now, we'll do basic bounds checking
-            if func_index < 10u {
-                // Host function call (same as OP_CALL)
-                let call_index = atomicAdd(&call_sp, 1u);
-                if call_index < 64u {
-                    call_stack[call_index] = CallFrame(
-                        *pc_ptr,
-                        atomicLoad(&locals_offset),
-                        0u
-                    );
-                }
-                // Jump to function (simplified - would need proper function table)
+            // Check if this is a host function call (func_index < 3)
+            if func_index == HOST_READ_REGION {
+                // host_read_region(x, y, width, height, data_pointer)
+                let data_pointer = pop_value();
+                let height = pop_value();
+                let width = pop_value();
+                let y = pop_value();
+                let x = pop_value();
+                host_read_region(x, y, width, height, data_pointer);
+            } else if func_index == HOST_WRITE_REGION {
+                // host_write_region(x, y, width, height, data_pointer)
+                let data_pointer = pop_value();
+                let height = pop_value();
+                let width = pop_value();
+                let y = pop_value();
+                let x = pop_value();
+                host_write_region(x, y, width, height, data_pointer);
+            } else if func_index == HOST_GET_DIMENSIONS {
+                // host_get_dimensions() - returns width, height on stack
+                let dims = host_get_dimensions();
+                push_value(dims.y);  // Height pushed second (on top)
+                push_value(dims.x);  // Width pushed first
             } else {
-                // Regular function call (simplified)
-                let call_index = atomicAdd(&call_sp, 1u);
-                if call_index < 64u {
-                    call_stack[call_index] = CallFrame(
-                        *pc_ptr,
-                        atomicLoad(&locals_offset),
-                        0u
-                    );
+                // Type checking would happen here in a full implementation
+                // For now, we'll do basic bounds checking for regular functions
+                if func_index < 10u {
+                    // Host function call (same as OP_CALL)
+                    let call_index = atomicAdd(&call_sp, 1u);
+                    if call_index < 64u {
+                        call_stack[call_index] = CallFrame(
+                            *pc_ptr,
+                            atomicLoad(&locals_offset),
+                            0u
+                        );
+                    }
+                    // Jump to function (simplified - would need proper function table)
+                } else {
+                    // Regular function call (simplified)
+                    let call_index = atomicAdd(&call_sp, 1u);
+                    if call_index < 64u {
+                        call_stack[call_index] = CallFrame(
+                            *pc_ptr,
+                            atomicLoad(&locals_offset),
+                            0u
+                        );
+                    }
                 }
             }
         }
@@ -2142,8 +2166,102 @@ fn execute_instruction(opcode: u32, pc_ptr: ptr<function, u32>) -> bool {
             return false;
         }
     }
-    
+
     return true;
+}
+
+// ============================================
+// HOST FUNCTIONS (FFI)
+// ============================================
+
+// Host function indices (used with call_indirect)
+const HOST_READ_REGION: u32 = 0u;
+const HOST_WRITE_REGION: u32 = 1u;
+const HOST_GET_DIMENSIONS: u32 = 2u;
+
+// read_region(x, y, width, height, data_pointer)
+// Reads pixels from spatial_texture and writes to linear_memory
+fn host_read_region(x: u32, y: u32, width: u32, height: u32, data_pointer: u32) {
+    // Validate parameters
+    if width == 0u || height == 0u {
+        return;  // Zero-size region, nothing to do
+    }
+
+    let dims = textureDimensions(spatial_texture);
+    let tex_width = dims.x;
+    let tex_height = dims.y;
+
+    // Clamp region to texture bounds
+    let read_width = min(width, tex_width - min(x, tex_width));
+    let read_height = min(height, tex_height - min(y, tex_height));
+
+    // Read pixels and write to linear memory
+    for (py = 0u; py < read_height; py++) {
+        for (px = 0u; px < read_width; px++) {
+            let tex_x = min(x + px, tex_width - 1u);
+            let tex_y = min(y + py, tex_height - 1u);
+
+            // Sample texture (RGBA, normalized 0-1)
+            let texel = textureLoad(spatial_texture, vec2<i32>(i32(tex_x), i32(tex_y)), 0);
+
+            // Convert to 8-bit per channel and pack as u32
+            let r = u32(texel.r * 255.0);
+            let g = u32(texel.g * 255.0);
+            let b = u32(texel.b * 255.0);
+            let a = u32(texel.a * 255.0);
+            let pixel = (a << 24u) | (b << 16u) | (g << 8u) | r;
+
+            // Write to linear memory (4 bytes per pixel)
+            let pixel_index = (py * width + px);
+            let mem_offset = data_pointer + pixel_index;
+            let word_index = mem_offset / 4u;
+
+            if word_index < arrayLength(&linear_memory) {
+                linear_memory[word_index] = pixel;
+            }
+        }
+    }
+}
+
+// write_region(x, y, width, height, data_pointer)
+// Reads pixel data from linear_memory and writes to output_buffer
+fn host_write_region(x: u32, y: u32, width: u32, height: u32, data_pointer: u32) {
+    // Validate parameters
+    if width == 0u || height == 0u {
+        return;  // Zero-size region, nothing to do
+    }
+
+    // Write header to output buffer: x, y, width, height
+    let out_idx = atomicAdd(&output_index_counter, 4u);
+    if out_idx + 4u <= arrayLength(&output_buffer) {
+        output_buffer[out_idx] = x;
+        output_buffer[out_idx + 1u] = y;
+        output_buffer[out_idx + 2u] = width;
+        output_buffer[out_idx + 3u] = height;
+    }
+
+    // Write pixel data to output buffer
+    let pixel_count = width * height;
+    for (i = 0u; i < pixel_count; i++) {
+        let mem_offset = data_pointer + i;
+        let word_index = mem_offset / 4u;
+
+        if word_index < arrayLength(&linear_memory) {
+            let pixel = linear_memory[word_index];
+            let write_idx = atomicAdd(&output_index_counter, 1u);
+
+            if write_idx < arrayLength(&output_buffer) {
+                output_buffer[write_idx] = pixel;
+            }
+        }
+    }
+}
+
+// get_dimensions()
+// Returns texture dimensions (width, height) as two values on stack
+fn host_get_dimensions() -> vec2<u32> {
+    let dims = textureDimensions(spatial_texture);
+    return vec2<u32>(dims.x, dims.y);
 }
 
 // ============================================
