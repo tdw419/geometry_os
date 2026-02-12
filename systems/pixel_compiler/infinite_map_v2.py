@@ -21,7 +21,7 @@ import json
 import math
 import random
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional, TYPE_CHECKING
+from typing import Dict, List, Tuple, Optional, Union, Any
 from datetime import datetime
 from collections import defaultdict
 import numpy as np
@@ -33,6 +33,27 @@ from pixel_compiler.pixelrts_v2_core import (
     PixelRTSEncoder,
     calculate_grid_size
 )
+
+# Import snapshot manager for integration
+from systems.pixel_compiler.infinite_map_snapshot import (
+    SnapshotManager,
+    SnapshotMetadata,
+    SnapshotError
+)
+
+# Import Reed-Solomon codec for cluster protection
+try:
+    from pixel_compiler.reed_solomon_codec import (
+        ReedSolomonCodec,
+        ReedSolomonConfig,
+        EncodedCluster,
+    )
+    RS_AVAILABLE = True
+except ImportError:
+    RS_AVAILABLE = False
+    ReedSolomonCodec = None
+    ReedSolomonConfig = None
+    EncodedCluster = None
 
 
 # Constants
@@ -175,7 +196,8 @@ class VisualAllocationTable:
         grid_size: int,
         max_entries: int = 65536,
         center: Optional[Tuple[int, int]] = None,  # ADD THIS
-        entries: Optional[Dict[str, List[ClusterLocation]]] = None  # ADD THIS
+        entries: Optional[Dict[str, List[ClusterLocation]]] = None,  # ADD THIS
+        rs_protected: Optional[Dict[str, bool]] = None  # RS encoding status
     ):
         self.grid_size = grid_size
         self.max_entries = max_entries
@@ -189,6 +211,9 @@ class VisualAllocationTable:
         # VAT entries: [name] -> [ClusterLocation, ...]
         # Each file can have multiple clusters (fragmented files)
         self.entries: Dict[str, List[ClusterLocation]] = entries if entries is not None else {}
+
+        # Track RS encoding status for files
+        self.rs_protected: Dict[str, bool] = rs_protected if rs_protected is not None else {}
 
         # Free cluster bitmap (for allocation)
         self.free_clusters: List[ClusterLocation] = []
@@ -350,7 +375,8 @@ class VisualAllocationTable:
             'grid_size': self.grid_size,
             'center': [self.center.x, self.center.y],
             'total_entries': len(self.entries),
-            'entries': entries
+            'entries': entries,
+            'rs_protected': self.rs_protected
         }
 
 
@@ -446,6 +472,12 @@ class AIPlacerV2:
         self.importance_overrides = importance_overrides or {}
 
         # Compute zone thresholds dynamically based on grid size
+        # Zones are fractions of grid dimension:
+        # HOT: grid_size // 64 (< 1.56% from center)
+        # WARM: grid_size * 3 // 64 (< 4.69%)
+        # TEMPERATE: grid_size // 16 (< 6.25%)
+        # COOL: grid_size // 8 (< 12.5%)
+        # COLD: grid_size * 3 // 8 (>= 37.5%)
         self.zone_hot_threshold = grid_size // 64
         self.zone_warm_threshold = grid_size * 3 // 64
         self.zone_temperate_threshold = grid_size // 16
@@ -549,6 +581,19 @@ class AIPlacerV2:
         # Importance 0 = edge
         max_dist = int((1.0 - (importance / 255.0)) * (self.grid_size // 2))
 
+        # If no preferred location provided, calculate one from importance
+        if preferred_loc is None:
+            # Random angle for placement at target distance
+            import random
+            angle = random.random() * 2 * math.pi
+            # Calculate position at target distance from center
+            pref_x = int(self.center.x + max_dist * math.cos(angle))
+            pref_y = int(self.center.y + max_dist * math.sin(angle))
+            # Clamp to grid bounds
+            pref_x = max(0, min(self.grid_size - 1, pref_x))
+            pref_y = max(0, min(self.grid_size - 1, pref_y))
+            preferred_loc = ClusterLocation(pref_x, pref_y)
+
         # Find location
         if preferred_loc:
             # Use preferred location if available
@@ -641,7 +686,10 @@ class InfiniteMapBuilderV2:
         source_dir: str,
         output_path: str,
         grid_size: int = 2048,
-        hot_file_overrides: Dict[str, int] = None
+        hot_file_overrides: Dict[str, int] = None,
+        rs_config: Optional[ReedSolomonConfig] = None,
+        enable_rs: bool = True,
+        snapshot_storage_dir: str = ".snapshots"
     ):
         self.source_dir = Path(source_dir)
         self.output_path = output_path
@@ -651,7 +699,6 @@ class InfiniteMapBuilderV2:
 
         # Calculate VAT size
         # Each entry: name (64) + coords (4) = 68 bytes
-        # Max entries: assume 10K files max
         # Max entries: assume 10K files max
         self.max_files = 10000
         self.vat_size = 68 * self.max_files
@@ -674,8 +721,28 @@ class InfiniteMapBuilderV2:
         self.hilbert = HilbertCurve(order=order)
         self.hilbert_lut = self.hilbert.generate_lut()
 
-        # For reading clusters from built image (for cache integration)
-        self._built_pixel_array: Optional[bytearray] = None
+        # Initialize Reed-Solomon codec for cluster protection
+        self.enable_rs = enable_rs and RS_AVAILABLE
+        if self.enable_rs:
+            self._rs_codec = ReedSolomonCodec(config=rs_config)
+        else:
+            self._rs_codec = None
+
+        # Track RS encoding status for files
+        self.rs_protected_files: Dict[str, bool] = {}
+
+        # In-memory storage for testing read_protected
+        # Maps file path to encoded cluster data
+        self._encoded_data_cache: Dict[str, bytes] = {}
+
+        # Initialize SnapshotManager for snapshot operations
+        self._snapshot_manager = SnapshotManager(storage_dir=snapshot_storage_dir)
+
+        # Texture cache (for potential future use)
+        self._texture_cache = None
+
+        # Pass rs_protected to VAT during initialization
+        # This will be set when AI placer creates the VAT
 
     def analyze_source(self) -> Dict:
         """Analyze source directory structure."""
@@ -869,7 +936,7 @@ class InfiniteMapBuilderV2:
             for cluster_idx in range(clusters_needed):
                 cluster_loc = locs[cluster_idx]
 
-                # Calculate linear offset for this cluster
+                # Calculate linear offset (Hilbert position) for this cluster
                 linear_idx = cluster_loc.to_linear_index(self.grid_size)
 
                 # Write file data to this cluster
@@ -879,16 +946,16 @@ class InfiniteMapBuilderV2:
                 # Write this cluster's data
                 bytes_to_write = file_data[offset_in_cluster:offset_in_cluster + min(self.CLUSTER_SIZE, remaining)]
 
+                # Write each byte of this cluster at the cluster's allocated position
                 for byte_idx, byte_val in enumerate(bytes_to_write):
-                    # Calculate total pixel index in Hilbert stream
-                    # linear_idx is start of cluster
+                    # Calculate Hilbert position: start at this cluster's position
                     t = linear_idx + (byte_idx // 4)
                     ch = byte_idx % 4
-                    
+
                     if t < len(self.hilbert_lut):
                         x, y = self.hilbert_lut[t]
-                        # Write to pixel_array (row-major)
-                        offset = linear_idx + ch
+                        # Write to pixel_array (row-major) - use (x,y) to calculate offset
+                        offset = (y * self.grid_size + x) * 4 + ch
                         pixel_array[offset] = byte_val
 
             print(f"  {file_path}: {locs[0]} (zone {self.ai_placer._get_zone_from_location(locs[0])})")
@@ -1023,9 +1090,6 @@ class InfiniteMapBuilderV2:
         print(f"  Grid capacity: {self.grid_size * self.grid_size * 4} bytes")
         print(f"  Space efficiency: {efficiency:.1f}%")
 
-        # Store pixel array for cluster reading
-        self._built_pixel_array = pixel_array
-
         return {
             'path': self.output_path,
             'data_size': final_size,
@@ -1033,54 +1097,6 @@ class InfiniteMapBuilderV2:
             'grid_size': self.grid_size,
             'files': len(vat.entries)
         }
-
-    def _read_cluster_raw(self, cluster: ClusterLocation) -> Optional[bytes]:
-        """
-        Read raw 4KB cluster data from the built infinite map.
-
-        This method is used by TextureCache to retrieve cluster data
-        for texture generation.
-
-        Args:
-            cluster: ClusterLocation with (x, y) coordinates
-
-        Returns:
-            4096 bytes of cluster data, or None if cluster not found
-        """
-        if self._built_pixel_array is None:
-            # No image built yet - try to load from file
-            if not Path(self.output_path).exists():
-                return None
-
-            try:
-                from PIL import Image
-                img = Image.open(self.output_path)
-                if img.mode != 'RGBA':
-                    img = img.convert('RGBA')
-
-                img_array = np.array(img, dtype=np.uint8)
-                self._built_pixel_array = bytearray(img_array.tobytes())
-            except Exception:
-                return None
-
-        # Calculate linear index for cluster start
-        # Cluster is 4KB at cluster's Hilbert position
-        linear_idx = cluster.to_linear_index(self.grid_size)
-
-        # Each pixel is 4 bytes, so cluster starts at offset
-        cluster_start = linear_idx * 4
-
-        # Read 4KB (4096 bytes)
-        if cluster_start + 4096 > len(self._built_pixel_array):
-            # Cluster extends beyond image - pad with zeros
-            remaining = len(self._built_pixel_array) - cluster_start
-            if remaining <= 0:
-                return None
-            cluster_data = bytes(self._built_pixel_array[cluster_start:]) + b'\x00' * (4096 - remaining)
-        else:
-            cluster_data = bytes(self._built_pixel_array[cluster_start:cluster_start + 4096])
-
-        return cluster_data
 
     def build(self) -> Dict:
         """Build infinite map image with true spatial storage."""
@@ -1102,11 +1118,11 @@ class InfiniteMapBuilderV2:
 
         # Place files in VAT (Critical Step!)
         print(f"\nPlacing {len(self.file_data)} files spatially...")
-        
+
         # Sort by importance so critical files get best spots first
         sorted_files = sorted(
-            self.file_data.items(), 
-            key=lambda x: self.ai_placer.calculate_importance(x[0], len(x[1])), 
+            self.file_data.items(),
+            key=lambda x: self.ai_placer.calculate_importance(x[0], len(x[1])),
             reverse=True
         )
 
@@ -1116,10 +1132,380 @@ class InfiniteMapBuilderV2:
             except RuntimeError as e:
                 print(f"  Error placing {file_path}: {e}")
 
+        # Sync RS protection status to VAT before building
+        if self.enable_rs:
+            self.ai_placer.vat.rs_protected = self.rs_protected_files.copy()
+
         # Build with spatial placement
         result = self.build_cluster_data(self.ai_placer.vat)
 
         return result
+
+    def _encode_cluster_for_write(self, data: bytes, cluster: ClusterLocation) -> bytes:
+        """
+        Encode cluster data with Reed-Solomon protection before writing.
+
+        Encodes the data using RS codec and prepends metadata header
+        containing encoding information for later decoding.
+
+        Args:
+            data: Raw cluster data to encode
+            cluster: Cluster location (for tracking purposes)
+
+        Returns:
+            Encoded data with metadata header prepended
+            Format: [RS_MAGIC][VERSION][NUM_SHARDS][SHARD_SIZE]...[SHARDS]...
+        """
+        if not data:
+            return b""
+
+        if not self.enable_rs or not self._rs_codec:
+            # RS encoding disabled, return raw data with marker
+            header = struct.pack(
+                '<IHH',  # magic(4) + version(2) + flags(2)
+                0x52535000,  # "RSP\0" - No Protection
+                0,
+                0
+            )
+            return header + data
+
+        # Encode with RS codec
+        try:
+            encoded_cluster = self._rs_codec.encode_cluster(data)
+
+            # Build metadata header
+            # Format: [MAGIC(4)][VERSION(2)][FLAGS(2)][NUM_SHARDS(2)][SHARD_SIZE(4)]
+            RS_MAGIC = 0x52535253  # "RSRS" - Reed-Solomon
+            VERSION = 1
+            FLAGS = 0x0001  # RS enabled
+
+            header = struct.pack(
+                '<IHHHI',
+                RS_MAGIC,
+                VERSION,
+                FLAGS,
+                encoded_cluster.num_data_shards + encoded_cluster.num_parity_shards,
+                encoded_cluster.shard_size
+            )
+
+            # Concatenate header + all shards
+            encoded_data = header + b"".join(encoded_cluster.shards)
+
+            return encoded_data
+
+        except Exception as e:
+            # If encoding fails, fall back to raw data
+            print(f"Warning: RS encoding failed for cluster {cluster}: {e}")
+            header = struct.pack('<IHH', 0x52535000, 0, 0)
+            return header + data
+
+    def _decode_cluster_on_read(self, data: bytes, cluster: ClusterLocation) -> Tuple[bytes, bool]:
+        """
+        Decode cluster data after reading, handling RS decoding if present.
+
+        Parses metadata header and decodes RS-encoded data if available.
+
+        Args:
+            data: Encoded cluster data with header
+            cluster: Cluster location (for error reporting)
+
+        Returns:
+            Tuple of (decoded_data, success_flag)
+            - decoded_data: Original cluster data (empty on failure)
+            - success_flag: True if decoded successfully
+        """
+        if not data:
+            return b"", False
+
+        # Parse header
+        if len(data) < 8:
+            return b"", False
+
+        magic = struct.unpack_from('<I', data, 0)[0]
+
+        if magic == 0x52535000:  # "RSP\0" - No Protection
+            # Raw data, no RS encoding
+            return data[8:], True
+
+        elif magic == 0x52535253:  # "RSRS" - Reed-Solomon
+            if len(data) < 14:
+                return b"", False
+
+            version = struct.unpack_from('<H', data, 4)[0]
+            flags = struct.unpack_from('<H', data, 6)[0]
+            num_shards = struct.unpack_from('<H', data, 8)[0]
+            shard_size = struct.unpack_from('<I', data, 10)[0]
+
+            if version != 1:
+                return b"", False
+
+            # Extract shards from data
+            shard_data = data[14:]
+            shards = []
+            for i in range(num_shards):
+                start = i * shard_size
+                end = start + shard_size
+                if end <= len(shard_data):
+                    shard = shard_data[start:end]
+                    shards.append(shard)
+                else:
+                    # Missing shard - add None as placeholder
+                    shards.append(None)
+
+            # Decode using RS codec
+            if self._rs_codec:
+                decoded, success = self._rs_codec.decode_cluster(shards)
+                return decoded, success
+            else:
+                # RS codec not available, return raw
+                return shard_data, False
+
+        else:
+            # Unknown magic, try to return as-is
+            return data, False
+
+    def write_protected(self, path: str, data: bytes) -> ClusterLocation:
+        """
+        Write data with RS protection to spatial cluster.
+
+        Allocates cluster(s) for the file, encodes data with RS,
+        and writes to the allocated spatial location.
+
+        Args:
+            path: File path (for VAT tracking)
+            data: File data to write
+
+        Returns:
+            ClusterLocation of first cluster
+
+        Raises:
+            RuntimeError: If no free clusters available
+        """
+        # Place file using AI placer
+        clusters = self.ai_placer.place_file(path, data)
+
+        if not clusters:
+            raise RuntimeError(f"Failed to allocate clusters for {path}")
+
+        # Encode the first cluster with RS protection
+        first_cluster = clusters[0]
+        encoded_data = self._encode_cluster_for_write(data, first_cluster)
+
+        # Store encoded data for read_protected to retrieve
+        self._encoded_data_cache[path] = encoded_data
+
+        # Also store in file_data for build process
+        self.file_data[path] = data
+
+        # Mark as RS protected in tracking
+        if self.enable_rs:
+            self.rs_protected_files[path] = True
+
+        return clusters[0]
+
+    def read_protected(self, location: ClusterLocation) -> bytes:
+        """
+        Read data from spatial cluster with RS decoding.
+
+        Reads cluster data from the spatial location and decodes
+        it using RS if it was protected.
+
+        Args:
+            location: Cluster location to read from
+
+        Returns:
+            Decoded cluster data (empty bytes if not found or decode fails)
+        """
+        # Find file path by location from VAT
+        for path, clusters in self.ai_placer.vat.entries.items():
+            if clusters and clusters[0].x == location.x and clusters[0].y == location.y:
+                # Found the file at this location
+                if path in self._encoded_data_cache:
+                    encoded_data = self._encoded_data_cache[path]
+                    decoded, success = self._decode_cluster_on_read(encoded_data, location)
+                    if success:
+                        return decoded
+                # Fall through to return empty bytes
+
+        return b""
+
+    # Snapshot integration methods
+
+    def create_snapshot(self, description: str = "", tags: Optional[List[str]] = None) -> SnapshotMetadata:
+        """
+        Create a snapshot of the current VAT state.
+
+        This is a public API method for creating point-in-time
+        snapshots of the infinite map state.
+
+        Args:
+            description: Human-readable description of the snapshot
+            tags: Optional list of tags for categorization
+
+        Returns:
+            SnapshotMetadata for the created snapshot
+        """
+        vat = self.ai_placer.vat
+
+        # Create snapshot using snapshot manager
+        # Include description and tags in description field for filtering
+        full_description = description
+        if tags:
+            tag_str = " ".join(f"#{tag}" for tag in tags)
+            full_description = f"{description} {tag_str}" if description else tag_str
+
+        metadata = self._snapshot_manager.create_snapshot(
+            vat=vat,
+            description=full_description,
+            include_data=False  # We don't include file data in snapshots
+        )
+
+        return metadata
+
+    def restore_snapshot(self, snapshot_id: str) -> bool:
+        """
+        Restore VAT state from a snapshot.
+
+        This is a public API method for restoring the infinite map
+        to a previous state captured in a snapshot.
+
+        Args:
+            snapshot_id: ID of the snapshot to restore
+
+        Returns:
+            True if restore succeeded, False otherwise
+        """
+        try:
+            # Restore VAT from snapshot
+            restored_vat = self._snapshot_manager.restore_snapshot(snapshot_id)
+
+            if restored_vat is None:
+                return False
+
+            # Apply the restored VAT atomically
+            self._apply_vat_state_from_vat(restored_vat)
+
+            # Invalidate texture cache after restore
+            self._invalidate_texture_cache()
+
+            return True
+
+        except (SnapshotError, KeyError, ValueError) as e:
+            print(f"Warning: Failed to restore snapshot {snapshot_id}: {e}")
+            return False
+
+    def list_snapshots(self, filter_tags: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """
+        List all available snapshots.
+
+        This is a public API method for listing snapshots with
+        optional filtering by tags.
+
+        Args:
+            filter_tags: Optional list of tags to filter by
+
+        Returns:
+            List of snapshot metadata dictionaries
+        """
+        all_snapshots = self._snapshot_manager.list_snapshots()
+
+        # Filter by tags if specified
+        if filter_tags:
+            filtered = []
+            for snap in all_snapshots:
+                description = snap.get('description', '')
+                # Check if all specified tags are present
+                if all(f"#{tag}" in description for tag in filter_tags):
+                    filtered.append(snap)
+            return filtered
+
+        return all_snapshots
+
+    def _capture_vat_state(self) -> Dict[str, Any]:
+        """
+        Capture the current VAT state as a dictionary.
+
+        This is an internal method for snapshot creation.
+        It serializes the VAT state to a format that can be
+        stored and later restored.
+
+        Returns:
+            Dictionary containing VAT state
+        """
+        vat = self.ai_placer.vat
+
+        return {
+            'grid_size': vat.grid_size,
+            'center': [vat.center.x, vat.center.y],
+            'entries': {
+                name: [[loc.x, loc.y] for loc in locs]
+                for name, locs in vat.entries.items()
+            },
+            'max_entries': vat.max_entries,
+            'rs_protected': vat.rs_protected.copy()
+        }
+
+    def _apply_vat_state(self, vat_state: Dict[str, Any]) -> None:
+        """
+        Apply VAT state from a dictionary.
+
+        This is an internal method for snapshot restoration.
+        It reconstructs the VAT from a previously captured state.
+
+        Args:
+            vat_state: Dictionary containing VAT state
+        """
+        # Reconstruct entries from state
+        entries = {}
+        for name, locs_data in vat_state.get('entries', {}).items():
+            entries[name] = [
+                ClusterLocation(x=loc[0], y=loc[1])
+                for loc in locs_data
+            ]
+
+        # Reconstruct center
+        center_data = vat_state.get('center', [vat_state['grid_size'] // 2] * 2)
+        center = ClusterLocation(x=center_data[0], y=center_data[1])
+
+        # Get RS protection status
+        rs_protected = vat_state.get('rs_protected', {})
+
+        # Create new VAT with restored state
+        restored_vat = VisualAllocationTable(
+            grid_size=vat_state['grid_size'],
+            max_entries=vat_state.get('max_entries', 65536),
+            center=center,
+            entries=entries,
+            rs_protected=rs_protected
+        )
+
+        # Apply to AI placer
+        self.ai_placer.vat = restored_vat
+
+    def _apply_vat_state_from_vat(self, vat: 'VisualAllocationTable') -> None:
+        """
+        Apply VAT state directly from a VAT object.
+
+        This is an internal method for snapshot restoration.
+        It directly applies a restored VAT object.
+
+        Args:
+            vat: VisualAllocationTable to apply
+        """
+        self.ai_placer.vat = vat
+
+        # Sync RS protection status
+        if vat.rs_protected:
+            self.rs_protected_files = vat.rs_protected.copy()
+
+    def _invalidate_texture_cache(self) -> None:
+        """
+        Invalidate the texture cache after restore.
+
+        This is an internal method that clears any cached
+        texture data to ensure consistency after a restore.
+        """
+        self._texture_cache = None
 
 
 def main():
