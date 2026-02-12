@@ -429,6 +429,9 @@ class InfiniteMapFilesystem(RTSFilesystem):
         # Track open files for write operations
         self._open_files: Dict[str, Dict] = {}
 
+        # Dirty flag for tracking unsaved changes
+        self.dirty = False
+
         print(f"[*] Infinite Map Filesystem initialized")
 
         if self.container.vat:
@@ -1023,39 +1026,58 @@ class InfiniteMapFilesystem(RTSFilesystem):
         # Normalize path
         filename = path[1:] if path.startswith('/') else path
 
-        # Get or create file info
+        # Get or create file info (thread-safe)
+        with self.lock:
+            if filename not in self.container.vat.entries:
+                # Release lock before create (which has its own locking)
+                pass
+            else:
+                # Get file info from _open_files or create
+                file_info = self._open_files.get(filename)
+                if not file_info:
+                    locs = self.container.vat.entries.get(filename, [])
+                    file_info = {
+                        'name': filename,
+                        'size': 0,
+                        'clusters': list(locs),  # Copy to avoid mutation
+                        'modified': False
+                    }
+                    self._open_files[filename] = file_info
+
+        # Create file if needed (has its own locking)
         if filename not in self.container.vat.entries:
             result = self.create(path, 0o644)
             if result < 0:
                 return result
-
-        # Get file info from _open_files or create
-        file_info = self._open_files.get(filename)
-        if not file_info:
-            locs = self.container.vat.entries.get(filename, [])
-            file_info = {
-                'name': filename,
-                'size': 0,
-                'clusters': locs,
-                'modified': False
-            }
-            self._open_files[filename] = file_info
+            # Re-fetch file info after create
+            with self.lock:
+                file_info = self._open_files.get(filename)
+                if not file_info:
+                    file_info = {
+                        'name': filename,
+                        'size': 0,
+                        'clusters': [],
+                        'modified': False
+                    }
+                    self._open_files[filename] = file_info
 
         # Calculate clusters needed
         total_size = max(file_info['size'], offset + len(data))
         clusters_needed = (total_size + 4095) // 4096
 
-        # Allocate more clusters if needed
-        while len(file_info['clusters']) < clusters_needed:
-            try:
-                new_clusters = self.container.vat.allocate_sequential(
-                    filename, 4096
-                )
-                file_info['clusters'].extend(new_clusters)
-            except Exception:
-                return -errno.ENOSPC
+        # Allocate more clusters if needed (thread-safe)
+        with self.lock:
+            while len(file_info['clusters']) < clusters_needed:
+                try:
+                    new_clusters = self.container.vat.allocate_sequential(
+                        filename, 4096
+                    )
+                    file_info['clusters'].extend(new_clusters)
+                except Exception as e:
+                    print(f"Warning: cluster allocation failed: {e}")
+                    return -errno.ENOSPC
 
-        # Write data to clusters
+        # Write data to clusters (pixel writes are atomic)
         data_offset = 0
         while data_offset < len(data):
             cluster_idx = (offset + data_offset) // 4096
@@ -1074,9 +1096,12 @@ class InfiniteMapFilesystem(RTSFilesystem):
             )
             data_offset += bytes_to_write
 
-        file_info['size'] = total_size
-        file_info['modified'] = True
-        self.stats["bytes_written"] += len(data)
+        # Update file info and stats (thread-safe)
+        with self.lock:
+            file_info['size'] = total_size
+            file_info['modified'] = True
+            self.stats["bytes_written"] += len(data)
+
         return len(data)
 
     def _write_cluster(self, cluster, data: bytes, offset: int) -> None:
@@ -1099,6 +1124,9 @@ class InfiniteMapFilesystem(RTSFilesystem):
                 x, y = self.lut[pixel_idx]
                 # Write to img_data at correct position
                 self.img_data[y, x, channel] = byte_val
+
+        # Mark filesystem as dirty (has unsaved changes)
+        self.dirty = True
 
     def open(self, path: str, flags: int) -> int:
         """
