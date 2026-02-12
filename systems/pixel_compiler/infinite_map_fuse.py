@@ -837,6 +837,10 @@ class InfiniteMapFilesystem(RTSFilesystem):
         # Combine and deduplicate
         all_files = sorted(set(vat_files + offset_files))
 
+        # Add directories from directory_entries
+        if hasattr(self.container.vat, 'directory_entries'):
+            all_files = sorted(set(all_files + list(self.container.vat.directory_entries)))
+
         return ['.', '..'] + all_files
 
     def read(self, path: str, length: int, offset: int, fh=None) -> bytes:
@@ -1006,6 +1010,48 @@ class InfiniteMapFilesystem(RTSFilesystem):
         except Exception as e:
             print(f"Error creating file {path}: {e}")
             raise FuseOSError(errno.EIO)
+
+    def mkdir(self, path: str, mode: int) -> int:
+        """
+        Create a directory.
+
+        Args:
+            path: Directory path to create
+            mode: Directory permissions (ignored, uses 0o755)
+
+        Returns:
+            0 on success, or negative errno on failure
+        """
+        if not self.enable_writes:
+            raise FuseOSError(errno.EROFS)
+
+        # Normalize path
+        if path.startswith('/'):
+            dirname = path[1:]
+        else:
+            dirname = path
+
+        dirname = dirname.rstrip('/')
+
+        # Check if already exists
+        if dirname in self.container.vat.entries:
+            raise FuseOSError(errno.EEXIST)
+
+        # Create directory entry (size 0, marked as directory)
+        # Directories have empty cluster list (no data)
+        self.container.vat.entries[dirname] = []
+
+        # Initialize directory_entries set if not exists
+        if not hasattr(self.container.vat, 'directory_entries'):
+            self.container.vat.directory_entries = set()
+        self.container.vat.directory_entries.add(dirname)
+
+        # Mark container as dirty (needs sync)
+        self.container.dirty = True
+
+        print(f"[*] Created directory: {dirname}")
+
+        return 0
 
     def write(self, path: str, data: bytes, offset: int, fh=None) -> int:
         """

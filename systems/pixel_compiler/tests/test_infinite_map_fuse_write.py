@@ -77,3 +77,23 @@ class TestFUSEWriteSupport:
         # Verify data can be read back
         read_data = fuse_instance.read("/writetest.txt", len(data), 0)
         assert read_data == data
+
+    def test_mkdir_creates_directory(self, mounted_map):
+        """Test creating a directory via FUSE mkdir operation."""
+        from systems.pixel_compiler.infinite_map_fuse import InfiniteMapFilesystem
+
+        # Create FUSE instance with write support enabled
+        fuse_instance = InfiniteMapFilesystem(
+            mounted_map["image_path"],
+            enable_writes=True
+        )
+
+        # Create directory
+        result = fuse_instance.mkdir("/newdir", 0o755)
+
+        # Verify success
+        assert result == 0
+
+        # Verify directory appears in readdir
+        entries = fuse_instance.readdir("/", 0)
+        assert "newdir" in entries
