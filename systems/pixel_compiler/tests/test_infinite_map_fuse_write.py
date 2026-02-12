@@ -265,3 +265,28 @@ class TestFUSEWriteSupport:
         # Read back and verify size (should be "01234")
         data = fuse_instance.read("/trunc.txt", 100, 0)
         assert data == b"01234"
+
+    def test_fuse_instance_has_write_support(self, mounted_map):
+        """Test that FUSE instance initializes with write support."""
+        from systems.pixel_compiler.infinite_map_fuse import InfiniteMapFilesystem
+
+        fuse_instance = InfiniteMapFilesystem(
+            mounted_map["image_path"],
+            enable_writes=True
+        )
+
+        # Verify write-related attributes exist
+        assert hasattr(fuse_instance, 'dirty'), "FUSE instance should have 'dirty' attribute"
+        assert hasattr(fuse_instance, 'img_data'), "FUSE instance should have 'img_data' attribute (pixel array)"
+        assert hasattr(fuse_instance, '_open_files'), "FUSE instance should have '_open_files' attribute"
+
+        # Verify dirty flag starts False
+        assert fuse_instance.dirty == False, "dirty flag should start as False"
+
+        # Verify _open_files is an empty dict
+        assert isinstance(fuse_instance._open_files, dict), "_open_files should be a dict"
+        assert fuse_instance._open_files == {}, "_open_files should start empty"
+
+        # Verify img_data is mutable (numpy array)
+        import numpy as np
+        assert isinstance(fuse_instance.img_data, np.ndarray), "img_data should be a numpy array"
