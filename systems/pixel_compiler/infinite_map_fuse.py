@@ -1319,6 +1319,83 @@ class InfiniteMapFilesystem(RTSFilesystem):
         # Note: datasync is ignored as VAT is tightly coupled with data
         return self.flush(path, fh)
 
+    def truncate(self, path: str, length: int, fh=None) -> int:
+        """
+        Truncate file to specified length.
+
+        Args:
+            path: File path
+            length: New file length
+            fh: File handle (optional)
+
+        Returns:
+            0 on success, raises FuseOSError on failure
+        """
+        if not self.enable_writes:
+            raise FuseOSError(errno.EROFS)
+
+        # Normalize path
+        filename = path[1:] if path.startswith('/') else path
+
+        with self.lock:
+            # Check if file exists
+            if filename not in self.container.vat.entries:
+                raise FuseOSError(errno.ENOENT)
+
+            # Get file info from _open_files or create
+            file_info = self._open_files.get(filename)
+            if not file_info:
+                locs = self.container.vat.entries.get(filename, [])
+                # Get current size from container
+                size = 0
+                if filename in self.container.file_info:
+                    size = self.container.file_info[filename].size
+                file_info = {
+                    'name': filename,
+                    'size': size,
+                    'clusters': list(locs),  # Copy to avoid mutation
+                    'modified': False
+                }
+                self._open_files[filename] = file_info
+
+            clusters = file_info['clusters']
+            current_size = file_info['size']
+
+            # Calculate new cluster count
+            new_clusters_needed = (length + 4095) // 4096 if length > 0 else 0
+            current_clusters = len(clusters)
+
+            if new_clusters_needed < current_clusters:
+                # Free excess clusters
+                excess = clusters[new_clusters_needed:]
+                for cluster in excess:
+                    if hasattr(self.container.vat, 'free_clusters'):
+                        self.container.vat.free_clusters.append(cluster)
+                file_info['clusters'] = clusters[:new_clusters_needed]
+
+                # Also update VAT entries
+                self.container.vat.entries[filename] = file_info['clusters']
+
+            elif new_clusters_needed > current_clusters:
+                # Allocate more clusters
+                additional_needed = new_clusters_needed - current_clusters
+                try:
+                    for _ in range(additional_needed):
+                        new_cluster = self.container.vat.allocate_sequential(filename, 4096)
+                        if new_cluster:
+                            file_info['clusters'].extend(new_cluster)
+                except Exception:
+                    raise FuseOSError(errno.ENOSPC)
+
+            # Update file info size
+            file_info['size'] = length
+            file_info['modified'] = True
+
+            # Set dirty flag
+            self.dirty = True
+
+        return 0
+
     def _sync_to_disk(self) -> bool:
         """
         Write all changes back to the PNG file.

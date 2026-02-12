@@ -242,3 +242,26 @@ class TestFUSEWriteSupport:
         # Verify success and dirty flag cleared
         assert result == 0
         assert not fuse_instance.dirty
+
+    def test_truncate_resizes_file(self, mounted_map):
+        """Test truncating a file to smaller size."""
+        from systems.pixel_compiler.infinite_map_fuse import InfiniteMapFilesystem
+
+        fuse_instance = InfiniteMapFilesystem(
+            mounted_map["image_path"],
+            enable_writes=True
+        )
+
+        # Create file with data
+        fuse_instance.create("/trunc.txt", 0o644)
+        fuse_instance.write("/trunc.txt", b"0123456789ABCDEF", 0)
+
+        # Truncate to 5 bytes
+        result = fuse_instance.truncate("/trunc.txt", 5)
+
+        # Verify success
+        assert result == 0
+
+        # Read back and verify size (should be "01234")
+        data = fuse_instance.read("/trunc.txt", 100, 0)
+        assert data == b"01234"
