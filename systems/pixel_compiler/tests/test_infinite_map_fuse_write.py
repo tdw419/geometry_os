@@ -194,3 +194,51 @@ class TestFUSEWriteSupport:
             assert False, "Should have raised FuseOSError"
         except FuseOSError as e:
             assert e.args[0] == errno.EEXIST
+
+    def test_flush_persists_changes(self, mounted_map):
+        """Test that flush persists changes to the PNG file."""
+        from systems.pixel_compiler.infinite_map_fuse import InfiniteMapFilesystem
+
+        fuse_instance = InfiniteMapFilesystem(
+            mounted_map["image_path"],
+            enable_writes=True
+        )
+
+        # Create and write a file
+        fuse_instance.create("/persist.txt", 0o644)
+        fuse_instance.write("/persist.txt", b"persistent data", 0)
+
+        # Verify dirty flag is set
+        assert fuse_instance.dirty, "dirty flag should be set after write"
+
+        # Flush changes
+        result = fuse_instance.flush("/persist.txt")
+
+        # Verify success
+        assert result == 0
+
+        # Verify dirty flag cleared
+        assert not fuse_instance.dirty, "dirty flag should be cleared after flush"
+
+    def test_fsync_calls_flush(self, mounted_map):
+        """Test that fsync delegates to flush."""
+        from systems.pixel_compiler.infinite_map_fuse import InfiniteMapFilesystem
+
+        fuse_instance = InfiniteMapFilesystem(
+            mounted_map["image_path"],
+            enable_writes=True
+        )
+
+        # Create and write a file
+        fuse_instance.create("/sync_test.txt", 0o644)
+        fuse_instance.write("/sync_test.txt", b"sync data", 0)
+
+        # Verify dirty flag is set
+        assert fuse_instance.dirty
+
+        # Call fsync
+        result = fuse_instance.fsync("/sync_test.txt", datasync=0)
+
+        # Verify success and dirty flag cleared
+        assert result == 0
+        assert not fuse_instance.dirty

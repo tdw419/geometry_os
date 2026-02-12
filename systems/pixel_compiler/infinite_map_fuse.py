@@ -1287,6 +1287,66 @@ class InfiniteMapFilesystem(RTSFilesystem):
 
         return 0
 
+    def flush(self, path: str, fh=None) -> int:
+        """
+        Flush buffered data for a file.
+
+        Args:
+            path: File path
+            fh: File handle (optional)
+
+        Returns:
+            0 on success
+        """
+        if self.dirty:
+            self._sync_to_disk()
+        return 0
+
+    def fsync(self, path: str, datasync: int, fh=None) -> int:
+        """
+        Synchronize file data to disk.
+
+        Args:
+            path: File path
+            datasync: If non-zero, sync only data (not metadata)
+            fh: File handle (optional)
+
+        Returns:
+            0 on success
+        """
+        return self.flush(path, fh)
+
+    def _sync_to_disk(self) -> None:
+        """
+        Write all changes back to the PNG file.
+
+        This method:
+        1. Reshapes pixel array back to image dimensions
+        2. Creates a PIL Image from the array
+        3. Updates VAT metadata in PNG tEXt chunk
+        4. Saves the image back to disk
+        5. Clears the dirty flag
+        """
+        from PIL import Image
+
+        with self.lock:
+            # Reshape pixel array to image
+            img_array = self.img_data.reshape((self.grid_size, self.grid_size, 4))
+
+            # Create image
+            img = Image.fromarray(img_array, 'RGBA')
+
+            # Update VAT metadata in PNG tEXt chunk
+            if hasattr(self.container.vat, 'to_json'):
+                vat_json = json.dumps(self.container.vat.to_json())
+                img.info['vat'] = vat_json
+
+            # Save image
+            img.save(self.container.container_path, 'PNG')
+
+            self.dirty = False
+            print(f"[*] Synced changes to {self.container.container_path}")
+
     def open(self, path: str, flags: int) -> int:
         """
         Open a file and return file handle.
