@@ -75,36 +75,90 @@ ZONE_COLD = 4      # < 2048 from center (edges)
 
 
 class ClusterLocation:
-    """Represents a cluster's spatial location."""
+    """Represents a cluster's spatial location.
 
-    def __init__(self, x: int, y: int):
+    Supports both spatial coordinates (x, y) for spatial queries
+    and sequential linear position for data writing/reading.
+    """
+
+    def __init__(self, x: int, y: int, linear_pos: int = None):
         self.x = x
         self.y = y
+        self.linear_pos = linear_pos  # Sequential position along Hilbert curve
 
     def __repr__(self):
+        if self.linear_pos is not None:
+            return f"({self.x}, {self.y}) [pos={self.linear_pos}]"
         return f"({self.x}, {self.y})"
+
+    def __eq__(self, other):
+        """Two clusters are equal if they have the same (x, y) coordinates."""
+        if not isinstance(other, ClusterLocation):
+            return False
+        return self.x == other.x and self.y == other.y
+
+    def __hash__(self):
+        """Hash based on coordinates for use in sets and dicts."""
+        return hash((self.x, self.y))
 
     def to_bytes(self) -> bytes:
         """Pack cluster location to bytes."""
-        return struct.pack('<HH', self.x, self.y)
+        # For backward compatibility, pack (x, y) if no linear_pos set
+        if self.linear_pos is not None:
+            return struct.pack('<I', self.linear_pos)
+        else:
+            return struct.pack('<HH', self.x, self.y)
 
     @staticmethod
     def from_bytes(data: bytes) -> 'ClusterLocation':
         """Unpack cluster location from bytes."""
-        x, y = struct.unpack('<HH', data)
-        return ClusterLocation(x, y)
+        # Support both old (x, y) format and new linear format
+        if len(data) == 4:  # Old format: HH (x, y)
+            x, y = struct.unpack('<HH', data)
+            return ClusterLocation(x, y, linear_pos=None)
+        elif len(data) == 8:  # New format: I (linear_pos)
+            linear_pos = struct.unpack('<I', data)[0]
+            return ClusterLocation(0, 0, linear_pos)  # x, y will be set by VAT
+        else:
+            raise ValueError(f"Invalid ClusterLocation bytes: {len(data)}")
 
     def distance_to(self, other: 'ClusterLocation') -> float:
-        """Calculate Euclidean distance to another location."""
+        """Calculate Euclidean distance to another location.
+
+        For spatial queries (x, y), use direct coordinates.
+        For sequential allocation, compare linear_pos if available.
+        """
+        if self.linear_pos is not None and other.linear_pos is not None:
+            # Both have linear positions - use those
+            return abs(self.linear_pos - other.linear_pos)
+
+        # Fall back to spatial distance for (x, y) queries
         dx = self.x - other.x
         dy = self.y - other.y
         return math.sqrt(dx*dx + dy*dy)
 
     def to_linear_index(self, grid_size: int) -> int:
         """
-        Convert (x, y) to linear index using Hilbert curve.
-        This is needed to write data to the correct pixel position.
+        Get linear Hilbert position.
+
+        If linear_pos is set (sequential allocation), return it directly.
+        Otherwise, convert (x, y) to Hilbert position.
         """
+        if self.linear_pos is not None:
+            return self.linear_pos
+
+        # Generate Hilbert LUT for spatial-to-linear conversion
+        from pixel_compiler.pixelrts_v2_core import HilbertCurve
+        order = int(math.log2(grid_size))
+        hilbert = HilbertCurve(order=order)
+        lut = hilbert.generate_lut()
+
+        # Find index for this coordinate
+        for idx, coord in enumerate(lut):
+            if coord[0] == self.x and coord[1] == self.y:
+                return idx
+
+        raise ValueError(f"Cluster {self} has no linear_pos but spatial coords don't match LUT")
         # Generate Hilbert LUT
         from pixel_compiler.pixelrts_v2_core import HilbertCurve
         order = int(math.log2(grid_size))
@@ -240,7 +294,7 @@ class VisualAllocationTable:
             if (x, y) not in allocated_clusters:
                 self.free_clusters.append(ClusterLocation(x, y))
 
-    def allocate(self, name: str, size: int, preferred_location: Optional[ClusterLocation] = None) -> List[ClusterLocation]:
+    def allocate_sequential(self, name: str, size: int) -> List[ClusterLocation]:
         """
         Allocate clusters for a file.
 
@@ -278,7 +332,76 @@ class VisualAllocationTable:
 
         return allocated
 
-    def _find_best_free_cluster(self) -> Optional[ClusterLocation]:
+    def allocate_sequential(self, name: str, size: int) -> List[ClusterLocation]:
+        """
+        Allocate clusters for a file using sequential Hilbert allocation.
+
+        NEW: Clusters are allocated at consecutive positions (0, 1, 2, ...)
+        to ensure data continuity for PixelRTS decoder.
+
+        Returns list of allocated cluster locations.
+        """
+        clusters_needed = (size + 4095) // 4096  # 4KB clusters
+
+        # Use sequential allocation - get next available positions
+        allocated = []
+        for i in range(clusters_needed):
+            # Find next free position starting from position 0
+            # Start search from position 0 for first allocation
+            search_start = 0 if not self.entries else self._get_next_position()
+
+            # Find next free position at or after search_start
+            for pos in range(search_start, self.max_entries):
+                # Check if position is free
+                if pos not in self.allocated_clusters:
+                    # Position pos is free - allocate it
+                    loc = ClusterLocation(0, 0, linear_pos=pos)
+                    self.allocated_clusters[pos] = loc
+                    allocated.append(loc)
+                    break
+
+            # Record in VAT - all clusters have linear_pos set
+            # The first cluster gets the starting position
+            base_pos = allocated[0].linear_pos if allocated else search_start
+
+            for j, loc in enumerate(allocated):
+                # Update linear position to be sequential
+                loc.linear_pos = base_pos + j * clusters_needed
+
+            # Store cluster chain in VAT (all have linear_pos set)
+            self.entries[name] = allocated
+
+        return allocated
+
+    def allocate_sequential(self, name: str, size: int) -> List[ClusterLocation]:
+        """
+        Allocate clusters for a file using sequential Hilbert allocation.
+
+        Uses free_clusters list for allocation. At least 1 cluster is always
+        allocated (even for empty files) to support FUSE create operations.
+
+        Returns list of allocated cluster locations.
+        """
+        # Always allocate at least 1 cluster (even for empty files)
+        clusters_needed = max(1, (size + 4095) // 4096)  # 4KB clusters
+
+        # Get clusters from free list
+        if not self.free_clusters:
+            raise RuntimeError("No free clusters available")
+
+        allocated = []
+        for i in range(clusters_needed):
+            if not self.free_clusters:
+                raise RuntimeError("No free clusters available")
+            loc = self.free_clusters.pop(0)  # Take first available
+            allocated.append(loc)
+
+        # Store cluster chain in VAT
+        self.entries[name] = allocated
+
+        return allocated
+
+    def _get_next_position(self) -> int:
         """
         Find best free cluster using heuristics.
 
@@ -473,16 +596,19 @@ class AIPlacerV2:
 
         # Compute zone thresholds dynamically based on grid size
         # Zones are fractions of grid dimension:
-        # HOT: grid_size // 64 (< 1.56% from center)
-        # WARM: grid_size * 3 // 64 (< 4.69%)
-        # TEMPERATE: grid_size // 16 (< 6.25%)
-        # COOL: grid_size // 8 (< 12.5%)
-        # COLD: grid_size * 3 // 8 (>= 37.5%)
-        self.zone_hot_threshold = grid_size // 64
-        self.zone_warm_threshold = grid_size * 3 // 64
-        self.zone_temperate_threshold = grid_size // 16
-        self.zone_cool_threshold = grid_size // 8
-        self.zone_cold_threshold = grid_size * 3 // 8
+        # For sparse cluster allocation (every 1024 Hilbert positions),
+        # zones need to account for the natural spacing between clusters.
+        #
+        # HOT: grid_size // 16 (< 6.25% from center) - widened for sparse clusters
+        # WARM: grid_size // 8 (< 12.5%)
+        # TEMPERATE: grid_size // 4 (< 25%)
+        # COOL: grid_size // 2 (< 50%)
+        # COLD: >= grid_size // 2 (>= 50%)
+        self.zone_hot_threshold = grid_size // 16
+        self.zone_warm_threshold = grid_size // 8
+        self.zone_temperate_threshold = grid_size // 4
+        self.zone_cool_threshold = grid_size // 2
+        self.zone_cold_threshold = grid_size * 3 // 4
 
         # Create or store reference to VAT
         if vat is None:
@@ -490,10 +616,32 @@ class AIPlacerV2:
         else:
             self.vat = vat
 
-        # Initialize all clusters as free
-        for x in range(grid_size):
-            for y in range(grid_size):
-                self.vat.free_clusters.append(ClusterLocation(x, y))
+        # Clear any existing free clusters and reinitialize with VALID cluster positions only.
+        # A cluster is 4096 bytes = 1024 pixels, so valid cluster starts are every 1024th
+        # position along the Hilbert curve. This ensures clusters don't overlap.
+        #
+        # IMPORTANT: The first few Hilbert positions are reserved for system data:
+        # - Position 0-1023: Superblock (4096 bytes = 1 cluster)
+        # - Position 1024-2047: FAT (varies by file count, ~1-2 clusters)
+        # - Position 2048-3071: VAT (varies, ~1-2 clusters)
+        # - Position 3072+: Available for file data
+        #
+        # We reserve the first 8 cluster positions (8192 pixels) to be safe.
+        self.vat.free_clusters = []
+
+        from pixel_compiler.pixelrts_v2_core import HilbertCurve
+        order = int(math.log2(grid_size))
+        hilbert = HilbertCurve(order=order)
+        lut = hilbert.generate_lut()
+
+        # Start clusters after reserved region (8 clusters = 8192 pixels)
+        RESERVED_CLUSTERS = 8
+        start_position = RESERVED_CLUSTERS * 1024
+
+        # Only every 1024th Hilbert position is a valid cluster start
+        for t in range(start_position, grid_size * grid_size, 1024):
+            x, y = lut[t]
+            self.vat.free_clusters.append(ClusterLocation(x, y))
 
     def calculate_importance(self, file_path: str, file_size: int) -> int:
         """
@@ -625,16 +773,17 @@ class AIPlacerV2:
         # Allocate clusters
         clusters_needed = (len(file_data) + 4095) // 4096
 
-        # First cluster is at target, rest follow spatial locality
+        # First cluster is at target, rest follow from free list
+        # Note: We don't require spatial proximity because clusters are spaced
+        # 1024 Hilbert positions apart, so they won't be nearby in (x,y) space
         allocated = [target]
         for i in range(1, clusters_needed):
-            # Find cluster near previous ones
-            next_loc = self._find_nearby_free_cluster(allocated[-1])
-            if not next_loc:
+            # Take next available cluster from free list
+            if not self.vat.free_clusters:
                 raise RuntimeError("No free clusters for multi-cluster file")
 
+            next_loc = self.vat.free_clusters.pop(0)  # Take first available
             allocated.append(next_loc)
-            self.vat.free_clusters.remove(next_loc)
 
         # Record in VAT (Full chain)
         self.vat.entries[file_path] = allocated
@@ -1561,3 +1710,63 @@ Examples:
 
 if __name__ == '__main__':
     main()
+
+    def _get_next_position(self) -> int:
+        """
+        Get next available sequential position for allocation.
+
+        Returns the smallest linear position not in allocated_clusters.
+        """
+        for pos in range(self.max_entries):
+            if pos not in self.allocated_clusters:
+                return pos
+
+        raise RuntimeError("No free clusters available")
+
+    def allocate_sequential(self, name: str, size: int) -> List[ClusterLocation]:
+        """
+        Allocate clusters for a file using sequential Hilbert allocation.
+
+        NEW: Clusters are allocated at consecutive positions (0, 1, 2, ...)
+        to ensure data continuity for PixelRTS decoder.
+
+        Returns list of allocated cluster locations.
+        """
+        clusters_needed = (size + 4095) // 4096  # 4KB clusters
+
+        # Use sequential allocation - get next available positions
+        allocated = []
+
+        # Start search from position 0
+        search_start = 0
+
+        # If we have existing entries, start after last used position
+        if self.entries:
+            # Find the highest linear position in use
+            max_used = max(cluster.linear_pos for clusters in self.entries.values() if cluster.linear_pos is not None)
+            search_start = max_used + 1
+
+        for i in range(clusters_needed):
+            # Find next free position at or after search_start
+            for pos in range(search_start, self.max_entries):
+                # Check if position is free
+                if pos not in self.allocated_clusters:
+                    # Position pos is free - allocate it
+                    loc = ClusterLocation(0, 0, linear_pos=pos)
+                    self.allocated_clusters[pos] = loc
+                    allocated.append(loc)
+                    search_start = pos + 1
+                    break
+
+        # All clusters have sequential linear_pos set
+        # The first cluster gets the starting position
+        base_pos = allocated[0].linear_pos if allocated else search_start
+
+        for j, loc in enumerate(allocated):
+            # Update linear position to be sequential
+            loc.linear_pos = base_pos + j * clusters_needed
+
+        # Store cluster chain in VAT (all have linear_pos set)
+        self.entries[name] = allocated
+
+        return allocated
