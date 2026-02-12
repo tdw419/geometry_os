@@ -1,0 +1,10 @@
+{
+  "task_id": "task-3",
+  "type": "implement",
+  "source": "",
+  "intent": "Physical file writes to actual (x,y) coordinates",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}
