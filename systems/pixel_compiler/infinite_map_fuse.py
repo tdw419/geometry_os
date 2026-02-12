@@ -1227,6 +1227,66 @@ class InfiniteMapFilesystem(RTSFilesystem):
 
         return 0
 
+    def rename(self, old_path: str, new_path: str) -> int:
+        """
+        Rename/move a file or directory.
+
+        Args:
+            old_path: Current file path
+            new_path: New file path
+
+        Returns:
+            0 on success, raises FuseOSError on failure
+        """
+        if not self.enable_writes:
+            raise FuseOSError(errno.EROFS)
+
+        # Normalize paths
+        old_name = old_path[1:] if old_path.startswith('/') else old_path
+        new_name = new_path[1:] if new_path.startswith('/') else new_path
+
+        with self.lock:
+            # Check if source exists
+            if old_name not in self.container.vat.entries:
+                raise FuseOSError(errno.ENOENT)
+
+            # Check if destination already exists
+            if new_name in self.container.vat.entries:
+                raise FuseOSError(errno.EEXIST)
+
+            # Move entry in VAT
+            self.container.vat.entries[new_name] = self.container.vat.entries[old_name]
+            del self.container.vat.entries[old_name]
+
+            # Update open files tracking
+            if old_name in self._open_files:
+                self._open_files[new_name] = self._open_files[old_name]
+                del self._open_files[old_name]
+
+            # Update file_info
+            if old_name in self.container.file_info:
+                self.container.file_info[new_name] = self.container.file_info[old_name]
+                self.container.file_info[new_name].name = new_name
+                del self.container.file_info[old_name]
+
+            # Update offsets
+            if old_name in self.container.offsets:
+                self.container.offsets[new_name] = self.container.offsets[old_name]
+                del self.container.offsets[old_name]
+
+            # Update directory tracking if it's a directory
+            if hasattr(self.container.vat, 'directory_entries'):
+                if old_name in self.container.vat.directory_entries:
+                    self.container.vat.directory_entries.discard(old_name)
+                    self.container.vat.directory_entries.add(new_name)
+
+            # Set dirty flag
+            self.dirty = True
+
+        print(f"[*] Renamed: {old_name} -> {new_name}")
+
+        return 0
+
     def open(self, path: str, flags: int) -> int:
         """
         Open a file and return file handle.

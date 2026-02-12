@@ -124,3 +124,73 @@ class TestFUSEWriteSupport:
 
         # Verify VAT entry is removed
         assert "existing.txt" not in fuse_instance.container.vat.entries, "VAT entry should be removed"
+
+    def test_rename_moves_file(self, mounted_map):
+        """Test renaming a file via FUSE rename operation."""
+        from systems.pixel_compiler.infinite_map_fuse import InfiniteMapFilesystem
+
+        # Create FUSE instance with write support enabled
+        fuse_instance = InfiniteMapFilesystem(
+            mounted_map["image_path"],
+            enable_writes=True
+        )
+
+        # First verify existing.txt exists and get its data
+        old_info = fuse_instance.container.vat.lookup("existing.txt")
+        assert old_info is not None, "existing.txt should exist before rename"
+
+        # Read original data
+        original_data = fuse_instance.read("/existing.txt", 5, 0)
+        assert original_data == b"hello", "Should read original data before rename"
+
+        # Rename existing.txt to renamed.txt
+        result = fuse_instance.rename("/existing.txt", "/renamed.txt")
+
+        # Verify success
+        assert result == 0
+
+        # Verify old name gone
+        assert fuse_instance.container.vat.lookup("existing.txt") is None
+
+        # Verify new name exists with same data
+        new_info = fuse_instance.container.vat.lookup("renamed.txt")
+        assert new_info is not None
+
+    def test_rename_nonexistent_file_fails(self, mounted_map):
+        """Test renaming a non-existent file fails with ENOENT."""
+        from systems.pixel_compiler.infinite_map_fuse import InfiniteMapFilesystem
+        from fuse import FuseOSError
+        import errno
+
+        fuse_instance = InfiniteMapFilesystem(
+            mounted_map["image_path"],
+            enable_writes=True
+        )
+
+        # Try to rename a file that doesn't exist
+        try:
+            fuse_instance.rename("/nonexistent.txt", "/newname.txt")
+            assert False, "Should have raised FuseOSError"
+        except FuseOSError as e:
+            assert e.args[0] == errno.ENOENT
+
+    def test_rename_to_existing_file_fails(self, mounted_map):
+        """Test renaming to an existing file fails with EEXIST."""
+        from systems.pixel_compiler.infinite_map_fuse import InfiniteMapFilesystem
+        from fuse import FuseOSError
+        import errno
+
+        fuse_instance = InfiniteMapFilesystem(
+            mounted_map["image_path"],
+            enable_writes=True
+        )
+
+        # Create a second file
+        fuse_instance.create("/second.txt", 0o644)
+
+        # Try to rename existing.txt to second.txt (which already exists)
+        try:
+            fuse_instance.rename("/existing.txt", "/second.txt")
+            assert False, "Should have raised FuseOSError"
+        except FuseOSError as e:
+            assert e.args[0] == errno.EEXIST
