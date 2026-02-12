@@ -1033,21 +1033,23 @@ class InfiniteMapFilesystem(RTSFilesystem):
 
         dirname = dirname.rstrip('/')
 
-        # Check if already exists
-        if dirname in self.container.vat.entries:
-            raise FuseOSError(errno.EEXIST)
+        # Thread-safe directory creation
+        with self.lock:
+            # Check if already exists
+            if dirname in self.container.vat.entries:
+                raise FuseOSError(errno.EEXIST)
 
-        # Create directory entry (size 0, marked as directory)
-        # Directories have empty cluster list (no data)
-        self.container.vat.entries[dirname] = []
+            # Create directory entry (size 0, marked as directory)
+            # Directories have empty cluster list (no data)
+            self.container.vat.entries[dirname] = []
 
-        # Initialize directory_entries set if not exists
-        if not hasattr(self.container.vat, 'directory_entries'):
-            self.container.vat.directory_entries = set()
-        self.container.vat.directory_entries.add(dirname)
+            # Initialize directory_entries set if not exists
+            if not hasattr(self.container.vat, 'directory_entries'):
+                self.container.vat.directory_entries = set()
+            self.container.vat.directory_entries.add(dirname)
 
-        # Mark container as dirty (needs sync)
-        self.container.dirty = True
+            # Mark container as dirty (needs sync)
+            self.container.dirty = True
 
         print(f"[*] Created directory: {dirname}")
 
