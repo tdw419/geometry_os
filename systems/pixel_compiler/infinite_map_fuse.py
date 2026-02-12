@@ -1176,6 +1176,57 @@ class InfiniteMapFilesystem(RTSFilesystem):
         # Mark filesystem as dirty (has unsaved changes)
         self.dirty = True
 
+    def unlink(self, path: str) -> int:
+        """
+        Delete a file.
+
+        Args:
+            path: File path to delete
+
+        Returns:
+            0 on success, raises FuseOSError on failure
+        """
+        if not self.enable_writes:
+            raise FuseOSError(errno.EROFS)
+
+        # Normalize path
+        filename = path.lstrip("/")
+
+        with self.lock:
+            # Check if file exists in VAT
+            if filename not in self.container.vat.entries:
+                raise FuseOSError(errno.ENOENT)
+
+            # Get clusters to free
+            clusters = self.container.vat.entries[filename]
+
+            # Free clusters (return to free list)
+            if hasattr(self.container.vat, 'free_clusters'):
+                for cluster in clusters:
+                    self.container.vat.free_clusters.append(cluster)
+
+            # Remove from VAT entries
+            del self.container.vat.entries[filename]
+
+            # Remove from file_info
+            if filename in self.container.file_info:
+                del self.container.file_info[filename]
+
+            # Remove from offsets (used by readdir)
+            if filename in self.container.offsets:
+                del self.container.offsets[filename]
+
+            # Remove from open files if tracked
+            if filename in self._open_files:
+                del self._open_files[filename]
+
+            # Set dirty flag
+            self.dirty = True
+
+        print(f"[*] Deleted file: {filename}")
+
+        return 0
+
     def open(self, path: str, flags: int) -> int:
         """
         Open a file and return file handle.

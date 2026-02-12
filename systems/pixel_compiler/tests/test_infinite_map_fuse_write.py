@@ -97,3 +97,30 @@ class TestFUSEWriteSupport:
         # Verify directory appears in readdir
         entries = fuse_instance.readdir("/", 0)
         assert "newdir" in entries
+
+    def test_unlink_deletes_file(self, mounted_map):
+        """Test deleting a file via FUSE unlink operation."""
+        from systems.pixel_compiler.infinite_map_fuse import InfiniteMapFilesystem
+
+        # Create FUSE instance with write support enabled
+        fuse_instance = InfiniteMapFilesystem(
+            mounted_map["image_path"],
+            enable_writes=True
+        )
+
+        # First verify existing.txt exists
+        entries = fuse_instance.readdir("/", 0)
+        assert "existing.txt" in entries, "existing.txt should exist before deletion"
+
+        # Delete the file
+        result = fuse_instance.unlink("/existing.txt")
+
+        # Verify success
+        assert result == 0
+
+        # Verify file no longer exists
+        entries = fuse_instance.readdir("/", 0)
+        assert "existing.txt" not in entries, "existing.txt should be removed after unlink"
+
+        # Verify VAT entry is removed
+        assert "existing.txt" not in fuse_instance.container.vat.entries, "VAT entry should be removed"
