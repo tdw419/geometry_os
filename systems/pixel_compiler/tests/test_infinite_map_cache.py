@@ -247,6 +247,161 @@ class TestLRUCache:
         assert stats["size"] == 10
 
 
+class TestAccessPatternTracker:
+    """Test AccessPatternTracker for predictive prefetching."""
+
+    def test_record_access(self):
+        """Test recording file accesses."""
+        from systems.pixel_compiler.infinite_map_cache import AccessPatternTracker
+        tracker = AccessPatternTracker()
+        tracker.record_access("file.txt", 0)
+        tracker.record_access("file.txt", 4096)
+        assert "file.txt" in tracker._access_history
+        assert len(tracker._access_history["file.txt"]) == 2
+
+    def test_detects_sequential_pattern(self):
+        """Test detection of sequential access pattern."""
+        from systems.pixel_compiler.infinite_map_cache import AccessPatternTracker
+        tracker = AccessPatternTracker()
+        for offset in [0, 4096, 8192, 12288]:  # Sequential
+            tracker.record_access("file.txt", offset)
+        assert tracker.is_sequential("file.txt") is True
+
+    def test_detects_random_pattern(self):
+        """Test detection of random access pattern."""
+        from systems.pixel_compiler.infinite_map_cache import AccessPatternTracker
+        tracker = AccessPatternTracker()
+        for offset in [0, 8192, 4096, 32768]:  # Random
+            tracker.record_access("file.txt", offset)
+        assert tracker.is_sequential("file.txt") is False
+
+    def test_predicts_next_offset(self):
+        """Test prediction of next offset based on pattern."""
+        from systems.pixel_compiler.infinite_map_cache import AccessPatternTracker
+        tracker = AccessPatternTracker()
+        for offset in [0, 4096, 8192]:
+            tracker.record_access("file.txt", offset)
+        assert tracker.predict_next_offset("file.txt") == 12288
+
+    def test_predicts_next_offset_with_different_stride(self):
+        """Test prediction with non-default stride."""
+        from systems.pixel_compiler.infinite_map_cache import AccessPatternTracker
+        tracker = AccessPatternTracker()
+        for offset in [0, 8192, 16384]:  # 8KB stride
+            tracker.record_access("file.txt", offset)
+        assert tracker.predict_next_offset("file.txt") == 24576
+
+    def test_no_prediction_without_enough_history(self):
+        """Test that prediction returns None without enough history."""
+        from systems.pixel_compiler.infinite_map_cache import AccessPatternTracker
+        tracker = AccessPatternTracker()
+        tracker.record_access("file.txt", 0)
+        tracker.record_access("file.txt", 4096)
+        # Only 2 accesses - not enough for pattern detection (need 3+)
+        assert tracker.predict_next_offset("file.txt") is None
+
+    def test_unknown_file_not_sequential(self):
+        """Test that unknown files are not considered sequential."""
+        from systems.pixel_compiler.infinite_map_cache import AccessPatternTracker
+        tracker = AccessPatternTracker()
+        assert tracker.is_sequential("unknown.txt") is False
+
+    def test_window_size_limit(self):
+        """Test that access history respects window size."""
+        from systems.pixel_compiler.infinite_map_cache import AccessPatternTracker
+        tracker = AccessPatternTracker(window_size=3)
+        for offset in [0, 4096, 8192, 12288, 16384]:  # 5 accesses
+            tracker.record_access("file.txt", offset)
+        # Should only keep last 3
+        assert len(tracker._access_history["file.txt"]) == 3
+
+    def test_get_detected_stride(self):
+        """Test getting the detected stride for a file."""
+        from systems.pixel_compiler.infinite_map_cache import AccessPatternTracker
+        tracker = AccessPatternTracker()
+        for offset in [0, 4096, 8192]:
+            tracker.record_access("file.txt", offset)
+        assert tracker.get_detected_stride("file.txt") == 4096
+
+    def test_get_detected_stride_no_pattern(self):
+        """Test stride detection returns None for no pattern."""
+        from systems.pixel_compiler.infinite_map_cache import AccessPatternTracker
+        tracker = AccessPatternTracker()
+        assert tracker.get_detected_stride("unknown.txt") is None
+
+
+class TestLRUCachePrefetch:
+    """Test LRU cache predictive prefetching."""
+
+    def test_should_prefetch_returns_true_for_sequential(self):
+        """Test should_prefetch returns True for sequential access."""
+        from systems.pixel_compiler.infinite_map_cache import LRUCache
+        cache = LRUCache(max_size=1000)
+
+        # Simulate sequential access pattern
+        for offset in [0, 100, 200]:
+            cache.should_prefetch("file.txt", offset)
+
+        # After 3 sequential accesses, should recommend prefetch
+        assert cache.should_prefetch("file.txt", 300) is True
+
+    def test_should_prefetch_returns_false_for_random(self):
+        """Test should_prefetch returns False for random access."""
+        from systems.pixel_compiler.infinite_map_cache import LRUCache
+        cache = LRUCache(max_size=1000)
+
+        # Simulate random access pattern
+        cache.should_prefetch("file.txt", 0)
+        cache.should_prefetch("file.txt", 500)
+        cache.should_prefetch("file.txt", 100)
+
+        # Random pattern should not recommend prefetch
+        assert cache.should_prefetch("file.txt", 300) is False
+
+    def test_queue_prefetch_stores_data(self):
+        """Test queue_prefetch stores data for later retrieval."""
+        from systems.pixel_compiler.infinite_map_cache import LRUCache
+        cache = LRUCache(max_size=1000)
+
+        cache.queue_prefetch("file.txt:400:100", b"prefetched_data")
+
+        # Data should be in prefetch queue
+        assert len(cache._prefetch_queue) == 1
+        assert cache._prefetch_queue[0] == ("file.txt:400:100", b"prefetched_data")
+
+    def test_get_prefetched_data_returns_data(self):
+        """Test get_prefetched_data returns queued data."""
+        from systems.pixel_compiler.infinite_map_cache import LRUCache
+        cache = LRUCache(max_size=1000)
+
+        cache.queue_prefetch("file.txt:400:100", b"prefetched_data")
+
+        # Should return the prefetched data
+        data = cache.get_prefetched("file.txt:400:100")
+        assert data == b"prefetched_data"
+
+    def test_get_prefetched_data_returns_none_if_not_found(self):
+        """Test get_prefetched_data returns None if key not found."""
+        from systems.pixel_compiler.infinite_map_cache import LRUCache
+        cache = LRUCache(max_size=1000)
+
+        data = cache.get_prefetched("nonexistent:0:100")
+        assert data is None
+
+    def test_prefetch_can_be_disabled(self):
+        """Test prefetch can be disabled."""
+        from systems.pixel_compiler.infinite_map_cache import LRUCache
+        cache = LRUCache(max_size=1000)
+
+        cache.prefetch_enabled = False
+
+        # Even with sequential pattern, should not prefetch
+        for offset in [0, 100, 200]:
+            cache.should_prefetch("file.txt", offset)
+
+        assert cache.should_prefetch("file.txt", 300) is False
+
+
 class TestLRUCacheIntegration:
     """Integration tests for LRU cache."""
 

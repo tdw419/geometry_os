@@ -866,7 +866,19 @@ class InfiniteMapFilesystem(RTSFilesystem):
         # Generate cache key
         cache_key = f"{filename}:{offset}:{length}"
 
-        # Check cache first
+        # Check prefetch queue first
+        prefetched = self.cache.get_prefetched(cache_key)
+        if prefetched is not None:
+            # Prefetch hit - add to main cache and return
+            self.cache.set(cache_key, prefetched)
+            with self.lock:
+                self.stats["reads"] += 1
+                self.stats["bytes_read"] += len(prefetched)
+                self.stats["cache_hits"] += 1
+                self.access_counts[filename] += 1
+            return prefetched
+
+        # Check cache next
         cached = self.cache.get(cache_key)
         if cached is not None:
             # Cache hit
@@ -892,10 +904,22 @@ class InfiniteMapFilesystem(RTSFilesystem):
                     self.access_counts[filename] += 1
                 # Store in cache
                 self.cache.set(cache_key, data)
+                # Trigger predictive prefetch if sequential pattern detected
+                self._maybe_prefetch(filename, offset, length, file_info['size'])
                 return data
 
         # Check if file has cluster chain (VAT v2)
         cluster_chain = self.container.get_cluster_chain(filename)
+
+        # Get file size for prefetch bounds checking
+        file_size = 0
+        file_info = self.container.get_file_info_extended(filename)
+        if file_info:
+            file_size = file_info.size if hasattr(file_info, 'size') else 0
+        else:
+            info = self.container.get_file_info(filename)
+            if info:
+                file_size = info.get('size', 0)
 
         if cluster_chain:
             # Use fragmented read for VAT files
@@ -914,7 +938,72 @@ class InfiniteMapFilesystem(RTSFilesystem):
         # Store in cache
         self.cache.set(cache_key, data)
 
+        # Trigger predictive prefetch if sequential pattern detected
+        self._maybe_prefetch(filename, offset, length, file_size)
+
         return data
+
+    def _maybe_prefetch(self, filename: str, offset: int, length: int, file_size: int) -> None:
+        """
+        Trigger predictive prefetch if sequential access pattern detected.
+
+        This method checks if the current access pattern is sequential and
+        if so, prefetches the next chunk of data.
+
+        Args:
+            filename: Name of the file being accessed.
+            offset: Current read offset.
+            length: Current read length.
+            file_size: Total file size for bounds checking.
+        """
+        # Check if we should prefetch based on access pattern
+        if not self.cache.should_prefetch(filename, offset):
+            return
+
+        # Get predicted next offset
+        next_offset = self.cache.get_predicted_next_offset(filename)
+        if next_offset is None:
+            return
+
+        # Use the detected stride as the read length for prefetch
+        stride = self.cache.get_detected_stride(filename)
+        if stride is None:
+            stride = length
+
+        # Check if next chunk is within file bounds
+        if next_offset >= file_size:
+            return
+
+        # Calculate prefetch length (don't read past end of file)
+        prefetch_length = min(stride, file_size - next_offset)
+        if prefetch_length <= 0:
+            return
+
+        # Generate cache key for prefetched data
+        prefetch_key = f"{filename}:{next_offset}:{prefetch_length}"
+
+        # Check if already cached or prefetched
+        if self.cache.get(prefetch_key) is not None:
+            return
+        if self.cache.get_prefetched(prefetch_key) is not None:
+            return
+
+        # Perform the prefetch (synchronous for simplicity)
+        try:
+            # Check if file has cluster chain (VAT v2)
+            cluster_chain = self.container.get_cluster_chain(filename)
+
+            if cluster_chain:
+                prefetch_data = self.read_fragmented(filename, next_offset, prefetch_length)
+            else:
+                prefetch_data = self._read_linear(filename, next_offset, prefetch_length)
+
+            # Queue for prefetch
+            self.cache.queue_prefetch(prefetch_key, prefetch_data)
+
+        except Exception as e:
+            # Silently ignore prefetch errors
+            pass
 
     def _read_from_clusters(self, clusters: list, offset: int, length: int, file_size: int) -> bytes:
         """
