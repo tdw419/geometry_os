@@ -1698,6 +1698,109 @@ class InfiniteMapFilesystem(RTSFilesystem):
                 "cluster_chain_hops": 0
             }
 
+    # ==========================================================================
+    # Streaming I/O Support
+    # ==========================================================================
+
+    def get_streaming_reader(
+        self,
+        path: str,
+        config: Optional['StreamingConfig'] = None
+    ) -> 'StreamingReader':
+        """
+        Get a streaming reader for large file operations.
+
+        This is the recommended way to read large files (>10MB) that
+        don't fit in memory. The streaming reader processes files
+        in chunks with bounded memory usage.
+
+        Args:
+            path: File path to read
+            config: Optional streaming configuration
+
+        Returns:
+            StreamingReader instance
+
+        Usage:
+            reader = fs.get_streaming_reader("/large/file.bin")
+            for chunk in reader.chunks():
+                process(chunk)
+
+            # Or with progress tracking:
+            def on_progress(p):
+                print(f"{p.percent_complete:.1f}% complete")
+            reader.read_all(progress_callback=on_progress)
+        """
+        from systems.pixel_compiler.infinite_map_streaming import (
+            StreamingReader, StreamingConfig
+        )
+        config = config or StreamingConfig()
+        return StreamingReader(self, path, config)
+
+    def get_streaming_writer(
+        self,
+        path: str,
+        config: Optional['StreamingConfig'] = None,
+        mode: int = 0o644
+    ) -> 'StreamingWriter':
+        """
+        Get a streaming writer for large file operations.
+
+        This is the recommended way to write large files (>10MB) that
+        don't fit in memory. The streaming writer processes files
+        in chunks with bounded memory usage.
+
+        Args:
+            path: File path to write
+            config: Optional streaming configuration
+            mode: File permissions (default: 0o644)
+
+        Returns:
+            StreamingWriter instance
+
+        Usage:
+            writer = fs.get_streaming_writer("/large/output.bin")
+            writer.write(chunk1)
+            writer.write(chunk2)
+            writer.finalize()
+
+            # Or with progress tracking:
+            def on_progress(p):
+                print(f"{p.percent_complete:.1f}% complete")
+            writer.write_all(data, progress_callback=on_progress)
+        """
+        from systems.pixel_compiler.infinite_map_streaming import (
+            StreamingWriter, StreamingConfig
+        )
+        config = config or StreamingConfig()
+        return StreamingWriter(self, path, config, mode)
+
+    def get_streaming_copier(
+        self,
+        config: Optional['StreamingConfig'] = None
+    ) -> 'StreamingCopier':
+        """
+        Get a streaming copier for copying large files.
+
+        This copies files in chunks without loading the entire
+        file into memory.
+
+        Args:
+            config: Optional streaming configuration
+
+        Returns:
+            StreamingCopier instance
+
+        Usage:
+            copier = fs.get_streaming_copier()
+            bytes_copied = copier.copy("/source.bin", "/dest.bin")
+        """
+        from systems.pixel_compiler.infinite_map_streaming import (
+            StreamingCopier, StreamingConfig
+        )
+        config = config or StreamingConfig()
+        return StreamingCopier(self, config)
+
     def _invalidate_cache_for_file(self, path: str):
         """
         Invalidate all cached entries for a file.
