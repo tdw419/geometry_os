@@ -296,85 +296,6 @@ class VisualAllocationTable:
 
     def allocate_sequential(self, name: str, size: int) -> List[ClusterLocation]:
         """
-        Allocate clusters for a file.
-
-        Returns list of allocated cluster locations.
-        """
-        clusters_needed = (size + 4095) // 4096  # 4KB clusters
-
-        allocated = []
-
-        for i in range(clusters_needed):
-            if preferred_location and i == 0:
-                # Use preferred location for first cluster
-                if preferred_location in self.free_clusters:
-                    loc = preferred_location
-                    self.free_clusters.remove(loc)
-                else:
-                    # Preferred not available, find nearest free
-                    loc = self._find_nearest_free(preferred_location)
-                    if loc:
-                        self.free_clusters.remove(loc)
-                    else:
-                        raise RuntimeError("No free clusters")
-            else:
-                # Find best available cluster
-                loc = self._find_best_free_cluster()
-
-                if not loc:
-                    raise RuntimeError("No free clusters available")
-
-                self.free_clusters.remove(loc)
-                allocated.append(loc)
-
-        # Record in VAT
-        self.entries[name] = allocated[0] if allocated else None
-
-        return allocated
-
-    def allocate_sequential(self, name: str, size: int) -> List[ClusterLocation]:
-        """
-        Allocate clusters for a file using sequential Hilbert allocation.
-
-        NEW: Clusters are allocated at consecutive positions (0, 1, 2, ...)
-        to ensure data continuity for PixelRTS decoder.
-
-        Returns list of allocated cluster locations.
-        """
-        clusters_needed = (size + 4095) // 4096  # 4KB clusters
-
-        # Use sequential allocation - get next available positions
-        allocated = []
-        for i in range(clusters_needed):
-            # Find next free position starting from position 0
-            # Start search from position 0 for first allocation
-            search_start = 0 if not self.entries else self._get_next_position()
-
-            # Find next free position at or after search_start
-            for pos in range(search_start, self.max_entries):
-                # Check if position is free
-                if pos not in self.allocated_clusters:
-                    # Position pos is free - allocate it
-                    loc = ClusterLocation(0, 0, linear_pos=pos)
-                    self.allocated_clusters[pos] = loc
-                    allocated.append(loc)
-                    break
-
-            # Record in VAT - all clusters have linear_pos set
-            # The first cluster gets the starting position
-            base_pos = allocated[0].linear_pos if allocated else search_start
-
-            for j, loc in enumerate(allocated):
-                # Update linear position to be sequential
-                loc.linear_pos = base_pos + j * clusters_needed
-
-            # Store cluster chain in VAT (all have linear_pos set)
-            self.entries[name] = allocated
-
-        return allocated
-
-    def allocate_sequential(self, name: str, size: int) -> List[ClusterLocation]:
-        """
         Allocate clusters for a file using sequential Hilbert allocation.
 
         Uses free_clusters list for allocation. At least 1 cluster is always
@@ -401,7 +322,7 @@ class VisualAllocationTable:
 
         return allocated
 
-    def _get_next_position(self) -> int:
+    def _find_best_free_cluster(self) -> Optional[ClusterLocation]:
         """
         Find best free cluster using heuristics.
 
@@ -1710,63 +1631,3 @@ Examples:
 
 if __name__ == '__main__':
     main()
-
-    def _get_next_position(self) -> int:
-        """
-        Get next available sequential position for allocation.
-
-        Returns the smallest linear position not in allocated_clusters.
-        """
-        for pos in range(self.max_entries):
-            if pos not in self.allocated_clusters:
-                return pos
-
-        raise RuntimeError("No free clusters available")
-
-    def allocate_sequential(self, name: str, size: int) -> List[ClusterLocation]:
-        """
-        Allocate clusters for a file using sequential Hilbert allocation.
-
-        NEW: Clusters are allocated at consecutive positions (0, 1, 2, ...)
-        to ensure data continuity for PixelRTS decoder.
-
-        Returns list of allocated cluster locations.
-        """
-        clusters_needed = (size + 4095) // 4096  # 4KB clusters
-
-        # Use sequential allocation - get next available positions
-        allocated = []
-
-        # Start search from position 0
-        search_start = 0
-
-        # If we have existing entries, start after last used position
-        if self.entries:
-            # Find the highest linear position in use
-            max_used = max(cluster.linear_pos for clusters in self.entries.values() if cluster.linear_pos is not None)
-            search_start = max_used + 1
-
-        for i in range(clusters_needed):
-            # Find next free position at or after search_start
-            for pos in range(search_start, self.max_entries):
-                # Check if position is free
-                if pos not in self.allocated_clusters:
-                    # Position pos is free - allocate it
-                    loc = ClusterLocation(0, 0, linear_pos=pos)
-                    self.allocated_clusters[pos] = loc
-                    allocated.append(loc)
-                    search_start = pos + 1
-                    break
-
-        # All clusters have sequential linear_pos set
-        # The first cluster gets the starting position
-        base_pos = allocated[0].linear_pos if allocated else search_start
-
-        for j, loc in enumerate(allocated):
-            # Update linear position to be sequential
-            loc.linear_pos = base_pos + j * clusters_needed
-
-        # Store cluster chain in VAT (all have linear_pos set)
-        self.entries[name] = allocated
-
-        return allocated

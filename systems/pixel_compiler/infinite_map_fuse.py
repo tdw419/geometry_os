@@ -426,6 +426,9 @@ class InfiniteMapFilesystem(RTSFilesystem):
         self.next_handle = 1
         self.handle_lock = threading.Lock()
 
+        # Track open files for write operations
+        self._open_files: Dict[str, Dict] = {}
+
         print(f"[*] Infinite Map Filesystem initialized")
 
         if self.container.vat:
@@ -899,8 +902,6 @@ class InfiniteMapFilesystem(RTSFilesystem):
                 raise FuseOSError(errno.ENOSPC)
 
             # Track as open file
-            if not hasattr(self, '_open_files'):
-                self._open_files = {}
             self._open_files[filename] = {
                 'name': filename,
                 'size': 0,
