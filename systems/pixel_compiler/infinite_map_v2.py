@@ -269,6 +269,9 @@ class VisualAllocationTable:
         # Track RS encoding status for files
         self.rs_protected: Dict[str, bool] = rs_protected if rs_protected is not None else {}
 
+        # Track directory entries separately (for FUSE write support)
+        self.directory_entries: set = set()
+
         # Free cluster bitmap (for allocation)
         self.free_clusters: List[ClusterLocation] = []
 
@@ -387,6 +390,10 @@ class VisualAllocationTable:
             return locs[0]  # Return first cluster
         return None
 
+    def is_directory(self, name: str) -> bool:
+        """Check if a name refers to a directory entry."""
+        return name in self.directory_entries
+
     def get_allocation_map(self) -> np.ndarray:
         """
         Get visual allocation map as 2D numpy array.
@@ -420,6 +427,7 @@ class VisualAllocationTable:
             'center': [self.center.x, self.center.y],
             'total_entries': len(self.entries),
             'entries': entries,
+            'directory_entries': list(self.directory_entries),
             'rs_protected': self.rs_protected
         }
 
