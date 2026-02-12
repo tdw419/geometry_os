@@ -1801,6 +1801,79 @@ class InfiniteMapFilesystem(RTSFilesystem):
         config = config or StreamingConfig()
         return StreamingCopier(self, config)
 
+    def get_parallel_reader(
+        self,
+        config: Optional['ParallelConfig'] = None
+    ) -> 'ParallelReader':
+        """
+        Get a parallel reader for concurrent file reads.
+
+        This enables reading multiple files simultaneously using
+        a thread pool for improved throughput on multi-core systems.
+
+        Args:
+            config: Optional parallel configuration
+
+        Returns:
+            ParallelReader instance
+
+        Usage:
+            reader = fs.get_parallel_reader()
+            results = reader.read_files(["/file1", "/file2", "/file3"])
+            print(results["/file1"])  # bytes
+
+            # With progress callback
+            def on_progress(completed, total):
+                print(f"Read {completed}/{total} files")
+            results = reader.read_files(paths, progress_callback=on_progress)
+
+            # Read chunks in parallel
+            chunks = reader.read_chunks("/large.bin", [0, 1000, 2000], 1000)
+        """
+        from systems.pixel_compiler.infinite_map_parallel import (
+            ParallelReader, ParallelConfig
+        )
+        config = config or ParallelConfig()
+        return ParallelReader(self, config)
+
+    def get_parallel_writer(
+        self,
+        config: Optional['ParallelConfig'] = None
+    ) -> 'ParallelWriter':
+        """
+        Get a parallel writer for concurrent file writes.
+
+        This enables writing multiple files simultaneously using
+        a thread pool. Writes to the same file are serialized for
+        data consistency.
+
+        Args:
+            config: Optional parallel configuration
+
+        Returns:
+            ParallelWriter instance
+
+        Usage:
+            writer = fs.get_parallel_writer()
+            files = {
+                "/file1": b"content1",
+                "/file2": b"content2",
+                "/file3": b"content3",
+            }
+            results = writer.write_files(files)
+            print(results["/file1"])  # True if success
+
+            # With progress callback
+            def on_progress(completed, total):
+                print(f"Wrote {completed}/{total} files")
+            results = writer.write_files(files, progress_callback=on_progress)
+        """
+        from systems.pixel_compiler.infinite_map_parallel import (
+            ParallelWriter, ParallelConfig
+        )
+        config = config or ParallelConfig()
+        return ParallelWriter(self, config)
+
     def _invalidate_cache_for_file(self, path: str):
         """
         Invalidate all cached entries for a file.
