@@ -290,3 +290,79 @@ class TestFUSEWriteSupport:
         # Verify img_data is mutable (numpy array)
         import numpy as np
         assert isinstance(fuse_instance.img_data, np.ndarray), "img_data should be a numpy array"
+
+    def test_read_uses_cache(self, mounted_map):
+        """Test that read operations use the LRU cache."""
+        from systems.pixel_compiler.infinite_map_fuse import InfiniteMapFilesystem
+
+        fuse_instance = InfiniteMapFilesystem(
+            mounted_map["image_path"],
+            enable_writes=True
+        )
+
+        # Verify cache is initialized
+        assert hasattr(fuse_instance, 'cache'), "FUSE instance should have 'cache' attribute"
+        assert fuse_instance.cache is not None, "Cache should be initialized"
+
+        # Get initial cache stats
+        stats_before = fuse_instance.cache.get_stats()
+        initial_misses = stats_before["misses"]
+
+        # First read - should be a cache miss
+        data1 = fuse_instance.read("/existing.txt", 5, 0)
+        stats_after_first = fuse_instance.cache.get_stats()
+
+        # Should have at least one miss now
+        assert stats_after_first["misses"] >= initial_misses + 1, \
+            "First read should be a cache miss"
+
+        # Second read - should be a cache hit
+        data2 = fuse_instance.read("/existing.txt", 5, 0)
+        stats_after_second = fuse_instance.cache.get_stats()
+
+        # Should have a hit now
+        assert stats_after_second["hits"] >= 1, \
+            "Second read should be a cache hit"
+
+        # Data should be identical
+        assert data1 == data2, "Cached data should match original data"
+
+    def test_cache_invalidation_on_write(self, mounted_map):
+        """Test that cache is invalidated when file is written."""
+        from systems.pixel_compiler.infinite_map_fuse import InfiniteMapFilesystem
+
+        fuse_instance = InfiniteMapFilesystem(
+            mounted_map["image_path"],
+            enable_writes=True
+        )
+
+        # First read - populate cache
+        data1 = fuse_instance.read("/existing.txt", 5, 0)
+        stats_after_read = fuse_instance.cache.get_stats()
+        assert stats_after_read["hits"] >= 0 or stats_after_read["misses"] >= 1
+
+        # Write to the file - should invalidate cache
+        fuse_instance.write("/existing.txt", b"world", 0)
+
+        # Cache should be invalidated for this file
+        # After write, a read should miss the cache
+        data2 = fuse_instance.read("/existing.txt", 5, 0)
+
+        # Verify data changed
+        assert data2 == b"world", "Data should be updated after write"
+
+    def test_cache_configurable_size(self, mounted_map):
+        """Test that cache size is configurable."""
+        from systems.pixel_compiler.infinite_map_fuse import InfiniteMapFilesystem
+
+        # Create FUSE with custom cache size (1MB)
+        fuse_instance = InfiniteMapFilesystem(
+            mounted_map["image_path"],
+            enable_writes=True,
+            cache_size=1024 * 1024  # 1MB
+        )
+
+        # Verify cache has the correct max size
+        stats = fuse_instance.cache.get_stats()
+        assert stats["max_size"] == 1024 * 1024, \
+            "Cache max_size should be configurable"

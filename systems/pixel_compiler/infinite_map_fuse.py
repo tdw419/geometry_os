@@ -46,6 +46,7 @@ from systems.rts_fuse.container import RTSContainer
 from systems.rts_fuse.hilbert_lut import HilbertLUT
 from systems.pixel_compiler.vat_parser import VATParser, VATInspector, VATNotFoundError
 from systems.pixel_compiler.infinite_map_v2 import ClusterLocation, VisualAllocationTable
+from systems.pixel_compiler.infinite_map_cache import LRUCache
 import numpy as np
 
 @dataclass
@@ -397,13 +398,17 @@ class InfiniteMapFilesystem(RTSFilesystem):
 
     CLUSTER_SIZE = 4096  # 4KB clusters
 
-    def __init__(self, container_path: str, max_workers: int = 4, enable_writes: bool = False):
+    def __init__(self, container_path: str, max_workers: int = 4, enable_writes: bool = False, cache_size: int = 10 * 1024 * 1024):
         # Override container initialization to use our specialized class
         self.container = InfiniteMapContainer(container_path)
         self.img_data = self.container.img_data
         self.grid_size = self.container.grid_size
         self.max_workers = max_workers
         self.enable_writes = enable_writes
+        self.cache_size = cache_size
+
+        # Initialize LRU cache
+        self.cache = LRUCache(max_size=cache_size)
 
         # Init lock and stats
         self.lock = threading.RLock()
@@ -845,7 +850,7 @@ class InfiniteMapFilesystem(RTSFilesystem):
 
     def read(self, path: str, length: int, offset: int, fh=None) -> bytes:
         """
-        Read file data using fragmented file reads.
+        Read file data using fragmented file reads with LRU caching.
 
         Args:
             path: File path
@@ -858,6 +863,21 @@ class InfiniteMapFilesystem(RTSFilesystem):
         """
         filename = path.lstrip("/")
 
+        # Generate cache key
+        cache_key = f"{filename}:{offset}:{length}"
+
+        # Check cache first
+        cached = self.cache.get(cache_key)
+        if cached is not None:
+            # Cache hit
+            with self.lock:
+                self.stats["reads"] += 1
+                self.stats["bytes_read"] += len(cached)
+                self.stats["cache_hits"] += 1
+                self.access_counts[filename] += 1
+            return cached
+
+        # Cache miss - read from storage
         # Check _open_files first for files that have been written
         if filename in self._open_files:
             file_info = self._open_files[filename]
@@ -868,7 +888,10 @@ class InfiniteMapFilesystem(RTSFilesystem):
                 with self.lock:
                     self.stats["reads"] += 1
                     self.stats["bytes_read"] += len(data)
+                    self.stats["cache_misses"] += 1
                     self.access_counts[filename] += 1
+                # Store in cache
+                self.cache.set(cache_key, data)
                 return data
 
         # Check if file has cluster chain (VAT v2)
@@ -885,7 +908,11 @@ class InfiniteMapFilesystem(RTSFilesystem):
         with self.lock:
             self.stats["reads"] += 1
             self.stats["bytes_read"] += len(data)
+            self.stats["cache_misses"] += 1
             self.access_counts[filename] += 1
+
+        # Store in cache
+        self.cache.set(cache_key, data)
 
         return data
 
@@ -1150,6 +1177,9 @@ class InfiniteMapFilesystem(RTSFilesystem):
             file_info['modified'] = True
             self.stats["bytes_written"] += len(data)
 
+        # Invalidate cached reads for this file
+        self._invalidate_cache_for_file(path)
+
         return len(data)
 
     def _write_cluster(self, cluster, data: bytes, offset: int) -> None:
@@ -1222,6 +1252,9 @@ class InfiniteMapFilesystem(RTSFilesystem):
 
             # Set dirty flag
             self.dirty = True
+
+        # Invalidate cached reads for this file
+        self._invalidate_cache_for_file(path)
 
         print(f"[*] Deleted file: {filename}")
 
@@ -1393,6 +1426,9 @@ class InfiniteMapFilesystem(RTSFilesystem):
 
             # Set dirty flag
             self.dirty = True
+
+        # Invalidate cached reads for this file (outside lock to avoid deadlock)
+        self._invalidate_cache_for_file(path)
 
         return 0
 
@@ -1572,6 +1608,34 @@ class InfiniteMapFilesystem(RTSFilesystem):
                 "fragmented_reads": 0,
                 "cluster_chain_hops": 0
             }
+
+    def _invalidate_cache_for_file(self, path: str):
+        """
+        Invalidate all cached entries for a file.
+
+        This should be called when a file is written, truncated, or deleted
+        to ensure stale data is not returned from the cache.
+
+        Args:
+            path: File path to invalidate (with or without leading /)
+        """
+        filename = path.lstrip("/")
+
+        # We need to find and remove all cache keys that start with this filename
+        # Since LRUCache uses OrderedDict, we iterate and collect keys to remove
+        keys_to_remove = []
+
+        with self.cache._lock:
+            for key in self.cache._cache.keys():
+                # Key format is "filename:offset:length"
+                if key.startswith(f"{filename}:"):
+                    keys_to_remove.append(key)
+
+            # Remove the keys
+            for key in keys_to_remove:
+                entry = self.cache._cache.pop(key, None)
+                if entry:
+                    self.cache._current_size -= entry.size
 
 def mount_infinite_map(
     container_path: str,
