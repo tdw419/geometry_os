@@ -1296,10 +1296,11 @@ class InfiniteMapFilesystem(RTSFilesystem):
             fh: File handle (optional)
 
         Returns:
-            0 on success
+            0 on success, raises FuseOSError on failure
         """
         if self.dirty:
-            self._sync_to_disk()
+            if not self._sync_to_disk():
+                raise FuseOSError(errno.EIO)
         return 0
 
     def fsync(self, path: str, datasync: int, fh=None) -> int:
@@ -1309,14 +1310,16 @@ class InfiniteMapFilesystem(RTSFilesystem):
         Args:
             path: File path
             datasync: If non-zero, sync only data (not metadata)
+                      Note: Currently ignored - always syncs both
             fh: File handle (optional)
 
         Returns:
             0 on success
         """
+        # Note: datasync is ignored as VAT is tightly coupled with data
         return self.flush(path, fh)
 
-    def _sync_to_disk(self) -> None:
+    def _sync_to_disk(self) -> bool:
         """
         Write all changes back to the PNG file.
 
@@ -1326,26 +1329,38 @@ class InfiniteMapFilesystem(RTSFilesystem):
         3. Updates VAT metadata in PNG tEXt chunk
         4. Saves the image back to disk
         5. Clears the dirty flag
+
+        Returns:
+            True on success, False on failure
         """
         from PIL import Image
 
-        with self.lock:
-            # Reshape pixel array to image
-            img_array = self.img_data.reshape((self.grid_size, self.grid_size, 4))
+        try:
+            with self.lock:
+                # Reshape pixel array to image
+                img_array = self.img_data.reshape((self.grid_size, self.grid_size, 4))
 
-            # Create image
-            img = Image.fromarray(img_array, 'RGBA')
+                # Create image
+                img = Image.fromarray(img_array, 'RGBA')
 
-            # Update VAT metadata in PNG tEXt chunk
-            if hasattr(self.container.vat, 'to_json'):
-                vat_json = json.dumps(self.container.vat.to_json())
-                img.info['vat'] = vat_json
+                # Update VAT metadata in PNG tEXt chunk
+                if hasattr(self.container.vat, 'to_json'):
+                    vat_json = json.dumps(self.container.vat.to_json())
+                    img.info['vat'] = vat_json
 
-            # Save image
-            img.save(self.container.container_path, 'PNG')
+                # Save image
+                img.save(self.container.container_path, 'PNG')
 
-            self.dirty = False
-            print(f"[*] Synced changes to {self.container.container_path}")
+                self.dirty = False
+                print(f"[*] Synced changes to {self.container.container_path}")
+                return True
+
+        except (OSError, IOError) as e:
+            print(f"[!] Error syncing to disk: {e}")
+            return False
+        except Exception as e:
+            print(f"[!] Unexpected error during sync: {e}")
+            return False
 
     def open(self, path: str, flags: int) -> int:
         """
