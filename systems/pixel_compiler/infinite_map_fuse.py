@@ -851,6 +851,19 @@ class InfiniteMapFilesystem(RTSFilesystem):
         """
         filename = path.lstrip("/")
 
+        # Check _open_files first for files that have been written
+        if filename in self._open_files:
+            file_info = self._open_files[filename]
+            clusters = file_info.get('clusters', [])
+            if clusters:
+                # Read from the clusters we've written to
+                data = self._read_from_clusters(clusters, offset, length, file_info['size'])
+                with self.lock:
+                    self.stats["reads"] += 1
+                    self.stats["bytes_read"] += len(data)
+                    self.access_counts[filename] += 1
+                return data
+
         # Check if file has cluster chain (VAT v2)
         cluster_chain = self.container.get_cluster_chain(filename)
 
@@ -868,6 +881,75 @@ class InfiniteMapFilesystem(RTSFilesystem):
             self.access_counts[filename] += 1
 
         return data
+
+    def _read_from_clusters(self, clusters: list, offset: int, length: int, file_size: int) -> bytes:
+        """
+        Read data from a list of clusters.
+
+        Args:
+            clusters: List of ClusterLocation objects
+            offset: Starting offset in file
+            length: Number of bytes to read
+            file_size: Total file size
+
+        Returns:
+            File data as bytes
+        """
+        if offset >= file_size:
+            return b''
+
+        # Clamp length to available data
+        actual_length = min(length, file_size - offset)
+        if actual_length <= 0:
+            return b''
+
+        result = bytearray()
+        bytes_read = 0
+
+        while bytes_read < actual_length:
+            cluster_idx = (offset + bytes_read) // 4096
+            cluster_offset = (offset + bytes_read) % 4096
+
+            if cluster_idx >= len(clusters):
+                break
+
+            cluster = clusters[cluster_idx]
+            bytes_to_read = min(4096 - cluster_offset, actual_length - bytes_read)
+
+            cluster_data = self._read_cluster_for_write(cluster, cluster_offset, bytes_to_read)
+            result.extend(cluster_data)
+            bytes_read += len(cluster_data)
+
+        return bytes(result)
+
+    def _read_cluster_for_write(self, cluster, offset: int, size: int) -> bytes:
+        """
+        Read data from a cluster that was written via write().
+
+        Args:
+            cluster: ClusterLocation
+            offset: Offset within cluster (0-4095)
+            size: Number of bytes to read
+
+        Returns:
+            Cluster data as bytes
+        """
+        linear_idx = cluster.to_linear_index(self.grid_size)
+        result = bytearray()
+
+        for i in range(size):
+            byte_pos = offset + i
+            pixel_idx = linear_idx + (byte_pos // 4)
+            channel = byte_pos % 4
+
+            if pixel_idx < len(self.lut):
+                x, y = self.lut[pixel_idx]
+                byte_val = self.img_data[y, x, channel]
+                result.append(byte_val)
+            else:
+                result.append(0)
+
+        return bytes(result)
 
     def create(self, path: str, mode: int, fi=None) -> int:
         """
@@ -921,6 +1003,102 @@ class InfiniteMapFilesystem(RTSFilesystem):
         except Exception as e:
             print(f"Error creating file {path}: {e}")
             raise FuseOSError(errno.EIO)
+
+    def write(self, path: str, data: bytes, offset: int, fh=None) -> int:
+        """
+        Write data to a file.
+
+        Args:
+            path: File path
+            data: Data to write
+            offset: Starting offset in file
+            fh: File handle (unused)
+
+        Returns:
+            Number of bytes written
+        """
+        if not self.enable_writes:
+            raise FuseOSError(errno.EROFS)
+
+        # Normalize path
+        filename = path[1:] if path.startswith('/') else path
+
+        # Get or create file info
+        if filename not in self.container.vat.entries:
+            result = self.create(path, 0o644)
+            if result < 0:
+                return result
+
+        # Get file info from _open_files or create
+        file_info = self._open_files.get(filename)
+        if not file_info:
+            locs = self.container.vat.entries.get(filename, [])
+            file_info = {
+                'name': filename,
+                'size': 0,
+                'clusters': locs,
+                'modified': False
+            }
+            self._open_files[filename] = file_info
+
+        # Calculate clusters needed
+        total_size = max(file_info['size'], offset + len(data))
+        clusters_needed = (total_size + 4095) // 4096
+
+        # Allocate more clusters if needed
+        while len(file_info['clusters']) < clusters_needed:
+            try:
+                new_clusters = self.container.vat.allocate_sequential(
+                    filename, 4096
+                )
+                file_info['clusters'].extend(new_clusters)
+            except Exception:
+                return -errno.ENOSPC
+
+        # Write data to clusters
+        data_offset = 0
+        while data_offset < len(data):
+            cluster_idx = (offset + data_offset) // 4096
+            cluster_offset = (offset + data_offset) % 4096
+
+            if cluster_idx >= len(file_info['clusters']):
+                break
+
+            cluster = file_info['clusters'][cluster_idx]
+            bytes_to_write = min(4096 - cluster_offset, len(data) - data_offset)
+
+            self._write_cluster(
+                cluster,
+                data[data_offset:data_offset + bytes_to_write],
+                cluster_offset
+            )
+            data_offset += bytes_to_write
+
+        file_info['size'] = total_size
+        file_info['modified'] = True
+        self.stats["bytes_written"] += len(data)
+        return len(data)
+
+    def _write_cluster(self, cluster, data: bytes, offset: int) -> None:
+        """
+        Write data to a cluster at given offset.
+
+        Args:
+            cluster: ClusterLocation to write to
+            data: Data bytes to write
+            offset: Offset within the cluster (0-4095)
+        """
+        linear_idx = cluster.to_linear_index(self.grid_size)
+
+        for i, byte_val in enumerate(data):
+            byte_pos = offset + i
+            pixel_idx = linear_idx + (byte_pos // 4)
+            channel = byte_pos % 4
+
+            if pixel_idx < len(self.lut):
+                x, y = self.lut[pixel_idx]
+                # Write to img_data at correct position
+                self.img_data[y, x, channel] = byte_val
 
     def open(self, path: str, flags: int) -> int:
         """

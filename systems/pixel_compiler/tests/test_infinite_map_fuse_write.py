@@ -54,3 +54,26 @@ class TestFUSEWriteSupport:
 
         # Verify file was created in VAT
         assert fuse_instance.container.vat.lookup("newfile.txt") is not None
+
+    def test_write_to_file(self, mounted_map):
+        """Test writing data to a file via FUSE write operation."""
+        from systems.pixel_compiler.infinite_map_fuse import InfiniteMapFilesystem
+
+        fuse_instance = InfiniteMapFilesystem(
+            mounted_map["image_path"],
+            enable_writes=True
+        )
+
+        # First create the file
+        fuse_instance.create("/writetest.txt", 0o644)
+
+        # Write data
+        data = b"Hello, Infinite Map!"
+        result = fuse_instance.write("/writetest.txt", data, 0)
+
+        # Verify write succeeded (returns bytes written)
+        assert result == len(data)
+
+        # Verify data can be read back
+        read_data = fuse_instance.read("/writetest.txt", len(data), 0)
+        assert read_data == data
