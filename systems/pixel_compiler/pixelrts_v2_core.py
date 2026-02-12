@@ -49,6 +49,27 @@ except ImportError:
 except ImportError:
     COMPRESSION_AVAILABLE = False
 
+# Try to import layout module
+try:
+    from systems.pixel_compiler.pixelrts_layout import (
+        Zone,
+        AccessFrequency,
+        LayoutOptimizer,
+        get_zone_for_file
+    )
+    LAYOUT_AVAILABLE = True
+except ImportError:
+    try:
+        from pixelrts_layout import (
+            Zone,
+            AccessFrequency,
+            LayoutOptimizer,
+            get_zone_for_file
+        )
+        LAYOUT_AVAILABLE = True
+    except ImportError:
+        LAYOUT_AVAILABLE = False
+
 
 class HilbertCurve:
     """
@@ -294,7 +315,8 @@ class PixelRTSEncoder:
         self,
         mode: str = "standard",
         compression: str = None,
-        compression_level: str = "medium"
+        compression_level: str = "medium",
+        use_layout: bool = False
     ):
         """
         Initialize encoder.
@@ -303,19 +325,26 @@ class PixelRTSEncoder:
             mode: Encoding mode - "standard" (RGBA dense) or "code" (semantic coloring)
             compression: Compression type - None, "auto", "zstd-h5", "zlib"
             compression_level: Compression level - "none", "low", "medium", "high"
+            use_layout: Enable layout optimization for zone-based placement
         """
         if mode not in ("standard", "code"):
             raise ValueError(f"Invalid mode: {mode}. Must be 'standard' or 'code'")
         self.mode = mode
         self.compression = compression
         self.compression_level = compression_level
+        self.use_layout = use_layout
         self.wasm_visualizer = None
+        self.layout_optimizer = None
+
         if mode == "code":
             try:
                 from pixelrts_v2_wasm import WASMCodeVisualizer
                 self.wasm_visualizer = WASMCodeVisualizer()
             except ImportError:
                 pass  # WASM visualizer not available
+
+        if use_layout and LAYOUT_AVAILABLE:
+            self.layout_optimizer = LayoutOptimizer()
 
     def encode(
         self,
