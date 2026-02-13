@@ -56,6 +56,9 @@ class WebMCPBridge {
     /** @type {WebSocket|null} */
     #evolutionSocket = null;
 
+    /** @type {WebSocket|null} */
+    #agentSocket = null;
+
     constructor() {
         // Feature detection — is WebMCP available?
         this.#webmcpAvailable = typeof navigator !== 'undefined'
@@ -106,6 +109,7 @@ class WebMCPBridge {
             await this.#registerQueryHilbertAddress();
             await this.#registerTriggerEvolution();
             await this.#registerSendLLMPrompt();
+            await this.#registerSpawnAreaAgent();
 
             // Publish OS context alongside tools
             await this.#publishContext();
@@ -866,6 +870,37 @@ class WebMCPBridge {
         });
     }
 
+    /**
+     * Connect to the agent WebSocket backend
+     * @returns {Promise<WebSocket>}
+     */
+    #connectAgentSocket() {
+        return new Promise((resolve, reject) => {
+            if (this.#agentSocket?.readyState === WebSocket.OPEN) {
+                resolve(this.#agentSocket);
+                return;
+            }
+
+            const ws = new WebSocket('ws://localhost:8765/agents');
+
+            ws.onopen = () => {
+                this.#agentSocket = ws;
+                resolve(ws);
+            };
+
+            ws.onerror = () => {
+                reject(new Error('Agent backend not running at ws://localhost:8765/agents'));
+            };
+
+            // 5 second timeout
+            setTimeout(() => {
+                if (ws.readyState !== WebSocket.OPEN) {
+                    reject(new Error('Agent backend connection timeout'));
+                }
+            }, 5000);
+        });
+    }
+
     async #registerTriggerEvolution() {
         const tool = {
             name: 'trigger_evolution',
@@ -1181,6 +1216,186 @@ class WebMCPBridge {
             return {
                 success: false,
                 error: `Failed to connect to LM Studio: ${err.message}`,
+                error_code: errorCode
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 8: spawn_area_agent (Phase B)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerSpawnAreaAgent() {
+        const tool = {
+            name: 'spawn_area_agent',
+            description:
+                'Create an area agent to monitor and/or act on a specific region ' +
+                'of the infinite map. Area agents can observe pixel changes, execute ' +
+                'actions, evolve content, or analyze patterns within their assigned region. ' +
+                'The agent runs autonomously and can be configured with specific behaviors.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    agent_type: {
+                        type: 'string',
+                        description: 'Type of agent to spawn (required)',
+                        enum: ['monitor', 'executor', 'evolver', 'analyzer']
+                    },
+                    region: {
+                        type: 'object',
+                        description: 'Region on the infinite map for the agent to operate on (required)',
+                        properties: {
+                            x: { type: 'number', description: 'Region X origin (grid units)' },
+                            y: { type: 'number', description: 'Region Y origin (grid units)' },
+                            width: { type: 'number', description: 'Region width (grid units)' },
+                            height: { type: 'number', description: 'Region height (grid units)' }
+                        },
+                        required: ['x', 'y', 'width', 'height']
+                    },
+                    config: {
+                        type: 'object',
+                        description: 'Agent-specific configuration options (optional)'
+                    },
+                    auto_start: {
+                        type: 'boolean',
+                        description: 'Whether to start the agent immediately after spawning (default: true)',
+                        default: true
+                    }
+                },
+                required: ['agent_type', 'region']
+            },
+            handler: async (params) => {
+                return this.#handleSpawnAreaAgent(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleSpawnAreaAgent({
+        agent_type,
+        region,
+        config = {},
+        auto_start = true
+    }) {
+        this.#trackCall('spawn_area_agent');
+
+        // Valid agent types
+        const VALID_AGENT_TYPES = ['monitor', 'executor', 'evolver', 'analyzer'];
+
+        // Validate agent_type
+        if (!agent_type || !VALID_AGENT_TYPES.includes(agent_type)) {
+            return {
+                success: false,
+                error: `agent_type must be one of: ${VALID_AGENT_TYPES.join(', ')}`,
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        // Validate region object exists
+        if (!region || typeof region !== 'object') {
+            return {
+                success: false,
+                error: 'region is required and must be an object with x, y, width, height',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        // Validate region has required properties
+        const { x, y, width, height } = region;
+        if (typeof x !== 'number' || typeof y !== 'number' ||
+            typeof width !== 'number' || typeof height !== 'number') {
+            return {
+                success: false,
+                error: 'region must have numeric x, y, width, and height properties',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        // Validate region values are reasonable
+        if (width <= 0 || height <= 0) {
+            return {
+                success: false,
+                error: 'region width and height must be positive numbers',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            // Connect to WebSocket backend
+            const ws = await this.#connectAgentSocket();
+
+            // Generate unique request ID
+            const requestId = `agent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+            // Create promise for response with matching requestId
+            const responsePromise = new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('Agent spawn timeout (10s)'));
+                }, 10000);
+
+                const messageHandler = (event) => {
+                    try {
+                        const response = JSON.parse(event.data);
+                        if (response.requestId === requestId) {
+                            clearTimeout(timeoutId);
+                            ws.removeEventListener('message', messageHandler);
+                            resolve(response);
+                        }
+                    } catch (parseErr) {
+                        // Ignore parse errors for non-matching messages
+                    }
+                };
+
+                ws.addEventListener('message', messageHandler);
+            });
+
+            // Send spawn request
+            const request = {
+                requestId,
+                action: 'spawn',
+                agent_type,
+                region: { x, y, width, height },
+                config,
+                auto_start
+            };
+
+            ws.send(JSON.stringify(request));
+
+            // Wait for response
+            const response = await responsePromise;
+
+            // Check for backend errors
+            if (!response.success) {
+                return {
+                    success: false,
+                    error: response.error || 'Agent backend returned failure',
+                    error_code: 'EXECUTION_FAILED'
+                };
+            }
+
+            // Return successful spawn result
+            return {
+                success: true,
+                agentId: response.agentId,
+                status: response.status || 'spawned',
+                region: { x, y, width, height },
+                heartbeatInterval: response.heartbeatInterval || 5000
+            };
+
+        } catch (err) {
+            // Determine error code based on error type
+            let errorCode = 'EXECUTION_FAILED';
+            if (err.message.includes('backend not running') || err.message.includes('connection')) {
+                errorCode = 'BACKEND_UNAVAILABLE';
+            } else if (err.message.includes('timeout')) {
+                errorCode = 'EXECUTION_FAILED';
+            }
+
+            return {
+                success: false,
+                error: err.message,
                 error_code: errorCode
             };
         }
