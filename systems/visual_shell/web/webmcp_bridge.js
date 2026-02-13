@@ -23,12 +23,13 @@
  * Phase B Tools:
  *   5. query_hilbert_address — Convert 1D Hilbert index to 2D coordinates
  *   6. trigger_evolution    — Trigger WGSL kernel evolution cycle
+ *   7. send_llm_prompt      — Send prompt to LM Studio for AI-to-AI communication
  *
  * Requirements: Chrome 146+ with WebMCP support
  * Fallback: Logs warning, app runs normally without WebMCP
  *
- * @version 1.2.0
- * @phase Phase B: Spatial Query Tools & Evolution Bridge
+ * @version 1.3.0
+ * @phase Phase B: Spatial Query Tools, Evolution Bridge & LLM Integration
  * @date 2026-02-13
  */
 
@@ -104,6 +105,7 @@ class WebMCPBridge {
             // Phase B tools
             await this.#registerQueryHilbertAddress();
             await this.#registerTriggerEvolution();
+            await this.#registerSendLLMPrompt();
 
             // Publish OS context alongside tools
             await this.#publishContext();
@@ -1027,6 +1029,158 @@ class WebMCPBridge {
             return {
                 success: false,
                 error: err.message,
+                error_code: errorCode
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 7: send_llm_prompt (Phase B)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerSendLLMPrompt() {
+        const tool = {
+            name: 'send_llm_prompt',
+            description:
+                'Send a prompt to LM Studio for AI-to-AI communication. ' +
+                'This enables the host AI to delegate reasoning, analysis, or ' +
+                'generation tasks to a local LLM running in LM Studio. ' +
+                'The LM Studio server must be running on localhost:1234.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    prompt: {
+                        type: 'string',
+                        description: 'The prompt to send to the LLM (required)'
+                    },
+                    model: {
+                        type: 'string',
+                        description: 'Model identifier (default: "local")',
+                        default: 'local'
+                    },
+                    temperature: {
+                        type: 'number',
+                        description: 'Sampling temperature (default: 0.7)',
+                        default: 0.7,
+                        minimum: 0,
+                        maximum: 2
+                    },
+                    max_tokens: {
+                        type: 'number',
+                        description: 'Maximum tokens to generate (default: 2048)',
+                        default: 2048
+                    },
+                    system_prompt: {
+                        type: 'string',
+                        description: 'Optional system prompt to provide context'
+                    }
+                },
+                required: ['prompt']
+            },
+            handler: async (params) => {
+                return this.#handleSendLLMPrompt(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleSendLLMPrompt({
+        prompt,
+        model = 'local',
+        temperature = 0.7,
+        max_tokens = 2048,
+        system_prompt
+    }) {
+        this.#trackCall('send_llm_prompt');
+
+        // Validate prompt is required and is a string
+        if (typeof prompt !== 'string' || prompt.trim().length === 0) {
+            return {
+                success: false,
+                error: 'prompt is required and must be a non-empty string',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        // Validate temperature range
+        if (typeof temperature !== 'number' || temperature < 0 || temperature > 2) {
+            return {
+                success: false,
+                error: 'temperature must be a number between 0 and 2',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        // Build messages array
+        const messages = [];
+        if (system_prompt && typeof system_prompt === 'string' && system_prompt.trim().length > 0) {
+            messages.push({ role: 'system', content: system_prompt });
+        }
+        messages.push({ role: 'user', content: prompt });
+
+        // Track latency
+        const startTime = Date.now();
+
+        try {
+            // POST to LM Studio OpenAI-compatible endpoint
+            const response = await fetch('http://localhost:1234/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: model,
+                    messages: messages,
+                    temperature: temperature,
+                    max_tokens: max_tokens
+                })
+            });
+
+            const latencyMs = Date.now() - startTime;
+
+            // Handle HTTP errors
+            if (!response.ok) {
+                const errorText = await response.text().catch(() => 'Unknown error');
+                return {
+                    success: false,
+                    error: `LM Studio returned HTTP ${response.status}: ${errorText}`,
+                    error_code: 'BACKEND_UNAVAILABLE'
+                };
+            }
+
+            // Parse OpenAI-compatible response
+            const data = await response.json();
+
+            // Extract response content
+            const responseContent = data.choices?.[0]?.message?.content || '';
+
+            // Extract token usage
+            const tokensUsed = {
+                prompt: data.usage?.prompt_tokens || 0,
+                completion: data.usage?.completion_tokens || 0,
+                total: data.usage?.total_tokens || 0
+            };
+
+            return {
+                success: true,
+                response: responseContent,
+                model: data.model || model,
+                tokensUsed: tokensUsed,
+                latencyMs: latencyMs
+            };
+
+        } catch (err) {
+            // Determine error code based on error type
+            let errorCode = 'BACKEND_UNAVAILABLE';
+            if (err.name === 'TypeError' && err.message.includes('fetch')) {
+                errorCode = 'BACKEND_UNAVAILABLE';
+            }
+
+            return {
+                success: false,
+                error: `Failed to connect to LM Studio: ${err.message}`,
                 error_code: errorCode
             };
         }
