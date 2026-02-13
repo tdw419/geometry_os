@@ -5,7 +5,7 @@ Pixel-Native GUI Runtime.
 Orchestrates GPU execution of GUI programs with AI perception.
 """
 import numpy as np
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 from dataclasses import dataclass, field
 
 from systems.pixel_compiler.pixel_native_types import (
@@ -14,6 +14,10 @@ from systems.pixel_compiler.pixel_native_types import (
     GUIState
 )
 from systems.pixel_compiler.virtual_framebuffer import VirtualFramebuffer
+
+if TYPE_CHECKING:
+    from systems.pixel_compiler.gpu_context import GPUContext
+    from systems.pixel_compiler.gpu_framebuffer import GPUFramebuffer
 
 
 class PixelNativeRuntime:
@@ -24,10 +28,32 @@ class PixelNativeRuntime:
     In physical mode: GUI renders to /dev/fb0
     """
 
-    def __init__(self, config: Optional[RuntimeConfig] = None):
+    def __init__(self, config: Optional[RuntimeConfig] = None, use_gpu: bool = True):
         self.config = config or RuntimeConfig()
 
-        # Virtual framebuffer (for virtual mode)
+        # GPU context (optional)
+        self._gpu_ctx: Optional['GPUContext'] = None
+        self._gpu_framebuffer: Optional['GPUFramebuffer'] = None
+        self._use_gpu_requested = use_gpu
+
+        # Initialize GPU context immediately
+        if use_gpu:
+            try:
+                from systems.pixel_compiler.gpu_context import GPUContext
+                self._gpu_ctx = GPUContext(force_mock=False)
+            except Exception as e:
+                print(f"[PixelNativeRuntime] GPU init failed: {e}")
+                self._gpu_ctx = None
+        else:
+            # Force mock mode
+            try:
+                from systems.pixel_compiler.gpu_context import GPUContext
+                self._gpu_ctx = GPUContext(force_mock=True)
+            except Exception as e:
+                print(f"[PixelNativeRuntime] GPU mock init failed: {e}")
+                self._gpu_ctx = None
+
+        # Virtual framebuffer (fallback/backup)
         self._framebuffer = VirtualFramebuffer(
             self.config.width,
             self.config.height
@@ -46,7 +72,23 @@ class PixelNativeRuntime:
 
     def initialize(self) -> bool:
         """Initialize GPU resources."""
-        # For now, just allocate state texture
+        if self._gpu_initialized:
+            return True
+
+        # Create GPU framebuffer if GPU context exists
+        if self._gpu_ctx is not None:
+            try:
+                from systems.pixel_compiler.gpu_framebuffer import GPUFramebuffer
+                self._gpu_framebuffer = GPUFramebuffer(
+                    self._gpu_ctx,
+                    self.config.width,
+                    self.config.height
+                )
+            except Exception as e:
+                print(f"[PixelNativeRuntime] GPUFramebuffer init failed: {e}")
+                self._gpu_framebuffer = None
+
+        # Allocate state texture (CPU fallback)
         self._state_texture = np.zeros(
             (self.config.height, self.config.width, 4),
             dtype=np.float32
@@ -54,8 +96,15 @@ class PixelNativeRuntime:
         self._gpu_initialized = True
         return True
 
+    @property
+    def using_gpu(self) -> bool:
+        """Check if using real GPU (not mock)."""
+        return self._gpu_ctx is not None and self._gpu_ctx.is_available
+
     def get_framebuffer(self) -> np.ndarray:
-        """Get current framebuffer pixels (zero-copy view)."""
+        """Get current framebuffer pixels (zero-copy view when possible)."""
+        if self._gpu_framebuffer is not None:
+            return self._gpu_framebuffer.get_pixels_view()
         return self._framebuffer.pixels
 
     def get_framebuffer_copy(self) -> np.ndarray:

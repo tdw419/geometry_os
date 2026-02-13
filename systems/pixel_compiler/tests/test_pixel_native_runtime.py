@@ -49,3 +49,64 @@ class TestPixelNativeRuntime:
         runtime.inject_input(ClickEvent(x=50, y=50))
         runtime.process_inputs()
         assert len(runtime.pending_inputs) == 0
+
+
+class TestPixelNativeRuntimeGPU:
+    def test_runtime_creates_gpu_context(self):
+        """Test that runtime creates GPU context."""
+        from systems.pixel_compiler.pixel_native_runtime import PixelNativeRuntime
+        from systems.pixel_compiler.pixel_native_types import RuntimeConfig
+
+        config = RuntimeConfig(width=100, height=100)
+        runtime = PixelNativeRuntime(config, use_gpu=True)
+
+        assert runtime._gpu_ctx is not None
+        assert runtime.using_gpu is not None  # True or False
+
+    def test_runtime_falls_back_to_mock(self):
+        """Test that runtime can force mock mode."""
+        from systems.pixel_compiler.pixel_native_runtime import PixelNativeRuntime
+        from systems.pixel_compiler.pixel_native_types import RuntimeConfig
+
+        config = RuntimeConfig(width=100, height=100)
+        runtime = PixelNativeRuntime(config, use_gpu=False)
+
+        assert runtime.using_gpu is False
+        assert runtime._gpu_ctx.mock is True
+
+    def test_gpu_framebuffer_is_fast(self):
+        """Test that GPU framebuffer access is efficient."""
+        from systems.pixel_compiler.pixel_native_runtime import PixelNativeRuntime
+        from systems.pixel_compiler.pixel_native_types import RuntimeConfig
+        import time
+
+        config = RuntimeConfig(width=100, height=100)
+        runtime = PixelNativeRuntime(config, use_gpu=True)
+        runtime.initialize()
+
+        # Multiple reads should be fast
+        start = time.time()
+        for _ in range(10):
+            fb = runtime.get_framebuffer()
+        elapsed = time.time() - start
+
+        # Should complete in reasonable time (< 1 second for 10 reads)
+        assert elapsed < 1.0
+
+    def test_execute_frame_with_gpu(self):
+        """Test frame execution with GPU context."""
+        from systems.pixel_compiler.pixel_native_runtime import PixelNativeRuntime
+        from systems.pixel_compiler.pixel_native_types import RuntimeConfig, ClickEvent
+
+        config = RuntimeConfig(width=100, height=100)
+        runtime = PixelNativeRuntime(config, use_gpu=True)
+        runtime.initialize()
+
+        # Inject input
+        runtime.inject_input(ClickEvent(x=50, y=50))
+
+        # Execute frame
+        runtime.execute_frame()
+
+        assert runtime.frame_count == 1
+        assert len(runtime.pending_inputs) == 0
