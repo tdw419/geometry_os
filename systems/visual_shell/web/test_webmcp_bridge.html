@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geometry OS: WebMCP Bridge Verification</title>
+    <title>Geometry OS: WebMCP Bridge Verification (Phase A + B)</title>
     <style>
         /* Geometry OS Dark Theme */
         * {
@@ -282,6 +282,9 @@
                 <li><strong>Bridge Class Loaded:</strong> Whether <code>WebMCPBridge</code> class is defined in the global scope</li>
                 <li><strong>Global Instance:</strong> Whether <code>window.webmcpBridge</code> exists and is the correct type</li>
                 <li><strong>Bridge Status Structure:</strong> Whether <code>getStatus()</code> returns the expected structure</li>
+                <li><strong>Phase A Tools:</strong> <code>navigate_map</code>, <code>get_os_state</code>, <code>execute_pixel_program</code>, <code>load_rts_cartridge</code></li>
+                <li><strong>Phase B Tools:</strong> <code>query_hilbert_address</code>, <code>trigger_evolution</code>, <code>send_llm_prompt</code>, <code>spawn_area_agent</code></li>
+                <li><strong>HilbertLUT:</strong> Spatial query backend for Hilbert curve conversions</li>
             </ul>
             <p>The test waits for the <code>geometry-os-ready</code> event or falls back after 2 seconds.</p>
         </div>
@@ -537,6 +540,157 @@
                 return {
                     pass: true,
                     detail: `Status structure valid. available=${status.available}, registered=${status.registered}, tools=[${status.tools.join(', ')}]`
+                };
+            }
+        );
+
+        // ═══════════════════════════════════════════════════════════════
+        // Phase B Tests: Spatial Query Tools, Evolution Bridge & LLM Integration
+        // ═══════════════════════════════════════════════════════════════
+
+        test(
+            'query_hilbert_address Tool Registered',
+            'Check if query_hilbert_address tool is registered (Phase B)',
+            () => {
+                if (typeof window.webmcpBridge === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - window.webmcpBridge is undefined' };
+                }
+                const status = window.webmcpBridge.getStatus();
+                const registered = status.tools.includes('query_hilbert_address');
+                return {
+                    pass: registered,
+                    detail: registered
+                        ? 'query_hilbert_address tool is registered'
+                        : `Tool not found. Registered tools: [${status.tools.join(', ')}]`
+                };
+            }
+        );
+
+        test(
+            'HilbertLUT Available',
+            'Check if HilbertLUT class is loaded for Hilbert curve conversions',
+            () => {
+                const available = typeof HilbertLUT !== 'undefined';
+                const hasD2xy = available && typeof HilbertLUT.d2xy === 'function';
+                const hasXy2d = available && typeof HilbertLUT.xy2d === 'function';
+                return {
+                    pass: available && hasD2xy && hasXy2d,
+                    detail: available
+                        ? (hasD2xy && hasXy2d
+                            ? 'HilbertLUT available with d2xy and xy2d methods'
+                            : 'HilbertLUT exists but missing d2xy or xy2d methods')
+                        : 'HilbertLUT not defined - ensure hilbert_lut.js is loaded'
+                };
+            }
+        );
+
+        test(
+            'Hilbert Index 0 → Origin (0, 0)',
+            'Verify HilbertLUT.d2xy converts index 0 to coordinates (0, 0)',
+            () => {
+                if (typeof HilbertLUT === 'undefined' || !HilbertLUT.d2xy) {
+                    return {
+                        pass: false,
+                        detail: 'Cannot test - HilbertLUT.d2xy not available'
+                    };
+                }
+                try {
+                    const [x, y] = HilbertLUT.d2xy(256, 0);
+                    const isOrigin = x === 0 && y === 0;
+                    return {
+                        pass: isOrigin,
+                        detail: isOrigin
+                            ? 'Hilbert index 0 correctly maps to origin (0, 0)'
+                            : `Unexpected result: index 0 → (${x}, ${y})`
+                    };
+                } catch (err) {
+                    return {
+                        pass: false,
+                        detail: `HilbertLUT.d2xy threw error: ${err.message}`
+                    };
+                }
+            }
+        );
+
+        test(
+            'trigger_evolution Tool Registered',
+            'Check if trigger_evolution tool is registered (Phase B)',
+            () => {
+                if (typeof window.webmcpBridge === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - window.webmcpBridge is undefined' };
+                }
+                const status = window.webmcpBridge.getStatus();
+                const registered = status.tools.includes('trigger_evolution');
+                return {
+                    pass: registered,
+                    detail: registered
+                        ? 'trigger_evolution tool is registered'
+                        : `Tool not found. Registered tools: [${status.tools.join(', ')}]`
+                };
+            }
+        );
+
+        test(
+            'send_llm_prompt Tool Registered',
+            'Check if send_llm_prompt tool is registered (Phase B)',
+            () => {
+                if (typeof window.webmcpBridge === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - window.webmcpBridge is undefined' };
+                }
+                const status = window.webmcpBridge.getStatus();
+                const registered = status.tools.includes('send_llm_prompt');
+                return {
+                    pass: registered,
+                    detail: registered
+                        ? 'send_llm_prompt tool is registered'
+                        : `Tool not found. Registered tools: [${status.tools.join(', ')}]`
+                };
+            }
+        );
+
+        test(
+            'spawn_area_agent Tool Registered',
+            'Check if spawn_area_agent tool is registered (Phase B)',
+            () => {
+                if (typeof window.webmcpBridge === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - window.webmcpBridge is undefined' };
+                }
+                const status = window.webmcpBridge.getStatus();
+                const registered = status.tools.includes('spawn_area_agent');
+                return {
+                    pass: registered,
+                    detail: registered
+                        ? 'spawn_area_agent tool is registered'
+                        : `Tool not found. Registered tools: [${status.tools.join(', ')}]`
+                };
+            }
+        );
+
+        test(
+            'All 8 Tools Registered',
+            'Verify total tool count is 8 (4 Phase A + 4 Phase B)',
+            () => {
+                if (typeof window.webmcpBridge === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - window.webmcpBridge is undefined' };
+                }
+                const status = window.webmcpBridge.getStatus();
+                const expectedTools = [
+                    'navigate_map',
+                    'get_os_state',
+                    'execute_pixel_program',
+                    'load_rts_cartridge',
+                    'query_hilbert_address',
+                    'trigger_evolution',
+                    'send_llm_prompt',
+                    'spawn_area_agent'
+                ];
+                const allPresent = expectedTools.every(t => status.tools.includes(t));
+                const count = status.tools.length;
+                return {
+                    pass: allPresent && count === 8,
+                    detail: allPresent && count === 8
+                        ? 'All 8 tools registered (4 Phase A + 4 Phase B)'
+                        : `Expected 8 tools, got ${count}: [${status.tools.join(', ')}]`
                 };
             }
         );
