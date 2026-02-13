@@ -86,3 +86,12 @@ class TestPixelNativeGUI:
 
         # Verify something happened
         gui.execute_frame()
+
+
+def test_import_from_package():
+    from systems.pixel_compiler import PixelNativeGUI
+    from systems.pixel_compiler import RuntimeConfig
+    from systems.pixel_compiler import VirtualFramebuffer
+
+    gui = PixelNativeGUI(width=100, height=100)
+    assert gui is not None
