@@ -87,6 +87,12 @@ class WebMCPBridge {
     /** @type {Map<string, A2AMessageRouter>} */
     #spawnedAgents = new Map();
 
+    /** @type {WebSocket|null} */
+    #a2aSocket = null;
+
+    /** @type {Map<string, {resolve: Function, reject: Function}>} */
+    #pendingA2ARequests = new Map();
+
     // ─────────────────────────────────────────────────────────────
     // Health Monitoring (Phase E)
     // ─────────────────────────────────────────────────────────────
@@ -494,6 +500,11 @@ class WebMCPBridge {
             await this.#registerSendA2AMessage();
             await this.#registerDiscoverA2AAgents();
             await this.#registerA2ACoordination();
+
+            // Phase D tools - A2A Protocol (WebSocket-based)
+            await this.#registerA2ASendMessage();
+            await this.#registerA2ABroadcast();
+            await this.#registerA2ASubscribe();
 
             // Publish OS context alongside tools
             await this.#publishContext();
@@ -1339,6 +1350,82 @@ class WebMCPBridge {
                     reject(new Error('Agent backend connection timeout'));
                 }
             }, 5000);
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // A2A WebSocket Connection (Phase D)
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Connect to the A2A WebSocket backend
+     * @returns {Promise<WebSocket>}
+     */
+    #connectA2ASocket() {
+        return new Promise((resolve, reject) => {
+            if (this.#a2aSocket?.readyState === WebSocket.OPEN) {
+                resolve(this.#a2aSocket);
+                return;
+            }
+
+            const ws = new WebSocket('ws://localhost:8765/agents');
+
+            ws.onopen = () => {
+                this.#a2aSocket = ws;
+
+                // Set up message handler
+                ws.onmessage = (event) => {
+                    try {
+                        const response = JSON.parse(event.data);
+                        // Handle response to pending request
+                        if (response.requestId && this.#pendingA2ARequests.has(response.requestId)) {
+                            const { resolve: res } = this.#pendingA2ARequests.get(response.requestId);
+                            this.#pendingA2ARequests.delete(response.requestId);
+                            res(response);
+                        }
+                    } catch (parseErr) {
+                        console.warn('🔌 WebMCP A2A: Failed to parse response:', parseErr);
+                    }
+                };
+
+                resolve(ws);
+            };
+
+            ws.onerror = () => {
+                reject(new Error('A2A backend not running at ws://localhost:8765'));
+            };
+
+            // 5 second timeout
+            setTimeout(() => {
+                if (ws.readyState !== WebSocket.OPEN) {
+                    reject(new Error('A2A backend connection timeout'));
+                }
+            }, 5000);
+        });
+    }
+
+    /**
+     * Send A2A request and wait for response
+     * @param {Object} request
+     * @returns {Promise<Object>}
+     */
+    async #sendA2ARequest(request) {
+        const ws = await this.#connectA2ASocket();
+
+        const requestId = `a2a_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        request.requestId = requestId;
+
+        return new Promise((resolve, reject) => {
+            this.#pendingA2ARequests.set(requestId, { resolve, reject });
+            ws.send(JSON.stringify(request));
+
+            // 30 second timeout
+            setTimeout(() => {
+                if (this.#pendingA2ARequests.has(requestId)) {
+                    this.#pendingA2ARequests.delete(requestId);
+                    reject(new Error('A2A request timeout'));
+                }
+            }, 30000);
         });
     }
 
@@ -2289,6 +2376,286 @@ class WebMCPBridge {
                 error: err.message,
                 error_code: 'A2A_COORDINATION_FAILED',
                 operation
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 12: a2a_send_message (Phase D - WebSocket)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerA2ASendMessage() {
+        const tool = {
+            name: 'a2a_send_message',
+            description:
+                'Send a direct message to another area agent via the A2A protocol. ' +
+                'Messages can be task requests, responses, notifications, or data shares. ' +
+                'Use correlation_id for request/response matching.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    target_agent_id: {
+                        type: 'string',
+                        description: 'ID of the target agent (required)'
+                    },
+                    message_type: {
+                        type: 'string',
+                        enum: ['task_request', 'task_response', 'notification', 'data_share'],
+                        description: 'Type of message being sent'
+                    },
+                    payload: {
+                        type: 'object',
+                        description: 'Message payload content'
+                    },
+                    correlation_id: {
+                        type: 'string',
+                        description: 'Optional correlation ID for request/response matching'
+                    }
+                },
+                required: ['target_agent_id', 'message_type', 'payload']
+            },
+            handler: async (params) => {
+                return this.#handleA2ASendMessage(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleA2ASendMessage({
+        target_agent_id,
+        message_type,
+        payload,
+        correlation_id
+    }) {
+        this.#trackCall('a2a_send_message');
+
+        // Validate required fields
+        if (!target_agent_id || typeof target_agent_id !== 'string') {
+            return {
+                success: false,
+                error: 'target_agent_id is required and must be a string',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        if (!message_type || !['task_request', 'task_response', 'notification', 'data_share'].includes(message_type)) {
+            return {
+                success: false,
+                error: 'message_type must be one of: task_request, task_response, notification, data_share',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                action: 'a2a_route',
+                to_agent: target_agent_id,
+                message_type,
+                content: payload,
+                correlation_id
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            return {
+                success: response.delivered ?? true,
+                delivered: response.delivered,
+                target_status: response.target_status || 'unknown',
+                message_id: response.message_id
+            };
+
+        } catch (err) {
+            const errorCode = err.message.includes('backend not running')
+                ? 'BACKEND_UNAVAILABLE'
+                : 'EXECUTION_FAILED';
+
+            return {
+                success: false,
+                error: err.message,
+                error_code: errorCode
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 13: a2a_broadcast (Phase D - WebSocket)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerA2ABroadcast() {
+        const tool = {
+            name: 'a2a_broadcast',
+            description:
+                'Broadcast a message to all agents of a specific type via the A2A protocol. ' +
+                'Useful for status updates, knowledge sharing, or coordinating multiple agents.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    agent_type: {
+                        type: 'string',
+                        enum: ['monitor', 'executor', 'evolver', 'analyzer', 'all'],
+                        description: 'Target agent type for broadcast'
+                    },
+                    message_type: {
+                        type: 'string',
+                        description: 'Type of message being broadcast'
+                    },
+                    payload: {
+                        type: 'object',
+                        description: 'Message payload content'
+                    },
+                    exclude_self: {
+                        type: 'boolean',
+                        description: 'Whether to exclude the sender from broadcast (default: true)',
+                        default: true
+                    }
+                },
+                required: ['agent_type', 'message_type', 'payload']
+            },
+            handler: async (params) => {
+                return this.#handleA2ABroadcast(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleA2ABroadcast({
+        agent_type,
+        message_type,
+        payload,
+        exclude_self = true
+    }) {
+        this.#trackCall('a2a_broadcast');
+
+        // Validate agent_type
+        const validTypes = ['monitor', 'executor', 'evolver', 'analyzer', 'all'];
+        if (!agent_type || !validTypes.includes(agent_type)) {
+            return {
+                success: false,
+                error: `agent_type must be one of: ${validTypes.join(', ')}`,
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                action: 'a2a_broadcast',
+                agent_type,
+                message_type,
+                content: payload,
+                exclude_self
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            return {
+                success: true,
+                recipients: response.recipients || 0,
+                delivered_count: response.delivered_count || 0
+            };
+
+        } catch (err) {
+            const errorCode = err.message.includes('backend not running')
+                ? 'BACKEND_UNAVAILABLE'
+                : 'EXECUTION_FAILED';
+
+            return {
+                success: false,
+                error: err.message,
+                error_code: errorCode
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 14: a2a_subscribe (Phase D - WebSocket)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerA2ASubscribe() {
+        const tool = {
+            name: 'a2a_subscribe',
+            description:
+                'Subscribe to events from other agents or region changes via the A2A protocol. ' +
+                'Supported events: region_change, task_available, peer_discovered, knowledge_update.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    event_type: {
+                        type: 'string',
+                        enum: ['region_change', 'task_available', 'peer_discovered', 'knowledge_update'],
+                        description: 'Type of event to subscribe to'
+                    },
+                    filter: {
+                        type: 'object',
+                        description: 'Optional filter criteria (e.g., region bounds, agent_type)',
+                        properties: {
+                            region: {
+                                type: 'object',
+                                properties: {
+                                    x: { type: 'number' },
+                                    y: { type: 'number' },
+                                    width: { type: 'number' },
+                                    height: { type: 'number' }
+                                }
+                            },
+                            agent_type: { type: 'string' }
+                        }
+                    }
+                },
+                required: ['event_type']
+            },
+            handler: async (params) => {
+                return this.#handleA2ASubscribe(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleA2ASubscribe({
+        event_type,
+        filter
+    }) {
+        this.#trackCall('a2a_subscribe');
+
+        // Validate event_type
+        const validEvents = ['region_change', 'task_available', 'peer_discovered', 'knowledge_update'];
+        if (!event_type || !validEvents.includes(event_type)) {
+            return {
+                success: false,
+                error: `event_type must be one of: ${validEvents.join(', ')}`,
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                action: 'a2a_subscribe',
+                event_type,
+                filter
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            return {
+                success: true,
+                subscription_id: response.subscription_id,
+                status: 'active'
+            };
+
+        } catch (err) {
+            const errorCode = err.message.includes('backend not running')
+                ? 'BACKEND_UNAVAILABLE'
+                : 'EXECUTION_FAILED';
+
+            return {
+                success: false,
+                error: err.message,
+                error_code: errorCode
             };
         }
     }
