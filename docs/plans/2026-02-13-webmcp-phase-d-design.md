@@ -710,5 +710,175 @@ The A2A protocol expects a WebSocket server at `ws://localhost:8765/a2a` that pr
 
 ---
 
-**Document Status:** Research Complete, Design Ready for Implementation
-**Next Phase:** Phase D.2 - Implement A2A Message Router
+---
+
+## Phase D Final Design (Approved 2026-02-13)
+
+### Architecture Overview
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                    Chrome 146+ Browser                               │
+│                                                                      │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │  webmcp_bridge.js (EXTENDED with A2A)                          │ │
+│  │  • 8 existing tools (Phase A + B)                               │ │
+│  │  • NEW: a2a_send_message, a2a_broadcast, a2a_subscribe        │ │
+│  └────────────────────────────────────────────────────────────────┘ │
+│                              │                                       │
+│            WebSocket ws://localhost:8765/agents                      │
+│                              │                                       │
+└──────────────────────────────┼───────────────────────────────────────┘
+                               │
+┌──────────────────────────────┼───────────────────────────────────────┐
+│                  Agent Backend Server                                │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │  A2A Router (NEW)                                              │ │
+│  │  • Peer registry (agent_id → connection mapping)               │ │
+│  │  • Message routing (direct, broadcast, group)                  │ │
+│  │  • Subscription manager (event-based coordination)             │ │
+│  └────────────────────────────────────────────────────────────────┘ │
+│                              │                                       │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │  Agent Workers                                                 │ │
+│  │  • monitor agents   • executor agents                          │ │
+│  │  • evolver agents   • analyzer agents                          │ │
+│  └────────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+### Design Decisions (from Brainstorming)
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Routing Level | Full mesh | Any agent can reach any agent |
+| Coordination Patterns | All 4 | Task delegation, region notifications, collaborative workflows, knowledge sharing |
+| Backend | Extend existing agent backend | Single WebSocket connection, minimal changes |
+| Message Protocol | WebSocket + JSON | Consistent with Phase B tools |
+
+### New WebMCP Tools (Final)
+
+**Tool 9: `a2a_send_message`**
+```json
+{
+  "name": "a2a_send_message",
+  "description": "Send a direct message to another area agent",
+  "inputSchema": {
+    "target_agent_id": "string (required)",
+    "message_type": "string (task_request | task_response | notification | data_share)",
+    "payload": "object",
+    "correlation_id": "string (optional, for request/response matching)"
+  },
+  "returns": {
+    "delivered": "boolean",
+    "target_status": "online | offline | busy"
+  }
+}
+```
+
+**Tool 10: `a2a_broadcast`**
+```json
+{
+  "name": "a2a_broadcast",
+  "description": "Broadcast a message to all agents of a specific type",
+  "inputSchema": {
+    "agent_type": "enum (monitor | executor | evolver | analyzer | all)",
+    "message_type": "string",
+    "payload": "object",
+    "exclude_self": "boolean (default: true)"
+  },
+  "returns": {
+    "recipients": "number",
+    "delivered_count": "number"
+  }
+}
+```
+
+**Tool 11: `a2a_subscribe`**
+```json
+{
+  "name": "a2a_subscribe",
+  "description": "Subscribe to events from other agents or region changes",
+  "inputSchema": {
+    "event_type": "enum (region_change | task_available | peer_discovered | knowledge_update)",
+    "filter": "object (region bounds, agent_type, etc.)"
+  },
+  "returns": {
+    "subscription_id": "string",
+    "status": "active"
+  }
+}
+```
+
+### Backend: A2A Router (`systems/pixel_compiler/a2a_router.py`)
+
+```python
+class A2ARouter:
+    """Agent-to-Agent message routing hub"""
+
+    def __init__(self):
+        self.peer_registry: Dict[str, AgentConnection] = {}
+        self.subscriptions: Dict[str, List[Subscription]] = {}
+
+    # Core routing methods
+    async def register_agent(self, agent_id: str, conn: WebSocket)
+    async def discover_peers(self, agent_type: str) -> List[AgentInfo]
+    async def route_message(self, from_id: str, to_id: str, msg: dict)
+    async def broadcast(self, from_id: str, agent_type: str, msg: dict)
+
+    # Subscription handling
+    async def subscribe(self, agent_id: str, event_type: str, filter: dict)
+    async def notify_subscribers(self, event: AgentEvent)
+```
+
+---
+
+## Testing Strategy
+
+### Unit Tests (`test_a2a_router.py`)
+
+- Peer registration and discovery
+- Direct message routing
+- Broadcast delivery
+- Subscription management
+- Error handling (offline agents, timeouts)
+
+### Integration Tests (`test_a2a_webmcp.py`)
+
+- WebMCP tool → WebSocket → Router round-trip
+- Multi-agent coordination scenarios
+- Concurrent message handling
+
+### Test Page (`test_a2a_tools.html`)
+
+- Interactive A2A tool testing
+- Visual agent mesh diagram
+- Message flow visualization
+
+---
+
+## Files to Create/Modify
+
+| File | Action | Est. Lines |
+|------|--------|------------|
+| `systems/visual_shell/web/webmcp_bridge.js` | Modify | +200 |
+| `systems/visual_shell/web/a2a_router_client.js` | Create | ~150 |
+| `systems/pixel_compiler/a2a_router.py` | Create | ~250 |
+| `systems/visual_shell/web/test_a2a_tools.html` | Create | ~200 |
+| `systems/pixel_compiler/tests/test_a2a_router.py` | Create | ~150 |
+
+---
+
+## Success Criteria
+
+1. ✅ All 11 WebMCP tools registered (8 existing + 3 A2A)
+2. ✅ Agents can discover peers via `peer_discover`
+3. ✅ Direct messaging works via `a2a_send_message`
+4. ✅ Broadcast works via `a2a_broadcast`
+5. ✅ Event subscriptions work via `a2a_subscribe`
+6. ✅ Test page passes all A2A scenarios
+
+---
+
+**Document Status:** Design Approved, Ready for Implementation
+**Next Phase:** Implementation via writing-plans skill
