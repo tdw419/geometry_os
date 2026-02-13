@@ -111,3 +111,133 @@ class TestMessageRouting:
 
         # Should deliver to agent-003 only (agent-001 is excluded, agent-002 is wrong type)
         assert delivered == 1
+
+
+class TestRoutingExtended:
+    """Extended tests for message routing."""
+
+    @pytest.mark.asyncio
+    async def test_route_message_to_online_agent(self, router):
+        """Can route message to an online agent."""
+        from systems.pixel_compiler.a2a_router import A2AMessage
+        mock_conn = AsyncMock()
+        await router.register_agent("sender", AsyncMock(), {"agent_type": "monitor"})
+        await router.register_agent("receiver", mock_conn, {"agent_type": "executor"})
+
+        message = A2AMessage(
+            message_id="msg-002",
+            timestamp=0.0,
+            from_agent="sender",
+            to_agent="receiver",
+            message_type="task_request",
+            content={"task": "scan"}
+        )
+        result = await router.route_message("sender", "receiver", message)
+
+        assert result is True
+        mock_conn.send.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_route_message_to_offline_agent(self, router):
+        """Returns error for offline agent."""
+        from systems.pixel_compiler.a2a_router import A2AMessage
+
+        message = A2AMessage(
+            message_id="msg-003",
+            timestamp=0.0,
+            from_agent="sender",
+            to_agent="nonexistent",
+            message_type="task_request",
+            content={}
+        )
+        result = await router.route_message("sender", "nonexistent", message)
+
+        assert result is False
+
+
+class TestBroadcastExtended:
+    """Extended tests for broadcast messaging."""
+
+    @pytest.mark.asyncio
+    async def test_broadcast_to_all_agents(self, router):
+        """Can broadcast to all agents."""
+        from systems.pixel_compiler.a2a_router import A2AMessage
+        conns = [AsyncMock() for _ in range(3)]
+
+        await router.register_agent("sender", conns[0], {"agent_type": "monitor"})
+        await router.register_agent("agent-1", conns[1], {"agent_type": "executor"})
+        await router.register_agent("agent-2", conns[2], {"agent_type": "evolver"})
+
+        message = A2AMessage(
+            message_id="broadcast-002",
+            timestamp=0.0,
+            from_agent="sender",
+            to_agent=None,
+            message_type="status_update",
+            content={}
+        )
+        result = await router.broadcast(
+            "sender",
+            agent_type=None,  # None means broadcast to all types
+            message=message,
+            exclude_self=True
+        )
+
+        assert result == 2
+
+    @pytest.mark.asyncio
+    async def test_broadcast_to_specific_type(self, router):
+        """Can broadcast to agents of specific type."""
+        from systems.pixel_compiler.a2a_router import A2AMessage
+        conns = [AsyncMock() for _ in range(4)]
+
+        await router.register_agent("sender", conns[0], {"agent_type": "monitor"})
+        await router.register_agent("monitor-1", conns[1], {"agent_type": "monitor"})
+        await router.register_agent("monitor-2", conns[2], {"agent_type": "monitor"})
+        await router.register_agent("executor-1", conns[3], {"agent_type": "executor"})
+
+        message = A2AMessage(
+            message_id="broadcast-003",
+            timestamp=0.0,
+            from_agent="sender",
+            to_agent=None,
+            message_type="status_update",
+            content={}
+        )
+        result = await router.broadcast(
+            "sender",
+            agent_type="monitor",
+            message=message,
+            exclude_self=True
+        )
+
+        # Only monitor-1 and monitor-2 should receive (sender excluded)
+        assert result == 2
+
+
+class TestSubscriptions:
+    """Tests for event subscriptions."""
+
+    @pytest.mark.asyncio
+    async def test_subscribe_to_event(self, router):
+        """Agent can subscribe to events."""
+        mock_conn = AsyncMock()
+        await router.register_agent("agent-1", mock_conn, {"agent_type": "monitor"})
+
+        await router.subscribe("agent-1", "region_change")
+
+        assert "region_change" in router.subscriptions
+        assert len(router.subscriptions["region_change"]) == 1
+
+    @pytest.mark.asyncio
+    async def test_notify_subscribers(self, router):
+        """Subscribers receive notifications."""
+        mock_conn = AsyncMock()
+        await router.register_agent("agent-1", mock_conn, {"agent_type": "monitor"})
+        await router.subscribe("agent-1", "agent_registered")
+
+        # Register another agent to trigger notification
+        await router.register_agent("agent-2", AsyncMock(), {"agent_type": "executor"})
+
+        # agent-1 should have received agent_registered notification
+        assert mock_conn.send.call_count >= 1
