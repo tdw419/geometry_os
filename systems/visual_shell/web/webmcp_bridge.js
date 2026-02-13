@@ -22,12 +22,13 @@
  *
  * Phase B Tools:
  *   5. query_hilbert_address — Convert 1D Hilbert index to 2D coordinates
+ *   6. trigger_evolution    — Trigger WGSL kernel evolution cycle
  *
  * Requirements: Chrome 146+ with WebMCP support
  * Fallback: Logs warning, app runs normally without WebMCP
  *
- * @version 1.1.0
- * @phase Phase B: Spatial Query Tools
+ * @version 1.2.0
+ * @phase Phase B: Spatial Query Tools & Evolution Bridge
  * @date 2026-02-13
  */
 
@@ -50,6 +51,9 @@ class WebMCPBridge {
 
     /** @type {Object<string, number>} */
     #toolCallCounts = {};
+
+    /** @type {WebSocket|null} */
+    #evolutionSocket = null;
 
     constructor() {
         // Feature detection — is WebMCP available?
@@ -99,6 +103,7 @@ class WebMCPBridge {
 
             // Phase B tools
             await this.#registerQueryHilbertAddress();
+            await this.#registerTriggerEvolution();
 
             // Publish OS context alongside tools
             await this.#publishContext();
@@ -822,6 +827,209 @@ class WebMCPBridge {
             center: { r: 0, g: 0, b: 0, a: 0 },
             context: []  // Placeholder for surrounding pixel values when range > 0
         };
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 6: trigger_evolution (Phase B)
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Connect to the evolution WebSocket backend
+     * @returns {Promise<WebSocket>}
+     */
+    #connectEvolutionSocket() {
+        return new Promise((resolve, reject) => {
+            if (this.#evolutionSocket?.readyState === WebSocket.OPEN) {
+                resolve(this.#evolutionSocket);
+                return;
+            }
+
+            const ws = new WebSocket('ws://localhost:8765/evolution');
+
+            ws.onopen = () => {
+                this.#evolutionSocket = ws;
+                resolve(ws);
+            };
+
+            ws.onerror = () => {
+                reject(new Error('Evolution backend not running at ws://localhost:8765'));
+            };
+
+            // 5 second timeout
+            setTimeout(() => {
+                if (ws.readyState !== WebSocket.OPEN) {
+                    reject(new Error('Evolution backend connection timeout'));
+                }
+            }, 5000);
+        });
+    }
+
+    async #registerTriggerEvolution() {
+        const tool = {
+            name: 'trigger_evolution',
+            description:
+                'Trigger a WGSL kernel evolution cycle on the visual evolution engine. ' +
+                'This connects to a WebSocket backend that runs genetic algorithm optimization ' +
+                'on shader code, evolving for performance, visual quality, correctness, or entropy. ' +
+                'Returns the best evolved shader along with fitness metrics and cartridge ID.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    seed_shader: {
+                        type: 'string',
+                        description: 'Initial WGSL shader code to evolve (required)'
+                    },
+                    generations: {
+                        type: 'number',
+                        description: 'Number of evolution generations to run (default: 10)',
+                        default: 10,
+                        minimum: 1,
+                        maximum: 100
+                    },
+                    fitness_metric: {
+                        type: 'string',
+                        description: 'Fitness function to optimize (default: "performance")',
+                        enum: ['performance', 'visual_quality', 'correctness', 'entropy'],
+                        default: 'performance'
+                    },
+                    mutation_rate: {
+                        type: 'number',
+                        description: 'Mutation rate for genetic algorithm (default: 0.1)',
+                        default: 0.1,
+                        minimum: 0.01,
+                        maximum: 0.5
+                    },
+                    population_size: {
+                        type: 'number',
+                        description: 'Population size per generation (default: 20)',
+                        default: 20
+                    }
+                },
+                required: ['seed_shader']
+            },
+            handler: async (params) => {
+                return this.#handleTriggerEvolution(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleTriggerEvolution({
+        seed_shader,
+        generations = 10,
+        fitness_metric = 'performance',
+        mutation_rate = 0.1,
+        population_size = 20
+    }) {
+        this.#trackCall('trigger_evolution');
+
+        // Validate seed_shader is required and is a string
+        if (typeof seed_shader !== 'string' || seed_shader.trim().length === 0) {
+            return {
+                success: false,
+                error: 'seed_shader is required and must be a non-empty string',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        // Validate generations
+        if (!Number.isInteger(generations) || generations < 1 || generations > 100) {
+            return {
+                success: false,
+                error: 'generations must be an integer between 1 and 100',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        // Validate mutation_rate
+        if (typeof mutation_rate !== 'number' || mutation_rate < 0.01 || mutation_rate > 0.5) {
+            return {
+                success: false,
+                error: 'mutation_rate must be a number between 0.01 and 0.5',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            // Connect to WebSocket backend
+            const ws = await this.#connectEvolutionSocket();
+
+            // Generate unique request ID
+            const requestId = `evo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+            // Create promise for response with matching requestId
+            const responsePromise = new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('Evolution execution timeout (60s)'));
+                }, 60000);
+
+                const messageHandler = (event) => {
+                    try {
+                        const response = JSON.parse(event.data);
+                        if (response.requestId === requestId) {
+                            clearTimeout(timeoutId);
+                            ws.removeEventListener('message', messageHandler);
+                            resolve(response);
+                        }
+                    } catch (parseErr) {
+                        // Ignore parse errors for non-matching messages
+                    }
+                };
+
+                ws.addEventListener('message', messageHandler);
+            });
+
+            // Send evolution request
+            const request = {
+                requestId,
+                action: 'evolve',
+                seed_shader,
+                generations,
+                fitness_metric,
+                mutation_rate,
+                population_size
+            };
+
+            ws.send(JSON.stringify(request));
+
+            // Wait for response
+            const response = await responsePromise;
+
+            // Check for backend errors
+            if (!response.success) {
+                return {
+                    success: false,
+                    error: response.error || 'Evolution backend returned failure',
+                    error_code: 'EXECUTION_FAILED'
+                };
+            }
+
+            // Return successful evolution result
+            return {
+                success: true,
+                bestFitness: response.bestFitness,
+                generationsCompleted: response.generationsCompleted || generations,
+                evolvedShader: response.evolvedShader,
+                cartridgeId: response.cartridgeId
+            };
+
+        } catch (err) {
+            // Determine error code based on error type
+            let errorCode = 'EXECUTION_FAILED';
+            if (err.message.includes('backend not running') || err.message.includes('connection')) {
+                errorCode = 'BACKEND_UNAVAILABLE';
+            } else if (err.message.includes('timeout')) {
+                errorCode = 'EXECUTION_FAILED';
+            }
+
+            return {
+                success: false,
+                error: err.message,
+                error_code: errorCode
+            };
+        }
     }
 
     // ─────────────────────────────────────────────────────────────
