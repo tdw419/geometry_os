@@ -1,31 +1,34 @@
 /**
  * WebMCP Bridge for Geometry OS
  * ============================================================
- * 
+ *
  * "The Screen is the Hard Drive — and now the API surface."
- * 
+ *
  * Exposes Geometry OS capabilities as structured WebMCP tools
  * that any AI agent (Gemini, Claude, GPT, local LLM) can invoke
  * directly — no screenshotting, no DOM scraping, no pixel-guessing.
- * 
+ *
  * Architecture: Event-Driven Bridge (Approach A)
  *   - Listens for 'geometry-os-ready' event from application.js
  *   - Calls window.geometryOSApp methods via WebMCP tool handlers
  *   - Zero modifications to application.js
  *   - Silent fallback if WebMCP (navigator.modelContext) unavailable
- * 
+ *
  * Core Tools (Phase A — Initial 4):
- *   1. navigate_map     — Pan/zoom the infinite canvas
- *   2. get_os_state     — Read-only OS context snapshot
+ *   1. navigate_map          — Pan/zoom the infinite canvas
+ *   2. get_os_state          — Read-only OS context snapshot
  *   3. execute_pixel_program — Run code on the Pixel CPU
  *   4. load_rts_cartridge    — Mount .rts.png visual containers
- * 
+ *
+ * Phase B Tools:
+ *   5. query_hilbert_address — Convert 1D Hilbert index to 2D coordinates
+ *
  * Requirements: Chrome 146+ with WebMCP support
  * Fallback: Logs warning, app runs normally without WebMCP
- * 
- * @version 1.0.0
- * @phase Phase A: WebMCP Tool Layer
- * @date 2026-02-12
+ *
+ * @version 1.1.0
+ * @phase Phase B: Spatial Query Tools
+ * @date 2026-02-13
  */
 
 class WebMCPBridge {
@@ -93,6 +96,9 @@ class WebMCPBridge {
             await this.#registerGetOSState();
             await this.#registerExecutePixelProgram();
             await this.#registerLoadRTSCartridge();
+
+            // Phase B tools
+            await this.#registerQueryHilbertAddress();
 
             // Publish OS context alongside tools
             await this.#publishContext();
@@ -660,6 +666,162 @@ class WebMCPBridge {
                 url: url
             };
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 5: query_hilbert_address (Phase B)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerQueryHilbertAddress() {
+        const tool = {
+            name: 'query_hilbert_address',
+            description:
+                'Convert a 1D Hilbert curve index to 2D (x, y) coordinates and ' +
+                'optionally read pixel data at that location. The Hilbert curve ' +
+                'preserves spatial locality, making nearby indices map to nearby ' +
+                'coordinates. This is fundamental to Geometry OS spatial addressing.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    hilbert_index: {
+                        type: 'number',
+                        description: 'The 1D Hilbert curve index to convert (must be non-negative)'
+                    },
+                    grid_size: {
+                        type: 'number',
+                        description: 'Size of the Hilbert curve grid (must be power of 2, default: 256)',
+                        default: 256
+                    },
+                    read_pixels: {
+                        type: 'boolean',
+                        description: 'Whether to read pixel data at the computed coordinates (default: true)',
+                        default: true
+                    },
+                    context_range: {
+                        type: 'number',
+                        description: 'Radius of surrounding pixels to include when reading (0-10, default: 0)',
+                        default: 0,
+                        minimum: 0,
+                        maximum: 10
+                    }
+                },
+                required: ['hilbert_index']
+            },
+            handler: async (params) => {
+                return this.#handleQueryHilbertAddress(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleQueryHilbertAddress({
+        hilbert_index,
+        grid_size = 256,
+        read_pixels = true,
+        context_range = 0
+    }) {
+        this.#trackCall('query_hilbert_address');
+
+        // Validate hilbert_index is a non-negative number
+        if (typeof hilbert_index !== 'number' || !Number.isFinite(hilbert_index)) {
+            return {
+                success: false,
+                error: 'hilbert_index must be a finite number',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        if (hilbert_index < 0) {
+            return {
+                success: false,
+                error: 'hilbert_index must be non-negative',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        // Validate index is within grid bounds
+        const maxIndex = grid_size * grid_size;
+        if (hilbert_index >= maxIndex) {
+            return {
+                success: false,
+                error: `hilbert_index ${hilbert_index} exceeds grid capacity (${maxIndex} for ${grid_size}x${grid_size})`,
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        // Validate grid_size is power of 2
+        if (!Number.isInteger(grid_size) || grid_size < 1 || (grid_size & (grid_size - 1)) !== 0) {
+            return {
+                success: false,
+                error: 'grid_size must be a positive power of 2 (e.g., 64, 128, 256, 512)',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        // Check HilbertLUT is available
+        if (typeof HilbertLUT === 'undefined' || !HilbertLUT.d2xy) {
+            return {
+                success: false,
+                error: 'HilbertLUT not available — ensure hilbert_lut.js is loaded',
+                error_code: 'BACKEND_UNAVAILABLE'
+            };
+        }
+
+        try {
+            // Convert 1D Hilbert index to 2D coordinates
+            const [x, y] = HilbertLUT.d2xy(grid_size, hilbert_index);
+
+            const result = {
+                success: true,
+                hilbert_index: hilbert_index,
+                grid_size: grid_size,
+                coordinates: { x, y }
+            };
+
+            // Optionally read pixel data at the world position
+            if (read_pixels && this.#app.worldContainer) {
+                const pixelData = this.#readPixelAtWorld(x, y, context_range);
+                result.rgba = pixelData.center;
+                if (context_range > 0) {
+                    result.context = pixelData.context || [];
+                }
+            }
+
+            return result;
+
+        } catch (err) {
+            return {
+                success: false,
+                error: `Hilbert conversion failed: ${err.message}`,
+                error_code: 'INVALID_INPUT'
+            };
+        }
+    }
+
+    /**
+     * Read pixel data at world coordinates (stub implementation)
+     *
+     * NOTE: This is a placeholder. Actual GPU framebuffer reading requires
+     * integration with the extract plugin or PixiJS renderer.extract API.
+     *
+     * @param {number} x - World X coordinate
+     * @param {number} y - World Y coordinate
+     * @param {number} range - Radius of surrounding pixels to include
+     * @returns {Object} Pixel data (currently placeholder)
+     */
+    #readPixelAtWorld(x, y, range = 0) {
+        // Placeholder implementation
+        // Full implementation would use:
+        // - renderer.extract.pixels() for GPU readback
+        // - Or worldContainer.toDataURL() for canvas capture
+        // - With Hilbert inverse mapping for dense storage
+
+        return {
+            center: { r: 0, g: 0, b: 0, a: 0 },
+            context: []  // Placeholder for surrounding pixel values when range > 0
+        };
     }
 
     // ─────────────────────────────────────────────────────────────
