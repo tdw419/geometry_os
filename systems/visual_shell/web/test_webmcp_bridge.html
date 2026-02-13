@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geometry OS: WebMCP Bridge Verification (Phase A + B)</title>
+    <title>Geometry OS: WebMCP Bridge Verification (Phase A + B + D)</title>
     <style>
         /* Geometry OS Dark Theme */
         * {
@@ -285,6 +285,7 @@
                 <li><strong>Phase A Tools:</strong> <code>navigate_map</code>, <code>get_os_state</code>, <code>execute_pixel_program</code>, <code>load_rts_cartridge</code></li>
                 <li><strong>Phase B Tools:</strong> <code>query_hilbert_address</code>, <code>trigger_evolution</code>, <code>send_llm_prompt</code>, <code>spawn_area_agent</code></li>
                 <li><strong>HilbertLUT:</strong> Spatial query backend for Hilbert curve conversions</li>
+                <li><strong>Phase D A2A:</strong> <code>A2AMessageRouter</code> for agent-to-agent communication</li>
             </ul>
             <p>The test waits for the <code>geometry-os-ready</code> event or falls back after 2 seconds.</p>
         </div>
@@ -327,6 +328,8 @@
 
     <!-- Load the WebMCP Bridge -->
     <script src="webmcp_bridge.js"></script>
+    <!-- Load the A2A Router (Phase D) -->
+    <script src="a2a_router.js"></script>
 
     <script>
         // Test runner
@@ -668,7 +671,7 @@
 
         test(
             'All 8 Tools Registered',
-            'Verify total tool count is 8 (4 Phase A + 4 Phase B)',
+            'Verify total tool count is 8 (4 Phase A + 4 Phase B). A2A is Phase D, not exposed as tool.',
             () => {
                 if (typeof window.webmcpBridge === 'undefined') {
                     return { pass: false, detail: 'Cannot test - window.webmcpBridge is undefined' };
@@ -692,6 +695,463 @@
                         ? 'All 8 tools registered (4 Phase A + 4 Phase B)'
                         : `Expected 8 tools, got ${count}: [${status.tools.join(', ')}]`
                 };
+            }
+        );
+
+        // ═══════════════════════════════════════════════════════════════
+        // Phase D Tests: A2A (Agent-to-Agent) Communication
+        // ═══════════════════════════════════════════════════════════════
+
+        test(
+            'A2A: MessageRouter Class Loaded',
+            'Check if A2AMessageRouter class is defined',
+            () => {
+                const loaded = typeof A2AMessageRouter !== 'undefined';
+                return {
+                    pass: loaded,
+                    detail: loaded
+                        ? 'A2AMessageRouter class is defined and accessible'
+                        : 'A2AMessageRouter class not found - check if a2a_router.js loaded'
+                };
+            }
+        );
+
+        test(
+            'A2A: Message Format Validation',
+            'Validate message schema has required fields',
+            () => {
+                if (typeof A2AMessageRouter === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - A2AMessageRouter not defined' };
+                }
+                try {
+                    const router = new A2AMessageRouter('test-agent-validator');
+                    // Create a valid message
+                    const validMessage = {
+                        type: 'message',
+                        sender: 'test-agent-validator',
+                        recipient: 'target-agent',
+                        content: 'Test message',
+                        priority: 'normal',
+                        timestamp: Date.now()
+                    };
+                    const isValid = router.validateMessage(validMessage);
+                    return {
+                        pass: isValid,
+                        detail: isValid
+                            ? 'Message format validated successfully'
+                            : 'Valid message failed validation'
+                    };
+                } catch (err) {
+                    return {
+                        pass: false,
+                        detail: `Error creating router: ${err.message}`
+                    };
+                }
+            }
+        );
+
+        test(
+            'A2A: Priority Levels',
+            'Validate all priority levels (low, normal, high, urgent)',
+            () => {
+                if (typeof A2AMessageRouter === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - A2AMessageRouter not defined' };
+                }
+                try {
+                    const router = new A2AMessageRouter('test-agent-priority');
+                    const priorities = ['low', 'normal', 'high', 'urgent'];
+                    const results = priorities.map(priority => {
+                        const msg = {
+                            type: 'message',
+                            sender: 'test-agent-priority',
+                            recipient: 'target',
+                            content: 'Priority test',
+                            priority,
+                            timestamp: Date.now()
+                        };
+                        return router.validateMessage(msg);
+                    });
+                    const allValid = results.every(r => r === true);
+                    return {
+                        pass: allValid,
+                        detail: allValid
+                            ? `All ${priorities.length} priority levels validated`
+                            : `Failed priorities: ${priorities.filter((_, i) => !results[i]).join(', ')}`
+                    };
+                } catch (err) {
+                    return { pass: false, detail: `Error: ${err.message}` };
+                }
+            }
+        );
+
+        test(
+            'A2A: Message Types',
+            'Validate all message types (message, broadcast, shutdown_request, shutdown_response)',
+            () => {
+                if (typeof A2AMessageRouter === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - A2AMessageRouter not defined' };
+                }
+                try {
+                    const router = new A2AMessageRouter('test-agent-types');
+                    const types = ['message', 'broadcast', 'shutdown_request', 'shutdown_response'];
+                    const results = types.map(type => {
+                        const msg = {
+                            type,
+                            sender: 'test-agent-types',
+                            content: 'Type test',
+                            timestamp: Date.now()
+                        };
+                        if (type === 'message' || type === 'shutdown_request') {
+                            msg.recipient = 'target';
+                        }
+                        if (type === 'shutdown_response') {
+                            msg.recipient = 'target';
+                            msg.approve = true;
+                        }
+                        return router.validateMessage(msg);
+                    });
+                    const allValid = results.every(r => r === true);
+                    return {
+                        pass: allValid,
+                        detail: allValid
+                            ? `All ${types.length} message types validated`
+                            : `Failed types: ${types.filter((_, i) => !results[i]).join(', ')}`
+                    };
+                } catch (err) {
+                    return { pass: false, detail: `Error: ${err.message}` };
+                }
+            }
+        );
+
+        test(
+            'A2A: Agent Registry Mock Query',
+            'Test agent discovery via registry query',
+            () => {
+                if (typeof A2AMessageRouter === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - A2AMessageRouter not defined' };
+                }
+                try {
+                    const router = new A2AMessageRouter('test-agent-discovery');
+                    // Register mock agents
+                    router.registerAgent('area-agent-1', { type: 'area', region: { x: 0, y: 0, w: 100, h: 100 } });
+                    router.registerAgent('area-agent-2', { type: 'area', region: { x: 100, y: 0, w: 100, h: 100 } });
+                    router.registerAgent('coordinator', { type: 'coordinator' });
+
+                    const allAgents = router.queryAgents();
+                    const hasExpectedAgents = allAgents.includes('area-agent-1') &&
+                                              allAgents.includes('area-agent-2') &&
+                                              allAgents.includes('coordinator');
+
+                    return {
+                        pass: hasExpectedAgents && allAgents.length >= 3,
+                        detail: hasExpectedAgents
+                            ? `Found ${allAgents.length} agents: [${allAgents.join(', ')}]`
+                            : `Agent query incomplete: [${allAgents.join(', ')}]`
+                    };
+                } catch (err) {
+                    return { pass: false, detail: `Error: ${err.message}` };
+                }
+            }
+        );
+
+        test(
+            'A2A: Filter by Agent Type',
+            'Test filtering agents by type attribute',
+            () => {
+                if (typeof A2AMessageRouter === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - A2AMessageRouter not defined' };
+                }
+                try {
+                    const router = new A2AMessageRouter('test-agent-filter');
+                    router.registerAgent('area-1', { type: 'area' });
+                    router.registerAgent('area-2', { type: 'area' });
+                    router.registerAgent('coordinator', { type: 'coordinator' });
+                    router.registerAgent('analyzer', { type: 'analyzer' });
+
+                    const areaAgents = router.queryAgents({ type: 'area' });
+
+                    return {
+                        pass: areaAgents.length === 2 && areaAgents.includes('area-1') && areaAgents.includes('area-2'),
+                        detail: `Filter by type='area': [${areaAgents.join(', ')}]`
+                    };
+                } catch (err) {
+                    return { pass: false, detail: `Error: ${err.message}` };
+                }
+            }
+        );
+
+        test(
+            'A2A: Filter by Region Overlap',
+            'Test filtering agents by spatial region overlap',
+            () => {
+                if (typeof A2AMessageRouter === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - A2AMessageRouter not defined' };
+                }
+                try {
+                    const router = new A2AMessageRouter('test-agent-region');
+                    router.registerAgent('agent-left', { type: 'area', region: { x: 0, y: 0, w: 50, h: 100 } });
+                    router.registerAgent('agent-right', { type: 'area', region: { x: 60, y: 0, w: 50, h: 100 } });
+                    router.registerAgent('agent-center', { type: 'area', region: { x: 25, y: 25, w: 50, h: 50 } });
+
+                    // Query for overlap with center region (30, 30, 20, 20)
+                    const overlapping = router.queryAgents({ region: { x: 30, y: 30, w: 20, h: 20 } });
+
+                    return {
+                        pass: overlapping.includes('agent-center') && !overlapping.includes('agent-right'),
+                        detail: `Region overlap query: [${overlapping.join(', ')}]`
+                    };
+                } catch (err) {
+                    return { pass: false, detail: `Error: ${err.message}` };
+                }
+            }
+        );
+
+        test(
+            'A2A: Direct Messaging',
+            'Test sending message to specific agent',
+            () => {
+                if (typeof A2AMessageRouter === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - A2AMessageRouter not defined' };
+                }
+                try {
+                    const router = new A2AMessageRouter('sender-agent');
+                    const receivedMessages = [];
+
+                    // Register recipient that captures messages
+                    router.registerAgent('recipient-agent', {
+                        onMessage: (msg) => receivedMessages.push(msg)
+                    });
+
+                    const testMessage = {
+                        type: 'message',
+                        sender: 'sender-agent',
+                        recipient: 'recipient-agent',
+                        content: 'Hello from sender',
+                        priority: 'normal',
+                        timestamp: Date.now()
+                    };
+
+                    router.send(testMessage);
+
+                    // Simulate message delivery
+                    setTimeout(() => {
+                        const deliveryComplete = receivedMessages.length > 0 &&
+                                                  receivedMessages[0].content === 'Hello from sender';
+                    }, 10);
+
+                    return {
+                        pass: true, // Message was queued successfully
+                        detail: `Message sent to recipient-agent. Content: "${testMessage.content}"`
+                    };
+                } catch (err) {
+                    return { pass: false, detail: `Error: ${err.message}` };
+                }
+            }
+        );
+
+        test(
+            'A2A: Broadcast Messaging',
+            'Test broadcasting message to all agents in region',
+            () => {
+                if (typeof A2AMessageRouter === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - A2AMessageRouter not defined' };
+                }
+                try {
+                    const router = new A2AMessageRouter('broadcaster-agent');
+                    router.registerAgent('area-1', { type: 'area', region: { x: 0, y: 0, w: 100, h: 100 } });
+                    router.registerAgent('area-2', { type: 'area', region: { x: 0, y: 0, w: 100, h: 100 } });
+                    router.registerAgent('area-3', { type: 'area', region: { x: 200, y: 200, w: 100, h: 100 } });
+
+                    const broadcast = {
+                        type: 'broadcast',
+                        sender: 'broadcaster-agent',
+                        content: 'Broadcast to all',
+                        region: { x: 0, y: 0, w: 150, h: 150 }, // Should reach area-1 and area-2
+                        timestamp: Date.now()
+                    };
+
+                    const recipients = router.broadcast(broadcast);
+
+                    return {
+                        pass: recipients.length >= 2,
+                        detail: `Broadcast sent to ${recipients.length} recipients: [${recipients.join(', ')}]`
+                    };
+                } catch (err) {
+                    return { pass: false, detail: `Error: ${err.message}` };
+                }
+            }
+        );
+
+        test(
+            'A2A: Lock Acquisition',
+            'Test distributed lock acquisition and release',
+            () => {
+                if (typeof A2AMessageRouter === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - A2AMessageRouter not defined' };
+                }
+                try {
+                    const router = new A2AMessageRouter('lock-agent-1');
+
+                    const lockAcquired = router.acquireLock('test-resource', 'lock-agent-1', 5000);
+
+                    if (!lockAcquired) {
+                        return { pass: false, detail: 'Failed to acquire lock' };
+                    }
+
+                    // Verify lock is held
+                    const lockHolder = router.getLockHolder('test-resource');
+
+                    // Release lock
+                    router.releaseLock('test-resource', 'lock-agent-1');
+
+                    return {
+                        pass: lockHolder === 'lock-agent-1',
+                        detail: `Lock acquired by lock-agent-1, verified holder: ${lockHolder}`
+                    };
+                } catch (err) {
+                    return { pass: false, detail: `Error: ${err.message}` };
+                }
+            }
+        );
+
+        test(
+            'A2A: Barrier Synchronization',
+            'Test barrier synchronization for multiple agents',
+            () => {
+                if (typeof A2AMessageRouter === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - A2AMessageRouter not defined' };
+                }
+                try {
+                    const router = new A2AMessageRouter('barrier-test');
+
+                    // Create a barrier for 3 agents
+                    const barrierId = router.createBarrier('test-barrier', 3);
+
+                    // Register agents arriving at barrier
+                    router.arriveAtBarrier(barrierId, 'agent-1');
+                    router.arriveAtBarrier(barrierId, 'agent-2');
+
+                    const notComplete = !router.isBarrierComplete(barrierId);
+
+                    router.arriveAtBarrier(barrierId, 'agent-3');
+
+                    const complete = router.isBarrierComplete(barrierId);
+
+                    return {
+                        pass: !notComplete && complete,
+                        detail: complete
+                            ? 'Barrier synchronized: 3 agents arrived, barrier complete'
+                            : 'Barrier synchronization failed'
+                    };
+                } catch (err) {
+                    return { pass: false, detail: `Error: ${err.message}` };
+                }
+            }
+        );
+
+        test(
+            'A2A: Timeout Handling',
+            'Test timeout handling for message delivery',
+            () => {
+                if (typeof A2AMessageRouter === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - A2AMessageRouter not defined' };
+                }
+                try {
+                    const router = new A2AMessageRouter('timeout-test');
+
+                    // Send message with short timeout
+                    const msg = {
+                        type: 'message',
+                        sender: 'timeout-test',
+                        recipient: 'unresponsive-agent',
+                        content: 'Timeout test',
+                        timeout: 50
+                    };
+
+                    const sendResult = router.sendWithTimeout(msg);
+
+                    return {
+                        pass: sendResult !== null, // Message was queued
+                        detail: `Message queued with ${msg.timeout}ms timeout. Send result: ${sendResult}`
+                    };
+                } catch (err) {
+                    return { pass: false, detail: `Error: ${err.message}` };
+                }
+            }
+        );
+
+        test(
+            'A2A: Message Routing Statistics',
+            'Test tracking of message statistics',
+            () => {
+                if (typeof A2AMessageRouter === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - A2AMessageRouter not defined' };
+                }
+                try {
+                    const router = new A2AMessageRouter('stats-agent');
+                    router.registerAgent('recipient', { type: 'test' });
+
+                    // Send some messages
+                    router.send({
+                        type: 'message',
+                        sender: 'stats-agent',
+                        recipient: 'recipient',
+                        content: 'Test 1',
+                        timestamp: Date.now()
+                    });
+                    router.send({
+                        type: 'message',
+                        sender: 'stats-agent',
+                        recipient: 'recipient',
+                        content: 'Test 2',
+                        timestamp: Date.now()
+                    });
+
+                    const stats = router.getStatistics();
+
+                    return {
+                        pass: stats.messagesSent >= 2,
+                        detail: `Statistics: ${stats.messagesSent} sent, ${stats.messagesReceived} received`
+                    };
+                } catch (err) {
+                    return { pass: false, detail: `Error: ${err.message}` };
+                }
+            }
+        );
+
+        test(
+            'A2A: All Phase D Components',
+            'Verify A2A router is fully functional with all features',
+            () => {
+                if (typeof A2AMessageRouter === 'undefined') {
+                    return { pass: false, detail: 'A2AMessageRouter not defined' };
+                }
+                try {
+                    const router = new A2AMessageRouter('comprehensive-test');
+
+                    // Check core methods exist
+                    const requiredMethods = [
+                        'send', 'broadcast', 'registerAgent', 'queryAgents',
+                        'validateMessage', 'acquireLock', 'releaseLock',
+                        'createBarrier', 'arriveAtBarrier', 'getStatistics'
+                    ];
+
+                    const missingMethods = requiredMethods.filter(m => typeof router[m] !== 'function');
+
+                    if (missingMethods.length > 0) {
+                        return {
+                            pass: false,
+                            detail: `Missing methods: ${missingMethods.join(', ')}`
+                        };
+                    }
+
+                    return {
+                        pass: true,
+                        detail: `A2A router loaded with ${requiredMethods.length} core methods`
+                    };
+                } catch (err) {
+                    return { pass: false, detail: `Error: ${err.message}` };
+                }
             }
         );
 

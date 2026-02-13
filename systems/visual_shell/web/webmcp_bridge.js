@@ -24,12 +24,25 @@
  *   5. query_hilbert_address — Convert 1D Hilbert index to 2D coordinates
  *   6. trigger_evolution    — Trigger WGSL kernel evolution cycle
  *   7. send_llm_prompt      — Send prompt to LM Studio for AI-to-AI communication
+ *   8. spawn_area_agent      — Create autonomous area agents
+ *
+ * Phase D Tools (A2A Protocol):
+ *   9. send_a2a_message       — Send A2A messages to other agents
+ *  10. discover_a2a_agents    — Query A2A agent registry
+ *  11. a2a_coordination       — Distributed coordination (locks, barriers)
+ *
+ * Area Agent A2A Integration:
+ *   - spawn_area_agent now supports full A2A protocol
+ *   - Agents can discover each other via registry
+ *   - Agents can coordinate via locks and barriers
+ *   - Agents can publish/subscribe to topics
+ *   - Agents can send direct messages
  *
  * Requirements: Chrome 146+ with WebMCP support
  * Fallback: Logs warning, app runs normally without WebMCP
  *
- * @version 1.3.0
- * @phase Phase B: Spatial Query Tools, Evolution Bridge & LLM Integration
+ * @version 1.5.0
+ * @phase Phase D: A2A Protocol for Agent Coordination
  * @date 2026-02-13
  */
 
@@ -58,6 +71,15 @@ class WebMCPBridge {
 
     /** @type {WebSocket|null} */
     #agentSocket = null;
+
+    /** @type {A2AMessageRouter|null} */
+    #a2aRouter = null;
+
+    /** @type {Map<string, Object>} */
+    #a2aRegistry = new Map();
+
+    /** @type {Map<string, A2AMessageRouter>} */
+    #spawnedAgents = new Map();
 
     constructor() {
         // Feature detection — is WebMCP available?
@@ -110,6 +132,11 @@ class WebMCPBridge {
             await this.#registerTriggerEvolution();
             await this.#registerSendLLMPrompt();
             await this.#registerSpawnAreaAgent();
+
+            // Phase D tools (A2A)
+            await this.#registerSendA2AMessage();
+            await this.#registerDiscoverA2AAgents();
+            await this.#registerA2ACoordination();
 
             // Publish OS context alongside tools
             await this.#publishContext();
@@ -1232,7 +1259,8 @@ class WebMCPBridge {
                 'Create an area agent to monitor and/or act on a specific region ' +
                 'of the infinite map. Area agents can observe pixel changes, execute ' +
                 'actions, evolve content, or analyze patterns within their assigned region. ' +
-                'The agent runs autonomously and can be configured with specific behaviors.',
+                'The agent runs autonomously and can be configured with specific behaviors. ' +
+                'Phase D: Supports A2A protocol for agent-to-agent communication.',
             inputSchema: {
                 type: 'object',
                 properties: {
@@ -1254,7 +1282,50 @@ class WebMCPBridge {
                     },
                     config: {
                         type: 'object',
-                        description: 'Agent-specific configuration options (optional)'
+                        description: 'Agent-specific configuration options (optional)',
+                        properties: {
+                            // Phase B config options
+                            monitor_interval: {
+                                type: 'number',
+                                description: 'Monitoring interval in seconds (monitor agent)'
+                            },
+                            evolution_rate: {
+                                type: 'number',
+                                description: 'Evolution generations per cycle (evolver agent)'
+                            },
+                            // Phase D: A2A config
+                            a2a: {
+                                type: 'object',
+                                description: 'A2A protocol configuration (Phase D)',
+                                properties: {
+                                    enabled: {
+                                        type: 'boolean',
+                                        description: 'Enable A2A communication (default: false)'
+                                    },
+                                    discovery: {
+                                        type: 'boolean',
+                                        description: 'Advertise in A2A registry (default: true)'
+                                    },
+                                    auto_heartbeat: {
+                                        type: 'boolean',
+                                        description: 'Send periodic heartbeats (default: true)'
+                                    },
+                                    heartbeat_interval: {
+                                        type: 'number',
+                                        description: 'Heartbeat interval in seconds (default: 5)'
+                                    },
+                                    message_queue_size: {
+                                        type: 'number',
+                                        description: 'Max queued messages (default: 1000)'
+                                    },
+                                    topics: {
+                                        type: 'array',
+                                        items: { type: 'string' },
+                                        description: 'Topics to subscribe to'
+                                    }
+                                }
+                            }
+                        }
                     },
                     auto_start: {
                         type: 'boolean',
@@ -1376,13 +1447,58 @@ class WebMCPBridge {
             }
 
             // Return successful spawn result
-            return {
+            const result = {
                 success: true,
                 agentId: response.agentId,
                 status: response.status || 'spawned',
                 region: { x, y, width, height },
                 heartbeatInterval: response.heartbeatInterval || 5000
             };
+
+            // Phase D: Initialize A2A if config.a2a.enabled
+            const a2aConfig = config?.a2a;
+            if (a2aConfig?.enabled && response.agentId) {
+                try {
+                    // Create A2A router for the spawned agent
+                    const a2aRouter = await this.#initAgentA2A(
+                        response.agentId,
+                        agent_type,
+                        region,
+                        a2aConfig
+                    );
+
+                    // Track the spawned agent's router
+                    this.#spawnedAgents.set(response.agentId, {
+                        router: a2aRouter,
+                        agentType: agent_type,
+                        region: { x, y, width, height },
+                        config: a2aConfig,
+                        spawnedAt: Date.now()
+                    });
+
+                    result.a2a = {
+                        enabled: true,
+                        agentId: response.agentId,
+                        routerId: a2aRouter.getAgentId(),
+                        topics: a2aConfig.topics || [],
+                        discovery: a2aConfig.discovery !== false,
+                        heartbeatEnabled: a2aConfig.auto_heartbeat !== false,
+                        heartbeatInterval: a2aConfig.heartbeat_interval || 5
+                    };
+
+                    // Set up message handlers for this agent
+                    this.#setupAgentMessageHandlers(response.agentId, a2aRouter, agent_type);
+
+                } catch (a2aErr) {
+                    console.warn('🔌 WebMCP: A2A initialization failed:', a2aErr.message);
+                    result.a2a = {
+                        enabled: false,
+                        error: a2aErr.message
+                    };
+                }
+            }
+
+            return result;
 
         } catch (err) {
             // Determine error code based on error type
@@ -1397,6 +1513,359 @@ class WebMCPBridge {
                 success: false,
                 error: err.message,
                 error_code: errorCode
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 9: send_a2a_message (Phase D)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerSendA2AMessage() {
+        const tool = {
+            name: 'send_a2a_message',
+            description:
+                'Send a message to another area agent via A2A protocol. ' +
+                'Supports direct agent-to-agent messaging, broadcast to all agents, ' +
+                'or topic-based pub/sub. Requires A2A router to be initialized.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    to_agent: {
+                        type: 'string',
+                        description: 'Target agent ID, "broadcast", or "topic:name"'
+                    },
+                    message_type: {
+                        type: 'string',
+                        enum: [
+                            'task_assignment',
+                            'task_update',
+                            'task_result',
+                            'status_update',
+                            'coordination_request',
+                            'heartbeat'
+                        ],
+                        description: 'Type of A2A message'
+                    },
+                    content: {
+                        type: 'object',
+                        description: 'Message payload (arbitrary JSON)'
+                    },
+                    priority: {
+                        type: 'number',
+                        description: 'Priority level (1=LOW, 5=NORMAL, 8=HIGH, 10=CRITICAL)',
+                        default: 5,
+                        minimum: 1,
+                        maximum: 10
+                    },
+                    expires_in: {
+                        type: 'number',
+                        description: 'TTL in seconds (optional)'
+                    },
+                    metadata: {
+                        type: 'object',
+                        description: 'Optional metadata (e.g., correlation_id, region)'
+                    }
+                },
+                required: ['to_agent', 'message_type', 'content']
+            },
+            handler: async (params) => {
+                return this.#handleSendA2AMessage(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleSendA2AMessage({
+        to_agent,
+        message_type,
+        content,
+        priority = 5,
+        expires_in,
+        metadata = {}
+    }) {
+        this.#trackCall('send_a2a_message');
+
+        // Check A2A router is initialized
+        if (!this.#a2aRouter) {
+            return {
+                success: false,
+                error: 'A2A router not initialized. Call initA2A() first or enable in spawn_area_agent config.',
+                error_code: 'A2A_NOT_INITIALIZED'
+            };
+        }
+
+        try {
+            const response = await this.#a2aRouter.send({
+                to_agent,
+                message_type,
+                content,
+                priority,
+                expires_in,
+                metadata
+            });
+
+            return {
+                success: true,
+                ...response
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: 'A2A_SEND_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 10: discover_a2a_agents (Phase D)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerDiscoverA2AAgents() {
+        const tool = {
+            name: 'discover_a2a_agents',
+            description:
+                'Query the A2A agent registry to discover other agents. ' +
+                'Can filter by agent type, geographic region overlap, or capability. ' +
+                'Returns list of registered agents with their metadata.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    agent_type: {
+                        type: 'string',
+                        description: 'Filter by agent type (monitor, executor, evolver, analyzer)',
+                        enum: ['monitor', 'executor', 'evolver', 'analyzer']
+                    },
+                    region_overlaps: {
+                        type: 'object',
+                        description: 'Filter by agents overlapping this region',
+                        properties: {
+                            x: { type: 'number' },
+                            y: { type: 'number' },
+                            width: { type: 'number' },
+                            height: { type: 'number' }
+                        }
+                    },
+                    capability: {
+                        type: 'string',
+                        description: 'Filter by capability (e.g., "monitor", "evolve")'
+                    }
+                }
+            },
+            handler: async (params) => {
+                return this.#handleDiscoverA2AAgents(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleDiscoverA2AAgents(filters = {}) {
+        this.#trackCall('discover_a2a_agents');
+
+        // Check A2A router is initialized
+        if (!this.#a2aRouter) {
+            return {
+                success: false,
+                error: 'A2A router not initialized. Call initA2A() first.',
+                error_code: 'A2A_NOT_INITIALIZED'
+            };
+        }
+
+        try {
+            const agents = await this.#a2aRouter.discover(filters);
+
+            return {
+                success: true,
+                count: agents.length,
+                agents
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: 'A2A_DISCOVER_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 11: a2a_coordination (Phase D)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerA2ACoordination() {
+        const tool = {
+            name: 'a2a_coordination',
+            description:
+                'Perform distributed coordination operations with other agents. ' +
+                'Supports distributed locks, barriers, broadcasts, and sync. ' +
+                'Useful for coordinating multi-agent workflows.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    operation: {
+                        type: 'string',
+                        enum: ['acquire_lock', 'release_lock', 'barrier_wait', 'broadcast', 'sync_all'],
+                        description: 'Coordination operation to perform'
+                    },
+                    lock_id: {
+                        type: 'string',
+                        description: 'Lock identifier (for acquire_lock, release_lock)'
+                    },
+                    timeout: {
+                        type: 'number',
+                        description: 'Timeout in seconds (default: 30)'
+                    },
+                    barrier_id: {
+                        type: 'string',
+                        description: 'Barrier identifier (for barrier_wait)'
+                    },
+                    expected_agents: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        description: 'Expected agent IDs (for barrier_wait)'
+                    },
+                    message: {
+                        type: 'object',
+                        description: 'Message to broadcast (for broadcast)'
+                    }
+                },
+                required: ['operation']
+            },
+            handler: async (params) => {
+                return this.#handleA2ACoordination(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleA2ACoordination({
+        operation,
+        lock_id,
+        timeout = 30,
+        barrier_id,
+        expected_agents,
+        message
+    }) {
+        this.#trackCall('a2a_coordination');
+
+        // Check A2A router is initialized
+        if (!this.#a2aRouter) {
+            return {
+                success: false,
+                error: 'A2A router not initialized. Call initA2A() first or enable in spawn_area_agent config.',
+                error_code: 'A2A_NOT_INITIALIZED'
+            };
+        }
+
+        try {
+            switch (operation) {
+                case 'acquire_lock':
+                    if (!lock_id) {
+                        return {
+                            success: false,
+                            error: 'lock_id is required for acquire_lock',
+                            error_code: 'INVALID_INPUT'
+                        };
+                    }
+                    const acquired = await this.#a2aRouter.acquireLock(lock_id, timeout);
+                    return {
+                        success: acquired,
+                        operation: 'acquire_lock',
+                        lock_id,
+                        acquired,
+                        message: acquired ? 'Lock acquired' : 'Lock acquisition failed or timed out'
+                    };
+
+                case 'release_lock':
+                    if (!lock_id) {
+                        return {
+                            success: false,
+                            error: 'lock_id is required for release_lock',
+                            error_code: 'INVALID_INPUT'
+                        };
+                    }
+                    await this.#a2aRouter.releaseLock(lock_id);
+                    return {
+                        success: true,
+                        operation: 'release_lock',
+                        lock_id,
+                        message: 'Lock released'
+                    };
+
+                case 'barrier_wait':
+                    if (!barrier_id) {
+                        return {
+                            success: false,
+                            error: 'barrier_id is required for barrier_wait',
+                            error_code: 'INVALID_INPUT'
+                        };
+                    }
+                    if (!expected_agents || !Array.isArray(expected_agents)) {
+                        return {
+                            success: false,
+                            error: 'expected_agents is required for barrier_wait',
+                            error_code: 'INVALID_INPUT'
+                        };
+                    }
+                    const completed = await this.#a2aRouter.barrierWait(barrier_id, expected_agents, timeout);
+                    return {
+                        success: completed,
+                        operation: 'barrier_wait',
+                        barrier_id,
+                        expected_agents,
+                        completed,
+                        message: completed ? 'Barrier completed' : 'Barrier timed out'
+                    };
+
+                case 'broadcast':
+                    if (!message) {
+                        return {
+                            success: false,
+                            error: 'message is required for broadcast',
+                            error_code: 'INVALID_INPUT'
+                        };
+                    }
+                    await this.#a2aRouter.publish('broadcast', message);
+                    return {
+                        success: true,
+                        operation: 'broadcast',
+                        message: 'Broadcast sent'
+                    };
+
+                case 'sync_all':
+                    // Publish sync request to all agents
+                    await this.#a2aRouter.publish('sync-request', {
+                        timestamp: Date.now() / 1000
+                    }, A2AMessageRouter.PRIORITY.HIGH);
+                    return {
+                        success: true,
+                        operation: 'sync_all',
+                        message: 'Sync request broadcast'
+                    };
+
+                default:
+                    return {
+                        success: false,
+                        error: `Unknown operation: ${operation}`,
+                        error_code: 'INVALID_INPUT'
+                    };
+            }
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: 'A2A_COORDINATION_FAILED',
+                operation
             };
         }
     }
@@ -1450,6 +1919,366 @@ class WebMCPBridge {
     }
 
     // ─────────────────────────────────────────────────────────────
+    // A2A Router Integration (Phase D)
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Initialize A2A Message Router for this bridge
+     *
+     * @param {string} agentId - Agent ID for this bridge
+     * @param {Object} options - A2A configuration
+     * @returns {Promise<A2AMessageRouter>}
+     */
+    async initA2A(agentId = null, options = {}) {
+        if (this.#a2aRouter) {
+            console.warn('🔌 WebMCP: A2A router already initialized');
+            return this.#a2aRouter;
+        }
+
+        // Generate agent ID if not provided
+        const id = agentId || `webmcp-${this.#generateAgentId()}`;
+
+        // Create router
+        this.#a2aRouter = new A2AMessageRouter(
+            id,
+            options.wsUrl || 'ws://localhost:8765/a2a',
+            {
+                maxQueueSize: options.maxQueueSize || 1000,
+                mockMode: options.mockMode || false
+            }
+        );
+
+        // Connect to backend
+        try {
+            await this.#a2aRouter.connect();
+            console.log(`🔌 WebMCP: A2A router ready as ${id}`);
+        } catch (err) {
+            console.warn(`🔌 WebMCP: A2A connection failed, running in degraded mode:`, err.message);
+            // Router still usable for mock/local operations
+        }
+
+        // Set up default message handlers
+        this.#setupA2AHandlers();
+
+        return this.#a2aRouter;
+    }
+
+    /**
+     * Get the A2A router instance
+     *
+     * @returns {A2AMessageRouter|null}
+     */
+    get a2a() {
+        return this.#a2aRouter;
+    }
+
+    /**
+     * Initialize A2A for a spawned area agent
+     * @private
+     */
+    async #initAgentA2A(agentId, agentType, region, a2aConfig) {
+        // Create a dedicated A2A router for this agent
+        const a2aRouter = new A2AMessageRouter(
+            agentId,
+            a2aConfig.wsUrl || 'ws://localhost:8765/a2a',
+            {
+                maxQueueSize: a2aConfig.message_queue_size || 1000,
+                mockMode: a2aConfig.mock_mode || false
+            }
+        );
+
+        // Connect to backend
+        try {
+            await a2aRouter.connect();
+            console.log(`🔌 WebMCP: Agent ${agentId} A2A connected`);
+        } catch (err) {
+            console.warn(`🔌 WebMCP: Agent ${agentId} A2A connection failed:`, err.message);
+            // Router still usable for mock/local operations
+        }
+
+        // Subscribe to configured topics
+        if (a2aConfig.topics && Array.isArray(a2aConfig.topics)) {
+            for (const topic of a2aConfig.topics) {
+                await a2aRouter.subscribe(topic);
+            }
+        }
+
+        // Register with A2A registry if discovery enabled
+        if (a2aConfig.discovery !== false) {
+            await a2aRouter.send({
+                to_agent: 'registry',
+                message_type: 'registry_query',
+                content: {
+                    query: 'register_agent',
+                    agent_id: agentId,
+                    agent_type: agentType,
+                    region: region,
+                    capabilities: this.#getCapabilitiesForAgentType(agentType)
+                },
+                priority: A2AMessageRouter.PRIORITY.NORMAL
+            });
+        }
+
+        // Publish agent spawn announcement
+        await a2aRouter.publish('agent-spawned', {
+            agent_id: agentId,
+            agent_type: agentType,
+            region: region,
+            timestamp: Date.now() / 1000
+        }, A2AMessageRouter.PRIORITY.NORMAL);
+
+        return a2aRouter;
+    }
+
+    /**
+     * Get capabilities for an agent type
+     * @private
+     */
+    #getCapabilitiesForAgentType(agentType) {
+        const CAPABILITIES = {
+            monitor: ['monitor', 'observe', 'detect_changes', 'pixel_analysis'],
+            executor: ['execute', 'modify_pixels', 'run_programs', 'state_mutation'],
+            evolver: ['evolve', 'wgsl_kernels', 'genetic_algorithm', 'mutation'],
+            analyzer: ['analyze', 'pattern_detection', 'statistics', 'report']
+        };
+        return CAPABILITIES[agentType] || [];
+    }
+
+    /**
+     * Set up message handlers for a spawned agent
+     * @private
+     */
+    #setupAgentMessageHandlers(agentId, a2aRouter, agentType) {
+        // Handle incoming task assignments for this agent
+        a2aRouter.onMessage('task_assignment', (message) => {
+            console.log(`🔌 WebMCP: Agent ${agentId} received task:`, message.content);
+
+            // Route based on agent type
+            if (agentType === 'monitor' && message.content?.task === 'query_region') {
+                // Monitor agents can query their region
+                this.#handleAgentQueryRegion(agentId, message, a2aRouter);
+            } else if (agentType === 'executor' && message.content?.task === 'execute') {
+                // Executor agents handle execute commands
+                this.#handleAgentExecute(agentId, message, a2aRouter);
+            }
+        });
+
+        // Handle coordination requests
+        a2aRouter.onMessage('coordination_request', (message) => {
+            const operation = message.content?.operation;
+
+            if (operation === 'ping') {
+                a2aRouter.send({
+                    to_agent: message.from_agent,
+                    message_type: 'coordination_response',
+                    content: {
+                        operation: 'pong',
+                        agent_id: agentId,
+                        timestamp: Date.now() / 1000
+                    },
+                    priority: A2AMessageRouter.PRIORITY.NORMAL,
+                    metadata: {
+                        correlation_id: message.message_id
+                    }
+                });
+            } else if (operation === 'sync_region') {
+                // Respond with region state
+                const agentData = this.#spawnedAgents.get(agentId);
+                a2aRouter.send({
+                    to_agent: message.from_agent,
+                    message_type: 'coordination_response',
+                    content: {
+                        operation: 'region_state',
+                        agent_id: agentId,
+                        region: agentData?.region || {},
+                        timestamp: Date.now() / 1000
+                    },
+                    priority: A2AMessageRouter.PRIORITY.NORMAL,
+                    metadata: {
+                        correlation_id: message.message_id
+                    }
+                });
+            }
+        });
+
+        // Handle barrier synchronization
+        a2aRouter.onMessage('coordination_response', async (message) => {
+            const operation = message.content?.operation;
+            if (operation === 'barrier_ready') {
+                console.log(`🔌 WebMCP: Agent ${agentId} barrier ready`);
+            }
+        });
+
+        console.log(`🔌 WebMCP: Agent ${agentId} (${agentType}) message handlers configured`);
+    }
+
+    /**
+     * Handle agent region query
+     * @private
+     */
+    async #handleAgentQueryRegion(agentId, message, a2aRouter) {
+        const agentData = this.#spawnedAgents.get(agentId);
+        const region = agentData?.region || {};
+
+        await a2aRouter.send({
+            to_agent: message.from_agent,
+            message_type: 'task_result',
+            content: {
+                task: 'query_region',
+                agent_id: agentId,
+                region: region,
+                timestamp: Date.now() / 1000
+            },
+            priority: A2AMessageRouter.PRIORITY.NORMAL,
+            metadata: {
+                correlation_id: message.message_id
+            }
+        });
+    }
+
+    /**
+     * Handle agent execute command
+     * @private
+     */
+    async #handleAgentExecute(agentId, message, a2aRouter) {
+        const params = message.content?.params || {};
+
+        // Execute via the Pixel CPU
+        const result = this.#handleExecutePixelProgram(params);
+
+        await a2aRouter.send({
+            to_agent: message.from_agent,
+            message_type: 'task_result',
+            content: {
+                task: 'execute',
+                agent_id: agentId,
+                result: result,
+                timestamp: Date.now() / 1000
+            },
+            priority: A2AMessageRouter.PRIORITY.NORMAL,
+            metadata: {
+                correlation_id: message.message_id
+            }
+        });
+    }
+
+    /**
+     * Set up default A2A message handlers
+     * @private
+     */
+    #setupA2AHandlers() {
+        if (!this.#a2aRouter) return;
+
+        // Handle incoming task assignments
+        this.#a2aRouter.onMessage('task_assignment', (message) => {
+            console.log('🔌 WebMCP A2A: Task assignment received:', message.content);
+
+            // Route to appropriate tool based on task
+            const task = message.content?.task;
+            if (task === 'navigate') {
+                this.#handleNavigateMap(message.content?.params || {});
+            } else if (task === 'get_state') {
+                this.#handleGetOSState({});
+            } else if (task === 'execute_pixel_program') {
+                this.#handleExecutePixelProgram(message.content?.params || {});
+            } else if (task === 'load_rts_cartridge') {
+                this.#handleLoadRTSCartridge(message.content?.params || {});
+            }
+        });
+
+        // Handle coordination requests
+        this.#a2aRouter.onMessage('coordination_request', (message) => {
+            const operation = message.content?.operation;
+
+            if (operation === 'query_state') {
+                // Respond with OS state
+                this.#a2aRouter?.send({
+                    to_agent: message.from_agent,
+                    message_type: 'coordination_response',
+                    content: {
+                        operation: 'state_response',
+                        state: this.#handleGetOSState({})
+                    },
+                    priority: A2AMessageRouter.PRIORITY.NORMAL,
+                    metadata: {
+                        correlation_id: message.message_id
+                    }
+                });
+            } else if (operation === 'acquire_lock') {
+                // Handle lock requests with proper state tracking
+                const lockId = message.content?.lock_id;
+                console.log(`🔌 WebMCP A2A: Lock request for ${lockId}`);
+                // Default: grant lock (backend would validate)
+                this.#a2aRouter?.send({
+                    to_agent: message.from_agent,
+                    message_type: 'coordination_response',
+                    content: {
+                        operation: 'lock_granted',
+                        lock_id: lockId,
+                        granted: true
+                    },
+                    priority: A2AMessageRouter.PRIORITY.HIGH,
+                    metadata: {
+                        correlation_id: message.message_id
+                    }
+                });
+            } else if (operation === 'release_lock') {
+                const lockId = message.content?.lock_id;
+                console.log(`🔌 WebMCP A2A: Lock release for ${lockId}`);
+            } else if (operation === 'barrier_wait') {
+                const barrierId = message.content?.barrier_id;
+                console.log(`🔌 WebMCP A2A: Barrier wait for ${barrierId}`);
+            }
+        });
+
+        // Handle coordination responses
+        this.#a2aRouter.onMessage('coordination_response', (message) => {
+            const operation = message.content?.operation;
+            console.log(`🔌 WebMCP A2A: Coordination response - ${operation}`);
+        });
+
+        // Handle status updates (log only)
+        this.#a2aRouter.onMessage('status_update', (message) => {
+            console.log(`🔌 WebMCP A2A: Status from ${message.from_agent}:`,
+                message.content?.status || 'unknown');
+        });
+
+        // Handle heartbeats from other agents
+        this.#a2aRouter.onMessage('heartbeat', (message) => {
+            // Track alive agents for discovery
+            const fromAgent = message.from_agent;
+            if (!this.#a2aRegistry.has(fromAgent)) {
+                this.#a2aRegistry.set(fromAgent, {
+                    agent_id: fromAgent,
+                    last_seen: Date.now(),
+                    status: 'alive'
+                });
+            } else {
+                const entry = this.#a2aRegistry.get(fromAgent);
+                entry.last_seen = Date.now();
+                entry.status = 'alive';
+            }
+        });
+
+        // Handle registry responses
+        this.#a2aRouter.onMessage('registry_response', (message) => {
+            const agents = message.content?.agents || [];
+            console.log(`🔌 WebMCP A2A: Registry update - ${agents.length} agents`);
+            for (const agent of agents) {
+                this.#a2aRegistry.set(agent.agent_id, agent);
+            }
+        });
+    }
+
+    /**
+     * Generate a short agent ID
+     * @private
+     */
+    #generateAgentId() {
+        return Math.random().toString(36).substr(2, 8);
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // Observability
     // ─────────────────────────────────────────────────────────────
 
@@ -1463,14 +2292,19 @@ class WebMCPBridge {
      * @returns {Object} Bridge status and metrics
      */
     getStatus() {
-        return {
+        const status = {
             available: this.#webmcpAvailable,
             registered: this.#registered,
             tools: [...this.#registeredTools],
             totalCalls: this.#callCount,
             callBreakdown: { ...this.#toolCallCounts },
-            appConnected: !!this.#app
+            appConnected: !!this.#app,
+            phaseD: {
+                a2aEnabled: !!this.#a2aRouter,
+                a2aStatus: this.#a2aRouter?.getStatus() || null
+            }
         };
+        return status;
     }
 }
 
@@ -1482,3 +2316,781 @@ class WebMCPBridge {
 window.webmcpBridge = new WebMCPBridge();
 
 console.log('📡 WebMCP Bridge loaded — "The Screen is the Hard Drive, and now the API surface."');
+
+// ─────────────────────────────────────────────────────────────────
+// Phase D: A2A Message Router
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * A2A Message Router for Agent2Agent Communication
+ *
+ * Implements Geometry OS A2A protocol for horizontal agent-to-agent
+ * communication. Handles WebSocket connection, message routing, agent
+ * discovery, and coordination primitives.
+ *
+ * @see docs/plans/2026-02-13-webmcp-phase-d-design.md
+ * @version 1.0.0
+ * @phase Phase D: A2A Protocol for Agent Coordination
+ */
+class A2AMessageRouter {
+
+    /** @type {WebSocket|null} */
+    #ws = null;
+
+    /** @type {string|null} */
+    #agentId = null;
+
+    /** @type {string} */
+    #wsUrl;
+
+    /** @type {Map<string, Object>} */
+    #registry = new Map();
+
+    /** @type {Map<string, Function>} */
+    #messageHandlers = new Map();
+
+    /** @type {Map<string, {resolve: Function, reject: Function}>} */
+    #pendingRequests = new Map();
+
+    /** @type {Array<{message: Object, priority: number}>} */
+    #messageQueue = [];
+
+    /** @type {number} */
+    #maxQueueSize = 1000;
+
+    /** @type {Map<string, string>} */
+    #subscriptions = new Map();
+
+    /** @type {NodeJS.Timeout|null} */
+    #heartbeatInterval = null;
+
+    /** @type {boolean} */
+    #connected = false;
+
+    /** @type {boolean} */
+    #mockMode = false;
+
+    /**
+     * A2A Priority Levels
+     */
+    static PRIORITY = {
+        CRITICAL: 10,  // System alerts, errors
+        HIGH: 8,       // Coordination requests
+        NORMAL: 5,     // Regular messages
+        LOW: 1         // Background updates
+    };
+
+    /**
+     * A2A Message Types
+     */
+    static MESSAGE_TYPES = [
+        'task_assignment',
+        'task_update',
+        'task_result',
+        'status_update',
+        'coordination_request',
+        'coordination_response',
+        'heartbeat',
+        'error_report',
+        'registry_query',
+        'registry_response',
+        'subscription'
+    ];
+
+    /**
+     * Create a new A2A Message Router
+     *
+     * @param {string} agentId - This agent's unique identifier
+     * @param {string} wsUrl - WebSocket URL for A2A backend (default: ws://localhost:8765/a2a)
+     * @param {Object} options - Configuration options
+     */
+    constructor(agentId, wsUrl = 'ws://localhost:8765/a2a', options = {}) {
+        this.#agentId = agentId;
+        this.#wsUrl = wsUrl;
+        this.#maxQueueSize = options.maxQueueSize || 1000;
+        this.#mockMode = options.mockMode || false;
+
+        if (this.#mockMode) {
+            console.log(`🔀 A2A: Running in mock mode (no WebSocket)`);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Connection Management
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Connect to A2A WebSocket backend
+     *
+     * @returns {Promise<boolean>} True if connection successful
+     */
+    async connect() {
+        if (this.#connected) {
+            console.warn('🔀 A2A: Already connected');
+            return true;
+        }
+
+        if (this.#mockMode) {
+            this.#connected = true;
+            this.#startMockHeartbeat();
+            console.log('🔀 A2A: Mock mode connected');
+            return true;
+        }
+
+        return new Promise((resolve, reject) => {
+            try {
+                this.#ws = new WebSocket(this.#wsUrl);
+
+                this.#ws.onopen = () => {
+                    this.#connected = true;
+                    this.#registerWithBackend();
+                    this.#startHeartbeat();
+                    this.#processMessageQueue();
+                    console.log(`🔀 A2A: Connected to ${this.#wsUrl} as ${this.#agentId}`);
+                    resolve(true);
+                };
+
+                this.#ws.onmessage = (event) => {
+                    this.#handleIncomingMessage(event.data);
+                };
+
+                this.#ws.onerror = (error) => {
+                    console.error('🔀 A2A: WebSocket error:', error);
+                };
+
+                this.#ws.onclose = (event) => {
+                    this.#connected = false;
+                    this.#stopHeartbeat();
+                    console.log(`🔀 A2A: Disconnected (code: ${event.code})`);
+                };
+
+                // Connection timeout
+                setTimeout(() => {
+                    if (this.#ws?.readyState !== WebSocket.OPEN) {
+                        this.#ws?.close();
+                        reject(new Error('A2A connection timeout (5s)'));
+                    }
+                }, 5000);
+
+            } catch (err) {
+                reject(new Error(`A2A connection failed: ${err.message}`));
+            }
+        });
+    }
+
+    /**
+     * Register this agent with backend registry
+     * @private
+     */
+    #registerWithBackend() {
+        const registration = {
+            message_type: 'registry_query',
+            content: {
+                query: 'register_agent',
+                agent_id: this.#agentId,
+                capabilities: ['webmcp', 'monitor', 'executor']
+            }
+        };
+
+        this.#sendToBackend(registration);
+    }
+
+    /**
+     * Disconnect from A2A backend
+     */
+    disconnect() {
+        this.#stopHeartbeat();
+
+        if (this.#ws && this.#ws.readyState === WebSocket.OPEN) {
+            // Send goodbye message
+            try {
+                this.#ws.send(JSON.stringify({
+                    message_type: 'status_update',
+                    content: { status: 'disconnecting' },
+                    from_agent: this.#agentId
+                }));
+            } catch (e) {
+                // Ignore send errors on disconnect
+            }
+
+            this.#ws.close();
+        }
+
+        this.#connected = false;
+        this.#ws = null;
+        console.log(`🔀 A2A: Disconnected ${this.#agentId}`);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Message Sending
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Send an A2A message
+     *
+     * @param {Object} params - Message parameters
+     * @param {string} params.to_agent - Target agent ID or "broadcast" or "topic:name"
+     * @param {string} params.message_type - Type of message
+     * @param {Object} params.content - Message payload
+     * @param {number} [params.priority=5] - Message priority (1-10)
+     * @param {number} [params.expires_in] - TTL in seconds
+     * @param {Object} [params.metadata] - Optional metadata
+     * @returns {Promise<Object>} Response from recipient
+     */
+    async send({
+        to_agent,
+        message_type,
+        content,
+        priority = A2AMessageRouter.PRIORITY.NORMAL,
+        expires_in,
+        metadata = {}
+    }) {
+        // Validate message_type
+        if (!A2AMessageRouter.MESSAGE_TYPES.includes(message_type)) {
+            throw new Error(`Invalid message_type: ${message_type}`);
+        }
+
+        // Validate priority
+        if (typeof priority !== 'number' || priority < 1 || priority > 10) {
+            throw new Error('Priority must be between 1 and 10');
+        }
+
+        // Validate to_agent format
+        if (typeof to_agent !== 'string' || to_agent.trim().length === 0) {
+            throw new Error('to_agent must be a non-empty string');
+        }
+
+        const message = this.#createMessage({
+            to_agent,
+            message_type,
+            content,
+            priority,
+            expires_in,
+            metadata
+        });
+
+        // If not connected, queue message
+        if (!this.#connected) {
+            return this.#enqueueMessage(message);
+        }
+
+        // Send immediately
+        return this.#sendMessageWithAck(message);
+    }
+
+    /**
+     * Create a properly formatted A2A message
+     * @private
+     */
+    #createMessage({ to_agent, message_type, content, priority, expires_in, metadata }) {
+        const now = Date.now() / 1000;
+        const correlationId = metadata?.correlation_id || this.#generateUUID();
+
+        const message = {
+            $schema: 'https://geometry.os/a2a/message/v1',
+            message_id: this.#generateUUID(),
+            timestamp: now,
+            from_agent: this.#agentId,
+            to_agent,
+            message_type,
+            priority,
+            content,
+            metadata: {
+                ...metadata,
+                correlation_id: correlationId
+            }
+        };
+
+        // Add expiration if specified
+        if (expires_in) {
+            message.expires_at = now + expires_in;
+        }
+
+        // Add signature placeholder (backend would sign this)
+        message.signature = 'sha256-hmac'; // Placeholder
+
+        return message;
+    }
+
+    /**
+     * Send message and wait for acknowledgment
+     * @private
+     */
+    async #sendMessageWithAck(message) {
+        if (message.message_type !== 'registry_query' &&
+            message.message_type !== 'heartbeat' &&
+            message.message_type !== 'status_update') {
+
+            // Create promise for response
+            const responsePromise = new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    this.#pendingRequests.delete(message.message_id);
+                    reject(new Error(`A2A message timeout: ${message.message_id}`));
+                }, 30000); // 30 second timeout
+
+                this.#pendingRequests.set(message.message_id, {
+                    resolve,
+                    reject,
+                    timeoutId,
+                    correlationId: message.metadata?.correlation_id
+                });
+            });
+
+            // Send message
+            this.#sendToBackend(message);
+
+            // Wait for response
+            return await responsePromise;
+        }
+
+        // Fire-and-forget messages
+        this.#sendToBackend(message);
+        return { success: true, message_id: message.message_id };
+    }
+
+    /**
+     * Send message to backend
+     * @private
+     */
+    #sendToBackend(message) {
+        if (this.#mockMode) {
+            // Mock mode: just log
+            console.log('🔀 A2A [mock]:', JSON.stringify(message, null, 2));
+            return;
+        }
+
+        if (this.#ws?.readyState === WebSocket.OPEN) {
+            this.#ws.send(JSON.stringify(message));
+        } else {
+            console.warn('🔀 A2A: WebSocket not ready, queuing message');
+            this.#enqueueMessage(message);
+        }
+    }
+
+    /**
+     * Queue a message for later delivery
+     * @private
+     */
+    #enqueueMessage(message) {
+        if (this.#messageQueue.length >= this.#maxQueueSize) {
+            // Remove oldest low-priority message
+            const idx = this.#messageQueue.findIndex(m => m.priority < 5);
+            if (idx !== -1) {
+                this.#messageQueue.splice(idx, 1);
+            } else {
+                console.warn('🔀 A2A: Message queue full, dropping message');
+                return { success: false, error: 'queue_full' };
+            }
+        }
+
+        this.#messageQueue.push({
+            message,
+            priority: message.priority || 5,
+            timestamp: Date.now()
+        });
+
+        // Sort by priority (descending)
+        this.#messageQueue.sort((a, b) => b.priority - a.priority);
+
+        return { success: true, queued: true, queue_length: this.#messageQueue.length };
+    }
+
+    /**
+     * Process queued messages
+     * @private
+     */
+    #processMessageQueue() {
+        while (this.#messageQueue.length > 0 && this.#connected) {
+            const { message } = this.#messageQueue.shift();
+            try {
+                this.#sendToBackend(message);
+            } catch (err) {
+                console.error('🔀 A2A: Failed to send queued message:', err);
+                // Re-queue on failure
+                this.#enqueueMessage(message);
+                break;
+            }
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Message Receiving
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Handle incoming message from backend
+     * @private
+     */
+    #handleIncomingMessage(data) {
+        try {
+            const message = JSON.parse(data);
+
+            // Validate message schema
+            if (!this.#validateMessage(message)) {
+                console.warn('🔀 A2A: Invalid message received:', message);
+                return;
+            }
+
+            // Check if this is a response to a pending request
+            const correlationId = message.metadata?.correlation_id ||
+                                message.metadata?.in_reply_to;
+
+            if (correlationId) {
+                for (const [msgId, pending] of this.#pendingRequests.entries()) {
+                    if (pending.correlationId === correlationId) {
+                        clearTimeout(pending.timeoutId);
+                        this.#pendingRequests.delete(msgId);
+                        pending.resolve(message);
+                        return;
+                    }
+                }
+            }
+
+            // Route to handler
+            const handler = this.#messageHandlers.get(message.message_type);
+            if (handler) {
+                handler(message);
+            } else {
+                // Default handler
+                this.#defaultMessageHandler(message);
+            }
+
+        } catch (err) {
+            console.error('🔀 A2A: Failed to parse incoming message:', err);
+        }
+    }
+
+    /**
+     * Validate A2A message schema
+     * @private
+     */
+    #validateMessage(message) {
+        if (!message || typeof message !== 'object') {
+            return false;
+        }
+
+        // Required fields
+        const required = ['message_id', 'timestamp', 'from_agent', 'message_type', 'content'];
+        for (const field of required) {
+            if (!(field in message)) {
+                console.warn(`🔀 A2A: Missing required field: ${field}`);
+                return false;
+            }
+        }
+
+        // Validate message_type
+        if (!A2AMessageRouter.MESSAGE_TYPES.includes(message.message_type)) {
+            console.warn(`🔀 A2A: Unknown message_type: ${message.message_type}`);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Default message handler (logs unknown messages)
+     * @private
+     */
+    #defaultMessageHandler(message) {
+        const from = message.from_agent || 'unknown';
+        const type = message.message_type;
+
+        console.log(`🔀 A2A: Received ${type} from ${from}`);
+
+        // Auto-respond to coordination requests with default behavior
+        if (type === 'coordination_request') {
+            const operation = message.content?.operation;
+            if (operation === 'acquire_lock') {
+                // Default: grant lock (in production, check lock state)
+                this.#sendToBackend({
+                    message_type: 'coordination_response',
+                    content: {
+                        operation: 'lock_granted',
+                        lock_id: message.content?.lock_id,
+                        granted: true
+                    },
+                    to_agent: message.from_agent,
+                    metadata: {
+                        correlation_id: message.message_id
+                    }
+                });
+            }
+        }
+    }
+
+    /**
+     * Register a message handler
+     *
+     * @param {string} message_type - Type to handle
+     * @param {Function} handler - Handler function
+     */
+    onMessage(message_type, handler) {
+        if (typeof handler !== 'function') {
+            throw new Error('Handler must be a function');
+        }
+        this.#messageHandlers.set(message_type, handler);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Agent Discovery
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Query A2A agent registry
+     *
+     * @param {Object} filters - Optional filters
+     * @param {string} [filters.agent_type] - Filter by agent type
+     * @param {Object} [filters.region_overlaps] - Filter by overlapping region
+     * @param {string} [filters.capability] - Filter by capability
+     * @returns {Promise<Array>} List of matching agents
+     */
+    async discover(filters = {}) {
+        const query = {
+            message_type: 'registry_query',
+            content: {
+                query: 'list_agents',
+                filters: filters || {}
+            }
+        };
+
+        const response = await this.send({
+            to_agent: 'registry',
+            message_type: 'registry_query',
+            content: query.content,
+            priority: A2AMessageRouter.PRIORITY.NORMAL
+        });
+
+        if (response.success !== false && response.content?.agents) {
+            // Update local cache
+            for (const agent of response.content.agents) {
+                this.#registry.set(agent.agent_id, agent);
+            }
+            return response.content.agents;
+        }
+
+        // Return cached agents if query fails
+        return Array.from(this.#registry.values());
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Pub/Sub
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Subscribe to a topic
+     *
+     * @param {string} topic - Topic name (e.g., "region-updates", "alerts")
+     * @returns {Promise<boolean>} True if subscribed successfully
+     */
+    async subscribe(topic) {
+        const topicName = topic.startsWith('topic:') ? topic : `topic:${topic}`;
+
+        // Send subscription message
+        await this.send({
+            to_agent: topicName,
+            message_type: 'subscription',
+            content: {
+                operation: 'subscribe',
+                topic: topicName
+            },
+            priority: A2AMessageRouter.PRIORITY.LOW
+        });
+
+        this.#subscriptions.set(topicName, Date.now());
+        console.log(`🔀 A2A: Subscribed to ${topicName}`);
+        return true;
+    }
+
+    /**
+     * Unsubscribe from a topic
+     *
+     * @param {string} topic - Topic name
+     */
+    unsubscribe(topic) {
+        const topicName = topic.startsWith('topic') ? topic : `topic:${topic}`;
+        this.#subscriptions.delete(topicName);
+        console.log(`🔀 A2A: Unsubscribed from ${topicName}`);
+    }
+
+    /**
+     * Publish to a topic
+     *
+     * @param {string} topic - Topic name
+     * @param {Object} content - Message content
+     * @param {number} [priority] - Message priority
+     */
+    async publish(topic, content, priority = A2AMessageRouter.PRIORITY.NORMAL) {
+        const topicName = topic.startsWith('topic:') ? topic : `topic:${topic}`;
+
+        return await this.send({
+            to_agent: topicName,
+            message_type: 'status_update',
+            content,
+            priority
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Coordination Primitives
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Request a distributed lock
+     *
+     * @param {string} lockId - Unique lock identifier
+     * @param {number} [timeout=30] - Wait timeout in seconds
+     * @returns {Promise<boolean>} True if lock acquired
+     */
+    async acquireLock(lockId, timeout = 30) {
+        const response = await this.send({
+            to_agent: 'broadcast',
+            message_type: 'coordination_request',
+            content: {
+                operation: 'acquire_lock',
+                lock_id: lockId,
+                timeout
+            },
+            priority: A2AMessageRouter.PRIORITY.HIGH
+        });
+
+        return response?.content?.granted === true;
+    }
+
+    /**
+     * Release a distributed lock
+     *
+     * @param {string} lockId - Lock identifier to release
+     */
+    async releaseLock(lockId) {
+        return await this.send({
+            to_agent: 'broadcast',
+            message_type: 'coordination_request',
+            content: {
+                operation: 'release_lock',
+                lock_id: lockId
+            },
+            priority: A2AMessageRouter.PRIORITY.HIGH
+        });
+    }
+
+    /**
+     * Wait at a barrier until all agents arrive
+     *
+     * @param {string} barrierId - Barrier identifier
+     * @param {Array<string>} expectedAgents - Expected agent IDs
+     * @param {number} [timeout=60] - Wait timeout in seconds
+     * @returns {Promise<boolean>} True if barrier completed
+     */
+    async barrierWait(barrierId, expectedAgents, timeout = 60) {
+        const response = await this.send({
+            to_agent: 'broadcast',
+            message_type: 'coordination_request',
+            content: {
+                operation: 'barrier_wait',
+                barrier_id: barrierId,
+                expected_agents: expectedAgents
+            },
+            priority: A2AMessageRouter.PRIORITY.HIGH,
+            expires_in: timeout
+        });
+
+        return response?.content?.released === true;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Heartbeat
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Start periodic heartbeat
+     * @private
+     */
+    #startHeartbeat() {
+        if (this.#heartbeatInterval) return;
+
+        this.#heartbeatInterval = setInterval(() => {
+            this.send({
+                to_agent: 'broadcast',
+                message_type: 'heartbeat',
+                content: {
+                    status: 'alive',
+                    timestamp: Date.now() / 1000
+                },
+                priority: A2AMessageRouter.PRIORITY.LOW
+            }).catch(() => {
+                // Ignore heartbeat failures
+            });
+        }, 5000); // 5 second heartbeat
+    }
+
+    /**
+     * Stop periodic heartbeat
+     * @private
+     */
+    #stopHeartbeat() {
+        if (this.#heartbeatInterval) {
+            clearInterval(this.#heartbeatInterval);
+            this.#heartbeatInterval = null;
+        }
+    }
+
+    /**
+     * Mock heartbeat for testing
+     * @private
+     */
+    #startMockHeartbeat() {
+        this.#heartbeatInterval = setInterval(() => {
+            console.log('🔀 A2A [mock]: heartbeat');
+        }, 5000);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Utilities
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Generate UUID v4
+     * @private
+     */
+    #generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    /**
+     * Get router status
+     * @returns {Object} Status information
+     */
+    getStatus() {
+        return {
+            agentId: this.#agentId,
+            connected: this.#connected,
+            mockMode: this.#mockMode,
+            wsUrl: this.#wsUrl,
+            registrySize: this.#registry.size,
+            queuedMessages: this.#messageQueue.length,
+            pendingRequests: this.#pendingRequests.size,
+            subscriptions: Array.from(this.#subscriptions.keys()),
+            handlers: Array.from(this.#messageHandlers.keys())
+        };
+    }
+
+    /**
+     * Get this agent's ID
+     * @returns {string} Agent ID
+     */
+    getAgentId() {
+        return this.#agentId;
+    }
+
+    /**
+     * Check if connected to backend
+     * @returns {boolean} Connection status
+     */
+    isConnected() {
+        return this.#connected;
+    }
+}
