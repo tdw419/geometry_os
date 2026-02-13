@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry OS: WebMCP Bridge Verification (Phase A + B)</title>
+    <style>
+        /* Geometry OS Dark Theme */
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #000000;
+            color: #00ff88;
+            font-family: 'Courier New', Courier, monospace;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #00ffff;
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+
+        .description {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .description h3 {
+            margin-top: 0;
+            color: #00ffff;
+        }
+
+        .description ul {
+            margin-bottom: 0;
+            padding-left: 20px;
+        }
+
+        .description code {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #ffff00;
+        }
+
+        /* Test Results Section */
+        .test-section {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .test-section h2 {
+            margin-top: 0;
+            color: #00ffff;
+            border-bottom: 1px solid #00ff88;
+            padding-bottom: 10px;
+        }
+
+        .test-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 12px;
+            margin: 8px 0;
+            background: rgba(0, 255, 136, 0.05);
+            border-radius: 4px;
+            border-left: 3px solid #666;
+        }
+
+        .test-item.pass {
+            border-left-color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .test-item.fail {
+            border-left-color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .test-item.pending {
+            border-left-color: #ffaa00;
+            background: rgba(255, 170, 0, 0.1);
+        }
+
+        .test-item.running {
+            border-left-color: #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        .test-status {
+            font-size: 24px;
+            margin-right: 15px;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .test-status.pass {
+            color: #00ff88;
+        }
+
+        .test-status.fail {
+            color: #ff4444;
+        }
+
+        .test-status.pending {
+            color: #ffaa00;
+        }
+
+        .test-status.running {
+            color: #00ffff;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .test-content {
+            flex: 1;
+        }
+
+        .test-name {
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+
+        .test-description {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 6px;
+        }
+
+        .test-detail {
+            font-size: 13px;
+            color: #00ffff;
+            word-break: break-all;
+        }
+
+        .test-detail.error {
+            color: #ff6666;
+        }
+
+        /* Summary Section */
+        .summary {
+            display: flex;
+            justify-content: space-around;
+            padding: 15px;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-value {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .summary-value.pass { color: #00ff88; }
+        .summary-value.fail { color: #ff4444; }
+        .summary-value.pending { color: #ffaa00; }
+
+        .summary-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        /* JSON Output Section */
+        .json-section {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .json-section h2 {
+            margin-top: 0;
+            color: #00ffff;
+            border-bottom: 1px solid #00ff88;
+            padding-bottom: 10px;
+        }
+
+        .json-output {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #00ff88;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .json-key {
+            color: #00ffff;
+        }
+
+        .json-string {
+            color: #00ff88;
+        }
+
+        .json-number {
+            color: #ffaa00;
+        }
+
+        .json-boolean {
+            color: #ff00ff;
+        }
+
+        .json-null {
+            color: #888;
+        }
+
+        /* Requirements Note */
+        .requirements-note {
+            background: rgba(255, 170, 0, 0.1);
+            border: 1px solid #ffaa00;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+
+        .requirements-note h3 {
+            margin-top: 0;
+            color: #ffaa00;
+        }
+
+        /* Timestamp */
+        .timestamp {
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WebMCP Bridge Verification</h1>
+        <p class="subtitle">"The Screen is the Hard Drive - and now the API surface."</p>
+
+        <div class="description">
+            <h3>About This Test</h3>
+            <p>This page verifies that the WebMCP Bridge for Geometry OS is correctly loaded and functional. It checks:</p>
+            <ul>
+                <li><strong>WebMCP API Availability:</strong> Whether <code>navigator.modelContext</code> is available (Chrome 146+)</li>
+                <li><strong>Bridge Class Loaded:</strong> Whether <code>WebMCPBridge</code> class is defined in the global scope</li>
+                <li><strong>Global Instance:</strong> Whether <code>window.webmcpBridge</code> exists and is the correct type</li>
+                <li><strong>Bridge Status Structure:</strong> Whether <code>getStatus()</code> returns the expected structure</li>
+                <li><strong>Phase A Tools:</strong> <code>navigate_map</code>, <code>get_os_state</code>, <code>execute_pixel_program</code>, <code>load_rts_cartridge</code></li>
+                <li><strong>Phase B Tools:</strong> <code>query_hilbert_address</code>, <code>trigger_evolution</code>, <code>send_llm_prompt</code>, <code>spawn_area_agent</code></li>
+                <li><strong>HilbertLUT:</strong> Spatial query backend for Hilbert curve conversions</li>
+            </ul>
+            <p>The test waits for the <code>geometry-os-ready</code> event or falls back after 2 seconds.</p>
+        </div>
+
+        <div class="requirements-note" id="requirements-note" style="display: none;">
+            <h3>Browser Requirements</h3>
+            <p>WebMCP is a Chrome experimental feature available in Chrome 146+. The bridge will still load in other browsers but WebMCP functionality will be disabled. The application runs normally without WebMCP.</p>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary" id="summary" style="display: none;">
+            <div class="summary-item">
+                <div class="summary-value pass" id="pass-count">0</div>
+                <div class="summary-label">Passed</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value fail" id="fail-count">0</div>
+                <div class="summary-label">Failed</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value pending" id="pending-count">0</div>
+                <div class="summary-label">Pending</div>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="test-section">
+            <h2>Verification Tests</h2>
+            <div id="test-results"></div>
+        </div>
+
+        <!-- JSON Output -->
+        <div class="json-section">
+            <h2>Bridge Status (window.webmcpBridge.getStatus())</h2>
+            <div class="json-output" id="json-output">Waiting for bridge initialization...</div>
+        </div>
+
+        <div class="timestamp" id="timestamp"></div>
+    </div>
+
+    <!-- Load the WebMCP Bridge -->
+    <script src="webmcp_bridge.js"></script>
+
+    <script>
+        // Test runner
+        const tests = [];
+        const results = {
+            pass: 0,
+            fail: 0,
+            pending: 0
+        };
+
+        /**
+         * Register a test
+         */
+        function test(name, description, fn) {
+            tests.push({ name, description, fn, status: 'pending' });
+        }
+
+        /**
+         * Render a single test result
+         */
+        function renderTest(test, index) {
+            const statusIcon = {
+                pass: '&#10003;',  // checkmark
+                fail: '&#10007;',  // x mark
+                pending: '&#9679;', // circle
+                running: '&#8987;' // hourglass
+            };
+
+            const testDiv = document.createElement('div');
+            testDiv.className = `test-item ${test.status}`;
+            testDiv.innerHTML = `
+                <div class="test-status ${test.status}">${statusIcon[test.status]}</div>
+                <div class="test-content">
+                    <div class="test-name">${test.name}</div>
+                    <div class="test-description">${test.description}</div>
+                    ${test.detail ? `<div class="test-detail ${test.status === 'fail' ? 'error' : ''}">${test.detail}</div>` : ''}
+                </div>
+            `;
+            return testDiv;
+        }
+
+        /**
+         * Update the UI with current test results
+         */
+        function updateUI() {
+            const container = document.getElementById('test-results');
+            container.innerHTML = '';
+            tests.forEach((test, index) => {
+                container.appendChild(renderTest(test, index));
+            });
+
+            // Update summary
+            document.getElementById('summary').style.display = 'flex';
+            document.getElementById('pass-count').textContent = results.pass;
+            document.getElementById('fail-count').textContent = results.fail;
+            document.getElementById('pending-count').textContent = results.pending;
+        }
+
+        /**
+         * Syntax highlight JSON
+         */
+        function highlightJSON(obj) {
+            const json = JSON.stringify(obj, null, 2);
+            return json
+                .replace(/"([^"]+)":/g, '<span class="json-key">"$1"</span>:')
+                .replace(/: "([^"]+)"/g, ': <span class="json-string">"$1"</span>')
+                .replace(/: (-?\d+\.?\d*)/g, ': <span class="json-number">$1</span>')
+                .replace(/: (true|false)/g, ': <span class="json-boolean">$1</span>')
+                .replace(/: (null)/g, ': <span class="json-null">$1</span>');
+        }
+
+        /**
+         * Run a single test
+         */
+        async function runTest(test) {
+            test.status = 'running';
+            updateUI();
+
+            try {
+                const result = await test.fn();
+                test.status = result.pass ? 'pass' : 'fail';
+                test.detail = result.detail || '';
+                results[test.status]++;
+            } catch (error) {
+                test.status = 'fail';
+                test.detail = `Error: ${error.message}`;
+                results.fail++;
+            }
+            results.pending--;
+            updateUI();
+        }
+
+        /**
+         * Run all tests
+         */
+        async function runAllTests() {
+            results.pass = 0;
+            results.fail = 0;
+            results.pending = tests.length;
+            updateUI();
+
+            for (const test of tests) {
+                await runTest(test);
+            }
+
+            // Update timestamp
+            document.getElementById('timestamp').textContent =
+                `Tests completed at ${new Date().toLocaleTimeString()}`;
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // Define Tests
+        // ─────────────────────────────────────────────────────────────
+
+        test(
+            'WebMCP API Available',
+            'Check if navigator.modelContext exists (requires Chrome 146+)',
+            () => {
+                const available = 'modelContext' in navigator;
+                return {
+                    pass: true, // Always pass - WebMCP is optional
+                    detail: available
+                        ? 'navigator.modelContext is available - WebMCP is supported'
+                        : 'navigator.modelContext not found - WebMCP requires Chrome 146+. Bridge will run in fallback mode.'
+                };
+            }
+        );
+
+        test(
+            'Bridge Class Loaded',
+            'Check if WebMCPBridge class is defined globally',
+            () => {
+                const loaded = typeof WebMCPBridge !== 'undefined';
+                return {
+                    pass: loaded,
+                    detail: loaded
+                        ? 'WebMCPBridge class is defined and accessible'
+                        : 'WebMCPBridge class is not defined - check if webmcp_bridge.js loaded correctly'
+                };
+            }
+        );
+
+        test(
+            'Global Instance Exists',
+            'Check if window.webmcpBridge is an instance of WebMCPBridge',
+            () => {
+                const exists = typeof window.webmcpBridge !== 'undefined';
+                if (!exists) {
+                    return {
+                        pass: false,
+                        detail: 'window.webmcpBridge is undefined'
+                    };
+                }
+                const isInstance = window.webmcpBridge instanceof WebMCPBridge;
+                return {
+                    pass: isInstance,
+                    detail: isInstance
+                        ? 'window.webmcpBridge is a valid WebMCPBridge instance'
+                        : `window.webmcpBridge exists but is not a WebMCPBridge instance (type: ${typeof window.webmcpBridge})`
+                };
+            }
+        );
+
+        test(
+            'Bridge Status Structure',
+            'Check if getStatus() returns correct structure with required fields',
+            () => {
+                if (typeof window.webmcpBridge === 'undefined') {
+                    return {
+                        pass: false,
+                        detail: 'Cannot test - window.webmcpBridge is undefined'
+                    };
+                }
+
+                const status = window.webmcpBridge.getStatus();
+
+                // Required fields
+                const requiredFields = ['available', 'registered', 'tools', 'totalCalls', 'callBreakdown', 'appConnected'];
+                const missingFields = requiredFields.filter(field => !(field in status));
+
+                if (missingFields.length > 0) {
+                    return {
+                        pass: false,
+                        detail: `Missing required fields: ${missingFields.join(', ')}`
+                    };
+                }
+
+                // Validate types
+                const typeChecks = [
+                    { field: 'available', type: 'boolean', value: status.available },
+                    { field: 'registered', type: 'boolean', value: status.registered },
+                    { field: 'tools', type: 'array', value: status.tools },
+                    { field: 'totalCalls', type: 'number', value: status.totalCalls },
+                    { field: 'callBreakdown', type: 'object', value: status.callBreakdown },
+                    { field: 'appConnected', type: 'boolean', value: status.appConnected }
+                ];
+
+                const typeErrors = typeChecks.filter(check => {
+                    if (check.type === 'array') return !Array.isArray(check.value);
+                    if (check.type === 'object') return typeof check.value !== 'object' || Array.isArray(check.value);
+                    return typeof check.value !== check.type;
+                });
+
+                if (typeErrors.length > 0) {
+                    return {
+                        pass: false,
+                        detail: `Type errors: ${typeErrors.map(e => `${e.field} expected ${e.type}`).join(', ')}`
+                    };
+                }
+
+                return {
+                    pass: true,
+                    detail: `Status structure valid. available=${status.available}, registered=${status.registered}, tools=[${status.tools.join(', ')}]`
+                };
+            }
+        );
+
+        // ═══════════════════════════════════════════════════════════════
+        // Phase B Tests: Spatial Query Tools, Evolution Bridge & LLM Integration
+        // ═══════════════════════════════════════════════════════════════
+
+        test(
+            'query_hilbert_address Tool Registered',
+            'Check if query_hilbert_address tool is registered (Phase B)',
+            () => {
+                if (typeof window.webmcpBridge === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - window.webmcpBridge is undefined' };
+                }
+                const status = window.webmcpBridge.getStatus();
+                const registered = status.tools.includes('query_hilbert_address');
+                return {
+                    pass: registered,
+                    detail: registered
+                        ? 'query_hilbert_address tool is registered'
+                        : `Tool not found. Registered tools: [${status.tools.join(', ')}]`
+                };
+            }
+        );
+
+        test(
+            'HilbertLUT Available',
+            'Check if HilbertLUT class is loaded for Hilbert curve conversions',
+            () => {
+                const available = typeof HilbertLUT !== 'undefined';
+                const hasD2xy = available && typeof HilbertLUT.d2xy === 'function';
+                const hasXy2d = available && typeof HilbertLUT.xy2d === 'function';
+                return {
+                    pass: available && hasD2xy && hasXy2d,
+                    detail: available
+                        ? (hasD2xy && hasXy2d
+                            ? 'HilbertLUT available with d2xy and xy2d methods'
+                            : 'HilbertLUT exists but missing d2xy or xy2d methods')
+                        : 'HilbertLUT not defined - ensure hilbert_lut.js is loaded'
+                };
+            }
+        );
+
+        test(
+            'Hilbert Index 0 → Origin (0, 0)',
+            'Verify HilbertLUT.d2xy converts index 0 to coordinates (0, 0)',
+            () => {
+                if (typeof HilbertLUT === 'undefined' || !HilbertLUT.d2xy) {
+                    return {
+                        pass: false,
+                        detail: 'Cannot test - HilbertLUT.d2xy not available'
+                    };
+                }
+                try {
+                    const [x, y] = HilbertLUT.d2xy(256, 0);
+                    const isOrigin = x === 0 && y === 0;
+                    return {
+                        pass: isOrigin,
+                        detail: isOrigin
+                            ? 'Hilbert index 0 correctly maps to origin (0, 0)'
+                            : `Unexpected result: index 0 → (${x}, ${y})`
+                    };
+                } catch (err) {
+                    return {
+                        pass: false,
+                        detail: `HilbertLUT.d2xy threw error: ${err.message}`
+                    };
+                }
+            }
+        );
+
+        test(
+            'trigger_evolution Tool Registered',
+            'Check if trigger_evolution tool is registered (Phase B)',
+            () => {
+                if (typeof window.webmcpBridge === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - window.webmcpBridge is undefined' };
+                }
+                const status = window.webmcpBridge.getStatus();
+                const registered = status.tools.includes('trigger_evolution');
+                return {
+                    pass: registered,
+                    detail: registered
+                        ? 'trigger_evolution tool is registered'
+                        : `Tool not found. Registered tools: [${status.tools.join(', ')}]`
+                };
+            }
+        );
+
+        test(
+            'send_llm_prompt Tool Registered',
+            'Check if send_llm_prompt tool is registered (Phase B)',
+            () => {
+                if (typeof window.webmcpBridge === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - window.webmcpBridge is undefined' };
+                }
+                const status = window.webmcpBridge.getStatus();
+                const registered = status.tools.includes('send_llm_prompt');
+                return {
+                    pass: registered,
+                    detail: registered
+                        ? 'send_llm_prompt tool is registered'
+                        : `Tool not found. Registered tools: [${status.tools.join(', ')}]`
+                };
+            }
+        );
+
+        test(
+            'spawn_area_agent Tool Registered',
+            'Check if spawn_area_agent tool is registered (Phase B)',
+            () => {
+                if (typeof window.webmcpBridge === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - window.webmcpBridge is undefined' };
+                }
+                const status = window.webmcpBridge.getStatus();
+                const registered = status.tools.includes('spawn_area_agent');
+                return {
+                    pass: registered,
+                    detail: registered
+                        ? 'spawn_area_agent tool is registered'
+                        : `Tool not found. Registered tools: [${status.tools.join(', ')}]`
+                };
+            }
+        );
+
+        test(
+            'All 8 Tools Registered',
+            'Verify total tool count is 8 (4 Phase A + 4 Phase B)',
+            () => {
+                if (typeof window.webmcpBridge === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - window.webmcpBridge is undefined' };
+                }
+                const status = window.webmcpBridge.getStatus();
+                const expectedTools = [
+                    'navigate_map',
+                    'get_os_state',
+                    'execute_pixel_program',
+                    'load_rts_cartridge',
+                    'query_hilbert_address',
+                    'trigger_evolution',
+                    'send_llm_prompt',
+                    'spawn_area_agent'
+                ];
+                const allPresent = expectedTools.every(t => status.tools.includes(t));
+                const count = status.tools.length;
+                return {
+                    pass: allPresent && count === 8,
+                    detail: allPresent && count === 8
+                        ? 'All 8 tools registered (4 Phase A + 4 Phase B)'
+                        : `Expected 8 tools, got ${count}: [${status.tools.join(', ')}]`
+                };
+            }
+        );
+
+        // ─────────────────────────────────────────────────────────────
+        // Initialize
+        // ─────────────────────────────────────────────────────────────
+
+        function updateJSONOutput() {
+            const output = document.getElementById('json-output');
+            try {
+                if (typeof window.webmcpBridge === 'undefined') {
+                    output.innerHTML = '<span class="json-null">window.webmcpBridge is undefined</span>';
+                    return;
+                }
+                const status = window.webmcpBridge.getStatus();
+                output.innerHTML = highlightJSON(status);
+            } catch (error) {
+                output.innerHTML = `<span class="error">Error getting status: ${error.message}</span>`;
+            }
+        }
+
+        function showRequirementsNote() {
+            const note = document.getElementById('requirements-note');
+            if (!('modelContext' in navigator)) {
+                note.style.display = 'block';
+            }
+        }
+
+        // Wait for geometry-os-ready event or timeout after 2 seconds
+        let testsRun = false;
+
+        function runTestsOnce() {
+            if (testsRun) return;
+            testsRun = true;
+            updateJSONOutput();
+            runAllTests();
+        }
+
+        // Listen for geometry-os-ready event
+        window.addEventListener('geometry-os-ready', () => {
+            console.log('[Test Page] Received geometry-os-ready event');
+            runTestsOnce();
+        });
+
+        // Fallback timeout
+        setTimeout(() => {
+            if (!testsRun) {
+                console.log('[Test Page] Timeout - running tests without geometry-os-ready event');
+                showRequirementsNote();
+                runTestsOnce();
+            }
+        }, 2000);
+
+        // Initial UI render
+        updateUI();
+    </script>
+</body>
+</html>

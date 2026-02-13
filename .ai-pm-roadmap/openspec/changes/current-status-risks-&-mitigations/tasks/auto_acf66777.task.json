@@ -1,0 +1,10 @@
+{
+  "task_id": "task-4",
+  "type": "implement",
+  "source": "",
+  "intent": "Demo working end-to-end",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}

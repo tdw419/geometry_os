@@ -1,0 +1,27 @@
+{
+  "task_id": "1.1.2",
+  "type": "implement",
+  "source": "phase1-performance-optimization",
+  "intent": "Implement LRU cache with configurable size limits and statistics tracking",
+  "description": "Create infinite_map_cache.py with LRUCache class implementing get(), set(), evict() methods. Add configurable size limits and cache statistics tracking.",
+  "auto_generated": true,
+  "status": "pending",
+  "priority": "HIGH",
+  "assigned_agent": "fuse-cache-specialist",
+  "dependencies": ["1.1.1"],
+  "estimated_hours": 6,
+  "metadata": {
+    "feature": "1.1",
+    "feature_name": "Intelligent Caching System",
+    "phase": "Phase 1 - Performance Optimization",
+    "files_to_create": [
+      "systems/pixel_compiler/infinite_map_cache.py"
+    ],
+    "acceptance_criteria": [
+      "LRUCache class with get(), set(), evict() methods",
+      "Configurable max size in bytes",
+      "Cache statistics (hits, misses, evictions)",
+      "Thread-safe operations"
+    ]
+  }
+}

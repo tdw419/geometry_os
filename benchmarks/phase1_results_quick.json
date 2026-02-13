@@ -1,0 +1,79 @@
+{
+  "metadata": {
+    "grid_size": 512,
+    "system_info": {
+      "platform": "Linux-6.17.0-14-generic-x86_64-with-glibc2.39",
+      "python_version": "3.12.3",
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "hostname": "jericho",
+      "timestamp": "2026-02-11T14:11:48.489332"
+    },
+    "config": {
+      "grid_size": 512,
+      "iterations": 10,
+      "e2e_iterations": 10,
+      "warmup_iterations": 5
+    },
+    "total_benchmark_time": 0
+  },
+  "summary": {
+    "total": 3,
+    "passed": 2,
+    "failed": 1,
+    "total_memory_mb": 0.0,
+    "pass_rate": 66.66666666666666
+  },
+  "results": [
+    {
+      "name": "zero_copy_mapping",
+      "iterations": 10,
+      "total_time": 2.2140011424198747e-06,
+      "mean_time": 2.2140011424198747e-07,
+      "min_time": 1.6999911167658865e-07,
+      "max_time": 3.2199932320509106e-07,
+      "std_dev": 5.2797578849683934e-08,
+      "throughput": 4516709.503171317,
+      "memory_mb": 0.0,
+      "target_time": 0.0001,
+      "passed": true,
+      "metadata": {
+        "grid_size": 512,
+        "hot_zone_size": 64
+      }
+    },
+    {
+      "name": "memory_protection",
+      "iterations": 10,
+      "total_time": 1.362997863907367e-06,
+      "mean_time": 1.362997863907367e-07,
+      "min_time": 1.1500014807097614e-07,
+      "max_time": 1.9399885786697268e-07,
+      "std_dev": 2.961249287473487e-08,
+      "throughput": 7336768.651516849,
+      "memory_mb": 0.0,
+      "target_time": 1e-06,
+      "passed": true,
+      "metadata": {
+        "grid_size": 512
+      }
+    },
+    {
+      "name": "texture_cache_hit",
+      "iterations": 10,
+      "total_time": 3.5389966797083616e-06,
+      "mean_time": 3.5389966797083615e-07,
+      "min_time": 2.5300141714978963e-07,
+      "max_time": 4.889989213552326e-07,
+      "std_dev": 7.580247289122193e-08,
+      "throughput": 2825659.6162797394,
+      "memory_mb": 0.0,
+      "target_time": 1e-07,
+      "passed": false,
+      "metadata": {
+        "cache_size_mb": 256,
+        "entries": 1024
+      }
+    }
+  ]
+}
