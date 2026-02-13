@@ -42,7 +42,8 @@ class PixelNativeGUI:
 
     def __init__(self, width: int = 1920, height: int = 1920,
                  mode: str = "virtual", vlm_model: str = "mock",
-                 program: Optional[str] = None):
+                 program: Optional[str] = None,
+                 use_gpu: bool = True):
         """
         Initialize pixel-native GUI.
 
@@ -52,10 +53,12 @@ class PixelNativeGUI:
             mode: "virtual" or "physical"
             vlm_model: Vision model name ("mock", "llava:7b", etc.)
             program: Optional PixelRTS program to load
+            use_gpu: Whether to use GPU acceleration (default: True)
         """
         self.width = width
         self.height = height
         self.mode = mode
+        self.use_gpu = use_gpu
 
         # Create configuration
         self._config = RuntimeConfig(
@@ -67,7 +70,7 @@ class PixelNativeGUI:
 
         # Initialize components
         self._framebuffer = VirtualFramebuffer(width, height)
-        self._runtime = PixelNativeRuntime(self._config)
+        self._runtime = PixelNativeRuntime(self._config, use_gpu=use_gpu)
         self._injector = InputInjector(mode="gpu", bounds=(width, height))
         self._vision = AIVisionLayer(model=vlm_model)
         self._feedback = FeedbackLoop(self._framebuffer)

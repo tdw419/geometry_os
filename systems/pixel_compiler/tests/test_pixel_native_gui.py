@@ -95,3 +95,67 @@ def test_import_from_package():
 
     gui = PixelNativeGUI(width=100, height=100)
     assert gui is not None
+
+
+class TestPixelNativeGUIGPU:
+    def test_gui_with_gpu_context(self):
+        """Test GUI with GPU context enabled."""
+        from systems.pixel_compiler.pixel_native_gui import PixelNativeGUI
+
+        gui = PixelNativeGUI(width=100, height=100, use_gpu=True)
+
+        # Should have GPU context
+        assert gui._runtime._gpu_ctx is not None
+
+    def test_gui_forces_mock_mode(self):
+        """Test GUI can force mock mode."""
+        from systems.pixel_compiler.pixel_native_gui import PixelNativeGUI
+
+        gui = PixelNativeGUI(width=100, height=100, use_gpu=False)
+
+        assert gui._runtime.using_gpu is False
+
+    def test_gpu_performance_target(self):
+        """Test that GPU mode meets performance targets."""
+        from systems.pixel_compiler.pixel_native_gui import PixelNativeGUI
+        import time
+
+        gui = PixelNativeGUI(width=200, height=200, use_gpu=True)
+
+        # Draw something
+        gui._framebuffer.fill_rect(50, 50, 100, 100, (255, 0, 0, 255))
+
+        # Measure perception time
+        start = time.time()
+        state = gui.perceive()
+        elapsed_ms = (time.time() - start) * 1000
+
+        # Target: < 100ms for perception (generous for mock mode)
+        assert elapsed_ms < 100, f"Perception took {elapsed_ms}ms"
+
+    def test_end_to_end_gpu_action(self):
+        """Test full action loop with GPU."""
+        from systems.pixel_compiler.pixel_native_gui import PixelNativeGUI
+
+        gui = PixelNativeGUI(width=200, height=200, use_gpu=True)
+
+        # Draw a button
+        gui._framebuffer.fill_rect(50, 50, 80, 30, (200, 100, 100, 255))
+
+        # Perceive
+        state = gui.perceive()
+        assert len(state.widgets) > 0
+
+        # Find widget
+        coords = gui.find_widget("button")
+        assert coords is not None
+
+        # Click
+        x, y = coords
+        gui.click(x, y)
+
+        # Execute
+        gui.execute_frame()
+
+        # Verify
+        assert gui._runtime.frame_count > 0
