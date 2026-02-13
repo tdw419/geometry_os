@@ -60,8 +60,69 @@ class AgentStatus(Enum):
 
 
 @dataclass
+class AgentConnection:
+    """Connection information for a registered agent"""
+    agent_id: str
+    connection: Any  # WebSocket connection or AsyncMock
+    agent_type: str
+    region: Optional[Dict[str, int]] = None  # {x, y, width, height}
+    capabilities: List[str] = None
+    status: AgentStatus = AgentStatus.ONLINE
+    last_heartbeat: float = None
+
+    def __post_init__(self):
+        if self.capabilities is None:
+            self.capabilities = []
+        if self.last_heartbeat is None:
+            self.last_heartbeat = time.time()
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "agent_id": self.agent_id,
+            "agent_type": self.agent_type,
+            "region": self.region,
+            "capabilities": self.capabilities,
+            "status": self.status.value if isinstance(self.status, AgentStatus) else self.status,
+            "last_heartbeat": self.last_heartbeat
+        }
+
+
+@dataclass
+class Subscription:
+    """Event subscription for an agent"""
+    agent_id: str
+    event_type: str
+    filter: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class A2AMessage:
+    """A2A protocol message"""
+    message_id: str
+    timestamp: float
+    from_agent: str
+    to_agent: Optional[str]
+    message_type: str
+    priority: int = 0
+    content: Dict[str, Any] = None
+    metadata: Dict[str, Any] = None
+    correlation_id: Optional[str] = None
+    expires_at: Optional[float] = None
+
+    def __post_init__(self):
+        if self.content is None:
+            self.content = {}
+        if self.metadata is None:
+            self.metadata = {}
+        if self.message_id is None:
+            self.message_id = str(uuid.uuid4())
+        if self.timestamp is None:
+            self.timestamp = time.time()
+
+
+@dataclass
 class AgentInfo:
-    """Information about a registered agent"""
+    """Information about a registered agent (legacy compatibility)"""
     agent_id: str
     agent_type: str
     capabilities: List[str]
@@ -69,7 +130,7 @@ class AgentInfo:
     status: AgentStatus
     last_heartbeat: float
     topics: Set[str]
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "agent_id": self.agent_id,
@@ -104,33 +165,247 @@ class Barrier:
 class A2ARouter:
     """
     Agent-to-Agent message routing hub
-    
+
     Manages agent connections, message routing, and coordination primitives.
     """
-    
+
     def __init__(self, host: str = "localhost", port: int = 8766):
         self.host = host
         self.port = port
-        
-        # Agent registry
+
+        # Agent registry (new interface)
+        self.peer_registry: Dict[str, AgentConnection] = {}
+        self.subscriptions: Dict[str, List[Subscription]] = defaultdict(list)
+
+        # Legacy agent registry (for WebSocket compatibility)
         self.agents: Dict[str, AgentInfo] = {}
         self.connections: Dict[str, WebSocketServerProtocol] = {}
-        
+
         # Topic subscriptions: topic -> set of agent_ids
         self.topics: Dict[str, Set[str]] = defaultdict(set)
-        
+
         # Coordination primitives
         self.locks: Dict[str, Lock] = {}
         self.barriers: Dict[str, Barrier] = {}
-        
+
         # Heartbeat timeout (seconds)
         self.heartbeat_timeout = 30.0
-        
+
         # Server reference
         self.server = None
         self.running = False
-        
+
         logger.info(f"A2A Router initialized on {host}:{port}")
+
+    # === New Interface Methods (TDD) ===
+
+    async def register_agent(self, agent_id: str, connection: Any, metadata: Dict[str, Any]) -> None:
+        """
+        Register an agent with the router.
+
+        Args:
+            agent_id: Unique agent identifier
+            connection: Connection object (WebSocket or AsyncMock)
+            metadata: Agent metadata including agent_type, region, capabilities
+        """
+        agent_conn = AgentConnection(
+            agent_id=agent_id,
+            connection=connection,
+            agent_type=metadata.get("agent_type", "generic"),
+            region=metadata.get("region"),
+            capabilities=metadata.get("capabilities", []),
+            status=AgentStatus.ONLINE,
+            last_heartbeat=time.time()
+        )
+
+        self.peer_registry[agent_id] = agent_conn
+
+        # Notify subscribers of new agent registration
+        await self._notify_event("agent_registered", {
+            "agent_id": agent_id,
+            "agent_type": agent_conn.agent_type,
+            "region": agent_conn.region
+        })
+
+        logger.info(f"Agent registered: {agent_id} (type={agent_conn.agent_type})")
+
+    async def unregister_agent(self, agent_id: str) -> None:
+        """
+        Unregister an agent from the router.
+
+        Args:
+            agent_id: Agent identifier to remove
+        """
+        if agent_id in self.peer_registry:
+            del self.peer_registry[agent_id]
+
+            # Notify subscribers of agent unregistration
+            await self._notify_event("agent_unregistered", {
+                "agent_id": agent_id
+            })
+
+            logger.info(f"Agent unregistered: {agent_id}")
+
+    async def discover_peers(
+        self,
+        agent_type: Optional[str] = None,
+        region_overlaps: Optional[Dict[str, int]] = None,
+        capability: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Discover peers matching the given criteria.
+
+        Args:
+            agent_type: Filter by agent type
+            region_overlaps: Filter by region overlap
+            capability: Filter by capability
+
+        Returns:
+            List of matching agent metadata dictionaries
+        """
+        matching = []
+
+        for agent_id, agent_conn in self.peer_registry.items():
+            if agent_conn.status == AgentStatus.OFFLINE:
+                continue
+
+            # Filter by type
+            if agent_type and agent_conn.agent_type != agent_type:
+                continue
+
+            # Filter by capability
+            if capability and capability not in agent_conn.capabilities:
+                continue
+
+            # Filter by region overlap
+            if region_overlaps and agent_conn.region:
+                if not self._regions_overlap(region_overlaps, agent_conn.region):
+                    continue
+
+            matching.append(agent_conn.to_dict())
+
+        return matching
+
+    async def route_message(self, from_id: str, to_id: str, message: A2AMessage) -> bool:
+        """
+        Route a direct message from one agent to another.
+
+        Args:
+            from_id: Sender agent ID
+            to_id: Recipient agent ID
+            message: A2AMessage to route
+
+        Returns:
+            True if delivered, False otherwise
+        """
+        if to_id not in self.peer_registry:
+            return False
+
+        target = self.peer_registry[to_id]
+        if target.status == AgentStatus.OFFLINE:
+            return False
+
+        # Send via connection if available
+        if target.connection:
+            try:
+                if hasattr(target.connection, 'send'):
+                    await target.connection.send(json.dumps({
+                        "type": "direct",
+                        "from_agent": from_id,
+                        "message": message.content,
+                        "message_type": message.message_type,
+                        "correlation_id": message.correlation_id,
+                        "timestamp": message.timestamp
+                    }))
+            except Exception as e:
+                logger.error(f"Failed to route message to {to_id}: {e}")
+                return False
+
+        return True
+
+    async def broadcast(
+        self,
+        from_id: str,
+        agent_type: Optional[str] = None,
+        message: Optional[A2AMessage] = None,
+        exclude_self: bool = True
+    ) -> int:
+        """
+        Broadcast a message to agents of a specific type.
+
+        Args:
+            from_id: Sender agent ID
+            agent_type: Target agent type (None = all types)
+            message: A2AMessage to broadcast
+            exclude_self: Whether to exclude the sender
+
+        Returns:
+            Number of recipients the message was delivered to
+        """
+        delivered = 0
+
+        for agent_id, agent_conn in self.peer_registry.items():
+            if exclude_self and agent_id == from_id:
+                continue
+
+            if agent_type and agent_conn.agent_type != agent_type:
+                continue
+
+            if agent_conn.status == AgentStatus.OFFLINE:
+                continue
+
+            if agent_conn.connection and hasattr(agent_conn.connection, 'send'):
+                try:
+                    await agent_conn.connection.send(json.dumps({
+                        "type": "broadcast",
+                        "from_agent": from_id,
+                        "message": message.content if message else {},
+                        "message_type": message.message_type if message else "broadcast",
+                        "timestamp": time.time()
+                    }))
+                    delivered += 1
+                except Exception:
+                    pass
+
+        return delivered
+
+    async def subscribe(self, agent_id: str, event_type: str, filter: Optional[Dict[str, Any]] = None) -> None:
+        """
+        Subscribe an agent to events of a specific type.
+
+        Args:
+            agent_id: Agent to subscribe
+            event_type: Type of events to subscribe to
+            filter: Optional filter criteria
+        """
+        subscription = Subscription(
+            agent_id=agent_id,
+            event_type=event_type,
+            filter=filter
+        )
+        self.subscriptions[event_type].append(subscription)
+        logger.info(f"Agent {agent_id} subscribed to {event_type} events")
+
+    async def _notify_event(self, event_type: str, data: Dict[str, Any]) -> None:
+        """
+        Notify all subscribers of an event.
+
+        Args:
+            event_type: Type of event
+            data: Event data
+        """
+        for subscription in self.subscriptions[event_type]:
+            agent_conn = self.peer_registry.get(subscription.agent_id)
+            if agent_conn and agent_conn.connection and hasattr(agent_conn.connection, 'send'):
+                try:
+                    await agent_conn.connection.send(json.dumps({
+                        "type": "event",
+                        "event_type": event_type,
+                        "data": data,
+                        "timestamp": time.time()
+                    }))
+                except Exception:
+                    pass
     
     async def start(self):
         """Start the A2A router WebSocket server"""
