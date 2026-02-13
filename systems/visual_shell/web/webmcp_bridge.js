@@ -38,11 +38,17 @@
  *   - Agents can publish/subscribe to topics
  *   - Agents can send direct messages
  *
+ * Phase E Features:
+ *   - Health monitoring for WebSocket backends
+ *   - Connection status tracking (connected/disconnected/connecting)
+ *   - Health status in get_os_state response
+ *   - Health event notifications (onHealthChange callback)
+ *
  * Requirements: Chrome 146+ with WebMCP support
  * Fallback: Logs warning, app runs normally without WebMCP
  *
- * @version 1.5.0
- * @phase Phase D: A2A Protocol for Agent Coordination
+ * @version 1.6.0
+ * @phase Phase E: Health Monitoring
  * @date 2026-02-13
  */
 
@@ -81,6 +87,256 @@ class WebMCPBridge {
     /** @type {Map<string, A2AMessageRouter>} */
     #spawnedAgents = new Map();
 
+    // ─────────────────────────────────────────────────────────────
+    // Health Monitoring (Phase E)
+    // ─────────────────────────────────────────────────────────────
+
+    /** @type {Object} */
+    #healthStatus = {
+        webmcp: 'unknown',
+        evolutionSocket: 'disconnected',
+        agentSocket: 'disconnected',
+        lastCheck: 0
+    };
+
+    /** @type {number|null} */
+    #healthCheckInterval = null;
+
+    /** @type {Set<Function>} */
+    #healthCallbacks = new Set();
+
+    // ─────────────────────────────────────────────────────────────
+    // Circuit Breaker (Phase E)
+    // ─────────────────────────────────────────────────────────────
+
+    /** @type {string} Circuit breaker state: CLOSED | OPEN | HALF_OPEN */
+    #circuitBreakerState = 'CLOSED';
+
+    /** @type {number} Consecutive failure count */
+    #circuitBreakerFailures = 0;
+
+    /** @type {number} Timestamp of last failure */
+    #circuitBreakerLastFailure = 0;
+
+    /** @type {number} Timestamp when circuit opened */
+    #circuitBreakerOpenedAt = 0;
+
+    /** @type {number} Number of successful calls in HALF_OPEN state */
+    #circuitBreakerHalfOpenCalls = 0;
+
+    /** @type {Object} Circuit breaker metrics */
+    #circuitBreakerMetrics = {
+        stateTransitions: [],
+        totalFailures: 0,
+        totalSuccesses: 0,
+        openCount: 0,
+        lastOpenDuration: 0,
+        tripsCount: 0
+    };
+
+    /** @type {Object} Circuit breaker configuration */
+    #circuitBreakerConfig = {
+        failureThreshold: 5,          // Trip after N consecutive failures
+        resetTimeout: 30000,           // 30s before trying HALF_OPEN
+        halfOpenMaxCalls: 3,          // Max calls allowed in HALF_OPEN
+        successThreshold: 2            // Successes needed to close circuit
+    };
+
+    // ─────────────────────────────────────────────────────────────
+    // Retry with Exponential Backoff (Phase E)
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Retry configuration for Phase E: Resilience
+     * Exponential backoff with jitter prevents thundering herd
+     * @type {Object}
+     */
+    #retryConfig = {
+        maxRetries: 3,
+        baseDelay: 100,      // ms - starting delay
+        maxDelay: 30000,     // ms - 30 seconds cap
+        jitterFactor: 0.2    // 20% random jitter
+    };
+
+    /**
+     * Per-tool retry overrides for specific operations
+     * @type {Map<string, Object>}
+     */
+    #toolRetryConfig = new Map([
+        ['connectEvolutionSocket', { maxRetries: 5, baseDelay: 200 }],
+        ['connectAgentSocket', { maxRetries: 5, baseDelay: 200 }],
+        ['sendLLMPrompt', { maxRetries: 2, baseDelay: 500 }],
+        ['sendA2AMessage', { maxRetries: 4, baseDelay: 150 }],
+        ['fetch', { maxRetries: 3, baseDelay: 100 }]
+    ]);
+
+    /**
+     * Retry metrics for monitoring
+     * @type {Object}
+     */
+    #retryMetrics = {
+        totalRetries: 0,
+        successfulRetries: 0,
+        failedRetries: 0,
+        byOperation: new Map()
+    };
+
+    // ─────────────────────────────────────────────────────────────
+    // Retry Helper Methods
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Execute an async operation with exponential backoff retry
+     * @param {Function} operation - Async function to execute
+     * @param {string} operationName - For logging and metrics
+     * @param {Object} config - Override retry config
+     * @returns {Promise<*>} Result of operation
+     * @throws {Error} Last error if all retries exhausted
+     */
+    async #withRetry(operation, operationName, config = {}) {
+        const mergedConfig = { ...this.#retryConfig, ...config };
+        const {
+            maxRetries,
+            baseDelay,
+            maxDelay,
+            jitterFactor
+        } = mergedConfig;
+
+        let lastError;
+        let attempt = 0;
+
+        // Initialize operation metrics
+        if (!this.#retryMetrics.byOperation.has(operationName)) {
+            this.#retryMetrics.byOperation.set(operationName, {
+                attempts: 0,
+                successes: 0,
+                failures: 0,
+                totalDelayMs: 0
+            });
+        }
+        const metrics = this.#retryMetrics.byOperation.get(operationName);
+
+        for (attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                const result = await operation();
+
+                // Update metrics
+                metrics.attempts++;
+                metrics.successes++;
+
+                // Log retry recovery
+                if (attempt > 0) {
+                    this.#retryMetrics.totalRetries++;
+                    this.#retryMetrics.successfulRetries++;
+                    console.log(
+                        `🔌 WebMCP: ${operationName} succeeded on attempt ${attempt + 1}`
+                    );
+                }
+
+                return result;
+
+            } catch (err) {
+                lastError = err;
+                metrics.attempts++;
+
+                // No more retries
+                if (attempt >= maxRetries) {
+                    metrics.failures++;
+                    this.#retryMetrics.failedRetries++;
+                    break;
+                }
+
+                // Calculate exponential backoff with jitter
+                const exponentialDelay = baseDelay * Math.pow(2, attempt);
+                const cappedDelay = Math.min(exponentialDelay, maxDelay);
+                const jitter = cappedDelay * jitterFactor * Math.random();
+                const totalDelay = cappedDelay + jitter;
+                metrics.totalDelayMs += totalDelay;
+
+                console.warn(
+                    `🔌 WebMCP: ${operationName} failed (attempt ${attempt + 1}/${maxRetries + 1}), ` +
+                    `retrying in ${(totalDelay / 1000).toFixed(2)}s: ${err.message}`
+                );
+
+                await this.#sleep(totalDelay);
+            }
+        }
+
+        // All retries exhausted
+        console.error(
+            `🔌 WebMCP: ${operationName} failed after ${attempt} attempts`
+        );
+        throw lastError;
+    }
+
+    /**
+     * Promise-based sleep/delay utility
+     * @param {number} ms - Milliseconds to sleep
+     * @returns {Promise<void>}
+     */
+    #sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
+     * Get retry config for a specific operation name
+     * @param {string} operationName - Operation identifier
+     * @returns {Object} Retry config for this operation
+     */
+    #getRetryConfig(operationName) {
+        return this.#toolRetryConfig.get(operationName) || {};
+    }
+
+    /**
+     * Wrap a WebSocket connection with retry logic
+     * @param {Function} connectFn - Function that returns a Promise<WebSocket>
+     * @param {string} socketName - For logging and config lookup
+     * @returns {Promise<WebSocket>}
+     */
+    async #retryWebSocketConnect(connectFn, socketName) {
+        const configKey = `connect${socketName}`;
+        return this.#withRetry(
+            connectFn,
+            `connect${socketName}`,
+            this.#getRetryConfig(configKey)
+        );
+    }
+
+    /**
+     * Wrap an HTTP fetch with retry logic
+     * @param {string} url - URL to fetch
+     * @param {Object} options - Fetch options
+     * @param {Object} retryConfig - Optional retry override
+     * @returns {Promise<Response>}
+     */
+    async #retryFetch(url, options = {}, retryConfig = {}) {
+        return this.#withRetry(
+            () => fetch(url, options),
+            `fetch(${url})`,
+            { ...this.#getRetryConfig('fetch'), ...retryConfig }
+        );
+    }
+
+    /**
+     * Get retry metrics for health reporting
+     * @returns {Object} Retry metrics snapshot
+     */
+    #getRetryMetrics() {
+        const byOp = {};
+        for (const [name, metrics] of this.#retryMetrics.byOperation) {
+            byOp[name] = { ...metrics };
+        }
+        return {
+            totalRetries: this.#retryMetrics.totalRetries,
+            successfulRetries: this.#retryMetrics.successfulRetries,
+            failedRetries: this.#retryMetrics.failedRetries,
+            successRate: this.#retryMetrics.totalRetries > 0
+                ? (this.#retryMetrics.successfulRetries / this.#retryMetrics.totalRetries * 100).toFixed(2) + '%'
+                : 'N/A',
+            byOperation: byOp
+        };
+    }
+
     constructor() {
         // Feature detection — is WebMCP available?
         this.#webmcpAvailable = typeof navigator !== 'undefined'
@@ -108,6 +364,107 @@ class WebMCPBridge {
         if (window.geometryOSApp && !this.#registered) {
             this.#app = window.geometryOSApp;
             this.#register();
+        }
+
+        // Start health monitoring (runs every 10s)
+        this.#startHealthMonitoring();
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Health Monitoring (Phase E)
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Start periodic health monitoring
+     * @private
+     */
+    #startHealthMonitoring() {
+        if (typeof window === 'undefined') return;
+
+        this.#healthCheckInterval = setInterval(() => {
+            this.#performHealthCheck();
+        }, 10000);  // Every 10 seconds
+
+        // Initial check
+        this.#performHealthCheck();
+
+        console.log('🏥 WebMCP: Health monitoring started');
+    }
+
+    /**
+     * Perform health check on all components
+     * @private
+     */
+    #performHealthCheck() {
+        const previousStatus = { ...this.#healthStatus };
+
+        // Check WebMCP availability
+        this.#healthStatus.webmcp = this.#webmcpAvailable ? 'healthy' : 'unavailable';
+
+        // Check evolution socket connection
+        this.#healthStatus.evolutionSocket = this.#evolutionSocket?.readyState === WebSocket.OPEN
+            ? 'connected'
+            : this.#evolutionSocket?.readyState === WebSocket.CONNECTING
+                ? 'connecting'
+                : 'disconnected';
+
+        // Check agent socket connection
+        this.#healthStatus.agentSocket = this.#agentSocket?.readyState === WebSocket.OPEN
+            ? 'connected'
+            : this.#agentSocket?.readyState === WebSocket.CONNECTING
+                ? 'connecting'
+                : 'disconnected';
+
+        this.#healthStatus.lastCheck = Date.now();
+
+        // Notify listeners if status changed
+        if (JSON.stringify(previousStatus) !== JSON.stringify(this.#healthStatus)) {
+            this.#notifyHealthChange(this.#healthStatus);
+        }
+    }
+
+    /**
+     * Notify health status change listeners
+     * @param {Object} status - Current health status
+     * @private
+     */
+    #notifyHealthChange(status) {
+        this.#healthCallbacks.forEach(cb => {
+            try {
+                cb(status);
+            } catch (err) {
+                console.error('🏥 WebMCP: Health callback error:', err);
+            }
+        });
+    }
+
+    /**
+     * Subscribe to health status changes
+     * @param {Function} callback - Function to call on status change
+     * @returns {Function} Unsubscribe function
+     */
+    onHealthChange(callback) {
+        this.#healthCallbacks.add(callback);
+        return () => this.#healthCallbacks.delete(callback);
+    }
+
+    /**
+     * Get current health status
+     * @returns {Object} Health status snapshot
+     */
+    getHealthStatus() {
+        return { ...this.#healthStatus };
+    }
+
+    /**
+     * Stop health monitoring (for cleanup)
+     * @private
+     */
+    #stopHealthMonitoring() {
+        if (this.#healthCheckInterval) {
+            clearInterval(this.#healthCheckInterval);
+            this.#healthCheckInterval = null;
+            console.log('🏥 WebMCP: Health monitoring stopped');
         }
     }
 
@@ -269,8 +626,9 @@ class WebMCPBridge {
             description:
                 'Get a comprehensive read-only snapshot of the Geometry OS state. ' +
                 'Returns camera position, active windows, loaded tiles, subsystem ' +
-                'status, performance metrics, and evolution state. Use this to ' +
-                'understand the current state before taking actions.',
+                'status, performance metrics, evolution state, and health monitoring ' +
+                'information (WebMCP, WebSocket connections). Use this to understand ' +
+                'the current state before taking actions.',
             inputSchema: {
                 type: 'object',
                 properties: {
@@ -284,6 +642,7 @@ class WebMCPBridge {
                                 'subsystems',
                                 'performance',
                                 'evolution',
+                                'health',
                                 'all'
                             ]
                         },
@@ -304,8 +663,8 @@ class WebMCPBridge {
         this.#trackCall('get_os_state');
 
         const sections = include && include.length > 0
-            ? (include.includes('all') ? ['camera', 'windows', 'subsystems', 'performance', 'evolution'] : include)
-            : ['camera', 'windows', 'subsystems', 'performance', 'evolution'];
+            ? (include.includes('all') ? ['camera', 'windows', 'subsystems', 'performance', 'evolution', 'health'] : include)
+            : ['camera', 'windows', 'subsystems', 'performance', 'evolution', 'health'];
 
         const state = {
             os: 'Geometry OS',
@@ -388,6 +747,11 @@ class WebMCPBridge {
                 nurserySprite: !!this.#app.nurserySprite,
                 engineAvailable: typeof VisualEvolutionEngine !== 'undefined'
             };
+        }
+
+        // Health status (Phase E)
+        if (sections.includes('health')) {
+            state.health = this.getHealthStatus();
         }
 
         return state;
@@ -867,10 +1231,34 @@ class WebMCPBridge {
     // ─────────────────────────────────────────────────────────────
 
     /**
-     * Connect to the evolution WebSocket backend
+     * Connect to the evolution WebSocket backend (with circuit breaker)
      * @returns {Promise<WebSocket>}
      */
-    #connectEvolutionSocket() {
+    async #connectEvolutionSocket() {
+        // Check if already connected first
+        if (this.#evolutionSocket?.readyState === WebSocket.OPEN) {
+            return this.#evolutionSocket;
+        }
+
+        // Wrap connection with circuit breaker
+        return this.#circuitBreakerExecute(
+            async () => {
+                // Use retry wrapper for connection
+                return this.#retryWebSocketConnect(
+                    () => this.#connectEvolutionSocketInternal(),
+                    'EvolutionSocket'
+                );
+            },
+            'EvolutionSocket'
+        );
+    }
+
+    /**
+     * Internal evolution socket connection without retry
+     * @private
+     * @returns {Promise<WebSocket>}
+     */
+    #connectEvolutionSocketInternal() {
         return new Promise((resolve, reject) => {
             if (this.#evolutionSocket?.readyState === WebSocket.OPEN) {
                 resolve(this.#evolutionSocket);
@@ -891,6 +1279,7 @@ class WebMCPBridge {
             // 5 second timeout
             setTimeout(() => {
                 if (ws.readyState !== WebSocket.OPEN) {
+                    ws.close();
                     reject(new Error('Evolution backend connection timeout'));
                 }
             }, 5000);
@@ -898,10 +1287,34 @@ class WebMCPBridge {
     }
 
     /**
-     * Connect to the agent WebSocket backend
+     * Connect to the agent WebSocket backend (with circuit breaker)
      * @returns {Promise<WebSocket>}
      */
-    #connectAgentSocket() {
+    async #connectAgentSocket() {
+        // Check if already connected first
+        if (this.#agentSocket?.readyState === WebSocket.OPEN) {
+            return this.#agentSocket;
+        }
+
+        // Wrap connection with circuit breaker
+        return this.#circuitBreakerExecute(
+            async () => {
+                // Use retry wrapper for connection
+                return this.#retryWebSocketConnect(
+                    () => this.#connectAgentSocketInternal(),
+                    'AgentSocket'
+                );
+            },
+            'AgentSocket'
+        );
+    }
+
+    /**
+     * Internal agent socket connection without retry
+     * @private
+     * @returns {Promise<WebSocket>}
+     */
+    #connectAgentSocketInternal() {
         return new Promise((resolve, reject) => {
             if (this.#agentSocket?.readyState === WebSocket.OPEN) {
                 resolve(this.#agentSocket);
@@ -922,6 +1335,7 @@ class WebMCPBridge {
             // 5 second timeout
             setTimeout(() => {
                 if (ws.readyState !== WebSocket.OPEN) {
+                    ws.close();
                     reject(new Error('Agent backend connection timeout'));
                 }
             }, 5000);
@@ -1186,19 +1600,28 @@ class WebMCPBridge {
         const startTime = Date.now();
 
         try {
-            // POST to LM Studio OpenAI-compatible endpoint
-            const response = await fetch('http://localhost:1234/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
+            // POST to LM Studio OpenAI-compatible endpoint (with circuit breaker)
+            const response = await this.#circuitBreakerExecute(
+                async () => {
+                    return this.#retryFetch(
+                        'http://localhost:1234/v1/chat/completions',
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                model: model,
+                                messages: messages,
+                                temperature: temperature,
+                                max_tokens: max_tokens
+                            })
+                        },
+                        this.#getRetryConfig('sendLLMPrompt')
+                    );
                 },
-                body: JSON.stringify({
-                    model: model,
-                    messages: messages,
-                    temperature: temperature,
-                    max_tokens: max_tokens
-                })
-            });
+                'sendLLMPrompt'
+            );
 
             const latencyMs = Date.now() - startTime;
 
@@ -2287,6 +2710,212 @@ class WebMCPBridge {
         this.#toolCallCounts[toolName] = (this.#toolCallCounts[toolName] || 0) + 1;
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // Circuit Breaker (Phase E)
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Record a successful operation
+     * @private
+     */
+    #circuitBreakerRecordSuccess() {
+        this.#circuitBreakerMetrics.totalSuccesses++;
+
+        switch (this.#circuitBreakerState) {
+            case 'CLOSED':
+                // Reset failure count on success in CLOSED state
+                this.#circuitBreakerFailures = 0;
+                break;
+
+            case 'HALF_OPEN':
+                // Track successful calls in HALF_OPEN state
+                this.#circuitBreakerHalfOpenCalls++;
+
+                // If we've had enough successes, close the circuit
+                if (this.#circuitBreakerHalfOpenCalls >= this.#circuitBreakerConfig.successThreshold) {
+                    this.#circuitBreakerTransition('CLOSED');
+                    this.#circuitBreakerFailures = 0;
+                    this.#circuitBreakerHalfOpenCalls = 0;
+                    console.log('🔌 WebMCP: Circuit breaker CLOSED after successful recovery');
+                }
+                break;
+
+            case 'OPEN':
+                // Should not happen - requests should be blocked in OPEN state
+                console.warn('🔌 WebMCP: Success recorded while circuit is OPEN');
+                break;
+        }
+    }
+
+    /**
+     * Record a failed operation
+     * @private
+     * @param {Error} error - The error that caused the failure
+     */
+    #circuitBreakerRecordFailure(error) {
+        this.#circuitBreakerMetrics.totalFailures++;
+        this.#circuitBreakerLastFailure = Date.now();
+
+        switch (this.#circuitBreakerState) {
+            case 'CLOSED':
+            case 'HALF_OPEN':
+                this.#circuitBreakerFailures++;
+
+                // Check if we should trip the circuit
+                const threshold = this.#circuitBreakerConfig.failureThreshold;
+                if (this.#circuitBreakerFailures >= threshold) {
+                    this.#circuitBreakerTransition('OPEN');
+                    console.error(`🔌 WebMCP: Circuit breaker OPEN after ${this.#circuitBreakerFailures} consecutive failures:`, error.message);
+                }
+                break;
+
+            case 'OPEN':
+                // Circuit already open - just log
+                console.warn('🔌 WebMCP: Failure recorded while circuit is OPEN:', error.message);
+                break;
+        }
+    }
+
+    /**
+     * Check if a request should be allowed based on circuit state
+     * @private
+     * @returns {Object} { allowed: boolean, reason?: string }
+     */
+    #circuitBreakerAllowRequest() {
+        const now = Date.now();
+
+        switch (this.#circuitBreakerState) {
+            case 'CLOSED':
+                return { allowed: true };
+
+            case 'OPEN':
+                // Check if reset timeout has elapsed
+                const timeSinceOpen = now - this.#circuitBreakerOpenedAt;
+                if (timeSinceOpen >= this.#circuitBreakerConfig.resetTimeout) {
+                    // Transition to HALF_OPEN to test recovery
+                    this.#circuitBreakerTransition('HALF_OPEN');
+                    this.#circuitBreakerHalfOpenCalls = 0;
+                    console.log('🔌 WebMCP: Circuit breaker HALF_OPEN - testing recovery');
+                    return { allowed: true };
+                }
+                // Calculate remaining cooldown
+                const remainingCooldown = Math.ceil((this.#circuitBreakerConfig.resetTimeout - timeSinceOpen) / 1000);
+                return {
+                    allowed: false,
+                    reason: `Circuit is OPEN. Retry in ${remainingCooldown}s`
+                };
+
+            case 'HALF_OPEN':
+                // Allow limited number of calls in HALF_OPEN state
+                if (this.#circuitBreakerHalfOpenCalls >= this.#circuitBreakerConfig.halfOpenMaxCalls) {
+                    // Too many calls in HALF_OPEN - trip back to OPEN
+                    this.#circuitBreakerTransition('OPEN');
+                    return {
+                        allowed: false,
+                        reason: 'Circuit is OPEN. HALF_OPEN test exceeded max calls'
+                    };
+                }
+                return { allowed: true };
+
+            default:
+                return { allowed: true };
+        }
+    }
+
+    /**
+     * Transition circuit to a new state
+     * @private
+     * @param {string} newState - The new state (CLOSED | OPEN | HALF_OPEN)
+     */
+    #circuitBreakerTransition(newState) {
+        const oldState = this.#circuitBreakerState;
+        const now = Date.now();
+
+        // Track state transition
+        this.#circuitBreakerMetrics.stateTransitions.push({
+            from: oldState,
+            to: newState,
+            timestamp: now
+        });
+
+        // Keep only last 100 transitions
+        if (this.#circuitBreakerMetrics.stateTransitions.length > 100) {
+            this.#circuitBreakerMetrics.stateTransitions.shift();
+        }
+
+        // Update metrics
+        if (newState === 'OPEN') {
+            this.#circuitBreakerOpenedAt = now;
+            this.#circuitBreakerMetrics.openCount++;
+            this.#circuitBreakerMetrics.tripsCount++;
+        } else if (oldState === 'OPEN' && newState === 'HALF_OPEN') {
+            // Calculate how long circuit was open
+            this.#circuitBreakerMetrics.lastOpenDuration = now - this.#circuitBreakerOpenedAt;
+        }
+
+        this.#circuitBreakerState = newState;
+    }
+
+    /**
+     * Get current circuit breaker state
+     * @returns {Object} Circuit breaker status
+     */
+    #circuitBreakerGetState() {
+        const now = Date.now();
+        let timeInState = 0;
+
+        if (this.#circuitBreakerState === 'OPEN' && this.#circuitBreakerOpenedAt > 0) {
+            timeInState = now - this.#circuitBreakerOpenedAt;
+        }
+
+        return {
+            state: this.#circuitBreakerState,
+            failures: this.#circuitBreakerFailures,
+            lastFailure: this.#circuitBreakerLastFailure,
+            timeInState,
+            metrics: {
+                ...this.#circuitBreakerMetrics,
+                transitionCount: this.#circuitBreakerMetrics.stateTransitions.length
+            },
+            config: this.#circuitBreakerConfig
+        };
+    }
+
+    /**
+     * Manually reset the circuit breaker (for testing/recovery)
+     * @param {string} [newState='CLOSED'] - Target state
+     */
+    resetCircuitBreaker(newState = 'CLOSED') {
+        this.#circuitBreakerTransition(newState);
+        this.#circuitBreakerFailures = 0;
+        this.#circuitBreakerHalfOpenCalls = 0;
+        console.log(`🔌 WebMCP: Circuit breaker manually reset to ${newState}`);
+    }
+
+    /**
+     * Wrap an async operation with circuit breaker protection
+     * @private
+     * @param {Function} operation - Async function to execute
+     * @param {string} [operationName='operation'] - Name for logging
+     * @returns {Promise<*>} Result of the operation
+     */
+    async #circuitBreakerExecute(operation, operationName = 'operation') {
+        // Check if request is allowed
+        const check = this.#circuitBreakerAllowRequest();
+        if (!check.allowed) {
+            throw new Error(`Circuit breaker: ${check.reason}`);
+        }
+
+        try {
+            const result = await operation();
+            this.#circuitBreakerRecordSuccess();
+            return result;
+        } catch (error) {
+            this.#circuitBreakerRecordFailure(error);
+            throw error;
+        }
+    }
+
     /**
      * Get bridge diagnostics (callable from DevTools console)
      * @returns {Object} Bridge status and metrics
@@ -2299,6 +2928,9 @@ class WebMCPBridge {
             totalCalls: this.#callCount,
             callBreakdown: { ...this.#toolCallCounts },
             appConnected: !!this.#app,
+            phaseE: {
+                circuitBreaker: this.#circuitBreakerGetState()
+            },
             phaseD: {
                 a2aEnabled: !!this.#a2aRouter,
                 a2aStatus: this.#a2aRouter?.getStatus() || null
