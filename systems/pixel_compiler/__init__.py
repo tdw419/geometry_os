@@ -61,4 +61,21 @@ try:
 except ImportError:
     pass
 
+# GPU Integration exports
+try:
+    from systems.pixel_compiler.gpu_context import GPUContext, GPUTexture, GPUBuffer
+    from systems.pixel_compiler.gpu_framebuffer import GPUFramebuffer
+    from systems.pixel_compiler.gui_compute_pipeline import GUIComputePipeline
+
+    _base_exports.extend([
+        # GPU Integration
+        "GPUContext",
+        "GPUTexture",
+        "GPUBuffer",
+        "GPUFramebuffer",
+        "GUIComputePipeline",
+    ])
+except ImportError:
+    pass
+
 __all__ = _base_exports

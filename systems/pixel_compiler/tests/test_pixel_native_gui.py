@@ -97,6 +97,16 @@ def test_import_from_package():
     assert gui is not None
 
 
+def test_import_gpu_classes():
+    """Test that GPU classes can be imported from package level."""
+    from systems.pixel_compiler import GPUContext
+    from systems.pixel_compiler import GPUFramebuffer
+    from systems.pixel_compiler import GUIComputePipeline
+
+    ctx = GPUContext()
+    assert ctx is not None
+
+
 class TestPixelNativeGUIGPU:
     def test_gui_with_gpu_context(self):
         """Test GUI with GPU context enabled."""
