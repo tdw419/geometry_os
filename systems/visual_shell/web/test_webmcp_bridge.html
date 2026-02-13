@@ -700,6 +700,64 @@
         );
 
         // ═══════════════════════════════════════════════════════════════
+        // Phase D Tests: A2A Protocol Tool Registration
+        // ═══════════════════════════════════════════════════════════════
+
+        test(
+            'A2A: a2a_send_message Tool Registered',
+            'Check if a2a_send_message tool is registered (Phase D)',
+            () => {
+                if (typeof window.webmcpBridge === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - window.webmcpBridge is undefined' };
+                }
+                const status = window.webmcpBridge.getStatus();
+                const registered = status.tools.includes('a2a_send_message');
+                return {
+                    pass: registered,
+                    detail: registered
+                        ? 'a2a_send_message tool is registered'
+                        : `Tool not found. Registered tools: [${status.tools.join(', ')}]`
+                };
+            }
+        );
+
+        test(
+            'A2A: a2a_broadcast Tool Registered',
+            'Check if a2a_broadcast tool is registered (Phase D)',
+            () => {
+                if (typeof window.webmcpBridge === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - window.webmcpBridge is undefined' };
+                }
+                const status = window.webmcpBridge.getStatus();
+                const registered = status.tools.includes('a2a_broadcast');
+                return {
+                    pass: registered,
+                    detail: registered
+                        ? 'a2a_broadcast tool is registered'
+                        : `Tool not found. Registered tools: [${status.tools.join(', ')}]`
+                };
+            }
+        );
+
+        test(
+            'A2A: a2a_subscribe Tool Registered',
+            'Check if a2a_subscribe tool is registered (Phase D)',
+            () => {
+                if (typeof window.webmcpBridge === 'undefined') {
+                    return { pass: false, detail: 'Cannot test - window.webmcpBridge is undefined' };
+                }
+                const status = window.webmcpBridge.getStatus();
+                const registered = status.tools.includes('a2a_subscribe');
+                return {
+                    pass: registered,
+                    detail: registered
+                        ? 'a2a_subscribe tool is registered'
+                        : `Tool not found. Registered tools: [${status.tools.join(', ')}]`
+                };
+            }
+        );
+
+        // ═══════════════════════════════════════════════════════════════
         // Phase D Tests: A2A (Agent-to-Agent) Communication
         // ═══════════════════════════════════════════════════════════════
 
