@@ -125,3 +125,121 @@ class SwarmManager:
         """Create compute pipeline from shader."""
         # Pipeline creation deferred until shader exists
         pass
+
+    def load_bytecode(self, wasm_bytes: bytes) -> None:
+        """
+        Upload shared WASM bytecode to GPU.
+
+        All agents will execute this same bytecode.
+        Must be called before spawning agents.
+
+        Args:
+            wasm_bytes: WASM bytecode to upload
+        """
+        if self.mock:
+            self._mock_bytecode = wasm_bytes
+            self._bytecode_loaded = True
+            self._bytecode_size = len(wasm_bytes)
+            return
+
+        # GPU mode: create/update bytecode buffer
+        # Pad to 4-byte alignment for u32 access
+        padded_size = ((len(wasm_bytes) + 3) // 4) * 4
+        padded_wasm = wasm_bytes + b'\x00' * (padded_size - len(wasm_bytes))
+
+        bytecode_array = np.frombuffer(padded_wasm, dtype=np.uint8)
+
+        if self.bytecode_buffer is None or self.bytecode_buffer.size < padded_size:
+            self.bytecode_buffer = self.device.create_buffer_with_data(
+                data=bytecode_array,
+                usage=wgpu.BufferUsage.STORAGE | wgpu.BufferUsage.COPY_DST
+            )
+        else:
+            self.device.queue.write_buffer(self.bytecode_buffer, 0, bytecode_array.tobytes())
+
+        self._bytecode_loaded = True
+        self._bytecode_size = len(wasm_bytes)
+
+    def spawn_agent(self,
+                    entry_point: int = 0,
+                    memory_init: bytes = None,
+                    args: List[int] = None) -> int:
+        """
+        Spawn a new agent instance.
+
+        Args:
+            entry_point: WASM function index to start execution
+            memory_init: Initial bytes for agent's linear memory
+            args: Arguments to pass via globals[1], globals[2], etc.
+
+        Returns:
+            agent_id: Unique identifier for this agent
+
+        Raises:
+            RuntimeError: If bytecode not loaded or capacity exceeded
+        """
+        if not self._bytecode_loaded:
+            raise RuntimeError("Must call load_bytecode() before spawning agents")
+
+        if not self.free_slots:
+            raise RuntimeError(f"Swarm at capacity ({self.MAX_AGENTS} agents)")
+
+        # Assign slot
+        slot = self.free_slots.pop(0)
+        agent_id = self.next_agent_id
+        self.next_agent_id += 1
+
+        # Track agent
+        self.active_agents[agent_id] = AgentState(
+            agent_id=agent_id,
+            pool_slot=slot,
+            entry_point=entry_point
+        )
+        self.slot_assignments[agent_id] = slot
+
+        # Initialize memory
+        if memory_init:
+            self.set_agent_memory(agent_id, memory_init)
+
+        # Initialize globals with arguments
+        globals_base = slot * self.GLOBALS_PER_AGENT
+        if args:
+            for i, arg in enumerate(args):
+                global_idx = globals_base + 1 + i  # globals[0] is return value
+                if global_idx < globals_base + self.GLOBALS_PER_AGENT:
+                    if self.mock:
+                        self._mock_globals[global_idx] = arg
+                    else:
+                        # Will be batched on dispatch
+                        pass
+
+        return agent_id
+
+    def set_agent_memory(self, agent_id: int, data: bytes) -> None:
+        """
+        Write to agent's linear memory.
+
+        Args:
+            agent_id: Agent to write to
+            data: Bytes to write
+
+        Raises:
+            KeyError: If agent_id not found
+            ValueError: If data exceeds 64KB
+        """
+        if agent_id not in self.active_agents:
+            raise KeyError(f"Agent {agent_id} not found")
+
+        if len(data) > self.AGENT_MEMORY_SIZE:
+            raise ValueError(f"Data ({len(data)}) exceeds agent memory ({self.AGENT_MEMORY_SIZE})")
+
+        slot = self.active_agents[agent_id].pool_slot
+        memory_base = slot * self.AGENT_MEMORY_SIZE
+
+        if self.mock:
+            self._mock_pool[memory_base:memory_base + len(data)] = data
+            return
+
+        # GPU mode: write to pool buffer
+        data_array = np.frombuffer(data, dtype=np.uint8)
+        self.device.queue.write_buffer(self.pool_buffer, memory_base, data_array.tobytes())
