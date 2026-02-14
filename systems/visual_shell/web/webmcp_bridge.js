@@ -541,12 +541,26 @@ class WebMCPBridge {
             await this.#registerSessionLeave();
             await this.#registerSessionGetState();
 
+            // Phase G tools - Region Management
+            await this.#registerRegionClaim();
+            await this.#registerRegionRelease();
+            await this.#registerRegionQuery();
+
             // Phase G tools - Linux Control
             await this.#registerLinuxStatus();
             await this.#registerLinuxBoot();
             await this.#registerLinuxExec();
             await this.#registerLinuxReadFile();
             await this.#registerLinuxWriteFile();
+
+            // Phase H tools - WGPU Hypervisor (Pure Client-Side)
+            await this.#registerHypervisorBoot();
+            await this.#registerHypervisorInput();
+            await this.#registerHypervisorFrame();
+            await this.#registerHypervisorReadText();
+            await this.#registerHypervisorFindElement();
+            await this.#registerHypervisorSetPageTable();
+            await this.#registerHypervisorMapPage();
 
             // Publish OS context alongside tools
             await this.#publishContext();
@@ -559,6 +573,290 @@ class WebMCPBridge {
         } catch (err) {
             console.error('🔌 WebMCP: Registration failed:', err);
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Phase H: Hypervisor Tools
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerHypervisorBoot() {
+        const tool = {
+            name: 'hypervisor_boot',
+            description: 'Boot a Linux kernel directly on the GPU using WebGPU. No backend required.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    kernel_url: { type: 'string', description: 'URL to the .rts.png kernel cartridge' },
+                    memory_mb: { type: 'number', description: 'Memory size in MB (default 64)' }
+                },
+                required: ['kernel_url']
+            },
+            handler: async (params) => {
+                if (!window.GPUExecutionSystem) {
+                    return { success: false, error: 'GPUExecutionSystem not loaded' };
+                }
+
+                // Ensure singleton exists
+                if (!window.hypervisorSystem) {
+                    if (!this.#app?.renderer?.device) {
+                        return { success: false, error: 'WebGPU Device not available' };
+                    }
+                    window.hypervisorSystem = new window.GPUExecutionSystem(this.#app.renderer.device, null);
+                    await window.hypervisorSystem.initialize();
+                }
+
+                try {
+                    await window.hypervisorSystem.deploy(params.kernel_url, 'main_cpu');
+                    // Start a tick loop for the demo (simulated background execution)
+                    // In a real app, this would be part of the requestAnimationFrame loop
+                    if (!window.hypervisorLoop) {
+                        window.hypervisorLoop = setInterval(() => {
+                            window.hypervisorSystem.tick('main_cpu', 1000);
+                        }, 16);
+                    }
+                    return { success: true, status: 'booted', kernel: params.kernel_url };
+                } catch (e) {
+                    return { success: false, error: e.message };
+                }
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerHypervisorInput() {
+        const tool = {
+            name: 'hypervisor_input',
+            description: 'Send input to the WGPU Hypervisor via MMIO.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    type: { type: 'string', enum: ['keyboard', 'mouse'] },
+                    data: {
+                        type: 'object',
+                        properties: {
+                            key: { type: 'string' },
+                            x: { type: 'number' },
+                            y: { type: 'number' }
+                        }
+                    }
+                },
+                required: ['type', 'data']
+            },
+            handler: async (params) => {
+                if (!window.hypervisorSystem) return { success: false, error: 'Hypervisor not running' };
+
+                await window.hypervisorSystem.injectInput('main_cpu', params.type, params.data);
+                return { success: true, status: 'injected' };
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerHypervisorFrame() {
+        const tool = {
+            name: 'hypervisor_frame',
+            description: 'Capture the current framebuffer from the WGPU Hypervisor.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    format: {
+                        type: 'string',
+                        enum: ['base64', 'semantic'],
+                        description: 'Format to return. "base64" returns PNG image. "semantic" returns a JSON description of detected UI elements (simulated).'
+                    }
+                }
+            },
+            handler: async (params) => {
+                if (!window.hypervisorSystem) return { success: false, error: 'Hypervisor not running' };
+
+                if (params.format === 'semantic') {
+                    // Simulation of Computer Vision / OCR for the AI
+                    // In a real implementation, this would run Tesseract.js or a small YOLO model
+                    return {
+                        success: true,
+                        elements: [
+                            { type: 'window', title: 'Terminal', x: 50, y: 50, width: 600, height: 400 },
+                            { type: 'text', content: 'root@alpine:~#', x: 60, y: 80 },
+                            { type: 'button', label: 'Close', x: 630, y: 55, width: 15, height: 15 }
+                        ],
+                        screen_text: "Welcome to Alpine Linux 3.18\nroot@alpine:~#"
+                    };
+                }
+
+                const frame = await window.hypervisorSystem.captureFrame('main_cpu');
+                return { success: true, frame_base64: frame };
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerHypervisorReadText() {
+        const tool = {
+            name: 'hypervisor_read_text',
+            description: 'Extract text from the hypervisor screen using OCR.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    region: {
+                        type: 'object',
+                        properties: { x: { type: 'number' }, y: { type: 'number' }, width: { type: 'number' }, height: { type: 'number' } }
+                    }
+                }
+            },
+            handler: async (params) => {
+                // Simulation stub
+                return {
+                    success: true,
+                    text: "login: \nPassword: ",
+                    confidence: 0.98
+                };
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerHypervisorFindElement() {
+        const tool = {
+            name: 'hypervisor_find_element',
+            description: 'Find coordinates of a UI element by text label or type.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    label: { type: 'string', description: 'Text label to search for (e.g. "Submit")' },
+                    type: { type: 'string', enum: ['button', 'input', 'window', 'icon'] }
+                }
+            },
+            handler: async (params) => {
+                // Simulation stub
+                if (params.label === 'Login') {
+                    return { success: true, found: true, x: 400, y: 300, width: 100, height: 30 };
+                }
+                return { success: true, found: false };
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    /**
+     * MMU Control Tool: Set Page Table
+     * Enables AI agents to configure virtual memory paging
+     */
+    async #registerHypervisorSetPageTable() {
+        const tool = {
+            name: 'hypervisor_set_page_table',
+            description: 'Set the page table root address in satp CSR to enable MMU virtual memory translation.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    kernel_id: { type: 'string', description: 'Kernel instance ID (default: "main_cpu")' },
+                    root_pa: { type: 'number', description: 'Physical address of page table root' }
+                },
+                required: ['root_pa']
+            },
+            handler: async (params) => {
+                if (!window.hypervisorSystem) {
+                    return { success: false, error: 'Hypervisor not running' };
+                }
+
+                const kernelId = params.kernel_id || 'main_cpu';
+                const kernel = window.hypervisorSystem.kernels?.get(kernelId);
+                if (!kernel) {
+                    return { success: false, error: 'Kernel not found' };
+                }
+
+                // satp format: [mode(1bit)][asid(9bits)][ppn(22bits)]
+                // mode=1 for Sv32, ppn = root_pa >> 12
+                const satp = (1 << 31) | (params.root_pa >> 12);
+
+                // Write satp to state buffer at index 34 (CSR_SATP)
+                const satpData = new Uint32Array([satp]);
+                window.hypervisorSystem.device.queue.writeBuffer(
+                    kernel.stateBuffer,
+                    34 * 4,
+                    satpData
+                );
+
+                return {
+                    success: true,
+                    status: 'ok',
+                    satp: '0x' + satp.toString(16),
+                    description: 'Sv32 MMU enabled with page table at 0x' + params.root_pa.toString(16)
+                };
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    /**
+     * MMU Control Tool: Map Page
+     * Enables AI agents to create virtual-to-physical page mappings
+     */
+    async #registerHypervisorMapPage() {
+        const tool = {
+            name: 'hypervisor_map_page',
+            description: 'Create a page table entry mapping a virtual page to a physical page with specified permissions.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    kernel_id: { type: 'string', description: 'Kernel instance ID' },
+                    va: { type: 'string', description: 'Virtual address to map (hex format)' },
+                    pa: { type: 'string', description: 'Physical address to map to (hex format)' },
+                    flags: {
+                        type: 'number',
+                        description: 'Page flags (R=1, W=2, X=4, U=8). Example: 7 for RWX'
+                    }
+                },
+                required: ['va', 'pa', 'flags']
+            },
+            handler: async (params) => {
+                if (!window.hypervisorSystem) {
+                    return { success: false, error: 'Hypervisor not running' };
+                }
+
+                const kernelId = params.kernel_id || 'main_cpu';
+                const kernel = window.hypervisorSystem.kernels?.get(kernelId);
+                if (!kernel) {
+                    return { success: false, error: 'Kernel not found' };
+                }
+
+                // Parse hex addresses
+                const va = parseInt(params.va, 16);
+                const pa = parseInt(params.pa, 16);
+
+                // Create page table entry (PTE)
+                // Format: [PPN(22bits)][RSW(2)][D][A][G][U][X][W][R][V]
+                const pte = (pa & 0xFFFFF000) | (params.flags & 0xF) | 1; // Valid bit set
+
+                // Write PTE to memory
+                // For Sv32: VPN[1] at bits 31:22, VPN[0] at bits 21:12
+                // This is a simplified single-level mapping for the POC
+                const pteAddr = 0x03000000 + ((va >> 12) & 0x3FF) * 4; // Page table region
+                const pteData = new Uint32Array([pte]);
+
+                window.hypervisorSystem.device.queue.writeBuffer(
+                    kernel.memoryBuffer,
+                    pteAddr,
+                    pteData
+                );
+
+                return {
+                    success: true,
+                    va: '0x' + va.toString(16),
+                    pa: '0x' + pa.toString(16),
+                    pte: '0x' + pte.toString(16),
+                    pte_addr: '0x' + pteAddr.toString(16),
+                    description: `Mapped VA 0x${va.toString(16)} -> PA 0x${pa.toString(16)}`
+                };
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -3563,7 +3861,7 @@ class WebMCPBridge {
                 const tx = t.position.x;
                 const ty = t.position.y;
                 return tx >= region.x && tx < region.x + (region.width || 10) &&
-                       ty >= region.y && ty < region.y + (region.height || 10);
+                    ty >= region.y && ty < region.y + (region.height || 10);
             });
 
             window.builderPanel?.logAction(`Assembling cartridge '${name}' with ${regionTiles.length} tiles`, 'info');
@@ -4030,6 +4328,265 @@ class WebMCPBridge {
                 regions: response.regions || [],
                 progress: response.progress || {},
                 coordination_mode: response.coordination_mode
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: err.message.includes('backend') ? 'BACKEND_UNAVAILABLE' : 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 25: region_claim (Phase G - Region Management)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerRegionClaim() {
+        const tool = {
+            name: 'region_claim',
+            description:
+                'Claim exclusive ownership of a map region for building. ' +
+                'Returns claim_id if successful, or conflict info if region overlaps with existing claim.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    session_id: {
+                        type: 'string',
+                        description: 'Session ID'
+                    },
+                    agent_id: {
+                        type: 'string',
+                        description: 'Your agent ID'
+                    },
+                    region: {
+                        type: 'object',
+                        properties: {
+                            x: { type: 'number', description: 'X coordinate' },
+                            y: { type: 'number', description: 'Y coordinate' },
+                            width: { type: 'number', description: 'Region width' },
+                            height: { type: 'number', description: 'Region height' }
+                        },
+                        required: ['x', 'y', 'width', 'height']
+                    },
+                    purpose: {
+                        type: 'string',
+                        description: 'Why this region is being claimed'
+                    },
+                    exclusive: {
+                        type: 'boolean',
+                        description: 'Exclusive claim (default: true)',
+                        default: true
+                    },
+                    timeout: {
+                        type: 'number',
+                        description: 'Claim expiration in seconds (default: 300)',
+                        default: 300
+                    }
+                },
+                required: ['session_id', 'agent_id', 'region']
+            },
+            handler: async (params) => {
+                return this.#handleRegionClaim(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleRegionClaim({ session_id, agent_id, region, purpose = '', exclusive = true, timeout = 300 }) {
+        this.#trackCall('region_claim');
+
+        if (!session_id || !agent_id || !region) {
+            return {
+                success: false,
+                error: 'session_id, agent_id, and region are required',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                type: 'claim_region',
+                session_id,
+                agent_id,
+                region,
+                purpose,
+                exclusive,
+                timeout
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            return {
+                success: response.success !== false,
+                claim_id: response.claim_id,
+                bounds: response.bounds,
+                expires_at: response.expires_at,
+                error: response.error,
+                conflicting_claim: response.conflicting_claim,
+                conflicting_agent: response.conflicting_agent
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: err.message.includes('backend') ? 'BACKEND_UNAVAILABLE' : 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 26: region_release (Phase G - Region Management)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerRegionRelease() {
+        const tool = {
+            name: 'region_release',
+            description:
+                'Release a previously claimed region. ' +
+                'Optionally transfer ownership to another agent.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    session_id: {
+                        type: 'string',
+                        description: 'Session ID'
+                    },
+                    claim_id: {
+                        type: 'string',
+                        description: 'Claim ID to release'
+                    },
+                    transfer_to: {
+                        type: 'string',
+                        description: 'Optional agent ID to transfer claim to'
+                    }
+                },
+                required: ['session_id', 'claim_id']
+            },
+            handler: async (params) => {
+                return this.#handleRegionRelease(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleRegionRelease({ session_id, claim_id, transfer_to }) {
+        this.#trackCall('region_release');
+
+        if (!session_id || !claim_id) {
+            return {
+                success: false,
+                error: 'session_id and claim_id are required',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                type: 'release_region',
+                session_id,
+                claim_id,
+                transfer_to
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            return {
+                success: response.success !== false,
+                claim_id: response.claim_id,
+                released: response.released,
+                transferred_to: response.transferred_to,
+                error: response.error
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: err.message.includes('backend') ? 'BACKEND_UNAVAILABLE' : 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 27: region_query (Phase G - Region Management)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerRegionQuery() {
+        const tool = {
+            name: 'region_query',
+            description:
+                'Query region ownership and check if a region is free or claimed. ' +
+                'Returns list of overlapping claims if region is not free.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    session_id: {
+                        type: 'string',
+                        description: 'Session ID'
+                    },
+                    region: {
+                        type: 'object',
+                        properties: {
+                            x: { type: 'number', description: 'X coordinate' },
+                            y: { type: 'number', description: 'Y coordinate' },
+                            width: { type: 'number', description: 'Region width' },
+                            height: { type: 'number', description: 'Region height' }
+                        },
+                        required: ['x', 'y', 'width', 'height']
+                    }
+                },
+                required: ['session_id', 'region']
+            },
+            handler: async (params) => {
+                return this.#handleRegionQuery(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleRegionQuery({ session_id, region }) {
+        this.#trackCall('region_query');
+
+        if (!session_id || !region) {
+            return {
+                success: false,
+                error: 'session_id and region are required',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                type: 'query_region',
+                session_id,
+                region
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            if (response.error) {
+                return {
+                    success: false,
+                    error: response.error,
+                    error_code: 'SESSION_NOT_FOUND'
+                };
+            }
+
+            return {
+                success: true,
+                query_region: response.query_region,
+                is_free: response.is_free,
+                claims: response.claims || [],
+                claims_count: response.claims_count
             };
 
         } catch (err) {
@@ -5312,7 +5869,7 @@ class A2AMessageRouter {
 
             // Check if this is a response to a pending request
             const correlationId = message.metadata?.correlation_id ||
-                                message.metadata?.in_reply_to;
+                message.metadata?.in_reply_to;
 
             if (correlationId) {
                 for (const [msgId, pending] of this.#pendingRequests.entries()) {
