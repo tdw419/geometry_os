@@ -1092,3 +1092,281 @@ class TestBuildSession:
         assert result["success"] is True
         assert result["is_free"] is True
         assert len(result["claims"]) == 0
+
+    # === Task Delegation Tests ===
+
+    def test_session_task_dataclass(self):
+        """SessionTask dataclass exists with required fields."""
+        from systems.pixel_compiler.a2a_router import SessionTask
+        import time
+
+        task = SessionTask(
+            task_id="task_001",
+            session_id="sess_001",
+            task_type="build",
+            description="Build kernel module",
+            assigned_to=None,
+            status="pending",
+            priority="medium",
+            created_by="agent_001",
+            created_at=time.time()
+        )
+
+        assert task.task_id == "task_001"
+        assert task.status == "pending"
+        assert task.priority == "medium"
+        assert task.dependencies == []
+        assert task.artifacts == []
+
+    @pytest.mark.asyncio
+    async def test_delegate_task(self, router):
+        """Architect can delegate a task."""
+        session = await router.create_session(session_name="Test")
+        architect = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Architect",
+            role="architect"
+        )
+
+        result = await router.delegate_task(
+            session_id=session["session_id"],
+            from_agent=architect["agent_id"],
+            target_agent_id="any",
+            task_type="build",
+            description="Build kernel module",
+            priority="high"
+        )
+
+        assert result["success"] is True
+        assert "task_id" in result
+        assert result["status"] == "pending"
+
+    @pytest.mark.asyncio
+    async def test_delegate_task_with_dependencies(self, router):
+        """Task can have dependencies on other tasks."""
+        session = await router.create_session(session_name="Test")
+        architect = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Architect",
+            role="architect"
+        )
+
+        # Create first task
+        task1 = await router.delegate_task(
+            session_id=session["session_id"],
+            from_agent=architect["agent_id"],
+            target_agent_id="any",
+            task_type="build",
+            description="First task"
+        )
+
+        # Create second task dependent on first
+        task2 = await router.delegate_task(
+            session_id=session["session_id"],
+            from_agent=architect["agent_id"],
+            target_agent_id="any",
+            task_type="test",
+            description="Test first task",
+            dependencies=[task1["task_id"]]
+        )
+
+        assert task2["success"] is True
+        # Second task should be blocked until first completes
+        assert task2.get("blocked_by") == [task1["task_id"]]
+
+    @pytest.mark.asyncio
+    async def test_accept_task(self, router):
+        """Agent can accept a pending task."""
+        session = await router.create_session(session_name="Test")
+        architect = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Architect",
+            role="architect"
+        )
+        builder = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Builder",
+            role="builder"
+        )
+
+        task = await router.delegate_task(
+            session_id=session["session_id"],
+            from_agent=architect["agent_id"],
+            target_agent_id="any",
+            task_type="build",
+            description="Build module"
+        )
+
+        result = await router.accept_task(
+            session_id=session["session_id"],
+            task_id=task["task_id"],
+            agent_id=builder["agent_id"]
+        )
+
+        assert result["success"] is True
+        assert result["status"] == "in_progress"
+
+    @pytest.mark.asyncio
+    async def test_accept_blocked_task_fails(self, router):
+        """Cannot accept a blocked task."""
+        session = await router.create_session(session_name="Test")
+        architect = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Architect",
+            role="architect"
+        )
+        builder = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Builder",
+            role="builder"
+        )
+
+        task1 = await router.delegate_task(
+            session_id=session["session_id"],
+            from_agent=architect["agent_id"],
+            target_agent_id="any",
+            task_type="build",
+            description="First"
+        )
+
+        task2 = await router.delegate_task(
+            session_id=session["session_id"],
+            from_agent=architect["agent_id"],
+            target_agent_id="any",
+            task_type="test",
+            description="Test first",
+            dependencies=[task1["task_id"]]
+        )
+
+        # Try to accept blocked task
+        result = await router.accept_task(
+            session_id=session["session_id"],
+            task_id=task2["task_id"],
+            agent_id=builder["agent_id"]
+        )
+
+        assert result["success"] is False
+        assert "blocked" in result.get("error", "").lower()
+
+    @pytest.mark.asyncio
+    async def test_report_task_completion(self, router):
+        """Agent can report task completion."""
+        session = await router.create_session(session_name="Test")
+        architect = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Architect",
+            role="architect"
+        )
+        builder = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Builder",
+            role="builder"
+        )
+
+        task = await router.delegate_task(
+            session_id=session["session_id"],
+            from_agent=architect["agent_id"],
+            target_agent_id="any",
+            task_type="build",
+            description="Build module"
+        )
+        await router.accept_task(
+            session_id=session["session_id"],
+            task_id=task["task_id"],
+            agent_id=builder["agent_id"]
+        )
+
+        result = await router.report_task(
+            session_id=session["session_id"],
+            task_id=task["task_id"],
+            agent_id=builder["agent_id"],
+            status="completed",
+            result={"tiles_placed": 10}
+        )
+
+        assert result["success"] is True
+        assert result["status"] == "completed"
+
+    @pytest.mark.asyncio
+    async def test_report_unblocks_dependent_tasks(self, router):
+        """Completing a task unblocks dependent tasks."""
+        session = await router.create_session(session_name="Test")
+        architect = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Architect",
+            role="architect"
+        )
+        builder = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Builder",
+            role="builder"
+        )
+
+        task1 = await router.delegate_task(
+            session_id=session["session_id"],
+            from_agent=architect["agent_id"],
+            target_agent_id="any",
+            task_type="build",
+            description="First"
+        )
+        task2 = await router.delegate_task(
+            session_id=session["session_id"],
+            from_agent=architect["agent_id"],
+            target_agent_id="any",
+            task_type="test",
+            description="Test first",
+            dependencies=[task1["task_id"]]
+        )
+
+        # Verify task2 is blocked
+        assert router.sessions[session["session_id"]].tasks[task2["task_id"]].status == "blocked"
+
+        # Accept and complete task1
+        await router.accept_task(
+            session_id=session["session_id"],
+            task_id=task1["task_id"],
+            agent_id=builder["agent_id"]
+        )
+        result = await router.report_task(
+            session_id=session["session_id"],
+            task_id=task1["task_id"],
+            agent_id=builder["agent_id"],
+            status="completed"
+        )
+
+        # Task2 should now be unblocked
+        assert task2["task_id"] in result.get("unblocked_tasks", [])
+        assert router.sessions[session["session_id"]].tasks[task2["task_id"]].status == "pending"
+
+    @pytest.mark.asyncio
+    async def test_get_task_queue(self, router):
+        """Can view task queue."""
+        session = await router.create_session(session_name="Test")
+        architect = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Architect",
+            role="architect"
+        )
+
+        await router.delegate_task(
+            session_id=session["session_id"],
+            from_agent=architect["agent_id"],
+            target_agent_id="any",
+            task_type="build",
+            description="Task 1",
+            priority="high"
+        )
+        await router.delegate_task(
+            session_id=session["session_id"],
+            from_agent=architect["agent_id"],
+            target_agent_id="any",
+            task_type="test",
+            description="Task 2",
+            priority="low"
+        )
+
+        result = await router.get_task_queue(session_id=session["session_id"])
+
+        assert result["success"] is True
+        assert len(result["tasks"]) == 2
+        assert result["summary"]["pending"] == 2

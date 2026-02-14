@@ -208,6 +208,28 @@ class RegionClaim:
 
 
 @dataclass
+class SessionTask:
+    """Task within a collaborative build session."""
+    task_id: str
+    session_id: str
+    task_type: str  # build, test, review, evolve, assemble, migrate
+    description: str
+    assigned_to: Optional[str]
+    status: str  # pending, in_progress, completed, failed, blocked, cancelled
+    priority: str  # low, medium, high, critical
+    created_by: str
+    created_at: float
+    region: Optional[Dict[str, int]] = None
+    dependencies: List[str] = field(default_factory=list)
+    deadline: Optional[float] = None
+    result: Optional[Dict[str, Any]] = None
+    artifacts: List[Dict[str, str]] = field(default_factory=list)
+    message: Optional[str] = None
+    started_at: Optional[float] = None
+    completed_at: Optional[float] = None
+
+
+@dataclass
 class BuildSession:
     """Collaborative build session state."""
     session_id: str
@@ -220,7 +242,7 @@ class BuildSession:
     config: Dict[str, Any] = field(default_factory=dict)
     agents: Dict[str, SessionAgent] = field(default_factory=dict)
     regions: Dict[str, RegionClaim] = field(default_factory=dict)
-    tasks: Dict[str, str] = field(default_factory=dict)
+    tasks: Dict[str, SessionTask] = field(default_factory=dict)
     status: str = "active"
 
 
@@ -1610,6 +1632,217 @@ class A2ARouter:
             "is_free": len(overlapping_claims) == 0,
             "claims": overlapping_claims,
             "claims_count": len(overlapping_claims)
+        }
+
+    # === Session Task Delegation ===
+
+    async def delegate_task(
+        self,
+        session_id: str,
+        from_agent: str,
+        target_agent_id: str,
+        task_type: str,
+        description: str,
+        region: Optional[Dict[str, int]] = None,
+        priority: str = "medium",
+        dependencies: Optional[List[str]] = None,
+        deadline: Optional[float] = None
+    ) -> Dict[str, Any]:
+        """Delegate a task within a build session."""
+        if session_id not in self.sessions:
+            return {"success": False, "error": "session_not_found"}
+
+        session = self.sessions[session_id]
+
+        if from_agent not in session.agents:
+            return {"success": False, "error": "agent_not_in_session"}
+
+        # Check dependencies
+        blocked_by = []
+        if dependencies:
+            for dep_id in dependencies:
+                if dep_id in session.tasks:
+                    dep_status = session.tasks[dep_id].status
+                    if dep_status not in ("completed",):
+                        blocked_by.append(dep_id)
+
+        # Create task
+        task_id = f"task_{uuid.uuid4().hex[:8]}"
+        task = SessionTask(
+            task_id=task_id,
+            session_id=session_id,
+            task_type=task_type,
+            description=description,
+            assigned_to=None if target_agent_id == "any" else target_agent_id,
+            status="blocked" if blocked_by else "pending",
+            priority=priority,
+            created_by=from_agent,
+            created_at=time.time(),
+            region=region,
+            dependencies=dependencies or [],
+            deadline=deadline
+        )
+
+        session.tasks[task_id] = task
+
+        logger.info(f"Task {task_id} delegated by {from_agent} in session {session_id}")
+
+        return {
+            "success": True,
+            "task_id": task_id,
+            "status": task.status,
+            "assigned_to": task.assigned_to,
+            "blocked_by": blocked_by if blocked_by else None,
+            "position_in_queue": sum(1 for t in session.tasks.values() if t.status == "pending")
+        }
+
+    async def accept_task(
+        self,
+        session_id: str,
+        task_id: str,
+        agent_id: str
+    ) -> Dict[str, Any]:
+        """Accept a pending task."""
+        if session_id not in self.sessions:
+            return {"success": False, "error": "session_not_found"}
+
+        session = self.sessions[session_id]
+
+        if task_id not in session.tasks:
+            return {"success": False, "error": "task_not_found"}
+
+        if agent_id not in session.agents:
+            return {"success": False, "error": "agent_not_in_session"}
+
+        task = session.tasks[task_id]
+
+        if task.status == "blocked":
+            return {"success": False, "error": "task_blocked", "blocked_by": task.dependencies}
+
+        if task.status not in ("pending",):
+            return {"success": False, "error": "task_not_pending", "status": task.status}
+
+        # Assign task to agent
+        task.assigned_to = agent_id
+        task.status = "in_progress"
+        task.started_at = time.time()
+
+        logger.info(f"Task {task_id} accepted by {agent_id}")
+
+        return {
+            "success": True,
+            "task_id": task_id,
+            "status": "in_progress",
+            "assigned_to": agent_id
+        }
+
+    async def report_task(
+        self,
+        session_id: str,
+        task_id: str,
+        agent_id: str,
+        status: str,
+        result: Optional[Dict[str, Any]] = None,
+        artifacts: Optional[List[Dict[str, str]]] = None,
+        message: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Report task status or completion."""
+        if session_id not in self.sessions:
+            return {"success": False, "error": "session_not_found"}
+
+        session = self.sessions[session_id]
+
+        if task_id not in session.tasks:
+            return {"success": False, "error": "task_not_found"}
+
+        task = session.tasks[task_id]
+
+        if task.assigned_to != agent_id:
+            return {"success": False, "error": "not_task_assignee"}
+
+        # Update task
+        task.status = status
+        task.result = result
+        task.artifacts = artifacts or []
+        task.message = message
+        task.completed_at = time.time() if status in ("completed", "failed", "cancelled") else None
+
+        # Update agent stats
+        if status == "completed" and agent_id in session.agents:
+            session.agents[agent_id].tasks_completed += 1
+
+        # Check for unblocked tasks
+        unblocked_tasks = []
+        if status == "completed":
+            for other_task in session.tasks.values():
+                if task_id in other_task.dependencies and other_task.status == "blocked":
+                    # Check if all dependencies are now complete
+                    all_complete = all(
+                        session.tasks.get(dep).status == "completed"
+                        for dep in other_task.dependencies
+                        if dep in session.tasks
+                    )
+                    if all_complete:
+                        other_task.status = "pending"
+                        unblocked_tasks.append(other_task.task_id)
+
+        logger.info(f"Task {task_id} reported as {status} by {agent_id}")
+
+        return {
+            "success": True,
+            "task_id": task_id,
+            "status": status,
+            "unblocked_tasks": unblocked_tasks
+        }
+
+    async def get_task_queue(
+        self,
+        session_id: str,
+        assigned_to: Optional[str] = None,
+        status: Optional[str] = None,
+        priority: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Get task queue for a session."""
+        if session_id not in self.sessions:
+            return {"success": False, "error": "session_not_found"}
+
+        session = self.sessions[session_id]
+
+        # Filter tasks
+        tasks = []
+        for task in session.tasks.values():
+            if assigned_to and task.assigned_to != assigned_to:
+                continue
+            if status and task.status != status:
+                continue
+            if priority and task.priority != priority:
+                continue
+
+            tasks.append({
+                "task_id": task.task_id,
+                "type": task.task_type,
+                "description": task.description,
+                "assigned_to": task.assigned_to,
+                "status": task.status,
+                "priority": task.priority,
+                "created_at": task.created_at,
+                "created_by": task.created_by,
+                "region": task.region
+            })
+
+        # Summary
+        summary = {
+            "pending": sum(1 for t in session.tasks.values() if t.status == "pending"),
+            "in_progress": sum(1 for t in session.tasks.values() if t.status == "in_progress"),
+            "blocked": sum(1 for t in session.tasks.values() if t.status == "blocked"),
+            "completed": sum(1 for t in session.tasks.values() if t.status == "completed"),
+            "failed": sum(1 for t in session.tasks.values() if t.status == "failed")
+        }
+
+        return {
+            "success": True,
+            "tasks": tasks,
+            "summary": summary
         }
 
     # === Utility Methods ===
