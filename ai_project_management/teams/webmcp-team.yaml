@@ -16,8 +16,10 @@ description: |
 
   Current State:
   - Phase A + B COMPLETE: 8 tools registered
-  - Phase C: DevTools MCP Integration (NEXT)
-  - Phase D: A2A Protocol (PLANNED)
+  - Phase C: DevTools MCP Integration (COMPLETE)
+  - Phase D: A2A Protocol (COMPLETE)
+  - Phase E: Reliability (PLANNED)
+  - Phase F: AI-Driven Visual Builder (NEXT)
 
 # Selection: Choose agent with best capability match
 selection_policy: best_fit
@@ -56,9 +58,15 @@ metadata:
   component: webmcp-bridge
   roadmap: ai_project_management/roadmaps/webmcp-improvement-roadmap.md
   architecture: docs/plans/2026-02-12-webmcp-bridge-design.md
-  implementation_plan: docs/plans/2026-02-13-webmcp-phase-c-devtools-mcp.md
-  current_phase: C
-  current_version: "1.3.0"
+  implementation_plan: docs/plans/2026-02-13-webmcp-phase-f-implementation.md
+  design_doc: docs/plans/2026-02-13-webmcp-phase-f-design.md
+  current_phase: F
+  current_version: "1.5.0"
+  completed_phases:
+    - A
+    - B
+    - C
+    - D
 
 # Agent definitions
 agents:
@@ -272,6 +280,64 @@ agents:
         - docs/plans/2026-02-12-webmcp-phase-b-design.md
         - docs/plans/2026-02-13-webmcp-phase-c-design.md
         - docs/plans/2026-02-13-webmcp-phase-c-devtools-mcp.md
+        - docs/plans/2026-02-13-webmcp-phase-f-design.md
+
+  # ============================================
+  # VISUAL BUILDER SPECIALIST - Phase F (AI-Driven Visual Builder)
+  # ============================================
+  - agent_id: visual-builder-specialist
+    name: Visual Builder Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - javascript
+      - pixijs
+      - ui_components
+      - testing
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 90
+    metadata:
+      role: AI-Driven Visual Builder implementation
+      focuses:
+        - BuilderPanel UI component
+        - Tile placement on Infinite Map
+        - Shader editor integration
+        - Cartridge assembly workflow
+        - Multi-channel feedback loops
+        - Action logging
+      key_files:
+        - systems/visual_shell/web/BuilderPanel.js
+        - systems/visual_shell/web/BuilderPanel.css
+        - systems/visual_shell/web/builder_tools_test.html
+        - docs/plans/2026-02-13-webmcp-phase-f-design.md
+
+  # ============================================
+  # RTS CARTRIDGE SPECIALIST - Phase F (Cartridge Assembly)
+  # ============================================
+  - agent_id: rts-cartridge-specialist
+    name: RTS Cartridge Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - binary_formats
+      - pixelrts
+      - testing
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 85
+    metadata:
+      role: PixelRTS cartridge creation and assembly
+      focuses:
+        - Cartridge assembly from map regions
+        - RTS file format handling
+        - Boot configuration
+        - Preview generation
+      key_files:
+        - systems/pixel_compiler/pixelrts_v2_core.py
+        - systems/pixel_compiler/rts_registry_manager.py
+        - systems/visual_shell/web/webmcp_bridge.js
 
 # Task routing rules
 task_routing:
@@ -289,6 +355,17 @@ task_routing:
     assign_to: mcp-specialist
   - pattern: "websocket|http.*client"
     assign_to: integration-engineer
+  # Phase F tasks (AI-Driven Visual Builder)
+  - pattern: "builder.*panel|builderpanel|tile.*palette"
+    assign_to: visual-builder-specialist
+  - pattern: "builder.*tool|place.*tile|load.*shader"
+    assign_to: visual-builder-specialist
+  - pattern: "shader.*editor|evolve.*shader"
+    assign_to: visual-builder-specialist
+  - pattern: "cartridge.*assembly|assemble.*cartridge|rts.*png"
+    assign_to: rts-cartridge-specialist
+  - pattern: "action.*log|builder.*preview"
+    assign_to: visual-builder-specialist
   # General
   - pattern: "security|validation|rate.*limit"
     assign_to: security-specialist
@@ -307,15 +384,24 @@ phase_completion:
     - "A2A protocol researched and documented"
     - "A2A message router implemented"
     - "Area Agent A2A integration working"
-    - "A2A tests passing"
+    - "A2A tests passing (12 tests)"
   E:
     - "Circuit breaker implemented"
     - "Retry with backoff working"
     - "Health monitoring active"
   F:
+    - "6 new builder tools registered (17 total)"
+    - "BuilderPanel UI renders with Tile/Shader/Cartridge tabs"
+    - "builder_place_tile creates visible tiles on Infinite Map"
+    - "builder_load_shader + builder_evolve_shader work with visual preview"
+    - "builder_assemble_cartridge creates downloadable .rts.png"
+    - "Action Log shows real-time AI activity"
+    - "Preview screenshots work via DevTools MCP integration"
+    - "A2A agents can monitor builder region changes"
+  H:
     - "Tool metrics available"
     - "Request batching implemented"
     - "Response caching working"
-  G:
+  I:
     - "Input validation for all tools"
     - "Rate limiting active"
