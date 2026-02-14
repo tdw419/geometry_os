@@ -126,7 +126,7 @@ class BenchmarkSuite:
             )
 
             scenario = LoadTestScenario(
-                name=f"benchmark_{agent_count}_{msg_count}_{topology}",
+                name=f"benchmark_{agent_count}_{message_count}_{topology}",
                 message_count=message_count,
                 message_interval_ms=message_interval_ms,
                 warmup_messages=max(10, agent_count // 2),

@@ -541,7 +541,7 @@ class A2ARouter:
     
     # === Connection Handling ===
     
-    async def _handle_connection(self, websocket: WebSocketServerProtocol, path: str):
+    async def _handle_connection(self, websocket: WebSocketServerProtocol, path: str = ""):
         """Handle incoming WebSocket connection"""
         agent_id = None
         
@@ -986,6 +986,24 @@ class A2ARouter:
             "released": False,
             "arrived_count": len(barrier.arrived_agents),
             "expected_count": barrier.expected_count
+        }
+
+    async def _handle_barrier_release(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        """Handle manual barrier release request."""
+        barrier_id = data.get("barrier_id")
+
+        if barrier_id not in self.barriers:
+            return {
+                "type": "error",
+                "error": "barrier_not_found"
+            }
+
+        await self._release_barrier(barrier_id)
+
+        return {
+            "type": "ack",
+            "barrier_id": barrier_id,
+            "released": True
         }
     
     async def _release_barrier(self, barrier_id: str):
