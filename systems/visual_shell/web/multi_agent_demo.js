@@ -554,7 +554,212 @@ class ScannerAgent extends BaseAgent {
   }
 }
 
+/**
+ * ProcessorAgent - Processes data and analyzes patterns
+ */
+class ProcessorAgent extends BaseAgent {
+  constructor() {
+    super('processor-001', 'processor');
+    this.regionsProcessed = 0;
+    this.tasksReceived = 0;
+    this.tasksCompleted = 0;
+    this.pendingTasks = [];
+    this.isProcessing = false;
+  }
+
+  getCapabilities() {
+    return ['process_data', 'analyze_patterns', 'store_results'];
+  }
+
+  handleMessage(message) {
+    if (message.message_type === 'process_request') {
+      this.handleProcessRequest(message.from_agent, message.content);
+    }
+  }
+
+  /**
+   * Handle process request from another agent
+   */
+  async handleProcessRequest(fromAgent, content) {
+    this.tasksReceived++;
+
+    // Queue the task
+    const task = {
+      id: `task_${Date.now()}_${this.tasksReceived}`,
+      fromAgent: fromAgent,
+      content: content,
+      queuedAt: Date.now()
+    };
+    this.pendingTasks.push(task);
+
+    if (typeof log === 'function') {
+      log(`info`, `Process request queued from ${fromAgent}: ${task.id}`);
+    }
+
+    // Update UI status
+    if (typeof updateAgentStatus === 'function') {
+      updateAgentStatus(this.agentId, 'queued');
+    }
+
+    // Update metrics
+    if (typeof updateAgentMetric === 'function') {
+      updateAgentMetric(this.agentId, 'pendingTasks', this.pendingTasks.length);
+    }
+
+    // Start processing if not already processing
+    if (!this.isProcessing) {
+      this.processNextTask();
+    }
+  }
+
+  /**
+   * Process next task in queue
+   */
+  async processNextTask() {
+    if (this.pendingTasks.length === 0) {
+      this.isProcessing = false;
+      if (typeof updateAgentStatus === 'function') {
+        updateAgentStatus(this.agentId, 'idle');
+      }
+      return;
+    }
+
+    this.isProcessing = true;
+    const task = this.pendingTasks.shift();
+
+    // Update UI status and metrics
+    if (typeof updateAgentStatus === 'function') {
+      updateAgentStatus(this.agentId, 'processing');
+    }
+    if (typeof updateAgentMetric === 'function') {
+      updateAgentMetric(this.agentId, 'pendingTasks', this.pendingTasks.length);
+    }
+
+    if (typeof log === 'function') {
+      log(`info`, `Processing task: ${task.id}`);
+    }
+
+    // Simulate processing work (800-2000ms)
+    const processTime = 800 + Math.random() * 1200;
+    await delay(processTime);
+
+    // Generate analysis results
+    const result = this.analyzeData(task.content);
+
+    // Send result back to the requesting agent
+    await this.sendDirectMessage(task.fromAgent, 'process_complete', {
+      taskId: task.id,
+      result: result,
+      timestamp: Date.now()
+    });
+
+    // Update metrics
+    this.tasksCompleted++;
+    this.regionsProcessed++;
+    if (typeof updateAgentMetric === 'function') {
+      updateAgentMetric(this.agentId, 'tasksCompleted', this.tasksCompleted);
+      updateAgentMetric(this.agentId, 'regionsProcessed', this.regionsProcessed);
+    }
+
+    // Update UI region if applicable
+    if (task.content.data && task.content.data.region_x !== undefined) {
+      const x = task.content.data.region_x;
+      const y = task.content.data.region_y;
+      if (typeof updateRegion === 'function') {
+        updateRegion(x, y, 'processed');
+      }
+    }
+
+    if (typeof log === 'function') {
+      log(`info`, `Task completed: ${task.id}`);
+    }
+
+    // Continue processing if more tasks
+    if (this.pendingTasks.length > 0) {
+      await this.processNextTask();
+    } else {
+      this.isProcessing = false;
+      if (typeof updateAgentStatus === 'function') {
+        updateAgentStatus(this.agentId, 'idle');
+      }
+    }
+  }
+
+  /**
+   * Analyze data and generate results
+   */
+  analyzeData(content) {
+    // Mock data analysis
+    const analysisTypes = ['spatial', 'temporal', 'statistical', 'heuristic'];
+    const selectedAnalysis = analysisTypes[Math.floor(Math.random() * analysisTypes.length)];
+
+    return {
+      analysisType: selectedAnalysis,
+      patterns: this._generatePatterns(),
+      metrics: {
+        complexity: Math.random().toFixed(2),
+        density: Math.random().toFixed(2),
+        entropy: Math.random().toFixed(2)
+      },
+      confidence: (0.7 + Math.random() * 0.3).toFixed(2),
+      recommendations: this._generateRecommendations()
+    };
+  }
+
+  /**
+   * Generate pattern analysis (mock)
+   * @private
+   */
+  _generatePatterns() {
+    const patterns = [];
+    const patternCount = Math.floor(Math.random() * 5) + 1;
+
+    for (let i = 0; i < patternCount; i++) {
+      patterns.push({
+        type: ['linear', 'radial', 'fractal', 'noise'][Math.floor(Math.random() * 4)],
+        strength: (Math.random()).toFixed(2),
+        significance: Math.random() > 0.5 ? 'high' : 'low'
+      });
+    }
+
+    return patterns;
+  }
+
+  /**
+   * Generate recommendations based on analysis (mock)
+   * @private
+   */
+  _generateRecommendations() {
+    const recommendations = [];
+    const recCount = Math.floor(Math.random() * 3);
+
+    for (let i = 0; i < recCount; i++) {
+      recommendations.push({
+        action: ['optimize', 'compress', 'cache', 'prefetch'][Math.floor(Math.random() * 4)],
+        priority: Math.random() > 0.5 ? 'high' : 'medium',
+        estimatedImpact: (Math.random() * 100).toFixed(0) + '%'
+      });
+    }
+
+    return recommendations;
+  }
+
+  /**
+   * Get current processor status
+   */
+  getProcessorStatus() {
+    return {
+      ...this.getStatus(),
+      regionsProcessed: this.regionsProcessed,
+      tasksReceived: this.tasksReceived,
+      tasksCompleted: this.tasksCompleted,
+      pendingTasks: this.pendingTasks.length,
+      isProcessing: this.isProcessing
+    };
+  }
+}
+
 // Export for Node.js or browser
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { BaseAgent, ScannerAgent, delay };
+  module.exports = { BaseAgent, ScannerAgent, ProcessorAgent, delay };
 }
