@@ -1200,7 +1200,51 @@ class A2ARouter:
             except Exception as e:
                 logger.error(f"Error in heartbeat monitor: {e}")
                 await asyncio.sleep(1.0)
-    
+
+    # === Session Management ===
+
+    async def create_session(
+        self,
+        session_name: str,
+        max_agents: int = 10,
+        grid_size: int = 1000,
+        coordination_mode: str = "coordinated",
+        config: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Create a new collaborative build session."""
+        session_id = f"sess_{uuid.uuid4().hex[:8]}"
+        invite_token = f"tok_{uuid.uuid4().hex[:12]}"
+
+        session = BuildSession(
+            session_id=session_id,
+            session_name=session_name,
+            created_at=time.time(),
+            max_agents=max_agents,
+            grid_size=grid_size,
+            coordination_mode=coordination_mode,
+            invite_token=invite_token,
+            config=config or {}
+        )
+
+        self.sessions[session_id] = session
+        logger.info(f"Created build session {session_id}: {session_name}")
+
+        return {
+            "success": True,
+            "session_id": session_id,
+            "session_name": session_name,
+            "created_at": session.created_at,
+            "invite_token": invite_token,
+            "max_agents": max_agents,
+            "grid_size": grid_size,
+            "coordination_mode": coordination_mode,
+            "state": {
+                "agents_count": 0,
+                "regions_claimed": 0,
+                "tasks_pending": 0
+            }
+        }
+
     # === Utility Methods ===
     
     def get_stats(self) -> Dict[str, Any]:

@@ -767,3 +767,30 @@ class TestBuildSession:
         """A2ARouter has a sessions registry."""
         assert hasattr(router, 'sessions')
         assert router.sessions == {}
+
+    @pytest.mark.asyncio
+    async def test_create_session(self, router):
+        """Can create a new build session."""
+        result = await router.create_session(
+            session_name="Test Build",
+            max_agents=5,
+            coordination_mode="coordinated"
+        )
+
+        assert result["success"] is True
+        assert "session_id" in result
+        assert result["session_name"] == "Test Build"
+        assert result["max_agents"] == 5
+        assert "invite_token" in result
+
+        # Session is stored in registry
+        assert result["session_id"] in router.sessions
+
+    @pytest.mark.asyncio
+    async def test_create_session_default_values(self, router):
+        """Session created with default values."""
+        result = await router.create_session(session_name="Default")
+
+        assert result["max_agents"] == 10
+        assert result["grid_size"] == 1000
+        assert result["coordination_mode"] == "coordinated"
