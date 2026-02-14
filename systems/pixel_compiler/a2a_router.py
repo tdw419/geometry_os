@@ -253,6 +253,9 @@ class A2ARouter:
         # Task delegation registry
         self.tasks: Dict[str, Task] = {}
 
+        # Collaborative build sessions
+        self.sessions: Dict[str, BuildSession] = {}
+
         # Heartbeat timeout (seconds)
         self.heartbeat_timeout = 30.0
 

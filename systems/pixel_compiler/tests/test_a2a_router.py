@@ -757,3 +757,13 @@ class TestBuildSession:
         assert claim.bounds["x"] == 0
         assert claim.bounds["width"] == 100
         assert claim.exclusive is True
+
+    @pytest.fixture
+    def router(self):
+        """Create a fresh A2A router for each test."""
+        return A2ARouter()
+
+    def test_sessions_registry_exists(self, router):
+        """A2ARouter has a sessions registry."""
+        assert hasattr(router, 'sessions')
+        assert router.sessions == {}
