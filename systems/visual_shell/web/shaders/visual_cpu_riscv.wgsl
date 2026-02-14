@@ -34,10 +34,10 @@ const CSR_SSTATUS: u32 = 43u;   // Status register (SIE, SPIE, SPP)
 const CSR_SIE: u32 = 44u;       // Supervisor interrupt enable
 const CSR_SIP: u32 = 45u;       // Supervisor interrupt pending
 
-// SSTATUS bit positions
-const SSTATUS_SIE: u32 = 1u;    // Bit 0: Interrupt enable
-const SSTATUS_SPIE: u32 = 2u;   // Bit 1: Saved interrupt enable
-const SSTATUS_SPP: u32 = 256u;  // Bit 8: Previous privilege mode
+// SSTATUS bit positions (per RISC-V Privileged Spec v1.12)
+const SSTATUS_SIE: u32 = 2u;    // Bit 1: Supervisor Interrupt Enable
+const SSTATUS_SPIE: u32 = 32u;  // Bit 5: Supervisor Previous Interrupt Enable
+const SSTATUS_SPP: u32 = 256u;  // Bit 8: Previous privilege mode (1=S, 0=U)
 
 // --- MMIO INPUT REGION (Offset 32MB) ---
 const MMIO_INPUT_BASE: u32 = 0x02000000u;  // 32MB offset
