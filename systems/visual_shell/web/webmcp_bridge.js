@@ -62,7 +62,6 @@
 
 class WebMCPBridge {
 
-    /** @type {GeometryOSApplication|null} */
     #app = null;
 
     /** @type {boolean} */
@@ -74,7 +73,72 @@ class WebMCPBridge {
     /** @type {string[]} */
     #registeredTools = [];
 
-    /** @type {number} */
+    /** @type {boolean} */
+    #mockMode = false;
+
+    /**
+     * @param {Object} app - The PixiJS application instance
+     * @param {Object} options - Configuration options
+     * @param {boolean} options.allowMock - Whether to allow mock tools if WebGPU missing
+     */
+    constructor(app, options = {}) {
+        this.#app = app;
+        this.#mockMode = options.allowMock || false;
+
+        // Feature detection — is WebMCP available?
+        this.#webmcpAvailable = typeof navigator !== 'undefined'
+            && 'modelContext' in navigator;
+
+        // Initialize VisionCortex if available
+        if (typeof VisionCortex !== 'undefined') {
+            this.#visionCortex = new VisionCortex({
+                cacheTTL: 500,
+                cacheMaxSize: 50,
+                defaultScale: 1.0,
+                lazyLoad: true
+            });
+            console.log('🔌 WebMCP: VisionCortex initialized');
+        } else {
+            console.warn('🔌 WebMCP: VisionCortex not found (OCR features disabled)');
+        }
+
+        if (!this.#webmcpAvailable) {
+            console.log('🔌 WebMCP: Not available (Chrome 146+ required). ' +
+                'Visual Shell running in standard mode.');
+            return;
+        }
+
+        console.log('🔌 WebMCP: API detected — waiting for Geometry OS initialization...');
+
+        // Event-Driven: Wait for OS to be fully initialized
+        window.addEventListener('geometry-os-ready', () => {
+            this.#app = window.geometryOSApp;
+            if (this.#app) {
+                this.#register();
+            } else {
+                console.warn('🔌 WebMCP: geometry-os-ready fired but window.geometryOSApp is null');
+            }
+        });
+
+        // Safety: If event already fired (late script loading), check immediately
+        if (window.geometryOSApp && !this.#registered) {
+            this.#app = window.geometryOSApp;
+            this.#register();
+        }
+
+        // Start health monitoring (runs every 10s)
+        this.#startHealthMonitoring();
+
+        // DEBUG: Expose tool invocation for demos
+        window.invokeWebMCPTool = async (name, args) => {
+            const tool = this.#registeredTools.find(t => t === name);
+            if (!tool) throw new Error(`Tool ${name} not found`);
+            if (navigator.modelContext && navigator.modelContext.toolHandlers) {
+                return await navigator.modelContext.toolHandlers[name](args);
+            }
+            console.warn("Cannot invoke tool - no modelContext or toolHandlers map");
+        };
+    }
     #callCount = 0;
 
     /** @type {Object<string, number>} */
@@ -97,6 +161,11 @@ class WebMCPBridge {
 
     /** @type {Map<string, A2AMessageRouter>} */
     #agentA2AClients = new Map();
+
+    // --- Hardening Systems (Phase I) ---
+    #validator = null;
+    #limiter = null;
+    #metrics = null;
 
     /** @type {WebSocket|null} */
     #a2aSocket = null;
@@ -357,7 +426,11 @@ class WebMCPBridge {
         };
     }
 
-    constructor() {
+    // ─────────────────────────────────────────────────────
+    // Initialization (called from constructor)
+    // ─────────────────────────────────────────────────────
+
+    #init() {
         // Feature detection — is WebMCP available?
         this.#webmcpAvailable = typeof navigator !== 'undefined'
             && 'modelContext' in navigator;
@@ -521,6 +594,58 @@ class WebMCPBridge {
 
     async #register() {
         if (this.#registered) return;
+
+        // Load Hardening Modules (Phase I)
+        try {
+            const hardening = await import('./production_hardening.js');
+            this.#validator = new hardening.ValidationSystem();
+            this.#limiter = new hardening.RateLimiter();
+            this.#metrics = new hardening.MetricsCollector();
+            console.log("[WebMCP] Production Hardening Active ✅");
+
+            // Monkey Patch registerTool (Phase I)
+            if (window.navigator.modelContext) {
+                const originalRegister = window.navigator.modelContext.registerTool.bind(window.navigator.modelContext);
+                window.navigator.modelContext.registerTool = async (tool, handler) => {
+                    const name = tool.name;
+                    const actualHandler = handler || tool.handler;
+
+                    if (!actualHandler) return originalRegister(tool, handler);
+
+                    const wrapped = this.#wrapHandler(name, actualHandler);
+
+                    if (handler) {
+                        return await originalRegister(tool, wrapped);
+                    } else {
+                        // Create a copy to prevent side effects
+                        return await originalRegister({ ...tool, handler: wrapped });
+                    }
+                };
+            }
+        } catch (e) {
+            console.warn("[WebMCP] Hardening modules not loaded:", e);
+        }
+
+        if (!window.navigator.modelContext) {
+            console.warn("WebMCP not available (navigator.modelContext missing)");
+
+            if (this.#mockMode) {
+                console.warn("⚠️ WebMCP: Activating MOCK MODE for verification.");
+                window.navigator.modelContext = {
+                    registerTool: async (tool, handler) => {
+                        console.log(`[MockMCP] Registered: ${tool.name}`);
+                        window.mockTools = window.mockTools || {};
+                        window.mockTools[tool.name] = { tool, handler };
+                        return true;
+                    }
+                };
+                this.#webmcpAvailable = true;
+                // Proceed to registration...
+            } else {
+                this.#webmcpAvailable = false;
+                return;
+            }
+        }
         this.#registered = true;
 
         console.log('🔌 WebMCP: Registering Geometry OS tools...');
@@ -564,6 +689,11 @@ class WebMCPBridge {
             await this.#registerBuilderAssembleCartridge();
             await this.#registerBuilderPreview();
             await this.#registerBuilderGetState();
+
+            // Phase J.2 tools - Neural IDE
+            await this.#registerBuilderConnectTiles();
+            await this.#registerBuilderRemoveConnection();
+            await this.#registerIDEGetState();
 
             // Phase G tools - Session Management
             await this.#registerSessionCreate();
@@ -681,10 +811,23 @@ class WebMCPBridge {
                 // Ensure singleton exists
                 if (!window.hypervisorSystem) {
                     if (!this.#app?.renderer?.device) {
-                        return { success: false, error: 'WebGPU Device not available' };
+                        if (this.#mockMode) { // Fallback for demo
+                            console.warn("Using MOCK Hypervisor System");
+                            // Simple Mock Implementation
+                            window.hypervisorSystem = {
+                                async initialize() { },
+                                async deploy(url) { console.log(`[Mock] Deployed kernel: ${url}`); },
+                                async mountFile(url, path) { console.log(`[Mock] Mounted ${url} -> ${path}`); },
+                                async tick() { },
+                                captureFrame: async () => ({ width: 800, height: 600, data: new Uint8Array(800 * 600 * 4) })
+                            };
+                        } else {
+                            return { success: false, error: 'WebGPU Device not available' };
+                        }
+                    } else {
+                        window.hypervisorSystem = new window.GPUExecutionSystem(this.#app.renderer.device, null);
+                        await window.hypervisorSystem.initialize();
                     }
-                    window.hypervisorSystem = new window.GPUExecutionSystem(this.#app.renderer.device, null);
-                    await window.hypervisorSystem.initialize();
                 }
 
                 try {
@@ -4330,7 +4473,160 @@ class WebMCPBridge {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // Tool 21: session_create (Phase G - Session Management)
+    // Tool 21: builder_connect_tiles (Phase J.2: Neural IDE)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerBuilderConnectTiles() {
+        const tool = {
+            name: 'builder_connect_tiles',
+            description: 'Connect two tiles with a semantic connection',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    source_tile_id: {
+                        type: 'string',
+                        description: 'Source tile ID'
+                    },
+                    target_tile_id: {
+                        type: 'string',
+                        description: 'Target tile ID'
+                    },
+                    connection_type: {
+                        type: 'string',
+                        enum: ['data_flow', 'command_flow', 'debug_flow', 'nav_flow'],
+                        description: 'Type of connection'
+                    }
+                },
+                required: ['source_tile_id', 'target_tile_id', 'connection_type']
+            },
+            handler: async (params) => {
+                return this.#handleBuilderConnectTiles(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleBuilderConnectTiles({ source_tile_id, target_tile_id, connection_type }) {
+        this.#trackCall('builder_connect_tiles');
+
+        try {
+            if (!window.builderPanel) {
+                return {
+                    success: false,
+                    error: 'BuilderPanel not available',
+                    error_code: 'BUILDER_NOT_INITIALIZED'
+                };
+            }
+
+            return window.builderPanel.connectTiles(source_tile_id, target_tile_id, connection_type);
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 22: builder_remove_connection (Phase J.2: Neural IDE)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerBuilderRemoveConnection() {
+        const tool = {
+            name: 'builder_remove_connection',
+            description: 'Remove a connection between tiles',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    connection_id: {
+                        type: 'string',
+                        description: 'Connection ID to remove'
+                    }
+                },
+                required: ['connection_id']
+            },
+            handler: async (params) => {
+                return this.#handleBuilderRemoveConnection(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleBuilderRemoveConnection({ connection_id }) {
+        this.#trackCall('builder_remove_connection');
+
+        try {
+            if (!window.builderPanel) {
+                return {
+                    success: false,
+                    error: 'BuilderPanel not available',
+                    error_code: 'BUILDER_NOT_INITIALIZED'
+                };
+            }
+
+            return window.builderPanel.removeConnection(connection_id);
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 23: ide_get_state (Phase J.2: Neural IDE)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerIDEGetState() {
+        const tool = {
+            name: 'ide_get_state',
+            description: 'Get complete IDE state including tiles and connections',
+            inputSchema: {
+                type: 'object',
+                properties: {}
+            },
+            handler: async (params) => {
+                return this.#handleIDEGetState(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleIDEGetState() {
+        this.#trackCall('ide_get_state');
+
+        try {
+            if (!window.builderPanel) {
+                return {
+                    success: false,
+                    error: 'BuilderPanel not available',
+                    error_code: 'BUILDER_NOT_INITIALIZED'
+                };
+            }
+
+            return window.builderPanel.getIDEState();
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 24: session_create (Phase G - Session Management)
     // ─────────────────────────────────────────────────────────────
 
     async #registerSessionCreate() {
@@ -6307,20 +6603,56 @@ class WebMCPBridge {
             a2aStatus: agentData.router?.getStatus() || null
         };
     }
+
+    // End of Agent Info methods
+
+    // Continuing with Hardening & Utility methods...
+
+    // ─────────────────────────────────────────────────────────────────
+    // Phase D: A2A Message Router
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+        /**
+         * Wrap tool handler with security and metrics (Phase I)
+         * @param {string} toolName
+         * @param {Function} handler
+         */
+    #wrapHandler(toolName, handler) {
+        return async (params) => {
+            // 1. Rate Limiting
+            if (this.#limiter) {
+                if (!this.#limiter.check(toolName)) {
+                    throw new Error(`Rate limit exceeded for tool: ${toolName}.`);
+                }
+            }
+
+            // 2. Validation
+            if (this.#validator) {
+                // Will throw if invalid
+                this.#validator.validate(toolName, params);
+            }
+
+            const start = performance.now();
+            try {
+                // 3. Execution
+                const result = await handler(params);
+
+                // 4. Success Metrics
+                if (this.#metrics) {
+                    this.#metrics.recordSuccess(toolName, performance.now() - start);
+                }
+                return result;
+            } catch (e) {
+                // 5. Error Metrics
+                if (this.#metrics) {
+                    this.#metrics.recordError(toolName);
+                }
+                throw e;
+            }
+        };
+    }
 }
-
-// ─────────────────────────────────────────────────────────────────
-// Auto-Initialize
-// ─────────────────────────────────────────────────────────────────
-
-// Expose globally for DevTools inspection
-window.webmcpBridge = new WebMCPBridge();
-
-console.log('📡 WebMCP Bridge loaded — "The Screen is the Hard Drive, and now the API surface."');
-
-// ─────────────────────────────────────────────────────────────────
-// Phase D: A2A Message Router
-// ─────────────────────────────────────────────────────────────────
 
 /**
  * A2A Message Router for Agent2Agent Communication
@@ -7060,6 +7392,10 @@ class A2AMessageRouter {
             return v.toString(16);
         });
     }
+
+    /**
+     * Wrap tool handler with security and metrics (Phase I)
+
 
     /**
      * Get router status

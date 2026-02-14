@@ -145,10 +145,21 @@
                 'builder_get_state'
             ];
 
+            // Phase J.2: Neural IDE
+            const j2Tools = ['builder_connect_tiles', 'builder_remove_connection', 'ide_get_state'];
+
             let allRegistered = true;
             for (const tool of builderTools) {
                 const registered = status.tools.includes(tool);
                 addResult(container, `Tool: ${tool}`,
+                    registered ? 'pass' : 'fail',
+                    registered ? 'Registered' : 'NOT registered');
+                if (!registered) allRegistered = false;
+            }
+
+            for (const tool of j2Tools) {
+                const registered = status.tools.includes(tool);
+                addResult(container, `Tool: ${tool} (J.2)`,
                     registered ? 'pass' : 'fail',
                     registered ? 'Registered' : 'NOT registered');
                 if (!registered) allRegistered = false;

@@ -52,6 +52,9 @@ class BuilderPanel {
         nursery: 0x88ff88
     };
 
+    /** @type {TileConnectionManager|null} */
+    #connectionManager = null;
+
     /** @type {string[]} */
     #validTileTypes = ['empty', 'system', 'data', 'code', 'cartridge', 'nursery'];
 
@@ -98,6 +101,13 @@ class BuilderPanel {
         this.#injectStyles();
         this.#render();
         this.#setupEventListeners();
+
+        // Initialize connection manager (Phase J.2)
+        if (typeof TileConnectionManager !== 'undefined') {
+            this.#connectionManager = new TileConnectionManager();
+            console.log('BuilderPanel: TileConnectionManager initialized');
+        }
+
         this.logAction('Builder Panel initialized', 'success');
         console.log('BuilderPanel: Initialized successfully');
     }
@@ -311,8 +321,61 @@ class BuilderPanel {
             });
         }
         if (bootTestBtn) {
-            bootTestBtn.addEventListener('click', () => {
-                this.logAction('Boot test button clicked', 'info');
+            bootTestBtn.addEventListener('click', async () => {
+                this.logAction('Boot test initiated...', 'info');
+
+                if (typeof window.GPUExecutionSystem === 'undefined') {
+                    this.logAction('Error: GPUExecutionSystem not found. Is gpu_execution_system.js loaded?', 'error');
+                    return;
+                }
+
+                try {
+                    // Check for WebGPUSemanticManager dependnecy
+                    if (typeof window.WebGPUSemanticManager === 'undefined') {
+                        this.logAction('Error: WebGPUSemanticManager not found.', 'error');
+                        return;
+                    }
+
+                    // Get WebGPU device from app
+                    if (!this.#app?.renderer?.device) {
+                        // Fallback: Try to get device if app isn't explicitly exposing it yet
+                        // In a real scenario, we'd ensure the app exposes the device. 
+                        // For now, let's assume if we are here, we might need to rely on the system to provide it or fail.
+                        // But actually, we can try to init one if needed, but GPUExecutionSystem expects one.
+                        // Let's assume window.geometryOSApp.renderer.device exists as per architecture.
+                        this.logAction('Warning: WebGPU Device not found in #app.renderer.device. Attempting fallback...', 'warn');
+                    }
+
+                    const device = this.#app?.renderer?.device;
+                    if (!device) {
+                        this.logAction('Critical: No WebGPU Device available.', 'error');
+                        return;
+                    }
+
+                    // Initialize System
+                    // Note: dictionary is required by constructor but we might pass null for now if not using semantic features immediately
+                    const gpuSystem = new window.GPUExecutionSystem(device, null);
+                    await gpuSystem.initialize();
+
+                    // Deploy Kernel
+                    // We assume 'linux_kernel.rts.png' is available in the root or accessible path
+                    const kernelUrl = 'linux_kernel.rts.png';
+                    this.logAction(`Deploying kernel from ${kernelUrl}...`, 'info');
+
+                    await gpuSystem.deploy(kernelUrl, 'linux_kernel_0');
+
+                    this.logAction('Kernel Deployed! Starting execution tick...', 'success');
+
+                    // Run a few ticks to verify
+                    await gpuSystem.tick('linux_kernel_0', 10);
+
+                    const state = await gpuSystem.readState('linux_kernel_0');
+                    this.logAction(`CPU State: PC=${state.pc}, Halted=${state.halted}`, 'info');
+
+                } catch (e) {
+                    this.logAction(`Boot failed: ${e.message}`, 'error');
+                    console.error(e);
+                }
             });
         }
 
@@ -711,6 +774,92 @@ class BuilderPanel {
 
         this.logAction(`Saved build state (${state.tile_count} tiles)`, 'success');
         return { success: true, tiles_saved: state.tile_count };
+    }
+
+    // ─────────────────────────────────────────────────────
+    // Phase J.2: Neural IDE - Tile Connections
+    // ─────────────────────────────────────────────────────
+
+    /**
+     * Connect two tiles
+     * @param {string} sourceTileId - Source tile ID
+     * @param {string} targetTileId - Target tile ID
+     * @param {string} connectionType - Type: data_flow, command_flow, debug_flow, nav_flow
+     * @returns {Object} - Result with success and connection_id
+     */
+    connectTiles(sourceTileId, targetTileId, connectionType) {
+        if (!this.#connectionManager) {
+            const error = 'TileConnectionManager not initialized';
+            this.logAction(error, 'error');
+            return { success: false, error };
+        }
+
+        // Verify tiles exist
+        if (!this.#placedTiles.has(sourceTileId)) {
+            const error = `Source tile not found: ${sourceTileId}`;
+            this.logAction(error, 'error');
+            return { success: false, error };
+        }
+
+        if (!this.#placedTiles.has(targetTileId)) {
+            const error = `Target tile not found: ${targetTileId}`;
+            this.logAction(error, 'error');
+            return { success: false, error };
+        }
+
+        const result = this.#connectionManager.addConnection(sourceTileId, targetTileId, connectionType);
+
+        if (result.success) {
+            this.logAction(`Connected ${sourceTileId} → ${targetTileId} (${connectionType})`, 'success');
+        } else {
+            this.logAction(`Connection failed: ${result.error}`, 'error');
+        }
+
+        return result;
+    }
+
+    /**
+     * Remove a connection between tiles
+     * @param {string} connectionId - Connection ID to remove
+     * @returns {Object} - Result with success
+     */
+    removeConnection(connectionId) {
+        if (!this.#connectionManager) {
+            return { success: false, error: 'TileConnectionManager not initialized' };
+        }
+
+        const result = this.#connectionManager.removeConnection(connectionId);
+
+        if (result.success) {
+            this.logAction(`Removed connection ${connectionId}`, 'success');
+        }
+
+        return result;
+    }
+
+    /**
+     * Get all connections for a tile
+     * @param {string} tileId - Tile ID
+     * @returns {Object[]} - Array of connections
+     */
+    getTileConnections(tileId) {
+        if (!this.#connectionManager) {
+            return [];
+        }
+        return this.#connectionManager.getTileConnections(tileId);
+    }
+
+    /**
+     * Get full IDE state including connections
+     * @returns {Object} - Complete IDE state
+     */
+    getIDEState() {
+        return {
+            tiles: Array.from(this.#placedTiles.values()),
+            connections: this.#connectionManager?.getAllConnections() || [],
+            tile_count: this.#placedTiles.size,
+            connection_count: this.#connectionManager?.connectionCount || 0
+        };
     }
 }
 
