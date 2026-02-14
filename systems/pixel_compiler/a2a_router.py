@@ -20,7 +20,7 @@ import logging
 import time
 import uuid
 from collections import defaultdict
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from enum import Enum
 from typing import Dict, List, Optional, Set, Any
 import websockets
@@ -177,6 +177,51 @@ class Task:
     created_at: float
     updated_at: float
     expires_at: Optional[float]
+
+
+@dataclass
+class SessionAgent:
+    """Agent participating in a build session."""
+    agent_id: str
+    session_id: str
+    name: str
+    role: str  # architect, builder, tester, observer
+    capabilities: List[str]
+    color: str
+    joined_at: float
+    regions_claimed: List[str] = field(default_factory=list)
+    tasks_completed: int = 0
+    status: str = "active"
+
+
+@dataclass
+class RegionClaim:
+    """A claimed region in a build session."""
+    claim_id: str
+    session_id: str
+    agent_id: str
+    bounds: Dict[str, int]  # {x, y, width, height}
+    purpose: str
+    claimed_at: float
+    expires_at: float
+    exclusive: bool = True
+
+
+@dataclass
+class BuildSession:
+    """Collaborative build session state."""
+    session_id: str
+    session_name: str
+    created_at: float
+    max_agents: int = 10
+    grid_size: int = 1000
+    coordination_mode: str = "coordinated"
+    invite_token: Optional[str] = None
+    config: Dict[str, Any] = field(default_factory=dict)
+    agents: Dict[str, SessionAgent] = field(default_factory=dict)
+    regions: Dict[str, RegionClaim] = field(default_factory=dict)
+    tasks: Dict[str, str] = field(default_factory=dict)
+    status: str = "active"
 
 
 class A2ARouter:

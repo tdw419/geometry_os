@@ -691,3 +691,69 @@ class TestA2ATaskDelegation:
         tasks = await router.list_tasks(agent_id="worker")
 
         assert len(tasks) == 2
+
+
+class TestBuildSession:
+    """Tests for collaborative build sessions."""
+
+    def test_build_session_dataclass(self):
+        """BuildSession dataclass exists with required fields."""
+        from systems.pixel_compiler.a2a_router import BuildSession
+        import time
+
+        session = BuildSession(
+            session_id="sess_001",
+            session_name="Test Session",
+            created_at=time.time(),
+            max_agents=10,
+            grid_size=1000,
+            coordination_mode="coordinated",
+            invite_token="token_abc",
+            config={}
+        )
+
+        assert session.session_id == "sess_001"
+        assert session.session_name == "Test Session"
+        assert session.agents == {}
+        assert session.regions == {}
+
+    def test_session_agent_dataclass(self):
+        """SessionAgent dataclass exists with required fields."""
+        from systems.pixel_compiler.a2a_router import SessionAgent
+        import time
+
+        agent = SessionAgent(
+            agent_id="agent_001",
+            session_id="sess_001",
+            name="Builder-A",
+            role="builder",
+            capabilities=["wgsl", "kernel"],
+            color="#4CAF50",
+            joined_at=time.time()
+        )
+
+        assert agent.agent_id == "agent_001"
+        assert agent.role == "builder"
+        assert agent.regions_claimed == []
+        assert agent.tasks_completed == 0
+
+    def test_region_claim_dataclass(self):
+        """RegionClaim dataclass exists with required fields."""
+        from systems.pixel_compiler.a2a_router import RegionClaim
+        import time
+
+        claim = RegionClaim(
+            claim_id="claim_001",
+            session_id="sess_001",
+            agent_id="agent_001",
+            bounds={"x": 0, "y": 0, "width": 100, "height": 100},
+            purpose="building",
+            claimed_at=time.time(),
+            expires_at=time.time() + 3600
+        )
+
+        assert claim.claim_id == "claim_001"
+        assert claim.agent_id == "agent_001"
+        assert claim.bounds["x"] == 0
+        assert claim.bounds["width"] == 100
+        assert claim.exclusive is True
