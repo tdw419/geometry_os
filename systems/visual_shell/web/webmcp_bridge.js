@@ -535,6 +535,12 @@ class WebMCPBridge {
             await this.#registerBuilderPreview();
             await this.#registerBuilderGetState();
 
+            // Phase G tools - Session Management
+            await this.#registerSessionCreate();
+            await this.#registerSessionJoin();
+            await this.#registerSessionLeave();
+            await this.#registerSessionGetState();
+
             // Publish OS context alongside tools
             await this.#publishContext();
 
@@ -3686,6 +3692,344 @@ class WebMCPBridge {
                 success: false,
                 error: err.message,
                 error_code: 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 21: session_create (Phase G - Session Management)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerSessionCreate() {
+        const tool = {
+            name: 'session_create',
+            description:
+                'Create a new collaborative build session for multiple AI agents. ' +
+                'Returns session_id and invite_token for other agents to join.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    session_name: {
+                        type: 'string',
+                        description: 'Human-readable session name'
+                    },
+                    max_agents: {
+                        type: 'number',
+                        description: 'Maximum concurrent agents (default: 10)',
+                        default: 10
+                    },
+                    grid_size: {
+                        type: 'number',
+                        description: 'Map grid size (default: 1000)',
+                        default: 1000
+                    },
+                    coordination_mode: {
+                        type: 'string',
+                        enum: ['free', 'coordinated', 'sequential'],
+                        description: 'Coordination mode (default: coordinated)',
+                        default: 'coordinated'
+                    },
+                    config: {
+                        type: 'object',
+                        description: 'Optional session configuration'
+                    }
+                },
+                required: ['session_name']
+            },
+            handler: async (params) => {
+                return this.#handleSessionCreate(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleSessionCreate({ session_name, max_agents = 10, grid_size = 1000, coordination_mode = 'coordinated', config }) {
+        this.#trackCall('session_create');
+
+        if (!session_name) {
+            return {
+                success: false,
+                error: 'session_name is required',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                type: 'create_session',
+                session_name,
+                max_agents,
+                grid_size,
+                coordination_mode,
+                config: config || {}
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            return {
+                success: response.success !== false,
+                session_id: response.session_id,
+                session_name: response.session_name,
+                invite_token: response.invite_token,
+                state: response.state,
+                error: response.error
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: err.message.includes('backend') ? 'BACKEND_UNAVAILABLE' : 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 22: session_join (Phase G - Session Management)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerSessionJoin() {
+        const tool = {
+            name: 'session_join',
+            description:
+                'Join an existing collaborative build session. ' +
+                'Specify role (architect, builder, tester, observer) and capabilities.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    session_id: {
+                        type: 'string',
+                        description: 'Session ID to join'
+                    },
+                    agent_name: {
+                        type: 'string',
+                        description: 'Unique agent name in session'
+                    },
+                    role: {
+                        type: 'string',
+                        enum: ['architect', 'builder', 'tester', 'observer'],
+                        description: 'Agent role (default: builder)',
+                        default: 'builder'
+                    },
+                    capabilities: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        description: 'Agent capabilities (e.g., ["wgsl", "kernel"])'
+                    },
+                    invite_token: {
+                        type: 'string',
+                        description: 'Invite token for private sessions'
+                    }
+                },
+                required: ['session_id', 'agent_name']
+            },
+            handler: async (params) => {
+                return this.#handleSessionJoin(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleSessionJoin({ session_id, agent_name, role = 'builder', capabilities, invite_token }) {
+        this.#trackCall('session_join');
+
+        if (!session_id || !agent_name) {
+            return {
+                success: false,
+                error: 'session_id and agent_name are required',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                type: 'join_session',
+                session_id,
+                agent_name,
+                role,
+                capabilities: capabilities || [],
+                invite_token
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            return {
+                success: response.success !== false,
+                agent_id: response.agent_id,
+                session_id: response.session_id,
+                role: response.role,
+                assigned_color: response.assigned_color,
+                session_state: response.session_state,
+                error: response.error
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: err.message.includes('backend') ? 'BACKEND_UNAVAILABLE' : 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 23: session_leave (Phase G - Session Management)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerSessionLeave() {
+        const tool = {
+            name: 'session_leave',
+            description:
+                'Leave a collaborative build session. ' +
+                'Releases all claimed regions. Optionally hand off regions to another agent.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    session_id: {
+                        type: 'string',
+                        description: 'Session ID to leave'
+                    },
+                    agent_id: {
+                        type: 'string',
+                        description: 'Your agent ID'
+                    },
+                    handoff_to: {
+                        type: 'string',
+                        description: 'Optional agent ID to transfer claimed regions to'
+                    }
+                },
+                required: ['session_id', 'agent_id']
+            },
+            handler: async (params) => {
+                return this.#handleSessionLeave(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleSessionLeave({ session_id, agent_id, handoff_to }) {
+        this.#trackCall('session_leave');
+
+        if (!session_id || !agent_id) {
+            return {
+                success: false,
+                error: 'session_id and agent_id are required',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                type: 'leave_session',
+                session_id,
+                agent_id,
+                handoff_to
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            return {
+                success: response.success !== false,
+                agent_id: response.agent_id,
+                released_regions: response.released_regions || [],
+                transferred_to: response.transferred_to,
+                error: response.error
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: err.message.includes('backend') ? 'BACKEND_UNAVAILABLE' : 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 24: session_get_state (Phase G - Session Management)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerSessionGetState() {
+        const tool = {
+            name: 'session_get_state',
+            description:
+                'Get the current state of a collaborative build session. ' +
+                'Returns agents, claimed regions, and progress metrics.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    session_id: {
+                        type: 'string',
+                        description: 'Session ID to query'
+                    },
+                    include: {
+                        type: 'array',
+                        items: { enum: ['agents', 'regions', 'tasks', 'progress', 'all'] },
+                        description: 'What to include in response (default: all)'
+                    }
+                },
+                required: ['session_id']
+            },
+            handler: async (params) => {
+                return this.#handleSessionGetState(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleSessionGetState({ session_id, include }) {
+        this.#trackCall('session_get_state');
+
+        if (!session_id) {
+            return {
+                success: false,
+                error: 'session_id is required',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                type: 'get_session_state',
+                session_id,
+                include: include || ['all']
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            if (response.error) {
+                return {
+                    success: false,
+                    session_id,
+                    error: response.error,
+                    error_code: 'SESSION_NOT_FOUND'
+                };
+            }
+
+            return {
+                success: true,
+                session_id: response.session_id,
+                session_name: response.session_name,
+                status: response.status,
+                agents: response.agents || [],
+                regions: response.regions || [],
+                progress: response.progress || {},
+                coordination_mode: response.coordination_mode
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: err.message.includes('backend') ? 'BACKEND_UNAVAILABLE' : 'EXECUTION_FAILED'
             };
         }
     }
