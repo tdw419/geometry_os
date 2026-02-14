@@ -44,6 +44,19 @@ class GPUExecutionSystem {
     }
 
     /**
+     * Mount a file to the virtual filesystem
+     * @param {string} url - Source URL of the file
+     * @param {string} path - Destination path in the virtual FS
+     */
+    async mountFile(url, path) {
+        if (!this.initialized) await this.initialize();
+        console.log(`[GPUExecutionSystem] Virtual Mount: ${url} -> ${path}`);
+        // In a real implementation, this would copy the file data to a specific memory region
+        // or update the file system index in the kernel memory.
+        return true;
+    }
+
+    /**
      * Deploy a kernel to the GPU substrate
      * @param {string} rtsUrl - URL to the semantic .rts.png
      * @param {string} id - Instance ID
@@ -205,38 +218,100 @@ class GPUExecutionSystem {
 
     /**
      * Inject Input Event into MMIO region (Offset 32MB)
-     * @param {string} id 
+     * MMIO Layout:
+     *   0x02000000: status (bit 0 = pending)
+     *   0x02000004: type (1=keyboard, 2=mouse, 3=touch)
+     *   0x02000008: key_code (for keyboard)
+     *   0x0200000C: mouse_x
+     *   0x02000010: mouse_y
+     *   0x02000014: flags (1=pressed, 2=released)
+     *
+     * @param {string} id - Kernel ID
      * @param {string} type - 'keyboard', 'mouse'
-     * @param {any} data 
+     * @param {object} data - {key, x, y, pressed, released}
      */
     async injectInput(id, type, data) {
-        // MMIO Layout (Simple):
-        // 0x02000000: Status/Command (1 byte)
-        // 0x02000004: Data (4 bytes)
-
-        const mmioOffset = 33554432; // 32MB
-
-        let cmdCode = 0;
-        let payload = 0;
-
-        if (type === 'keyboard') {
-            cmdCode = 1;
-            payload = (data.key || '').charCodeAt(0);
-        } else if (type === 'mouse') {
-            cmdCode = 2;
-            // Pack x/y into 32-bit (16-bit each)
-            payload = ((data.x & 0xFFFF) << 16) | (data.y & 0xFFFF);
-        }
+        const MMIO_BASE = 0x02000000; // 32MB
 
         const kernel = this.kernels.get(id);
-        if (!kernel) return;
+        if (!kernel) {
+            console.warn(`[GPUExecutionSystem] Kernel not found: ${id}`);
+            return;
+        }
 
-        // Quick write via queue (no staging buffer needed for WriteBuffer)
-        const cmdData = new Uint8Array([cmdCode]);
-        this.device.queue.writeBuffer(kernel.memoryBuffer, mmioOffset, cmdData);
+        // Build input packet
+        let inputType = 0;
+        let keyCode = 0;
+        let mouseX = 0;
+        let mouseY = 0;
+        let flags = 0;
 
-        const payloadData = new Uint32Array([payload]);
-        this.device.queue.writeBuffer(kernel.memoryBuffer, mmioOffset + 4, payloadData);
+        if (type === 'keyboard') {
+            inputType = 1;
+            // Map common keys to scancodes
+            keyCode = this.#keyToScancode(data.key || '');
+            flags = data.pressed ? 1 : (data.released ? 2 : 1);
+        } else if (type === 'mouse') {
+            inputType = 2;
+            mouseX = Math.floor(data.x) || 0;
+            mouseY = Math.floor(data.y) || 0;
+            flags = data.pressed ? 1 : (data.released ? 2 : 0);
+        }
+
+        // Write to MMIO region
+        const mmioData = new Uint32Array([
+            1,           // status = pending
+            inputType,   // type
+            keyCode,     // key
+            mouseX,      // x
+            mouseY,      // y
+            flags        // flags
+        ]);
+
+        this.device.queue.writeBuffer(
+            kernel.memoryBuffer,
+            MMIO_BASE,
+            mmioData
+        );
+
+        console.log(`[GPUExecutionSystem] Injected ${type} input:`, { inputType, keyCode, mouseX, mouseY, flags });
+    }
+
+    /**
+     * Convert key string to scancode
+     * @private
+     */
+    #keyToScancode(key) {
+        const keyMap = {
+            'Enter': 0x1C,
+            'Escape': 0x01,
+            'Backspace': 0x0E,
+            'Tab': 0x0F,
+            'Space': 0x39,
+            'ArrowUp': 0x48,
+            'ArrowDown': 0x50,
+            'ArrowLeft': 0x4B,
+            'ArrowRight': 0x4D,
+            'Shift': 0x2A,
+            'Control': 0x1D,
+            'Alt': 0x38,
+            'a': 0x1E, 'b': 0x30, 'c': 0x2E, 'd': 0x20, 'e': 0x12,
+            'f': 0x21, 'g': 0x22, 'h': 0x23, 'i': 0x17, 'j': 0x24,
+            'k': 0x25, 'l': 0x26, 'm': 0x32, 'n': 0x31, 'o': 0x18,
+            'p': 0x19, 'q': 0x10, 'r': 0x13, 's': 0x1F, 't': 0x14,
+            'u': 0x16, 'v': 0x2F, 'w': 0x11, 'x': 0x2D, 'y': 0x15,
+            'z': 0x2C,
+            '0': 0x0B, '1': 0x02, '2': 0x03, '3': 0x04, '4': 0x05,
+            '5': 0x06, '6': 0x07, '7': 0x08, '8': 0x09, '9': 0x0A,
+        };
+
+        // Single character
+        if (key.length === 1) {
+            const lower = key.toLowerCase();
+            return keyMap[lower] || key.charCodeAt(0);
+        }
+
+        return keyMap[key] || 0;
     }
 
     /**
