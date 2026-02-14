@@ -533,28 +533,82 @@ Transform WebMCP Bridge into a production-ready AI-OS interface that enables sea
 
 ---
 
-## Phase J: Collaborative Multi-AI Building (Priority: FUTURE)
+## Phase G: Collaborative Multi-AI Building (Priority: HIGH)
 
-**Timeline:** 4-5 days
+**Timeline:** 7 days
 **Goal:** Enable multiple AI agents to collaborate on building Geometry OS
+**Design Doc:** `docs/plans/2026-02-13-webmcp-phase-g-design.md`
 
-### J.1 Multi-Agent Coordination
+### G.1 Session Management (2 days)
 
-**Tasks:**
-- [ ] Task J.1.1: Design multi-agent workspace locking
-- [ ] Task J.1.2: Implement agent handoff protocols
-- [ ] Task J.1.3: Add collaborative editing primitives
-- [ ] Task J.1.4: Add conflict resolution
-
-### J.2 Agent Specialization
+**Description:** Create collaborative build sessions with agent management.
 
 **Tasks:**
-- [ ] Task J.2.1: Define builder agent roles (architect, coder, tester)
-- [ ] Task J.2.2: Implement role-based tool permissions
-- [ ] Task J.2.3: Add agent-to-agent task delegation
-- [ ] Task J.2.4: Add agent output review workflow
+- [ ] Task G.1.1: Implement `session_create` tool
+- [ ] Task G.1.2: Implement `session_join` tool
+- [ ] Task G.1.3: Implement `session_leave` tool
+- [ ] Task G.1.4: Implement `session_get_state` tool
+- [ ] Task G.1.5: Create SessionCoordinator.js
 
-**Dependencies:** Phase F (AI-Driven Visual Builder) + Phase D (A2A Protocol)
+**Success Criteria:**
+- Multiple agents can join same session
+- Session state visible to all agents
+- Agent roles (architect/builder/tester/observer) enforced
+
+---
+
+### G.2 Region Management (2 days)
+
+**Description:** Implement region claiming with conflict detection.
+
+**Tasks:**
+- [ ] Task G.2.1: Implement `region_claim` tool
+- [ ] Task G.2.2: Implement `region_release` tool
+- [ ] Task G.2.3: Implement `region_query` tool
+- [ ] Task G.2.4: Add conflict detection and suggestions
+- [ ] Task G.2.5: Integrate with A2A locks
+
+**Success Criteria:**
+- Region claims prevent overlapping work
+- Conflict detection returns suggestions
+- Claims auto-expire with timeout
+
+---
+
+### G.3 Task Delegation (2 days)
+
+**Description:** Enable agents to assign tasks to each other.
+
+**Tasks:**
+- [ ] Task G.3.1: Implement `task_delegate` tool
+- [ ] Task G.3.2: Implement `task_accept` tool
+- [ ] Task G.3.3: Implement `task_report` tool
+- [ ] Task G.3.4: Implement `task_get_queue` tool
+- [ ] Task G.3.5: Add priority queue and dependency tracking
+
+**Success Criteria:**
+- Tasks can be delegated to specific agents or "any"
+- Task completion unblocks dependent tasks
+- Task queue shows all pending work
+
+---
+
+### G.4 Checkpoints & Events (1 day)
+
+**Description:** Add checkpointing and event broadcasting.
+
+**Tasks:**
+- [ ] Task G.4.1: Implement `build_checkpoint` tool
+- [ ] Task G.4.2: Implement `build_rollback` tool
+- [ ] Task G.4.3: Add event broadcasting via A2A
+- [ ] Task G.4.4: Create collab_test.html test page
+
+**Success Criteria:**
+- Checkpoints capture session state
+- Rollback restores previous state
+- Events notify all subscribed agents
+
+**Dependencies:** Phase D (A2A Protocol) + Phase F (AI-Driven Visual Builder)
 
 ---
 
@@ -566,11 +620,11 @@ Transform WebMCP Bridge into a production-ready AI-OS interface that enables sea
 | D: A2A Protocol | ✅ COMPLETE | 2-3 days | Agent coordination |
 | E: Reliability | HIGH | 2 days | Circuit breaker, retry |
 | F: AI Visual Builder | 🎯 NEXT | 3-4 days | Builder tools, UI panel |
+| **G: Multi-AI Building** | **DESIGNED** | **7 days** | **13 collab tools** |
 | H: Performance | MEDIUM | 2 days | Metrics, batching, caching |
 | I: Security | MEDIUM | 1-2 days | Validation, rate limiting |
-| J: Multi-AI Building | FUTURE | 4-5 days | Collaborative agents |
 
-**Total Estimated Time:** 14-18 days remaining
+**Total Estimated Time:** 21-25 days remaining
 
 ---
 
@@ -582,11 +636,11 @@ graph TD
     C --> D[Phase D: A2A Protocol ✅]
     D --> E[Phase E: Reliability]
     D --> F[Phase F: AI Visual Builder]
-    F --> H[Phase H: Performance]
+    F --> G[Phase G: Multi-AI Building 🎯]
+    D --> G
+    G --> H[Phase H: Performance]
     E --> H
     H --> I[Phase I: Security]
-    D --> J[Phase J: Multi-AI Building]
-    F --> J
 ```
 
 ---
@@ -600,5 +654,6 @@ graph TD
 - Phase D Design: `docs/plans/2026-02-13-webmcp-phase-d-design.md`
 - **Phase F Design:** `docs/plans/2026-02-13-webmcp-phase-f-design.md`
 - **Phase F Implementation:** `docs/plans/2026-02-13-webmcp-phase-f-implementation.md`
+- **Phase G Design:** `docs/plans/2026-02-13-webmcp-phase-g-design.md`
 - WebMCP Spec: https://github.com/GoogleChrome/webmcp
 - MCP Protocol: https://modelcontextprotocol.io/
