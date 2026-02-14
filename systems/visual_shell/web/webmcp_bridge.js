@@ -601,6 +601,7 @@ class WebMCPBridge {
             await this.#registerHypervisorFindElement();
             await this.#registerHypervisorSetPageTable();
             await this.#registerHypervisorMapPage();
+            await this.#registerHypervisorStatus();
 
             // Publish OS context alongside tools
             await this.#publishContext();
@@ -1004,6 +1005,89 @@ class WebMCPBridge {
                     pte: '0x' + pte.toString(16),
                     pte_addr: '0x' + pteAddr.toString(16),
                     description: `Mapped VA 0x${va.toString(16)} -> PA 0x${pa.toString(16)}`
+                };
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        /* istanbul ignore next */
+        if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
+        navigator.modelContext.toolHandlers[tool.name] = tool.handler;
+        this.#registeredTools.push(tool.name);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 34: hypervisor_status (Phase H - WGPU Hypervisor)
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Get current hypervisor and VM status
+     * Enables AI agents to check if hypervisor is running and get VM state
+     */
+    async #registerHypervisorStatus() {
+        const tool = {
+            name: 'hypervisor_status',
+            description:
+                'Get current hypervisor status including running VMs, memory usage, ' +
+                'and execution state. Use this to check if a VM is booted before sending input.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    kernel_id: {
+                        type: 'string',
+                        description: 'Specific kernel ID to check (optional, returns all if not provided)'
+                    }
+                }
+            },
+            handler: async (params) => {
+                if (!window.hypervisorSystem) {
+                    return {
+                        success: true,
+                        running: false,
+                        message: 'Hypervisor not initialized'
+                    };
+                }
+
+                const kernelId = params.kernel_id;
+                const kernels = window.hypervisorSystem.kernels;
+
+                if (kernelId) {
+                    // Return specific kernel status
+                    const kernel = kernels?.get(kernelId);
+                    if (!kernel) {
+                        return {
+                            success: true,
+                            running: false,
+                            kernel_id: kernelId,
+                            message: 'Kernel not found'
+                        };
+                    }
+
+                    return {
+                        success: true,
+                        running: true,
+                        kernel_id: kernelId,
+                        memory_mb: kernel.memoryBuffer?.size ? kernel.memoryBuffer.size / (1024 * 1024) : 0,
+                        state_size: kernel.stateBuffer?.size || 0
+                    };
+                }
+
+                // Return all kernels status
+                const kernelList = [];
+                if (kernels) {
+                    for (const [id, k] of kernels) {
+                        kernelList.push({
+                            kernel_id: id,
+                            memory_mb: k.memoryBuffer?.size ? k.memoryBuffer.size / (1024 * 1024) : 0
+                        });
+                    }
+                }
+
+                return {
+                    success: true,
+                    running: kernelList.length > 0,
+                    kernel_count: kernelList.length,
+                    kernels: kernelList,
+                    message: kernelList.length > 0 ? `${kernelList.length} VM(s) running` : 'No VMs running'
                 };
             }
         };
