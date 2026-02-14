@@ -522,6 +522,11 @@ class WebMCPBridge {
             await this.#registerA2AReleaseLock();
             await this.#registerA2ABarrierEnter();
 
+            // Phase D tools - Task Delegation
+            await this.#registerA2AAssignTask();
+            await this.#registerA2AReportProgress();
+            await this.#registerA2AGetTaskResult();
+
             // Phase F tools - AI-Driven Visual Builder
             await this.#registerBuilderPlaceTile();
             await this.#registerBuilderLoadShader();
@@ -2979,7 +2984,248 @@ class WebMCPBridge {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // Tool 15: builder_place_tile (Phase F)
+    // Tool 15: a2a_assign_task (Phase D - Task Delegation)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerA2AAssignTask() {
+        const tool = {
+            name: 'a2a_assign_task',
+            description:
+                'Assign a task to another agent for asynchronous execution. ' +
+                'The target agent receives a task_assigned event and can report progress. ' +
+                'Use a2a_get_task_result to retrieve final result.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    to_agent: {
+                        type: 'string',
+                        description: 'Agent ID to assign task to'
+                    },
+                    task_type: {
+                        type: 'string',
+                        description: 'Type of task (e.g., "scan_region", "analyze_data")'
+                    },
+                    params: {
+                        type: 'object',
+                        description: 'Task parameters specific to task_type'
+                    },
+                    timeout: {
+                        type: 'number',
+                        description: 'Task timeout in seconds (default: 300)',
+                        default: 300
+                    }
+                },
+                required: ['to_agent', 'task_type', 'params']
+            },
+            handler: async (params) => {
+                return this.#handleA2AAssignTask(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleA2AAssignTask({ to_agent, task_type, params, timeout = 300 }) {
+        this.#trackCall('a2a_assign_task');
+
+        if (!to_agent || !task_type) {
+            return {
+                success: false,
+                error: 'to_agent and task_type are required',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                type: 'assign_task',
+                from_agent: 'default-agent',
+                to_agent,
+                task_type,
+                params: params || {},
+                timeout
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            return {
+                success: !response.error,
+                task_id: response.task_id,
+                status: response.status,
+                assigned_to: response.assigned_to,
+                error: response.error
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: err.message.includes('backend') ? 'BACKEND_UNAVAILABLE' : 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 16: a2a_report_progress (Phase D - Task Delegation)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerA2AReportProgress() {
+        const tool = {
+            name: 'a2a_report_progress',
+            description:
+                'Report progress on an assigned task. ' +
+                'The task owner receives progress updates via task_progress events.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    task_id: {
+                        type: 'string',
+                        description: 'Task ID to report progress on'
+                    },
+                    progress: {
+                        type: 'number',
+                        description: 'Progress value from 0.0 to 1.0',
+                        minimum: 0,
+                        maximum: 1
+                    },
+                    status: {
+                        type: 'string',
+                        description: 'Optional status update (in_progress, waiting, etc.)'
+                    },
+                    message: {
+                        type: 'string',
+                        description: 'Optional progress message'
+                    }
+                },
+                required: ['task_id', 'progress']
+            },
+            handler: async (params) => {
+                return this.#handleA2AReportProgress(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleA2AReportProgress({ task_id, progress, status, message }) {
+        this.#trackCall('a2a_report_progress');
+
+        if (!task_id) {
+            return {
+                success: false,
+                error: 'task_id is required',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                type: 'report_progress',
+                task_id,
+                agent_id: 'default-agent',
+                progress: Math.max(0, Math.min(1, progress)),
+                status,
+                message
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            return {
+                success: !response.error,
+                task_id: response.task_id,
+                progress: response.progress,
+                status: response.status,
+                error: response.error
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: err.message.includes('backend') ? 'BACKEND_UNAVAILABLE' : 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 17: a2a_get_task_result (Phase D - Task Delegation)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerA2AGetTaskResult() {
+        const tool = {
+            name: 'a2a_get_task_result',
+            description:
+                'Get status and result of an assigned task. ' +
+                'Poll this to check if a task has completed and retrieve result.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    task_id: {
+                        type: 'string',
+                        description: 'Task ID to query'
+                    }
+                },
+                required: ['task_id']
+            },
+            handler: async (params) => {
+                return this.#handleA2AGetTaskResult(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleA2AGetTaskResult({ task_id }) {
+        this.#trackCall('a2a_get_task_result');
+
+        if (!task_id) {
+            return {
+                success: false,
+                error: 'task_id is required',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                type: 'get_task',
+                task_id
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            if (response.error) {
+                return {
+                    success: false,
+                    task_id,
+                    error: response.error,
+                    error_code: 'TASK_NOT_FOUND'
+                };
+            }
+
+            return {
+                success: true,
+                task_id: response.task_id,
+                status: response.status,
+                progress: response.progress,
+                result: response.result,
+                error: response.error
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: err.message.includes('backend') ? 'BACKEND_UNAVAILABLE' : 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 18: builder_place_tile (Phase F)
     // ─────────────────────────────────────────────────────────────
 
     async #registerBuilderPlaceTile() {
