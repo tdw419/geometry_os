@@ -104,6 +104,9 @@ class WebMCPBridge {
     /** @type {Map<string, {resolve: Function, reject: Function}>} */
     #pendingA2ARequests = new Map();
 
+    /** @type {VisionCortex|null} */
+    #visionCortex = null;
+
     // ─────────────────────────────────────────────────────────────
     // Health Monitoring (Phase E)
     // ─────────────────────────────────────────────────────────────
@@ -359,6 +362,19 @@ class WebMCPBridge {
         this.#webmcpAvailable = typeof navigator !== 'undefined'
             && 'modelContext' in navigator;
 
+        // Initialize VisionCortex if available
+        if (typeof VisionCortex !== 'undefined') {
+            this.#visionCortex = new VisionCortex({
+                cacheTTL: 500,
+                cacheMaxSize: 50,
+                defaultScale: 1.0,
+                lazyLoad: true
+            });
+            console.log('🔌 WebMCP: VisionCortex initialized');
+        } else {
+            console.warn('🔌 WebMCP: VisionCortex not found (OCR features disabled)');
+        }
+
         if (!this.#webmcpAvailable) {
             console.log('🔌 WebMCP: Not available (Chrome 146+ required). ' +
                 'Visual Shell running in standard mode.');
@@ -585,6 +601,36 @@ class WebMCPBridge {
     // Phase H: Hypervisor Tools
     // ─────────────────────────────────────────────────────────────
 
+    /**
+     * Helper to get canvas from hypervisor framebuffer
+     * @returns {Promise<HTMLCanvasElement|null>}
+     */
+    async #getHypervisorCanvas() {
+        if (!window.hypervisorSystem) return null;
+
+        try {
+            const base64 = await window.hypervisorSystem.captureFrame('main_cpu');
+            if (!base64) return null;
+
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    resolve(canvas);
+                };
+                img.onerror = () => resolve(null);
+                img.src = base64.startsWith('data:') ? base64 : `data:image/png;base64,${base64}`;
+            });
+        } catch (e) {
+            console.error('VisionCortex: Failed to capture frame', e);
+            return null;
+        }
+    }
+
     async #registerHypervisorBoot() {
         const tool = {
             name: 'hypervisor_boot',
@@ -663,36 +709,53 @@ class WebMCPBridge {
     async #registerHypervisorFrame() {
         const tool = {
             name: 'hypervisor_frame',
-            description: 'Capture the current framebuffer from the WGPU Hypervisor.',
+            description: 'Get current screen state in structured format.',
             inputSchema: {
                 type: 'object',
                 properties: {
                     format: {
                         type: 'string',
-                        enum: ['base64', 'semantic'],
-                        description: 'Format to return. "base64" returns PNG image. "semantic" returns a JSON description of detected UI elements (simulated).'
+                        enum: ['semantic', 'raw', 'both'],
+                        description: 'Format: "semantic" returns JSON UI description, "raw" returns PNG base64, "both" returns both.'
+                    },
+                    scale: {
+                        type: 'number',
+                        description: 'Scale factor for OCR processing (default 1.0).'
                     }
                 }
             },
             handler: async (params) => {
                 if (!window.hypervisorSystem) return { success: false, error: 'Hypervisor not running' };
 
-                if (params.format === 'semantic') {
-                    // Simulation of Computer Vision / OCR for the AI
-                    // In a real implementation, this would run Tesseract.js or a small YOLO model
-                    return {
-                        success: true,
-                        elements: [
-                            { type: 'window', title: 'Terminal', x: 50, y: 50, width: 600, height: 400 },
-                            { type: 'text', content: 'root@alpine:~#', x: 60, y: 80 },
-                            { type: 'button', label: 'Close', x: 630, y: 55, width: 15, height: 15 }
-                        ],
-                        screen_text: "Welcome to Alpine Linux 3.18\nroot@alpine:~#"
-                    };
+                const format = params.format || 'semantic';
+                const scale = params.scale || 1.0;
+
+                if (format === 'semantic' || format === 'both') {
+                    if (!this.#visionCortex) {
+                        return { success: false, error: 'VisionCortex not available' };
+                    }
+
+                    const canvas = await this.#getHypervisorCanvas();
+                    if (!canvas) {
+                        return { success: false, error: 'Failed to capture frame' };
+                    }
+
+                    const semantic = await this.#visionCortex.getSemanticFrame(canvas, { scale });
+
+                    // Trigger visualization overlay (The "AI Buttons")
+                    window.dispatchEvent(new CustomEvent('hypervisor-semantic-update', {
+                        detail: semantic
+                    }));
+
+                    if (format === 'both') {
+                        const frame = await window.hypervisorSystem.captureFrame('main_cpu');
+                        return { ...semantic, frame_base64: frame };
+                    }
+                    return semantic;
                 }
 
                 const frame = await window.hypervisorSystem.captureFrame('main_cpu');
-                return { success: true, frame_base64: frame };
+                return { success: true, format: 'raw', frame_base64: frame };
             }
         };
         await navigator.modelContext.registerTool(tool);
@@ -702,23 +765,35 @@ class WebMCPBridge {
     async #registerHypervisorReadText() {
         const tool = {
             name: 'hypervisor_read_text',
-            description: 'Extract text from the hypervisor screen using OCR.',
+            description: 'Read text content from the framebuffer using OCR.',
             inputSchema: {
                 type: 'object',
                 properties: {
                     region: {
                         type: 'object',
-                        properties: { x: { type: 'number' }, y: { type: 'number' }, width: { type: 'number' }, height: { type: 'number' } }
+                        properties: {
+                            x: { type: 'number' },
+                            y: { type: 'number' },
+                            width: { type: 'number' },
+                            height: { type: 'number' }
+                        },
+                        description: 'Region to read text from (optional, full screen if omitted).'
+                    },
+                    scale: {
+                        type: 'number',
+                        description: 'Scale factor for OCR processing (default 2.0 for better text recognition).'
                     }
                 }
             },
             handler: async (params) => {
-                // Simulation stub
-                return {
-                    success: true,
-                    text: "login: \nPassword: ",
-                    confidence: 0.98
-                };
+                if (!window.hypervisorSystem) return { success: false, error: 'Hypervisor not running' };
+                if (!this.#visionCortex) return { success: false, error: 'VisionCortex not available' };
+
+                const canvas = await this.#getHypervisorCanvas();
+                if (!canvas) return { success: false, error: 'Failed to capture frame' };
+
+                const scale = params.scale || 2.0;
+                return await this.#visionCortex.recognize(canvas, params.region, { scale });
             }
         };
         await navigator.modelContext.registerTool(tool);
@@ -728,20 +803,43 @@ class WebMCPBridge {
     async #registerHypervisorFindElement() {
         const tool = {
             name: 'hypervisor_find_element',
-            description: 'Find coordinates of a UI element by text label or type.',
+            description: 'Find UI elements by label.',
             inputSchema: {
                 type: 'object',
                 properties: {
-                    label: { type: 'string', description: 'Text label to search for (e.g. "Submit")' },
-                    type: { type: 'string', enum: ['button', 'input', 'window', 'icon'] }
-                }
+                    label: {
+                        type: 'string',
+                        description: 'Text label to search for (required, e.g. "Submit")'
+                    },
+                    type: {
+                        type: 'string',
+                        enum: ['button', 'input', 'window', 'icon', 'any'],
+                        description: 'Element type filter (optional, default "any").'
+                    },
+                    exact: {
+                        type: 'boolean',
+                        description: 'Use exact label matching (optional, default false for fuzzy match).'
+                    },
+                    scale: {
+                        type: 'number',
+                        description: 'Scale factor for OCR processing (optional).'
+                    }
+                },
+                required: ['label']
             },
             handler: async (params) => {
-                // Simulation stub
-                if (params.label === 'Login') {
-                    return { success: true, found: true, x: 400, y: 300, width: 100, height: 30 };
-                }
-                return { success: true, found: false };
+                if (!window.hypervisorSystem) return { success: false, error: 'Hypervisor not running' };
+                if (!this.#visionCortex) return { success: false, error: 'VisionCortex not available' };
+
+                const canvas = await this.#getHypervisorCanvas();
+                if (!canvas) return { success: false, error: 'Failed to capture frame' };
+
+                const elementType = params.type || 'any';
+                const options = {
+                    exact: params.exact || false,
+                    scale: params.scale
+                };
+                return await this.#visionCortex.findElement(params.label, elementType, canvas, options);
             }
         };
         await navigator.modelContext.registerTool(tool);
