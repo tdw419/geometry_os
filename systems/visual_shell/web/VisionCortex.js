@@ -429,25 +429,248 @@ class VisionCortex {
     }
   }
 
-  /**
-   * Find a UI element by label and type
-   * @param {string} label - Text label to search for
-   * @param {string} type - Element type ('button', 'input', 'text', etc.)
-   * @param {HTMLCanvasElement} canvas - Source canvas
-   * @param {Object} options - Search options
-   * @throws {Error} Always throws 'Not implemented'
-   */
-  async findElement(label, type, canvas, options = {}) {
-    throw new Error('VisionCortex.findElement: Not implemented');
+  async findElement(label, type = 'any', canvas, options = {}) {
+    if (!canvas) {
+      return {
+        success: false,
+        error: 'Canvas required',
+        found: false,
+        elements: []
+      };
+    }
+
+    // Get OCR results
+    const ocrResult = await this.recognize(canvas, null, { scale: options.scale });
+
+    if (!ocrResult.success) {
+      return {
+        success: false,
+        error: ocrResult.error,
+        found: false,
+        elements: []
+      };
+    }
+
+    const searchLabel = label.toLowerCase();
+    const exact = options.exact || false;
+
+    // Find matching regions
+    const matches = ocrResult.regions.filter(region => {
+      const regionText = region.text.toLowerCase().trim();
+      if (exact) {
+        return regionText === searchLabel;
+      }
+      // Fuzzy match: contains or is contained by
+      return regionText.includes(searchLabel) || searchLabel.includes(regionText);
+    });
+
+    // Process by type
+    const elements = matches.map(match => {
+      const element = {
+        label: match.text,
+        type: this.#detectElementType(match, type),
+        bounds: match.bounds,
+        center: {
+          x: match.bounds.x + Math.floor(match.bounds.width / 2),
+          y: match.bounds.y + Math.floor(match.bounds.height / 2)
+        },
+        confidence: match.confidence
+      };
+
+      // Expand bounds for buttons (add padding for click target)
+      if (element.type === 'button') {
+        element.clickBounds = {
+          x: Math.max(0, element.bounds.x - 4),
+          y: Math.max(0, element.bounds.y - 4),
+          width: element.bounds.width + 8,
+          height: element.bounds.height + 8
+        };
+      }
+
+      return element;
+    }).filter(el => type === 'any' || el.type === type);
+
+    // Generate suggestions if not found
+    let suggestion = null;
+    if (elements.length === 0) {
+      const allLabels = [...new Set(ocrResult.regions.map(r => r.text.trim()))];
+      const similar = this.#findSimilarLabels(searchLabel, allLabels);
+      suggestion = `No elements matching '${label}' found.` +
+        (similar.length > 0 ? ` Similar: ${similar.join(', ')}` : '');
+    }
+
+    return {
+      success: true,
+      found: elements.length > 0,
+      elements,
+      count: elements.length,
+      suggestion
+    };
   }
 
   /**
-   * Get semantic frame analysis of canvas
-   * @param {HTMLCanvasElement} canvas - Source canvas
-   * @throws {Error} Always throws 'Not implemented'
+   * Detect element type from OCR region
+   * @private
    */
-  async getSemanticFrame(canvas) {
-    throw new Error('VisionCortex.getSemanticFrame: Not implemented');
+  #detectElementType(region, requestedType) {
+    const text = region.text.toLowerCase();
+
+    // Button heuristics
+    const buttonWords = ['ok', 'cancel', 'submit', 'login', 'logout', 'save', 'delete', 'yes', 'no', 'apply', 'close'];
+    if (buttonWords.includes(text)) return 'button';
+
+    // Link heuristics (URLs, starts with http)
+    if (text.startsWith('http') || text.includes('://')) return 'link';
+
+    // Default to text
+    return 'text';
+  }
+
+  /**
+   * Find similar labels for suggestions
+   * @private
+   */
+  #findSimilarLabels(search, labels) {
+    return labels
+      .filter(label => {
+        const l = label.toLowerCase();
+        // Levenshtein-like: check for common substrings
+        return l.includes(search.substring(0, 3)) ||
+          search.includes(l.substring(0, 3));
+      })
+      .slice(0, 3);
+  }
+
+  async getSemanticFrame(canvas, options = {}) {
+    if (!canvas) {
+      return {
+        success: false,
+        error: 'Canvas required',
+        format: 'semantic'
+      };
+    }
+
+    const startTime = performance.now();
+
+    // Get OCR results
+    const ocrResult = await this.recognize(canvas, null, { scale: options.scale });
+
+    if (!ocrResult.success) {
+      return {
+        success: false,
+        error: ocrResult.error,
+        format: 'semantic'
+      };
+    }
+
+    // Parse into semantic structures
+    const semantic = {
+      success: true,
+      format: 'semantic',
+      timestamp: Date.now(),
+      screen: {
+        width: canvas.width,
+        height: canvas.height
+      },
+      windows: this.#parseWindows(ocrResult.regions),
+      buttons: this.#parseButtons(ocrResult.regions),
+      text_fields: this.#parseTextFields(ocrResult.regions),
+      text_content: ocrResult.text,
+      processing_time_ms: performance.now() - startTime
+    };
+
+    return semantic;
+  }
+
+  /**
+   * Parse window-like structures from OCR regions
+   * @private
+   */
+  #parseWindows(regions) {
+    const windows = [];
+
+    // Look for title bar patterns (centered text at top of regions)
+    const titleCandidates = regions.filter(r =>
+      r.text.length > 3 &&
+      r.text.length < 50 &&
+      !r.text.includes('\n') &&
+      r.confidence > 0.8
+    );
+
+    // Group by vertical position (potential title bars)
+    const titleGroups = new Map();
+    for (const title of titleCandidates) {
+      const yBucket = Math.floor(title.bounds.y / 50) * 50;
+      if (!titleGroups.has(yBucket)) {
+        titleGroups.set(yBucket, []);
+      }
+      titleGroups.get(yBucket).push(title);
+    }
+
+    // Convert to window objects
+    for (const [yBucket, titles] of titleGroups) {
+      for (const title of titles) {
+        windows.push({
+          id: `win_${windows.length}`,
+          title: title.text,
+          bounds: {
+            x: title.bounds.x - 20,
+            y: Math.max(0, title.bounds.y - 20),
+            width: title.bounds.width + 40,
+            height: 400 // Estimate
+          },
+          focused: windows.length === 0 // First window is focused
+        });
+      }
+    }
+
+    return windows;
+  }
+
+  /**
+   * Parse button-like structures
+   * @private
+   */
+  #parseButtons(regions) {
+    const buttonWords = ['ok', 'cancel', 'submit', 'login', 'logout', 'save', 'delete', 'yes', 'no', 'apply', 'close', 'open', 'edit', 'view', 'help'];
+
+    return regions
+      .filter(r => {
+        const text = r.text.toLowerCase().trim();
+        return buttonWords.includes(text) ||
+          (r.confidence > 0.9 && text.length < 20);
+      })
+      .map(r => ({
+        label: r.text,
+        bounds: r.bounds,
+        enabled: true // Assume enabled unless we detect otherwise
+      }));
+  }
+
+  /**
+   * Parse text field structures
+   * @private
+   */
+  #parseTextFields(regions) {
+    // Look for input field labels (followed by empty space or cursor)
+    const fieldLabels = ['search', 'input', 'name', 'email', 'password', 'address', 'url', 'query'];
+
+    return regions
+      .filter(r => {
+        const text = r.text.toLowerCase().trim();
+        return fieldLabels.some(label => text.includes(label));
+      })
+      .map(r => ({
+        label: r.text,
+        bounds: {
+          x: r.bounds.x + r.bounds.width + 5,
+          y: r.bounds.y,
+          width: 200,
+          height: r.bounds.height + 4
+        },
+        value: '',
+        focused: false
+      }));
   }
 
   /**
@@ -470,4 +693,7 @@ class VisionCortex {
 // Export for CommonJS environments
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { VisionCortex };
+} else {
+  // Browser global
+  window.VisionCortex = VisionCortex;
 }
