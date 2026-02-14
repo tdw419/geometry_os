@@ -726,27 +726,116 @@ class WebMCPBridge {
     async #registerHypervisorInput() {
         const tool = {
             name: 'hypervisor_input',
-            description: 'Send input to the WGPU Hypervisor via MMIO.',
+            description: 'Send keyboard or mouse input to the hypervisor. Input is injected via MMIO at 0x02000000.',
             inputSchema: {
                 type: 'object',
                 properties: {
-                    type: { type: 'string', enum: ['keyboard', 'mouse'] },
+                    type: {
+                        type: 'string',
+                        enum: ['keyboard', 'mouse', 'text'],
+                        description: 'Input type: keyboard (single key), mouse (click/move), or text (string)'
+                    },
                     data: {
                         type: 'object',
                         properties: {
-                            key: { type: 'string' },
-                            x: { type: 'number' },
-                            y: { type: 'number' }
+                            // Keyboard
+                            key: { type: 'string', description: 'Key name (e.g., "a", "Enter", "ArrowUp")' },
+                            pressed: { type: 'boolean', default: true, description: 'Key pressed (true) or released (false)' },
+
+                            // Mouse
+                            x: { type: 'number', description: 'Mouse X coordinate' },
+                            y: { type: 'number', description: 'Mouse Y coordinate' },
+                            button: { type: 'string', enum: ['left', 'right', 'middle'], default: 'left' },
+                            action: { type: 'string', enum: ['move', 'click', 'down', 'up'], default: 'click' },
+
+                            // Text
+                            text: { type: 'string', description: 'Text string to type (for type="text")' }
                         }
                     }
                 },
                 required: ['type', 'data']
             },
             handler: async (params) => {
-                if (!window.hypervisorSystem) return { success: false, error: 'Hypervisor not running' };
+                if (!window.hypervisorSystem) {
+                    return { success: false, error: 'Hypervisor not running' };
+                }
 
-                await window.hypervisorSystem.injectInput('main_cpu', params.type, params.data);
-                return { success: true, status: 'injected' };
+                const { type, data } = params;
+
+                try {
+                    if (type === 'text') {
+                        // Type each character
+                        const text = data.text || '';
+                        for (const char of text) {
+                            await window.hypervisorSystem.injectInput('main_cpu', 'keyboard', {
+                                key: char,
+                                pressed: true
+                            });
+                            await new Promise(r => setTimeout(r, 10)); // Small delay
+                            await window.hypervisorSystem.injectInput('main_cpu', 'keyboard', {
+                                key: char,
+                                pressed: false
+                            });
+                            await new Promise(r => setTimeout(r, 30)); // Typing delay
+                        }
+                        return { success: true, typed: text.length };
+                    }
+
+                    if (type === 'mouse') {
+                        const action = data.action || 'click';
+
+                        if (action === 'move') {
+                            await window.hypervisorSystem.injectInput('main_cpu', 'mouse', {
+                                x: data.x,
+                                y: data.y,
+                                pressed: false,
+                                released: false
+                            });
+                        } else if (action === 'click') {
+                            // Move + press + release
+                            await window.hypervisorSystem.injectInput('main_cpu', 'mouse', {
+                                x: data.x,
+                                y: data.y,
+                                pressed: true,
+                                released: false
+                            });
+                            await new Promise(r => setTimeout(r, 50));
+                            await window.hypervisorSystem.injectInput('main_cpu', 'mouse', {
+                                x: data.x,
+                                y: data.y,
+                                pressed: false,
+                                released: true
+                            });
+                        } else if (action === 'down') {
+                            await window.hypervisorSystem.injectInput('main_cpu', 'mouse', {
+                                x: data.x,
+                                y: data.y,
+                                pressed: true,
+                                released: false
+                            });
+                        } else if (action === 'up') {
+                            await window.hypervisorSystem.injectInput('main_cpu', 'mouse', {
+                                x: data.x,
+                                y: data.y,
+                                pressed: false,
+                                released: true
+                            });
+                        }
+
+                        return { success: true, action, x: data.x, y: data.y };
+                    }
+
+                    // Keyboard
+                    await window.hypervisorSystem.injectInput('main_cpu', 'keyboard', {
+                        key: data.key,
+                        pressed: data.pressed !== false
+                    });
+
+                    return { success: true, key: data.key };
+
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
             }
         };
         await navigator.modelContext.registerTool(tool);
