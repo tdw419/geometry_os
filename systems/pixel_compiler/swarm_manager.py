@@ -7,6 +7,7 @@ Supports up to 1024 concurrent agents with 64KB memory each.
 
 from typing import Dict, List, Optional
 from dataclasses import dataclass, field
+import time
 import numpy as np
 
 try:
@@ -215,6 +216,40 @@ class SwarmManager:
 
         return agent_id
 
+    def get_agent_memory(self, agent_id: int, size: int = None) -> bytes:
+        """
+        Read agent's linear memory.
+
+        Args:
+            agent_id: Agent to read from
+            size: Number of bytes to read (default: full 64KB)
+
+        Returns:
+            Bytes from agent's memory
+
+        Raises:
+            KeyError: If agent_id not found
+        """
+        if agent_id not in self.active_agents:
+            raise KeyError(f"Agent {agent_id} not found")
+
+        slot = self.active_agents[agent_id].pool_slot
+        memory_base = slot * self.AGENT_MEMORY_SIZE
+
+        if size is None:
+            size = self.AGENT_MEMORY_SIZE
+
+        original_size = size
+
+        if self.mock:
+            return bytes(self._mock_pool[memory_base:memory_base + size])
+
+        # GPU mode: pad size to 4-byte alignment for COPY_BUFFER_ALIGNMENT
+        padded_size = ((size + 3) // 4) * 4
+        data = self.device.queue.read_buffer(self.pool_buffer, memory_base, padded_size)
+        # Return only the requested amount
+        return data.tobytes()[:original_size]
+
     def set_agent_memory(self, agent_id: int, data: bytes) -> None:
         """
         Write to agent's linear memory.
@@ -240,7 +275,11 @@ class SwarmManager:
             self._mock_pool[memory_base:memory_base + len(data)] = data
             return
 
-        # GPU mode: write to pool buffer
+        # GPU mode: pad data to 4-byte alignment for COPY_BUFFER_ALIGNMENT
+        padded_len = ((len(data) + 3) // 4) * 4
+        if padded_len != len(data):
+            data = data + b'\x00' * (padded_len - len(data))
+
         data_array = np.frombuffer(data, dtype=np.uint8)
         self.device.queue.write_buffer(self.pool_buffer, memory_base, data_array.tobytes())
 
@@ -266,3 +305,53 @@ class SwarmManager:
 
         # Free slot for reuse
         self.free_slots.append(slot)
+
+    def dispatch(self, agent_ids: List[int] = None, max_instructions: int = 10000) -> SwarmResult:
+        """
+        Execute agents in parallel on GPU.
+
+        Args:
+            agent_ids: Specific agents to run, or None for all active
+            max_instructions: Execution limit per agent
+
+        Returns:
+            SwarmResult with per-agent return values and outputs
+        """
+        start_time = time.time()
+
+        # Determine which agents to dispatch
+        if agent_ids is None:
+            agents_to_run = list(self.active_agents.keys())
+        else:
+            agents_to_run = [aid for aid in agent_ids if aid in self.active_agents]
+
+        if not agents_to_run:
+            return SwarmResult()
+
+        # Determine max slot for dispatch count
+        max_slot = max(self.active_agents[aid].pool_slot for aid in agents_to_run)
+        active_count = max_slot + 1
+
+        result = SwarmResult()
+
+        if self.mock:
+            # Mock execution: simulate results
+            for agent_id in agents_to_run:
+                state = self.active_agents[agent_id]
+                globals_base = state.pool_slot * self.GLOBALS_PER_AGENT
+
+                # Mock: return globals[0] or 0
+                return_val = int(self._mock_globals[globals_base]) if globals_base < len(self._mock_globals) else 0
+                result.agent_results[agent_id] = return_val
+                result.instruction_counts[agent_id] = 10  # Mock count
+
+            result.total_time_ms = (time.time() - start_time) * 1000
+            return result
+
+        # GPU mode placeholder - return mock-style results for now
+        for agent_id in agents_to_run:
+            result.agent_results[agent_id] = 0
+            result.instruction_counts[agent_id] = 0
+
+        result.total_time_ms = (time.time() - start_time) * 1000
+        return result

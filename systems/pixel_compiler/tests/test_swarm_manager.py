@@ -156,3 +156,114 @@ class TestSwarmManagerKill:
 
         with pytest.raises(KeyError):
             manager.kill_agent(999)
+
+
+class TestSwarmManagerMemory:
+    """Test agent memory access."""
+
+    def test_set_agent_memory(self):
+        """Can set agent memory."""
+        from systems.pixel_compiler.swarm_manager import SwarmManager
+        manager = SwarmManager()
+        manager.load_bytecode(b'\x00asm')
+
+        agent_id = manager.spawn_agent()
+        test_data = b'Hello, World!' + b'\x00' * 50
+
+        manager.set_agent_memory(agent_id, test_data)
+
+        # Verify memory was written by reading it back
+        result = manager.get_agent_memory(agent_id, len(test_data))
+        assert result[:len(test_data)] == test_data
+
+    def test_get_agent_memory_full(self):
+        """Can read full 64KB memory."""
+        from systems.pixel_compiler.swarm_manager import SwarmManager
+        manager = SwarmManager()
+        manager.load_bytecode(b'\x00asm')
+
+        agent_id = manager.spawn_agent()
+        memory = manager.get_agent_memory(agent_id)
+
+        assert len(memory) == SwarmManager.AGENT_MEMORY_SIZE  # 64KB
+
+    def test_memory_isolation(self):
+        """Agents have isolated memory."""
+        from systems.pixel_compiler.swarm_manager import SwarmManager
+        manager = SwarmManager()
+        manager.load_bytecode(b'\x00asm')
+
+        agent1 = manager.spawn_agent()
+        agent2 = manager.spawn_agent()
+
+        # Write different data to each agent
+        manager.set_agent_memory(agent1, b'AAAA')
+        manager.set_agent_memory(agent2, b'BBBB')
+
+        # Verify isolation
+        mem1 = manager.get_agent_memory(agent1, 4)
+        mem2 = manager.get_agent_memory(agent2, 4)
+
+        assert mem1 == b'AAAA'
+        assert mem2 == b'BBBB'
+
+    def test_memory_nonexistent_agent(self):
+        """Memory access on nonexistent agent raises."""
+        from systems.pixel_compiler.swarm_manager import SwarmManager
+        manager = SwarmManager()
+        manager.load_bytecode(b'\x00asm')
+
+        with pytest.raises(KeyError, match="Agent .* not found"):
+            manager.get_agent_memory(999)
+
+        with pytest.raises(KeyError, match="Agent .* not found"):
+            manager.set_agent_memory(999, b'data')
+
+
+class TestSwarmManagerDispatch:
+    """Test agent dispatch."""
+
+    def test_dispatch_returns_result(self):
+        """Dispatch returns SwarmResult."""
+        from systems.pixel_compiler.swarm_manager import SwarmManager, SwarmResult
+        manager = SwarmManager()
+        manager.load_bytecode(b'\x00asm\x01\x00\x00\x00')
+
+        manager.spawn_agent()
+        result = manager.dispatch()
+
+        assert isinstance(result, SwarmResult)
+
+    def test_dispatch_all_active(self):
+        """Dispatch runs all active agents."""
+        from systems.pixel_compiler.swarm_manager import SwarmManager
+        manager = SwarmManager()
+        manager.load_bytecode(b'\x00asm')
+
+        for _ in range(10):
+            manager.spawn_agent()
+
+        result = manager.dispatch()
+        assert len(result.agent_results) == 10
+
+    def test_dispatch_subset(self):
+        """Dispatch can run subset of agents."""
+        from systems.pixel_compiler.swarm_manager import SwarmManager
+        manager = SwarmManager()
+        manager.load_bytecode(b'\x00asm')
+
+        ids = [manager.spawn_agent() for _ in range(5)]
+
+        # Dispatch only first 2
+        result = manager.dispatch(agent_ids=ids[:2])
+        assert len(result.agent_results) == 2
+        assert set(result.agent_results.keys()) == set(ids[:2])
+
+    def test_dispatch_empty_swarm(self):
+        """Dispatch on empty swarm returns empty result."""
+        from systems.pixel_compiler.swarm_manager import SwarmManager
+        manager = SwarmManager()
+        manager.load_bytecode(b'\x00asm')
+
+        result = manager.dispatch()
+        assert len(result.agent_results) == 0
