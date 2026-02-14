@@ -910,3 +910,185 @@ class TestBuildSession:
 
         assert result["success"] is False
         assert "not_found" in result.get("error", "").lower()
+
+    # === Region Management Tests ===
+
+    @pytest.mark.asyncio
+    async def test_claim_region(self, router):
+        """Agent can claim a region."""
+        session = await router.create_session(session_name="Test")
+        joined = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Builder",
+            role="builder"
+        )
+
+        result = await router.claim_region(
+            session_id=session["session_id"],
+            agent_id=joined["agent_id"],
+            region={"x": 0, "y": 0, "width": 100, "height": 100},
+            purpose="kernel build"
+        )
+
+        assert result["success"] is True
+        assert "claim_id" in result
+        assert result["bounds"]["x"] == 0
+        assert result["bounds"]["width"] == 100
+
+    @pytest.mark.asyncio
+    async def test_claim_region_conflict(self, router):
+        """Cannot claim overlapping region (exclusive mode)."""
+        session = await router.create_session(session_name="Test")
+        agent1 = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Builder1",
+            role="builder"
+        )
+        agent2 = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Builder2",
+            role="builder"
+        )
+
+        # Agent1 claims a region
+        await router.claim_region(
+            session_id=session["session_id"],
+            agent_id=agent1["agent_id"],
+            region={"x": 0, "y": 0, "width": 100, "height": 100},
+            purpose="first"
+        )
+
+        # Agent2 tries to claim overlapping region
+        result = await router.claim_region(
+            session_id=session["session_id"],
+            agent_id=agent2["agent_id"],
+            region={"x": 50, "y": 50, "width": 100, "height": 100},
+            purpose="conflict"
+        )
+
+        assert result["success"] is False
+        assert "conflict" in result.get("error", "").lower()
+
+    @pytest.mark.asyncio
+    async def test_claim_region_nonexistent_session(self, router):
+        """Cannot claim region in nonexistent session."""
+        result = await router.claim_region(
+            session_id="sess_nonexistent",
+            agent_id="agent_001",
+            region={"x": 0, "y": 0, "width": 100, "height": 100},
+            purpose="test"
+        )
+
+        assert result["success"] is False
+
+    @pytest.mark.asyncio
+    async def test_release_region(self, router):
+        """Agent can release a claimed region."""
+        session = await router.create_session(session_name="Test")
+        joined = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Builder",
+            role="builder"
+        )
+
+        claimed = await router.claim_region(
+            session_id=session["session_id"],
+            agent_id=joined["agent_id"],
+            region={"x": 0, "y": 0, "width": 100, "height": 100},
+            purpose="test"
+        )
+
+        result = await router.release_region(
+            session_id=session["session_id"],
+            claim_id=claimed["claim_id"]
+        )
+
+        assert result["success"] is True
+        assert claimed["claim_id"] not in router.sessions[session["session_id"]].regions
+
+    @pytest.mark.asyncio
+    async def test_release_region_transfer(self, router):
+        """Releasing region can transfer to another agent."""
+        session = await router.create_session(session_name="Test")
+        agent1 = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Builder1",
+            role="builder"
+        )
+        agent2 = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Builder2",
+            role="builder"
+        )
+
+        claimed = await router.claim_region(
+            session_id=session["session_id"],
+            agent_id=agent1["agent_id"],
+            region={"x": 0, "y": 0, "width": 100, "height": 100},
+            purpose="test"
+        )
+
+        result = await router.release_region(
+            session_id=session["session_id"],
+            claim_id=claimed["claim_id"],
+            transfer_to=agent2["agent_id"]
+        )
+
+        assert result["success"] is True
+        assert result["transferred_to"] == agent2["agent_id"]
+        # Region still exists but owned by agent2
+        assert claimed["claim_id"] in router.sessions[session["session_id"]].regions
+
+    @pytest.mark.asyncio
+    async def test_query_region(self, router):
+        """Can query region ownership."""
+        session = await router.create_session(session_name="Test")
+        agent1 = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Builder1",
+            role="builder"
+        )
+
+        await router.claim_region(
+            session_id=session["session_id"],
+            agent_id=agent1["agent_id"],
+            region={"x": 0, "y": 0, "width": 100, "height": 100},
+            purpose="test"
+        )
+
+        result = await router.query_region(
+            session_id=session["session_id"],
+            region={"x": 50, "y": 50, "width": 50, "height": 50}
+        )
+
+        assert result["success"] is True
+        assert result["is_free"] is False
+        assert len(result["claims"]) == 1
+
+    @pytest.mark.asyncio
+    async def test_query_region_free(self, router):
+        """Query shows free region as available."""
+        session = await router.create_session(session_name="Test")
+        agent1 = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Builder1",
+            role="builder"
+        )
+
+        # Claim one region
+        await router.claim_region(
+            session_id=session["session_id"],
+            agent_id=agent1["agent_id"],
+            region={"x": 0, "y": 0, "width": 100, "height": 100},
+            purpose="test"
+        )
+
+        # Query a different, non-overlapping region
+        result = await router.query_region(
+            session_id=session["session_id"],
+            region={"x": 200, "y": 200, "width": 100, "height": 100}
+        )
+
+        assert result["success"] is True
+        assert result["is_free"] is True
+        assert len(result["claims"]) == 0

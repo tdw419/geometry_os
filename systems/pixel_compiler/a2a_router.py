@@ -1434,6 +1434,158 @@ class A2ARouter:
 
         return state
 
+    # === Region Management ===
+
+    def _regions_overlap(self, r1: Dict[str, int], r2: Dict[str, int]) -> bool:
+        """Check if two regions overlap."""
+        return not (
+            r1["x"] + r1["width"] <= r2["x"] or
+            r2["x"] + r2["width"] <= r1["x"] or
+            r1["y"] + r1["height"] <= r2["y"] or
+            r2["y"] + r2["height"] <= r1["y"]
+        )
+
+    async def claim_region(
+        self,
+        session_id: str,
+        agent_id: str,
+        region: Dict[str, int],
+        purpose: str,
+        exclusive: bool = True,
+        timeout: int = 300
+    ) -> Dict[str, Any]:
+        """Claim a region for exclusive or shared building."""
+        if session_id not in self.sessions:
+            return {"success": False, "error": "session_not_found"}
+
+        session = self.sessions[session_id]
+
+        if agent_id not in session.agents:
+            return {"success": False, "error": "agent_not_in_session"}
+
+        # Check for conflicts with existing claims
+        if exclusive:
+            for existing in session.regions.values():
+                if self._regions_overlap(region, existing.bounds):
+                    return {
+                        "success": False,
+                        "error": "region_conflict",
+                        "conflicting_claim": existing.claim_id,
+                        "conflicting_agent": existing.agent_id
+                    }
+
+        # Create the claim
+        claim_id = f"claim_{uuid.uuid4().hex[:8]}"
+        claim = RegionClaim(
+            claim_id=claim_id,
+            session_id=session_id,
+            agent_id=agent_id,
+            bounds=region,
+            purpose=purpose,
+            claimed_at=time.time(),
+            expires_at=time.time() + timeout,
+            exclusive=exclusive
+        )
+
+        session.regions[claim_id] = claim
+        session.agents[agent_id].regions_claimed.append(claim_id)
+
+        logger.info(f"Agent {agent_id} claimed region {claim_id} in session {session_id}")
+
+        return {
+            "success": True,
+            "claim_id": claim_id,
+            "bounds": region,
+            "purpose": purpose,
+            "exclusive": exclusive,
+            "expires_at": claim.expires_at
+        }
+
+    async def release_region(
+        self,
+        session_id: str,
+        claim_id: str,
+        transfer_to: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Release a claimed region or transfer to another agent."""
+        if session_id not in self.sessions:
+            return {"success": False, "error": "session_not_found"}
+
+        session = self.sessions[session_id]
+
+        if claim_id not in session.regions:
+            return {"success": False, "error": "claim_not_found"}
+
+        claim = session.regions[claim_id]
+        old_agent_id = claim.agent_id
+
+        if transfer_to and transfer_to in session.agents:
+            # Transfer ownership
+            claim.agent_id = transfer_to
+            session.agents[transfer_to].regions_claimed.append(claim_id)
+
+            # Remove from old agent
+            if claim_id in session.agents[old_agent_id].regions_claimed:
+                session.agents[old_agent_id].regions_claimed.remove(claim_id)
+
+            logger.info(f"Region {claim_id} transferred from {old_agent_id} to {transfer_to}")
+
+            return {
+                "success": True,
+                "claim_id": claim_id,
+                "released": False,
+                "transferred_to": transfer_to
+            }
+        else:
+            # Release the claim
+            del session.regions[claim_id]
+
+            # Remove from agent's claimed list
+            if claim_id in session.agents[old_agent_id].regions_claimed:
+                session.agents[old_agent_id].regions_claimed.remove(claim_id)
+
+            logger.info(f"Region {claim_id} released by {old_agent_id}")
+
+            return {
+                "success": True,
+                "claim_id": claim_id,
+                "released": True,
+                "transferred_to": None
+            }
+
+    async def query_region(
+        self,
+        session_id: str,
+        region: Dict[str, int]
+    ) -> Dict[str, Any]:
+        """Query region ownership and conflicts."""
+        if session_id not in self.sessions:
+            return {"success": False, "error": "session_not_found"}
+
+        session = self.sessions[session_id]
+
+        # Find all claims that overlap with the query region
+        overlapping_claims = []
+        for claim in session.regions.values():
+            if self._regions_overlap(region, claim.bounds):
+                overlapping_claims.append({
+                    "claim_id": claim.claim_id,
+                    "agent_id": claim.agent_id,
+                    "agent_name": session.agents[claim.agent_id].name if claim.agent_id in session.agents else "unknown",
+                    "bounds": claim.bounds,
+                    "purpose": claim.purpose,
+                    "exclusive": claim.exclusive,
+                    "claimed_at": claim.claimed_at
+                })
+
+        return {
+            "success": True,
+            "query_region": region,
+            "is_free": len(overlapping_claims) == 0,
+            "claims": overlapping_claims,
+            "claims_count": len(overlapping_claims)
+        }
+
     # === Utility Methods ===
     
     def get_stats(self) -> Dict[str, Any]:
