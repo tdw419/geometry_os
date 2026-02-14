@@ -1,0 +1,235 @@
+/**
+ * BuilderPanel Styles - AI-Driven Visual Builder
+ * Phase F: AI Builder UI
+ */
+
+.builder-panel {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 500px;
+    max-height: 400px;
+    background: rgba(10, 10, 15, 0.95);
+    border: 1px solid #00ff88;
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    color: #00ff88;
+    z-index: 10000;
+    overflow: hidden;
+}
+
+.builder-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background: rgba(0, 255, 136, 0.1);
+    border-bottom: 1px solid #333;
+}
+
+.builder-panel-header h3 {
+    margin: 0;
+    font-size: 14px;
+    color: #00ffff;
+}
+
+.builder-panel-header button {
+    background: transparent;
+    border: 1px solid #00ff88;
+    color: #00ff88;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 12px;
+    margin-left: 5px;
+}
+
+.builder-panel-header button:hover {
+    background: #00ff88;
+    color: #000;
+}
+
+.builder-tabs {
+    display: flex;
+    border-bottom: 1px solid #333;
+}
+
+.builder-tab {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.builder-tab:hover {
+    background: rgba(0, 255, 136, 0.1);
+}
+
+.builder-tab.active {
+    border-bottom-color: #00ff88;
+    background: rgba(0, 255, 136, 0.15);
+}
+
+.builder-tab-content {
+    display: none;
+    padding: 15px;
+}
+
+.builder-tab-content.active {
+    display: block;
+}
+
+/* Tile Palette */
+.tile-palette {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.tile-button {
+    padding: 15px;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.tile-button:hover {
+    border-color: #00ff88;
+}
+
+.tile-button.selected {
+    border-color: #00ff88;
+    background: rgba(0, 255, 136, 0.2);
+}
+
+.tile-button .icon {
+    font-size: 24px;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.tile-button .label {
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
+/* Shader Editor */
+.shader-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.shader-controls button {
+    padding: 10px;
+    background: #111;
+    border: 1px solid #00ff88;
+    color: #00ff88;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.shader-controls button:hover {
+    background: #00ff88;
+    color: #000;
+}
+
+.shader-status {
+    font-size: 11px;
+    color: #888;
+    padding: 5px 0;
+}
+
+/* Cartridge Rack */
+.cartridge-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cartridge-controls button {
+    padding: 10px;
+    background: #111;
+    border: 1px solid #ff00ff;
+    color: #ff00ff;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.cartridge-controls button:hover {
+    background: #ff00ff;
+    color: #000;
+}
+
+.cartridge-status {
+    font-size: 11px;
+    color: #888;
+}
+
+/* Action Log */
+.action-log {
+    max-height: 100px;
+    overflow-y: auto;
+    background: #000;
+    border-top: 1px solid #333;
+    padding: 10px;
+}
+
+.action-log-entry {
+    font-size: 10px;
+    padding: 3px 0;
+    border-bottom: 1px solid #222;
+}
+
+.action-log-entry.success {
+    color: #00ff88;
+}
+
+.action-log-entry.error {
+    color: #ff4444;
+}
+
+.action-log-entry .timestamp {
+    color: #666;
+    margin-right: 8px;
+}
+
+/* Quick Actions */
+.quick-actions {
+    display: flex;
+    gap: 5px;
+    padding: 10px 15px;
+    border-top: 1px solid #333;
+}
+
+.quick-actions button {
+    flex: 1;
+    padding: 8px;
+    background: #111;
+    border: 1px solid #555;
+    color: #888;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: inherit;
+}
+
+.quick-actions button:hover {
+    border-color: #00ff88;
+    color: #00ff88;
+}
+
+/* Minimized state */
+.builder-panel.minimized .builder-tabs,
+.builder-panel.minimized .builder-tab-content,
+.builder-panel.minimized .action-log,
+.builder-panel.minimized .quick-actions {
+    display: none;
+}
+
+.builder-panel.minimized {
+    max-height: 40px;
+}
