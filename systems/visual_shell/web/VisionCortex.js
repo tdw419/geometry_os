@@ -62,6 +62,61 @@ class VisionCortex {
   }
 
   /**
+   * Scale canvas for better OCR on pixel fonts or high-DPI
+   * @private
+   * @param {HTMLCanvasElement} canvas
+   * @param {number} scale
+   * @returns {HTMLCanvasElement}
+   */
+  #scaleCanvas(canvas, scale) {
+    if (scale === 1.0) return canvas;
+
+    const scaled = document.createElement('canvas');
+    scaled.width = Math.floor(canvas.width * scale);
+    scaled.height = Math.floor(canvas.height * scale);
+
+    const ctx = scaled.getContext('2d');
+    ctx.imageSmoothingEnabled = scale < 1.0; // Smooth for downscale only
+    ctx.drawImage(canvas, 0, 0, scaled.width, scaled.height);
+
+    return scaled;
+  }
+
+  /**
+   * Extract region from canvas
+   * @private
+   * @param {HTMLCanvasElement} canvas
+   * @param {Object} region
+   * @returns {HTMLCanvasElement}
+   */
+  #extractRegion(canvas, region) {
+    if (!region) return canvas;
+
+    const { x, y, width, height } = region;
+    const extracted = document.createElement('canvas');
+    extracted.width = width;
+    extracted.height = height;
+
+    const ctx = extracted.getContext('2d');
+    ctx.drawImage(canvas, x, y, width, height, 0, 0, width, height);
+
+    return extracted;
+  }
+
+  /**
+   * Normalize bounds from scaled coordinates back to original
+   * @private
+   */
+  #unscaleBounds(bounds, scale) {
+    return {
+      x: Math.floor(bounds.x / scale),
+      y: Math.floor(bounds.y / scale),
+      width: Math.floor(bounds.width / scale),
+      height: Math.floor(bounds.height / scale)
+    };
+  }
+
+  /**
    * Get cached result if available and not expired
    * @private
    * @param {string} hash - Cache key to look up
@@ -112,6 +167,87 @@ class VisionCortex {
 
     // Add hash to end of cache order (most recently used)
     this.#cacheOrder.push(hash);
+  }
+
+  /**
+   * Scale a canvas by the given factor
+   * @private
+   * @param {HTMLCanvasElement} canvas - Source canvas to scale
+   * @param {number} scale - Scale factor (1.0 = no scaling)
+   * @returns {HTMLCanvasElement} New scaled canvas or original if scale is 1.0
+   */
+  #scaleCanvas(canvas, scale) {
+    // Return unchanged if no scaling needed
+    if (scale === 1.0) {
+      return canvas;
+    }
+
+    const scaledWidth = Math.floor(canvas.width * scale);
+    const scaledHeight = Math.floor(canvas.height * scale);
+
+    // Create new canvas with scaled dimensions
+    const scaledCanvas = document.createElement('canvas');
+    scaledCanvas.width = scaledWidth;
+    scaledCanvas.height = scaledHeight;
+
+    const ctx = scaledCanvas.getContext('2d');
+
+    // Enable smoothing for downscaling, disable for upscaling
+    ctx.imageSmoothingEnabled = scale < 1.0;
+    ctx.imageSmoothingQuality = 'high';
+
+    // Draw scaled image
+    ctx.drawImage(canvas, 0, 0, scaledWidth, scaledHeight);
+
+    return scaledCanvas;
+  }
+
+  /**
+   * Extract a specific region from a canvas
+   * @private
+   * @param {HTMLCanvasElement} canvas - Source canvas
+   * @param {Object} region - Region to extract {x, y, width, height}
+   * @returns {HTMLCanvasElement} New canvas with extracted region or original if no region
+   */
+  #extractRegion(canvas, region) {
+    // Return unchanged if no region specified
+    if (!region) {
+      return canvas;
+    }
+
+    const { x, y, width, height } = region;
+
+    // Create new canvas with region dimensions
+    const regionCanvas = document.createElement('canvas');
+    regionCanvas.width = width;
+    regionCanvas.height = height;
+
+    const ctx = regionCanvas.getContext('2d');
+
+    // Draw only the specified region from source
+    ctx.drawImage(
+      canvas,
+      x, y, width, height,    // Source rectangle
+      0, 0, width, height     // Destination rectangle
+    );
+
+    return regionCanvas;
+  }
+
+  /**
+   * Unscale bounds coordinates by dividing by scale factor
+   * @private
+   * @param {Object} bounds - Bounds to unscale {x, y, width, height}
+   * @param {number} scale - Scale factor to divide by
+   * @returns {Object} New bounds object with unscaled values
+   */
+  #unscaleBounds(bounds, scale) {
+    return {
+      x: Math.floor(bounds.x / scale),
+      y: Math.floor(bounds.y / scale),
+      width: Math.floor(bounds.width / scale),
+      height: Math.floor(bounds.height / scale)
+    };
   }
 
   /**
@@ -208,15 +344,89 @@ class VisionCortex {
     });
   }
 
-  /**
-   * Perform OCR text recognition on a canvas region
-   * @param {HTMLCanvasElement} canvas - Source canvas
-   * @param {Object} region - Region to recognize {x, y, width, height}
-   * @param {Object} options - Recognition options
-   * @throws {Error} Always throws 'Not implemented'
-   */
-  async recognize(canvas, region, options = {}) {
-    throw new Error('VisionCortex.recognize: Not implemented');
+  async recognize(canvas, region = null, options = {}) {
+    const scale = options.scale || this.#config.defaultScale;
+    const startTime = performance.now();
+
+    try {
+      // Validate canvas
+      if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
+        throw new Error('Invalid canvas: expected HTMLCanvasElement');
+      }
+
+      // Default to full canvas
+      const targetRegion = region || {
+        x: 0,
+        y: 0,
+        width: canvas.width,
+        height: canvas.height
+      };
+
+      // Check cache
+      const hash = this.#hashRegion(canvas, targetRegion);
+      if (hash) {
+        const cached = this.#getCached(hash);
+        if (cached) {
+          // console.log('[VisionCortex] Cache hit for region');
+          return {
+            ...cached,
+            fromCache: true,
+            processing_time_ms: performance.now() - startTime
+          };
+        }
+      }
+
+      // Ensure Tesseract is ready (lazy load)
+      if (!this.#isReady) {
+        await this.initialize();
+      }
+
+      // Prepare image for OCR
+      const regionCanvas = this.#extractRegion(canvas, targetRegion);
+      const scaledCanvas = this.#scaleCanvas(regionCanvas, scale);
+
+      // Run OCR
+      // console.log(`[VisionCortex] Running OCR on region ${targetRegion.width}x${targetRegion.height} at scale ${scale}`);
+      const result = await this.#tesseractWorker.recognize(scaledCanvas);
+
+      // Process results
+      const output = {
+        success: true,
+        text: result.data.text,
+        confidence: result.data.confidence / 100, // Normalize to 0-1
+        regions: result.data.words.map(word => ({
+          text: word.text,
+          bounds: this.#unscaleBounds({
+            x: word.bbox.x0,
+            y: word.bbox.y0,
+            width: word.bbox.x1 - word.bbox.x0,
+            height: word.bbox.y1 - word.bbox.y0
+          }, scale),
+          confidence: word.confidence / 100
+        })),
+        processing_time_ms: performance.now() - startTime,
+        fromCache: false
+      };
+
+      // Cache result
+      if (hash) {
+        this.#setCache(hash, output);
+      }
+
+      // console.log(`[VisionCortex] OCR complete: ${output.regions.length} words, confidence ${(output.confidence * 100).toFixed(1)}%`);
+      return output;
+
+    } catch (error) {
+      console.error('[VisionCortex] OCR failed:', error);
+      return {
+        success: false,
+        error: error.message,
+        text: '',
+        confidence: 0,
+        regions: [],
+        processing_time_ms: performance.now() - startTime
+      };
+    }
   }
 
   /**
