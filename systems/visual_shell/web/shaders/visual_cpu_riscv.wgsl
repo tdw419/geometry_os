@@ -45,6 +45,76 @@ fn _get_csr_index(csr_num: u32) -> u32 {
     }
 }
 
+// --- MMU: Sv32 PAGE TABLE WALKER ---
+// Translates virtual address to physical address using Sv32 scheme
+// Returns physical address, or 0xFFFFFFFF on fault
+fn translate_address(vaddr: u32, is_write: u32, base_idx: u32) -> u32 {
+    // Get satp CSR
+    let satp = cpu_states[base_idx + CSR_SATP];
+    let satp_mode = (satp >> 31u) & 1u;
+
+    // If MMU disabled (bare mode), return virtual address as-is
+    if (satp_mode == 0u) {
+        return vaddr;
+    }
+
+    // Sv32 translation
+    let vpn1 = (vaddr >> 22u) & 0x3FFu;   // Bits 31:22
+    let vpn0 = (vaddr >> 12u) & 0x3FFu;   // Bits 21:12
+    let offset = vaddr & 0xFFFu;            // Bits 11:0
+
+    // Level 1: Get PPN from satp (bits 21:0)
+    let ppn_root = satp & 0x3FFFFFu;
+    let pte1_addr = (ppn_root * 4096u) + (vpn1 * 4u);
+
+    // Check bounds (64MB memory limit)
+    if (pte1_addr >= 67108864u) {
+        return 0xFFFFFFFFu; // Fault
+    }
+
+    let pte1 = system_memory[pte1_addr / 4u];
+    let pte1_v = pte1 & 1u;
+
+    if (pte1_v == 0u) {
+        return 0xFFFFFFFFu; // Invalid PTE
+    }
+
+    // Check if leaf (XWR bits set) - megapage support (4MB)
+    let pte1_xwr = (pte1 >> 1u) & 0x7u;
+    let is_leaf1 = pte1_xwr != 0u;
+
+    if (is_leaf1) {
+        // Megapage: 4MB page
+        let ppn1 = (pte1 >> 10u) & 0xFFFFFu;
+        return (ppn1 << 22u) | (vpn0 << 12u) | offset;
+    }
+
+    // Level 2: Walk to level 0
+    let ppn1_from_pte1 = (pte1 >> 10u) & 0x3FFFFFu;
+    let pte0_addr = (ppn1_from_pte1 * 4096u) + (vpn0 * 4u);
+
+    if (pte0_addr >= 67108864u) {
+        return 0xFFFFFFFFu;
+    }
+
+    let pte0 = system_memory[pte0_addr / 4u];
+    let pte0_v = pte0 & 1u;
+
+    if (pte0_v == 0u) {
+        return 0xFFFFFFFFu;
+    }
+
+    // Check permission (W bit for writes)
+    let pte0_w = (pte0 >> 2u) & 1u;
+    if (is_write == 1u && pte0_w == 0u) {
+        return 0xFFFFFFFFu; // Write fault
+    }
+
+    // 4KB page
+    let ppn0 = (pte0 >> 10u) & 0xFFFFFu;
+    return (ppn0 << 12u) | offset;
+}
+
 // --- COMPUTE KERNEL ---
 
 @compute @workgroup_size(64)
