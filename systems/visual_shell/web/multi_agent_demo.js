@@ -1032,7 +1032,108 @@ class CoordinatorAgent extends BaseAgent {
   }
 }
 
+// ============================================================================
+// UI Helper Functions
+// ============================================================================
+
+let scannerAgent = null;
+let processorAgent = null;
+let coordinatorAgent = null;
+let demoRunning = false;
+let demoPaused = false;
+
+/**
+ * Log a message to the activity panel
+ */
+function log(level, message) {
+    const logPanel = document.getElementById('log-panel');
+    if (!logPanel) return;
+
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+
+    const time = new Date().toLocaleTimeString();
+    const agentType = level === 'scanner' ? 'scanner' :
+                      level === 'processor' ? 'processor' :
+                      level === 'coordinator' ? 'coordinator' : 'system';
+    entry.classList.add(agentType);
+
+    entry.innerHTML = `<span class="log-time">[${time}]</span>${message}`;
+    logPanel.appendChild(entry);
+    logPanel.scrollTop = logPanel.scrollHeight;
+}
+
+function updateAgentStatus(agent, status) {
+    const dot = document.getElementById(`${agent}-status`);
+    if (dot) dot.className = `status-dot ${status}`;
+}
+
+function updateAgentMetric(agent, metric, value) {
+    const element = document.getElementById(`${agent}-${metric}`);
+    if (element) element.textContent = value;
+}
+
+function updateRegion(x, y, status) {
+    const cell = document.getElementById(`region-${x}-${y}`);
+    if (cell) {
+        cell.classList.remove('pending', 'locked', 'scanned', 'processed', 'complete');
+        cell.classList.add(status);
+    }
+    updateOverallProgress();
+}
+
+function updateOverallProgress() {
+    if (!coordinatorAgent) return;
+    const progress = coordinatorAgent.getProgress();
+    const el = document.getElementById('region-progress');
+    if (el) el.textContent = `${progress.completed}/${progress.total}`;
+    const fill = document.getElementById('progress-fill');
+    if (fill) fill.style.width = `${progress.percent}%`;
+}
+
+function updatePhaseDisplay(phaseText) {
+    const el = document.getElementById('current-phase');
+    if (el) el.textContent = phaseText;
+}
+
+function initializeGrid(width = 5, height = 5) {
+    const grid = document.getElementById('region-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    grid.style.gridTemplateColumns = `repeat(${width}, 1fr)`;
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const cell = document.createElement('div');
+            cell.id = `region-${x}-${y}`;
+            cell.className = 'region pending';
+            cell.title = `Region (${x}, ${y})`;
+            grid.appendChild(cell);
+        }
+    }
+}
+
+function clearLogs() {
+    const logPanel = document.getElementById('log-panel');
+    if (logPanel) logPanel.innerHTML = '';
+}
+
 // Export for Node.js or browser
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { BaseAgent, ScannerAgent, ProcessorAgent, CoordinatorAgent, delay };
+  module.exports = {
+    BaseAgent,
+    ScannerAgent,
+    ProcessorAgent,
+    CoordinatorAgent,
+    delay,
+    // UI helpers
+    log,
+    updateAgentStatus,
+    updateAgentMetric,
+    updateRegion,
+    updateOverallProgress,
+    updatePhaseDisplay,
+    initializeGrid,
+    clearLogs
+  };
 }
