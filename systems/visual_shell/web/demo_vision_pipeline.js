@@ -242,3 +242,59 @@ window.VisionPipeline.wait = function(ms) {
 };
 
 console.log('[VisionPipeline] Module loaded');
+
+/**
+ * Setup demo UI and event handlers
+ */
+window.setupVisionPipelineDemo = async function() {
+    console.log("[VisionPipeline] Setting up demo...");
+
+    // Wait for WebMCP
+    if (!navigator.modelContext || !navigator.modelContext.toolHandlers) {
+        console.warn("WebMCP not ready, retrying in 1s...");
+        setTimeout(window.setupVisionPipelineDemo, 1000);
+        return;
+    }
+
+    console.log("[VisionPipeline] WebMCP ready, demo available");
+    console.log("Usage: VisionPipeline.run('alpine_v2.rts.png')");
+    console.log("       VisionPipeline.run('alpine_corrupted.rts.png')");
+
+    // Auto-run if URL param present
+    const params = new URLSearchParams(window.location.search);
+    const autoAnalyze = params.get('analyze');
+    if (autoAnalyze) {
+        console.log(`[VisionPipeline] Auto-analyzing: ${autoAnalyze}`);
+        const result = await window.VisionPipeline.run(autoAnalyze);
+        console.log("[VisionPipeline] Result:", JSON.stringify(result, null, 2));
+    }
+};
+
+/**
+ * Quick test function for console
+ */
+window.testVisionPipeline = async function() {
+    // Test with Alpine container
+    console.log("=== Testing Vision Pipeline ===");
+
+    // Test 1: Valid container
+    console.log("\n[Test 1] Analyzing alpine_v2.rts.png...");
+    const result1 = await window.VisionPipeline.run('alpine_v2.rts.png');
+    console.log("Result:", result1.success ? "PASS" : "FAIL");
+
+    return result1;
+};
+
+// Initialize when Geometry OS is ready
+if (new URLSearchParams(window.location.search).has('demo_vision')) {
+    window.addEventListener('geometry-os-ready', () => {
+        setTimeout(window.setupVisionPipelineDemo, 3000);
+    });
+}
+
+// Also initialize on load for console access
+window.addEventListener('load', () => {
+    setTimeout(window.setupVisionPipelineDemo, 5000);
+});
+
+console.log("[VisionPipeline] Demo setup loaded. Use: testVisionPipeline()");
