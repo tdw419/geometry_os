@@ -517,6 +517,11 @@ class WebMCPBridge {
             await this.#registerA2ABroadcast();
             await this.#registerA2ASubscribe();
 
+            // Phase D tools - Coordination Primitives
+            await this.#registerA2AAcquireLock();
+            await this.#registerA2AReleaseLock();
+            await this.#registerA2ABarrierEnter();
+
             // Phase F tools - AI-Driven Visual Builder
             await this.#registerBuilderPlaceTile();
             await this.#registerBuilderLoadShader();
@@ -2723,6 +2728,241 @@ class WebMCPBridge {
                 success: true,
                 subscription_id: response.subscription_id,
                 status: 'active'
+            };
+
+        } catch (err) {
+            const errorCode = err.message.includes('backend not running')
+                ? 'BACKEND_UNAVAILABLE'
+                : 'EXECUTION_FAILED';
+
+            return {
+                success: false,
+                error: err.message,
+                error_code: errorCode
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 12: a2a_acquire_lock (Phase D - Coordination)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerA2AAcquireLock() {
+        const tool = {
+            name: 'a2a_acquire_lock',
+            description:
+                'Acquire a distributed lock for exclusive access to a resource. ' +
+                'Returns immediately with granted=true if lock is free, or granted=false with queue position if held by another agent. ' +
+                'Locks have automatic timeout expiration.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    lock_id: {
+                        type: 'string',
+                        description: 'Unique identifier for the lock (e.g., "region-100-200" or "resource-database")'
+                    },
+                    timeout: {
+                        type: 'number',
+                        description: 'Lock timeout in seconds (default: 30)',
+                        default: 30
+                    },
+                    agent_id: {
+                        type: 'string',
+                        description: 'Agent ID requesting the lock (defaults to current session)'
+                    }
+                },
+                required: ['lock_id']
+            },
+            handler: async (params) => {
+                return this.#handleA2AAcquireLock(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleA2AAcquireLock({ lock_id, timeout = 30, agent_id }) {
+        this.#trackCall('a2a_acquire_lock');
+
+        if (!lock_id || typeof lock_id !== 'string') {
+            return {
+                success: false,
+                error: 'lock_id is required and must be a string',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                type: 'lock_request',
+                lock_id,
+                timeout,
+                agent_id: agent_id || 'default-agent'
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            return {
+                success: true,
+                lock_id,
+                granted: response.granted ?? false,
+                expires_at: response.expires_at,
+                queue_position: response.queue_position
+            };
+
+        } catch (err) {
+            const errorCode = err.message.includes('backend not running')
+                ? 'BACKEND_UNAVAILABLE'
+                : 'EXECUTION_FAILED';
+
+            return {
+                success: false,
+                error: err.message,
+                error_code: errorCode
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 13: a2a_release_lock (Phase D - Coordination)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerA2AReleaseLock() {
+        const tool = {
+            name: 'a2a_release_lock',
+            description:
+                'Release a distributed lock that was previously acquired. ' +
+                'The next agent in the queue (if any) will be automatically granted the lock.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    lock_id: {
+                        type: 'string',
+                        description: 'Unique identifier for the lock to release'
+                    },
+                    agent_id: {
+                        type: 'string',
+                        description: 'Agent ID releasing the lock (defaults to current session)'
+                    }
+                },
+                required: ['lock_id']
+            },
+            handler: async (params) => {
+                return this.#handleA2AReleaseLock(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleA2AReleaseLock({ lock_id, agent_id }) {
+        this.#trackCall('a2a_release_lock');
+
+        if (!lock_id || typeof lock_id !== 'string') {
+            return {
+                success: false,
+                error: 'lock_id is required and must be a string',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                type: 'lock_release',
+                lock_id,
+                agent_id: agent_id || 'default-agent'
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            return {
+                success: response.released ?? true,
+                lock_id,
+                released: response.released,
+                error: response.error
+            };
+
+        } catch (err) {
+            const errorCode = err.message.includes('backend not running')
+                ? 'BACKEND_UNAVAILABLE'
+                : 'EXECUTION_FAILED';
+
+            return {
+                success: false,
+                error: err.message,
+                error_code: errorCode
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 14: a2a_barrier_enter (Phase D - Coordination)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerA2ABarrierEnter() {
+        const tool = {
+            name: 'a2a_barrier_enter',
+            description:
+                'Enter a synchronization barrier and wait for other agents. ' +
+                'When the expected number of agents have entered, all are released simultaneously. ' +
+                'Useful for coordinating multi-agent workflows at specific checkpoints.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    barrier_id: {
+                        type: 'string',
+                        description: 'Unique identifier for the barrier (e.g., "phase-1-complete")'
+                    },
+                    expected_count: {
+                        type: 'number',
+                        description: 'Number of agents that must enter before release (default: 2)',
+                        default: 2
+                    },
+                    agent_id: {
+                        type: 'string',
+                        description: 'Agent ID entering the barrier (defaults to current session)'
+                    }
+                },
+                required: ['barrier_id']
+            },
+            handler: async (params) => {
+                return this.#handleA2ABarrierEnter(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleA2ABarrierEnter({ barrier_id, expected_count = 2, agent_id }) {
+        this.#trackCall('a2a_barrier_enter');
+
+        if (!barrier_id || typeof barrier_id !== 'string') {
+            return {
+                success: false,
+                error: 'barrier_id is required and must be a string',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                type: 'barrier_enter',
+                barrier_id,
+                expected_count,
+                agent_id: agent_id || 'default-agent'
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            return {
+                success: true,
+                barrier_id,
+                released: response.released ?? false,
+                arrived_count: response.arrived_count,
+                expected_count: response.expected_count ?? expected_count
             };
 
         } catch (err) {
