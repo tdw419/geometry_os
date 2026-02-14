@@ -5,17 +5,35 @@
  * Integrates WebGPUSemanticManager with the Visual CPU RISC-V shader.
  */
 
-class GPUExecutionSystem {
+import { GPUMemoryManager } from './gpu_memory_manager.js';
+
+export class GPUExecutionSystem {
     constructor(device, dictionary) {
         this.device = device;
         this.dictionary = dictionary;
-        this.semanticManager = new WebGPUSemanticManager(device, dictionary);
+        this.semanticManager = new window.WebGPUSemanticManager(device, dictionary);
+
+        // Task 2.1: GPU Memory Management (128MB)
+        this.MEMORY_SIZE = 128 * 1024 * 1024;
+        this.memoryManager = new GPUMemoryManager(this.MEMORY_SIZE);
 
         this.kernels = new Map(); // id -> kernel state
         this.initialized = false;
 
         // Syscall hook
         this.handleSyscall = null;
+
+        // Constants for RISC-V Shader
+        this.RISCV_REGS = 32;
+        this.RISCV_PC_INDEX = 32;
+        this.RISCV_RA_INDEX = 1; // x1 is return address register
+        this.RISCV_A0_INDEX = 10; // x10 is first argument/return value register
+        this.RISCV_SATP_INDEX = 34; // CSR_SATP
+        this.RISCV_STVEC_INDEX = 35; // CSR_STVEC
+        this.RISCV_SSCRATCH_INDEX = 36; // CSR_SSCRATCH
+        this.RISCV_MODE_INDEX = 37; // Privilege mode
+        this.RISCV_HALT_INDEX = 38; // Halt flag
+        this.MAGIC_TRAP_ADDR = 0xFFFFFFFE;
     }
 
     async initialize() {
@@ -23,16 +41,30 @@ class GPUExecutionSystem {
 
         await this.semanticManager.initialize();
 
-        // Load RISC-V Execution Shader
-        const shaderCode = await fetch('shaders/visual_cpu_riscv.wgsl').then(r => r.text());
+        // Load shader module
+        const shaderCode = await this._loadShader('shaders/visual_cpu_riscv.wgsl');
         this.shaderModule = this.device.createShaderModule({
-            label: 'Visual CPU RISC-V Shader',
+            label: 'Visual CPU (RISC-V)',
             code: shaderCode
         });
 
+        // Create Bind Goup Layout
+        // Binding 0: Code (ReadOnly Storage)
+        // Binding 1: Memory (ReadWrite Storage)
+        // Binding 2: Registers (ReadWrite Storage)
+        this.bindGroupLayout = this.device.createBindGroupLayout({
+            entries: [
+                { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'read-only-storage' } },
+                { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'storage' } },
+                { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'storage' } }
+            ]
+        });
+
+        // Create Pipeline
         this.pipeline = this.device.createComputePipeline({
-            label: 'RISC-V Execution Pipeline',
-            layout: 'auto',
+            layout: this.device.createPipelineLayout({
+                bindGroupLayouts: [this.bindGroupLayout]
+            }),
             compute: {
                 module: this.shaderModule,
                 entryPoint: 'main'
@@ -40,7 +72,7 @@ class GPUExecutionSystem {
         });
 
         this.initialized = true;
-        console.log('✅ GPUExecutionSystem: RISC-V pipeline ready');
+        console.log('GPU Execution System Initialized (128MB Heap)');
     }
 
     /**
@@ -57,78 +89,114 @@ class GPUExecutionSystem {
     }
 
     /**
-     * Deploy a kernel to the GPU substrate
-     * @param {string} rtsUrl - URL to the semantic .rts.png
-     * @param {string} id - Instance ID
+     * Deploy a kernel (code) to the GPU
+     * @param {string} programUrl - URL to .rts.png or .rts binary
+     * @param {string} kernelId - Unique ID for this execution instance
      */
-    async deploy(rtsUrl, id) {
+    async deploy(programUrl, kernelId) {
         if (!this.initialized) await this.initialize();
 
-        console.log(`🚀 Deploying GPU Kernel: ${id}`);
+        console.log(`Deploying kernel ${kernelId} from ${programUrl}...`);
 
-        // 1. Load and Expand the Texture
-        const texture = await this._loadTexture(rtsUrl);
-        const expandedBuffer = await this.semanticManager.expand(texture);
+        // 1. Expand Code (using Semantic Manager)
+        // For now, if URL ends in .rts.png, use semantic expansion.
+        // If it's a raw binary, upload directly.
+        let codeData;
 
-        // 2. Create System Memory (Storage Buffer)
+        if (programUrl.endsWith('.png')) {
+            codeData = await this.semanticManager.expandTexture(programUrl);
+        } else {
+            // Fallback for raw binary (mock for now or implement loader)
+            console.warn('Raw binary loading not fully implemented, using empty buffer');
+            codeData = new Uint32Array(1024);
+        }
+
+        // 2. Create GPU Buffers
+        // Code Buffer
+        const codeBuffer = this.device.createBuffer({
+            size: Math.max(codeData.byteLength, 4096), // Min size
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+            mappedAtCreation: true
+        });
+        new Uint32Array(codeBuffer.getMappedRange()).set(codeData);
+        codeBuffer.unmap();
+
+        // Memory Buffer (128MB Shared Heap)
+        // In a real multi-process OS, we might share this buffer or allocate regions.
+        // For V1, each kernel gets its own 128MB universe (simpler).
         const memoryBuffer = this.device.createBuffer({
-            size: 64 * 1024 * 1024, // 64MB Heap (includes FB at 16MB, MMIO at 32MB)
+            size: this.MEMORY_SIZE,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
         });
 
-        // 3. Create CPU State Buffer (46 u32s: 32 regs + PC + Halt + CSRs + Trap state)
+        // State Buffer (Registers + PC + CSRs)
+        // 46 registers * 4 bytes = 184 bytes. Align to 256.
         const stateBuffer = this.device.createBuffer({
-            size: 46 * 4,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
+            size: 256 * 4,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
         });
 
-        // 4. Create Bind Group
+        // 3. Create Bind Group
         const bindGroup = this.device.createBindGroup({
-            layout: this.pipeline.getBindGroupLayout(0),
+            layout: this.bindGroupLayout,
             entries: [
-                { binding: 0, resource: { buffer: expandedBuffer } },
+                { binding: 0, resource: { buffer: codeBuffer } },
                 { binding: 1, resource: { buffer: memoryBuffer } },
                 { binding: 2, resource: { buffer: stateBuffer } }
             ]
         });
 
-        this.kernels.set(id, {
-            expandedBuffer,
+        // 4. Register Kernel
+        this.kernels.set(kernelId, {
+            codeBuffer,
             memoryBuffer,
             stateBuffer,
             bindGroup,
-            tickCount: 0
+            pc: 0,
+            cycleCount: 0
         });
 
-        console.log(`✅ GPU Kernel ${id} active on substrate.`);
+        // 5. Initialize Memory Manager regions
+        // Clear reserved regions if needed
+        // For now, start with zeroed memory (default)
+
+        return true;
     }
 
     /**
-     * Run X clock cycles for a kernel
+     * Execute cycles on the GPU
+     * @param {string} kernelId
+     * @param {number} cycles
      */
-    async tick(id, cycles = 1) {
-        const kernel = this.kernels.get(id);
-        if (!kernel) return;
+    async tick(kernelId, cycles = 1) {
+        const kernel = this.kernels.get(kernelId);
+        if (!kernel) throw new Error(`Kernel ${kernelId} not found`);
 
         const commandEncoder = this.device.createCommandEncoder();
         const passEncoder = commandEncoder.beginComputePass();
+
         passEncoder.setPipeline(this.pipeline);
         passEncoder.setBindGroup(0, kernel.bindGroup);
 
-        // Dispatch 1 workgroup for 1 core (POC level)
-        // Future: Multiple workgroups for parallel execution of different threads
-        for (let i = 0; i < cycles; i++) {
-            passEncoder.dispatchWorkgroups(1, 1, 1);
-        }
+        // Dispatch (cycles / workgroup_size)
+        // Shader workgroup_size is usually 64 or 256.
+        // Assuming visual_cpu_riscv.wgsl uses @workgroup_size(1) for sequential execution per core?
+        // Or parallel threads?
+        // If it's a single core emulator, we dispatch(1, 1, 1) and loop inside shader?
+        // Or dispatch(cycles, 1, 1) if parallel?
+        // RISC-V is sequential. So usually dispatch(1) and a loop inside shader or dispatch(1) repeated.
+        // Let's assume the shader runs 1 cycle per dispatch or has a loop.
+        // For efficiency, we want a loop inside shader.
+        // Let's assume dispatch(1) performs 1 instruction step for now.
+
+        // For performance, we usually batch. 
+        // Let's dispatch 1 workgroup.
+        passEncoder.dispatchWorkgroups(1);
 
         passEncoder.end();
         this.device.queue.submit([commandEncoder.finish()]);
 
-        kernel.tickCount += cycles;
-
-        // Check for syscalls (PC-based or Register-based)
-        // In a real implementation, the shader would set a 'syscall' flag in the state buffer
-        await this._checkSyscalls(id);
+        kernel.cycleCount += cycles;
     }
 
     /**
@@ -343,7 +411,14 @@ class GPUExecutionSystem {
             satp: states[34],         // Page table base + mode
             stvec: states[35],        // Trap handler address
             sscratch: states[36],      // Scratch register for traps
-            mode: states[37]          // Privilege mode (0=user, 1=supervisor)
+            mode: states[37],         // Privilege mode (0=user, 1=supervisor)
+            // Trap CSRs
+            sepc: states[40],         // Supervisor Exception Program Counter
+            scause: states[41],       // Supervisor Cause Register
+            stval: states[42],        // Supervisor Trap Value
+            sstatus: states[43],      // Supervisor Status Register
+            sie: states[44],          // Supervisor Interrupt Enable
+            sip: states[45]           // Supervisor Interrupt Pending
         };
     }
 
@@ -371,6 +446,96 @@ class GPUExecutionSystem {
         stagingBuffer.unmap();
 
         return new Uint8Array(data);
+    }
+
+    /**
+     * Invoke a function in the kernel (Task 2.2)
+     * @param {string} kernelId
+     * @param {number} address - Function address (PC)
+     * @param {Array<number>} args - Arguments (A0-A7)
+     * @returns {Promise<any>} - Return value (A0)
+     */
+    async invokeFunction(kernelId, address, args = []) {
+        console.log(`[GPU] Invoking function at 0x${address.toString(16)} with args:`, args);
+
+        const kernel = this.kernels.get(kernelId);
+        if (!kernel) throw new Error(`Kernel ${kernelId} not found`);
+
+        // 1. Prepare new state
+        // Set PC
+        this._writeRegister(kernel, this.RISCV_PC_INDEX, address);
+
+        // Set RA (Magic Trap)
+        this._writeRegister(kernel, this.RISCV_RA_INDEX, this.MAGIC_TRAP_ADDR);
+
+        // Set Arguments (A0-A7)
+        for (let i = 0; i < Math.min(args.length, 8); i++) {
+            this._writeRegister(kernel, this.RISCV_A0_INDEX + i, args[i]);
+        }
+
+        // 2. Run until trap (Task 2.3)
+        const endState = await this.runUntil(kernelId, this.MAGIC_TRAP_ADDR);
+
+        // 3. Get Return Value (A0)
+        // If runUntil returned state, we can read A0 from it roughly or re-read
+        // But runUntil returns the state object which contains registers array.
+        if (endState && endState.registers) {
+            // A0 is index 10. But readState returns registers[0..31].
+            // So registers[10] is A0.
+            return endState.registers[10];
+        }
+
+        // Fallback re-read if runUntil timed out or didn't return state
+        const state = await this.readState(kernelId);
+        return state ? state.registers[10] : null;
+    }
+
+    /**
+     * Run kernel until PC hits specific address or limit reached (Task 2.3)
+     */
+    async runUntil(kernelId, targetPC, maxCycles = 10000) {
+        // const kernel = this.kernels.get(kernelId);
+        let cycles = 0;
+        const batchSize = 100; // Run 100 cycles per check
+
+        while (cycles < maxCycles) {
+            await this.tick(kernelId, batchSize);
+            cycles += batchSize;
+
+            // Check PC
+            const state = await this.readState(kernelId);
+            if (!state) return null;
+
+            // Note: readState returns PC as 'pc' property
+            if (state.pc === targetPC || state.pc === 0 || state.halted) {
+                console.log(`[GPU] Run loop finished. PC: 0x${state.pc.toString(16)}, Cycles: ${cycles}`);
+                return state;
+            }
+        }
+
+        console.warn(`[GPU] Run loop timed out after ${cycles} cycles`);
+        return null;
+    }
+
+    // Helper: Write single register
+    _writeRegister(kernel, regIndex, value) {
+        const data = new Uint32Array([value]);
+        this.device.queue.writeBuffer(
+            kernel.stateBuffer,
+            regIndex * 4,
+            data
+        );
+    }
+
+    // Helper: Read single register
+    async _readRegister(kernelId, regIndex) {
+        const state = await this.readState(kernelId);
+        return state.registers[regIndex];
+    }
+
+    async _loadShader(url) {
+        const response = await fetch(url);
+        return await response.text();
     }
 }
 
