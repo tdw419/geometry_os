@@ -579,6 +579,9 @@ class A2ARouter:
             "join_session": self._handle_join_session,
             "leave_session": self._handle_leave_session,
             "get_session_state": self._handle_get_session_state,
+            "claim_region": self._handle_claim_region,
+            "release_region": self._handle_release_region,
+            "query_region": self._handle_query_region,
         }
         
         handler = handlers.get(msg_type)
@@ -1211,6 +1214,29 @@ class A2ARouter:
         return await self.get_session_state(
             session_id=data.get("session_id"),
             include=data.get("include")
+        )
+
+    async def _handle_claim_region(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        return await self.claim_region(
+            session_id=data.get("session_id"),
+            agent_id=data.get("agent_id"),
+            region=data.get("region", {}),
+            purpose=data.get("purpose", ""),
+            exclusive=data.get("exclusive", True),
+            timeout=data.get("timeout", 300)
+        )
+
+    async def _handle_release_region(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        return await self.release_region(
+            session_id=data.get("session_id"),
+            claim_id=data.get("claim_id"),
+            transfer_to=data.get("transfer_to")
+        )
+
+    async def _handle_query_region(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        return await self.query_region(
+            session_id=data.get("session_id"),
+            region=data.get("region", {})
         )
 
     # === Background Tasks ===
