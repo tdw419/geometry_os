@@ -234,6 +234,12 @@ class BuilderPanel {
      * @returns {Object}
      */
     placeTile(tileType, x, y, options = {}) {
+        // Validate tile type
+        const validTypes = ['empty', 'system', 'data', 'code', 'cartridge', 'nursery'];
+        if (!validTypes.includes(tileType)) {
+            return { success: false, error: `Invalid tile_type: ${tileType}` };
+        }
+
         const tileId = `tile_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const size = options.size || 100;
 
@@ -299,7 +305,7 @@ class BuilderPanel {
         label.y = y + 5;
         graphics.addChild(label);
 
-        graphics.tileId = tile.tileId;
+        graphics.tileId = tile.tile_id;
         this.#app.worldContainer.addChild(graphics);
 
         tile.graphics = graphics;
@@ -347,7 +353,11 @@ class BuilderPanel {
         if (logContainer) {
             const div = document.createElement('div');
             div.className = `action-log-entry ${status}`;
-            div.innerHTML = `<span class="timestamp">${timestamp}</span>${message}`;
+            const timestampSpan = document.createElement('span');
+            timestampSpan.className = 'timestamp';
+            timestampSpan.textContent = timestamp;
+            div.appendChild(timestampSpan);
+            div.appendChild(document.createTextNode(message));
             logContainer.appendChild(div);
             logContainer.scrollTop = logContainer.scrollHeight;
         }
