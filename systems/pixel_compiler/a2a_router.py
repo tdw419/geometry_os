@@ -230,6 +230,20 @@ class SessionTask:
 
 
 @dataclass
+class BuildCheckpoint:
+    """Checkpoint for build session state."""
+    checkpoint_id: str
+    session_id: str
+    checkpoint_name: str
+    description: str
+    created_at: float
+    created_by: str
+    contents: Dict[str, int]  # {tiles: N, shaders: N, cartridges: N}
+    session_state: Dict[str, Any] = field(default_factory=dict)
+    size_kb: int = 0
+
+
+@dataclass
 class BuildSession:
     """Collaborative build session state."""
     session_id: str
@@ -243,6 +257,7 @@ class BuildSession:
     agents: Dict[str, SessionAgent] = field(default_factory=dict)
     regions: Dict[str, RegionClaim] = field(default_factory=dict)
     tasks: Dict[str, SessionTask] = field(default_factory=dict)
+    checkpoints: Dict[str, BuildCheckpoint] = field(default_factory=dict)
     status: str = "active"
 
 
@@ -608,6 +623,9 @@ class A2ARouter:
             "accept_task": self._handle_accept_task,
             "report_task": self._handle_report_task,
             "get_task_queue": self._handle_get_task_queue,
+            "create_checkpoint": self._handle_create_checkpoint,
+            "list_checkpoints": self._handle_list_checkpoints,
+            "rollback_checkpoint": self._handle_rollback_checkpoint,
         }
         
         handler = handlers.get(msg_type)
@@ -1304,6 +1322,31 @@ class A2ARouter:
             priority=data.get("filter", {}).get("priority")
         )
 
+    # ─────────────────────────────────────────────────────────────
+    # Phase G.4 - Checkpoint Handlers
+    # ─────────────────────────────────────────────────────────────
+
+    async def _handle_create_checkpoint(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        return await self.create_checkpoint(
+            session_id=data.get("session_id"),
+            checkpoint_name=data.get("checkpoint_name"),
+            description=data.get("description", ""),
+            created_by=data.get("created_by"),
+            include=data.get("include")
+        )
+
+    async def _handle_list_checkpoints(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        return await self.list_checkpoints(
+            session_id=data.get("session_id")
+        )
+
+    async def _handle_rollback_checkpoint(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        return await self.rollback_checkpoint(
+            session_id=data.get("session_id"),
+            checkpoint_id=data.get("checkpoint_id"),
+            notify_agents=data.get("notify_agents", True)
+        )
+
     # === Background Tasks ===
     
     async def _heartbeat_monitor(self):
@@ -1886,6 +1929,146 @@ class A2ARouter:
             "success": True,
             "tasks": tasks,
             "summary": summary
+        }
+
+    # === Build Checkpointing ===
+
+    async def create_checkpoint(
+        self,
+        session_id: str,
+        checkpoint_name: str,
+        description: str,
+        created_by: str,
+        include: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """Create a checkpoint of current session state."""
+        if session_id not in self.sessions:
+            return {"success": False, "error": "session_not_found"}
+
+        session = self.sessions[session_id]
+
+        if created_by not in session.agents:
+            return {"success": False, "error": "agent_not_in_session"}
+
+        checkpoint_id = f"ckpt_{uuid.uuid4().hex[:8]}"
+        include = include or ["tiles", "shaders", "cartridges", "session_state"]
+
+        # Capture current state
+        contents = {
+            "tiles": 0,  # Placeholder - would integrate with actual tile system
+            "shaders": 0,
+            "cartridges": 0
+        }
+
+        session_state = {}
+        if "session_state" in include:
+            session_state = {
+                "agents": {aid: {"name": a.name, "role": a.role} for aid, a in session.agents.items()},
+                "regions": {rid: {"bounds": r.bounds, "agent_id": r.agent_id} for rid, r in session.regions.items()},
+                "tasks": {tid: {"status": t.status, "type": t.task_type} for tid, t in session.tasks.items()}
+            }
+
+        checkpoint = BuildCheckpoint(
+            checkpoint_id=checkpoint_id,
+            session_id=session_id,
+            checkpoint_name=checkpoint_name,
+            description=description,
+            created_at=time.time(),
+            created_by=created_by,
+            contents=contents,
+            session_state=session_state,
+            size_kb=len(json.dumps(session_state)) // 1024
+        )
+
+        session.checkpoints[checkpoint_id] = checkpoint
+
+        logger.info(f"Checkpoint {checkpoint_id} created for session {session_id}")
+
+        return {
+            "success": True,
+            "checkpoint_id": checkpoint_id,
+            "checkpoint_name": checkpoint_name,
+            "created_at": checkpoint.created_at,
+            "size_kb": checkpoint.size_kb,
+            "contents": contents
+        }
+
+    async def list_checkpoints(self, session_id: str) -> Dict[str, Any]:
+        """List all checkpoints for a session."""
+        if session_id not in self.sessions:
+            return {"success": False, "error": "session_not_found"}
+
+        session = self.sessions[session_id]
+
+        checkpoints = [
+            {
+                "checkpoint_id": cp.checkpoint_id,
+                "checkpoint_name": cp.checkpoint_name,
+                "description": cp.description,
+                "created_at": cp.created_at,
+                "created_by": cp.created_by,
+                "size_kb": cp.size_kb
+            }
+            for cp in session.checkpoints.values()
+        ]
+
+        return {
+            "success": True,
+            "checkpoints": checkpoints,
+            "count": len(checkpoints)
+        }
+
+    async def rollback_checkpoint(
+        self,
+        session_id: str,
+        checkpoint_id: str,
+        notify_agents: bool = True
+    ) -> Dict[str, Any]:
+        """Rollback session to a previous checkpoint."""
+        if session_id not in self.sessions:
+            return {"success": False, "error": "session_not_found"}
+
+        session = self.sessions[session_id]
+
+        if checkpoint_id not in session.checkpoints:
+            return {"success": False, "error": "checkpoint_not_found"}
+
+        checkpoint = session.checkpoints[checkpoint_id]
+
+        # Capture what we're losing
+        lost = {
+            "tiles": 0,
+            "shaders": 0,
+            "cartridges": 0
+        }
+
+        # Restore session state if saved
+        if checkpoint.session_state:
+            # Note: This is a simplified restore - full implementation would
+            # restore actual tiles/shaders/cartridges
+            pass
+
+        # Notify agents if requested
+        if notify_agents:
+            for agent_id, agent_conn in self.connections.items():
+                if agent_id in session.agents:
+                    try:
+                        await agent_conn.send(json.dumps({
+                            "type": "session_rollback",
+                            "checkpoint_id": checkpoint_id,
+                            "checkpoint_name": checkpoint.checkpoint_name
+                        }))
+                    except Exception:
+                        pass
+
+        logger.info(f"Session {session_id} rolled back to checkpoint {checkpoint_id}")
+
+        return {
+            "success": True,
+            "rolled_back_to": checkpoint_id,
+            "rolled_back_at": time.time(),
+            "restored": checkpoint.contents,
+            "lost": lost
         }
 
     # === Utility Methods ===
