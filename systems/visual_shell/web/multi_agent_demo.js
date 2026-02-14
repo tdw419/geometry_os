@@ -759,7 +759,280 @@ class ProcessorAgent extends BaseAgent {
   }
 }
 
+/**
+ * CoordinatorAgent - Manages task distribution and progress tracking
+ * Coordinates ScannerAgent and ProcessorAgent across grid regions
+ */
+class CoordinatorAgent extends BaseAgent {
+  constructor(gridWidth = 5, gridHeight = 5) {
+    super('coordinator-001', 'coordinator');
+    this.gridWidth = gridWidth;
+    this.gridHeight = gridHeight;
+    this.tasksAssigned = 0;
+    this.barriersReached = 0;
+    this.currentPhase = 1;
+    this.pendingRegions = [];
+    this.completedRegions = [];
+    this.allRegions = [];
+
+    // Initialize all regions
+    for (let y = 0; y < gridHeight; y++) {
+      for (let x = 0; x < gridWidth; x++) {
+        this.allRegions.push({ x, y, status: 'pending' });
+        this.pendingRegions.push({ x, y });
+      }
+    }
+
+    // Register message handlers for task responses
+    this.registerHandler('scan_complete', (msg) => {
+      this.handleScanComplete(msg);
+    });
+
+    this.registerHandler('process_complete', (msg) => {
+      this.handleProcessComplete(msg);
+    });
+  }
+
+  getCapabilities() {
+    return ['assign_tasks', 'monitor_progress', 'coordinate_phases'];
+  }
+
+  /**
+   * Handle scan completion message from scanner
+   */
+  handleScanComplete(message) {
+    const { x, y, data } = message.content || message;
+    console.log(`[coordinator] Scan complete for region (${x}, ${y})`);
+
+    // Move from pending to completed
+    const pendingIndex = this.pendingRegions.findIndex(r => r.x === x && r.y === y);
+    if (pendingIndex !== -1) {
+      this.pendingRegions.splice(pendingIndex, 1);
+      this.completedRegions.push({ x, y, phase: 1, data });
+    }
+
+    // Update UI if available
+    this.updateProgressUI();
+  }
+
+  /**
+   * Handle process completion message from processor
+   */
+  handleProcessComplete(message) {
+    const { x, y, result } = message.content || message;
+    console.log(`[coordinator] Process complete for region (${x}, ${y})`);
+
+    // Update region status
+    const region = this.allRegions.find(r => r.x === x && r.y === y);
+    if (region) {
+      region.status = 'processed';
+      region.result = result;
+    }
+
+    // Update UI if available
+    this.updateProgressUI();
+  }
+
+  /**
+   * Start Phase 1: Assign all scan regions to scanner agent
+   */
+  async startPhase1() {
+    console.log(`[coordinator] Starting Phase 1: Scanning ${this.allRegions.length} regions`);
+
+    // Assign all regions to scanner
+    for (const region of this.pendingRegions) {
+      await this.assignScanTask(region.x, region.y);
+      this.tasksAssigned++;
+    }
+
+    console.log(`[coordinator] Phase 1: ${this.tasksAssigned} scan tasks assigned`);
+  }
+
+  /**
+   * Assign a scan task to the scanner agent
+   * @param {number} x - Grid X coordinate
+   * @param {number} y - Grid Y coordinate
+   */
+  async assignScanTask(x, y) {
+    const task = {
+      type: 'task_assignment',
+      region: { x, y },
+      action: 'scan',
+      timestamp: Date.now()
+    };
+
+    try {
+      await this.sendDirectMessage('scanner-001', 'scan_task', task);
+      console.log(`[coordinator] Assigned scan task for region (${x}, ${y})`);
+    } catch (error) {
+      console.error(`[coordinator] Failed to assign scan task (${x}, ${y}):`, error);
+    }
+  }
+
+  /**
+   * Wait for all regions to complete
+   * @param {number} expectedCount - Expected number of completions
+   * @param {number} timeoutMs - Timeout in milliseconds
+   */
+  async waitForAllComplete(expectedCount, timeoutMs = 30000) {
+    const startTime = Date.now();
+    console.log(`[coordinator] Waiting for ${expectedCount} completions (timeout: ${timeoutMs}ms)`);
+
+    return new Promise((resolve, reject) => {
+      const checkInterval = setInterval(() => {
+        const completed = this.completedRegions.length;
+        const elapsed = Date.now() - startTime;
+
+        if (completed >= expectedCount) {
+          clearInterval(checkInterval);
+          console.log(`[coordinator] All ${expectedCount} regions completed in ${elapsed}ms`);
+          resolve({
+            completed,
+            elapsed,
+            regions: this.completedRegions
+          });
+        } else if (elapsed >= timeoutMs) {
+          clearInterval(checkInterval);
+          reject(new Error(`Timeout: Only ${completed}/${expectedCount} regions completed`));
+        }
+      }, 100);
+    });
+  }
+
+  /**
+   * Get current progress statistics
+   */
+  getProgress() {
+    const total = this.allRegions.length;
+    const completed = this.completedRegions.length;
+    const pending = this.pendingRegions.length;
+    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+    return {
+      total,
+      completed,
+      pending,
+      percent,
+      phase: this.currentPhase,
+      tasksAssigned: this.tasksAssigned,
+      barriersReached: this.barriersReached
+    };
+  }
+
+  /**
+   * Update UI with current progress
+   * Hook for UI integration
+   */
+  updateProgressUI() {
+    const progress = this.getProgress();
+
+    // Emit custom event for UI to listen to
+    if (typeof window !== 'undefined' && window.dispatchEvent) {
+      window.dispatchEvent(new CustomEvent('coordinator-progress', {
+        detail: progress
+      }));
+    }
+
+    // Log progress periodically
+    if (progress.completed % 5 === 0 || progress.completed === progress.total) {
+      console.log(`[coordinator] Progress: ${progress.percent}% (${progress.completed}/${progress.total})`);
+    }
+  }
+
+  /**
+   * Start Phase 2: Assign processing tasks
+   */
+  async startPhase2() {
+    console.log(`[coordinator] Starting Phase 2: Processing ${this.completedRegions.length} regions`);
+    this.currentPhase = 2;
+
+    for (const region of this.completedRegions) {
+      await this.assignProcessTask(region.x, region.y, region.data);
+      this.tasksAssigned++;
+    }
+
+    console.log(`[coordinator] Phase 2: ${this.completedRegions.length} process tasks assigned`);
+  }
+
+  /**
+   * Assign a processing task to the processor agent
+   */
+  async assignProcessTask(x, y, scanData) {
+    const task = {
+      type: 'task_assignment',
+      region: { x, y },
+      action: 'process',
+      scanData: scanData,
+      timestamp: Date.now()
+    };
+
+    try {
+      await this.sendDirectMessage('processor-001', 'process_task', task);
+      console.log(`[coordinator] Assigned process task for region (${x}, ${y})`);
+    } catch (error) {
+      console.error(`[coordinator] Failed to assign process task (${x}, ${y}):`, error);
+    }
+  }
+
+  /**
+   * Synchronize at a barrier with all agents
+   */
+  async synchronizeAtBarrier(barrierId, expectedCount) {
+    console.log(`[coordinator] Entering barrier '${barrierId}' (expecting ${expectedCount} agents)`);
+    this.barriersReached++;
+
+    try {
+      await this.barrierEnter(barrierId, expectedCount);
+      console.log(`[coordinator] Barrier '${barrierId}' synchronized`);
+    } catch (error) {
+      console.error(`[coordinator] Barrier synchronization failed:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reset coordinator state for new run
+   */
+  reset() {
+    this.tasksAssigned = 0;
+    this.barriersReached = 0;
+    this.currentPhase = 1;
+    this.pendingRegions = [];
+    this.completedRegions = [];
+    this.allRegions = [];
+
+    // Re-initialize regions
+    for (let y = 0; y < this.gridHeight; y++) {
+      for (let x = 0; x < this.gridWidth; x++) {
+        this.allRegions.push({ x, y, status: 'pending' });
+        this.pendingRegions.push({ x, y });
+      }
+    }
+
+    console.log(`[coordinator] Reset complete. Grid: ${this.gridWidth}x${this.gridHeight}`);
+  }
+
+  /**
+   * Get detailed status report
+   */
+  getStatusReport() {
+    return {
+      ...this.getProgress(),
+      agentId: this.agentId,
+      agentType: this.agentType,
+      connected: this.connected,
+      regions: {
+        all: this.allRegions,
+        pending: this.pendingRegions,
+        completed: this.completedRegions
+      },
+      locks: Array.from(this.locks.keys()),
+      barriers: Array.from(this.barriers.keys())
+    };
+  }
+}
+
 // Export for Node.js or browser
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { BaseAgent, ScannerAgent, ProcessorAgent, delay };
+  module.exports = { BaseAgent, ScannerAgent, ProcessorAgent, CoordinatorAgent, delay };
 }
