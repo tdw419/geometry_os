@@ -33,6 +33,88 @@ class VisionCortex {
   }
 
   /**
+   * Generate a fast hash for a canvas region
+   * Samples pixels at intervals rather than full image hash
+   * @private
+   * @param {HTMLCanvasElement} canvas - Source canvas
+   * @param {Object} region - Region to hash {x, y, width, height}
+   * @returns {string} Hash string for the region
+   */
+  #hashRegion(canvas, region) {
+    const ctx = canvas.getContext('2d');
+    const { x, y, width, height } = region;
+
+    // Get image data for the region
+    const imageData = ctx.getImageData(x, y, width, height);
+    const data = imageData.data;
+    const pixelCount = width * height;
+
+    // Sample pixels at intervals for fast hashing
+    const sampleInterval = Math.max(1, Math.floor(pixelCount / 100));
+    let hash = `${width}:${height}:`;
+
+    for (let i = 0; i < data.length; i += 4 * sampleInterval) {
+      // Sample RGB values (ignore alpha for hash)
+      hash += `${data[i]},${data[i + 1]},${data[i + 2]};`;
+    }
+
+    return hash;
+  }
+
+  /**
+   * Get cached result if available and not expired
+   * @private
+   * @param {string} hash - Cache key to look up
+   * @returns {Object|null} Cached result or null if not found/expired
+   */
+  #getCached(hash) {
+    if (!this.#textCache.has(hash)) {
+      return null;
+    }
+
+    const cached = this.#textCache.get(hash);
+    const now = Date.now();
+
+    // Check if TTL has expired
+    if (now - cached.timestamp > this.#config.cacheTTL) {
+      // Remove expired entry
+      this.#textCache.delete(hash);
+      const orderIndex = this.#cacheOrder.indexOf(hash);
+      if (orderIndex !== -1) {
+        this.#cacheOrder.splice(orderIndex, 1);
+      }
+      return null;
+    }
+
+    return cached.result;
+  }
+
+  /**
+   * Store result in cache with LRU eviction
+   * @private
+   * @param {string} hash - Cache key
+   * @param {Object} result - Result to cache
+   */
+  #setCache(hash, result) {
+    // Implement LRU eviction - remove oldest entries if cache is full
+    while (this.#textCache.size >= this.#config.cacheMaxSize) {
+      const oldestHash = this.#cacheOrder.shift();
+      if (oldestHash) {
+        this.#textCache.delete(oldestHash);
+      }
+    }
+
+    // Store the result with timestamp
+    this.#textCache.set(hash, {
+      result,
+      timestamp: Date.now()
+    });
+
+    // Add hash to end of cache order (most recently used)
+    this.#cacheOrder.push(hash);
+  }
+
+  /**
    * Initialize the VisionCortex module
    * Loads Tesseract worker and prepares for recognition
    * @returns {Promise<void>}
