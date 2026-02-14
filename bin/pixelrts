@@ -1,0 +1,3 @@
+#!/bin/bash
+# PixelRTS CLI wrapper
+python3 "$(dirname "$0")/../systems/pixel_compiler/pixelrts_analyze.py" "$@"
