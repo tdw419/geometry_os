@@ -1923,6 +1923,7 @@ class WebMCPBridge {
         agent_type,
         region,
         config = {},
+        a2a_config = null,
         auto_start = true
     }) {
         this.#trackCall('spawn_area_agent');
@@ -2030,16 +2031,22 @@ class WebMCPBridge {
                 heartbeatInterval: response.heartbeatInterval || 5000
             };
 
-            // Phase D: Initialize A2A if config.a2a.enabled
+            // Phase D: Initialize A2A if config.a2a.enabled (legacy nested config)
             const a2aConfig = config?.a2a;
-            if (a2aConfig?.enabled && response.agentId) {
+
+            // New: top-level a2a_config parameter
+            // Use a2a_config if provided, otherwise fall back to legacy config.a2a
+            const finalA2AConfig = a2a_config || a2aConfig;
+            const a2aEnabled = a2a_config?.enabled !== false || a2aConfig?.enabled;
+
+            if (a2aEnabled && response.agentId) {
                 try {
                     // Create A2A router for the spawned agent
                     const a2aRouter = await this.#initAgentA2A(
                         response.agentId,
                         agent_type,
                         region,
-                        a2aConfig
+                        finalA2AConfig || {}
                     );
 
                     // Track the spawned agent's router
@@ -2047,29 +2054,35 @@ class WebMCPBridge {
                         router: a2aRouter,
                         agentType: agent_type,
                         region: { x, y, width, height },
-                        config: a2aConfig,
+                        config: finalA2AConfig || {},
                         spawnedAt: Date.now()
                     });
+
+                    // Store A2A client in the dedicated #agentA2AClients map
+                    this.#agentA2AClients.set(response.agentId, a2aRouter);
 
                     result.a2a = {
                         enabled: true,
                         agentId: response.agentId,
                         routerId: a2aRouter.getAgentId(),
-                        topics: a2aConfig.topics || [],
-                        discovery: a2aConfig.discovery !== false,
-                        heartbeatEnabled: a2aConfig.auto_heartbeat !== false,
-                        heartbeatInterval: a2aConfig.heartbeat_interval || 5
+                        topics: finalA2AConfig?.topics || [],
+                        discovery: finalA2AConfig?.discovery !== false,
+                        heartbeatEnabled: finalA2AConfig?.auto_heartbeat !== false,
+                        heartbeatInterval: finalA2AConfig?.heartbeat_interval || 5
                     };
 
                     // Set up message handlers for this agent
                     this.#setupAgentMessageHandlers(response.agentId, a2aRouter, agent_type);
 
+                    console.log(` WebMCP: A2A enabled for agent ${response.agentId}`);
+
                 } catch (a2aErr) {
-                    console.warn('🔌 WebMCP: A2A initialization failed:', a2aErr.message);
+                    console.warn(` WebMCP: A2A connection failed for ${response.agentId}:`, a2aErr.message);
                     result.a2a = {
                         enabled: false,
                         error: a2aErr.message
                     };
+                    // Non-fatal - agent still functions without A2A
                 }
             }
 
