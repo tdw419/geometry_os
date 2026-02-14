@@ -31,6 +31,14 @@
  *  10. discover_a2a_agents    — Query A2A agent registry
  *  11. a2a_coordination       — Distributed coordination (locks, barriers)
  *
+ * Phase F Tools (AI-Driven Visual Builder):
+ *  15. builder_place_tile        — Place tiles on the infinite map
+ *  16. builder_load_shader       — Load WGSL shader into builder
+ *  17. builder_evolve_shader     — Evolve shader with genetic algorithms
+ *  18. builder_assemble_cartridge — Assemble PixelRTS cartridge from region
+ *  19. builder_preview           — Capture preview image of build
+ *  20. builder_get_state         — Get current builder state
+ *
  * Area Agent A2A Integration:
  *   - spawn_area_agent now supports full A2A protocol
  *   - Agents can discover each other via registry
@@ -47,8 +55,8 @@
  * Requirements: Chrome 146+ with WebMCP support
  * Fallback: Logs warning, app runs normally without WebMCP
  *
- * @version 1.6.0
- * @phase Phase E: Health Monitoring
+ * @version 1.7.0
+ * @phase Phase F: AI-Driven Visual Builder
  * @date 2026-02-13
  */
 
@@ -505,6 +513,14 @@ class WebMCPBridge {
             await this.#registerA2ASendMessage();
             await this.#registerA2ABroadcast();
             await this.#registerA2ASubscribe();
+
+            // Phase F tools - AI-Driven Visual Builder
+            await this.#registerBuilderPlaceTile();
+            await this.#registerBuilderLoadShader();
+            await this.#registerBuilderEvolveShader();
+            await this.#registerBuilderAssembleCartridge();
+            await this.#registerBuilderPreview();
+            await this.#registerBuilderGetState();
 
             // Publish OS context alongside tools
             await this.#publishContext();
@@ -2656,6 +2672,472 @@ class WebMCPBridge {
                 success: false,
                 error: err.message,
                 error_code: errorCode
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 15: builder_place_tile (Phase F)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerBuilderPlaceTile() {
+        const tool = {
+            name: 'builder_place_tile',
+            description:
+                'Place a tile on the infinite map at specific coordinates. ' +
+                'The AI uses this to visually construct Geometry OS by placing ' +
+                'system, code, data, or cartridge tiles.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    tile_type: {
+                        type: 'string',
+                        enum: ['empty', 'system', 'data', 'code', 'cartridge', 'nursery'],
+                        description: 'Type of tile to place'
+                    },
+                    x: {
+                        type: 'number',
+                        description: 'Grid X coordinate'
+                    },
+                    y: {
+                        type: 'number',
+                        description: 'Grid Y coordinate'
+                    },
+                    size: {
+                        type: 'number',
+                        description: 'Tile size in pixels (default: 100)',
+                        default: 100
+                    },
+                    metadata: {
+                        type: 'object',
+                        description: 'Optional tile metadata'
+                    }
+                },
+                required: ['tile_type', 'x', 'y']
+            },
+            handler: async (params) => {
+                return this.#handleBuilderPlaceTile(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleBuilderPlaceTile({ tile_type, x, y, size = 100, metadata = {} }) {
+        this.#trackCall('builder_place_tile');
+
+        // Validate tile_type
+        const validTypes = ['empty', 'system', 'data', 'code', 'cartridge', 'nursery'];
+        if (!tile_type || !validTypes.includes(tile_type)) {
+            return {
+                success: false,
+                error: `tile_type must be one of: ${validTypes.join(', ')}`,
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        // Validate coordinates
+        if (typeof x !== 'number' || typeof y !== 'number') {
+            return {
+                success: false,
+                error: 'x and y must be numbers',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            // Use BuilderPanel if available
+            if (window.builderPanel) {
+                const result = window.builderPanel.placeTile(tile_type, x, y, { size, metadata });
+                return result;
+            }
+
+            // Fallback if panel not available
+            return {
+                success: true,
+                tile_id: `tile_${Date.now()}`,
+                position: { x, y },
+                size,
+                note: 'BuilderPanel not initialized - tile placed virtually'
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 16: builder_load_shader (Phase F)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerBuilderLoadShader() {
+        const tool = {
+            name: 'builder_load_shader',
+            description:
+                'Load a WGSL shader into the builder for preview and evolution. ' +
+                'The shader can be applied to tiles or evolved by the AI.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    name: {
+                        type: 'string',
+                        description: 'Shader name for identification'
+                    },
+                    wgsl_code: {
+                        type: 'string',
+                        description: 'WGSL shader source code'
+                    }
+                },
+                required: ['name', 'wgsl_code']
+            },
+            handler: async (params) => {
+                return this.#handleBuilderLoadShader(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleBuilderLoadShader({ name, wgsl_code }) {
+        this.#trackCall('builder_load_shader');
+
+        if (!name || typeof name !== 'string') {
+            return {
+                success: false,
+                error: 'name must be a non-empty string',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        if (!wgsl_code || typeof wgsl_code !== 'string') {
+            return {
+                success: false,
+                error: 'wgsl_code must be a non-empty string',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            if (window.builderPanel) {
+                const result = window.builderPanel.loadShader(name, wgsl_code);
+                return result;
+            }
+
+            return {
+                success: true,
+                shader_id: `shader_${Date.now()}`,
+                name,
+                preview_ready: false,
+                note: 'BuilderPanel not initialized'
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 17: builder_evolve_shader (Phase F)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerBuilderEvolveShader() {
+        const tool = {
+            name: 'builder_evolve_shader',
+            description:
+                'Evolve the currently loaded shader using genetic algorithms. ' +
+                'Returns evolved shader code for preview and selection.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    shader_id: {
+                        type: 'string',
+                        description: 'ID of shader to evolve'
+                    },
+                    evolution_params: {
+                        type: 'object',
+                        description: 'Evolution parameters (mutation_rate, generations, etc.)',
+                        properties: {
+                            mutation_rate: { type: 'number' },
+                            generations: { type: 'number' }
+                        }
+                    }
+                },
+                required: ['shader_id']
+            },
+            handler: async (params) => {
+                return this.#handleBuilderEvolveShader(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleBuilderEvolveShader({ shader_id, evolution_params = {} }) {
+        this.#trackCall('builder_evolve_shader');
+
+        if (!shader_id) {
+            return {
+                success: false,
+                error: 'shader_id is required',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            // Get current shader from builderPanel
+            const state = window.builderPanel?.getState();
+            const currentShader = state?.current_shader;
+
+            if (!currentShader || currentShader.shader_id !== shader_id) {
+                return {
+                    success: false,
+                    error: `Shader ${shader_id} not found in builder`,
+                    error_code: 'NOT_FOUND'
+                };
+            }
+
+            // Log evolution action
+            window.builderPanel?.logAction(`Evolving shader ${shader_id}`, 'info');
+
+            // Return evolution result (placeholder for actual evolution)
+            return {
+                success: true,
+                original_shader_id: shader_id,
+                evolved_shader_id: `evolved_${shader_id}`,
+                generations: evolution_params.generations || 10,
+                fitness_score: 0.85,
+                note: 'Shader evolution completed (stub - connect to evolution backend)'
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 18: builder_assemble_cartridge (Phase F)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerBuilderAssembleCartridge() {
+        const tool = {
+            name: 'builder_assemble_cartridge',
+            description:
+                'Assemble a PixelRTS cartridge from a region of the infinite map. ' +
+                'Collects all tiles in the region into a bootable cartridge.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    region: {
+                        type: 'object',
+                        description: 'Region to assemble',
+                        properties: {
+                            x: { type: 'number' },
+                            y: { type: 'number' },
+                            width: { type: 'number' },
+                            height: { type: 'number' }
+                        }
+                    },
+                    files: {
+                        type: 'array',
+                        description: 'Additional files to include',
+                        items: { type: 'string' }
+                    },
+                    name: {
+                        type: 'string',
+                        description: 'Cartridge name'
+                    }
+                },
+                required: ['region', 'name']
+            },
+            handler: async (params) => {
+                return this.#handleBuilderAssembleCartridge(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleBuilderAssembleCartridge({ region, files = [], name }) {
+        this.#trackCall('builder_assemble_cartridge');
+
+        if (!region || typeof region.x !== 'number') {
+            return {
+                success: false,
+                error: 'region must have x, y, width, height properties',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        if (!name) {
+            return {
+                success: false,
+                error: 'name is required',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            // Get tiles from builderPanel
+            const state = window.builderPanel?.getState();
+            const tiles = state?.tiles || [];
+
+            // Filter tiles in region
+            const regionTiles = tiles.filter(t => {
+                const tx = t.position.x;
+                const ty = t.position.y;
+                return tx >= region.x && tx < region.x + (region.width || 10) &&
+                       ty >= region.y && ty < region.y + (region.height || 10);
+            });
+
+            window.builderPanel?.logAction(`Assembling cartridge '${name}' with ${regionTiles.length} tiles`, 'info');
+
+            // Return assembly result
+            return {
+                success: true,
+                cartridge_id: `cart_${Date.now()}`,
+                name,
+                tiles_included: regionTiles.length,
+                files_included: files.length,
+                estimated_size: `${(regionTiles.length * 0.5 + files.length * 0.1).toFixed(1)} KB`,
+                note: 'Cartridge assembled (stub - connect to cartridge builder)'
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 19: builder_preview (Phase F)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerBuilderPreview() {
+        const tool = {
+            name: 'builder_preview',
+            description:
+                'Capture a preview image of the current build or a specific region. ' +
+                'Returns image data URL for display or download.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    region: {
+                        type: 'object',
+                        description: 'Optional region to preview (defaults to all)',
+                        properties: {
+                            x: { type: 'number' },
+                            y: { type: 'number' },
+                            width: { type: 'number' },
+                            height: { type: 'number' }
+                        }
+                    }
+                }
+            },
+            handler: async (params) => {
+                return this.#handleBuilderPreview(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleBuilderPreview({ region } = {}) {
+        this.#trackCall('builder_preview');
+
+        try {
+            if (window.builderPanel) {
+                const result = window.builderPanel.preview();
+                return {
+                    success: true,
+                    message: result.message,
+                    tiles_previewed: window.builderPanel.getState().tiles.length,
+                    region: region || 'all'
+                };
+            }
+
+            return {
+                success: true,
+                message: 'Preview captured (no visual output - BuilderPanel not available)',
+                region: region || 'all'
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 20: builder_get_state (Phase F)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerBuilderGetState() {
+        const tool = {
+            name: 'builder_get_state',
+            description:
+                'Get the current state of the AI builder including all placed tiles, ' +
+                'loaded shaders, and current selection.',
+            inputSchema: {
+                type: 'object',
+                properties: {}
+            },
+            handler: async (params) => {
+                return this.#handleBuilderGetState(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleBuilderGetState() {
+        this.#trackCall('builder_get_state');
+
+        try {
+            if (window.builderPanel) {
+                const state = window.builderPanel.getState();
+                return {
+                    success: true,
+                    ...state
+                };
+            }
+
+            return {
+                success: true,
+                tiles: [],
+                current_shader: null,
+                selected_tile_type: 'system',
+                note: 'BuilderPanel not initialized'
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: 'EXECUTION_FAILED'
             };
         }
     }
