@@ -140,6 +140,36 @@ fn trap_enter(base_idx: u32, cause: u32, tval: u32, pc: u32) -> u32 {
     return stvec;
 }
 
+// Return from trap (SRET instruction)
+// Restores PC from SEPC, MODE from SPP, SIE from SPIE
+fn trap_ret(base_idx: u32) -> u32 {
+    // 1. Get saved PC from SEPC
+    let epc = cpu_states[base_idx + CSR_SEPC];
+
+    // 2. Restore SSTATUS:
+    //    - SIE = SPIE
+    //    - MODE = SPP
+    let sstatus = cpu_states[base_idx + CSR_SSTATUS];
+    let spie = (sstatus >> 5u) & 1u;  // Get SPIE bit (bit 5)
+    let spp = (sstatus >> 8u) & 1u;   // Get SPP bit (bit 8)
+
+    // Set SIE = SPIE, clear SPIE after restore
+    var new_sstatus = sstatus;
+    if (spie == 1u) {
+        new_sstatus = new_sstatus | SSTATUS_SIE;
+    } else {
+        new_sstatus = new_sstatus & ~SSTATUS_SIE;
+    }
+    new_sstatus = new_sstatus & ~SSTATUS_SPIE;  // Clear SPIE
+    cpu_states[base_idx + CSR_SSTATUS] = new_sstatus;
+
+    // 3. Restore privilege mode from SPP
+    cpu_states[base_idx + CSR_MODE] = spp;
+
+    // 4. Return EPC as new PC
+    return epc;
+}
+
 // --- MMU: Sv32 PAGE TABLE WALKER ---
 // Translates virtual address to physical address using Sv32 scheme
 // Returns physical address, or 0xFFFFFFFF on fault
@@ -430,10 +460,14 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                  }
             }
         }
-        case 0x73u: { // SYSTEM (ecall, csrrw, csrrs)
+        case 0x73u: { // SYSTEM (ecall, csrrw, csrrs, sret)
             let funct3_sys = (inst >> 12u) & 0x7u;
+            let funct7_sys = (inst >> 25u) & 0x7Fu;
 
-            if (funct3_sys == 0u) {
+            if (funct7_sys == 0x30u) {
+                // SRET - Return from trap
+                pc = trap_ret(base_idx);
+            } else if (funct3_sys == 0u) {
                 // ECALL/EBREAK
                 let a7 = cpu_states[base_idx + 17u]; // x17
                 if (a7 == 93u) { // exit
