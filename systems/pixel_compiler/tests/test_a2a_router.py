@@ -358,3 +358,185 @@ class TestA2AAreaAgentIntegration:
         mock_monitor.send.assert_called_once()
         # Executor should NOT have received message
         mock_executor.send.assert_not_called()
+
+
+class TestA2ACoordinationPrimitives:
+    """Tests for distributed coordination primitives (locks and barriers)."""
+
+    @pytest.fixture
+    def router(self):
+        """Create a fresh A2A router for each test."""
+        return A2ARouter()
+
+    # === Lock Tests ===
+
+    @pytest.mark.asyncio
+    async def test_acquire_lock_free(self, router):
+        """Can acquire a lock when it's free."""
+        mock_conn = AsyncMock()
+        # Use _handle_register to properly set up connections dict
+        await router._handle_register({
+            "agent_id": "agent-1",
+            "agent_type": "monitor"
+        }, mock_conn)
+
+        result = await router._handle_lock_request({
+            "agent_id": "agent-1",
+            "lock_id": "test-lock",
+            "timeout": 30
+        }, mock_conn)
+
+        assert result["type"] == "ack"
+        assert result["granted"] is True
+        assert "expires_at" in result
+
+    @pytest.mark.asyncio
+    async def test_acquire_lock_held_by_other(self, router):
+        """Lock request is queued when held by another agent."""
+        mock_conn1 = AsyncMock()
+        mock_conn2 = AsyncMock()
+
+        await router._handle_register({
+            "agent_id": "agent-1",
+            "agent_type": "monitor"
+        }, mock_conn1)
+        await router._handle_register({
+            "agent_id": "agent-2",
+            "agent_type": "executor"
+        }, mock_conn2)
+
+        # Agent 1 acquires lock
+        await router._handle_lock_request({
+            "agent_id": "agent-1",
+            "lock_id": "test-lock",
+            "timeout": 30
+        }, mock_conn1)
+
+        # Agent 2 tries to acquire
+        result = await router._handle_lock_request({
+            "agent_id": "agent-2",
+            "lock_id": "test-lock",
+            "timeout": 30
+        }, mock_conn2)
+
+        assert result["granted"] is False
+        assert result["queue_position"] == 1
+
+    @pytest.mark.asyncio
+    async def test_release_lock_grants_to_next(self, router):
+        """Releasing a lock grants it to next agent in queue."""
+        mock_conn1 = AsyncMock()
+        mock_conn2 = AsyncMock()
+
+        await router._handle_register({
+            "agent_id": "agent-1",
+            "agent_type": "monitor"
+        }, mock_conn1)
+        await router._handle_register({
+            "agent_id": "agent-2",
+            "agent_type": "executor"
+        }, mock_conn2)
+
+        # Agent 1 acquires, Agent 2 queues
+        await router._handle_lock_request({
+            "agent_id": "agent-1",
+            "lock_id": "test-lock",
+            "timeout": 30
+        }, mock_conn1)
+
+        await router._handle_lock_request({
+            "agent_id": "agent-2",
+            "lock_id": "test-lock",
+            "timeout": 30
+        }, mock_conn2)
+
+        # Agent 1 releases
+        result = await router._handle_lock_release({
+            "agent_id": "agent-1",
+            "lock_id": "test-lock"
+        }, mock_conn1)
+
+        assert result["released"] is True
+        # Agent 2 should have received lock_granted notification
+        mock_conn2.send.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_lock_reentrant(self, router):
+        """Same agent can re-acquire lock they already hold."""
+        mock_conn = AsyncMock()
+        await router._handle_register({
+            "agent_id": "agent-1",
+            "agent_type": "monitor"
+        }, mock_conn)
+
+        # First acquire
+        await router._handle_lock_request({
+            "agent_id": "agent-1",
+            "lock_id": "test-lock",
+            "timeout": 30
+        }, mock_conn)
+
+        # Re-acquire (reentrant)
+        result = await router._handle_lock_request({
+            "agent_id": "agent-1",
+            "lock_id": "test-lock",
+            "timeout": 60
+        }, mock_conn)
+
+        assert result["granted"] is True
+
+    # === Barrier Tests ===
+
+    @pytest.mark.asyncio
+    async def test_barrier_not_released_until_full(self, router):
+        """Barrier does not release until expected count reached."""
+        mock_conn = AsyncMock()
+        await router._handle_register({
+            "agent_id": "agent-1",
+            "agent_type": "monitor"
+        }, mock_conn)
+
+        result = await router._handle_barrier_enter({
+            "agent_id": "agent-1",
+            "barrier_id": "test-barrier",
+            "expected_count": 2
+        }, mock_conn)
+
+        assert result["released"] is False
+        assert result["arrived_count"] == 1
+        assert result["expected_count"] == 2
+
+    @pytest.mark.asyncio
+    async def test_barrier_releases_when_full(self, router):
+        """Barrier releases all agents when expected count reached."""
+        mock_conn1 = AsyncMock()
+        mock_conn2 = AsyncMock()
+
+        await router._handle_register({
+            "agent_id": "agent-1",
+            "agent_type": "monitor"
+        }, mock_conn1)
+        await router._handle_register({
+            "agent_id": "agent-2",
+            "agent_type": "executor"
+        }, mock_conn2)
+
+        # Agent 1 enters
+        await router._handle_barrier_enter({
+            "agent_id": "agent-1",
+            "barrier_id": "test-barrier",
+            "expected_count": 2
+        }, mock_conn1)
+
+        # Agent 2 enters - should trigger release
+        result = await router._handle_barrier_enter({
+            "agent_id": "agent-2",
+            "barrier_id": "test-barrier",
+            "expected_count": 2
+        }, mock_conn2)
+
+        assert result["released"] is True
+        assert result["arrived_count"] == 2
+        # Both agents should have received barrier_release notification
+        mock_conn1.send.assert_called()
+        mock_conn2.send.assert_called()
