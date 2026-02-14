@@ -73,7 +73,12 @@ fn _get_csr_index(csr_num: u32) -> u32 {
         case 0x180u: { return CSR_SATP; }      // satp
         case 0x105u: { return CSR_STVEC; }     // stvec
         case 0x140u: { return CSR_SSCRATCH; }  // sscratch
-        case 0x100u: { return CSR_HALT; }     // Treat halt as writable CSR
+        case 0x100u: { return CSR_SSTATUS; }   // sstatus
+        case 0x141u: { return CSR_SEPC; }      // sepc
+        case 0x142u: { return CSR_SCAUSE; }    // scause
+        case 0x143u: { return CSR_STVAL; }     // stval
+        case 0x104u: { return CSR_SIE; }       // sie
+        case 0x144u: { return CSR_SIP; }       // sip
         default: { return 255u; }              // Unknown CSR
     }
 }
