@@ -361,8 +361,49 @@ python3 -m pytest systems/pixel_compiler/tests/test_a2a_router.py -v
 | Released | All arrived, agents can continue |
 | Reset | After release, ready for reuse |
 
+## Multi-Agent Demo
+
+A complete demonstration of multi-agent collaboration is available at:
+`http://localhost:8000/demo_multi_agent.html`
+
+### Running the Demo
+
+```bash
+# Start the A2A router and web server
+./scripts/start_a2a_dev.sh
+
+# Open in browser
+# http://localhost:8000/demo_multi_agent.html
+```
+
+### Demo Agents
+
+| Agent | Role | Coordination Used |
+|-------|------|-------------------|
+| Scanner | Claims and scans regions | Locks, Task delegation |
+| Processor | Processes scanned data | Task queue |
+| Coordinator | Orchestrates workflow | Task assignment, Barriers |
+
+### Demo Flow
+
+1. **Phase 1**: Coordinator assigns regions to Scanner
+2. Scanner acquires lock, scans, releases lock
+3. Scanner delegates processing to Processor
+4. Processor queues and processes data
+5. **Phase 2**: All agents synchronize at barrier
+6. **Phase 3**: Finalization and summary
+
+### Key Patterns Demonstrated
+
+- **Distributed Locking**: Preventing concurrent region access
+- **Task Delegation**: Scanner → Processor work handoff
+- **Barrier Synchronization**: Phase coordination
+- **Progress Tracking**: Real-time metrics display
+
 ## Related Documentation
 
+- [Multi-Agent Demo Plan](./plans/2026-02-14-multi-agent-collaboration-demo.md)
 - [A2A Protocol Design](./plans/2026-02-12-webmcp-phase-d-design.md)
 - [WebMCP Bridge](../systems/visual_shell/web/webmcp_bridge.js)
 - [A2A Router](../systems/pixel_compiler/a2a_router.py)
+- [Demo JavaScript](../systems/visual_shell/web/multi_agent_demo.js)
