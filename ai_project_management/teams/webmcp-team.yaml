@@ -339,6 +339,38 @@ agents:
         - systems/pixel_compiler/rts_registry_manager.py
         - systems/visual_shell/web/webmcp_bridge.js
 
+  # ============================================
+  # VISION CORTEX SPECIALIST - Phase Vision (OCR/Semantic Perception)
+  # ============================================
+  - agent_id: vision-cortex-specialist
+    name: Vision Cortex Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - javascript
+      - ocr
+      - tesseract
+      - computer_vision
+      - testing
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 95
+    metadata:
+      role: Client-side OCR and semantic perception for AI GUI operation
+      focuses:
+        - Tesseract.js WASM integration
+        - hypervisor_read_text tool
+        - hypervisor_find_element tool
+        - hypervisor_frame semantic format
+        - Region-based caching
+        - Scale parameter for pixel fonts
+      key_files:
+        - systems/visual_shell/web/VisionCortex.js
+        - systems/visual_shell/web/webmcp_bridge.js
+        - systems/visual_shell/web/test_vision_cortex.html
+        - docs/plans/2026-02-13-vision-cortex-design.md
+        - docs/plans/2026-02-13-vision-cortex-implementation.md
+
 # Task routing rules
 task_routing:
   # Phase C tasks
@@ -366,6 +398,11 @@ task_routing:
     assign_to: rts-cartridge-specialist
   - pattern: "action.*log|builder.*preview"
     assign_to: visual-builder-specialist
+  # Vision Cortex tasks (OCR/Semantic Perception)
+  - pattern: "vision.*cortex|ocr|tesseract|hypervisor.*read|hypervisor.*find"
+    assign_to: vision-cortex-specialist
+  - pattern: "semantic.*frame|pixel.*font|scale.*parameter"
+    assign_to: vision-cortex-specialist
   # General
   - pattern: "security|validation|rate.*limit"
     assign_to: security-specialist
