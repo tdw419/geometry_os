@@ -3,6 +3,7 @@
 from .agent_spawner import VirtualAgent, AgentSpawner
 from .topology import Topology, TopologyBuilder
 from .load_harness import LoadTestHarness, LoadTestScenario, LoadTestResult
+from .benchmark_suite import BenchmarkSuite, BenchmarkConfig, BenchmarkResult
 
 __all__ = [
     "VirtualAgent",
@@ -11,5 +12,8 @@ __all__ = [
     "TopologyBuilder",
     "LoadTestHarness",
     "LoadTestScenario",
-    "LoadTestResult"
+    "LoadTestResult",
+    "BenchmarkSuite",
+    "BenchmarkConfig",
+    "BenchmarkResult"
 ]
