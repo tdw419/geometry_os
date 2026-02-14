@@ -386,7 +386,175 @@ class BaseAgent {
   }
 }
 
+/**
+ * Utility: Delay for specified milliseconds
+ */
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * ScannerAgent - Scans regions and delegates processing
+ */
+class ScannerAgent extends BaseAgent {
+  constructor() {
+    super('scanner-001', 'scanner');
+    this.regionsScanned = 0;
+    this.tasksDelegated = 0;
+    this.currentRegion = null;
+  }
+
+  getCapabilities() {
+    return ['scan_region', 'detect_patterns', 'delegate_processing'];
+  }
+
+  handleMessage(message) {
+    if (message.message_type === 'task_assignment') {
+      this.handleTaskAssignment(message.content);
+    }
+  }
+
+  async handleTaskAssignment(task) {
+    if (task.type === 'scan_region') {
+      await this.scanRegion(task.region_x, task.region_y);
+    }
+  }
+
+  /**
+   * Scan a region with distributed lock
+   * @param {number} x - Region X coordinate
+   * @param {number} y - Region Y coordinate
+   */
+  async scanRegion(x, y) {
+    const lockId = `region-${x}-${y}`;
+    this.currentRegion = { x, y };
+
+    // Update UI: acquiring lock
+    if (typeof updateAgentStatus === 'function') {
+      updateAgentStatus(this.agentId, `Acquiring lock for region ${x},${y}`);
+    }
+
+    // 1. Acquire lock for region
+    const lockResult = await this.acquireLock(lockId, 30);
+    if (!lockResult || !lockResult.granted) {
+      if (typeof log === 'function') {
+        log(`error`, `Failed to acquire lock for ${lockId}`);
+      }
+      return;
+    }
+
+    try {
+      // Update UI: lock acquired, scanning
+      if (typeof updateAgentStatus === 'function') {
+        updateAgentStatus(this.agentId, `Scanning region ${x},${y}`);
+      }
+      if (typeof updateRegion === 'function') {
+        updateRegion(x, y, 'scanning');
+      }
+
+      // 2. Simulate work (500-1500ms)
+      const workTime = 500 + Math.random() * 1000;
+      await delay(workTime);
+
+      // 3. Generate scanned data
+      const scanData = {
+        region_x: x,
+        region_y: y,
+        timestamp: Date.now(),
+        features: this._generateScanFeatures(x, y),
+        patterns_detected: Math.floor(Math.random() * 5),
+        confidence: 0.7 + Math.random() * 0.3,
+        scan_duration_ms: workTime
+      };
+
+      // 4. Update UI metrics
+      this.regionsScanned++;
+      if (typeof updateAgentMetric === 'function') {
+        updateAgentMetric(this.agentId, 'regionsScanned', this.regionsScanned);
+      }
+      if (typeof updateRegion === 'function') {
+        updateRegion(x, y, 'scanned');
+      }
+
+      if (typeof log === 'function') {
+        log(`info`, `Scanned region ${x},${y}: ${scanData.patterns_detected} patterns`);
+      }
+
+      // 5. Delegate to processor
+      await this.delegateProcessing(scanData);
+
+    } finally {
+      // 6. Release lock
+      await this.releaseLock(lockId);
+      this.currentRegion = null;
+
+      if (typeof updateAgentStatus === 'function') {
+        updateAgentStatus(this.agentId, 'Idle');
+      }
+    }
+  }
+
+  /**
+   * Delegate processing to processor agent
+   * @param {object} scanData - Scanned region data
+   */
+  async delegateProcessing(scanData) {
+    this.tasksDelegated++;
+
+    if (typeof updateAgentMetric === 'function') {
+      updateAgentMetric(this.agentId, 'tasksDelegated', this.tasksDelegated);
+    }
+
+    // Send process_request message to processor-001
+    await this.sendDirectMessage(
+      'processor-001',
+      'process_request',
+      {
+        type: 'scan_results',
+        data: scanData,
+        source_agent: this.agentId
+      }
+    );
+
+    if (typeof log === 'function') {
+      log(`info`, `Delegated processing for region ${scanData.region_x},${scanData.region_y}`);
+    }
+  }
+
+  /**
+   * Generate synthetic scan features for simulation
+   * @private
+   */
+  _generateScanFeatures(x, y) {
+    const features = [];
+    const featureCount = 5 + Math.floor(Math.random() * 10);
+
+    for (let i = 0; i < featureCount; i++) {
+      features.push({
+        type: ['edge', 'corner', 'texture', 'gradient'][Math.floor(Math.random() * 4)],
+        x: x * 100 + Math.random() * 100,
+        y: y * 100 + Math.random() * 100,
+        intensity: Math.random()
+      });
+    }
+
+    return features;
+  }
+
+  /**
+   * Get current scanner status
+   */
+  getScannerStatus() {
+    return {
+      ...this.getStatus(),
+      regionsScanned: this.regionsScanned,
+      tasksDelegated: this.tasksDelegated,
+      currentRegion: this.currentRegion
+    };
+  }
+}
+
 // Export for Node.js or browser
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { BaseAgent };
+  module.exports = { BaseAgent, ScannerAgent, delay };
 }
