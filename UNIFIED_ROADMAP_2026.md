@@ -36,7 +36,7 @@ We have shifted from "CLI tooling" to **Visual AI Control**. The AI no longer ju
 
 ### Phase F: AI-Driven Visual Builder (Completed)
 **Goal:** Enable AI agents to visually construct Geometry OS by placing tiles.
-- **BuilderPanel**: Floating UI with Tile Palette, Shader Editor, Cartridge Rack.
+- [x] **BuilderPanel**: Floating UI with Tile Palette, Shader Editor, Cartridge Rack.
 - **Tools**: `builder_place_tile`, `builder_load_shader`, `builder_assemble_cartridge`.
 - **Outcome:** The AI can now "draw" the computer it wants to run.
 
@@ -46,10 +46,10 @@ We have shifted from "CLI tooling" to **Visual AI Control**. The AI no longer ju
 
 #### E.1 Circuit Breaker Pattern
 **Description:** Add circuit breaker for WebSocket and HTTP backends.
-- **Task E.1.1**: Implement circuit breaker state machine
-- **Task E.1.2**: Add half-open state for recovery testing
-- **Task E.1.3**: Add configurable thresholds
-- **Task E.1.4**: Add circuit breaker metrics
+- [x] **Task E.1.1**: Implement circuit breaker state machine
+- [x] **Task E.1.2**: Add half-open state for recovery testing
+- [x] **Task E.1.3**: Add configurable thresholds
+- [x] **Task E.1.4**: Add circuit breaker metrics
 
 **Success Criteria:**
 - Circuit breaker trips after 5 consecutive failures
@@ -60,10 +60,10 @@ We have shifted from "CLI tooling" to **Visual AI Control**. The AI no longer ju
 
 #### E.2 Retry with Exponential Backoff
 **Description:** Implement retry logic with exponential backoff for transient failures.
-- **Task E.2.1**: Add retry wrapper function
-- **Task E.2.2**: Implement exponential backoff calculation
-- **Task E.2.3**: Add jitter to prevent thundering herd
-- **Task E.2.4**: Configure per-tool retry settings
+- [x] **Task E.2.1**: Add retry wrapper function
+- [x] **Task E.2.2**: Implement exponential backoff calculation
+- [x] **Task E.2.3**: Add jitter to prevent thundering herd
+- [x] **Task E.2.4**: Configure per-tool retry settings
 
 **Success Criteria:**
 - Transient failures automatically retried
@@ -74,10 +74,10 @@ We have shifted from "CLI tooling" to **Visual AI Control**. The AI no longer ju
 
 #### E.3 Health Monitoring
 **Description:** Add health monitoring for backend connections.
-- **Task E.3.1**: Add health check endpoint polling
-- **Task E.3.2**: Add connection status tracking
-- **Task E.3.3**: Add health status to `get_os_state`
-- **Task E.3.4**: Add health event notifications
+- [x] **Task E.3.1**: Add health check endpoint polling
+- [x] **Task E.3.2**: Add connection status tracking
+- [x] **Task E.3.3**: Add health status to `get_os_state`
+- [x] **Task E.3.4**: Add health event notifications
 
 **Success Criteria:**
 - Health status tracked for all backends
@@ -108,20 +108,21 @@ We have shifted from "CLI tooling" to **Visual AI Control**. The AI no longer ju
 
 | Task | Description | Status |
 |------|-------------|--------|
-| 1.1 Hypervisor Core | WASM emulator compilation (v86/RISC-V) | Pending |
-| 1.2 Disk Conversion | Convert Alpine ISO to `.rts.png` | Pending |
-| 1.3 Builder Recipe | AI instructions to assemble the cartridge | Pending |
-| 1.4 WebMCP Tools | Input injection & screen reading | Pending |
+| 1.1 Hypervisor Core | WASM emulator compilation (v86/RISC-V) | [x] Complete |
+| 1.2 Disk Conversion | Convert Alpine ISO to `.rts.png` | [x] Complete |
+| 1.3 Builder Recipe | AI instructions to assemble the cartridge | [x] Complete |
+| 1.4 WebMCP Tools | Input injection & screen reading | [x] Complete |
 
 ### Milestone 2: WASM GPU Execution Complete (Week 5)
 
 **Goal:** Complete the WASM GPU execution bridge for running code on GPU.
+**Plan:** `ai_project_management/MILESTONE_2_EXECUTION_PLAN.md` - **COMPLETE**
 
 | Task | Owner | Status |
 |------|-------|--------|
-| 2.1 GPU Memory Management | Unassigned | Pending |
-| 2.2 Function Call Convention | Unassigned | Pending |
-| 2.3 GPU Dispatch & Execution | Unassigned | Pending |
+| 2.1 GPU Memory Management | AI Executor | [x] Complete |
+| 2.2 Function Call Convention | AI Executor | [x] Complete |
+| 2.3 GPU Dispatch & Execution | AI Executor | [x] Complete |
 
 ---
 
@@ -130,10 +131,54 @@ We have shifted from "CLI tooling" to **Visual AI Control**. The AI no longer ju
 ### Milestone 3: GPU Pattern Detection (Week 6-8)
 
 **Goal:** Accelerate pattern detection using GPU compute.
+**Plan:** `ai_project_management/MILESTONE_3_EXECUTION_PLAN.md` - **COMPLETE**
 
-- **PyTorch Integration**: GPU tensor infrastructure.
-- **Sobel/Fourier Kernels**: 10× speedup for image analysis.
-- **Batch Processing**: Parallel analysis of 100+ images.
+| Task | Owner | Status |
+|------|-------|--------|
+| 3.1 GPU Tensor Infrastructure | AI Executor | [x] Complete |
+| 3.2 Compute Kernels (Sobel) | AI Executor | [x] Complete |
+| 3.3 Batch Pattern Detector | AI Executor | [x] Complete |
+| 3.4 Feature Extraction | AI Executor | [x] Complete |
+
+---
+
+### Milestone 4: Safety & Evolution (Week 8-10)
+
+**Goal:** Implement self-modifying code safety protocols.
+**Plan:** `ai_project_management/MILESTONE_4_EXECUTION_PLAN.md` - **COMPLETE**
+
+| Task | Owner | Status |
+|------|-------|--------|
+| 4.1 Evolution Sandbox | AI Executor | [x] Complete |
+| 4.2 Mutation Guards | AI Executor | [x] Complete |
+| 4.3 Rollback Manager | AI Executor | [x] Complete |
+| 4.4 Fitness Validator | AI Executor | [x] Complete |
+
+---
+
+### Phase I: Production Hardening (Week 11-12)
+
+**Goal:** Implement comprehensive security, validation, and performance limits.
+**Plan:** `ai_project_management/MILESTONE_PHASE_I_EXECUTION_PLAN.md` - **COMPLETE**
+
+| Task | Owner | Status |
+|------|-------|--------|
+| I.1 Input Validation Framework | AI Executor | [x] Complete |
+| I.2 Rate Limiting | AI Executor | [x] Complete |
+| I.3 Production Metrics | AI Executor | [x] Complete |
+
+---
+
+### Experiment: AI Evolution (Week 13)
+
+**Goal:** Demonstrate autonomous code optimization with safety rails.
+**Plan:** `ai_project_management/AI_EVOLUTION_EXPERIMENT_PLAN.md`
+
+| Task | Owner | Status |
+|------|-------|--------|
+| Exp.1 Target Function Setup | AI Executor | [x] Complete |
+| Exp.2 Evolution Loop Agent | AI Executor | [x] Complete |
+| Exp.3 Evolution Visualization | AI Executor | [x] Complete |
 
 ---
 
@@ -162,7 +207,7 @@ We have shifted from "CLI tooling" to **Visual AI Control**. The AI no longer ju
 │  │                  Infinite Map (The World)                 │  │
 │  │  ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐    │  │
 │  │  │ Processor│   │  Memory │   │ Display │   │ Network │    │  │
-│  │  │ (WASM)   │   │ (Pixels)│   │ (Canvas)│   │  (A2A)  │    │  │
+│  │  │ (WGPU/WASM) |   │ (Pixels)│   │ (Canvas)│   │  (A2A)  │    │  │
 │  │  └─────────┘   └─────────┘   └─────────┘   └─────────┘    │  │
 │  └───────────────────────────────────────────────────────────┘  │
 │                                                                 │
@@ -179,7 +224,7 @@ The AI now has direct control over the OS through these licensed tools:
 2.  **Execution**: `execute_pixel_program`, `trigger_evolution`
 3.  **Creation**: `builder_place_tile`, `builder_assemble_cartridge`
 4.  **Integration**: `spawn_area_agent`, `send_llm_prompt`
-5.  **Inspection**: `query_hilbert_address`, `linux_read_screen` (Planned)
+5.  **Hypervisor**: `hypervisor_boot`, `hypervisor_input`, `hypervisor_frame`
 
 ---
 
@@ -193,8 +238,24 @@ The AI now has direct control over the OS through these licensed tools:
 
 ---
 
-**Next Steps:**
-1.  ✅ **Phase F (Visual Builder)** - Completed.
-2.  🛡️ **Phase E (Reliability)** - Implement circuit breaker, retry logic, and health monitoring (CRITICAL for Phase H).
-3.  � **Phase H (Linux Hypervisor)** - Begin implementation of WASM core (requires Phase E).
-4.  🔄 **GPU Bridge** - Resume concurrent development.
+**Next Steps (Phase J: Scale & Optimization):**
+1.  🧪 **Scale Testing**: Spin up multiple A2A agents to stress-test protocol.
+2.  🧠 **Complex Application**: Build "Neural IDE" using Visual Builder. ✅ **COMPLETE**
+3.  ⚡ **GPU Optimization**: Push WASM-to-WebGPU bridge to 10x performance.
+
+---
+
+### Phase J.2: Neural IDE ✅ COMPLETE
+
+**Completed:** 2026-02-14
+
+**Deliverables:**
+- `ide_tile_types.js` - 6 IDE tile types with semantic tags
+- `tile_connections.js` - TileConnectionManager with 4 connection types
+- `builder_connect_tiles` WebMCP tool for AI-driven connections
+- `builder_remove_connection` WebMCP tool
+- `ide_get_state` WebMCP tool for full IDE state
+- `test_neural_ide_builder.html` - Full AI assembly demo
+
+**Demonstrated:** AI agent can assemble a functional IDE on the Infinite Map using WebMCP tools without writing code. The demo shows 10 steps: placing 4 tiles, connecting 3 wires, and verifying assembly in <1 second.
+
