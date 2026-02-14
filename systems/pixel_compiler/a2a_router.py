@@ -604,6 +604,10 @@ class A2ARouter:
             "claim_region": self._handle_claim_region,
             "release_region": self._handle_release_region,
             "query_region": self._handle_query_region,
+            "delegate_task": self._handle_delegate_task,
+            "accept_task": self._handle_accept_task,
+            "report_task": self._handle_report_task,
+            "get_task_queue": self._handle_get_task_queue,
         }
         
         handler = handlers.get(msg_type)
@@ -1259,6 +1263,45 @@ class A2ARouter:
         return await self.query_region(
             session_id=data.get("session_id"),
             region=data.get("region", {})
+        )
+
+    async def _handle_delegate_task(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        return await self.delegate_task(
+            session_id=data.get("session_id"),
+            from_agent=data.get("from_agent"),
+            target_agent_id=data.get("target_agent_id", "any"),
+            task_type=data.get("task_type"),
+            description=data.get("description", ""),
+            region=data.get("region"),
+            priority=data.get("priority", "medium"),
+            dependencies=data.get("dependencies"),
+            deadline=data.get("deadline")
+        )
+
+    async def _handle_accept_task(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        return await self.accept_task(
+            session_id=data.get("session_id"),
+            task_id=data.get("task_id"),
+            agent_id=data.get("agent_id")
+        )
+
+    async def _handle_report_task(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        return await self.report_task(
+            session_id=data.get("session_id"),
+            task_id=data.get("task_id"),
+            agent_id=data.get("agent_id"),
+            status=data.get("status"),
+            result=data.get("result"),
+            artifacts=data.get("artifacts"),
+            message=data.get("message")
+        )
+
+    async def _handle_get_task_queue(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        return await self.get_task_queue(
+            session_id=data.get("session_id"),
+            assigned_to=data.get("filter", {}).get("assigned_to"),
+            status=data.get("filter", {}).get("status"),
+            priority=data.get("filter", {}).get("priority")
         )
 
     # === Background Tasks ===
