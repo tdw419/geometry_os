@@ -794,3 +794,52 @@ class TestBuildSession:
         assert result["max_agents"] == 10
         assert result["grid_size"] == 1000
         assert result["coordination_mode"] == "coordinated"
+
+    @pytest.mark.asyncio
+    async def test_join_session(self, router):
+        """Agent can join a session."""
+        # Create session first
+        session = await router.create_session(session_name="Test")
+
+        result = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Builder-A",
+            role="builder",
+            capabilities=["wgsl"]
+        )
+
+        assert result["success"] is True
+        assert "agent_id" in result
+        assert result["role"] == "builder"
+        assert "assigned_color" in result
+
+    @pytest.mark.asyncio
+    async def test_join_nonexistent_session(self, router):
+        """Cannot join nonexistent session."""
+        result = await router.join_session(
+            session_id="sess_nonexistent",
+            agent_name="Builder",
+            role="builder"
+        )
+
+        assert result["success"] is False
+        assert "not_found" in result.get("error", "").lower()
+
+    @pytest.mark.asyncio
+    async def test_join_session_full(self, router):
+        """Cannot join full session."""
+        session = await router.create_session(session_name="Full", max_agents=1)
+        await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Agent1",
+            role="builder"
+        )
+
+        result = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Agent2",
+            role="builder"
+        )
+
+        assert result["success"] is False
+        assert "full" in result.get("error", "").lower()

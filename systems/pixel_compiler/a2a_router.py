@@ -1245,6 +1245,58 @@ class A2ARouter:
             }
         }
 
+    async def join_session(
+        self,
+        session_id: str,
+        agent_name: str,
+        role: str = "builder",
+        capabilities: Optional[List[str]] = None,
+        invite_token: Optional[str] = None,
+        websocket: Optional[Any] = None
+    ) -> Dict[str, Any]:
+        """Join an existing build session."""
+        if session_id not in self.sessions:
+            return {"success": False, "error": "session_not_found"}
+
+        session = self.sessions[session_id]
+
+        # Check capacity
+        if len(session.agents) >= session.max_agents:
+            return {"success": False, "error": "session_full"}
+
+        # Generate agent ID and color
+        agent_id = f"agent_{uuid.uuid4().hex[:8]}"
+        colors = ["#4CAF50", "#2196F3", "#FF9800", "#9C27B0", "#F44336",
+                  "#00BCD4", "#795548", "#607D8B", "#E91E63", "#8BC34A"]
+        color = colors[len(session.agents) % len(colors)]
+
+        agent = SessionAgent(
+            agent_id=agent_id,
+            session_id=session_id,
+            name=agent_name,
+            role=role,
+            capabilities=capabilities or [],
+            color=color,
+            joined_at=time.time()
+        )
+
+        session.agents[agent_id] = agent
+
+        logger.info(f"Agent {agent_id} ({agent_name}) joined session {session_id} as {role}")
+
+        return {
+            "success": True,
+            "agent_id": agent_id,
+            "session_id": session_id,
+            "role": role,
+            "assigned_color": color,
+            "session_state": {
+                "agents_count": len(session.agents),
+                "session_name": session.session_name,
+                "coordination_mode": session.coordination_mode
+            }
+        }
+
     # === Utility Methods ===
     
     def get_stats(self) -> Dict[str, Any]:
