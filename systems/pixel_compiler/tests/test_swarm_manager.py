@@ -267,3 +267,36 @@ class TestSwarmManagerDispatch:
 
         result = manager.dispatch()
         assert len(result.agent_results) == 0
+
+
+class TestSwarmManagerGPUDispatch:
+    """Test GPU dispatch (requires GPU)."""
+
+    def test_gpu_pipeline_creation(self):
+        """GPU pipeline can be created."""
+        from systems.pixel_compiler.swarm_manager import SwarmManager
+        manager = SwarmManager()
+
+        if manager.mock:
+            pytest.skip("No GPU available")
+
+        assert manager.device is not None
+
+    def test_gpu_dispatch_single_agent(self):
+        """Can dispatch single agent on GPU."""
+        from systems.pixel_compiler.swarm_manager import SwarmManager
+        manager = SwarmManager()
+
+        if manager.mock:
+            pytest.skip("No GPU available")
+
+        # Minimal WASM: just return
+        wasm = bytes([
+            0x00, 0x61, 0x73, 0x6d,  # magic
+            0x01, 0x00, 0x00, 0x00,  # version
+        ])
+        manager.load_bytecode(wasm)
+        manager.spawn_agent(entry_point=0)
+
+        result = manager.dispatch(max_instructions=10)
+        assert len(result.agent_results) == 1

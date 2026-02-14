@@ -123,9 +123,43 @@ class SwarmManager:
             self._mock_globals = np.zeros(self.MAX_AGENTS * self.GLOBALS_PER_AGENT, dtype=np.uint32)
 
     def _create_pipeline(self, shader_path: str):
-        """Create compute pipeline from shader."""
-        # Pipeline creation deferred until shader exists
-        pass
+        """Create compute pipeline from swarm shader."""
+        from pathlib import Path
+
+        if not Path(shader_path).exists():
+            self._shader_path = shader_path
+            return
+
+        with open(shader_path, 'r') as f:
+            shader_source = f.read()
+
+        shader_module = self.device.create_shader_module(code=shader_source)
+
+        bg_layout_entries = [
+            {"binding": i, "visibility": wgpu.ShaderStage.COMPUTE,
+             "buffer": {"type": wgpu.BufferBindingType.read_only_storage if i == 0 else wgpu.BufferBindingType.storage if i < 4 else wgpu.BufferBindingType.uniform}}
+            for i in range(5)
+        ]
+
+        bg_layout = self.device.create_bind_group_layout(entries=bg_layout_entries)
+        pipeline_layout = self.device.create_pipeline_layout(bind_group_layouts=[bg_layout])
+
+        self.pipeline = self.device.create_compute_pipeline(
+            layout=pipeline_layout,
+            compute={"module": shader_module, "entry_point": "main"}
+        )
+        self._bind_group_layout = bg_layout
+
+    def _create_bind_group(self):
+        """Create bind group for dispatch."""
+        entries = [
+            {"binding": 0, "resource": {"buffer": self.bytecode_buffer, "offset": 0, "size": self.bytecode_buffer.size}},
+            {"binding": 1, "resource": {"buffer": self.pool_buffer, "offset": 0, "size": self.pool_buffer.size}},
+            {"binding": 2, "resource": {"buffer": self.globals_buffer, "offset": 0, "size": self.globals_buffer.size}},
+            {"binding": 3, "resource": {"buffer": self.output_buffer, "offset": 0, "size": self.output_buffer.size}},
+            {"binding": 4, "resource": {"buffer": self.config_buffer, "offset": 0, "size": self.config_buffer.size}},
+        ]
+        return self.device.create_bind_group(layout=self._bind_group_layout, entries=entries)
 
     def load_bytecode(self, wasm_bytes: bytes) -> None:
         """
@@ -348,10 +382,44 @@ class SwarmManager:
             result.total_time_ms = (time.time() - start_time) * 1000
             return result
 
-        # GPU mode placeholder - return mock-style results for now
+        # GPU mode
+        entry_point = self.active_agents[agents_to_run[0]].entry_point
+
+        config_data = np.array([
+            self._bytecode_size,
+            active_count,
+            entry_point,
+            max_instructions,
+            0, 0, 0, 0
+        ], dtype=np.uint32)
+
+        self.device.queue.write_buffer(self.config_buffer, 0, config_data.tobytes())
+
+        # Sync globals if dirty
+        if hasattr(self, '_globals_dirty') and self._globals_dirty:
+            self.device.queue.write_buffer(self.globals_buffer, 0, self._mock_globals.tobytes())
+            self._globals_dirty = False
+
+        # Create bind group and dispatch
+        bind_group = self._create_bind_group()
+
+        command_encoder = self.device.create_command_encoder()
+        compute_pass = command_encoder.begin_compute_pass()
+        compute_pass.set_pipeline(self.pipeline)
+        compute_pass.set_bind_group(0, bind_group, [], 0, 99)
+        compute_pass.dispatch_workgroups(active_count, 1, 1)
+        compute_pass.end()
+
+        self.device.queue.submit([command_encoder.finish()])
+
+        # Read results
+        output_data = self.device.queue.read_buffer(self.output_buffer).tobytes()
+        output_array = np.frombuffer(output_data, dtype=np.uint32)
+
         for agent_id in agents_to_run:
-            result.agent_results[agent_id] = 0
-            result.instruction_counts[agent_id] = 0
+            slot = self.active_agents[agent_id].pool_slot
+            result.agent_results[agent_id] = int(output_array[slot])
+            result.instruction_counts[agent_id] = max_instructions
 
         result.total_time_ms = (time.time() - start_time) * 1000
         return result
