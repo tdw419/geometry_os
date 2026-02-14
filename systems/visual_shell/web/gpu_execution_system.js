@@ -76,9 +76,9 @@ class GPUExecutionSystem {
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
         });
 
-        // 3. Create CPU State Buffer (39 u32s: 32 regs + PC + Halt + satp + stvec + sscratch + mode)
+        // 3. Create CPU State Buffer (46 u32s: 32 regs + PC + Halt + CSRs + Trap state)
         const stateBuffer = this.device.createBuffer({
-            size: 39 * 4,
+            size: 46 * 4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
         });
 
@@ -322,7 +322,7 @@ class GPUExecutionSystem {
         const kernel = this.kernels.get(id);
         if (!kernel) return null;
 
-        const stateSize = 39 * 4;
+        const stateSize = 46 * 4;
         const stagingBuffer = this.device.createBuffer({
             size: stateSize,
             usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST

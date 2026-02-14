@@ -16,7 +16,7 @@
 @group(0) @binding(2) var<storage, read_write> cpu_states: array<u32>;
 
 // --- CONSTANTS ---
-const REGS_PER_CORE: u32 = 39u; // 32 registers + PC + Halt + satp + stvec + sscratch + mode
+const REGS_PER_CORE: u32 = 46u; // 32 regs + PC + Halt + CSRs (6) + Trap CSRs (6)
 
 // --- CSR INDICES (in cpu_states array) ---
 const CSR_SATP: u32 = 34u;      // Page table base + mode
@@ -24,6 +24,20 @@ const CSR_STVEC: u32 = 35u;     // Trap handler address
 const CSR_SSCRATCH: u32 = 36u;  // Scratch register for traps
 const CSR_MODE: u32 = 37u;      // Privilege mode (0=user, 1=supervisor)
 const CSR_HALT: u32 = 38u;      // Halted flag (moved from 33)
+const CSR_RESERVATION: u32 = 39u; // Reservation address for LR/SC
+
+// --- NEW: Trap Handling CSRs ---
+const CSR_SEPC: u32 = 40u;      // Exception program counter
+const CSR_SCAUSE: u32 = 41u;    // Exception cause code
+const CSR_STVAL: u32 = 42u;     // Trap value (faulting address)
+const CSR_SSTATUS: u32 = 43u;   // Status register (SIE, SPIE, SPP)
+const CSR_SIE: u32 = 44u;       // Supervisor interrupt enable
+const CSR_SIP: u32 = 45u;       // Supervisor interrupt pending
+
+// SSTATUS bit positions
+const SSTATUS_SIE: u32 = 1u;    // Bit 0: Interrupt enable
+const SSTATUS_SPIE: u32 = 2u;   // Bit 1: Saved interrupt enable
+const SSTATUS_SPP: u32 = 256u;  // Bit 8: Previous privilege mode
 
 // --- MMIO INPUT REGION (Offset 32MB) ---
 const MMIO_INPUT_BASE: u32 = 0x02000000u;  // 32MB offset
@@ -397,6 +411,71 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                     }
                     let rs1_val = cpu_states[base_idx + rs1];
                     cpu_states[base_idx + csr_idx] = old_val & ~rs1_val;
+                }
+            }
+        }
+        case 0x2Fu: { // ATOMIC (A-Extension)
+            // Format: funct5 | aq | rl | rs2 | rs1 | funct3 | rd | opcode
+            let funct5 = (inst >> 27u) & 0x1Fu;
+            let val1 = i32(cpu_states[base_idx + rs1]); // Address base
+            let vaddr = u32(val1); // rs1 contains address
+
+            // Translate address
+            // AMOs are Read-Modify-Write, so effectively Write.
+            // LR is Read.
+            var is_write = 1u;
+            if (funct5 == 0x02u) { // LR.W
+                is_write = 0u;
+            }
+
+            let paddr = translate_address(vaddr, is_write, base_idx);
+
+            if (paddr == 0xFFFFFFFFu) {
+                cpu_states[base_idx + CSR_HALT] = 1u; // Page Fault
+            } else if (paddr < 67108864u) {
+                let word_idx = paddr / 4u;
+                let mem_val = system_memory[word_idx]; // Original value
+                let val2 = cpu_states[base_idx + rs2]; // Source operand
+
+                if (funct5 == 0x02u) { // LR.W
+                    // Load Reserved: Load value, set reservation
+                    if (rd != 0u) { cpu_states[base_idx + rd] = mem_val; }
+                    cpu_states[base_idx + CSR_RESERVATION] = paddr;
+                } else if (funct5 == 0x03u) { // SC.W
+                    // Store Conditional: Store only if reservation matches
+                    let reservation = cpu_states[base_idx + CSR_RESERVATION];
+                    if (reservation == paddr) {
+                        system_memory[word_idx] = val2;
+                        if (rd != 0u) { cpu_states[base_idx + rd] = 0u; } // Success = 0
+                        cpu_states[base_idx + CSR_RESERVATION] = 0xFFFFFFFFu; // Invalidate
+                    } else {
+                        if (rd != 0u) { cpu_states[base_idx + rd] = 1u; } // Failure = 1
+                    }
+                } else {
+                    // AMOs (Read-Modify-Write)
+                    
+                    // First read loaded value into rd (atomic swap/add/etc returns ORIGINAL value)
+                    if (rd != 0u) { cpu_states[base_idx + rd] = mem_val; }
+
+                    var result: u32 = 0u;
+                    let i_mem = i32(mem_val);
+                    let i_src = i32(val2);
+
+                    switch (funct5) {
+                        case 0x01u: { result = val2; } // AMOSWAP
+                        case 0x00u: { result = u32(i_mem + i_src); } // AMOADD
+                        case 0x04u: { result = mem_val ^ val2; } // AMOXOR
+                        case 0x0Cu: { result = mem_val & val2; } // AMOAND
+                        case 0x08u: { result = mem_val | val2; } // AMOOR
+                        case 0x10u: { result = u32(min(i_mem, i_src)); } // AMOMIN
+                        case 0x14u: { result = u32(max(i_mem, i_src)); } // AMOMAX
+                        case 0x18u: { result = min(mem_val, val2); } // AMOMINU
+                        case 0x1Cu: { result = max(mem_val, val2); } // AMOMAXU
+                        default: { result = mem_val; } // Unknown - no op
+                    }
+                    
+                    // Write back result
+                    system_memory[word_idx] = result;
                 }
             }
         }
