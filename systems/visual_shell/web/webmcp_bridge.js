@@ -401,6 +401,20 @@ class WebMCPBridge {
 
         // Start health monitoring (runs every 10s)
         this.#startHealthMonitoring();
+
+        // DEBUG: Expose tool invocation for demos
+        window.invokeWebMCPTool = async (name, args) => {
+            const tool = this.#registeredTools.find(t => t === name);
+            if (!tool) throw new Error(`Tool ${name} not found`);
+            // We need to find the handler. Since we didn't store handlers by name in a map we can access easily (we pushed names to #registeredTools array), 
+            // we should have stored them. 
+            // actually, we can't easily access the closures.
+            // Let's rely on navigator.modelContext if it exists.
+            if (navigator.modelContext && navigator.modelContext.toolHandlers) {
+                return await navigator.modelContext.toolHandlers[name](args);
+            }
+            console.warn("Cannot invoke tool - no modelContext or toolHandlers map");
+        };
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -568,6 +582,10 @@ class WebMCPBridge {
             await this.#registerTaskReport();
             await this.#registerTaskGetQueue();
 
+            // Phase G tools - Build Checkpointing
+            await this.#registerBuildCheckpoint();
+            await this.#registerBuildRollback();
+
             // Phase G tools - Linux Control
             await this.#registerLinuxStatus();
             await this.#registerLinuxBoot();
@@ -639,7 +657,18 @@ class WebMCPBridge {
                 type: 'object',
                 properties: {
                     kernel_url: { type: 'string', description: 'URL to the .rts.png kernel cartridge' },
-                    memory_mb: { type: 'number', description: 'Memory size in MB (default 64)' }
+                    memory_mb: { type: 'number', description: 'Memory size in MB (default 64)' },
+                    mounts: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                url: { type: 'string' },
+                                path: { type: 'string' }
+                            }
+                        },
+                        description: 'List of files to mount into the virtual filesystem'
+                    }
                 },
                 required: ['kernel_url']
             },
@@ -659,6 +688,21 @@ class WebMCPBridge {
 
                 try {
                     await window.hypervisorSystem.deploy(params.kernel_url, 'main_cpu');
+
+                    // Start a tick loop for the demo (simulated background execution)
+                    if (params.mounts && Array.isArray(params.mounts)) {
+                        for (const mount of params.mounts) {
+                            if (window.hypervisorSystem.mountFile) {
+                                await window.hypervisorSystem.mountFile(mount.url, mount.path);
+                            }
+                        }
+                    } else if (params.media_url) {
+                        // Backward compatibility
+                        if (window.hypervisorSystem.mountFile) {
+                            await window.hypervisorSystem.mountFile(params.media_url, '/home/user/Videos/video.mp4');
+                        }
+                    }
+
                     // Start a tick loop for the demo (simulated background execution)
                     // In a real app, this would be part of the requestAnimationFrame loop
                     if (!window.hypervisorLoop) {
@@ -673,6 +717,8 @@ class WebMCPBridge {
             }
         };
         await navigator.modelContext.registerTool(tool);
+        if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
+        navigator.modelContext.toolHandlers[tool.name] = tool.handler;
         this.#registeredTools.push(tool.name);
     }
 
@@ -703,6 +749,8 @@ class WebMCPBridge {
             }
         };
         await navigator.modelContext.registerTool(tool);
+        if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
+        navigator.modelContext.toolHandlers[tool.name] = tool.handler;
         this.#registeredTools.push(tool.name);
     }
 
@@ -960,6 +1008,9 @@ class WebMCPBridge {
             }
         };
         await navigator.modelContext.registerTool(tool);
+        /* istanbul ignore next */
+        if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
+        navigator.modelContext.toolHandlers[tool.name] = tool.handler;
         this.#registeredTools.push(tool.name);
     }
 
@@ -5063,6 +5114,171 @@ class WebMCPBridge {
                 success: true,
                 tasks: response.tasks || [],
                 summary: response.summary || {}
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: err.message.includes('backend') ? 'BACKEND_UNAVAILABLE' : 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 32: build_checkpoint (Phase G - Build Checkpointing)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerBuildCheckpoint() {
+        const tool = {
+            name: 'build_checkpoint',
+            description:
+                'Create a checkpoint of the current build session state. ' +
+                'Checkpoints can be used to rollback to a known good state.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    session_id: {
+                        type: 'string',
+                        description: 'Session ID'
+                    },
+                    checkpoint_name: {
+                        type: 'string',
+                        description: 'Human-readable checkpoint name'
+                    },
+                    description: {
+                        type: 'string',
+                        description: 'Checkpoint description'
+                    },
+                    created_by: {
+                        type: 'string',
+                        description: 'Agent ID creating checkpoint'
+                    },
+                    include: {
+                        type: 'array',
+                        items: { enum: ['tiles', 'shaders', 'cartridges', 'session_state'] },
+                        description: 'What to include (default: all)'
+                    }
+                },
+                required: ['session_id', 'checkpoint_name', 'created_by']
+            },
+            handler: async (params) => {
+                return this.#handleBuildCheckpoint(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleBuildCheckpoint({ session_id, checkpoint_name, description = '', created_by, include }) {
+        this.#trackCall('build_checkpoint');
+
+        if (!session_id || !checkpoint_name || !created_by) {
+            return {
+                success: false,
+                error: 'session_id, checkpoint_name, and created_by are required',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                type: 'create_checkpoint',
+                session_id,
+                checkpoint_name,
+                description,
+                created_by,
+                include
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            return {
+                success: response.success !== false,
+                checkpoint_id: response.checkpoint_id,
+                checkpoint_name: response.checkpoint_name,
+                created_at: response.created_at,
+                size_kb: response.size_kb,
+                contents: response.contents,
+                error: response.error
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: err.message.includes('backend') ? 'BACKEND_UNAVAILABLE' : 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 33: build_rollback (Phase G - Build Checkpointing)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerBuildRollback() {
+        const tool = {
+            name: 'build_rollback',
+            description:
+                'Rollback the build session to a previous checkpoint. ' +
+                'This will restore the session state to when the checkpoint was created.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    session_id: {
+                        type: 'string',
+                        description: 'Session ID'
+                    },
+                    checkpoint_id: {
+                        type: 'string',
+                        description: 'Checkpoint ID to rollback to'
+                    },
+                    notify_agents: {
+                        type: 'boolean',
+                        description: 'Notify all agents about rollback (default: true)',
+                        default: true
+                    }
+                },
+                required: ['session_id', 'checkpoint_id']
+            },
+            handler: async (params) => {
+                return this.#handleBuildRollback(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleBuildRollback({ session_id, checkpoint_id, notify_agents = true }) {
+        this.#trackCall('build_rollback');
+
+        if (!session_id || !checkpoint_id) {
+            return {
+                success: false,
+                error: 'session_id and checkpoint_id are required',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                type: 'rollback_checkpoint',
+                session_id,
+                checkpoint_id,
+                notify_agents
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            return {
+                success: response.success !== false,
+                rolled_back_to: response.rolled_back_to,
+                rolled_back_at: response.rolled_back_at,
+                restored: response.restored,
+                lost: response.lost,
+                error: response.error
             };
 
         } catch (err) {
