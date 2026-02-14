@@ -132,4 +132,113 @@ window.VisionPipeline.bootContainer = async function(kernelUrl, options = {}) {
     }
 };
 
+/**
+ * Verify boot by polling OCR and checking for expected messages
+ */
+window.VisionPipeline.verifyBoot = async function(expectedMessages) {
+    console.log(`[VisionPipeline] Verifying boot, looking for:`, expectedMessages);
+
+    const maxIterations = Math.ceil(this.config.bootTimeout / this.config.pollInterval);
+    const detectedMessages = [];
+
+    for (let i = 0; i < maxIterations; i++) {
+        // Capture current screen text via OCR
+        const ocrResult = await this.captureOCR();
+
+        if (ocrResult.success && ocrResult.text) {
+            this.state.capturedText.push({
+                time: Date.now() - this.state.startTime,
+                text: ocrResult.text
+            });
+
+            // Check for each expected message
+            for (const expected of expectedMessages) {
+                if (ocrResult.text.includes(expected) && !detectedMessages.includes(expected)) {
+                    detectedMessages.push(expected);
+                    console.log(`[VisionPipeline] Detected: "${expected}"`);
+
+                    // If all messages found, success!
+                    if (detectedMessages.length === expectedMessages.length) {
+                        return this.createResult(true, 'verified', 'All expected messages detected', {
+                            detectedMessages,
+                            bootTime_ms: Date.now() - this.state.startTime,
+                            metadata: this.extractMetadata(ocrResult.text)
+                        });
+                    }
+                }
+            }
+        }
+
+        // Wait before next poll
+        await this.wait(this.config.pollInterval);
+    }
+
+    // Timeout - return partial results
+    return this.createResult(false, 'timeout', 'Boot verification timeout', {
+        detectedMessages,
+        suggestion: 'Container may be corrupted or boot sequence changed'
+    });
+};
+
+/**
+ * Capture screen text using OCR
+ */
+window.VisionPipeline.captureOCR = async function() {
+    if (!navigator.modelContext || !navigator.modelContext.toolHandlers) {
+        return { success: false, error: 'WebMCP not available' };
+    }
+
+    try {
+        const result = await navigator.modelContext.toolHandlers['hypervisor_read_text']({
+            scale: 2.0  // Higher scale for better OCR accuracy
+        });
+        return result;
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+};
+
+/**
+ * Extract metadata from boot text (OS, version, kernel)
+ */
+window.VisionPipeline.extractMetadata = function(text) {
+    const metadata = {};
+
+    // Alpine detection
+    const alpineMatch = text.match(/Alpine Linux (\d+\.\d+)/i);
+    if (alpineMatch) {
+        metadata.os = 'Alpine Linux';
+        metadata.version = alpineMatch[1];
+    }
+
+    // Ubuntu detection
+    const ubuntuMatch = text.match(/Ubuntu (\d+\.\d+)/i);
+    if (ubuntuMatch) {
+        metadata.os = 'Ubuntu';
+        metadata.version = ubuntuMatch[1];
+    }
+
+    // Kernel version
+    const kernelMatch = text.match(/Linux (\d+\.\d+\.\d+)/i);
+    if (kernelMatch) {
+        metadata.kernel = kernelMatch[1];
+    }
+
+    // Architecture
+    if (text.includes('x86_64') || text.includes('amd64')) {
+        metadata.architecture = 'x86_64';
+    } else if (text.includes('aarch64') || text.includes('arm64')) {
+        metadata.architecture = 'aarch64';
+    }
+
+    return metadata;
+};
+
+/**
+ * Promise-based wait helper
+ */
+window.VisionPipeline.wait = function(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+};
+
 console.log('[VisionPipeline] Module loaded');
