@@ -96,4 +96,40 @@ window.VisionPipeline.createResult = function(success, status, message, extra = 
     };
 };
 
+/**
+ * Boot the container using WebMCP hypervisor
+ */
+window.VisionPipeline.bootContainer = async function(kernelUrl, options = {}) {
+    console.log(`[VisionPipeline] Booting: ${kernelUrl}`);
+
+    if (!navigator.modelContext || !navigator.modelContext.toolHandlers) {
+        return { success: false, error: 'WebMCP not available' };
+    }
+
+    const bootParams = {
+        kernel_url: kernelUrl,
+        memory_mb: options.memoryMb || this.config.defaultMemory
+    };
+
+    // Add mounts if provided
+    if (options.mounts) {
+        bootParams.mounts = options.mounts;
+    }
+
+    try {
+        const result = await navigator.modelContext.toolHandlers['hypervisor_boot'](bootParams);
+
+        if (result.success) {
+            console.log(`[VisionPipeline] Boot successful: ${result.status}`);
+        } else {
+            console.error(`[VisionPipeline] Boot failed: ${result.error}`);
+        }
+
+        return result;
+    } catch (error) {
+        console.error(`[VisionPipeline] Boot error:`, error);
+        return { success: false, error: error.message };
+    }
+};
+
 console.log('[VisionPipeline] Module loaded');
