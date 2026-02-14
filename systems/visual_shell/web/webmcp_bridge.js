@@ -541,6 +541,13 @@ class WebMCPBridge {
             await this.#registerSessionLeave();
             await this.#registerSessionGetState();
 
+            // Phase G tools - Linux Control
+            await this.#registerLinuxStatus();
+            await this.#registerLinuxBoot();
+            await this.#registerLinuxExec();
+            await this.#registerLinuxReadFile();
+            await this.#registerLinuxWriteFile();
+
             // Publish OS context alongside tools
             await this.#publishContext();
 
@@ -4032,6 +4039,166 @@ class WebMCPBridge {
                 error_code: err.message.includes('backend') ? 'BACKEND_UNAVAILABLE' : 'EXECUTION_FAILED'
             };
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Phase G: Linux Control Tools
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerLinuxStatus() {
+        const tool = {
+            name: 'linux_status',
+            description:
+                'Get the current status of the Linux bridge. ' +
+                'Returns session ID, running state, and process info.',
+            inputSchema: {
+                type: 'object',
+                properties: {}
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            return await this.#callLinuxBridge('status', {});
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerLinuxBoot() {
+        const tool = {
+            name: 'linux_boot',
+            description:
+                'Boot a Linux instance (Alpine via QEMU). ' +
+                'Returns session ID and boot status.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    timeout: {
+                        type: 'number',
+                        description: 'Seconds to wait for boot (default: 30)'
+                    }
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            return await this.#callLinuxBridge('boot', params);
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerLinuxExec() {
+        const tool = {
+            name: 'linux_exec',
+            description:
+                'Execute a shell command in the Linux instance. ' +
+                'Returns stdout, stderr, and exit code.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    command: {
+                        type: 'string',
+                        description: 'Shell command to execute'
+                    },
+                    timeout: {
+                        type: 'number',
+                        description: 'Timeout in seconds (default: 30)'
+                    }
+                },
+                required: ['command']
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            return await this.#callLinuxBridge('exec', {
+                cmd: params.command,
+                timeout: params.timeout
+            });
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerLinuxReadFile() {
+        const tool = {
+            name: 'linux_read_file',
+            description:
+                'Read a file from the Linux filesystem. ' +
+                'Returns file contents.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    path: {
+                        type: 'string',
+                        description: 'Absolute file path'
+                    }
+                },
+                required: ['path']
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            return await this.#callLinuxBridge('read_file', params);
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerLinuxWriteFile() {
+        const tool = {
+            name: 'linux_write_file',
+            description:
+                'Write a file to the Linux filesystem.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    path: {
+                        type: 'string',
+                        description: 'Absolute file path'
+                    },
+                    content: {
+                        type: 'string',
+                        description: 'File content to write'
+                    }
+                },
+                required: ['path', 'content']
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            return await this.#callLinuxBridge('write_file', params);
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #callLinuxBridge(command, params) {
+        const wsUrl = 'ws://localhost:8767';
+
+        return new Promise((resolve, reject) => {
+            const ws = new WebSocket(wsUrl);
+            const timeout = setTimeout(() => {
+                ws.close();
+                reject(new Error('Linux bridge connection timeout'));
+            }, 60000);
+
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ command, ...params }));
+            };
+
+            ws.onmessage = (event) => {
+                clearTimeout(timeout);
+                try {
+                    const response = JSON.parse(event.data);
+                    ws.close();
+                    resolve(response);
+                } catch (e) {
+                    ws.close();
+                    reject(e);
+                }
+            };
+
+            ws.onerror = (error) => {
+                clearTimeout(timeout);
+                reject(new Error('Linux bridge connection failed. Is the bridge running?'));
+            };
+        });
     }
 
     // ─────────────────────────────────────────────────────────────
