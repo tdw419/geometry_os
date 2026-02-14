@@ -83,6 +83,54 @@ fn _get_csr_index(csr_num: u32) -> u32 {
     }
 }
 
+// --- TRAP HANDLING ---
+// Exception codes (SCAUSE values)
+const CAUSE_ILLEGAL_INST: u32 = 2u;
+const CAUSE_BREAKPOINT: u32 = 3u;
+const CAUSE_ECALL_U: u32 = 8u;
+const CAUSE_ECALL_S: u32 = 11u;
+const CAUSE_INST_PAGE_FAULT: u32 = 12u;
+const CAUSE_LOAD_PAGE_FAULT: u32 = 13u;
+const CAUSE_STORE_PAGE_FAULT: u32 = 15u;
+
+// Enter trap handler
+// Saves PC to SEPC, sets SCAUSE/STVAL, updates SSTATUS, jumps to STVEC
+fn trap_enter(base_idx: u32, cause: u32, tval: u32, pc: u32) -> u32 {
+    // 1. Save exception PC to SEPC
+    cpu_states[base_idx + CSR_SEPC] = pc;
+
+    // 2. Set exception cause
+    cpu_states[base_idx + CSR_SCAUSE] = cause;
+
+    // 3. Set trap value (faulting address)
+    cpu_states[base_idx + CSR_STVAL] = tval;
+
+    // 4. Update SSTATUS:
+    //    - Save current MODE to SPP (bit 8)
+    //    - Save current SIE to SPIE (bit 5)
+    //    - Clear SIE (bit 1) - disable interrupts during trap
+    let current_mode = cpu_states[base_idx + CSR_MODE];
+    let current_sstatus = cpu_states[base_idx + CSR_SSTATUS];
+    let current_sie = current_sstatus & SSTATUS_SIE;
+
+    var new_sstatus = current_sstatus;
+    new_sstatus = new_sstatus | (current_sie << 5u);  // SPIE = SIE (bit 5)
+    new_sstatus = new_sstatus & ~SSTATUS_SIE;         // Clear SIE (bit 1)
+    if (current_mode == 0u) {
+        new_sstatus = new_sstatus & ~SSTATUS_SPP;     // SPP = 0 (from user)
+    } else {
+        new_sstatus = new_sstatus | SSTATUS_SPP;      // SPP = 1 (from supervisor)
+    }
+    cpu_states[base_idx + CSR_SSTATUS] = new_sstatus;
+
+    // 5. Set MODE to supervisor
+    cpu_states[base_idx + CSR_MODE] = 1u;
+
+    // 6. Return STVEC as new PC
+    let stvec = cpu_states[base_idx + CSR_STVEC];
+    return stvec;
+}
+
 // --- MMU: Sv32 PAGE TABLE WALKER ---
 // Translates virtual address to physical address using Sv32 scheme
 // Returns physical address, or 0xFFFFFFFF on fault
