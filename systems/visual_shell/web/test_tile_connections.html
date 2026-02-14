@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural IDE: Tile Connections Test</title>
+    <style>
+        body { font-family: 'Courier New', monospace; background: #0a0a0f; color: #00ff88; padding: 20px; }
+        .pass { color: #00ff00; } .fail { color: #ff0000; }
+    </style>
+</head>
+<body>
+    <h1>Tile Connections Test</h1>
+    <div id="results"></div>
+    <script src="tile_connections.js"></script>
+    <script>
+        const results = document.getElementById('results');
+
+        function test(name, fn) {
+            try {
+                const result = fn();
+                results.innerHTML += `<div class="pass">✓ ${name}</div>`;
+                return result;
+            } catch (e) {
+                results.innerHTML += `<div class="fail">✗ ${name}: ${e.message}</div>`;
+                return null;
+            }
+        }
+
+        // Test 1: TileConnectionManager exists
+        test('TileConnectionManager is defined', () => {
+            if (typeof TileConnectionManager === 'undefined') throw new Error('TileConnectionManager not defined');
+            return true;
+        });
+
+        // Test 2: Can create manager instance
+        let manager;
+        test('Can create TileConnectionManager instance', () => {
+            manager = new TileConnectionManager();
+            if (!manager) throw new Error('Failed to create instance');
+            return true;
+        });
+
+        // Test 3: Can add a connection
+        test('Can add connection between tiles', () => {
+            const result = manager.addConnection('tile_1', 'tile_2', 'data_flow');
+            if (!result.success) throw new Error(result.error);
+            return result.connection_id;
+        });
+
+        // Test 4: Duplicate connection fails
+        test('Duplicate connection is rejected', () => {
+            const result = manager.addConnection('tile_1', 'tile_2', 'data_flow');
+            if (result.success) throw new Error('Should reject duplicate');
+            return true;
+        });
+
+        // Test 5: Can get connections for a tile
+        test('Can get connections for tile', () => {
+            const connections = manager.getTileConnections('tile_1');
+            if (!connections || connections.length === 0) throw new Error('No connections found');
+            return true;
+        });
+
+        // Test 6: Can remove a connection
+        test('Can remove connection', () => {
+            const connections = manager.getTileConnections('tile_1');
+            const connId = connections[0].connection_id;
+            const result = manager.removeConnection(connId);
+            if (!result.success) throw new Error('Failed to remove');
+            return true;
+        });
+
+        // Test 7: Connection types are defined
+        test('Connection types are defined', () => {
+            if (!ConnectionTypes) throw new Error('ConnectionTypes not defined');
+            if (!ConnectionTypes.DATA_FLOW) throw new Error('DATA_FLOW missing');
+            if (!ConnectionTypes.COMMAND_FLOW) throw new Error('COMMAND_FLOW missing');
+            return true;
+        });
+
+        // Test 8: Can validate connection type
+        test('Can validate connection types', () => {
+            if (!manager.isValidConnectionType('data_flow')) throw new Error('Should validate data_flow');
+            if (manager.isValidConnectionType('invalid_type')) throw new Error('Should reject invalid');
+            return true;
+        });
+
+        console.log('Tile Connections tests complete');
+    </script>
+</body>
+</html>
