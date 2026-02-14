@@ -546,6 +546,12 @@ class WebMCPBridge {
             await this.#registerRegionRelease();
             await this.#registerRegionQuery();
 
+            // Phase G tools - Task Delegation
+            await this.#registerTaskDelegate();
+            await this.#registerTaskAccept();
+            await this.#registerTaskReport();
+            await this.#registerTaskGetQueue();
+
             // Phase G tools - Linux Control
             await this.#registerLinuxStatus();
             await this.#registerLinuxBoot();
@@ -4587,6 +4593,378 @@ class WebMCPBridge {
                 is_free: response.is_free,
                 claims: response.claims || [],
                 claims_count: response.claims_count
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: err.message.includes('backend') ? 'BACKEND_UNAVAILABLE' : 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 28: task_delegate (Phase G - Task Delegation)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerTaskDelegate() {
+        const tool = {
+            name: 'task_delegate',
+            description:
+                'Delegate a task to another agent in the session. ' +
+                'Use target_agent_id="any" for next available agent. ' +
+                'Tasks can have dependencies on other tasks.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    session_id: {
+                        type: 'string',
+                        description: 'Session ID'
+                    },
+                    from_agent: {
+                        type: 'string',
+                        description: 'Your agent ID'
+                    },
+                    target_agent_id: {
+                        type: 'string',
+                        description: 'Target agent ID or "any" for next available'
+                    },
+                    task_type: {
+                        type: 'string',
+                        enum: ['build', 'test', 'review', 'evolve', 'assemble', 'migrate'],
+                        description: 'Type of task'
+                    },
+                    description: {
+                        type: 'string',
+                        description: 'Detailed task description'
+                    },
+                    region: {
+                        type: 'object',
+                        properties: {
+                            x: { type: 'number' },
+                            y: { type: 'number' },
+                            width: { type: 'number' },
+                            height: { type: 'number' }
+                        },
+                        description: 'Optional region for the task'
+                    },
+                    priority: {
+                        type: 'string',
+                        enum: ['low', 'medium', 'high', 'critical'],
+                        description: 'Task priority (default: medium)',
+                        default: 'medium'
+                    },
+                    dependencies: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        description: 'Task IDs that must complete first'
+                    }
+                },
+                required: ['session_id', 'from_agent', 'target_agent_id', 'task_type', 'description']
+            },
+            handler: async (params) => {
+                return this.#handleTaskDelegate(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleTaskDelegate({ session_id, from_agent, target_agent_id, task_type, description, region, priority = 'medium', dependencies }) {
+        this.#trackCall('task_delegate');
+
+        if (!session_id || !from_agent || !task_type || !description) {
+            return {
+                success: false,
+                error: 'session_id, from_agent, task_type, and description are required',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                type: 'delegate_task',
+                session_id,
+                from_agent,
+                target_agent_id: target_agent_id || 'any',
+                task_type,
+                description,
+                region,
+                priority,
+                dependencies
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            return {
+                success: response.success !== false,
+                task_id: response.task_id,
+                status: response.status,
+                assigned_to: response.assigned_to,
+                blocked_by: response.blocked_by,
+                position_in_queue: response.position_in_queue,
+                error: response.error
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: err.message.includes('backend') ? 'BACKEND_UNAVAILABLE' : 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 29: task_accept (Phase G - Task Delegation)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerTaskAccept() {
+        const tool = {
+            name: 'task_accept',
+            description:
+                'Accept a delegated task to start working on it. ' +
+                'Cannot accept tasks that are blocked by incomplete dependencies.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    session_id: {
+                        type: 'string',
+                        description: 'Session ID'
+                    },
+                    task_id: {
+                        type: 'string',
+                        description: 'Task ID to accept'
+                    },
+                    agent_id: {
+                        type: 'string',
+                        description: 'Your agent ID'
+                    }
+                },
+                required: ['session_id', 'task_id', 'agent_id']
+            },
+            handler: async (params) => {
+                return this.#handleTaskAccept(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleTaskAccept({ session_id, task_id, agent_id }) {
+        this.#trackCall('task_accept');
+
+        if (!session_id || !task_id || !agent_id) {
+            return {
+                success: false,
+                error: 'session_id, task_id, and agent_id are required',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                type: 'accept_task',
+                session_id,
+                task_id,
+                agent_id
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            return {
+                success: response.success !== false,
+                task_id: response.task_id,
+                status: response.status,
+                assigned_to: response.assigned_to,
+                error: response.error,
+                blocked_by: response.blocked_by
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: err.message.includes('backend') ? 'BACKEND_UNAVAILABLE' : 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 30: task_report (Phase G - Task Delegation)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerTaskReport() {
+        const tool = {
+            name: 'task_report',
+            description:
+                'Report task completion or status update. ' +
+                'Completing a task automatically unblocks dependent tasks.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    session_id: {
+                        type: 'string',
+                        description: 'Session ID'
+                    },
+                    task_id: {
+                        type: 'string',
+                        description: 'Task ID'
+                    },
+                    agent_id: {
+                        type: 'string',
+                        description: 'Your agent ID'
+                    },
+                    status: {
+                        type: 'string',
+                        enum: ['completed', 'failed', 'blocked', 'cancelled'],
+                        description: 'New task status'
+                    },
+                    result: {
+                        type: 'object',
+                        description: 'Task result data'
+                    },
+                    artifacts: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                type: { enum: ['tile', 'shader', 'cartridge', 'screenshot'] },
+                                id: { type: 'string' }
+                            }
+                        },
+                        description: 'Artifacts produced by the task'
+                    },
+                    message: {
+                        type: 'string',
+                        description: 'Optional status message'
+                    }
+                },
+                required: ['session_id', 'task_id', 'agent_id', 'status']
+            },
+            handler: async (params) => {
+                return this.#handleTaskReport(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleTaskReport({ session_id, task_id, agent_id, status, result, artifacts, message }) {
+        this.#trackCall('task_report');
+
+        if (!session_id || !task_id || !agent_id || !status) {
+            return {
+                success: false,
+                error: 'session_id, task_id, agent_id, and status are required',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                type: 'report_task',
+                session_id,
+                task_id,
+                agent_id,
+                status,
+                result,
+                artifacts,
+                message
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            return {
+                success: response.success !== false,
+                task_id: response.task_id,
+                status: response.status,
+                unblocked_tasks: response.unblocked_tasks || [],
+                error: response.error
+            };
+
+        } catch (err) {
+            return {
+                success: false,
+                error: err.message,
+                error_code: err.message.includes('backend') ? 'BACKEND_UNAVAILABLE' : 'EXECUTION_FAILED'
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool 31: task_get_queue (Phase G - Task Delegation)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerTaskGetQueue() {
+        const tool = {
+            name: 'task_get_queue',
+            description:
+                'View pending and in-progress tasks in a session. ' +
+                'Returns filtered task list and summary statistics.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    session_id: {
+                        type: 'string',
+                        description: 'Session ID'
+                    },
+                    filter: {
+                        type: 'object',
+                        properties: {
+                            assigned_to: { type: 'string', description: 'Filter by assigned agent' },
+                            status: { enum: ['pending', 'in_progress', 'blocked', 'all'], description: 'Filter by status' },
+                            priority: { type: 'string', description: 'Filter by priority' }
+                        }
+                    }
+                },
+                required: ['session_id']
+            },
+            handler: async (params) => {
+                return this.#handleTaskGetQueue(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleTaskGetQueue({ session_id, filter }) {
+        this.#trackCall('task_get_queue');
+
+        if (!session_id) {
+            return {
+                success: false,
+                error: 'session_id is required',
+                error_code: 'INVALID_INPUT'
+            };
+        }
+
+        try {
+            const request = {
+                type: 'get_task_queue',
+                session_id,
+                filter: filter || {}
+            };
+
+            const response = await this.#sendA2ARequest(request);
+
+            if (response.error) {
+                return {
+                    success: false,
+                    error: response.error,
+                    error_code: 'SESSION_NOT_FOUND'
+                };
+            }
+
+            return {
+                success: true,
+                tasks: response.tasks || [],
+                summary: response.summary || {}
             };
 
         } catch (err) {
