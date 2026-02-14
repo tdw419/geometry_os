@@ -35,6 +35,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List, Union
 
 from .mount_helper import MountHelper, MountError
+from .boot_progress import BootProgress, ProgressStage
 
 # Import QemuBoot from integration module
 try:
@@ -125,6 +126,7 @@ class BootBridge:
         memory: str = "2G",
         cpus: int = 2,
         vnc_display: int = 0,
+        verbose: bool = False,
     ):
         """
         Initialize BootBridge.
@@ -134,11 +136,16 @@ class BootBridge:
             memory: Memory allocation for QEMU (default: "2G")
             cpus: Number of CPU cores (default: 2)
             vnc_display: VNC display number (default: 0, port 5900)
+            verbose: Whether to show visual progress during boot (default: False)
         """
         self.rts_png_path = Path(rts_png_path).resolve()
         self.memory = memory
         self.cpus = cpus
         self.vnc_display = vnc_display
+        self.verbose = verbose
+
+        # Create progress display
+        self._progress = BootProgress(verbose=verbose)
 
         # Runtime state
         self._mount_helper: Optional[MountHelper] = None
@@ -181,31 +188,57 @@ class BootBridge:
         logger.info(f"Booting {self.rts_png_path}")
 
         try:
-            # Step 1: Mount FUSE filesystem
+            # Stage 1: Parse metadata (validate RTS file)
+            self._progress.start(ProgressStage.PARSING_METADATA)
+            self._progress.update(1.0, "Validating RTS container")
+            self._progress.complete(f"Validated: {self.rts_png_path.name}")
+
+            # Stage 2: Mount FUSE filesystem
+            self._progress.start(ProgressStage.MOUNTING_FUSE)
+            self._progress.update(0.1, "Initializing FUSE mount...")
             logger.info("Mounting FUSE filesystem...")
             self._mount_helper = MountHelper(str(self.rts_png_path))
             mountpoint = self._mount_helper.mount()
+            self._progress.update(0.9, f"Mountpoint: {mountpoint}")
             self._mounted = True
+            self._progress.complete(f"Mounted at {mountpoint}")
             logger.info(f"Mounted at {mountpoint}")
 
-            # Step 2: Discover kernel/initrd
+            # Stage 3: Discover kernel/initrd
+            self._progress.start(ProgressStage.DISCOVERING_BOOT_FILES)
+            self._progress.update(0.3, "Scanning for boot files...")
             logger.info("Discovering boot files...")
             kernel_path, initrd_path = self._mount_helper.discover_boot_files()
 
             if kernel_path is None:
                 error_msg = "No kernel found in container"
                 logger.error(error_msg)
+                self._progress.error(error_msg)
                 return BootResult(
                     success=False,
                     mountpoint=mountpoint,
                     error_message=error_msg,
                 )
 
+            self._progress.update(0.8, f"Found kernel: {Path(kernel_path).name}")
+            self._progress.complete(f"kernel: {Path(kernel_path).name}" +
+                                   (f", initrd: {Path(initrd_path).name}" if initrd_path else ""))
             logger.info(f"Found kernel: {kernel_path}")
             if initrd_path:
                 logger.info(f"Found initrd: {initrd_path}")
 
-            # Step 3: Create QEMU configuration
+            # Stage 4: Prepare kernel
+            self._progress.start(ProgressStage.LOADING_KERNEL)
+            self._progress.update(1.0, f"Kernel ready: {Path(kernel_path).name}")
+            self._progress.complete("Kernel path prepared")
+
+            # Stage 5: Prepare initrd (if present)
+            if initrd_path:
+                self._progress.start(ProgressStage.LOADING_INITRD)
+                self._progress.update(1.0, f"Initrd ready: {Path(initrd_path).name}")
+                self._progress.complete("Initrd path prepared")
+
+            # Create QEMU configuration (no progress bar for this fast operation)
             qemu_config = QemuConfig(
                 memory=self.memory,
                 cpus=self.cpus,
@@ -220,7 +253,7 @@ class BootBridge:
             if extra_qemu_args:
                 qemu_config.extra_args.extend(extra_qemu_args)
 
-            # Step 4: Create QemuBoot instance
+            # Create QemuBoot instance
             # Note: We don't use prepare_boot() since we're using direct kernel boot
             # from the FUSE mountpoint - no intermediate files needed (DIRECT-03)
             self._qemu = QemuBoot(
@@ -230,7 +263,9 @@ class BootBridge:
                 config=qemu_config,
             )
 
-            # Step 5: Start QEMU with direct kernel boot
+            # Stage 6: Start QEMU
+            self._progress.start(ProgressStage.STARTING_QEMU)
+            self._progress.update(0.2, "Launching QEMU process...")
             logger.info("Starting QEMU...")
             process = self._qemu.boot(
                 kernel=Path(kernel_path),
@@ -238,11 +273,18 @@ class BootBridge:
                 cmdline=cmdline,
             )
             self._booted = True
+            self._progress.update(0.9, f"QEMU PID: {process.pid}")
 
             # Get access details
             status = self._qemu.get_status()
 
+            self._progress.complete(f"QEMU running on PID {process.pid}")
             logger.info(f"QEMU started with PID {process.pid}")
+
+            # Stage 7: Boot complete
+            self._progress.start(ProgressStage.BOOT_COMPLETE)
+            vnc_info = f"VNC :{status.get('vnc_port', 5900)}" if status.get('vnc_port') else ""
+            self._progress.complete(f"Boot successful! {vnc_info}")
 
             return BootResult(
                 success=True,
@@ -256,6 +298,7 @@ class BootBridge:
         except MountError as e:
             error_msg = f"Mount error: {e}"
             logger.error(error_msg)
+            self._progress.error(error_msg)
             self._cleanup()
             return BootResult(
                 success=False,
@@ -266,6 +309,7 @@ class BootBridge:
         except FileNotFoundError as e:
             error_msg = f"Boot file not found: {e}"
             logger.error(error_msg)
+            self._progress.error(error_msg)
             self._cleanup()
             return BootResult(
                 success=False,
@@ -276,6 +320,7 @@ class BootBridge:
         except Exception as e:
             error_msg = f"Boot failed: {e}"
             logger.error(error_msg)
+            self._progress.error(error_msg)
             self._cleanup()
             return BootResult(
                 success=False,
