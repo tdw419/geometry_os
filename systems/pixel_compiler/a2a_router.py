@@ -1297,6 +1297,51 @@ class A2ARouter:
             }
         }
 
+    async def leave_session(
+        self,
+        session_id: str,
+        agent_id: str,
+        handoff_to: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Leave a build session and release claimed regions."""
+        if session_id not in self.sessions:
+            return {"success": False, "error": "session_not_found"}
+
+        session = self.sessions[session_id]
+
+        if agent_id not in session.agents:
+            return {"success": False, "error": "agent_not_in_session"}
+
+        agent = session.agents[agent_id]
+        released_regions = []
+
+        # Release all regions claimed by this agent
+        for claim_id, claim in list(session.regions.items()):
+            if claim.agent_id == agent_id:
+                if handoff_to and handoff_to in session.agents:
+                    # Transfer to another agent
+                    claim.agent_id = handoff_to
+                    session.agents[handoff_to].regions_claimed.append(claim_id)
+                else:
+                    # Delete the region claim
+                    # Also remove from agent's regions_claimed list
+                    if claim_id in session.agents[agent_id].regions_claimed:
+                        session.agents[agent_id].regions_claimed.remove(claim_id)
+                    del session.regions[claim_id]
+                released_regions.append(claim_id)
+
+        # Remove agent from session
+        del session.agents[agent_id]
+
+        logger.info(f"Agent {agent_id} left session {session_id}, released {len(released_regions)} regions")
+
+        return {
+            "success": True,
+            "agent_id": agent_id,
+            "released_regions": released_regions,
+            "transferred_to": handoff_to if handoff_to else None
+        }
+
     # === Utility Methods ===
     
     def get_stats(self) -> Dict[str, Any]:

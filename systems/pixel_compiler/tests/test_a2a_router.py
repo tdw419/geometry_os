@@ -843,3 +843,45 @@ class TestBuildSession:
 
         assert result["success"] is False
         assert "full" in result.get("error", "").lower()
+
+    @pytest.mark.asyncio
+    async def test_leave_session(self, router):
+        """Agent can leave a session."""
+        session = await router.create_session(session_name="Test")
+        joined = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Builder",
+            role="builder"
+        )
+
+        result = await router.leave_session(
+            session_id=session["session_id"],
+            agent_id=joined["agent_id"]
+        )
+
+        assert result["success"] is True
+        assert joined["agent_id"] not in router.sessions[session["session_id"]].agents
+
+    @pytest.mark.asyncio
+    async def test_leave_nonexistent_session(self, router):
+        """Leaving nonexistent session returns error."""
+        result = await router.leave_session(
+            session_id="sess_nonexistent",
+            agent_id="agent_001"
+        )
+
+        assert result["success"] is False
+        assert "not_found" in result.get("error", "").lower()
+
+    @pytest.mark.asyncio
+    async def test_leave_nonexistent_agent(self, router):
+        """Leaving with nonexistent agent returns error."""
+        session = await router.create_session(session_name="Test")
+
+        result = await router.leave_session(
+            session_id=session["session_id"],
+            agent_id="agent_nonexistent"
+        )
+
+        assert result["success"] is False
+        assert "not_in_session" in result.get("error", "").lower()
