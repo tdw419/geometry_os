@@ -575,6 +575,10 @@ class A2ARouter:
             "complete_task": self._handle_complete_task,
             "get_task": self._handle_get_task,
             "list_tasks": self._handle_list_tasks,
+            "create_session": self._handle_create_session,
+            "join_session": self._handle_join_session,
+            "leave_session": self._handle_leave_session,
+            "get_session_state": self._handle_get_session_state,
         }
         
         handler = handlers.get(msg_type)
@@ -1176,6 +1180,38 @@ class A2ARouter:
             status=data.get("status")
         )
         return {"tasks": tasks, "count": len(tasks)}
+
+    async def _handle_create_session(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        return await self.create_session(
+            session_name=data.get("session_name"),
+            max_agents=data.get("max_agents", 10),
+            grid_size=data.get("grid_size", 1000),
+            coordination_mode=data.get("coordination_mode", "coordinated"),
+            config=data.get("config")
+        )
+
+    async def _handle_join_session(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        return await self.join_session(
+            session_id=data.get("session_id"),
+            agent_name=data.get("agent_name"),
+            role=data.get("role", "builder"),
+            capabilities=data.get("capabilities"),
+            invite_token=data.get("invite_token"),
+            websocket=websocket
+        )
+
+    async def _handle_leave_session(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        return await self.leave_session(
+            session_id=data.get("session_id"),
+            agent_id=data.get("agent_id"),
+            handoff_to=data.get("handoff_to")
+        )
+
+    async def _handle_get_session_state(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        return await self.get_session_state(
+            session_id=data.get("session_id"),
+            include=data.get("include")
+        )
 
     # === Background Tasks ===
     
