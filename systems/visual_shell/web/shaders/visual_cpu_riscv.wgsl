@@ -425,8 +425,8 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                  let paddr = translate_address(vaddr, 0u, base_idx);
 
                  if (paddr == 0xFFFFFFFFu) {
-                     // Page fault - halt
-                     cpu_states[base_idx + CSR_HALT] = 1u;
+                     // Page fault - trap to handler
+                     pc = trap_enter(base_idx, CAUSE_LOAD_PAGE_FAULT, vaddr, pc);
                  } else if (paddr < 67108864u) {
                      // Assume word aligned for POC
                      let word_idx = paddr / 4u;
