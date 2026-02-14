@@ -95,6 +95,9 @@ class WebMCPBridge {
     /** @type {Map<string, A2AMessageRouter>} */
     #spawnedAgents = new Map();
 
+    /** @type {Map<string, A2AMessageRouter>} */
+    #agentA2AClients = new Map();
+
     /** @type {WebSocket|null} */
     #a2aSocket = null;
 
@@ -1806,6 +1809,52 @@ class WebMCPBridge {
                         },
                         required: ['x', 'y', 'width', 'height']
                     },
+                    a2a_config: {
+                        type: 'object',
+                        description: 'A2A protocol configuration for agent communication (top-level)',
+                        properties: {
+                            enabled: {
+                                type: 'boolean',
+                                default: true,
+                                description: 'Enable A2A communication for this agent'
+                            },
+                            auto_discover: {
+                                type: 'boolean',
+                                default: true,
+                                description: 'Automatically discover other agents'
+                            },
+                            wsUrl: {
+                                type: 'string',
+                                default: 'ws://localhost:8766',
+                                description: 'WebSocket URL for A2A router'
+                            },
+                            topics: {
+                                type: 'array',
+                                items: { type: 'string' },
+                                description: 'Topics to subscribe to (e.g., ["region_updates", "alerts"])'
+                            },
+                            discovery: {
+                                type: 'boolean',
+                                default: true,
+                                description: 'Advertise in A2A registry'
+                            },
+                            auto_heartbeat: {
+                                type: 'boolean',
+                                default: true,
+                                description: 'Send periodic heartbeats'
+                            },
+                            heartbeat_interval: {
+                                type: 'number',
+                                default: 5,
+                                description: 'Heartbeat interval in seconds'
+                            },
+                            message_queue_size: {
+                                type: 'number',
+                                default: 1000,
+                                description: 'Max queued messages'
+                            }
+                        }
+                    },
                     config: {
                         type: 'object',
                         description: 'Agent-specific configuration options (optional)',
@@ -1819,10 +1868,10 @@ class WebMCPBridge {
                                 type: 'number',
                                 description: 'Evolution generations per cycle (evolver agent)'
                             },
-                            // Phase D: A2A config
+                            // Phase D: A2A config (legacy, nested)
                             a2a: {
                                 type: 'object',
-                                description: 'A2A protocol configuration (Phase D)',
+                                description: 'A2A protocol configuration (Phase D - legacy nested config)',
                                 properties: {
                                     enabled: {
                                         type: 'boolean',
@@ -3782,10 +3831,49 @@ class WebMCPBridge {
             },
             phaseD: {
                 a2aEnabled: !!this.#a2aRouter,
-                a2aStatus: this.#a2aRouter?.getStatus() || null
+                a2aStatus: this.#a2aRouter?.getStatus() || null,
+                spawnedAgentsCount: this.#spawnedAgents.size
             }
         };
         return status;
+    }
+
+    /**
+     * Get the A2A client (router) for a specific spawned agent
+     * @param {string} agentId - Agent ID
+     * @returns {A2AMessageRouter|null} A2A router or null if not found
+     */
+    getAgentA2AClient(agentId) {
+        const agentData = this.#spawnedAgents.get(agentId);
+        return agentData?.router || null;
+    }
+
+    /**
+     * Get all agents with active A2A connections
+     * @returns {string[]} List of agent IDs with A2A enabled
+     */
+    getAgentsWithA2A() {
+        return Array.from(this.#spawnedAgents.keys());
+    }
+
+    /**
+     * Get detailed info for a spawned agent
+     * @param {string} agentId - Agent ID
+     * @returns {Object|null} Agent info or null if not found
+     */
+    getAgentInfo(agentId) {
+        const agentData = this.#spawnedAgents.get(agentId);
+        if (!agentData) return null;
+
+        return {
+            agentId,
+            agentType: agentData.agentType,
+            region: agentData.region,
+            config: agentData.config,
+            spawnedAt: agentData.spawnedAt,
+            a2aEnabled: !!agentData.router,
+            a2aStatus: agentData.router?.getStatus() || null
+        };
     }
 }
 
