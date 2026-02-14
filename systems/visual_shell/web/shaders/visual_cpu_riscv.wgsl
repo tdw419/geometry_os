@@ -577,7 +577,8 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
             }
         }
         default: {
-            // NOP or Unknown
+            // Unknown opcode - illegal instruction trap
+            pc = trap_enter(base_idx, CAUSE_ILLEGAL_INST, inst, pc);
         }
     }
 
