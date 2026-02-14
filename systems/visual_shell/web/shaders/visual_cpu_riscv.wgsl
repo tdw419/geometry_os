@@ -134,6 +134,68 @@ fn translate_address(vaddr: u32, is_write: u32, base_idx: u32) -> u32 {
     return (ppn0 << 12u) | offset;
 }
 
+// --- MMIO INPUT POLLING ---
+fn poll_input(base_idx: u32) -> bool {
+    // Read input status
+    let status_addr = (MMIO_INPUT_BASE + MMIO_INPUT_STATUS) / 4u;
+
+    if (status_addr >= arrayLength(&system_memory)) {
+        return false;
+    }
+
+    let status = system_memory[status_addr];
+    let pending = status & 1u;
+
+    if (pending == 0u) {
+        return false;  // No input pending
+    }
+
+    // Read input type
+    let type_addr = (MMIO_INPUT_BASE + MMIO_INPUT_TYPE) / 4u;
+    let input_type = system_memory[type_addr];
+
+    // Process based on type
+    if (input_type == INPUT_TYPE_KEYBOARD) {
+        // Read key code and flags
+        let key_addr = (MMIO_INPUT_BASE + MMIO_INPUT_KEY) / 4u;
+        let flags_addr = (MMIO_INPUT_BASE + MMIO_INPUT_FLAGS) / 4u;
+
+        let key_code = system_memory[key_addr];
+        let flags = system_memory[flags_addr];
+
+        // For now, store in a memory location the OS can read
+        // Keyboard buffer at 0x02100000 (33MB)
+        let kb_buf_addr = 0x02100000u / 4u;
+        if (kb_buf_addr < arrayLength(&system_memory)) {
+            // Write: keycode | (flags << 16)
+            system_memory[kb_buf_addr] = key_code | (flags << 16u);
+        }
+
+    } else if (input_type == INPUT_TYPE_MOUSE) {
+        // Read mouse coordinates
+        let x_addr = (MMIO_INPUT_BASE + MMIO_INPUT_X) / 4u;
+        let y_addr = (MMIO_INPUT_BASE + MMIO_INPUT_Y) / 4u;
+        let flags_addr = (MMIO_INPUT_BASE + MMIO_INPUT_FLAGS) / 4u;
+
+        let mouse_x = system_memory[x_addr];
+        let mouse_y = system_memory[y_addr];
+        let flags = system_memory[flags_addr];
+
+        // Mouse buffer at 0x02200000 (34MB)
+        let mouse_buf_addr = 0x02200000u / 4u;
+        if (mouse_buf_addr + 2u < arrayLength(&system_memory)) {
+            system_memory[mouse_buf_addr] = mouse_x;
+            system_memory[mouse_buf_addr + 1u] = mouse_y;
+            system_memory[mouse_buf_addr + 2u] = flags;
+        }
+    }
+
+    // Clear pending flag (acknowledge)
+    system_memory[status_addr] = status & ~1u;
+
+    return true;
+}
+
 // --- COMPUTE KERNEL ---
 
 @compute @workgroup_size(64)
@@ -144,6 +206,11 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     // 1. Check if HALTED (stored in CSR_HALT index)
     let halted = cpu_states[base_idx + CSR_HALT];
     if (halted > 0u) { return; }
+
+    // 1.5. Poll for MMIO input (only core 0)
+    if (core_id == 0u) {
+        poll_input(base_idx);
+    }
 
     // 2. Fetch PC
     var pc = cpu_states[base_idx + 32u];
