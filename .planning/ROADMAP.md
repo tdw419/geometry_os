@@ -60,7 +60,13 @@ Decimal phases appear between their surrounding integers in numeric order.
 4. Boot progress is displayed visually during operations that take longer than 1 second
 5. FUSE mount properly cleans up after boot completes or fails (no resource leaks)
 
-**Plans**: TBD
+**Plans**: 6 plans in 6 waves
+- [ ] 02-01-PLAN.md — FUSE mount lifecycle (MountHelper class)
+- [ ] 02-02-PLAN.md — Boot orchestration (BootBridge class)
+- [ ] 02-03-PLAN.md — Visual progress display (BootProgress)
+- [ ] 02-04-PLAN.md — Progress integration into BootBridge
+- [ ] 02-05-PLAN.md — CLI boot subcommand (`pixelrts boot`)
+- [ ] 02-06-PLAN.md — Unit tests with checkpoint
 
 ### Phase 3: Visual Installer Engine
 
@@ -102,6 +108,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Vision Analysis Pipeline | 8/8 | ✅ Complete | 2026-02-14 |
-| 2. FUSE Bridge for Direct Boot | 0/TBD | Not started | - |
+| 2. FUSE Bridge for Direct Boot | 0/6 | Not started | - |
 | 3. Visual Installer Engine | 0/TBD | Not started | - |
 | 4. Visual Catalog Manager | 0/TBD | Not started | - |
