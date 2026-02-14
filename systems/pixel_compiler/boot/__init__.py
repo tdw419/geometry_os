@@ -6,15 +6,11 @@ for booting operating systems from PixelRTS containers.
 
 Key Classes:
     - MountHelper: Safe FUSE mount/unmount with automatic cleanup
-    - BootBridge: QEMU boot integration (Phase 2, Plan 02)
+    - BootBridge: Unified FUSE mount + QEMU boot orchestration
+    - BootResult: Data class for boot operation results
 """
 
 from .mount_helper import MountHelper, MountError
+from .boot_bridge import BootBridge, BootResult
 
-# BootBridge will be added in plan 02
-try:
-    from .boot_bridge import BootBridge
-except ImportError:
-    BootBridge = None  # Not yet implemented
-
-__all__ = ["MountHelper", "MountError", "BootBridge"]
+__all__ = ["MountHelper", "MountError", "BootBridge", "BootResult"]
