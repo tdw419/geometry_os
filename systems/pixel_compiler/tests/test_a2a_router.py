@@ -241,3 +241,120 @@ class TestSubscriptions:
 
         # agent-1 should have received agent_registered notification
         assert mock_conn.send.call_count >= 1
+
+
+class TestA2AAreaAgentIntegration:
+    """Tests for A2A integration with spawned area agents."""
+
+    @pytest.fixture
+    def router(self):
+        """Create a fresh A2A router for each test."""
+        return A2ARouter()
+
+    @pytest.mark.asyncio
+    async def test_agent_auto_register_on_connect(self, router):
+        """Agent is automatically registered when connecting to router."""
+        mock_conn = AsyncMock()
+
+        # Simulate agent connecting
+        await router.register_agent(
+            "area-agent-001",
+            mock_conn,
+            {
+                "agent_type": "monitor",
+                "region": {"x": 0, "y": 0, "width": 100, "height": 100},
+                "capabilities": ["scan", "detect"]
+            }
+        )
+
+        # Verify registration
+        assert "area-agent-001" in router.peer_registry
+        assert router.peer_registry["area-agent-001"].agent_type == "monitor"
+
+    @pytest.mark.asyncio
+    async def test_multiple_agents_can_discover_each_other(self, router):
+        """Multiple spawned agents can discover each other."""
+        # Spawn multiple agents
+        for i in range(3):
+            await router.register_agent(
+                f"area-agent-{i:03d}",
+                AsyncMock(),
+                {
+                    "agent_type": "monitor" if i < 2 else "executor",
+                    "region": {"x": i * 100, "y": 0, "width": 100, "height": 100}
+                }
+            )
+
+        # Discover monitors
+        monitors = await router.discover_peers(agent_type="monitor")
+        assert len(monitors) == 2
+
+        # Discover executors
+        executors = await router.discover_peers(agent_type="executor")
+        assert len(executors) == 1
+
+    @pytest.mark.asyncio
+    async def test_agents_in_adjacent_regions_can_communicate(self, router):
+        """Agents in overlapping/adjacent regions can find each other."""
+        # Agent 1: region (0,0) to (100,100)
+        await router.register_agent(
+            "agent-left",
+            AsyncMock(),
+            {
+                "agent_type": "monitor",
+                "region": {"x": 0, "y": 0, "width": 100, "height": 100}
+            }
+        )
+
+        # Agent 2: region (90,0) to (190,100) - overlaps with Agent 1
+        await router.register_agent(
+            "agent-right",
+            AsyncMock(),
+            {
+                "agent_type": "monitor",
+                "region": {"x": 90, "y": 0, "width": 100, "height": 100}
+            }
+        )
+
+        # Find agents overlapping with agent-left's region
+        overlapping = await router.discover_peers(
+            region_overlaps={"x": 0, "y": 0, "width": 100, "height": 100}
+        )
+
+        # Should find both (agent-left and overlapping agent-right)
+        assert len(overlapping) == 2
+
+    @pytest.mark.asyncio
+    async def test_agent_broadcast_to_type(self, router):
+        """Agent can broadcast to all agents of a specific type."""
+        mock_monitor = AsyncMock()
+        mock_executor = AsyncMock()
+
+        await router.register_agent("sender", AsyncMock(), {"agent_type": "coordinator"})
+        await router.register_agent("monitor-1", mock_monitor, {"agent_type": "monitor"})
+        await router.register_agent("executor-1", mock_executor, {"agent_type": "executor"})
+
+        # Create proper broadcast message
+        from systems.pixel_compiler.a2a_router import A2AMessage
+        broadcast_msg = A2AMessage(
+            message_id="broadcast-004",
+            timestamp=0.0,
+            from_agent="sender",
+            to_agent=None,
+            message_type="task_available",
+            content={"task": "scan"}
+        )
+
+        # Broadcast to monitors only
+        result = await router.broadcast(
+            "sender",
+            agent_type="monitor",
+            message=broadcast_msg,
+            exclude_self=True
+        )
+
+        assert result == 1
+        # Monitor should have received message
+        mock_monitor.send.assert_called_once()
+        # Executor should NOT have received message
+        mock_executor.send.assert_not_called()
