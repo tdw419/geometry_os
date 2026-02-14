@@ -3,7 +3,7 @@
 
 cd "$(dirname "$0")"
 
-echo "Linux Bridge starting..."
+echo "🐧 Starting Linux Bridge..."
 echo "   WebSocket: ws://localhost:8767"
 echo "   QEMU: Alpine Linux"
 echo ""
