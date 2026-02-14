@@ -32,6 +32,19 @@ fn get_funct3(inst: u32) -> u32 { return (inst >> 12u) & 0x07u; }
 fn get_rs1(inst: u32) -> u32    { return (inst >> 15u) & 0x1Fu; }
 fn get_rs2(inst: u32) -> u32    { return (inst >> 20u) & 0x1Fu; }
 
+// --- CSR HELPER ---
+// Maps CSR number to its index in cpu_states array
+// Returns 255u for unknown CSRs (should trap in full implementation)
+fn _get_csr_index(csr_num: u32) -> u32 {
+    switch (csr_num) {
+        case 0x180u: { return CSR_SATP; }      // satp
+        case 0x105u: { return CSR_STVEC; }     // stvec
+        case 0x140u: { return CSR_SSCRATCH; }  // sscratch
+        case 0x100u: { return CSR_HALT; }     // Treat halt as writable CSR
+        default: { return 255u; }              // Unknown CSR
+    }
+}
+
 // --- COMPUTE KERNEL ---
 
 @compute @workgroup_size(64)
@@ -129,10 +142,50 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                  }
             }
         }
-        case 0x73u: { // SYSTEM (ecall)
-            let a7 = cpu_states[base_idx + 17u]; // x17
-            if (a7 == 93u) { // exit
-                cpu_states[base_idx + CSR_HALT] = 1u; // SET HALT
+        case 0x73u: { // SYSTEM (ecall, csrrw, csrrs)
+            let funct3_sys = (inst >> 12u) & 0x7u;
+
+            if (funct3_sys == 0u) {
+                // ECALL/EBREAK
+                let a7 = cpu_states[base_idx + 17u]; // x17
+                if (a7 == 93u) { // exit
+                    cpu_states[base_idx + CSR_HALT] = 1u; // SET HALT
+                }
+            } else if (funct3_sys == 1u) {
+                // CSRRW: CSR[csr] <- rs1; rd <- old_csr
+                let csr_num = inst >> 20u;
+                let csr_idx = _get_csr_index(csr_num);
+                if (csr_idx < 255u) {
+                    let old_val = cpu_states[base_idx + csr_idx];
+                    if (rd != 0u) {
+                        cpu_states[base_idx + rd] = old_val;
+                    }
+                    cpu_states[base_idx + csr_idx] = cpu_states[base_idx + rs1];
+                }
+            } else if (funct3_sys == 2u) {
+                // CSRRS: CSR[csr] <- CSR | rs1; rd <- old_csr (set bits)
+                let csr_num = inst >> 20u;
+                let csr_idx = _get_csr_index(csr_num);
+                if (csr_idx < 255u) {
+                    let old_val = cpu_states[base_idx + csr_idx];
+                    if (rd != 0u) {
+                        cpu_states[base_idx + rd] = old_val;
+                    }
+                    let rs1_val = cpu_states[base_idx + rs1];
+                    cpu_states[base_idx + csr_idx] = old_val | rs1_val;
+                }
+            } else if (funct3_sys == 3u) {
+                // CSRRC: CSR[csr] <- CSR & ~rs1; rd <- old_csr (clear bits)
+                let csr_num = inst >> 20u;
+                let csr_idx = _get_csr_index(csr_num);
+                if (csr_idx < 255u) {
+                    let old_val = cpu_states[base_idx + csr_idx];
+                    if (rd != 0u) {
+                        cpu_states[base_idx + rd] = old_val;
+                    }
+                    let rs1_val = cpu_states[base_idx + rs1];
+                    cpu_states[base_idx + csr_idx] = old_val & ~rs1_val;
+                }
             }
         }
         default: {

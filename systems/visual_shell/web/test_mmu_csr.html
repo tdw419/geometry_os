@@ -87,6 +87,8 @@
         <button id="btnTest1" onclick="runTest(1)">Test 1: CSR Registers</button>
         <button id="btnTest2" onclick="runTest(2)">Test 2: Halt Location</button>
         <button id="btnTest3" onclick="runTest(3)">Test 3: Extended State Size</button>
+        <button id="btnTest4" onclick="runTest(4)">Test 4: CSR Instruction Encoding</button>
+        <button id="btnTest5" onclick="runTest(5)">Test 5: CSR Instruction Execution</button>
         <button id="btnClear" onclick="clearResults()">Clear Results</button>
     </div>
 
@@ -111,7 +113,7 @@
     </div>
 
     <script type="module">
-        import { testCSRRegisters, testCSRHaltLocation, testExtendedStateSize }
+        import { testCSRRegisters, testCSRHaltLocation, testExtendedStateSize, testCSRRWInstruction, testCSRExecution }
             from './tests/test_mmu_csr.js';
 
         const results = document.getElementById('results');
@@ -158,6 +160,14 @@
                     await testExtendedStateSize();
                     addResult('pass', 'Test 3: Extended State - State buffer is 39 u32s');
                     testStats.passed++;
+                } else if (num === 4) {
+                    await testCSRRWInstruction();
+                    addResult('pass', 'Test 4: CSR Instruction Encoding - CSRRW/CSRRS encoding verified');
+                    testStats.passed++;
+                } else if (num === 5) {
+                    await testCSRExecution();
+                    addResult('pass', 'Test 5: CSR Instruction Execution - CSRRW executes correctly');
+                    testStats.passed++;
                 }
 
                 testStats.total++;
@@ -182,6 +192,8 @@
             await runTest(1);
             await runTest(2);
             await runTest(3);
+            await runTest(4);
+            await runTest(5);
 
             addResult('info', `All tests complete. Passed: ${testStats.passed}/${testStats.total}`);
         }
