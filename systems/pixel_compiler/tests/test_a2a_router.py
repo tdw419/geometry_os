@@ -540,3 +540,154 @@ class TestA2ACoordinationPrimitives:
         # Both agents should have received barrier_release notification
         mock_conn1.send.assert_called()
         mock_conn2.send.assert_called()
+
+
+class TestA2ATaskDelegation:
+    """Tests for task delegation pattern."""
+
+    @pytest.fixture
+    def router(self):
+        """Create a fresh A2A router for each test."""
+        return A2ARouter()
+
+    @pytest.mark.asyncio
+    async def test_assign_task(self, router):
+        """Can assign a task to another agent."""
+        mock_conn1 = AsyncMock()
+        mock_conn2 = AsyncMock()
+
+        await router.register_agent("coordinator", mock_conn1, {"agent_type": "coordinator"})
+        await router.register_agent("worker", mock_conn2, {"agent_type": "executor"})
+
+        result = await router.assign_task(
+            from_agent="coordinator",
+            to_agent="worker",
+            task_type="scan_region",
+            params={"x": 0, "y": 0, "width": 100, "height": 100}
+        )
+
+        assert result["status"] == "assigned"
+        assert "task_id" in result
+        # Note: Notification requires WebSocket connection in legacy connections dict
+
+    @pytest.mark.asyncio
+    async def test_report_progress(self, router):
+        """Agent can report task progress."""
+        mock_conn1 = AsyncMock()
+        mock_conn2 = AsyncMock()
+
+        await router.register_agent("coordinator", mock_conn1, {"agent_type": "coordinator"})
+        await router.register_agent("worker", mock_conn2, {"agent_type": "executor"})
+
+        # Assign task
+        task = await router.assign_task(
+            from_agent="coordinator",
+            to_agent="worker",
+            task_type="scan_region",
+            params={}
+        )
+        task_id = task["task_id"]
+
+        # Report progress
+        result = await router.report_progress(
+            task_id=task_id,
+            agent_id="worker",
+            progress=0.5,
+            status="in_progress"
+        )
+
+        assert result["progress"] == 0.5
+        assert result["status"] == "in_progress"
+
+    @pytest.mark.asyncio
+    async def test_complete_task(self, router):
+        """Agent can complete a task with result."""
+        mock_conn1 = AsyncMock()
+        mock_conn2 = AsyncMock()
+
+        await router.register_agent("coordinator", mock_conn1, {"agent_type": "coordinator"})
+        await router.register_agent("worker", mock_conn2, {"agent_type": "executor"})
+
+        # Assign and complete
+        task = await router.assign_task(
+            from_agent="coordinator",
+            to_agent="worker",
+            task_type="scan_region",
+            params={}
+        )
+        task_id = task["task_id"]
+
+        result = await router.complete_task(
+            task_id=task_id,
+            agent_id="worker",
+            result={"pixels_scanned": 10000, "anomalies": 3},
+            success=True
+        )
+
+        assert result["status"] == "completed"
+        assert result["success"] is True
+
+    @pytest.mark.asyncio
+    async def test_get_task_status(self, router):
+        """Can query task status."""
+        mock_conn1 = AsyncMock()
+        mock_conn2 = AsyncMock()
+
+        await router.register_agent("coordinator", mock_conn1, {"agent_type": "coordinator"})
+        await router.register_agent("worker", mock_conn2, {"agent_type": "executor"})
+
+        task = await router.assign_task(
+            from_agent="coordinator",
+            to_agent="worker",
+            task_type="scan_region",
+            params={}
+        )
+        task_id = task["task_id"]
+
+        # Get task status
+        status = await router.get_task(task_id)
+
+        assert status is not None
+        assert status["status"] == "assigned"
+        assert status["progress"] == 0.0
+
+    @pytest.mark.asyncio
+    async def test_task_failed(self, router):
+        """Task can be marked as failed."""
+        mock_conn1 = AsyncMock()
+        mock_conn2 = AsyncMock()
+
+        await router.register_agent("coordinator", mock_conn1, {"agent_type": "coordinator"})
+        await router.register_agent("worker", mock_conn2, {"agent_type": "executor"})
+
+        task = await router.assign_task(
+            from_agent="coordinator",
+            to_agent="worker",
+            task_type="scan_region",
+            params={}
+        )
+        task_id = task["task_id"]
+
+        result = await router.complete_task(
+            task_id=task_id,
+            agent_id="worker",
+            result={"error": "Region locked by another agent"},
+            success=False
+        )
+
+        assert result["status"] == "failed"
+
+    @pytest.mark.asyncio
+    async def test_list_tasks(self, router):
+        """Can list tasks with filters."""
+        mock_conn = AsyncMock()
+        await router.register_agent("coordinator", mock_conn, {"agent_type": "coordinator"})
+        await router.register_agent("worker", mock_conn, {"agent_type": "executor"})
+
+        # Create multiple tasks
+        await router.assign_task("coordinator", "worker", "task1", {})
+        await router.assign_task("coordinator", "worker", "task2", {})
+
+        tasks = await router.list_tasks(agent_id="worker")
+
+        assert len(tasks) == 2
