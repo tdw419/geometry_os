@@ -885,3 +885,28 @@ class TestBuildSession:
 
         assert result["success"] is False
         assert "not_in_session" in result.get("error", "").lower()
+
+    @pytest.mark.asyncio
+    async def test_get_session_state(self, router):
+        """Can get session state."""
+        session = await router.create_session(session_name="Test")
+        await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Builder-A",
+            role="builder"
+        )
+
+        result = await router.get_session_state(session_id=session["session_id"])
+
+        assert result["success"] is True
+        assert len(result["agents"]) == 1
+        assert result["agents"][0]["name"] == "Builder-A"
+        assert result["agents"][0]["role"] == "builder"
+
+    @pytest.mark.asyncio
+    async def test_get_session_state_nonexistent(self, router):
+        """Getting nonexistent session returns error."""
+        result = await router.get_session_state(session_id="sess_nonexistent")
+
+        assert result["success"] is False
+        assert "not_found" in result.get("error", "").lower()

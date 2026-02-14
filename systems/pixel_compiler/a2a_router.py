@@ -1342,6 +1342,62 @@ class A2ARouter:
             "transferred_to": handoff_to if handoff_to else None
         }
 
+    async def get_session_state(
+        self,
+        session_id: str,
+        include: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """Get current session state and progress."""
+        if session_id not in self.sessions:
+            return {"success": False, "error": "session_not_found"}
+
+        session = self.sessions[session_id]
+        include = include or ["all"]
+
+        state = {
+            "success": True,
+            "session_id": session_id,
+            "session_name": session.session_name,
+            "status": session.status,
+            "coordination_mode": session.coordination_mode
+        }
+
+        if "all" in include or "agents" in include:
+            state["agents"] = [
+                {
+                    "agent_id": a.agent_id,
+                    "name": a.name,
+                    "role": a.role,
+                    "color": a.color,
+                    "capabilities": a.capabilities,
+                    "joined_at": a.joined_at,
+                    "regions_claimed": len(a.regions_claimed),
+                    "tasks_completed": a.tasks_completed
+                }
+                for a in session.agents.values()
+            ]
+
+        if "all" in include or "regions" in include:
+            state["regions"] = [
+                {
+                    "claim_id": r.claim_id,
+                    "agent_id": r.agent_id,
+                    "bounds": r.bounds,
+                    "purpose": r.purpose,
+                    "claimed_at": r.claimed_at
+                }
+                for r in session.regions.values()
+            ]
+
+        if "all" in include or "progress" in include:
+            state["progress"] = {
+                "agents_count": len(session.agents),
+                "regions_claimed": len(session.regions),
+                "max_agents": session.max_agents
+            }
+
+        return state
+
     # === Utility Methods ===
     
     def get_stats(self) -> Dict[str, Any]:
