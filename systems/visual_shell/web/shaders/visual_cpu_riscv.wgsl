@@ -183,11 +183,17 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
             if (funct3 == 0x2u) { // LW
                  let offset = i32(inst) >> 20u;
                  let val1 = i32(cpu_states[base_idx + rs1]);
-                 let addr = u32(val1 + offset);
-                 // Check bounds (64MB)
-                 if (addr < 67108864u) {
+                 let vaddr = u32(val1 + offset);
+
+                 // Translate virtual to physical
+                 let paddr = translate_address(vaddr, 0u, base_idx);
+
+                 if (paddr == 0xFFFFFFFFu) {
+                     // Page fault - halt
+                     cpu_states[base_idx + CSR_HALT] = 1u;
+                 } else if (paddr < 67108864u) {
                      // Assume word aligned for POC
-                     let word_idx = addr / 4u;
+                     let word_idx = paddr / 4u;
                      let loaded_val = system_memory[word_idx];
                      if (rd != 0u) { cpu_states[base_idx + rd] = loaded_val; }
                  }
@@ -200,14 +206,20 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                  let imm4_0 = (inst >> 7u) & 0x1Fu;
                  let imm_s = (imm11_5 << 5u) | imm4_0;
                  // Sign extend 12-bit immediate
-                 let offset_s = (i32(imm_s) << 20u) >> 20u; 
-                 
+                 let offset_s = (i32(imm_s) << 20u) >> 20u;
+
                  let val1 = i32(cpu_states[base_idx + rs1]);
                  let val2 = cpu_states[base_idx + rs2];
-                 let addr = u32(val1 + offset_s);
-                 
-                  if (addr < 67108864u) {
-                     let word_idx = addr / 4u;
+                 let vaddr = u32(val1 + offset_s);
+
+                 // Translate virtual to physical
+                 let paddr = translate_address(vaddr, 1u, base_idx);
+
+                 if (paddr == 0xFFFFFFFFu) {
+                     // Page fault - halt
+                     cpu_states[base_idx + CSR_HALT] = 1u;
+                 } else if (paddr < 67108864u) {
+                     let word_idx = paddr / 4u;
                      system_memory[word_idx] = val2;
                  }
             }
