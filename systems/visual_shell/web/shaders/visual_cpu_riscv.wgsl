@@ -150,11 +150,55 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                 }
             }
         }
-        case 0x33u: { // OP (add, sub, etc)
+        case 0x33u: { // OP (add, sub, mul, div, etc)
             let val1 = i32(cpu_states[base_idx + rs1]);
             let val2 = i32(cpu_states[base_idx + rs2]);
-            if (funct3 == 0u) { // ADD / SUB
-                let funct7 = (inst >> 25u) & 0x7Fu;
+            let funct7 = (inst >> 25u) & 0x7Fu;
+
+            if (funct7 == 0x01u) {
+                // M extension
+                if (funct3 == 0u) { // MUL
+                    if (rd != 0u) {
+                        // 32-bit multiply (low 32 bits of product)
+                        cpu_states[base_idx + rd] = u32(val1 * val2);
+                    }
+                } else if (funct3 == 1u) { // MULH (signed * signed, high bits)
+                    // For 32-bit, need 64-bit intermediate
+                    // WGSL doesn't have i64, so we simulate
+                    let sign1 = val1 < 0;
+                    let sign2 = val2 < 0;
+                    let abs1 = select(-val1, val1, sign1);
+                    let abs2 = select(-val2, val2, sign2);
+                    let prod = u32(abs1) * u32(abs2);
+                    let high = prod >> 32u;
+                    if (sign1 != sign2) {
+                        // Result should be negative
+                        if (rd != 0u) {
+                            cpu_states[base_idx + rd] = ~high;
+                        }
+                    } else {
+                        if (rd != 0u) {
+                            cpu_states[base_idx + rd] = high;
+                        }
+                    }
+                } else if (funct3 == 4u) { // DIV
+                    if (val2 != 0 && rd != 0u) {
+                        cpu_states[base_idx + rd] = u32(val1 / val2);
+                    }
+                } else if (funct3 == 5u) { // DIVU
+                    if (val2 != 0u && rd != 0u) {
+                        cpu_states[base_idx + rd] = cpu_states[base_idx + rs1] / cpu_states[base_idx + rs2];
+                    }
+                } else if (funct3 == 6u) { // REM
+                    if (val2 != 0 && rd != 0u) {
+                        cpu_states[base_idx + rd] = u32(val1 % val2);
+                    }
+                } else if (funct3 == 7u) { // REMU
+                    if (val2 != 0u && rd != 0u) {
+                        cpu_states[base_idx + rd] = cpu_states[base_idx + rs1] % cpu_states[base_idx + rs2];
+                    }
+                }
+            } else if (funct3 == 0u) { // ADD / SUB
                 if (funct7 == 0x00u) {
                     if (rd != 0u) { cpu_states[base_idx + rd] = u32(val1 + val2); }
                 } else if (funct7 == 0x20u) {
