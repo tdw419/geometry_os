@@ -184,8 +184,8 @@ class SwarmManager:
         if not self.free_slots:
             raise RuntimeError(f"Swarm at capacity ({self.MAX_AGENTS} agents)")
 
-        # Assign slot
-        slot = self.free_slots.pop(0)
+        # Assign slot (LIFO for quick reuse of freed slots)
+        slot = self.free_slots.pop()
         agent_id = self.next_agent_id
         self.next_agent_id += 1
 
@@ -243,3 +243,26 @@ class SwarmManager:
         # GPU mode: write to pool buffer
         data_array = np.frombuffer(data, dtype=np.uint8)
         self.device.queue.write_buffer(self.pool_buffer, memory_base, data_array.tobytes())
+
+    def kill_agent(self, agent_id: int) -> None:
+        """
+        Remove an agent and free its pool slot.
+
+        Args:
+            agent_id: ID of agent to remove
+
+        Raises:
+            KeyError: If agent_id not found
+        """
+        if agent_id not in self.active_agents:
+            raise KeyError(f"Agent {agent_id} not found")
+
+        state = self.active_agents[agent_id]
+        slot = state.pool_slot
+
+        # Remove from tracking
+        del self.active_agents[agent_id]
+        del self.slot_assignments[agent_id]
+
+        # Free slot for reuse
+        self.free_slots.append(slot)

@@ -116,3 +116,43 @@ class TestSwarmManagerSpawn:
 
         with pytest.raises(RuntimeError, match="bytecode"):
             manager.spawn_agent()
+
+
+class TestSwarmManagerKill:
+    """Test agent removal."""
+
+    def test_kill_agent(self):
+        """Can kill an agent and free its slot."""
+        from systems.pixel_compiler.swarm_manager import SwarmManager
+        manager = SwarmManager()
+        manager.load_bytecode(b'\x00asm')
+
+        agent_id = manager.spawn_agent()
+        assert len(manager.active_agents) == 1
+
+        manager.kill_agent(agent_id)
+        assert len(manager.active_agents) == 0
+        assert agent_id not in manager.active_agents
+
+    def test_kill_frees_slot(self):
+        """Killing agent frees its slot for reuse."""
+        from systems.pixel_compiler.swarm_manager import SwarmManager
+        manager = SwarmManager()
+        manager.load_bytecode(b'\x00asm')
+
+        # Spawn and kill
+        agent_id = manager.spawn_agent()
+        slot = manager.active_agents[agent_id].pool_slot
+        manager.kill_agent(agent_id)
+
+        # Spawn again - should reuse slot
+        new_id = manager.spawn_agent()
+        assert manager.active_agents[new_id].pool_slot == slot
+
+    def test_kill_nonexistent_raises(self):
+        """Killing nonexistent agent raises error."""
+        from systems.pixel_compiler.swarm_manager import SwarmManager
+        manager = SwarmManager()
+
+        with pytest.raises(KeyError):
+            manager.kill_agent(999)
