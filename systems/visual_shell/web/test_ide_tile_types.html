@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural IDE: IDE Tile Types Test</title>
+    <style>
+        body { font-family: 'Courier New', monospace; background: #0a0a0f; color: #00ff88; padding: 20px; }
+        .pass { color: #00ff00; } .fail { color: #ff0000; }
+    </style>
+</head>
+<body>
+    <h1>IDE Tile Types Test</h1>
+    <div id="results"></div>
+    <script src="ide_tile_types.js"></script>
+    <script>
+        const results = document.getElementById('results');
+
+        function test(name, fn) {
+            try {
+                const result = fn();
+                results.innerHTML += `<div class="pass">✓ ${name}</div>`;
+                return result;
+            } catch (e) {
+                results.innerHTML += `<div class="fail">✗ ${name}: ${e.message}</div>`;
+                return null;
+            }
+        }
+
+        // Test 1: IDETileTypes exists
+        test('IDETileTypes is defined', () => {
+            if (typeof IDETileTypes === 'undefined') throw new Error('IDETileTypes not defined');
+            return true;
+        });
+
+        // Test 2: Has required tile types
+        test('Has code_editor tile type', () => {
+            if (!IDETileTypes.code_editor) throw new Error('Missing code_editor');
+            return true;
+        });
+
+        test('Has file_browser tile type', () => {
+            if (!IDETileTypes.file_browser) throw new Error('Missing file_browser');
+            return true;
+        });
+
+        test('Has terminal tile type', () => {
+            if (!IDETileTypes.terminal) throw new Error('Missing terminal');
+            return true;
+        });
+
+        test('Has debugger tile type', () => {
+            if (!IDETileTypes.debugger) throw new Error('Missing debugger');
+            return true;
+        });
+
+        // Test 3: Tile types have required properties
+        test('Tile types have color property', () => {
+            for (const [name, type] of Object.entries(IDETileTypes)) {
+                if (typeof type.color !== 'number') throw new Error(`${name} missing color`);
+            }
+            return true;
+        });
+
+        test('Tile types have icon property', () => {
+            for (const [name, type] of Object.entries(IDETileTypes)) {
+                if (typeof type.icon !== 'string') throw new Error(`${name} missing icon`);
+            }
+            return true;
+        });
+
+        test('Tile types have semantic_tags array', () => {
+            for (const [name, type] of Object.entries(IDETileTypes)) {
+                if (!Array.isArray(type.semantic_tags)) throw new Error(`${name} missing semantic_tags`);
+            }
+            return true;
+        });
+
+        // Test 4: validateTileType function
+        test('validateTileType validates known types', () => {
+            if (!validateTileType('code_editor')) throw new Error('Should validate code_editor');
+            return true;
+        });
+
+        test('validateTileType rejects unknown types', () => {
+            if (validateTileType('unknown_type')) throw new Error('Should reject unknown types');
+            return true;
+        });
+
+        // Test 5: getTileTypeInfo function
+        test('getTileTypeInfo returns tile info', () => {
+            const info = getTileTypeInfo('terminal');
+            if (!info || info.icon !== '⌘') throw new Error('Wrong terminal info');
+            return true;
+        });
+
+        console.log('IDE Tile Types tests complete');
+    </script>
+</body>
+</html>
