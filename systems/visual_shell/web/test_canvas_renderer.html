@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Renderer Tests</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #111;
+            color: #0f0;
+            padding: 20px;
+            margin: 0;
+        }
+        h1 { margin: 0 0 20px 0; }
+        button {
+            background: #030;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin: 5px;
+            border-radius: 4px;
+        }
+        button:hover { background: #050; }
+        .results {
+            background: #000;
+            border: 1px solid #0f0;
+            padding: 15px;
+            margin-top: 20px;
+            min-height: 100px;
+        }
+        .test-pass { color: #0f0; }
+        .test-fail { color: #f00; }
+        .display-container {
+            border: 2px solid #0f0;
+            margin-top: 20px;
+            display: inline-block;
+        }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <h1>Canvas Renderer Tests</h1>
+
+    <div id="controls">
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="runTest('exists')">Test: Exists</button>
+        <button onclick="runTest('renders')">Test: Renders</button>
+        <button onclick="runTest('clear')">Test: Clear</button>
+        <button onclick="runTest('attach')">Test: AttachTo</button>
+        <button onclick="runTest('capture')">Test: Capture</button>
+        <button onclick="runDemo()">Run Demo</button>
+    </div>
+
+    <div class="results" id="results">Ready to run tests...</div>
+
+    <div class="display-container" id="display"></div>
+
+    <script type="module">
+        import {
+            testCanvasRendererExists,
+            testCanvasRendererRenders,
+            testCanvasRendererClear,
+            testCanvasRendererAttachTo,
+            testCanvasRendererCapture
+        } from './tests/test_canvas_renderer.js';
+
+        import { CanvasRenderer } from './display/canvas_renderer.js';
+
+        const results = document.getElementById('results');
+        const display = document.getElementById('display');
+
+        function log(msg, isPass = true) {
+            const className = isPass ? 'test-pass' : 'test-fail';
+            results.innerHTML += `<div class="${className}">${msg}</div>`;
+            results.scrollTop = results.scrollHeight;
+        }
+
+        async function runTest(testName) {
+            results.innerHTML = `<div>Running: ${testName}</div>`;
+
+            try {
+                switch (testName) {
+                    case 'exists':
+                        await testCanvasRendererExists();
+                        log('✅ Test: Exists');
+                        break;
+                    case 'renders':
+                        await testCanvasRendererRenders();
+                        log('✅ Test: Renders');
+                        break;
+                    case 'clear':
+                        await testCanvasRendererClear();
+                        log('✅ Test: Clear');
+                        break;
+                    case 'attach':
+                        await testCanvasRendererAttachTo();
+                        log('✅ Test: AttachTo');
+                        break;
+                    case 'capture':
+                        await testCanvasRendererCapture();
+                        log('✅ Test: Capture');
+                        break;
+                }
+            } catch (e) {
+                log(`❌ Error: ${e.message}`, false);
+                console.error(e);
+            }
+        }
+
+        async function runAllTests() {
+            results.innerHTML = '<div>Running all tests...</div>';
+
+            const tests = [
+                { name: 'Exists', fn: testCanvasRendererExists },
+                { name: 'Renders', fn: testCanvasRendererRenders },
+                { name: 'Clear', fn: testCanvasRendererClear },
+                { name: 'AttachTo', fn: testCanvasRendererAttachTo },
+                { name: 'Capture', fn: testCanvasRendererCapture }
+            ];
+
+            let passed = 0;
+            let failed = 0;
+
+            for (const test of tests) {
+                try {
+                    await test.fn();
+                    log(`✅ ${test.name}`);
+                    passed++;
+                } catch (e) {
+                    log(`❌ ${test.name}: ${e.message}`, false);
+                    failed++;
+                }
+            }
+
+            log(`\n${passed} passed, ${failed} failed`, failed === 0);
+        }
+
+        async function runDemo() {
+            results.innerHTML = '<div>Running demo...</div>';
+
+            // Create a 320x240 renderer
+            const renderer = new CanvasRenderer(320, 240);
+            renderer.attachTo(display);
+
+            // Animate a gradient
+            let frame = 0;
+            const animate = () => {
+                const fbData = new Uint8Array(320 * 240 * 4);
+
+                for (let y = 0; y < 240; y++) {
+                    for (let x = 0; x < 320; x++) {
+                        const i = (y * 320 + x) * 4;
+                        fbData[i] = Math.floor(128 + 127 * Math.sin(frame * 0.02 + x * 0.02));     // R
+                        fbData[i + 1] = Math.floor(128 + 127 * Math.sin(frame * 0.03 + y * 0.02));   // G
+                        fbData[i + 2] = Math.floor(128 + 127 * Math.sin(frame * 0.01 + (x + y) * 0.02)); // B
+                        fbData[i + 3] = 255; // A
+                    }
+                }
+
+                renderer.render(fbData);
+                frame++;
+
+                if (frame < 300) {
+                    requestAnimationFrame(animate);
+                } else {
+                    log('✅ Demo complete - 300 frames rendered');
+                }
+            };
+
+            animate();
+        }
+
+        // Export to window
+        window.runTest = runTest;
+        window.runAllTests = runAllTests;
+        window.runDemo = runDemo;
+    </script>
+</body>
+</html>
