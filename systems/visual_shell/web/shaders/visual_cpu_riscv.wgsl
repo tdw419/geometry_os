@@ -25,6 +25,25 @@ const CSR_SSCRATCH: u32 = 36u;  // Scratch register for traps
 const CSR_MODE: u32 = 37u;      // Privilege mode (0=user, 1=supervisor)
 const CSR_HALT: u32 = 38u;      // Halted flag (moved from 33)
 
+// --- MMIO INPUT REGION (Offset 32MB) ---
+const MMIO_INPUT_BASE: u32 = 0x02000000u;  // 32MB offset
+const MMIO_INPUT_STATUS: u32 = 0u;   // Offset from base
+const MMIO_INPUT_TYPE: u32 = 4u;     // Offset from base
+const MMIO_INPUT_KEY: u32 = 8u;      // Offset from base
+const MMIO_INPUT_X: u32 = 12u;       // Offset from base
+const MMIO_INPUT_Y: u32 = 16u;       // Offset from base
+const MMIO_INPUT_FLAGS: u32 = 20u;   // Offset from base
+
+// Input types
+const INPUT_TYPE_NONE: u32 = 0u;
+const INPUT_TYPE_KEYBOARD: u32 = 1u;
+const INPUT_TYPE_MOUSE: u32 = 2u;
+const INPUT_TYPE_TOUCH: u32 = 3u;
+
+// Input flags
+const INPUT_FLAG_PRESSED: u32 = 1u;
+const INPUT_FLAG_RELEASED: u32 = 2u;
+
 // --- DECODING HELPERS ---
 fn get_opcode(inst: u32) -> u32 { return inst & 0x7Fu; }
 fn get_rd(inst: u32) -> u32     { return (inst >> 7u) & 0x1Fu; }
