@@ -2,6 +2,7 @@
 from pathlib import Path
 from typing import Optional, List, Any, TYPE_CHECKING
 import struct
+import asyncio
 
 from .wasm_extractor import WASMExtractor
 from .wasm_gpu_bridge import WASMGPUBridge, ExecutionResult
@@ -15,7 +16,7 @@ class WASMRuntime:
     High-level runtime for executing WASM from PixelRTS containers.
     """
     
-    def __init__(self, shader_path: Optional[str] = None):
+    def __init__(self, shader_path: Optional[str] = None, use_buffer_pool: bool = False):
         self.extractor = WASMExtractor()
         self.bridge = WASMGPUBridge(shader_path)
         self.max_instructions = 100000
@@ -25,11 +26,22 @@ class WASMRuntime:
         self._debugger: Optional['WasmDebugger'] = None
         self.last_memory_dump: Optional[bytes] = None
         self.tracer = WasmTracer(level=TraceLevel.NONE)
+
+        # Optimization features
+        self._use_buffer_pool = use_buffer_pool
+        self._async_executor = None
         
     @classmethod
-    def from_png(cls, rts_png_path: str, shader_path: Optional[str] = None) -> 'WASMRuntime':
-        runtime = cls(shader_path)
+    def from_png(cls, rts_png_path: str, shader_path: Optional[str] = None, use_buffer_pool: bool = False) -> 'WASMRuntime':
+        runtime = cls(shader_path, use_buffer_pool=use_buffer_pool)
         runtime.load(rts_png_path)
+        return runtime
+
+    @classmethod
+    def from_wasm(cls, wasm_bytes: bytes, shader_path: Optional[str] = None, use_buffer_pool: bool = False) -> 'WASMRuntime':
+        """Create a WASMRuntime directly from WASM bytes."""
+        runtime = cls(shader_path, use_buffer_pool=use_buffer_pool)
+        runtime.reload_bytes(wasm_bytes)
         return runtime
 
     def load(self, rts_png_path: str):
@@ -167,7 +179,39 @@ class WASMRuntime:
         """Set execution trace verbosity level"""
         self.tracer.set_level(level)
         # Also enable bridge tracing if level > NONE
-        self.bridge.trace_enabled = (level.value > TraceLevel.NONE.value)
+        if level.value > TraceLevel.NONE.value:
+            self.bridge.enable_tracing()
+        else:
+            self.bridge.disable_tracing()
+
+    def enable_tracing(self):
+        """Enable GPU bridge trace collection."""
+        self.bridge.enable_tracing()
+
+    def disable_tracing(self):
+        """Disable GPU bridge trace collection."""
+        self.bridge.disable_tracing()
+
+    def get_memory(self) -> bytes:
+        """
+        Get the current WASM linear memory contents.
+
+        Returns:
+            Bytes containing current memory state
+        """
+        return self.bridge.get_memory()
+
+    def debug_trace(self) -> list:
+        """
+        Get the execution trace from the last run.
+
+        Returns:
+            List of trace entries (each entry is a dict with pc, opcode, etc.)
+        """
+        return self.tracer.filter_by_type("instruction") + \
+               self.tracer.filter_by_type("memory_access") + \
+               self.tracer.filter_by_type("function_call") + \
+               self.tracer.filter_by_type("function_return")
 
     def get_trace_statistics(self) -> dict:
         """Get trace execution statistics"""
@@ -242,4 +286,61 @@ class WASMRuntime:
             return
 
         self.bridge.set_memory(snapshot)
+
+    async def call_async(self, function_name: str, *args) -> Any:
+        """
+        Call a function asynchronously.
+
+        Args:
+            function_name: Name of exported function
+            *args: Integer arguments
+
+        Returns:
+            The return value from execution
+
+        Raises:
+            ValueError: If function not found in exports
+            RuntimeError: If execution fails
+        """
+        from .async_executor import AsyncWASMExecutor
+
+        if self._async_executor is None:
+            self._async_executor = AsyncWASMExecutor()
+
+        if function_name not in self.exports:
+            raise ValueError(f"Function '{function_name}' not found in exports: {list(self.exports.keys())}")
+
+        pc = self.exports[function_name]
+        arguments = list(args)
+
+        result = await self._async_executor.execute_async(
+            wasm_bytes=self.wasm_bytes,
+            entry_point=pc,
+            arguments=arguments,
+            memory_pages=self.memory_pages,
+            max_instructions=self.max_instructions
+        )
+
+        if not result.success:
+            raise RuntimeError(f"Async execution failed: {result.error}")
+
+        return result.return_value
+
+    def get_buffer_stats(self) -> dict:
+        """Get buffer pool statistics if enabled."""
+        if self._async_executor:
+            return self._async_executor.get_stats()
+        return {"buffer_pool": "disabled"}
+
+    def enable_optimizations(self, buffer_pool: bool = True) -> None:
+        """
+        Enable runtime optimizations.
+
+        Args:
+            buffer_pool: Whether to use buffer pooling (requires async executor)
+        """
+        self._use_buffer_pool = buffer_pool
+        if buffer_pool and self._async_executor is None:
+            from .async_executor import AsyncWASMExecutor
+            self._async_executor = AsyncWASMExecutor()
 

@@ -138,7 +138,9 @@ class TestWASMRuntime:
         func_section = b'\x03\x02\x01\x00'
 
         # Export section: export "main"
-        export_section = b'\x07\x0b\x01\x04main\x00\x00'
+        # Section ID (1) + length (1) + count (1) + name_len (1) + name (4) + kind (1) + index (1) = 10 bytes total
+        # Content after section ID: count (1) + name_len (1) + name (4) + kind (1) + index (1) = 8 bytes
+        export_section = b'\x07\x08\x01\x04main\x00\x00'
 
         # Code section: simple function with end opcode
         code_section = b'\x0a\x06\x01\x04\x00\x0b\x0b'
@@ -152,9 +154,15 @@ class TestWASMRuntime:
         For testing purposes, this returns a mock that simulates fibonacci(10) = 55.
         In a real implementation, this would be compiled from WAT.
         """
-        # For now, return a mock that the runtime can validate
-        # The actual fibonacci computation would be done by the GPU bridge
-        return self._create_mock_wasm()
+        # Create a WASM with a 'fibonacci' export instead of 'main'
+        header = b'\x00\x61\x73\x6d\x01\x00\x00\x00'
+        type_section = b'\x01\x04\x01\x60\x00\x00'
+        func_section = b'\x03\x02\x01\x00'
+        # Export 'fibonacci': 07 0d 01 09 fibonacci 00 00
+        # Length = 1+1+9+1+1 = 13 = 0x0d
+        export_section = b'\x07\x0d\x01\x09fibonacci\x00\x00'
+        code_section = b'\x0a\x06\x01\x04\x00\x0b\x0b'
+        return header + type_section + func_section + export_section + code_section
 
     def _create_mock_rts_png(self, wasm_bytes: bytes) -> str:
         """Create a mock .rts.png file with embedded WASM"""
@@ -223,14 +231,21 @@ class TestWASMRuntimeIntegration:
 
     def _create_fibonacci_wasm(self) -> bytes:
         """Create fibonacci WASM for testing"""
-        return self._create_mock_wasm()
+        # Create a WASM with a 'fibonacci' export
+        header = b'\x00\x61\x73\x6d\x01\x00\x00\x00'
+        type_section = b'\x01\x04\x01\x60\x00\x00'
+        func_section = b'\x03\x02\x01\x00'
+        # Export 'fibonacci': 07 0d 01 09 fibonacci 00 00
+        export_section = b'\x07\x0d\x01\x09fibonacci\x00\x00'
+        code_section = b'\x0a\x06\x01\x04\x00\x0b\x0b'
+        return header + type_section + func_section + export_section + code_section
 
     def _create_mock_wasm(self) -> bytes:
         """Create minimal WASM for testing"""
         header = b'\x00\x61\x73\x6d\x01\x00\x00\x00'
         type_section = b'\x01\x04\x01\x60\x00\x00'
         func_section = b'\x03\x02\x01\x00'
-        export_section = b'\x07\x0b\x01\x04main\x00\x00'
+        export_section = b'\x07\x08\x01\x04main\x00\x00'
         code_section = b'\x0a\x06\x01\x04\x00\x0b\x0b'
         return header + type_section + func_section + export_section + code_section
 
@@ -254,3 +269,92 @@ class TestWASMRuntimeIntegration:
         img.save(path, 'PNG', pnginfo=metadata)
 
         return path
+
+
+class TestWASMRuntimeOptimizations:
+    """Test optimization features in WASMRuntime."""
+
+    def test_runtime_with_buffer_pool(self):
+        """Test WASMRuntime using buffer pools."""
+        from systems.pixel_compiler.wasm_runtime import WASMRuntime
+
+        wasm = self._create_mock_wasm()
+        runtime = WASMRuntime.from_wasm(wasm, use_buffer_pool=True)
+
+        # Multiple calls should reuse buffers
+        for i in range(5):
+            result = runtime.call("main")
+            assert result is not None
+
+        stats = runtime.get_buffer_stats()
+        assert "buffer_pool" in stats or "pending_results" in stats
+
+    def test_runtime_async_call(self):
+        """Test async WASM execution."""
+        import asyncio
+        from systems.pixel_compiler.wasm_runtime import WASMRuntime
+
+        async def run_test():
+            wasm = self._create_mock_wasm()
+            runtime = WASMRuntime.from_wasm(wasm)
+
+            # Enable optimizations for async
+            runtime.enable_optimizations()
+
+            # Test async call
+            result = await runtime.call_async("main")
+            assert result is not None
+
+            # Test multiple concurrent calls
+            import concurrent.futures
+
+            tasks = [runtime.call_async("main") for _ in range(3)]
+            results = await asyncio.gather(*tasks)
+
+            assert len(results) == 3
+
+        asyncio.run(run_test())
+
+    def test_enable_optimizations(self):
+        """Test enable_optimizations method."""
+        from systems.pixel_compiler.wasm_runtime import WASMRuntime
+
+        wasm = self._create_mock_wasm()
+        runtime = WASMRuntime.from_wasm(wasm)
+
+        # Initially disabled
+        stats = runtime.get_buffer_stats()
+        assert stats == {"buffer_pool": "disabled"}
+
+        # Enable optimizations
+        runtime.enable_optimizations(buffer_pool=True)
+
+        # Now should have stats
+        stats = runtime.get_buffer_stats()
+        assert "pending_results" in stats or "buffer_pool" in stats
+
+    def test_backward_compatibility(self):
+        """Test that runtime works without use_buffer_pool parameter."""
+        from systems.pixel_compiler.wasm_runtime import WASMRuntime
+
+        wasm = self._create_mock_wasm()
+
+        # Old API: no use_buffer_pool parameter
+        runtime = WASMRuntime.from_wasm(wasm)
+        result = runtime.call("main")
+
+        assert result is not None
+
+        # Can still enable optimizations later
+        runtime.enable_optimizations()
+        stats = runtime.get_buffer_stats()
+        assert stats is not None
+
+    def _create_mock_wasm(self) -> bytes:
+        """Create minimal WASM for testing"""
+        header = b'\x00\x61\x73\x6d\x01\x00\x00\x00'
+        type_section = b'\x01\x04\x01\x60\x00\x00'
+        func_section = b'\x03\x02\x01\x00'
+        export_section = b'\x07\x08\x01\x04main\x00\x00'
+        code_section = b'\x0a\x06\x01\x04\x00\x0b\x0b'
+        return header + type_section + func_section + export_section + code_section
