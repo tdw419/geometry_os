@@ -79,16 +79,18 @@ class InputDaemon:
         0x4B: ecodes.KEY_LEFT, 0x4D: ecodes.KEY_RIGHT,
     }
 
-    def __init__(self, mmio_path=None, mock=False):
+    def __init__(self, mmio_path=None, mock=False, interval=1):
         """
         Initialize input daemon.
 
         Args:
             mmio_path: Path to MMIO device file (e.g., /dev/geometry-mmio)
             mock: Run in mock mode (no real input injection)
+            interval: Poll interval in milliseconds
         """
         self.mmio_path = mmio_path
         self.mock = mock or not HAS_EVDEV
+        self.interval = interval  # Poll interval in ms
         self.running = False
         self.mmio_fd = None
 
@@ -243,7 +245,7 @@ class InputDaemon:
         try:
             while self.running:
                 self._process_input()
-                time.sleep(0.001)  # 1ms poll interval
+                time.sleep(self.interval / 1000.0)  # Convert ms to seconds
         except KeyboardInterrupt:
             pass
         finally:
@@ -275,7 +277,7 @@ def main():
 
     args = parser.parse_args()
 
-    daemon = InputDaemon(mmio_path=args.mmio, mock=args.mock)
+    daemon = InputDaemon(mmio_path=args.mmio, mock=args.mock, interval=args.interval)
     daemon.run()
 
 
