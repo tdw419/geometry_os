@@ -47,6 +47,31 @@ class SwarmManager:
     GLOBALS_PER_AGENT = 16
     OUTPUT_SIZE_PER_AGENT = 4096  # 4KB per agent
 
+    @classmethod
+    def from_wasm(cls, wasm_bytes: bytes, shader_path: str = None) -> 'SwarmManager':
+        """
+        Create SwarmManager pre-loaded with WASM bytecode.
+
+        This factory method creates a SwarmManager instance and immediately
+        loads the provided WASM bytecode, making it ready for agent spawning
+        without requiring a separate load_bytecode() call.
+
+        Args:
+            wasm_bytes: WASM bytecode to upload
+            shader_path: Optional custom shader path
+
+        Returns:
+            SwarmManager ready for agent spawning
+
+        Example:
+            >>> wasm = bytes([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00])
+            >>> manager = SwarmManager.from_wasm(wasm)
+            >>> agent_id = manager.spawn_agent()  # No need to call load_bytecode first
+        """
+        manager = cls(shader_path)
+        manager.load_bytecode(wasm_bytes)
+        return manager
+
     def __init__(self, shader_path: str = None):
         """Initialize SwarmManager with optional custom shader."""
         self.mock = wgpu is None
