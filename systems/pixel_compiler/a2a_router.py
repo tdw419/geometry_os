@@ -162,6 +162,23 @@ class Barrier:
     created_at: float
 
 
+@dataclass
+class Task:
+    """Task delegation state"""
+    task_id: str
+    from_agent: str
+    to_agent: str
+    task_type: str
+    params: Dict[str, Any]
+    status: str  # assigned, in_progress, completed, failed
+    progress: float  # 0.0 to 1.0
+    result: Optional[Dict[str, Any]]
+    error: Optional[str]
+    created_at: float
+    updated_at: float
+    expires_at: Optional[float]
+
+
 class A2ARouter:
     """
     Agent-to-Agent message routing hub
@@ -187,6 +204,9 @@ class A2ARouter:
         # Coordination primitives
         self.locks: Dict[str, Lock] = {}
         self.barriers: Dict[str, Barrier] = {}
+
+        # Task delegation registry
+        self.tasks: Dict[str, Task] = {}
 
         # Heartbeat timeout (seconds)
         self.heartbeat_timeout = 30.0
@@ -502,6 +522,11 @@ class A2ARouter:
             MessageType.LOCK_RELEASE.value: self._handle_lock_release,
             MessageType.BARRIER_ENTER.value: self._handle_barrier_enter,
             MessageType.BARRIER_RELEASE.value: self._handle_barrier_release,
+            "assign_task": self._handle_assign_task,
+            "report_progress": self._handle_report_progress,
+            "complete_task": self._handle_complete_task,
+            "get_task": self._handle_get_task,
+            "list_tasks": self._handle_list_tasks,
         }
         
         handler = handlers.get(msg_type)
@@ -885,6 +910,225 @@ class A2ARouter:
         # Clean up barrier
         del self.barriers[barrier_id]
     
+    # === Task Delegation ===
+
+    async def assign_task(
+        self,
+        from_agent: str,
+        to_agent: str,
+        task_type: str,
+        params: Dict[str, Any],
+        timeout: float = 300.0
+    ) -> Dict[str, Any]:
+        """Assign a task to another agent."""
+        task_id = str(uuid.uuid4())
+        now = time.time()
+
+        task = Task(
+            task_id=task_id,
+            from_agent=from_agent,
+            to_agent=to_agent,
+            task_type=task_type,
+            params=params,
+            status="assigned",
+            progress=0.0,
+            result=None,
+            error=None,
+            created_at=now,
+            updated_at=now,
+            expires_at=now + timeout
+        )
+
+        self.tasks[task_id] = task
+
+        # Notify target agent
+        if to_agent in self.connections:
+            try:
+                await self.connections[to_agent].send(json.dumps({
+                    "type": "task_assigned",
+                    "task_id": task_id,
+                    "from_agent": from_agent,
+                    "task_type": task_type,
+                    "params": params,
+                    "expires_at": task.expires_at
+                }))
+            except Exception as e:
+                logger.error(f"Failed to notify agent {to_agent}: {e}")
+                task.status = "failed"
+                task.error = f"Failed to deliver: {e}"
+
+        logger.info(f"Task {task_id} assigned from {from_agent} to {to_agent}")
+
+        return {
+            "task_id": task_id,
+            "status": task.status,
+            "assigned_to": to_agent
+        }
+
+    async def report_progress(
+        self,
+        task_id: str,
+        agent_id: str,
+        progress: float,
+        status: Optional[str] = None,
+        message: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Report progress on a task."""
+        if task_id not in self.tasks:
+            return {"error": "task_not_found", "task_id": task_id}
+
+        task = self.tasks[task_id]
+
+        if task.to_agent != agent_id:
+            return {"error": "not_task_assignee", "task_id": task_id}
+
+        task.progress = max(0.0, min(1.0, progress))
+        task.updated_at = time.time()
+
+        if status:
+            task.status = status
+
+        # Notify task owner
+        if task.from_agent in self.connections:
+            try:
+                await self.connections[task.from_agent].send(json.dumps({
+                    "type": "task_progress",
+                    "task_id": task_id,
+                    "progress": task.progress,
+                    "status": task.status,
+                    "message": message
+                }))
+            except Exception:
+                pass
+
+        return {
+            "task_id": task_id,
+            "progress": task.progress,
+            "status": task.status
+        }
+
+    async def complete_task(
+        self,
+        task_id: str,
+        agent_id: str,
+        result: Dict[str, Any],
+        success: bool = True
+    ) -> Dict[str, Any]:
+        """Mark a task as completed."""
+        if task_id not in self.tasks:
+            return {"error": "task_not_found", "task_id": task_id}
+
+        task = self.tasks[task_id]
+
+        if task.to_agent != agent_id:
+            return {"error": "not_task_assignee", "task_id": task_id}
+
+        task.status = "completed" if success else "failed"
+        task.result = result
+        task.progress = 1.0
+        task.updated_at = time.time()
+        task.error = None if success else result.get("error")
+
+        # Notify task owner
+        if task.from_agent in self.connections:
+            try:
+                await self.connections[task.from_agent].send(json.dumps({
+                    "type": "task_completed",
+                    "task_id": task_id,
+                    "success": success,
+                    "result": result
+                }))
+            except Exception:
+                pass
+
+        logger.info(f"Task {task_id} completed by {agent_id}: {task.status}")
+
+        return {
+            "task_id": task_id,
+            "status": task.status,
+            "success": success
+        }
+
+    async def get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
+        """Get task status and result."""
+        if task_id not in self.tasks:
+            return None
+
+        task = self.tasks[task_id]
+        return {
+            "task_id": task.task_id,
+            "from_agent": task.from_agent,
+            "to_agent": task.to_agent,
+            "task_type": task.task_type,
+            "status": task.status,
+            "progress": task.progress,
+            "result": task.result,
+            "error": task.error,
+            "created_at": task.created_at,
+            "updated_at": task.updated_at
+        }
+
+    async def list_tasks(
+        self,
+        agent_id: Optional[str] = None,
+        status: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """List tasks, optionally filtered."""
+        results = []
+        for task in self.tasks.values():
+            if agent_id and task.to_agent != agent_id and task.from_agent != agent_id:
+                continue
+            if status and task.status != status:
+                continue
+            results.append({
+                "task_id": task.task_id,
+                "from_agent": task.from_agent,
+                "to_agent": task.to_agent,
+                "task_type": task.task_type,
+                "status": task.status,
+                "progress": task.progress
+            })
+        return results
+
+    # === Task Delegation Handlers ===
+
+    async def _handle_assign_task(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        return await self.assign_task(
+            from_agent=data.get("from_agent"),
+            to_agent=data.get("to_agent"),
+            task_type=data.get("task_type"),
+            params=data.get("params", {}),
+            timeout=data.get("timeout", 300)
+        )
+
+    async def _handle_report_progress(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        return await self.report_progress(
+            task_id=data.get("task_id"),
+            agent_id=data.get("agent_id"),
+            progress=data.get("progress", 0),
+            status=data.get("status"),
+            message=data.get("message")
+        )
+
+    async def _handle_complete_task(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        return await self.complete_task(
+            task_id=data.get("task_id"),
+            agent_id=data.get("agent_id"),
+            result=data.get("result", {}),
+            success=data.get("success", True)
+        )
+
+    async def _handle_get_task(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        task = await self.get_task(data.get("task_id"))
+        return task or {"error": "task_not_found"}
+
+    async def _handle_list_tasks(self, data: Dict[str, Any], websocket: WebSocketServerProtocol) -> Dict[str, Any]:
+        tasks = await self.list_tasks(
+            agent_id=data.get("agent_id"),
+            status=data.get("status")
+        )
+        return {"tasks": tasks, "count": len(tasks)}
+
     # === Background Tasks ===
     
     async def _heartbeat_monitor(self):
