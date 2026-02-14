@@ -1137,3 +1137,136 @@ if (typeof module !== 'undefined' && module.exports) {
     clearLogs
   };
 }
+
+// ============================================================================
+// Demo Control Functions
+// ============================================================================
+
+async function startDemo() {
+    if (demoRunning) return;
+    log('system', 'Starting Multi-Agent Demo...');
+    demoRunning = true;
+    demoPaused = false;
+
+    document.getElementById('btn-start').disabled = true;
+    document.getElementById('btn-pause').disabled = false;
+
+    // Initialize agents
+    scannerAgent = new ScannerAgent();
+    processorAgent = new ProcessorAgent();
+    coordinatorAgent = new CoordinatorAgent(5, 5);
+
+    // Update UI
+    initializeGrid(5, 5);
+    updateAgentStatus('scanner', 'online');
+    updateAgentStatus('processor', 'online');
+    updateAgentStatus('coordinator', 'online');
+
+    // Try to connect to A2A router (optional)
+    let routerConnected = false;
+    try {
+        await Promise.all([
+            scannerAgent.connect(),
+            processorAgent.connect(),
+            coordinatorAgent.connect()
+        ]);
+        routerConnected = true;
+        log('system', 'Connected to A2A Router!');
+    } catch (e) {
+        log('system', 'A2A Router not available, running in simulation mode');
+    }
+
+    await runDemoWorkflow(routerConnected);
+
+    demoRunning = false;
+    document.getElementById('btn-start').disabled = false;
+    document.getElementById('btn-pause').disabled = true;
+}
+
+async function runDemoWorkflow(routerConnected) {
+    log('system', '=== Phase 1: Region Scanning ===');
+
+    for (let y = 0; y < 5; y++) {
+        for (let x = 0; x < 5; x++) {
+            if (demoPaused) await waitForResume();
+
+            coordinatorAgent.tasksAssigned++;
+            updateAgentMetric('coordinator', 'assigned', coordinatorAgent.tasksAssigned);
+
+            await scannerAgent.scanRegion(x, y);
+            await delay(300);
+        }
+    }
+
+    log('system', '=== Phase 2: Synchronization ===');
+    updatePhaseDisplay('Phase 2 - Synchronization');
+    await delay(1000);
+
+    log('system', '=== Phase 3: Finalization ===');
+    updatePhaseDisplay('Phase 3 - Finalization');
+
+    for (let y = 0; y < 5; y++) {
+        for (let x = 0; x < 5; x++) {
+            updateRegion(x, y, 'complete');
+        }
+    }
+
+    log('system', '=== Demo Complete! ===');
+}
+
+function pauseDemo() {
+    demoPaused = !demoPaused;
+    document.getElementById('btn-pause').textContent = demoPaused ? '▶ Resume' : '⏸ Pause';
+    log('system', demoPaused ? 'Demo paused' : 'Demo resumed');
+}
+
+function waitForResume() {
+    return new Promise(resolve => {
+        const check = setInterval(() => {
+            if (!demoPaused) { clearInterval(check); resolve(); }
+        }, 100);
+    });
+}
+
+function resetDemo() {
+    scannerAgent = null;
+    processorAgent = null;
+    coordinatorAgent = null;
+    demoRunning = false;
+    demoPaused = false;
+
+    initializeGrid(5, 5);
+    clearLogs();
+    updateAgentStatus('scanner', 'offline');
+    updateAgentStatus('processor', 'offline');
+    updateAgentStatus('coordinator', 'offline');
+
+    ['scanner', 'processor', 'coordinator'].forEach(agent => {
+        ['regions', 'locks', 'delegated', 'tasks', 'completed', 'assigned', 'barriers'].forEach(metric => {
+            const el = document.getElementById(`${agent}-${metric}`);
+            if (el) el.textContent = '0';
+        });
+    });
+
+    document.getElementById('progress-fill').style.width = '0%';
+    document.getElementById('region-progress').textContent = '0/25';
+    document.getElementById('btn-start').disabled = false;
+    document.getElementById('btn-pause').disabled = true;
+
+    log('system', 'Demo reset');
+}
+
+async function stopDemo() {
+    demoRunning = false;
+    demoPaused = false;
+    if (scannerAgent) await scannerAgent.disconnect();
+    if (processorAgent) await processorAgent.disconnect();
+    if (coordinatorAgent) await coordinatorAgent.disconnect();
+    log('system', 'Demo stopped');
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    initializeGrid(5, 5);
+    log('system', 'Multi-Agent Demo ready. Click "Start Demo" to begin.');
+});
