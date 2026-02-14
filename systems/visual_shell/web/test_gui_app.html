@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WGPU Linux Hypervisor - GUI Application</title>
+    <style>
+        body { background: #111; color: #0f0; font-family: monospace; padding: 20px; }
+        #display { border: 2px solid #0f0; }
+        button { background: #030; color: #0f0; border: 1px solid #0f0; padding: 10px 20px; cursor: pointer; margin: 5px; }
+        select { background: #030; color: #0f0; border: 1px solid #0f0; padding: 10px; }
+        #status { margin: 10px 0; padding: 10px; background: #000; }
+    </style>
+</head>
+<body>
+    <h1>WGPU Linux Hypervisor - Milestone 3: GUI Application</h1>
+
+    <div id="controls">
+        <select id="displayMode">
+            <option value="canvas">Canvas (Simple)</option>
+            <option value="webgpu">WebGPU (Fast)</option>
+            <option value="pixi">PixiJS (Integrated)</option>
+        </select>
+        <button onclick="initHypervisor()">Initialize</button>
+        <button onclick="bootDemo()">Boot Demo GUI</button>
+        <button onclick="startLoop()">Start</button>
+        <button onclick="stopLoop()">Stop</button>
+    </div>
+
+    <div id="status">Status: Not initialized</div>
+
+    <div id="display" tabindex="0"></div>
+
+    <div id="instructions">
+        <h3>Milestone 3 Goals:</h3>
+        <ul>
+            <li>Display mode selection (Canvas/WebGPU/PixiJS)</li>
+            <li>Mouse input handling</li>
+            <li>Real SDL/framebuffer application</li>
+        </ul>
+        <p>Click on display and move mouse to interact with GUI.</p>
+    </div>
+
+    <script type="module">
+        import { WGPULinuxHypervisor } from './wgpu_linux_hypervisor.js';
+
+        let hypervisor = null;
+
+        window.initHypervisor = async function() {
+            const mode = document.getElementById('displayMode').value;
+            console.log('Display mode:', mode);
+
+            hypervisor = new WGPULinuxHypervisor({
+                cyclesPerFrame: 10000,
+                displayMode: mode
+            });
+            await hypervisor.init();
+            hypervisor.attachTo(document.getElementById('display'));
+            updateStatus('Ready');
+        };
+
+        window.bootDemo = async function() {
+            if (!hypervisor) return;
+
+            // Demo: Draw a simple GUI pattern
+            const kernel = buildGUIDemo();
+            await hypervisor.loadKernel(kernel.buffer);
+            updateStatus('Demo GUI loaded');
+        };
+
+        window.startLoop = function() {
+            if (hypervisor) hypervisor.start(10000);
+            updateStatus('Running');
+        };
+
+        window.stopLoop = function() {
+            if (hypervisor) hypervisor.stop();
+            updateStatus('Stopped');
+        };
+
+        function buildGUIDemo() {
+            // Kernel that draws a simple mouse-following cursor
+            return new Uint32Array([
+                // Read mouse X from MMIO 0x02001000
+                // Read mouse Y from MMIO 0x02001004
+                // Draw cursor at (x, y) in framebuffer
+                // ... simplified for demo
+                0x020002b7, // lui x5, 0x02000 (MMIO base)
+                0x0002a303, // lw x6, 0(x5) (mouse x)
+                0x0042a383, // lw x7, 4(x5) (mouse y)
+                // Convert to framebuffer offset
+                // ... more instructions needed
+                0x010003b7, // lui x7, 0x01000 (framebuffer)
+                0x00ff0437, // lui x8, 0x00ff0
+                0x00638023, // sw x6, 0(x7) (draw)
+                0x0000006f, // j 0 (loop)
+            ]);
+        }
+
+        function updateStatus(status) {
+            document.getElementById('status').textContent = 'Status: ' + status;
+        }
+    </script>
+</body>
+</html>

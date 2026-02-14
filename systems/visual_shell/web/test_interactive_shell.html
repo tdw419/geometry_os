@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WGPU Linux Hypervisor - Interactive Shell</title>
+    <style>
+        body { background: #111; color: #0f0; font-family: monospace; padding: 20px; }
+        #display { border: 2px solid #0f0; cursor: text; }
+        #display:focus { outline: 2px solid #0ff; }
+        button { background: #030; color: #0f0; border: 1px solid #0f0; padding: 10px 20px; cursor: pointer; margin: 5px; }
+        #status { margin: 10px 0; padding: 10px; background: #000; }
+        #log { max-height: 200px; overflow-y: auto; background: #000; padding: 10px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>WGPU Linux Hypervisor - Milestone 2: Interactive Shell</h1>
+
+    <div id="controls">
+        <button onclick="initHypervisor()">Initialize</button>
+        <button onclick="bootKernel()">Boot Fake Kernel</button>
+        <button onclick="startLoop()">Start</button>
+        <button onclick="stopLoop()">Stop</button>
+        <button onclick="captureScreen()">Screenshot</button>
+    </div>
+
+    <div id="status">Status: Not initialized</div>
+
+    <div id="display" tabindex="0"></div>
+
+    <div id="log"></div>
+
+    <div id="instructions">
+        <h3>Instructions:</h3>
+        <ol>
+            <li>Click Initialize to set up WebGPU</li>
+            <li>Click Boot Fake Kernel to load a test kernel</li>
+            <li>Click Start to begin execution</li>
+            <li>Click on display to focus it, then type</li>
+            <li>Keyboard input will be written to MMIO region</li>
+        </ol>
+    </div>
+
+    <script type="module">
+        import { WGPULinuxHypervisor } from './wgpu_linux_hypervisor.js';
+
+        let hypervisor = null;
+
+        window.initHypervisor = async function() {
+            log('Initializing WebGPU...');
+            hypervisor = new WGPULinuxHypervisor({ cyclesPerFrame: 1000 });
+            await hypervisor.init();
+            hypervisor.attachTo(document.getElementById('display'));
+            log('✅ Hypervisor initialized');
+            updateStatus('Ready - click Boot to load kernel');
+        };
+
+        window.bootKernel = async function() {
+            if (!hypervisor) { log('❌ Initialize first'); return; }
+
+            log('Loading interactive test kernel...');
+
+            // Create kernel that:
+            // 1. Writes to framebuffer at 0x01000000
+            // 2. Reads from keyboard MMIO at 0x02000000
+            // 3. Echoes characters back to framebuffer
+
+            const kernel = buildInteractiveKernel();
+            await hypervisor.loadKernel(kernel.buffer);
+            log('✅ Interactive kernel loaded');
+            updateStatus('Kernel loaded - click Start');
+        };
+
+        window.startLoop = function() {
+            if (!hypervisor) { log('❌ Initialize first'); return; }
+            hypervisor.start(1000);
+            log('▶️ Execution started');
+            updateStatus('Running - click display and type');
+        };
+
+        window.stopLoop = function() {
+            if (hypervisor) {
+                hypervisor.stop();
+                log('⏹️ Execution stopped');
+                updateStatus('Stopped');
+            }
+        };
+
+        window.captureScreen = function() {
+            if (!hypervisor) { log('❌ Initialize first'); return; }
+            const dataUrl = hypervisor.capture();
+            window.open(dataUrl, '_blank');
+        };
+
+        function buildInteractiveKernel() {
+            // Simple kernel that fills framebuffer with pattern
+            // Real implementation would have keyboard echo logic
+            return new Uint32Array([
+                0x010002b7, // lui x5, 0x01000 (framebuffer = 0x01000000)
+                0x00ff0637, // lui x6, 0x00ff0
+                0x6ff30313, // addi x6, x6, 0x6ff (color = magenta)
+                0x0062a023, // sw x6, 0(x5) (write pixel)
+                0x00428293, // addi x5, x5, 4 (next pixel)
+                0xff9ff06f, // j -7 (loop back)
+            ]);
+        }
+
+        function log(msg) {
+            const logEl = document.getElementById('log');
+            logEl.textContent += msg + '\n';
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function updateStatus(status) {
+            document.getElementById('status').textContent = 'Status: ' + status;
+        }
+    </script>
+</body>
+</html>
