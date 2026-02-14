@@ -6,6 +6,7 @@ Combines conversion, benchmarking, and parallel processing.
 
 import sys
 import argparse
+import signal
 from pathlib import Path
 
 # Add project root to path for imports
@@ -692,7 +693,7 @@ def cmd_blueprint_analyze(args):
     blueprint = viewer.load_blueprint(args.rts_file)
 
     if blueprint is None:
-        print("✗ No blueprint found.", file=sys.stderr)
+        print("No blueprint found.", file=sys.stderr)
         return 1
 
     # Display blueprint info
@@ -714,6 +715,122 @@ def cmd_blueprint_analyze(args):
     return 0
 
 
+def cmd_boot(args):
+    """Handle boot command - Boot .rts.png files with QEMU."""
+    from systems.pixel_compiler.boot import BootBridge, BootResult
+
+    input_path = Path(args.input)
+
+    if not input_path.exists():
+        print(f"Error: Input file not found: {args.input}", file=sys.stderr)
+        return 1
+
+    if not input_path.is_file():
+        print(f"Error: Input path is not a file: {args.input}", file=sys.stderr)
+        return 1
+
+    if args.verbose:
+        print(f"Booting: {args.input}")
+        print(f"Memory: {args.memory}")
+        print(f"CPUs: {args.cpus}")
+        print(f"VNC display: {args.vnc}")
+
+    try:
+        # Create BootBridge with options
+        bridge = BootBridge(
+            rts_png_path=str(input_path),
+            memory=args.memory,
+            cpus=args.cpus,
+            vnc_display=args.vnc,
+            verbose=not args.quiet and (args.verbose or sys.stdout.isatty()),
+        )
+
+        # Build extra QEMU args if provided
+        extra_qemu_args = []
+        if args.qemu_arg:
+            extra_qemu_args.extend(args.qemu_arg)
+
+        # Perform boot
+        result = bridge.boot(
+            cmdline=args.cmdline,
+            extra_qemu_args=extra_qemu_args if extra_qemu_args else None,
+        )
+
+        if not result.success:
+            print(f"Boot failed: {result.error_message}", file=sys.stderr)
+            return 1
+
+        # Print success info
+        if not args.quiet:
+            print(f"\nBoot successful!")
+            print(f"  PID: {result.pid}")
+            if result.vnc_port:
+                print(f"  VNC: :{result.vnc_port} (port {5900 + result.vnc_port})")
+            if result.mountpoint:
+                print(f"  Mountpoint: {result.mountpoint}")
+
+        # Handle background mode
+        if args.background:
+            if not args.quiet:
+                print(f"\nRunning in background. PID: {result.pid}")
+                print("Use 'kill {pid}' or Ctrl+C to stop.".format(pid=result.pid))
+            # Don't wait - return success immediately
+            # The FUSE mount and QEMU will keep running
+            return 0
+
+        # Wait for QEMU process
+        if not args.quiet:
+            print("\nWaiting for QEMU... (Ctrl+C to stop)")
+
+        # Set up signal handler for graceful shutdown
+        shutdown_requested = False
+
+        def handle_shutdown(signum, frame):
+            nonlocal shutdown_requested
+            shutdown_requested = True
+            if not args.quiet:
+                print("\nShutdown requested, stopping VM...")
+
+        original_sigint = signal.signal(signal.SIGINT, handle_shutdown)
+        original_sigterm = signal.signal(signal.SIGTERM, handle_shutdown)
+
+        try:
+            # Wait for the process to complete or signal
+            if result.process:
+                exit_code = result.process.wait()
+                if not args.quiet:
+                    print(f"\nQEMU exited with code: {exit_code}")
+            else:
+                # No process reference, just wait for signal
+                while not shutdown_requested:
+                    signal.pause()
+        finally:
+            # Restore original signal handlers
+            signal.signal(signal.SIGINT, original_sigint)
+            signal.signal(signal.SIGTERM, original_sigterm)
+
+            # Clean up
+            if not args.quiet:
+                print("Cleaning up...")
+            bridge.stop()
+
+        # Return 130 for SIGINT (128 + 2), otherwise exit code
+        if shutdown_requested:
+            return 130
+        return exit_code if result.process else 0
+
+    except ImportError as e:
+        print(f"Error: Required module not available: {e}", file=sys.stderr)
+        print("Ensure systems.pixel_compiler.boot is properly installed.", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -723,6 +840,7 @@ def main():
 Commands:
   convert      Convert binary files to .rts.png format
   transpile    Transpile native software (source/binary/WASM) to PixelRTS format
+  boot         Boot .rts.png files with QEMU (single command)
   benchmark    Run performance benchmarks
   dashboard    Generate performance dashboard
   info         Display information about .rts.png file
@@ -735,6 +853,9 @@ Examples:
   pixelrts convert kernel.bin kernel.rts.png
   pixelrts transpile program.wasm program.rts.png
   pixelrts transpile main.c main.rts.png
+  pixelrts boot alpine.rts.png --memory 4G --cpus 4
+  pixelrts boot kernel.rts.png --vnc 1 --background
+  pixelrts boot os.rts.png --cmdline "console=ttyS0" --qemu-arg "-nographic"
   pixelrts analyze image.rts.png --method edges --edge-method sobel
   pixelrts analyze image.rts.png --method all --output results.json
   pixelrts execute fibonacci.rts.png --function fib --arguments 10
@@ -908,6 +1029,30 @@ Examples:
     transpile_parser.add_argument('-v', '--verbose', action='store_true',
                                  help='Enable verbose output')
 
+    # Boot command (boot .rts.png files)
+    boot_parser = subparsers.add_parser(
+        'boot',
+        help='Boot .rts.png files with QEMU',
+        description='Boot operating systems from PixelRTS containers in a single command'
+    )
+    boot_parser.add_argument('input', help='Input .rts.png file to boot')
+    boot_parser.add_argument('--memory', '-m', default='2G',
+                            help='Memory allocation (default: 2G)')
+    boot_parser.add_argument('--cpus', '-c', type=int, default=2,
+                            help='Number of CPU cores (default: 2)')
+    boot_parser.add_argument('--vnc', type=int, default=0,
+                            help='VNC display number (default: 0, port 5900)')
+    boot_parser.add_argument('--background', '-b', action='store_true',
+                            help='Run in background (don\'t wait for QEMU)')
+    boot_parser.add_argument('--cmdline',
+                            help='Additional kernel command line parameters')
+    boot_parser.add_argument('--qemu-arg', action='append', dest='qemu_arg',
+                            help='Extra QEMU argument (can be specified multiple times)')
+    boot_parser.add_argument('--quiet', '-q', action='store_true',
+                            help='Suppress progress output')
+    boot_parser.add_argument('-v', '--verbose', action='store_true',
+                            help='Enable verbose output')
+
     # Blueprint command group
     blueprint_parser = subparsers.add_parser(
         'blueprint',
@@ -955,6 +1100,7 @@ Examples:
     handlers = {
         'convert': cmd_convert,
         'transpile': cmd_transpile,
+        'boot': cmd_boot,
         'benchmark': cmd_benchmark,
         'dashboard': cmd_dashboard,
         'info': cmd_info,
