@@ -337,3 +337,135 @@ class TestAgentSpawner:
         assert stats["avg_latency_ms"] > 0
 
         await spawner.shutdown()
+
+
+class TestTopologyConfiguration:
+    """Tests for agent mesh topology configuration."""
+
+    def test_star_topology_creation(self):
+        """Can create star topology (hub-spoke)."""
+        from systems.pixel_compiler.a2a_load_test.topology import TopologyBuilder
+
+        topology = TopologyBuilder.star(agent_count=5)
+        edges = topology.get_edges()
+
+        # Star: node 0 connects to all others
+        assert len(edges) == 4  # 4 edges from center
+        assert all((0, i) in edges or (i, 0) in edges for i in range(1, 5))
+
+    def test_star_topology_custom_hub(self):
+        """Can create star topology with custom hub index."""
+        from systems.pixel_compiler.a2a_load_test.topology import TopologyBuilder
+
+        topology = TopologyBuilder.star(agent_count=5, hub_index=2)
+        edges = topology.get_edges()
+
+        # Hub (node 2) connects to all others
+        assert len(edges) == 4
+        # Check that hub 2 has edges to all other nodes
+        for i in range(5):
+            if i != 2:
+                assert (2, i) in edges or (i, 2) in edges
+
+    def test_mesh_topology_creation(self):
+        """Can create full mesh topology."""
+        from systems.pixel_compiler.a2a_load_test.topology import TopologyBuilder
+
+        topology = TopologyBuilder.full_mesh(agent_count=4)
+        edges = topology.get_edges()
+
+        # Full mesh: each node connects to every other
+        # 4 nodes = 6 edges (n*(n-1)/2)
+        assert len(edges) == 6
+
+    def test_ring_topology_creation(self):
+        """Can create ring topology."""
+        from systems.pixel_compiler.a2a_load_test.topology import TopologyBuilder
+
+        topology = TopologyBuilder.ring(agent_count=4)
+        edges = topology.get_edges()
+
+        # Ring: each node connects to next (circular)
+        assert len(edges) == 4
+
+    def test_line_topology_creation(self):
+        """Can create line topology."""
+        from systems.pixel_compiler.a2a_load_test.topology import TopologyBuilder
+
+        topology = TopologyBuilder.line(agent_count=4)
+        edges = topology.get_edges()
+
+        # Line: node i connects to node i+1
+        assert len(edges) == 3
+
+    def test_hierarchical_topology_creation(self):
+        """Can create hierarchical tree topology."""
+        from systems.pixel_compiler.a2a_load_test.topology import TopologyBuilder
+
+        # 3 levels with fanout 2: 1 + 2 + 4 = 7 nodes
+        topology = TopologyBuilder.hierarchical(levels=3, fanout=2)
+        edges = topology.get_edges()
+
+        # Total nodes: 1 + 2 + 4 = 7
+        assert topology.agent_count == 7
+        # Root has 2 children, each child has 2 children
+        # Edges: 2 (from root) + 4 (from level 1) = 6
+        assert len(edges) == 6
+
+    def test_topology_get_neighbors(self):
+        """Can get neighbors for a node."""
+        from systems.pixel_compiler.a2a_load_test.topology import TopologyBuilder
+
+        topology = TopologyBuilder.star(agent_count=5)
+        neighbors = topology.get_neighbors(0)
+
+        # Center node has all others as neighbors
+        assert len(neighbors) == 4
+        assert all(i in neighbors for i in range(1, 5))
+
+    def test_topology_get_neighbors_ring(self):
+        """Can get neighbors for a node in ring topology."""
+        from systems.pixel_compiler.a2a_load_test.topology import TopologyBuilder
+
+        topology = TopologyBuilder.ring(agent_count=4)
+        neighbors = topology.get_neighbors(0)
+
+        # Node 0 should have neighbors: 1 (next) and 3 (previous in ring)
+        assert len(neighbors) == 2
+        assert 1 in neighbors
+        assert 3 in neighbors
+
+    def test_topology_assigns_agents(self):
+        """Topology can be assigned to agent list."""
+        from systems.pixel_compiler.a2a_load_test.topology import TopologyBuilder
+
+        topology = TopologyBuilder.ring(agent_count=3)
+        agents = [VirtualAgent(f"agent-{i}", "test") for i in range(3)]
+
+        topology.assign_agents(agents)
+
+        # Each agent should know its neighbors
+        assert len(agents[0]._neighbors) == 2  # Ring: 2 neighbors each
+
+    def test_topology_name_and_count(self):
+        """Topology has name and agent_count attributes."""
+        from systems.pixel_compiler.a2a_load_test.topology import TopologyBuilder
+
+        topology = TopologyBuilder.star(agent_count=10)
+
+        assert topology.name == "star"
+        assert topology.agent_count == 10
+
+    def test_line_topology_edge_connectivity(self):
+        """Line topology has correct edge connectivity."""
+        from systems.pixel_compiler.a2a_load_test.topology import TopologyBuilder
+
+        topology = TopologyBuilder.line(agent_count=5)
+        edges = topology.get_edges()
+
+        # Line: 0-1, 1-2, 2-3, 3-4
+        assert (0, 1) in edges
+        assert (1, 2) in edges
+        assert (2, 3) in edges
+        assert (3, 4) in edges
+        assert (0, 4) not in edges  # No wrap-around
