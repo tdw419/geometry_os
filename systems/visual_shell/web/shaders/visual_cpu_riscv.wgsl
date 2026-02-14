@@ -111,11 +111,20 @@ fn trap_enter(base_idx: u32, cause: u32, tval: u32, pc: u32) -> u32 {
     //    - Clear SIE (bit 1) - disable interrupts during trap
     let current_mode = cpu_states[base_idx + CSR_MODE];
     let current_sstatus = cpu_states[base_idx + CSR_SSTATUS];
-    let current_sie = current_sstatus & SSTATUS_SIE;
 
     var new_sstatus = current_sstatus;
-    new_sstatus = new_sstatus | (current_sie << 5u);  // SPIE = SIE (bit 5)
-    new_sstatus = new_sstatus & ~SSTATUS_SIE;         // Clear SIE (bit 1)
+
+    // Copy SIE (bit 1) to SPIE (bit 5)
+    if ((current_sstatus & SSTATUS_SIE) != 0u) {
+        new_sstatus = new_sstatus | SSTATUS_SPIE;
+    } else {
+        new_sstatus = new_sstatus & ~SSTATUS_SPIE;
+    }
+
+    // Clear SIE
+    new_sstatus = new_sstatus & ~SSTATUS_SIE;
+
+    // Set SPP based on current mode
     if (current_mode == 0u) {
         new_sstatus = new_sstatus & ~SSTATUS_SPP;     // SPP = 0 (from user)
     } else {
