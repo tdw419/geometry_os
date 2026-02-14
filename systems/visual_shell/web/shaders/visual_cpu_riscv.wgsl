@@ -469,9 +469,15 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                 pc = trap_ret(base_idx);
             } else if (funct3_sys == 0u) {
                 // ECALL/EBREAK
-                let a7 = cpu_states[base_idx + 17u]; // x17
-                if (a7 == 93u) { // exit
-                    cpu_states[base_idx + CSR_HALT] = 1u; // SET HALT
+                let imm = inst >> 20u;
+                if (imm == 0u) {
+                    // ECALL - system call
+                    let current_mode = cpu_states[base_idx + CSR_MODE];
+                    let cause = select(CAUSE_ECALL_S, CAUSE_ECALL_U, current_mode == 0u);
+                    pc = trap_enter(base_idx, cause, 0u, pc);
+                } else if (imm == 1u) {
+                    // EBREAK - breakpoint
+                    pc = trap_enter(base_idx, CAUSE_BREAKPOINT, pc, pc);
                 }
             } else if (funct3_sys == 1u) {
                 // CSRRW: CSR[csr] <- rs1; rd <- old_csr
