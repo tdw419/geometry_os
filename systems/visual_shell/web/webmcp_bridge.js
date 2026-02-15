@@ -1693,6 +1693,7 @@ class WebMCPBridge {
                                 'performance',
                                 'evolution',
                                 'health',
+                                'metrics',
                                 'all'
                             ]
                         },
@@ -1713,8 +1714,8 @@ class WebMCPBridge {
         const done = this.#trackCall('get_os_state');
 
         const sections = include && include.length > 0
-            ? (include.includes('all') ? ['camera', 'windows', 'subsystems', 'performance', 'evolution', 'health'] : include)
-            : ['camera', 'windows', 'subsystems', 'performance', 'evolution', 'health'];
+            ? (include.includes('all') ? ['camera', 'windows', 'subsystems', 'performance', 'evolution', 'health', 'metrics'] : include)
+            : ['camera', 'windows', 'subsystems', 'performance', 'evolution', 'health', 'metrics'];
 
         const state = {
             os: 'Geometry OS',
@@ -1723,7 +1724,8 @@ class WebMCPBridge {
             webmcp: {
                 toolsRegistered: this.#registeredTools.length,
                 totalCalls: this.#callCount,
-                callBreakdown: { ...this.#toolCallCounts }
+                callBreakdown: { ...this.#toolCallCounts },
+                metrics: sections.includes('metrics') ? this.#toolMetrics.getAggregateStats() : undefined
             }
         };
 
