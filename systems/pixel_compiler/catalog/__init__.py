@@ -11,11 +11,13 @@ Components:
 - ThumbnailResult: Result of thumbnail generation
 - SpatialLayoutManager: Drag-and-drop layout management
 - SpatialPosition: Position information for catalog entries
+- CatalogServer: FastAPI server for catalog operations
 """
 
 from .catalog_scanner import CatalogScanner, CatalogEntry
 from .thumbnail_cache import ThumbnailCache, ThumbnailResult
 from .spatial_layout import SpatialLayoutManager, SpatialPosition
+from .catalog_server import app, CatalogServer, get_catalog_server
 
 __all__ = [
     # Catalog scanning
@@ -27,4 +29,8 @@ __all__ = [
     # Spatial layout
     "SpatialLayoutManager",
     "SpatialPosition",
+    # Catalog server
+    "app",
+    "CatalogServer",
+    "get_catalog_server",
 ]
