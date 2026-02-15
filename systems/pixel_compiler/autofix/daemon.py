@@ -169,14 +169,17 @@ class AutofixDaemon:
         result["success"] = result["failed"] == 0
 
         # Extract individual failures
-        # Pattern: "FAILURES\n\n_______ test_name _______" followed by file path
-        failure_pattern = r"____+ ([^\s_]+[^\n]*) ____+.*?\n.*?\n(.*?\.py):(\d+):.*?\n(.*?)(?=____+|\Z)"
+        # Pattern: "____ test_name ____" followed by traceback ending with "file.py:line: Error"
+        failure_pattern = r"_+ ([^\s_][^\n]*?) _+\n(.*?)(\S+\.py):(\d+):"
 
         for match in re.finditer(failure_pattern, output, re.DOTALL):
             test_name = match.group(1).strip()
-            file_path = match.group(2).strip()
-            line_num = int(match.group(3))
-            error_msg = match.group(4).strip()
+            file_path = match.group(3).strip()
+            line_num = int(match.group(4))
+            # Get error from the traceback context
+            context = match.group(2)
+            error_lines = [l.strip() for l in context.split('\n') if l.strip() and 'assert' in l.lower()]
+            error_msg = error_lines[-1] if error_lines else "Assertion failed"
 
             # Extract just the relevant error (first few lines)
             error_lines = error_msg.split("\n")[:5]

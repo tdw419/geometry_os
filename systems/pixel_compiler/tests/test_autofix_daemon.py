@@ -1,12 +1,16 @@
 """Tests for AutofixDaemon core structure."""
 
 import os
+import sys
 import tempfile
 from pathlib import Path
 
 import pytest
 
-from systems.pixel_compiler.autofix import AutofixDaemon
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from autofix import AutofixDaemon
 
 
 def test_daemon_initializes_with_defaults():
@@ -182,7 +186,9 @@ test_example.py:10: AssertionError
         assert first_failure["test_name"] == "test_addition_fails"
         assert first_failure["file"] == "test_example.py"
         assert first_failure["line"] == 5
-        assert "AssertionError" in first_failure["error"]
+        # Parser extracts the assertion line from the traceback
+        assert "assert" in first_failure["error"].lower()
+        assert "2 == 3" in first_failure["error"]
 
         # Check second failure
         second_failure = result["failures"][1]
