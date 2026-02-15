@@ -13,6 +13,8 @@ from typing import Dict, List, Optional, Any
 
 from .agent_spawner import AgentSpawner, VirtualAgent
 from .topology import TopologyBuilder, Topology
+from .stress_scenarios import StressScenario, FailureMode
+from .resource_monitor import ResourceMonitor
 
 
 @dataclass
@@ -233,3 +235,75 @@ class LoadTestHarness:
             return sorted_data[-1]
 
         return sorted_data[f] + (k - f) * (sorted_data[c] - sorted_data[f])
+
+    async def run_stress_scenario(self, scenario: StressScenario) -> Dict[str, Any]:
+        """Run a stress test scenario with monitoring."""
+        import random
+
+        # Start resource monitoring
+        monitor = ResourceMonitor(interval_ms=scenario.metrics_interval_ms)
+        await monitor.start()
+
+        start_time = time.time()
+        errors = []
+        messages_sent = 0
+        messages_dropped = 0
+
+        try:
+            # Ramp up
+            await asyncio.sleep(scenario.ramp_up_sec)
+
+            # Run for duration
+            end_time = start_time + scenario.duration_sec
+            while time.time() < end_time:
+                # Send messages at target rate
+                agents = self.spawner.agents
+                for agent in agents:
+                    if agent._neighbors:
+                        try:
+                            # Apply failure injection
+                            if scenario.failure_mode == FailureMode.MESSAGE_DROP:
+                                if random.random() < scenario.failure_rate:
+                                    messages_dropped += 1
+                                    continue
+
+                            # Find a neighbor to send to
+                            neighbor_idx = agent._neighbors[0]
+                            if neighbor_idx < len(agents):
+                                target = agents[neighbor_idx]
+                                msg = agent.create_message(
+                                    to_agent=target.agent_id,
+                                    message_type="ping",
+                                    content={"timestamp": time.time()}
+                                )
+                                await agent.send_message(msg)
+                                messages_sent += 1
+                        except Exception as e:
+                            errors.append(str(e))
+
+                await asyncio.sleep(1.0 / scenario.message_rate_per_sec)
+
+            # Ramp down
+            await asyncio.sleep(scenario.ramp_down_sec)
+
+        finally:
+            await monitor.stop()
+
+        # Get resource stats
+        resource_stats = monitor.get_stats()
+
+        return {
+            "scenario": scenario.name,
+            "success": len(errors) == 0 or scenario.failure_mode != FailureMode.NONE,
+            "agent_count": scenario.agent_count,
+            "duration_sec": time.time() - start_time,
+            "messages_sent": messages_sent,
+            "messages_dropped": messages_dropped,
+            "errors": errors[:10],  # Limit error list
+            "resource_stats": {
+                "cpu_avg": resource_stats.cpu_avg,
+                "cpu_max": resource_stats.cpu_max,
+                "memory_avg_mb": resource_stats.memory_avg_mb,
+                "memory_max_mb": resource_stats.memory_max_mb
+            }
+        }
