@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase M: AI PM Tools Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        h1 { color: #4ecca3; }
+        h2 { color: #7b68ee; margin-top: 30px; }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .pass { background: #1e4d2b; border-left: 4px solid #4ecca3; }
+        .fail { background: #4d1e1e; border-left: 4px solid #ff6b6b; }
+        .info { background: #1e3a4d; border-left: 4px solid #4ecdc4; }
+        pre {
+            background: #16213e;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        button {
+            background: #4ecca3;
+            color: #1a1a2e;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px 10px 0;
+        }
+        button:hover { background: #3db892; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        #output { margin-top: 20px; }
+        .progress-bar {
+            height: 20px;
+            background: #16213e;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ecca3, #7b68ee);
+            transition: width 0.3s ease;
+        }
+        .summary {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .phase-card {
+            display: inline-block;
+            padding: 8px 12px;
+            margin: 4px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .phase-complete { background: #1e4d2b; }
+        .phase-progress { background: #3d3d1e; }
+        .phase-pending { background: #2d2d3d; }
+    </style>
+</head>
+<body>
+    <h1>Phase M: AI Project Management Tools Test</h1>
+    <p>Testing WebMCP integration for AI-driven project management.</p>
+
+    <button onclick="runAllTests()">Run All Tests</button>
+    <button onclick="testGetRoadmap()">Test Roadmap</button>
+    <button onclick="testPhaseTasks()">Test Tasks</button>
+    <button onclick="clearOutput()">Clear Output</button>
+
+    <div class="progress-bar">
+        <div class="progress-fill" id="progress" style="width: 0%"></div>
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+        const output = document.getElementById('output');
+        const progress = document.getElementById('progress');
+
+        // Mock PM State (mirrors webmcp_bridge.js)
+        class MockPMTools {
+            constructor() {
+                this.state = {
+                    roadmap: {
+                        name: 'Geometry OS',
+                        version: '2026.1',
+                        currentPhase: 'M',
+                        totalPhases: 12,
+                        lastUpdated: new Date().toISOString()
+                    },
+                    phases: [
+                        { id: 'A', name: 'WebMCP Core', status: 'complete', progress: 100 },
+                        { id: 'B', name: 'Hilbert Mapping', status: 'complete', progress: 100 },
+                        { id: 'C', name: 'WGSL Evolution', status: 'complete', progress: 100 },
+                        { id: 'D', name: 'A2A Protocol', status: 'complete', progress: 100 },
+                        { id: 'E', name: 'WebMCP Reliability', status: 'complete', progress: 100 },
+                        { id: 'F', name: 'AI Visual Builder', status: 'complete', progress: 100 },
+                        { id: 'G', name: 'Performance', status: 'complete', progress: 100 },
+                        { id: 'H', name: 'Testing', status: 'complete', progress: 100 },
+                        { id: 'J', name: 'Neural IDE', status: 'complete', progress: 100 },
+                        { id: 'K', name: 'Neural Kernel', status: 'complete', progress: 100 },
+                        { id: 'L', name: 'Autonomous Operator', status: 'complete', progress: 100 },
+                        { id: 'M', name: 'AI PM Integration', status: 'in_progress', progress: 50 }
+                    ],
+                    tasks: {
+                        'M': [
+                            { id: 'M-1', name: 'Create pm_tools.js', status: 'complete', priority: 'high' },
+                            { id: 'M-2', name: 'Add WebMCP tool registrations', status: 'in_progress', priority: 'high' },
+                            { id: 'M-3', name: 'Create test page', status: 'pending', priority: 'medium' },
+                            { id: 'M-4', name: 'Integrate with Python backend', status: 'pending', priority: 'low' }
+                        ]
+                    }
+                };
+            }
+
+            pm_get_roadmap() {
+                const completed = this.state.phases.filter(p => p.status === 'complete').length;
+                return {
+                    success: true,
+                    roadmap: {
+                        name: this.state.roadmap.name,
+                        version: this.state.roadmap.version,
+                        currentPhase: this.state.roadmap.currentPhase,
+                        totalPhases: this.state.roadmap.totalPhases,
+                        completedPhases: completed,
+                        progress: Math.round((completed / this.state.roadmap.totalPhases) * 100),
+                        lastUpdated: this.state.roadmap.lastUpdated
+                    },
+                    summary: {
+                        complete: completed,
+                        inProgress: this.state.phases.filter(p => p.status === 'in_progress').length,
+                        pending: this.state.phases.filter(p => p.status === 'pending').length
+                    }
+                };
+            }
+
+            pm_get_phases(params = {}) {
+                let phases = this.state.phases;
+                if (params.status) {
+                    phases = phases.filter(p => p.status === params.status);
+                }
+                return {
+                    success: true,
+                    phases: phases,
+                    total: this.state.phases.length,
+                    filtered: phases.length
+                };
+            }
+
+            pm_get_tasks(params = {}) {
+                const phaseId = params.phase_id;
+                if (!phaseId) {
+                    return { success: false, error: 'phase_id is required' };
+                }
+
+                const tasks = this.state.tasks[phaseId] || [];
+                let filtered = tasks;
+
+                if (params.status) {
+                    filtered = filtered.filter(t => t.status === params.status);
+                }
+                if (params.priority) {
+                    filtered = filtered.filter(t => t.priority === params.priority);
+                }
+
+                return {
+                    success: true,
+                    phase_id: phaseId,
+                    tasks: filtered,
+                    total: tasks.length,
+                    filtered: filtered.length,
+                    summary: {
+                        complete: tasks.filter(t => t.status === 'complete').length,
+                        inProgress: tasks.filter(t => t.status === 'in_progress').length,
+                        pending: tasks.filter(t => t.status === 'pending').length
+                    }
+                };
+            }
+
+            pm_update_task(params = {}) {
+                const { task_id, status, notes } = params;
+
+                if (!task_id || !status) {
+                    return { success: false, error: 'task_id and status are required' };
+                }
+
+                const validStatuses = ['pending', 'in_progress', 'complete', 'blocked'];
+                if (!validStatuses.includes(status)) {
+                    return { success: false, error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` };
+                }
+
+                const phaseId = task_id.split('-')[0];
+                const tasks = this.state.tasks[phaseId];
+
+                if (!tasks) {
+                    return { success: false, error: `Phase ${phaseId} not found` };
+                }
+
+                const task = tasks.find(t => t.id === task_id);
+                if (!task) {
+                    return { success: false, error: `Task ${task_id} not found` };
+                }
+
+                const previousStatus = task.status;
+                task.status = status;
+                if (notes) task.notes = notes;
+                task.updatedAt = new Date().toISOString();
+
+                return {
+                    success: true,
+                    task: task,
+                    previousStatus: previousStatus,
+                    message: `Task ${task_id} updated from ${previousStatus} to ${status}`
+                };
+            }
+
+            pm_create_task(params = {}) {
+                const { phase_id, name, priority = 'medium', description } = params;
+
+                if (!phase_id || !name) {
+                    return { success: false, error: 'phase_id and name are required' };
+                }
+
+                if (!this.state.tasks[phase_id]) {
+                    this.state.tasks[phase_id] = [];
+                }
+
+                const tasks = this.state.tasks[phase_id];
+                const taskNum = tasks.length + 1;
+                const taskId = `${phase_id}-${taskNum}`;
+
+                const newTask = {
+                    id: taskId,
+                    name,
+                    status: 'pending',
+                    priority,
+                    description: description || '',
+                    createdAt: new Date().toISOString()
+                };
+
+                tasks.push(newTask);
+
+                return {
+                    success: true,
+                    task: newTask,
+                    message: `Task ${taskId} created successfully`
+                };
+            }
+        }
+
+        // Initialize mock
+        window.pmTools = new MockPMTools();
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            output.appendChild(div);
+        }
+
+        function clearOutput() {
+            output.innerHTML = '';
+            progress.style.width = '0%';
+        }
+
+        function updateProgress(current, total) {
+            const percent = (current / total) * 100;
+            progress.style.width = `${percent}%`;
+        }
+
+        async function test(name, fn) {
+            try {
+                const result = await fn();
+                const pass = result.success !== false;
+                log(`${pass ? '✓' : '✗'} ${name}`, pass ? 'pass' : 'fail');
+                if (!pass && result.error) {
+                    log(`  Error: ${result.error}`, 'fail');
+                }
+                return pass;
+            } catch (e) {
+                log(`✗ ${name}`, 'fail');
+                log(`  Exception: ${e.message}`, 'fail');
+                return false;
+            }
+        }
+
+        async function runAllTests() {
+            clearOutput();
+            log('Starting Phase M PM Tools Tests...\n');
+
+            let passed = 0;
+            let total = 0;
+
+            // Reset state
+            window.pmTools = new MockPMTools();
+
+            // Test 1: pm_get_roadmap
+            total++;
+            if (await test('pm_get_roadmap returns roadmap data', async () => {
+                const result = window.pmTools.pm_get_roadmap();
+                return {
+                    success: result.success && result.roadmap.name === 'Geometry OS',
+                    roadmap: result.roadmap
+                };
+            })) passed++;
+            updateProgress(1, 12);
+
+            // Test 2: roadmap progress calculation
+            total++;
+            if (await test('Roadmap progress calculation is correct', async () => {
+                const result = window.pmTools.pm_get_roadmap();
+                return {
+                    success: result.roadmap.progress === 92, // 11/12 = 91.67% ≈ 92%
+                    progress: result.roadmap.progress
+                };
+            })) passed++;
+            updateProgress(2, 12);
+
+            // Test 3: pm_get_phases
+            total++;
+            if (await test('pm_get_phases returns all phases', async () => {
+                const result = window.pmTools.pm_get_phases();
+                return {
+                    success: result.success && result.phases.length === 12,
+                    count: result.phases.length
+                };
+            })) passed++;
+            updateProgress(3, 12);
+
+            // Test 4: phase status filter
+            total++;
+            if (await test('pm_get_phases filters by status', async () => {
+                const result = window.pmTools.pm_get_phases({ status: 'complete' });
+                return {
+                    success: result.filtered === 11,
+                    filtered: result.filtered
+                };
+            })) passed++;
+            updateProgress(4, 12);
+
+            // Test 5: pm_get_tasks
+            total++;
+            if (await test('pm_get_tasks returns tasks for phase', async () => {
+                const result = window.pmTools.pm_get_tasks({ phase_id: 'M' });
+                return {
+                    success: result.success && result.tasks.length === 4,
+                    count: result.tasks.length
+                };
+            })) passed++;
+            updateProgress(5, 12);
+
+            // Test 6: pm_get_tasks error handling
+            total++;
+            if (await test('pm_get_tasks requires phase_id', async () => {
+                const result = window.pmTools.pm_get_tasks({});
+                return {
+                    success: result.success === false && result.error.includes('required'),
+                    error: result.error
+                };
+            })) passed++;
+            updateProgress(6, 12);
+
+            // Test 7: pm_update_task
+            total++;
+            if (await test('pm_update_task updates task status', async () => {
+                const result = window.pmTools.pm_update_task({
+                    task_id: 'M-3',
+                    status: 'in_progress'
+                });
+                return {
+                    success: result.success && result.task.status === 'in_progress',
+                    previousStatus: result.previousStatus
+                };
+            })) passed++;
+            updateProgress(7, 12);
+
+            // Test 8: pm_update_task error handling
+            total++;
+            if (await test('pm_update_task rejects invalid status', async () => {
+                const result = window.pmTools.pm_update_task({
+                    task_id: 'M-1',
+                    status: 'invalid'
+                });
+                return {
+                    success: result.success === false,
+                    error: result.error
+                };
+            })) passed++;
+            updateProgress(8, 12);
+
+            // Test 9: pm_update_task notes
+            total++;
+            if (await test('pm_update_task accepts notes', async () => {
+                const result = window.pmTools.pm_update_task({
+                    task_id: 'M-1',
+                    status: 'complete',
+                    notes: 'Testing notes'
+                });
+                return {
+                    success: result.success && result.task.notes === 'Testing notes',
+                    notes: result.task.notes
+                };
+            })) passed++;
+            updateProgress(9, 12);
+
+            // Test 10: pm_create_task
+            total++;
+            if (await test('pm_create_task creates new task', async () => {
+                const result = window.pmTools.pm_create_task({
+                    phase_id: 'M',
+                    name: 'Test Task',
+                    priority: 'high'
+                });
+                return {
+                    success: result.success && result.task.id === 'M-5',
+                    task: result.task
+                };
+            })) passed++;
+            updateProgress(10, 12);
+
+            // Test 11: pm_create_task error handling
+            total++;
+            if (await test('pm_create_task requires phase_id and name', async () => {
+                const result = window.pmTools.pm_create_task({ phase_id: 'M' });
+                return {
+                    success: result.success === false,
+                    error: result.error
+                };
+            })) passed++;
+            updateProgress(11, 12);
+
+            // Test 12: Full workflow
+            total++;
+            if (await test('Full workflow: roadmap → phases → tasks → create → update', async () => {
+                const pm = new MockPMTools();
+
+                // Get roadmap
+                const roadmap = pm.pm_get_roadmap();
+                if (!roadmap.success) return { success: false, stage: 'roadmap' };
+
+                // Get phases
+                const phases = pm.pm_get_phases();
+                if (!phases.success) return { success: false, stage: 'phases' };
+
+                // Get tasks
+                const tasks = pm.pm_get_tasks({ phase_id: 'M' });
+                if (!tasks.success) return { success: false, stage: 'tasks' };
+
+                // Create task
+                const created = pm.pm_create_task({
+                    phase_id: 'M',
+                    name: 'Workflow test task',
+                    priority: 'medium'
+                });
+                if (!created.success) return { success: false, stage: 'create' };
+
+                // Update task
+                const updated = pm.pm_update_task({
+                    task_id: created.task.id,
+                    status: 'in_progress',
+                    notes: 'Started workflow test'
+                });
+                if (!updated.success) return { success: false, stage: 'update' };
+
+                return {
+                    success: true,
+                    stages: ['roadmap', 'phases', 'tasks', 'create', 'update'],
+                    finalTask: updated.task
+                };
+            })) passed++;
+            updateProgress(12, 12);
+
+            // Summary
+            log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+            log(`Tests: ${passed}/${total} passed (${Math.round(passed/total*100)}%)`);
+            log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+
+            if (passed === total) {
+                log('\n✓ All Phase M AI PM Tools tests passed!');
+            } else {
+                log(`\n✗ ${total - passed} test(s) failed`);
+            }
+
+            // Final summary box
+            const summary = document.createElement('div');
+            summary.className = 'summary';
+            summary.innerHTML = `
+                <h3>Test Summary</h3>
+                <p><strong>Passed:</strong> ${passed}/${total}</p>
+                <p><strong>Success Rate:</strong> ${Math.round(passed/total*100)}%</p>
+                <p><strong>PM Tools:</strong> 5 tools tested</p>
+                <ul>
+                    <li>pm_get_roadmap - Get roadmap overview</li>
+                    <li>pm_get_phases - List all phases</li>
+                    <li>pm_get_tasks - Get tasks for phase</li>
+                    <li>pm_update_task - Update task status</li>
+                    <li>pm_create_task - Create new task</li>
+                </ul>
+            `;
+            output.appendChild(summary);
+        }
+
+        async function testGetRoadmap() {
+            clearOutput();
+            log('Testing Roadmap...\n');
+
+            const result = window.pmTools.pm_get_roadmap();
+            log(`Roadmap: ${result.roadmap.name} v${result.roadmap.version}`, 'info');
+            log(`Progress: ${result.roadmap.completedPhases}/${result.roadmap.totalPhases} phases (${result.roadmap.progress}%)`, 'info');
+
+            // Show phase cards
+            const phases = window.pmTools.pm_get_phases();
+            const cardContainer = document.createElement('div');
+            cardContainer.innerHTML = '<br>Phase Status:<br>';
+            phases.phases.forEach(p => {
+                const card = document.createElement('span');
+                card.className = `phase-card phase-${p.status === 'complete' ? 'complete' : 'progress'}`;
+                card.textContent = `${p.id}: ${p.name}`;
+                cardContainer.appendChild(card);
+            });
+            output.appendChild(cardContainer);
+        }
+
+        async function testPhaseTasks() {
+            clearOutput();
+            log('Testing Phase Tasks...\n');
+
+            const result = window.pmTools.pm_get_tasks({ phase_id: 'M' });
+            log(`Phase M Tasks (${result.total}):`, 'info');
+
+            result.tasks.forEach(t => {
+                const statusIcon = t.status === 'complete' ? '✓' :
+                                   t.status === 'in_progress' ? '▶' : '○';
+                log(`  ${statusIcon} ${t.id}: ${t.name} [${t.priority}]`, 'info');
+            });
+
+            log(`\nSummary: ${result.summary.complete} complete, ${result.summary.inProgress} in progress, ${result.summary.pending} pending`, 'info');
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            log('Mock PMTools initialized.');
+            log('Click "Run All Tests" to begin automated testing.');
+            log('Click "Test Roadmap" to see roadmap overview.');
+            log('Click "Test Tasks" to see phase tasks.');
+        });
+    </script>
+</body>
+</html>

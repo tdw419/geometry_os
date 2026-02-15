@@ -53,6 +53,13 @@
  *  29. operator_recommendations  — Get optimization suggestions
  *  30. operator_apply            — Apply recommended changes
  *
+ * Phase M Tools (AI Project Management):
+ *  31. pm_get_roadmap            — Get current roadmap status and overview
+ *  32. pm_get_phases             — List all phases with their status
+ *  33. pm_get_tasks              — Get tasks for a specific phase
+ *  34. pm_update_task            — Update task status
+ *  35. pm_create_task            — Create a new task
+ *
  * Area Agent A2A Integration:
  *   - spawn_area_agent now supports full A2A protocol
  *   - Agents can discover each other via registry
@@ -69,8 +76,8 @@
  * Requirements: Chrome 146+ with WebMCP support
  * Fallback: Logs warning, app runs normally without WebMCP
  *
- * @version 1.9.0
- * @phase Phase L: Autonomous Kernel Operator
+ * @version 2.0.0
+ * @phase Phase M: AI PM + WebMCP Integration
  * @date 2026-02-14
  */
 
@@ -760,6 +767,13 @@ class WebMCPBridge {
             await this.#registerOperatorStop();
             await this.#registerOperatorRecommendations();
             await this.#registerOperatorApply();
+
+            // Phase M tools - AI Project Management
+            await this.#registerPMGetRoadmap();
+            await this.#registerPMGetPhases();
+            await this.#registerPMGetTasks();
+            await this.#registerPMUpdateTask();
+            await this.#registerPMCreateTask();
 
             // Publish OS context alongside tools
             await this.#publishContext();
@@ -6417,6 +6431,310 @@ class WebMCPBridge {
             } catch (e) {
                 return { success: false, error: e.message };
             }
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Phase M: AI Project Management Tools
+    // ─────────────────────────────────────────────────────────────
+
+    #pmState = null;
+
+    #getPMState() {
+        if (!this.#pmState) {
+            this.#pmState = {
+                roadmap: {
+                    name: 'Geometry OS',
+                    version: '2026.1',
+                    currentPhase: 'M',
+                    totalPhases: 12,
+                    lastUpdated: new Date().toISOString()
+                },
+                phases: [
+                    { id: 'A', name: 'WebMCP Core', status: 'complete', progress: 100 },
+                    { id: 'B', name: 'Hilbert Mapping', status: 'complete', progress: 100 },
+                    { id: 'C', name: 'WGSL Evolution', status: 'complete', progress: 100 },
+                    { id: 'D', name: 'A2A Protocol', status: 'complete', progress: 100 },
+                    { id: 'E', name: 'WebMCP Reliability', status: 'complete', progress: 100 },
+                    { id: 'F', name: 'AI Visual Builder', status: 'complete', progress: 100 },
+                    { id: 'G', name: 'Performance', status: 'complete', progress: 100 },
+                    { id: 'H', name: 'Testing', status: 'complete', progress: 100 },
+                    { id: 'J', name: 'Neural IDE', status: 'complete', progress: 100 },
+                    { id: 'K', name: 'Neural Kernel', status: 'complete', progress: 100 },
+                    { id: 'L', name: 'Autonomous Operator', status: 'complete', progress: 100 },
+                    { id: 'M', name: 'AI PM Integration', status: 'in_progress', progress: 50 }
+                ],
+                tasks: {
+                    'M': [
+                        { id: 'M-1', name: 'Create pm_tools.js', status: 'complete', priority: 'high' },
+                        { id: 'M-2', name: 'Add WebMCP tool registrations', status: 'in_progress', priority: 'high' },
+                        { id: 'M-3', name: 'Create test page', status: 'pending', priority: 'medium' },
+                        { id: 'M-4', name: 'Integrate with Python backend', status: 'pending', priority: 'low' }
+                    ]
+                }
+            };
+        }
+        return this.#pmState;
+    }
+
+    async #registerPMGetRoadmap() {
+        const tool = {
+            name: 'pm_get_roadmap',
+            description: 'Get current roadmap status and overview',
+            inputSchema: {
+                type: 'object',
+                properties: {}
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('pm_get_roadmap');
+            const state = this.#getPMState();
+            const completed = state.phases.filter(p => p.status === 'complete').length;
+
+            return {
+                success: true,
+                roadmap: {
+                    name: state.roadmap.name,
+                    version: state.roadmap.version,
+                    currentPhase: state.roadmap.currentPhase,
+                    totalPhases: state.roadmap.totalPhases,
+                    completedPhases: completed,
+                    progress: Math.round((completed / state.roadmap.totalPhases) * 100),
+                    lastUpdated: state.roadmap.lastUpdated
+                },
+                summary: {
+                    complete: completed,
+                    inProgress: state.phases.filter(p => p.status === 'in_progress').length,
+                    pending: state.phases.filter(p => p.status === 'pending').length
+                }
+            };
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerPMGetPhases() {
+        const tool = {
+            name: 'pm_get_phases',
+            description: 'List all phases with their status',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    status: {
+                        type: 'string',
+                        enum: ['complete', 'in_progress', 'pending'],
+                        description: 'Filter by status'
+                    }
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('pm_get_phases');
+            const state = this.#getPMState();
+            let phases = state.phases;
+
+            if (params.status) {
+                phases = phases.filter(p => p.status === params.status);
+            }
+
+            return {
+                success: true,
+                phases: phases,
+                total: state.phases.length,
+                filtered: phases.length
+            };
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerPMGetTasks() {
+        const tool = {
+            name: 'pm_get_tasks',
+            description: 'Get tasks for a specific phase',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    phase_id: {
+                        type: 'string',
+                        description: 'Phase ID (e.g., "M")'
+                    },
+                    status: {
+                        type: 'string',
+                        enum: ['pending', 'in_progress', 'complete', 'blocked']
+                    },
+                    priority: {
+                        type: 'string',
+                        enum: ['low', 'medium', 'high', 'critical']
+                    }
+                },
+                required: ['phase_id']
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('pm_get_tasks');
+            const phaseId = params.phase_id;
+            if (!phaseId) {
+                return { success: false, error: 'phase_id is required' };
+            }
+
+            const state = this.#getPMState();
+            const tasks = state.tasks[phaseId] || [];
+
+            let filtered = tasks;
+            if (params.status) {
+                filtered = filtered.filter(t => t.status === params.status);
+            }
+            if (params.priority) {
+                filtered = filtered.filter(t => t.priority === params.priority);
+            }
+
+            return {
+                success: true,
+                phase_id: phaseId,
+                tasks: filtered,
+                total: tasks.length,
+                filtered: filtered.length,
+                summary: {
+                    complete: tasks.filter(t => t.status === 'complete').length,
+                    inProgress: tasks.filter(t => t.status === 'in_progress').length,
+                    pending: tasks.filter(t => t.status === 'pending').length
+                }
+            };
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerPMUpdateTask() {
+        const tool = {
+            name: 'pm_update_task',
+            description: 'Update task status',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    task_id: {
+                        type: 'string',
+                        description: 'Task ID (e.g., "M-1")'
+                    },
+                    status: {
+                        type: 'string',
+                        enum: ['pending', 'in_progress', 'complete', 'blocked'],
+                        description: 'New status'
+                    },
+                    notes: {
+                        type: 'string',
+                        description: 'Optional notes about the update'
+                    }
+                },
+                required: ['task_id', 'status']
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('pm_update_task');
+            const { task_id, status, notes } = params;
+
+            if (!task_id || !status) {
+                return { success: false, error: 'task_id and status are required' };
+            }
+
+            const validStatuses = ['pending', 'in_progress', 'complete', 'blocked'];
+            if (!validStatuses.includes(status)) {
+                return { success: false, error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` };
+            }
+
+            const state = this.#getPMState();
+            const phaseId = task_id.split('-')[0];
+            const tasks = state.tasks[phaseId];
+
+            if (!tasks) {
+                return { success: false, error: `Phase ${phaseId} not found` };
+            }
+
+            const task = tasks.find(t => t.id === task_id);
+            if (!task) {
+                return { success: false, error: `Task ${task_id} not found` };
+            }
+
+            const previousStatus = task.status;
+            task.status = status;
+            if (notes) task.notes = notes;
+            task.updatedAt = new Date().toISOString();
+
+            return {
+                success: true,
+                task: task,
+                previousStatus: previousStatus,
+                message: `Task ${task_id} updated from ${previousStatus} to ${status}`
+            };
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerPMCreateTask() {
+        const tool = {
+            name: 'pm_create_task',
+            description: 'Create a new task in a phase',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    phase_id: {
+                        type: 'string',
+                        description: 'Phase ID (e.g., "M")'
+                    },
+                    name: {
+                        type: 'string',
+                        description: 'Task name'
+                    },
+                    priority: {
+                        type: 'string',
+                        enum: ['low', 'medium', 'high', 'critical'],
+                        default: 'medium'
+                    },
+                    description: {
+                        type: 'string',
+                        description: 'Task description'
+                    }
+                },
+                required: ['phase_id', 'name']
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('pm_create_task');
+            const { phase_id, name, priority = 'medium', description } = params;
+
+            if (!phase_id || !name) {
+                return { success: false, error: 'phase_id and name are required' };
+            }
+
+            const state = this.#getPMState();
+            if (!state.tasks[phase_id]) {
+                state.tasks[phase_id] = [];
+            }
+
+            const tasks = state.tasks[phase_id];
+            const taskNum = tasks.length + 1;
+            const taskId = `${phase_id}-${taskNum}`;
+
+            const newTask = {
+                id: taskId,
+                name,
+                status: 'pending',
+                priority,
+                description: description || '',
+                createdAt: new Date().toISOString()
+            };
+
+            tasks.push(newTask);
+
+            return {
+                success: true,
+                task: newTask,
+                message: `Task ${taskId} created successfully`
+            };
         });
         this.#registeredTools.push(tool.name);
     }
