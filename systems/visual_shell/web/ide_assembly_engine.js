@@ -388,6 +388,118 @@ class IDEAssemblyEngine {
         return [...this.#validIDETileTypes];
     }
 
+    /**
+     * Export assembly as portable cartridge
+     * @returns {Object} - Cartridge object with format, version, tiles, connections, etc.
+     */
+    exportCartridge() {
+        const connections = this.#connectionManager?.getAllConnections() || [];
+
+        // Collect unique shader references from tile types
+        const shaderRefs = [...new Set(
+            Array.from(this.#tiles.values()).map(t => `ide_${t.type}`)
+        )];
+
+        const cartridge = {
+            format: 'neural-ide-v1',
+            version: '1.0.0',
+            created: Date.now(),
+            tiles: Object.fromEntries(this.#tiles),
+            connections: connections,
+            shaderRefs: shaderRefs,
+            semanticState: this.#semanticOverlay?.exportState() || null,
+            actionLog: [...this.#actionLog],
+            metadata: {
+                tileCount: this.#tiles.size,
+                connectionCount: connections.length,
+                generator: 'IDEAssemblyEngine'
+            }
+        };
+
+        this.#logAction('exportCartridge', 'success', {
+            tileCount: cartridge.metadata.tileCount,
+            connectionCount: cartridge.metadata.connectionCount
+        });
+
+        return cartridge;
+    }
+
+    /**
+     * Import assembly from cartridge
+     * @param {Object} cartridge - Cartridge object to import
+     * @returns {Object} - Result with success boolean
+     */
+    importCartridge(cartridge) {
+        // Validate cartridge format
+        if (!cartridge || cartridge.format !== 'neural-ide-v1') {
+            const error = 'Invalid cartridge format. Expected format: neural-ide-v1';
+            this.#logAction('importCartridge', 'error', { error });
+            return { success: false, error };
+        }
+
+        try {
+            // Clear current state
+            this.clear();
+
+            // Import tiles
+            if (cartridge.tiles) {
+                const tilesEntries = Object.entries(cartridge.tiles);
+                for (const [tileId, tile] of tilesEntries) {
+                    // Recreate tile in #tiles Map
+                    this.#tiles.set(tileId, tile);
+
+                    // Render tile if renderer available
+                    if (this.#tileRenderer) {
+                        this.#tileRenderer.renderTile(
+                            tileId,
+                            tile.type,
+                            { x: tile.x, y: tile.y, width: tile.width, height: tile.height },
+                            tile.content
+                        );
+                    }
+                }
+
+                // Update tile counter to avoid ID collisions
+                this.#tileCounter = tilesEntries.length;
+            }
+
+            // Import connections
+            if (cartridge.connections && Array.isArray(cartridge.connections)) {
+                for (const conn of cartridge.connections) {
+                    if (this.#connectionManager) {
+                        this.#connectionManager.addConnection(
+                            conn.source,
+                            conn.target,
+                            conn.type
+                        );
+                    }
+                }
+            }
+
+            // Import semantic state
+            if (cartridge.semanticState && this.#semanticOverlay) {
+                this.#semanticOverlay.importState(cartridge.semanticState);
+            }
+
+            // Import action log (preserve history)
+            if (cartridge.actionLog && Array.isArray(cartridge.actionLog)) {
+                this.#actionLog = [...cartridge.actionLog];
+            }
+
+            this.#logAction('importCartridge', 'success', {
+                tileCount: this.#tiles.size,
+                connectionCount: cartridge.connections?.length || 0
+            });
+
+            return { success: true };
+
+        } catch (err) {
+            const error = `Import failed: ${err.message}`;
+            this.#logAction('importCartridge', 'error', { error });
+            return { success: false, error };
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────
     // Private Methods
     // ─────────────────────────────────────────────────────────────

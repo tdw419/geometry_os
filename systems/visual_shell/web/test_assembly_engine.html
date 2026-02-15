@@ -255,6 +255,13 @@
                     this.states.forEach((v, k) => components[k] = v);
                     return { components };
                 },
+                importState: function(state) {
+                    if (state && state.components) {
+                        Object.entries(state.components).forEach(([k, v]) => {
+                            this.states.set(k, v);
+                        });
+                    }
+                },
                 clear: function() {
                     this.states.clear();
                 }
@@ -432,6 +439,62 @@
             assertNotNull(tileData.tile_id, 'Tile should have tile_id');
             assertNotNull(tileData.type, 'Tile should have type');
             assertNotNull(tileData.position, 'Tile should have position');
+        });
+
+        // Test 6: IDEAssemblyEngine exports cartridge
+        runner.test('IDEAssemblyEngine exports cartridge', () => {
+            const engine = new IDEAssemblyEngine(
+                createMockBuilderPanel(),
+                createMockConnectionManager(),
+                createMockSemanticOverlay(),
+                createMockTileRenderer()
+            );
+
+            // Place a tile
+            const result = engine.placeIDETile('code_editor', 100, 200);
+            assertTrue(result.success, 'Tile placement should succeed');
+
+            // Export cartridge
+            const cartridge = engine.exportCartridge();
+
+            assertNotNull(cartridge, 'Cartridge should not be null');
+            assertEqual(cartridge.format, 'neural-ide-v1', 'Format should be neural-ide-v1');
+            assertEqual(cartridge.version, '1.0.0', 'Version should be 1.0.0');
+            assertNotNull(cartridge.created, 'Should have created timestamp');
+            assertNotNull(cartridge.tiles, 'Cartridge should have tiles');
+            assertEqual(cartridge.metadata.tileCount, 1, 'Tile count should be 1');
+            assertEqual(cartridge.metadata.generator, 'IDEAssemblyEngine', 'Generator should be IDEAssemblyEngine');
+            assertTrue(Array.isArray(cartridge.shaderRefs), 'shaderRefs should be an array');
+            assertTrue(Array.isArray(cartridge.connections), 'connections should be an array');
+            assertTrue(Array.isArray(cartridge.actionLog), 'actionLog should be an array');
+        });
+
+        // Test 7: Cartridge includes shader references
+        runner.test('Cartridge includes shader references', () => {
+            const engine = new IDEAssemblyEngine(
+                createMockBuilderPanel(),
+                createMockConnectionManager(),
+                createMockSemanticOverlay(),
+                createMockTileRenderer()
+            );
+
+            // Place a code_editor tile
+            const result = engine.placeIDETile('code_editor', 50, 50);
+            assertTrue(result.success, 'Tile placement should succeed');
+
+            // Export cartridge
+            const cartridge = engine.exportCartridge();
+
+            assertNotNull(cartridge.shaderRefs, 'Should have shaderRefs');
+            assertTrue(cartridge.shaderRefs.includes('ide_code_editor'), 'shaderRefs should include ide_code_editor');
+
+            // Place another tile type
+            engine.placeIDETile('terminal', 200, 50);
+            const cartridge2 = engine.exportCartridge();
+
+            assertTrue(cartridge2.shaderRefs.includes('ide_code_editor'), 'Should still include ide_code_editor');
+            assertTrue(cartridge2.shaderRefs.includes('ide_terminal'), 'Should include ide_terminal');
+            assertEqual(cartridge2.shaderRefs.length, 2, 'Should have 2 unique shader refs');
         });
 
         // Render results
