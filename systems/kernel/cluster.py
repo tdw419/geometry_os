@@ -103,11 +103,32 @@ class KernelCluster:
         if self.status != ClusterStatus.RUNNING:
             return {"success": False, "error": "Cluster not running"}
 
+        # Import KernelRequest to create proper request object
+        from .unified_neural_kernel import KernelRequest, SysCall
+
+        # Convert dict to KernelRequest if needed
+        if not isinstance(request, KernelRequest):
+            syscall_type = request.get("type", "ping")
+            # Try to match syscall type
+            syscall = SysCall.READ  # Default
+            for sc in SysCall:
+                if syscall_type.upper() == sc.name:
+                    syscall = sc
+                    break
+
+            kernel_request = KernelRequest(
+                uid=request.get("id", 1),
+                syscall=syscall,
+                args=request
+            )
+        else:
+            kernel_request = request
+
         # Simple round-robin for now
         for name, kernel in self._kernels.items():
             if hasattr(kernel, 'dispatch_syscall'):
                 try:
-                    result = kernel.dispatch_syscall(request)
+                    result = kernel.dispatch_syscall(kernel_request)
                     return {"success": True, "kernel": name, "result": result}
                 except Exception as e:
                     continue

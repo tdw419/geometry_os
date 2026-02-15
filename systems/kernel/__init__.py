@@ -100,6 +100,35 @@ from .bridge import (
     set_bridge,
 )
 
+# Orchestration components (Phase L - Multi-Kernel)
+from .orchestration import (
+    OrchestrationEngine,
+    OrchestrationConfig,
+    OrchestrationMetrics,
+    RoutingStrategy,
+)
+from .cluster import (
+    KernelCluster,
+    ClusterConfig,
+    ClusterStatus,
+)
+from .inter_kernel_bus import (
+    InterKernelBus,
+    BusMessage,
+    BusTopic,
+)
+from .load_balancer import (
+    LoadBalancer,
+    LoadBalancerConfig,
+    KernelLoad,
+)
+from .cluster_metrics import (
+    ClusterMetricsCollector,
+    ClusterMetrics,
+    KernelMetricsSnapshot,
+)
+from .orchestration_tools import OrchestrationTools
+
 # Convenience exports
 __all__ = [
     # Interface
@@ -138,6 +167,25 @@ __all__ = [
     "BridgeConfig",
     "get_bridge",
     "set_bridge",
+
+    # Orchestration (Phase L)
+    "OrchestrationEngine",
+    "OrchestrationConfig",
+    "OrchestrationMetrics",
+    "RoutingStrategy",
+    "KernelCluster",
+    "ClusterConfig",
+    "ClusterStatus",
+    "InterKernelBus",
+    "BusMessage",
+    "BusTopic",
+    "LoadBalancer",
+    "LoadBalancerConfig",
+    "KernelLoad",
+    "ClusterMetricsCollector",
+    "ClusterMetrics",
+    "KernelMetricsSnapshot",
+    "OrchestrationTools",
 ]
 
 
