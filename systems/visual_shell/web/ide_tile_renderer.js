@@ -38,9 +38,6 @@ class IDETileRenderer {
         'semantic_nav'
     ];
 
-    /** @type {Object} - Shader cache for loaded WGSL shaders */
-    #shaderCache = new Map();
-
     // ─────────────────────────────────────────────────────────────
     // Constructor
     // ─────────────────────────────────────────────────────────────
@@ -65,7 +62,7 @@ class IDETileRenderer {
      * @returns {string} - Path to WGSL shader file
      */
     getShaderPath(tileType) {
-        return `shaders/ide/${tileType}.wgsl`;
+        return `shaders/ide_${tileType}.wgsl`;
     }
 
     /**
@@ -260,7 +257,6 @@ class IDETileRenderer {
     clear() {
         this.#renderedTiles.clear();
         this.#tileContent.clear();
-        this.#shaderCache.clear();
     }
 
     /**
