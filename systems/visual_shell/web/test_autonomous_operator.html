@@ -160,6 +160,9 @@
                     }
                 ];
 
+                // Store recommendations so apply() can find them
+                this.recommendations = recs;
+
                 if (options.min_confidence) {
                     return recs.filter(r => r.confidence >= options.min_confidence);
                 }
