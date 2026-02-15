@@ -791,6 +791,9 @@ class WebMCPBridge {
         // Register validation schemas
         this.#registerValidationSchemas();
 
+        // Configure rate limits
+        this.#configureRateLimits();
+
         if (!this.#webmcpAvailable) {
             console.log('🔌 WebMCP: Not available (Chrome 146+ required). ' +
                 'Visual Shell running in standard mode.');
@@ -8832,6 +8835,25 @@ class WebMCPBridge {
         });
     }
 
+    /**
+     * Configure per-tool rate limits
+     * @private
+     */
+    #configureRateLimits() {
+        // Expensive operations - lower limits
+        this.#limiter.configure('execute_pixel_program', { maxRequests: 20, windowMs: 60000 });
+        this.#limiter.configure('trigger_evolution', { maxRequests: 10, windowMs: 60000 });
+        this.#limiter.configure('builder_evolve_shader', { maxRequests: 10, windowMs: 60000 });
+
+        // Read operations - higher limits
+        this.#limiter.configure('get_os_state', { maxRequests: 200, windowMs: 60000 });
+        this.#limiter.configure('perf_get_metrics', { maxRequests: 200, windowMs: 60000 });
+        this.#limiter.configure('query_hilbert_address', { maxRequests: 500, windowMs: 60000 });
+
+        // Batch operations - very limited
+        this.#limiter.configure('perf_batch_execute', { maxRequests: 10, windowMs: 60000 });
+    }
+
     // ─────────────────────────────────────────────────────────────
     // Observability
     // ─────────────────────────────────────────────────────────────
@@ -8983,6 +9005,80 @@ class WebMCPBridge {
 
         // Execute handler
         return handler.call(this, sanitizedParams);
+    }
+
+    /**
+     * Execute a tool handler with rate limiting
+     * @param {string} toolName - Tool name
+     * @param {Object} params - Tool parameters
+     * @param {Function} handler - Actual handler function
+     * @param {string} [bypassKey] - Optional bypass key
+     * @returns {Object} Tool result or rate limit error
+     */
+    #rateLimitedToolCall(toolName, params, handler, bypassKey) {
+        // Check rate limit
+        const rateCheck = this.#limiter.check(toolName, bypassKey);
+        if (!rateCheck.allowed) {
+            return {
+                success: false,
+                error: 'Rate limit exceeded',
+                error_code: 'RATE_LIMITED',
+                retryAfter: Math.ceil((rateCheck.resetAt - Date.now()) / 1000),
+                rateLimit: {
+                    limit: rateCheck.limit,
+                    remaining: 0,
+                    resetAt: rateCheck.resetAt
+                }
+            };
+        }
+
+        // Execute handler and add rate limit headers
+        const result = handler.call(this, params);
+        if (typeof result === 'object' && result !== null) {
+            result._rateLimit = {
+                limit: rateCheck.limit,
+                remaining: rateCheck.remaining,
+                resetAt: rateCheck.resetAt
+            };
+        }
+        return result;
+    }
+
+    /**
+     * Execute an async tool handler with rate limiting
+     * @param {string} toolName - Tool name
+     * @param {Object} params - Tool parameters
+     * @param {Function} handler - Actual async handler function
+     * @param {string} [bypassKey] - Optional bypass key
+     * @returns {Promise<Object>} Tool result or rate limit error
+     */
+    async #rateLimitedAsyncToolCall(toolName, params, handler, bypassKey) {
+        // Check rate limit
+        const rateCheck = this.#limiter.check(toolName, bypassKey);
+        if (!rateCheck.allowed) {
+            return {
+                success: false,
+                error: 'Rate limit exceeded',
+                error_code: 'RATE_LIMITED',
+                retryAfter: Math.ceil((rateCheck.resetAt - Date.now()) / 1000),
+                rateLimit: {
+                    limit: rateCheck.limit,
+                    remaining: 0,
+                    resetAt: rateCheck.resetAt
+                }
+            };
+        }
+
+        // Execute handler and add rate limit info
+        const result = await handler.call(this, params);
+        if (typeof result === 'object' && result !== null) {
+            result._rateLimit = {
+                limit: rateCheck.limit,
+                remaining: rateCheck.remaining,
+                resetAt: rateCheck.resetAt
+            };
+        }
+        return result;
     }
 
     // ─────────────────────────────────────────────────────────────
