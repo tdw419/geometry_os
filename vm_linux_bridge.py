@@ -10,6 +10,13 @@ from dataclasses import dataclass
 from typing import Optional
 import subprocess
 import time
+import json
+import asyncio
+
+try:
+    import websockets
+except ImportError:
+    websockets = None
 
 
 @dataclass
@@ -154,4 +161,116 @@ class HostBridge(VMLinuxBridge):
             "status": "ready" if self._ready else "stopped",
             "kernel": "host",
             "backend": "subprocess"
+        }
+
+
+class QEMUBridge(VMLinuxBridge):
+    """
+    Execute commands via linux_bridge.py which manages QEMU.
+
+    Connects to WebSocket on port 8767.
+    """
+
+    def __init__(self, kernel: str = "alpine", bridge_port: int = 8767):
+        if websockets is None:
+            raise ImportError("websockets not installed. Run: pip install websockets")
+
+        self.kernel = kernel
+        self.bridge_port = bridge_port
+        self.bridge_url = f"ws://localhost:{bridge_port}"
+
+        self.session_id: Optional[str] = None
+        self._ready = False
+        self._vm_type = "qemu"
+
+    async def _send_command(self, command: dict) -> dict:
+        """Send command to linux_bridge and get response."""
+        async with websockets.connect(self.bridge_url) as ws:
+            await ws.send(json.dumps(command))
+            response = await ws.recv()
+            return json.loads(response)
+
+    async def start(self) -> bool:
+        """Boot Linux via linux_bridge."""
+        try:
+            result = await self._send_command({
+                "command": "linux_boot",
+                "kernel": self.kernel,
+                "options": {"memory": "512M"}
+            })
+
+            if result.get("status") in ("ready", "booting"):
+                self.session_id = result.get("session_id")
+                if result.get("status") == "booting":
+                    await asyncio.sleep(5)
+                self._ready = True
+                return True
+            else:
+                print(f"Failed to boot: {result}")
+                return False
+
+        except Exception as e:
+            print(f"Failed to connect to linux_bridge: {e}")
+            return False
+
+    async def stop(self) -> bool:
+        """Terminate the VM session."""
+        if not self.session_id:
+            return True
+
+        try:
+            result = await self._send_command({
+                "command": "linux_terminate",
+                "session_id": self.session_id
+            })
+            self._ready = False
+            self.session_id = None
+            return result.get("success", False)
+        except Exception as e:
+            print(f"Failed to terminate: {e}")
+            return False
+
+    async def execute(self, command: str, timeout: int = 30) -> CommandResult:
+        """Execute command in QEMU Linux."""
+        if not self.session_id:
+            return CommandResult(
+                stdout="",
+                stderr="No active session. Call start() first.",
+                exit_code=-1
+            )
+
+        try:
+            result = await self._send_command({
+                "command": "linux_exec",
+                "session_id": self.session_id,
+                "command": command,
+                "timeout": timeout
+            })
+
+            return CommandResult(
+                stdout=result.get("stdout", ""),
+                stderr=result.get("stderr", ""),
+                exit_code=result.get("exit_code", 0),
+                duration_ms=result.get("duration_ms", 0)
+            )
+
+        except Exception as e:
+            return CommandResult(
+                stdout="",
+                stderr=str(e),
+                exit_code=-1
+            )
+
+    def is_ready(self) -> bool:
+        """Check if VM is ready."""
+        return self._ready and self.session_id is not None
+
+    def get_info(self) -> dict:
+        """Get VM info."""
+        return {
+            "vm_type": self._vm_type,
+            "status": "ready" if self._ready else "stopped",
+            "kernel": self.kernel,
+            "session_id": self.session_id,
+            "backend": f"linux_bridge:{self.bridge_port}"
         }
