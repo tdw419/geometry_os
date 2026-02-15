@@ -794,6 +794,9 @@ class WebMCPBridge {
         // Configure rate limits
         this.#configureRateLimits();
 
+        // Configure retry settings
+        this.#configureRetrySettings();
+
         if (!this.#webmcpAvailable) {
             console.log('🔌 WebMCP: Not available (Chrome 146+ required). ' +
                 'Visual Shell running in standard mode.');
@@ -992,6 +995,9 @@ class WebMCPBridge {
         byOperation: new Map()
     };
 
+    /** @type {Map<string, Object>} Per-tool retry configurations */
+    #retryConfigs = new Map();
+
     // ─────────────────────────────────────────────────────────────
     // Retry Helper Methods
     // ─────────────────────────────────────────────────────────────
@@ -1096,6 +1102,43 @@ class WebMCPBridge {
      */
     #getRetryConfig(operationName) {
         return this.#toolRetryConfig.get(operationName) || {};
+    }
+
+    /**
+     * Calculate exponential backoff with jitter
+     * @param {number} attempt - Current attempt number (0-indexed)
+     * @param {Object} config - { baseDelay, maxDelay, jitterFactor }
+     * @returns {number} Delay in milliseconds
+     */
+    #calculateBackoff(attempt, config = {}) {
+        const baseDelay = config.baseDelay || 1000;
+        const maxDelay = config.maxDelay || 30000;
+        const jitterFactor = config.jitterFactor || 0.25;
+
+        // Exponential backoff: baseDelay * 2^attempt
+        const exponentialDelay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
+
+        // Add jitter to prevent thundering herd
+        const jitter = exponentialDelay * jitterFactor * (Math.random() * 2 - 1);
+        return Math.max(0, exponentialDelay + jitter);
+    }
+
+    /**
+     * Check if an error is retryable
+     * @param {Error} error - Error to check
+     * @returns {boolean} True if retryable
+     */
+    #isRetryableError(error) {
+        const message = error.message?.toLowerCase() || '';
+        // Network errors, timeouts, and 5xx errors are retryable
+        return message.includes('network') ||
+               message.includes('timeout') ||
+               message.includes('econnrefused') ||
+               message.includes('econnreset') ||
+               message.includes('503') ||
+               message.includes('502') ||
+               message.includes('504') ||
+               message.includes('429'); // Rate limited
     }
 
     /**
@@ -8878,6 +8921,17 @@ class WebMCPBridge {
         // Security tools - very limited to prevent abuse
         this.#limiter.configure('security_set_bypass', { maxRequests: 5, windowMs: 60000 });
         this.#limiter.configure('security_get_status', { maxRequests: 30, windowMs: 60000 });
+    }
+
+    /**
+     * Configure retry settings for tools/backends
+     * @private
+     */
+    #configureRetrySettings() {
+        this.#retryConfigs.set('evolution', { maxRetries: 2, baseDelay: 2000, maxDelay: 10000 });
+        this.#retryConfigs.set('llm', { maxRetries: 3, baseDelay: 1000, maxDelay: 30000 });
+        this.#retryConfigs.set('a2a', { maxRetries: 2, baseDelay: 500, maxDelay: 5000 });
+        this.#retryConfigs.set('default', { maxRetries: 2, baseDelay: 1000, maxDelay: 10000 });
     }
 
     // ─────────────────────────────────────────────────────────────
