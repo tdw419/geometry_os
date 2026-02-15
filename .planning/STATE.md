@@ -10,16 +10,16 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 4 of 4 (Visual Catalog Manager) - IN PROGRESS
-Plan: 2 of 4 complete
+Plan: 2 of 5 complete (04-01, 04-02 done)
 Status: In progress
-Last activity: 2026-02-15 - Completed 04-02 SpatialLayoutManager
+Last activity: 2026-02-15 - Completed 04-01 Visual Catalog Foundation
 
-Progress: [██████████░░░░░░░░░░] 50% (19/38 planned - estimating 4 phases x ~10 plans)
+Progress: [██████████░░░░░░░░░░] 50% (20/38 planned - estimating 4 phases x ~10 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 19 (Phase 1: 8 + Phase 2: 6 + Phase 3: 4 + Phase 4: 1)
+- Total plans completed: 20 (Phase 1: 8 + Phase 2: 6 + Phase 3: 4 + Phase 4: 2)
 - Average duration: ~6 min
 - Total execution time: ~2 hours
 
@@ -30,12 +30,12 @@ Progress: [██████████░░░░░░░░░░] 50% (19
 | 1. Vision Analysis Pipeline | 8 | 45 min | 5.6 min | Complete |
 | 2. FUSE Bridge | 6 | 45 min | 7.5 min | Complete |
 | 3. Visual Installer Engine | 4 | 25 min | 6.25 min | Complete |
-| 4. Visual Catalog Manager | 1+ | 3 min | 3 min | In Progress |
+| 4. Visual Catalog Manager | 2+ | 7 min | 3.5 min | In Progress |
 
 **Recent Trend:**
 - Phase 2 plans: 5min, 5min, 3min, 3min, 3min, 4min
 - Phase 3 plans: 5min, 8min, 7min, 5min
-- Phase 4 plans: 3min
+- Phase 4 plans: 4min, 3min
 - Trend: Fast, consistent execution on foundational work
 
 *Updated after each phase completion*
@@ -70,6 +70,10 @@ Recent decisions affecting current work:
 - SpatialLayoutManager stores layout in ~/.rts/catalog_layout.json
 - Swap semantics for drag-and-drop collision (not push)
 - Grid dimensions include +2 padding for growth
+- CatalogScanner uses MD5 hash of path (first 12 chars) for stable IDs
+- ThumbnailCache uses ~/.cache/pixelrts/thumbnails with 256x256 default
+- LANCZOS resampling for high-quality thumbnails
+- Content-based cache keys using MD5(path:size)
 
 ### Pending Todos
 
@@ -82,7 +86,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-15
-Stopped at: Completed 04-02 PLAN.md (SpatialLayoutManager)
+Stopped at: Completed 04-01 PLAN.md (Visual Catalog Foundation)
 Resume file: None
 
 **Files Created (Phase 1):**
@@ -106,6 +110,8 @@ Resume file: None
 - `systems/pixel_compiler/tests/test_install_engine.py` - 28 unit tests
 
 **Files Created (Phase 4):**
+- `systems/pixel_compiler/catalog/catalog_scanner.py` - CatalogScanner for .rts.png discovery
+- `systems/pixel_compiler/catalog/thumbnail_cache.py` - ThumbnailCache for visual thumbnails
 - `systems/pixel_compiler/catalog/spatial_layout.py` - SpatialLayoutManager class
 - `systems/pixel_compiler/catalog/__init__.py` - Catalog package exports
 
