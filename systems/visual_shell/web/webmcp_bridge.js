@@ -1698,6 +1698,9 @@ class WebMCPBridge {
             await this.#registerA2AReportProgress();
             await this.#registerA2AGetTaskResult();
 
+            // Phase E tools - Reliability
+            await this.#registerReliabilityGetStatus();
+
             // Phase F tools - AI-Driven Visual Builder
             await this.#registerBuilderPlaceTile();
             await this.#registerBuilderLoadShader();
@@ -2912,7 +2915,15 @@ class WebMCPBridge {
 
         // Health status (Phase E)
         if (sections.includes('health')) {
-            state.health = this.getHealthStatus();
+            state.health = {
+                backends: this.#healthMonitor.getAllStatuses(),
+                circuitBreakers: {
+                    state: this.#circuitBreakerState,
+                    failures: this.#circuitBreakerFailures,
+                    metrics: { ...this.#circuitBreakerMetrics },
+                    config: { ...this.#circuitBreakerConfig }
+                }
+            };
         }
 
         done(true);
@@ -9141,6 +9152,14 @@ class WebMCPBridge {
                 key: { type: 'string', minLength: 8, maxLength: 256 }
             }
         });
+
+        // reliability_get_status schema
+        this.#validator.register('reliability_get_status', {
+            type: 'object',
+            properties: {
+                backend: { type: 'string', maxLength: 50 }
+            }
+        });
     }
 
     /**
@@ -9164,6 +9183,9 @@ class WebMCPBridge {
         // Security tools - very limited to prevent abuse
         this.#limiter.configure('security_set_bypass', { maxRequests: 5, windowMs: 60000 });
         this.#limiter.configure('security_get_status', { maxRequests: 30, windowMs: 60000 });
+
+        // Reliability tools - moderate limits
+        this.#limiter.configure('reliability_get_status', { maxRequests: 60, windowMs: 60000 });
     }
 
     /**
@@ -9175,6 +9197,73 @@ class WebMCPBridge {
         this.#retryConfigs.set('llm', { maxRetries: 3, baseDelay: 1000, maxDelay: 30000 });
         this.#retryConfigs.set('a2a', { maxRetries: 2, baseDelay: 500, maxDelay: 5000 });
         this.#retryConfigs.set('default', { maxRetries: 2, baseDelay: 1000, maxDelay: 10000 });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool: reliability_get_status (Phase E - Reliability)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerReliabilityGetStatus() {
+        const tool = {
+            name: 'reliability_get_status',
+            description:
+                'Get reliability status including circuit breaker states, ' +
+                'health monitoring data, and retry statistics.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    backend: {
+                        type: 'string',
+                        description: 'Specific backend to get status for (optional)'
+                    }
+                }
+            },
+            handler: async (params) => {
+                return this.#handleReliabilityGetStatus(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    #handleReliabilityGetStatus({ backend }) {
+        const done = this.#trackCall('reliability_get_status');
+
+        try {
+            const result = {
+                success: true,
+                timestamp: new Date().toISOString(),
+                circuitBreakers: {},
+                health: {}
+            };
+
+            // Get circuit breaker status (single global circuit breaker)
+            result.circuitBreakers = {
+                global: {
+                    state: this.#circuitBreakerState,
+                    failures: this.#circuitBreakerFailures,
+                    metrics: { ...this.#circuitBreakerMetrics },
+                    config: { ...this.#circuitBreakerConfig }
+                }
+            };
+
+            // Get health status
+            if (backend) {
+                result.health[backend] = this.#healthMonitor.getStatus(backend);
+            } else {
+                result.health = this.#healthMonitor.getAllStatuses();
+            }
+
+            // Add retry configurations
+            result.retryConfigs = Object.fromEntries(this.#retryConfigs);
+
+            done(true);
+            return result;
+        } catch (err) {
+            done(false);
+            return { success: false, error: err.message };
+        }
     }
 
     // ─────────────────────────────────────────────────────────────
