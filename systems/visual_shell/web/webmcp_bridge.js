@@ -1606,10 +1606,11 @@ class WebMCPBridge {
     }
 
     #handleNavigateMap({ x, y, zoom, region }) {
-        this.#trackCall('navigate_map');
+        const done = this.#trackCall('navigate_map');
 
         const viewport = this.#app.viewport;
         if (!viewport) {
+            done(false);
             return { error: 'Viewport not initialized', success: false };
         }
 
@@ -1647,6 +1648,7 @@ class WebMCPBridge {
             ? viewport.getVisibleBoundsWithPadding(1.0)
             : null;
 
+        done(true);
         return {
             success: true,
             camera: {
@@ -1708,7 +1710,7 @@ class WebMCPBridge {
     }
 
     #handleGetOSState({ include } = {}) {
-        this.#trackCall('get_os_state');
+        const done = this.#trackCall('get_os_state');
 
         const sections = include && include.length > 0
             ? (include.includes('all') ? ['camera', 'windows', 'subsystems', 'performance', 'evolution', 'health'] : include)
@@ -1802,6 +1804,7 @@ class WebMCPBridge {
             state.health = this.getHealthStatus();
         }
 
+        done(true);
         return state;
     }
 
@@ -1864,7 +1867,7 @@ class WebMCPBridge {
         args = [],
         trace = true
     }) {
-        this.#trackCall('execute_pixel_program');
+        const done = this.#trackCall('execute_pixel_program');
 
         // Determine execution target
         const hasGPU = !!this.#app.computeSystem;
@@ -1875,9 +1878,11 @@ class WebMCPBridge {
         if (useGPU && this.#app.computeSystem) {
             try {
                 const result = await this.#executeOnGPU(program, brick_url, entrypoint, args, trace);
+                done(true);
                 return { success: true, target: 'gpu', ...result };
             } catch (gpuErr) {
                 if (mode === 'gpu') {
+                    done(false);
                     return { success: false, error: `GPU execution failed: ${gpuErr.message}`, target: 'gpu' };
                 }
                 // Auto mode: fall through to CPU
@@ -1889,12 +1894,15 @@ class WebMCPBridge {
         if (typeof PixelCPU !== 'undefined') {
             try {
                 const result = await this.#executeOnCPU(program, brick_url, entrypoint, args, trace);
+                done(true);
                 return { success: true, target: 'cpu', ...result };
             } catch (cpuErr) {
+                done(false);
                 return { success: false, error: `CPU execution failed: ${cpuErr.message}`, target: 'cpu' };
             }
         }
 
+        done(false);
         return {
             success: false,
             error: 'No execution system available (neither GPU ComputeSystem nor PixelCPU found)',
@@ -2016,12 +2024,13 @@ class WebMCPBridge {
     }
 
     async #handleLoadRTSCartridge({ url, position, autoNavigate = true }) {
-        this.#trackCall('load_rts_cartridge');
+        const done = this.#trackCall('load_rts_cartridge');
 
         try {
             // Load the image
             const response = await fetch(url);
             if (!response.ok) {
+                done(false);
                 return { success: false, error: `Failed to fetch ${url}: ${response.status} ${response.statusText}` };
             }
 
@@ -2096,6 +2105,7 @@ class WebMCPBridge {
                 });
             }
 
+            done(true);
             return {
                 success: true,
                 url: url,
@@ -2110,6 +2120,7 @@ class WebMCPBridge {
             };
 
         } catch (err) {
+            done(false);
             return {
                 success: false,
                 error: `Failed to load RTS cartridge: ${err.message}`,
@@ -2172,10 +2183,11 @@ class WebMCPBridge {
         read_pixels = true,
         context_range = 0
     }) {
-        this.#trackCall('query_hilbert_address');
+        const done = this.#trackCall('query_hilbert_address');
 
         // Validate hilbert_index is a non-negative number
         if (typeof hilbert_index !== 'number' || !Number.isFinite(hilbert_index)) {
+            done(false);
             return {
                 success: false,
                 error: 'hilbert_index must be a finite number',
@@ -2184,6 +2196,7 @@ class WebMCPBridge {
         }
 
         if (hilbert_index < 0) {
+            done(false);
             return {
                 success: false,
                 error: 'hilbert_index must be non-negative',
@@ -2194,6 +2207,7 @@ class WebMCPBridge {
         // Validate index is within grid bounds
         const maxIndex = grid_size * grid_size;
         if (hilbert_index >= maxIndex) {
+            done(false);
             return {
                 success: false,
                 error: `hilbert_index ${hilbert_index} exceeds grid capacity (${maxIndex} for ${grid_size}x${grid_size})`,
@@ -2203,6 +2217,7 @@ class WebMCPBridge {
 
         // Validate grid_size is power of 2
         if (!Number.isInteger(grid_size) || grid_size < 1 || (grid_size & (grid_size - 1)) !== 0) {
+            done(false);
             return {
                 success: false,
                 error: 'grid_size must be a positive power of 2 (e.g., 64, 128, 256, 512)',
@@ -2212,6 +2227,7 @@ class WebMCPBridge {
 
         // Check HilbertLUT is available
         if (typeof HilbertLUT === 'undefined' || !HilbertLUT.d2xy) {
+            done(false);
             return {
                 success: false,
                 error: 'HilbertLUT not available — ensure hilbert_lut.js is loaded',
@@ -2239,9 +2255,11 @@ class WebMCPBridge {
                 }
             }
 
+            done(true);
             return result;
 
         } catch (err) {
+            done(false);
             return {
                 success: false,
                 error: `Hilbert conversion failed: ${err.message}`,
