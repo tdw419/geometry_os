@@ -217,14 +217,39 @@ class MapTerminal:
         """Render all terminal lines to the map."""
         # Build the lines to display
         display_lines = self.lines[-self.max_lines:]  # Last N lines
-        display_lines.append(self.prompt + self.input_buffer + "_")  # Input line with cursor
+        cursor = "█" if self.focused else "_"
+        display_lines.append(self.prompt + self.input_buffer + cursor)  # Input line with cursor
+
+        # Border color based on focus state
+        border_color = 0x00FF00 if self.focused else 0x444444
+        title_indicator = "●" if self.focused else ""
+        title_text = f"Terminal {title_indicator}".strip()
 
         # Create JS to update all text elements
         js_code = "window.geometryOSApp.clearGraphics();\n"
+
+        # Draw border (4 thin rectangles around the terminal)
         js_code += f"""
+            // Top border
+            window.geometryOSApp.drawRect({self.x - 2}, {self.y - 2}, {self.width + 4}, 2, {border_color}, 1.0);
+            // Bottom border
+            window.geometryOSApp.drawRect({self.x - 2}, {self.y + self.height}, {self.width + 4}, 2, {border_color}, 1.0);
+            // Left border
+            window.geometryOSApp.drawRect({self.x - 2}, {self.y - 2}, 2, {self.height + 4}, {border_color}, 1.0);
+            // Right border
+            window.geometryOSApp.drawRect({self.x + self.width}, {self.y - 2}, 2, {self.height + 4}, {border_color}, 1.0);
+
             // Redraw terminal window
             window.geometryOSApp.drawRect({self.x}, {self.y}, {self.width}, {self.height}, 0x0D0D0D, 0.95);
             window.geometryOSApp.drawRect({self.x}, {self.y}, {self.width}, 25, 0x1A1A2E, 1.0);
+        """
+
+        # Add title text with focus indicator
+        js_code += f"""
+            window.geometryOSApp.placeText('term_title', '{title_text}',
+                {self.x + 10}, {self.y + 12},
+                {{fontFamily: 'Courier New', fontSize: 12, fill: 0x00FF00}}
+            );
         """
 
         # Add each line
