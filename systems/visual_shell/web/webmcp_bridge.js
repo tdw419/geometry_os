@@ -1155,6 +1155,7 @@ class WebMCPBridge {
             // Phase H tools - Performance Optimization
             await this.#registerPerfGetMetrics();
             await this.#registerPerfCacheInvalidate();
+            await this.#registerPerfBatchExecute();
 
             // Phase K tools - Neural Kernel Management
             await this.#registerKernelList();
@@ -1953,6 +1954,90 @@ class WebMCPBridge {
                 pattern,
                 entriesRemoved: before - after
             };
+        } catch (err) {
+            done(false);
+            return { success: false, error: err.message };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool: perf_batch_execute (Phase H - Performance Optimization)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerPerfBatchExecute() {
+        const self = this;
+        const tool = {
+            name: 'perf_batch_execute',
+            description:
+                'Execute multiple tool calls in a single batch request. ' +
+                'Supports parallel or sequential execution with configurable timeout. ' +
+                'Use this to reduce latency when making multiple independent calls.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    calls: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                tool: { type: 'string', description: 'Tool name' },
+                                params: { type: 'object', description: 'Tool parameters' }
+                            },
+                            required: ['tool']
+                        },
+                        description: 'Array of tool calls to execute'
+                    },
+                    parallel: {
+                        type: 'boolean',
+                        description: 'Execute in parallel (default: true)'
+                    },
+                    timeout: {
+                        type: 'number',
+                        description: 'Batch timeout in milliseconds (default: 30000)'
+                    },
+                    stopOnError: {
+                        type: 'boolean',
+                        description: 'Stop on first error (default: false, only for sequential)'
+                    }
+                },
+                required: ['calls']
+            },
+            handler: async (params) => {
+                return self.#handlePerfBatchExecute(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handlePerfBatchExecute({ calls, parallel = true, timeout = 30000, stopOnError = false }) {
+        const done = this.#trackCall('perf_batch_execute');
+
+        if (!Array.isArray(calls) || calls.length === 0) {
+            done(false);
+            return {
+                success: false,
+                error: 'calls must be a non-empty array'
+            };
+        }
+
+        if (calls.length > 50) {
+            done(false);
+            return {
+                success: false,
+                error: 'Maximum 50 calls per batch'
+            };
+        }
+
+        try {
+            const result = await this.#batchExecutor.executeBatch(calls, {
+                parallel,
+                timeout,
+                stopOnError
+            });
+            done(result.success);
+            return result;
         } catch (err) {
             done(false);
             return { success: false, error: err.message };
