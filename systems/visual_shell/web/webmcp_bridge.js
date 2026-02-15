@@ -743,6 +743,202 @@ class ToolMetrics {
     }
 }
 
+/**
+ * HealthMonitor - Tracks health status of backends
+ */
+class HealthMonitor {
+    constructor() {
+        // Backend health status
+        this.health = new Map(); // backend -> { status, lastCheck, lastSuccess, consecutiveFailures }
+
+        // Health check intervals
+        this.intervals = new Map(); // backend -> intervalId
+
+        // Event listeners
+        this.listeners = [];
+    }
+
+    /**
+     * Register a backend for monitoring
+     * @param {string} name - Backend name
+     * @param {Object} options - { checkFn, intervalMs }
+     */
+    register(name, options = {}) {
+        this.health.set(name, {
+            status: 'unknown',
+            lastCheck: null,
+            lastSuccess: null,
+            consecutiveFailures: 0,
+            checkFn: options.checkFn,
+            intervalMs: options.intervalMs || 30000
+        });
+    }
+
+    /**
+     * Start health monitoring for all backends
+     */
+    startAll() {
+        for (const [name, config] of this.health) {
+            if (config.checkFn && !this.intervals.has(name)) {
+                // Initial check
+                this.#performCheck(name);
+
+                // Schedule periodic checks
+                const intervalId = setInterval(() => {
+                    this.#performCheck(name);
+                }, config.intervalMs);
+
+                this.intervals.set(name, intervalId);
+            }
+        }
+    }
+
+    /**
+     * Stop all health monitoring
+     */
+    stopAll() {
+        for (const [name, intervalId] of this.intervals) {
+            clearInterval(intervalId);
+        }
+        this.intervals.clear();
+    }
+
+    /**
+     * Perform a health check
+     * @private
+     */
+    async #performCheck(name) {
+        const config = this.health.get(name);
+        if (!config || !config.checkFn) return;
+
+        const previousStatus = config.status;
+
+        try {
+            const result = await config.checkFn();
+            config.status = result.healthy ? 'healthy' : 'unhealthy';
+            config.lastCheck = Date.now();
+            if (result.healthy) {
+                config.lastSuccess = config.lastCheck;
+                config.consecutiveFailures = 0;
+            } else {
+                config.consecutiveFailures++;
+            }
+        } catch (err) {
+            config.status = 'unhealthy';
+            config.lastCheck = Date.now();
+            config.consecutiveFailures++;
+        }
+
+        // Emit event on status change
+        if (previousStatus !== config.status) {
+            this.#emit({
+                type: 'health_change',
+                backend: name,
+                previousStatus,
+                newStatus: config.status,
+                timestamp: config.lastCheck
+            });
+        }
+    }
+
+    /**
+     * Manually update health status
+     * @param {string} name - Backend name
+     * @param {string} status - 'healthy', 'unhealthy', 'unknown'
+     * @param {string} [reason] - Optional reason
+     */
+    updateStatus(name, status, reason) {
+        const config = this.health.get(name);
+        if (!config) return;
+
+        const previousStatus = config.status;
+        config.status = status;
+        config.lastCheck = Date.now();
+
+        if (status === 'healthy') {
+            config.lastSuccess = config.lastCheck;
+            config.consecutiveFailures = 0;
+        } else if (status === 'unhealthy') {
+            config.consecutiveFailures++;
+        }
+
+        if (previousStatus !== status) {
+            this.#emit({
+                type: 'health_change',
+                backend: name,
+                previousStatus,
+                newStatus: status,
+                reason,
+                timestamp: config.lastCheck
+            });
+        }
+    }
+
+    /**
+     * Get health status for a backend
+     * @param {string} name - Backend name
+     * @returns {Object} Health status
+     */
+    getStatus(name) {
+        const config = this.health.get(name);
+        if (!config) return null;
+
+        return {
+            status: config.status,
+            lastCheck: config.lastCheck,
+            lastSuccess: config.lastSuccess,
+            consecutiveFailures: config.consecutiveFailures,
+            uptime: config.lastSuccess ?
+                Math.round((Date.now() - config.lastSuccess) / 1000) : null
+        };
+    }
+
+    /**
+     * Get all health statuses
+     * @returns {Object} All health statuses
+     */
+    getAllStatuses() {
+        const result = {};
+        for (const [name] of this.health) {
+            result[name] = this.getStatus(name);
+        }
+        return result;
+    }
+
+    /**
+     * Add event listener
+     * @param {Function} listener - Callback function
+     */
+    addListener(listener) {
+        this.listeners.push(listener);
+    }
+
+    /**
+     * Remove event listener
+     * @param {Function} listener - Callback function
+     */
+    removeListener(listener) {
+        const index = this.listeners.indexOf(listener);
+        if (index > -1) {
+            this.listeners.splice(index, 1);
+        }
+    }
+
+    /**
+     * Emit event to listeners
+     * @private
+     */
+    #emit(event) {
+        for (const listener of this.listeners) {
+            try {
+                listener(event);
+            } catch (err) {
+                // Ignore listener errors
+            }
+        }
+    }
+}
+
 class WebMCPBridge {
 
     #app = null;
@@ -796,6 +992,20 @@ class WebMCPBridge {
 
         // Configure retry settings
         this.#configureRetrySettings();
+
+        // Initialize health monitoring
+        this.#healthMonitor.register('evolution', {
+            checkFn: () => this.#checkEvolutionHealth(),
+            intervalMs: 30000
+        });
+        this.#healthMonitor.register('llm', {
+            checkFn: () => this.#checkLLMHealth(),
+            intervalMs: 60000
+        });
+        this.#healthMonitor.register('a2a', {
+            checkFn: () => this.#checkA2AHealth(),
+            intervalMs: 15000
+        });
 
         if (!this.#webmcpAvailable) {
             console.log('🔌 WebMCP: Not available (Chrome 146+ required). ' +
@@ -918,6 +1128,9 @@ class WebMCPBridge {
 
     /** @type {Set<Function>} */
     #healthCallbacks = new Set();
+
+    /** @type {HealthMonitor} Health monitor for backends */
+    #healthMonitor = new HealthMonitor();
 
     // ─────────────────────────────────────────────────────────────
     // Circuit Breaker (Phase E)
@@ -1359,6 +1572,36 @@ class WebMCPBridge {
             this.#healthCheckInterval = null;
             console.log('🏥 WebMCP: Health monitoring stopped');
         }
+    }
+
+    /**
+     * Check evolution backend health
+     * @private
+     */
+    async #checkEvolutionHealth() {
+        // Check if WebSocket is connected
+        const connected = this.#evolutionSocket && this.#evolutionSocket.readyState === WebSocket.OPEN;
+        return { healthy: connected };
+    }
+
+    /**
+     * Check LLM backend health
+     * @private
+     */
+    async #checkLLMHealth() {
+        // Simple check - LLM endpoint is configured via WebMCP availability
+        const configured = this.#webmcpAvailable;
+        return { healthy: configured };
+    }
+
+    /**
+     * Check A2A backend health
+     * @private
+     */
+    async #checkA2AHealth() {
+        // Check if A2A router is available
+        const available = !!(this.#a2aRouter);
+        return { healthy: available };
     }
 
     // ─────────────────────────────────────────────────────────────
