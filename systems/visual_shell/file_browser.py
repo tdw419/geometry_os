@@ -578,6 +578,190 @@ class FileInfo:
         return self.file_type == "media"
 
 
+def parse_ls_output(output: str, parent_path: str) -> List[FileInfo]:
+    """
+    Parse output from 'ls -la' command into FileInfo objects.
+
+    Args:
+        output: The output string from 'ls -la' command
+        parent_path: The parent directory path for the files
+
+    Returns:
+        List of FileInfo objects parsed from the ls output
+    """
+    import os
+
+    files: List[FileInfo] = []
+    lines = output.strip().split('\n')
+
+    # Skip the first "total X" line
+    for line in lines[1:]:
+        line = line.strip()
+        if not line:
+            continue
+
+        # Parse ls -la format:
+        # permissions links owner group size month day time/year name
+        parts = line.split()
+        if len(parts) < 9:
+            continue
+
+        # Extract fields
+        permissions = parts[0]
+        links = parts[1]
+        owner = parts[2]
+        group = parts[3]
+        size = int(parts[4])
+        # Date is 3 fields (month day time/year)
+        date_fields = parts[5:8]
+        # Name is the rest (handle filenames with spaces)
+        name = ' '.join(parts[8:])
+
+        # Skip . and .. entries
+        if name in ('.', '..'):
+            continue
+
+        # Determine file_type from permissions
+        if permissions.startswith('d'):
+            file_type = 'directory'
+        elif permissions.startswith('l'):
+            file_type = 'code'  # symlinks treated as code for now
+        elif 'x' in permissions[:3]:  # Check owner execute bit
+            file_type = 'executable'
+        else:
+            # Use extension-based detection for regular files
+            file_type = FileInfo._detect_file_type(
+                os.path.join(parent_path, name),
+                name
+            )
+
+        # Build full path
+        full_path = os.path.join(parent_path, name)
+
+        # Create FileInfo (color will be set automatically in __post_init__)
+        info = FileInfo(
+            name=name,
+            path=full_path,
+            file_type=file_type,
+            size=size,
+            permissions=permissions[1:],  # Skip leading type char
+            x=0,
+            y=0,
+        )
+        files.append(info)
+
+    return files
+
+
+class SpatialLayout:
+    """Calculates positions for file tiles on the map."""
+
+    TILE_WIDTH = 120
+    TILE_HEIGHT = 60
+    TILE_PADDING = 10
+    GRID_COLUMNS = 6
+
+    def __init__(self, origin_x: int = 100, origin_y: int = 100):
+        """
+        Initialize the spatial layout engine.
+
+        Args:
+            origin_x: Starting X coordinate for layouts
+            origin_y: Starting Y coordinate for layouts
+        """
+        self.origin_x = origin_x
+        self.origin_y = origin_y
+
+    def layout_grid(self, files: List[FileInfo]) -> List[FileInfo]:
+        """
+        Arrange files in a 6-column grid layout.
+
+        Files are positioned left-to-right, top-to-bottom with TILE_PADDING
+        between each tile.
+
+        Args:
+            files: List of FileInfo objects to arrange
+
+        Returns:
+            List of FileInfo objects with updated x, y coordinates
+        """
+        result = []
+        for i, file_info in enumerate(files):
+            col = i % self.GRID_COLUMNS
+            row = i // self.GRID_COLUMNS
+
+            x = self.origin_x + col * (self.TILE_WIDTH + self.TILE_PADDING)
+            y = self.origin_y + row * (self.TILE_HEIGHT + self.TILE_PADDING)
+
+            # Create a new FileInfo with updated coordinates
+            updated_info = FileInfo(
+                name=file_info.name,
+                path=file_info.path,
+                file_type=file_info.file_type,
+                size=file_info.size,
+                permissions=file_info.permissions,
+                modified=file_info.modified,
+                x=int(x),
+                y=int(y),
+            )
+            result.append(updated_info)
+
+        return result
+
+    def layout_radial(
+        self,
+        files: List[FileInfo],
+        center_x: int,
+        center_y: int,
+        radius: int = 200
+    ) -> List[FileInfo]:
+        """
+        Arrange files in a circle around a center point.
+
+        Files are distributed evenly around the circle using trigonometry.
+        Each file's position is calculated using:
+            x = center_x + radius * cos(angle)
+            y = center_y + radius * sin(angle)
+
+        Args:
+            files: List of FileInfo objects to arrange
+            center_x: X coordinate of the circle center
+            center_y: Y coordinate of the circle center
+            radius: Radius of the circle in pixels
+
+        Returns:
+            List of FileInfo objects with updated x, y coordinates
+        """
+        result = []
+        count = len(files)
+
+        if count == 0:
+            return result
+
+        for i, file_info in enumerate(files):
+            # Calculate angle for this file (evenly distributed)
+            angle = (2 * math.pi * i) / count
+
+            # Calculate position on circle
+            x = center_x + radius * math.cos(angle)
+            y = center_y + radius * math.sin(angle)
+
+            # Create a new FileInfo with updated coordinates
+            updated_info = FileInfo(
+                name=file_info.name,
+                path=file_info.path,
+                file_type=file_info.file_type,
+                size=file_info.size,
+                permissions=file_info.permissions,
+                modified=file_info.modified,
+                x=int(x),
+                y=int(y),
+            )
+            result.append(updated_info)
+
+        return result
+
+
 def main():
     """CLI entry point for file browser operations."""
     parser = argparse.ArgumentParser(
