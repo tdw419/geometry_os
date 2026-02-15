@@ -98,6 +98,143 @@
  */
 
 /**
+ * RateLimiter - Sliding window rate limiter
+ */
+class RateLimiter {
+    /**
+     * @param {Object} options - Rate limiter options
+     * @param {number} options.maxRequests - Maximum requests per window
+     * @param {number} options.windowMs - Window duration in milliseconds
+     */
+    constructor(options = {}) {
+        this.defaultMaxRequests = options.maxRequests || 100;
+        this.defaultWindowMs = options.windowMs || 60000; // 1 minute
+        this.requests = new Map(); // toolName -> { timestamps: [] }
+        this.toolConfigs = new Map(); // Per-tool overrides
+        this.bypassKeys = new Set(); // Keys that bypass rate limiting
+    }
+
+    /**
+     * Configure rate limits for a specific tool
+     * @param {string} toolName - Tool name
+     * @param {Object} config - { maxRequests, windowMs }
+     */
+    configure(toolName, config) {
+        this.toolConfigs.set(toolName, config);
+    }
+
+    /**
+     * Add a bypass key (e.g., for trusted sources)
+     * @param {string} key - Bypass key
+     */
+    addBypassKey(key) {
+        this.bypassKeys.add(key);
+    }
+
+    /**
+     * Remove a bypass key
+     * @param {string} key - Bypass key
+     */
+    removeBypassKey(key) {
+        this.bypassKeys.delete(key);
+    }
+
+    /**
+     * Check if a request is allowed
+     * @param {string} toolName - Tool name
+     * @param {string} [bypassKey] - Optional bypass key
+     * @returns {Object} {allowed: boolean, remaining: number, resetAt: number}
+     */
+    check(toolName, bypassKey) {
+        // Check bypass
+        if (bypassKey && this.bypassKeys.has(bypassKey)) {
+            return { allowed: true, remaining: Infinity, resetAt: 0, bypassed: true };
+        }
+
+        const now = Date.now();
+        const config = this.toolConfigs.get(toolName) || {
+            maxRequests: this.defaultMaxRequests,
+            windowMs: this.defaultWindowMs
+        };
+
+        // Get or create tool record
+        if (!this.requests.has(toolName)) {
+            this.requests.set(toolName, { timestamps: [] });
+        }
+        const record = this.requests.get(toolName);
+
+        // Remove expired timestamps
+        const windowStart = now - config.windowMs;
+        record.timestamps = record.timestamps.filter(t => t > windowStart);
+
+        // Check if allowed
+        const allowed = record.timestamps.length < config.maxRequests;
+        const remaining = Math.max(0, config.maxRequests - record.timestamps.length);
+
+        // Calculate reset time
+        const oldestInWindow = record.timestamps[0];
+        const resetAt = oldestInWindow ? oldestInWindow + config.windowMs : now + config.windowMs;
+
+        if (allowed) {
+            record.timestamps.push(now);
+        }
+
+        return {
+            allowed,
+            remaining: allowed ? remaining - 1 : 0,
+            resetAt,
+            limit: config.maxRequests,
+            windowMs: config.windowMs
+        };
+    }
+
+    /**
+     * Get current rate limit status for a tool
+     * @param {string} toolName - Tool name
+     * @returns {Object} Rate limit status
+     */
+    getStatus(toolName) {
+        const now = Date.now();
+        const config = this.toolConfigs.get(toolName) || {
+            maxRequests: this.defaultMaxRequests,
+            windowMs: this.defaultWindowMs
+        };
+
+        if (!this.requests.has(toolName)) {
+            return {
+                limit: config.maxRequests,
+                remaining: config.maxRequests,
+                resetAt: now + config.windowMs
+            };
+        }
+
+        const record = this.requests.get(toolName);
+        const windowStart = now - config.windowMs;
+        const validTimestamps = record.timestamps.filter(t => t > windowStart);
+        const remaining = Math.max(0, config.maxRequests - validTimestamps.length);
+        const resetAt = validTimestamps[0] ? validTimestamps[0] + config.windowMs : now + config.windowMs;
+
+        return {
+            limit: config.maxRequests,
+            remaining,
+            resetAt
+        };
+    }
+
+    /**
+     * Reset rate limits for a tool
+     * @param {string} toolName - Tool name (or '*' for all)
+     */
+    reset(toolName) {
+        if (toolName === '*') {
+            this.requests.clear();
+        } else {
+            this.requests.delete(toolName);
+        }
+    }
+}
+
+/**
  * InputValidator - JSON Schema validation for tool inputs
  */
 class InputValidator {
@@ -729,7 +866,8 @@ class WebMCPBridge {
 
     // --- Hardening Systems (Phase I) ---
     #validator = new InputValidator();
-    #limiter = null;
+    /** @type {RateLimiter} Rate limiter for abuse prevention */
+    #limiter = new RateLimiter({ maxRequests: 100, windowMs: 60000 });
     #metrics = null;
 
     // ─────────────────────────────────────────────────────────────
