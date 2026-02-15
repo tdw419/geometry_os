@@ -909,6 +909,75 @@ def cmd_install(args):
         return 1
 
 
+def cmd_catalog(args):
+    """Handle catalog command - Launch visual catalog server."""
+    import os
+    import webbrowser
+    from threading import Thread
+    from time import sleep
+
+    # Parse paths argument into list
+    watch_paths = None
+    if args.paths:
+        watch_paths = [p.strip() for p in args.paths.split(',') if p.strip()]
+
+    # If paths not specified, use ["."] or RTS_REGISTRY_PATH env var
+    if watch_paths is None:
+        env_path = os.environ.get('RTS_REGISTRY_PATH')
+        if env_path:
+            watch_paths = [env_path]
+        else:
+            watch_paths = ["."]
+
+    # Set environment variables for CatalogServer to use
+    os.environ['RTS_REGISTRY_PATH'] = ','.join(watch_paths)
+
+    if args.verbose:
+        print(f"Starting catalog server...")
+        print(f"  Host: {args.host}")
+        print(f"  Port: {args.port}")
+        print(f"  Paths: {watch_paths}")
+
+    # Open browser in background thread if not disabled
+    if not args.no_browser:
+        url = f"http://{args.host}:{args.port}"
+
+        def open_browser():
+            sleep(1.5)  # Wait for server to start
+            webbrowser.open(url)
+
+        browser_thread = Thread(target=open_browser, daemon=True)
+        browser_thread.start()
+
+    # Print URL on startup
+    print(f"Catalog server running at http://{args.host}:{args.port}")
+    print("Press Ctrl+C to stop.")
+
+    try:
+        import uvicorn
+        uvicorn.run(
+            "systems.pixel_compiler.catalog:app",
+            host=args.host,
+            port=args.port,
+            log_level="warning"  # Reduce noise
+        )
+    except ImportError:
+        print("Error: uvicorn is required for the catalog server.", file=sys.stderr)
+        print("Install it with: pip install uvicorn", file=sys.stderr)
+        return 1
+    except KeyboardInterrupt:
+        print("\nCatalog server stopped.")
+        return 130  # 128 + 2 (SIGINT)
+    except Exception as e:
+        print(f"Error starting catalog server: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+    return 0
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -920,6 +989,7 @@ Commands:
   transpile    Transpile native software (source/binary/WASM) to PixelRTS format
   boot         Boot .rts.png files with QEMU (single command)
   install      Install .rts.png files to disk image (with verification)
+  catalog      Launch visual catalog server for browsing .rts.png files
   benchmark    Run performance benchmarks
   dashboard    Generate performance dashboard
   info         Display information about .rts.png file
@@ -937,6 +1007,9 @@ Examples:
   pixelrts boot os.rts.png --cmdline "console=ttyS0" --qemu-arg "-nographic"
   pixelrts install alpine.rts.png /tmp/alpine.img
   pixelrts install os.rts.png /dev/sdX --no-verify
+  pixelrts catalog
+  pixelrts catalog --port 8080 --paths /path/to/images
+  pixelrts catalog --no-browser
   pixelrts analyze image.rts.png --method edges --edge-method sobel
   pixelrts analyze image.rts.png --method all --output results.json
   pixelrts execute fibonacci.rts.png --function fib --arguments 10
@@ -1186,6 +1259,41 @@ Examples:
     )
     blueprint_analyze_parser.add_argument('rts_file', help='Input .rts.png file path')
 
+    # Catalog command (visual catalog server)
+    catalog_parser = subparsers.add_parser(
+        'catalog',
+        help='Launch visual catalog server',
+        description='Launch a web-based visual catalog for browsing and booting .rts.png files'
+    )
+    catalog_parser.add_argument(
+        '--port', '-p',
+        type=int,
+        default=8000,
+        help='Port for catalog server (default: 8000)'
+    )
+    catalog_parser.add_argument(
+        '--host',
+        type=str,
+        default="127.0.0.1",
+        help='Host to bind server (default: 127.0.0.1)'
+    )
+    catalog_parser.add_argument(
+        '--paths',
+        type=str,
+        default=None,
+        help='Comma-separated directories to scan (default: current directory or RTS_REGISTRY_PATH)'
+    )
+    catalog_parser.add_argument(
+        '--no-browser',
+        action='store_true',
+        help="Don't open browser automatically"
+    )
+    catalog_parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help='Enable verbose output'
+    )
+
     args = parser.parse_args()
 
     if not args.command:
@@ -1198,6 +1306,7 @@ Examples:
         'transpile': cmd_transpile,
         'boot': cmd_boot,
         'install': cmd_install,
+        'catalog': cmd_catalog,
         'benchmark': cmd_benchmark,
         'dashboard': cmd_dashboard,
         'info': cmd_info,
