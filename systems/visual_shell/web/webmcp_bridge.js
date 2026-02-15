@@ -204,6 +204,16 @@ class WebMCPBridge {
     #limiter = null;
     #metrics = null;
 
+    // ─────────────────────────────────────────────────────────────
+    // Pyodide Tools (Phase P: In-Browser Python Execution)
+    // ─────────────────────────────────────────────────────────────
+
+    /** @type {PyodideExecutor|null} */
+    #pyodideExecutor = null;
+
+    /** @type {PyodideTileBridge|null} */
+    #pyodideTileBridge = null;
+
     /** @type {WebSocket|null} */
     #a2aSocket = null;
 
@@ -483,6 +493,14 @@ class WebMCPBridge {
             console.log('🔌 WebMCP: VisionCortex initialized');
         } else {
             console.warn('🔌 WebMCP: VisionCortex not found (OCR features disabled)');
+        }
+
+        // Initialize BuilderPanel and expose globally
+        if (typeof BuilderPanel !== 'undefined') {
+            window.builderPanel = new BuilderPanel();
+            console.log('🔌 WebMCP: BuilderPanel initialized');
+        } else {
+            console.warn('🔌 WebMCP: BuilderPanel not found (builder features disabled)');
         }
 
         if (!this.#webmcpAvailable) {
@@ -806,6 +824,12 @@ class WebMCPBridge {
             // Phase O tools - AI PM Autonomous
             await this.#registerPMAnalyze();
             await this.#registerPMAnalyzeAndDeploy();
+
+            // Phase P tools - Pyodide In-Browser Python Execution
+            await this.#registerPyodideRun();
+            await this.#registerPyodideLoadPackage();
+            await this.#registerPyodideStatus();
+            await this.#registerPyodideRunAndPlace();
 
             // Publish OS context alongside tools
             await this.#publishContext();
@@ -7571,6 +7595,22 @@ class WebMCPBridge {
     }
 
     // ─────────────────────────────────────────────────────────────
+    // Pyodide Tools (Phase P: In-Browser Python Execution)
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Get or create Pyodide executor instance
+     * @returns {PyodideExecutor|null}
+     * @private
+     */
+    #getPyodideExecutor() {
+        if (!this.#pyodideExecutor && typeof PyodideExecutor !== 'undefined') {
+            this.#pyodideExecutor = new PyodideExecutor();
+        }
+        return this.#pyodideExecutor;
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // Circuit Breaker (Phase E)
     // ─────────────────────────────────────────────────────────────
 
@@ -8080,6 +8120,240 @@ class WebMCPBridge {
                 count: 1
             };
         });
+        this.#registeredTools.push(tool.name);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Pyodide Tools (Phase P: In-Browser Python Execution)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerPyodideRun() {
+        const self = this;
+        const tool = {
+            name: 'pyodide_run',
+            description: 'Execute Python code in the browser using Pyodide WASM runtime. Returns result, stdout, and stderr.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    code: {
+                        type: 'string',
+                        description: 'Python code to execute'
+                    },
+                    capture_output: {
+                        type: 'boolean',
+                        description: 'Whether to capture stdout/stderr (default: true)',
+                        default: true
+                    }
+                },
+                required: ['code']
+            },
+            handler: async (args) => {
+                const { code, capture_output = true } = args;
+
+                self.#callCount++;
+                self.#toolCallCounts['pyodide_run'] = (self.#toolCallCounts['pyodide_run'] || 0) + 1;
+
+                try {
+                    const executor = self.#getPyodideExecutor();
+                    if (!executor) {
+                        throw new Error('PyodideExecutor not available. Load pyodide_executor.js first.');
+                    }
+
+                    const result = await executor.runPythonSafe(code);
+
+                    return {
+                        success: result.success,
+                        result: result.result,
+                        stdout: result.stdout,
+                        stderr: result.stderr,
+                        error: result.error || null
+                    };
+
+                } catch (error) {
+                    console.error('🔌 WebMCP: pyodide_run error:', error);
+                    return {
+                        success: false,
+                        result: null,
+                        stdout: '',
+                        stderr: error.message,
+                        error: error.message
+                    };
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
+        navigator.modelContext.toolHandlers[tool.name] = tool.handler;
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerPyodideLoadPackage() {
+        const self = this;
+        const tool = {
+            name: 'pyodide_load_package',
+            description: 'Load a Python package into the Pyodide runtime (e.g., numpy, pandas, matplotlib)',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    packages: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        description: 'List of package names to load'
+                    }
+                },
+                required: ['packages']
+            },
+            handler: async (args) => {
+                const { packages } = args;
+
+                self.#callCount++;
+
+                try {
+                    const executor = self.#getPyodideExecutor();
+                    if (!executor) {
+                        throw new Error('PyodideExecutor not available');
+                    }
+
+                    if (!executor.isReady()) {
+                        await executor.load();
+                    }
+
+                    for (const pkg of packages) {
+                        await executor.loadPackage(pkg);
+                    }
+
+                    return {
+                        success: true,
+                        loaded: packages
+                    };
+
+                } catch (error) {
+                    return {
+                        success: false,
+                        error: error.message
+                    };
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
+        navigator.modelContext.toolHandlers[tool.name] = tool.handler;
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerPyodideStatus() {
+        const self = this;
+        const tool = {
+            name: 'pyodide_status',
+            description: 'Check Pyodide runtime status and Python version',
+            inputSchema: {
+                type: 'object',
+                properties: {}
+            },
+            handler: async (args) => {
+                self.#callCount++;
+
+                try {
+                    const executor = self.#getPyodideExecutor();
+                    if (!executor) {
+                        return {
+                            available: false,
+                            loaded: false,
+                            reason: 'PyodideExecutor class not loaded'
+                        };
+                    }
+
+                    return {
+                        available: true,
+                        loaded: executor.isReady(),
+                        version: executor.isReady() ? executor.getVersion() : null
+                    };
+
+                } catch (error) {
+                    return {
+                        available: false,
+                        loaded: false,
+                        error: error.message
+                    };
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
+        navigator.modelContext.toolHandlers[tool.name] = tool.handler;
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerPyodideRunAndPlace() {
+        const self = this;
+        const tool = {
+            name: 'pyodide_run_and_place',
+            description: 'Execute Python code and place the result as a tile on the Infinite Map at specified coordinates.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    code: {
+                        type: 'string',
+                        description: 'Python code to execute. Return a dict with type, values, and label for custom tiles.'
+                    },
+                    x: {
+                        type: 'number',
+                        description: 'X coordinate for tile placement'
+                    },
+                    y: {
+                        type: 'number',
+                        description: 'Y coordinate for tile placement'
+                    }
+                },
+                required: ['code', 'x', 'y']
+            },
+            handler: async (args) => {
+                const { code, x, y } = args;
+
+                self.#callCount++;
+                self.#toolCallCounts['pyodide_run_and_place'] = (self.#toolCallCounts['pyodide_run_and_place'] || 0) + 1;
+
+                try {
+                    // Ensure bridge is initialized
+                    if (!self.#pyodideTileBridge) {
+                        const executor = self.#getPyodideExecutor();
+                        if (!executor) {
+                            throw new Error('PyodideExecutor not available');
+                        }
+                        self.#pyodideTileBridge = new PyodideTileBridge(
+                            self.#app.infiniteMap || self.#app,
+                            executor
+                        );
+                    }
+
+                    const result = await self.#pyodideTileBridge.executeAndPlace(code, { x, y });
+
+                    return {
+                        success: result.success,
+                        tilePlaced: result.tilePlaced,
+                        position: result.position,
+                        stdout: result.stdout,
+                        stderr: result.stderr,
+                        error: result.error || null
+                    };
+
+                } catch (error) {
+                    console.error('🔌 WebMCP: pyodide_run_and_place error:', error);
+                    return {
+                        success: false,
+                        tilePlaced: false,
+                        error: error.message
+                    };
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
+        navigator.modelContext.toolHandlers[tool.name] = tool.handler;
         this.#registeredTools.push(tool.name);
     }
 }
