@@ -98,6 +98,118 @@
  */
 
 /**
+ * BatchExecutor - Execute multiple tool calls in parallel
+ */
+class BatchExecutor {
+    /**
+     * @param {WebMCPBridge} bridge - Bridge instance for tool access
+     * @param {number} timeout - Default batch timeout in milliseconds
+     */
+    constructor(bridge, timeout = 30000) {
+        this.bridge = bridge;
+        this.defaultTimeout = timeout;
+    }
+
+    /**
+     * Execute a batch of tool calls
+     * @param {Object[]} calls - Array of {tool, params} objects
+     * @param {Object} options - Batch options
+     * @returns {Promise<Object>} Batch results
+     */
+    async executeBatch(calls, options = {}) {
+        const timeout = options.timeout || this.defaultTimeout;
+        const parallel = options.parallel !== false;  // Default: true
+        const results = [];
+        const errors = [];
+        const startTime = performance.now();
+
+        // Validate all calls first
+        for (let i = 0; i < calls.length; i++) {
+            const call = calls[i];
+            if (!call.tool) {
+                return {
+                    success: false,
+                    error: `Call at index ${i} missing 'tool' property`,
+                    results: []
+                };
+            }
+        }
+
+        if (parallel) {
+            // Execute all in parallel with timeout
+            const promises = calls.map(async (call, index) => {
+                try {
+                    const result = await this.#executeWithTimeout(call, timeout);
+                    return { index, tool: call.tool, success: true, result };
+                } catch (err) {
+                    return { index, tool: call.tool, success: false, error: err.message };
+                }
+            });
+
+            const settled = await Promise.all(promises);
+            settled.sort((a, b) => a.index - b.index);
+
+            for (const s of settled) {
+                results.push(s);
+                if (!s.success) errors.push(s);
+            }
+        } else {
+            // Execute sequentially
+            for (let i = 0; i < calls.length; i++) {
+                try {
+                    const result = await this.#executeWithTimeout(calls[i], timeout);
+                    results.push({ index: i, tool: calls[i].tool, success: true, result });
+                } catch (err) {
+                    const errorResult = { index: i, tool: calls[i].tool, success: false, error: err.message };
+                    results.push(errorResult);
+                    errors.push(errorResult);
+
+                    // Stop on first error if requested
+                    if (options.stopOnError) break;
+                }
+            }
+        }
+
+        const elapsed = performance.now() - startTime;
+        return {
+            success: errors.length === 0,
+            totalCalls: calls.length,
+            successful: results.filter(r => r.success).length,
+            failed: errors.length,
+            elapsedMs: Math.round(elapsed * 100) / 100,
+            results,
+            parallel
+        };
+    }
+
+    /**
+     * Execute a single call with timeout
+     * @private
+     */
+    async #executeWithTimeout(call, timeout) {
+        return new Promise(async (resolve, reject) => {
+            const timer = setTimeout(() => {
+                reject(new Error(`Tool '${call.tool}' timed out after ${timeout}ms`));
+            }, timeout);
+
+            try {
+                // Find and execute the tool handler - using direct handler access
+                const handler = this.bridge.getToolHandler(call.tool);
+                if (!handler) {
+                    throw new Error(`Tool '${call.tool}' not found`);
+                }
+                const result = await handler(call.params || {});
+                clearTimeout(timer);
+                resolve(result);
+            } catch (err) {
+                clearTimeout(timer);
+                reject(err);
+            }
+        });
+    }
+}
+
+/**
  * LRUCache - Simple LRU cache with TTL support
  */
 class LRUCache {
@@ -366,6 +478,9 @@ class WebMCPBridge {
             console.warn('🔌 WebMCP: VisionCortex not found (OCR features disabled)');
         }
 
+        // Initialize batch executor
+        this.#batchExecutor = new BatchExecutor(this, 30000);
+
         if (!this.#webmcpAvailable) {
             console.log('🔌 WebMCP: Not available (Chrome 146+ required). ' +
                 'Visual Shell running in standard mode.');
@@ -465,6 +580,9 @@ class WebMCPBridge {
 
     /** @type {VisionCortex|null} */
     #visionCortex = null;
+
+    /** @type {BatchExecutor} Batch tool executor */
+    #batchExecutor = null;
 
     // ─────────────────────────────────────────────────────────────
     // Health Monitoring (Phase E)
@@ -1888,6 +2006,23 @@ class WebMCPBridge {
 
         await navigator.modelContext.registerTool(tool);
         this.#registeredTools.push(tool.name);
+    }
+
+    /**
+     * Get a tool handler by name (for BatchExecutor)
+     * @param {string} toolName - Tool name
+     * @returns {Function|null} Handler function or null
+     */
+    getToolHandler(toolName) {
+        // Map of tool names to handler methods
+        const handlers = {
+            'navigate_map': this.#handleNavigateMap,
+            'get_os_state': this.#handleGetOSState,
+            'query_hilbert_address': this.#handleQueryHilbertAddress,
+            'perf_get_metrics': this.#handlePerfGetMetrics,
+            'perf_cache_invalidate': this.#handlePerfCacheInvalidate
+        };
+        return handlers[toolName] || null;
     }
 
     #handleNavigateMap({ x, y, zoom, region }) {
