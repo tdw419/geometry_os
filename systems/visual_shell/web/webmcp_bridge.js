@@ -1514,6 +1514,10 @@ class WebMCPBridge {
             await this.#registerPyodideStatus();
             await this.#registerPyodideRunAndPlace();
 
+            // Phase I tools - Security Hardening
+            await this.#registerSecurityGetStatus();
+            await this.#registerSecuritySetBypass();
+
             // Publish OS context alongside tools
             await this.#publishContext();
 
@@ -8833,6 +8837,24 @@ class WebMCPBridge {
                 stopOnError: { type: 'boolean' }
             }
         });
+
+        // security_get_status schema
+        this.#validator.register('security_get_status', {
+            type: 'object',
+            properties: {
+                tool: { type: 'string', maxLength: 100 }
+            }
+        });
+
+        // security_set_bypass schema
+        this.#validator.register('security_set_bypass', {
+            type: 'object',
+            required: ['action'],
+            properties: {
+                action: { type: 'string', enum: ['add', 'remove', 'list'] },
+                key: { type: 'string', minLength: 8, maxLength: 256 }
+            }
+        });
     }
 
     /**
@@ -8852,6 +8874,10 @@ class WebMCPBridge {
 
         // Batch operations - very limited
         this.#limiter.configure('perf_batch_execute', { maxRequests: 10, windowMs: 60000 });
+
+        // Security tools - very limited to prevent abuse
+        this.#limiter.configure('security_set_bypass', { maxRequests: 5, windowMs: 60000 });
+        this.#limiter.configure('security_get_status', { maxRequests: 30, windowMs: 60000 });
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -9863,6 +9889,152 @@ class WebMCPBridge {
         if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
         navigator.modelContext.toolHandlers[tool.name] = tool.handler;
         this.#registeredTools.push(tool.name);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool: security_get_status (Phase I - Security Hardening)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerSecurityGetStatus() {
+        const tool = {
+            name: 'security_get_status',
+            description:
+                'Get security status including rate limit status for all tools, ' +
+                'active bypass keys count, and validation statistics.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    tool: {
+                        type: 'string',
+                        description: 'Specific tool to get rate limit status for (optional)'
+                    }
+                }
+            },
+            handler: async (params) => {
+                return this.#handleSecurityGetStatus(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    #handleSecurityGetStatus({ tool }) {
+        const done = this.#trackCall('security_get_status');
+
+        try {
+            const result = {
+                success: true,
+                timestamp: new Date().toISOString(),
+                rateLimiter: {
+                    defaultConfig: {
+                        maxRequests: this.#limiter.defaultMaxRequests,
+                        windowMs: this.#limiter.defaultWindowMs
+                    },
+                    toolConfigs: Object.fromEntries(this.#limiter.toolConfigs),
+                    bypassKeysCount: this.#limiter.bypassKeys.size
+                },
+                validator: {
+                    schemasRegistered: this.#validator.schemas.size
+                }
+            };
+
+            // Add specific tool status if requested
+            if (tool) {
+                result.toolRateLimit = this.#limiter.getStatus(tool);
+            }
+
+            done(true);
+            return result;
+        } catch (err) {
+            done(false);
+            return { success: false, error: err.message };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool: security_set_bypass (Phase I - Security Hardening)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerSecuritySetBypass() {
+        const tool = {
+            name: 'security_set_bypass',
+            description:
+                'Add or remove a bypass key for rate limiting. ' +
+                'Bypass keys allow unlimited requests. Use with caution.',
+            inputSchema: {
+                type: 'object',
+                required: ['action'],
+                properties: {
+                    action: {
+                        type: 'string',
+                        enum: ['add', 'remove', 'list'],
+                        description: 'Action to perform'
+                    },
+                    key: {
+                        type: 'string',
+                        description: 'Bypass key to add or remove'
+                    }
+                }
+            },
+            handler: async (params) => {
+                return this.#handleSecuritySetBypass(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    #handleSecuritySetBypass({ action, key }) {
+        const done = this.#trackCall('security_set_bypass');
+
+        try {
+            switch (action) {
+                case 'add':
+                    if (!key) {
+                        done(false);
+                        return { success: false, error: 'Key required for add action' };
+                    }
+                    this.#limiter.addBypassKey(key);
+                    done(true);
+                    return {
+                        success: true,
+                        action: 'added',
+                        key: key.substring(0, 8) + '...' // Truncate for security
+                    };
+
+                case 'remove':
+                    if (!key) {
+                        done(false);
+                        return { success: false, error: 'Key required for remove action' };
+                    }
+                    this.#limiter.removeBypassKey(key);
+                    done(true);
+                    return {
+                        success: true,
+                        action: 'removed',
+                        key: key.substring(0, 8) + '...'
+                    };
+
+                case 'list':
+                    done(true);
+                    return {
+                        success: true,
+                        action: 'list',
+                        count: this.#limiter.bypassKeys.size,
+                        // Don't expose actual keys for security
+                        keys: Array.from(this.#limiter.bypassKeys).map(k => k.substring(0, 8) + '...')
+                    };
+
+                default:
+                    done(false);
+                    return { success: false, error: `Unknown action: ${action}` };
+            }
+        } catch (err) {
+            done(false);
+            return { success: false, error: err.message };
+        }
     }
 }
 
