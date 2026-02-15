@@ -39,6 +39,13 @@
  *  19. builder_preview           — Capture preview image of build
  *  20. builder_get_state         — Get current builder state
  *
+ * Phase K Tools (Neural Kernel Management):
+ *  21. kernel_list               — List all registered neural kernels
+ *  22. kernel_register           — Register a new kernel
+ *  23. kernel_swap               — Hot-swap active kernel
+ *  24. kernel_health             — Check kernel health status
+ *  25. kernel_metrics            — Get performance metrics
+ *
  * Area Agent A2A Integration:
  *   - spawn_area_agent now supports full A2A protocol
  *   - Agents can discover each other via registry
@@ -55,9 +62,9 @@
  * Requirements: Chrome 146+ with WebMCP support
  * Fallback: Logs warning, app runs normally without WebMCP
  *
- * @version 1.7.0
- * @phase Phase F: AI-Driven Visual Builder
- * @date 2026-02-13
+ * @version 1.8.0
+ * @phase Phase K: Neural Kernel Management
+ * @date 2026-02-14
  */
 
 class WebMCPBridge {
@@ -732,6 +739,13 @@ class WebMCPBridge {
             await this.#registerHypervisorSetPageTable();
             await this.#registerHypervisorMapPage();
             await this.#registerHypervisorStatus();
+
+            // Phase K tools - Neural Kernel Management
+            await this.#registerKernelList();
+            await this.#registerKernelRegister();
+            await this.#registerKernelSwap();
+            await this.#registerKernelHealth();
+            await this.#registerKernelMetrics();
 
             // Publish OS context alongside tools
             await this.#publishContext();
@@ -5917,6 +5931,224 @@ class WebMCPBridge {
                 reject(new Error('Linux bridge connection failed. Is the bridge running?'));
             };
         });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Phase K: Neural Kernel Management Tools
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerKernelList() {
+        const tool = {
+            name: 'kernel_list',
+            description:
+                'List all registered neural kernels in the Geometry OS kernel registry. ' +
+                'Returns kernel names, types, versions, status, and which kernel is active.',
+            inputSchema: {
+                type: 'object',
+                properties: {}
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('kernel_list');
+            if (!window.kernelBridge) {
+                return { success: false, error: 'Kernel bridge not initialized' };
+            }
+            try {
+                const result = await window.kernelBridge.listKernels();
+                return result;
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerKernelRegister() {
+        const tool = {
+            name: 'kernel_register',
+            description:
+                'Register a new neural kernel in the Geometry OS kernel registry. ' +
+                'The kernel can be a WGSL shader, compiled binary, or hybrid kernel module.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    name: {
+                        type: 'string',
+                        description: 'Unique name for the kernel (e.g., "fractal_renderer_v2")'
+                    },
+                    type: {
+                        type: 'string',
+                        enum: ['wgsl', 'binary', 'hybrid'],
+                        description: 'Kernel type: wgsl (shader), binary (compiled), or hybrid'
+                    },
+                    source: {
+                        type: 'string',
+                        description: 'Kernel source code (WGSL) or base64-encoded binary'
+                    },
+                    version: {
+                        type: 'string',
+                        description: 'Semantic version string (e.g., "1.0.0")'
+                    },
+                    metadata: {
+                        type: 'object',
+                        properties: {
+                            author: { type: 'string' },
+                            description: { type: 'string' },
+                            tags: {
+                                type: 'array',
+                                items: { type: 'string' }
+                            }
+                        },
+                        description: 'Optional kernel metadata'
+                    }
+                },
+                required: ['name', 'type', 'source']
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('kernel_register');
+            if (!window.kernelBridge) {
+                return { success: false, error: 'Kernel bridge not initialized' };
+            }
+            try {
+                const result = await window.kernelBridge.registerKernel(params);
+                return result;
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerKernelSwap() {
+        const tool = {
+            name: 'kernel_swap',
+            description:
+                'Hot-swap the active neural kernel. This allows switching kernels at runtime ' +
+                'without restarting the system. The previous kernel is kept in the registry.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    kernel_name: {
+                        type: 'string',
+                        description: 'Name of the kernel to activate'
+                    },
+                    graceful: {
+                        type: 'boolean',
+                        description: 'If true, wait for current operations to complete before swapping'
+                    },
+                    timeout_ms: {
+                        type: 'number',
+                        description: 'Maximum time to wait for graceful swap (default 5000ms)'
+                    }
+                },
+                required: ['kernel_name']
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('kernel_swap');
+            if (!window.kernelBridge) {
+                return { success: false, error: 'Kernel bridge not initialized' };
+            }
+            try {
+                const result = await window.kernelBridge.swapKernel(
+                    params.kernel_name,
+                    params.graceful || false,
+                    params.timeout_ms || 5000
+                );
+                return result;
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerKernelHealth() {
+        const tool = {
+            name: 'kernel_health',
+            description:
+                'Check the health status of one or all kernels in the registry. ' +
+                'Returns execution statistics, error rates, and resource usage.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    kernel_name: {
+                        type: 'string',
+                        description: 'Name of specific kernel to check (optional, defaults to active kernel)'
+                    },
+                    detailed: {
+                        type: 'boolean',
+                        description: 'Include detailed diagnostics and recent error logs'
+                    }
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('kernel_health');
+            if (!window.kernelBridge) {
+                return { success: false, error: 'Kernel bridge not initialized' };
+            }
+            try {
+                const result = await window.kernelBridge.checkHealth(
+                    params.kernel_name,
+                    params.detailed || false
+                );
+                return result;
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerKernelMetrics() {
+        const tool = {
+            name: 'kernel_metrics',
+            description:
+                'Get performance metrics for one or all kernels. Includes execution times, ' +
+                'throughput, memory usage, and GPU utilization.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    kernel_name: {
+                        type: 'string',
+                        description: 'Name of specific kernel to query (optional, defaults to all kernels)'
+                    },
+                    time_range: {
+                        type: 'string',
+                        enum: ['1m', '5m', '15m', '1h', '24h'],
+                        description: 'Time range for metrics aggregation (default 5m)'
+                    },
+                    include_histograms: {
+                        type: 'boolean',
+                        description: 'Include latency histograms in the response'
+                    }
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('kernel_metrics');
+            if (!window.kernelBridge) {
+                return { success: false, error: 'Kernel bridge not initialized' };
+            }
+            try {
+                const result = await window.kernelBridge.getMetrics(
+                    params.kernel_name,
+                    params.time_range || '5m',
+                    params.include_histograms || false
+                );
+                return result;
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        this.#registeredTools.push(tool.name);
     }
 
     // ─────────────────────────────────────────────────────────────
