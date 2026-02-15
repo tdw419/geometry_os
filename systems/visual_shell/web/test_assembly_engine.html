@@ -497,6 +497,51 @@
             assertEqual(cartridge2.shaderRefs.length, 2, 'Should have 2 unique shader refs');
         });
 
+        // Test 8: importCartridge restores tiles from cartridge
+        runner.test('importCartridge restores tiles from cartridge', () => {
+            const engine1 = new IDEAssemblyEngine(
+                createMockBuilderPanel(),
+                createMockConnectionManager(),
+                createMockSemanticOverlay(),
+                createMockTileRenderer()
+            );
+
+            // Place a tile and export cartridge
+            const result = engine1.placeIDETile('code_editor', 100, 200);
+            assertTrue(result.success, 'Tile placement should succeed');
+
+            const cartridge = engine1.exportCartridge();
+            assertNotNull(cartridge, 'Cartridge should not be null');
+
+            // Create new engine and import cartridge
+            const engine2 = new IDEAssemblyEngine(
+                createMockBuilderPanel(),
+                createMockConnectionManager(),
+                createMockSemanticOverlay(),
+                createMockTileRenderer()
+            );
+
+            const importResult = engine2.importCartridge(cartridge);
+
+            assertTrue(importResult.success, 'importCartridge should return success');
+            assertEqual(engine2.tileCount, 1, 'New engine should have 1 tile');
+        });
+
+        // Test 9: importCartridge rejects invalid format
+        runner.test('importCartridge rejects invalid format', () => {
+            const engine = new IDEAssemblyEngine(
+                createMockBuilderPanel(),
+                createMockConnectionManager(),
+                createMockSemanticOverlay(),
+                createMockTileRenderer()
+            );
+
+            // Try to import invalid cartridge format
+            const result = engine.importCartridge({ format: 'invalid', tiles: {} });
+
+            assertFalse(result.success, 'importCartridge should return false for invalid format');
+        });
+
         // Render results
         runner.renderResults();
 
