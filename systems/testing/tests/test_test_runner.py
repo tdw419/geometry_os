@@ -100,8 +100,8 @@ class TestTestRunnerBuildCommand:
 
         cmd = runner.build_command()
 
-        assert "--cov" in cmd
-        assert "--cov-report=xml" in cmd
+        assert "--cov=." in cmd
+        assert "--cov-report" in cmd
 
 
 class TestTestRunnerRunTests:

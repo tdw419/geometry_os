@@ -16,10 +16,26 @@ Integration:
 __version__ = "0.1.0"
 __phase__ = "O"
 
-from systems.testing.test_runner import TestRunner
-from systems.testing.test_selector import TestSelector
-from systems.testing.failure_analyzer import FailureAnalyzer
-from systems.testing.fix_suggester import FixSuggester
+# Import components as they are implemented
+try:
+    from systems.testing.test_runner import TestRunner
+except ImportError:
+    TestRunner = None  # type: ignore
+
+try:
+    from systems.testing.test_selector import TestSelector
+except ImportError:
+    TestSelector = None  # type: ignore
+
+try:
+    from systems.testing.failure_analyzer import FailureAnalyzer
+except ImportError:
+    FailureAnalyzer = None  # type: ignore
+
+try:
+    from systems.testing.fix_suggester import FixSuggester
+except ImportError:
+    FixSuggester = None  # type: ignore
 
 __all__ = [
     "TestRunner",
