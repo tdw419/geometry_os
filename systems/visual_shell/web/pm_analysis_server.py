@@ -9,6 +9,9 @@ Endpoints:
   GET  /health              - Health check
   POST /pm/analyze          - Get improvement recommendations
   POST /pm/analyze_and_deploy - Analyze and optionally deploy fixes
+  GET  /service/status      - Get autonomous service status
+  POST /service/start       - Start autonomous improvement service
+  POST /service/stop        - Stop autonomous improvement service
 """
 
 import json
@@ -54,6 +57,9 @@ class PMAnalysisHandler(BaseHTTPRequestHandler):
                 "ai_pm_available": AI_PM_AVAILABLE,
                 "cartridge_bridge_available": CARTRIDGE_BRIDGE_AVAILABLE
             })
+        elif path == "/service/status":
+            result = self._handle_service_status()
+            self._send_json(result)
         else:
             self._send_error(404, "Not found")
 
@@ -74,6 +80,12 @@ class PMAnalysisHandler(BaseHTTPRequestHandler):
             self._send_json(result)
         elif path == "/pm/analyze_and_deploy":
             result = self._handle_analyze_and_deploy(request)
+            self._send_json(result)
+        elif path == "/service/start":
+            result = self._handle_service_start(request)
+            self._send_json(result)
+        elif path == "/service/stop":
+            result = self._handle_service_stop()
             self._send_json(result)
         else:
             self._send_error(404, "Not found")
@@ -212,6 +224,41 @@ class PMAnalysisHandler(BaseHTTPRequestHandler):
             "location": deploy_result.get("location")
         }
 
+    def _handle_service_status(self) -> Dict[str, Any]:
+        """Get autonomous service status."""
+        # For now, return mock status
+        # In production, would track actual service state
+        return {
+            "success": True,
+            "running": False,
+            "interval_seconds": 3600,
+            "auto_deploy": False,
+            "confidence_threshold": 0.8,
+            "last_cycle": None,
+            "cycles_run": 0
+        }
+
+    def _handle_service_start(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """Start the autonomous service."""
+        # For now, just acknowledge
+        # In production, would start the AutonomousImprovementService
+        return {
+            "success": True,
+            "message": "Service start requested",
+            "config": {
+                "interval_seconds": request.get("interval_seconds", 3600),
+                "auto_deploy": request.get("auto_deploy", False),
+                "confidence_threshold": request.get("confidence_threshold", 0.8)
+            }
+        }
+
+    def _handle_service_stop(self) -> Dict[str, Any]:
+        """Stop the autonomous service."""
+        return {
+            "success": True,
+            "message": "Service stop requested"
+        }
+
     def _send_json(self, data, status=200):
         """Send JSON response with CORS headers."""
         self.send_response(status)
@@ -243,6 +290,9 @@ def run_server(port=8769):
     print("  GET  /health              - Health check")
     print("  POST /pm/analyze          - Get recommendations")
     print("  POST /pm/analyze_and_deploy - Analyze and deploy")
+    print("  GET  /service/status      - Service status")
+    print("  POST /service/start       - Start service")
+    print("  POST /service/stop        - Stop service")
     if AI_PM_AVAILABLE:
         print("  AI PM: AVAILABLE")
     else:
