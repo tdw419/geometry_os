@@ -377,3 +377,8 @@ class WorkloadMonitor:
         """Clear all history and reset the monitor."""
         self._syscall_history.clear()
         self._start_time = time.time()
+
+    @property
+    def samples_collected(self) -> int:
+        """Return the number of syscall samples collected."""
+        return len(self._syscall_history)

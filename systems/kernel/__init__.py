@@ -129,6 +129,26 @@ from .cluster_metrics import (
 )
 from .orchestration_tools import OrchestrationTools
 
+# Autonomous Operator (Phase L - Task 3)
+from .workload_monitor import (
+    WorkloadMonitor,
+    WorkloadSnapshot,
+    WorkloadPattern,
+    SyscallRecord,
+)
+from .kernel_selector import (
+    KernelSelector,
+    SelectionPolicy,
+    SelectionConfig,
+    SelectionResult,
+)
+from .autonomous_operator import (
+    AutonomousOperator,
+    OperatorState,
+    OperatorConfig,
+    TickResult,
+)
+
 # Convenience exports
 __all__ = [
     # Interface
@@ -186,6 +206,20 @@ __all__ = [
     "ClusterMetrics",
     "KernelMetricsSnapshot",
     "OrchestrationTools",
+
+    # Autonomous Operator (Phase L)
+    "WorkloadMonitor",
+    "WorkloadSnapshot",
+    "WorkloadPattern",
+    "SyscallRecord",
+    "KernelSelector",
+    "SelectionPolicy",
+    "SelectionConfig",
+    "SelectionResult",
+    "AutonomousOperator",
+    "OperatorState",
+    "OperatorConfig",
+    "TickResult",
 ]
 
 
