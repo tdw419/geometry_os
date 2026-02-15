@@ -9,9 +9,12 @@ Provides components for visual installer engine:
 """
 
 from .install_progress import InstallProgress, InstallStage, create_install_progress
+from .disk_writer import DiskWriter, WriteResult
 
 __all__ = [
     "InstallProgress",
     "InstallStage",
     "create_install_progress",
+    "DiskWriter",
+    "WriteResult",
 ]
