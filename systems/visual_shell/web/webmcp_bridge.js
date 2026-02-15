@@ -1748,6 +1748,7 @@ class WebMCPBridge {
                 aggregate,
                 tools: format === 'detailed' ? allMetrics : Object.keys(allMetrics),
                 toolCount: Object.keys(allMetrics).length,
+                cache: this.#responseCache.getStats(),
                 timestamp: new Date().toISOString()
             };
         } catch (err) {
@@ -8148,6 +8149,86 @@ class WebMCPBridge {
             const latencyMs = performance.now() - startTime;
             this.#toolMetrics.record(toolName, latencyMs, success);
         };
+    }
+
+    /**
+     * Execute a tool handler with caching support
+     * @param {string} toolName - Tool name for cache key
+     * @param {Object} params - Tool parameters
+     * @param {Function} handler - Actual handler function
+     * @param {boolean} cacheable - Whether to cache the result
+     * @returns {*} Tool result
+     */
+    #cachedToolCall(toolName, params, handler, cacheable = false) {
+        const done = this.#trackCall(toolName);
+
+        // Build cache key
+        const cacheKey = cacheable ? `${toolName}:${JSON.stringify(params)}` : null;
+
+        // Check cache
+        if (cacheable && cacheKey) {
+            const cached = this.#responseCache.get(cacheKey);
+            if (cached !== undefined) {
+                done(true);
+                return { ...cached, _cached: true };
+            }
+        }
+
+        try {
+            const result = handler.call(this, params);
+
+            // Cache successful results
+            if (cacheable && result && result.success !== false) {
+                const ttl = this.#cacheTTLs[toolName];
+                this.#responseCache.set(cacheKey, result, ttl);
+            }
+
+            done(true);
+            return result;
+        } catch (err) {
+            done(false);
+            return { success: false, error: err.message };
+        }
+    }
+
+    /**
+     * Execute an async tool handler with caching support
+     * @param {string} toolName - Tool name for cache key
+     * @param {Object} params - Tool parameters
+     * @param {Function} handler - Actual async handler function
+     * @param {boolean} cacheable - Whether to cache the result
+     * @returns {Promise<*>} Tool result
+     */
+    async #cachedAsyncToolCall(toolName, params, handler, cacheable = false) {
+        const done = this.#trackCall(toolName);
+
+        // Build cache key
+        const cacheKey = cacheable ? `${toolName}:${JSON.stringify(params)}` : null;
+
+        // Check cache
+        if (cacheable && cacheKey) {
+            const cached = this.#responseCache.get(cacheKey);
+            if (cached !== undefined) {
+                done(true);
+                return { ...cached, _cached: true };
+            }
+        }
+
+        try {
+            const result = await handler.call(this, params);
+
+            // Cache successful results
+            if (cacheable && result && result.success !== false) {
+                const ttl = this.#cacheTTLs[toolName];
+                this.#responseCache.set(cacheKey, result, ttl);
+            }
+
+            done(true);
+            return result;
+        } catch (err) {
+            done(false);
+            return { success: false, error: err.message };
+        }
     }
 
     // ─────────────────────────────────────────────────────────────
