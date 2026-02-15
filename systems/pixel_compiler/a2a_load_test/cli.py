@@ -29,6 +29,7 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
 
     Returns:
         Parsed arguments namespace with:
+        - command: str - Subcommand (benchmark, stress, discover)
         - router: str - Router WebSocket URL
         - agents: List[int] - Agent counts to test
         - messages: List[int] - Message counts to test
@@ -37,23 +38,31 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         - repeat: int - Repeat count
         - output: str - Output JSON file path
         - quick: bool - Quick test flag
+        - profile: str - Stress test profile
+        - min_agents: int - Minimum agents for discover
+        - max_agents: int - Maximum agents for discover
     """
     parser = argparse.ArgumentParser(
         description="A2A Load Testing - Stress test agent-to-agent coordination",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Quick test
-  python -m systems.pixel_compiler.a2a_load_test --quick
-
-  # Full benchmark with custom parameters
+  # Benchmark with custom parameters (legacy mode)
   python -m systems.pixel_compiler.a2a_load_test \\
       --agents 10,50,100 \\
       --messages 100,500,1000 \\
       --topologies star,mesh,ring \\
       --output results.json
+
+  # Stress test with profile
+  python -m systems.pixel_compiler.a2a_load_test stress --profile extreme
+
+  # Discover scale limits
+  python -m systems.pixel_compiler.a2a_load_test discover --min-agents 10 --max-agents 500
 """
     )
+
+    subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
     parser.add_argument(
         "--router",
@@ -104,20 +113,60 @@ Examples:
         help="Run quick test with smaller agent counts and fewer messages"
     )
 
+    # Stress subcommand
+    stress_parser = subparsers.add_parser("stress", help="Run stress test with predefined profiles")
+    stress_parser.add_argument(
+        "--profile",
+        choices=["quick", "standard", "extreme", "endurance"],
+        default="quick",
+        help="Stress test profile"
+    )
+    stress_parser.add_argument(
+        "--router",
+        default="ws://localhost:8766",
+        help="Router URL"
+    )
+    stress_parser.add_argument(
+        "--output",
+        default="stress_report.md",
+        help="Output report file"
+    )
+
+    # Discover subcommand
+    discover_parser = subparsers.add_parser("discover", help="Discover scale limits")
+    discover_parser.add_argument(
+        "--min-agents",
+        type=int,
+        default=10,
+        help="Minimum agent count to test"
+    )
+    discover_parser.add_argument(
+        "--max-agents",
+        type=int,
+        default=1000,
+        help="Maximum agent count to test"
+    )
+    discover_parser.add_argument(
+        "--router",
+        default="ws://localhost:8766",
+        help="Router URL"
+    )
+
     parsed = parser.parse_args(args)
 
-    # Convert comma-separated strings to lists
-    if parsed.quick:
-        # Quick mode uses smaller counts
-        parsed.agents = [5, 10]
-        parsed.messages = [50, 100]
-        parsed.topologies = ["star"]
-        parsed.intervals = [100]
-    else:
-        parsed.agents = [int(x.strip()) for x in parsed.agents.split(",")]
-        parsed.messages = [int(x.strip()) for x in parsed.messages.split(",")]
-        parsed.topologies = [x.strip() for x in parsed.topologies.split(",")]
-        parsed.intervals = [int(x.strip()) for x in parsed.intervals.split(",")]
+    # Convert comma-separated strings to lists for legacy mode
+    if parsed.command is None:
+        if parsed.quick:
+            # Quick mode uses smaller counts
+            parsed.agents = [5, 10]
+            parsed.messages = [50, 100]
+            parsed.topologies = ["star"]
+            parsed.intervals = [100]
+        else:
+            parsed.agents = [int(x.strip()) for x in parsed.agents.split(",")]
+            parsed.messages = [int(x.strip()) for x in parsed.messages.split(",")]
+            parsed.topologies = [x.strip() for x in parsed.topologies.split(",")]
+            parsed.intervals = [int(x.strip()) for x in parsed.intervals.split(",")]
 
     return parsed
 

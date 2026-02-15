@@ -133,3 +133,68 @@ class TestCLI:
         assert args.messages == [100, 500]
         assert args.topologies == ["star", "mesh"]
         assert args.output == "results.json"
+
+
+class TestStressCLI:
+    """Tests for stress test CLI."""
+
+    def test_cli_stress_command_import(self):
+        """CLI has stress command."""
+        from systems.pixel_compiler.a2a_load_test.cli import parse_args
+
+        args = parse_args([
+            "stress",
+            "--profile", "quick",
+            "--router", "ws://localhost:8766"
+        ])
+
+        assert args.command == "stress"
+        assert args.profile == "quick"
+        assert args.router == "ws://localhost:8766"
+
+    def test_cli_stress_profiles(self):
+        """CLI accepts all profile types."""
+        from systems.pixel_compiler.a2a_load_test.cli import parse_args
+
+        for profile in ["quick", "standard", "extreme", "endurance"]:
+            args = parse_args([
+                "stress",
+                "--profile", profile
+            ])
+            assert args.profile == profile
+
+    def test_cli_stress_output(self):
+        """CLI accepts output file."""
+        from systems.pixel_compiler.a2a_load_test.cli import parse_args
+
+        args = parse_args([
+            "stress",
+            "--output", "report.md"
+        ])
+
+        assert args.output == "report.md"
+
+    def test_cli_discover_command(self):
+        """CLI has discover command for limit finding."""
+        from systems.pixel_compiler.a2a_load_test.cli import parse_args
+
+        args = parse_args([
+            "discover",
+            "--min-agents", "10",
+            "--max-agents", "500"
+        ])
+
+        assert args.command == "discover"
+        assert args.min_agents == 10
+        assert args.max_agents == 500
+
+    def test_cli_discover_router(self):
+        """CLI discover accepts router URL."""
+        from systems.pixel_compiler.a2a_load_test.cli import parse_args
+
+        args = parse_args([
+            "discover",
+            "--router", "ws://test:9000"
+        ])
+
+        assert args.router == "ws://test:9000"
