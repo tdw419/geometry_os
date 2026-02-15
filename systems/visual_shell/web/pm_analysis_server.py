@@ -12,6 +12,7 @@ Endpoints:
   GET  /service/status      - Get autonomous service status
   POST /service/start       - Start autonomous improvement service
   POST /service/stop        - Stop autonomous improvement service
+  GET  /cycle/history       - Get improvement cycle history
 """
 
 import json
@@ -59,6 +60,9 @@ class PMAnalysisHandler(BaseHTTPRequestHandler):
             })
         elif path == "/service/status":
             result = self._handle_service_status()
+            self._send_json(result)
+        elif path == "/cycle/history":
+            result = self._handle_cycle_history()
             self._send_json(result)
         else:
             self._send_error(404, "Not found")
@@ -259,6 +263,16 @@ class PMAnalysisHandler(BaseHTTPRequestHandler):
             "message": "Service stop requested"
         }
 
+    def _handle_cycle_history(self) -> Dict[str, Any]:
+        """Get cycle history."""
+        # For now, return mock history
+        # In production, would track actual history
+        return {
+            "success": True,
+            "history": [],
+            "count": 0
+        }
+
     def _send_json(self, data, status=200):
         """Send JSON response with CORS headers."""
         self.send_response(status)
@@ -293,6 +307,7 @@ def run_server(port=8769):
     print("  GET  /service/status      - Service status")
     print("  POST /service/start       - Start service")
     print("  POST /service/stop        - Stop service")
+    print("  GET  /cycle/history       - Cycle history")
     if AI_PM_AVAILABLE:
         print("  AI PM: AVAILABLE")
     else:
