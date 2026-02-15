@@ -214,6 +214,9 @@ class WebMCPBridge {
     /** @type {PyodideTileBridge|null} */
     #pyodideTileBridge = null;
 
+    /** @type {LinuxTileBridge|null} */
+    #linuxTileBridge = null;
+
     /** @type {WebSocket|null} */
     #a2aSocket = null;
 
@@ -777,6 +780,7 @@ class WebMCPBridge {
             await this.#registerLinuxExec();
             await this.#registerLinuxReadFile();
             await this.#registerLinuxWriteFile();
+            await this.#registerLinuxBootAtPosition();
 
             // Phase H tools - WGPU Hypervisor (Pure Client-Side)
             await this.#registerHypervisorBoot();
@@ -5984,6 +5988,77 @@ class WebMCPBridge {
         this.#registeredTools.push(tool.name);
     }
 
+    async #registerLinuxBootAtPosition() {
+        const self = this;
+        const tool = {
+            name: 'linux_boot_at_position',
+            description: 'Boot a Linux VM session and place it at specific coordinates on the Infinite Map.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    kernel: {
+                        type: 'string',
+                        description: 'Kernel/distro to boot (e.g., "alpine")',
+                        default: 'alpine'
+                    },
+                    x: {
+                        type: 'number',
+                        description: 'X coordinate on the map for session tile'
+                    },
+                    y: {
+                        type: 'number',
+                        description: 'Y coordinate on the map for session tile'
+                    },
+                    options: {
+                        type: 'object',
+                        description: 'Additional boot options',
+                        properties: {
+                            memory: { type: 'number', description: 'Memory in MB' },
+                            cores: { type: 'number', description: 'CPU cores' }
+                        }
+                    }
+                },
+                required: ['x', 'y']
+            },
+            handler: async (args) => {
+                const { kernel = 'alpine', x, y, options = {} } = args;
+
+                self.#callCount++;
+                self.#toolCallCounts['linux_boot_at_position'] = (self.#toolCallCounts['linux_boot_at_position'] || 0) + 1;
+
+                try {
+                    const bridge = self.#getLinuxTileBridge();
+                    if (!bridge) {
+                        throw new Error('LinuxTileBridge not available. Load linux_tile_bridge.js first.');
+                    }
+
+                    const result = await bridge.bootAtPosition(kernel, { x, y }, options);
+
+                    return {
+                        success: result.success,
+                        sessionId: result.sessionId,
+                        tilePlaced: result.tilePlaced,
+                        position: result.position,
+                        error: result.error || null
+                    };
+
+                } catch (error) {
+                    console.error('🔌 WebMCP: linux_boot_at_position error:', error);
+                    return {
+                        success: false,
+                        tilePlaced: false,
+                        error: error.message
+                    };
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
+        navigator.modelContext.toolHandlers[tool.name] = tool.handler;
+        this.#registeredTools.push(tool.name);
+    }
+
     async #callLinuxBridge(command, params) {
         const wsUrl = 'ws://localhost:8767';
 
@@ -7608,6 +7683,27 @@ class WebMCPBridge {
             this.#pyodideExecutor = new PyodideExecutor();
         }
         return this.#pyodideExecutor;
+    }
+
+    /**
+     * Get or create LinuxTileBridge instance
+     * @returns {LinuxTileBridge|null}
+     * @private
+     */
+    #getLinuxTileBridge() {
+        if (!this.#linuxTileBridge) {
+            const mockClient = {
+                connected: false,
+                call: async (command, params) => {
+                    return this.#callLinuxBridge(command, params);
+                }
+            };
+            this.#linuxTileBridge = new LinuxTileBridge(
+                this.#app.infiniteMap || this.#app,
+                mockClient
+            );
+        }
+        return this.#linuxTileBridge;
     }
 
     // ─────────────────────────────────────────────────────────────
