@@ -2,11 +2,17 @@
 
 The AutofixGenerator analyzes test failures and generates automated fixes
 using pattern matching and code transformation techniques.
+
+WebMCP Integration:
+    When use_webmcp=True, the generator uses WebMCP IDE tools for enhanced
+    compilation and testing capabilities via the HTTP bridge.
 """
 
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Any
 import re
+import subprocess
+import sys
 
 
 @dataclass
@@ -19,14 +25,50 @@ class AutofixGenerator:
     - AttributeErrors (fix attribute access)
     - IndexErrors (add bounds checking)
 
+    WebMCP Integration:
+        When use_webmcp=True, validates syntax via ide_compile and runs
+        tests via ide_test through the WebMCP HTTP bridge.
+
     Attributes:
         confidence_threshold: Minimum confidence (0-1) to apply a fix
         max_fix_size: Maximum lines a fix can modify
+        use_webmcp: Enable WebMCP IDE tools integration
+        _bridge: WebMCP bridge instance (lazily initialized)
+        _webmcp_available: Whether WebMCP bridge is available
     """
 
     confidence_threshold: float = 0.7
     max_fix_size: int = 10
+    use_webmcp: bool = False
     _fix_count: int = field(default=0, init=False, repr=False)
+    _bridge: Any = field(default=None, init=False, repr=False)
+    _webmcp_available: bool = field(default=False, init=False, repr=False)
+
+    def __post_init__(self):
+        """Initialize WebMCP bridge if use_webmcp is enabled."""
+        if self.use_webmcp:
+            self._check_webmcp_availability()
+
+    def _check_webmcp_availability(self) -> bool:
+        """Check if WebMCP bridge is available.
+
+        Returns:
+            True if WebMCP bridge is available, False otherwise.
+        """
+        try:
+            # Try to import the WebMCP bridge
+            from systems.visual_shell.web.webmcp_http_bridge import WebMCPHTTPBridge
+            self._bridge = WebMCPHTTPBridge()
+            self._webmcp_available = True
+            return True
+        except ImportError:
+            # WebMCP bridge not available - will use fallbacks
+            self._webmcp_available = False
+            return False
+        except Exception:
+            # Other errors - disable WebMCP
+            self._webmcp_available = False
+            return False
 
     def generate_fix(self, failure_info: Dict[str, Any], source_code: str) -> Dict[str, Any]:
         """Generate a fix for a given test failure.
@@ -335,3 +377,171 @@ class AutofixGenerator:
             "explanation": "No specific fix pattern matched for this IndexError",
             "lines_modified": []
         }
+
+    def validate_syntax(self, source_code: str, language: str = "python") -> Dict[str, Any]:
+        """Validate source code syntax.
+
+        If use_webmcp is True and bridge is available, uses WebMCP ide_compile.
+        Otherwise, falls back to Python's compile().
+
+        Args:
+            source_code: Source code to validate
+            language: Programming language (default: "python")
+
+        Returns:
+            Dictionary with:
+                - valid: True if syntax is valid
+                - errors: List of error messages (empty if valid)
+                - method: "webmcp" or "fallback"
+        """
+        if self.use_webmcp and self._webmcp_available and self._bridge:
+            try:
+                # Use WebMCP ide_compile for validation
+                result = self._bridge.call_tool("ide_compile", {
+                    "source": source_code,
+                    "language": language
+                })
+                if result and "success" in result:
+                    return {
+                        "valid": result.get("success", False),
+                        "errors": result.get("errors", []),
+                        "method": "webmcp"
+                    }
+            except Exception as e:
+                # Fall back to native validation on error
+                pass
+
+        # Fallback: Use Python's compile()
+        if language == "python":
+            try:
+                compile(source_code, "<string>", "exec")
+                return {
+                    "valid": True,
+                    "errors": [],
+                    "method": "fallback"
+                }
+            except SyntaxError as e:
+                return {
+                    "valid": False,
+                    "errors": [str(e)],
+                    "method": "fallback"
+                }
+        else:
+            # For non-Python languages without WebMCP, return unknown
+            return {
+                "valid": True,  # Assume valid if we can't check
+                "errors": [],
+                "method": "fallback",
+                "warning": f"No syntax validation available for {language}"
+            }
+
+    def run_validation_test(
+        self,
+        test_path: Optional[str] = None,
+        test_pattern: Optional[str] = None,
+        timeout: float = 30.0
+    ) -> Dict[str, Any]:
+        """Run tests to validate a fix.
+
+        If use_webmcp is True and bridge is available, uses WebMCP ide_test.
+        Otherwise, falls back to subprocess pytest.
+
+        Args:
+            test_path: Path to test file or directory
+            test_pattern: Pattern to filter tests (e.g., "test_fix_")
+            timeout: Maximum time to wait for tests (seconds)
+
+        Returns:
+            Dictionary with:
+                - success: True if all tests passed
+                - total: Total number of tests
+                - passed: Number of passing tests
+                - failed: Number of failing tests
+                - results: List of individual test results
+                - method: "webmcp" or "fallback"
+        """
+        if self.use_webmcp and self._webmcp_available and self._bridge:
+            try:
+                # Use WebMCP ide_test for testing
+                params = {"timeout": int(timeout * 1000)}  # Convert to ms
+                if test_pattern:
+                    params["test_pattern"] = test_pattern
+                if test_path:
+                    params["test_file"] = test_path
+
+                result = self._bridge.call_tool("ide_test", params)
+                if result and "success" in result:
+                    return {
+                        "success": result.get("success", False),
+                        "total": result.get("total", 0),
+                        "passed": result.get("passed", 0),
+                        "failed": result.get("failed", 0),
+                        "results": result.get("results", []),
+                        "method": "webmcp"
+                    }
+            except Exception as e:
+                # Fall back to subprocess pytest on error
+                pass
+
+        # Fallback: Use subprocess pytest
+        cmd = [sys.executable, "-m", "pytest", "-v", "--tb=short"]
+        if test_path:
+            cmd.append(test_path)
+        if test_pattern:
+            cmd.extend(["-k", test_pattern])
+
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                cwd="/home/jericho/zion/projects/geometry_os/geometry_os"
+            )
+
+            # Parse pytest output for structured results
+            output = result.stdout + result.stderr
+
+            # Simple parsing - look for summary line
+            total = passed = failed = 0
+            for line in output.split("\n"):
+                if " passed" in line or " failed" in line:
+                    # Parse lines like "5 passed, 1 failed"
+                    parts = line.split()
+                    for i, part in enumerate(parts):
+                        if "passed" in part and i > 0:
+                            passed = int(parts[i - 1])
+                        elif "failed" in part and i > 0:
+                            failed = int(parts[i - 1])
+
+            total = passed + failed
+
+            return {
+                "success": result.returncode == 0,
+                "total": total,
+                "passed": passed,
+                "failed": failed,
+                "results": [],  # Full parsing would require more work
+                "output": output,
+                "method": "fallback"
+            }
+        except subprocess.TimeoutExpired:
+            return {
+                "success": False,
+                "total": 0,
+                "passed": 0,
+                "failed": 0,
+                "results": [],
+                "error": "Test execution timed out",
+                "method": "fallback"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "total": 0,
+                "passed": 0,
+                "failed": 0,
+                "results": [],
+                "error": str(e),
+                "method": "fallback"
+            }

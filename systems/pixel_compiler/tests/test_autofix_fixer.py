@@ -228,3 +228,147 @@ class TestAutofixGenerator:
         # The counter is placeholder for future metrics tracking
         # This test verifies the attribute exists and is initialized
         assert hasattr(generator, "_fix_count")
+
+    def test_generator_with_webmcp_disabled_by_default(self):
+        """Test that WebMCP is disabled by default."""
+        generator = AutofixGenerator()
+        assert generator.use_webmcp is False
+        assert generator._webmcp_available is False
+        assert generator._bridge is None
+
+    def test_generator_webmcp_initialization(self):
+        """Test WebMCP initialization when enabled."""
+        generator = AutofixGenerator(use_webmcp=True)
+        assert generator.use_webmcp is True
+        # _webmcp_available will be False if bridge module not found
+        assert hasattr(generator, "_webmcp_available")
+
+    def test_validate_syntax_with_fallback(self):
+        """Test syntax validation using fallback method."""
+        generator = AutofixGenerator()  # WebMCP disabled
+
+        # Valid Python code
+        valid_code = "def hello():\n    return 'world'\n"
+        result = generator.validate_syntax(valid_code, "python")
+        assert result["valid"] is True
+        assert result["method"] == "fallback"
+        assert len(result["errors"]) == 0
+
+        # Invalid Python code
+        invalid_code = "def hello(:\n    return 'world'\n"
+        result = generator.validate_syntax(invalid_code, "python")
+        assert result["valid"] is False
+        assert result["method"] == "fallback"
+        assert len(result["errors"]) > 0
+
+    def test_validate_syntax_with_webmcp_mock(self):
+        """Test syntax validation with mocked WebMCP bridge."""
+        from unittest.mock import Mock, patch
+
+        generator = AutofixGenerator(use_webmcp=True)
+
+        # Mock the bridge
+        mock_bridge = Mock()
+        mock_bridge.call_tool.return_value = {
+            "success": True,
+            "errors": []
+        }
+        generator._bridge = mock_bridge
+        generator._webmcp_available = True
+
+        result = generator.validate_syntax("print('hello')", "python")
+
+        assert result["valid"] is True
+        assert result["method"] == "webmcp"
+        mock_bridge.call_tool.assert_called_once_with(
+            "ide_compile",
+            {"source": "print('hello')", "language": "python"}
+        )
+
+    def test_validate_syntax_webmcp_fallback_on_error(self):
+        """Test that syntax validation falls back to native when WebMCP fails."""
+        from unittest.mock import Mock, patch
+
+        generator = AutofixGenerator(use_webmcp=True)
+
+        # Mock bridge that raises exception
+        mock_bridge = Mock()
+        mock_bridge.call_tool.side_effect = Exception("Bridge unavailable")
+        generator._bridge = mock_bridge
+        generator._webmcp_available = True
+
+        result = generator.validate_syntax("print('hello')", "python")
+
+        # Should fall back to native validation
+        assert result["valid"] is True
+        assert result["method"] == "fallback"
+
+    def test_run_validation_test_with_webmcp_mock(self):
+        """Test test execution with mocked WebMCP bridge."""
+        from unittest.mock import Mock
+
+        generator = AutofixGenerator(use_webmcp=True)
+
+        # Mock the bridge
+        mock_bridge = Mock()
+        mock_bridge.call_tool.return_value = {
+            "success": True,
+            "total": 5,
+            "passed": 5,
+            "failed": 0,
+            "results": [
+                {"name": "test_1", "status": "pass"},
+                {"name": "test_2", "status": "pass"}
+            ]
+        }
+        generator._bridge = mock_bridge
+        generator._webmcp_available = True
+
+        result = generator.run_validation_test(
+            test_pattern="test_example",
+            timeout=10.0
+        )
+
+        assert result["success"] is True
+        assert result["method"] == "webmcp"
+        assert result["total"] == 5
+        assert result["passed"] == 5
+        assert result["failed"] == 0
+
+        # Verify the bridge was called with correct params
+        call_args = mock_bridge.call_tool.call_args
+        assert call_args[0][0] == "ide_test"
+        assert call_args[0][1]["timeout"] == 10000  # Converted to ms
+        assert call_args[0][1]["test_pattern"] == "test_example"
+
+    def test_run_validation_test_webmcp_fallback_on_error(self):
+        """Test that test execution falls back when WebMCP fails."""
+        from unittest.mock import Mock
+
+        generator = AutofixGenerator(use_webmcp=True)
+
+        # Mock bridge that raises exception
+        mock_bridge = Mock()
+        mock_bridge.call_tool.side_effect = Exception("Bridge unavailable")
+        generator._bridge = mock_bridge
+        generator._webmcp_available = True
+
+        # Run with a test that should fail (nonexistent test file)
+        result = generator.run_validation_test(
+            test_path="nonexistent_test_file.py",
+            timeout=5.0
+        )
+
+        # Should fall back to pytest
+        assert result["method"] == "fallback"
+
+    def test_generator_with_custom_threshold_and_webmcp(self):
+        """Test that both WebMCP and custom config can be set together."""
+        generator = AutofixGenerator(
+            confidence_threshold=0.9,
+            max_fix_size=20,
+            use_webmcp=True
+        )
+        assert generator.confidence_threshold == 0.9
+        assert generator.max_fix_size == 20
+        assert generator.use_webmcp is True
