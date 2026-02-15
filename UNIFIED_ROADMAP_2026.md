@@ -538,24 +538,37 @@ result = engine.route_request(request)
 
 ---
 
-## Q3 2026 Roadmap Status
+### Phase N: AI-Assisted IDE Tools ✅ COMPLETE
 
-**Completed Phases:** K, L, M (3/3)
+**Completed:** 2026-02-14
 
-**Next Milestone:** Q4 2026 - Visual IDE & Production
+**Goal:** Enable AI agents to autonomously write, test, debug, and deploy code.
 
-### Proposed Phase N: Visual IDE Enhancement
+**Deliverables:**
+- `systems/visual_shell/web/ide_tools.js` - ES module with 4 tools
+- `systems/visual_shell/web/test_ide_tools.html` - 12 automated tests
+- WebMCP Bridge v2.1.0 with IDE tool integration
 
-**Goal:** Extend Neural IDE with full development capabilities.
-
-**Proposed WebMCP Tools:**
+**WebMCP Tools Added:**
 | Tool | Description |
 |------|-------------|
-| `ide_compile` | Compile code on the map |
+| `ide_compile` | Compile WGSL/JS/Python code |
+| `ide_test` | Run tests with structured results |
 | `ide_debug` | Debug with breakpoints |
-| `ide_test` | Run tests visually |
-| `ide_deploy` | Deploy to cartridge |
+| `ide_deploy` | Deploy to .rts.png cartridge |
 
-**Key Files:**
-- `systems/visual_shell/web/ide_tile_types.js`
-- `systems/visual_shell/web/IDETileRenderer.wgsl`
+**Features:**
+- Hybrid runtime (browser for WGSL/JS, bridge for Python)
+- Mock fallback mode when backend unavailable
+- Structured JSON output for AI consumption
+- Full development cycle support
+
+**Total WebMCP Tools:** 93
+
+---
+
+## Q3 2026 Roadmap Status
+
+**Completed Phases:** K, L, M, N (4/4)
+
+**Next Milestone:** Q4 2026 - Visual IDE & Production
