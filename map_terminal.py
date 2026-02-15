@@ -93,7 +93,7 @@ class MapTerminal:
 
     async def init_display(self):
         """Initialize the terminal display on the map."""
-        # Create terminal window
+        # Create terminal window with keyboard capture
         setup_js = f"""
             // Store terminal state globally
             window.mapTerminal = {{
@@ -102,8 +102,75 @@ class MapTerminal:
                 width: {self.width},
                 height: {self.height},
                 lines: [],
-                cursorVisible: true
+                cursorVisible: true,
+                focused: false,
+                inputSocket: null
             }};
+
+            // Connect to input server
+            try {{
+                window.mapTerminal.inputSocket = new WebSocket('ws://localhost:8765');
+                window.mapTerminal.inputSocket.onopen = () => {{
+                    console.log('Terminal input socket connected');
+                }};
+                window.mapTerminal.inputSocket.onclose = () => {{
+                    console.log('Terminal input socket disconnected');
+                }};
+                window.mapTerminal.inputSocket.onerror = (e) => {{
+                    console.error('Terminal input socket error:', e);
+                }};
+            }} catch (e) {{
+                console.error('Failed to connect input socket:', e);
+            }}
+
+            // Click detection for focus
+            window.geometryOSApp.app.view.addEventListener('click', (e) => {{
+                const rect = window.geometryOSApp.app.view.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const term = window.mapTerminal;
+
+                // Check if click is inside terminal
+                const insideTerminal = (
+                    x >= term.x && x <= term.x + term.width &&
+                    y >= term.y && y <= term.y + term.height
+                );
+
+                if (insideTerminal && !term.focused) {{
+                    term.focused = true;
+                    if (term.inputSocket && term.inputSocket.readyState === WebSocket.OPEN) {{
+                        term.inputSocket.send(JSON.stringify({{type: 'focus', focused: true}}));
+                    }}
+                }} else if (!insideTerminal && term.focused) {{
+                    term.focused = false;
+                    if (term.inputSocket && term.inputSocket.readyState === WebSocket.OPEN) {{
+                        term.inputSocket.send(JSON.stringify({{type: 'focus', focused: false}}));
+                    }}
+                }}
+            }});
+
+            // Keyboard capture
+            document.addEventListener('keydown', (e) => {{
+                const term = window.mapTerminal;
+                if (!term.focused) return;
+
+                // Prevent default for most keys
+                if (e.key !== 'F11' && e.key !== 'F12') {{
+                    e.preventDefault();
+                }}
+
+                // Send to Python
+                if (term.inputSocket && term.inputSocket.readyState === WebSocket.OPEN) {{
+                    term.inputSocket.send(JSON.stringify({{
+                        type: 'key',
+                        key: e.key,
+                        code: e.code,
+                        ctrlKey: e.ctrlKey,
+                        shiftKey: e.shiftKey,
+                        altKey: e.altKey
+                    }}));
+                }}
+            }});
 
             // Clear and draw terminal background
             window.geometryOSApp.clearGraphics();
@@ -129,7 +196,7 @@ class MapTerminal:
             );
 
             // Title text
-            window.geometryOSApp.placeText('term_title', 'Terminal',
+            window.geometryOSApp.placeText('term_title', 'Terminal (click to focus)',
                 window.mapTerminal.x + 10, window.mapTerminal.y + 12,
                 {{fontFamily: 'Courier New', fontSize: 12, fill: 0x00FF00}}
             );
@@ -144,6 +211,7 @@ class MapTerminal:
         """
         await self.send_js(setup_js)
         print("Terminal display initialized on map")
+        print("Click on the terminal to focus, then type!")
 
     async def render(self):
         """Render all terminal lines to the map."""
