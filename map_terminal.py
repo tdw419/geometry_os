@@ -279,37 +279,28 @@ async def main():
         global terminal
         terminal = MapTerminal(ws, x=400, y=150, width=450, height=350)
 
+        # Create input server
+        input_server = InputServer(terminal, port=8765)
+
         await terminal.init_display()
 
         print()
-        print("Terminal ready! The terminal window is now visible on the map.")
+        print("Terminal ready!")
         print()
-        print("To send commands, open the browser console and type:")
-        print("  terminal.input('ls -la')")
-        print("  terminal.input('pwd')")
-        print("  terminal.input('echo Hello from the map!')")
+        print("  • Click on the terminal to focus it")
+        print("  • Type commands directly")
+        print("  • Press Enter to execute")
+        print("  • Press Escape to clear input")
+        print("  • Click outside to unfocus")
         print()
-        print("Or run some demo commands now...")
 
-        # Run some demo commands
-        demo_commands = [
-            "echo 'Welcome to Geometry OS Terminal!'",
-            "whoami",
-            "pwd",
-            "date",
-            "uname -a"
-        ]
+        # Run welcome command
+        await terminal.input("echo 'Welcome to Geometry OS Terminal!'")
+        await asyncio.sleep(0.5)
 
-        for cmd in demo_commands:
-            await asyncio.sleep(1)
-            await terminal.input(cmd)
-
-        print()
-        print("Demo complete! Terminal is ready for input.")
-        print("Type terminal.input('your command') in the browser console.")
-
-        # Keep terminal object accessible
-        # In a real implementation, we'd expose this via a server
+        # Start input server (this runs forever)
+        await input_server.start()
+        await input_server.server.serve_forever()
 
     # Make terminal accessible after connection closes
     print("\nTerminal session ended.")
