@@ -97,6 +97,125 @@
  * @date 2026-02-15
  */
 
+/**
+ * ToolMetrics - Tracks latency, success/failure rates, and throughput per tool
+ */
+class ToolMetrics {
+    constructor() {
+        this.metrics = new Map();
+    }
+
+    /**
+     * Record a tool invocation
+     * @param {string} toolName - Name of the tool
+     * @param {number} latencyMs - Execution time in milliseconds
+     * @param {boolean} success - Whether the call succeeded
+     */
+    record(toolName, latencyMs, success) {
+        if (!this.metrics.has(toolName)) {
+            this.metrics.set(toolName, {
+                calls: 0,
+                successes: 0,
+                failures: 0,
+                latencies: [],
+                lastCall: null
+            });
+        }
+        const m = this.metrics.get(toolName);
+        m.calls++;
+        if (success) m.successes++;
+        else m.failures++;
+        m.latencies.push(latencyMs);
+        m.lastCall = Date.now();
+
+        // Keep only last 1000 latencies for percentile calculation
+        if (m.latencies.length > 1000) {
+            m.latencies.shift();
+        }
+    }
+
+    /**
+     * Calculate percentile of sorted array
+     * @param {number[]} sorted - Sorted array of values
+     * @param {number} p - Percentile (0-100)
+     * @returns {number} Percentile value
+     */
+    percentile(sorted, p) {
+        if (sorted.length === 0) return 0;
+        const idx = Math.ceil((p / 100) * sorted.length) - 1;
+        return sorted[Math.max(0, idx)];
+    }
+
+    /**
+     * Get metrics for a specific tool
+     * @param {string} toolName - Name of the tool
+     * @returns {Object} Metrics object
+     */
+    getToolMetrics(toolName) {
+        const m = this.metrics.get(toolName);
+        if (!m) return null;
+
+        const sorted = [...m.latencies].sort((a, b) => a - b);
+        return {
+            calls: m.calls,
+            successes: m.successes,
+            failures: m.failures,
+            successRate: m.calls > 0 ? (m.successes / m.calls * 100).toFixed(1) : 0,
+            latency: {
+                p50: this.percentile(sorted, 50),
+                p95: this.percentile(sorted, 95),
+                p99: this.percentile(sorted, 99),
+                min: sorted[0] || 0,
+                max: sorted[sorted.length - 1] || 0
+            },
+            lastCall: m.lastCall
+        };
+    }
+
+    /**
+     * Get metrics for all tools
+     * @returns {Object} All metrics keyed by tool name
+     */
+    getAllMetrics() {
+        const result = {};
+        for (const [name] of this.metrics) {
+            result[name] = this.getToolMetrics(name);
+        }
+        return result;
+    }
+
+    /**
+     * Get aggregate statistics
+     * @returns {Object} Aggregate stats
+     */
+    getAggregateStats() {
+        let totalCalls = 0;
+        let totalSuccesses = 0;
+        let totalFailures = 0;
+        const allLatencies = [];
+
+        for (const m of this.metrics.values()) {
+            totalCalls += m.calls;
+            totalSuccesses += m.successes;
+            totalFailures += m.failures;
+            allLatencies.push(...m.latencies);
+        }
+
+        const sorted = allLatencies.sort((a, b) => a - b);
+        return {
+            totalCalls,
+            totalSuccesses,
+            totalFailures,
+            successRate: totalCalls > 0 ? (totalSuccesses / totalCalls * 100).toFixed(1) : 0,
+            latency: {
+                p50: this.percentile(sorted, 50),
+                p95: this.percentile(sorted, 95),
+                p99: this.percentile(sorted, 99)
+            }
+        };
+    }
+}
+
 class WebMCPBridge {
 
     #app = null;
@@ -180,6 +299,9 @@ class WebMCPBridge {
 
     /** @type {Object<string, number>} */
     #toolCallCounts = {};
+
+    /** @type {ToolMetrics} Detailed metrics tracker */
+    #toolMetrics = new ToolMetrics();
 
     /** @type {WebSocket|null} */
     #evolutionSocket = null;
@@ -7791,9 +7913,21 @@ class WebMCPBridge {
     // Observability
     // ─────────────────────────────────────────────────────────────
 
+    /**
+     * Track tool invocation with timing wrapper
+     * @param {string} toolName - Name of the tool
+     * @returns {Function} Call this with success boolean when done
+     */
     #trackCall(toolName) {
         this.#callCount++;
         this.#toolCallCounts[toolName] = (this.#toolCallCounts[toolName] || 0) + 1;
+        const startTime = performance.now();
+
+        // Return a completion function
+        return (success = true) => {
+            const latencyMs = performance.now() - startTime;
+            this.#toolMetrics.record(toolName, latencyMs, success);
+        };
     }
 
     // ─────────────────────────────────────────────────────────────
