@@ -37,9 +37,22 @@ try:
 except ImportError:
     FixSuggester = None  # type: ignore
 
+# Also export data classes
+try:
+    from systems.testing.test_runner import TestResult
+except ImportError:
+    TestResult = None  # type: ignore
+
+try:
+    from systems.testing.test_selector import CoverageInfo
+except ImportError:
+    CoverageInfo = None  # type: ignore
+
 __all__ = [
     "TestRunner",
     "TestSelector",
     "FailureAnalyzer",
     "FixSuggester",
+    "TestResult",
+    "CoverageInfo",
 ]
