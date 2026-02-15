@@ -1036,6 +1036,7 @@ class WebMCPBridge {
 
             // Phase H tools - Performance Optimization
             await this.#registerPerfGetMetrics();
+            await this.#registerPerfCacheInvalidate();
 
             // Phase K tools - Neural Kernel Management
             await this.#registerKernelList();
@@ -1750,6 +1751,89 @@ class WebMCPBridge {
                 toolCount: Object.keys(allMetrics).length,
                 cache: this.#responseCache.getStats(),
                 timestamp: new Date().toISOString()
+            };
+        } catch (err) {
+            done(false);
+            return { success: false, error: err.message };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool: perf_cache_invalidate (Phase H - Performance Optimization)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerPerfCacheInvalidate() {
+        const tool = {
+            name: 'perf_cache_invalidate',
+            description:
+                'Invalidate the response cache for specific tools or patterns. ' +
+                'Use this when you know cached data is stale.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    tool: {
+                        type: 'string',
+                        description: 'Tool name to invalidate (or use pattern for regex matching)'
+                    },
+                    pattern: {
+                        type: 'boolean',
+                        description: 'Treat tool as regex pattern (default: false)'
+                    },
+                    all: {
+                        type: 'boolean',
+                        description: 'Clear entire cache (default: false)'
+                    }
+                }
+            },
+            handler: async (params) => {
+                return this.#handlePerfCacheInvalidate(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    #handlePerfCacheInvalidate({ tool, pattern = false, all = false }) {
+        const done = this.#trackCall('perf_cache_invalidate');
+
+        try {
+            if (all) {
+                this.#responseCache.clear();
+                done(true);
+                return {
+                    success: true,
+                    action: 'cleared_all',
+                    message: 'Cache cleared completely'
+                };
+            }
+
+            if (!tool) {
+                done(false);
+                return {
+                    success: false,
+                    error: 'Must specify tool name or set all=true'
+                };
+            }
+
+            const before = this.#responseCache.cache.size;
+
+            if (pattern) {
+                const regex = new RegExp(tool);
+                this.#responseCache.invalidate(regex);
+            } else {
+                // Invalidate all entries starting with tool name
+                this.#responseCache.invalidate(new RegExp(`^${tool}:`));
+            }
+
+            const after = this.#responseCache.cache.size;
+            done(true);
+            return {
+                success: true,
+                action: 'invalidated',
+                tool,
+                pattern,
+                entriesRemoved: before - after
             };
         } catch (err) {
             done(false);
