@@ -504,3 +504,58 @@ result = engine.route_request(request)
 - AI-driven kernel selection with confidence scoring
 - Automatic monitoring and recovery
 - Configurable policies (performance/latency/throughput/reliability)
+
+---
+
+### Phase M: AI PM + WebMCP Integration ✅ COMPLETE
+
+**Completed:** 2026-02-14
+
+**Goal:** Enable AI agents to manage project development through WebMCP tools.
+
+**Deliverables:**
+- `systems/visual_shell/web/pm_tools.js` - PM tools ES module
+- `systems/visual_shell/web/webmcp_bridge.js` - Updated to v2.0.0
+- `systems/visual_shell/web/test_pm_tools.html` - 12 automated tests
+- Puppeteer-based programmatic testing capability
+
+**WebMCP Tools Added:**
+| Tool | Description |
+|------|-------------|
+| `pm_get_roadmap` | Get project roadmap overview |
+| `pm_get_phases` | List all phases with status |
+| `pm_get_tasks` | Get tasks for a phase |
+| `pm_update_task` | Update task status |
+| `pm_create_task` | Create new tasks |
+
+**Features:**
+- Full roadmap status visibility
+- Phase and task management
+- Programmatic browser testing via Puppeteer
+- HTTP bridge ready for Python backend integration
+
+**Total WebMCP Tools:** 89
+
+---
+
+## Q3 2026 Roadmap Status
+
+**Completed Phases:** K, L, M (3/3)
+
+**Next Milestone:** Q4 2026 - Visual IDE & Production
+
+### Proposed Phase N: Visual IDE Enhancement
+
+**Goal:** Extend Neural IDE with full development capabilities.
+
+**Proposed WebMCP Tools:**
+| Tool | Description |
+|------|-------------|
+| `ide_compile` | Compile code on the map |
+| `ide_debug` | Debug with breakpoints |
+| `ide_test` | Run tests visually |
+| `ide_deploy` | Deploy to cartridge |
+
+**Key Files:**
+- `systems/visual_shell/web/ide_tile_types.js`
+- `systems/visual_shell/web/IDETileRenderer.wgsl`
