@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 4 of 4 (Visual Catalog Manager) - IN PROGRESS
-Plan: 3 of 5 complete (04-01, 04-02, 04-03 done)
+Plan: 4 of 5 complete (04-01, 04-02, 04-03, 04-04 done)
 Status: In progress
-Last activity: 2026-02-15 - Completed 04-03 Catalog Server
+Last activity: 2026-02-15 - Completed 04-04 Catalog CLI and Tests
 
-Progress: [███████████░░░░░░░░░] 55% (21/38 planned - estimating 4 phases x ~10 plans)
+Progress: [████████████░░░░░░░] 58% (22/38 planned - estimating 4 phases x ~10 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 21 (Phase 1: 8 + Phase 2: 6 + Phase 3: 4 + Phase 4: 3)
+- Total plans completed: 22 (Phase 1: 8 + Phase 2: 6 + Phase 3: 4 + Phase 4: 4)
 - Average duration: ~6 min
-- Total execution time: ~2 hours
+- Total execution time: ~2 hours 9 min
 
 **By Phase:**
 
@@ -30,12 +30,12 @@ Progress: [███████████░░░░░░░░░] 55% (21
 | 1. Vision Analysis Pipeline | 8 | 45 min | 5.6 min | Complete |
 | 2. FUSE Bridge | 6 | 45 min | 7.5 min | Complete |
 | 3. Visual Installer Engine | 4 | 25 min | 6.25 min | Complete |
-| 4. Visual Catalog Manager | 3+ | 14 min | 4.7 min | In Progress |
+| 4. Visual Catalog Manager | 4 | 23 min | 5.75 min | In Progress |
 
 **Recent Trend:**
 - Phase 2 plans: 5min, 5min, 3min, 3min, 3min, 4min
 - Phase 3 plans: 5min, 8min, 7min, 5min
-- Phase 4 plans: 4min, 3min, 7min
+- Phase 4 plans: 4min, 3min, 7min, 9min
 - Trend: Fast, consistent execution on foundational work
 
 *Updated after each phase completion*
@@ -77,6 +77,9 @@ Recent decisions affecting current work:
 - CatalogServer boot operations run in background thread (30s timeout)
 - 30-second auto-refresh interval for catalog updates in frontend
 - Singleton pattern via get_catalog_server() for shared server instance
+- Catalog CLI uses uvicorn ASGI server (already a FastAPI dependency)
+- Browser auto-opens on catalog startup unless --no-browser flag
+- FastAPI exception handlers must return JSONResponse, not raw dict
 
 ### Pending Todos
 
@@ -89,7 +92,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-15
-Stopped at: Completed 04-03 PLAN.md (Catalog Server)
+Stopped at: Completed 04-04 PLAN.md (Catalog CLI and Tests)
 Resume file: None
 
 **Files Created (Phase 1):**
@@ -119,10 +122,13 @@ Resume file: None
 - `systems/pixel_compiler/catalog/__init__.py` - Catalog package exports
 - `systems/pixel_compiler/catalog/catalog_server.py` - FastAPI REST server for catalog operations
 - `systems/pixel_compiler/catalog/templates/catalog.html` - HTML gallery UI with drag-and-drop
+- `systems/pixel_compiler/tests/test_catalog.py` - 28 unit tests for catalog components
 
 **CLI Commands Available:**
 - `pixelrts analyze <file.png>` - Vision analysis and verification
 - `pixelrts boot <file.png>` - Boot .rts.png files with QEMU
 - `pixelrts install <file.png> <target>` - Install .rts.png to disk image
+- `pixelrts catalog` - Launch visual catalog server
 - Boot options: --memory, --cpus, --vnc, --background, --cmdline, --qemu-arg
 - Install options: --no-verify, --quiet, -v
+- Catalog options: --port, --host, --paths, --no-browser
