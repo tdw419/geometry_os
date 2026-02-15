@@ -8,13 +8,16 @@ A functional terminal rendered on the PixiJS map that:
 4. Displays output in real-time
 
 Usage:
-    python3 map_terminal.py
+    python3 map_terminal.py                    # Host backend (default)
+    python3 map_terminal.py --backend qemu     # QEMU via linux_bridge.py
+    python3 map_terminal.py --backend wgpu     # WGPU hypervisor
 
 Then in browser console:
     terminal.input("ls -la")
     terminal.input("pwd")
 """
 
+import argparse
 import asyncio
 import json
 import requests
@@ -22,6 +25,8 @@ import websockets
 from websockets.server import serve
 import subprocess
 import time
+
+from vm_linux_bridge import VMLinuxBridge, HostBridge, QEMUBridge, WGPUBridge
 
 
 class InputServer:
@@ -62,8 +67,9 @@ class InputServer:
 
 
 class MapTerminal:
-    def __init__(self, ws, x=400, y=200, width=400, height=300):
+    def __init__(self, ws, bridge: VMLinuxBridge, x=400, y=200, width=400, height=300):
         self.ws = ws
+        self.bridge = bridge
         self.x = x
         self.y = y
         self.width = width
@@ -275,14 +281,8 @@ class MapTerminal:
         print(f"Executing: {command}")
 
         try:
-            # Run the command
-            result = subprocess.run(
-                command,
-                shell=True,
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
+            # Run the command via the bridge
+            result = await self.bridge.execute(command, timeout=10)
 
             # Get output
             output = result.stdout
@@ -296,11 +296,9 @@ class MapTerminal:
             else:
                 self.lines.append("(no output)")
 
-            if result.returncode != 0:
-                self.lines.append(f"[Exit code: {result.returncode}]")
+            if result.exit_code != 0:
+                self.lines.append(f"[Exit code: {result.exit_code}]")
 
-        except subprocess.TimeoutExpired:
-            self.lines.append("[Command timed out]")
         except Exception as e:
             self.lines.append(f"[Error: {e}]")
 
@@ -345,9 +343,65 @@ class MapTerminal:
             await self.render()
 
 
+def parse_args():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(description='Geometry OS On-Map Terminal')
+    parser.add_argument(
+        '--backend',
+        choices=['host', 'qemu', 'wgpu'],
+        default='host',
+        help='Execution backend: host (default), qemu, or wgpu'
+    )
+    parser.add_argument(
+        '--kernel',
+        default='alpine',
+        help='Kernel to use for QEMU backend (default: alpine)'
+    )
+    return parser.parse_args()
+
+
+async def create_bridge(backend: str, cdp_ws=None, kernel: str = 'alpine') -> VMLinuxBridge:
+    """Create the appropriate bridge based on backend selection."""
+    if backend == 'host':
+        print(f"Using HostBridge (subprocess execution)")
+        return HostBridge()
+
+    elif backend == 'qemu':
+        print(f"Using QEMUBridge (kernel={kernel})")
+        bridge = QEMUBridge(kernel=kernel)
+        print("Starting QEMU VM...")
+        if await bridge.start():
+            print("QEMU VM started successfully")
+            return bridge
+        else:
+            print("WARNING: Failed to start QEMU, falling back to HostBridge")
+            return HostBridge()
+
+    elif backend == 'wgpu':
+        print("Using WGPUBridge (GPU hypervisor)")
+        if cdp_ws is None:
+            print("WARNING: No CDP connection for WGPU, falling back to HostBridge")
+            return HostBridge()
+        bridge = WGPUBridge(cdp_ws)
+        print("Initializing WGPU hypervisor...")
+        if await bridge.start():
+            print("WGPU hypervisor initialized")
+            return bridge
+        else:
+            print("WARNING: Failed to initialize WGPU, falling back to HostBridge")
+            return HostBridge()
+
+    else:
+        print(f"Unknown backend '{backend}', using HostBridge")
+        return HostBridge()
+
+
 async def main():
     """Main entry point."""
+    args = parse_args()
+
     print("=== Geometry OS: On-Map Terminal ===")
+    print(f"Backend: {args.backend}")
     print()
 
     # Connect to browser
@@ -368,9 +422,12 @@ async def main():
         return
 
     async with websockets.connect(ws_url) as ws:
-        # Create terminal
+        # Create the appropriate bridge
+        bridge = await create_bridge(args.backend, cdp_ws=ws, kernel=args.kernel)
+
+        # Create terminal with bridge
         global terminal
-        terminal = MapTerminal(ws, x=400, y=150, width=450, height=350)
+        terminal = MapTerminal(ws, bridge=bridge, x=400, y=150, width=450, height=350)
 
         # Create input server
         input_server = InputServer(terminal, port=8765)
@@ -385,6 +442,11 @@ async def main():
         print("  • Press Enter to execute")
         print("  • Press Escape to clear input")
         print("  • Click outside to unfocus")
+        print()
+
+        # Show backend info
+        info = bridge.get_info()
+        print(f"Backend: {info.get('vm_type', 'unknown')} ({info.get('backend', 'unknown')})")
         print()
 
         # Run welcome command
