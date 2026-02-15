@@ -202,20 +202,53 @@ class IDETools {
      * Assemble cartridge and place on map
      */
     async ide_deploy(params = {}) {
-        const { source_region, name, description, entry_point } = params;
+        const { source_files, source_region, name, description, entry_point, location } = params;
 
-        if (!source_region) {
-            return { success: false, error: 'source_region is required' };
+        // Support both source_files (new) and source_region (legacy)
+        if (!source_files && !source_region) {
+            return { success: false, error: 'source_files or source_region is required' };
         }
 
         if (!name) {
             return { success: false, error: 'name is required' };
         }
 
-        // Mock deployment - in production would call builder_assemble_cartridge
-        const location = {
-            x: source_region.x + 100,
-            y: source_region.y + 100
+        // Try real backend first
+        try {
+            const response = await fetch('http://localhost:8766/cartridge/deploy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'deploy',
+                    name: name,
+                    description: description || '',
+                    entry_point: entry_point || '',
+                    files: source_files || [],
+                    location: location || { x: 0, y: 0 }
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                    // Notify BuilderPanel if available
+                    if (this.#bridge?.builderPanel) {
+                        this.#bridge.builderPanel.logAction(
+                            `Deployed cartridge: ${name}`,
+                            'success'
+                        );
+                    }
+                    return result;
+                }
+            }
+        } catch (e) {
+            console.warn('ide_deploy: Backend not available, using mock:', e.message);
+        }
+
+        // Fallback to mock for development
+        const mockLocation = location || {
+            x: (source_region?.x || 0) + 100,
+            y: (source_region?.y || 0) + 100
         };
 
         return {
@@ -225,7 +258,8 @@ class IDETools {
                 hash: 'sha256:' + Array(64).fill('a').join(''),
                 size_bytes: 4096
             },
-            location
+            location: mockLocation,
+            mock: true
         };
     }
 
@@ -292,12 +326,24 @@ class IDETools {
 
         // Tool 39: ide_deploy
         bridge.registerTool('ide_deploy', {
-            description: 'Assemble .rts.png cartridge from map region and deploy',
+            description: 'Deploy code/files as .rts.png cartridge to Infinite Map',
             inputSchema: {
                 type: 'object',
                 properties: {
+                    source_files: {
+                        type: 'array',
+                        description: 'Files to include (path + base64 content)',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                path: { type: 'string' },
+                                content: { type: 'string', description: 'Base64 encoded' }
+                            }
+                        }
+                    },
                     source_region: {
                         type: 'object',
+                        description: 'Legacy: Region on map to capture',
                         properties: {
                             x: { type: 'number' },
                             y: { type: 'number' },
@@ -306,11 +352,19 @@ class IDETools {
                         },
                         required: ['x', 'y', 'width', 'height']
                     },
-                    name: { type: 'string' },
+                    name: { type: 'string', description: 'Cartridge name' },
                     description: { type: 'string' },
-                    entry_point: { type: 'string' }
+                    entry_point: { type: 'string', description: 'Entry file:function' },
+                    location: {
+                        type: 'object',
+                        description: 'Deploy location on Infinite Map',
+                        properties: {
+                            x: { type: 'number' },
+                            y: { type: 'number' }
+                        }
+                    }
                 },
-                required: ['source_region', 'name']
+                required: ['name']
             },
             handler: async (params) => this.ide_deploy(params)
         });

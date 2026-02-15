@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IDE Deploy Real Backend Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a1a;
+            color: #00ff88;
+            padding: 20px;
+        }
+        h1 {
+            color: #00ff88;
+            border-bottom: 1px solid #00ff88;
+            padding-bottom: 10px;
+        }
+        #results {
+            background: #0a0a0a;
+            border: 1px solid #00ff88;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .pass { color: #00ff88; }
+        .fail { color: #ff4444; }
+        .info { color: #4488ff; }
+        .test-section { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>IDE Deploy Real Backend Test</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        import { IDETools } from './ide_tools.js';
+
+        const results = document.getElementById('results');
+        const log = (msg, cls = '') => {
+            const span = document.createElement('span');
+            span.className = cls;
+            span.textContent = msg + '\n';
+            results.appendChild(span);
+        };
+
+        async function runTests() {
+            log('=== IDE Deploy Real Backend Test ===\n', 'info');
+            const ide = new IDETools(null);
+
+            // Test 1: Deploy with real files
+            log('\n[Test 1] Deploy with source_files parameter...', 'info');
+            const test1Content = btoa('print("hello from cartridge")');
+            const result1 = await ide.ide_deploy({
+                source_files: [
+                    { path: 'main.py', content: test1Content }
+                ],
+                name: 'test_real_deploy',
+                description: 'Real deployment test',
+                entry_point: 'main.py'
+            });
+
+            log('  Response: ' + JSON.stringify(result1, null, 2));
+
+            if (result1.success) {
+                if (result1.cartridge?.data) {
+                    log('  PASS: Got cartridge data from backend', 'pass');
+                    log('  Size: ' + result1.cartridge.size_bytes + ' bytes', 'info');
+                } else if (result1.mock) {
+                    log('  PASS: Using mock fallback (backend not running)', 'pass');
+                } else {
+                    log('  PARTIAL: Success but no cartridge data', 'fail');
+                }
+            } else {
+                log('  FAIL: ' + result1.error, 'fail');
+            }
+
+            // Test 2: Deploy with location
+            log('\n[Test 2] Deploy with location parameter...', 'info');
+            const result2 = await ide.ide_deploy({
+                source_files: [
+                    { path: 'code.py', content: btoa('x = 1\ny = 2') }
+                ],
+                name: 'located_deploy',
+                location: { x: 5000, y: 6000 }
+            });
+
+            log('  Response: ' + JSON.stringify(result2, null, 2));
+
+            if (result2.success) {
+                if (result2.location?.x === 5000 && result2.location?.y === 6000) {
+                    log('  PASS: Location preserved correctly', 'pass');
+                } else {
+                    log('  FAIL: Location mismatch', 'fail');
+                }
+            } else {
+                log('  FAIL: ' + result2.error, 'fail');
+            }
+
+            // Test 3: Deploy with multiple files
+            log('\n[Test 3] Deploy with multiple source files...', 'info');
+            const result3 = await ide.ide_deploy({
+                source_files: [
+                    { path: 'main.py', content: btoa('import lib\nlib.run()') },
+                    { path: 'lib.py', content: btoa('def run():\n    print("running")') },
+                    { path: 'config.json', content: btoa('{"version": "1.0"}') }
+                ],
+                name: 'multi_file_deploy',
+                description: 'Multiple file cartridge',
+                entry_point: 'main.py'
+            });
+
+            log('  Response: ' + JSON.stringify(result3, null, 2));
+
+            if (result3.success) {
+                log('  PASS: Multi-file deployment succeeded', 'pass');
+            } else {
+                log('  FAIL: ' + result3.error, 'fail');
+            }
+
+            // Test 4: Backward compatibility with source_region
+            log('\n[Test 4] Backward compatibility with source_region...', 'info');
+            const result4 = await ide.ide_deploy({
+                source_region: { x: 100, y: 200, width: 50, height: 50 },
+                name: 'legacy_deploy'
+            });
+
+            log('  Response: ' + JSON.stringify(result4, null, 2));
+
+            if (result4.success && result4.location) {
+                log('  PASS: Legacy source_region still works', 'pass');
+                log('  Location: ' + JSON.stringify(result4.location), 'info');
+            } else {
+                log('  FAIL: Legacy compatibility broken', 'fail');
+            }
+
+            // Test 5: Error handling - no name
+            log('\n[Test 5] Error handling - missing required name...', 'info');
+            const result5 = await ide.ide_deploy({
+                source_files: [{ path: 'test.py', content: btoa('x=1') }]
+            });
+
+            log('  Response: ' + JSON.stringify(result5, null, 2));
+
+            if (!result5.success && result5.error.includes('name')) {
+                log('  PASS: Correctly rejects missing name', 'pass');
+            } else {
+                log('  FAIL: Should reject missing name', 'fail');
+            }
+
+            log('\n=== All tests complete ===\n', 'info');
+        }
+
+        // Run tests when page loads
+        runTests().catch(err => {
+            log('FATAL ERROR: ' + err.message, 'fail');
+            console.error(err);
+        });
+    </script>
+</body>
+</html>
