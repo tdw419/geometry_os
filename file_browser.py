@@ -73,3 +73,112 @@ class FileInfo:
                 return FILE_COLORS[category]
 
         return FILE_COLORS['other']
+
+
+def parse_ls_output(output: str, parent_path: str) -> List[FileInfo]:
+    """
+    Parse output from 'ls -la' command into FileInfo objects.
+
+    Args:
+        output: Raw output from ls -la
+        parent_path: The directory path these files are in
+
+    Returns:
+        List of FileInfo objects
+    """
+    files = []
+    lines = output.strip().split('\n')
+
+    for line in lines[1:]:  # Skip "total X" line
+        if not line.strip():
+            continue
+
+        # Parse ls -la format: permissions, links, owner, group, size, date, time, name
+        parts = line.split(None, 8)
+        if len(parts) < 9:
+            continue
+
+        permissions = parts[0]
+        size_str = parts[4]
+        modified = f"{parts[5]} {parts[6]} {parts[7]}"
+        name = parts[8]
+
+        # Skip . and ..
+        if name in ('.', '..'):
+            continue
+
+        # Determine file type
+        if permissions.startswith('d'):
+            file_type = 'directory'
+        elif permissions.startswith('l'):
+            file_type = 'symlink'
+        elif 'x' in permissions[1:4]:
+            file_type = 'executable'
+        else:
+            file_type = 'file'
+
+        # Parse size
+        try:
+            size = int(size_str)
+        except ValueError:
+            size = 0
+
+        # Create full path
+        full_path = f"{parent_path.rstrip('/')}/{name}"
+
+        info = FileInfo(
+            name=name,
+            path=full_path,
+            file_type=file_type,
+            size=size,
+            permissions=permissions,
+            modified=modified
+        )
+        info.color = info.get_color()
+        files.append(info)
+
+    return files
+
+
+class SpatialLayout:
+    """Calculates positions for file tiles on the map."""
+
+    TILE_WIDTH = 120
+    TILE_HEIGHT = 60
+    TILE_PADDING = 10
+    GRID_COLUMNS = 6
+
+    def __init__(self, origin_x: int = 100, origin_y: int = 100):
+        self.origin_x = origin_x
+        self.origin_y = origin_y
+
+    def layout_grid(self, files: List[FileInfo]) -> List[FileInfo]:
+        """Layout files in a grid pattern starting at origin."""
+        col = 0
+        row = 0
+
+        for f in files:
+            f.x = self.origin_x + col * (self.TILE_WIDTH + self.TILE_PADDING)
+            f.y = self.origin_y + row * (self.TILE_HEIGHT + self.TILE_PADDING)
+
+            col += 1
+            if col >= self.GRID_COLUMNS:
+                col = 0
+                row += 1
+
+        return files
+
+    def layout_radial(self, files: List[FileInfo], center_x: int, center_y: int,
+                      radius: int = 200) -> List[FileInfo]:
+        """Layout files in a radial pattern around a center point."""
+        if not files:
+            return files
+
+        angle_step = (2 * math.pi) / len(files)
+
+        for i, f in enumerate(files):
+            angle = i * angle_step - math.pi / 2  # Start from top
+            f.x = int(center_x + radius * math.cos(angle))
+            f.y = int(center_y + radius * math.sin(angle))
+
+        return files
