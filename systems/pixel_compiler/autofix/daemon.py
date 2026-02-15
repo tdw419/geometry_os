@@ -35,6 +35,7 @@ class AutofixDaemon:
     safe_directories: List[str] = field(default_factory=lambda: ["systems/pixel_compiler/autofix/sandbox"])
     max_fix_attempts: int = 3
     is_running: bool = False
+    dry_run: bool = False
 
     def __post_init__(self):
         """Apply configuration overrides after initialization.
@@ -43,6 +44,7 @@ class AutofixDaemon:
         - poll_interval: Override default polling interval
         - safe_directories: Override default safe directories
         - max_fix_attempts: Override default max attempts
+        - dry_run: Enable dry run mode (detect only, no fixes)
         """
         if "poll_interval" in self.config:
             self.poll_interval = self.config["poll_interval"]
@@ -50,6 +52,8 @@ class AutofixDaemon:
             self.safe_directories = list(self.config["safe_directories"])
         if "max_fix_attempts" in self.config:
             self.max_fix_attempts = self.config["max_fix_attempts"]
+        if "dry_run" in self.config:
+            self.dry_run = self.config["dry_run"]
 
         # Initialize threading support for daemon loop
         self._stop_event = threading.Event()
@@ -224,14 +228,21 @@ class AutofixDaemon:
         test_paths = self._find_test_paths()
 
         if not test_paths:
+            print("No test files found in safe directories")
             return  # No tests to run
+
+        print(f"Running {len(test_paths)} test file(s)...")
 
         # Run tests and check for failures
         results = self.run_tests(test_paths)
 
+        print(f"Results: {results['passed']} passed, {results['failed']} failed")
+
         if not results["success"] and results["failures"]:
             for failure in results["failures"]:
                 self._process_failure(failure)
+        else:
+            print("All tests passing - no fixes needed")
 
     def _process_failure(self, failure: Dict[str, Any]) -> None:
         """Process a single test failure.
@@ -246,9 +257,13 @@ class AutofixDaemon:
                 - error: Error message
         """
         file_path = failure.get("file", "")
+        test_name = failure.get("test_name", "unknown")
+
+        print(f"\n[FAIL] {test_name} in {file_path}:{failure.get('line', 0)}")
 
         # Safety check: only process files in safe directories
         if not self.is_safe_path(file_path):
+            print(f"  [SKIP] File not in safe directories")
             return
 
         # Read the source file
@@ -256,6 +271,7 @@ class AutofixDaemon:
             with open(file_path, "r") as f:
                 source_code = f.read()
         except (OSError, IOError):
+            print(f"  [ERROR] Could not read file")
             return
 
         # Extract error type from error message
@@ -273,9 +289,25 @@ class AutofixDaemon:
         # Generate fix
         fix = self._generator.generate_fix(failure_info, source_code)
 
-        # Validate and apply if confident enough
-        if fix["patch"] is not None and fix["confidence"] >= 0.5:
-            self._apply_fix(file_path, source_code, fix, failure_info)
+        # Check if we have a viable fix
+        if fix["patch"] is None:
+            print(f"  [NO FIX] {fix.get('explanation', 'No pattern match')}")
+            return
+
+        if fix["confidence"] < 0.5:
+            print(f"  [LOW CONF] {fix['confidence']:.2f} - {fix.get('explanation', '')}")
+            return
+
+        print(f"  [FIX] Confidence: {fix['confidence']:.2f}")
+        print(f"  [EXPLAIN] {fix.get('explanation', 'No explanation')}")
+
+        # Dry run mode - don't actually apply
+        if self.dry_run:
+            print(f"  [DRY RUN] Would apply fix to {file_path}")
+            return
+
+        # Apply the fix
+        self._apply_fix(file_path, source_code, fix, failure_info)
 
     def _extract_error_type(self, error_message: str) -> str:
         """Extract error type from error message.

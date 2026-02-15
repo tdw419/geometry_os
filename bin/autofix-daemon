@@ -68,6 +68,7 @@ Examples:
     config = {
         "poll_interval": args.poll_interval,
         "max_fix_attempts": args.max_attempts,
+        "dry_run": args.dry_run,
     }
 
     if args.safe_directories:
