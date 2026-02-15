@@ -76,6 +76,15 @@
                 if (pos.x !== 500) throw new Error(`expected x=500, got ${pos.x}`);
             });
 
+            await test('updateSessionHealth updates session metadata', async () => {
+                bridge.updateSessionHealth('test-123', { cpu: 45, memory: 256 });
+                const sessions = bridge.getActiveSessions();
+                const session = sessions.find(s => s.sessionId === 'test-123');
+                if (!session.health || session.health.cpu !== 45) {
+                    throw new Error('Health not updated');
+                }
+            });
+
             results.innerHTML += `<h2>Results: ${passed} passed, ${failed} failed</h2>`;
         }
 

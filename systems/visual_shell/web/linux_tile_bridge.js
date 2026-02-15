@@ -202,14 +202,15 @@ class LinuxTileBridge {
 
     /**
      * Get all active sessions.
-     * @returns {Array<{sessionId, position, status}>}
+     * @returns {Array<{sessionId, position, status, health}>}
      */
     getActiveSessions() {
         return Array.from(this.sessions.entries()).map(([id, session]) => ({
             sessionId: id,
             position: session.position,
             status: session.status,
-            kernel: session.kernel
+            kernel: session.kernel,
+            health: session.health || null
         }));
     }
 
@@ -224,6 +225,35 @@ class LinuxTileBridge {
             session.status = status;
             session.history.push({ status, timestamp: Date.now() });
         }
+    }
+
+    /**
+     * Update session health metrics.
+     * @param {string} sessionId
+     * @param {Object} health - {cpu, memory, disk, network}
+     */
+    updateSessionHealth(sessionId, health) {
+        const session = this.sessions.get(sessionId);
+        if (session) {
+            session.health = { ...health, timestamp: Date.now() };
+            session.history.push({ type: 'health', health, timestamp: Date.now() });
+
+            // Trim history
+            if (session.history.length > this.config.maxHistoryLength) {
+                session.history = session.history.slice(-this.config.maxHistoryLength);
+            }
+        }
+    }
+
+    /**
+     * Get session health history.
+     * @param {string} sessionId
+     * @returns {Array} Health history entries
+     */
+    getSessionHealthHistory(sessionId) {
+        const session = this.sessions.get(sessionId);
+        if (!session) return [];
+        return session.history.filter(h => h.type === 'health' || h.status);
     }
 }
 
