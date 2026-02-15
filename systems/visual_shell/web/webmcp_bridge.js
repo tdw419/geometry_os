@@ -916,6 +916,9 @@ class WebMCPBridge {
             await this.#registerHypervisorMapPage();
             await this.#registerHypervisorStatus();
 
+            // Phase H tools - Performance Optimization
+            await this.#registerPerfGetMetrics();
+
             // Phase K tools - Neural Kernel Management
             await this.#registerKernelList();
             await this.#registerKernelRegister();
@@ -1554,6 +1557,85 @@ class WebMCPBridge {
         if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
         navigator.modelContext.toolHandlers[tool.name] = tool.handler;
         this.#registeredTools.push(tool.name);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tool: perf_get_metrics (Phase H - Performance Optimization)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerPerfGetMetrics() {
+        const tool = {
+            name: 'perf_get_metrics',
+            description:
+                'Get detailed performance metrics for all WebMCP tools. ' +
+                'Returns latency percentiles (p50, p95, p99), success/failure rates, ' +
+                'and throughput statistics. Use this to analyze and optimize tool performance.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    tool: {
+                        type: 'string',
+                        description: 'Specific tool name to get metrics for (optional, returns all if not specified)'
+                    },
+                    format: {
+                        type: 'string',
+                        enum: ['summary', 'detailed'],
+                        description: 'Output format (default: summary)'
+                    }
+                }
+            },
+            handler: async (params) => {
+                return this.#handlePerfGetMetrics(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        /* istanbul ignore next */
+        if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
+        navigator.modelContext.toolHandlers[tool.name] = tool.handler;
+        this.#registeredTools.push(tool.name);
+    }
+
+    #handlePerfGetMetrics({ tool, format = 'summary' }) {
+        const done = this.#trackCall('perf_get_metrics');
+
+        try {
+            if (tool) {
+                const metrics = this.#toolMetrics.getToolMetrics(tool);
+                if (!metrics) {
+                    done(false);
+                    return {
+                        success: false,
+                        error: `No metrics found for tool: ${tool}`,
+                        availableTools: [...this.#registeredTools]
+                    };
+                }
+                done(true);
+                return {
+                    success: true,
+                    tool,
+                    metrics,
+                    timestamp: new Date().toISOString()
+                };
+            }
+
+            // Return all metrics
+            const allMetrics = this.#toolMetrics.getAllMetrics();
+            const aggregate = this.#toolMetrics.getAggregateStats();
+
+            done(true);
+            return {
+                success: true,
+                format,
+                aggregate,
+                tools: format === 'detailed' ? allMetrics : Object.keys(allMetrics),
+                toolCount: Object.keys(allMetrics).length,
+                timestamp: new Date().toISOString()
+            };
+        } catch (err) {
+            done(false);
+            return { success: false, error: err.message };
+        }
     }
 
     // ─────────────────────────────────────────────────────────────
