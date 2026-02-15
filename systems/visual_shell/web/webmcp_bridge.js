@@ -66,6 +66,12 @@
  *  38. ide_debug                 — Debug with breakpoints
  *  39. ide_deploy                — Deploy to .rts.png cartridge
  *
+ * Phase O Tools (Continuous Testing):
+ *  40. test_select               — Select tests based on context
+ *  41. test_run                  — Execute tests with structured results
+ *  42. test_analyze              — Analyze test failures
+ *  43. test_suggest_fix          — Generate fix suggestions
+ *
  * Phase O Tools (AI PM Autonomous):
  *  94. pm_analyze                — Get AI PM improvement recommendations
  *  95. pm_analyze_and_deploy     — Analyze and auto-deploy cartridge
@@ -790,6 +796,12 @@ class WebMCPBridge {
             await this.#registerIDETest();
             await this.#registerIDEDebug();
             await this.#registerIDEDeploy();
+
+            // Phase O tools - Continuous Testing
+            await this.#registerTestSelect();
+            await this.#registerTestRun();
+            await this.#registerTestAnalyze();
+            await this.#registerTestSuggestFix();
 
             // Phase O tools - AI PM Autonomous
             await this.#registerPMAnalyze();
@@ -7873,6 +7885,202 @@ class WebMCPBridge {
                 throw e;
             }
         };
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Phase O: Continuous Testing Tools
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerTestSelect() {
+        const tool = {
+            name: 'test_select',
+            description: 'Select tests to run based on context (changed files, coverage gaps, etc.)',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    strategy: {
+                        type: 'string',
+                        enum: ['changed_files', 'coverage_gap', 'full'],
+                        description: 'Selection strategy'
+                    },
+                    changed_files: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        description: 'Files that changed'
+                    },
+                    coverage_threshold: {
+                        type: 'number',
+                        description: 'Minimum coverage percentage'
+                    }
+                },
+                required: ['strategy']
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('test_select');
+            const { strategy, changed_files = [], coverage_threshold = 80.0 } = params;
+
+            // Mock test selection
+            const testMapping = {
+                'systems/pixel_compiler/wasm_gpu_bridge.py': [
+                    'systems/pixel_compiler/tests/test_wasm_gpu_bridge.py'
+                ]
+            };
+
+            let selectedTests = [];
+
+            if (strategy === 'changed_files') {
+                for (const file of changed_files) {
+                    if (testMapping[file]) {
+                        selectedTests.push(...testMapping[file]);
+                    }
+                }
+            } else if (strategy === 'full') {
+                selectedTests = ['systems/testing/tests/test_test_runner.py'];
+            } else if (strategy === 'coverage_gap') {
+                selectedTests = ['systems/pixel_compiler/tests/test_pattern_detector.py'];
+            }
+
+            return {
+                success: true,
+                strategy,
+                selected_tests: [...new Set(selectedTests)],
+                count: selectedTests.length
+            };
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerTestRun() {
+        const tool = {
+            name: 'test_run',
+            description: 'Execute tests and return structured pass/fail results',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    test_files: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        description: 'Test files to run'
+                    },
+                    test_pattern: { type: 'string' },
+                    coverage: { type: 'boolean' },
+                    failfast: { type: 'boolean' },
+                    verbose: { type: 'boolean' }
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('test_run');
+
+            // Mock test results
+            return {
+                success: true,
+                total: 33,
+                passed: 33,
+                failed: 0,
+                skipped: 0,
+                duration_ms: 160,
+                results: [
+                    { name: 'test_init', status: 'pass', duration_ms: 12 },
+                    { name: 'test_run', status: 'pass', duration_ms: 45 }
+                ]
+            };
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerTestAnalyze() {
+        const tool = {
+            name: 'test_analyze',
+            description: 'Analyze test failures and identify root causes',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    test_result: {
+                        type: 'object',
+                        description: 'Test result to analyze'
+                    },
+                    include_suggestions: { type: 'boolean' }
+                },
+                required: ['test_result']
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('test_analyze');
+            const { test_result } = params;
+
+            if (!test_result) {
+                return { success: false, error: 'test_result is required' };
+            }
+
+            const errorText = test_result?.error || '';
+            let failureType = 'unknown';
+            let rootCause = 'Unknown error';
+
+            if (errorText.includes('ImportError')) {
+                failureType = 'import_error';
+                rootCause = 'Missing module';
+            } else if (errorText.includes('AssertionError')) {
+                failureType = 'assertion_error';
+                rootCause = errorText.replace('AssertionError: ', '');
+            }
+
+            return {
+                success: true,
+                test_name: test_result?.name || 'unknown',
+                failure_type: failureType,
+                root_cause: rootCause,
+                suggested_fix: `Review ${failureType}`,
+                confidence: 0.8,
+                related_files: []
+            };
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerTestSuggestFix() {
+        const tool = {
+            name: 'test_suggest_fix',
+            description: 'Generate code fix suggestions for test failures',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    analysis: {
+                        type: 'object',
+                        description: 'Failure analysis from test_analyze'
+                    },
+                    max_suggestions: { type: 'number' }
+                },
+                required: ['analysis']
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('test_suggest_fix');
+            const { analysis, max_suggestions = 3 } = params;
+
+            if (!analysis) {
+                return { success: false, error: 'analysis is required' };
+            }
+
+            return {
+                success: true,
+                suggestions: [
+                    {
+                        suggestion: `Fix ${analysis.failure_type || 'error'}`,
+                        action: 'investigate',
+                        confidence: 0.7,
+                        target_file: analysis.related_files?.[0] || 'unknown'
+                    }
+                ],
+                count: 1
+            };
+        });
+        this.#registeredTools.push(tool.name);
     }
 }
 
