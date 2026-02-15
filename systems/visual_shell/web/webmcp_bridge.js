@@ -651,6 +651,9 @@ class WebMCPBridge {
         // Initialize batch executor
         this.#batchExecutor = new BatchExecutor(this, 30000);
 
+        // Register validation schemas
+        this.#registerValidationSchemas();
+
         if (!this.#webmcpAvailable) {
             console.log('🔌 WebMCP: Not available (Chrome 146+ required). ' +
                 'Visual Shell running in standard mode.');
@@ -8604,6 +8607,93 @@ class WebMCPBridge {
         return Math.random().toString(36).substr(2, 8);
     }
 
+    /**
+     * Register validation schemas for tools
+     * @private
+     */
+    #registerValidationSchemas() {
+        // navigate_map schema
+        this.#validator.register('navigate_map', {
+            type: 'object',
+            properties: {
+                x: { type: 'number' },
+                y: { type: 'number' },
+                zoom: { type: 'number', minimum: 0.1, maximum: 10 },
+                region: {
+                    type: 'string',
+                    enum: ['origin', 'antigravity_prime', 'neural_nursery', 'system_console']
+                }
+            }
+        });
+
+        // get_os_state schema
+        this.#validator.register('get_os_state', {
+            type: 'object',
+            properties: {
+                include: {
+                    type: 'array',
+                    items: {
+                        type: 'string',
+                        enum: ['camera', 'windows', 'subsystems', 'performance', 'evolution', 'health', 'metrics', 'all']
+                    }
+                }
+            }
+        });
+
+        // query_hilbert_address schema
+        this.#validator.register('query_hilbert_address', {
+            type: 'object',
+            required: ['hilbert_index'],
+            properties: {
+                hilbert_index: { type: 'integer', minimum: 0 },
+                grid_size: { type: 'integer', minimum: 2 }
+            }
+        });
+
+        // perf_get_metrics schema
+        this.#validator.register('perf_get_metrics', {
+            type: 'object',
+            properties: {
+                tool: { type: 'string', maxLength: 100 },
+                format: { type: 'string', enum: ['summary', 'detailed'] }
+            }
+        });
+
+        // perf_cache_invalidate schema
+        this.#validator.register('perf_cache_invalidate', {
+            type: 'object',
+            properties: {
+                tool: { type: 'string', maxLength: 100 },
+                pattern: { type: 'boolean' },
+                all: { type: 'boolean' }
+            }
+        });
+
+        // perf_batch_execute schema
+        this.#validator.register('perf_batch_execute', {
+            type: 'object',
+            required: ['calls'],
+            properties: {
+                calls: {
+                    type: 'array',
+                    minItems: 1,
+                    maxItems: 50,
+                    items: {
+                        type: 'object',
+                        required: ['tool'],
+                        properties: {
+                            tool: { type: 'string', maxLength: 100 },
+                            params: { type: 'object' }
+                        }
+                    }
+                },
+                parallel: { type: 'boolean' },
+                timeout: { type: 'integer', minimum: 1000, maximum: 300000 },
+                stopOnError: { type: 'boolean' }
+            }
+        });
+    }
+
     // ─────────────────────────────────────────────────────────────
     // Observability
     // ─────────────────────────────────────────────────────────────
@@ -8703,6 +8793,58 @@ class WebMCPBridge {
             done(false);
             return { success: false, error: err.message };
         }
+    }
+
+    /**
+     * Execute a tool handler with input validation
+     * @param {string} toolName - Tool name
+     * @param {Object} params - Tool parameters
+     * @param {Function} handler - Actual handler function
+     * @returns {Object} Tool result or validation error
+     */
+    #validatedToolCall(toolName, params, handler) {
+        // Validate input
+        const validation = this.#validator.validate(toolName, params);
+        if (!validation.valid) {
+            return {
+                success: false,
+                error: 'Validation failed',
+                error_code: 'INVALID_INPUT',
+                details: validation.errors
+            };
+        }
+
+        // Sanitize inputs
+        const sanitizedParams = this.#validator.sanitizeObject(params);
+
+        // Execute handler
+        return handler.call(this, sanitizedParams);
+    }
+
+    /**
+     * Execute an async tool handler with input validation
+     * @param {string} toolName - Tool name
+     * @param {Object} params - Tool parameters
+     * @param {Function} handler - Actual async handler function
+     * @returns {Promise<Object>} Tool result or validation error
+     */
+    async #validatedAsyncToolCall(toolName, params, handler) {
+        // Validate input
+        const validation = this.#validator.validate(toolName, params);
+        if (!validation.valid) {
+            return {
+                success: false,
+                error: 'Validation failed',
+                error_code: 'INVALID_INPUT',
+                details: validation.errors
+            };
+        }
+
+        // Sanitize inputs
+        const sanitizedParams = this.#validator.sanitizeObject(params);
+
+        // Execute handler
+        return handler.call(this, sanitizedParams);
     }
 
     // ─────────────────────────────────────────────────────────────
