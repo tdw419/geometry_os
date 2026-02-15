@@ -782,6 +782,7 @@ class WebMCPBridge {
             await this.#registerLinuxWriteFile();
             await this.#registerLinuxBootAtPosition();
             await this.#registerLinuxExecToTile();
+            await this.#registerLinuxSessionHealth();
 
             // Phase H tools - WGPU Hypervisor (Pure Client-Side)
             await this.#registerHypervisorBoot();
@@ -6048,6 +6049,63 @@ class WebMCPBridge {
                     return {
                         success: false,
                         tilePlaced: false,
+                        error: error.message
+                    };
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
+        navigator.modelContext.toolHandlers[tool.name] = tool.handler;
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerLinuxSessionHealth() {
+        const self = this;
+        const tool = {
+            name: 'linux_session_health',
+            description: 'Get health status of Linux sessions on the map, including CPU, memory, and position.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    sessionId: {
+                        type: 'string',
+                        description: 'Specific session ID (optional, returns all if omitted)'
+                    }
+                }
+            },
+            handler: async (args) => {
+                const { sessionId } = args;
+
+                self.#callCount++;
+
+                try {
+                    const bridge = self.#getLinuxTileBridge();
+                    if (!bridge) {
+                        throw new Error('LinuxTileBridge not available');
+                    }
+
+                    if (sessionId) {
+                        const position = bridge.getSessionPosition(sessionId);
+                        const health = bridge.getSessionHealthHistory(sessionId);
+                        return {
+                            sessionId,
+                            position,
+                            healthHistory: health.slice(-10),
+                            found: position !== null
+                        };
+                    } else {
+                        const sessions = bridge.getActiveSessions();
+                        return {
+                            sessions,
+                            count: sessions.length
+                        };
+                    }
+
+                } catch (error) {
+                    console.error('🔌 WebMCP: linux_session_health error:', error);
+                    return {
                         error: error.message
                     };
                 }
