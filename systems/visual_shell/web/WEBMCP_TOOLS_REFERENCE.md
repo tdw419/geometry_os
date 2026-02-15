@@ -2,7 +2,7 @@
 
 Complete reference for all WebMCP tools available in Geometry OS Web Edition.
 
-**Total Tools: 93** | **Version: 2.1.0** | **Updated: 2026-02-15**
+**Total Tools: 98** | **Version: 2.2.0** | **Updated: 2026-02-15**
 
 ---
 
@@ -20,6 +20,7 @@ Complete reference for all WebMCP tools available in Geometry OS Web Edition.
    - [Phase L: Autonomous Operator (5 tools)](#phase-l-autonomous-operator)
    - [Phase M: AI PM Integration (5 tools)](#phase-m-ai-pm-integration)
    - [Phase N: AI-Assisted IDE Tools (4 tools)](#phase-n-ai-assisted-ide-tools)
+   - [Phase O: AI PM Autonomous Tools (5 tools)](#phase-o-ai-pm-autonomous-tools)
 3. [Usage Examples](#usage-examples)
 4. [Error Handling](#error-handling)
 
@@ -879,6 +880,134 @@ if (result.success && result.cartridge.data) {
 
 ---
 
+### Phase O: AI PM Autonomous Tools
+
+Autonomous code analysis and improvement tools enabling self-improvement loops.
+
+| Tool | Description |
+|------|-------------|
+| `pm_analyze` | Get AI PM improvement recommendations |
+| `pm_analyze_and_deploy` | Analyze and auto-deploy as cartridge |
+| `pm_service_status` | Get autonomous service status |
+| `pm_service_start` | Start autonomous improvement service |
+| `pm_service_stop` | Stop the service |
+
+#### pm_analyze
+
+Analyze codebase and get improvement recommendations from AI PM.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `scope` | string | No | Analysis scope: 'recent', 'full', 'failed' |
+| `max_recommendations` | number | No | Max recommendations (default: 10) |
+
+**Returns:**
+```json
+{
+    "success": true,
+    "recommendations": [
+        {
+            "id": "rec-001",
+            "type": "optimize",
+            "priority": "MEDIUM",
+            "description": "Optimize Hilbert curve lookup",
+            "target_path": "systems/pixel_compiler/pixelrts_v2_core.py",
+            "estimated_impact": 0.8,
+            "confidence": 0.7
+        }
+    ],
+    "neuromodulation": {
+        "dopamine": 0.5,
+        "urgency": 0.2,
+        "acetylcholine": 0.3
+    }
+}
+```
+
+#### pm_analyze_and_deploy
+
+Analyze codebase and optionally deploy improvement cartridge.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `scope` | string | No | Analysis scope |
+| `max_recommendations` | number | No | Max recommendations (default: 5) |
+| `auto_deploy` | boolean | No | Deploy cartridge automatically (default: true) |
+| `cartridge_name` | string | No | Name for generated cartridge |
+| `location` | object | No | Deploy location {x, y} |
+
+**Example - Analyze and deploy:**
+```javascript
+const result = await navigator.modelContext.callTool('pm_analyze_and_deploy', {
+    scope: 'recent',
+    max_recommendations: 5,
+    auto_deploy: true,
+    cartridge_name: 'auto_improvement_v1',
+    location: { x: 10000, y: 10000 }
+});
+
+if (result.deployed) {
+    console.log(`Cartridge deployed: ${result.cartridge.path}`);
+}
+```
+
+#### pm_service_status
+
+Get status of the autonomous improvement service.
+
+**Returns:**
+```json
+{
+    "success": true,
+    "running": false,
+    "interval_seconds": 3600,
+    "auto_deploy": false,
+    "last_cycle": null,
+    "cycles_run": 0
+}
+```
+
+#### pm_service_start
+
+Start the autonomous improvement service with configuration.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `interval_seconds` | number | No | Cycle interval (default: 3600) |
+| `auto_deploy` | boolean | No | Auto-deploy cartridges (default: false) |
+| `confidence_threshold` | number | No | Min confidence to deploy (default: 0.8) |
+
+**Example:**
+```javascript
+const result = await navigator.modelContext.callTool('pm_service_start', {
+    interval_seconds: 1800,
+    auto_deploy: true,
+    confidence_threshold: 0.85
+});
+
+if (result.success) {
+    console.log('Autonomous improvement service started');
+}
+```
+
+#### pm_service_stop
+
+Stop the autonomous improvement service.
+
+**Example:**
+```javascript
+const result = await navigator.modelContext.callTool('pm_service_stop', {});
+
+if (result.success) {
+    console.log('Service stopped');
+}
+```
+
+---
+
 ## Usage Examples
 
 ### Complete Workflow: Navigate and Build
@@ -1007,6 +1136,20 @@ if (!result.success) {
 ---
 
 ## Changelog
+
+### v2.2.0 (2026-02-15)
+- Added Phase O: AI PM Autonomous Tools (5 tools)
+- pm_analyze: Get AI PM improvement recommendations
+- pm_analyze_and_deploy: Analyze and auto-deploy as cartridge
+- pm_service_status: Get autonomous service status
+- pm_service_start: Start autonomous improvement service
+- pm_service_stop: Stop the service
+- Total tools: 98
+
+### v2.1.0 (2026-02-15)
+- Added Phase N: AI-Assisted IDE Tools (4 tools)
+- ide_compile, ide_test, ide_debug, ide_deploy
+- Total tools: 93
 
 ### v2.0.0 (2026-02-14)
 - Added Phase M: AI PM Integration tools (5 tools)
