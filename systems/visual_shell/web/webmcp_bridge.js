@@ -98,6 +98,176 @@
  */
 
 /**
+ * InputValidator - JSON Schema validation for tool inputs
+ */
+class InputValidator {
+    constructor() {
+        this.schemas = new Map();
+    }
+
+    /**
+     * Register a schema for a tool
+     * @param {string} toolName - Tool name
+     * @param {Object} schema - JSON Schema object
+     */
+    register(toolName, schema) {
+        this.schemas.set(toolName, schema);
+    }
+
+    /**
+     * Validate params against registered schema
+     * @param {string} toolName - Tool name
+     * @param {Object} params - Parameters to validate
+     * @returns {Object} {valid: boolean, errors: string[]}
+     */
+    validate(toolName, params) {
+        const schema = this.schemas.get(toolName);
+        if (!schema) {
+            // No schema registered - allow through (tools can opt-in)
+            return { valid: true, errors: [] };
+        }
+
+        const errors = [];
+
+        // Check required properties
+        if (schema.required) {
+            for (const req of schema.required) {
+                if (params[req] === undefined) {
+                    errors.push(`Missing required parameter: ${req}`);
+                }
+            }
+        }
+
+        // Validate each property
+        if (schema.properties) {
+            for (const [key, value] of Object.entries(params)) {
+                const propSchema = schema.properties[key];
+                if (!propSchema) {
+                    // Additional properties - check additionalProperties
+                    if (schema.additionalProperties === false) {
+                        errors.push(`Unknown parameter: ${key}`);
+                    }
+                    continue;
+                }
+
+                const propErrors = this.#validateProperty(key, value, propSchema);
+                errors.push(...propErrors);
+            }
+        }
+
+        return {
+            valid: errors.length === 0,
+            errors
+        };
+    }
+
+    /**
+     * Validate a single property
+     * @private
+     */
+    #validateProperty(name, value, schema) {
+        const errors = [];
+
+        // Type validation
+        if (schema.type) {
+            const actualType = Array.isArray(value) ? 'array' : typeof value;
+            if (schema.type === 'integer') {
+                if (!Number.isInteger(value)) {
+                    errors.push(`${name}: expected integer, got ${actualType}`);
+                }
+            } else if (schema.type === 'array') {
+                if (!Array.isArray(value)) {
+                    errors.push(`${name}: expected array, got ${actualType}`);
+                }
+            } else if (actualType !== schema.type) {
+                errors.push(`${name}: expected ${schema.type}, got ${actualType}`);
+            }
+        }
+
+        // Enum validation
+        if (schema.enum && !schema.enum.includes(value)) {
+            errors.push(`${name}: must be one of [${schema.enum.join(', ')}]`);
+        }
+
+        // Minimum/maximum for numbers
+        if (typeof value === 'number') {
+            if (schema.minimum !== undefined && value < schema.minimum) {
+                errors.push(`${name}: must be >= ${schema.minimum}`);
+            }
+            if (schema.maximum !== undefined && value > schema.maximum) {
+                errors.push(`${name}: must be <= ${schema.maximum}`);
+            }
+        }
+
+        // MinLength/maxLength for strings
+        if (typeof value === 'string') {
+            if (schema.minLength !== undefined && value.length < schema.minLength) {
+                errors.push(`${name}: must be at least ${schema.minLength} characters`);
+            }
+            if (schema.maxLength !== undefined && value.length > schema.maxLength) {
+                errors.push(`${name}: must be at most ${schema.maxLength} characters`);
+            }
+            // Pattern validation
+            if (schema.pattern && !new RegExp(schema.pattern).test(value)) {
+                errors.push(`${name}: does not match required pattern`);
+            }
+        }
+
+        // Array items validation
+        if (Array.isArray(value) && schema.items) {
+            value.forEach((item, index) => {
+                const itemErrors = this.#validateProperty(`${name}[${index}]`, item, schema.items);
+                errors.push(...itemErrors);
+            });
+            // Min/max items
+            if (schema.minItems !== undefined && value.length < schema.minItems) {
+                errors.push(`${name}: must have at least ${schema.minItems} items`);
+            }
+            if (schema.maxItems !== undefined && value.length > schema.maxItems) {
+                errors.push(`${name}: must have at most ${schema.maxItems} items`);
+            }
+        }
+
+        return errors;
+    }
+
+    /**
+     * Sanitize string inputs to prevent injection
+     * @param {string} str - String to sanitize
+     * @returns {string} Sanitized string
+     */
+    sanitize(str) {
+        if (typeof str !== 'string') return str;
+        // Remove potentially dangerous patterns
+        return str
+            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+            .replace(/javascript:/gi, '')
+            .replace(/on\w+\s*=/gi, '');
+    }
+
+    /**
+     * Sanitize all string values in an object
+     * @param {Object} obj - Object to sanitize
+     * @returns {Object} Sanitized object
+     */
+    sanitizeObject(obj) {
+        if (!obj || typeof obj !== 'object') return obj;
+
+        const result = Array.isArray(obj) ? [] : {};
+        for (const [key, value] of Object.entries(obj)) {
+            if (typeof value === 'string') {
+                result[key] = this.sanitize(value);
+            } else if (typeof value === 'object' && value !== null) {
+                result[key] = this.sanitizeObject(value);
+            } else {
+                result[key] = value;
+            }
+        }
+        return result;
+    }
+}
+
+/**
  * BatchExecutor - Execute multiple tool calls in parallel
  */
 class BatchExecutor {
@@ -555,7 +725,7 @@ class WebMCPBridge {
     #agentA2AClients = new Map();
 
     // --- Hardening Systems (Phase I) ---
-    #validator = null;
+    #validator = new InputValidator();
     #limiter = null;
     #metrics = null;
 
