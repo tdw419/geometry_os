@@ -98,6 +98,114 @@
  */
 
 /**
+ * LRUCache - Simple LRU cache with TTL support
+ */
+class LRUCache {
+    /**
+     * @param {number} maxSize - Maximum number of entries
+     * @param {number} defaultTTL - Default TTL in milliseconds (0 = no TTL)
+     */
+    constructor(maxSize = 100, defaultTTL = 5000) {
+        this.maxSize = maxSize;
+        this.defaultTTL = defaultTTL;
+        this.cache = new Map();
+        this.hits = 0;
+        this.misses = 0;
+    }
+
+    /**
+     * Get a cached value
+     * @param {string} key - Cache key
+     * @returns {*} Cached value or undefined
+     */
+    get(key) {
+        const entry = this.cache.get(key);
+        if (!entry) {
+            this.misses++;
+            return undefined;
+        }
+
+        // Check TTL
+        if (entry.expires && Date.now() > entry.expires) {
+            this.cache.delete(key);
+            this.misses++;
+            return undefined;
+        }
+
+        // Move to end (most recently used)
+        this.cache.delete(key);
+        this.cache.set(key, entry);
+        this.hits++;
+        return entry.value;
+    }
+
+    /**
+     * Set a cached value
+     * @param {string} key - Cache key
+     * @param {*} value - Value to cache
+     * @param {number} ttl - Optional TTL override in milliseconds
+     */
+    set(key, value, ttl) {
+        // Remove if exists (to update position)
+        if (this.cache.has(key)) {
+            this.cache.delete(key);
+        }
+
+        // Evict oldest if at capacity
+        if (this.cache.size >= this.maxSize) {
+            const oldestKey = this.cache.keys().next().value;
+            this.cache.delete(oldestKey);
+        }
+
+        const entry = {
+            value,
+            expires: ttl ? Date.now() + ttl : (this.defaultTTL ? Date.now() + this.defaultTTL : null)
+        };
+        this.cache.set(key, entry);
+    }
+
+    /**
+     * Invalidate a specific key or pattern
+     * @param {string|RegExp} keyOrPattern - Key or pattern to invalidate
+     */
+    invalidate(keyOrPattern) {
+        if (keyOrPattern instanceof RegExp) {
+            for (const key of this.cache.keys()) {
+                if (keyOrPattern.test(key)) {
+                    this.cache.delete(key);
+                }
+            }
+        } else {
+            this.cache.delete(keyOrPattern);
+        }
+    }
+
+    /**
+     * Clear all entries
+     */
+    clear() {
+        this.cache.clear();
+        this.hits = 0;
+        this.misses = 0;
+    }
+
+    /**
+     * Get cache statistics
+     * @returns {Object} Cache stats
+     */
+    getStats() {
+        const total = this.hits + this.misses;
+        return {
+            size: this.cache.size,
+            maxSize: this.maxSize,
+            hits: this.hits,
+            misses: this.misses,
+            hitRate: total > 0 ? (this.hits / total * 100).toFixed(1) : 0
+        };
+    }
+}
+
+/**
  * ToolMetrics - Tracks latency, success/failure rates, and throughput per tool
  */
 class ToolMetrics {
@@ -302,6 +410,16 @@ class WebMCPBridge {
 
     /** @type {ToolMetrics} Detailed metrics tracker */
     #toolMetrics = new ToolMetrics();
+
+    /** @type {LRUCache} Response cache for read-only tools */
+    #responseCache = new LRUCache(100, 5000);  // 100 entries, 5s TTL
+
+    /** @type {Object<string, number>} TTL overrides per tool */
+    #cacheTTLs = {
+        'get_os_state': 1000,      // 1s - state changes frequently
+        'query_hilbert_address': 10000,  // 10s - pure calculation
+        'perf_get_metrics': 2000   // 2s - metrics change often
+    };
 
     /** @type {WebSocket|null} */
     #evolutionSocket = null;
