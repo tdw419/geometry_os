@@ -98,7 +98,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Depends on**: Phase 3
 
-**Requirements**: Future v1.x requirements (CATALOG-*)
+**Requirements**: CATALOG-01, CATALOG-02
 
 **Success Criteria** (what must be TRUE):
 1. User can view all discovered .rts.png files as visual thumbnails in gallery view
@@ -106,7 +106,12 @@ Decimal phases appear between their surrounding integers in numeric order.
 3. Catalog displays OS metadata (kernel version, distro) with each thumbnail
 4. Catalog supports spatial arrangement with drag-to-reorganize
 
-**Plans**: TBD
+**Plans**: 5 plans in 4 waves
+- [ ] 04-01 - CatalogScanner and ThumbnailCache foundation
+- [ ] 04-02 - SpatialLayoutManager for drag-and-drop persistence
+- [ ] 04-03 - CatalogServer FastAPI and HTML gallery UI
+- [ ] 04-04 - CLI catalog command and unit tests
+- [ ] 04-05 - Human verification of catalog flow
 
 ## Progress
 
@@ -118,4 +123,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Vision Analysis Pipeline | 8/8 | Complete | 2026-02-14 |
 | 2. FUSE Bridge for Direct Boot | 6/6 | Complete | 2026-02-14 |
 | 3. Visual Installer Engine | 4/4 | Complete | 2026-02-15 |
-| 4. Visual Catalog Manager | 0/TBD | Not started | - |
+| 4. Visual Catalog Manager | 0/5 | Ready for execution | - |
