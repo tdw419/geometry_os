@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase N: AI-Assisted IDE Tools Test</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #0f0f1a;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #7c3aed;
+            border-bottom: 2px solid #7c3aed;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #a78bfa;
+            margin-top: 30px;
+        }
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            background: #7c3aed;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.2s, transform 0.1s;
+        }
+        button:hover {
+            background: #6d28d9;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        button:disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+        }
+        .test-result {
+            padding: 12px 15px;
+            margin: 8px 0;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .pass {
+            background: #1e3d2b;
+            border-left: 4px solid #10b981;
+        }
+        .fail {
+            background: #3d1e1e;
+            border-left: 4px solid #ef4444;
+        }
+        .pending {
+            background: #2a2a4a;
+            border-left: 4px solid #666;
+        }
+        .test-number {
+            font-weight: bold;
+            color: #a78bfa;
+            min-width: 25px;
+        }
+        .test-status {
+            font-weight: bold;
+            min-width: 50px;
+        }
+        .pass .test-status { color: #10b981; }
+        .fail .test-status { color: #ef4444; }
+        .pending .test-status { color: #666; }
+        .test-name {
+            flex: 1;
+        }
+        .test-detail {
+            color: #888;
+            font-size: 11px;
+            margin-top: 5px;
+            padding-left: 35px;
+        }
+        #output {
+            margin-top: 20px;
+        }
+        #summary {
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 20px 0;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .summary-item {
+            text-align: center;
+        }
+        .summary-value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .summary-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+        }
+        #total .summary-value { color: #a78bfa; }
+        #passed .summary-value { color: #10b981; }
+        #failed .summary-value { color: #ef4444; }
+        #progress-bar {
+            height: 6px;
+            background: #2a2a4a;
+            border-radius: 3px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        #progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #7c3aed, #a78bfa);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .running {
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .section-header {
+            color: #a78bfa;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 20px 0 10px 0;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Phase N: AI-Assisted IDE Tools Test</h1>
+
+    <div id="summary">
+        <div class="summary-item" id="total">
+            <div class="summary-value">12</div>
+            <div class="summary-label">Total Tests</div>
+        </div>
+        <div class="summary-item" id="passed">
+            <div class="summary-value">0</div>
+            <div class="summary-label">Passed</div>
+        </div>
+        <div class="summary-item" id="failed">
+            <div class="summary-value">0</div>
+            <div class="summary-label">Failed</div>
+        </div>
+    </div>
+
+    <div id="progress-bar">
+        <div id="progress-fill"></div>
+    </div>
+
+    <div class="controls">
+        <button id="runBtn" onclick="runAllTests()">Run All Tests</button>
+        <button onclick="resetTests()">Reset</button>
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+        /**
+         * MockIDETools - Mirrors ide_tools.js for testing
+         * Implements ide_compile, ide_test, ide_debug, and ide_deploy
+         */
+        class MockIDETools {
+            constructor() {
+                this.compiledShaders = new Map();
+                this.testResults = new Map();
+                this.breakpoints = new Map();
+                this.debugState = {
+                    currentLine: 0,
+                    variables: {},
+                    callStack: [],
+                    isPaused: false
+                };
+                this.deployments = [];
+            }
+
+            /**
+             * ide_compile - Compile code to various targets
+             * @param {string} code - Source code to compile
+             * @param {string} target - Target language (wgsl, js, python)
+             * @returns {Object} Compilation result
+             */
+            async compile(code, target = 'wgsl') {
+                const result = {
+                    success: false,
+                    target: target,
+                    errors: [],
+                    warnings: [],
+                    output: null,
+                    compiledAt: Date.now()
+                };
+
+                if (!code || code.trim() === '') {
+                    result.errors.push({ line: 0, message: 'Empty source code' });
+                    return result;
+                }
+
+                if (target === 'wgsl') {
+                    // Simulate WGSL compilation
+                    const wgslErrors = this._validateWGSL(code);
+                    if (wgslErrors.length > 0) {
+                        result.errors = wgslErrors;
+                        return result;
+                    }
+                    result.success = true;
+                    result.output = this._mockWGSLCompile(code);
+                    result.shaderId = `shader_${Date.now()}`;
+                    this.compiledShaders.set(result.shaderId, result.output);
+
+                } else if (target === 'js') {
+                    // Simulate JavaScript compilation
+                    try {
+                        // Simple syntax check
+                        new Function(code);
+                        result.success = true;
+                        result.output = code;
+                        result.moduleId = `module_${Date.now()}`;
+                    } catch (e) {
+                        result.errors.push({ line: 0, message: e.message });
+                    }
+
+                } else if (target === 'python') {
+                    // Simulate Python fallback (transpilation)
+                    const pythonErrors = this._validatePython(code);
+                    if (pythonErrors.length > 0) {
+                        result.errors = pythonErrors;
+                        return result;
+                    }
+                    result.success = true;
+                    result.output = this._mockPythonTranspile(code);
+                    result.fallback = true;
+
+                } else {
+                    result.errors.push({ line: 0, message: `Unknown target: ${target}` });
+                }
+
+                return result;
+            }
+
+            /**
+             * ide_test - Run tests on compiled code
+             * @param {string} targetId - ID of compiled module/shader to test
+             * @param {Array} tests - Array of test cases
+             * @returns {Object} Test results
+             */
+            async test(targetId, tests = []) {
+                const result = {
+                    success: false,
+                    targetId: targetId,
+                    passed: 0,
+                    failed: 0,
+                    total: tests.length,
+                    results: [],
+                    duration: 0,
+                    ranAt: Date.now()
+                };
+
+                if (!targetId) {
+                    result.errors = ['No target ID provided'];
+                    return result;
+                }
+
+                const startTime = performance.now();
+
+                for (const test of tests) {
+                    const testResult = {
+                        name: test.name || 'unnamed',
+                        passed: false,
+                        expected: test.expected,
+                        actual: null,
+                        error: null
+                    };
+
+                    try {
+                        // Simulate test execution
+                        testResult.actual = await this._executeTest(test);
+                        testResult.passed = this._compareResults(testResult.actual, test.expected);
+
+                        if (testResult.passed) {
+                            result.passed++;
+                        } else {
+                            result.failed++;
+                        }
+                    } catch (e) {
+                        testResult.error = e.message;
+                        result.failed++;
+                    }
+
+                    result.results.push(testResult);
+                }
+
+                result.duration = performance.now() - startTime;
+                result.success = result.failed === 0 && result.total > 0;
+
+                this.testResults.set(targetId, result);
+                return result;
+            }
+
+            /**
+             * ide_debug - Debug operations (breakpoint, step, inspect)
+             * @param {string} action - Debug action
+             * @param {Object} params - Action parameters
+             * @returns {Object} Debug state
+             */
+            async debug(action, params = {}) {
+                const result = {
+                    success: false,
+                    action: action,
+                    state: { ...this.debugState },
+                    breakpoint: null
+                };
+
+                switch (action) {
+                    case 'set_breakpoint':
+                        if (typeof params.line !== 'number') {
+                            result.error = 'Line number required';
+                            return result;
+                        }
+                        const bpId = `bp_${params.line}_${Date.now()}`;
+                        this.breakpoints.set(bpId, {
+                            id: bpId,
+                            line: params.line,
+                            condition: params.condition || null,
+                            hitCount: 0
+                        });
+                        result.success = true;
+                        result.breakpoint = this.breakpoints.get(bpId);
+                        break;
+
+                    case 'step':
+                        if (!this.debugState.isPaused) {
+                            result.error = 'Not in paused state';
+                            return result;
+                        }
+                        this.debugState.currentLine += params.lines || 1;
+                        result.success = true;
+                        break;
+
+                    case 'inspect':
+                        const varName = params.variable;
+                        if (!varName) {
+                            // Return all variables
+                            result.success = true;
+                            result.variables = { ...this.debugState.variables };
+                        } else if (this.debugState.variables.hasOwnProperty(varName)) {
+                            result.success = true;
+                            result.value = this.debugState.variables[varName];
+                            result.variable = varName;
+                        } else {
+                            result.error = `Variable '${varName}' not found`;
+                        }
+                        break;
+
+                    case 'continue':
+                        this.debugState.isPaused = false;
+                        result.success = true;
+                        break;
+
+                    case 'pause':
+                        this.debugState.isPaused = true;
+                        result.success = true;
+                        break;
+
+                    default:
+                        result.error = `Unknown debug action: ${action}`;
+                }
+
+                result.state = { ...this.debugState };
+                return result;
+            }
+
+            /**
+             * ide_deploy - Assemble a cartridge from compiled artifacts
+             * @param {Object} manifest - Cartridge manifest
+             * @returns {Object} Deployment result
+             */
+            async deploy(manifest = {}) {
+                const result = {
+                    success: false,
+                    cartridgeId: null,
+                    manifest: manifest,
+                    artifacts: [],
+                    deployedAt: null,
+                    size: 0
+                };
+
+                if (!manifest.name) {
+                    result.error = 'Manifest name required';
+                    return result;
+                }
+
+                if (!manifest.shaders || manifest.shaders.length === 0) {
+                    result.error = 'At least one shader required';
+                    return result;
+                }
+
+                // Simulate artifact assembly
+                const artifacts = [];
+                let totalSize = 0;
+
+                for (const shaderId of manifest.shaders) {
+                    if (this.compiledShaders.has(shaderId)) {
+                        const shader = this.compiledShaders.get(shaderId);
+                        artifacts.push({
+                            type: 'shader',
+                            id: shaderId,
+                            size: shader.length
+                        });
+                        totalSize += shader.length;
+                    }
+                }
+
+                if (manifest.tests) {
+                    for (const testId of manifest.tests) {
+                        if (this.testResults.has(testId)) {
+                            artifacts.push({
+                                type: 'test',
+                                id: testId,
+                                passed: this.testResults.get(testId).passed
+                            });
+                        }
+                    }
+                }
+
+                result.success = true;
+                result.cartridgeId = `cartridge_${manifest.name}_${Date.now()}`;
+                result.artifacts = artifacts;
+                result.deployedAt = Date.now();
+                result.size = totalSize;
+
+                this.deployments.push(result);
+                return result;
+            }
+
+            // Private helper methods
+            _validateWGSL(code) {
+                const errors = [];
+                const lines = code.split('\n');
+
+                // Check for basic WGSL structure
+                if (!code.includes('@compute') && !code.includes('@vertex') && !code.includes('@fragment')) {
+                    errors.push({ line: 1, message: 'Missing entry point decorator (@compute, @vertex, or @fragment)' });
+                }
+
+                // Check for common syntax errors
+                const openBraces = (code.match(/\{/g) || []).length;
+                const closeBraces = (code.match(/\}/g) || []).length;
+                if (openBraces !== closeBraces) {
+                    errors.push({ line: 1, message: 'Mismatched braces' });
+                }
+
+                // Check for required main function
+                if (!code.includes('fn main(')) {
+                    errors.push({ line: 1, message: 'Missing main function' });
+                }
+
+                return errors;
+            }
+
+            _mockWGSLCompile(code) {
+                // Return a mock compiled shader
+                return Buffer.from(code).toString('base64');
+            }
+
+            _validatePython(code) {
+                const errors = [];
+                // Simple Python validation (indentation check)
+                const lines = code.split('\n');
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (line.endsWith(':') && i + 1 < lines.length) {
+                        const nextLine = lines[i + 1];
+                        if (nextLine && !nextLine.startsWith(' ') && !nextLine.startsWith('\t') && nextLine.trim() !== '') {
+                            errors.push({ line: i + 2, message: 'Expected indented block' });
+                        }
+                    }
+                }
+                return errors;
+            }
+
+            _mockPythonTranspile(code) {
+                // Return mock transpiled output
+                return `// Transpiled from Python\n${code}`;
+            }
+
+            async _executeTest(test) {
+                // Simulate test execution
+                if (test.input !== undefined) {
+                    return test.input * 2; // Simple mock: double the input
+                }
+                return null;
+            }
+
+            _compareResults(actual, expected) {
+                if (typeof actual === 'object' && typeof expected === 'object') {
+                    return JSON.stringify(actual) === JSON.stringify(expected);
+                }
+                return actual === expected;
+            }
+
+            // Reset state for testing
+            reset() {
+                this.compiledShaders.clear();
+                this.testResults.clear();
+                this.breakpoints.clear();
+                this.debugState = {
+                    currentLine: 0,
+                    variables: {},
+                    callStack: [],
+                    isPaused: false
+                };
+                this.deployments = [];
+            }
+        }
+
+        // Initialize mock IDE tools
+        window.mockIDETools = new MockIDETools();
+
+        // Test state
+        let passCount = 0;
+        let failCount = 0;
+        let currentTest = 0;
+        const totalTests = 12;
+
+        // Helper to update UI
+        function updateSummary() {
+            document.querySelector('#passed .summary-value').textContent = passCount;
+            document.querySelector('#failed .summary-value').textContent = failCount;
+            document.querySelector('#progress-fill').style.width = `${((passCount + failCount) / totalTests) * 100}%`;
+        }
+
+        // Helper to output test result
+        function outputTest(num, name, passed, detail = '') {
+            const output = document.getElementById('output');
+            const div = document.createElement('div');
+            div.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            div.innerHTML = `
+                <span class="test-number">#${num}</span>
+                <span class="test-status">${passed ? 'PASS' : 'FAIL'}</span>
+                <span class="test-name">${name}</span>
+            `;
+            if (detail) {
+                div.innerHTML += `<div class="test-detail">${detail}</div>`;
+            }
+            output.appendChild(div);
+
+            if (passed) {
+                passCount++;
+            } else {
+                failCount++;
+            }
+            updateSummary();
+        }
+
+        // Test assertion helper
+        function assert(condition, message) {
+            if (!condition) {
+                throw new Error(message || 'Assertion failed');
+            }
+        }
+
+        // Add section header
+        function addSectionHeader(title) {
+            const output = document.getElementById('output');
+            const div = document.createElement('div');
+            div.className = 'section-header';
+            div.textContent = title;
+            output.appendChild(div);
+        }
+
+        // Reset test environment
+        function resetTests() {
+            window.mockIDETools.reset();
+            document.getElementById('output').innerHTML = '';
+            passCount = 0;
+            failCount = 0;
+            currentTest = 0;
+            updateSummary();
+            document.getElementById('runBtn').disabled = false;
+        }
+
+        // ============================================
+        // Tests 1-4: ide_compile
+        // ============================================
+
+        // Test 1: WGSL compile success
+        async function test_wgslCompileSuccess() {
+            const code = `
+                @compute @workgroup_size(64)
+                fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
+                    let idx = gid.x;
+                }
+            `;
+            const result = await window.mockIDETools.compile(code, 'wgsl');
+            assert(result.success === true, 'Compile should succeed');
+            assert(result.target === 'wgsl', 'Target should be wgsl');
+            assert(result.errors.length === 0, 'Should have no errors');
+            assert(result.output !== null, 'Should have output');
+            assert(result.shaderId !== undefined, 'Should have shaderId');
+            return `Compiled WGSL shader: ${result.shaderId}`;
+        }
+
+        // Test 2: WGSL compile error
+        async function test_wgslCompileError() {
+            const code = `
+                fn broken() {
+                    // Missing entry point decorator
+                }
+            `;
+            const result = await window.mockIDETools.compile(code, 'wgsl');
+            assert(result.success === false, 'Compile should fail');
+            assert(result.errors.length > 0, 'Should have errors');
+            assert(result.errors[0].message.includes('entry point'), 'Error should mention entry point');
+            return `Correctly caught error: ${result.errors[0].message}`;
+        }
+
+        // Test 3: JS compile success
+        async function test_jsCompileSuccess() {
+            const code = `
+                function add(a, b) {
+                    return a + b;
+                }
+                module.exports = { add };
+            `;
+            const result = await window.mockIDETools.compile(code, 'js');
+            assert(result.success === true, 'Compile should succeed');
+            assert(result.target === 'js', 'Target should be js');
+            assert(result.moduleId !== undefined, 'Should have moduleId');
+            return `Compiled JS module: ${result.moduleId}`;
+        }
+
+        // Test 4: Python fallback compile
+        async function test_pythonFallback() {
+            const code = `
+def process(data):
+    result = []
+    for item in data:
+        result.append(item * 2)
+    return result
+            `;
+            const result = await window.mockIDETools.compile(code, 'python');
+            assert(result.success === true, 'Compile should succeed');
+            assert(result.target === 'python', 'Target should be python');
+            assert(result.fallback === true, 'Should be marked as fallback');
+            assert(result.output.includes('Transpiled'), 'Output should indicate transpilation');
+            return `Python transpiled to fallback format`;
+        }
+
+        // ============================================
+        // Tests 5-7: ide_test
+        // ============================================
+
+        // Test 5: Run tests
+        async function test_runTests() {
+            // First compile a shader
+            const code = `@compute @workgroup_size(64) fn main() { }`;
+            const compileResult = await window.mockIDETools.compile(code, 'wgsl');
+            const shaderId = compileResult.shaderId;
+
+            const tests = [
+                { name: 'double_5', input: 5, expected: 10 },
+                { name: 'double_10', input: 10, expected: 20 },
+                { name: 'double_0', input: 0, expected: 0 }
+            ];
+
+            const result = await window.mockIDETools.test(shaderId, tests);
+            assert(result.success === true, 'Tests should pass');
+            assert(result.total === 3, 'Should have 3 tests');
+            assert(result.passed === 3, 'All 3 should pass');
+            assert(result.failed === 0, 'None should fail');
+            return `Ran ${result.total} tests, all passed`;
+        }
+
+        // Test 6: Pass/fail counts
+        async function test_passFailCounts() {
+            const shaderId = 'test_shader_fail';
+
+            const tests = [
+                { name: 'pass_1', input: 2, expected: 4 },   // pass
+                { name: 'fail_1', input: 5, expected: 999 }, // fail
+                { name: 'pass_2', input: 3, expected: 6 }    // pass
+            ];
+
+            const result = await window.mockIDETools.test(shaderId, tests);
+            assert(result.total === 3, 'Should have 3 tests');
+            assert(result.passed === 2, '2 should pass');
+            assert(result.failed === 1, '1 should fail');
+            assert(result.success === false, 'Overall should fail (1 failure)');
+            return `Correctly tracked: ${result.passed} passed, ${result.failed} failed`;
+        }
+
+        // Test 7: Result fields
+        async function test_resultFields() {
+            const shaderId = 'test_fields';
+            const tests = [{ name: 'field_test', input: 7, expected: 14 }];
+
+            const result = await window.mockIDETools.test(shaderId, tests);
+            assert(result.hasOwnProperty('success'), 'Should have success field');
+            assert(result.hasOwnProperty('targetId'), 'Should have targetId field');
+            assert(result.hasOwnProperty('passed'), 'Should have passed field');
+            assert(result.hasOwnProperty('failed'), 'Should have failed field');
+            assert(result.hasOwnProperty('total'), 'Should have total field');
+            assert(result.hasOwnProperty('results'), 'Should have results field');
+            assert(result.hasOwnProperty('duration'), 'Should have duration field');
+            assert(Array.isArray(result.results), 'results should be array');
+            assert(result.results[0].name === 'field_test', 'Result should have test name');
+            assert(result.results[0].passed === true, 'Result should have passed status');
+            return `All required fields present: ${Object.keys(result).join(', ')}`;
+        }
+
+        // ============================================
+        // Tests 8-10: ide_debug
+        // ============================================
+
+        // Test 8: Set breakpoint
+        async function test_setBreakpoint() {
+            const result = await window.mockIDETools.debug('set_breakpoint', { line: 42 });
+            assert(result.success === true, 'Should succeed');
+            assert(result.breakpoint !== null, 'Should have breakpoint');
+            assert(result.breakpoint.line === 42, 'Breakpoint should be at line 42');
+            assert(result.breakpoint.id !== undefined, 'Breakpoint should have ID');
+            return `Set breakpoint at line ${result.breakpoint.line}, ID: ${result.breakpoint.id}`;
+        }
+
+        // Test 9: Step through code
+        async function test_stepThrough() {
+            // First pause
+            await window.mockIDETools.debug('pause', {});
+
+            // Initial state
+            const initialState = await window.mockIDETools.debug('inspect', {});
+            const initialLine = initialState.state.currentLine;
+
+            // Step forward
+            const stepResult = await window.mockIDETools.debug('step', { lines: 5 });
+            assert(stepResult.success === true, 'Step should succeed');
+            assert(stepResult.state.currentLine === initialLine + 5, 'Should advance 5 lines');
+
+            return `Stepped from line ${initialLine} to ${stepResult.state.currentLine}`;
+        }
+
+        // Test 10: Inspect variables
+        async function test_inspect() {
+            // Set up some variables
+            window.mockIDETools.debugState.variables = {
+                x: 42,
+                y: 'hello',
+                z: { nested: true }
+            };
+
+            // Inspect specific variable
+            const resultX = await window.mockIDETools.debug('inspect', { variable: 'x' });
+            assert(resultX.success === true, 'Inspect x should succeed');
+            assert(resultX.value === 42, 'x should be 42');
+
+            // Inspect all variables
+            const resultAll = await window.mockIDETools.debug('inspect', {});
+            assert(resultAll.success === true, 'Inspect all should succeed');
+            assert(Object.keys(resultAll.variables).length === 3, 'Should have 3 variables');
+
+            // Inspect non-existent variable
+            const resultNone = await window.mockIDETools.debug('inspect', { variable: 'nonexistent' });
+            assert(resultNone.success === false, 'Should fail for non-existent');
+            assert(resultNone.error !== undefined, 'Should have error message');
+
+            return `Inspected variables: ${Object.keys(resultAll.variables).join(', ')}`;
+        }
+
+        // ============================================
+        // Test 11: ide_deploy
+        // ============================================
+
+        // Test 11: Assemble cartridge
+        async function test_assembleCartridge() {
+            // Compile a shader first
+            const code = `@compute @workgroup_size(64) fn main() { }`;
+            const compileResult = await window.mockIDETools.compile(code, 'wgsl');
+            const shaderId = compileResult.shaderId;
+
+            // Run some tests
+            const testResult = await window.mockIDETools.test(shaderId, [
+                { name: 'test1', input: 1, expected: 2 }
+            ]);
+
+            const manifest = {
+                name: 'test-cartridge',
+                version: '1.0.0',
+                shaders: [shaderId],
+                tests: [shaderId]
+            };
+
+            const result = await window.mockIDETools.deploy(manifest);
+            assert(result.success === true, 'Deploy should succeed');
+            assert(result.cartridgeId !== null, 'Should have cartridge ID');
+            assert(result.cartridgeId.includes('test-cartridge'), 'ID should include name');
+            assert(result.artifacts.length >= 1, 'Should have at least 1 artifact');
+            assert(result.deployedAt !== null, 'Should have deployedAt timestamp');
+            assert(result.size > 0, 'Should have size > 0');
+
+            return `Deployed cartridge: ${result.cartridgeId} with ${result.artifacts.length} artifacts`;
+        }
+
+        // ============================================
+        // Test 12: Full cycle
+        // ============================================
+
+        // Test 12: Full cycle (compile -> test -> debug -> deploy)
+        async function test_fullCycle() {
+            // Step 1: Compile
+            const code = `
+                @compute @workgroup_size(64)
+                fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
+                    let idx = gid.x;
+                }
+            `;
+            const compileResult = await window.mockIDETools.compile(code, 'wgsl');
+            assert(compileResult.success === true, 'Compile should succeed');
+            const shaderId = compileResult.shaderId;
+
+            // Step 2: Test
+            const tests = [
+                { name: 'cycle_test', input: 21, expected: 42 }
+            ];
+            const testResult = await window.mockIDETools.test(shaderId, tests);
+            assert(testResult.success === true, 'Tests should pass');
+            assert(testResult.passed === 1, 'Should pass 1 test');
+
+            // Step 3: Debug - set breakpoint and inspect
+            const bpResult = await window.mockIDETools.debug('set_breakpoint', { line: 10 });
+            assert(bpResult.success === true, 'Set breakpoint should succeed');
+
+            const inspectResult = await window.mockIDETools.debug('inspect', {});
+            assert(inspectResult.success === true, 'Inspect should succeed');
+
+            // Step 4: Deploy
+            const manifest = {
+                name: 'full-cycle-cartridge',
+                version: '1.0.0',
+                shaders: [shaderId],
+                tests: [shaderId]
+            };
+            const deployResult = await window.mockIDETools.deploy(manifest);
+            assert(deployResult.success === true, 'Deploy should succeed');
+            assert(deployResult.cartridgeId.includes('full-cycle'), 'Should have correct cartridge name');
+
+            return `Full cycle complete: compile(${shaderId}) -> test(${testResult.passed} passed) -> debug(bp at line 10) -> deploy(${deployResult.cartridgeId})`;
+        }
+
+        // All tests array
+        const tests = [
+            // Tests 1-4: ide_compile
+            { name: 'ide_compile: WGSL success', fn: test_wgslCompileSuccess },
+            { name: 'ide_compile: WGSL error', fn: test_wgslCompileError },
+            { name: 'ide_compile: JS compile', fn: test_jsCompileSuccess },
+            { name: 'ide_compile: Python fallback', fn: test_pythonFallback },
+
+            // Tests 5-7: ide_test
+            { name: 'ide_test: run tests', fn: test_runTests },
+            { name: 'ide_test: pass/fail counts', fn: test_passFailCounts },
+            { name: 'ide_test: result fields', fn: test_resultFields },
+
+            // Tests 8-10: ide_debug
+            { name: 'ide_debug: set breakpoint', fn: test_setBreakpoint },
+            { name: 'ide_debug: step', fn: test_stepThrough },
+            { name: 'ide_debug: inspect', fn: test_inspect },
+
+            // Test 11: ide_deploy
+            { name: 'ide_deploy: assemble cartridge', fn: test_assembleCartridge },
+
+            // Test 12: Full cycle
+            { name: 'Full cycle: compile -> test -> debug -> deploy', fn: test_fullCycle },
+        ];
+
+        // Run all tests
+        async function runAllTests() {
+            const runBtn = document.getElementById('runBtn');
+            runBtn.disabled = true;
+            runBtn.classList.add('running');
+
+            // Reset environment
+            window.mockIDETools.reset();
+            document.getElementById('output').innerHTML = '';
+            passCount = 0;
+            failCount = 0;
+            updateSummary();
+
+            // Add compile section
+            addSectionHeader('Tests 1-4: ide_compile');
+
+            for (let i = 0; i < tests.length; i++) {
+                // Add section headers
+                if (i === 4) addSectionHeader('Tests 5-7: ide_test');
+                if (i === 7) addSectionHeader('Tests 8-10: ide_debug');
+                if (i === 10) addSectionHeader('Test 11: ide_deploy');
+                if (i === 11) addSectionHeader('Test 12: Full Cycle');
+
+                const test = tests[i];
+                const testNum = i + 1;
+
+                try {
+                    const detail = await test.fn();
+                    outputTest(testNum, test.name, true, detail);
+                } catch (error) {
+                    outputTest(testNum, test.name, false, error.message);
+                }
+
+                // Small delay for visual feedback
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+
+            runBtn.disabled = false;
+            runBtn.classList.remove('running');
+
+            // Final summary
+            console.log(`\n=== Phase N: IDE Tools Test Results ===`);
+            console.log(`Passed: ${passCount}/${totalTests}`);
+            console.log(`Failed: ${failCount}/${totalTests}`);
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            updateSummary();
+        });
+    </script>
+</body>
+</html>
