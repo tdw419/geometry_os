@@ -831,6 +831,84 @@ def cmd_boot(args):
         return 1
 
 
+def cmd_install(args):
+    """Handle install command - Install .rts.png files to disk image."""
+    from systems.pixel_compiler.install import InstallEngine, InstallError
+
+    input_path = Path(args.input)
+    target_path = Path(args.target)
+
+    # Validate input file exists
+    if not input_path.exists():
+        print(f"Error: Input file not found: {args.input}", file=sys.stderr)
+        return 1
+
+    if not input_path.is_file():
+        print(f"Error: Input path is not a file: {args.input}", file=sys.stderr)
+        return 1
+
+    # Validate input is .rts.png
+    if not str(input_path).endswith('.rts.png'):
+        print(f"Error: Input file must be a .rts.png file: {args.input}", file=sys.stderr)
+        return 1
+
+    # Validate target parent directory exists
+    target_parent = target_path.parent
+    if not target_parent.exists():
+        print(f"Error: Target parent directory does not exist: {target_parent}", file=sys.stderr)
+        return 1
+
+    if args.verbose:
+        print(f"Installing: {args.input}")
+        print(f"Target: {args.target}")
+        print(f"Verify: {not args.no_verify}")
+
+    try:
+        # Create InstallEngine with options
+        with InstallEngine(
+            rts_png_path=str(input_path),
+            target_path=str(target_path),
+            verbose=not args.quiet and (args.verbose or sys.stdout.isatty()),
+            verify=not args.no_verify,
+        ) as engine:
+            # Perform install
+            result = engine.install()
+
+            if result.cancelled:
+                if not args.quiet:
+                    print(f"\nInstallation cancelled.")
+                return 130  # 128 + 2 (SIGINT)
+
+            if not result.success:
+                print(f"Installation failed: {result.error_message}", file=sys.stderr)
+                return 1
+
+            # Print success info
+            if not args.quiet:
+                print(f"\nInstallation successful!")
+                print(f"  Target: {result.target_path}")
+                print(f"  Bytes written: {result.bytes_written:,} ({result.bytes_written / (1024*1024):.1f} MB)")
+                print(f"  Duration: {result.duration_seconds:.2f}s")
+                if result.verified:
+                    print(f"  Verified: Yes")
+
+            return 0
+
+    except InstallError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except ImportError as e:
+        print(f"Error: Required module not available: {e}", file=sys.stderr)
+        print("Ensure systems.pixel_compiler.install is properly installed.", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -841,6 +919,7 @@ Commands:
   convert      Convert binary files to .rts.png format
   transpile    Transpile native software (source/binary/WASM) to PixelRTS format
   boot         Boot .rts.png files with QEMU (single command)
+  install      Install .rts.png files to disk image (with verification)
   benchmark    Run performance benchmarks
   dashboard    Generate performance dashboard
   info         Display information about .rts.png file
@@ -856,6 +935,8 @@ Examples:
   pixelrts boot alpine.rts.png --memory 4G --cpus 4
   pixelrts boot kernel.rts.png --vnc 1 --background
   pixelrts boot os.rts.png --cmdline "console=ttyS0" --qemu-arg "-nographic"
+  pixelrts install alpine.rts.png /tmp/alpine.img
+  pixelrts install os.rts.png /dev/sdX --no-verify
   pixelrts analyze image.rts.png --method edges --edge-method sobel
   pixelrts analyze image.rts.png --method all --output results.json
   pixelrts execute fibonacci.rts.png --function fib --arguments 10
@@ -1053,6 +1134,21 @@ Examples:
     boot_parser.add_argument('-v', '--verbose', action='store_true',
                             help='Enable verbose output')
 
+    # Install command (install .rts.png files to disk)
+    install_parser = subparsers.add_parser(
+        'install',
+        help='Install .rts.png files to disk image',
+        description='Install PixelRTS containers to disk images with verification and progress'
+    )
+    install_parser.add_argument('input', help='Input .rts.png file to install')
+    install_parser.add_argument('target', help='Target file path for installed data')
+    install_parser.add_argument('--no-verify', action='store_true',
+                               help='Skip hash verification')
+    install_parser.add_argument('--quiet', '-q', action='store_true',
+                               help='Suppress progress output')
+    install_parser.add_argument('-v', '--verbose', action='store_true',
+                               help='Enable verbose output')
+
     # Blueprint command group
     blueprint_parser = subparsers.add_parser(
         'blueprint',
@@ -1101,6 +1197,7 @@ Examples:
         'convert': cmd_convert,
         'transpile': cmd_transpile,
         'boot': cmd_boot,
+        'install': cmd_install,
         'benchmark': cmd_benchmark,
         'dashboard': cmd_dashboard,
         'info': cmd_info,
