@@ -781,6 +781,7 @@ class WebMCPBridge {
             await this.#registerLinuxReadFile();
             await this.#registerLinuxWriteFile();
             await this.#registerLinuxBootAtPosition();
+            await this.#registerLinuxExecToTile();
 
             // Phase H tools - WGPU Hypervisor (Pure Client-Side)
             await this.#registerHypervisorBoot();
@@ -6044,6 +6045,74 @@ class WebMCPBridge {
 
                 } catch (error) {
                     console.error('🔌 WebMCP: linux_boot_at_position error:', error);
+                    return {
+                        success: false,
+                        tilePlaced: false,
+                        error: error.message
+                    };
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
+        navigator.modelContext.toolHandlers[tool.name] = tool.handler;
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerLinuxExecToTile() {
+        const self = this;
+        const tool = {
+            name: 'linux_exec_to_tile',
+            description: 'Execute a command in Linux VM and place the output as a tile on the Infinite Map.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    command: {
+                        type: 'string',
+                        description: 'Shell command to execute'
+                    },
+                    x: {
+                        type: 'number',
+                        description: 'X coordinate for result tile'
+                    },
+                    y: {
+                        type: 'number',
+                        description: 'Y coordinate for result tile'
+                    },
+                    timeout: {
+                        type: 'number',
+                        description: 'Execution timeout in seconds',
+                        default: 30
+                    }
+                },
+                required: ['command', 'x', 'y']
+            },
+            handler: async (args) => {
+                const { command, x, y, timeout = 30 } = args;
+
+                self.#callCount++;
+
+                try {
+                    const bridge = self.#getLinuxTileBridge();
+                    if (!bridge) {
+                        throw new Error('LinuxTileBridge not available');
+                    }
+
+                    const result = await bridge.execToTile(command, { x, y }, { timeout });
+
+                    return {
+                        success: result.success,
+                        stdout: result.result?.stdout || '',
+                        stderr: result.result?.stderr || '',
+                        exitCode: result.result?.exit_code,
+                        tilePlaced: result.tilePlaced,
+                        position: result.position,
+                        error: result.error || null
+                    };
+
+                } catch (error) {
+                    console.error('🔌 WebMCP: linux_exec_to_tile error:', error);
                     return {
                         success: false,
                         tilePlaced: false,
