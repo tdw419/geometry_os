@@ -92,8 +92,8 @@
  * Requirements: Chrome 146+ with WebMCP support
  * Fallback: Logs warning, app runs normally without WebMCP
  *
- * @version 2.3.0
- * @phase Phase H: Performance Optimization
+ * @version 2.4.0
+ * @phase Phase I: Security Hardening
  * @date 2026-02-15
  */
 
