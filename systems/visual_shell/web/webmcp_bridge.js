@@ -92,8 +92,8 @@
  * Requirements: Chrome 146+ with WebMCP support
  * Fallback: Logs warning, app runs normally without WebMCP
  *
- * @version 2.5.0
- * @phase Phase E: Reliability & Error Handling
+ * @version 2.6.0
+ * @phase Phase F: AI-Driven Visual Builder
  * @date 2026-02-15
  */
 
@@ -1796,6 +1796,16 @@ class WebMCPBridge {
             // Phase O tools - AI PM Autonomous
             await this.#registerPMAnalyze();
             await this.#registerPMAnalyzeAndDeploy();
+
+            // Phase Q: Creative Tools
+            await this.#registerGraphicsDrawRect();
+            await this.#registerGraphicsDrawCircle();
+            await this.#registerGraphicsClear();
+            await this.#registerTextPlace();
+            await this.#registerTextUpdate();
+            await this.#registerSpriteCreate();
+            await this.#registerSpriteMove();
+            await this.#registerSpriteRemove();
 
             // Phase P tools - Pyodide In-Browser Python Execution
             await this.#registerPyodideRun();
@@ -10040,6 +10050,189 @@ class WebMCPBridge {
                 count: 1
             };
         });
+        this.#registeredTools.push(tool.name);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Phase Q: Creative Tools
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerGraphicsDrawRect() {
+        const tool = {
+            name: 'graphics_draw_rect',
+            description: 'Draw a rectangle on the map at a specific world coordinate.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    x: { type: 'number', description: 'X coordinate of the top-left corner.' },
+                    y: { type: 'number', description: 'Y coordinate of the top-left corner.' },
+                    width: { type: 'number', description: 'Width of the rectangle.' },
+                    height: { type: 'number', description: 'Height of the rectangle.' },
+                    color: { type: 'number', description: 'Fill color as a hex number (e.g., 0xFF0000 for red).' },
+                    alpha: { type: 'number', description: 'Fill opacity (0.0 to 1.0).' }
+                },
+                required: ['x', 'y', 'width', 'height']
+            },
+            handler: async (params) => {
+                this.#app.drawRect(params.x, params.y, params.width, params.height, params.color, params.alpha);
+                return { success: true, message: 'Rectangle drawn.' };
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerGraphicsDrawCircle() {
+        const tool = {
+            name: 'graphics_draw_circle',
+            description: 'Draw a circle on the map at a specific world coordinate.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    x: { type: 'number', description: 'X coordinate of the center.' },
+                    y: { type: 'number', description: 'Y coordinate of the center.' },
+                    radius: { type: 'number', description: 'Radius of the circle.' },
+                    color: { type: 'number', description: 'Fill color as a hex number.' },
+                    alpha: { type: 'number', description: 'Fill opacity (0.0 to 1.0).' }
+                },
+                required: ['x', 'y', 'radius']
+            },
+            handler: async (params) => {
+                this.#app.drawCircle(params.x, params.y, params.radius, params.color, params.alpha);
+                return { success: true, message: 'Circle drawn.' };
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerGraphicsClear() {
+        const tool = {
+            name: 'graphics_clear',
+            description: 'Clear all shapes previously drawn with graphics tools.',
+            handler: async () => {
+                this.#app.clearGraphics();
+                return { success: true, message: 'Graphics layer cleared.' };
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerTextPlace() {
+        const tool = {
+            name: 'text_place',
+            description: 'Place a new text object on the map.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', description: 'A unique identifier for this text object.' },
+                    text: { type: 'string', description: 'The content of the text.' },
+                    x: { type: 'number', description: 'X coordinate for the text anchor.' },
+                    y: { type: 'number', description: 'Y coordinate for the text anchor.' },
+                    style: { type: 'object', description: 'A PIXI.TextStyle compatible object for styling.' }
+                },
+                required: ['id', 'text', 'x', 'y']
+            },
+            handler: async (params) => {
+                const success = this.#app.placeText(params.id, params.text, params.x, params.y, params.style);
+                return { success, message: success ? `Text '${params.id}' placed.` : `Failed to place text '${params.id}'. It might already exist.` };
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerTextUpdate() {
+        const tool = {
+            name: 'text_update',
+            description: 'Update the content or style of an existing text object.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', description: 'The unique identifier of the text to update.' },
+                    text: { type: 'string', description: 'The new text content.' },
+                    style: { type: 'object', description: 'A PIXI.TextStyle compatible object to update.' }
+                },
+                required: ['id']
+            },
+            handler: async (params) => {
+                if (!params.text && !params.style) {
+                    return { success: false, error: 'Either text or style must be provided to update.' };
+                }
+                const success = this.#app.updateText(params.id, params.text, params.style);
+                return { success, message: success ? `Text '${params.id}' updated.` : `Failed to find text '${params.id}'.` };
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerSpriteCreate() {
+        const tool = {
+            name: 'sprite_create',
+            description: 'Create a sprite from an image URL and place it on the map.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', description: 'A unique identifier for this sprite.' },
+                    imageUrl: { type: 'string', description: 'The URL of the image to use.' },
+                    x: { type: 'number', description: 'X coordinate for the sprite anchor.' },
+                    y: { type: 'number', description: 'Y coordinate for the sprite anchor.' }
+                },
+                required: ['id', 'imageUrl', 'x', 'y']
+            },
+            handler: async (params) => {
+                const success = await this.#app.createSprite(params.id, params.imageUrl, params.x, params.y);
+                return { success, message: success ? `Sprite '${params.id}' created.` : `Failed to create sprite '${params.id}'.` };
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerSpriteMove() {
+        const tool = {
+            name: 'sprite_move',
+            description: 'Move an existing sprite or text object to a new position.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', description: 'The unique identifier of the object to move.' },
+                    x: { type: 'number', description: 'The new X coordinate.' },
+                    y: { type: 'number', description: 'The new Y coordinate.' }
+                },
+                required: ['id']
+            },
+            handler: async (params) => {
+                if (params.x === undefined && params.y === undefined) {
+                    return { success: false, error: 'Either x or y must be provided to move.' };
+                }
+                const success = this.#app.moveSprite(params.id, params.x, params.y);
+                return { success, message: success ? `Object '${params.id}' moved.` : `Failed to find object '${params.id}'.` };
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerSpriteRemove() {
+        const tool = {
+            name: 'sprite_remove',
+            description: 'Remove a sprite or text object from the map.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', description: 'The unique identifier of the object to remove.' }
+                },
+                required: ['id']
+            },
+            handler: async (params) => {
+                const success = this.#app.removeSprite(params.id);
+                return { success, message: success ? `Object '${params.id}' removed.` : `Failed to find object '${params.id}'.` };
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
         this.#registeredTools.push(tool.name);
     }
 
