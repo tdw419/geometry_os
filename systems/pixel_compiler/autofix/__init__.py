@@ -9,5 +9,6 @@ The autofix daemon provides autonomous code improvement capabilities:
 
 from .daemon import AutofixDaemon
 from .fixer import AutofixGenerator
+from .metrics import AutofixMetrics
 
-__all__ = ["AutofixDaemon", "AutofixGenerator"]
+__all__ = ["AutofixDaemon", "AutofixGenerator", "AutofixMetrics"]

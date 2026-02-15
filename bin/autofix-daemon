@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+"""
+Autofix Daemon CLI - Start the autonomous improvement daemon.
+
+Usage:
+    autofix-daemon [--poll-interval SECONDS] [--safe-dir DIR] [--dry-run]
+"""
+
+import argparse
+import signal
+import sys
+from pathlib import Path
+
+# Add project root to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from systems.pixel_compiler.autofix import AutofixDaemon
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Autonomous Improvement Daemon for Geometry OS",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+    # Start with defaults (60s poll, sandbox only)
+    autofix-daemon
+
+    # Poll every 30 seconds, allow fixes in tests/
+    autofix-daemon --poll-interval 30 --safe-dir tests/
+
+    # Dry run - detect but don't fix
+    autofix-daemon --dry-run
+""",
+    )
+
+    parser.add_argument(
+        "--poll-interval",
+        type=int,
+        default=60,
+        help="Seconds between test suite polls (default: 60)",
+    )
+
+    parser.add_argument(
+        "--safe-dir",
+        action="append",
+        dest="safe_directories",
+        default=[],
+        help="Directories where fixes are allowed (can specify multiple)",
+    )
+
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Detect failures but don't apply fixes",
+    )
+
+    parser.add_argument(
+        "--max-attempts",
+        type=int,
+        default=3,
+        help="Maximum fix attempts per failure (default: 3)",
+    )
+
+    args = parser.parse_args()
+
+    # Build config
+    config = {
+        "poll_interval": args.poll_interval,
+        "max_fix_attempts": args.max_attempts,
+    }
+
+    if args.safe_directories:
+        config["safe_directories"] = args.safe_directories
+
+    # Create daemon
+    daemon = AutofixDaemon(config)
+
+    # Handle signals for graceful shutdown
+    def handle_shutdown(signum, frame):
+        print("\nShutting down...")
+        daemon.stop()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, handle_shutdown)
+    signal.signal(signal.SIGTERM, handle_shutdown)
+
+    print(f"Starting Autofix Daemon (poll interval: {args.poll_interval}s)")
+    print(f"Safe directories: {daemon.safe_directories}")
+    print(f"Dry run: {args.dry_run}")
+    print("Press Ctrl+C to stop\n")
+
+    # Start daemon
+    daemon.start()
+
+
+if __name__ == "__main__":
+    main()
