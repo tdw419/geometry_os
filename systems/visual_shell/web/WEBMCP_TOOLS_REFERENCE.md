@@ -2,7 +2,7 @@
 
 Complete reference for all WebMCP tools available in Geometry OS Web Edition.
 
-**Total Tools: 89** | **Version: 2.0.0** | **Updated: 2026-02-14**
+**Total Tools: 93** | **Version: 2.1.0** | **Updated: 2026-02-15**
 
 ---
 
@@ -19,6 +19,7 @@ Complete reference for all WebMCP tools available in Geometry OS Web Edition.
    - [Phase K: Neural Kernel (5 tools)](#phase-k-neural-kernel)
    - [Phase L: Autonomous Operator (5 tools)](#phase-l-autonomous-operator)
    - [Phase M: AI PM Integration (5 tools)](#phase-m-ai-pm-integration)
+   - [Phase N: AI-Assisted IDE Tools (4 tools)](#phase-n-ai-assisted-ide-tools)
 3. [Usage Examples](#usage-examples)
 4. [Error Handling](#error-handling)
 
@@ -719,6 +720,160 @@ Create a new task in a phase.
         "status": "pending",
         "priority": "high"
     }
+}
+```
+
+---
+
+### Phase N: AI-Assisted IDE Tools
+
+Tools for AI agents to manage code compilation, testing, debugging, and deployment within the IDE.
+
+| Tool | Description |
+|------|-------------|
+| `ide_compile` | Compile WGSL/JS/Python code with diagnostics |
+| `ide_test` | Run tests with structured results |
+| `ide_debug` | Debug code with breakpoints |
+| `ide_deploy` | Deploy code/files as .rts.png cartridge to Infinite Map |
+
+#### ide_compile
+
+Compile code with full diagnostics and error reporting.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `source` | string | Yes | Source code to compile |
+| `language` | string | Yes | Language (wgsl/js/python) |
+| `target` | string | No | Target platform |
+| `options` | object | No | Compiler options |
+
+**Returns:**
+```json
+{
+    "success": true,
+    "compiled": true,
+    "diagnostics": [],
+    "output": "compiled_code",
+    "errors": []
+}
+```
+
+#### ide_test
+
+Run tests with structured, parseable results.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `test_filter` | string | No | Filter tests by pattern |
+| `timeout` | number | No | Test timeout (ms) |
+| `verbose` | boolean | No | Verbose output |
+
+**Returns:**
+```json
+{
+    "success": true,
+    "results": [
+        { "name": "test_foo", "status": "pass", "duration": 23 }
+    ],
+    "summary": {
+        "total": 42,
+        "pass": 40,
+        "fail": 2,
+        "skip": 0
+    }
+}
+```
+
+#### ide_debug
+
+Debug code with breakpoints and inspection.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `file` | string | Yes | File to debug |
+| `breakpoints` | array | Yes | Line numbers |
+| `watch` | array | No | Expressions to watch |
+
+#### ide_deploy
+
+Deploy code/files as a .rts.png cartridge to the Infinite Map.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `source_files` | array | Yes* | Files to deploy (path + base64 content) |
+| `source_region` | object | Yes* | Legacy: Map region to capture |
+| `name` | string | Yes | Cartridge name |
+| `description` | string | No | Description metadata |
+| `entry_point` | string | No | Entry file:function |
+| `location` | object | No | Deploy location {x, y} |
+
+*Either `source_files` or `source_region` required.
+
+**Example - Deploy from files:**
+```javascript
+const result = await navigator.modelContext.callTool('ide_deploy', {
+    source_files: [
+        { path: 'main.py', content: btoa('print("hello")') },
+        { path: 'lib.py', content: btoa('def helper(): pass') }
+    ],
+    name: 'my_app',
+    description: 'My first cartridge',
+    entry_point: 'main.py',
+    location: { x: 1000, y: 2000 }
+});
+
+// Result:
+// {
+//   success: true,
+//   cartridge: { format: "png", data: "...", size_bytes: 4096 },
+//   location: { x: 1000, y: 2000 }
+// }
+```
+
+**Example - Deploy from map region (legacy):**
+```javascript
+const result = await navigator.modelContext.callTool('ide_deploy', {
+    source_region: { x: 100, y: 100, width: 256, height: 256 },
+    name: 'region_cart'
+});
+
+// Result:
+// {
+//   success: true,
+//   cartridge: { path: "/cartridges/region_cart.rts.png" },
+//   location: { x: 200, y: 200 }
+// }
+```
+
+**Example - Download cartridge:**
+```javascript
+const result = await navigator.modelContext.callTool('ide_deploy', {
+    source_files: [{ path: 'app.py', content: btoa('print("app")')],
+    name: 'download_test'
+});
+
+if (result.success && result.cartridge.data) {
+    // Convert base64 to blob
+    const binary = atob(result.cartridge.data);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+
+    const blob = new Blob([bytes], { type: 'image/png' });
+    const url = URL.createObjectURL(blob);
+
+    // Trigger download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${result.cartridge.name}.rts.png`;
+    a.click();
+
+    URL.revokeObjectURL(url);
 }
 ```
 

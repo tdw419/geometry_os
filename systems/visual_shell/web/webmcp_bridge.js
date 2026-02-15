@@ -6904,12 +6904,25 @@ class WebMCPBridge {
     async #registerIDEDeploy() {
         const tool = {
             name: 'ide_deploy',
-            description: 'Assemble .rts.png cartridge from map region and deploy',
+            description: 'Deploy code/files as .rts.png cartridge to Infinite Map',
             inputSchema: {
                 type: 'object',
                 properties: {
+                    source_files: {
+                        type: 'array',
+                        description: 'Files to include (path + base64 content)',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                path: { type: 'string' },
+                                content: { type: 'string', description: 'Base64 encoded' }
+                            },
+                            required: ['path', 'content']
+                        }
+                    },
                     source_region: {
                         type: 'object',
+                        description: 'Legacy: Region on map to capture',
                         properties: {
                             x: { type: 'number' },
                             y: { type: 'number' },
@@ -6918,21 +6931,43 @@ class WebMCPBridge {
                         },
                         required: ['x', 'y', 'width', 'height']
                     },
-                    name: { type: 'string' },
+                    name: { type: 'string', description: 'Cartridge name' },
                     description: { type: 'string' },
-                    entry_point: { type: 'string' }
+                    entry_point: { type: 'string', description: 'Entry file:function' },
+                    location: {
+                        type: 'object',
+                        description: 'Deploy location on Infinite Map',
+                        properties: {
+                            x: { type: 'number' },
+                            y: { type: 'number' }
+                        }
+                    }
                 },
-                required: ['source_region', 'name']
+                required: ['name']
             }
         };
 
         await navigator.modelContext.registerTool(tool, async (params) => {
             this.#trackCall('ide_deploy');
-            const { source_region, name } = params;
+            const { source_files, source_region, name, location } = params;
 
-            if (!source_region || !name) {
-                return { success: false, error: 'source_region and name are required' };
+            if (!name) {
+                return { success: false, error: 'name is required' };
             }
+
+            // Support both source_files (new) and source_region (legacy)
+            const hasSourceFiles = source_files && source_files.length > 0;
+            const hasSourceRegion = source_region && source_region.x !== undefined;
+
+            if (!hasSourceFiles && !hasSourceRegion) {
+                return { success: false, error: 'Either source_files or source_region is required' };
+            }
+
+            // Determine deploy location
+            const deployLocation = location || (hasSourceRegion
+                ? { x: source_region.x + 100, y: source_region.y + 100 }
+                : { x: 0, y: 0 }
+            );
 
             return {
                 success: true,
@@ -6941,7 +6976,7 @@ class WebMCPBridge {
                     hash: 'sha256:' + 'a'.repeat(64),
                     size_bytes: 4096
                 },
-                location: { x: source_region.x + 100, y: source_region.y + 100 }
+                location: deployLocation
             };
         });
         this.#registeredTools.push(tool.name);
