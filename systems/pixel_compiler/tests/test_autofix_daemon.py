@@ -97,3 +97,94 @@ class TestAutofixDaemon:
         legit_file = safe_dir / "legit.py"
         legit_file.write_text("print('safe')")
         assert daemon.is_safe_path(str(legit_file)) is True
+
+
+class TestAutofixDaemonTestDetection:
+    """Test class for AutofixDaemon test failure detection methods."""
+
+    def test_run_tests_returns_success_when_all_pass(self):
+        """Should return success=True when all tests pass."""
+        daemon = AutofixDaemon()
+
+        # Run the passing test fixture
+        fixtures_dir = Path(__file__).parent / "fixtures"
+        passing_test = fixtures_dir / "passing_test.py"
+
+        result = daemon.run_tests([str(passing_test)])
+
+        assert result["success"] is True
+        assert result["passed"] == 2
+        assert result["failed"] == 0
+        assert len(result["failures"]) == 0
+        assert "passed" in result["output"].lower()
+
+    def test_run_tests_returns_failures_when_some_fail(self):
+        """Should return success=False and list failures when tests fail."""
+        daemon = AutofixDaemon()
+
+        # Run the failing test fixture
+        fixtures_dir = Path(__file__).parent / "fixtures"
+        failing_test = fixtures_dir / "failing_test.py"
+
+        result = daemon.run_tests([str(failing_test)])
+
+        assert result["success"] is False
+        assert result["passed"] >= 1  # At least the one that passes
+        assert result["failed"] >= 1  # At least one fails
+        assert len(result["failures"]) >= 1
+
+        # Check failure details
+        failure = result["failures"][0]
+        assert "test_name" in failure
+        assert "file" in failure
+        assert "line" in failure
+        assert "error" in failure
+
+    def test_parse_pytest_output_extracts_failures(self):
+        """Should parse pytest output and extract failure details."""
+        daemon = AutofixDaemon()
+
+        # Sample pytest output with failures
+        sample_output = """
+============================= test session starts ==============================
+collected 3 items
+
+test_example.py F.F
+
+=================================== FAILURES ===================================
+_______________________________ test_addition_fails ____________________________
+
+    def test_addition_fails():
+>       assert 1 + 1 == 3  # This will fail
+E       assert 2 == 3
+
+test_example.py:5: AssertionError
+__________________________ test_string_length_fails ___________________________
+
+    def test_string_length_fails():
+>       assert len("hello") == 10  # This will fail
+E       assert 5 == 10
+
+test_example.py:10: AssertionError
+
+========================= 2 failed, 1 passed in 0.1s =========================
+"""
+
+        result = daemon._parse_pytest_output(sample_output)
+
+        assert result["success"] is False
+        assert result["failed"] == 2
+        assert result["passed"] == 1
+        assert len(result["failures"]) == 2
+
+        # Check first failure
+        first_failure = result["failures"][0]
+        assert first_failure["test_name"] == "test_addition_fails"
+        assert first_failure["file"] == "test_example.py"
+        assert first_failure["line"] == 5
+        assert "AssertionError" in first_failure["error"]
+
+        # Check second failure
+        second_failure = result["failures"][1]
+        assert second_failure["test_name"] == "test_string_length_fails"
+        assert second_failure["line"] == 10
