@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDESemanticOverlay Tests - Phase J.2</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        h1 {
+            color: #00d4ff;
+            border-bottom: 2px solid #00d4ff;
+            padding-bottom: 10px;
+        }
+        .test-suite {
+            margin: 20px 0;
+        }
+        .test-case {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #444;
+        }
+        .test-case.pass {
+            border-left-color: #00ff88;
+        }
+        .test-case.fail {
+            border-left-color: #ff4444;
+        }
+        .test-name {
+            font-weight: bold;
+            color: #00d4ff;
+            margin-bottom: 8px;
+        }
+        .test-result {
+            font-size: 14px;
+        }
+        .pass-status {
+            color: #00ff88;
+        }
+        .fail-status {
+            color: #ff4444;
+        }
+        .summary {
+            background: #0f3460;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+        .summary.all-pass {
+            background: #0a4a2a;
+        }
+        .summary.some-fail {
+            background: #4a1a1a;
+        }
+        pre {
+            background: #0a0a15;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>IDESemanticOverlay Test Suite</h1>
+    <p>Phase J.2: Neural IDE Visual Builder - Semantic Overlay Tests</p>
+    <div id="results"></div>
+    <div id="summary" class="summary"></div>
+
+    <script type="module">
+        import { IDESemanticOverlay } from './ide_semantic_overlay.js';
+
+        const resultsContainer = document.getElementById('results');
+        const summaryContainer = document.getElementById('summary');
+
+        let passed = 0;
+        let failed = 0;
+        const results = [];
+
+        function test(name, fn) {
+            const testCase = { name, passed: false, error: null };
+            try {
+                fn();
+                testCase.passed = true;
+                passed++;
+            } catch (e) {
+                testCase.error = e.message || String(e);
+                failed++;
+            }
+            results.push(testCase);
+        }
+
+        function assertEqual(actual, expected, message = '') {
+            if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+                throw new Error(`${message}\nExpected: ${JSON.stringify(expected)}\nActual: ${JSON.stringify(actual)}`);
+            }
+        }
+
+        function assertTrue(value, message = '') {
+            if (!value) {
+                throw new Error(`${message}\nExpected truthy value, got: ${value}`);
+            }
+        }
+
+        function assertFalse(value, message = '') {
+            if (value) {
+                throw new Error(`${message}\nExpected falsy value, got: ${value}`);
+            }
+        }
+
+        // ============================================
+        // TEST 1: IDESemanticOverlay can be instantiated
+        // ============================================
+        test('IDESemanticOverlay can be instantiated', () => {
+            // Test with no arguments
+            const overlay1 = new IDESemanticOverlay();
+            assertTrue(overlay1, 'Should create instance with no args');
+
+            // Test with connection manager
+            const mockConnectionManager = {
+                getConnections: () => []
+            };
+            const overlay2 = new IDESemanticOverlay(mockConnectionManager);
+            assertTrue(overlay2, 'Should create instance with connection manager');
+
+            // Test with both dependencies
+            const mockTileRenderer = {
+                getTile: () => null
+            };
+            const overlay3 = new IDESemanticOverlay(mockConnectionManager, mockTileRenderer);
+            assertTrue(overlay3, 'Should create instance with both dependencies');
+
+            // Verify initial state
+            assertEqual(overlay3.getComponentCount(), 0, 'Should have 0 components initially');
+            assertEqual(overlay3.getTileIds(), [], 'Should have empty tile IDs initially');
+        });
+
+        // ============================================
+        // TEST 2: Stores component state correctly
+        // ============================================
+        test('Stores component state correctly', () => {
+            const overlay = new IDESemanticOverlay();
+
+            // Set component state
+            const state1 = {
+                openFiles: ['main.py', 'utils/helpers.py'],
+                definitions: ['MyClass', 'helper_function'],
+                active: true
+            };
+            overlay.setComponentState('tile-1', state1);
+
+            // Verify state stored
+            assertTrue(overlay.hasComponentState('tile-1'), 'Should have tile-1 state');
+            assertEqual(overlay.getComponentCount(), 1, 'Should have 1 component');
+
+            // Get state and verify
+            const retrieved = overlay.getComponentState('tile-1');
+            assertEqual(retrieved.openFiles, state1.openFiles, 'openFiles should match');
+            assertEqual(retrieved.definitions, state1.definitions, 'definitions should match');
+            assertEqual(retrieved.active, true, 'active should be true');
+
+            // Verify state is a copy (immutability)
+            retrieved.active = false;
+            const retrieved2 = overlay.getComponentState('tile-1');
+            assertTrue(retrieved2.active, 'Original state should not be modified');
+
+            // Set another component
+            const state2 = {
+                openFiles: ['config.json'],
+                definitions: ['CONFIG']
+            };
+            overlay.setComponentState('tile-2', state2);
+            assertEqual(overlay.getComponentCount(), 2, 'Should have 2 components');
+
+            // Update existing component
+            const updatedState = {
+                openFiles: ['main.py', 'new_file.py'],
+                definitions: ['NewClass']
+            };
+            overlay.setComponentState('tile-1', updatedState);
+            assertEqual(overlay.getComponentCount(), 2, 'Should still have 2 components');
+
+            const updated = overlay.getComponentState('tile-1');
+            assertEqual(updated.openFiles, ['main.py', 'new_file.py'], 'openFiles should be updated');
+        });
+
+        // ============================================
+        // TEST 3: Queries definitions correctly
+        // ============================================
+        test('Queries definitions correctly', () => {
+            const overlay = new IDESemanticOverlay();
+
+            // Set up multiple tiles with different states
+            overlay.setComponentState('editor-1', {
+                openFiles: ['MyClass.py'],
+                definitions: ['MyClass', 'my_method']
+            });
+
+            overlay.setComponentState('editor-2', {
+                openFiles: ['utils/helpers.py'],
+                definitions: ['helper_function', 'utility_class']
+            });
+
+            overlay.setComponentState('terminal-1', {
+                openFiles: [],
+                definitions: []
+            });
+
+            overlay.setComponentState('docs-1', {
+                openFiles: ['MyClass.md'],
+                definitions: []
+            });
+
+            // Query for exact definition match
+            const myClassDef = overlay.queryDefinition('MyClass');
+            assertTrue(myClassDef.includes('editor-1'), 'Should find MyClass in editor-1');
+
+            // Query for partial definition match
+            const helperDef = overlay.queryDefinition('helper_function');
+            assertTrue(helperDef.includes('editor-2'), 'Should find helper_function in editor-2');
+
+            // Query for file-based concept (from openFiles)
+            const utilsDef = overlay.queryDefinition('helpers');
+            assertTrue(utilsDef.includes('editor-2'), 'Should find helpers in editor-2');
+
+            // Query for non-existent concept
+            const notFound = overlay.queryDefinition('NonExistent');
+            assertEqual(notFound.length, 0, 'Should return empty for non-existent concept');
+
+            // Test case insensitivity
+            const caseInsensitive = overlay.queryDefinition('myclass');
+            assertTrue(caseInsensitive.includes('editor-1'), 'Should be case insensitive');
+
+            // Test queryRelated for fuzzy matching
+            const related = overlay.queryRelated('Class');
+            assertTrue(related.length >= 1, 'Should find related tiles for "Class"');
+            assertTrue(related.includes('editor-1'), 'editor-1 should be related to Class');
+        });
+
+        // ============================================
+        // TEST 4: Exports state for cartridge
+        // ============================================
+        test('Exports state for cartridge', () => {
+            const overlay = new IDESemanticOverlay();
+
+            // Set up state
+            overlay.setComponentState('tile-a', {
+                openFiles: ['file1.py'],
+                definitions: ['Func1']
+            });
+
+            overlay.setComponentState('tile-b', {
+                openFiles: ['file2.py', 'file3.py'],
+                definitions: ['Func2', 'Func3']
+            });
+
+            // Export state
+            const exported = overlay.exportState();
+
+            // Verify export structure
+            assertTrue(exported.version, 'Should have version');
+            assertTrue(exported.timestamp, 'Should have timestamp');
+            assertTrue(exported.components, 'Should have components');
+            assertTrue(exported.semanticIndex, 'Should have semanticIndex');
+
+            // Verify components exported
+            assertTrue(exported.components['tile-a'], 'Should have tile-a');
+            assertTrue(exported.components['tile-b'], 'Should have tile-b');
+
+            // Verify semantic index
+            assertTrue(exported.semanticIndex['file1'], 'Should index file1');
+            assertTrue(exported.semanticIndex['file2'], 'Should index file2');
+            assertTrue(exported.semanticIndex['func1'], 'Should index func1');
+
+            // Import state into new overlay
+            const overlay2 = new IDESemanticOverlay();
+            overlay2.importState(exported);
+
+            // Verify import
+            assertEqual(overlay2.getComponentCount(), 2, 'Should have 2 components after import');
+            assertTrue(overlay2.hasComponentState('tile-a'), 'Should have tile-a after import');
+            assertTrue(overlay2.hasComponentState('tile-b'), 'Should have tile-b after import');
+
+            const importedState = overlay2.getComponentState('tile-a');
+            assertEqual(importedState.openFiles, ['file1.py'], 'openFiles should match after import');
+
+            // Verify semantic queries work after import
+            const defQuery = overlay2.queryDefinition('Func2');
+            assertTrue(defQuery.includes('tile-b'), 'Should find Func2 after import');
+
+            // Test clear functionality
+            overlay2.clear();
+            assertEqual(overlay2.getComponentCount(), 0, 'Should have 0 components after clear');
+            assertEqual(overlay2.getTileIds(), [], 'Should have empty tile IDs after clear');
+        });
+
+        // ============================================
+        // Render results
+        // ============================================
+        results.forEach(tc => {
+            const div = document.createElement('div');
+            div.className = `test-case ${tc.passed ? 'pass' : 'fail'}`;
+
+            let html = `<div class="test-name">${tc.passed ? '✓' : '✗'} ${tc.name}</div>`;
+            html += `<div class="test-result">`;
+            html += `<span class="${tc.passed ? 'pass-status' : 'fail-status'}">${tc.passed ? 'PASS' : 'FAIL'}</span>`;
+            if (tc.error) {
+                html += `<pre>${tc.error}</pre>`;
+            }
+            html += `</div>`;
+
+            div.innerHTML = html;
+            resultsContainer.appendChild(div);
+        });
+
+        // Render summary
+        const total = passed + failed;
+        summaryContainer.className = `summary ${failed === 0 ? 'all-pass' : 'some-fail'}`;
+        summaryContainer.innerHTML = `
+            <strong>Test Summary:</strong>
+            ${passed}/${total} tests passed
+            ${failed === 0 ? ' - All tests passed!' : ` - ${failed} test(s) failed`}
+        `;
+
+        // Log to console as well
+        console.log(`\n=== IDESemanticOverlay Test Results ===`);
+        console.log(`Passed: ${passed}/${total}`);
+        results.forEach(tc => {
+            console.log(`${tc.passed ? '✓' : '✗'} ${tc.name}`);
+            if (tc.error) console.log(`  Error: ${tc.error}`);
+        });
+
+        // Exit code for CI
+        if (failed > 0) {
+            console.error('TESTS FAILED');
+        } else {
+            console.log('ALL TESTS PASSED');
+        }
+    </script>
+</body>
+</html>
