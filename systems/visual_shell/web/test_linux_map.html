@@ -106,9 +106,10 @@ cat /etc/os-release</textarea>
 
     <!-- Load dependencies -->
     <script src="lib/pixi.min.js"></script>
-    <script src="linux_tile_bridge.js"></script>
 
     <script type="module">
+        import { LinuxTileBridge } from './linux_tile_bridge.js';
+
         let bridge = null;
         let app = null;
         let map = null;
@@ -164,10 +165,9 @@ cat /etc/os-release</textarea>
 
         async function init() {
             try {
-                // Initialize PixiJS
-                app = new PIXI.Application();
-                await app.init({
-                    canvas: document.getElementById('map-canvas'),
+                // Initialize PixiJS (v7 syntax)
+                app = new PIXI.Application({
+                    view: document.getElementById('map-canvas'),
                     width: 800,
                     height: 600,
                     backgroundColor: 0x1a1a2e
@@ -179,23 +179,25 @@ cat /etc/os-release</textarea>
                     writeTile: async (x, y, type, meta) => {
                         console.log(`📍 Tile at (${x}, ${y}):`, type, meta);
 
-                        // Draw visual indicator
+                        // Draw visual indicator (v7 syntax)
                         const graphics = new PIXI.Graphics();
 
                         if (type === 'linux_session') {
-                            graphics.rect(x * 100, y * 100, 98, 98);
-                            graphics.fill({ color: 0x00ccff, alpha: 0.3 });
-                            graphics.stroke({ color: 0x00ccff, width: 2 });
+                            graphics.beginFill(0x00ccff, 0.3);
+                            graphics.lineStyle(2, 0x00ccff, 1);
+                            graphics.drawRect(x * 100, y * 100, 98, 98);
+                            graphics.endFill();
 
-                            // Add label
-                            const text = new PIXI.Text({ text: '🐧 Linux', style: { fill: '#00ccff', fontSize: 12 } });
+                            // Add label (v7 syntax)
+                            const text = new PIXI.Text('🐧 Linux', { fill: '#00ccff', fontSize: 12 });
                             text.x = x * 100 + 5;
                             text.y = y * 100 + 5;
                             app.stage.addChild(text);
                         } else {
-                            graphics.rect(x * 100, y * 100, 98, 98);
-                            graphics.fill({ color: 0x00ff88, alpha: 0.2 });
-                            graphics.stroke({ color: 0x00ff88, width: 1 });
+                            graphics.beginFill(0x00ff88, 0.2);
+                            graphics.lineStyle(1, 0x00ff88, 1);
+                            graphics.drawRect(x * 100, y * 100, 98, 98);
+                            graphics.endFill();
                         }
 
                         app.stage.addChild(graphics);

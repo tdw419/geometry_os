@@ -22,7 +22,7 @@ class LinuxBridge:
         self.session_id: Optional[str] = None
         self.status: str = 'stopped'
         self._process: Optional[subprocess.Popen] = None
-        self._qemu_root: Path = Path(__file__).parent.parent.parent.parent  # Project root
+        self._qemu_root: Path = Path(__file__).parent.parent.parent  # Project root (systems/pixel_compiler/..)
 
     def _build_qemu_command(self) -> str:
         """Build the QEMU command string."""
@@ -220,7 +220,7 @@ class LinuxBridge:
             return json.dumps({'error': str(e)})
 
 
-async def websocket_handler(websocket, path, bridge: LinuxBridge):
+async def websocket_handler(websocket, bridge: LinuxBridge):
     """Handle WebSocket connections."""
     try:
         async for message in websocket:
@@ -237,7 +237,7 @@ async def main():
     bridge = LinuxBridge()
 
     async with websockets.serve(
-        lambda ws, path: websocket_handler(ws, path, bridge),
+        lambda ws: websocket_handler(ws, bridge),
         'localhost',
         8767
     ):
