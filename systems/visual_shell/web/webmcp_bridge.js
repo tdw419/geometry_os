@@ -66,6 +66,10 @@
  *  38. ide_debug                 — Debug with breakpoints
  *  39. ide_deploy                — Deploy to .rts.png cartridge
  *
+ * Phase O Tools (AI PM Autonomous):
+ *  94. pm_analyze                — Get AI PM improvement recommendations
+ *  95. pm_analyze_and_deploy     — Analyze and auto-deploy cartridge
+ *
  * Area Agent A2A Integration:
  *   - spawn_area_agent now supports full A2A protocol
  *   - Agents can discover each other via registry
@@ -82,9 +86,9 @@
  * Requirements: Chrome 146+ with WebMCP support
  * Fallback: Logs warning, app runs normally without WebMCP
  *
- * @version 2.1.0
- * @phase Phase N: AI-Assisted IDE Tools
- * @date 2026-02-14
+ * @version 2.2.0
+ * @phase Phase O: Continuous Testing
+ * @date 2026-02-15
  */
 
 class WebMCPBridge {
@@ -786,6 +790,10 @@ class WebMCPBridge {
             await this.#registerIDETest();
             await this.#registerIDEDebug();
             await this.#registerIDEDeploy();
+
+            // Phase O tools - AI PM Autonomous
+            await this.#registerPMAnalyze();
+            await this.#registerPMAnalyzeAndDeploy();
 
             // Publish OS context alongside tools
             await this.#publishContext();
@@ -6978,6 +6986,157 @@ class WebMCPBridge {
                 },
                 location: deployLocation
             };
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Phase O: AI PM Autonomous Tools
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerPMAnalyze() {
+        const tool = {
+            name: 'pm_analyze',
+            description: 'Analyze codebase and get AI PM improvement recommendations',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    scope: {
+                        type: 'string',
+                        enum: ['recent', 'full', 'failed'],
+                        description: 'Analysis scope'
+                    },
+                    max_recommendations: {
+                        type: 'number',
+                        description: 'Maximum recommendations to return (default: 10)'
+                    }
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('pm_analyze');
+            const { scope = 'recent', max_recommendations = 10 } = params;
+
+            try {
+                const response = await fetch('http://localhost:8769/pm/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ scope, max_recommendations })
+                });
+
+                if (!response.ok) {
+                    return { success: false, error: `Server error: ${response.status}` };
+                }
+
+                return await response.json();
+            } catch (e) {
+                // Mock fallback
+                console.warn('pm_analyze: Server not available, using mock:', e.message);
+                return {
+                    success: true,
+                    recommendations: [
+                        {
+                            id: 'mock-optimize-1',
+                            type: 'optimize',
+                            priority: 'MEDIUM',
+                            description: 'Mock: Optimize Hilbert curve lookup',
+                            target_path: 'systems/pixel_compiler/pixelrts_v2_core.py',
+                            estimated_impact: 0.8,
+                            confidence: 0.7
+                        }
+                    ].slice(0, max_recommendations),
+                    count: 1,
+                    mock: true
+                };
+            }
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerPMAnalyzeAndDeploy() {
+        const tool = {
+            name: 'pm_analyze_and_deploy',
+            description: 'Analyze codebase and automatically deploy improvement cartridge',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    scope: {
+                        type: 'string',
+                        enum: ['recent', 'full', 'failed'],
+                        description: 'Analysis scope'
+                    },
+                    max_recommendations: {
+                        type: 'number',
+                        description: 'Maximum recommendations (default: 5)'
+                    },
+                    auto_deploy: {
+                        type: 'boolean',
+                        description: 'Automatically deploy cartridge (default: true)'
+                    },
+                    cartridge_name: {
+                        type: 'string',
+                        description: 'Name for the generated cartridge'
+                    },
+                    location: {
+                        type: 'object',
+                        properties: {
+                            x: { type: 'number' },
+                            y: { type: 'number' }
+                        },
+                        description: 'Deploy location on Infinite Map'
+                    }
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('pm_analyze_and_deploy');
+            const {
+                scope = 'recent',
+                max_recommendations = 5,
+                auto_deploy = true,
+                cartridge_name = `auto_improvement_${Date.now()}`,
+                location = { x: 0, y: 0 }
+            } = params;
+
+            try {
+                const response = await fetch('http://localhost:8769/pm/analyze_and_deploy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        scope,
+                        max_recommendations,
+                        auto_deploy,
+                        cartridge_name,
+                        location
+                    })
+                });
+
+                if (!response.ok) {
+                    return { success: false, error: `Server error: ${response.status}` };
+                }
+
+                const result = await response.json();
+
+                // Log to console for visibility
+                if (result.success) {
+                    if (result.deployed) {
+                        console.log(`✅ Auto-deployed cartridge: ${cartridge_name}`);
+                    } else {
+                        console.log(`ℹ️ Analysis complete: ${result.recommendations?.length || 0} recommendations`);
+                    }
+                }
+
+                return result;
+            } catch (e) {
+                console.warn('pm_analyze_and_deploy: Server not available:', e.message);
+                return {
+                    success: false,
+                    error: e.message,
+                    mock: true
+                };
+            }
         });
         this.#registeredTools.push(tool.name);
     }

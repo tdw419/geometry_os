@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PM Autonomous Tools Test</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a2e; color: #eee; }
+        h1 { color: #00ff88; }
+        .test { margin: 10px 0; padding: 10px; background: #16213e; border-radius: 4px; }
+        .pass { color: #00ff88; }
+        .fail { color: #ff6b6b; }
+        button { background: #00ff88; color: #1a1a2e; border: none; padding: 8px 16px; cursor: pointer; margin: 5px; }
+        button:hover { background: #00cc6a; }
+        pre { background: #0f0f23; padding: 10px; overflow-x: auto; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>PM Autonomous Tools Test</h1>
+    <div id="results"></div>
+    <button onclick="runTests()">Run All Tests</button>
+    <button onclick="testAnalyze()">Test Analyze</button>
+    <button onclick="testAnalyzeAndDeploy()">Test Analyze & Deploy</button>
+
+    <script type="module">
+        import { PMAutonomousTools } from './pm_autonomous_tools.js';
+
+        const results = document.getElementById('results');
+        const log = (msg, cls = '') => {
+            const div = document.createElement('div');
+            div.className = `test ${cls}`;
+            div.innerHTML = msg;
+            results.appendChild(div);
+        };
+
+        window.pmTools = new PMAutonomousTools(null);
+
+        window.runTests = async () => {
+            results.innerHTML = '';
+            log('Running PM Autonomous Tools tests...');
+
+            // Test 1: pm_analyze returns recommendations
+            log('Test 1: pm_analyze returns recommendations...');
+            try {
+                const result = await pmTools.pm_analyze({ max_recommendations: 3 });
+                if (result.success && Array.isArray(result.recommendations)) {
+                    log(`✓ PASS: Got ${result.recommendations.length} recommendations`, 'pass');
+                } else {
+                    log(`✗ FAIL: ${JSON.stringify(result)}`, 'fail');
+                }
+            } catch (e) {
+                log(`✗ FAIL: ${e.message}`, 'fail');
+            }
+
+            // Test 2: pm_analyze_and_deploy works
+            log('Test 2: pm_analyze_and_deploy (no auto-deploy)...');
+            try {
+                const result = await pmTools.pm_analyze_and_deploy({
+                    auto_deploy: false,
+                    cartridge_name: 'test_analysis'
+                });
+                if (result.success && !result.deployed) {
+                    log(`✓ PASS: Analysis complete, not deployed`, 'pass');
+                } else {
+                    log(`✗ FAIL: ${JSON.stringify(result)}`, 'fail');
+                }
+            } catch (e) {
+                log(`✗ FAIL: ${e.message}`, 'fail');
+            }
+
+            log('All tests complete.');
+        };
+
+        window.testAnalyze = async () => {
+            results.innerHTML = '';
+            log('Running pm_analyze...');
+            const result = await pmTools.pm_analyze({ max_recommendations: 5 });
+            log('<pre>' + JSON.stringify(result, null, 2) + '</pre>');
+        };
+
+        window.testAnalyzeAndDeploy = async () => {
+            results.innerHTML = '';
+            log('Running pm_analyze_and_deploy...');
+            const result = await pmTools.pm_analyze_and_deploy({
+                auto_deploy: true,
+                cartridge_name: `test_${Date.now()}`,
+                location: { x: 5000, y: 5000 }
+            });
+            log('<pre>' + JSON.stringify(result, null, 2) + '</pre>');
+        };
+    </script>
+</body>
+</html>
