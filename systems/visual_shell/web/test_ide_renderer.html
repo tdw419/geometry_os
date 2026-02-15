@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDETileRenderer Tests - Phase J.2</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+        h1 {
+            color: #00ff88;
+        }
+        .test-suite {
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .test-result {
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .test-pass {
+            background: #1a4d1a;
+            border-left: 4px solid #00ff88;
+        }
+        .test-fail {
+            background: #4d1a1a;
+            border-left: 4px solid #ff4444;
+        }
+        .pass-icon { color: #00ff88; }
+        .fail-icon { color: #ff4444; }
+        .summary {
+            font-size: 1.2em;
+            margin-top: 20px;
+            padding: 15px;
+            background: #0f3460;
+            border-radius: 8px;
+        }
+        .summary.all-pass { border: 2px solid #00ff88; }
+        .summary.has-fail { border: 2px solid #ff4444; }
+        #test-canvas {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>IDETileRenderer Tests - Phase J.2: Neural IDE Visual Builder</h1>
+    <div id="test-results"></div>
+    <canvas id="test-canvas"></canvas>
+
+    <!-- Load dependencies first -->
+    <script src="ide_tile_types.js"></script>
+    <script src="tile_connections.js"></script>
+
+    <!-- Load the module under test -->
+    <script src="ide_tile_renderer.js"></script>
+
+    <script>
+        // Test framework
+        class TestRunner {
+            constructor() {
+                this.results = [];
+                this.passed = 0;
+                this.failed = 0;
+            }
+
+            test(name, fn) {
+                try {
+                    fn();
+                    this.results.push({ name, passed: true });
+                    this.passed++;
+                } catch (error) {
+                    this.results.push({ name, passed: false, error: error.message });
+                    this.failed++;
+                }
+            }
+
+            assertEqual(actual, expected, message = '') {
+                if (actual !== expected) {
+                    throw new Error(`${message}\nExpected: ${expected}\nActual: ${actual}`);
+                }
+            }
+
+            assertTrue(condition, message = 'Assertion failed') {
+                if (!condition) {
+                    throw new Error(message);
+                }
+            }
+
+            assertFalse(condition, message = 'Expected false') {
+                if (condition) {
+                    throw new Error(message);
+                }
+            }
+
+            assertNotNull(value, message = 'Expected not null') {
+                if (value === null || value === undefined) {
+                    throw new Error(message);
+                }
+            }
+
+            assertArrayEqual(actual, expected, message = '') {
+                if (actual.length !== expected.length) {
+                    throw new Error(`${message}\nArray lengths differ. Expected ${expected.length}, got ${actual.length}`);
+                }
+                for (let i = 0; i < actual.length; i++) {
+                    if (actual[i] !== expected[i]) {
+                        throw new Error(`${message}\nArrays differ at index ${i}. Expected ${expected[i]}, got ${actual[i]}`);
+                    }
+                }
+            }
+
+            renderResults() {
+                const container = document.getElementById('test-results');
+                let html = '<div class="test-suite">';
+
+                this.results.forEach(result => {
+                    const icon = result.passed ? '✓' : '✗';
+                    const className = result.passed ? 'test-pass' : 'test-fail';
+                    const iconClass = result.passed ? 'pass-icon' : 'fail-icon';
+
+                    html += `
+                        <div class="test-result ${className}">
+                            <span class="${iconClass}">${icon}</span> ${result.name}
+                            ${!result.passed ? `<br><small style="color: #ff8888;">${result.error}</small>` : ''}
+                        </div>
+                    `;
+                });
+
+                html += '</div>';
+
+                const allPassed = this.failed === 0;
+                html += `
+                    <div class="summary ${allPassed ? 'all-pass' : 'has-fail'}">
+                        <strong>Results:</strong> ${this.passed} passed, ${this.failed} failed
+                        ${allPassed ? ' - ALL TESTS PASS!' : ' - SOME TESTS FAILED'}
+                    </div>
+                `;
+
+                container.innerHTML = html;
+
+                // Log summary to console
+                console.log(`\n=== IDETileRenderer Test Results ===`);
+                console.log(`Passed: ${this.passed}, Failed: ${this.failed}`);
+                if (allPassed) {
+                    console.log('%cALL TESTS PASS!', 'color: #00ff88; font-weight: bold;');
+                } else {
+                    console.log('%cSOME TESTS FAILED', 'color: #ff4444; font-weight: bold;');
+                }
+            }
+        }
+
+        // Mock PixiJS App for testing
+        class MockPixiApp {
+            constructor() {
+                this.renderer = { device: null };
+                this.worldContainer = {
+                    children: [],
+                    addChild: function(child) { this.children.push(child); },
+                    removeChild: function(child) {
+                        const idx = this.children.indexOf(child);
+                        if (idx > -1) this.children.splice(idx, 1);
+                    }
+                };
+                this.config = { gridSize: 100 };
+            }
+        }
+
+        // Mock BuilderPanel for testing
+        class MockBuilderPanel {
+            constructor() {
+                this.tiles = new Map();
+            }
+        }
+
+        // Run tests
+        const runner = new TestRunner();
+
+        // Test 1: IDETileRenderer can be instantiated
+        runner.test('IDETileRenderer can be instantiated', () => {
+            const mockApp = new MockPixiApp();
+            const mockPanel = new MockBuilderPanel();
+            const renderer = new IDETileRenderer(mockApp, mockPanel);
+            assertNotNull(renderer, 'IDETileRenderer instance should not be null');
+        });
+
+        // Test 2: Generates correct shader paths
+        runner.test('Generates correct shader paths', () => {
+            const mockApp = new MockPixiApp();
+            const mockPanel = new MockBuilderPanel();
+            const renderer = new IDETileRenderer(mockApp, mockPanel);
+
+            // Test each IDE tile type
+            const expectedPaths = {
+                'code_editor': 'shaders/ide/code_editor.wgsl',
+                'file_browser': 'shaders/ide/file_browser.wgsl',
+                'terminal': 'shaders/ide/terminal.wgsl',
+                'debugger': 'shaders/ide/debugger.wgsl',
+                'output_panel': 'shaders/ide/output_panel.wgsl',
+                'semantic_nav': 'shaders/ide/semantic_nav.wgsl'
+            };
+
+            for (const [tileType, expectedPath] of Object.entries(expectedPaths)) {
+                const actualPath = renderer.getShaderPath(tileType);
+                assertEqual(actualPath, expectedPath, `Shader path for ${tileType}`);
+            }
+        });
+
+        // Test 3: Validates tile types correctly
+        runner.test('Validates tile types correctly', () => {
+            const mockApp = new MockPixiApp();
+            const mockPanel = new MockBuilderPanel();
+            const renderer = new IDETileRenderer(mockApp, mockPanel);
+
+            // Valid tile types should return true
+            const validTypes = ['code_editor', 'file_browser', 'terminal', 'debugger', 'output_panel', 'semantic_nav'];
+            for (const type of validTypes) {
+                assertTrue(renderer.isValidTileType(type), `${type} should be a valid tile type`);
+            }
+
+            // Invalid tile types should return false
+            const invalidTypes = ['invalid_type', 'code', 'data', 'system', '', null, undefined, 123];
+            for (const type of invalidTypes) {
+                assertFalse(renderer.isValidTileType(type), `${type} should be an invalid tile type`);
+            }
+        });
+
+        // Test 4: Calculates LOD correctly
+        runner.test('Calculates LOD correctly', () => {
+            const mockApp = new MockPixiApp();
+            const mockPanel = new MockBuilderPanel();
+            const renderer = new IDETileRenderer(mockApp, mockPanel);
+
+            // Test LOD boundaries
+            // full: >= 1.0
+            assertEqual(renderer.calculateLOD(1.0), 'full', 'LOD at 1.0 should be full');
+            assertEqual(renderer.calculateLOD(1.5), 'full', 'LOD at 1.5 should be full');
+            assertEqual(renderer.calculateLOD(2.0), 'full', 'LOD at 2.0 should be full');
+            assertEqual(renderer.calculateLOD(100), 'full', 'LOD at 100 should be full');
+
+            // medium: 0.5 <= x < 1.0
+            assertEqual(renderer.calculateLOD(0.5), 'medium', 'LOD at 0.5 should be medium');
+            assertEqual(renderer.calculateLOD(0.75), 'medium', 'LOD at 0.75 should be medium');
+            assertEqual(renderer.calculateLOD(0.99), 'medium', 'LOD at 0.99 should be medium');
+
+            // low: < 0.5
+            assertEqual(renderer.calculateLOD(0.49), 'low', 'LOD at 0.49 should be low');
+            assertEqual(renderer.calculateLOD(0.25), 'low', 'LOD at 0.25 should be low');
+            assertEqual(renderer.calculateLOD(0.1), 'low', 'LOD at 0.1 should be low');
+            assertEqual(renderer.calculateLOD(0.0), 'low', 'LOD at 0.0 should be low');
+        });
+
+        // Render results
+        runner.renderResults();
+    </script>
+</body>
+</html>
