@@ -46,6 +46,13 @@
  *  24. kernel_health             — Check kernel health status
  *  25. kernel_metrics            — Get performance metrics
  *
+ * Phase L Tools (Autonomous Kernel Operator):
+ *  26. operator_status           — Get operator state and health
+ *  27. operator_start            — Start autonomous operation with config
+ *  28. operator_stop             — Stop operator
+ *  29. operator_recommendations  — Get optimization suggestions
+ *  30. operator_apply            — Apply recommended changes
+ *
  * Area Agent A2A Integration:
  *   - spawn_area_agent now supports full A2A protocol
  *   - Agents can discover each other via registry
@@ -62,8 +69,8 @@
  * Requirements: Chrome 146+ with WebMCP support
  * Fallback: Logs warning, app runs normally without WebMCP
  *
- * @version 1.8.0
- * @phase Phase K: Neural Kernel Management
+ * @version 1.9.0
+ * @phase Phase L: Autonomous Kernel Operator
  * @date 2026-02-14
  */
 
@@ -746,6 +753,13 @@ class WebMCPBridge {
             await this.#registerKernelSwap();
             await this.#registerKernelHealth();
             await this.#registerKernelMetrics();
+
+            // Phase L tools - Autonomous Kernel Operator
+            await this.#registerOperatorStatus();
+            await this.#registerOperatorStart();
+            await this.#registerOperatorStop();
+            await this.#registerOperatorRecommendations();
+            await this.#registerOperatorApply();
 
             // Publish OS context alongside tools
             await this.#publishContext();
@@ -6144,6 +6158,262 @@ class WebMCPBridge {
                     params.include_histograms || false
                 );
                 return result;
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Phase L: Autonomous Kernel Operator Tools
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerOperatorStatus() {
+        const tool = {
+            name: 'operator_status',
+            description:
+                'Get the status of the autonomous kernel operator. Returns current state, ' +
+                'health metrics, active kernel, operation mode, and runtime statistics.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    include_recommendations: {
+                        type: 'boolean',
+                        description: 'Include pending optimization recommendations (default false)'
+                    }
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('operator_status');
+            if (!window.kernelOperator) {
+                return { success: false, error: 'Kernel operator not initialized' };
+            }
+            try {
+                const status = window.kernelOperator.getStatus();
+                const result = {
+                    success: true,
+                    state: status.state || 'idle',
+                    health: status.health || 'healthy',
+                    activeKernel: status.activeKernel || null,
+                    mode: status.mode || 'monitor',
+                    uptime: status.uptime || 0,
+                    decisionsCount: status.decisionsCount || 0,
+                    lastDecision: status.lastDecision || null
+                };
+                if (params.include_recommendations && status.recommendations) {
+                    result.recommendations = status.recommendations;
+                }
+                return result;
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerOperatorStart() {
+        const tool = {
+            name: 'operator_start',
+            description:
+                'Start the autonomous kernel operator with specified configuration. ' +
+                'The operator monitors system health and can automatically swap kernels ' +
+                'based on performance metrics and workload patterns.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    mode: {
+                        type: 'string',
+                        enum: ['monitor', 'auto_swap', 'full_autonomous'],
+                        description: 'Operating mode: monitor (read-only), auto_swap (swap kernels), full_autonomous (all actions)'
+                    },
+                    config: {
+                        type: 'object',
+                        description: 'Operator configuration',
+                        properties: {
+                            check_interval_ms: {
+                                type: 'number',
+                                description: 'Health check interval in milliseconds (default 5000)'
+                            },
+                            swap_threshold: {
+                                type: 'number',
+                                description: 'Performance degradation threshold for kernel swap (default 0.7)'
+                            },
+                            enable_recommendations: {
+                                type: 'boolean',
+                                description: 'Enable optimization recommendations (default true)'
+                            },
+                            kernels: {
+                                type: 'array',
+                                items: { type: 'string' },
+                                description: 'List of kernel names to consider for swapping'
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('operator_start');
+            if (!window.kernelOperator) {
+                return { success: false, error: 'Kernel operator not initialized' };
+            }
+            try {
+                const mode = params.mode || 'monitor';
+                const config = params.config || {};
+                await window.kernelOperator.start(mode, config);
+                return {
+                    success: true,
+                    message: `Operator started in ${mode} mode`,
+                    mode: mode,
+                    config: config
+                };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerOperatorStop() {
+        const tool = {
+            name: 'operator_stop',
+            description:
+                'Stop the autonomous kernel operator. Returns final status and ' +
+                'any pending recommendations that were not applied.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    force: {
+                        type: 'boolean',
+                        description: 'Force stop even during critical operation (default false)'
+                    }
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('operator_stop');
+            if (!window.kernelOperator) {
+                return { success: false, error: 'Kernel operator not initialized' };
+            }
+            try {
+                const force = params.force || false;
+                const finalStatus = await window.kernelOperator.stop(force);
+                return {
+                    success: true,
+                    message: 'Operator stopped',
+                    finalState: finalStatus.state,
+                    totalDecisions: finalStatus.decisionsCount,
+                    pendingRecommendations: finalStatus.recommendations || []
+                };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerOperatorRecommendations() {
+        const tool = {
+            name: 'operator_recommendations',
+            description:
+                'Get optimization recommendations from the autonomous operator. ' +
+                'Returns list of suggested changes with confidence scores and ' +
+                'expected impact on performance.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    category: {
+                        type: 'string',
+                        enum: ['all', 'kernel_swap', 'parameter_tune', 'resource_allocation'],
+                        description: 'Filter recommendations by category (default all)'
+                    },
+                    min_confidence: {
+                        type: 'number',
+                        description: 'Minimum confidence threshold 0-1 (default 0.5)'
+                    },
+                    limit: {
+                        type: 'number',
+                        description: 'Maximum number of recommendations to return (default 10)'
+                    }
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('operator_recommendations');
+            if (!window.kernelOperator) {
+                return { success: false, error: 'Kernel operator not initialized' };
+            }
+            try {
+                const category = params.category || 'all';
+                const minConfidence = params.min_confidence || 0.5;
+                const limit = params.limit || 10;
+
+                const recommendations = window.kernelOperator.getRecommendations(
+                    category,
+                    minConfidence,
+                    limit
+                );
+                return {
+                    success: true,
+                    count: recommendations.length,
+                    recommendations: recommendations
+                };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerOperatorApply() {
+        const tool = {
+            name: 'operator_apply',
+            description:
+                'Apply a recommended optimization change from the operator. ' +
+                'Use operator_recommendations to get available recommendations first. ' +
+                'Returns result of the applied change.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    recommendation_id: {
+                        type: 'string',
+                        description: 'ID of the recommendation to apply'
+                    },
+                    dry_run: {
+                        type: 'boolean',
+                        description: 'Simulate the change without actually applying it (default false)'
+                    }
+                },
+                required: ['recommendation_id']
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('operator_apply');
+            if (!window.kernelOperator) {
+                return { success: false, error: 'Kernel operator not initialized' };
+            }
+            if (!params.recommendation_id) {
+                return { success: false, error: 'recommendation_id is required' };
+            }
+            try {
+                const dryRun = params.dry_run || false;
+                const result = await window.kernelOperator.applyRecommendation(
+                    params.recommendation_id,
+                    dryRun
+                );
+                return {
+                    success: true,
+                    applied: !dryRun,
+                    recommendationId: params.recommendation_id,
+                    result: result
+                };
             } catch (e) {
                 return { success: false, error: e.message };
             }
