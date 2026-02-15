@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry OS - Linux Map Integration</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background: #0a0a1a;
+            color: #00ccff;
+            font-family: 'Segoe UI', monospace;
+            padding: 20px;
+            margin: 0;
+        }
+        h1 { font-size: 1.4rem; margin-bottom: 10px; }
+        .layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            height: calc(100vh - 100px);
+        }
+        .sidebar {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        label { font-size: 12px; color: #888; }
+        input, textarea {
+            background: #1a1a2e;
+            color: #00ff88;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+        }
+        input { width: 100%; }
+        textarea { resize: none; flex: 1; }
+        button {
+            background: linear-gradient(180deg, #1a3a4a 0%, #0a2a3a 100%);
+            color: #00ccff;
+            border: 1px solid #00ccff;
+            padding: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background: linear-gradient(180deg, #2a4a5a 0%, #1a3a4a 100%); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        #output {
+            background: #0a1a2a;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        #map-canvas {
+            background: #1a1a2e;
+            border-radius: 8px;
+        }
+        .status { font-size: 12px; color: #888; }
+        .status.ready { color: #00ff88; }
+        .status.error { color: #ff6666; }
+        .sessions { font-size: 11px; margin-top: 10px; }
+        .session-item { padding: 5px; background: rgba(0,204,255,0.1); border-radius: 4px; margin: 4px 0; }
+    </style>
+</head>
+<body>
+    <h1>🐧 Linux + PixiJS Map Integration</h1>
+    <div class="status" id="status">Checking Linux bridge connection...</div>
+
+    <div class="layout">
+        <div class="sidebar">
+            <label>Position (x, y):</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <input type="number" id="posX" value="500" placeholder="X">
+                <input type="number" id="posY" value="300" placeholder="Y">
+            </div>
+
+            <label>Boot Linux at Position:</label>
+            <button id="bootBtn" disabled onclick="bootLinux()">▶ Boot Linux</button>
+
+            <label>Command:</label>
+            <textarea id="command" spellcheck="false">ls -la /
+echo "Hello from Linux on the map!"
+cat /etc/os-release</textarea>
+
+            <button id="execBtn" disabled onclick="execAndPlace()">▶ Execute & Place Tile</button>
+            <button id="statusBtn" onclick="checkStatus()">🔄 Check Status</button>
+
+            <div id="output"></div>
+
+            <div class="sessions" id="sessions">
+                <label>Active Sessions:</label>
+                <div id="sessionList">None</div>
+            </div>
+        </div>
+        <canvas id="map-canvas"></canvas>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="lib/pixi.min.js"></script>
+    <script src="linux_tile_bridge.js"></script>
+
+    <script type="module">
+        let bridge = null;
+        let app = null;
+        let map = null;
+        let ws = null;
+
+        const statusEl = document.getElementById('status');
+        const outputEl = document.getElementById('output');
+        const bootBtn = document.getElementById('bootBtn');
+        const execBtn = document.getElementById('execBtn');
+        const sessionListEl = document.getElementById('sessionList');
+
+        // WebSocket client for Linux bridge
+        const linuxClient = {
+            connected: false,
+            call: async (command, params) => {
+                return new Promise((resolve, reject) => {
+                    if (!ws || ws.readyState !== WebSocket.OPEN) {
+                        // Return mock response if not connected
+                        if (command === 'boot') {
+                            resolve({ session_id: 'mock-' + Date.now().toString(16), status: 'booting' });
+                        } else if (command === 'exec') {
+                            resolve({ stdout: '[Mock mode] Command would execute in real Linux\n', exit_code: 0 });
+                        } else if (command === 'status') {
+                            resolve({ status: 'mock', running: false });
+                        } else {
+                            resolve({ error: 'Not connected' });
+                        }
+                        return;
+                    }
+
+                    const msg = JSON.stringify({ command, ...params });
+                    ws.send(msg);
+
+                    const handler = (event) => {
+                        try {
+                            const response = JSON.parse(event.data);
+                            ws.removeEventListener('message', handler);
+                            resolve(response);
+                        } catch (e) {
+                            reject(e);
+                        }
+                    };
+                    ws.addEventListener('message', handler);
+
+                    // Timeout after 60s
+                    setTimeout(() => {
+                        ws.removeEventListener('message', handler);
+                        reject(new Error('Timeout'));
+                    }, 60000);
+                });
+            }
+        };
+
+        async function init() {
+            try {
+                // Initialize PixiJS
+                app = new PIXI.Application();
+                await app.init({
+                    canvas: document.getElementById('map-canvas'),
+                    width: 800,
+                    height: 600,
+                    backgroundColor: 0x1a1a2e
+                });
+
+                // Create mock map
+                map = {
+                    config: { gridSize: 100 },
+                    writeTile: async (x, y, type, meta) => {
+                        console.log(`📍 Tile at (${x}, ${y}):`, type, meta);
+
+                        // Draw visual indicator
+                        const graphics = new PIXI.Graphics();
+
+                        if (type === 'linux_session') {
+                            graphics.rect(x * 100, y * 100, 98, 98);
+                            graphics.fill({ color: 0x00ccff, alpha: 0.3 });
+                            graphics.stroke({ color: 0x00ccff, width: 2 });
+
+                            // Add label
+                            const text = new PIXI.Text({ text: '🐧 Linux', style: { fill: '#00ccff', fontSize: 12 } });
+                            text.x = x * 100 + 5;
+                            text.y = y * 100 + 5;
+                            app.stage.addChild(text);
+                        } else {
+                            graphics.rect(x * 100, y * 100, 98, 98);
+                            graphics.fill({ color: 0x00ff88, alpha: 0.2 });
+                            graphics.stroke({ color: 0x00ff88, width: 1 });
+                        }
+
+                        app.stage.addChild(graphics);
+                        return true;
+                    }
+                };
+
+                // Try to connect to Linux bridge
+                try {
+                    ws = new WebSocket('ws://localhost:8767');
+                    ws.onopen = () => {
+                        linuxClient.connected = true;
+                        statusEl.textContent = '✅ Connected to Linux bridge';
+                        statusEl.className = 'status ready';
+                    };
+                    ws.onclose = () => {
+                        linuxClient.connected = false;
+                        statusEl.textContent = '⚠️ Mock mode (Linux bridge not running)';
+                        statusEl.className = 'status';
+                    };
+                    ws.onerror = () => {
+                        linuxClient.connected = false;
+                        statusEl.textContent = '⚠️ Mock mode (Linux bridge not running)';
+                        statusEl.className = 'status';
+                    };
+                } catch (e) {
+                    statusEl.textContent = '⚠️ Mock mode';
+                }
+
+                // Create bridge
+                bridge = new LinuxTileBridge(map, linuxClient);
+
+                // Enable buttons after short delay
+                setTimeout(() => {
+                    bootBtn.disabled = false;
+                    execBtn.disabled = false;
+                    if (!linuxClient.connected) {
+                        statusEl.textContent = '⚠️ Mock mode - start bridge with: python3 systems/pixel_compiler/webmcp_linux_bridge.py';
+                    }
+                }, 1000);
+
+            } catch (error) {
+                statusEl.textContent = `❌ Error: ${error.message}`;
+                statusEl.className = 'status error';
+                console.error(error);
+            }
+        }
+
+        window.bootLinux = async function() {
+            const x = parseInt(document.getElementById('posX').value);
+            const y = parseInt(document.getElementById('posY').value);
+            outputEl.textContent = `Booting Linux at (${x}, ${y})...`;
+
+            try {
+                const result = await bridge.bootAtPosition('alpine', { x, y });
+                outputEl.textContent = `Boot Result:\n${JSON.stringify(result, null, 2)}`;
+                updateSessionList();
+            } catch (error) {
+                outputEl.textContent = `Error: ${error.message}`;
+            }
+        };
+
+        window.execAndPlace = async function() {
+            const command = document.getElementById('command').value;
+            const x = parseInt(document.getElementById('posX').value) + 100;
+            const y = parseInt(document.getElementById('posY').value);
+            outputEl.textContent = `Executing: ${command}\n\n...`;
+
+            try {
+                const result = await bridge.execToTile(command, { x, y });
+                outputEl.textContent = `Result:\n${JSON.stringify(result, null, 2)}`;
+            } catch (error) {
+                outputEl.textContent = `Error: ${error.message}`;
+            }
+        };
+
+        window.checkStatus = async function() {
+            const result = await linuxClient.call('status', {});
+            outputEl.textContent = `Bridge Status:\n${JSON.stringify(result, null, 2)}`;
+        };
+
+        function updateSessionList() {
+            const sessions = bridge.getActiveSessions();
+            if (sessions.length === 0) {
+                sessionListEl.innerHTML = '<div>None</div>';
+            } else {
+                sessionListEl.innerHTML = sessions.map(s =>
+                    `<div class="session-item">
+                        <strong>${s.sessionId.substring(0, 8)}</strong><br>
+                        📍 (${s.position.x}, ${s.position.y})<br>
+                        Status: ${s.status}
+                    </div>`
+                ).join('');
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
