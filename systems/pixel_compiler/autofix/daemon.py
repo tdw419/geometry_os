@@ -79,3 +79,114 @@ class AutofixDaemon:
             return False
         except (OSError, ValueError):
             return False
+
+    def run_tests(self, test_paths: List[str]) -> Dict[str, Any]:
+        """Run pytest on specified test paths and parse results.
+
+        Args:
+            test_paths: List of file or directory paths to run tests on
+
+        Returns:
+            Dictionary containing:
+            - success: bool, True if all tests passed
+            - passed: int, number of passed tests
+            - failed: int, number of failed tests
+            - failures: list of dicts with test_name, file, line, error
+            - output: str, full pytest output
+        """
+        cmd = ["pytest", "-v", "--tb=short"] + test_paths
+
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=300,  # 5 minute timeout
+            )
+            output = result.stdout + result.stderr
+        except subprocess.TimeoutExpired:
+            output = "Test execution timed out after 5 minutes"
+            return {
+                "success": False,
+                "passed": 0,
+                "failed": 0,
+                "failures": [],
+                "output": output,
+            }
+        except FileNotFoundError:
+            output = "pytest not found in PATH"
+            return {
+                "success": False,
+                "passed": 0,
+                "failed": 0,
+                "failures": [],
+                "output": output,
+            }
+
+        return self._parse_pytest_output(output)
+
+    def _parse_pytest_output(self, output: str) -> Dict[str, Any]:
+        """Parse pytest output to extract test results.
+
+        Args:
+            output: Raw pytest output string
+
+        Returns:
+            Dictionary containing:
+            - success: bool, True if all tests passed
+            - passed: int, number of passed tests
+            - failed: int, number of failed tests
+            - failures: list of dicts with test_name, file, line, error
+            - output: str, full pytest output
+        """
+        # Initialize result
+        result = {
+            "success": True,
+            "passed": 0,
+            "failed": 0,
+            "failures": [],
+            "output": output,
+        }
+
+        # Parse summary line for "X failed, Y passed" or "X passed"
+        summary_patterns = [
+            r"(\d+) failed,\s*(\d+) passed",  # "1 failed, 2 passed"
+            r"(\d+) passed",  # "2 passed" (when no failures)
+        ]
+
+        for pattern in summary_patterns:
+            match = re.search(pattern, output)
+            if match:
+                groups = match.groups()
+                if len(groups) == 2:
+                    result["failed"] = int(groups[0])
+                    result["passed"] = int(groups[1])
+                else:
+                    result["passed"] = int(groups[0])
+                break
+
+        # Determine success based on failures
+        result["success"] = result["failed"] == 0
+
+        # Extract individual failures
+        # Pattern: "FAILURES\n\n_______ test_name _______" followed by file path
+        failure_pattern = r"____+ ([^\s_]+[^\n]*) ____+.*?\n.*?\n(.*?\.py):(\d+):.*?\n(.*?)(?=____+|\Z)"
+
+        for match in re.finditer(failure_pattern, output, re.DOTALL):
+            test_name = match.group(1).strip()
+            file_path = match.group(2).strip()
+            line_num = int(match.group(3))
+            error_msg = match.group(4).strip()
+
+            # Extract just the relevant error (first few lines)
+            error_lines = error_msg.split("\n")[:5]
+            error = "\n".join(error_lines)
+
+            result["failures"].append({
+                "test_name": test_name,
+                "file": file_path,
+                "line": line_num,
+                "error": error,
+            })
+
+        return result
