@@ -5,21 +5,21 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** Phase 4: Visual Catalog Manager (Ready for Planning)
+**Current focus:** Phase 4: Visual Catalog Manager (In Progress)
 
 ## Current Position
 
-Phase: 3 of 4 (Visual Installer Engine) - COMPLETE
-Plan: 4 of 4 complete
-Status: Phase complete, ready for Phase 4
-Last activity: 2026-02-15 - Completed Phase 3 Visual Installer Engine
+Phase: 4 of 4 (Visual Catalog Manager) - IN PROGRESS
+Plan: 2 of 4 complete
+Status: In progress
+Last activity: 2026-02-15 - Completed 04-02 SpatialLayoutManager
 
-Progress: [██████████] 100% (18/18 planned)
+Progress: [██████████░░░░░░░░░░] 50% (19/38 planned - estimating 4 phases x ~10 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 18 (Phase 1: 8 + Phase 2: 6 + Phase 3: 4)
+- Total plans completed: 19 (Phase 1: 8 + Phase 2: 6 + Phase 3: 4 + Phase 4: 1)
 - Average duration: ~6 min
 - Total execution time: ~2 hours
 
@@ -30,10 +30,12 @@ Progress: [██████████] 100% (18/18 planned)
 | 1. Vision Analysis Pipeline | 8 | 45 min | 5.6 min | Complete |
 | 2. FUSE Bridge | 6 | 45 min | 7.5 min | Complete |
 | 3. Visual Installer Engine | 4 | 25 min | 6.25 min | Complete |
+| 4. Visual Catalog Manager | 1+ | 3 min | 3 min | In Progress |
 
 **Recent Trend:**
 - Phase 2 plans: 5min, 5min, 3min, 3min, 3min, 4min
 - Phase 3 plans: 5min, 8min, 7min, 5min
+- Phase 4 plans: 3min
 - Trend: Fast, consistent execution on foundational work
 
 *Updated after each phase completion*
@@ -65,6 +67,9 @@ Recent decisions affecting current work:
 - cmd_install follows cmd_boot pattern for signal handling and output formatting
 - Validate .rts.png extension on input file for install command
 - Validate target parent directory exists before install
+- SpatialLayoutManager stores layout in ~/.rts/catalog_layout.json
+- Swap semantics for drag-and-drop collision (not push)
+- Grid dimensions include +2 padding for growth
 
 ### Pending Todos
 
@@ -77,7 +82,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-15
-Stopped at: Phase 3 complete, ready for Phase 4 planning
+Stopped at: Completed 04-02 PLAN.md (SpatialLayoutManager)
 Resume file: None
 
 **Files Created (Phase 1):**
@@ -99,6 +104,10 @@ Resume file: None
 - `systems/pixel_compiler/install/disk_writer.py` - DiskWriter class
 - `systems/pixel_compiler/install/install_engine.py` - InstallEngine class
 - `systems/pixel_compiler/tests/test_install_engine.py` - 28 unit tests
+
+**Files Created (Phase 4):**
+- `systems/pixel_compiler/catalog/spatial_layout.py` - SpatialLayoutManager class
+- `systems/pixel_compiler/catalog/__init__.py` - Catalog package exports
 
 **CLI Commands Available:**
 - `pixelrts analyze <file.png>` - Vision analysis and verification
