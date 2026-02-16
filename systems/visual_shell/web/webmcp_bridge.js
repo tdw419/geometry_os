@@ -1813,9 +1813,19 @@ class WebMCPBridge {
             await this.#registerPyodideStatus();
             await this.#registerPyodideRunAndPlace();
 
+            // ============================================================
+            // Phase 50.5: AI Agent Control Surface - Terminal Tools
+            // ============================================================
+            await this.#registerTerminalExecute();
+            await this.#registerTerminalCreate();
+            await this.#registerTerminalList();
+
             // Phase I tools - Security Hardening
             await this.#registerSecurityGetStatus();
             await this.#registerSecuritySetBypass();
+
+            // Phase 50.5 tools - Composite Tools (Convenience)
+            await this.#registerRunInNewTerminal();
 
             // Publish OS context alongside tools
             await this.#publishContext();
@@ -10471,6 +10481,153 @@ class WebMCPBridge {
     }
 
     // ─────────────────────────────────────────────────────────────
+    // Phase 50.5: AI Agent Control Surface - Terminal Tools
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Register terminal_execute tool
+     * Execute a command in a terminal
+     */
+    async #registerTerminalExecute() {
+        const self = this;
+        const tool = {
+            name: 'terminal_execute',
+            description: 'Execute a command in a terminal',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    command: { type: 'string', description: 'Command to execute' },
+                    terminal_id: { type: 'number', description: 'Terminal ID (optional, uses active)' }
+                },
+                required: ['command']
+            },
+            handler: async (params) => {
+                self.#callCount++;
+                self.#toolCallCounts['terminal_execute'] = (self.#toolCallCounts['terminal_execute'] || 0) + 1;
+                try {
+                    const cmd = params.command;
+                    const termId = params.terminal_id || null;
+
+                    const pyCode = `
+import gemini
+result = await gemini.run_command("${cmd.replace(/"/g, '\\"')}", ${termId})
+{
+    "output": result.stdout + result.stderr,
+    "exit_code": result.exit_code,
+    "success": result.exit_code == 0
+}
+                    `;
+
+                    if (typeof pyodide !== 'undefined' && pyodide.runPythonAsync) {
+                        const result = await pyodide.runPythonAsync(pyCode);
+                        return result.toJs();
+                    } else {
+                        return { error: 'Pyodide not available', output: '', exit_code: -1 };
+                    }
+                } catch (error) {
+                    console.error('WebMCP terminal_execute error:', error);
+                    return { error: error.message, output: '', exit_code: -1 };
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
+        navigator.modelContext.toolHandlers[tool.name] = tool.handler;
+        this.#registeredTools.push(tool.name);
+    }
+
+    /**
+     * Register terminal_create tool
+     * Create a new terminal window on the map
+     */
+    async #registerTerminalCreate() {
+        const self = this;
+        const tool = {
+            name: 'terminal_create',
+            description: 'Create a new terminal window on the map',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    x: { type: 'number', description: 'X position (default 100)' },
+                    y: { type: 'number', description: 'Y position (default 100)' }
+                }
+            },
+            handler: async (params) => {
+                self.#callCount++;
+                self.#toolCallCounts['terminal_create'] = (self.#toolCallCounts['terminal_create'] || 0) + 1;
+                try {
+                    const x = params.x || 100;
+                    const y = params.y || 100;
+
+                    const pyCode = `
+import gemini
+term = gemini.create_terminal(${x}, ${y})
+{"terminal_id": term.term_id, "x": term.x, "y": term.y}
+                    `;
+
+                    if (typeof pyodide !== 'undefined' && pyodide.runPythonAsync) {
+                        const result = await pyodide.runPythonAsync(pyCode);
+                        return result.toJs();
+                    } else {
+                        return { error: 'Pyodide not available' };
+                    }
+                } catch (error) {
+                    console.error('WebMCP terminal_create error:', error);
+                    return { error: error.message };
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
+        navigator.modelContext.toolHandlers[tool.name] = tool.handler;
+        this.#registeredTools.push(tool.name);
+    }
+
+    /**
+     * Register terminal_list tool
+     * List all terminal windows
+     */
+    async #registerTerminalList() {
+        const self = this;
+        const tool = {
+            name: 'terminal_list',
+            description: 'List all terminal windows',
+            inputSchema: {
+                type: 'object',
+                properties: {}
+            },
+            handler: async (params) => {
+                self.#callCount++;
+                self.#toolCallCounts['terminal_list'] = (self.#toolCallCounts['terminal_list'] || 0) + 1;
+                try {
+                    const pyCode = `
+import gemini
+state = gemini.get_terminal_state()
+state
+                    `;
+
+                    if (typeof pyodide !== 'undefined' && pyodide.runPythonAsync) {
+                        const result = await pyodide.runPythonAsync(pyCode);
+                        return result.toJs();
+                    } else {
+                        return { error: 'Pyodide not available', terminals: [] };
+                    }
+                } catch (error) {
+                    console.error('WebMCP terminal_list error:', error);
+                    return { error: error.message, terminals: [] };
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
+        navigator.modelContext.toolHandlers[tool.name] = tool.handler;
+        this.#registeredTools.push(tool.name);
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // Tool: security_get_status (Phase I - Security Hardening)
     // ─────────────────────────────────────────────────────────────
 
@@ -10613,6 +10770,63 @@ class WebMCPBridge {
         } catch (err) {
             done(false);
             return { success: false, error: err.message };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Phase 50.5: Composite Tools (Convenience)
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerRunInNewTerminal() {
+        const tool = {
+            name: 'run_in_new_terminal',
+            description: 'Create a new terminal and execute a command',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    command: { type: 'string', description: 'Command to execute' },
+                    x: { type: 'number', description: 'X position (default 100)' },
+                    y: { type: 'number', description: 'Y position (default 100)' }
+                },
+                required: ['command']
+            },
+            handler: async (params) => {
+                return this.#handleRunInNewTerminal(params);
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #handleRunInNewTerminal({ command, x = 100, y = 100 }) {
+        const done = this.#trackCall('run_in_new_terminal');
+
+        try {
+            const pyCode = `
+import gemini
+term = gemini.create_terminal(${x}, ${y})
+result = await term.execute("${command.replace(/"/g, '\\"')}")
+{
+    "terminal_id": term.term_id,
+    "output": result.stdout + result.stderr,
+    "exit_code": result.exit_code,
+    "success": result.exit_code == 0
+}
+            `;
+
+            if (typeof pyodide !== 'undefined' && pyodide.runPythonAsync) {
+                const result = await pyodide.runPythonAsync(pyCode);
+                done(true);
+                return result.toJs();
+            } else {
+                done(false);
+                return { error: 'Pyodide not available' };
+            }
+        } catch (error) {
+            done(false);
+            console.error('WebMCP run_in_new_terminal error:', error);
+            return { error: error.message };
         }
     }
 }
