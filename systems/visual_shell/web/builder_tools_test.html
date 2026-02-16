@@ -83,6 +83,23 @@
     </div>
 
     <script src="BuilderPanel.js"></script>
+    <script src="webmcp_bridge.js"></script>
+    <script>
+        // Instantiate WebMCPBridge in mock mode for testing purposes
+        window.webmcpBridgeInstance = new WebMCPBridge({}, { allowMock: true });
+
+        // Track when WebMCP tools are ready
+        window.webmcpReady = false;
+        window.addEventListener('webmcp-ready', (e) => {
+            window.webmcpReady = true;
+            console.log('Test page received webmcp-ready event:', e.detail);
+            document.getElementById('status').textContent = 'Ready';
+        });
+        window.addEventListener('webmcp-error', (e) => {
+            console.error('WebMCP registration failed:', e.detail);
+            document.getElementById('status').textContent = 'Error: ' + e.detail.error;
+        });
+    </script>
     <script>
         let passed = 0;
         let failed = 0;
@@ -123,7 +140,7 @@
 
                 testLoadShader: async () => {
                     const result = await window.invokeWebMCPTool('builder_load_shader', {
-                        shader_name: 'test_compute',
+                        name: 'test_compute',
                         wgsl_code: '@compute @workgroup_size(64) fn main() {}'
                     });
                     if (result.success && result.shader_id) {
@@ -133,14 +150,18 @@
                 },
 
                 testEvolveShader: async () => {
-                    // First load a shader
-                    await window.invokeWebMCPTool('builder_load_shader', {
-                        shader_name: 'evolve_test',
+                    // First load a shader to get a shader_id
+                    const loadResult = await window.invokeWebMCPTool('builder_load_shader', {
+                        name: 'evolve_test',
                         wgsl_code: '@compute @workgroup_size(64) fn main() {}'
                     });
+                    const shaderId = loadResult.shader_id || 'evolve_test';
                     const result = await window.invokeWebMCPTool('builder_evolve_shader', {
-                        generations: 5,
-                        fitness_metric: 'visual_quality'
+                        shader_id: shaderId,
+                        evolution_params: {
+                            generations: 5,
+                            mutation_rate: 0.1
+                        }
                     });
                     if (result.success && result.fitness_score >= 0) {
                         return { pass: true, msg: `Evolved: fitness=${result.fitness_score.toFixed(2)}` };
@@ -156,18 +177,19 @@
                         y: 0
                     });
                     const result = await window.invokeWebMCPTool('builder_assemble_cartridge', {
-                        name: 'test_cartridge'
+                        name: 'test_cartridge',
+                        region: { x: 0, y: 0, width: 200, height: 200 }
                     });
                     if (result.success) {
-                        return { pass: true, msg: `Cartridge assembled: ${result.cartridge?.name || 'test_cartridge'}` };
+                        return { pass: true, msg: `Cartridge assembled: ${result.name} with ${result.tiles_included} tiles` };
                     }
                     return { pass: false, msg: JSON.stringify(result) };
                 },
 
                 testPreview: async () => {
                     const result = await window.invokeWebMCPTool('builder_preview', {});
-                    if (result.success && result.preview_url) {
-                        return { pass: true, msg: `Preview captured at ${result.timestamp}` };
+                    if (result.success) {
+                        return { pass: true, msg: `Preview captured: ${result.message || result.tiles_previewed + ' tiles previewed'}` };
                     }
                     return { pass: false, msg: JSON.stringify(result) };
                 },
@@ -201,6 +223,20 @@
         }
 
         document.getElementById('run-all').addEventListener('click', async () => {
+            // Wait for WebMCP to be ready (with timeout)
+            if (!window.webmcpReady) {
+                document.getElementById('status').textContent = 'Waiting for WebMCP...';
+                let waited = 0;
+                while (!window.webmcpReady && waited < 5000) {
+                    await new Promise(r => setTimeout(r, 100));
+                    waited += 100;
+                }
+                if (!window.webmcpReady) {
+                    document.getElementById('status').textContent = 'Error: WebMCP not ready (timeout)';
+                    return;
+                }
+            }
+
             passed = 0;
             failed = 0;
             updateSummary();

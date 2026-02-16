@@ -1007,28 +1007,34 @@ class WebMCPBridge {
             intervalMs: 15000
         });
 
-        if (!this.#webmcpAvailable) {
+        if (!this.#webmcpAvailable && !this.#mockMode) { // Only return early if neither WebMCP nor mock mode is active
             console.log('🔌 WebMCP: Not available (Chrome 146+ required). ' +
                 'Visual Shell running in standard mode.');
             return;
         }
 
-        console.log('🔌 WebMCP: API detected — waiting for Geometry OS initialization...');
-
-        // Event-Driven: Wait for OS to be fully initialized
-        window.addEventListener('geometry-os-ready', () => {
-            this.#app = window.geometryOSApp;
-            if (this.#app) {
-                this.#register();
-            } else {
-                console.warn('🔌 WebMCP: geometry-os-ready fired but window.geometryOSApp is null');
-            }
-        });
-
-        // Safety: If event already fired (late script loading), check immediately
-        if (window.geometryOSApp && !this.#registered) {
-            this.#app = window.geometryOSApp;
+        // In mock mode, immediately register tools without waiting for OS
+        if (this.#mockMode) {
+            console.log('🔌 WebMCP: Mock mode - registering tools immediately...');
             this.#register();
+        } else {
+            console.log('🔌 WebMCP: API detected — waiting for Geometry OS initialization...');
+
+            // Event-Driven: Wait for OS to be fully initialized
+            window.addEventListener('geometry-os-ready', () => {
+                this.#app = window.geometryOSApp;
+                if (this.#app) {
+                    this.#register();
+                } else {
+                    console.warn('🔌 WebMCP: geometry-os-ready fired but window.geometryOSApp is null');
+                }
+            });
+
+            // Safety: If event already fired (late script loading), check immediately
+            if (window.geometryOSApp && !this.#registered) {
+                this.#app = window.geometryOSApp;
+                this.#register();
+            }
         }
 
         // Start health monitoring (runs every 10s)
@@ -1036,6 +1042,14 @@ class WebMCPBridge {
 
         // DEBUG: Expose tool invocation for demos
         window.invokeWebMCPTool = async (name, args) => {
+            // In mock mode, use window.mockTools which is populated by the mock registerTool
+            if (this.#mockMode) {
+                if (window.mockTools && window.mockTools[name] && typeof window.mockTools[name].handler === 'function') {
+                    return await window.mockTools[name].handler(args);
+                }
+                throw new Error(`Mock Tool ${name} not found or handler not a function in mockTools`);
+            }
+
             const tool = this.#registeredTools.find(t => t === name);
             if (!tool) throw new Error(`Tool ${name} not found`);
             if (navigator.modelContext && navigator.modelContext.toolHandlers) {
@@ -1651,7 +1665,9 @@ class WebMCPBridge {
                     registerTool: async (tool, handler) => {
                         console.log(`[MockMCP] Registered: ${tool.name}`);
                         window.mockTools = window.mockTools || {};
-                        window.mockTools[tool.name] = { tool, handler };
+                        // Handle both registerTool(tool) and registerTool(tool, handler)
+                        const actualHandler = handler || tool.handler;
+                        window.mockTools[tool.name] = { tool, handler: actualHandler };
                         return true;
                     }
                 };
@@ -1797,6 +1813,9 @@ class WebMCPBridge {
             await this.#registerPMAnalyze();
             await this.#registerPMAnalyzeAndDeploy();
 
+            // Phase V: Virtual File System (VFS) for AI Agents
+            await this.#registerVfsTools();
+
             // Phase Q: Creative Tools
             await this.#registerGraphicsDrawRect();
             await this.#registerGraphicsDrawCircle();
@@ -1833,6 +1852,7 @@ class WebMCPBridge {
 
             // Phase 50.5 tools - Composite Tools (Convenience)
             await this.#registerRunInNewTerminal();
+            await this.#registerLaunchApp(); // New WebMCP tool to launch apps via desktop_manager
 
             // Publish OS context alongside tools
             await this.#publishContext();
@@ -1842,8 +1862,18 @@ class WebMCPBridge {
                 console.log(`   • ${name}`)
             );
 
+            // Dispatch ready event so tests can wait for registration to complete
+            window.dispatchEvent(new CustomEvent('webmcp-ready', {
+                detail: { tools: this.#registeredTools, mockMode: this.#mockMode }
+            }));
+            console.log('🔌 WebMCP: Dispatched webmcp-ready event');
+
         } catch (err) {
             console.error('🔌 WebMCP: Registration failed:', err);
+            // Dispatch error event
+            window.dispatchEvent(new CustomEvent('webmcp-error', {
+                detail: { error: err.message }
+            }));
         }
     }
 
@@ -10488,6 +10518,124 @@ class WebMCPBridge {
     }
 
     // ─────────────────────────────────────────────────────────────
+    // Phase V: Virtual File System (VFS) Tools
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerVfsTools() {
+        console.log('🔌 WebMCP: Registering VFS tools...');
+
+        const self = this;
+
+        // vfs_read_file
+        await navigator.modelContext.registerTool({
+            name: 'vfs_read_file',
+            description: 'Reads the content of a file from the in-browser Virtual File System (VFS).',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    path: { type: 'string', description: 'The path to the file to read, e.g., "/vfs/my_script.py"' }
+                },
+                required: ['path']
+            },
+            handler: async (params) => {
+                self.#trackCall('vfs_read_file');
+                try {
+                    if (!window.geometryOSApp || !window.geometryOSApp.vfs) {
+                        return { success: false, error: 'VFS not initialized.' };
+                    }
+                    const path = params.path;
+                    const content = window.geometryOSApp.vfs[path];
+                    if (content === undefined) {
+                        return { success: false, error: `File not found in VFS: ${path}` };
+                    }
+                    return { success: true, path, content };
+                } catch (error) {
+                    console.error('WebMCP vfs_read_file error:', error);
+                    return { success: false, error: error.message };
+                }
+            }
+        });
+        this.#registeredTools.push('vfs_read_file');
+
+        // vfs_write_file
+        await navigator.modelContext.registerTool({
+            name: 'vfs_write_file',
+            description: 'Writes content to a file in the in-browser Virtual File System (VFS). Creates the file if it doesn\'t exist, overwrites if it does.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    path: { type: 'string', description: 'The path to the file to write, e.g., "/vfs/my_script.py"' },
+                    content: { type: 'string', description: 'The content to write to the file.' }
+                },
+                required: ['path', 'content']
+            },
+            handler: async (params) => {
+                self.#trackCall('vfs_write_file');
+                try {
+                    if (!window.geometryOSApp || !window.geometryOSApp.vfs) {
+                        return { success: false, error: 'VFS not initialized.' };
+                    }
+                    const path = params.path;
+                    const content = params.content;
+                    window.geometryOSApp.vfs[path] = content;
+                    return { success: true, path, message: 'File written successfully.' };
+                } catch (error) {
+                    console.error('WebMCP vfs_write_file error:', error);
+                    return { success: false, error: error.message };
+                }
+            }
+        });
+        this.#registeredTools.push('vfs_write_file');
+
+        // vfs_list_dir
+        await navigator.modelContext.registerTool({
+            name: 'vfs_list_dir',
+            description: 'Lists the contents of a directory within the in-browser Virtual File System (VFS).',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    path: { type: 'string', description: 'The path to the directory to list, e.g., "/vfs/my_dir". Defaults to "/" if omitted.' }
+                },
+                // path is not required, as it defaults to "/"
+            },
+            handler: async (params) => {
+                self.#trackCall('vfs_list_dir');
+                try {
+                    if (!window.geometryOSApp || !window.geometryOSApp.vfs) {
+                        return { success: false, error: 'VFS not initialized.' };
+                    }
+                    const reqPath = params.path ? (params.path.endsWith('/') ? params.path : params.path + '/') : '/';
+                    const files = [];
+                    const directories = new Set();
+
+                    // Collect direct children
+                    for (const fullPath in window.geometryOSApp.vfs) {
+                        if (fullPath.startsWith(reqPath)) {
+                            const relativePath = fullPath.substring(reqPath.length);
+                            if (relativePath.length === 0) continue; // Skip the directory itself if it's a file
+
+                            const parts = relativePath.split('/');
+                            if (parts.length === 1) { // Direct file child
+                                files.push({ name: parts[0], type: 'file' });
+                            } else { // Directory child
+                                directories.add(parts[0]);
+                            }
+                        }
+                    }
+
+                    const dirList = Array.from(directories).map(dir => ({ name: dir, type: 'directory' }));
+
+                    return { success: true, path: reqPath, contents: [...dirList, ...files] };
+                } catch (error) {
+                    console.error('WebMCP vfs_list_dir error:', error);
+                    return { success: false, error: error.message };
+                }
+            }
+        });
+        this.#registeredTools.push('vfs_list_dir');
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // Phase 50.5: AI Agent Control Surface - Terminal Tools
     // ─────────────────────────────────────────────────────────────
 
@@ -10835,6 +10983,86 @@ result = await term.execute("${command.replace(/"/g, '\\"')}")
             console.error('WebMCP run_in_new_terminal error:', error);
             return { error: error.message };
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Phase 50.5: AI Agent Control Surface - Desktop Manager Tools
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerLaunchApp() {
+        const self = this;
+        const tool = {
+            name: 'launch_app',
+            description: 'Launch a managed application (map_terminal, file_browser) via desktop_manager.py',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    app_name: {
+                        type: 'string',
+                        description: 'Name of the app to launch (e.g., "map_terminal", "file_browser")',
+                        enum: ['map_terminal', 'file_browser']
+                    },
+                    action: {
+                        type: 'string',
+                        description: 'Action to perform',
+                        enum: ['launch', 'stop', 'status'],
+                        default: 'launch'
+                    }
+                },
+                required: ['app_name']
+            },
+            handler: async (params) => {
+                self.#callCount++;
+                self.#toolCallCounts['launch_app'] = (self.#toolCallCounts['launch_app'] || 0) + 1;
+                try {
+                    const appName = params.app_name;
+                    const action = params.action || 'launch';
+                    const managerPort = 8760; // desktop_manager.py WebSocket port
+
+                    // Connect to desktop_manager.py and send command
+                    const ws = new WebSocket(`ws://localhost:${managerPort}`);
+
+                    return new Promise((resolve, reject) => {
+                        const timeout = setTimeout(() => {
+                            ws.close();
+                            resolve({ error: 'Timeout connecting to desktop_manager', success: false });
+                        }, 5000);
+
+                        ws.onopen = () => {
+                            ws.send(JSON.stringify({
+                                command: action,
+                                app_name: appName
+                            }));
+                        };
+
+                        ws.onmessage = (event) => {
+                            clearTimeout(timeout);
+                            ws.close();
+                            try {
+                                const response = JSON.parse(event.data);
+                                resolve(response);
+                            } catch (e) {
+                                resolve({ error: 'Invalid response from desktop_manager', success: false });
+                            }
+                        };
+
+                        ws.onerror = (error) => {
+                            clearTimeout(timeout);
+                            resolve({ error: 'WebSocket error - is desktop_manager.py running?', success: false });
+                        };
+                    });
+                } catch (error) {
+                    console.error('WebMCP launch_app error:', error);
+                    return { error: error.message, success: false };
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
+        navigator.modelContext.toolHandlers['launch_app'] = tool.handler;
+        this.#registeredTools.push(tool.name);
+        console.log('🔌 WebMCP: Registered launch_app tool');
     }
 
     // ─────────────────────────────────────────────────────────────
