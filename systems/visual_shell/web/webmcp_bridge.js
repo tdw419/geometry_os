@@ -1820,6 +1820,13 @@ class WebMCPBridge {
             await this.#registerTerminalCreate();
             await this.#registerTerminalList();
 
+            // ============================================================
+            // Phase 50.5: AI Agent Control Surface - File Browser Tools
+            // ============================================================
+            await this.#registerFileList();
+            await this.#registerFileFind();
+            await this.#registerFileRead();
+
             // Phase I tools - Security Hardening
             await this.#registerSecurityGetStatus();
             await this.#registerSecuritySetBypass();
@@ -10828,6 +10835,153 @@ result = await term.execute("${command.replace(/"/g, '\\"')}")
             console.error('WebMCP run_in_new_terminal error:', error);
             return { error: error.message };
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Phase 50.5: AI Agent Control Surface - File Browser Tools
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerFileList() {
+        const self = this;
+        const tool = {
+            name: 'file_list',
+            description: 'List files at a given path',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    path: { type: 'string', description: 'Directory path to list' }
+                },
+                required: ['path']
+            },
+            handler: async (params) => {
+                self.#callCount++;
+                self.#toolCallCounts['file_list'] = (self.#toolCallCounts['file_list'] || 0) + 1;
+                try {
+                    const path = params.path || '/';
+
+                    const pyCode = `
+import gemini
+if gemini.file_browser:
+    result = await gemini.file_browser.navigate("${path.replace(/"/g, '\\"')}")
+    files = [{"name": f.name, "type": f.file_type, "size": f.size} for f in gemini.file_browser.files]
+    {"files": files, "path": "${path.replace(/"/g, '\\"')}"}
+else:
+    {"error": "File browser not running", "files": []}
+                    `;
+
+                    if (typeof pyodide !== 'undefined' && pyodide.runPythonAsync) {
+                        const result = await pyodide.runPythonAsync(pyCode);
+                        return result.toJs();
+                    } else {
+                        return { error: 'Pyodide not available', files: [] };
+                    }
+                } catch (error) {
+                    console.error('WebMCP file_list error:', error);
+                    return { error: error.message, files: [] };
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
+        navigator.modelContext.toolHandlers[tool.name] = tool.handler;
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerFileFind() {
+        const self = this;
+        const tool = {
+            name: 'file_find',
+            description: 'Find files matching a pattern',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    pattern: { type: 'string', description: 'Glob pattern (e.g., *.log)' },
+                    path: { type: 'string', description: 'Root directory (default /)' }
+                },
+                required: ['pattern']
+            },
+            handler: async (params) => {
+                self.#callCount++;
+                self.#toolCallCounts['file_find'] = (self.#toolCallCounts['file_find'] || 0) + 1;
+                try {
+                    const pattern = params.pattern;
+                    const path = params.path || '/';
+
+                    const pyCode = `
+import gemini
+if gemini.file_browser:
+    files = await gemini.file_browser.find_files("${pattern.replace(/"/g, '\\"')}", "${path.replace(/"/g, '\\"')}")
+    {"files": files, "pattern": "${pattern.replace(/"/g, '\\"')}"}
+else:
+    {"error": "File browser not running", "files": []}
+                    `;
+
+                    if (typeof pyodide !== 'undefined' && pyodide.runPythonAsync) {
+                        const result = await pyodide.runPythonAsync(pyCode);
+                        return result.toJs();
+                    } else {
+                        return { error: 'Pyodide not available', files: [] };
+                    }
+                } catch (error) {
+                    console.error('WebMCP file_find error:', error);
+                    return { error: error.message, files: [] };
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
+        navigator.modelContext.toolHandlers[tool.name] = tool.handler;
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerFileRead() {
+        const self = this;
+        const tool = {
+            name: 'file_read',
+            description: 'Read file contents',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    path: { type: 'string', description: 'File path to read' },
+                    max_bytes: { type: 'number', description: 'Max bytes to read (default 10000)' }
+                },
+                required: ['path']
+            },
+            handler: async (params) => {
+                self.#callCount++;
+                self.#toolCallCounts['file_read'] = (self.#toolCallCounts['file_read'] || 0) + 1;
+                try {
+                    const path = params.path;
+                    const maxBytes = params.max_bytes || 10000;
+
+                    const pyCode = `
+import gemini
+if gemini.file_browser:
+    result = await gemini.file_browser.read_file("${path.replace(/"/g, '\\"')}", ${maxBytes})
+    result
+else:
+    {"error": "File browser not running", "content": "", "truncated": False}
+                    `;
+
+                    if (typeof pyodide !== 'undefined' && pyodide.runPythonAsync) {
+                        const result = await pyodide.runPythonAsync(pyCode);
+                        return result.toJs();
+                    } else {
+                        return { error: 'Pyodide not available', content: '' };
+                    }
+                } catch (error) {
+                    console.error('WebMCP file_read error:', error);
+                    return { error: error.message, content: '' };
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool);
+        if (!navigator.modelContext.toolHandlers) navigator.modelContext.toolHandlers = {};
+        navigator.modelContext.toolHandlers[tool.name] = tool.handler;
+        this.#registeredTools.push(tool.name);
     }
 }
 
