@@ -33,10 +33,25 @@ class TestVNCBackend:
             height=600
         )
 
+    @pytest.fixture
+    def mock_subprocess(self):
+        """Mock asyncio.create_subprocess_exec for tests that don't need real processes."""
+        with patch('asyncio.create_subprocess_exec') as mock:
+            proc = MagicMock()
+            proc.pid = 12345
+            proc.returncode = None  # Process running
+            proc.stdout = MagicMock()
+            proc.stderr = MagicMock()
+            proc.wait = AsyncMock(return_value=0)
+            proc.terminate = MagicMock()
+            proc.kill = MagicMock()
+            mock.return_value = proc
+            yield mock, proc
+
     # === Spawn Tests ===
 
     @pytest.mark.asyncio
-    async def test_spawn_creates_tile(self, backend, app_config):
+    async def test_spawn_creates_tile(self, backend, app_config, mock_subprocess):
         """spawn() should create and return a tile."""
         tile = await backend.spawn(app_config)
 
@@ -47,7 +62,7 @@ class TestVNCBackend:
         assert tile.location == (100, 200)
 
     @pytest.mark.asyncio
-    async def test_spawn_assigns_vnc_display(self, backend, app_config):
+    async def test_spawn_assigns_vnc_display(self, backend, app_config, mock_subprocess):
         """spawn() should assign a unique VNC display number."""
         tile1 = await backend.spawn(app_config)
         tile2 = await backend.spawn(AppConfig(app="calc", backend="vnc"))
@@ -58,7 +73,7 @@ class TestVNCBackend:
         assert tile1.metadata["vnc_display"] != tile2.metadata["vnc_display"]
 
     @pytest.mark.asyncio
-    async def test_spawn_logs_qemu_command(self, backend, app_config, caplog):
+    async def test_spawn_logs_qemu_command(self, backend, app_config, mock_subprocess, caplog):
         """spawn() should log the QEMU command (stub - doesn't actually run)."""
         import logging
         with caplog.at_level(logging.DEBUG):
@@ -69,7 +84,7 @@ class TestVNCBackend:
                    for record in caplog.records)
 
     @pytest.mark.asyncio
-    async def test_spawn_sets_tile_state_to_running(self, backend, app_config):
+    async def test_spawn_sets_tile_state_to_running(self, backend, app_config, mock_subprocess):
         """spawn() should set tile state to RUNNING after spawn."""
         tile = await backend.spawn(app_config)
 
@@ -78,7 +93,7 @@ class TestVNCBackend:
     # === Input Tests ===
 
     @pytest.mark.asyncio
-    async def test_send_key_input_returns_true(self, backend, app_config):
+    async def test_send_key_input_returns_true(self, backend, app_config, mock_subprocess):
         """send_input() for keys should return True."""
         tile = await backend.spawn(app_config)
 
@@ -88,7 +103,7 @@ class TestVNCBackend:
         assert result is True
 
     @pytest.mark.asyncio
-    async def test_send_mouse_input_returns_true(self, backend, app_config):
+    async def test_send_mouse_input_returns_true(self, backend, app_config, mock_subprocess):
         """send_input() for mouse should return True."""
         tile = await backend.spawn(app_config)
 
@@ -98,7 +113,7 @@ class TestVNCBackend:
         assert result is True
 
     @pytest.mark.asyncio
-    async def test_send_text_input_returns_true(self, backend, app_config):
+    async def test_send_text_input_returns_true(self, backend, app_config, mock_subprocess):
         """send_input() for text should return True."""
         tile = await backend.spawn(app_config)
 
@@ -118,7 +133,7 @@ class TestVNCBackend:
     # === Frame Capture Tests ===
 
     @pytest.mark.asyncio
-    async def test_capture_frame_returns_png_bytes(self, backend, app_config):
+    async def test_capture_frame_returns_png_bytes(self, backend, app_config, mock_subprocess):
         """capture_frame() should return PNG bytes."""
         tile = await backend.spawn(app_config)
 
@@ -136,7 +151,7 @@ class TestVNCBackend:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_capture_frame_stub_returns_placeholder(self, backend, app_config):
+    async def test_capture_frame_stub_returns_placeholder(self, backend, app_config, mock_subprocess):
         """capture_frame() stub should return a placeholder image."""
         tile = await backend.spawn(app_config)
 
@@ -148,7 +163,7 @@ class TestVNCBackend:
     # === Terminate Tests ===
 
     @pytest.mark.asyncio
-    async def test_terminate_returns_true(self, backend, app_config):
+    async def test_terminate_returns_true(self, backend, app_config, mock_subprocess):
         """terminate() should return True for existing tile."""
         tile = await backend.spawn(app_config)
 
@@ -164,7 +179,7 @@ class TestVNCBackend:
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_terminate_removes_tile_from_backend(self, backend, app_config):
+    async def test_terminate_removes_tile_from_backend(self, backend, app_config, mock_subprocess):
         """terminate() should remove tile from backend's internal registry."""
         tile = await backend.spawn(app_config)
 
@@ -177,7 +192,7 @@ class TestVNCBackend:
     # === Health Check Tests ===
 
     @pytest.mark.asyncio
-    async def test_health_check_returns_true_for_running_tile(self, backend, app_config):
+    async def test_health_check_returns_true_for_running_tile(self, backend, app_config, mock_subprocess):
         """health_check() should return True for running tile."""
         tile = await backend.spawn(app_config)
 
@@ -210,7 +225,7 @@ class TestVNCBackend:
     # === Websockify Placeholder Tests ===
 
     @pytest.mark.asyncio
-    async def test_websockify_port_assigned(self, backend, app_config):
+    async def test_websockify_port_assigned(self, backend, app_config, mock_subprocess):
         """spawn() should assign a websockify port."""
         tile = await backend.spawn(app_config)
 
@@ -220,7 +235,7 @@ class TestVNCBackend:
     # === Integration Tests ===
 
     @pytest.mark.asyncio
-    async def test_full_lifecycle(self, backend, app_config):
+    async def test_full_lifecycle(self, backend, app_config, mock_subprocess):
         """Test full tile lifecycle: spawn -> input -> capture -> terminate."""
         # Spawn
         tile = await backend.spawn(app_config)
