@@ -71,6 +71,61 @@ Phase 50.6: Visual File Browser - VERIFIED
 python3 file_browser.py --path /tmp
 python3 file_browser.py --backend qemu --path /home/user
 
+Phase 50.5: AI Agent Control Surface - VERIFIED
+
+## Implementation Summary
+
+| Component | Status | File |
+|-----------|--------|------|
+| GeminiModule | ✅ | `agent_control_surface.py` |
+| MapTerminal.get_state() | ✅ | `map_terminal.py` |
+| FileBrowser helpers | ✅ | `file_browser.py` |
+| Control surface registration | ✅ | `map_terminal.py` |
+| WebMCP terminal tools | ✅ | `webmcp_bridge.js` |
+| WebMCP file tools | ✅ | `webmcp_bridge.js` |
+| Composite tool | ✅ | `webmcp_bridge.js` |
+
+## WebMCP Tools Added
+
+### Terminal Tools
+- `terminal_execute` - Execute command in terminal
+- `terminal_create` - Create new terminal window
+- `terminal_list` - List all terminals
+
+### File Browser Tools
+- `file_list` - List files at path
+- `file_find` - Find files matching pattern
+- `file_read` - Read file contents
+
+### Composite Tools
+- `run_in_new_terminal` - Create terminal + execute command
+
+## Python API (Pyodide)
+
+```python
+import gemini
+
+# Terminal management
+gemini.terminal_manager
+gemini.run_command("ls", term_id=1)
+gemini.create_terminal(x=100, y=100)
+gemini.get_terminal_state()
+
+# File browser (when running)
+gemini.file_browser
+gemini.file_browser.read_file("/path/to/file")
+gemini.file_browser.find_files("*.log", "/var")
+```
+
+## Commits
+
+- c2f9a56: feat(agent): create agent_control_surface.py with GeminiModule
+- edc51a7: feat(terminal): add get_state() method to MapTerminal
+- de72bb4: feat(browser): add read_file(), find_files(), get_state() to FileBrowser
+- ddb151d: feat(terminal): integrate Agent Control Surface registration
+- c7722fe: feat(webmcp): add terminal_execute, terminal_create, terminal_list tools
+- c72903d: feat(webmcp): add file_list, file_find, file_read tools
+
 Phase 50.2: Command History & Autocomplete - VERIFIED
 
 ## Test Results
