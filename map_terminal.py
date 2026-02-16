@@ -686,6 +686,15 @@ async def main():
         global manager
         manager = TerminalManager(ws, bridge)
 
+        # Register with Agent Control Surface (for Pyodide)
+        try:
+            from agent_control_surface import register_control_surface
+            gemini = register_control_surface(manager)
+            # Expose globally for JavaScript access
+            # Note: In browser, this becomes accessible via window.pyodide.globals
+        except ImportError as e:
+            print(f"⚠ Agent Control Surface not available: {e}")
+
         # Create input server (uses manager instead of single terminal)
         input_server = InputServer(manager, port=8765)
 
