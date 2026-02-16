@@ -1,5 +1,5 @@
 """
-Evolution Daemon V11 - Data Structures
+Evolution Daemon V11/V13 - Data Structures
 
 Core data types for the Full Safety Pipeline:
 - EvolutionProposal: Describes a proposed code change
@@ -8,12 +8,24 @@ Core data types for the Full Safety Pipeline:
 - MonitoringResult: Post-commit health check results
 - RecoveryAction: Actions to take on regression
 - EvolutionResult: Final outcome of evolution attempt
+
+V13 additions:
+- ThrottleLevel: Resource throttle levels for daemon adaptation
+- HealthPrediction: Predicted health state of an RTS file
+- MetabolismState: Current system resource state for adaptive behavior
 """
 
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import List, Dict, Optional, Any
+
+
+class ThrottleLevel(str, Enum):
+    """Resource throttle levels for daemon adaptation."""
+    NONE = "none"
+    MODERATE = "moderate"
+    AGGRESSIVE = "aggressive"
 
 
 class RecoveryAction(Enum):
@@ -153,6 +165,41 @@ class MonitoringResult:
         issues.extend(self.visual_anomalies)
         issues.extend(self.performance_degradations)
         return issues
+
+
+@dataclass
+class HealthPrediction:
+    """
+    Predicted health state of an RTS file.
+
+    Used by the predictive health monitor to anticipate issues
+    before they cause failures.
+    """
+    rts_path: str
+    predicted_health_score: float  # 0.0 to 1.0
+    confidence: float  # 0.0 to 1.0
+    predicted_at: str  # ISO timestamp
+    horizon_hours: int  # Prediction horizon
+    recommended_action: Optional[str] = None  # "defragment", "re_generate", etc.
+
+
+@dataclass
+class MetabolismState:
+    """
+    Current system resource state for adaptive behavior.
+
+    The daemon adjusts its activity level based on available resources,
+    similar to how living organisms regulate metabolism.
+    """
+    cpu_percent: float
+    memory_available_mb: float
+    gpu_percent: float
+    throttle_level: ThrottleLevel
+    checked_at: str = ""  # ISO timestamp
+
+    def __post_init__(self):
+        if not self.checked_at:
+            self.checked_at = datetime.now().isoformat()
 
 
 # Type aliases for clarity
