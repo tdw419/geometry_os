@@ -102,8 +102,8 @@ class TerminalManager:
 class InputServer:
     """WebSocket server that receives keystrokes from browser."""
 
-    def __init__(self, terminal, port=8765):
-        self.terminal = terminal
+    def __init__(self, manager: TerminalManager, port=8765):
+        self.manager = manager
         self.port = port
         self.clients = set()
 
@@ -120,15 +120,51 @@ class InputServer:
             self.clients.discard(websocket)
 
     async def process_keystroke(self, data):
-        """Process a keystroke from the browser."""
+        """Process a keystroke or command from the browser."""
         event_type = data.get('type')
 
         if event_type == 'key':
             key = data.get('key', '')
-            await self.terminal.handle_key(key)
+            # Route to active terminal
+            terminal = self.manager.get_active()
+            if terminal:
+                await terminal.handle_key(key)
+
+        elif event_type == 'focus_change':
+            # Browser reports which terminal was clicked
+            to_id = data.get('toId', 0)
+            from_id = data.get('fromId', 0)
+
+            # Unfocus old terminal
+            old_term = self.manager.get_terminal(from_id)
+            if old_term:
+                old_term.focused = False
+                await old_term.render()
+
+            # Focus new terminal
+            self.manager.focus_terminal(to_id)
+            new_term = self.manager.get_active()
+            if new_term:
+                await new_term.render()
+
+        elif event_type == 'new_terminal':
+            # Create new terminal
+            x, y = self.manager.get_next_position()
+            terminal = self.manager.create_terminal(x=x, y=y)
+            await terminal.init_display()
+            print(f"Created terminal #{terminal.term_id}")
+
+        elif event_type == 'close_terminal':
+            term_id = data.get('id', 0)
+            self.manager.destroy_terminal(term_id)
+            print(f"Closed terminal #{term_id}")
+
         elif event_type == 'focus':
+            # Legacy single-terminal focus (for backwards compat)
             focused = data.get('focused', False)
-            await self.terminal.set_focus(focused)
+            terminal = self.manager.get_active()
+            if terminal:
+                await terminal.set_focus(focused)
 
     async def start(self):
         """Start the WebSocket server."""
@@ -171,125 +207,157 @@ class MapTerminal:
 
     async def init_display(self):
         """Initialize the terminal display on the map."""
-        # Create terminal window with keyboard capture
-        setup_js = f"""
-            // Store terminal state globally
-            window.mapTerminal = {{
-                x: {self.x},
-                y: {self.y},
-                width: {self.width},
-                height: {self.height},
-                lines: [],
-                cursorVisible: true,
-                focused: false,
-                inputSocket: null
-            }};
+        # Initialize terminalRegistry if needed
+        setup_js = """
+            if (!window.terminalRegistry) {
+                window.terminalRegistry = {
+                    terminals: new Map(),
+                    activeId: null,
 
-            // Connect to input server
-            try {{
-                window.mapTerminal.inputSocket = new WebSocket('ws://localhost:8765');
-                window.mapTerminal.inputSocket.onopen = () => {{
-                    console.log('Terminal input socket connected');
-                }};
-                window.mapTerminal.inputSocket.onclose = () => {{
-                    console.log('Terminal input socket disconnected');
-                }};
-                window.mapTerminal.inputSocket.onerror = (e) => {{
-                    console.error('Terminal input socket error:', e);
-                }};
-            }} catch (e) {{
-                console.error('Failed to connect input socket:', e);
-            }}
+                    register(id, x, y, width, height, workingDir) {
+                        this.terminals.set(id, { x, y, width, height, workingDir, focused: false });
+                    },
 
-            // Click detection for focus
-            window.geometryOSApp.app.view.addEventListener('click', (e) => {{
-                const rect = window.geometryOSApp.app.view.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                const term = window.mapTerminal;
+                    update(id, props) {
+                        const term = this.terminals.get(id);
+                        if (term) Object.assign(term, props);
+                    },
 
-                // Check if click is inside terminal
-                const insideTerminal = (
-                    x >= term.x && x <= term.x + term.width &&
-                    y >= term.y && y <= term.y + term.height
-                );
+                    unregister(id) {
+                        this.terminals.delete(id);
+                    },
 
-                if (insideTerminal && !term.focused) {{
-                    term.focused = true;
-                    if (term.inputSocket && term.inputSocket.readyState === WebSocket.OPEN) {{
-                        term.inputSocket.send(JSON.stringify({{type: 'focus', focused: true}}));
-                    }}
-                }} else if (!insideTerminal && term.focused) {{
-                    term.focused = false;
-                    if (term.inputSocket && term.inputSocket.readyState === WebSocket.OPEN) {{
-                        term.inputSocket.send(JSON.stringify({{type: 'focus', focused: false}}));
-                    }}
-                }}
-            }});
+                    setActive(id) {
+                        if (this.activeId !== null) {
+                            const old = this.terminals.get(this.activeId);
+                            if (old) old.focused = false;
+                        }
+                        this.activeId = id;
+                        const term = this.terminals.get(id);
+                        if (term) term.focused = true;
+                    },
 
-            // Keyboard capture
-            document.addEventListener('keydown', (e) => {{
-                const term = window.mapTerminal;
-                if (!term.focused) return;
+                    hitTest(x, y) {
+                        for (const [id, term] of this.terminals) {
+                            if (x >= term.x && x <= term.x + term.width &&
+                                y >= term.y && y <= term.y + term.height) {
+                                return id;
+                            }
+                        }
+                        return null;
+                    }
+                };
+                console.log('Terminal registry initialized');
+            }
 
-                // Prevent default for most keys
-                if (e.key !== 'F11' && e.key !== 'F12') {{
-                    e.preventDefault();
-                }}
-
-                // Send to Python
-                if (term.inputSocket && term.inputSocket.readyState === WebSocket.OPEN) {{
-                    term.inputSocket.send(JSON.stringify({{
-                        type: 'key',
-                        key: e.key,
-                        code: e.code,
-                        ctrlKey: e.ctrlKey,
-                        shiftKey: e.shiftKey,
-                        altKey: e.altKey
-                    }}));
-                }}
-            }});
-
-            // Clear and draw terminal background
-            window.geometryOSApp.clearGraphics();
-
-            // Terminal window background
-            window.geometryOSApp.drawRect(
-                window.mapTerminal.x,
-                window.mapTerminal.y,
-                window.mapTerminal.width,
-                window.mapTerminal.height,
-                0x0D0D0D,  // Near black
-                0.95
-            );
-
-            // Terminal title bar
-            window.geometryOSApp.drawRect(
-                window.mapTerminal.x,
-                window.mapTerminal.y,
-                window.mapTerminal.width,
-                25,
-                0x1A1A2E,
-                1.0
-            );
-
-            // Title text
-            window.geometryOSApp.placeText('term_title', 'Terminal (click to focus)',
-                window.mapTerminal.x + 10, window.mapTerminal.y + 12,
-                {{fontFamily: 'Courier New', fontSize: 12, fill: 0x00FF00}}
-            );
-
-            // Initial prompt line
-            window.geometryOSApp.placeText('term_line_0', '$ _',
-                window.mapTerminal.x + 10, window.mapTerminal.y + 40,
-                {{fontFamily: 'Courier New', fontSize: 14, fill: 0x00FF00}}
-            );
-
-            'Terminal initialized';
+            // Connect to input server (once)
+            if (!window._terminalInputSocket) {
+                try {
+                    window._terminalInputSocket = new WebSocket('ws://localhost:8765');
+                    window._terminalInputSocket.onopen = () => console.log('Terminal input socket connected');
+                    window._terminalInputSocket.onerror = (e) => console.error('Terminal input socket error:', e);
+                } catch (e) {
+                    console.error('Failed to connect input socket:', e);
+                }
+            }
         """
         await self.send_js(setup_js)
-        print("Terminal display initialized on map")
-        print("Click on the terminal to focus, then type!")
+
+        # Register this terminal
+        register_js = f"""
+            window.terminalRegistry.register(
+                {self.term_id},
+                {self.x}, {self.y},
+                {self.width}, {self.height},
+                '{self.working_dir}'
+            );
+
+            // Set as active if first terminal
+            if (window.terminalRegistry.activeId === null) {{
+                window.terminalRegistry.setActive({self.term_id});
+            }}
+        """
+        await self.send_js(register_js)
+
+        # Setup global handlers (only once)
+        await self._setup_click_handler()
+        await self._setup_keyboard_handler()
+
+        print(f"Terminal #{self.term_id} display initialized at ({self.x}, {self.y})")
+
+    async def _setup_click_handler(self):
+        """Setup click handler (idempotent)."""
+        setup_js = """
+            if (!window._terminalClickHandlerInstalled) {
+                window._terminalClickHandlerInstalled = true;
+
+                window.geometryOSApp.app.view.addEventListener('click', (e) => {
+                    const rect = window.geometryOSApp.app.view.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+
+                    const hitId = window.terminalRegistry.hitTest(x, y);
+                    const activeId = window.terminalRegistry.activeId;
+
+                    if (hitId !== null && hitId !== activeId) {
+                        if (window._terminalInputSocket && window._terminalInputSocket.readyState === WebSocket.OPEN) {
+                            window._terminalInputSocket.send(JSON.stringify({
+                                type: 'focus_change',
+                                fromId: activeId,
+                                toId: hitId
+                            }));
+                        }
+                    }
+                });
+
+                console.log('Terminal click handler installed');
+            }
+        """
+        await self.send_js(setup_js)
+
+    async def _setup_keyboard_handler(self):
+        """Setup keyboard handler with Ctrl+Shift+T shortcut."""
+        setup_js = """
+            if (!window._terminalKeyboardHandlerInstalled) {
+                window._terminalKeyboardHandlerInstalled = true;
+
+                document.addEventListener('keydown', (e) => {
+                    // Ctrl+Shift+T = new terminal
+                    if (e.ctrlKey && e.shiftKey && (e.key === 'T' || e.key === 't')) {
+                        e.preventDefault();
+                        if (window._terminalInputSocket && window._terminalInputSocket.readyState === WebSocket.OPEN) {
+                            window._terminalInputSocket.send(JSON.stringify({ type: 'new_terminal' }));
+                        }
+                        return;
+                    }
+
+                    // Regular keystroke - route to active terminal
+                    const activeId = window.terminalRegistry.activeId;
+                    if (activeId === null) return;
+
+                    const term = window.terminalRegistry.terminals.get(activeId);
+                    if (!term || !term.focused) return;
+
+                    if (e.key !== 'F11' && e.key !== 'F12') {
+                        e.preventDefault();
+                    }
+
+                    if (window._terminalInputSocket && window._terminalInputSocket.readyState === WebSocket.OPEN) {
+                        window._terminalInputSocket.send(JSON.stringify({
+                            type: 'key',
+                            key: e.key,
+                            code: e.code,
+                            ctrlKey: e.ctrlKey,
+                            shiftKey: e.shiftKey,
+                            altKey: e.altKey
+                        }));
+                    }
+                });
+
+                console.log('Terminal keyboard handler installed (Ctrl+Shift+T for new terminal)');
+            }
+        """
+        await self.send_js(setup_js)
 
     async def render(self):
         """Render all terminal lines to the map."""
@@ -301,7 +369,7 @@ class MapTerminal:
         # Border color based on focus state
         border_color = 0x00FF00 if self.focused else 0x444444
         title_indicator = "●" if self.focused else ""
-        title_text = f"Terminal {title_indicator}".strip()
+        title_text = f"{self.working_dir} {title_indicator}".strip()
 
         # Create JS to update all text elements
         js_code = "window.geometryOSApp.clearGraphics();\n"
@@ -503,23 +571,25 @@ async def main():
         # Create the appropriate bridge
         bridge = await create_bridge(args.backend, cdp_ws=ws, kernel=args.kernel)
 
-        # Create terminal with bridge
-        global terminal
-        terminal = MapTerminal(ws, bridge=bridge, x=400, y=150, width=450, height=350)
+        # Create terminal manager
+        global manager
+        manager = TerminalManager(ws, bridge)
 
-        # Create input server
-        input_server = InputServer(terminal, port=8765)
+        # Create input server (uses manager instead of single terminal)
+        input_server = InputServer(manager, port=8765)
 
+        # Create first terminal
+        terminal = manager.create_terminal(x=100, y=100)
         await terminal.init_display()
 
         print()
-        print("Terminal ready!")
+        print("Multi-Terminal ready!")
         print()
-        print("  • Click on the terminal to focus it")
+        print("  • Click on a terminal to focus it")
+        print("  • Press Ctrl+Shift+T for new terminal")
         print("  • Type commands directly")
         print("  • Press Enter to execute")
         print("  • Press Escape to clear input")
-        print("  • Click outside to unfocus")
         print()
 
         # Show backend info
@@ -535,11 +605,10 @@ async def main():
         await input_server.start()
         await input_server.server.serve_forever()
 
-    # Make terminal accessible after connection closes
     print("\nTerminal session ended.")
 
 
 if __name__ == "__main__":
-    # Global terminal reference for console access
-    terminal = None
+    # Global manager reference for console access
+    manager = None
     asyncio.run(main())
