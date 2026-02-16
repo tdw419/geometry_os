@@ -585,6 +585,20 @@ class MapTerminal:
 
         return prefix
 
+    def get_state(self) -> dict:
+        """Get terminal state as a dictionary (for API responses)."""
+        return {
+            "id": self.term_id,
+            "working_dir": self.working_dir,
+            "focused": self.focused,
+            "x": self.x,
+            "y": self.y,
+            "width": self.width,
+            "height": self.height,
+            "history_count": len(self.command_history),
+            "lines_count": len(self.lines),
+        }
+
 
 def parse_args():
     """Parse command line arguments."""
