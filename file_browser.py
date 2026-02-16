@@ -17,7 +17,7 @@ import re
 import requests
 import websockets
 from websockets.server import serve
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import List, Dict, Set, Optional
 import time
 
@@ -371,6 +371,68 @@ class FileBrowser:
             }})();
         """
         await self.send_js(js)
+
+    async def read_file(self, path: str, max_bytes: int = 10000) -> dict:
+        """
+        Read file contents.
+
+        Args:
+            path: File path to read
+            max_bytes: Maximum bytes to read (default 10KB)
+
+        Returns:
+            Dict with content, truncated flag
+        """
+        result = await self.bridge.execute(f"head -c {max_bytes} {path}", timeout=5)
+
+        if result.exit_code != 0:
+            return {"error": result.stderr, "content": "", "truncated": False}
+
+        content = result.stdout
+        truncated = len(content) >= max_bytes
+
+        return {
+            "content": content,
+            "truncated": truncated,
+            "path": path,
+        }
+
+    async def find_files(self, pattern: str, root: str = "/") -> list:
+        """
+        Find files matching a pattern.
+
+        Args:
+            pattern: Glob pattern (e.g., "*.log")
+            root: Root directory to search
+
+        Returns:
+            List of FileInfo dicts
+        """
+        result = await self.bridge.execute(f"find {root} -name '{pattern}' -type f 2>/dev/null | head -50", timeout=10)
+
+        if result.exit_code != 0 or not result.stdout.strip():
+            return []
+
+        files = []
+        for line in result.stdout.strip().split('\n')[:50]:
+            if line:
+                # Get file info
+                info_result = await self.bridge.execute(f"ls -la '{line}' 2>/dev/null", timeout=2)
+                if info_result.exit_code == 0:
+                    parsed = parse_ls_output(info_result.stdout, line.rsplit('/', 1)[0])
+                    if parsed:
+                        files.append(asdict(parsed[0]))
+
+        return files
+
+    def get_state(self) -> dict:
+        """Get browser state as a dictionary."""
+        return {
+            "current_path": self.current_path,
+            "files_count": len(self.files) if hasattr(self, 'files') else 0,
+            "x": self.x if hasattr(self, 'x') else 0,
+            "y": self.y if hasattr(self, 'y') else 0,
+        }
 
     def _escape_js(self, s: str) -> str:
         """Escape string for JavaScript."""
