@@ -190,6 +190,11 @@ class MapTerminal:
         self.msg_id = int(time.time() * 1000)
         self.focused = False
 
+        # Command history
+        self.command_history: list = []  # List of previous commands
+        self.history_index: int = -1     # Current position in history (-1 = not browsing)
+        self.history_max: int = 100      # Maximum commands to store
+
     async def send_js(self, js_code):
         """Send JavaScript to browser and wait for response."""
         self.msg_id += 1
@@ -470,12 +475,20 @@ class MapTerminal:
             return
 
         if key == 'Enter':
-            # Execute the command
+            # Store command in history (if non-empty and different from last)
             if self.input_buffer.strip():
+                # Don't duplicate consecutive commands
+                if not self.command_history or self.command_history[-1] != self.input_buffer.strip():
+                    self.command_history.append(self.input_buffer.strip())
+                    # Trim history if too long
+                    if len(self.command_history) > self.history_max:
+                        self.command_history = self.command_history[-self.history_max:]
                 await self.execute(self.input_buffer)
             else:
                 self.input_buffer = ""
                 await self.render()
+            # Reset history index
+            self.history_index = -1
         elif key == 'Backspace':
             self.input_buffer = self.input_buffer[:-1]
             await self.render()
@@ -483,10 +496,94 @@ class MapTerminal:
             # Clear input
             self.input_buffer = ""
             await self.render()
+
+        elif key == 'ArrowUp':
+            # Navigate backward through history
+            if self.command_history:
+                if self.history_index == -1:
+                    # First press - go to most recent
+                    self.history_index = len(self.command_history) - 1
+                elif self.history_index > 0:
+                    self.history_index -= 1
+
+                if self.history_index >= 0:
+                    self.input_buffer = self.command_history[self.history_index]
+                    await self.render()
+
+        elif key == 'ArrowDown':
+            # Navigate forward through history
+            if self.history_index != -1:
+                if self.history_index < len(self.command_history) - 1:
+                    self.history_index += 1
+                    self.input_buffer = self.command_history[self.history_index]
+                else:
+                    # At the end - clear to new line
+                    self.history_index = -1
+                    self.input_buffer = ""
+                await self.render()
+
+        elif key == 'Tab':
+            # Autocomplete based on history and common commands
+            suggestions = self._get_autocomplete_suggestions(self.input_buffer)
+            if suggestions:
+                # If multiple matches, show them (or cycle through)
+                if len(suggestions) == 1:
+                    self.input_buffer = suggestions[0]
+                    await self.render()
+                # For multiple matches, could show list - for now just take first
+                elif len(suggestions) > 1:
+                    # Find common prefix
+                    common = self._find_common_prefix(suggestions)
+                    if common and len(common) > len(self.input_buffer):
+                        self.input_buffer = common
+                        await self.render()
+
         elif len(key) == 1:
             # Regular character
             self.input_buffer += key
             await self.render()
+
+    def _get_autocomplete_suggestions(self, partial: str) -> list:
+        """Get autocomplete suggestions for partial input."""
+        if not partial:
+            return []
+
+        suggestions = []
+        partial_lower = partial.lower()
+
+        # Check command history first
+        for cmd in reversed(self.command_history):
+            if cmd.lower().startswith(partial_lower) and cmd not in suggestions:
+                suggestions.append(cmd)
+
+        # Add common shell commands
+        common_commands = [
+            'ls', 'ls -la', 'ls -laF', 'cd', 'cd ..', 'pwd',
+            'cat', 'echo', 'mkdir', 'rm', 'cp', 'mv',
+            'grep', 'find', 'chmod', 'chown',
+            'git status', 'git add', 'git commit', 'git push', 'git pull',
+            'python3', 'pip install', 'npm install', 'npm run',
+        ]
+
+        for cmd in common_commands:
+            if cmd.lower().startswith(partial_lower) and cmd not in suggestions:
+                suggestions.append(cmd)
+
+        return suggestions[:10]  # Limit to 10 suggestions
+
+    def _find_common_prefix(self, strings: list) -> str:
+        """Find the common prefix among a list of strings."""
+        if not strings:
+            return ""
+
+        prefix = strings[0]
+        for s in strings[1:]:
+            while not s.startswith(prefix):
+                prefix = prefix[:-1]
+                if not prefix:
+                    return ""
+
+        return prefix
 
 
 def parse_args():
