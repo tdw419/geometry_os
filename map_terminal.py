@@ -29,6 +29,76 @@ import time
 from vm_linux_bridge import VMLinuxBridge, HostBridge, QEMUBridge, WGPUBridge
 
 
+class TerminalManager:
+    """Manages multiple terminal instances."""
+
+    def __init__(self, ws, bridge: VMLinuxBridge):
+        self.ws = ws
+        self.bridge = bridge
+        self.terminals: dict = {}  # id -> MapTerminal
+        self.active_terminal_id: int = 0
+        self.next_id: int = 1
+
+    def create_terminal(self, x: int = 100, y: int = 100,
+                        width: int = 450, height: int = 350) -> 'MapTerminal':
+        """Create a new terminal instance."""
+        term_id = self.next_id
+        self.next_id += 1
+
+        terminal = MapTerminal(
+            ws=self.ws,
+            bridge=self.bridge,
+            term_id=term_id,
+            x=x, y=y,
+            width=width, height=height
+        )
+        self.terminals[term_id] = terminal
+
+        # First terminal is auto-focused
+        if len(self.terminals) == 1:
+            self.active_terminal_id = term_id
+            terminal.focused = True
+
+        return terminal
+
+    def get_terminal(self, term_id: int) -> 'MapTerminal':
+        """Get terminal by ID."""
+        return self.terminals.get(term_id)
+
+    def get_active(self) -> 'MapTerminal':
+        """Get the currently active terminal."""
+        return self.terminals.get(self.active_terminal_id)
+
+    def focus_terminal(self, term_id: int):
+        """Set focus to a specific terminal."""
+        # Unfocus current
+        current = self.get_active()
+        if current:
+            current.focused = False
+
+        # Focus new
+        terminal = self.terminals.get(term_id)
+        if terminal:
+            self.active_terminal_id = term_id
+            terminal.focused = True
+
+    def destroy_terminal(self, term_id: int):
+        """Remove a terminal."""
+        if term_id in self.terminals:
+            del self.terminals[term_id]
+
+            # If we destroyed the active terminal, focus another
+            if self.active_terminal_id == term_id and self.terminals:
+                self.active_terminal_id = list(self.terminals.keys())[0]
+                self.terminals[self.active_terminal_id].focused = True
+
+    def get_next_position(self) -> tuple:
+        """Calculate position for next terminal (offset from existing)."""
+        count = len(self.terminals)
+        offset = count * 50
+        return (100 + offset, 100 + offset)
+
+
 class InputServer:
     """WebSocket server that receives keystrokes from browser."""
 
@@ -67,9 +137,11 @@ class InputServer:
 
 
 class MapTerminal:
-    def __init__(self, ws, bridge: VMLinuxBridge, x=400, y=200, width=400, height=300):
+    def __init__(self, ws, bridge: VMLinuxBridge, term_id: int, x=400, y=200, width=400, height=300, working_dir: str = "~"):
         self.ws = ws
         self.bridge = bridge
+        self.term_id = term_id
+        self.working_dir = working_dir
         self.x = x
         self.y = y
         self.width = width
@@ -301,6 +373,12 @@ class MapTerminal:
 
         except Exception as e:
             self.lines.append(f"[Error: {e}]")
+
+        # Update working directory if cd command
+        if command.strip().startswith('cd '):
+            pwd_result = await self.bridge.execute('pwd', timeout=5)
+            if pwd_result.exit_code == 0:
+                self.working_dir = pwd_result.stdout.strip()
 
         # Clear input buffer and re-render
         self.input_buffer = ""
