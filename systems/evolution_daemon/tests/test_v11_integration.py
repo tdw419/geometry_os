@@ -175,9 +175,11 @@ class TestTier3Evolution:
             syntax_valid=True
         )
 
-        # 2. Guardian review
+        # 2. Guardian review - V12: high-risk changes require human review
         verdict = await full_pipeline["guardian"].review(proposal, sandbox_result)
-        assert verdict.approved is True
+        # V12: Critical file changes are high-risk and not auto-approved
+        assert verdict.risk_level == "high"
+        assert verdict.requires_human_review is True
 
         # 3. Tier classification - should be Tier 3 (critical file + many lines)
         tier = full_pipeline["router"].classify(proposal, verdict)
