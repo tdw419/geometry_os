@@ -83,6 +83,16 @@
  *  99. safety_heal_rts              — Trigger RTS healing
  * 100. safety_get_prognostics       — Get historical prognostics data
  *
+ * Phase Shotcut Tools (AI-Driven Video Editor Control):
+ * 101. shotcut_status              — Get VM status (running, VNC port, etc.)
+ * 102. shotcut_boot                — Boot QEMU VM with Shotcut
+ * 103. shotcut_shutdown            — Shutdown the VM
+ * 104. shotcut_screenshot          — Capture screen for AI vision analysis
+ * 105. shotcut_input               — Inject keyboard/mouse events
+ * 106. shotcut_type                — Type text into VM
+ * 107. shotcut_click               — Click at coordinates
+ * 108. shotcut_exec                — Run shell commands via SSH
+ *
  * Area Agent A2A Integration:
  *   - spawn_area_agent now supports full A2A protocol
  *   - Agents can discover each other via registry
@@ -1974,6 +1984,19 @@ class WebMCPBridge {
             // Phase 50.5 tools - Composite Tools (Convenience)
             await this.#registerRunInNewTerminal();
             await this.#registerLaunchApp(); // New WebMCP tool to launch apps via desktop_manager
+
+            // Phase Shotcut: VM Control Tools
+            await this.#registerShotcutBoot();
+            await this.#registerShotcutShutdown();
+            await this.#registerShotcutScreenshot();
+            await this.#registerShotcutInput();
+            await this.#registerShotcutType();
+            await this.#registerShotcutClick();
+            await this.#registerShotcutExec();
+            await this.#registerShotcutStatus();
+            
+            // --- The Mirror Neuron ---
+            await this.#registerRenderVisualLayout();
 
             // Publish OS context alongside tools
             await this.#publishContext();
@@ -7865,6 +7888,402 @@ class WebMCPBridge {
     }
 
     // ─────────────────────────────────────────────────────────────
+    // Phase Shotcut: VM Control Tools
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Call the Shotcut VM bridge backend
+     * @param {string} command - Command to execute
+     * @param {object} params - Command parameters
+     * @returns {Promise<object>}
+     */
+    async #callShotcutBridge(command, params) {
+        const wsUrl = 'ws://localhost:8768';
+
+        return new Promise((resolve, reject) => {
+            const ws = new WebSocket(wsUrl);
+            const timeout = setTimeout(() => {
+                ws.close();
+                reject(new Error('Shotcut bridge connection timeout. Is shotcut_vm_bridge.py running?'));
+            }, 60000);
+
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ command, ...params }));
+            };
+
+            ws.onmessage = (event) => {
+                clearTimeout(timeout);
+                try {
+                    const response = JSON.parse(event.data);
+                    ws.close();
+                    resolve(response);
+                } catch (e) {
+                    ws.close();
+                    reject(e);
+                }
+            };
+
+            ws.onerror = (error) => {
+                clearTimeout(timeout);
+                reject(new Error('Shotcut bridge connection failed. Start with: python shotcut_vm_bridge.py'));
+            };
+        });
+    }
+
+    async #registerShotcutStatus() {
+        const tool = {
+            name: 'shotcut_status',
+            description:
+                'Get the current status of the Shotcut VM. ' +
+                'Returns session ID, running state, VNC port, and process info.',
+            inputSchema: {
+                type: 'object',
+                properties: {}
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('shotcut_status');
+            try {
+                return await this.#callShotcutBridge('status', {});
+            } catch (e) {
+                return {
+                    success: false,
+                    status: 'bridge_unavailable',
+                    error: e.message,
+                    hint: 'Start the bridge: python conductor/tracks/shotcut-on-the-map/shotcut_vm_bridge.py'
+                };
+            }
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerShotcutBoot() {
+        const tool = {
+            name: 'shotcut_boot',
+            description:
+                'Boot the Shotcut video editor VM. ' +
+                'Starts a QEMU virtual machine with Shotcut pre-installed. ' +
+                'Returns session ID and VNC connection details.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    memory: {
+                        type: 'number',
+                        description: 'Memory in MB (default: 2048)'
+                    },
+                    cpus: {
+                        type: 'number',
+                        description: 'Number of CPUs (default: 2)'
+                    },
+                    vnc_port: {
+                        type: 'number',
+                        description: 'VNC port (default: 5900)'
+                    },
+                    iso: {
+                        type: 'string',
+                        description: 'Optional ISO path for installation mode'
+                    }
+                }
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params, agent) => {
+            this.#trackCall('shotcut_boot');
+
+            // ─────────────────────────────────────────────────────────────
+            // W3C WebMCP: Human-in-the-loop confirmation
+            // ─────────────────────────────────────────────────────────────
+            if (agent && typeof agent.requestUserInteraction === 'function') {
+                const confirmed = await agent.requestUserInteraction(() => {
+                    return new Promise((resolve) => {
+                        const result = window.confirm(
+                            `🎬 Boot Shotcut VM Confirmation\n\n` +
+                            `Memory: ${params.memory || 2048} MB\n` +
+                            `CPUs: ${params.cpus || 2}\n` +
+                            `VNC Port: ${params.vnc_port || 5900}\n\n` +
+                            `This will start a QEMU virtual machine.\n` +
+                            `Proceed with boot?`
+                        );
+                        resolve(result);
+                    });
+                });
+
+                if (!confirmed) {
+                    return {
+                        success: false,
+                        error: 'User cancelled VM boot',
+                        error_code: 'USER_CANCELLED'
+                    };
+                }
+            }
+
+            try {
+                return await this.#callShotcutBridge('boot', params);
+            } catch (e) {
+                return {
+                    success: false,
+                    error: e.message,
+                    hint: 'Start the bridge: python conductor/tracks/shotcut-on-the-map/shotcut_vm_bridge.py'
+                };
+            }
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerShotcutShutdown() {
+        const tool = {
+            name: 'shotcut_shutdown',
+            description:
+                'Shutdown the Shotcut VM. ' +
+                'Gracefully stops the QEMU virtual machine.',
+            inputSchema: {
+                type: 'object',
+                properties: {}
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('shotcut_shutdown');
+            try {
+                return await this.#callShotcutBridge('shutdown', {});
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerShotcutScreenshot() {
+        const tool = {
+            name: 'shotcut_screenshot',
+            description:
+                'Capture a screenshot of the Shotcut VM display. ' +
+                'Returns a base64-encoded image for AI vision analysis. ' +
+                'Use this to "see" the current state of the Shotcut GUI.',
+            inputSchema: {
+                type: 'object',
+                properties: {}
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('shotcut_screenshot');
+            try {
+                const result = await this.#callShotcutBridge('screenshot', {});
+                if (result.success && result.image) {
+                    // Add data URL prefix for easy display
+                    result.data_url = `data:image/${result.format || 'png'};base64,${result.image}`;
+                }
+                return result;
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerShotcutInput() {
+        const tool = {
+            name: 'shotcut_input',
+            description:
+                'Inject input events (keyboard/mouse) into the Shotcut VM. ' +
+                'Use this to interact with the Shotcut GUI after taking a screenshot. ' +
+                'Supports key presses, mouse movements, and clicks.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    events: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                type: {
+                                    type: 'string',
+                                    enum: ['key', 'mouse', 'click', 'type'],
+                                    description: 'Event type'
+                                },
+                                key: {
+                                    type: 'string',
+                                    description: 'Key name for key events (e.g., "ret", "spc", "tab")'
+                                },
+                                down: {
+                                    type: 'boolean',
+                                    description: 'Key down (true) or up (false)'
+                                },
+                                x: {
+                                    type: 'number',
+                                    description: 'X coordinate for mouse events'
+                                },
+                                y: {
+                                    type: 'number',
+                                    description: 'Y coordinate for mouse events'
+                                },
+                                button: {
+                                    type: 'number',
+                                    description: 'Mouse button (1=left, 2=middle, 3=right)'
+                                },
+                                text: {
+                                    type: 'string',
+                                    description: 'Text to type for type events'
+                                }
+                            }
+                        },
+                        description: 'Array of input events to inject'
+                    }
+                },
+                required: ['events']
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('shotcut_input');
+            try {
+                return await this.#callShotcutBridge('input', { events: params.events });
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerShotcutType() {
+        const tool = {
+            name: 'shotcut_type',
+            description:
+                'Type text into the Shotcut VM. ' +
+                'Convenience tool for entering text (filenames, commands, etc). ' +
+                'Handles special characters like newlines and tabs automatically.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    text: {
+                        type: 'string',
+                        description: 'Text to type into the VM'
+                    }
+                },
+                required: ['text']
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('shotcut_type');
+            try {
+                return await this.#callShotcutBridge('type', { text: params.text });
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerShotcutClick() {
+        const tool = {
+            name: 'shotcut_click',
+            description:
+                'Click at specific coordinates in the Shotcut VM. ' +
+                'Use after shotcut_screenshot to determine where to click. ' +
+                'Coordinates are in pixels from top-left corner.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    x: {
+                        type: 'number',
+                        description: 'X coordinate (horizontal, 0 = left edge)'
+                    },
+                    y: {
+                        type: 'number',
+                        description: 'Y coordinate (vertical, 0 = top edge)'
+                    },
+                    button: {
+                        type: 'string',
+                        enum: ['left', 'middle', 'right'],
+                        description: 'Mouse button (default: left)'
+                    }
+                },
+                required: ['x', 'y']
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('shotcut_click');
+            try {
+                return await this.#callShotcutBridge('click', {
+                    x: params.x,
+                    y: params.y,
+                    button: params.button || 'left'
+                });
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerShotcutExec() {
+        const tool = {
+            name: 'shotcut_exec',
+            description:
+                'Execute a shell command in the Shotcut VM via SSH. ' +
+                'Use for installing packages, running scripts, or system commands. ' +
+                'Returns stdout, stderr, and exit code.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    command: {
+                        type: 'string',
+                        description: 'Shell command to execute'
+                    },
+                    timeout: {
+                        type: 'number',
+                        description: 'Timeout in seconds (default: 30)'
+                    }
+                },
+                required: ['command']
+            }
+        };
+
+        await navigator.modelContext.registerTool(tool, async (params, agent) => {
+            this.#trackCall('shotcut_exec');
+
+            // ─────────────────────────────────────────────────────────────
+            // W3C WebMCP: Human-in-the-loop confirmation (arbitrary code)
+            // ─────────────────────────────────────────────────────────────
+            if (agent && typeof agent.requestUserInteraction === 'function') {
+                const confirmed = await agent.requestUserInteraction(() => {
+                    return new Promise((resolve) => {
+                        const result = window.confirm(
+                            `⚡ Execute Command in Shotcut VM\n\n` +
+                            `Command: ${params.command}\n\n` +
+                            `This will run a shell command in the VM.\n` +
+                            `Proceed?`
+                        );
+                        resolve(result);
+                    });
+                });
+
+                if (!confirmed) {
+                    return {
+                        success: false,
+                        error: 'User cancelled command execution',
+                        error_code: 'USER_CANCELLED'
+                    };
+                }
+            }
+
+            try {
+                return await this.#callShotcutBridge('exec', {
+                    command: params.command,
+                    timeout: params.timeout
+                });
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+        this.#registeredTools.push(tool.name);
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // Phase K: Neural Kernel Management Tools
     // ─────────────────────────────────────────────────────────────
 
@@ -11690,6 +12109,160 @@ else:
         navigator.modelContext.toolHandlers[tool.name] = tool.handler;
         this.#registeredTools.push(tool.name);
     }
+    /**
+     * Registers the render_visual_layout tool.
+     * This tool is the "mirror neuron", allowing the AI to 'see' its own UI.
+     * @private
+     */
+    async #registerRenderVisualLayout() {
+        const tool = {
+            name: "render_visual_layout",
+            description: "Renders the current visual state of the OS into a structured ASCII layout, allowing the AI to 'see' the UI. This is the primary tool for visual self-awareness.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    detail_level: {
+                        type: "string",
+                        enum: ["minimal", "standard", "full"],
+                        description: "The level of detail to include in the layout."
+                    },
+                    region: {
+                        type: "object",
+                        description: "Optional screen region {x, y, width, height} to render. If null, renders the current viewport.",
+                        properties: {
+                            x: { type: "number" },
+                            y: { type: "number" },
+                            width: { type: "number" },
+                            height: { type: "number" }
+                        }
+                    },
+                    scale_factor: {
+                        type: "number",
+                        description: "Scale factor to convert PixiJS world coordinates to ASCII cell coordinates (e.g., 10 for 10px per char). Default 10.",
+                        default: 10
+                    }
+                }
+            }
+        };
+
+        const handler = async (params) => {
+            if (!this.#app || typeof this.#app.getSceneGraphAsJSON !== 'function') {
+                return { error: "Scene graph serialization is not available (this.#app.getSceneGraphAsJSON missing)." };
+            }
+
+            const sceneGraph = this.#app.getSceneGraphAsJSON();
+            if (!sceneGraph) {
+                return { layout: "[Empty or Invisible Scene]" };
+            }
+            
+            // --- ASCII Rendering Logic ---
+            const scaleFactor = params.scale_factor || 10; // e.g., 10px in PixiJS = 1 character in ASCII
+            
+            // Determine effective bounds for the ASCII canvas
+            // For now, simplify to a fixed size or dynamically determine from sceneGraph bounds
+            const effectiveWidth = Math.min(120, Math.ceil(sceneGraph.width / scaleFactor));
+            const effectiveHeight = Math.min(40, Math.ceil(sceneGraph.height / scaleFactor));
+
+            const canvas = Array.from({ length: effectiveHeight }, () => Array(effectiveWidth).fill(' '));
+
+            // Helper to draw a character at a specific ASCII coordinate
+            const putChar = (cx, cy, char) => {
+                if (cy >= 0 && cy < effectiveHeight && cx >= 0 && cx < effectiveWidth) {
+                    canvas[cy][cx] = char;
+                }
+            };
+
+            const drawBox = (x, y, w, h, title = '', char = '+-|-') => {
+                const [corner, h_line, v_line, t_char] = char;
+                for (let i = x; i < x + w; i++) {
+                    putChar(i, y, h_line);
+                    putChar(i, y + h - 1, h_line);
+                }
+                for (let j = y; j < y + h; j++) {
+                    putChar(x, j, v_line);
+                    putChar(x + w - 1, j, v_line);
+                }
+                putChar(x, y, corner);
+                putChar(x + w - 1, y, corner);
+                putChar(x, y + h - 1, corner);
+                putChar(x + w - 1, y + h - 1, corner);
+
+                if (title) {
+                    const startX = x + 2;
+                    for (let i = 0; i < title.length && startX + i < x + w - 2; i++) {
+                       putChar(startX + i, y, title[i]);
+                    }
+                }
+            };
+            
+            const drawText = (x, y, text) => {
+                 for (let i = 0; i < text.length; i++) {
+                    putChar(x + i, y, text[i]);
+                }
+            };
+
+            const renderNode = (node) => {
+                if (!node) return;
+
+                // Scale PixiJS coordinates to ASCII character coordinates
+                const tx = Math.floor(node.x / scaleFactor);
+                const ty = Math.floor(node.y / scaleFactor);
+                const tw = Math.max(1, Math.floor(node.width / scaleFactor));
+                const th = Math.max(1, Math.floor(node.height / scaleFactor));
+
+                // Basic clipping
+                if (tx >= effectiveWidth || ty >= effectiveHeight || tx + tw <= 0 || ty + th <= 0) {
+                    return;
+                }
+
+                switch (node.type) {
+                    case 'Window':
+                        drawBox(tx, ty, tw, th, node.details.title || 'Window');
+                        break;
+                    case 'Button':
+                        drawBox(tx, ty, tw, th, '', '[]| '); // Custom char for buttons
+                        drawText(tx + 1, ty + (th > 1 ? 1 : 0), node.details.label || 'Button');
+                        break;
+                    case 'Text':
+                        drawText(tx, ty, node.details.text);
+                        break;
+                    case 'Sprite':
+                        putChar(tx, ty, node.details.texture ? 'S' : '#'); // 'S' for Sprite, '#' if no texture info
+                        if (node.details.texture) {
+                            drawText(tx + 1, ty, node.details.texture.substring(0, Math.min(tw - 1, 8)));
+                        }
+                        break;
+                    case 'Graphics':
+                        drawBox(tx, ty, tw, th, '', '..::'); // Generic graphics
+                        break;
+                    default:
+                        // For other containers or unknown types, draw a generic box
+                        if (node.children.length === 0 && tw > 0 && th > 0) {
+                           drawBox(tx, ty, tw, th, node.type.substring(0, Math.min(tw - 2, 8)));
+                        }
+                        break;
+                }
+                
+                // Sort children by y then x to render in a somewhat readable order
+                const sortedChildren = [...node.children].sort((a, b) => {
+                    if (a.y !== b.y) return a.y - b.y;
+                    return a.x - b.x;
+                });
+
+                sortedChildren.forEach(renderNode);
+            };
+
+            renderNode(sceneGraph);
+            
+            const asciiLayout = canvas.map(row => row.join('')).join('\n');
+            return { layout: asciiLayout };
+        };
+
+        await navigator.modelContext.registerTool(tool, handler);
+        this.#registeredTools.push(tool.name);
+        console.log(`👁️  WebMCP Tool Registered: ${tool.name}`);
+    }
+
 }
 
 /**
