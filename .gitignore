@@ -52,3 +52,6 @@ neural_apps/
 *.ll
 *.bc
 test_*.ll.worktrees/
+
+# Git worktrees
+.worktrees/
