@@ -203,6 +203,13 @@ class WebMCPClient:
             "params": params
         })
 
+    async def render_visual_layout(self, detail_level: str = "standard", region: Dict = None) -> Dict:
+        """Render the current visual state as an ASCII layout"""
+        return await self._call("render_visual_layout", {
+            "detail_level": detail_level,
+            "region": region
+        })
+
     async def close(self):
         """Close the WebSocket connection"""
         if self.ws:
@@ -353,6 +360,7 @@ class EvolutionDaemon:
         self.zai.register_tool_callback("visual_inspect", self._tool_visual_inspect)
         self.zai.register_tool_callback("visual_place_tile", self._tool_visual_place_tile)
         self.zai.register_tool_callback("visual_get_state", self._tool_visual_get_state)
+        self.zai.register_tool_callback("render_visual_layout", self._tool_render_visual_layout)
 
     async def _tool_read_file(self, path: str) -> dict:
         """Tool: Read file from codebase"""
@@ -428,6 +436,17 @@ class EvolutionDaemon:
         try:
             state = await self.webmcp.get_os_state()
             return {"success": True, "state": state}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    async def _tool_render_visual_layout(self, detail_level: str = "standard", region: dict = None) -> dict:
+        """Tool: Render the current visual state as an ASCII layout (Mirror Neuron)"""
+        if not self.visual_connected:
+            return {"success": False, "error": "Visual interface not connected"}
+
+        try:
+            result = await self.webmcp.render_visual_layout(detail_level, region)
+            return {"success": True, "layout": result.get("layout", "")}
         except Exception as e:
             return {"success": False, "error": str(e)}
 
