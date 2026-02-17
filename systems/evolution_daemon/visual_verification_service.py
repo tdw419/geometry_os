@@ -91,3 +91,72 @@ class CriticalityClassifier:
 
         # 3. Default to tolerant
         return CriticalityLevel.TOLERANT
+
+
+class LayoutVerifier:
+    """
+    Verifies position, size, and type of UI elements.
+    Applies tiered verification based on criticality.
+    """
+
+    DEFAULT_TOLERANCE = {
+        "position": 5,
+        "size": 5,
+    }
+
+    def verify(
+        self,
+        intent: VisualIntent,
+        actual: dict,
+        criticality: CriticalityLevel
+    ) -> VerificationMatch:
+        """Verify layout matches intent based on criticality level."""
+        expected_x, expected_y = intent.position
+        expected_w, expected_h = intent.size
+
+        actual_x = actual.get("x", 0)
+        actual_y = actual.get("y", 0)
+        actual_w = actual.get("width", 0)
+        actual_h = actual.get("height", 0)
+
+        dx = actual_x - expected_x
+        dy = actual_y - expected_y
+        dw = actual_w - expected_w
+        dh = actual_h - expected_h
+
+        failures = []
+        tolerance = self._get_tolerance(criticality)
+
+        if criticality == CriticalityLevel.EXACT:
+            if abs(dx) > 0 or abs(dy) > 0:
+                failures.append(f"Position mismatch: expected ({expected_x}, {expected_y}), got ({actual_x}, {actual_y})")
+        else:
+            if abs(dx) > tolerance or abs(dy) > tolerance:
+                failures.append(f"Position out of tolerance: delta=({dx}, {dy}), max={tolerance}")
+
+        if criticality == CriticalityLevel.EXACT:
+            if abs(dw) > 0 or abs(dh) > 0:
+                failures.append(f"Size mismatch: expected ({expected_w}, {expected_h}), got ({actual_w}, {actual_h})")
+        else:
+            if abs(dw) > tolerance or abs(dh) > tolerance:
+                failures.append(f"Size out of tolerance: delta=({dw}, {dh}), max={tolerance}")
+
+        success = len(failures) == 0
+        confidence = 1.0 if success else max(0.0, 1.0 - (len(failures) * 0.2))
+
+        return VerificationMatch(
+            success=success,
+            criticality=criticality,
+            actual_position=(actual_x, actual_y),
+            expected_position=(expected_x, expected_y),
+            position_delta=(dx, dy),
+            failures=failures,
+            confidence=confidence
+        )
+
+    def _get_tolerance(self, criticality: CriticalityLevel) -> int:
+        if criticality == CriticalityLevel.EXACT:
+            return 0
+        elif criticality == CriticalityLevel.RELAXED:
+            return self.DEFAULT_TOLERANCE["position"] * 2
+        return self.DEFAULT_TOLERANCE["position"]

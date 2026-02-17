@@ -206,3 +206,74 @@ class TestCriticalityClassifier:
         )
         classifier = CriticalityClassifier()
         assert classifier.classify(intent) == CriticalityLevel.RELAXED
+
+
+class TestLayoutVerifier:
+    """Tests for layout verification with tiered strictness"""
+
+    def test_exact_match_position_success(self):
+        """Exact position match should succeed"""
+        from systems.evolution_daemon.visual_verification_service import (
+            LayoutVerifier, VisualIntent, CriticalityLevel
+        )
+        verifier = LayoutVerifier()
+        intent = VisualIntent(
+            element_type="button",
+            position=(100, 200),
+            size=(80, 40)
+        )
+        actual = {"x": 100, "y": 200, "width": 80, "height": 40}
+
+        result = verifier.verify(intent, actual, CriticalityLevel.EXACT)
+        assert result.success is True
+        assert result.position_delta == (0, 0)
+
+    def test_exact_match_position_failure_one_pixel(self):
+        """Even 1 pixel off should fail for EXACT"""
+        from systems.evolution_daemon.visual_verification_service import (
+            LayoutVerifier, VisualIntent, CriticalityLevel
+        )
+        verifier = LayoutVerifier()
+        intent = VisualIntent(
+            element_type="button",
+            position=(100, 200),
+            size=(80, 40)
+        )
+        actual = {"x": 101, "y": 200, "width": 80, "height": 40}
+
+        result = verifier.verify(intent, actual, CriticalityLevel.EXACT)
+        assert result.success is False
+        assert result.position_delta == (1, 0)
+
+    def test_tolerant_match_success_within_tolerance(self):
+        """Within tolerance (±5) should succeed for TOLERANT"""
+        from systems.evolution_daemon.visual_verification_service import (
+            LayoutVerifier, VisualIntent, CriticalityLevel
+        )
+        verifier = LayoutVerifier()
+        intent = VisualIntent(
+            element_type="button",
+            position=(100, 200),
+            size=(80, 40)
+        )
+        actual = {"x": 103, "y": 198, "width": 80, "height": 40}
+
+        result = verifier.verify(intent, actual, CriticalityLevel.TOLERANT)
+        assert result.success is True
+
+    def test_tolerant_match_failure_beyond_tolerance(self):
+        """Beyond tolerance should fail for TOLERANT"""
+        from systems.evolution_daemon.visual_verification_service import (
+            LayoutVerifier, VisualIntent, CriticalityLevel
+        )
+        verifier = LayoutVerifier()
+        intent = VisualIntent(
+            element_type="button",
+            position=(100, 200),
+            size=(80, 40)
+        )
+        actual = {"x": 110, "y": 200, "width": 80, "height": 40}
+
+        result = verifier.verify(intent, actual, CriticalityLevel.TOLERANT)
+        assert result.success is False
+        assert result.position_delta == (10, 0)
