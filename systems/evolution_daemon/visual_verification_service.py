@@ -58,3 +58,36 @@ class VerificationResult:
     should_escalate: bool
     summary: str
     retry_suggestions: List[str] = field(default_factory=list)
+
+
+class CriticalityClassifier:
+    """
+    Determines if an element requires exact or tolerance-based verification.
+    Uses hybrid approach: explicit marking + heuristic fallback.
+    """
+
+    CRITICAL_TYPES = {
+        "button", "input", "link", "checkbox", "dropdown",
+        "window_title", "navigation", "form_field"
+    }
+
+    NON_CRITICAL_TYPES = {
+        "decoration", "background", "icon", "divider", "spacer"
+    }
+
+    def classify(self, element: VisualIntent) -> CriticalityLevel:
+        """Returns: EXACT, TOLERANT, or RELAXED"""
+        # 1. Check explicit critical flag
+        if element.critical is True:
+            return CriticalityLevel.EXACT
+        if element.critical is False:
+            return CriticalityLevel.RELAXED
+
+        # 2. Fall back to heuristic classification
+        if element.element_type in self.CRITICAL_TYPES:
+            return CriticalityLevel.TOLERANT
+        if element.element_type in self.NON_CRITICAL_TYPES:
+            return CriticalityLevel.RELAXED
+
+        # 3. Default to tolerant
+        return CriticalityLevel.TOLERANT

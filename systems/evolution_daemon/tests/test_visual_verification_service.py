@@ -146,3 +146,63 @@ class TestVerificationResult:
             summary="Partial match"
         )
         assert result.retry_suggestions == []
+
+
+class TestCriticalityClassifier:
+    """Tests for hybrid criticality classification"""
+
+    def test_explicit_critical_flag_returns_exact(self):
+        """Explicit critical=True should override heuristics"""
+        from systems.evolution_daemon.visual_verification_service import (
+            CriticalityClassifier, VisualIntent, CriticalityLevel
+        )
+        intent = VisualIntent(
+            element_type="decoration",  # Normally non-critical
+            position=(0, 0),
+            size=(100, 100),
+            critical=True
+        )
+        classifier = CriticalityClassifier()
+        assert classifier.classify(intent) == CriticalityLevel.EXACT
+
+    def test_explicit_non_critical_flag_returns_relaxed(self):
+        """Explicit critical=False should override heuristics"""
+        from systems.evolution_daemon.visual_verification_service import (
+            CriticalityClassifier, VisualIntent, CriticalityLevel
+        )
+        intent = VisualIntent(
+            element_type="button",  # Normally critical
+            position=(0, 0),
+            size=(100, 100),
+            critical=False
+        )
+        classifier = CriticalityClassifier()
+        assert classifier.classify(intent) == CriticalityLevel.RELAXED
+
+    def test_heuristic_critical_type_returns_tolerant(self):
+        """Heuristic: button should be TOLERANT"""
+        from systems.evolution_daemon.visual_verification_service import (
+            CriticalityClassifier, VisualIntent, CriticalityLevel
+        )
+        intent = VisualIntent(
+            element_type="button",
+            position=(100, 200),
+            size=(80, 40),
+            critical=None
+        )
+        classifier = CriticalityClassifier()
+        assert classifier.classify(intent) == CriticalityLevel.TOLERANT
+
+    def test_heuristic_non_critical_type_returns_relaxed(self):
+        """Heuristic: decoration should be RELAXED"""
+        from systems.evolution_daemon.visual_verification_service import (
+            CriticalityClassifier, VisualIntent, CriticalityLevel
+        )
+        intent = VisualIntent(
+            element_type="decoration",
+            position=(0, 0),
+            size=(50, 50),
+            critical=None
+        )
+        classifier = CriticalityClassifier()
+        assert classifier.classify(intent) == CriticalityLevel.RELAXED
