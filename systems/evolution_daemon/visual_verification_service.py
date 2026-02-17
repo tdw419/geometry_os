@@ -26,3 +26,35 @@ class VisualIntent:
     properties: Dict[str, Any] = field(default_factory=dict)
     critical: Optional[bool] = None
     spatial_relations: List['SpatialRelation'] = field(default_factory=list)
+
+
+@dataclass
+class SpatialRelation:
+    """Expected spatial relationship between elements"""
+    relation_type: str       # "above", "below", "left_of", "right_of", "inside", "overlaps"
+    target_element: str
+    tolerance: int = 10
+
+
+@dataclass
+class VerificationMatch:
+    """Result of verifying a single element"""
+    success: bool
+    criticality: CriticalityLevel
+    actual_position: tuple[int, int]
+    expected_position: tuple[int, int]
+    position_delta: tuple[int, int]
+    failures: List[str] = field(default_factory=list)
+    confidence: float = 1.0
+
+
+@dataclass
+class VerificationResult:
+    """Complete verification result for an intent"""
+    success: bool
+    matches: List[VerificationMatch]
+    overall_confidence: float
+    should_retry: bool
+    should_escalate: bool
+    summary: str
+    retry_suggestions: List[str] = field(default_factory=list)
