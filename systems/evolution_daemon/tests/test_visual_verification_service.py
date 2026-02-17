@@ -448,3 +448,79 @@ class TestSpatialVerifier:
 
         result = verifier.verify(intent, scene)
         assert result.success is False
+
+
+class TestVisualVerificationService:
+    """Tests for main verification service"""
+
+    @pytest.mark.asyncio
+    async def test_verify_success(self):
+        """Complete verification flow with success"""
+        from systems.evolution_daemon.visual_verification_service import (
+            VisualVerificationService, VisualIntent
+        )
+        service = VisualVerificationService()
+        intent = VisualIntent(
+            element_type="button",
+            position=(100, 200),
+            size=(80, 40),
+            critical=True
+        )
+        scene = {
+            "children": [
+                {"type": "Button", "x": 100, "y": 200, "width": 80, "height": 40}
+            ]
+        }
+
+        result = await service.verify(intent, scene, attempt_number=1)
+
+        assert result.success is True
+        assert result.should_retry is False
+        assert result.should_escalate is False
+
+    @pytest.mark.asyncio
+    async def test_verify_element_not_found(self):
+        """Element not found should return failure"""
+        from systems.evolution_daemon.visual_verification_service import (
+            VisualVerificationService, VisualIntent
+        )
+        service = VisualVerificationService()
+        intent = VisualIntent(
+            element_type="button",
+            position=(500, 500),
+            size=(80, 40)
+        )
+        scene = {
+            "children": [
+                {"type": "Button", "x": 100, "y": 200, "width": 80, "height": 40}
+            ]
+        }
+
+        result = await service.verify(intent, scene, attempt_number=1)
+
+        assert result.success is False
+        assert "not found" in result.summary.lower()
+
+    @pytest.mark.asyncio
+    async def test_verify_with_retry_suggestions(self):
+        """Failed verification should provide suggestions"""
+        from systems.evolution_daemon.visual_verification_service import (
+            VisualVerificationService, VisualIntent
+        )
+        service = VisualVerificationService()
+        intent = VisualIntent(
+            element_type="button",
+            position=(100, 200),
+            size=(80, 40)
+        )
+        scene = {
+            "children": [
+                {"type": "Button", "x": 115, "y": 200, "width": 80, "height": 40}  # 15px off
+            ]
+        }
+
+        result = await service.verify(intent, scene, attempt_number=1)
+
+        assert result.success is False
+        assert result.should_retry is True
+        assert len(result.retry_suggestions) >= 1

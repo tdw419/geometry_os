@@ -348,3 +348,187 @@ class SpatialVerifier:
                 subject["y"] + subject["height"] > target["y"]
             )
         return True  # Unknown relation, pass by default
+
+
+class VisualVerificationService:
+    """
+    Main service for visual self-verification.
+    Implements the Journeyman Stage closed-loop verification.
+    """
+
+    # Configuration
+    MAX_RETRIES = 5
+    CONFIDENCE_THRESHOLD = 0.6    # Below this, escalate to human
+    MIN_CONFIDENCE_FOR_RETRY = 0.3  # Below this, don't even retry
+
+    def __init__(self):
+        self.classifier = CriticalityClassifier()
+        self.layout_verifier = LayoutVerifier()
+        self.text_verifier = TextVerifier()
+        self.spatial_verifier = SpatialVerifier()
+
+    async def verify(
+        self,
+        intent: VisualIntent,
+        actual_scene: dict,
+        attempt_number: int = 1
+    ) -> VerificationResult:
+        """
+        Main entry point: Verify that actual scene matches intent.
+
+        Args:
+            intent: What the AI intended to create
+            actual_scene: Current visual state from mirror neuron
+            attempt_number: Current retry attempt (for adaptive learning)
+
+        Returns:
+            VerificationResult with success, confidence, and next action
+        """
+        matches = []
+
+        # 1. Find the target element in the scene
+        actual_element = self._find_element(intent, actual_scene)
+
+        if actual_element is None:
+            return self._create_not_found_result(intent, attempt_number)
+
+        # 2. Classify criticality (hybrid: explicit + heuristic)
+        criticality = self.classifier.classify(intent)
+
+        # 3. Run verifiers based on intent type
+        match = self.layout_verifier.verify(intent, actual_element, criticality)
+        matches.append(match)
+
+        if intent.properties.get("text"):
+            match = self.text_verifier.verify(intent, actual_element, criticality)
+            matches.append(match)
+
+        if intent.spatial_relations:
+            match = self.spatial_verifier.verify(intent, actual_scene)
+            matches.append(match)
+
+        # 4. Calculate overall confidence
+        total_confidence = self._calculate_confidence(matches, attempt_number)
+
+        # 5. Determine next action
+        all_success = all(m.success for m in matches)
+        should_retry = self._should_retry(all_success, total_confidence, attempt_number)
+        should_escalate = self._should_escalate(total_confidence, attempt_number)
+
+        # 6. Generate retry suggestions if needed
+        retry_suggestions = []
+        if not all_success and should_retry:
+            retry_suggestions = self._generate_suggestions(matches, intent)
+
+        return VerificationResult(
+            success=all_success,
+            matches=matches,
+            overall_confidence=total_confidence,
+            should_retry=should_retry,
+            should_escalate=should_escalate,
+            retry_suggestions=retry_suggestions,
+            summary=self._generate_summary(matches, all_success)
+        )
+
+    def _find_element(self, intent: VisualIntent, scene: dict) -> dict | None:
+        """Find the element matching the intent in the scene."""
+        target_x, target_y = intent.position
+
+        for child in scene.get("children", []):
+            x, y = child.get("x", 0), child.get("y", 0)
+            # Allow some tolerance in finding
+            if abs(x - target_x) < 50 and abs(y - target_y) < 50:
+                return child
+        return None
+
+    def _create_not_found_result(
+        self,
+        intent: VisualIntent,
+        attempt_number: int
+    ) -> VerificationResult:
+        """Create a result for when the element is not found."""
+        confidence = max(0.0, 0.2 - (attempt_number - 1) * 0.05)
+        return VerificationResult(
+            success=False,
+            matches=[],
+            overall_confidence=confidence,
+            should_retry=attempt_number < self.MAX_RETRIES,
+            should_escalate=attempt_number >= 2,
+            retry_suggestions=[f"Element not found at {intent.position}. Try placing it first."],
+            summary=f"Element '{intent.element_type}' not found at position {intent.position}"
+        )
+
+    def _should_retry(self, success: bool, confidence: float, attempt: int) -> bool:
+        """Adaptive iteration logic"""
+        if success:
+            return False
+        if attempt >= self.MAX_RETRIES:
+            return False
+        if confidence < self.MIN_CONFIDENCE_FOR_RETRY:
+            return False
+        return True
+
+    def _should_escalate(self, confidence: float, attempt: int) -> bool:
+        """Human escalation logic"""
+        if confidence < self.CONFIDENCE_THRESHOLD and attempt >= 2:
+            return True
+        if attempt >= self.MAX_RETRIES:
+            return True
+        return False
+
+    def _calculate_confidence(
+        self,
+        matches: list[VerificationMatch],
+        attempt: int
+    ) -> float:
+        """Calculate overall confidence score with attempt penalty."""
+        if not matches:
+            return 0.0
+
+        match_scores = [m.confidence for m in matches]
+        base_confidence = sum(match_scores) / len(match_scores)
+
+        # Penalty for multiple attempts
+        attempt_penalty = max(0, 0.1 * (attempt - 1))
+
+        return max(0.0, base_confidence - attempt_penalty)
+
+    def _generate_suggestions(
+        self,
+        matches: list[VerificationMatch],
+        intent: VisualIntent
+    ) -> list[str]:
+        """Generate actionable hints for the next retry attempt."""
+        suggestions = []
+
+        for match in matches:
+            if not match.success:
+                dx, dy = match.position_delta
+
+                if abs(dx) > 0 or abs(dy) > 0:
+                    suggestions.append(
+                        f"Adjust position by ({-dx}, {-dy}) to correct placement"
+                    )
+
+                for failure in match.failures:
+                    suggestions.append(f"Fix: {failure}")
+
+        return suggestions
+
+    def _generate_summary(
+        self,
+        matches: list[VerificationMatch],
+        success: bool
+    ) -> str:
+        """Generate human-readable summary."""
+        if success:
+            return "All verifications passed"
+
+        failures = []
+        for match in matches:
+            failures.extend(match.failures)
+
+        if len(failures) == 1:
+            return f"Verification failed: {failures[0]}"
+
+        return f"Verification failed with {len(failures)} issues"
