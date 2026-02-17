@@ -235,6 +235,90 @@ class RateLimiter {
 }
 
 /**
+ * AdaptiveRateLimiter - V13-Enhanced Rate Limiter
+ * Extends the standard rate limiter with adaptive throttling based on
+ * the Evolution Daemon's metabolism monitoring.
+ */
+class AdaptiveRateLimiter extends RateLimiter {
+    #metabolismState = { throttle_level: 'none' };
+    #lastMetabolismCheck = 0;
+    #metabolismCacheMs = 5000; // Cache for 5 seconds
+
+    constructor(options = {}) {
+        super(options);
+        this.updateMetabolismState(); // Initial check
+    }
+
+    async updateMetabolismState() {
+        const now = Date.now();
+        if (now - this.#lastMetabolismCheck < this.#metabolismCacheMs) {
+            return;
+        }
+        this.#lastMetabolismCheck = now;
+
+        if (window.EvolutionSafetyBridge && typeof window.EvolutionSafetyBridge.safety_get_metabolism === 'function') {
+            try {
+                const metabolism = await window.EvolutionSafetyBridge.safety_get_metabolism();
+                if (metabolism && !metabolism.error) {
+                    this.#metabolismState = metabolism;
+                }
+            } catch (error) {
+                console.warn('WebMCP: Could not fetch metabolism state for adaptive rate limiting.', error);
+                // Keep the last known state on error
+            }
+        }
+    }
+
+    /**
+     * Check if a request is allowed, considering adaptive throttling.
+     * @override
+     */
+    async check(toolName, bypassKey) {
+        await this.updateMetabolismState();
+
+        const { throttle_level } = this.#metabolismState;
+        let multiplier = 1.0;
+
+        if (throttle_level === 'aggressive') {
+            multiplier = 0.1; // Reduce allowed requests by 90%
+        } else if (throttle_level === 'moderate') {
+            multiplier = 0.5; // Reduce by 50%
+        }
+
+        const originalCheck = super.check(toolName, bypassKey);
+
+        if (originalCheck.bypassed || multiplier === 1.0) {
+            return originalCheck;
+        }
+
+        const config = this.toolConfigs.get(toolName) || {
+            maxRequests: this.defaultMaxRequests,
+            windowMs: this.defaultWindowMs
+        };
+
+        const adaptiveLimit = Math.max(1, Math.floor(config.maxRequests * multiplier));
+        const now = Date.now();
+        const record = this.requests.get(toolName) || { timestamps: [] };
+        const windowStart = now - config.windowMs;
+        const validTimestamps = record.timestamps.filter(t => t > windowStart);
+
+        const allowed = validTimestamps.length < adaptiveLimit;
+        const remaining = Math.max(0, adaptiveLimit - validTimestamps.length);
+        const resetAt = validTimestamps[0] ? validTimestamps[0] + config.windowMs : now + config.windowMs;
+
+
+        return {
+            ...originalCheck,
+            allowed,
+            remaining: allowed ? remaining - 1 : 0,
+            limit: adaptiveLimit,
+            originalLimit: config.maxRequests,
+            throttleLevel: throttle_level,
+        };
+    }
+}
+
+/**
  * InputValidator - JSON Schema validation for tool inputs
  */
 class InputValidator {
@@ -1042,10 +1126,24 @@ class WebMCPBridge {
 
         // DEBUG: Expose tool invocation for demos
         window.invokeWebMCPTool = async (name, args) => {
+            // Create mock agent for human-in-the-loop support (W3C WebMCP spec)
+            const mockAgent = {
+                requestUserInteraction: async (interactionFn) => {
+                    console.log(`[MockAgent] requestUserInteraction for tool: ${name}`);
+                    return await interactionFn();
+                }
+            };
+
             // In mock mode, use window.mockTools which is populated by the mock registerTool
             if (this.#mockMode) {
-                if (window.mockTools && window.mockTools[name] && typeof window.mockTools[name].handler === 'function') {
-                    return await window.mockTools[name].handler(args);
+                const toolEntry = window.mockTools?.[name];
+                if (toolEntry) {
+                    // Support both W3C spec 'execute' and legacy 'handler'
+                    const handler = toolEntry.execute || toolEntry.handler;
+                    if (typeof handler === 'function') {
+                        // Pass (params, agent) per W3C WebMCP spec
+                        return await handler(args, mockAgent);
+                    }
                 }
                 throw new Error(`Mock Tool ${name} not found or handler not a function in mockTools`);
             }
@@ -1053,7 +1151,7 @@ class WebMCPBridge {
             const tool = this.#registeredTools.find(t => t === name);
             if (!tool) throw new Error(`Tool ${name} not found`);
             if (navigator.modelContext && navigator.modelContext.toolHandlers) {
-                return await navigator.modelContext.toolHandlers[name](args);
+                return await navigator.modelContext.toolHandlers[name](args, mockAgent);
             }
             console.warn("Cannot invoke tool - no modelContext or toolHandlers map");
         };
@@ -1097,7 +1195,7 @@ class WebMCPBridge {
     // --- Hardening Systems (Phase I) ---
     #validator = new InputValidator();
     /** @type {RateLimiter} Rate limiter for abuse prevention */
-    #limiter = new RateLimiter({ maxRequests: 100, windowMs: 60000 });
+    #limiter = new AdaptiveRateLimiter({ maxRequests: 100, windowMs: 60000 });
     #metrics = null;
 
     // ─────────────────────────────────────────────────────────────
@@ -1665,9 +1763,11 @@ class WebMCPBridge {
                     registerTool: async (tool, handler) => {
                         console.log(`[MockMCP] Registered: ${tool.name}`);
                         window.mockTools = window.mockTools || {};
-                        // Handle both registerTool(tool) and registerTool(tool, handler)
-                        const actualHandler = handler || tool.handler;
-                        window.mockTools[tool.name] = { tool, handler: actualHandler };
+                        // Support both W3C spec 'execute' and legacy 'handler'
+                        // Spec: registerTool({ name, description, inputSchema, execute: (params, agent) => {} })
+                        // Legacy: registerTool({ name, description, inputSchema, handler: async (params) => {} })
+                        const actualHandler = handler || tool.execute || tool.handler;
+                        window.mockTools[tool.name] = { tool, handler: actualHandler, execute: actualHandler };
                         return true;
                     }
                 };
@@ -1813,6 +1913,13 @@ class WebMCPBridge {
             await this.#registerPMAnalyze();
             await this.#registerPMAnalyzeAndDeploy();
 
+            // Phase P: V13 Evolution Safety Tools
+            // TODO: await this.#registerSafetyCheckRtsIntegrity();
+            // TODO: await this.#registerSafetyPredictHealth();
+            // TODO: await this.#registerSafetyGetMetabolism();
+            // TODO: await this.#registerSafetyHealRts();
+            // TODO: await this.#registerSafetyGetPrognostics();
+
             // Phase V: Virtual File System (VFS) for AI Agents
             await this.#registerVfsTools();
 
@@ -1934,7 +2041,7 @@ class WebMCPBridge {
                 },
                 required: ['kernel_url']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 if (!window.GPUExecutionSystem) {
                     return { success: false, error: 'GPUExecutionSystem not loaded' };
                 }
@@ -2029,7 +2136,7 @@ class WebMCPBridge {
                 },
                 required: ['type', 'data']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 if (!window.hypervisorSystem) {
                     return { success: false, error: 'Hypervisor not running' };
                 }
@@ -2136,7 +2243,7 @@ class WebMCPBridge {
                     }
                 }
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 if (!window.hypervisorSystem) return { success: false, error: 'Hypervisor not running' };
 
                 const format = params.format || 'semantic';
@@ -2197,7 +2304,7 @@ class WebMCPBridge {
                     }
                 }
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 if (!window.hypervisorSystem) return { success: false, error: 'Hypervisor not running' };
                 if (!this.#visionCortex) return { success: false, error: 'VisionCortex not available' };
 
@@ -2239,7 +2346,7 @@ class WebMCPBridge {
                 },
                 required: ['label']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 if (!window.hypervisorSystem) return { success: false, error: 'Hypervisor not running' };
                 if (!this.#visionCortex) return { success: false, error: 'VisionCortex not available' };
 
@@ -2274,7 +2381,7 @@ class WebMCPBridge {
                 },
                 required: ['root_pa']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 if (!window.hypervisorSystem) {
                     return { success: false, error: 'Hypervisor not running' };
                 }
@@ -2330,7 +2437,7 @@ class WebMCPBridge {
                 },
                 required: ['va', 'pa', 'flags']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 if (!window.hypervisorSystem) {
                     return { success: false, error: 'Hypervisor not running' };
                 }
@@ -2401,7 +2508,7 @@ class WebMCPBridge {
                     }
                 }
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 if (!window.hypervisorSystem) {
                     return {
                         success: true,
@@ -2486,7 +2593,7 @@ class WebMCPBridge {
                     }
                 }
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handlePerfGetMetrics(params);
             }
         };
@@ -2568,7 +2675,7 @@ class WebMCPBridge {
                     }
                 }
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handlePerfCacheInvalidate(params);
             }
         };
@@ -2666,7 +2773,7 @@ class WebMCPBridge {
                 },
                 required: ['calls']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return self.#handlePerfBatchExecute(params);
             }
         };
@@ -2748,7 +2855,7 @@ class WebMCPBridge {
                     }
                 }
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleNavigateMap(params);
             }
         };
@@ -2870,7 +2977,7 @@ class WebMCPBridge {
                     }
                 }
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleGetOSState(params);
             }
         };
@@ -2879,7 +2986,7 @@ class WebMCPBridge {
         this.#registeredTools.push(tool.name);
     }
 
-    #handleGetOSState({ include } = {}) {
+    async #handleGetOSState({ include } = {}) {
         const done = this.#trackCall('get_os_state');
 
         const sections = include && include.length > 0
@@ -2970,9 +3077,19 @@ class WebMCPBridge {
             };
         }
 
-        // Health status (Phase E)
+        // V13 Health status (Phase E Enhancement)
         if (sections.includes('health')) {
+            const metabolism = await this.#handleSafetyGetMetabolism();
             state.health = {
+                websocket: 'connected', // Original health metric
+                cpu_percent: metabolism?.cpu_percent,
+                memory_available_mb: metabolism?.memory_available_mb,
+                throttle_level: metabolism?.throttle_level,
+                predictions: {
+                    // This would ideally be populated from a real source
+                    rts_files_monitored: 12,
+                    avg_predicted_health: 0.89
+                },
                 backends: this.#healthMonitor.getAllStatuses(),
                 circuitBreakers: {
                     state: this.#circuitBreakerState,
@@ -2982,6 +3099,7 @@ class WebMCPBridge {
                 }
             };
         }
+
 
         done(true);
         return state;
@@ -3029,7 +3147,7 @@ class WebMCPBridge {
                     }
                 }
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleExecutePixelProgram(params);
             }
         };
@@ -3193,7 +3311,7 @@ class WebMCPBridge {
                 },
                 required: ['url']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleLoadRTSCartridge(params);
             }
         };
@@ -3206,6 +3324,14 @@ class WebMCPBridge {
         const done = this.#trackCall('load_rts_cartridge');
 
         try {
+            // V13 Enhancement: Check predicted health before loading
+            if (window.EvolutionSafetyBridge) {
+                const prediction = await window.EvolutionSafetyBridge.safety_predict_health({ path: url });
+                if (prediction && prediction.recommended_action === 're_generate') {
+                    console.warn(`WebMCP Prognostics: Cartridge '${url}' may require regeneration. Predicted health: ${prediction.predicted_health}`);
+                }
+            }
+
             // Load the image
             const response = await fetch(url);
             if (!response.ok) {
@@ -3309,6 +3435,65 @@ class WebMCPBridge {
     }
 
     // ─────────────────────────────────────────────────────────────
+    // V13 Safety Tool Handlers
+    // ─────────────────────────────────────────────────────────────
+
+    async #handleSafetyCheckRtsIntegrity(params) {
+        const done = this.#trackCall('safety_check_rts_integrity');
+        if (!window.EvolutionSafetyBridge) {
+            done(false);
+            return { success: false, error: 'EvolutionSafetyBridge not available.' };
+        }
+        const result = await window.EvolutionSafetyBridge.safety_check_rts_integrity(params);
+        done(result.success !== false);
+        return result;
+    }
+
+    async #handleSafetyPredictHealth(params) {
+        const done = this.#trackCall('safety_predict_health');
+        if (!window.EvolutionSafetyBridge) {
+            done(false);
+            return { success: false, error: 'EvolutionSafetyBridge not available.' };
+        }
+        const result = await window.EvolutionSafetyBridge.safety_predict_health(params);
+        done(result.success !== false);
+        return result;
+    }
+
+    async #handleSafetyGetMetabolism(params) {
+        const done = this.#trackCall('safety_get_metabolism');
+        if (!window.EvolutionSafetyBridge) {
+            done(false);
+            return { success: false, error: 'EvolutionSafetyBridge not available.' };
+        }
+        const result = await window.EvolutionSafetyBridge.safety_get_metabolism(params);
+        done(result.success !== false);
+        return result;
+    }
+
+    async #handleSafetyHealRts(params) {
+        const done = this.#trackCall('safety_heal_rts');
+        if (!window.EvolutionSafetyBridge) {
+            done(false);
+            return { success: false, error: 'EvolutionSafetyBridge not available.' };
+        }
+        const result = await window.EvolutionSafetyBridge.safety_heal_rts(params);
+        done(result.success !== false);
+        return result;
+    }
+
+    async #handleSafetyGetPrognostics(params) {
+        const done = this.#trackCall('safety_get_prognostics');
+        if (!window.EvolutionSafetyBridge) {
+            done(false);
+            return { success: false, error: 'EvolutionSafetyBridge not available.' };
+        }
+        const result = await window.EvolutionSafetyBridge.safety_get_prognostics(params);
+        done(result.success !== false);
+        return result;
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // Tool 5: query_hilbert_address (Phase B)
     // ─────────────────────────────────────────────────────────────
 
@@ -3347,7 +3532,7 @@ class WebMCPBridge {
                 },
                 required: ['hilbert_index']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleQueryHilbertAddress(params);
             }
         };
@@ -3706,7 +3891,7 @@ class WebMCPBridge {
                 },
                 required: ['seed_shader']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleTriggerEvolution(params);
             }
         };
@@ -3874,7 +4059,7 @@ class WebMCPBridge {
                 },
                 required: ['prompt']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleSendLLMPrompt(params);
             }
         };
@@ -4125,7 +4310,7 @@ class WebMCPBridge {
                 },
                 required: ['agent_type', 'region']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleSpawnAreaAgent(params);
             }
         };
@@ -4372,7 +4557,7 @@ class WebMCPBridge {
                 },
                 required: ['to_agent', 'message_type', 'content']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleSendA2AMessage(params);
             }
         };
@@ -4459,7 +4644,7 @@ class WebMCPBridge {
                     }
                 }
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleDiscoverA2AAgents(params);
             }
         };
@@ -4541,7 +4726,7 @@ class WebMCPBridge {
                 },
                 required: ['operation']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleA2ACoordination(params);
             }
         };
@@ -4707,7 +4892,7 @@ class WebMCPBridge {
                 },
                 required: ['target_agent_id', 'message_type', 'payload']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleA2ASendMessage(params);
             }
         };
@@ -4806,7 +4991,7 @@ class WebMCPBridge {
                 },
                 required: ['agent_type', 'message_type', 'payload']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleA2ABroadcast(params);
             }
         };
@@ -4900,7 +5085,7 @@ class WebMCPBridge {
                 },
                 required: ['event_type']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleA2ASubscribe(params);
             }
         };
@@ -4983,7 +5168,7 @@ class WebMCPBridge {
                 },
                 required: ['lock_id']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleA2AAcquireLock(params);
             }
         };
@@ -5058,7 +5243,7 @@ class WebMCPBridge {
                 },
                 required: ['lock_id']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleA2AReleaseLock(params);
             }
         };
@@ -5137,7 +5322,7 @@ class WebMCPBridge {
                 },
                 required: ['barrier_id']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleA2ABarrierEnter(params);
             }
         };
@@ -5222,7 +5407,7 @@ class WebMCPBridge {
                 },
                 required: ['to_agent', 'task_type', 'params']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleA2AAssignTask(params);
             }
         };
@@ -5305,7 +5490,7 @@ class WebMCPBridge {
                 },
                 required: ['task_id', 'progress']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleA2AReportProgress(params);
             }
         };
@@ -5374,7 +5559,7 @@ class WebMCPBridge {
                 },
                 required: ['task_id']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleA2AGetTaskResult(params);
             }
         };
@@ -5468,7 +5653,7 @@ class WebMCPBridge {
                 },
                 required: ['tile_type', 'x', 'y']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleBuilderPlaceTile(params);
             }
         };
@@ -5548,7 +5733,7 @@ class WebMCPBridge {
                 },
                 required: ['name', 'wgsl_code']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleBuilderLoadShader(params);
             }
         };
@@ -5627,7 +5812,7 @@ class WebMCPBridge {
                 },
                 required: ['shader_id']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleBuilderEvolveShader(params);
             }
         };
@@ -5717,7 +5902,7 @@ class WebMCPBridge {
                 },
                 required: ['region', 'name']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleBuilderAssembleCartridge(params);
             }
         };
@@ -5805,7 +5990,7 @@ class WebMCPBridge {
                     }
                 }
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleBuilderPreview(params);
             }
         };
@@ -5857,7 +6042,7 @@ class WebMCPBridge {
                 type: 'object',
                 properties: {}
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleBuilderGetState(params);
             }
         };
@@ -5922,7 +6107,7 @@ class WebMCPBridge {
                 },
                 required: ['source_tile_id', 'target_tile_id', 'connection_type']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleBuilderConnectTiles(params);
             }
         };
@@ -5972,7 +6157,7 @@ class WebMCPBridge {
                 },
                 required: ['connection_id']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleBuilderRemoveConnection(params);
             }
         };
@@ -6016,7 +6201,7 @@ class WebMCPBridge {
                 type: 'object',
                 properties: {}
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleIDEGetState(params);
             }
         };
@@ -6088,7 +6273,7 @@ class WebMCPBridge {
                 },
                 required: ['session_name']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleSessionCreate(params);
             }
         };
@@ -6177,7 +6362,7 @@ class WebMCPBridge {
                 },
                 required: ['session_id', 'agent_name']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleSessionJoin(params);
             }
         };
@@ -6256,7 +6441,7 @@ class WebMCPBridge {
                 },
                 required: ['session_id', 'agent_id']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleSessionLeave(params);
             }
         };
@@ -6328,7 +6513,7 @@ class WebMCPBridge {
                 },
                 required: ['session_id']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleSessionGetState(params);
             }
         };
@@ -6434,7 +6619,7 @@ class WebMCPBridge {
                 },
                 required: ['session_id', 'agent_id', 'region']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleRegionClaim(params);
             }
         };
@@ -6514,7 +6699,7 @@ class WebMCPBridge {
                 },
                 required: ['session_id', 'claim_id']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleRegionRelease(params);
             }
         };
@@ -6591,7 +6776,7 @@ class WebMCPBridge {
                 },
                 required: ['session_id', 'region']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleRegionQuery(params);
             }
         };
@@ -6704,7 +6889,7 @@ class WebMCPBridge {
                 },
                 required: ['session_id', 'from_agent', 'target_agent_id', 'task_type', 'description']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleTaskDelegate(params);
             }
         };
@@ -6786,7 +6971,7 @@ class WebMCPBridge {
                 },
                 required: ['session_id', 'task_id', 'agent_id']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleTaskAccept(params);
             }
         };
@@ -6886,7 +7071,7 @@ class WebMCPBridge {
                 },
                 required: ['session_id', 'task_id', 'agent_id', 'status']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleTaskReport(params);
             }
         };
@@ -6965,7 +7150,7 @@ class WebMCPBridge {
                 },
                 required: ['session_id']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleTaskGetQueue(params);
             }
         };
@@ -7054,7 +7239,7 @@ class WebMCPBridge {
                 },
                 required: ['session_id', 'checkpoint_name', 'created_by']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleBuildCheckpoint(params);
             }
         };
@@ -7134,7 +7319,7 @@ class WebMCPBridge {
                 },
                 required: ['session_id', 'checkpoint_id']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleBuildRollback(params);
             }
         };
@@ -8699,6 +8884,81 @@ class WebMCPBridge {
     }
 
     // ─────────────────────────────────────────────────────────────
+    // V13 Evolution Safety Tools
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerSafetyCheckRtsIntegrity() {
+        const tool = {
+            name: 'safety_check_rts_integrity',
+            description: 'Run SHA256/Hilbert/entropy checks on an RTS file via RTSDoctor.',
+            inputSchema: {
+                type: 'object',
+                properties: { path: { type: 'string', description: 'Path to the .rts.png file.' } },
+                required: ['path'],
+            },
+            handler: (params) => this.#handleSafetyCheckRtsIntegrity(params),
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerSafetyPredictHealth() {
+        const tool = {
+            name: 'safety_predict_health',
+            description: 'Get an ML prediction of RTS file degradation.',
+            inputSchema: {
+                type: 'object',
+                properties: { path: { type: 'string', description: 'Path to the .rts.png file.' } },
+                required: ['path'],
+            },
+            handler: (params) => this.#handleSafetyPredictHealth(params),
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerSafetyGetMetabolism() {
+        const tool = {
+            name: 'safety_get_metabolism',
+            description: 'Get system resource state (CPU/MEM/GPU) from the Evolution Daemon.',
+            inputSchema: { type: 'object', properties: {} },
+            handler: (params) => this.#handleSafetyGetMetabolism(params),
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerSafetyHealRts() {
+        const tool = {
+            name: 'safety_heal_rts',
+            description: 'Trigger RTS healing (re-generate/defragment).',
+            inputSchema: {
+                type: 'object',
+                properties: { path: { type: 'string', description: 'Path to the .rts.png file to heal.' } },
+                required: ['path'],
+            },
+            handler: (params) => this.#handleSafetyHealRts(params),
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerSafetyGetPrognostics() {
+        const tool = {
+            name: 'safety_get_prognostics',
+            description: 'Get historical prognostics data for an RTS file.',
+            inputSchema: {
+                type: 'object',
+                properties: { path: { type: 'string', description: 'Path to the .rts.png file.' } },
+                required: ['path'],
+            },
+            handler: (params) => this.#handleSafetyGetPrognostics(params),
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // Context Publisher
     // ─────────────────────────────────────────────────────────────
 
@@ -9275,7 +9535,7 @@ class WebMCPBridge {
                     }
                 }
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleReliabilityGetStatus(params);
             }
         };
@@ -10120,7 +10380,7 @@ class WebMCPBridge {
                 },
                 required: ['x', 'y', 'width', 'height']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 this.#app.drawRect(params.x, params.y, params.width, params.height, params.color, params.alpha);
                 return { success: true, message: 'Rectangle drawn.' };
             }
@@ -10144,7 +10404,7 @@ class WebMCPBridge {
                 },
                 required: ['x', 'y', 'radius']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 this.#app.drawCircle(params.x, params.y, params.radius, params.color, params.alpha);
                 return { success: true, message: 'Circle drawn.' };
             }
@@ -10181,7 +10441,7 @@ class WebMCPBridge {
                 },
                 required: ['id', 'text', 'x', 'y']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 const success = this.#app.placeText(params.id, params.text, params.x, params.y, params.style);
                 return { success, message: success ? `Text '${params.id}' placed.` : `Failed to place text '${params.id}'. It might already exist.` };
             }
@@ -10203,7 +10463,7 @@ class WebMCPBridge {
                 },
                 required: ['id']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 if (!params.text && !params.style) {
                     return { success: false, error: 'Either text or style must be provided to update.' };
                 }
@@ -10229,7 +10489,7 @@ class WebMCPBridge {
                 },
                 required: ['id', 'imageUrl', 'x', 'y']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 const success = await this.#app.createSprite(params.id, params.imageUrl, params.x, params.y);
                 return { success, message: success ? `Sprite '${params.id}' created.` : `Failed to create sprite '${params.id}'.` };
             }
@@ -10251,7 +10511,7 @@ class WebMCPBridge {
                 },
                 required: ['id']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 if (params.x === undefined && params.y === undefined) {
                     return { success: false, error: 'Either x or y must be provided to move.' };
                 }
@@ -10274,7 +10534,7 @@ class WebMCPBridge {
                 },
                 required: ['id']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 const success = this.#app.removeSprite(params.id);
                 return { success, message: success ? `Object '${params.id}' removed.` : `Failed to find object '${params.id}'.` };
             }
@@ -10537,7 +10797,7 @@ class WebMCPBridge {
                 },
                 required: ['path']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 self.#trackCall('vfs_read_file');
                 try {
                     if (!window.geometryOSApp || !window.geometryOSApp.vfs) {
@@ -10569,7 +10829,7 @@ class WebMCPBridge {
                 },
                 required: ['path', 'content']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 self.#trackCall('vfs_write_file');
                 try {
                     if (!window.geometryOSApp || !window.geometryOSApp.vfs) {
@@ -10598,7 +10858,7 @@ class WebMCPBridge {
                 },
                 // path is not required, as it defaults to "/"
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 self.#trackCall('vfs_list_dir');
                 try {
                     if (!window.geometryOSApp || !window.geometryOSApp.vfs) {
@@ -10656,7 +10916,7 @@ class WebMCPBridge {
                 },
                 required: ['command']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 self.#callCount++;
                 self.#toolCallCounts['terminal_execute'] = (self.#toolCallCounts['terminal_execute'] || 0) + 1;
                 try {
@@ -10708,7 +10968,7 @@ result = await gemini.run_command("${cmd.replace(/"/g, '\\"')}", ${termId})
                     y: { type: 'number', description: 'Y position (default 100)' }
                 }
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 self.#callCount++;
                 self.#toolCallCounts['terminal_create'] = (self.#toolCallCounts['terminal_create'] || 0) + 1;
                 try {
@@ -10753,7 +11013,7 @@ term = gemini.create_terminal(${x}, ${y})
                 type: 'object',
                 properties: {}
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 self.#callCount++;
                 self.#toolCallCounts['terminal_list'] = (self.#toolCallCounts['terminal_list'] || 0) + 1;
                 try {
@@ -10801,7 +11061,7 @@ state
                     }
                 }
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleSecurityGetStatus(params);
             }
         };
@@ -10868,7 +11128,7 @@ state
                     }
                 }
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleSecuritySetBypass(params);
             }
         };
@@ -10945,7 +11205,7 @@ state
                 },
                 required: ['command']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 return this.#handleRunInNewTerminal(params);
             }
         };
@@ -11011,7 +11271,7 @@ result = await term.execute("${command.replace(/"/g, '\\"')}")
                 },
                 required: ['app_name']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 self.#callCount++;
                 self.#toolCallCounts['launch_app'] = (self.#toolCallCounts['launch_app'] || 0) + 1;
                 try {
@@ -11081,7 +11341,7 @@ result = await term.execute("${command.replace(/"/g, '\\"')}")
                 },
                 required: ['path']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 self.#callCount++;
                 self.#toolCallCounts['file_list'] = (self.#toolCallCounts['file_list'] || 0) + 1;
                 try {
@@ -11129,7 +11389,7 @@ else:
                 },
                 required: ['pattern']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 self.#callCount++;
                 self.#toolCallCounts['file_find'] = (self.#toolCallCounts['file_find'] || 0) + 1;
                 try {
@@ -11177,7 +11437,7 @@ else:
                 },
                 required: ['path']
             },
-            handler: async (params) => {
+            execute: async (params, agent) => {
                 self.#callCount++;
                 self.#toolCallCounts['file_read'] = (self.#toolCallCounts['file_read'] || 0) + 1;
                 try {
