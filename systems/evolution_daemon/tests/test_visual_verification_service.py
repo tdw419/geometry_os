@@ -349,3 +349,102 @@ class TestTextVerifier:
 
         result = verifier.verify(intent, actual, CriticalityLevel.EXACT)
         assert result.success is False
+
+
+class TestSpatialVerifier:
+    """Tests for spatial relationship verification"""
+
+    def test_spatial_above_success(self):
+        """Element above target should pass"""
+        from systems.evolution_daemon.visual_verification_service import (
+            SpatialVerifier, VisualIntent, SpatialRelation
+        )
+        verifier = SpatialVerifier()
+        intent = VisualIntent(
+            element_type="label",
+            position=(100, 100),
+            size=(80, 20),
+            spatial_relations=[
+                SpatialRelation(relation_type="above", target_element="button")
+            ]
+        )
+        scene = {
+            "children": [
+                {"type": "label", "x": 100, "y": 100, "width": 80, "height": 20},
+                {"type": "button", "x": 100, "y": 150, "width": 80, "height": 40}
+            ]
+        }
+
+        result = verifier.verify(intent, scene)
+        assert result.success is True
+
+    def test_spatial_left_of_success(self):
+        """Element left of target should pass"""
+        from systems.evolution_daemon.visual_verification_service import (
+            SpatialVerifier, VisualIntent, SpatialRelation
+        )
+        verifier = SpatialVerifier()
+        intent = VisualIntent(
+            element_type="label",
+            position=(50, 100),
+            size=(40, 20),
+            spatial_relations=[
+                SpatialRelation(relation_type="left_of", target_element="input")
+            ]
+        )
+        scene = {
+            "children": [
+                {"type": "label", "x": 50, "y": 100, "width": 40, "height": 20},
+                {"type": "input", "x": 100, "y": 100, "width": 200, "height": 30}
+            ]
+        }
+
+        result = verifier.verify(intent, scene)
+        assert result.success is True
+
+    def test_spatial_inside_success(self):
+        """Element inside target should pass"""
+        from systems.evolution_daemon.visual_verification_service import (
+            SpatialVerifier, VisualIntent, SpatialRelation
+        )
+        verifier = SpatialVerifier()
+        intent = VisualIntent(
+            element_type="button",
+            position=(110, 60),
+            size=(80, 30),
+            spatial_relations=[
+                SpatialRelation(relation_type="inside", target_element="window")
+            ]
+        )
+        scene = {
+            "children": [
+                {"type": "Window", "x": 100, "y": 50, "width": 200, "height": 150},
+                {"type": "button", "x": 110, "y": 60, "width": 80, "height": 30}
+            ]
+        }
+
+        result = verifier.verify(intent, scene)
+        assert result.success is True
+
+    def test_spatial_relation_not_found_target(self):
+        """Missing target element should fail"""
+        from systems.evolution_daemon.visual_verification_service import (
+            SpatialVerifier, VisualIntent, SpatialRelation
+        )
+        verifier = SpatialVerifier()
+        intent = VisualIntent(
+            element_type="label",
+            position=(50, 100),
+            size=(40, 20),
+            spatial_relations=[
+                SpatialRelation(relation_type="above", target_element="nonexistent")
+            ]
+        )
+        scene = {
+            "children": [
+                {"type": "label", "x": 50, "y": 100, "width": 40, "height": 20}
+            ]
+        }
+
+        result = verifier.verify(intent, scene)
+        assert result.success is False

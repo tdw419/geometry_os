@@ -227,3 +227,124 @@ class TextVerifier:
         union = words1 | words2
 
         return len(intersection) / len(union) if union else 0.0
+
+
+class SpatialVerifier:
+    """
+    Verifies relative positions and spatial relationships.
+    Checks: above/below, left/right, overlaps, contains, etc.
+    """
+
+    def verify(
+        self,
+        intent: VisualIntent,
+        scene: dict
+    ) -> VerificationMatch:
+        """Verify spatial relationships in the scene."""
+        failures = []
+
+        # Find the subject element in the scene
+        subject = self._find_element_by_position(scene, intent.position)
+        if not subject:
+            return VerificationMatch(
+                success=False,
+                criticality=CriticalityLevel.TOLERANT,
+                actual_position=(0, 0),
+                expected_position=intent.position,
+                position_delta=(0, 0),
+                failures=["Subject element not found in scene"],
+                confidence=0.0
+            )
+
+        subject_bounds = self._get_bounds(subject)
+
+        # Check each spatial relation
+        for relation in intent.spatial_relations:
+            target = self._find_element_by_type(scene, relation.target_element)
+            if not target:
+                failures.append(f"Target element '{relation.target_element}' not found")
+                continue
+
+            target_bounds = self._get_bounds(target)
+
+            if not self._check_relation(
+                subject_bounds, target_bounds,
+                relation.relation_type, relation.tolerance
+            ):
+                failures.append(
+                    f"Spatial relation '{relation.relation_type}' to '{relation.target_element}' not satisfied"
+                )
+
+        success = len(failures) == 0
+        confidence = 1.0 if success else max(0.0, 1.0 - len(failures) * 0.25)
+
+        return VerificationMatch(
+            success=success,
+            criticality=CriticalityLevel.TOLERANT,
+            actual_position=(subject_bounds["x"], subject_bounds["y"]),
+            expected_position=intent.position,
+            position_delta=(
+                subject_bounds["x"] - intent.position[0],
+                subject_bounds["y"] - intent.position[1]
+            ),
+            failures=failures,
+            confidence=confidence
+        )
+
+    def _find_element_by_position(self, scene: dict, position: tuple) -> dict | None:
+        """Find element at or near the given position."""
+        for child in scene.get("children", []):
+            x, y = child.get("x", 0), child.get("y", 0)
+            if abs(x - position[0]) < 10 and abs(y - position[1]) < 10:
+                return child
+        return None
+
+    def _find_element_by_type(self, scene: dict, target_type: str) -> dict | None:
+        """Find element by type or description."""
+        target_lower = target_type.lower()
+        for child in scene.get("children", []):
+            child_type = child.get("type", "").lower()
+            if target_lower in child_type or child_type in target_lower:
+                return child
+        return None
+
+    def _get_bounds(self, element: dict) -> dict:
+        """Get bounding box of element."""
+        return {
+            "x": element.get("x", 0),
+            "y": element.get("y", 0),
+            "width": element.get("width", 0),
+            "height": element.get("height", 0)
+        }
+
+    def _check_relation(
+        self,
+        subject: dict,
+        target: dict,
+        relation_type: str,
+        tolerance: int
+    ) -> bool:
+        """Check if spatial relation is satisfied."""
+        if relation_type == "above":
+            return subject["y"] + subject["height"] <= target["y"] + tolerance
+        elif relation_type == "below":
+            return subject["y"] >= target["y"] + target["height"] - tolerance
+        elif relation_type == "left_of":
+            return subject["x"] + subject["width"] <= target["x"] + tolerance
+        elif relation_type == "right_of":
+            return subject["x"] >= target["x"] + target["width"] - tolerance
+        elif relation_type == "inside":
+            return (
+                subject["x"] >= target["x"] - tolerance and
+                subject["y"] >= target["y"] - tolerance and
+                subject["x"] + subject["width"] <= target["x"] + target["width"] + tolerance and
+                subject["y"] + subject["height"] <= target["y"] + target["height"] + tolerance
+            )
+        elif relation_type == "overlaps":
+            return (
+                subject["x"] < target["x"] + target["width"] and
+                subject["x"] + subject["width"] > target["x"] and
+                subject["y"] < target["y"] + target["height"] and
+                subject["y"] + subject["height"] > target["y"]
+            )
+        return True  # Unknown relation, pass by default
