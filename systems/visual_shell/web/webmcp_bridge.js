@@ -76,6 +76,13 @@
  *  94. pm_analyze                — Get AI PM improvement recommendations
  *  95. pm_analyze_and_deploy     — Analyze and auto-deploy cartridge
  *
+ * Phase P Tools (Evolution Safety):
+ *  96. safety_check_rts_integrity — Run SHA256/Hilbert/entropy checks
+ *  97. safety_predict_health        — ML prediction of RTS degradation
+ *  98. safety_get_metabolism        — Get system resource state
+ *  99. safety_heal_rts              — Trigger RTS healing
+ * 100. safety_get_prognostics       — Get historical prognostics data
+ *
  * Area Agent A2A Integration:
  *   - spawn_area_agent now supports full A2A protocol
  *   - Agents can discover each other via registry
@@ -3360,10 +3367,20 @@ class WebMCPBridge {
 
         try {
             // V13 Enhancement: Check predicted health before loading
+            let healthWarning = null;
             if (window.EvolutionSafetyBridge) {
-                const prediction = await window.EvolutionSafetyBridge.safety_predict_health({ path: url });
-                if (prediction && prediction.recommended_action === 're_generate') {
-                    console.warn(`WebMCP Prognostics: Cartridge '${url}' may require regeneration. Predicted health: ${prediction.predicted_health}`);
+                try {
+                    const prediction = await window.EvolutionSafetyBridge.safety_predict_health(url, 24);
+                    if (prediction && !prediction.error && prediction.recommended_action && prediction.recommended_action !== 'none') {
+                        healthWarning = {
+                            predicted_health: prediction.predicted_health ?? prediction.predicted_health_score,
+                            horizon_hours: prediction.horizon_hours ?? 24,
+                            recommended_action: prediction.recommended_action
+                        };
+                        console.warn(`WebMCP Prognostics: Cartridge '${url}' may require regeneration.`, healthWarning);
+                    }
+                } catch (e) {
+                    console.warn('Could not fetch health prediction:', e);
                 }
             }
 
@@ -3446,7 +3463,7 @@ class WebMCPBridge {
             }
 
             done(true);
-            return {
+            const result = {
                 success: true,
                 url: url,
                 dimensions: `${canvas.width}x${canvas.height}`,
@@ -3458,6 +3475,11 @@ class WebMCPBridge {
                 gridPosition: { x: position?.x ?? 0, y: position?.y ?? 0 },
                 scale: scale
             };
+            // V13: Add health warning if prediction indicated issues
+            if (healthWarning) {
+                result.health_warning = healthWarning;
+            }
+            return result;
 
         } catch (err) {
             done(false);
