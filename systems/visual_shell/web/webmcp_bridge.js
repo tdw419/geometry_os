@@ -2049,6 +2049,34 @@ class WebMCPBridge {
                 required: ['kernel_url']
             },
             execute: async (params, agent) => {
+                // ─────────────────────────────────────────────────────────────
+                // W3C WebMCP: Human-in-the-loop confirmation (runs untrusted kernel)
+                // ─────────────────────────────────────────────────────────────
+                if (agent && typeof agent.requestUserInteraction === 'function') {
+                    const confirmed = await agent.requestUserInteraction(() => {
+                        return new Promise((resolve) => {
+                            const result = window.confirm(
+                                `🖥️ Boot Kernel Confirmation\n\n` +
+                                `Kernel: ${params.kernel_url}\n` +
+                                `Memory: ${params.memory_mb || 64} MB\n` +
+                                `Mounts: ${params.mounts?.length || 0} files\n\n` +
+                                `⚠️ This will execute untrusted code on the GPU.\n` +
+                                `Proceed with boot?`
+                            );
+                            resolve(result);
+                        });
+                    });
+
+                    if (!confirmed) {
+                        return {
+                            success: false,
+                            error: 'User cancelled kernel boot',
+                            error_code: 'USER_CANCELLED',
+                            kernel_url: params.kernel_url
+                        };
+                    }
+                }
+
                 if (!window.GPUExecutionSystem) {
                     return { success: false, error: 'GPUExecutionSystem not loaded' };
                 }
@@ -5939,7 +5967,7 @@ class WebMCPBridge {
                 required: ['region', 'name']
             },
             execute: async (params, agent) => {
-                return this.#handleBuilderAssembleCartridge(params);
+                return this.#handleBuilderAssembleCartridge(params, agent);
             }
         };
 
@@ -5947,7 +5975,7 @@ class WebMCPBridge {
         this.#registeredTools.push(tool.name);
     }
 
-    async #handleBuilderAssembleCartridge({ region, files = [], name }) {
+    async #handleBuilderAssembleCartridge({ region, files = [], name }, agent) {
         this.#trackCall('builder_assemble_cartridge');
 
         if (!region || typeof region.x !== 'number') {
@@ -5966,19 +5994,47 @@ class WebMCPBridge {
             };
         }
 
-        try {
-            // Get tiles from builderPanel
-            const state = window.builderPanel?.getState();
-            const tiles = state?.tiles || [];
+        // ─────────────────────────────────────────────────────────────
+        // W3C WebMCP: Human-in-the-loop confirmation (destructive operation)
+        // ─────────────────────────────────────────────────────────────
+        // Get tile count for confirmation message
+        const state = window.builderPanel?.getState();
+        const tiles = state?.tiles || [];
+        const regionTiles = tiles.filter(t => {
+            const tx = t.position.x;
+            const ty = t.position.y;
+            return tx >= region.x && tx < region.x + (region.width || 10) &&
+                ty >= region.y && ty < region.y + (region.height || 10);
+        });
 
-            // Filter tiles in region
-            const regionTiles = tiles.filter(t => {
-                const tx = t.position.x;
-                const ty = t.position.y;
-                return tx >= region.x && tx < region.x + (region.width || 10) &&
-                    ty >= region.y && ty < region.y + (region.height || 10);
+        if (agent && typeof agent.requestUserInteraction === 'function') {
+            const confirmed = await agent.requestUserInteraction(() => {
+                return new Promise((resolve) => {
+                    const result = window.confirm(
+                        `📦 Assemble Cartridge Confirmation\n\n` +
+                        `Name: ${name}\n` +
+                        `Region: (${region.x}, ${region.y}) ${region.width || 10}x${region.height || 10}\n` +
+                        `Tiles: ${regionTiles.length}\n` +
+                        `Files: ${files.length}\n\n` +
+                        `This will create a new .rts.png cartridge.\n` +
+                        `Proceed with assembly?`
+                    );
+                    resolve(result);
+                });
             });
 
+            if (!confirmed) {
+                return {
+                    success: false,
+                    error: 'User cancelled cartridge assembly',
+                    error_code: 'USER_CANCELLED',
+                    name,
+                    tiles_would_be_included: regionTiles.length
+                };
+            }
+        }
+
+        try {
             window.builderPanel?.logAction(`Assembling cartridge '${name}' with ${regionTiles.length} tiles`, 'info');
 
             // Return assembly result
@@ -7470,7 +7526,34 @@ class WebMCPBridge {
             }
         };
 
-        await navigator.modelContext.registerTool(tool, async (params) => {
+        await navigator.modelContext.registerTool(tool, async (params, agent) => {
+            // ─────────────────────────────────────────────────────────────
+            // W3C WebMCP: Human-in-the-loop confirmation (arbitrary code execution)
+            // ─────────────────────────────────────────────────────────────
+            if (agent && typeof agent.requestUserInteraction === 'function') {
+                const confirmed = await agent.requestUserInteraction(() => {
+                    return new Promise((resolve) => {
+                        const result = window.confirm(
+                            `⚡ Execute Command Confirmation\n\n` +
+                            `Command: ${params.command}\n` +
+                            `Timeout: ${params.timeout || 30}s\n\n` +
+                            `⚠️ This will execute a shell command in Linux.\n` +
+                            `Proceed with execution?`
+                        );
+                        resolve(result);
+                    });
+                });
+
+                if (!confirmed) {
+                    return {
+                        success: false,
+                        error: 'User cancelled command execution',
+                        error_code: 'USER_CANCELLED',
+                        command: params.command
+                    };
+                }
+            }
+
             return await this.#callLinuxBridge('exec', {
                 cmd: params.command,
                 timeout: params.timeout
@@ -8733,9 +8816,45 @@ class WebMCPBridge {
             }
         };
 
-        await navigator.modelContext.registerTool(tool, async (params) => {
+        await navigator.modelContext.registerTool(tool, async (params, agent) => {
             this.#trackCall('ide_deploy');
             const { source_files, source_region, name, location } = params;
+
+            // ─────────────────────────────────────────────────────────────
+            // W3C WebMCP: Human-in-the-loop confirmation (production deployment)
+            // ─────────────────────────────────────────────────────────────
+            const fileCount = source_files?.length || 0;
+            const hasRegion = source_region && source_region.x !== undefined;
+            const deployLocation = location || (hasRegion
+                ? { x: source_region.x + 100, y: source_region.y + 100 }
+                : { x: 0, y: 0 }
+            );
+
+            if (agent && typeof agent.requestUserInteraction === 'function') {
+                const confirmed = await agent.requestUserInteraction(() => {
+                    return new Promise((resolve) => {
+                        const result = window.confirm(
+                            `🚀 Deploy Cartridge Confirmation\n\n` +
+                            `Name: ${name}\n` +
+                            `Files: ${fileCount}\n` +
+                            `Location: (${deployLocation.x}, ${deployLocation.y})\n\n` +
+                            `⚠️ This will create a production .rts.png cartridge.\n` +
+                            `Proceed with deployment?`
+                        );
+                        resolve(result);
+                    });
+                });
+
+                if (!confirmed) {
+                    return {
+                        success: false,
+                        error: 'User cancelled deployment',
+                        error_code: 'USER_CANCELLED',
+                        name,
+                        files_would_deploy: fileCount
+                    };
+                }
+            }
 
             if (!name) {
                 return { success: false, error: 'name is required' };
@@ -8748,12 +8867,6 @@ class WebMCPBridge {
             if (!hasSourceFiles && !hasSourceRegion) {
                 return { success: false, error: 'Either source_files or source_region is required' };
             }
-
-            // Determine deploy location
-            const deployLocation = location || (hasSourceRegion
-                ? { x: source_region.x + 100, y: source_region.y + 100 }
-                : { x: 0, y: 0 }
-            );
 
             return {
                 success: true,
