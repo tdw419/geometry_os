@@ -524,3 +524,53 @@ class TestVisualVerificationService:
         assert result.success is False
         assert result.should_retry is True
         assert len(result.retry_suggestions) >= 1
+
+
+class TestAdaptiveIteration:
+    """Tests for adaptive iteration and human escalation"""
+
+    def test_should_retry_on_failure(self):
+        """Should retry when confidence is reasonable"""
+        from systems.evolution_daemon.visual_verification_service import VisualVerificationService
+        service = VisualVerificationService()
+        assert service._should_retry(False, 0.8, 1) is True
+        assert service._should_retry(False, 0.7, 2) is True
+
+    def test_should_not_retry_on_success(self):
+        """Should not retry on success"""
+        from systems.evolution_daemon.visual_verification_service import VisualVerificationService
+        service = VisualVerificationService()
+        assert service._should_retry(True, 1.0, 1) is False
+
+    def test_should_not_retry_max_attempts(self):
+        """Should not retry after max attempts"""
+        from systems.evolution_daemon.visual_verification_service import VisualVerificationService
+        service = VisualVerificationService()
+        assert service._should_retry(False, 0.8, 5) is False
+        assert service._should_retry(False, 0.8, 6) is False
+
+    def test_should_not_retry_low_confidence(self):
+        """Should not retry when confidence too low"""
+        from systems.evolution_daemon.visual_verification_service import VisualVerificationService
+        service = VisualVerificationService()
+        assert service._should_retry(False, 0.2, 1) is False
+
+    def test_should_escalate_low_confidence(self):
+        """Should escalate when confidence drops below threshold"""
+        from systems.evolution_daemon.visual_verification_service import VisualVerificationService
+        service = VisualVerificationService()
+        assert service._should_escalate(0.5, 2) is True
+        assert service._should_escalate(0.4, 3) is True
+
+    def test_should_escalate_max_attempts(self):
+        """Should escalate after max attempts regardless of confidence"""
+        from systems.evolution_daemon.visual_verification_service import VisualVerificationService
+        service = VisualVerificationService()
+        assert service._should_escalate(0.9, 5) is True
+
+    def test_should_not_escalate_early_high_confidence(self):
+        """Should not escalate early with high confidence"""
+        from systems.evolution_daemon.visual_verification_service import VisualVerificationService
+        service = VisualVerificationService()
+        assert service._should_escalate(0.9, 1) is False
+        assert service._should_escalate(0.8, 1) is False
