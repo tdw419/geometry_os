@@ -160,3 +160,70 @@ class LayoutVerifier:
         elif criticality == CriticalityLevel.RELAXED:
             return self.DEFAULT_TOLERANCE["position"] * 2
         return self.DEFAULT_TOLERANCE["position"]
+
+
+class TextVerifier:
+    """
+    Verifies text content and styling.
+    Supports exact match and similarity-based verification.
+    """
+
+    def verify(
+        self,
+        intent: VisualIntent,
+        actual: dict,
+        criticality: CriticalityLevel
+    ) -> VerificationMatch:
+        """Verify text content matches intent."""
+        expected_text = intent.properties.get("text", "")
+        actual_text = actual.get("text", "")
+
+        expected_pos = intent.position
+        actual_pos = (actual.get("x", 0), actual.get("y", 0))
+
+        dx = actual_pos[0] - expected_pos[0]
+        dy = actual_pos[1] - expected_pos[1]
+
+        failures = []
+
+        if criticality == CriticalityLevel.EXACT:
+            if actual_text != expected_text:
+                failures.append(f"Text mismatch: expected '{expected_text}', got '{actual_text}'")
+        elif criticality == CriticalityLevel.TOLERANT:
+            if actual_text.lower() != expected_text.lower():
+                similarity = self._calculate_similarity(expected_text, actual_text)
+                if similarity < 0.8:
+                    failures.append(f"Text too different: {similarity:.0%} similar")
+        elif not actual_text:
+            failures.append("No text found")
+
+        success = len(failures) == 0
+        confidence = 1.0 if success else 0.5
+
+        return VerificationMatch(
+            success=success,
+            criticality=criticality,
+            actual_position=actual_pos,
+            expected_position=expected_pos,
+            position_delta=(dx, dy),
+            failures=failures,
+            confidence=confidence
+        )
+
+    def _calculate_similarity(self, text1: str, text2: str) -> float:
+        """Calculate simple text similarity (Jaccard on words)."""
+        if not text1 and not text2:
+            return 1.0
+        if not text1 or not text2:
+            return 0.0
+
+        words1 = set(text1.lower().split())
+        words2 = set(text2.lower().split())
+
+        if not words1 and not words2:
+            return 1.0
+
+        intersection = words1 & words2
+        union = words1 | words2
+
+        return len(intersection) / len(union) if union else 0.0

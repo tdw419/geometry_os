@@ -277,3 +277,75 @@ class TestLayoutVerifier:
         result = verifier.verify(intent, actual, CriticalityLevel.TOLERANT)
         assert result.success is False
         assert result.position_delta == (10, 0)
+
+
+class TestTextVerifier:
+    """Tests for text content verification"""
+
+    def test_text_exact_match_success(self):
+        """Exact text match should succeed"""
+        from systems.evolution_daemon.visual_verification_service import (
+            TextVerifier, VisualIntent, CriticalityLevel
+        )
+        verifier = TextVerifier()
+        intent = VisualIntent(
+            element_type="text",
+            position=(50, 50),
+            size=(100, 20),
+            properties={"text": "Save"}
+        )
+        actual = {"x": 50, "y": 50, "text": "Save"}
+
+        result = verifier.verify(intent, actual, CriticalityLevel.EXACT)
+        assert result.success is True
+
+    def test_text_exact_match_failure(self):
+        """Text mismatch should fail for EXACT"""
+        from systems.evolution_daemon.visual_verification_service import (
+            TextVerifier, VisualIntent, CriticalityLevel
+        )
+        verifier = TextVerifier()
+        intent = VisualIntent(
+            element_type="text",
+            position=(50, 50),
+            size=(100, 20),
+            properties={"text": "Save"}
+        )
+        actual = {"x": 50, "y": 50, "text": "Save "}
+
+        result = verifier.verify(intent, actual, CriticalityLevel.EXACT)
+        assert result.success is False
+
+    def test_text_tolerant_similar_match(self):
+        """Similar text should succeed for TOLERANT"""
+        from systems.evolution_daemon.visual_verification_service import (
+            TextVerifier, VisualIntent, CriticalityLevel
+        )
+        verifier = TextVerifier()
+        intent = VisualIntent(
+            element_type="text",
+            position=(50, 50),
+            size=(100, 20),
+            properties={"text": "Save"}
+        )
+        actual = {"x": 50, "y": 50, "text": "save"}  # Case difference
+
+        result = verifier.verify(intent, actual, CriticalityLevel.TOLERANT)
+        assert result.success is True
+
+    def test_text_missing_in_actual(self):
+        """Missing text should fail"""
+        from systems.evolution_daemon.visual_verification_service import (
+            TextVerifier, VisualIntent, CriticalityLevel
+        )
+        verifier = TextVerifier()
+        intent = VisualIntent(
+            element_type="text",
+            position=(50, 50),
+            size=(100, 20),
+            properties={"text": "Save"}
+        )
+        actual = {"x": 50, "y": 50}
+
+        result = verifier.verify(intent, actual, CriticalityLevel.EXACT)
+        assert result.success is False
