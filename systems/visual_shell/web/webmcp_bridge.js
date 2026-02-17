@@ -1928,11 +1928,11 @@ class WebMCPBridge {
             await this.#registerPMAnalyzeAndDeploy();
 
             // Phase P: V13 Evolution Safety Tools
-            // TODO: await this.#registerSafetyCheckRtsIntegrity();
-            // TODO: await this.#registerSafetyPredictHealth();
-            // TODO: await this.#registerSafetyGetMetabolism();
-            // TODO: await this.#registerSafetyHealRts();
-            // TODO: await this.#registerSafetyGetPrognostics();
+            await this.#registerSafetyCheckRtsIntegrity();
+            await this.#registerSafetyPredictHealth();
+            await this.#registerSafetyGetMetabolism();
+            await this.#registerSafetyHealRts();
+            await this.#registerSafetyGetPrognostics();
 
             // Phase V: Virtual File System (VFS) for AI Agents
             await this.#registerVfsTools();
@@ -9055,77 +9055,125 @@ class WebMCPBridge {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // V13 Evolution Safety Tools
+    // V13 Evolution Safety Tools (Phase P)
     // ─────────────────────────────────────────────────────────────
 
     async #registerSafetyCheckRtsIntegrity() {
         const tool = {
             name: 'safety_check_rts_integrity',
-            description: 'Run SHA256/Hilbert/entropy checks on an RTS file via RTSDoctor.',
+            description: 'Run integrity checks (SHA256/Hilbert/entropy) on an RTS file via RTSDoctor',
             inputSchema: {
                 type: 'object',
-                properties: { path: { type: 'string', description: 'Path to the .rts.png file.' } },
-                required: ['path'],
-            },
-            handler: (params) => this.#handleSafetyCheckRtsIntegrity(params),
+                properties: {
+                    rts_path: { type: 'string', description: 'Path to .rts.png file' }
+                },
+                required: ['rts_path']
+            }
         };
-        await navigator.modelContext.registerTool(tool);
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('safety_check_rts_integrity');
+            const { rts_path } = params;
+            const bridge = window.EvolutionSafetyBridge;
+            if (!bridge) {
+                return { error: 'EvolutionSafetyBridge not loaded', checks_passed: false };
+            }
+            return await bridge.safety_check_rts_integrity(rts_path);
+        });
         this.#registeredTools.push(tool.name);
     }
 
     async #registerSafetyPredictHealth() {
         const tool = {
             name: 'safety_predict_health',
-            description: 'Get an ML prediction of RTS file degradation.',
+            description: 'ML prediction of RTS file degradation over time',
             inputSchema: {
                 type: 'object',
-                properties: { path: { type: 'string', description: 'Path to the .rts.png file.' } },
-                required: ['path'],
-            },
-            handler: (params) => this.#handleSafetyPredictHealth(params),
+                properties: {
+                    rts_path: { type: 'string', description: 'Path to .rts.png file' },
+                    horizon_hours: { type: 'number', description: 'Prediction horizon in hours (default 24)' }
+                },
+                required: ['rts_path']
+            }
         };
-        await navigator.modelContext.registerTool(tool);
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('safety_predict_health');
+            const { rts_path, horizon_hours = 24 } = params;
+            const bridge = window.EvolutionSafetyBridge;
+            if (!bridge) {
+                return { error: 'EvolutionSafetyBridge not loaded' };
+            }
+            return await bridge.safety_predict_health(rts_path, horizon_hours);
+        });
         this.#registeredTools.push(tool.name);
     }
 
     async #registerSafetyGetMetabolism() {
         const tool = {
             name: 'safety_get_metabolism',
-            description: 'Get system resource state (CPU/MEM/GPU) from the Evolution Daemon.',
-            inputSchema: { type: 'object', properties: {} },
-            handler: (params) => this.#handleSafetyGetMetabolism(params),
+            description: 'Get current system resource state (CPU/MEM/GPU) and throttle level',
+            inputSchema: {
+                type: 'object',
+                properties: {},
+                required: []
+            }
         };
-        await navigator.modelContext.registerTool(tool);
+        await navigator.modelContext.registerTool(tool, async () => {
+            this.#trackCall('safety_get_metabolism');
+            const bridge = window.EvolutionSafetyBridge;
+            if (!bridge) {
+                return { error: 'EvolutionSafetyBridge not loaded', throttle_level: 'none' };
+            }
+            return await bridge.safety_get_metabolism();
+        });
         this.#registeredTools.push(tool.name);
     }
 
     async #registerSafetyHealRts() {
         const tool = {
             name: 'safety_heal_rts',
-            description: 'Trigger RTS healing (re-generate/defragment).',
+            description: 'Trigger RTS healing action (re-generate/defragment/quarantine)',
             inputSchema: {
                 type: 'object',
-                properties: { path: { type: 'string', description: 'Path to the .rts.png file to heal.' } },
-                required: ['path'],
-            },
-            handler: (params) => this.#handleSafetyHealRts(params),
+                properties: {
+                    rts_path: { type: 'string', description: 'Path to .rts.png file' },
+                    action: { type: 'string', enum: ['re_generate', 'defragment', 'quarantine'], description: 'Healing action to perform' }
+                },
+                required: ['rts_path']
+            }
         };
-        await navigator.modelContext.registerTool(tool);
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('safety_heal_rts');
+            const { rts_path, action = 'defragment' } = params;
+            const bridge = window.EvolutionSafetyBridge;
+            if (!bridge) {
+                return { error: 'EvolutionSafetyBridge not loaded', success: false };
+            }
+            return await bridge.safety_heal_rts(rts_path, action);
+        });
         this.#registeredTools.push(tool.name);
     }
 
     async #registerSafetyGetPrognostics() {
         const tool = {
             name: 'safety_get_prognostics',
-            description: 'Get historical prognostics data for an RTS file.',
+            description: 'Get historical prognostics data for RTS health trend analysis',
             inputSchema: {
                 type: 'object',
-                properties: { path: { type: 'string', description: 'Path to the .rts.png file.' } },
-                required: ['path'],
-            },
-            handler: (params) => this.#handleSafetyGetPrognostics(params),
+                properties: {
+                    rts_path: { type: 'string', description: 'Path to .rts.png file' }
+                },
+                required: ['rts_path']
+            }
         };
-        await navigator.modelContext.registerTool(tool);
+        await navigator.modelContext.registerTool(tool, async (params) => {
+            this.#trackCall('safety_get_prognostics');
+            const { rts_path } = params;
+            const bridge = window.EvolutionSafetyBridge;
+            if (!bridge) {
+                return { error: 'EvolutionSafetyBridge not loaded' };
+            }
+            return await bridge.safety_get_prognostics(rts_path);
+        });
         this.#registeredTools.push(tool.name);
     }
 
