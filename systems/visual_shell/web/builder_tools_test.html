@@ -88,6 +88,10 @@
         // Instantiate WebMCPBridge in mock mode for testing purposes
         window.webmcpBridgeInstance = new WebMCPBridge({}, { allowMock: true });
 
+        // Enable auto-confirm for automated testing (W3C WebMCP human-in-the-loop)
+        // Set to false to see real confirmation dialogs
+        window.webmcpAutoConfirm = true;
+
         // Track when WebMCP tools are ready
         window.webmcpReady = false;
         window.addEventListener('webmcp-ready', (e) => {

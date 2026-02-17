@@ -1127,9 +1127,16 @@ class WebMCPBridge {
         // DEBUG: Expose tool invocation for demos
         window.invokeWebMCPTool = async (name, args) => {
             // Create mock agent for human-in-the-loop support (W3C WebMCP spec)
+            // In test mode, auto-confirm all interactions. In production, show dialogs.
             const mockAgent = {
                 requestUserInteraction: async (interactionFn) => {
                     console.log(`[MockAgent] requestUserInteraction for tool: ${name}`);
+                    // Check if auto-confirm mode is enabled for testing
+                    if (window.webmcpAutoConfirm) {
+                        console.log(`[MockAgent] Auto-confirming (test mode)`);
+                        return true;
+                    }
+                    // Otherwise, execute the interaction function (shows real dialog)
                     return await interactionFn();
                 }
             };
@@ -5654,7 +5661,7 @@ class WebMCPBridge {
                 required: ['tile_type', 'x', 'y']
             },
             execute: async (params, agent) => {
-                return this.#handleBuilderPlaceTile(params);
+                return this.#handleBuilderPlaceTile(params, agent);
             }
         };
 
@@ -5662,7 +5669,7 @@ class WebMCPBridge {
         this.#registeredTools.push(tool.name);
     }
 
-    async #handleBuilderPlaceTile({ tile_type, x, y, size = 100, metadata = {} }) {
+    async #handleBuilderPlaceTile({ tile_type, x, y, size = 100, metadata = {} }, agent) {
         this.#trackCall('builder_place_tile');
 
         // Validate tile_type
@@ -5682,6 +5689,35 @@ class WebMCPBridge {
                 error: 'x and y must be numbers',
                 error_code: 'INVALID_INPUT'
             };
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // W3C WebMCP: Human-in-the-loop confirmation
+        // ─────────────────────────────────────────────────────────────
+        if (agent && typeof agent.requestUserInteraction === 'function') {
+            const confirmed = await agent.requestUserInteraction(() => {
+                // Create a visual confirmation dialog
+                return new Promise((resolve) => {
+                    const result = window.confirm(
+                        `🏗️ Place Tile Confirmation\n\n` +
+                        `Type: ${tile_type}\n` +
+                        `Position: (${x}, ${y})\n` +
+                        `Size: ${size}px\n\n` +
+                        `Proceed with placement?`
+                    );
+                    resolve(result);
+                });
+            });
+
+            if (!confirmed) {
+                return {
+                    success: false,
+                    error: 'User cancelled tile placement',
+                    error_code: 'USER_CANCELLED',
+                    tile_type,
+                    position: { x, y }
+                };
+            }
         }
 
         try {
