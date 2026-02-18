@@ -13,8 +13,8 @@ class VisionCortex {
     cacheMaxSize: 100,      // Maximum cached entries
     defaultScale: 2,        // Default image scale factor for OCR
     lazyLoad: true,         // Lazy load Tesseract worker
-    workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
-    corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract-core.wasm.js',
+    workerPath: './lib/tesseract/worker.min.js',
+    corePath: './lib/tesseract/tesseract-core.wasm.js',
     langPath: 'https://tessdata.projectnaptha.com/4.0.0'
   };
 
@@ -61,60 +61,11 @@ class VisionCortex {
     return hash;
   }
 
-  /**
-   * Scale canvas for better OCR on pixel fonts or high-DPI
-   * @private
-   * @param {HTMLCanvasElement} canvas
-   * @param {number} scale
-   * @returns {HTMLCanvasElement}
-   */
-  #scaleCanvas(canvas, scale) {
-    if (scale === 1.0) return canvas;
 
-    const scaled = document.createElement('canvas');
-    scaled.width = Math.floor(canvas.width * scale);
-    scaled.height = Math.floor(canvas.height * scale);
 
-    const ctx = scaled.getContext('2d');
-    ctx.imageSmoothingEnabled = scale < 1.0; // Smooth for downscale only
-    ctx.drawImage(canvas, 0, 0, scaled.width, scaled.height);
 
-    return scaled;
-  }
 
-  /**
-   * Extract region from canvas
-   * @private
-   * @param {HTMLCanvasElement} canvas
-   * @param {Object} region
-   * @returns {HTMLCanvasElement}
-   */
-  #extractRegion(canvas, region) {
-    if (!region) return canvas;
 
-    const { x, y, width, height } = region;
-    const extracted = document.createElement('canvas');
-    extracted.width = width;
-    extracted.height = height;
-
-    const ctx = extracted.getContext('2d');
-    ctx.drawImage(canvas, x, y, width, height, 0, 0, width, height);
-
-    return extracted;
-  }
-
-  /**
-   * Normalize bounds from scaled coordinates back to original
-   * @private
-   */
-  #unscaleBounds(bounds, scale) {
-    return {
-      x: Math.floor(bounds.x / scale),
-      y: Math.floor(bounds.y / scale),
-      width: Math.floor(bounds.width / scale),
-      height: Math.floor(bounds.height / scale)
-    };
-  }
 
   /**
    * Get cached result if available and not expired
@@ -315,9 +266,10 @@ class VisionCortex {
       // Set ready flag on success
       this.#isReady = true;
     } catch (error) {
+      console.error('[VisionCortex] Initialization error:', error); // Added logging for the full error object
       // Reset loading flag on error
       this.#isLoading = false;
-      throw new Error(`VisionCortex.initialize: ${error.message}`);
+      throw new Error(`VisionCortex.initialize: ${error && error.message ? error.message : error}`);
     }
   }
 
@@ -329,7 +281,7 @@ class VisionCortex {
   #loadTesseractScript() {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      script.src = './lib/tesseract/tesseract.min.js';
       script.async = true;
 
       script.onload = () => {

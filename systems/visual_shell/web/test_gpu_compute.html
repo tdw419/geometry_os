@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry OS - GPU Compute Bridge Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #111;
+            color: #ddd;
+            padding: 20px;
+        }
+
+        .log {
+            background: #222;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #444;
+        }
+
+        .success {
+            color: #8f8;
+        }
+
+        .error {
+            color: #f88;
+        }
+
+        button {
+            padding: 8px 16px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Milestone 2: WASM GPU Compute Bridge</h1>
+
+    <button onclick="runTests()">Run Verification Suite</button>
+
+    <div id="log" class="log">Ready...</div>
+
+    <script type="module">
+        import { GPUMemoryManager } from './gpu_memory_manager.js';
+
+        // Mock dependencies need to be on window for non-module scripts if any
+        window.WebGPUSemanticManager = class {
+            constructor() { }
+            async initialize() { }
+            async expandTexture() { return new Uint32Array(1024); }
+        };
+
+        // We need to load GPUExecutionSystem. It's an ES6 class in a file.
+        // But the file imports GPUMemoryManager using relative path.
+        // We can import it dynamically.
+
+        async function runTests() {
+            const logEl = document.getElementById('log');
+            const log = (msg, type = '') => {
+                logEl.innerHTML += `<div class="${type}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+                console.log(msg);
+            };
+
+            log("Starting tests...");
+
+            try {
+                // 1. Test Memory Manager
+                log("Testing GPU Memory Manager...");
+                const mem = new GPUMemoryManager(128 * 1024 * 1024); // 128MB
+                const ptr1 = mem.malloc(100);
+                const ptr2 = mem.malloc(200);
+
+                if (ptr1 !== -1 && ptr2 !== -1 && ptr1 !== ptr2) {
+                    log(`Allocated: 0x${ptr1.toString(16)} (100b), 0x${ptr2.toString(16)} (200b)`, 'success');
+                } else {
+                    throw new Error("Memory allocation failed");
+                }
+
+                mem.free(ptr1);
+                const ptr3 = mem.malloc(50); // Should ideally reuse ptr1 space
+                log(`Freed ptr1, Allocated ptr3: 0x${ptr3.toString(16)}`, 'success');
+
+                // 2. Test Execution System (Requires WebGPU)
+                if (!navigator.gpu) {
+                    log("WebGPU not available via navigator.gpu, skipping execution tests.", 'error');
+                    return;
+                }
+
+                // Import real class
+                const { GPUExecutionSystem } = await import('./gpu_execution_system.js');
+
+                const adapter = await navigator.gpu.requestAdapter();
+                const device = await adapter.requestDevice();
+
+                const sys = new GPUExecutionSystem(device, {});
+                await sys.initialize();
+
+                await sys.deploy('mock.rts.png', 'test_kernel');
+
+                log("GPU Kernel Deployed.", 'success');
+
+                // 3. Test Invoke Function
+                // We fake a function by writing a RET instruction to memory
+                // RET = jalr x0, 0(x1) = 0x00008067
+                const RET_OPCODE = 0x00008067;
+                const FUNC_ADDR = 0x1000; // 4KB offset
+
+                // Write code manually to code buffer
+                // Note: code buffer is read-only for shader, but mappedAtCreation was used.
+                // We'll write to STORAGE buffer 'memory' region and assume shader can execute from memory?
+                // Visual CPU shader usually executes from 'expanded_code' buffer (Binding 0).
+                // Binding 0 is read-only-storage.
+                // WE CANNOT write to it after creation easily without copyBufferToBuffer.
+                // BUT, 'deploy' creates code buffer from Uint32Array.
+                // We can Mock expandTexture to return our code!
+
+                // Redefine mock semantic manager to return our opcode
+                sys.semanticManager.expandTexture = async () => {
+                    const code = new Uint32Array(1024);
+                    code[FUNC_ADDR / 4] = RET_OPCODE; // Write RET at 0x1000
+                    return code;
+                };
+
+                // Redeploy to load our code
+                await sys.deploy('mock_code.png', 'test_code');
+
+                log("Invoking function 'ret' at 0x1000...", 'info');
+                const retVal = await sys.invokeFunction('test_code', FUNC_ADDR, [42, 100]);
+
+                log(`Function returned. A0 Value: ${retVal}`, 'success');
+
+                if (retVal === 42) {
+                    log("✅ Success: Argument passing (A0=42) verified via loopback!", 'success');
+                    // Explain: If we just return, A0 should be preserved.
+                } else {
+                    log("⚠️ Return value check: Input was 42, Output was " + retVal, 'warning');
+                }
+
+            } catch (e) {
+                log(`Test Failed: ${e.message}\n${e.stack}`, 'error');
+            }
+        }
+
+        window.runTests = runTests;
+    </script>
+</body>
+
+</html>

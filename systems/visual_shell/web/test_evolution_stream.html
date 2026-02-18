@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evolution Stream Test - Shared Reality Protocol</title>
+    <style>
+        body {
+            background: #111;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #f00;
+        }
+        .status-dot.connected {
+            background: #0f0;
+        }
+        .canvas-container {
+            position: relative;
+            border: 2px solid #0f0;
+            padding: 10px;
+            background: #000;
+        }
+        #evolutionCanvas {
+            display: block;
+            image-rendering: pixelated;
+            width: 320px;
+            height: 320px;
+        }
+        .info {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .info div {
+            margin: 5px 0;
+        }
+        .fitness-bar {
+            width: 320px;
+            height: 10px;
+            border: 1px solid #0f0;
+            margin-top: 10px;
+        }
+        .fitness-fill {
+            height: 100%;
+            background: #0f0;
+            width: 0%;
+            transition: width 0.1s;
+        }
+    </style>
+</head>
+<body>
+    <h1>Shared Reality Protocol: Visual Evolution</h1>
+
+    <div class="status">
+        <div id="statusDot" class="status-dot"></div>
+        <span id="statusText">Disconnected - Starting server...</span>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="evolutionCanvas" width="32" height="32"></canvas>
+    </div>
+
+    <div class="info">
+        <div id="genInfo">Generation: 0</div>
+        <div id="fitnessInfo">Fitness: 0.0</div>
+        <div id="targetInfo">Target: WASM_HEADER_VALID</div>
+        <div class="fitness-bar">
+            <div id="fitnessFill" class="fitness-fill"></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('evolutionCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const genInfo = document.getElementById('genInfo');
+        const fitnessInfo = document.getElementById('fitnessInfo');
+        const fitnessFill = document.getElementById('fitnessFill');
+
+        let ws = null;
+        let reconnectInterval = null;
+
+        function connect() {
+            statusText.textContent = 'Connecting to ws://localhost:8766...';
+
+            ws = new WebSocket('ws://localhost:8766');
+
+            ws.onopen = () => {
+                console.log('Connected to Evolution Server');
+                statusDot.classList.add('connected');
+                statusText.textContent = 'Connected - Starting evolution...';
+
+                // Request evolution to start
+                ws.send(JSON.stringify({ type: 'start_evolution' }));
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+
+                    if (data.type === 'evolution_step') {
+                        // Update info
+                        genInfo.textContent = `Generation: ${data.generation}`;
+                        fitnessInfo.textContent = `Fitness: ${data.fitness.toFixed(2)}`;
+
+                        // Update fitness bar (normalize to ~60000 target)
+                        const fitnessPercent = Math.min(100, (data.fitness / 60000) * 100);
+                        fitnessFill.style.width = `${fitnessPercent}%`;
+
+                        // Update pixel grid from base64 image
+                        if (data.image) {
+                            const img = new Image();
+                            img.onload = () => {
+                                ctx.drawImage(img, 0, 0, 32, 32);
+                            };
+                            img.src = data.image;
+                        }
+                    } else if (data.type === 'pong') {
+                        // Keep-alive
+                    }
+                } catch (e) {
+                    console.error('Failed to parse:', e);
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('Disconnected from server');
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Disconnected - Reconnecting in 3s...';
+
+                reconnectInterval = setTimeout(connect, 3000);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                statusText.textContent = 'Connection error - Is visual_programmer.py running?';
+            };
+        }
+
+        // Start connection
+        connect();
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (ws) ws.close();
+            if (reconnectInterval) clearTimeout(reconnectInterval);
+        });
+    </script>
+</body>
+</html>

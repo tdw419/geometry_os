@@ -15,7 +15,8 @@ export class WGPULinuxHypervisor {
             width: options.width || 1024,
             height: options.height || 1024,
             cyclesPerFrame: options.cyclesPerFrame || 10000,
-            displayMode: options.displayMode || 'canvas'
+            displayMode: options.displayMode || 'canvas',
+            dictionary: options.dictionary || {}
         };
 
         this.device = null;
@@ -45,7 +46,7 @@ export class WGPULinuxHypervisor {
         this.device = await adapter.requestDevice();
 
         // Initialize GPU execution system
-        this.gpuSystem = new GPUExecutionSystem(this.device, {});
+        this.gpuSystem = new GPUExecutionSystem(this.device, this.options.dictionary || {});
         await this.gpuSystem.initialize();
 
         // Initialize kernel loader

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head><title>Kernel Loader Tests</title></head>
+<body>
+    <h1>Kernel Loader Tests</h1>
+    <div id="results"></div>
+    <script type="module">
+        import { testKernelLoaderExists, testLoadFakeKernel } from './tests/test_kernel_loader.js';
+
+        async function runTests() {
+            const results = document.getElementById('results');
+            try {
+                await testKernelLoaderExists();
+                results.innerHTML += '<div style="color:green">✅ PASS: WGPUKernelLoader exists</div>';
+            } catch (e) {
+                results.innerHTML += `<div style="color:red">FAIL: ${e.message}</div>`;
+            }
+            try {
+                await testLoadFakeKernel();
+                results.innerHTML += '<div style="color:green">✅ PASS: Kernel loader loads buffer correctly</div>';
+            } catch (e) {
+                results.innerHTML += `<div style="color:red">FAIL: ${e.message}</div>`;
+            }
+        }
+        runTests();
+    </script>
+</body>
+</html>

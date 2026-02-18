@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SaccadicController Tests</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        .passed { color: #4caf50; }
+        .failed { color: #f44336; }
+        .skipped { color: #ff9800; }
+        pre {
+            background: #2a2a2a;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>SaccadicController Tests</h1>
+    <div id="results"></div>
+
+    <!-- Test Framework -->
+    <script src="tests/neural_heatmap_test_framework.js"></script>
+
+    <!-- Implementation -->
+    <script src="saccadic_controller.js"></script>
+
+    <!-- Tests -->
+    <script src="tests/test_saccadic_controller.js"></script>
+
+    <script>
+        async function runTests() {
+            const resultsDiv = document.getElementById('results');
+
+            try {
+                const test = new SaccadicControllerTests();
+                const result = await test.run();
+
+                const icon = result.passed ? '✅' : result.skipped ? '⏭️' : '❌';
+                const className = result.passed ? 'passed' : result.skipped ? 'skipped' : 'failed';
+
+                resultsDiv.innerHTML = `
+                    <h2 class="${className}">${icon} ${result.message}</h2>
+                    <pre>${result.name}
+Duration: ${result.duration.toFixed(2)}ms</pre>
+                `;
+
+                if (result.details) {
+                    resultsDiv.innerHTML += `<pre class="failed">${result.details}</pre>`;
+                }
+
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <h2 class="failed">❌ Test Error</h2>
+                    <pre class="failed">${error.message}\n\n${error.stack}</pre>
+                `;
+            }
+        }
+
+        runTests();
+    </script>
+</body>
+</html>
