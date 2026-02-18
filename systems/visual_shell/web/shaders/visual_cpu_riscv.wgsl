@@ -112,6 +112,11 @@ const CAUSE_INST_PAGE_FAULT: u32 = 12u;
 const CAUSE_LOAD_PAGE_FAULT: u32 = 13u;
 const CAUSE_STORE_PAGE_FAULT: u32 = 15u;
 
+// Interrupt codes (SCAUSE with interrupt bit set)
+const CAUSE_S_TIMER_INT: u32 = 0x80000005u; // Supervisor Timer Interrupt (bit 31 set)
+const SIP_STIP: u32 = 0x20u;                // Bit 5: Timer interrupt pending
+const SIE_STIE: u32 = 0x20u;                // Bit 5: Timer interrupt enable
+
 // Enter trap handler
 // Saves PC to SEPC, sets SCAUSE/STVAL, updates SSTATUS, jumps to STVEC
 fn trap_enter(base_idx: u32, cause: u32, tval: u32, pc: u32) -> u32 {
@@ -187,6 +192,25 @@ fn trap_ret(base_idx: u32) -> u32 {
 
     // 4. Return EPC as new PC
     return epc;
+}
+
+// --- INTERRUPT CHECKING ---
+// Returns true if a timer interrupt should be taken
+fn check_timer_interrupt(base_idx: u32) -> bool {
+    let sstatus = cpu_states[base_idx + CSR_SSTATUS];
+    if ((sstatus & SSTATUS_SIE) == 0u) { return false; }
+    let sie = cpu_states[base_idx + CSR_SIE];
+    if ((sie & SIE_STIE) == 0u) { return false; }
+    let sip = cpu_states[base_idx + CSR_SIP];
+    if ((sip & SIP_STIP) == 0u) { return false; }
+    return true;
+}
+
+// Take timer interrupt trap
+fn take_timer_interrupt(base_idx: u32, pc: u32) -> u32 {
+    let sip = cpu_states[base_idx + CSR_SIP];
+    cpu_states[base_idx + CSR_SIP] = sip & ~SIP_STIP;
+    return trap_enter(base_idx, CAUSE_S_TIMER_INT, 0u, pc);
 }
 
 // --- MMU: Sv32 PAGE TABLE WALKER ---
