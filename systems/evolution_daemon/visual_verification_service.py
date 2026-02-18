@@ -532,3 +532,73 @@ class VisualVerificationService:
             return f"Verification failed: {failures[0]}"
 
         return f"Verification failed with {len(failures)} issues"
+
+    def export_to_frontend(
+        self,
+        result: VerificationResult,
+        intent: VisualIntent
+    ) -> dict:
+        """
+        Export verification result for frontend visualization.
+
+        Returns a JSON-serializable dict for the VisualDebugOverlay.
+        """
+        return {
+            "success": result.success,
+            "overall_confidence": result.overall_confidence,
+            "should_retry": result.should_retry,
+            "should_escalate": result.should_escalate,
+            "summary": result.summary,
+            "retry_suggestions": result.retry_suggestions,
+            "intent": {
+                "element_type": intent.element_type,
+                "position": list(intent.position),
+                "size": list(intent.size),
+                "properties": intent.properties,
+                "critical": intent.critical,
+                "spatial_relations": [
+                    {
+                        "relation_type": sr.relation_type,
+                        "target_element": sr.target_element,
+                        "tolerance": sr.tolerance
+                    }
+                    for sr in intent.spatial_relations
+                ]
+            },
+            "matches": [
+                {
+                    "success": m.success,
+                    "criticality": m.criticality.value,
+                    "actual_position": list(m.actual_position),
+                    "expected_position": list(m.expected_position),
+                    "position_delta": list(m.position_delta),
+                    "failures": m.failures,
+                    "confidence": m.confidence
+                }
+                for m in result.matches
+            ],
+            "timestamp": self._get_timestamp()
+        }
+
+    def export_intent_for_frontend(self, intent: VisualIntent) -> dict:
+        """Export visual intent for frontend overlay."""
+        return {
+            "element_type": intent.element_type,
+            "position": list(intent.position),
+            "size": list(intent.size),
+            "properties": intent.properties,
+            "critical": intent.critical,
+            "spatial_relations": [
+                {
+                    "relation_type": sr.relation_type,
+                    "target_element": sr.target_element,
+                    "tolerance": sr.tolerance
+                }
+                for sr in intent.spatial_relations
+            ]
+        }
+
+    def _get_timestamp(self) -> float:
+        """Get current timestamp in milliseconds."""
+        import time
+        return time.time() * 1000

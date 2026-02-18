@@ -735,6 +735,9 @@ class EvolutionDaemon:
                     task.visual_intent, scene, task.visual_attempt
                 )
 
+                # Phase 50: Export to frontend for visual debugging
+                await self._dispatch_verification_to_frontend(verification_result, task.visual_intent)
+
                 if verification_result.should_escalate:
                     logger.warning(f"🚨 Visual verification needs human review: {verification_result.summary}")
                     await self.visual_log("Visual: HUMAN REVIEW needed", "warning")
@@ -859,6 +862,34 @@ class EvolutionDaemon:
         except Exception as e:
             logger.warning(f"Failed to get visual scene: {e}")
             return {"children": []}
+
+    async def _dispatch_verification_to_frontend(
+        self,
+        result: 'VerificationResult',
+        intent: 'VisualIntent'
+    ) -> None:
+        """
+        Phase 50: Dispatch verification results to frontend via WebMCP.
+
+        This enables the VisualDebugOverlay to display:
+        - Bounding boxes with verification status
+        - Confidence scores
+        - Retry suggestions
+        - Spatial relation lines
+        """
+        try:
+            # Export result for frontend
+            export_data = self.visual_verification.export_to_frontend(result, intent)
+
+            # Dispatch via WebMCP if connected
+            if self.webmcp and self.visual_connected:
+                await self.webmcp.broadcast_event('verification_result', export_data)
+                logger.debug("Dispatched verification result to frontend")
+            else:
+                logger.debug("WebMCP not connected, skipping frontend dispatch")
+
+        except Exception as e:
+            logger.warning(f"Failed to dispatch verification to frontend: {e}")
 
     async def evolve(self, task: EvolutionTask) -> bool:
         """
