@@ -77,6 +77,9 @@ from systems.evolution_daemon.visual_verification_service import (
 from systems.evolution_daemon.stages.master_stage import MasterStage, CapabilityType, VisualCapabilityProposal
 from systems.evolution_daemon.stages.mirror_bridge import SubprocessMirrorBridge, MirrorValidationResult
 
+# V15 Tectonic Stage - Substrate Self-Optimization
+from systems.evolution_daemon.stages.tectonic_stage import TectonicStage, TectonicShiftResult
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -97,7 +100,7 @@ class WebMCPClient:
     - Verify visual outcomes of code changes
     """
 
-    def __init__(self, ws_url: str = "ws://localhost:8765"):
+    def __init__(self, ws_url: str = "ws://localhost:8768"):
         self.ws_url = ws_url
         self.ws = None
         self.connected = False
@@ -212,6 +215,30 @@ class WebMCPClient:
             "action": action,
             "params": params
         })
+
+    async def broadcast_event(self, event_type: str, data: Dict) -> bool:
+        """
+        Broadcast an asynchronous event to the visual shell.
+        Unlike _call, this does not wait for a response.
+        """
+        if not self.connected:
+            return False
+
+        message = {
+            "jsonrpc": "2.0",
+            "method": "broadcast_event",
+            "params": {
+                "type": event_type,
+                "data": data
+            }
+        }
+
+        try:
+            await self.ws.send(json.dumps(message))
+            return True
+        except Exception as e:
+            logger.error(f"Failed to broadcast event {event_type}: {e}")
+            return False
 
     async def render_visual_layout(self, detail_level: str = "standard", region: Dict = None) -> Dict:
         """Render the current visual state as an ASCII layout"""
@@ -365,6 +392,9 @@ class EvolutionDaemon:
         # V14 Master Stage - Visual Self-Evolution
         self.master_stage = MasterStage(evolution_daemon=self)
         self.mirror_bridge = SubprocessMirrorBridge(sandbox_manager=self.sandbox)
+
+        # V15 Tectonic Stage - Substrate Self-Optimization
+        self.tectonic_stage = TectonicStage(evolution_daemon=self)
 
         # Register tool callbacks for Z.ai function calling
         self._register_tools()
@@ -525,6 +555,34 @@ class EvolutionDaemon:
         if self.visual_position["y"] > 600:
             self.visual_position["y"] = 100
             self.visual_position["x"] += 150
+
+    async def visualize_tectonic_shift(self, result: TectonicShiftResult):
+        """Broadcast tectonic shift event to visual shell."""
+        if not self.visual_connected:
+            logger.debug("Visual interface not connected, skipping tectonic broadcast")
+            return
+
+        try:
+            await self.webmcp.broadcast_event('tectonic_shift', {
+                "success": result.success,
+                "generations_run": result.generations_run,
+                "baseline_ipc": result.baseline_ipc,
+                "final_ipc": result.final_ipc,
+                "improvement_pct": result.improvement_pct,
+                "best_mutation": result.best_mutation_id,
+                "timestamp": result.timestamp
+            })
+
+            if result.success:
+                await self.visual_log(
+                    f"🌋 TECTONIC: +{result.improvement_pct*100:.1f}% IPC",
+                    "success"
+                )
+            else:
+                await self.visual_log("🌋 TECTONIC: no improvement", "warning")
+
+        except Exception as e:
+            logger.warning(f"Failed to broadcast tectonic shift: {e}")
 
     async def initialize(self):
         """Initialize the evolution daemon"""
