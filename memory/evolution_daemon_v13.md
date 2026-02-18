@@ -143,3 +143,35 @@ AI Agent → WebMCP → evolution_safety_bridge.js → HTTP :31338 → safety_ht
 **AdaptiveRateLimiter**:
 - Reads `window.EvolutionSafetyBridge.safety_get_metabolism()`
 - Reduces rate limits when `throttle_level` is 'moderate' (50%) or 'aggressive' (90%)
+
+---
+
+## MetabolismDashboard
+
+**Status**: ✅ Implemented
+**File**: `systems/visual_shell/web/metabolism_dashboard.js`
+**Tests**: 8 JS + 10 Python integration
+
+**Features**:
+- Real-time CPU/Memory circular meters (PixiJS)
+- Throttle status indicator (green/yellow/red)
+- Prognostics feed showing RTS health predictions
+- 3-second polling via EvolutionSafetyBridge
+
+**Architecture**:
+```
+application.js → MetabolismDashboard → EvolutionSafetyBridge → HTTP :31338 → V13 Python
+```
+
+**Visual Style**:
+- Cyberpunk aesthetic (cyan/green/red indicators)
+- Position: Below PerformanceDashboard (y: 310)
+- Panel size: 280x200px
+
+**UI Elements**:
+| Element | Description | Color Logic |
+|---------|-------------|-------------|
+| CPU Meter | Circular arc | Green < 60%, Yellow < 80%, Red > 80% |
+| MEM Meter | Circular arc | Green < 60%, Yellow < 80%, Red > 80% |
+| Throttle | Status box | Green=none, Yellow=moderate, Red=aggressive |
+| Prognostics | Log feed | Green > 0.8, Yellow > 0.5, Red < 0.5 |

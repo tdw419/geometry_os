@@ -52,6 +52,9 @@ class GeometryOSApplication {
         this.goalPanel = null;
         this.activeGoals = new Map();
 
+        // Evolution Safety Dashboards (V13)
+        this.metabolismDashboard = null;
+
         // World Persistence
         this.localArtifacts = [];
     }
@@ -409,6 +412,18 @@ class GeometryOSApplication {
         } catch (err) {
             console.error("❌ Failed to initialize Pyodide:", err);
             this.showNotification("Failed to load Pyodide. Python features unavailable.", 'error');
+        }
+
+        // Initialize Metabolism Dashboard (V13)
+        if (typeof MetabolismDashboard !== 'undefined' && window.EvolutionSafetyBridge) {
+            this.metabolismDashboard = new MetabolismDashboard({
+                safetyBridge: window.EvolutionSafetyBridge,
+                position: { x: 20, y: 310 },
+                pollInterval: 3000
+            });
+            const metabolismContainer = this.metabolismDashboard.create();
+            this.worldContainer.addChild(metabolismContainer);
+            console.log('[GeometryOSApplication] Metabolism Dashboard initialized');
         }
 
         // Phase 26: Signal readiness for external modules (like PixelLang IDE)
@@ -2627,6 +2642,21 @@ class GeometryOSApplication {
         this.managedSprites.delete(id);
 
         return true;
+    }
+
+    /**
+     * Cleanup method for application shutdown.
+     * Destroys dashboard components and releases resources.
+     */
+    destroy() {
+        // Cleanup Metabolism Dashboard (V13)
+        if (this.metabolismDashboard) {
+            this.metabolismDashboard.destroy();
+            this.metabolismDashboard = null;
+        }
+
+        // TODO: Add cleanup for other components as needed
+        console.log('[GeometryOSApplication] Application cleanup completed');
     }
 }
 
