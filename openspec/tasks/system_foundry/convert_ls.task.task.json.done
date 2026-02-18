@@ -1,0 +1,8 @@
+{
+    "task_id": "demo-ls-conversion",
+    "type": "convert_binary",
+    "source": "/bin/ls",
+    "destination": "bin_ls.brick",
+    "texture_size": 512,
+    "ai_model": "glm-4.7-flash"
+}

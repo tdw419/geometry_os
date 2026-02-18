@@ -1,0 +1,7 @@
+{
+  "task_id": "auto-08aa3620",
+  "type": "analyze_system",
+  "source": "/home/jericho/zion/projects/geometry_os/geometry_os/openspec/changes/add-system-foundry-daemon",
+  "intent": "Implement `TaskMonitor` to watch `openspec/tasks/system_foundry/*.task.json`.",
+  "auto_generated": true
+}

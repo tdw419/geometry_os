@@ -1,0 +1,7 @@
+{
+  "task_id": "auto-ef2e9e94",
+  "type": "analyze_system",
+  "source": "/home/jericho/zion/projects/geometry_os/geometry_os/openspec/changes/add-ubuntu-integration",
+  "intent": "**Infrastructure Update**",
+  "auto_generated": true
+}

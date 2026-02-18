@@ -1,0 +1,7 @@
+{
+  "task_id": "auto-231458ec",
+  "type": "analyze_system",
+  "source": "/home/jericho/zion/projects/geometry_os/geometry_os/openspec/changes/archive/2026-01-14-add-initramfs-builder",
+  "intent": "Create `systems/infinite_map_rs/scripts/create_initramfs.sh`",
+  "auto_generated": true
+}

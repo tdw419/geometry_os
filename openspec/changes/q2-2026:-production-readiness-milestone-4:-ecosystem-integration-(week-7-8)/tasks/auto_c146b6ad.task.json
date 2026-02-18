@@ -1,0 +1,10 @@
+{
+  "task_id": "task-1",
+  "type": "implement",
+  "source": "",
+  "intent": "JS SDK works in browser and Node.js",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}
