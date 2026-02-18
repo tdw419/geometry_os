@@ -112,25 +112,29 @@ class CatalogScannerAgent:
     async def claim_sector(self, sector_id: str) -> bool:
         """Claim a sector for scanning using A2A lock."""
         await self.ws.send(json.dumps({
-            "type": "acquire_lock",
+            "type": "lock_request",
             "lock_id": f"sector:{sector_id}",
             "agent_id": self.agent_id,
             "timeout": 30
         }))
 
+        # Router sends lock_granted asynchronously, but we also get an 'ack' for the request
         response = await self.ws.recv()
         msg = json.loads(response)
 
-        if msg.get("type") == "lock_acquired":
+        if msg.get("type") == "ack" and msg.get("granted"):
             self.claimed_sectors.add(sector_id)
             logger.info(f"[{self.agent_id}] Claimed sector: {sector_id}")
             return True
+        
+        # If not granted immediately, it might be granted later (lock_granted), 
+        # but for this simple swarm we just skip if not immediate.
         return False
 
     async def release_sector(self, sector_id: str):
         """Release a claimed sector."""
         await self.ws.send(json.dumps({
-            "type": "release_lock",
+            "type": "lock_release",
             "lock_id": f"sector:{sector_id}",
             "agent_id": self.agent_id
         }))
