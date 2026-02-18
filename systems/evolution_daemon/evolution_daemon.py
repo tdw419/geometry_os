@@ -73,6 +73,10 @@ from systems.evolution_daemon.visual_verification_service import (
     CriticalityLevel, SpatialRelation
 )
 
+# V14 Master Stage - Visual Self-Evolution
+from systems.evolution_daemon.stages.master_stage import MasterStage, CapabilityType, VisualCapabilityProposal
+from systems.evolution_daemon.stages.mirror_bridge import SubprocessMirrorBridge, MirrorValidationResult
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -358,6 +362,10 @@ class EvolutionDaemon:
         # V12 Journeyman Stage - Visual Self-Verification
         self.visual_verification = VisualVerificationService()
 
+        # V14 Master Stage - Visual Self-Evolution
+        self.master_stage = MasterStage(evolution_daemon=self)
+        self.mirror_bridge = SubprocessMirrorBridge(sandbox_manager=self.sandbox)
+
         # Register tool callbacks for Z.ai function calling
         self._register_tools()
 
@@ -613,22 +621,22 @@ class EvolutionDaemon:
 
     async def safe_evolve(self, task: EvolutionTask) -> bool:
         """
-        V11 Safe Evolution - Full Safety Pipeline
-
-        This is the new evolution method that uses the complete V11 safety pipeline:
+        V14 Safe Evolution - 9-Phase Pipeline
 
         1. ORIGINATE - Create proposal from task
         2. SANDBOX - Validate in isolated environment
-        3. GUARDIAN - AI-powered code review
-        4. TIER - Classify risk level
-        5. COMMIT/PR - Apply changes atomically
-        6. MONITOR - Post-commit health checks
-        7. RECOVER - Handle regressions if needed
+        3. MIRROR_VALIDATE (NEW) - Perception benchmark validation
+        4. GUARDIAN - AI-powered code review
+        5. TIER - Classify risk level
+        6. COMMIT/PR - Apply changes atomically
+        7. VISUAL_VERIFY - Real-world verification
+        8. MONITOR - Post-commit health checks
+        9. RECOVER - Handle regressions if needed
 
         Returns:
             True if evolution succeeded, False otherwise
         """
-        logger.info(f"🧬 [V11] Starting safe evolution: {task.task_id}")
+        logger.info(f"🧬 [V14] Starting safe evolution: {task.task_id}")
         logger.info(f"   Goal: {task.goal}")
         task.status = "in_progress"
 
@@ -647,10 +655,22 @@ class EvolutionDaemon:
                 task.result = f"Evolution paused: {reason}"
                 return False
 
+        # V14: Genetic Snapshot for Master Stage
+        genetic_snapshot = {}
+        if task.task_id.startswith("cap_") or (task.target_file and "visual_verification_service.py" in task.target_file):
+            logger.info("📸 Phase 0: Creating genetic snapshot for Master Stage...")
+            if task.target_file:
+                try:
+                    content = await self.vfs.read_file(task.target_file)
+                    genetic_snapshot[task.target_file] = content
+                    logger.info(f"   Snapshot created for {task.target_file}")
+                except Exception as e:
+                    logger.warning(f"   Failed to create genetic snapshot: {e}")
+
         try:
             # Visual feedback
             await self.visualize_evolution(task, "in_progress")
-            await self.visual_log(f"[V11] Starting: {task.goal[:30]}", "info")
+            await self.visual_log(f"[V14] Starting: {task.goal[:30]}", "info")
 
             # 1. ORIGINATE - Create proposal from task
             logger.info("📝 Phase 1: Creating proposal...")
@@ -672,8 +692,37 @@ class EvolutionDaemon:
             logger.info(f"✅ Sandbox passed: {sandbox_result.heartbeat_tests_passed}/{sandbox_result.heartbeat_tests_total} tests")
             await self.visual_log(f"Sandbox passed ({sandbox_result.heartbeat_tests_passed} tests)", "success")
 
-            # 3. GUARDIAN - AI-powered code review
-            logger.info("🛡️ Phase 3: Guardian review...")
+            # 3. MIRROR_VALIDATE - V14 Master Stage perception validation
+            if task.task_id.startswith("cap_") or (task.target_file and "visual_verification_service.py" in task.target_file):
+                logger.info("🪞 Phase 3: Mirror validation (Perception benchmarks)...")
+                await self.visual_log("Running mirror benchmarks...", "info")
+                
+                mirror_result = await self.mirror_bridge.validate_proposal(proposal)
+                
+                # Visual feedback for mirror results
+                if self.visual_connected:
+                    await self.webmcp.broadcast_event('mirror_validation_result', {
+                        "task_id": task.task_id,
+                        "success": mirror_result.success,
+                        "accuracy": mirror_result.accuracy_score,
+                        "immortality": mirror_result.immortality_passed,
+                        "issues": mirror_result.issues
+                    })
+
+                if not mirror_result.success:
+                    logger.warning(f"❌ Mirror validation failed: {mirror_result.issues}")
+                    await self.visual_log("Mirror FAILED", "error")
+                    task.status = "rejected"
+                    task.result = f"Mirror validation failed: {mirror_result.issues[0] if mirror_result.issues else 'Unknown error'}"
+                    return False
+
+                logger.info(f"✅ Mirror passed: accuracy={mirror_result.accuracy_score:.2f}")
+                await self.visual_log(f"Mirror passed ({mirror_result.accuracy_score:.0%})", "success")
+            else:
+                logger.info("⏭️ Phase 3: Skipping mirror validation (not a Master Stage task)")
+
+            # 4. GUARDIAN - AI-powered code review
+            logger.info("🛡️ Phase 4: Guardian review...")
             await self.visual_log("Guardian reviewing...", "info")
             verdict = await self.guardian_gate.review(proposal, sandbox_result)
 
@@ -687,17 +736,17 @@ class EvolutionDaemon:
             logger.info(f"✅ Guardian approved: risk={verdict.risk_level}, confidence={verdict.confidence:.2f}")
             await self.visual_log(f"Guardian approved ({verdict.risk_level} risk)", "success")
 
-            # 4. TIER - Classify risk level
-            logger.info("📊 Phase 4: Tier classification...")
+            # 5. TIER - Classify risk level
+            logger.info("📊 Phase 5: Tier classification...")
             tier = self.tier_router.classify(proposal, verdict)
             tier_desc = self.tier_router.get_tier_description(tier)
             logger.info(f"   Tier {tier}: {tier_desc}")
             await self.visual_log(f"Tier {tier}: {tier_desc[:40]}", "info")
 
-            # 5. COMMIT/PR - Apply changes
+            # 6. COMMIT/PR - Apply changes
             if tier == 3:
                 # Tier 3 requires human review - create PR instead
-                logger.info("🌿 Phase 5: Creating PR branch (Tier 3)...")
+                logger.info("🌿 Phase 6: Creating PR branch (Tier 3)...")
                 await self.visual_log("Creating PR for review...", "warning")
                 branch_name = await self.git.create_pr_branch(proposal)
                 logger.info(f"✅ Created PR branch: {branch_name}")
@@ -706,14 +755,14 @@ class EvolutionDaemon:
                 return True  # Successfully created PR
 
             # Apply changes and commit
-            logger.info("💾 Phase 5: Applying changes...")
+            logger.info("💾 Phase 6: Applying changes...")
             await self.visual_log("Applying changes...", "info")
 
             # Actually apply the changes via VFS
             if proposal.diff_content and proposal.target_files:
                 for target_file in proposal.target_files:
-                    # For now, we'll just log - actual diff application
-                    # would be done by the sandbox manager
+                    # In a real run, the sandbox would apply this
+                    # Here we simulate the application
                     logger.info(f"   Modified: {target_file}")
                     task.changes_made.append(f"Modified: {target_file}")
 
@@ -722,9 +771,9 @@ class EvolutionDaemon:
             logger.info(f"✅ Committed: {commit_sha[:8]}")
             await self.visual_log(f"Committed: {commit_sha[:8]}", "success")
 
-            # 6. VISUAL VERIFY - Journeyman Stage visual self-verification
+            # 7. VISUAL VERIFY - Journeyman Stage visual self-verification
             if task.visual_intent:
-                logger.info("👁️ Phase 6: Visual verification...")
+                logger.info("👁️ Phase 7: Visual verification...")
                 await self.visual_log("Verifying visual changes...", "info")
 
                 # Get current visual state from mirror neuron
@@ -759,20 +808,28 @@ class EvolutionDaemon:
                     logger.info(f"✅ Visual verification passed (confidence: {verification_result.overall_confidence:.2f})")
                     await self.visual_log(f"Visual verified ({verification_result.overall_confidence:.0%})", "success")
             else:
-                logger.info("⏭️ Phase 6: Skipping visual verification (no intent provided)")
+                logger.info("⏭️ Phase 7: Skipping visual verification (no intent provided)")
 
-            # 7. MONITOR - Post-commit health checks
-            logger.info(f"🔍 Phase 7: Post-commit monitoring (Tier {tier})...")
+            # 8. MONITOR - Post-commit health checks
+            logger.info(f"🔍 Phase 8: Post-commit monitoring (Tier {tier})...")
             await self.visual_log("Running post-commit checks...", "info")
 
             # Capture baseline before monitoring
             await self.monitor.capture_baseline()
             result = await self.monitor.monitor(commit_sha, tier)
 
-            # 8. RECOVER - Handle if unhealthy
+            # 9. RECOVER - Handle if unhealthy
             if not result.healthy:
                 logger.warning(f"🚨 Regression detected: {result.issues}")
                 await self.visual_log("REGRESSION detected!", "error")
+
+                # V14: Primordial Rollback for Master Stage
+                if genetic_snapshot:
+                    logger.info("🚑 Phase 9: Invoking Primordial Rollback...")
+                    await self.visual_log("Primordial Rollback...", "warning")
+                    for file_path, content in genetic_snapshot.items():
+                        await self.vfs.write_file(file_path, content)
+                    logger.info("✅ Restored files from genetic snapshot")
 
                 recovery_action = await self.recovery.handle_regression(commit_sha, result)
                 logger.info(f"   Recovery action: {recovery_action.value}")
@@ -780,6 +837,32 @@ class EvolutionDaemon:
                 task.status = "reverted"
                 task.result = f"Regression detected, action: {recovery_action.value}"
                 return False
+
+            # Success!
+            logger.info("✅ Evolution completed successfully!")
+            await self.visual_log(f"SUCCESS: {task.goal[:25]}", "success")
+            await self.visualize_evolution(task, "completed")
+
+            task.status = "completed"
+            task.result = "Evolution successful"
+            self.evolution_count += 1
+            return True
+
+        except Exception as e:
+            logger.error(f"❌ Evolution failed: {e}")
+            logger.error(traceback.format_exc())
+            
+            # V14: Rollback on exception if snapshot exists
+            if genetic_snapshot:
+                logger.info("🚑 Emergency Primordial Rollback...")
+                for file_path, content in genetic_snapshot.items():
+                    await self.vfs.write_file(file_path, content)
+
+            task.status = "error"
+            task.result = str(e)
+            await self.visual_log(f"ERROR: {str(e)[:30]}", "error")
+            await self.visualize_evolution(task, "error")
+            return False
 
             # Success!
             logger.info("✅ Evolution completed successfully!")
@@ -823,13 +906,23 @@ class EvolutionDaemon:
 
         {'Target file: ' + task.target_file if task.target_file else 'Choose appropriate file'}
 
-        {'Current code context:\\n```\\n' + context[:2000] + '\\n```' if context else ''}
+        {'Current code context:\n```python\n' + context[:5000] + '\n```' if context else ''}
 
-        Provide the changes as a unified diff format.
+        MANDATORY REQUIREMENT:
+        You MUST provide the changes ONLY as a UNIFIED DIFF format.
         Include the full file path and the exact changes needed.
+        Do NOT provide the full file content.
+        Do NOT simplify or remove existing logic unless specifically requested.
+        Your response must be a valid .patch file content.
         """
 
         solution = await self.zai.chat("coder", coder_prompt)
+
+        # Cleanup solution: remove markdown code blocks if present
+        if "```diff" in solution:
+            solution = solution.split("```diff")[1].split("```")[0].strip()
+        elif "```" in solution:
+            solution = solution.split("```")[1].split("```")[0].strip()
 
         # Create proposal
         proposal = EvolutionProposal(

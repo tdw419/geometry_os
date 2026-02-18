@@ -183,6 +183,18 @@ class GeometryOSApplication {
             console.log("📂 Spatial Catalog integrated");
         }
 
+        // --- Path 2: Memory Beams (Hippocampus Integration) ---
+        if (typeof MemoryBeamRenderer !== 'undefined') {
+            this.memoryBeams = new MemoryBeamRenderer(this.app, {
+                maxBeams: 50,
+                beamColor: 0x00d4ff,  // Cyan
+                glowAlpha: 0.6
+            });
+            console.log("🔮 Memory Beam Renderer initialized");
+            this._setupMemoryBeamGestures();
+            this._connectMemoryBridge();
+        }
+
         // 4b. Initialize Creative Layers
         this.drawingLayer = new PIXI.Graphics();
         this.worldContainer.addChild(this.drawingLayer);
@@ -200,6 +212,17 @@ class GeometryOSApplication {
         // 5. Initialize Desktop Environment
         this.windowManager = new WindowManager(this.worldContainer);
         const demoWindow = this.windowManager.createWindow("System Console", 200, 150, 400, 250);
+        
+        // 5.1 Initialize VM Monitor Tile (connects to vision_bridge.py)
+        if (typeof VMMonitorTile !== 'undefined') {
+            const vmMonitor = new VMMonitorTile("VM Monitor: Live Feed", 650, 150, 640, 430);
+            this.worldContainer.addChild(vmMonitor);
+            console.log("📺 VM Monitor Tile initialized.");
+            
+            // 5.2 Initialize WebGPU Native Boot Demo
+            this.setupWebGPUDemo();
+        }
+        
         const demoText = new PIXI.Text("Welcome to Geometry OS.\n- Drag this window by its title bar.", {
             fontFamily: 'Courier New',
             fontSize: 12,
@@ -630,6 +653,11 @@ class GeometryOSApplication {
         // Update Bootloader
         if (this.visualBootLoader) {
             this.visualBootLoader.update();
+        }
+
+        // Update Memory Beams (Semantic Memory Visualization)
+        if (this.memoryBeams) {
+            this.memoryBeams.render(delta);
         }
     }
 
@@ -2645,6 +2673,207 @@ class GeometryOSApplication {
     }
 
     /**
+     * Set up the WebGPU Native Boot Demo
+     */
+    async setupWebGPUDemo() {
+        if (typeof WGPULinuxHypervisor === 'undefined') {
+            console.warn('[WebGPUDemo] WGPULinuxHypervisor not found');
+            return;
+        }
+
+        try {
+            console.log('🐧 Initializing WebGPU Native Boot Demo...');
+            
+            // 1. Create Hypervisor
+            const hypervisor = new WGPULinuxHypervisor({
+                width: 1024,
+                height: 768,
+                cyclesPerFrame: 1000
+            });
+            
+            await hypervisor.init();
+            
+            // 2. Create specialized monitor window
+            const gpuMonitor = new VMMonitorTile(
+                "WEBGPU BOOT: Alpine Linux", 
+                1300, 150, 640, 430, 
+                { hypervisor: hypervisor }
+            );
+            this.worldContainer.addChild(gpuMonitor);
+            
+            // 3. Load Kernel from RTS
+            // We'll use the linux_kernel.rts.png we found earlier
+            const kernelUrl = 'linux_kernel.rts.png';
+            await hypervisor.loadKernelFromRTS(kernelUrl);
+            
+            // 3.1 Setup MMU (identity map 16MB)
+            await hypervisor.setupMMU();
+            
+            // 4. Start execution
+            hypervisor.start();
+            
+            console.log('✅ WebGPU Native Boot Demo started');
+            
+        } catch (e) {
+            console.error('[WebGPUDemo] Failed to initialize:', e);
+        }
+    }
+
+    /**
+     * Setup input gestures for Memory Beams visualization.
+     * Semantic Drag: Middle Mouse Button + Shift
+     */
+    _setupMemoryBeamGestures() {
+        if (!this.memoryBeams) return;
+
+        let isSemanticDragActive = false;
+        let wasShiftPressed = false;
+
+        // Track shift key state
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Shift' && !wasShiftPressed) {
+                wasShiftPressed = true;
+                console.log('🔮 Shift pressed - Semantic Drag ready');
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'Shift') {
+                wasShiftPressed = false;
+                if (isSemanticDragActive) {
+                    this.memoryBeams.deactivate();
+                    isSemanticDragActive = false;
+                    console.log('🔮 Semantic Drag deactivated');
+                }
+            }
+        });
+
+        // Middle mouse button handler on canvas
+        const canvas = this.app.view;
+
+        canvas.addEventListener('mousedown', (e) => {
+            // Button 1 = middle mouse
+            if (e.button === 1 && wasShiftPressed) {
+                e.preventDefault();
+
+                // Get world coordinates from screen
+                const rect = canvas.getBoundingClientRect();
+                const screenX = e.clientX - rect.left;
+                const screenY = e.clientY - rect.top;
+
+                // Convert to world coordinates
+                const camera = this.viewport.getCamera();
+                const worldX = (screenX - this.app.screen.width / 2) / camera.zoom + camera.x;
+                const worldY = (screenY - this.app.screen.height / 2) / camera.zoom + camera.y;
+
+                // Activate memory beams
+                this.memoryBeams.activate(worldX, worldY);
+
+                // Query real Hippocampus backend via bridge
+                this.recallMemories(worldX, worldY);
+
+                isSemanticDragActive = true;
+                console.log(`🔮 Semantic Drag activated at world (${worldX.toFixed(0)}, ${worldY.toFixed(0)})`);
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isSemanticDragActive) {
+                const rect = canvas.getBoundingClientRect();
+                const screenX = e.clientX - rect.left;
+                const screenY = e.clientY - rect.top;
+
+                // Convert to world coordinates
+                const camera = this.viewport.getCamera();
+                const worldX = (screenX - this.app.screen.width / 2) / camera.zoom + camera.x;
+                const worldY = (screenY - this.app.screen.height / 2) / camera.zoom + camera.y;
+
+                this.memoryBeams.updateCursor(worldX, worldY);
+            }
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            if (e.button === 1 && isSemanticDragActive) {
+                this.memoryBeams.deactivate();
+                isSemanticDragActive = false;
+                console.log('🔮 Semantic Drag deactivated');
+            }
+        });
+
+        // Prevent context menu on middle-click
+        canvas.addEventListener('contextmenu', (e) => {
+            if (wasShiftPressed) {
+                e.preventDefault();
+            }
+        });
+
+        console.log('🔮 Memory Beam gestures configured (Shift + Middle Mouse to activate)');
+    }
+
+    /**
+     * Connect to the Memory Visual Bridge for semantic memory retrieval.
+     */
+    _connectMemoryBridge() {
+        const port = 8768;
+        try {
+            console.log('🔮 Connecting to Memory Bridge...');
+            this.memoryBridgeSocket = new WebSocket(`ws://localhost:${port}`);
+            
+            this.memoryBridgeSocket.onopen = () => {
+                console.log('🔮 Memory Bridge connected');
+            };
+            
+            this.memoryBridgeSocket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'memory_beam_results') {
+                        if (this.memoryBeams) {
+                            this.memoryBeams.updateMemories(data.memories);
+                        }
+                    } else if (data.type === 'error') {
+                        console.warn('🔮 Memory Bridge error:', data.message);
+                    }
+                } catch (e) {
+                    console.error('Failed to parse Memory Bridge message:', e);
+                }
+            };
+            
+            this.memoryBridgeSocket.onerror = (e) => {
+                // Connection error log is noisy, handled by onclose
+            };
+            
+            this.memoryBridgeSocket.onclose = () => {
+                console.log('🔮 Memory Bridge disconnected');
+                // Auto-reconnect after 5s
+                if (!this.destroyed) {
+                    setTimeout(() => this._connectMemoryBridge(), 5000);
+                }
+            };
+        } catch (e) {
+            console.error('Failed to connect to Memory Bridge:', e);
+        }
+    }
+
+    /**
+     * Query the semantic memory bridge for thoughts near a location.
+     */
+    recallMemories(worldX, worldY) {
+        if (this.memoryBridgeSocket && this.memoryBridgeSocket.readyState === WebSocket.OPEN) {
+            this.memoryBridgeSocket.send(JSON.stringify({
+                type: 'recall_memories',
+                x: worldX,
+                y: worldY
+            }));
+        } else {
+            // Fallback to mock data if bridge unavailable
+            if (this.memoryBeams) {
+                const mockMemories = this.memoryBeams.generateMockMemories(15, worldX, worldY, 500);
+                this.memoryBeams.updateMemories(mockMemories);
+            }
+        }
+    }
+
+    /**
      * Cleanup method for application shutdown.
      * Destroys dashboard components and releases resources.
      */
@@ -2653,6 +2882,12 @@ class GeometryOSApplication {
         if (this.metabolismDashboard) {
             this.metabolismDashboard.destroy();
             this.metabolismDashboard = null;
+        }
+
+        // Cleanup Memory Beams (Path 2: Hippocampus)
+        if (this.memoryBeams) {
+            this.memoryBeams.destroy();
+            this.memoryBeams = null;
         }
 
         // TODO: Add cleanup for other components as needed
