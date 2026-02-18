@@ -9,9 +9,17 @@ Implements a 4-layer reliability hierarchy:
 4. Verification (Closed Loop)
 """
 
+import logging
+import time
+import subprocess
+from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List
-import logging
+
+from .layers.keyboard_layer import KeyboardLayer
+from .layers.semantic_layer import SemanticLayer
+from .layers.visual_layer import VisualLayer
+from .layers.verification_layer import VerificationLayer
 
 logger = logging.getLogger("gui_protocol")
 
@@ -20,65 +28,123 @@ class ProtocolResult:
     success: bool
     layer_used: int
     message: str
-    state_snapshot: Optional[Dict[str, Any]] = None
+    action_taken: str
+    state_snapshot: Optional[str] = None
 
 class GUIProtocol:
-    def __init__(self, bridge_path: str = "/tmp/vision_bridge"):
-        self.bridge_path = bridge_path
-        # Lazy load layers to avoid circular imports
-        self.keyboard_layer = None
-        self.semantic_layer = None
-        self.visual_layer = None
-        self.verifier = None
+    def __init__(self, bridge_dir: str = "/tmp/vision_bridge_1", vnc_display: str = "127.0.0.1:0"):
+        self.bridge_dir = Path(bridge_dir)
+        self.vnc_display = vnc_display
+        self.state_file = self.bridge_dir / "gui_state.txt"
+        self.action_file = self.bridge_dir / "actions.txt"
+        
+        # Initialize layers
+        self.keyboard_layer = KeyboardLayer()
+        self.semantic_layer = SemanticLayer(str(self.state_file))
+        self.visual_layer = VisualLayer()
+        self.verifier = VerificationLayer()
+
+    def _execute_direct(self, cmd: str) -> bool:
+        """Send command directly to VNC bypassing bridge logic for speed."""
+        try:
+            parts = cmd.split()
+            if parts[0] == "type":
+                # Join back the text for 'vncdo type'
+                text = " ".join(parts[1:])
+                subprocess.run(["vncdo", "-s", self.vnc_display, "type", text], check=True, capture_output=True)
+            else:
+                subprocess.run(["vncdo", "-s", self.vnc_display] + parts, check=True, capture_output=True)
+            return True
+        except Exception as e:
+            logger.error(f"Direct execution failed: {e}")
+            return False
+
+    def _execute_bridge(self, action_text: str) -> bool:
+        """Execute action directly via VNC (vncdo)."""
+        try:
+            parts = action_text.split(":", 1)
+            if len(parts) != 2:
+                return False
+
+            action = parts[0].strip().lower()
+            target = parts[1].strip()
+
+            if action == "click":
+                coords = self._find_element_coords(target)
+                if coords:
+                    x, y = coords
+                    print(f"[Protocol] Clicking at ({x}, {y}) via VNC {self.vnc_display}")
+                    subprocess.run(["vncdo", "-s", self.vnc_display, "move", str(x), str(y), "click", "1"],
+                                 check=True, capture_output=True, timeout=10)
+                    return True
+                else:
+                    return False
+
+            elif action == "type":
+                subprocess.run(["vncdo", "-s", self.vnc_display, "type", target],
+                             check=True, capture_output=True, timeout=30)
+                return True
+
+            elif action == "key":
+                subprocess.run(["vncdo", "-s", self.vnc_display, "key", target],
+                             check=True, capture_output=True, timeout=10)
+                return True
+
+            return False
+        except Exception as e:
+            logger.error(f"Bridge execution failed: {e}")
+            return False
+
+    def _find_element_coords(self, label: str) -> Optional[tuple]:
+        """Find element coordinates from state file."""
+        if not self.state_file.exists():
+            return None
+
+        state_text = self.state_file.read_text()
+        label_lower = label.lower()
+
+        for line in state_text.splitlines():
+            if label_lower in line.lower() and "@ (" in line:
+                # Parse: "- [button] Export @ (850, 120)"
+                try:
+                    start = line.rfind("@ (")
+                    end = line.rfind(")")
+                    coords_str = line[start+3:end]
+                    x, y = coords_str.split(",")
+                    return (int(x.strip()), int(y.strip()))
+                except:
+                    continue
+        return None
+
+    def _get_current_state(self) -> str:
+        if self.state_file.exists():
+            return self.state_file.read_text()
+        return ""
 
     def operate(self, intent: str, app_context: str = "general") -> ProtocolResult:
-        """
-        Execute a high-level intent using the layered protocol.
-        
-        Args:
-            intent: The goal (e.g., "Export video", "Open Terminal")
-            app_context: The active application (e.g., "shotcut", "ubuntu")
-            
-        Returns:
-            ProtocolResult indicating success/failure and metadata
-        """
-        logger.info(f"Protocol initiated: {intent} [{app_context}]")
-        
-        # Layer 1: Direct Command (Deterministic)
-        if self._try_layer_1(intent, app_context):
-            if self._verify_action(intent):
-                return ProtocolResult(True, 1, "Executed via keyboard shortcut")
-                
-        # Layer 2: Semantic API (Text Bridge)
-        if self._try_layer_2(intent):
-            if self._verify_action(intent):
-                return ProtocolResult(True, 2, "Executed via semantic element match")
-                
-        # Layer 3: Visual Perception (VLM Analysis)
-        if self._try_layer_3(intent):
-            if self._verify_action(intent):
-                return ProtocolResult(True, 3, "Executed via visual reasoning")
-                
-        # Failure
-        return ProtocolResult(False, 0, "All layers failed")
+        """Execute intent using 4-layer fallback."""
+        logger.info(f"Executing intent: {intent} (Context: {app_context})")
 
-    def _try_layer_1(self, intent: str, context: str) -> bool:
-        """Layer 1: Keyboard Shortcuts & CLI"""
-        # TODO: Implement shortcut registry lookup
-        # e.g., if intent == "Open Terminal" -> send_keys("Ctrl+Alt+T")
-        return False
+        initial_state = self._get_current_state()
 
-    def _try_layer_2(self, intent: str) -> bool:
-        """Layer 2: Semantic Text API"""
-        # TODO: Read gui_state.txt, fuzzy match intent to elements
-        return False
+        # --- Layer 1: Direct Command (Shortcuts) ---
+        shortcut = self.keyboard_layer._find_shortcut(intent, app_context)
+        if shortcut:
+            print(f"[Protocol] Layer 1: Sending shortcut '{shortcut}'")
+            if self._execute_direct(f"key {shortcut}"):
+                time.sleep(1)
+                if self.verifier.verify(intent, initial_state, self._get_current_state()):
+                    return ProtocolResult(True, 1, "Success via Shortcut", f"key:{shortcut}")
 
-    def _try_layer_3(self, intent: str) -> bool:
-        """Layer 3: Visual VLM Analysis"""
-        # TODO: Send screenshot to VLM with specific query
-        return False
+        # --- Layer 2: Semantic Match ---
+        if self.semantic_layer.execute(intent):
+            target = self.semantic_layer._extract_target(intent)
+            print(f"[Protocol] Layer 2: Semantic click on '{target}'")
+            if self._execute_bridge(f"click: {target}"):
+                time.sleep(1)
+                if self.verifier.verify(intent, initial_state, self._get_current_state()):
+                    return ProtocolResult(True, 2, "Success via Semantic Match", f"click:{target}")
 
-    def _verify_action(self, intent: str) -> bool:
-        """Layer 4: State Verification"""
-        # TODO: Check if state changed meaningfully
-        return True
+        # --- Layer 3: Visual Fallback (VLM) ---
+        print(f"[Protocol] Layer 3: Falling back to Visual Perception...")
+        return ProtocolResult(False, 0, "Failed to resolve intent through deterministic layers", "none")

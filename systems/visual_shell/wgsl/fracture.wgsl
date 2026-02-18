@@ -11,7 +11,8 @@ struct FractureUniforms {
     intensity: f32,       // 0.0 (Hidden) to 1.0 (Full Rip)
     origin_x: f32,        // Normalized X coord of the fault
     origin_y: f32,        // Normalized Y coord of the fault
-    time: f32,            // For jagged animation
+    time: f32,
+    cpu_load: f32,            // For jagged animation
     _padding: f32,
 };
 
@@ -27,10 +28,12 @@ struct VertexOutput {
 @fragment
 fn main_fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     var offset = vec2<f32>(0.0, 0.0);
+    let pulse = sin(fracture.time * 5.0) * fracture.cpu_load;
     
     // Distance from the fracture line (vertical rip as default)
     let dist = abs(in.uv.x - fracture.origin_x);
-    let threshold = fracture.intensity * 0.1;
+    // INTENTIONAL FRACTURE: Force high intensity for D2 mission
+    let threshold = (fracture.intensity + pulse) * 0.1;
 
     if (dist < threshold) {
         // Jagged offset based on vertical noise
