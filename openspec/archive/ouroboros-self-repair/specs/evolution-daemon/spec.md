@@ -1,16 +1,6 @@
-# evolution-daemon Specification
+# Delta for evolution-daemon
 
-## Purpose
-TBD - created by archiving change update-daemon-rts-integration. Update Purpose after archive.
-## Requirements
-### Requirement: RTS Driver Detection
-The Evolution Daemon SHALL detect if the high-performance `rts_rs` driver is available.
-
-#### Scenario: Driver Found
-- **WHEN** the daemon starts
-- **IF** `systems/rts_fuse/rts_rs/target/release/rts_rs` exists
-- **THEN** it logs "✅ High-Performance RTS Driver Detected"
-- **AND** sets `self.rts_driver_available = True`
+## ADDED Requirements
 
 ### Requirement: Visual Fracture Detection
 The Evolution Daemon SHALL monitor the system's visual output for structural anomalies (fractures).
@@ -26,4 +16,3 @@ The Evolution Daemon SHALL apply restorative actions when a visual fracture is d
 - **WHEN** a repair cycle is triggered
 - **AND** a recently modified file is identified as the probable cause
 - **THEN** the system SHALL attempt to revert the file to the last known-good state via version control.
-
