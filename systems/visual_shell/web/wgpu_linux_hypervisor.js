@@ -39,6 +39,9 @@ export class WGPULinuxHypervisor {
         
         // UART tracking
         this.lastUartHead = 0;
+
+        // Cycle counter for timer
+        this.cycleCount = 0n;
     }
 
     /**
@@ -232,6 +235,7 @@ export class WGPULinuxHypervisor {
      * Execute N clock cycles
      */
     async tick(cycles = 1) {
+        this.cycleCount += BigInt(cycles);
         await this.gpuSystem.tick(this.kernelId, cycles);
 
         // Check for syscalls triggered in this batch
@@ -357,7 +361,7 @@ export class WGPULinuxHypervisor {
         const state = this.cachedState;
         if (!state) return;
 
-        const currentTime = BigInt(state.pc || 0);
+        const currentTime = this.cycleCount;
 
         if (this.sbiHandler.checkTimerInterrupt(currentTime)) {
             console.log('[Hypervisor] Timer interrupt firing!');
