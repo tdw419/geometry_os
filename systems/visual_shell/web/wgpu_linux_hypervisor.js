@@ -242,6 +242,9 @@ export class WGPULinuxHypervisor {
         // Check for SBI calls
         await this._checkSBICalls();
 
+        // Check timer interrupt
+        await this._checkTimerInterrupt();
+
         // Check for UART output
         await this._checkUART();
 
@@ -341,6 +344,29 @@ export class WGPULinuxHypervisor {
             // Clear SCAUSE to indicate handled
             const clearCause = new Uint32Array([0]);
             this.device.queue.writeBuffer(kernel.stateBuffer, 41 * 4, clearCause);
+        }
+    }
+
+    /**
+     * Check for timer interrupt
+     * @private
+     */
+    async _checkTimerInterrupt() {
+        if (!this.sbiHandler.timerSet) return;
+
+        const state = this.cachedState;
+        if (!state) return;
+
+        const currentTime = BigInt(state.pc || 0);
+
+        if (this.sbiHandler.checkTimerInterrupt(currentTime)) {
+            console.log('[Hypervisor] Timer interrupt firing!');
+
+            const kernel = this.gpuSystem.kernels.get(this.kernelId);
+            if (kernel) {
+                const sipSet = new Uint32Array([0x20]); // STIP bit
+                this.device.queue.writeBuffer(kernel.stateBuffer, 45 * 4, sipSet);
+            }
         }
     }
 
