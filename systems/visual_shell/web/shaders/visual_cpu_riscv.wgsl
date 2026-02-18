@@ -363,7 +363,14 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
     // 2. Fetch PC
     var pc = cpu_states[base_idx + 32u];
-    
+
+    // 2.5. CHECK FOR PENDING INTERRUPTS
+    if (check_timer_interrupt(base_idx)) {
+        pc = take_timer_interrupt(base_idx, pc);
+        cpu_states[base_idx + 32u] = pc;
+        return;
+    }
+
     // 3. Instruction Fetch
     let inst = expanded_code[pc];
     
