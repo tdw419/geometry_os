@@ -166,6 +166,20 @@ class GeometryOSApplication {
         this.worldContainer = new PIXI.Container();
         this.app.stage.addChild(this.worldContainer);
 
+        // --- Phase 50: Advanced Visual Tools ---
+        if (typeof VisualVerificationBridge !== 'undefined') {
+            this.visualBridge = new VisualVerificationBridge();
+            this.visualBridge.initialize();
+            console.log("👁️ Visual Verification Bridge active (Glass Box AI)");
+        }
+
+        // --- PixelRTS Phase 4: Visual Catalog ---
+        if (typeof SpatialCatalog !== 'undefined') {
+            this.catalog = new SpatialCatalog(this);
+            this.catalog.initialize();
+            console.log("📂 Spatial Catalog integrated");
+        }
+
         // 4b. Initialize Creative Layers
         this.drawingLayer = new PIXI.Graphics();
         this.worldContainer.addChild(this.drawingLayer);
