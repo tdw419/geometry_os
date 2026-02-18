@@ -8,6 +8,8 @@ import { GPUExecutionSystem } from './gpu_execution_system.js';
 import { WGPUKernelLoader } from './wgpu_kernel_loader.js';
 import { CanvasRenderer } from './display/canvas_renderer.js';
 import { WGPUInputHandler } from './wgpu_input_handler.js';
+import { DTBGenerator } from './dtb_generator.js';
+import { SBIHandler } from './sbi_handler.js';
 
 export class WGPULinuxHypervisor {
     constructor(options = {}) {
@@ -16,7 +18,8 @@ export class WGPULinuxHypervisor {
             height: options.height || 1024,
             cyclesPerFrame: options.cyclesPerFrame || 10000,
             displayMode: options.displayMode || 'canvas',
-            dictionary: options.dictionary || {}
+            dictionary: options.dictionary || {},
+            dtbAddr: options.dtbAddr || 0x04000000 // 64MB offset
         };
 
         this.device = null;
@@ -24,6 +27,8 @@ export class WGPULinuxHypervisor {
         this.kernelLoader = null;
         this.display = null;
         this.inputHandler = null;
+        this.dtbGenerator = new DTBGenerator();
+        this.sbiHandler = new SBIHandler(this);
 
         this.kernelId = 'main';
         this.running = false;
@@ -31,6 +36,9 @@ export class WGPULinuxHypervisor {
 
         // Cache state for CPU inspection
         this.cachedState = null;
+        
+        // UART tracking
+        this.lastUartHead = 0;
     }
 
     /**
@@ -92,6 +100,22 @@ export class WGPULinuxHypervisor {
         const kernel = this.gpuSystem.kernels.get(this.kernelId);
         this.kernelLoader.writeToMemory(kernel.memoryBuffer, kernelInfo.data, 0);
 
+        // Initialize input handler after deployment (needs memoryBuffer)
+        if (this.display && this.display.canvas) {
+            this.inputHandler = new WGPUInputHandler(
+                this.display.canvas,
+                this.device,
+                kernel.memoryBuffer,
+                this.kernelId
+            );
+        }
+
+        // Setup DTB
+        await this.setupDTB();
+
+        // Setup syscall handler
+        this._setupSyscallBridge();
+
         // Cache initial state
         this.cachedState = await this.gpuSystem.readState(this.kernelId);
 
@@ -104,14 +128,104 @@ export class WGPULinuxHypervisor {
     async loadKernelFromRTS(url) {
         const kernelInfo = await this.kernelLoader.loadFromRTS(url);
 
+        // Deploy to GPU
         await this.gpuSystem.deploy(
             'data:text/plain,',
             this.kernelId
         );
 
-        // For RTS textures, we'd need to extract pixel data to memory
-        // This is a placeholder for full implementation
-        console.log(`✅ RTS kernel loaded: ${kernelInfo.size} bytes`);
+        // Write extracted kernel data to memory at 0x00000000
+        const kernel = this.gpuSystem.kernels.get(this.kernelId);
+        this.kernelLoader.writeToMemory(kernel.memoryBuffer, kernelInfo.data, 0);
+
+        // Initialize input handler
+        if (this.display && this.display.canvas) {
+            this.inputHandler = new WGPUInputHandler(
+                this.display.canvas,
+                this.device,
+                kernel.memoryBuffer,
+                this.kernelId
+            );
+        }
+
+        // Setup DTB
+        await this.setupDTB();
+
+        // Setup syscall handler
+        this._setupSyscallBridge();
+
+        // Cache initial state
+        this.cachedState = await this.gpuSystem.readState(this.kernelId);
+
+        console.log(`✅ RTS kernel loaded into GPU heap: ${kernelInfo.size} bytes`);
+    }
+
+    /**
+     * Get DTB information for verification
+     */
+    async getDTBInfo() {
+        const kernel = this.gpuSystem.kernels.get(this.kernelId);
+        if (!kernel) return null;
+
+        // Read DTB header (40 bytes) from memory
+        const headerData = await this.gpuSystem.readMemory(this.kernelId, this.options.dtbAddr, 40);
+        if (!headerData) return null;
+
+        const view = new DataView(headerData.buffer);
+        return {
+            magic: view.getUint32(0),
+            size: view.getUint32(4),
+            version: view.getUint32(20),
+            address: this.options.dtbAddr
+        };
+    }
+
+    /**
+     * Setup Device Tree Blob
+     */
+    async setupDTB() {
+        console.log('🌳 Generating Device Tree Blob...');
+        const dtbData = this.dtbGenerator.generate();
+        
+        const kernel = this.gpuSystem.kernels.get(this.kernelId);
+        if (!kernel) return;
+
+        // Write DTB to memory
+        this.device.queue.writeBuffer(kernel.memoryBuffer, this.options.dtbAddr, dtbData);
+
+        // Set a1 register to DTB address (RISC-V boot protocol)
+        // a1 is register x11
+        const a1Data = new Uint32Array([this.options.dtbAddr]);
+        this.device.queue.writeBuffer(kernel.stateBuffer, 11 * 4, a1Data);
+
+        console.log(`✅ DTB deployed at 0x${this.options.dtbAddr.toString(16)} (a1 set)`);
+    }
+
+    /**
+     * Setup the syscall bridge between GPU and JS
+     * @private
+     */
+    _setupSyscallBridge() {
+        this.gpuSystem.handleSyscall = async (num, args) => {
+            if (num === 64) { // sys_write
+                const fd = args[0];
+                const buf = args[1];
+                const count = args[2];
+                
+                if (fd === 1 || fd === 2) { // stdout/stderr
+                    const data = await this.gpuSystem.readMemory(this.kernelId, buf, count);
+                    const text = new TextDecoder().decode(data);
+                    if (this.onConsoleOutput) {
+                        for (const char of text) {
+                            this.onConsoleOutput(char);
+                        }
+                    }
+                }
+            } else if (num === 93) { // sys_exit
+                console.log(`[Hypervisor] Kernel exited with code ${args[0]}`);
+                this.stop();
+            }
+        };
     }
 
     /**
@@ -119,8 +233,115 @@ export class WGPULinuxHypervisor {
      */
     async tick(cycles = 1) {
         await this.gpuSystem.tick(this.kernelId, cycles);
+
+        // Check for syscalls triggered in this batch
+        if (this.gpuSystem._checkSyscalls) {
+            await this.gpuSystem._checkSyscalls(this.kernelId);
+        }
+
+        // Check for SBI calls
+        await this._checkSBICalls();
+
+        // Check for UART output
+        await this._checkUART();
+
         // Update cached state after tick
         this.cachedState = await this.gpuSystem.readState(this.kernelId);
+    }
+
+    /**
+     * Check for new UART characters in GPU memory
+     * @private
+     */
+    async _checkUART() {
+        const UART_FIFO_BASE = 0x05000400;
+        const UART_FIFO_PTR = 0x050004FC;
+
+        // 1. Read the counter (head)
+        const headData = await this.gpuSystem.readMemory(this.kernelId, UART_FIFO_PTR, 4);
+        if (!headData) return;
+
+        const head = new Uint32Array(headData.buffer)[0];
+
+        if (head > this.lastUartHead) {
+            const count = head - this.lastUartHead;
+
+            // 2. Read the buffer (max 256 chars)
+            const bufData = await this.gpuSystem.readMemory(this.kernelId, UART_FIFO_BASE, 256);
+            if (!bufData) return;
+
+            let output = '';
+            for (let i = 0; i < Math.min(count, 256); i++) {
+                const idx = (this.lastUartHead + i) % 256;
+                output += String.fromCharCode(bufData[idx]);
+            }
+
+            if (this.onConsoleOutput && output) {
+                this.onConsoleOutput(output);
+            }
+
+            this.lastUartHead = head;
+        }
+    }
+
+    /**
+     * Check for SBI calls from GPU
+     * @private
+     */
+    async _checkSBICalls() {
+        const SBI_BRIDGE_FLAG = 0x05010000;
+
+        // Read the flag
+        const flagData = await this.gpuSystem.readMemory(this.kernelId, SBI_BRIDGE_FLAG, 4);
+        if (!flagData) return;
+
+        const flag = new Uint32Array(flagData.buffer)[0];
+        if (flag === 0) return; // No SBI call pending
+
+        // Read the SBI request
+        const reqData = await this.gpuSystem.readMemory(this.kernelId, SBI_BRIDGE_FLAG, 40);
+        const view = new DataView(reqData.buffer);
+
+        const eid = view.getUint32(4, true);
+        const fid = view.getUint32(8, true);
+        const args = [
+            view.getUint32(12, true),
+            view.getUint32(16, true),
+            view.getUint32(20, true),
+            view.getUint32(24, true),
+            view.getUint32(28, true),
+            view.getUint32(32, true)
+        ];
+
+        console.log(`[Hypervisor] SBI call: EID=0x${eid.toString(16)}, FID=0x${fid.toString(16)}`);
+
+        // Handle the call
+        const [error, value] = this.sbiHandler.handle(eid, fid, args);
+
+        // Write return values
+        const retData = new Uint32Array([error >>> 0, value]);
+        const kernel = this.gpuSystem.kernels.get(this.kernelId);
+        if (kernel) {
+            this.device.queue.writeBuffer(kernel.memoryBuffer, 0x05010024, retData);
+        }
+
+        // Clear flag
+        const clearFlag = new Uint32Array([0]);
+        if (kernel) {
+            this.device.queue.writeBuffer(kernel.memoryBuffer, SBI_BRIDGE_FLAG, clearFlag);
+        }
+
+        // Resume execution by updating PC from SEPC
+        const state = await this.gpuSystem.readState(this.kernelId);
+        if (state && state.sepc) {
+            // Set return values in a0/a1
+            const retRegs = new Uint32Array([error >>> 0, value]);
+            this.device.queue.writeBuffer(kernel.stateBuffer, 10 * 4, retRegs);
+
+            // Clear SCAUSE to indicate handled
+            const clearCause = new Uint32Array([0]);
+            this.device.queue.writeBuffer(kernel.stateBuffer, 41 * 4, clearCause);
+        }
     }
 
     /**
@@ -200,19 +421,34 @@ export class WGPULinuxHypervisor {
      * Setup MMU page tables (identity map first 16MB)
      */
     async setupMMU() {
-        // Create identity page tables at 0x03000000
+        // Create identity page tables at 0x03000000 (48MB offset)
         // Map VA 0x00000000-0x00FFFFFF -> PA 0x00000000-0x00FFFFFF
-        // This is a simplified setup for kernel running
-
+        
         const kernel = this.gpuSystem.kernels.get(this.kernelId);
         if (!kernel) return;
 
+        const PT_ADDR = 0x03000000;
+        
+        // Sv32 Level 1 Page Table (Root)
+        // Each entry maps 4MB. We need 4 entries for 16MB.
+        const l1Table = new Uint32Array(1024); // 4KB table
+        
+        for (let i = 0; i < 4; i++) {
+            const ppn = (i * 0x400000) >> 12;
+            // PTE format: [PPN:22][RSW:2][D:1][A:1][G:1][U:1][X:1][W:1][R:1][V:1]
+            // V=1, R=1, W=1, X=1 (Leaf, Read/Write/Execute)
+            l1Table[i] = (ppn << 10) | 0xCF; 
+        }
+
+        // Write page table to GPU memory
+        this.device.queue.writeBuffer(kernel.memoryBuffer, PT_ADDR, l1Table);
+
         // Set satp to point to page tables (enable Sv32)
-        const satp = (1 << 31) | (0x03000000 >> 12); // Mode=1, PPN=page table address
+        const satp = (1 << 31) | (PT_ADDR >> 12); // Mode=1 (Sv32), PPN=PT_ADDR
         const satpData = new Uint32Array([satp]);
         this.device.queue.writeBuffer(kernel.stateBuffer, 34 * 4, satpData); // CSR_SATP
 
-        console.log('✅ MMU enabled');
+        console.log(`✅ MMU enabled (Sv32) with root PT at 0x${PT_ADDR.toString(16)}`);
     }
 
     /**
