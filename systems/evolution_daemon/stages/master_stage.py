@@ -34,15 +34,17 @@ class VisualCapabilityProposal:
 class MasterStage:
     """
     Main controller for the Master Stage of evolution.
-    
+
     In the Master Stage, the AI doesn't just verify external changes;
     it proposes and applies changes to its own visual perception and
     rendering systems.
     """
-    
+
     def __init__(self, evolution_daemon=None):
         self.daemon = evolution_daemon
         self.active_proposals: List[VisualCapabilityProposal] = []
+        # Required safety functions for shader validation
+        self._required_shader_functions = ["trap_enter", "trap_ret", "check_timer_interrupt"]
         
     async def propose_capability_upgrade(
         self, 
@@ -111,3 +113,82 @@ class MasterStage:
         logger.info(f"🪞 Master Stage: Mirror validating {proposal.capability_id}")
         # Logic to run benchmarks would go here
         return True
+
+    async def propose_from_tectonic_result(self, tectonic_result) -> Optional['VisualCapabilityProposal']:
+        """
+        Create a VisualCapabilityProposal from a TectonicShiftResult.
+
+        Args:
+            tectonic_result: TectonicShiftResult from TectonicStage optimization
+
+        Returns:
+            VisualCapabilityProposal if valid, None otherwise
+        """
+        if not tectonic_result.success:
+            logger.warning("Cannot create proposal from failed tectonic shift")
+            return None
+
+        if not tectonic_result.best_shader_code:
+            logger.warning("No shader code in tectonic result")
+            return None
+
+        if not self.validate_shader_safety(tectonic_result.best_shader_code):
+            logger.error("Tectonic shader failed safety validation")
+            return None
+
+        proposal = await self.propose_capability_upgrade(
+            capability_type=CapabilityType.SHADER_PARAMETER,
+            description=f"Tectonic optimization: +{tectonic_result.improvement_pct*100:.1f}% IPC",
+            target_file="systems/visual_shell/web/shaders/visual_cpu_riscv.wgsl",
+            new_code=tectonic_result.best_shader_code,
+            verification_intent=self._create_ipc_verification_intent(tectonic_result)
+        )
+
+        logger.info(f"🧬 Master: Created shader proposal from {tectonic_result.best_mutation_id}")
+        return proposal
+
+    def validate_shader_safety(self, shader_code: str) -> bool:
+        """
+        Validate shader code for safety before applying.
+
+        Checks for required safety functions that ensure proper hypervisor
+        interrupt handling and trap management.
+
+        Args:
+            shader_code: WGSL shader code to validate
+
+        Returns:
+            True if shader is safe, False otherwise
+        """
+        for func in self._required_shader_functions:
+            # Check for either function definition (fn trap_enter) or call (trap_enter()
+            has_definition = f"fn {func}" in shader_code
+            has_call = f"{func}(" in shader_code
+            if not has_definition and not has_call:
+                logger.warning(f"Safety check failed: missing required function '{func}'")
+                return False
+        return True
+
+    def _create_ipc_verification_intent(self, tectonic_result) -> 'VisualIntent':
+        """
+        Create a VisualIntent to verify the shader upgrade worked.
+
+        Args:
+            tectonic_result: TectonicShiftResult with expected performance
+
+        Returns:
+            VisualIntent for post-upgrade verification
+        """
+        return VisualIntent(
+            element_type="performance_metric",
+            position=(0, 0),
+            size=(0, 0),
+            properties={
+                "intent_type": "performance_verified",
+                "description": f"Verify IPC >= {tectonic_result.final_ipc:.4f}",
+                "target_selector": "hypervisor",
+                "expected_state": {"ipc": tectonic_result.final_ipc},
+                "baseline_ipc": tectonic_result.baseline_ipc,
+                "improvement_pct": tectonic_result.improvement_pct
+            }
+        )
