@@ -48,6 +48,11 @@ const MMIO_INPUT_X: u32 = 12u;       // Offset from base
 const MMIO_INPUT_Y: u32 = 16u;       // Offset from base
 const MMIO_INPUT_FLAGS: u32 = 20u;   // Offset from base
 
+// --- UART REGION (Offset 80MB) ---
+const UART_BASE: u32 = 0x05000000u;
+const UART_FIFO_BASE: u32 = 0x05000400u;
+const UART_FIFO_PTR: u32 = 0x050004FCu; // Counter for writes
+
 // Input types
 const INPUT_TYPE_NONE: u32 = 0u;
 const INPUT_TYPE_KEYBOARD: u32 = 1u;
@@ -57,6 +62,20 @@ const INPUT_TYPE_TOUCH: u32 = 3u;
 // Input flags
 const INPUT_FLAG_PRESSED: u32 = 1u;
 const INPUT_FLAG_RELEASED: u32 = 2u;
+
+// --- SBI CONSTANTS ---
+const SBI_EID_TIMER: u32 = 0x00u;
+const SBI_EID_CONSOLE: u32 = 0x01u;
+const SBI_EID_SRST: u32 = 0x08u;
+const SBI_EID_BASE: u32 = 0x10u;
+
+// SBI memory region for JS bridge
+const SBI_BRIDGE_ADDR: u32 = 0x05010000u; // After UART FIFO
+const SBI_BRIDGE_FLAG: u32 = 0x05010000u; // Flag to signal JS
+const SBI_BRIDGE_EID: u32 = 0x05010004u;
+const SBI_BRIDGE_FID: u32 = 0x05010008u;
+const SBI_BRIDGE_ARGS: u32 = 0x0501000Cu; // 6 args = 24 bytes
+const SBI_BRIDGE_RET: u32 = 0x05010024u; // 2 returns = 8 bytes
 
 // --- DECODING HELPERS ---
 fn get_opcode(inst: u32) -> u32 { return inst & 0x7Fu; }
@@ -192,8 +211,8 @@ fn translate_address(vaddr: u32, is_write: u32, base_idx: u32) -> u32 {
     let ppn_root = satp & 0x3FFFFFu;
     let pte1_addr = (ppn_root * 4096u) + (vpn1 * 4u);
 
-    // Check bounds (64MB memory limit)
-    if (pte1_addr >= 67108864u) {
+    // Check bounds (128MB memory limit)
+    if (pte1_addr >= 134217728u) {
         return 0xFFFFFFFFu; // Fault
     }
 
@@ -218,7 +237,7 @@ fn translate_address(vaddr: u32, is_write: u32, base_idx: u32) -> u32 {
     let ppn1_from_pte1 = (pte1 >> 10u) & 0x3FFFFFu;
     let pte0_addr = (ppn1_from_pte1 * 4096u) + (vpn0 * 4u);
 
-    if (pte0_addr >= 67108864u) {
+    if (pte0_addr >= 134217728u) {
         return 0xFFFFFFFFu;
     }
 
@@ -427,7 +446,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                  if (paddr == 0xFFFFFFFFu) {
                      // Page fault - trap to handler
                      pc = trap_enter(base_idx, CAUSE_LOAD_PAGE_FAULT, vaddr, pc);
-                 } else if (paddr < 67108864u) {
+                 } else if (paddr < 134217728u) {
                      // Assume word aligned for POC
                      let word_idx = paddr / 4u;
                      let loaded_val = system_memory[word_idx];
@@ -454,9 +473,18 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                  if (paddr == 0xFFFFFFFFu) {
                      // Page fault - trap to handler
                      pc = trap_enter(base_idx, CAUSE_STORE_PAGE_FAULT, vaddr, pc);
-                 } else if (paddr < 67108864u) {
+                 } else if (paddr < 134217728u) {
                      let word_idx = paddr / 4u;
                      system_memory[word_idx] = val2;
+
+                     // UART INTERCEPT
+                     if (paddr == UART_BASE) {
+                         let char_byte = val2 & 0xFFu;
+                         let head = system_memory[UART_FIFO_PTR / 4u];
+                         let fifo_idx = (UART_FIFO_BASE / 4u) + (head % 256u);
+                         system_memory[fifo_idx] = char_byte;
+                         system_memory[UART_FIFO_PTR / 4u] = head + 1u;
+                     }
                  }
             }
         }
@@ -471,10 +499,28 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                 // ECALL/EBREAK
                 let imm = inst >> 20u;
                 if (imm == 0u) {
-                    // ECALL - system call
+                    // ECALL - Check if this is an SBI call
+                    // SBI uses: a7 (x17) = EID, a6 (x16) = FID, a0-a5 = args
+                    let eid = cpu_states[base_idx + 17u]; // a7
+                    let fid = cpu_states[base_idx + 16u]; // a6
+
+                    // Write SBI request to bridge region
+                    system_memory[SBI_BRIDGE_EID / 4u] = eid;
+                    system_memory[SBI_BRIDGE_FID / 4u] = fid;
+                    system_memory[(SBI_BRIDGE_ARGS + 0u) / 4u] = cpu_states[base_idx + 10u]; // a0
+                    system_memory[(SBI_BRIDGE_ARGS + 4u) / 4u] = cpu_states[base_idx + 11u]; // a1
+                    system_memory[(SBI_BRIDGE_ARGS + 8u) / 4u] = cpu_states[base_idx + 12u]; // a2
+                    system_memory[(SBI_BRIDGE_ARGS + 12u) / 4u] = cpu_states[base_idx + 13u]; // a3
+                    system_memory[(SBI_BRIDGE_ARGS + 16u) / 4u] = cpu_states[base_idx + 14u]; // a4
+                    system_memory[(SBI_BRIDGE_ARGS + 20u) / 4u] = cpu_states[base_idx + 15u]; // a5
+
+                    // Set flag to signal JS bridge
+                    system_memory[SBI_BRIDGE_FLAG / 4u] = 1u;
+
+                    // Set SCAUSE to indicate SBI trap (use ECALL_S code)
                     let current_mode = cpu_states[base_idx + CSR_MODE];
                     let cause = select(CAUSE_ECALL_S, CAUSE_ECALL_U, current_mode == 0u);
-                    pc = trap_enter(base_idx, cause, 0u, pc);
+                    pc = trap_enter(base_idx, cause, eid, pc); // Pass EID as tval
                 } else if (imm == 1u) {
                     // EBREAK - breakpoint
                     pc = trap_enter(base_idx, CAUSE_BREAKPOINT, pc, pc);
