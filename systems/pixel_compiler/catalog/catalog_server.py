@@ -13,6 +13,7 @@ Provides:
 
 import logging
 import threading
+import sys
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
@@ -21,9 +22,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
-from .catalog_scanner import CatalogScanner, CatalogEntry
-from .thumbnail_cache import ThumbnailCache
-from .spatial_layout import SpatialLayoutManager, SpatialPosition
+# Handle both package and direct script imports
+try:
+    from .catalog_scanner import CatalogScanner, CatalogEntry
+    from .thumbnail_cache import ThumbnailCache
+    from .spatial_layout import SpatialLayoutManager, SpatialPosition
+except ImportError:
+    # When run directly as a script
+    from catalog_scanner import CatalogScanner, CatalogEntry
+    from thumbnail_cache import ThumbnailCache
+    from spatial_layout import SpatialLayoutManager, SpatialPosition
 
 
 logger = logging.getLogger(__name__)
