@@ -8,7 +8,7 @@ similar to how living organisms regulate metabolism.
 """
 
 import psutil
-from typing import Optional
+from typing import Optional, List
 
 from systems.evolution_daemon.safety.data_structures import (
     ThrottleLevel,
@@ -38,9 +38,26 @@ class MetabolismMonitor:
     GPU_MODERATE_THRESHOLD = 60.0
     GPU_AGGRESSIVE_THRESHOLD = 80.0
 
-    def __init__(self):
-        """Initialize the metabolism monitor."""
+    def __init__(
+        self,
+        baseline_ipc: Optional[float] = None,
+        degradation_threshold: Optional[float] = None
+    ):
+        """
+        Initialize the metabolism monitor.
+
+        Args:
+            baseline_ipc: Expected baseline IPC for substrate (default: 0.5)
+            degradation_threshold: Fraction of degradation that triggers alert (default: 0.10)
+        """
         self._last_state: Optional[MetabolismState] = None
+
+        # V15: Tectonic substrate IPC tracking
+        self.substrate_ipc_history: List[float] = []
+        self.baseline_ipc: float = baseline_ipc if baseline_ipc is not None else 0.5
+        self.degradation_threshold: float = (
+            degradation_threshold if degradation_threshold is not None else 0.10
+        )
 
     def check(self) -> MetabolismState:
         """
@@ -166,3 +183,33 @@ class MetabolismMonitor:
         }
 
         return delays.get(self._last_state.throttle_level, 100)
+
+    # V15: Tectonic substrate IPC tracking methods
+
+    def record_ipc(self, ipc: float) -> None:
+        """
+        Record a substrate IPC measurement.
+
+        Args:
+            ipc: Instructions per cycle measurement (0.0 to 1.0+)
+        """
+        self.substrate_ipc_history.append(ipc)
+        # Keep history limited to prevent unbounded growth
+        if len(self.substrate_ipc_history) > 100:
+            self.substrate_ipc_history.pop(0)
+
+    def is_ipc_degraded(self, current_ipc: float) -> bool:
+        """
+        Check if current IPC is degraded beyond threshold.
+
+        Args:
+            current_ipc: Current IPC measurement
+
+        Returns:
+            True if IPC is degraded beyond threshold, False otherwise
+        """
+        if self.baseline_ipc == 0:
+            return False
+
+        degradation = (self.baseline_ipc - current_ipc) / self.baseline_ipc
+        return degradation > self.degradation_threshold
