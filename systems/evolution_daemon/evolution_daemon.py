@@ -67,6 +67,12 @@ from systems.evolution_daemon.safety.tier_router import TierRouter
 from systems.evolution_daemon.safety.git_integration import GitIntegration
 from systems.evolution_daemon.safety.post_commit_monitor import PostCommitMonitor, EvolutionRecovery
 
+# V12 Journeyman Stage - Visual Verification
+from systems.evolution_daemon.visual_verification_service import (
+    VisualVerificationService, VisualIntent, VerificationResult,
+    CriticalityLevel, SpatialRelation
+)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -229,6 +235,9 @@ class EvolutionTask:
     result: Optional[str] = None
     changes_made: List[str] = field(default_factory=list)
     visual_verification: Optional[str] = None  # Screenshot/data for visual check
+    # V12 Journeyman Stage - Visual Intent for self-verification
+    visual_intent: Optional['VisualIntent'] = None
+    visual_attempt: int = 0  # Track retry attempts for visual verification
 
 
 @dataclass
@@ -345,6 +354,9 @@ class EvolutionDaemon:
         self.git = GitIntegration(repo_path=".")
         self.monitor = None  # Initialized after webmcp connects
         self.recovery = None  # Initialized after git and guardian
+
+        # V12 Journeyman Stage - Visual Self-Verification
+        self.visual_verification = VisualVerificationService()
 
         # Register tool callbacks for Z.ai function calling
         self._register_tools()
@@ -710,15 +722,51 @@ class EvolutionDaemon:
             logger.info(f"✅ Committed: {commit_sha[:8]}")
             await self.visual_log(f"Committed: {commit_sha[:8]}", "success")
 
-            # 6. MONITOR - Post-commit health checks
-            logger.info(f"🔍 Phase 6: Post-commit monitoring (Tier {tier})...")
+            # 6. VISUAL VERIFY - Journeyman Stage visual self-verification
+            if task.visual_intent:
+                logger.info("👁️ Phase 6: Visual verification...")
+                await self.visual_log("Verifying visual changes...", "info")
+
+                # Get current visual state from mirror neuron
+                scene = await self._get_visual_scene()
+                task.visual_attempt += 1
+
+                verification_result = await self.visual_verification.verify(
+                    task.visual_intent, scene, task.visual_attempt
+                )
+
+                if verification_result.should_escalate:
+                    logger.warning(f"🚨 Visual verification needs human review: {verification_result.summary}")
+                    await self.visual_log("Visual: HUMAN REVIEW needed", "warning")
+                    task.status = "awaiting_visual_review"
+                    task.result = f"Visual verification requires human review: {verification_result.summary}"
+                    return True  # Committed but needs review
+
+                if verification_result.should_retry and task.visual_attempt < 5:
+                    logger.info(f"🔄 Visual verification suggests retry: {verification_result.retry_suggestions[:2]}")
+                    await self.visual_log(f"Visual: retry suggested", "info")
+                    # Could implement auto-retry here in future iterations
+
+                if not verification_result.success:
+                    logger.warning(f"⚠️ Visual verification failed: {verification_result.summary}")
+                    await self.visual_log("Visual verification FAILED", "warning")
+                    # Log but continue - visual issues don't block evolution
+                    task.result = f"Visual verification issues: {verification_result.summary}"
+                else:
+                    logger.info(f"✅ Visual verification passed (confidence: {verification_result.overall_confidence:.2f})")
+                    await self.visual_log(f"Visual verified ({verification_result.overall_confidence:.0%})", "success")
+            else:
+                logger.info("⏭️ Phase 6: Skipping visual verification (no intent provided)")
+
+            # 7. MONITOR - Post-commit health checks
+            logger.info(f"🔍 Phase 7: Post-commit monitoring (Tier {tier})...")
             await self.visual_log("Running post-commit checks...", "info")
 
             # Capture baseline before monitoring
             await self.monitor.capture_baseline()
             result = await self.monitor.monitor(commit_sha, tier)
 
-            # 7. RECOVER - Handle if unhealthy
+            # 8. RECOVER - Handle if unhealthy
             if not result.healthy:
                 logger.warning(f"🚨 Regression detected: {result.issues}")
                 await self.visual_log("REGRESSION detected!", "error")
@@ -790,6 +838,27 @@ class EvolutionDaemon:
         )
 
         return proposal
+
+    async def _get_visual_scene(self) -> dict:
+        """
+        Get current visual state from the mirror neuron system.
+
+        Returns a scene dict with children elements for visual verification.
+        Falls back to empty scene if WebMCP not connected.
+        """
+        if not self.webmcp or not self.visual_connected:
+            logger.debug("Visual system not connected, returning empty scene")
+            return {"children": []}
+
+        try:
+            # Request visual state from PixiJS via WebMCP
+            state = await self.webmcp.get_visual_state()
+            if state and "children" in state:
+                return state
+            return {"children": []}
+        except Exception as e:
+            logger.warning(f"Failed to get visual scene: {e}")
+            return {"children": []}
 
     async def evolve(self, task: EvolutionTask) -> bool:
         """

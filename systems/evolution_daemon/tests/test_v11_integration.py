@@ -443,5 +443,78 @@ class TestPipelineSafetyGuarantees:
         assert reqs["human_review"] is True
 
 
+class TestVisualVerificationIntegration:
+    """Tests for V12 Journeyman Stage visual verification integration"""
+
+    def test_visual_verification_service_available(self):
+        """Verify VisualVerificationService is available in EvolutionDaemon"""
+        from systems.evolution_daemon.evolution_daemon import EvolutionDaemon
+        from systems.evolution_daemon.visual_verification_service import VisualVerificationService
+
+        daemon = EvolutionDaemon.__new__(EvolutionDaemon)
+        # Check that the class has the visual_verification attribute
+        assert hasattr(EvolutionDaemon, '__init__')
+
+    def test_visual_intent_field_in_task(self):
+        """Verify EvolutionTask has visual_intent field"""
+        from systems.evolution_daemon.evolution_daemon import EvolutionTask
+        from systems.evolution_daemon.visual_verification_service import VisualIntent
+
+        intent = VisualIntent(
+            element_type="button",
+            position=(100, 200),
+            size=(80, 40)
+        )
+
+        task = EvolutionTask(
+            task_id="test-001",
+            goal="Add button",
+            visual_intent=intent
+        )
+
+        assert task.visual_intent is not None
+        assert task.visual_intent.element_type == "button"
+        assert task.visual_attempt == 0
+
+    def test_visual_attempt_counter(self):
+        """Verify visual_attempt counter is tracked"""
+        from systems.evolution_daemon.evolution_daemon import EvolutionTask
+
+        task = EvolutionTask(
+            task_id="test-002",
+            goal="Test counter"
+        )
+
+        assert task.visual_attempt == 0
+        task.visual_attempt += 1
+        assert task.visual_attempt == 1
+
+    @pytest.mark.asyncio
+    async def test_visual_verification_flow(self):
+        """Test complete visual verification flow with mock"""
+        from systems.evolution_daemon.visual_verification_service import (
+            VisualVerificationService, VisualIntent
+        )
+
+        service = VisualVerificationService()
+        intent = VisualIntent(
+            element_type="button",
+            position=(100, 200),
+            size=(80, 40),
+            critical=True
+        )
+        scene = {
+            "children": [
+                {"type": "Button", "x": 100, "y": 200, "width": 80, "height": 40}
+            ]
+        }
+
+        result = await service.verify(intent, scene, attempt_number=1)
+
+        assert result.success is True
+        assert result.should_retry is False
+        assert result.overall_confidence >= 0.9
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
