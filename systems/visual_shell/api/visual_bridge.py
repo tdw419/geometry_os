@@ -19,6 +19,7 @@ Port: 8768 (WebSocket)
 import asyncio
 import json
 import os
+import sys
 import socket
 import time
 import websockets
@@ -27,6 +28,9 @@ import numpy as np
 import argparse
 from pathlib import Path
 from typing import Dict, Any, Optional, List
+
+# Add project root to path for imports
+sys.path.insert(0, os.getcwd())
 
 # Import SynapticQueryEngine for semantic search
 from systems.neural_city.synaptic_query_engine import SynapticQueryEngine
@@ -249,6 +253,38 @@ class VisualBridge:
                     })
                     # Trigger ASCII file refresh
                     await self.broadcast_ascii_file("evolution_pas.ascii")
+
+                # 15a. Mutation Batch Events (Evolution Daemon)
+                elif msg_type == 'mutation_batch':
+                    # Broadcast mutation batch to all clients for visualization
+                    mutations = data.get('mutations', [])
+                    generation = data.get('generation', 0)
+                    print(f"🧬 Mutation Batch: {len(mutations)} mutations in generation {generation}")
+                    await self._broadcast({
+                        "type": "WEIGHT_MUTATION_BATCH",
+                        "data": {
+                            "mutations": mutations,
+                            "generation": generation,
+                            "timestamp": data.get('timestamp', time.time() * 1000)
+                        }
+                    })
+
+                # 15b. District Upgrade Events (Neural City)
+                elif msg_type == 'district_upgrade':
+                    # Broadcast district upgrade with animation data
+                    district_id = data.get('district_id')
+                    upgrade_type = data.get('upgrade_type', 'capacity')
+                    animation_data = data.get('animation', {})
+                    print(f"🏙️ District Upgrade: {district_id} ({upgrade_type})")
+                    await self._broadcast({
+                        "type": "DISTRICT_UPGRADE",
+                        "data": {
+                            "district_id": district_id,
+                            "upgrade_type": upgrade_type,
+                            "animation": animation_data,
+                            "timestamp": data.get('timestamp', time.time() * 1000)
+                        }
+                    })
 
                 # 15. Tectonic Pulse Events (Phase 28: Spatial Tectonics)
                 elif msg_type == 'tectonic_pulse':
