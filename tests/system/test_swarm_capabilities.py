@@ -298,3 +298,58 @@ class TestSwarmSecurity:
         assert await audit.verify_integrity() is True
         events = await audit.get_events(event_type="test_event")
         assert len(events) == 1
+
+# === Multi-Node Distribution Tests ===
+
+from systems.visual_shell.swarm.node_registry import NodeRegistry
+from systems.visual_shell.swarm.distributed_coordinator import DistributedCoordinator
+from systems.visual_shell.swarm.node_health_monitor import NodeHealthMonitor
+from systems.visual_shell.swarm.task_migrator import TaskMigrator
+
+class TestSwarmDistribution:
+    """Distribution capability tests for the swarm."""
+
+    @pytest.mark.asyncio
+    async def test_distribution_node_discovery(self):
+        """Verify nodes can discover each other via registry."""
+        registry = NodeRegistry()
+        await registry.register_node("node-1", {"url": "ws://node-1"})
+        await registry.register_node("node-2", {"url": "ws://node-2"})
+        
+        status = registry.get_cluster_status()
+        assert status["total_nodes"] == 2
+        assert "node-1" in status["nodes"]
+        assert "node-2" in status["nodes"]
+
+    @pytest.mark.asyncio
+    async def test_distribution_load_balancing(self):
+        """Verify tasks are load balanced across nodes."""
+        registry = NodeRegistry()
+        await registry.register_node("node-1", {"load": 10})
+        await registry.register_node("node-2", {"load": 5})
+        
+        coord = DistributedCoordinator(node_id="leader", registry=registry)
+        task_id = await coord.submit_task("task", {})
+        
+        target = coord.select_target_node(task_id)
+        assert target == "node-2" # Lower load
+
+    @pytest.mark.asyncio
+    async def test_distribution_failover(self):
+        """Verify tasks are migrated on node failure."""
+        registry = NodeRegistry(heartbeat_timeout=1)
+        coord = DistributedCoordinator(node_id="leader", registry=registry)
+        migrator = TaskMigrator(coordinator=coord, registry=registry)
+        
+        await registry.register_node("node-1", {})
+        task_id = await coord.submit_task("task", {})
+        coord.task_node_assignments[task_id] = "node-1"
+        coord.active_tasks[task_id].status = "assigned"
+        
+        # Simulate failure
+        await registry.unregister_node("node-1")
+        
+        # Migrate
+        await migrator.migrate_orphans()
+        
+        assert coord.active_tasks[task_id].status == "pending"
