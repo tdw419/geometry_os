@@ -1,0 +1,10 @@
+{
+  "format": "rts_raw_riscv",
+  "version": "1.0",
+  "entry_point": "0x80000000",
+  "grid_size": 16,
+  "hilbert_order": 4,
+  "code_size": 356,
+  "num_words": 89,
+  "architecture": "riscv32"
+}

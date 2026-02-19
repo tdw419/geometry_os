@@ -584,6 +584,28 @@ class EvolutionDaemon:
         except Exception as e:
             logger.warning(f"Failed to broadcast tectonic shift: {e}")
 
+    async def broadcast_metabolism_telemetry(self):
+        """Broadcast metabolism telemetry for Neural City visualization."""
+        if not self.visual_connected:
+            return
+
+        try:
+            # Gather metabolism data
+            metabolism_state = {
+                "ipc": self.tectonic_stage.baseline_ipc if self.tectonic_stage else 0.5,
+                "throttle_level": "NONE",
+                "timestamp": datetime.now().isoformat()
+            }
+
+            # Get from monitor if available
+            if self.monitor and self.monitor._last_state:
+                metabolism_state["throttle_level"] = self.monitor._last_state.throttle_level.value
+
+            await self.webmcp.broadcast_event('metabolism_update', metabolism_state)
+
+        except Exception as e:
+            logger.warning(f"Failed to broadcast metabolism telemetry: {e}")
+
     async def initialize(self):
         """Initialize the evolution daemon"""
         logger.info("=" * 50)
@@ -1187,6 +1209,10 @@ class EvolutionDaemon:
                     goal=suggestion[:200],
                     priority=7
                 )
+
+            # Broadcast metabolism telemetry for Neural City
+            elif iteration % 2 == 0:  # Every ~10 seconds
+                await self.broadcast_metabolism_telemetry()
 
             await asyncio.sleep(5)
 
