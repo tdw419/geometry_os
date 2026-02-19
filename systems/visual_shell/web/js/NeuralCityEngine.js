@@ -552,6 +552,27 @@ class NeuralCityEngine {
         buildingContainer.addChild(border);
         buildingContainer.addChild(glow);
 
+        // Add stability bar ABOVE building
+        const barWidth = 30;
+        const barHeight = 4;
+        const barY = -building.height - 10; // 10px above building top
+
+        const stabilityBar = new PIXI.Graphics();
+        stabilityBar.name = `stability_${building.id}`;
+
+        // Background (dark)
+        stabilityBar.rect(-barWidth/2, barY, barWidth, barHeight);
+        stabilityBar.fill({ color: 0x333333 });
+
+        // Fill (colored by PAS)
+        const pas = building.stability?.pas ?? 1.0; // Default to stable if not set
+        const fillWidth = barWidth * pas;
+        stabilityBar.rect(-barWidth/2, barY, fillWidth, barHeight);
+        stabilityBar.fill({ color: this._getStabilityColor(pas) });
+
+        buildingContainer.addChild(stabilityBar);
+        building.stabilityBar = stabilityBar;
+
         // Enable click interaction for Glass Box introspection
         buildingContainer.eventMode = 'static';
         buildingContainer.cursor = 'pointer';
@@ -661,17 +682,51 @@ class NeuralCityEngine {
                 child.tint = color;
                 child.alpha = 0.8;
             } else if (child instanceof PIXI.Graphics) {
+                const name = child.name;
+
                 // Update border and glow
                 child.clear();
-                if (child.name === 'border') {
+                if (name === 'border') {
                     child.rect(-15, -building.height, 30, building.height);
                     child.stroke({ color: color, width: 2, alpha: 0.5 });
-                } else if (child.name === 'glow') {
+                } else if (name === 'glow') {
                     child.rect(-15, -building.height, 30, 5);
                     child.fill({ color: 0xffffff, alpha: building.luminance });
+                } else if (name && name.startsWith('stability_')) {
+                    // Update stability bar
+                    const barWidth = 30;
+                    const barHeight = 4;
+                    const barY = -building.height - 10;
+
+                    const pas = building.stability?.pas ?? 1.0;
+
+                    // Background (dark)
+                    child.rect(-barWidth/2, barY, barWidth, barHeight);
+                    child.fill({ color: 0x333333 });
+
+                    // Fill (colored by PAS)
+                    const fillWidth = barWidth * pas;
+                    child.rect(-barWidth/2, barY, fillWidth, barHeight);
+                    child.fill({ color: this._getStabilityColor(pas) });
+
+                    // Update reference
+                    building.stabilityBar = child;
                 }
             }
         });
+
+        // Apply visual glitch for critical state
+        if (building.stability && building.stability.state === 'critical' && buildingContainer) {
+            // Random pivot offset (glitch effect)
+            const glitchOffset = Math.random() * 5 - 2.5;
+            buildingContainer.pivot.x = glitchOffset;
+
+            // Reduce and flicker alpha
+            buildingContainer.alpha = 0.8 + Math.random() * 0.2;
+        } else if (buildingContainer) {
+            buildingContainer.pivot.x = 0;
+            buildingContainer.alpha = 1;
+        }
     }
 
     /**
@@ -783,6 +838,19 @@ class NeuralCityEngine {
         return colors[district] || 0xffffff;
     }
 
+    /**
+     * Get stability color based on PAS score.
+     * Green (0.7+) = Stable, Yellow (0.5-0.7) = Degraded, Red (<0.5) = Critical.
+     * @private
+     * @param {number} pas - PAS score (0-1)
+     * @returns {number} Hex color value
+     */
+    _getStabilityColor(pas) {
+        if (pas >= 0.7) return 0x00ff00;  // Green - Stable
+        if (pas >= 0.5) return 0xffff00;  // Yellow - Degraded
+        return 0xff0000;                   // Red - Critical
+    }
+
     // =====================================================
     // Private Methods - Render Loop
     // =====================================================
@@ -804,6 +872,14 @@ class NeuralCityEngine {
 
             // Update saccadic eye-tracking
             this._updateSaccades(now);
+
+            // Apply tremor to critical buildings
+            this.orchestrator.getCriticalBuildings().forEach(building => {
+                if (building.graphics) {
+                    const tremor = Math.sin(now * 0.03) * 2; // 5Hz oscillation, ±2px
+                    building.graphics.x = building.position.x + tremor;
+                }
+            });
 
             requestAnimationFrame(update);
         };

@@ -1,15 +1,18 @@
 /**
- * AgentDataPanel - Four-section data display for Glass Box introspection.
+ * AgentDataPanel - Six-section data display for Glass Box introspection.
  *
- * Displays agent internal state across four sections:
+ * Displays agent internal state across six sections:
+ * - VCC Stability: PAS score with color-coded state indicator (stable/degraded/critical)
  * - Thought Stream: Scrolling log of agent decisions with timestamps and type coloring
  * - Intent Map: Current goal and planned trajectory with completion checkmarks
  * - Metabolic Pulse: IPC, memory, and activity metrics with progress bars
+ * - Substrate View: RTS texture preview of the agent's code
  * - Communication Log: Inbound/outbound messages with direction arrows
  */
 class AgentDataPanel {
     constructor() {
         this.data = {
+            stability: { pas: 1.0, state: 'stable' },
             thoughts: [],
             intent: { goal: '', steps: [] },
             metabolism: { ipc: 0, memory: { used: 0, total: 0 }, activity: 0 },
@@ -20,13 +23,17 @@ class AgentDataPanel {
     }
 
     /**
-     * Create the panel DOM element with 5 data sections.
+     * Create the panel DOM element with 6 data sections.
      * @private
      */
     _createElement() {
         const el = document.createElement('div');
         el.className = 'agent-data-panel';
         el.innerHTML = `
+            <div class="data-section" id="stability-section">
+                <h3>🔒 VCC Stability</h3>
+                <div class="stability-content"></div>
+            </div>
             <div class="data-section" id="thought-stream">
                 <h3>💭 Thought Stream <span class="live-indicator">Live</span></h3>
                 <div class="thought-log"></div>
@@ -65,6 +72,41 @@ class AgentDataPanel {
         } else {
             img.style.display = 'none';
         }
+    }
+
+    /**
+     * Update the VCC Stability display with PAS score and state.
+     * @param {Object} stability - Stability object with pas (0-1) and state ('stable'|'degraded'|'critical')
+     */
+    setStability(stability) {
+        this.data.stability = stability || { pas: 1.0, state: 'stable' };
+        const content = this.element.querySelector('.stability-content');
+
+        const stateColors = {
+            'stable': '#00ff00',
+            'degraded': '#ffff00',
+            'critical': '#ff0000'
+        };
+        const stateLabels = {
+            'stable': '✓ Stable',
+            'degraded': '⚠ Degraded',
+            'critical': '✕ CRITICAL'
+        };
+
+        const pas = this.data.stability.pas || 0;
+        const state = this.data.stability.state || 'stable';
+        const color = stateColors[state] || stateColors['stable'];
+
+        content.innerHTML = `
+            <div class="metric">
+                <label>PAS Score:</label>
+                <div class="bar"><div style="width:${pas * 100}%;background:${color}"></div></div>
+                <span class="value" style="color:${color}">${pas.toFixed(2)}</span>
+            </div>
+            <div class="stability-state" style="color:${color}">
+                ${stateLabels[state] || stateLabels['stable']}
+            </div>
+        `;
     }
 
     /**
@@ -188,6 +230,9 @@ class AgentDataPanel {
     setAllData(agentData) {
         if (!agentData) return;
 
+        if (agentData.stability !== undefined) {
+            this.setStability(agentData.stability);
+        }
         if (agentData.thoughts !== undefined) {
             this.setThoughts(agentData.thoughts);
         }

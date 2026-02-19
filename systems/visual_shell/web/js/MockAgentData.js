@@ -105,7 +105,8 @@ const MockAgentData = {
             thoughts: this._generateThoughts(hash, now),
             intent: this._generateIntent(hash),
             metabolism: this._generateMetabolism(hash),
-            communications: this._generateCommunications(hash, agentId)
+            communications: this._generateCommunications(hash, agentId),
+            pas: this.generatePAS(agentId)
         };
     },
 
@@ -206,6 +207,19 @@ const MockAgentData = {
         }
 
         return communications;
+    },
+
+    /**
+     * Generate PAS (Pixel Alignment Score) for an agent.
+     * Returns a value between 0.3 and 1.0 based on agent ID hash.
+     *
+     * @param {string} agentId - The agent identifier to generate PAS for
+     * @returns {number} PAS score between 0.3 and 1.0
+     */
+    generatePAS(agentId) {
+        const hash = this._hashString(agentId);
+        // Generate PAS between 0.3 and 1.0
+        return 0.3 + (hash % 70) / 100;
     },
 
     /**

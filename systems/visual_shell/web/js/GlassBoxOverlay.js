@@ -19,6 +19,7 @@ class GlassBoxOverlay {
         this.visible = false;
         this.currentAgent = null;
         this.onClose = null;
+        this.engine = config.engine || null;  // Reference to NeuralCityEngine for building data
 
         // Create overlay element
         this.element = this._createElement();
@@ -87,6 +88,15 @@ class GlassBoxOverlay {
         setTimeout(() => {
             document.addEventListener('click', this._boundOutsideClick);
         }, 100);
+
+        // Add stability from orchestrator if available
+        const agentId = this.currentAgent?.agentId;
+        if (this.engine?.orchestrator && agentId) {
+            const building = this.engine.orchestrator.getBuilding(agentId);
+            if (building?.stability) {
+                this.currentAgent.stability = building.stability;
+            }
+        }
 
         this._render();
     }

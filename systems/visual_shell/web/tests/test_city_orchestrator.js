@@ -38,3 +38,40 @@ describe('CityOrchestrator', () => {
         assert.ok(pulsed);
     });
 });
+
+describe('VCC Stability', () => {
+    it('should initialize building with stability score', () => {
+        const orch = new CityOrchestrator();
+        const building = orch.spawnBuilding('agent-01', 'cognitive', { memory: 100 });
+        assert.ok(building.stability !== undefined);
+        assert.ok(building.stability.pas >= 0 && building.stability.pas <= 1);
+    });
+
+    it('should update stability score', () => {
+        const orch = new CityOrchestrator();
+        orch.spawnBuilding('agent-01', 'cognitive', {});
+        orch.updateStability('agent-01', 0.45);
+        const building = orch.getBuilding('agent-01');
+        assert.equal(building.stability.pas, 0.45);
+    });
+
+    it('should classify stability states correctly', () => {
+        const orch = new CityOrchestrator();
+        assert.equal(orch._classifyStability(0.9), 'stable');
+        assert.equal(orch._classifyStability(0.6), 'degraded');
+        assert.equal(orch._classifyStability(0.3), 'critical');
+    });
+
+    it('should return critical buildings', () => {
+        const orch = new CityOrchestrator();
+        orch.spawnBuilding('agent-01', 'cognitive', {});
+        orch.spawnBuilding('agent-02', 'metabolic', {});
+        // Set first to critical
+        orch.updateStability('agent-01', 0.3);
+        // Set second to stable
+        orch.updateStability('agent-02', 0.9);
+        const critical = orch.getCriticalBuildings();
+        assert.equal(critical.length, 1);
+        assert.equal(critical[0].id, 'agent-01');
+    });
+});

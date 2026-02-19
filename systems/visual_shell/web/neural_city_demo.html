@@ -121,6 +121,28 @@
         .command-panel button { padding: 5px 10px; font-size: 11px; }
         .command-panel .btn-cancel { background: #666; }
         .command-panel .btn-cancel:hover { background: #444; }
+
+        /* VCC Critical State Styling */
+        .stability-alert {
+            position: fixed;
+            bottom: 60px;
+            left: 10px;
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1001;
+            display: none;
+        }
+        .stability-alert.visible {
+            display: block;
+            animation: alert-flash 1s ease-in-out infinite;
+        }
+        @keyframes alert-flash {
+            0%, 100% { background: rgba(255, 0, 0, 0.9); }
+            50% { background: rgba(255, 100, 0, 0.9); }
+        }
     </style>
 </head>
 <body>
@@ -146,6 +168,12 @@
         <button id="btn-saccade">Scan (Saccade)</button>
         <button id="btn-bridge">Create Bridge</button>
         <button id="btn-connect">Connect WS</button>
+    </div>
+
+    <!-- VCC Stability Alert HUD -->
+    <div id="stability-alert" class="stability-alert">
+        ⚠️ <span id="alert-agent">Agent</span>: PAS <span id="alert-pas">0.00</span>
+        <button onclick="this.parentElement.classList.remove('visible')">Dismiss</button>
     </div>
 
     <script src="https://pixijs.download/v8.1.0/pixi.min.js"></script>
@@ -256,6 +284,33 @@
                 btn.textContent = connected ? 'Connected' : 'Connect WS';
                 document.getElementById('status').textContent = connected ? 'Connected' : 'Disconnected';
             };
+
+            // Check for critical stability and show alert
+            setInterval(() => {
+                const critical = engine.orchestrator.getCriticalBuildings();
+                const alertEl = document.getElementById('stability-alert');
+
+                if (critical.length > 0) {
+                    const agent = critical[0];
+                    document.getElementById('alert-agent').textContent = agent.id;
+                    document.getElementById('alert-pas').textContent = agent.stability.pas.toFixed(2);
+                    alertEl.classList.add('visible');
+                    console.warn(`⚠️ VCC CRITICAL: ${agent.id} PAS=${agent.stability.pas.toFixed(2)}`);
+                } else {
+                    alertEl.classList.remove('visible');
+                }
+            }, 2000);
+
+            // Add periodic stability fluctuation for demo
+            setInterval(() => {
+                const buildings = Array.from(engine.orchestrator.buildings.values());
+                if (buildings.length > 0) {
+                    const random = buildings[Math.floor(Math.random() * buildings.length)];
+                    const newPas = 0.3 + Math.random() * 0.7; // Random 0.3-1.0
+                    engine.orchestrator.updateStability(random.id, newPas);
+                    engine._updateBuildingRender(random);
+                }
+            }, 5000);
         }).catch(err => {
             console.error('PixiJS init failed:', err);
             document.getElementById('status').textContent = 'Error: ' + err.message;

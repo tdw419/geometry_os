@@ -65,7 +65,12 @@ class CityOrchestrator {
             memory: metrics.memory || 100,
             luminance: 0.5,
             createdAt: Date.now(),
-            rtsPath: this._getRTSPath(agentId, role)
+            rtsPath: this._getRTSPath(agentId, role),
+            stability: {
+                pas: metrics.pas || 0.7,
+                state: 'stable',
+                lastUpdate: Date.now()
+            }
         };
 
         this.buildings.set(agentId, building);
@@ -266,6 +271,48 @@ class CityOrchestrator {
 
         console.log(`Agent ${agentId} evicted from the city`);
         return true;
+    }
+
+    /**
+     * Update building stability score.
+     * @param {string} agentId - The agent ID to update
+     * @param {number} pasScore - PAS score between 0 and 1
+     * @returns {Object|null} Updated building or null if not found
+     */
+    updateStability(agentId, pasScore) {
+        const building = this.buildings.get(agentId);
+        if (!building) return null;
+
+        building.stability.pas = pasScore;
+        building.stability.state = this._classifyStability(pasScore);
+        building.stability.lastUpdate = Date.now();
+
+        if (this.onBuildingUpdate) {
+            this.onBuildingUpdate(building);
+        }
+
+        return building;
+    }
+
+    /**
+     * Classify stability state from PAS score.
+     * @param {number} pas - PAS score between 0 and 1
+     * @returns {string} Stability state: 'stable', 'degraded', or 'critical'
+     * @private
+     */
+    _classifyStability(pas) {
+        if (pas >= 0.7) return 'stable';
+        if (pas >= 0.5) return 'degraded';
+        return 'critical';
+    }
+
+    /**
+     * Get all buildings with critical stability.
+     * @returns {Array} Array of critical buildings
+     */
+    getCriticalBuildings() {
+        return Array.from(this.buildings.values())
+            .filter(b => b.stability.state === 'critical');
     }
 
     // Private methods
