@@ -62,6 +62,18 @@ class VisualDebugOverlay {
             summary: null        // Latest DAG summary
         };
 
+        // District zones for agent relocation
+        this.districtZones = {
+            cognitive: { name: 'Cognitive', color: '#00aaff', y: 0, height: 0 },
+            metabolic: { name: 'Metabolic', color: '#44ff44', y: 0, height: 0 },
+            substrate: { name: 'Substrate', color: '#ff8844', y: 0, height: 0 }
+        };
+
+        // Agent positions for drag-and-drop
+        this.agentPositions = {};
+        this.draggedAgent = null;
+        this.dropTarget = null;
+
         // Canvas layers
         this.hudCanvas = null;
         this.hudCtx = null;
@@ -199,6 +211,19 @@ class VisualDebugOverlay {
         window.addEventListener('TASK_DAG_UPDATE', (e) => {
             this.processTaskDagUpdate(e.detail);
         });
+
+        // Listen for agent relocation events
+        window.addEventListener('AGENT_RELOCATED', (e) => {
+            this.processAgentRelocation(e.detail);
+        });
+
+        // Drag and drop handlers for canvas
+        if (this.hudCanvas) {
+            this.hudCanvas.style.pointerEvents = 'auto';
+            this.hudCanvas.addEventListener('mousedown', (e) => this._handleDragStart(e));
+            this.hudCanvas.addEventListener('mousemove', (e) => this._handleDragMove(e));
+            this.hudCanvas.addEventListener('mouseup', (e) => this._handleDragEnd(e));
+        }
     }
 
     /**
@@ -1069,6 +1094,210 @@ class VisualDebugOverlay {
     }
 
     /**
+     * Get color for district
+     */
+    _getDistrictColor(district) {
+        const colors = {
+            'cognitive': '#00aaff',
+            'metabolic': '#44ff44',
+            'substrate': '#ff8844'
+        };
+        return colors[district] || '#888888';
+    }
+
+    /**
+     * Process agent relocation event
+     */
+    processAgentRelocation(data) {
+        if (!data || !data.agent_id) return;
+
+        const agentId = data.agent_id;
+
+        // Update agent position if tracked
+        if (this.agentPositions[agentId]) {
+            this.agentPositions[agentId].district = data.to_district;
+        }
+
+        // Show relocation notification
+        this._showNotification(
+            `🔀 ${agentId}: ${data.from_district} → ${data.to_district}`,
+            this._getDistrictColor(data.to_district)
+        );
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Show temporary notification
+     */
+    _showNotification(message, color = '#ffffff') {
+        // Add to UART buffer as notification
+        this.uartBuffer.push({
+            type: 'notification',
+            text: message,
+            color: color,
+            timestamp: Date.now()
+        });
+
+        // Keep buffer size limited
+        if (this.uartBuffer.length > this.uartMaxLines) {
+            this.uartBuffer.shift();
+        }
+    }
+
+    /**
+     * Handle drag start on agent
+     */
+    _handleDragStart(e) {
+        const rect = this.hudCanvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // Check if clicking on an agent
+        for (const [agentId, pos] of Object.entries(this.agentPositions)) {
+            const dx = x - pos.x;
+            const dy = y - pos.y;
+            if (dx * dx + dy * dy < 100) { // 10px radius
+                this.draggedAgent = agentId;
+                this.hudCanvas.style.cursor = 'grabbing';
+                return;
+            }
+        }
+    }
+
+    /**
+     * Handle drag move
+     */
+    _handleDragMove(e) {
+        if (!this.draggedAgent) return;
+
+        const rect = this.hudCanvas.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+
+        // Determine drop target district
+        const third = this.hudCanvas.height / 3;
+        if (y < third) {
+            this.dropTarget = 'cognitive';
+        } else if (y < third * 2) {
+            this.dropTarget = 'metabolic';
+        } else {
+            this.dropTarget = 'substrate';
+        }
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle drag end - trigger relocation
+     */
+    _handleDragEnd(e) {
+        if (!this.draggedAgent || !this.dropTarget) {
+            this.draggedAgent = null;
+            this.dropTarget = null;
+            this.hudCanvas.style.cursor = 'default';
+            return;
+        }
+
+        const agent = this.agentPositions[this.draggedAgent];
+        const fromDistrict = agent?.district || 'substrate';
+
+        // Only relocate if district changed
+        if (fromDistrict !== this.dropTarget) {
+            // Send relocation command via WebSocket
+            this._sendRelocationCommand(this.draggedAgent, this.dropTarget);
+        }
+
+        this.draggedAgent = null;
+        this.dropTarget = null;
+        this.hudCanvas.style.cursor = 'default';
+    }
+
+    /**
+     * Send relocation command to backend
+     */
+    _sendRelocationCommand(agentId, targetDistrict) {
+        // Dispatch event for TelemetryBus to pick up
+        window.dispatchEvent(new CustomEvent('RELOCATE_AGENT', {
+            detail: {
+                agent_id: agentId,
+                target_district: targetDistrict
+            }
+        }));
+
+        // Show pending notification
+        this._showNotification(`⏳ Relocating ${agentId} to ${targetDistrict}...`, '#ffaa00');
+    }
+
+    /**
+     * Render district zones in HUD
+     */
+    _renderDistrictZones(ctx, x, y, width, height) {
+        const padding = 10;
+        const zoneHeight = (height - padding * 4) / 3;
+
+        let currentY = y + padding;
+
+        for (const [district, zone] of Object.entries(this.districtZones)) {
+            zone.y = currentY;
+            zone.height = zoneHeight;
+
+            // Zone background
+            const isDropTarget = this.dropTarget === district;
+            ctx.fillStyle = isDropTarget ? zone.color + '40' : zone.color + '10';
+            ctx.fillRect(x + padding, currentY, width - padding * 2, zoneHeight);
+
+            // Zone border
+            ctx.strokeStyle = isDropTarget ? zone.color : zone.color + '60';
+            ctx.lineWidth = isDropTarget ? 2 : 1;
+            ctx.strokeRect(x + padding, currentY, width - padding * 2, zoneHeight);
+
+            // Zone label
+            ctx.fillStyle = zone.color;
+            ctx.font = 'bold 12px monospace';
+            ctx.fillText(zone.name.toUpperCase(), x + padding + 5, currentY + 16);
+
+            // Agent count
+            const agentCount = Object.values(this.agentPositions)
+                .filter(a => a.district === district).length;
+            ctx.fillStyle = '#888888';
+            ctx.font = '10px monospace';
+            ctx.fillText(`(${agentCount} agents)`, x + width - 80, currentY + 16);
+
+            currentY += zoneHeight + padding;
+        }
+
+        return currentY;
+    }
+
+    /**
+     * Render agents in district zones
+     */
+    _renderAgentsInZones(ctx, x, width) {
+        for (const [agentId, pos] of Object.entries(this.agentPositions)) {
+            const zone = this.districtZones[pos.district];
+            if (!zone) continue;
+
+            // Calculate position within zone
+            const agentX = x + 30 + (Math.random() * (width - 80));
+            const agentY = zone.y + 30 + (Math.random() * (zone.height - 60));
+            pos.x = agentX;
+            pos.y = agentY;
+
+            // Draw agent dot
+            const isDragged = this.draggedAgent === agentId;
+            ctx.fillStyle = isDragged ? '#ffffff' : zone.color;
+            ctx.beginPath();
+            ctx.arc(agentX, agentY, isDragged ? 8 : 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Agent label
+            ctx.fillStyle = '#cccccc';
+            ctx.font = '9px monospace';
+            ctx.fillText(agentId.slice(0, 10), agentX - 20, agentY + 15);
+        }
+    }
+
+    /**
      * Render Neural City HUD section
      * @param {CanvasRenderingContext2D} ctx - Canvas context
      * @param {number} width - HUD width
@@ -1086,13 +1315,13 @@ class VisualDebugOverlay {
         let startY;
         if (this.uartBuffer && this.uartBuffer.length > 0) {
             // Place above Silicon Terminal
-            startY = this.hudCanvas.height - 320;
+            startY = this.hudCanvas.height - 380;
         } else {
             // Place at bottom
-            startY = this.hudCanvas.height - 130;
+            startY = this.hudCanvas.height - 180;
         }
 
-        const sectionHeight = 120;
+        const sectionHeight = 170;
         let y = startY;
 
         // Background for section
@@ -1109,7 +1338,7 @@ class VisualDebugOverlay {
         // Title
         ctx.fillStyle = '#FFD700';
         ctx.font = 'bold 12px monospace';
-        ctx.fillText('🏛️ NEURAL CITY', padding, y);
+        ctx.fillText('🏛️ NEURAL CITY (V14)', padding, y);
         y += 20;
 
         // District info
@@ -1122,9 +1351,35 @@ class VisualDebugOverlay {
         ctx.fillText(`Material: ${stats.focusMaterial}`, padding, y);
         y += 16;
 
+        // Metabolism - Health Monitoring
+        const ipc = stats.metabolismIPC;
+        const ipcColor = ipc >= 0.7 ? '#44ff44' : ipc >= 0.4 ? '#ffaa00' : '#ff4444';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText('Metabolism:', padding, y);
+        ctx.fillStyle = ipcColor;
+        ctx.fillText(` ${ipc.toFixed(2)} IPC`, padding + 80, y);
+        
+        // IPC Bar
+        ctx.fillStyle = '#333';
+        ctx.fillRect(padding + 150, y - 8, 100, 10);
+        ctx.fillStyle = ipcColor;
+        ctx.fillRect(padding + 150, y - 8, 100 * ipc, 10);
+        y += 16;
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText('Throttle:', padding, y);
+        ctx.fillStyle = stats.throttleLevel === 'NONE' ? '#44ff44' : '#ff4444';
+        ctx.fillText(` ${stats.throttleLevel}`, padding + 80, y);
+        y += 16;
+
+        // Inference Activity
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText(`Active Pulses: ${stats.pulseCount}`, padding, y);
+        y += 16;
+
         // Cache status
         const cachePercent = stats.total > 0 ? Math.round((stats.loaded / stats.total) * 100) : 0;
-        ctx.fillText(`Loaded: ${stats.loaded}/${stats.total} (${cachePercent}%)`, padding, y);
+        ctx.fillText(`Atlas Cache: ${stats.loaded}/${stats.total} (${cachePercent}%)`, padding, y);
         y += 16;
 
         // VRAM usage
