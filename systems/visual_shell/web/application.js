@@ -2830,6 +2830,10 @@ class GeometryOSApplication {
                         if (this.memoryBeams) {
                             this.memoryBeams.updateMemories(data.memories);
                         }
+                    } else if (data.type === 'mirror_validation_result') {
+                        console.log('🪞 Received Mirror Validation Result:', data);
+                        // Dispatch to VisualDebugOverlay
+                        window.dispatchEvent(new CustomEvent('MIRROR_VALIDATION_RESULT', { detail: data }));
                     } else if (data.type === 'error') {
                         console.warn('🔮 Memory Bridge error:', data.message);
                     }

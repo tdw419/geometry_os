@@ -42,6 +42,7 @@ class VisualDebugOverlay {
 
         // State
         this.verificationResults = [];
+        this.mirrorValidationResults = [];
         this.currentIntent = null;
         this.elementOverlays = new Map();
         this.lastVerification = null;
@@ -153,6 +154,11 @@ class VisualDebugOverlay {
             this.handleVerificationResult(e.detail);
         });
 
+        // Listen for mirror validation results (Master Stage)
+        window.addEventListener('MIRROR_VALIDATION_RESULT', (e) => {
+            this.handleMirrorValidationResult(e.detail);
+        });
+
         // Listen for intent updates
         window.addEventListener('VISUAL_INTENT_UPDATE', (e) => {
             this.handleIntentUpdate(e.detail);
@@ -184,6 +190,32 @@ class VisualDebugOverlay {
         }
 
         // Trigger render
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle mirror validation result from Master Stage shadow brain
+     */
+    handleMirrorValidationResult(result) {
+        this.lastMirrorValidation = {
+            ...result,
+            timestamp: Date.now()
+        };
+
+        if (!this.config.enabled) {
+            // Auto-enable if high priority result comes in
+            if (result.success === false || result.immortality === false) {
+                this.toggle();
+            } else {
+                return;
+            }
+        }
+
+        this.mirrorValidationResults.push(this.lastMirrorValidation);
+        if (this.mirrorValidationResults.length > 10) {
+            this.mirrorValidationResults.shift();
+        }
+
         this._scheduleRender();
     }
 
@@ -555,6 +587,74 @@ class VisualDebugOverlay {
         ctx.fillStyle = '#444';
         ctx.font = '10px monospace';
         ctx.fillText(`Render: ${this.renderTime.toFixed(2)}ms | Frames: ${this.frameCount}`, padding, this.hudCanvas.height - 10);
+
+        // Mirror Neuron Status (Master Stage)
+        if (this.lastMirrorValidation) {
+            this._renderMirrorHUD(ctx, width, padding);
+        }
+    }
+
+    /**
+     * Render Mirror Neuron specific HUD section
+     */
+    _renderMirrorHUD(ctx, width, padding) {
+        let y = this.hudCanvas.height - 180;
+        
+        // Background for section
+        ctx.fillStyle = 'rgba(0, 40, 60, 0.9)';
+        ctx.fillRect(0, y, width, 160);
+        
+        y += 20;
+        ctx.fillStyle = '#00d4ff';
+        ctx.font = 'bold 12px monospace';
+        ctx.fillText('🪞 MIRROR NEURON (V14)', padding, y);
+        y += 20;
+        
+        const res = this.lastMirrorValidation;
+        
+        // Task ID
+        ctx.fillStyle = '#aaa';
+        ctx.font = '10px monospace';
+        ctx.fillText(`Task: ${res.task_id?.substring(0, 20)}...`, padding, y);
+        y += 15;
+        
+        // Success / Failure
+        if (res.success) {
+            ctx.fillStyle = this.config.colors.success;
+            ctx.fillText('✓ VALIDATION PASSED', padding, y);
+        } else {
+            ctx.fillStyle = this.config.colors.mismatch;
+            ctx.fillText('✗ VALIDATION FAILED', padding, y);
+        }
+        y += 15;
+        
+        // Accuracy
+        ctx.fillStyle = '#fff';
+        const acc = (res.accuracy * 100).toFixed(1);
+        ctx.fillText(`Accuracy: ${acc}%`, padding, y);
+        
+        // Progress bar for accuracy
+        ctx.fillStyle = '#333';
+        ctx.fillRect(padding + 100, y - 8, 150, 10);
+        ctx.fillStyle = res.accuracy >= 0.8 ? this.config.colors.success : this.config.colors.warning;
+        ctx.fillRect(padding + 100, y - 8, 150 * res.accuracy, 10);
+        y += 20;
+        
+        // Immortality
+        if (res.immortality) {
+            ctx.fillStyle = this.config.colors.success;
+            ctx.fillText('🛡️ IMMORTALITY: SECURE', padding, y);
+        } else {
+            ctx.fillStyle = this.config.colors.critical;
+            ctx.fillText('💀 IMMORTALITY: BREACHED', padding, y);
+        }
+        y += 20;
+        
+        // Issues
+        if (res.issues && res.issues.length > 0) {
+            ctx.fillStyle = '#ffaa00';
+            ctx.fillText(`Issues: ${res.issues[0].substring(0, 40)}`, padding, y);
+        }
     }
 
     /**

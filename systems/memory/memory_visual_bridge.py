@@ -150,5 +150,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(bridge.start())
     except KeyboardInterrupt:
-        print("
-🛑 Shutting down...")
+        print("\n🛑 Shutting down...")
