@@ -20,6 +20,7 @@ import asyncio
 import json
 import os
 import socket
+import time
 import websockets
 from websockets.server import serve
 import numpy as np
@@ -36,6 +37,11 @@ class VisualBridge:
         self.ws_port = ws_port
         self.map_size = map_size
         self.clients = set()
+
+        # ASCII Scene Graph state
+        self.ascii_scene_dir = Path(".geometry/ascii_scene")
+        self.ascii_scene_files: Dict[str, str] = {}  # filename -> content cache
+        self._ascii_renderers_registered = False
 
     def _query_memory_daemon(self, message):
         """Send a message to the Vector Memory Daemon and get response"""
@@ -173,6 +179,65 @@ class VisualBridge:
                     response = await self._handle_synaptic_query(data)
                     await websocket.send(json.dumps(response))
 
+                # 11. ASCII Scene Graph Events
+                elif msg_type == 'ascii_scene_update':
+                    # Broadcast ASCII file update to all clients
+                    filename = data.get('filename')
+                    content = data.get('content')
+                    if filename:
+                        self.ascii_scene_files[filename] = content
+                        await self._broadcast({
+                            "type": "ascii_scene_update",
+                            "filename": filename,
+                            "content": content,
+                            "timestamp": data.get('timestamp', time.time())
+                        })
+
+                elif msg_type == 'ascii_scene_request':
+                    # Client requests list of ASCII files
+                    await self.broadcast_ascii_scene_list()
+                    # Also send current cached content
+                    for filename, content in self.ascii_scene_files.items():
+                        await websocket.send(json.dumps({
+                            "type": "ascii_scene_update",
+                            "filename": filename,
+                            "content": content,
+                            "timestamp": time.time()
+                        }))
+
+                # 12. Neural City Events (from NeuralCityHookBroadcaster)
+                elif msg_type == 'neural_city_event':
+                    event_type = data.get('event_type')
+                    print(f"🏙️ Neural City Event: {event_type}")
+                    await self._broadcast({
+                        "type": "NEURAL_CITY_EVENT",
+                        "data": data
+                    })
+                    # Trigger ASCII file refresh
+                    await self.broadcast_ascii_file("neural_city_map.ascii")
+
+                # 13. Visual Shell Events (from VisualShellHookBroadcaster)
+                elif msg_type == 'visual_shell_event':
+                    event_type = data.get('event_type')
+                    print(f"🪟 Visual Shell Event: {event_type}")
+                    await self._broadcast({
+                        "type": "VISUAL_SHELL_EVENT",
+                        "data": data
+                    })
+                    # Trigger ASCII file refresh
+                    await self.broadcast_ascii_file("shell_fragments.ascii")
+
+                # 14. Evolution Events (from EvolutionHookBroadcaster)
+                elif msg_type == 'evolution_event':
+                    event_type = data.get('event_type')
+                    print(f"🧬 Evolution Event: {event_type}")
+                    await self._broadcast({
+                        "type": "EVOLUTION_EVENT",
+                        "data": data
+                    })
+                    # Trigger ASCII file refresh
+                    await self.broadcast_ascii_file("evolution_pas.ascii")
+
         except websockets.exceptions.ConnectionClosed:
             pass
         except Exception as e:
@@ -271,6 +336,116 @@ class VisualBridge:
         message = json.dumps(data)
         await asyncio.gather(*[client.send(message) for client in self.clients], return_exceptions=True)
 
+    # --- ASCII Scene Graph Methods ---
+
+    async def broadcast_ascii_file(self, filename: str) -> None:
+        """
+        Read and broadcast an ASCII file to all connected clients.
+
+        Args:
+            filename: Name of the .ascii file in .geometry/ascii_scene/
+        """
+        try:
+            filepath = self.ascii_scene_dir / filename
+            if not filepath.exists():
+                return
+
+            content = filepath.read_text()
+            self.ascii_scene_files[filename] = content
+
+            await self._broadcast({
+                "type": "ascii_scene_update",
+                "filename": filename,
+                "content": content,
+                "timestamp": time.time()
+            })
+            print(f"📄 ASCII Scene: {filename} updated ({len(content)} bytes)")
+        except Exception as e:
+            print(f"❌ Failed to broadcast ASCII file {filename}: {e}")
+
+    async def broadcast_ascii_scene_list(self) -> None:
+        """Broadcast list of available ASCII scene files."""
+        try:
+            if not self.ascii_scene_dir.exists():
+                return
+
+            files = list(self.ascii_scene_dir.glob("*.ascii"))
+            file_list = [f.name for f in files]
+
+            await self._broadcast({
+                "type": "ascii_scene_list",
+                "files": file_list,
+                "timestamp": time.time()
+            })
+        except Exception as e:
+            print(f"❌ Failed to list ASCII files: {e}")
+
+    def register_ascii_renderers(self) -> None:
+        """
+        Register ASCII renderers with their respective hook broadcasters.
+
+        This wires up the NeuralCity, VisualShell, and Evolution ASCII
+        renderers to receive events and generate .ascii files.
+        """
+        if self._ascii_renderers_registered:
+            return
+
+        try:
+            from systems.visual_shell.ascii_scene import wire_all_renderers
+
+            # Wire all renderers to their broadcasters
+            results = wire_all_renderers(output_dir=str(self.ascii_scene_dir))
+
+            # Store references for potential future use
+            self._ascii_renderers = results
+
+            print(f"📄 ASCII Scene Graph renderers registered ({len(results)} types)")
+            self._ascii_renderers_registered = True
+
+        except ImportError as e:
+            print(f"⚠️ Could not register ASCII renderers: {e}")
+
+    def _setup_ascii_scene_watcher(self) -> None:
+        """
+        Setup file watcher for ASCII scene directory.
+
+        This monitors .geometry/ascii_scene/ for changes and broadcasts
+        updates to connected clients.
+        """
+        # This is a simple polling-based watcher
+        # In production, consider using watchdog library
+        asyncio.create_task(self._ascii_scene_poller())
+
+    async def _ascii_scene_poller(self) -> None:
+        """Poll ASCII scene directory for changes and broadcast updates."""
+        while True:
+            try:
+                await asyncio.sleep(1.0)  # Poll every second
+
+                if not self.ascii_scene_dir.exists():
+                    continue
+
+                for filepath in self.ascii_scene_dir.glob("*.ascii"):
+                    filename = filepath.name
+                    try:
+                        content = filepath.read_text()
+                        if filename not in self.ascii_scene_files or \
+                           self.ascii_scene_files[filename] != content:
+                            self.ascii_scene_files[filename] = content
+                            await self._broadcast({
+                                "type": "ascii_scene_update",
+                                "filename": filename,
+                                "content": content,
+                                "timestamp": time.time()
+                            })
+                    except Exception:
+                        pass
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                print(f"⚠️ ASCII scene poller error: {e}")
+                await asyncio.sleep(5.0)  # Back off on error
+
     async def relay_token_pulse(self, token_event: dict):
         """
         Relay a token visualization event to Neural City clients.
@@ -297,7 +472,11 @@ class VisualBridge:
         print(f"🚀 Visual Bridge starting...")
         print(f"   WebSocket: ws://localhost:{self.ws_port}")
         print(f"   Memory Daemon: {self.memory_socket}")
-        
+
+        # Register ASCII renderers and start watcher
+        self.register_ascii_renderers()
+        self._setup_ascii_scene_watcher()
+
         async with serve(self.handle_client, "0.0.0.0", self.ws_port):
             await asyncio.Future()
 

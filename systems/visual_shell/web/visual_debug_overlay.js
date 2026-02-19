@@ -74,6 +74,11 @@ class VisualDebugOverlay {
         this.draggedAgent = null;
         this.dropTarget = null;
 
+        // ASCII Scene Graph state
+        this.asciiSceneFiles = {};
+        this.asciiSceneExpanded = false;
+        this.asciiSceneSelectedFile = null;
+
         // Neural City renderer state
         this.neuralCityRenderer = null;
         this.neuralCityFocus = { x: 0, y: 0 };
@@ -233,6 +238,31 @@ class VisualDebugOverlay {
             this._scheduleRender();
         });
 
+        // Listen for ASCII Scene Graph updates
+        window.addEventListener('ascii_scene_update', (e) => {
+            this.handleAsciiSceneUpdate(e.detail);
+        });
+
+        // Listen for ASCII Scene file list
+        window.addEventListener('ascii_scene_list', (e) => {
+            this.handleAsciiSceneList(e.detail);
+        });
+
+        // Listen for Neural City events
+        window.addEventListener('NEURAL_CITY_EVENT', (e) => {
+            this.handleNeuralCityEvent(e.detail);
+        });
+
+        // Listen for Visual Shell events
+        window.addEventListener('VISUAL_SHELL_EVENT', (e) => {
+            this.handleVisualShellEvent(e.detail);
+        });
+
+        // Listen for Evolution events
+        window.addEventListener('EVOLUTION_EVENT', (e) => {
+            this.handleEvolutionEvent(e.detail);
+        });
+
         // Drag and drop handlers for canvas
         if (this.hudCanvas) {
             this.hudCanvas.style.pointerEvents = 'auto';
@@ -390,6 +420,73 @@ class VisualDebugOverlay {
             this.toggle();
         }
 
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle ASCII Scene Graph file update
+     */
+    handleAsciiSceneUpdate(data) {
+        if (!data || !data.filename) return;
+
+        this.asciiSceneFiles[data.filename] = {
+            content: data.content || '',
+            timestamp: data.timestamp || Date.now()
+        };
+
+        // Auto-select first file if none selected
+        if (!this.asciiSceneSelectedFile) {
+            this.asciiSceneSelectedFile = data.filename;
+        }
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle ASCII Scene file list
+     */
+    handleAsciiSceneList(data) {
+        if (!data || !data.files) return;
+
+        // Initialize files that don't exist
+        for (const filename of data.files) {
+            if (!this.asciiSceneFiles[filename]) {
+                this.asciiSceneFiles[filename] = {
+                    content: '',
+                    timestamp: Date.now()
+                };
+            }
+        }
+
+        // Select first file if none selected
+        if (!this.asciiSceneSelectedFile && data.files.length > 0) {
+            this.asciiSceneSelectedFile = data.files[0];
+        }
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle Neural City event
+     */
+    handleNeuralCityEvent(data) {
+        // Could add specific handling here
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle Visual Shell event
+     */
+    handleVisualShellEvent(data) {
+        // Could add specific handling here
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle Evolution event
+     */
+    handleEvolutionEvent(data) {
+        // Could add specific handling here
         this._scheduleRender();
     }
 
@@ -753,6 +850,11 @@ class VisualDebugOverlay {
         // Neural City HUD
         if (window.geometryOSApp && window.geometryOSApp.neuralCity) {
             this._renderNeuralCityHUD(ctx, width, padding);
+        }
+
+        // ASCII Scene Graph HUD
+        if (Object.keys(this.asciiSceneFiles).length > 0) {
+            this._renderAsciiSceneSection(ctx, width, padding);
         }
     }
 
@@ -1198,12 +1300,56 @@ class VisualDebugOverlay {
     }
 
     /**
+     * Request ASCII scene file refresh from backend
+     */
+    _requestAsciiRefresh() {
+        // Dispatch event to trigger WebSocket request
+        window.dispatchEvent(new CustomEvent('REQUEST_ASCII_REFRESH'));
+
+        // Also show notification
+        this._showNotification('📄 Refreshing ASCII scene files...', '#00aaff');
+    }
+
+    /**
      * Handle drag start on agent
      */
     _handleDragStart(e) {
         const rect = this.hudCanvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
+
+        // Check for ASCII Scene section click (toggle expand)
+        if (this._asciiSectionY !== undefined &&
+            y >= this._asciiSectionY && y <= this._asciiSectionY + this._asciiSectionHeight) {
+            // Check if clicking on title area
+            if (y >= this._asciiSectionY + 10 && y <= this._asciiSectionY + 30) {
+                this.asciiSceneExpanded = !this.asciiSceneExpanded;
+                this._scheduleRender();
+                return;
+            }
+
+            // Check for tab clicks (in expanded mode)
+            if (this.asciiSceneExpanded) {
+                const files = Object.keys(this.asciiSceneFiles);
+                let tabX = 10;
+                for (const filename of files.slice(0, 5)) {
+                    const displayName = filename.replace('.ascii', '').substring(0, 12);
+                    const tabWidth = displayName.length * 7 + 15;
+                    if (x >= tabX && x <= tabX + tabWidth) {
+                        this.asciiSceneSelectedFile = filename;
+                        this._scheduleRender();
+                        return;
+                    }
+                    tabX += tabWidth;
+                }
+
+                // Check for refresh button click
+                if (x >= this.hudCanvas.width - 80 && y >= this._asciiSectionY + this._asciiSectionHeight - 95) {
+                    this._requestAsciiRefresh();
+                    return;
+                }
+            }
+        }
 
         // Check if clicking on an agent
         for (const [agentId, pos] of Object.entries(this.agentPositions)) {
@@ -1520,6 +1666,142 @@ class VisualDebugOverlay {
     }
 
     /**
+     * Render ASCII Scene Graph HUD section
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {number} width - HUD width
+     * @param {number} padding - Padding value
+     */
+    _renderAsciiSceneSection(ctx, width, padding) {
+        const files = Object.keys(this.asciiSceneFiles);
+        if (files.length === 0) return;
+
+        // Calculate position - stack above other sections
+        let offset = 0;
+        if (this.uartBuffer && this.uartBuffer.length > 0) offset += 210;
+        if (this.swarmHealth) offset += 100;
+        if (window.geometryOSApp && window.geometryOSApp.neuralCity) offset += 260;
+
+        const sectionHeight = this.asciiSceneExpanded ? 300 : 80;
+        let startY = this.hudCanvas.height - sectionHeight - offset - 10;
+
+        let y = startY;
+
+        // Background for section
+        ctx.fillStyle = 'rgba(0, 30, 60, 0.95)';
+        ctx.fillRect(10, y, width - 20, sectionHeight);
+
+        // Border
+        ctx.strokeStyle = '#00aaff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(10, y, width - 20, sectionHeight);
+
+        y += 18;
+        ctx.fillStyle = '#00aaff';
+        ctx.font = 'bold 11px monospace';
+        const expandIcon = this.asciiSceneExpanded ? '▼' : '▶';
+        ctx.fillText(`📄 ASCII SCENE GRAPH ${expandIcon}`, padding, y);
+
+        // Click detection for expand/collapse
+        this._asciiSectionY = startY;
+        this._asciiSectionHeight = sectionHeight;
+
+        y += 5;
+
+        // Divider
+        ctx.strokeStyle = '#00aaff44';
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+        ctx.stroke();
+
+        y += 15;
+
+        if (this.asciiSceneExpanded) {
+            // File tabs
+            ctx.font = '10px monospace';
+            let tabX = padding;
+            for (const filename of files.slice(0, 5)) {  // Max 5 tabs
+                const isActive = filename === this.asciiSceneSelectedFile;
+                const displayName = filename.replace('.ascii', '').substring(0, 12);
+
+                if (isActive) {
+                    ctx.fillStyle = '#00aaff';
+                    ctx.fillRect(tabX, y - 10, displayName.length * 7 + 10, 14);
+                    ctx.fillStyle = '#000';
+                } else {
+                    ctx.fillStyle = '#666';
+                }
+
+                ctx.fillText(displayName, tabX + 5, y);
+                tabX += displayName.length * 7 + 15;
+            }
+
+            y += 20;
+
+            // Content area
+            const selectedFile = this.asciiSceneFiles[this.asciiSceneSelectedFile];
+            if (selectedFile && selectedFile.content) {
+                ctx.fillStyle = '#0a0a0a';
+                ctx.fillRect(padding, y, width - padding * 2, sectionHeight - 80);
+
+                ctx.fillStyle = '#00ff88';
+                ctx.font = '9px monospace';
+
+                // Render content (truncate to fit)
+                const lines = selectedFile.content.split('\n');
+                const maxLines = Math.floor((sectionHeight - 90) / 11);
+                const displayLines = lines.slice(0, maxLines);
+
+                for (let i = 0; i < displayLines.length; i++) {
+                    const line = displayLines[i].substring(0, 42);  // Truncate long lines
+                    ctx.fillText(line, padding + 5, y + 10 + i * 11);
+                }
+
+                // Show truncation indicator
+                if (lines.length > maxLines) {
+                    ctx.fillStyle = '#666';
+                    ctx.fillText(`... (${lines.length - maxLines} more lines)`, padding + 5, y + 10 + maxLines * 11);
+                }
+            } else {
+                ctx.fillStyle = '#666';
+                ctx.font = '10px monospace';
+                ctx.fillText('(No content)', padding + 5, y + 15);
+            }
+
+            // Refresh button
+            ctx.fillStyle = '#00aaff';
+            ctx.font = '10px monospace';
+            ctx.fillText('[Refresh]', width - 70, y + sectionHeight - 85);
+
+        } else {
+            // Collapsed view - show file list
+            ctx.font = '10px monospace';
+            ctx.fillStyle = '#888';
+
+            const fileList = files.map(f => f.replace('.ascii', '')).join(', ');
+            const truncated = fileList.length > 35 ? fileList.substring(0, 35) + '...' : fileList;
+            ctx.fillText(`Files: ${truncated}`, padding, y);
+            y += 16;
+
+            // Show selected file content preview
+            const selectedFile = this.asciiSceneFiles[this.asciiSceneSelectedFile];
+            if (selectedFile && selectedFile.content) {
+                const preview = selectedFile.content.split('\n')[0].substring(0, 38);
+                ctx.fillStyle = '#00ff88';
+                ctx.fillText(`Preview: ${preview}`, padding, y);
+            }
+        }
+
+        // Status line at bottom
+        ctx.fillStyle = '#666';
+        ctx.font = '9px monospace';
+        const fileCount = files.length;
+        const lastUpdate = this.asciiSceneFiles[this.asciiSceneSelectedFile]?.timestamp;
+        const timeStr = lastUpdate ? new Date(lastUpdate * 1000).toLocaleTimeString() : 'N/A';
+        ctx.fillText(`Files: ${fileCount} | Last: ${timeStr}`, padding, startY + sectionHeight - 5);
+    }
+
+    /**
      * Render Task Graph section with proper positioning in HUD
      * @param {CanvasRenderingContext2D} ctx - Canvas context
      * @param {number} width - HUD width
@@ -1605,6 +1887,10 @@ class VisualDebugOverlay {
             lastVerificationConfidence: this.lastVerification?.overall_confidence,
             taskDagCount: Object.keys(this.taskDag.tasks).length,
             taskDagActiveFlows: this.taskDag.activeFlows.length,
+            // ASCII Scene Graph stats
+            asciiSceneFilesCount: Object.keys(this.asciiSceneFiles).length,
+            asciiSceneSelectedFile: this.asciiSceneSelectedFile,
+            asciiSceneExpanded: this.asciiSceneExpanded,
             // Neural City stats
             neuralCity: neuralCityStats ? {
                 focus: this.neuralCityFocus,
@@ -1638,6 +1924,10 @@ class VisualDebugOverlay {
             activeFlows: [],
             summary: null
         };
+        // Clear ASCII Scene Graph state
+        this.asciiSceneFiles = {};
+        this.asciiSceneSelectedFile = null;
+        this.asciiSceneExpanded = false;
     }
 
     /**
