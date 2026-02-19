@@ -43,6 +43,9 @@ class NeuralCityEngine {
         // Glass Box introspection
         this.glassBox = null;
         this._setupGlassBox();
+
+        // Saccadic Eye-Tracking state
+        this.saccades = new Map();
     }
 
     /**
@@ -261,6 +264,10 @@ class NeuralCityEngine {
         this.dynamicLayer = new PIXI.Container();
         this.dynamicLayer.name = 'neural_city_dynamic';
 
+        // Saccadic layer (eye-tracking beams and reticles)
+        this.saccadicLayer = new PIXI.Container();
+        this.saccadicLayer.name = 'neural_city_saccadic';
+
         // Particle layer (ambient traffic)
         this.particleLayer = new PIXI.Container();
         this.particleLayer.name = 'neural_city_particles';
@@ -269,6 +276,7 @@ class NeuralCityEngine {
         if (this.config.container) {
             this.config.container.addChild(this.staticLayer);
             this.config.container.addChild(this.dynamicLayer);
+            this.config.container.addChild(this.saccadicLayer);
             this.config.container.addChild(this.particleLayer);
         }
     }
@@ -276,6 +284,135 @@ class NeuralCityEngine {
     // =====================================================
     // Private Methods - Rendering
     // =====================================================
+
+    /**
+     * Trigger a Saccadic Eye-Tracking event for an agent.
+     * Visualizes a beam of attention scanning the building.
+     */
+    triggerSaccade(agentId) {
+        if (!this.saccadicLayer) return;
+
+        const building = this.orchestrator.getBuilding(agentId);
+        if (!building) return;
+
+        const saccade = {
+            id: `saccade_${agentId}_${Date.now()}`,
+            agentId: agentId,
+            targetPos: building.position,
+            createdAt: Date.now(),
+            ttl: 1500, // Visible for 1.5s
+            color: 0xff00ff // Default magenta scan color
+        };
+
+        this._renderSaccade(saccade);
+    }
+
+    /**
+     * Render the visual elements of a saccade (beam + reticle).
+     * @private
+     */
+    _renderSaccade(saccade) {
+        const graphics = new PIXI.Graphics();
+        graphics.name = saccade.id;
+
+        // "Eye" position (simulated as coming from top-center/sky)
+        // We can randomize or calculate based on viewport
+        const eyeX = saccade.targetPos.x; // Straight down for now, or offset? Let's offset slightly for drama
+        const eyeY = -600; // From "the cloud"
+
+        // Draw Beam (fades out towards bottom)
+        graphics.moveTo(eyeX, eyeY);
+        graphics.lineTo(saccade.targetPos.x, saccade.targetPos.y);
+        graphics.stroke({ color: saccade.color, width: 2, alpha: 0.6 });
+
+        // Draw Reticle around target
+        const size = 40;
+        const cornerLen = 10;
+        
+        // Top-left
+        graphics.moveTo(saccade.targetPos.x - size/2, saccade.targetPos.y - size/2 + cornerLen);
+        graphics.lineTo(saccade.targetPos.x - size/2, saccade.targetPos.y - size/2);
+        graphics.lineTo(saccade.targetPos.x - size/2 + cornerLen, saccade.targetPos.y - size/2);
+
+        // Top-right
+        graphics.moveTo(saccade.targetPos.x + size/2 - cornerLen, saccade.targetPos.y - size/2);
+        graphics.lineTo(saccade.targetPos.x + size/2, saccade.targetPos.y - size/2);
+        graphics.lineTo(saccade.targetPos.x + size/2, saccade.targetPos.y - size/2 + cornerLen);
+
+        // Bottom-right
+        graphics.moveTo(saccade.targetPos.x + size/2, saccade.targetPos.y + size/2 - cornerLen);
+        graphics.lineTo(saccade.targetPos.x + size/2, saccade.targetPos.y + size/2);
+        graphics.lineTo(saccade.targetPos.x + size/2 - cornerLen, saccade.targetPos.y + size/2);
+
+        // Bottom-left
+        graphics.moveTo(saccade.targetPos.x - size/2 + cornerLen, saccade.targetPos.y + size/2);
+        graphics.lineTo(saccade.targetPos.x - size/2, saccade.targetPos.y + size/2);
+        graphics.lineTo(saccade.targetPos.x - size/2, saccade.targetPos.y + size/2 - cornerLen);
+
+        graphics.stroke({ color: saccade.color, width: 2, alpha: 0.9 });
+
+        // Add "ANALYZING" text label
+        const style = new PIXI.TextStyle({
+            fontFamily: 'Courier New',
+            fontSize: 10,
+            fill: saccade.color,
+            align: 'center',
+        });
+        const text = new PIXI.Text({ text: 'SCANNING', style });
+        text.x = saccade.targetPos.x - text.width / 2;
+        text.y = saccade.targetPos.y - size / 2 - 15;
+        graphics.addChild(text);
+
+        // Store reference
+        if (!this.saccades) this.saccades = new Map();
+        this.saccades.set(saccade.id, { data: saccade, graphics: graphics });
+        this.saccadicLayer.addChild(graphics);
+
+        // Schedule removal
+        setTimeout(() => {
+            this._removeSaccade(saccade.id);
+        }, saccade.ttl);
+    }
+
+    /**
+     * Remove a saccade graphic.
+     * @private
+     */
+    _removeSaccade(saccadeId) {
+        if (!this.saccades || !this.saccades.has(saccadeId)) return;
+        
+        const entry = this.saccades.get(saccadeId);
+        if (entry.graphics && entry.graphics.parent) {
+            entry.graphics.parent.removeChild(entry.graphics);
+        }
+        this.saccades.delete(saccadeId);
+    }
+
+    /**
+     * Update active saccades (animations, fades).
+     * @private
+     */
+    _updateSaccades(now) {
+        if (!this.saccades) return;
+
+        this.saccades.forEach((entry, id) => {
+            const age = now - entry.data.createdAt;
+            const progress = age / entry.data.ttl;
+
+            if (progress >= 1) {
+                // Saccade finished (timeout handles removal, but we can set alpha to 0)
+                entry.graphics.alpha = 0;
+                return;
+            }
+
+            // Animate alpha: Fade in quickly, hold, then fade out
+            let alpha = 1.0;
+            if (progress < 0.1) alpha = progress * 10;
+            else if (progress > 0.8) alpha = (1 - progress) * 5;
+
+            entry.graphics.alpha = alpha;
+        });
+    }
 
     /**
      * Create district geometry and central spire.
@@ -664,6 +801,9 @@ class NeuralCityEngine {
 
             // Update district pulses
             this._updateDistrictPulses(now);
+
+            // Update saccadic eye-tracking
+            this._updateSaccades(now);
 
             requestAnimationFrame(update);
         };

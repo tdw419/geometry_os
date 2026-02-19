@@ -184,6 +184,15 @@ class CityOrchestrator {
     }
 
     /**
+     * Get a random building ID.
+     */
+    getRandomBuildingId() {
+        if (this.buildings.size === 0) return null;
+        const ids = Array.from(this.buildings.keys());
+        return ids[Math.floor(Math.random() * ids.length)];
+    }
+
+    /**
      * Get all active bridges.
      */
     getBridges() {

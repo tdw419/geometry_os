@@ -143,6 +143,7 @@
     <div id="controls">
         <button id="btn-spawn">Spawn Agent</button>
         <button id="btn-pulse">Pulse District</button>
+        <button id="btn-saccade">Scan (Saccade)</button>
         <button id="btn-bridge">Create Bridge</button>
         <button id="btn-connect">Connect WS</button>
     </div>
@@ -208,6 +209,23 @@
                 const districts = ['cognitive', 'metabolic', 'substrate'];
                 engine.orchestrator.pulseDistrict(districts[Math.floor(Math.random() * 3)]);
             };
+
+            document.getElementById('btn-saccade').onclick = () => {
+                const id = engine.orchestrator.getRandomBuildingId();
+                if (id) {
+                    engine.triggerSaccade(id);
+                }
+            };
+
+            // Auto-trigger random saccades for "living system" feel
+            setInterval(() => {
+                if (Math.random() < 0.3) { // 30% chance every 2s
+                    const id = engine.orchestrator.getRandomBuildingId();
+                    if (id) {
+                        engine.triggerSaccade(id);
+                    }
+                }
+            }, 2000);
 
             document.getElementById('btn-bridge').onclick = () => {
                 const buildings = Array.from(engine.orchestrator.buildings.keys());
