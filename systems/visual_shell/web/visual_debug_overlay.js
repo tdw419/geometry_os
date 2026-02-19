@@ -47,6 +47,11 @@ class VisualDebugOverlay {
         this.elementOverlays = new Map();
         this.lastVerification = null;
 
+        // RISC-V UART state (Neuro-Silicon Bridge)
+        this.uartBuffer = [];
+        this.uartMaxLines = 50;
+        this.lastUartTimestamp = null;
+
         // Canvas layers
         this.hudCanvas = null;
         this.hudCtx = null;
@@ -168,6 +173,11 @@ class VisualDebugOverlay {
         window.addEventListener('VISUAL_SCENE_UPDATE', (e) => {
             this.handleSceneUpdate(e.detail);
         });
+
+        // Listen for RISC-V UART output (Neuro-Silicon Bridge)
+        window.addEventListener('RISCV_UART_OUTPUT', (e) => {
+            this.handleRiscvUart(e.detail);
+        });
     }
 
     /**
@@ -248,6 +258,40 @@ class VisualDebugOverlay {
      */
     handleSceneUpdate(scene) {
         this.currentScene = scene;
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle RISC-V UART output from Neuro-Silicon Bridge
+     */
+    handleRiscvUart(data) {
+        const text = data.text || '';
+        const timestamp = data.timestamp || Date.now();
+
+        // Split text into lines and add to buffer
+        const lines = text.split('\n');
+        for (const line of lines) {
+            if (line.trim()) {
+                this.uartBuffer.push({
+                    text: line,
+                    timestamp: timestamp,
+                    vm_id: data.vm_id || 'default'
+                });
+            }
+        }
+
+        // Keep buffer limited
+        while (this.uartBuffer.length > this.uartMaxLines) {
+            this.uartBuffer.shift();
+        }
+
+        this.lastUartTimestamp = timestamp;
+
+        // Auto-enable HUD if UART output comes in
+        if (!this.config.enabled) {
+            this.toggle();
+        }
+
         this._scheduleRender();
     }
 
@@ -592,6 +636,11 @@ class VisualDebugOverlay {
         if (this.lastMirrorValidation) {
             this._renderMirrorHUD(ctx, width, padding);
         }
+
+        // Silicon Terminal (RISC-V UART)
+        if (this.uartBuffer && this.uartBuffer.length > 0) {
+            this._renderSiliconTerminal(ctx, width, padding);
+        }
     }
 
     /**
@@ -658,6 +707,80 @@ class VisualDebugOverlay {
     }
 
     /**
+     * Render Silicon Terminal HUD section for RISC-V UART output
+     */
+    _renderSiliconTerminal(ctx, width, padding) {
+        if (!this.uartBuffer || this.uartBuffer.length === 0) return;
+
+        // Position on left side of screen
+        const termHeight = 200;
+        let y = this.hudCanvas.height - termHeight - 10;
+
+        // Background for terminal
+        ctx.fillStyle = 'rgba(0, 20, 40, 0.95)';
+        ctx.fillRect(10, y, width - 20, termHeight);
+
+        // Border
+        ctx.strokeStyle = '#00ff88';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(10, y, width - 20, termHeight);
+
+        y += 18;
+        ctx.fillStyle = '#00ff88';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText('🦾 SILICON TERMINAL (RISC-V UART)', padding, y);
+        y += 5;
+
+        // Divider line
+        ctx.strokeStyle = '#00ff8844';
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+        ctx.stroke();
+
+        y += 15;
+
+        // Render last N lines of UART output
+        const visibleLines = Math.min(this.uartBuffer.length, 10);
+        const startIdx = Math.max(0, this.uartBuffer.length - visibleLines);
+
+        ctx.font = '10px monospace';
+        for (let i = startIdx; i < this.uartBuffer.length; i++) {
+            const line = this.uartBuffer[i];
+
+            // Color based on content
+            if (line.text.includes('ERROR') || line.text.includes('FAIL')) {
+                ctx.fillStyle = '#ff4444';
+            } else if (line.text.includes('WARN')) {
+                ctx.fillStyle = '#ffaa00';
+            } else if (line.text.includes('OK') || line.text.includes('SUCCESS')) {
+                ctx.fillStyle = '#44ff44';
+            } else {
+                ctx.fillStyle = '#00ff88';
+            }
+
+            // Truncate line to fit
+            const maxChars = Math.floor((width - padding * 2 - 20) / 6);
+            const displayText = line.text.length > maxChars
+                ? line.text.substring(0, maxChars - 3) + '...'
+                : line.text;
+
+            ctx.fillText(displayText, padding, y);
+            y += 12;
+        }
+
+        // Status line at bottom
+        y = this.hudCanvas.height - 15;
+        ctx.fillStyle = '#666';
+        ctx.font = '9px monospace';
+        const lineCount = this.uartBuffer.length;
+        const lastTime = this.lastUartTimestamp
+            ? new Date(this.lastUartTimestamp).toLocaleTimeString()
+            : 'N/A';
+        ctx.fillText(`Lines: ${lineCount} | Last: ${lastTime}`, padding, y);
+    }
+
+    /**
      * Wrap text to fit width
      */
     _wrapText(text, maxWidth) {
@@ -716,10 +839,14 @@ class VisualDebugOverlay {
      */
     clearData() {
         this.verificationResults = [];
+        this.mirrorValidationResults = [];
         this.currentIntent = null;
         this.lastVerification = null;
+        this.lastMirrorValidation = null;
         this.elementOverlays.clear();
         this.currentScene = null;
+        this.uartBuffer = [];
+        this.lastUartTimestamp = null;
     }
 
     /**

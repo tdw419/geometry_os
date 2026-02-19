@@ -9,6 +9,7 @@ and the PixiJS Visual Shell.
 Capabilities:
 - Semantic Memory Retrieval (Hippocampus)
 - Mirror Validation Results (Master Stage)
+- RISC-V UART Streaming (Neuro-Silicon Bridge)
 - Visual Action Routing
 
 Port: 8768 (WebSocket)
@@ -92,6 +93,18 @@ class VisualBridge:
                 # 3. Echo/Ping
                 elif msg_type == 'ping':
                     await websocket.send(json.dumps({'type': 'pong'}))
+
+                # 4. RISC-V UART Output (from silicon substrate)
+                elif msg_type == 'riscv_uart':
+                    # Broadcast UART bytes to all clients for HUD display
+                    print(f"🦾 RISC-V UART: {data.get('text', '')[:50]}...")
+                    await self._broadcast({
+                        'type': 'riscv_uart',
+                        'text': data.get('text', ''),
+                        'bytes': data.get('bytes', []),
+                        'timestamp': data.get('timestamp'),
+                        'vm_id': data.get('vm_id', 'default')
+                    })
 
         except websockets.exceptions.ConnectionClosed:
             pass
