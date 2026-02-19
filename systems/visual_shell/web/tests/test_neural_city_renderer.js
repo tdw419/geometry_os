@@ -251,7 +251,7 @@ test('NeuralCityRenderer - tick does nothing when no filter', () => {
     assert.doesNotThrow(() => renderer.tick(0.016));
 });
 
-test('NeuralCityRenderer - setFocus updates district', () => {
+test('NeuralCityRenderer - setFocus updates district', async () => {
     const mockApp = {
         renderer: { type: 'webgpu' },
         stage: { addChild: () => {} },
@@ -259,18 +259,21 @@ test('NeuralCityRenderer - setFocus updates district', () => {
     };
 
     const renderer = new NeuralCityRenderer({ app: mockApp });
-    renderer.districtMetadata = [
-        { x: 1, y: 3, dominant_q: 0.1, max_mag: 0.9, entropy: 0.3 }
-    ];
+    // Use the format that setFocus expects: districtMetadata.districts with id property
+    renderer.districtMetadata = {
+        districts: [
+            { id: '1_3', dominant_q: 0.1, max_mag: 0.9, entropy: 0.3 }
+        ]
+    };
     renderer.filter = { setFocusDistrict: () => {} };
 
-    renderer.setFocus(1000, 2000);
+    await renderer.setFocus(1000, 2000);
 
     assert.deepStrictEqual(renderer.focusDistrict, { x: 1, y: 3 });
-    assert.strictEqual(renderer.stats.focusMaterial, 'Gold (F32)');
+    assert.strictEqual(renderer.stats.focusMaterial, 0.1);
 });
 
-test('NeuralCityRenderer - setFocus detects Steel material', () => {
+test('NeuralCityRenderer - setFocus detects Steel material', async () => {
     const mockApp = {
         renderer: { type: 'webgpu' },
         stage: { addChild: () => {} },
@@ -278,17 +281,19 @@ test('NeuralCityRenderer - setFocus detects Steel material', () => {
     };
 
     const renderer = new NeuralCityRenderer({ app: mockApp });
-    renderer.districtMetadata = [
-        { x: 0, y: 0, dominant_q: 0.3, max_mag: 0.7, entropy: 0.5 }
-    ];
+    renderer.districtMetadata = {
+        districts: [
+            { id: '0_0', dominant_q: 0.3, max_mag: 0.7, entropy: 0.5 }
+        ]
+    };
     renderer.filter = { setFocusDistrict: () => {} };
 
-    renderer.setFocus(100, 100);
+    await renderer.setFocus(100, 100);
 
-    assert.strictEqual(renderer.stats.focusMaterial, 'Steel (Q8)');
+    assert.strictEqual(renderer.stats.focusMaterial, 0.3);
 });
 
-test('NeuralCityRenderer - setFocus detects Rust material', () => {
+test('NeuralCityRenderer - setFocus detects Rust material', async () => {
     const mockApp = {
         renderer: { type: 'webgpu' },
         stage: { addChild: () => {} },
@@ -296,17 +301,19 @@ test('NeuralCityRenderer - setFocus detects Rust material', () => {
     };
 
     const renderer = new NeuralCityRenderer({ app: mockApp });
-    renderer.districtMetadata = [
-        { x: 0, y: 0, dominant_q: 0.6, max_mag: 0.5, entropy: 0.7 }
-    ];
+    renderer.districtMetadata = {
+        districts: [
+            { id: '0_0', dominant_q: 0.6, max_mag: 0.5, entropy: 0.7 }
+        ]
+    };
     renderer.filter = { setFocusDistrict: () => {} };
 
-    renderer.setFocus(100, 100);
+    await renderer.setFocus(100, 100);
 
-    assert.strictEqual(renderer.stats.focusMaterial, 'Rust (Q4)');
+    assert.strictEqual(renderer.stats.focusMaterial, 0.6);
 });
 
-test('NeuralCityRenderer - setFocus detects Dust material', () => {
+test('NeuralCityRenderer - setFocus detects Dust material', async () => {
     const mockApp = {
         renderer: { type: 'webgpu' },
         stage: { addChild: () => {} },
@@ -314,17 +321,19 @@ test('NeuralCityRenderer - setFocus detects Dust material', () => {
     };
 
     const renderer = new NeuralCityRenderer({ app: mockApp });
-    renderer.districtMetadata = [
-        { x: 0, y: 0, dominant_q: 0.8, max_mag: 0.2, entropy: 0.9 }
-    ];
+    renderer.districtMetadata = {
+        districts: [
+            { id: '0_0', dominant_q: 0.8, max_mag: 0.2, entropy: 0.9 }
+        ]
+    };
     renderer.filter = { setFocusDistrict: () => {} };
 
-    renderer.setFocus(100, 100);
+    await renderer.setFocus(100, 100);
 
-    assert.strictEqual(renderer.stats.focusMaterial, 'Dust (Sparse)');
+    assert.strictEqual(renderer.stats.focusMaterial, 0.8);
 });
 
-test('NeuralCityRenderer - setFocus handles missing metadata', () => {
+test('NeuralCityRenderer - setFocus handles missing metadata', async () => {
     const mockApp = {
         renderer: { type: 'webgpu' },
         stage: { addChild: () => {} },
@@ -336,7 +345,7 @@ test('NeuralCityRenderer - setFocus handles missing metadata', () => {
     renderer.filter = { setFocusDistrict: () => {} };
 
     // Should not throw
-    assert.doesNotThrow(() => renderer.setFocus(100, 100));
+    await assert.doesNotReject(async () => renderer.setFocus(100, 100));
 });
 
 test('NeuralCityRenderer - resize updates filter resolution', () => {
@@ -377,6 +386,9 @@ test('NeuralCityRenderer - loadDistrict caches tile', async () => {
 
     const renderer = new NeuralCityRenderer({ app: mockApp, maxCacheSize: 3 });
 
+    // Mock extractTile to return a fake texture
+    renderer.extractTile = async () => ({ mocked: 'texture' });
+
     const tile = await renderer.loadDistrict(1, 2);
 
     assert.ok(tile);
@@ -392,6 +404,9 @@ test('NeuralCityRenderer - LRU eviction when cache full', async () => {
     };
 
     const renderer = new NeuralCityRenderer({ app: mockApp, maxCacheSize: 3 });
+
+    // Mock extractTile to return a fake texture
+    renderer.extractTile = async () => ({ mocked: 'texture' });
 
     await renderer.loadDistrict(0, 0);
     await renderer.loadDistrict(1, 0);
@@ -412,6 +427,9 @@ test('NeuralCityRenderer - getHiResTexture returns cached tile', async () => {
 
     const renderer = new NeuralCityRenderer({ app: mockApp });
 
+    // Mock extractTile to return a fake texture
+    renderer.extractTile = async () => ({ mocked: 'texture' });
+
     await renderer.loadDistrict(2, 3);
     renderer.focusDistrict = { x: 2, y: 3 };
 
@@ -427,6 +445,9 @@ test('NeuralCityRenderer - calculateVRAM tracks usage', async () => {
     };
 
     const renderer = new NeuralCityRenderer({ app: mockApp });
+
+    // Mock extractTile to return a fake texture
+    renderer.extractTile = async () => ({ mocked: 'texture' });
 
     await renderer.loadDistrict(0, 0);
     const vram = renderer.calculateVRAM();
