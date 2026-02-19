@@ -9,6 +9,12 @@ from .value_evaluator import ValueScore, ValueEvaluator
 from .axion_core import AxionCore, AxionTarget
 from .gravity_placer import GravityPosition, GravityPlacer
 from .evolution_tracker import EventType, EvolutionEvent, EvolutionTracker
+from .recursive_orchestrator import (
+    EvolutionPhase,
+    EvolutionState,
+    EvolutionResult,
+    RecursiveOrchestrator,
+)
 
 __all__ = [
     "ValueScore",
@@ -20,4 +26,8 @@ __all__ = [
     "EventType",
     "EvolutionEvent",
     "EvolutionTracker",
+    "EvolutionPhase",
+    "EvolutionState",
+    "EvolutionResult",
+    "RecursiveOrchestrator",
 ]
