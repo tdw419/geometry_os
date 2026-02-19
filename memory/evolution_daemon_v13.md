@@ -203,3 +203,114 @@ Browser VisualDebugOverlay.processTaskDagUpdate()
     ↓ (render)
 HUD _renderTaskGraph()
 ```
+
+---
+
+### Tectonic Weight Mutation (V14.2)
+
+**Status**: ✅ Complete
+**Implementation Date**: 2026-02-19
+
+| Component | Status | Tests | Key File |
+|-----------|--------|-------|----------|
+| WeightMutation Protocol | ✅ | 8 | `safety/weight_mutation.py` |
+| HilbertWriter Rust | ✅ | 4 | `rust/hilbert_writer/src/lib.rs` |
+| MutationPulse Filter | ✅ | 5 | `safety/mutation_pulse.py` |
+| MutationEmitter | ✅ | 27 | `api/mutation_emitter.py` |
+| Visual Bridge Handlers | ✅ | 5 | `api/visual_bridge.py` |
+| Mutation HUD | ✅ | Visual | `web/mutation_hud.js` |
+| E2E Integration | ✅ | 20 | `tests/test_mutation_e2e.py` |
+| **Total** | ✅ | **69** | |
+
+**Key Innovation**: Direct GPU weight manipulation via Hilbert spatial indexing with Rust-accelerated encoding.
+
+#### Data Flow
+
+```
+EvolutionDaemon → A2A → HilbertWriter (Rust) → wgpu → HUD
+```
+
+1. **EvolutionDaemon** initiates mutation with coordinates and delta values
+2. **A2A (Agent-to-Agent)** routing via CoordinatorAgent
+3. **HilbertWriter (Rust)** encodes weight deltas into Hilbert curve space
+4. **wgpu** writes encoded deltas to GPU texture memory
+5. **HUD** visualizes mutation impact in real-time
+
+#### Authority Model
+
+| Role | Initiate Mutations | Veto Mutations | Description |
+|------|-------------------|----------------|-------------|
+| ENGINEER | ✅ | ❌ | Can propose and execute weight changes |
+| GUARDIAN | ❌ | ✅ | Safety gatekeeper, veto-only authority |
+| COORDINATOR | ✅ | ✅ | Full dual-role authority |
+
+**Authorization Flow**:
+```
+MutationRequest → GuardianGate.check_authority() →
+  if role == ENGINEER: allow initiate
+  if role == GUARDIAN: veto_only mode
+  if role == COORDINATOR: full_access mode
+```
+
+#### Material Transitions
+
+| Symbol | Material | Meaning |
+|--------|----------|---------|
+| 🦀 | Rust | Native Rust implementation (fastest) |
+| 🔩 | Steel | Hybrid Python/Rust (stable) |
+| 🥇 | Gold | Pure Python (reference) |
+
+**Upgrade Path**:
+```
+🦀 Rust → 🔩 Steel → 🥇 Gold (upgrading material quality)
+```
+
+**Rollback Mechanism**:
+- All mutations logged to `MutationJournal` (SQLite)
+- Each mutation has unique `mutation_id`
+- Rollback via `MutationJournal.rollback(mutation_id)`
+- Supports cascading rollback for dependent mutations
+
+#### Files Added
+
+```
+systems/evolution_daemon/
+├── safety/
+│   ├── weight_mutation.py       # WeightMutation protocol
+│   └── mutation_pulse.py        # MutationPulse filter
+├── rust/
+│   └── hilbert_writer/
+│       ├── Cargo.toml
+│       └── src/lib.rs           # Rust Hilbert encoder
+├── api/
+│   ├── mutation_emitter.py      # Event emission (27 tests)
+│   └── visual_bridge.py         # WebSocket handlers
+└── tests/
+    ├── test_weight_mutation.py
+    ├── test_mutation_pulse.py
+    ├── test_mutation_emitter.py
+    └── test_mutation_e2e.py
+```
+
+#### Usage
+
+```python
+from systems.evolution_daemon.safety import WeightMutation, MutationJournal
+from systems.evolution_daemon.api import MutationEmitter
+
+# Create mutation request
+mutation = WeightMutation(
+    hilbert_index=12345678,
+    weight_delta=0.0125,
+    layer="attention_head_3",
+    authority_role="ENGINEER"
+)
+
+# Submit via A2A
+emitter = MutationEmitter()
+result = await emitter.emit(mutation)
+
+# If needed, rollback
+journal = MutationJournal("mutations.db")
+await journal.rollback(result.mutation_id)
+```
