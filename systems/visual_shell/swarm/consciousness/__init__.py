@@ -2,7 +2,8 @@
 Collective Consciousness System for Multi-Agent Thought Sharing.
 
 This module provides data structures for representing and sharing
-thoughts between agents in the Geometry OS swarm.
+thoughts between agents in the Geometry OS swarm, along with hooks
+for Neural City event handling.
 
 Key Components:
 - ThoughtType: Enum defining types of thoughts (embedding, attention, inference, query)
@@ -10,6 +11,8 @@ Key Components:
 - ThoughtEngine: Per-agent reasoning module for generating embeddings and attention
 - ConsensusEngine: Federated inference aggregation and conflict resolution
 - ConsciousnessState: Global awareness state with embedding pool and attention maps
+- NeuralCityHook: Abstract hook trait for Neural City events
+- NeuralCityHookBroadcaster: Dispatches events to all registered hooks
 
 Example:
     >>> from systems.visual_shell.swarm.consciousness import Thought, ThoughtType, ConsciousnessState
@@ -35,8 +38,15 @@ from systems.visual_shell.swarm.consciousness.consensus_engine import ConsensusE
 from systems.visual_shell.swarm.consciousness.consciousness_state import ConsciousnessState
 from systems.visual_shell.swarm.consciousness.thought_logger import ThoughtLogger
 from systems.visual_shell.swarm.consciousness.collective_hud import CollectiveHUD
+from systems.visual_shell.swarm.consciousness.hooks import (
+    NeuralCityHook,
+    NeuralCityHookBroadcaster,
+    LoggingHook,
+    CallbackHook,
+)
 
 __all__ = [
+    # Thought system
     "ThoughtType",
     "Thought",
     "ThoughtEngine",
@@ -45,6 +55,11 @@ __all__ = [
     "ConsciousnessState",
     "ThoughtLogger",
     "CollectiveHUD",
+    # Hooks system
+    "NeuralCityHook",
+    "NeuralCityHookBroadcaster",
+    "LoggingHook",
+    "CallbackHook",
 ]
 
 __version__ = "0.1.0"
