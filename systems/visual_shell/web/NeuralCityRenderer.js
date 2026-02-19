@@ -57,8 +57,16 @@ class NeuralCityRenderer {
             loaded: 0,
             total: 0,
             vramMB: 0,
-            focusMaterial: 'unknown'
+            focusMaterial: 'unknown',
+            metabolismIPC: 0.5,
+            throttleLevel: 'NONE'
         };
+
+        // Camera navigation (Task 4: Synaptic Query Interface)
+        this.navigationTarget = null;
+        this.navigationStart = null;
+        this.navigationDuration = 1000;
+        this.navigationElapsed = 0;
 
         console.log('NeuralCityRenderer initialized');
     }
@@ -86,7 +94,10 @@ class NeuralCityRenderer {
             loaded: this.stats.loaded,
             total: this.stats.total,
             vramMB: this.stats.vramMB,
-            focusMaterial: this.stats.focusMaterial
+            focusMaterial: this.stats.focusMaterial,
+            metabolismIPC: this.stats.metabolismIPC,
+            throttleLevel: this.stats.throttleLevel,
+            pulseCount: this.pulseBuffer.length
         };
     }
 
@@ -209,7 +220,7 @@ class NeuralCityRenderer {
         // Auto-load hi-res district if focus changed
         if (this.focusDistrict.x !== prevFocus.x || this.focusDistrict.y !== prevFocus.y) {
             await this.loadDistrict(this.focusDistrict.x, this.focusDistrict.y);
-            
+
             // Update filter with new hi-res texture if available
             const hiRes = this.getHiResTexture();
             if (hiRes && this.filter) {
@@ -225,6 +236,16 @@ class NeuralCityRenderer {
             if (meta) {
                 this.stats.focusMaterial = meta.dominant_q;
             }
+        }
+    }
+
+    /**
+     * Set zoom level for LOD (Level of Detail) control
+     * @param {number} zoom - Zoom level (1.0 = 100%, 2.0 = 200%, etc.)
+     */
+    setZoom(zoom) {
+        if (this.filter) {
+            this.filter.setZoom(zoom);
         }
     }
 
@@ -437,11 +458,13 @@ class NeuralCityRenderer {
      * @param {number} x - X coordinate (world space)
      * @param {number} y - Y coordinate (world space)
      * @param {number} timestamp - When the pulse occurred
+     * @param {number} pulseType - 0.0 for Neural (Cyan), 1.0 for Silicon (Green)
      */
-    addPulse(x, y, timestamp) {
+    addPulse(x, y, timestamp, pulseType = 0.0) {
         this.pulseBuffer.push({
             coords: { x, y },
-            timestamp
+            timestamp,
+            type: pulseType
         });
 
         // Enforce max size
@@ -484,6 +507,7 @@ class NeuralCityRenderer {
         const pulseX = new Float32Array(64);
         const pulseY = new Float32Array(64);
         const pulseAge = new Float32Array(64);
+        const pulseType = new Float32Array(64);
 
         const now = Date.now();
         for (let i = 0; i < Math.min(this.pulseBuffer.length, 64); i++) {
@@ -491,11 +515,13 @@ class NeuralCityRenderer {
             pulseX[i] = pulse.coords.x;
             pulseY[i] = pulse.coords.y;
             pulseAge[i] = (now - pulse.timestamp) / 1000; // seconds
+            pulseType[i] = pulse.type;
         }
 
         this.filter.uniforms.uPulseX = pulseX;
         this.filter.uniforms.uPulseY = pulseY;
         this.filter.uniforms.uPulseAge = pulseAge;
+        this.filter.uniforms.uPulseType = pulseType;
         this.filter.uniforms.uPulseCount = this.pulseBuffer.length;
     }
 
@@ -507,17 +533,20 @@ class NeuralCityRenderer {
      * @param {string} data.throttle_level - Throttle level: 'NONE', 'MODERATE', 'AGGRESSIVE'
      */
     updateMetabolism(data) {
-        if (!this.filter) {
-            return;
-        }
         if (!data || typeof data !== 'object') {
             console.warn('NeuralCityRenderer.updateMetabolism: invalid data', data);
             return;
         }
-        this.filter.setMetabolism(
-            data.ipc ?? 0.5,
-            data.throttle_level ?? 'NONE'
-        );
+
+        const ipc = data.ipc ?? 0.5;
+        const throttleLevel = data.throttle_level ?? 'NONE';
+
+        this.stats.metabolismIPC = ipc;
+        this.stats.throttleLevel = throttleLevel;
+
+        if (this.filter) {
+            this.filter.setMetabolism(ipc, throttleLevel);
+        }
     }
 }
 

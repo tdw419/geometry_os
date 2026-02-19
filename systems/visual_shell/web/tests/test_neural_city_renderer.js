@@ -377,6 +377,35 @@ test('NeuralCityRenderer - resize does nothing when no filter', () => {
     assert.doesNotThrow(() => renderer.resize(1920, 1080));
 });
 
+test('NeuralCityRenderer - setZoom updates filter zoom level', () => {
+    const mockApp = {
+        renderer: { type: 'webgpu' },
+        stage: { addChild: () => {} },
+        screen: { width: 1920, height: 1080 }
+    };
+
+    const renderer = new NeuralCityRenderer({ app: mockApp });
+    let capturedZoom = null;
+    renderer.filter = { setZoom: (z) => { capturedZoom = z; } };
+
+    renderer.setZoom(2.5);
+
+    assert.strictEqual(capturedZoom, 2.5);
+});
+
+test('NeuralCityRenderer - setZoom does nothing when no filter', () => {
+    const mockApp = {
+        renderer: { type: 'webgpu' },
+        stage: { addChild: () => {} },
+        screen: { width: 1920, height: 1080 }
+    };
+
+    const renderer = new NeuralCityRenderer({ app: mockApp });
+
+    // Should not throw
+    assert.doesNotThrow(() => renderer.setZoom(2.0));
+});
+
 test('NeuralCityRenderer - loadDistrict caches tile', async () => {
     const mockApp = {
         renderer: { type: 'webgpu' },
