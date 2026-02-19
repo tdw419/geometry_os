@@ -18,6 +18,7 @@ from systems.visual_shell.swarm.healer_agent import HealerAgent
 from systems.visual_shell.swarm.collaborative_mission import CollaborativeSwarm
 from systems.visual_shell.swarm.coordinator_agent import CoordinatorAgent
 from systems.visual_shell.swarm.health_dashboard import HealthDashboard, HealthStatus
+from cryptography.hazmat.primitives.asymmetric import ed25519
 
 import pytest_asyncio
 
@@ -244,3 +245,56 @@ class TestSwarmProduction:
         # Task should be pending again
         assert len(coordinator.pending_tasks) == 1
         assert coordinator.pending_tasks[0].task_id == task_id
+
+# === Security Layer Tests ===
+
+from systems.visual_shell.swarm.auth_manager import AuthManager
+from systems.visual_shell.swarm.task_signer import TaskSigner
+from systems.visual_shell.swarm.sandbox import Sandbox
+from systems.visual_shell.swarm.audit_logger import AuditLogger
+from systems.visual_shell.swarm.security_middleware import SecurityMiddleware
+
+class TestSwarmSecurity:
+    """Security capability tests for the swarm."""
+
+    @pytest.mark.asyncio
+    async def test_security_auth_and_signing(self):
+        """Verify auth and signing workflow."""
+        auth = AuthManager(shared_secret="swarm-secret")
+        signer = TaskSigner(private_key=ed25519.Ed25519PrivateKey.generate())
+        
+        # 1. Register
+        token = await auth.register_agent("agent-001", "swarm-secret")
+        assert token is not None
+        
+        # 2. Sign
+        payload = {"type": "task", "action": "scan", "token": token}
+        signed = await signer.sign_payload(payload)
+        
+        # 3. Verify
+        assert await signer.verify_signature(signed, signer.public_key) is True
+        assert await auth.validate_token("agent-001", token) is True
+
+    @pytest.mark.asyncio
+    async def test_security_sandbox_isolation(self):
+        """Verify task isolation in sandbox."""
+        sandbox = Sandbox()
+        
+        async def mock_task(params):
+            return "ok"
+            
+        result = await sandbox.execute(mock_task, {})
+        assert result["success"] is True
+        assert result["data"] == "ok"
+
+    @pytest.mark.asyncio
+    async def test_security_audit_logging(self, tmp_path):
+        """Verify security event logging."""
+        log_path = str(tmp_path / "test_audit.log")
+        audit = AuditLogger(log_path=log_path)
+        
+        await audit.log("test_event", {"data": "verified"})
+        
+        assert await audit.verify_integrity() is True
+        events = await audit.get_events(event_type="test_event")
+        assert len(events) == 1
