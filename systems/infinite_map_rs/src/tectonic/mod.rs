@@ -1,8 +1,15 @@
-//! Tectonic Realignment System for Phase 28
+//! Spatial Tectonics - Phase 28: Layout Realignment System
 //!
-//! Makes the Infinite Map morphologically reactive to cognitive load.
-//! Districts that frequently exchange NeuralPulses become physically proximal,
-//! reducing "Saccade distance" for Area Agents.
+//! **NOT TO BE CONFUSED WITH:**
+//! - `tectonic_simulator.rs` (GPU cellular automaton for visual effects)
+//! - `tectonic_stage.py` (Evolution daemon for shader optimization)
+//!
+//! This module implements **Spatial Tectonics** - layout optimization based on
+//! cognitive bonds. It makes the Infinite Map morphologically reactive to
+//! cognitive load, pulling high-traffic tiles closer together.
+//!
+//! Key concept: Districts that frequently exchange NeuralPulses become
+//! physically proximal, reducing "Saccade distance" for Area Agents.
 
 pub mod bonds;
 pub mod simulator;
