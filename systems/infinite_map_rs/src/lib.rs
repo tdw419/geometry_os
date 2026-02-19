@@ -12,6 +12,7 @@ pub mod input;
 pub mod compositor;
 pub mod ui;
 pub mod hilbert;
+pub mod hilbert_writer;
 pub mod riscv;
 pub mod riscv_executor;
 pub mod riscv_native;
