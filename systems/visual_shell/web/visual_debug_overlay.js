@@ -84,6 +84,14 @@ class VisualDebugOverlay {
         this.neuralCityFocus = { x: 0, y: 0 };
         this.neuralCityZoom = 1.0;
 
+        // Mutation HUD state
+        this.mutationStats = {
+            totalMutations: 0,
+            lastMutationTime: null,
+            activeUpgrades: [],  // Array of {districtId, fromMaterial, toMaterial, startTime}
+            recentMutations: []  // Last 20 mutations for display
+        };
+
         // Canvas layers
         this.hudCanvas = null;
         this.hudCtx = null;
@@ -261,6 +269,15 @@ class VisualDebugOverlay {
         // Listen for Evolution events
         window.addEventListener('EVOLUTION_EVENT', (e) => {
             this.handleEvolutionEvent(e.detail);
+        });
+
+        // Listen for mutation events from NeuralCityFilter/Evolution Daemon
+        window.addEventListener('WEIGHT_MUTATION_BATCH', (e) => {
+            this.processMutationBatch(e.detail);
+        });
+
+        window.addEventListener('DISTRICT_UPGRADE', (e) => {
+            this.processDistrictUpgrade(e.detail);
         });
 
         // Drag and drop handlers for canvas
@@ -487,6 +504,107 @@ class VisualDebugOverlay {
      */
     handleEvolutionEvent(data) {
         // Could add specific handling here
+        this._scheduleRender();
+    }
+
+    /**
+     * Process mutation batch event from NeuralCityFilter
+     * @param {Object} data - Mutation batch data
+     * @param {Array} data.mutations - Array of {x, y, weight, oldValue, newValue}
+     * @param {number} data.timestamp - Batch timestamp
+     */
+    processMutationBatch(data) {
+        if (!data || !data.mutations) return;
+
+        const mutations = data.mutations;
+        const count = mutations.length;
+
+        // Update total mutation count
+        this.mutationStats.totalMutations += count;
+        this.mutationStats.lastMutationTime = data.timestamp || Date.now();
+
+        // Store recent mutations (keep last 20)
+        for (const m of mutations) {
+            this.mutationStats.recentMutations.push({
+                x: m.x,
+                y: m.y,
+                weight: m.weight,
+                oldWeight: m.oldWeight,
+                newWeight: m.newWeight,
+                timestamp: this.mutationStats.lastMutationTime
+            });
+        }
+        if (this.mutationStats.recentMutations.length > 20) {
+            this.mutationStats.recentMutations = this.mutationStats.recentMutations.slice(-20);
+        }
+
+        // Trigger pulse animations on NeuralCityFilter for each mutation
+        const app = window.geometryOSApp;
+        if (app && app.neuralCity && app.neuralCity.neuralCityFilter) {
+            for (const m of mutations) {
+                app.neuralCity.neuralCityFilter.triggerMutation(m.x, m.y);
+            }
+        }
+
+        // Show notification for large batches
+        if (count >= 10) {
+            this._showNotification(`🧬 ${count} mutations applied`, '#ff00ff');
+        }
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Process district upgrade event
+     * @param {Object} data - Upgrade data
+     * @param {string} data.districtId - District identifier
+     * @param {string} data.fromMaterial - Original material
+     * @param {string} data.toMaterial - Target material
+     * @param {number} data.timestamp - Upgrade start time
+     * @param {boolean} data.complete - Whether upgrade is complete
+     */
+    processDistrictUpgrade(data) {
+        if (!data || !data.districtId) return;
+
+        const upgrade = {
+            districtId: data.districtId,
+            fromMaterial: data.fromMaterial || 'unknown',
+            toMaterial: data.toMaterial || 'unknown',
+            startTime: data.timestamp || Date.now(),
+            complete: data.complete || false
+        };
+
+        if (upgrade.complete) {
+            // Remove from active upgrades
+            this.mutationStats.activeUpgrades = this.mutationStats.activeUpgrades.filter(
+                u => u.districtId !== upgrade.districtId
+            );
+            this._showNotification(
+                `✨ District ${upgrade.districtId} upgraded to ${upgrade.toMaterial}`,
+                '#FFD700'
+            );
+        } else {
+            // Add to active upgrades (avoid duplicates)
+            const existingIdx = this.mutationStats.activeUpgrades.findIndex(
+                u => u.districtId === upgrade.districtId
+            );
+            if (existingIdx >= 0) {
+                this.mutationStats.activeUpgrades[existingIdx] = upgrade;
+            } else {
+                this.mutationStats.activeUpgrades.push(upgrade);
+
+                // Trigger district upgrade animation on NeuralCityFilter
+                const app = window.geometryOSApp;
+                if (app && app.neuralCity && app.neuralCity.neuralCityFilter) {
+                    app.neuralCity.neuralCityFilter.startDistrictUpgrade(
+                        upgrade.districtId,
+                        upgrade.fromMaterial,
+                        upgrade.toMaterial
+                    );
+                }
+            }
+        }
+
         this._scheduleRender();
     }
 
@@ -855,6 +973,11 @@ class VisualDebugOverlay {
         // ASCII Scene Graph HUD
         if (Object.keys(this.asciiSceneFiles).length > 0) {
             this._renderAsciiSceneSection(ctx, width, padding);
+        }
+
+        // Mutation HUD (always show if there's activity)
+        if (this.mutationStats.totalMutations > 0 || this.mutationStats.activeUpgrades.length > 0) {
+            this._renderMutationHUD(ctx, width, padding);
         }
     }
 
@@ -1831,6 +1954,122 @@ class VisualDebugOverlay {
     }
 
     /**
+     * Render Mutation HUD section
+     * Displays mutation activity: total count, last mutation time, active upgrades
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {number} width - HUD width
+     * @param {number} padding - Padding value
+     */
+    _renderMutationHUD(ctx, width, padding) {
+        const stats = this.mutationStats;
+        const activeUpgrades = stats.activeUpgrades || [];
+        const recentMutations = stats.recentMutations || [];
+
+        // Calculate section height based on content
+        const baseHeight = 80;
+        const upgradeHeight = activeUpgrades.length * 18;
+        const sectionHeight = baseHeight + upgradeHeight;
+
+        // Calculate position - stack above other bottom sections
+        let offset = sectionHeight + 20;
+        if (this.uartBuffer && this.uartBuffer.length > 0) offset += 210;
+        if (this.swarmHealth) offset += 100;
+        if (window.geometryOSApp && window.geometryOSApp.neuralCity) offset += 260;
+
+        let startY = this.hudCanvas.height - offset;
+
+        // Background for section
+        ctx.fillStyle = 'rgba(60, 0, 60, 0.95)';
+        ctx.fillRect(10, startY, width - 20, sectionHeight);
+
+        // Border with pulsing effect if mutations are recent
+        ctx.strokeStyle = '#ff00ff';
+        ctx.lineWidth = 1;
+
+        // Pulse border if mutation was recent (within 2 seconds)
+        if (stats.lastMutationTime && (Date.now() - stats.lastMutationTime) < 2000) {
+            const pulse = Math.sin(Date.now() / 100) * 0.5 + 0.5;
+            ctx.strokeStyle = `rgba(255, 0, 255, ${0.5 + pulse * 0.5})`;
+            ctx.lineWidth = 2;
+        }
+        ctx.strokeRect(10, startY, width - 20, sectionHeight);
+
+        let y = startY + 18;
+
+        // Title
+        ctx.fillStyle = '#ff00ff';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText('🧬 MUTATION HUD', padding, y);
+        y += 5;
+
+        // Divider
+        ctx.strokeStyle = '#ff00ff44';
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+        ctx.stroke();
+        y += 15;
+
+        // Total mutations
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '11px monospace';
+        ctx.fillText(`Total Mutations: ${stats.totalMutations}`, padding, y);
+        y += 16;
+
+        // Last mutation time
+        if (stats.lastMutationTime) {
+            const age = (Date.now() - stats.lastMutationTime) / 1000;
+            let timeStr;
+            if (age < 60) {
+                timeStr = `${age.toFixed(1)}s ago`;
+            } else if (age < 3600) {
+                timeStr = `${Math.floor(age / 60)}m ago`;
+            } else {
+                timeStr = `${Math.floor(age / 3600)}h ago`;
+            }
+            ctx.fillStyle = age < 5 ? '#ff00ff' : age < 30 ? '#ff88ff' : '#888888';
+            ctx.fillText(`Last Mutation: ${timeStr}`, padding, y);
+        } else {
+            ctx.fillStyle = '#666666';
+            ctx.fillText('Last Mutation: N/A', padding, y);
+        }
+        y += 16;
+
+        // Recent mutation count
+        ctx.fillStyle = '#aaaaaa';
+        ctx.fillText(`Recent (last 20): ${recentMutations.length}`, padding, y);
+        y += 18;
+
+        // Active upgrades section
+        if (activeUpgrades.length > 0) {
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 10px monospace';
+            ctx.fillText('ACTIVE UPGRADES:', padding, y);
+            y += 14;
+
+            ctx.font = '10px monospace';
+            for (const upgrade of activeUpgrades) {
+                const duration = ((Date.now() - upgrade.startTime) / 1000).toFixed(1);
+
+                // Material colors
+                const toMaterialColors = {
+                    'gold': '#FFD700',
+                    'steel': '#4169E1',
+                    'rust': '#B7410E',
+                    'dust': '#666666'
+                };
+                ctx.fillStyle = toMaterialColors[upgrade.toMaterial] || '#ffffff';
+                ctx.fillText(`  ${upgrade.districtId}: ${upgrade.fromMaterial} → ${upgrade.toMaterial} (${duration}s)`, padding, y);
+                y += 16;
+            }
+        } else {
+            ctx.fillStyle = '#666666';
+            ctx.font = '10px monospace';
+            ctx.fillText('No active upgrades', padding, y);
+        }
+    }
+
+    /**
      * Wrap text to fit width
      */
     _wrapText(text, maxWidth) {
@@ -1891,6 +2130,13 @@ class VisualDebugOverlay {
             asciiSceneFilesCount: Object.keys(this.asciiSceneFiles).length,
             asciiSceneSelectedFile: this.asciiSceneSelectedFile,
             asciiSceneExpanded: this.asciiSceneExpanded,
+            // Mutation stats
+            mutationStats: {
+                totalMutations: this.mutationStats.totalMutations,
+                lastMutationTime: this.mutationStats.lastMutationTime,
+                activeUpgradesCount: this.mutationStats.activeUpgrades.length,
+                recentMutationsCount: this.mutationStats.recentMutations.length
+            },
             // Neural City stats
             neuralCity: neuralCityStats ? {
                 focus: this.neuralCityFocus,
@@ -1928,6 +2174,13 @@ class VisualDebugOverlay {
         this.asciiSceneFiles = {};
         this.asciiSceneSelectedFile = null;
         this.asciiSceneExpanded = false;
+        // Clear mutation stats
+        this.mutationStats = {
+            totalMutations: 0,
+            lastMutationTime: null,
+            activeUpgrades: [],
+            recentMutations: []
+        };
     }
 
     /**
