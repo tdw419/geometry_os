@@ -176,6 +176,57 @@ class CityOrchestrator {
         };
     }
 
+    /**
+     * Relocate an agent to a different district.
+     * Updates district and recalculates position.
+     * @param {string} agentId - The agent ID to relocate
+     * @param {string} newDistrict - Target district name
+     * @returns {Object|null} Updated building or null if not found
+     */
+    relocateAgent(agentId, newDistrict) {
+        const building = this.buildings.get(agentId);
+        if (!building) return null;
+
+        // Validate district
+        if (!DISTRICTS[newDistrict]) {
+            console.warn(`Invalid district: ${newDistrict}`);
+            return null;
+        }
+
+        // Update district and recalculate position
+        building.district = newDistrict;
+        building.position = this._calculateBuildingPosition(newDistrict, agentId);
+
+        // Trigger update callback
+        if (this.onBuildingUpdate) {
+            this.onBuildingUpdate(building);
+        }
+
+        return building;
+    }
+
+    /**
+     * Evict an agent from the city.
+     * Removes building and cleans up graphics.
+     * @param {string} agentId - The agent ID to evict
+     * @returns {boolean} True if agent was evicted, false if not found
+     */
+    evictAgent(agentId) {
+        const building = this.buildings.get(agentId);
+        if (!building) return false;
+
+        // Remove from graphics layer
+        if (building.graphics && building.graphics.parent) {
+            building.graphics.parent.removeChild(building.graphics);
+        }
+
+        // Remove from buildings map
+        this.buildings.delete(agentId);
+
+        console.log(`Agent ${agentId} evicted from the city`);
+        return true;
+    }
+
     // Private methods
 
     _getDistrictForRole(role) {

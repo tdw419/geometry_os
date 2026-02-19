@@ -1,0 +1,291 @@
+# Glass Box Introspection Team
+#
+# Specialized team for building the Glass Box agent introspection interface.
+# Transforms Neural City buildings into inspectable "glass" panels.
+
+name: glass-box
+description: |
+  Agent team for Glass Box Introspection Interface implementation.
+
+  This team builds the street-level introspection overlay:
+  - Click building → Overlay panel with agent internals
+  - 4 data panels: Thought Stream, Intent Map, Metabolic Pulse, Comm Log
+  - 4 control actions: Relocate, Evict, Debug, Command
+
+  Plan: docs/plans/2026-02-19-glass-box-introspection-implementation.md
+  Design: docs/plans/2026-02-19-glass-box-introspection-design.md
+
+  Key Outcomes:
+  - GlassBoxOverlay component
+  - AgentDataPanel with 4 sections
+  - AgentController with 4 actions
+  - NeuralCityEngine click wiring
+  - Mock data generator
+  - Demo integration
+
+selection_policy: best_fit
+scaling_policy: fixed
+failure_policy: retry
+
+max_retries: 2
+retry_delay: 5.0
+
+# Team communication
+enable_event_bus: true
+enable_health_monitoring: true
+health_check_interval: 30.0
+
+# Team constraints
+max_concurrent_tasks: 6
+task_timeout: 300.0
+
+# Shared context
+shared_memory: true
+
+metadata:
+  project: geometry-os
+  component: visual-shell
+  phase: glass-box-v1
+  plan_file: docs/plans/2026-02-19-glass-box-introspection-implementation.md
+  total_tasks: 6
+  total_tests: 18
+  target_files:
+    - systems/visual_shell/web/js/GlassBoxOverlay.js
+    - systems/visual_shell/web/js/AgentDataPanel.js
+    - systems/visual_shell/web/js/AgentController.js
+    - systems/visual_shell/web/js/MockAgentData.js
+    - systems/visual_shell/web/js/NeuralCityEngine.js
+    - systems/visual_shell/web/js/CityOrchestrator.js
+    - systems/visual_shell/web/tests/test_glass_box_overlay.js
+    - systems/visual_shell/web/tests/test_agent_data_panel.js
+    - systems/visual_shell/web/tests/test_agent_controller.js
+    - systems/visual_shell/web/tests/test_mock_agent_data.js
+    - systems/visual_shell/web/neural_city_demo.html
+
+agents:
+  # ============================================
+  # OVERLAY BUILDER - Creates GlassBoxOverlay
+  # ============================================
+  - agent_id: overlay-builder
+    name: Overlay Component Builder
+    agent_type: specialist
+    capabilities:
+      - javascript
+      - css
+      - dom_manipulation
+      - testing
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 100
+    metadata:
+      role: Create GlassBoxOverlay component (Task 1)
+      tasks:
+        - Task 1: Create GlassBoxOverlay component
+      key_elements:
+        - open()/close() methods
+        - Click outside to close
+        - Slide animation from right
+      test_file: systems/visual_shell/web/tests/test_glass_box_overlay.js
+      source_file: systems/visual_shell/web/js/GlassBoxOverlay.js
+
+  # ============================================
+  # DATA PANEL BUILDER - Creates AgentDataPanel
+  # ============================================
+  - agent_id: data-panel-builder
+    name: Data Panel Builder
+    agent_type: specialist
+    capabilities:
+      - javascript
+      - data_visualization
+      - html_templates
+      - testing
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 95
+    metadata:
+      role: Create AgentDataPanel component (Task 2)
+      tasks:
+        - Task 2: Create AgentDataPanel with 4 sections
+      key_elements:
+        - Thought Stream (scrolling log)
+        - Intent Map (goal + trajectory)
+        - Metabolic Pulse (metrics + bars)
+        - Communication Log (in/out messages)
+      test_file: systems/visual_shell/web/tests/test_agent_data_panel.js
+      source_file: systems/visual_shell/web/js/AgentDataPanel.js
+
+  # ============================================
+  # CONTROLLER BUILDER - Creates AgentController
+  # ============================================
+  - agent_id: controller-builder
+    name: Controller Builder
+    agent_type: specialist
+    capabilities:
+      - javascript
+      - event_handling
+      - ui_controls
+      - testing
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 90
+    metadata:
+      role: Create AgentController component (Task 3)
+      tasks:
+        - Task 3: Create AgentController with 4 actions
+      key_elements:
+        - Relocate button (district selector)
+        - Evict button (confirmation dialog)
+        - Debug button (console dump)
+        - Command input (text field + send)
+      test_file: systems/visual_shell/web/tests/test_agent_controller.js
+      source_file: systems/visual_shell/web/js/AgentController.js
+
+  # ============================================
+  # ENGINE INTEGRATOR - Wires into NeuralCityEngine
+  # ============================================
+  - agent_id: engine-integrator
+    name: Engine Integration Specialist
+    agent_type: specialist
+    capabilities:
+      - javascript
+      - pixijs
+      - event_systems
+      - integration
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 85
+    metadata:
+      role: Wire GlassBox into NeuralCityEngine (Task 4)
+      tasks:
+        - Task 4: Wire GlassBoxOverlay into NeuralCityEngine
+      key_elements:
+        - Click handler on buildings
+        - Callback wiring (relocate/evict/debug/command)
+        - relocateAgent/evictAgent in CityOrchestrator
+      source_files:
+        - systems/visual_shell/web/js/NeuralCityEngine.js
+        - systems/visual_shell/web/js/CityOrchestrator.js
+
+  # ============================================
+  # MOCK DATA BUILDER - Creates MockAgentData
+  # ============================================
+  - agent_id: mock-data-builder
+    name: Mock Data Generator
+    agent_type: specialist
+    capabilities:
+      - javascript
+      - data_generation
+      - testing
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 80
+    metadata:
+      role: Create mock data generator (Task 5)
+      tasks:
+        - Task 5: Create Mock Data Generator
+      key_elements:
+        - Consistent data per agent ID (hash-based)
+        - Thoughts, intent, metabolism, communications
+        - Used for demo before real integration
+      test_file: systems/visual_shell/web/tests/test_mock_agent_data.js
+      source_file: systems/visual_shell/web/js/MockAgentData.js
+
+  # ============================================
+  # DEMO INTEGRATOR - Updates demo page
+  # ============================================
+  - agent_id: demo-integrator
+    name: Demo Integration Specialist
+    agent_type: specialist
+    capabilities:
+      - html
+      - javascript
+      - css
+      - integration
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 75
+    metadata:
+      role: Integrate Glass Box with demo page (Task 6)
+      tasks:
+        - Task 6: Integration with Demo Page
+      key_elements:
+        - Add script imports
+        - Add Glass Box CSS
+        - Verify click → overlay opens
+      source_file: systems/visual_shell/web/neural_city_demo.html
+
+  # ============================================
+  # ORCHESTRATOR - Team coordination
+  # ============================================
+  - agent_id: orchestrator
+    name: Glass Box Team Orchestrator
+    agent_type: orchestrator
+    capabilities:
+      - orchestration
+      - monitoring
+      - task_execution
+      - git_operations
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 100
+    metadata:
+      role: Coordinate team execution and ensure quality
+      focuses:
+        - Task sequencing (1→2→3, 4 depends on 1, 5 parallel, 6 last)
+        - Test verification
+        - Commit management
+        - Progress tracking
+
+# Task routing
+task_routing:
+  - pattern: "Task 1|GlassBoxOverlay|glass_box_overlay.js"
+    assign_to: overlay-builder
+
+  - pattern: "Task 2|AgentDataPanel|agent_data_panel.js"
+    assign_to: data-panel-builder
+
+  - pattern: "Task 3|AgentController|agent_controller.js"
+    assign_to: controller-builder
+
+  - pattern: "Task 4|NeuralCityEngine|click handler"
+    assign_to: engine-integrator
+
+  - pattern: "Task 5|MockAgentData|mock.*data"
+    assign_to: mock-data-builder
+
+  - pattern: "Task 6|Demo|demo.html|integration"
+    assign_to: demo-integrator
+
+# Task dependencies
+task_dependencies:
+  - task_id: "Task 1"
+    depends_on: []
+  - task_id: "Task 2"
+    depends_on: []
+  - task_id: "Task 3"
+    depends_on: []
+  - task_id: "Task 4"
+    depends_on: ["Task 1"]
+  - task_id: "Task 5"
+    depends_on: []
+  - task_id: "Task 6"
+    depends_on: ["Task 1", "Task 2", "Task 3", "Task 4", "Task 5"]
+
+# Success criteria
+completion_criteria:
+  - "All 6 tasks completed with commits"
+  - "GlassBoxOverlay.js with open/close logic"
+  - "AgentDataPanel.js with 4 data sections"
+  - "AgentController.js with 4 action buttons"
+  - "NeuralCityEngine click handler wired"
+  - "MockAgentData.js generating consistent data"
+  - "neural_city_demo.html shows Glass Box on click"
+  - "All 18 tests passing"
+
+# Metrics to track
+metrics:
+  - tasks_completed
+  - tests_written
+  - tests_passing
+  - commits_made
+  - demo_works

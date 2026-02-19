@@ -66,6 +66,43 @@
         .cognitive-dot { background: #00aaff; }
         .metabolic-dot { background: #ff8800; }
         .substrate-dot { background: #00ff88; }
+
+        /* Glass Box Styles */
+        .glass-box-overlay h2 { color: #0ff; margin: 0 0 10px 0; }
+        .glass-box-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #0ff; padding-bottom: 10px; }
+        .close-btn { background: #f44; border: none; color: white; padding: 5px 10px; cursor: pointer; border-radius: 3px; }
+        .close-btn:hover { background: #d44; }
+        .agent-id { color: #888; font-family: monospace; }
+        .data-section { margin-bottom: 20px; padding: 10px; background: rgba(0, 50, 100, 0.3); border-radius: 5px; }
+        .data-section h3 { color: #0ff; margin: 0 0 10px 0; font-size: 14px; }
+        .live-indicator { color: #0f0; font-size: 10px; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .thought-item { font-size: 12px; margin: 5px 0; }
+        .thought-item.type-inference { color: #0af; }
+        .thought-item.type-action { color: #0f0; }
+        .thought-item .time { color: #666; font-size: 10px; }
+        .thought-item .arrow { color: #888; margin: 0 5px; }
+        .metric { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
+        .metric label { width: 60px; color: #888; font-size: 11px; }
+        .metric .bar { flex: 1; height: 10px; background: #333; border-radius: 5px; overflow: hidden; }
+        .metric .bar div { height: 100%; background: linear-gradient(90deg, #0f0, #0ff); }
+        .metric .value { color: #0f0; font-size: 11px; min-width: 60px; text-align: right; }
+        .current-goal { margin-bottom: 10px; padding: 8px; background: rgba(0, 100, 200, 0.2); border-radius: 4px; }
+        .current-goal strong { color: #0ff; }
+        .trajectory ol { margin: 5px 0 0 20px; padding: 0; }
+        .trajectory li { color: #888; font-size: 12px; margin: 3px 0; }
+        .trajectory li.complete { color: #0f0; }
+        .comm-item { font-size: 11px; margin: 5px 0; color: #888; }
+        .comm-item .direction { color: #0ff; font-weight: bold; }
+        .comm-item .target { color: #0af; }
+        .control-bar { display: flex; gap: 5px; margin-top: 20px; flex-wrap: wrap; }
+        .control-bar button { flex: 1; min-width: 80px; padding: 8px; font-size: 11px; background: #0ff; }
+        .control-bar button:hover { background: #0aa; }
+        .command-panel { display: flex; gap: 5px; margin-top: 10px; }
+        .command-panel input { flex: 1; padding: 5px; background: #111; border: 1px solid #0ff; color: #0ff; border-radius: 4px; }
+        .command-panel button { padding: 5px 10px; font-size: 11px; }
+        .command-panel .btn-cancel { background: #666; }
+        .command-panel .btn-cancel:hover { background: #444; }
     </style>
 </head>
 <body>
@@ -96,6 +133,10 @@
     <script src="js/TelemetryBus.js"></script>
     <script src="js/CityOrchestrator.js"></script>
     <script src="js/NeuralCityEngine.js"></script>
+    <script src="js/MockAgentData.js"></script>
+    <script src="js/GlassBoxOverlay.js"></script>
+    <script src="js/AgentDataPanel.js"></script>
+    <script src="js/AgentController.js"></script>
     <script>
         // Initialize PixiJS
         const app = new PIXI.Application();

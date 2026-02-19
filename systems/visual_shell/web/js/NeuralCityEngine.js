@@ -39,6 +39,10 @@ class NeuralCityEngine {
         // Track graphics for updates
         this.buildingGraphics = new Map();
         this.bridgeGraphics = new Map();
+
+        // Glass Box introspection
+        this.glassBox = null;
+        this._setupGlassBox();
     }
 
     /**
@@ -105,7 +109,56 @@ class NeuralCityEngine {
     // =====================================================
 
     /**
+     * Setup Glass Box overlay and wire callbacks.
+     * @private
+     */
+    _setupGlassBox() {
+        if (typeof GlassBoxOverlay === 'undefined') {
+            console.warn('GlassBoxOverlay not available, introspection disabled');
+            return;
+        }
+
+        this.glassBox = new GlassBoxOverlay({
+            width: 400
+        });
+
+        // Wire up control callbacks
+        this.glassBox.controller.onRelocate = (agentId, district) => {
+            const building = this.orchestrator.relocateAgent(agentId, district);
+            if (building) {
+                this._updateBuildingRender(building);
+            }
+        };
+
+        this.glassBox.controller.onEvict = (agentId) => {
+            this.orchestrator.evictAgent(agentId);
+            this.glassBox.close();
+        };
+
+        this.glassBox.controller.onDebug = (agentId) => {
+            const building = this.orchestrator.getBuilding(agentId);
+            console.log('Agent Debug Dump:', building);
+            if (building) {
+                const graphics = this.buildingGraphics.get(agentId);
+                console.log('Building graphics:', graphics);
+            }
+        };
+
+        this.glassBox.controller.onCommand = (agentId, command) => {
+            console.log(`Sending command to ${agentId}: ${command}`);
+            // Emit command via telemetry bus if connected
+            if (this.telemetryBus.isConnected()) {
+                this.telemetryBus.emit('agent_command', {
+                    agent_id: agentId,
+                    command: command
+                });
+            }
+        };
+    }
+
+    /**
      * Wire up orchestrator callbacks to render methods.
+     * @private
      */
     _setupOrchestratorCallbacks() {
         this.orchestrator.onBuildingSpawn = (building) => {
@@ -308,6 +361,7 @@ class NeuralCityEngine {
 
     /**
      * Render a building graphics object.
+     * @private
      */
     _renderBuilding(building) {
         if (!this.dynamicLayer) return;
@@ -332,11 +386,91 @@ class NeuralCityEngine {
         graphics.x = building.position.x;
         graphics.y = building.position.y;
 
+        // Enable click interaction for Glass Box introspection
+        graphics.eventMode = 'static';
+        graphics.cursor = 'pointer';
+        graphics.on('click', (e) => this._handleBuildingClick(building.id, e));
+
         // Store reference for updates
         building.graphics = graphics;
         this.buildingGraphics.set(building.id, graphics);
 
         this.dynamicLayer.addChild(graphics);
+    }
+
+    /**
+     * Handle building click to open Glass Box introspection.
+     * @private
+     * @param {string} agentId - The agent/building ID
+     * @param {PIXI.FederatedEvent} event - The click event
+     */
+    _handleBuildingClick(agentId, event) {
+        event.stopPropagation();
+
+        const building = this.orchestrator.getBuilding(agentId);
+        if (!building) return;
+
+        // Get mock data for this agent (or real data when integrated)
+        const agentData = this._getAgentData(agentId);
+
+        // Open Glass Box with agent data
+        if (this.glassBox) {
+            this.glassBox.open({
+                agentId: agentId,
+                role: building.role,
+                district: building.district,
+                ...agentData
+            });
+
+            // Update controller with current agent
+            if (this.glassBox.controller) {
+                this.glassBox.controller.setAgent(agentId);
+            }
+        }
+
+        // Highlight building briefly
+        this._highlightBuilding(agentId);
+    }
+
+    /**
+     * Get agent data for Glass Box display.
+     * Uses MockAgentData for demo; will be replaced with real telemetry.
+     * @private
+     * @param {string} agentId - The agent ID
+     * @returns {Object} Agent data with thoughts, intent, metabolism, communications
+     */
+    _getAgentData(agentId) {
+        // Use MockAgentData if available (demo mode)
+        if (typeof MockAgentData !== 'undefined') {
+            return MockAgentData.generate(agentId);
+        }
+
+        // Fallback to minimal data
+        return {
+            thoughts: [],
+            intent: { goal: 'No data available', steps: [] },
+            metabolism: { ipc: 0, memory: { used: 0, total: 512 }, activity: 0 },
+            communications: []
+        };
+    }
+
+    /**
+     * Highlight a building briefly to indicate selection.
+     * @private
+     * @param {string} agentId - The agent/building ID
+     */
+    _highlightBuilding(agentId) {
+        const graphics = this.buildingGraphics.get(agentId);
+        if (!graphics) return;
+
+        // Store original alpha
+        const originalAlpha = graphics.alpha;
+
+        // Flash effect
+        graphics.alpha = 1.0;
+        setTimeout(() => {
+            graphics.alpha = originalAlpha;
+        }, 200);
     }
 
     /**
