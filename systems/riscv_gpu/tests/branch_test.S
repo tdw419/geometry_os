@@ -56,51 +56,51 @@ b3_done:
 
     #=========================================
     # Test B4: BGE (branch if greater or equal, signed)
+    # Test: -1 (0xFFFFFFFF) >= 1 should be FALSE
+    # In signed comparison: -1 < 1, so BGE should NOT branch
+    # If BGE incorrectly treats as unsigned: 0xFFFFFFFF >= 1 would branch (wrong)
     #=========================================
-    li t2, 10
-    li t3, 10
-    bge t2, t3, bge_pass   # Equal case
-    j b4_check2
-bge_pass:
-    addi t1, t1, 1
+    li t2, -1              # t2 = 0xFFFFFFFF (-1 signed)
+    li t3, 1               # t3 = 1
+    bge t2, t3, b4_fail    # Should NOT branch (signed: -1 < 1)
+    addi t1, t1, 1         # passed++ (correctly did NOT branch)
     j b4_done
-b4_check2:
-    li t2, 20
-    li t3, 10
-    bge t2, t3, bge_pass2  # Greater case
-    j b4_done
-bge_pass2:
-    addi t1, t1, 1
+b4_fail:
+    # BGE incorrectly branched (treated as unsigned)
 b4_done:
 
     #=========================================
     # Test B5: BLTU (branch if less than, unsigned)
+    # Test: 1 < 0xFFFFFFFF should be TRUE (unsigned comparison)
+    # In unsigned: 1 < 4294967295, so BLTU SHOULD branch
+    # If BLTU incorrectly treats as signed: 1 < -1 would NOT branch (wrong)
     #=========================================
-    li t2, 5
-    li t3, 10
-    bltu t2, t3, bltu_pass
-    j b5_done
+    li t2, 1               # t2 = 1
+    li t3, -1              # t3 = 0xFFFFFFFF (max uint, -1 signed)
+    bltu t2, t3, bltu_pass # Should branch (unsigned: 1 < 0xFFFFFFFF)
+    j b5_fail
 bltu_pass:
-    addi t1, t1, 1         # passed++
+    addi t1, t1, 1         # passed++ (correctly branched)
+    j b5_done
+b5_fail:
+    # BLTU incorrectly did NOT branch (treated as signed)
 b5_done:
 
     #=========================================
     # Test B6: BGEU (branch if greater or equal, unsigned)
+    # Test: 0xFFFFFFFF >= 1 should be TRUE (unsigned comparison)
+    # In unsigned: 4294967295 >= 1, so BGEU SHOULD branch
+    # If BGEU incorrectly treats as signed: -1 >= 1 would NOT branch (wrong)
     #=========================================
-    li t2, 10
-    li t3, 10
-    bgeu t2, t3, bgeu_pass  # Equal case
-    j b6_check2
+    li t2, -1              # t2 = 0xFFFFFFFF (max uint, -1 signed)
+    li t3, 1               # t3 = 1
+    bgeu t2, t3, bgeu_pass # Should branch (unsigned: 0xFFFFFFFF >= 1)
+    j b6_fail
 bgeu_pass:
-    addi t1, t1, 1
+    addi t1, t1, 1         # passed++ (correctly branched)
     j b6_done
-b6_check2:
-    li t2, 20
-    li t3, 10
-    bgeu t2, t3, bgeu_pass2 # Greater case
-    j b6_done
-bgeu_pass2:
-    addi t1, t1, 1
+b6_fail:
+    # BGEU incorrectly did NOT branch (treated as signed)
 b6_done:
 
     #=========================================
