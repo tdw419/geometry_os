@@ -22,6 +22,10 @@ class TaskSigner:
                  public_key: Optional[ed25519.Ed25519PublicKey] = None):
         self.private_key = private_key
         self.public_key = public_key
+        
+        if self.private_key and not self.public_key:
+            self.public_key = self.private_key.public_key()
+
         self.used_nonces: Set[str] = set()
 
         logger.info("TaskSigner initialized")
