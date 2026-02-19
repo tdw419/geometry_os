@@ -35,6 +35,10 @@ sys.path.insert(0, os.getcwd())
 # Import SynapticQueryEngine for semantic search
 from systems.neural_city.synaptic_query_engine import SynapticQueryEngine
 
+# Import Spatial Tectonics components (Phase 28 Step 2)
+from systems.visual_shell.api.tectonic_handler import TectonicHandler
+from systems.visual_shell.api.vat_manager import VATManager
+
 class VisualBridge:
     def __init__(self, memory_socket="/tmp/vector_memory_daemon.sock", ws_port=8768, map_size=4096):
         self.memory_socket = memory_socket
@@ -50,6 +54,10 @@ class VisualBridge:
         # Spatial Tectonics (Phase 28)
         self.consensus_engine = None  # Initialized lazily
         self._tectonic_enabled = True
+
+        # Tectonic components (Step 2)
+        self.tectonic_handler = TectonicHandler()
+        self.vat_manager = VATManager()
 
     def _query_memory_daemon(self, message):
         """Send a message to the Vector Memory Daemon and get response"""
@@ -319,18 +327,34 @@ class VisualBridge:
 
                 # 16. Tectonic Realignment Proposal (from ConsensusEngine)
                 elif msg_type == 'tectonic_proposal':
-                    # Forward proposal to Rust TectonicSimulator
+                    # Forward proposal to Rust TectonicSimulator via TectonicHandler
                     proposal_id = data.get('proposal_id')
                     bonds = data.get('bonds', [])
                     print(f"🌋 Tectonic Proposal: {proposal_id} with {len(bonds)} bonds")
 
-                    # Broadcast for HUD display
+                    # Process proposal through TectonicHandler
+                    success = self.tectonic_handler.process_proposal(data)
+
+                    # Check for layout delta from Rust (simulated for now)
+                    delta = self.tectonic_handler.read_layout_delta()
+                    if not delta:
+                        # Simulate delta if Rust not available
+                        delta = self.tectonic_handler.simulate_delta(data)
+
+                    # Apply delta to VAT
+                    moved_count = self.vat_manager.apply_delta(delta)
+                    print(f"🌍 Applied layout delta: {moved_count} tiles moved")
+
+                    # Broadcast for HUD display with full status
+                    status = self.tectonic_handler.get_status()
                     await self._broadcast({
                         "type": "TECTONIC_PROPOSAL",
                         "proposal_id": proposal_id,
                         "bonds": bonds,
                         "expected_improvement": data.get('expected_improvement', 0),
-                        "timestamp": data.get('timestamp', time.time() * 1000)
+                        "timestamp": data.get('timestamp', time.time() * 1000),
+                        "delta_applied": moved_count,
+                        "status": status
                     })
 
                     # Trigger ASCII file refresh

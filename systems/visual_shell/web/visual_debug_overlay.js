@@ -92,6 +92,18 @@ class VisualDebugOverlay {
             recentMutations: []  // Last 20 mutations for display
         };
 
+        // Tectonic state (Phase 28: Spatial Tectonics)
+        this.tectonicState = {
+            status: 'idle',          // 'idle' | 'processing' | 'complete' | 'error'
+            proposalId: null,
+            lastCycle: 0,
+            topBond: null,           // {source, dest, strength}
+            lastRealignment: null,
+            totalMovements: 0,
+            recentPulses: [],        // Last 20 pulses for visualization
+            pulseCount: 0
+        };
+
         // Canvas layers
         this.hudCanvas = null;
         this.hudCtx = null;
@@ -278,6 +290,15 @@ class VisualDebugOverlay {
 
         window.addEventListener('DISTRICT_UPGRADE', (e) => {
             this.processDistrictUpgrade(e.detail);
+        });
+
+        // Listen for Tectonic events (Phase 28: Spatial Tectonics)
+        window.addEventListener('TECTONIC_PULSE', (e) => {
+            this.handleTectonicPulse(e.detail);
+        });
+
+        window.addEventListener('TECTONIC_PROPOSAL', (e) => {
+            this.handleTectonicProposal(e.detail);
         });
 
         // Drag and drop handlers for canvas
@@ -504,6 +525,66 @@ class VisualDebugOverlay {
      */
     handleEvolutionEvent(data) {
         // Could add specific handling here
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle tectonic pulse event (Phase 28: Spatial Tectonics)
+     * @param {Object} data - Pulse data {source, dest, pulse_type, volume}
+     */
+    handleTectonicPulse(data) {
+        if (!data) return;
+
+        // Add to recent pulses (keep last 20)
+        this.tectonicState.recentPulses.unshift({
+            source: data.source,
+            dest: data.dest,
+            pulseType: data.pulse_type || 'violet',
+            volume: data.volume || 1.0,
+            timestamp: Date.now()
+        });
+
+        if (this.tectonicState.recentPulses.length > 20) {
+            this.tectonicState.recentPulses.pop();
+        }
+
+        this.tectonicState.pulseCount++;
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle tectonic proposal event (Phase 28: Spatial Tectonics)
+     * @param {Object} data - Proposal data {proposal_id, bonds, status}
+     */
+    handleTectonicProposal(data) {
+        if (!data) return;
+
+        const status = data.status || {};
+
+        this.tectonicState.status = status.state || 'processing';
+        this.tectonicState.proposalId = data.proposal_id;
+        this.tectonicState.lastCycle = status.last_cycle || this.tectonicState.lastCycle;
+        this.tectonicState.totalMovements = status.total_movements || this.tectonicState.totalMovements;
+        this.tectonicState.lastRealignment = Date.now();
+
+        // Extract top bond from status or bonds array
+        if (status.top_bond && Array.isArray(status.top_bond)) {
+            this.tectonicState.topBond = {
+                source: status.top_bond[0],
+                dest: status.top_bond[1],
+                strength: status.top_bond[2]
+            };
+        } else if (data.bonds && data.bonds.length > 0) {
+            const top = data.bonds.reduce((a, b) =>
+                (a.strength || 0) > (b.strength || 0) ? a : b
+            );
+            this.tectonicState.topBond = {
+                source: top.source,
+                dest: top.dest,
+                strength: top.strength
+            };
+        }
+
         this._scheduleRender();
     }
 
@@ -978,6 +1059,11 @@ class VisualDebugOverlay {
         // Mutation HUD (always show if there's activity)
         if (this.mutationStats.totalMutations > 0 || this.mutationStats.activeUpgrades.length > 0) {
             this._renderMutationHUD(ctx, width, padding);
+        }
+
+        // Tectonic Activity HUD (Phase 28: Spatial Tectonics)
+        if (this.tectonicState.pulseCount > 0 || this.tectonicState.totalMovements > 0) {
+            this._renderTectonicSection(ctx, width, padding);
         }
     }
 
@@ -2067,6 +2153,117 @@ class VisualDebugOverlay {
             ctx.font = '10px monospace';
             ctx.fillText('No active upgrades', padding, y);
         }
+    }
+
+    /**
+     * Render Tectonic Activity HUD section (Phase 28: Spatial Tectonics)
+     * Shows layout realignment status and pulse activity.
+     */
+    _renderTectonicSection(ctx, width, padding) {
+        const state = this.tectonicState;
+
+        // Calculate section height
+        const baseHeight = 100;
+        const sectionHeight = baseHeight;
+
+        // Calculate position - stack above other bottom sections
+        let offset = sectionHeight + 20;
+        if (this.uartBuffer && this.uartBuffer.length > 0) offset += 210;
+        if (this.swarmHealth) offset += 100;
+        if (window.geometryOSApp && window.geometryOSApp.neuralCity) offset += 260;
+        if (this.mutationStats.totalMutations > 0) offset += 100;
+
+        let startY = this.hudCanvas.height - offset;
+
+        // Background for section - earth tones for tectonics
+        ctx.fillStyle = 'rgba(40, 30, 20, 0.95)';
+        ctx.fillRect(10, startY, width - 20, sectionHeight);
+
+        // Border with activity indicator
+        ctx.strokeStyle = state.status === 'processing' ? '#ff6600' : '#8B4513';
+        ctx.lineWidth = state.status === 'processing' ? 2 : 1;
+        ctx.strokeRect(10, startY, width - 20, sectionHeight);
+
+        let y = startY + 18;
+
+        // Title with emoji
+        ctx.fillStyle = '#ff9944';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText('🌍 TECTONIC ACTIVITY', padding, y);
+        y += 5;
+
+        // Divider
+        ctx.strokeStyle = '#8B451344';
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+        ctx.stroke();
+        y += 15;
+
+        // Status with indicator
+        const statusColors = {
+            'idle': '#888888',
+            'processing': '#ff6600',
+            'complete': '#44ff44',
+            'error': '#ff4444'
+        };
+        const statusIcons = {
+            'idle': '○',
+            'processing': '◐',
+            'complete': '●',
+            'error': '✗'
+        };
+
+        ctx.fillStyle = statusColors[state.status] || '#888888';
+        ctx.font = '11px monospace';
+        const icon = statusIcons[state.status] || '○';
+        ctx.fillText(`Status: ${icon} ${state.status.toUpperCase()}`, padding, y);
+        y += 16;
+
+        // Cycle count
+        ctx.fillStyle = '#aaaaaa';
+        ctx.fillText(`Cycle: ${state.lastCycle}`, padding, y);
+        y += 14;
+
+        // Top bond if available
+        if (state.topBond) {
+            ctx.fillStyle = '#ffcc00';
+            ctx.fillText(
+                `Top Bond: ${state.topBond.source} ↔ ${state.topBond.dest} (${(state.topBond.strength * 100).toFixed(0)}%)`,
+                padding, y
+            );
+        } else {
+            ctx.fillStyle = '#666666';
+            ctx.fillText('Top Bond: N/A', padding, y);
+        }
+        y += 14;
+
+        // Last realignment
+        if (state.lastRealignment) {
+            const age = (Date.now() - state.lastRealignment) / 1000;
+            let timeStr;
+            if (age < 60) {
+                timeStr = `${age.toFixed(0)}s ago`;
+            } else if (age < 3600) {
+                timeStr = `${Math.floor(age / 60)}m ago`;
+            } else {
+                timeStr = `${Math.floor(age / 3600)}h ago`;
+            }
+            ctx.fillStyle = age < 30 ? '#44ff44' : '#888888';
+            ctx.fillText(`Last Realignment: ${timeStr}`, padding, y);
+        } else {
+            ctx.fillStyle = '#666666';
+            ctx.fillText('Last Realignment: Never', padding, y);
+        }
+        y += 14;
+
+        // Total movements and pulse count
+        ctx.fillStyle = '#888888';
+        ctx.font = '10px monospace';
+        ctx.fillText(
+            `Movements: ${state.totalMovements} | Pulses: ${state.pulseCount}`,
+            padding, y
+        );
     }
 
     /**
