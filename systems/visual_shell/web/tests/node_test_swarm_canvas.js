@@ -75,8 +75,18 @@ global.PIXI = {
         endFill() { return this; }
         lineStyle() { return this; }
         drawCircle() { return this; }
+        drawRoundedRect() { return this; }
         clear() { return this; }
         addChild(child) { child.parent = this; }
+    },
+    Text: class {
+        constructor(text, style) {
+            this.text = text;
+            this.style = style || {};
+            this.x = 0;
+            this.y = 0;
+            this.parent = null;
+        }
     },
     filters: {
         GlowFilter: class {}

@@ -10,17 +10,18 @@ class SwarmCanvas {
             backgroundColor: 0x0a0a1a,
             particleSize: 8,
             gridSize: 100,
+            nodeBorderColor: 0x333344,
             ...config
         };
 
         this.app = null;
         this.viewport = null;
         this.agentParticles = new Map(); // agent_id -> PIXI.Container (particle)
-        this.nodeRegions = new Map(); // node_id -> PIXI.Graphics
+        this.nodeRegions = new Map(); // node_id -> PIXI.Container
         this.taskArrows = new Map(); // task_id -> PIXI.Graphics
 
         this.running = false;
-        this.lastUpdateTime = 0;
+        this.time = 0;
     }
 
     /**
@@ -40,9 +41,18 @@ class SwarmCanvas {
 
         this.container.appendChild(this.app.canvas);
 
-        // Create Viewport (simulated if pixi-viewport is not loaded)
+        // Create Viewport
         this.viewport = new PIXI.Container();
         this.app.stage.addChild(this.viewport);
+
+        // Layers
+        this.nodeLayer = new PIXI.Container();
+        this.taskLayer = new PIXI.Container();
+        this.agentLayer = new PIXI.Container();
+        
+        this.viewport.addChild(this.nodeLayer);
+        this.viewport.addChild(this.taskLayer);
+        this.viewport.addChild(this.agentLayer);
 
         // Interaction for pan/zoom
         this.app.stage.interactive = true;
@@ -56,7 +66,6 @@ class SwarmCanvas {
     }
 
     _setupInteraction() {
-        // Simple pan implementation
         let dragging = false;
         let lastPos = { x: 0, y: 0 };
 
@@ -77,7 +86,6 @@ class SwarmCanvas {
         this.app.stage.on('pointerup', () => dragging = false);
         this.app.stage.on('pointerupoutside', () => dragging = false);
 
-        // Simple zoom implementation via wheel
         this.container.addEventListener('wheel', (e) => {
             e.preventDefault();
             const factor = e.deltaY > 0 ? 0.9 : 1.1;
@@ -85,23 +93,59 @@ class SwarmCanvas {
         }, { passive: false });
     }
 
-    /**
-     * Pan the viewport
-     */
     pan(dx, dy) {
         if (!this.viewport) return;
         this.viewport.x += dx;
         this.viewport.y += dy;
     }
 
-    /**
-     * Zoom the viewport
-     */
     zoom(scale) {
         if (!this.viewport) return;
-        // Clamp zoom
         const clampedScale = Math.max(0.1, Math.min(scale, 5));
         this.viewport.scale.set(clampedScale);
+    }
+
+    /**
+     * Add a node region to the canvas
+     */
+    addNode(nodeId, data = {}) {
+        if (this.nodeRegions.has(nodeId)) return;
+
+        const container = new PIXI.Container();
+        container.x = data.x || 0;
+        container.y = data.y || 0;
+        container.width = data.width || 200;
+        container.height = data.height || 200;
+
+        const graphics = new PIXI.Graphics();
+        this._drawNodeRegion(graphics, container.width, container.height);
+        container.addChild(graphics);
+        container.graphics = graphics;
+
+        // Label
+        const label = new PIXI.Text(nodeId, {
+            fontFamily: 'Courier New',
+            fontSize: 12,
+            fill: 0x888899
+        });
+        label.y = -20;
+        container.addChild(label);
+
+        this.nodeLayer.addChild(container);
+        this.nodeRegions.set(nodeId, container);
+        return container;
+    }
+
+    _drawNodeRegion(graphics, width, height) {
+        graphics.clear();
+        graphics.lineStyle(2, this.config.nodeBorderColor, 0.5);
+        graphics.beginFill(0x1a1a2a, 0.3);
+        graphics.drawRoundedRect(0, 0, width, height, 8);
+        graphics.endFill();
+    }
+
+    getNodeRegion(nodeId) {
+        return this.nodeRegions.get(nodeId);
     }
 
     /**
@@ -111,10 +155,21 @@ class SwarmCanvas {
         if (this.agentParticles.has(agentId)) return;
 
         const particle = new PIXI.Container();
-        particle.x = data.x || 0;
-        particle.y = data.y || 0;
         particle.agentId = agentId;
         particle.state = data.state || 'idle';
+        particle.nodeId = data.nodeId;
+        particle.taskCount = data.taskCount || 0;
+
+        // Position
+        if (data.nodeId && this.nodeRegions.has(data.nodeId)) {
+            const node = this.nodeRegions.get(data.nodeId);
+            // Random position within node if not specified
+            particle.x = data.x !== undefined ? data.x : node.x + 20 + Math.random() * (node.width - 40);
+            particle.y = data.y !== undefined ? data.y : node.y + 20 + Math.random() * (node.height - 40);
+        } else {
+            particle.x = data.x || 0;
+            particle.y = data.y || 0;
+        }
 
         // Visual representation
         const graphics = new PIXI.Graphics();
@@ -122,7 +177,9 @@ class SwarmCanvas {
         particle.addChild(graphics);
         particle.graphics = graphics;
 
-        this.viewport.addChild(particle);
+        this._updateAgentScale(particle);
+
+        this.agentLayer.addChild(particle);
         this.agentParticles.set(agentId, particle);
         
         return particle;
@@ -142,6 +199,17 @@ class SwarmCanvas {
             particle.state = data.state;
             this._drawAgentGraphics(particle.graphics, particle.state);
         }
+
+        if (data.taskCount !== undefined) {
+            particle.taskCount = data.taskCount;
+            this._updateAgentScale(particle);
+        }
+    }
+
+    _updateAgentScale(particle) {
+        const baseScale = 1.0;
+        const taskScale = Math.min(particle.taskCount / 100, 2.0);
+        particle.scale.set(baseScale + taskScale);
     }
 
     /**
@@ -159,13 +227,10 @@ class SwarmCanvas {
         graphics.endFill();
         
         // Add glow
-        graphics.lineStyle(2, color, 0.5);
+        graphics.lineStyle(2, color, 0.3);
         graphics.drawCircle(0, 0, this.config.particleSize + 2);
     }
 
-    /**
-     * Get agent particle by ID
-     */
     getAgentParticle(agentId) {
         return this.agentParticles.get(agentId);
     }
@@ -177,7 +242,18 @@ class SwarmCanvas {
         if (!this.running) return;
         
         const delta = ticker.deltaTime;
-        // Logic for animations could go here
+        this.time += delta * 0.05;
+
+        // Animations: Pulsing for working agents
+        for (const particle of this.agentParticles.values()) {
+            if (particle.state === 'working') {
+                particle.alpha = 0.7 + Math.sin(this.time) * 0.3;
+            } else if (particle.state === 'error') {
+                particle.alpha = 0.5 + Math.sin(this.time * 2) * 0.5; // Rapid blink
+            } else {
+                particle.alpha = 1.0;
+            }
+        }
     }
 
     /**
