@@ -55,6 +55,9 @@ class GeometryOSApplication {
         // Evolution Safety Dashboards (V13)
         this.metabolismDashboard = null;
 
+        // Neural City Renderer (P1 PIXI.js Layer)
+        this.neuralCity = null;
+
         // World Persistence
         this.localArtifacts = [];
     }
@@ -143,6 +146,13 @@ class GeometryOSApplication {
             autoDensity: true
         });
         document.getElementById(containerId).appendChild(this.app.view);
+
+        // Handle window resize for neural city
+        window.addEventListener('resize', () => {
+            if (this.neuralCity) {
+                this.neuralCity.resize(window.innerWidth, window.innerHeight);
+            }
+        });
 
         // 2. Initialize Accessibility Manager (Phase 2.3)
         if (typeof AccessibilityManager !== 'undefined') {
@@ -357,6 +367,31 @@ class GeometryOSApplication {
                     this.workbench.show(200, 200);
                     console.log('🎨 Morphological Workbench (Geometric IDE) integrated');
                 });
+            }
+        }
+
+        // --- Neural City Renderer (P1 PIXI.js Layer) ---
+        if (typeof NeuralCityRenderer !== 'undefined') {
+            try {
+                this.neuralCity = new NeuralCityRenderer({
+                    app: this.app,
+                    districtSize: 512,
+                    maxCacheSize: 64
+                });
+
+                const neuralCityContainer = await this.neuralCity.initialize();
+
+                // Add as overlay layer above tiles
+                if (this.worldContainer) {
+                    this.worldContainer.addChild(neuralCityContainer);
+                }
+
+                // Apply filter
+                this.neuralCity.applyFilter();
+
+                console.log('✓ Neural City initialized');
+            } catch (err) {
+                console.warn('Failed to initialize Neural City:', err.message);
             }
         }
 
@@ -658,6 +693,16 @@ class GeometryOSApplication {
         // Update Memory Beams (Semantic Memory Visualization)
         if (this.memoryBeams) {
             this.memoryBeams.render(delta);
+        }
+
+        // Update Neural City Renderer - sync focus with viewport
+        if (this.neuralCity) {
+            this.neuralCity.tick(delta / 60);
+            // Sync focus to camera center
+            if (this.viewport) {
+                const camera = this.viewport.getCamera();
+                this.neuralCity.setFocus(camera.x, camera.y);
+            }
         }
     }
 
