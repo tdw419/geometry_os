@@ -49,6 +49,12 @@ class NeuralCityEngine {
 
         // Live Tile Manager
         this.liveTileManager = null;
+
+        // Instanced City Mesh (WebGPU)
+        this.cityMesh = new InstancedCityMesh(this.config.app);
+
+        // Neural Pulse System (Phase 27)
+        this.neuralPulseSystem = null;
     }
 
     /**
@@ -239,6 +245,26 @@ class NeuralCityEngine {
         this.telemetryBus.subscribe('agent_metrics', (data) => {
             this._updateFromTelemetry('agent_metrics', data);
         });
+
+        // Live Tile framebuffer updates
+        this.telemetryBus.subscribe('tile_framebuffer', (data) => {
+            this._updateFromTelemetry('tile_framebuffer', data);
+        });
+
+        // Neural Events (Phase 27: Distributed Neural Memory)
+        this.telemetryBus.subscribe('neural_event', (data) => {
+            this._updateFromTelemetry('neural_event', data);
+        });
+
+        // Memory broadcasts from NeuralMemoryHub
+        this.telemetryBus.subscribe('memory_broadcast', (data) => {
+            this._updateFromTelemetry('memory_broadcast', data);
+        });
+
+        // Collective context updates
+        this.telemetryBus.subscribe('collective_context', (data) => {
+            this._updateFromTelemetry('collective_context', data);
+        });
     }
 
     /**
@@ -276,6 +302,53 @@ class NeuralCityEngine {
             case 'agent_metrics':
                 this.orchestrator.updateBuilding(data.agent_id, data);
                 break;
+
+            case 'tile_framebuffer':
+                this._updateBuildingFramebuffer(data.tile_id, data.data);
+                break;
+
+            case 'neural_event':
+                // Trigger neural pulse visualization
+                if (this.neuralPulseSystem && data.tile_id) {
+                    const sourceBuilding = this.orchestrator.getBuilding(data.tile_id);
+                    if (sourceBuilding) {
+                        this.neuralPulseSystem.emitPulse(
+                            sourceBuilding.position,
+                            data.event_type || 'CODE_DISCOVERY',
+                            data.confidence || 0.5,
+                            data.tile_id
+                        );
+                    }
+                }
+                // Update Glass Box with collective context if open
+                if (this.glassBox && this.glassBox.agentId !== data.tile_id) {
+                    this._refreshCollectiveContext(this.glassBox.agentId);
+                }
+                break;
+
+            case 'memory_broadcast':
+                // Memory hub shared an event - could show in HUD
+                console.log('🧠 Memory broadcast:', data.event_type, 'from', data.tile_id);
+                break;
+
+            case 'collective_context':
+                // Update Glass Box with new collective context
+                if (this.glassBox && this.glassBox.agentId === data.tile_id) {
+                    this.glassBox.panel.setCollectiveContext(data);
+                }
+                break;
+        }
+    }
+
+    /**
+     * Refresh collective context for a tile from the neural memory hub.
+     * @private
+     */
+    async _refreshCollectiveContext(tileId) {
+        // This would typically call back to the backend via WebSocket
+        // For now, just emit a request event
+        if (this.telemetryBus.isConnected()) {
+            this.telemetryBus.emit('get_collective_context', { tile_id: tileId });
         }
     }
 
@@ -294,6 +367,11 @@ class NeuralCityEngine {
         this.dynamicLayer = new PIXI.Container();
         this.dynamicLayer.name = 'neural_city_dynamic';
 
+        // Add City Mesh to static layer or dedicated layer
+        if (this.cityMesh && this.staticLayer) {
+            this.staticLayer.addChild(this.cityMesh.container);
+        }
+
         // Saccadic layer (eye-tracking beams and reticles)
         this.saccadicLayer = new PIXI.Container();
         this.saccadicLayer.name = 'neural_city_saccadic';
@@ -301,6 +379,12 @@ class NeuralCityEngine {
         // Particle layer (ambient traffic)
         this.particleLayer = new PIXI.Container();
         this.particleLayer.name = 'neural_city_particles';
+
+        // Neural Pulse layer (Phase 27: distributed memory visualization)
+        if (typeof NeuralPulseSystem !== 'undefined') {
+            this.neuralPulseSystem = new NeuralPulseSystem(this.config.app);
+            this.neuralPulseSystem.connectToTelemetry(this.telemetryBus);
+        }
 
         // Add to app stage
         if (this.config.container) {
@@ -490,6 +574,24 @@ class NeuralCityEngine {
     }
 
     /**
+     * Update a building's texture with a live framebuffer screenshot.
+     * Uses the high-performance WebGPU Texture Array.
+     * @private
+     * @param {string} agentId - The agent/building ID
+     * @param {string|HTMLImageElement} source - Base64 string or Image element
+     */
+    async _updateBuildingFramebuffer(agentId, source) {
+        if (!this.cityMesh) return;
+
+        try {
+            // Update the live tile in the GPU texture array
+            this.cityMesh.updateLiveTile(agentId, source);
+        } catch (e) {
+            console.debug(`Failed to update framebuffer for ${agentId}:`, e.message);
+        }
+    }
+
+    /**
      * Update spire visual based on current state.
      */
     _updateSpireVisual() {
@@ -528,91 +630,43 @@ class NeuralCityEngine {
 
     /**
      * Render a building graphics object.
-     * Now uses PIXI.Sprite with the agent's RTS texture for literal code rendering.
+     * Uses InstancedCityMesh for high-performance visual rendering.
+     * Creates a lightweight proxy container for user interaction.
      * @private
      */
     async _renderBuilding(building) {
         if (!this.dynamicLayer) return;
 
-        // Create a container for the building (body + labels + effects)
-        const buildingContainer = new PIXI.Container();
-        buildingContainer.name = `building_${building.id}`;
-        buildingContainer.x = building.position.x;
-        buildingContainer.y = building.position.y;
+        // 1. Update the GPU City Mesh
+        this.cityMesh.updateAgent(building.id, {
+            position: building.position,
+            height: building.height,
+            activity: building.activity,
+            district: building.district,
+            pasScore: building.stability?.pas || 1.0,
+            textureIndex: -1 // Default to Hilbert
+        });
 
-        // Load RTS texture
-        let texture;
-        try {
-            texture = await PIXI.Assets.load(building.rtsPath);
-        } catch (e) {
-            console.warn(`Failed to load RTS texture for ${building.id}:`, e.message);
-            // Fallback to district color if texture fails
-            const graphics = new PIXI.Graphics();
-            const color = this._getDistrictColor(building.district);
-            graphics.rect(-15, -building.height, 30, building.height);
-            graphics.fill({ color: color, alpha: 0.8 });
-            buildingContainer.addChild(graphics);
-            return;
-        }
+        // 2. Create interaction proxy
+        const proxy = new PIXI.Container();
+        proxy.name = `proxy_${building.id}`;
+        proxy.x = building.position.x;
+        proxy.y = building.position.y;
 
-        // Building "Skin" (RTS Texture)
-        const skin = new PIXI.Sprite(texture);
-        skin.width = 30;
-        skin.height = building.height;
-        skin.anchor.set(0.5, 1.0); // Anchor to bottom center
-        skin.alpha = 0.8;
-        
-        // Apply district-based tint (optional, but helps visual organization)
-        const color = this._getDistrictColor(building.district);
-        skin.tint = color;
-
-        // Building Border
-        const border = new PIXI.Graphics();
-        border.name = 'border';
-        border.rect(-15, -building.height, 30, building.height);
-        border.stroke({ color: color, width: 2, alpha: 0.5 });
-        
-        // Luminance glow (top edge)
-        const glow = new PIXI.Graphics();
-        glow.name = 'glow';
-        glow.rect(-15, -building.height, 30, 5);
-        glow.fill({ color: 0xffffff, alpha: building.luminance });
-
-        buildingContainer.addChild(skin);
-        buildingContainer.addChild(border);
-        buildingContainer.addChild(glow);
-
-        // Add stability bar ABOVE building
-        const barWidth = 30;
-        const barHeight = 4;
-        const barY = -building.height - 10; // 10px above building top
-
-        const stabilityBar = new PIXI.Graphics();
-        stabilityBar.name = `stability_${building.id}`;
-
-        // Background (dark)
-        stabilityBar.rect(-barWidth/2, barY, barWidth, barHeight);
-        stabilityBar.fill({ color: 0x333333 });
-
-        // Fill (colored by PAS)
-        const pas = building.stability?.pas ?? 1.0; // Default to stable if not set
-        const fillWidth = barWidth * pas;
-        stabilityBar.rect(-barWidth/2, barY, fillWidth, barHeight);
-        stabilityBar.fill({ color: this._getStabilityColor(pas) });
-
-        buildingContainer.addChild(stabilityBar);
-        building.stabilityBar = stabilityBar;
+        // Invisible hit area
+        const hitArea = new PIXI.Graphics();
+        hitArea.rect(-15, -building.height, 30, building.height);
+        hitArea.fill({ color: 0xffffff, alpha: 0.001 }); // Almost invisible but hit-testable
+        proxy.addChild(hitArea);
 
         // Enable click interaction for Glass Box introspection
-        buildingContainer.eventMode = 'static';
-        buildingContainer.cursor = 'pointer';
-        buildingContainer.on('click', (e) => this._handleBuildingClick(building.id, e));
+        proxy.eventMode = 'static';
+        proxy.cursor = 'pointer';
+        proxy.on('click', (e) => this._handleBuildingClick(building.id, e));
 
-        // Store reference for updates
-        building.graphics = buildingContainer;
-        this.buildingGraphics.set(building.id, buildingContainer);
-
-        this.dynamicLayer.addChild(buildingContainer);
+        // Store proxy reference for updates (height changes)
+        this.buildingGraphics.set(building.id, proxy);
+        this.dynamicLayer.addChild(proxy);
     }
 
     /**
@@ -695,67 +749,24 @@ class NeuralCityEngine {
      * Update building render when metrics change.
      */
     _updateBuildingRender(building) {
-        const buildingContainer = this.buildingGraphics.get(building.id);
-        if (!buildingContainer) {
-            // First render if not exists
-            this._renderBuilding(building);
-            return;
-        }
-
-        const color = this._getDistrictColor(building.district);
-
-        // Update each component's dimensions/appearance
-        buildingContainer.children.forEach(child => {
-            if (child instanceof PIXI.Sprite) {
-                // Update skin (RTS texture)
-                child.height = building.height;
-                child.tint = color;
-                child.alpha = 0.8;
-            } else if (child instanceof PIXI.Graphics) {
-                const name = child.name;
-
-                // Update border and glow
-                child.clear();
-                if (name === 'border') {
-                    child.rect(-15, -building.height, 30, building.height);
-                    child.stroke({ color: color, width: 2, alpha: 0.5 });
-                } else if (name === 'glow') {
-                    child.rect(-15, -building.height, 30, 5);
-                    child.fill({ color: 0xffffff, alpha: building.luminance });
-                } else if (name && name.startsWith('stability_')) {
-                    // Update stability bar
-                    const barWidth = 30;
-                    const barHeight = 4;
-                    const barY = -building.height - 10;
-
-                    const pas = building.stability?.pas ?? 1.0;
-
-                    // Background (dark)
-                    child.rect(-barWidth/2, barY, barWidth, barHeight);
-                    child.fill({ color: 0x333333 });
-
-                    // Fill (colored by PAS)
-                    const fillWidth = barWidth * pas;
-                    child.rect(-barWidth/2, barY, fillWidth, barHeight);
-                    child.fill({ color: this._getStabilityColor(pas) });
-
-                    // Update reference
-                    building.stabilityBar = child;
-                }
-            }
+        // 1. Update the GPU City Mesh
+        this.cityMesh.updateAgent(building.id, {
+            height: building.height,
+            activity: building.activity,
+            district: building.district,
+            pasScore: building.stability?.pas || 1.0
         });
 
-        // Apply visual glitch for critical state
-        if (building.stability && building.stability.state === 'critical' && buildingContainer) {
-            // Random pivot offset (glitch effect)
-            const glitchOffset = Math.random() * 5 - 2.5;
-            buildingContainer.pivot.x = glitchOffset;
-
-            // Reduce and flicker alpha
-            buildingContainer.alpha = 0.8 + Math.random() * 0.2;
-        } else if (buildingContainer) {
-            buildingContainer.pivot.x = 0;
-            buildingContainer.alpha = 1;
+        // 2. Update interaction proxy
+        const proxy = this.buildingGraphics.get(building.id);
+        if (proxy) {
+            proxy.children.forEach(child => {
+                if (child instanceof PIXI.Graphics) {
+                    child.clear();
+                    child.rect(-15, -building.height, 30, building.height);
+                    child.fill({ color: 0xffffff, alpha: 0.001 });
+                }
+            });
         }
     }
 
@@ -980,13 +991,16 @@ class NeuralCityEngine {
             // Update saccadic eye-tracking
             this._updateSaccades(now);
 
-            // Apply tremor to critical buildings
-            this.orchestrator.getCriticalBuildings().forEach(building => {
-                if (building.graphics) {
-                    const tremor = Math.sin(now * 0.03) * 2; // 5Hz oscillation, ±2px
-                    building.graphics.x = building.position.x + tremor;
-                }
-            });
+            // Update neural pulse effects (Phase 27)
+            if (this.neuralPulseSystem) {
+                this.neuralPulseSystem.update();
+            }
+
+            // Update City Mesh uniforms (time, camera)
+            if (this.cityMesh) {
+                const camera = { x: 0, y: 0 };
+                this.cityMesh.tick(0, now / 1000, camera);
+            }
 
             requestAnimationFrame(update);
         };

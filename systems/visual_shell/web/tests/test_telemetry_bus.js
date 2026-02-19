@@ -100,4 +100,96 @@ describe('TelemetryBus', () => {
         assert.equal(bus.ws, null);
         assert.equal(bus.connected, false);
     });
+
+    // ============================================
+    // Neural Event Tests (Phase 27)
+    // ============================================
+
+    it('should handle neural_event messages', () => {
+        const bus = new TelemetryBus();
+        let received = null;
+        bus.subscribe('neural_event', (data) => { received = data; });
+
+        const msg = {
+            data: JSON.stringify({
+                type: 'broadcast_event',
+                params: {
+                    type: 'neural_event',
+                    data: {
+                        tile_id: 'tile-001',
+                        event_type: 'CODE_DISCOVERY',
+                        confidence: 0.85
+                    }
+                }
+            })
+        };
+        bus._handleMessage(msg);
+
+        assert.ok(received);
+        assert.equal(received.tile_id, 'tile-001');
+        assert.equal(received.event_type, 'CODE_DISCOVERY');
+    });
+
+    it('should handle memory_broadcast messages', () => {
+        const bus = new TelemetryBus();
+        let received = null;
+        bus.subscribe('memory_broadcast', (data) => { received = data; });
+
+        const msg = {
+            data: JSON.stringify({
+                type: 'broadcast_event',
+                params: {
+                    type: 'memory_broadcast',
+                    data: {
+                        tile_id: 'tile-002',
+                        event_type: 'RESOURCE_PRESSURE',
+                        shared_with: ['tile-001', 'tile-003']
+                    }
+                }
+            })
+        };
+        bus._handleMessage(msg);
+
+        assert.ok(received);
+        assert.equal(received.event_type, 'RESOURCE_PRESSURE');
+    });
+
+    it('should handle collective_context messages', () => {
+        const bus = new TelemetryBus();
+        let received = null;
+        bus.subscribe('collective_context', (data) => { received = data; });
+
+        const msg = {
+            data: JSON.stringify({
+                type: 'broadcast_event',
+                params: {
+                    type: 'collective_context',
+                    data: {
+                        tile_id: 'tile-001',
+                        recent_events: [{ tile_id: 'tile-002', event_type: 'CODE_DISCOVERY' }],
+                        similar_tiles: ['tile-003'],
+                        total_memory_size: 5
+                    }
+                }
+            })
+        };
+        bus._handleMessage(msg);
+
+        assert.ok(received);
+        assert.equal(received.tile_id, 'tile-001');
+        assert.ok(Array.isArray(received.recent_events));
+        assert.ok(Array.isArray(received.similar_tiles));
+    });
+
+    it('should support multiple neural event subscribers', () => {
+        const bus = new TelemetryBus();
+        const calls = [];
+
+        bus.subscribe('neural_event', (data) => calls.push('handler1:' + data.tile_id));
+        bus.subscribe('neural_event', (data) => calls.push('handler2:' + data.event_type));
+
+        bus.emit('neural_event', { tile_id: 'test-tile', event_type: 'DISTRICT_SYNC' });
+
+        assert.deepEqual(calls, ['handler1:test-tile', 'handler2:DISTRICT_SYNC']);
+    });
 });
