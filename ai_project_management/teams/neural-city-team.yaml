@@ -1,0 +1,292 @@
+# Neural City Visualization Team
+#
+# Specialized team for building the Neural City spatial substrate interface.
+# Transforms Geometry OS into a living urban landscape.
+
+name: neural-city
+description: |
+  Agent team for Neural City Visualization implementation.
+
+  This team builds the unified visualization that serves:
+  - Introspection Tool (debugging agent states)
+  - Aesthetic/Emergent Art (beautiful distributed cognition)
+  - Navigation Interface (spatial metaphors for interaction)
+
+  Plan: docs/plans/2026-02-18-neural-city-implementation.md
+  Design: docs/plans/2026-02-18-neural-city-design.md
+
+  Key Outcomes:
+  - TelemetryBus for event-driven data
+  - CityOrchestrator for spatial layout
+  - NeuralCityEngine main controller
+  - WGSL procedural building shader
+  - EvolutionDaemon telemetry integration
+  - Demo page with HUD
+
+selection_policy: best_fit
+scaling_policy: fixed
+failure_policy: retry
+
+max_retries: 2
+retry_delay: 5.0
+
+# Team communication
+enable_event_bus: true
+enable_health_monitoring: true
+health_check_interval: 30.0
+
+# Team constraints
+max_concurrent_tasks: 6
+task_timeout: 300.0
+
+# Shared context
+shared_memory: true
+
+metadata:
+  project: geometry-os
+  component: visual-shell
+  phase: neural-city-v1
+  plan_file: docs/plans/2026-02-18-neural-city-implementation.md
+  total_tasks: 6
+  total_tests: 12
+  target_files:
+    - systems/visual_shell/web/js/TelemetryBus.js
+    - systems/visual_shell/web/js/CityOrchestrator.js
+    - systems/visual_shell/web/js/NeuralCityEngine.js
+    - systems/visual_shell/web/shaders/neural_city.wgsl
+    - systems/evolution_daemon/evolution_daemon.py
+    - systems/visual_shell/web/neural_city_demo.html
+    - systems/visual_shell/web/tests/test_telemetry_bus.js
+    - systems/visual_shell/web/tests/test_city_orchestrator.js
+    - systems/visual_shell/web/tests/test_neural_city_engine.js
+    - systems/visual_shell/web/tests/test_neural_city_shader.html
+
+agents:
+  # ============================================
+  # TELEMETRY BUILDER - Creates TelemetryBus
+  # ============================================
+  - agent_id: telemetry-builder
+    name: Telemetry Bus Builder
+    agent_type: specialist
+    capabilities:
+      - javascript
+      - websocket
+      - event_systems
+      - testing
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 100
+    metadata:
+      role: Create TelemetryBus class (Task 1)
+      tasks:
+        - Task 1: Create TelemetryBus class
+      key_elements:
+        - subscribe/emit pattern
+        - WebSocket integration
+        - WebMCP broadcast format handling
+      test_file: systems/visual_shell/web/tests/test_telemetry_bus.js
+      source_file: systems/visual_shell/web/js/TelemetryBus.js
+
+  # ============================================
+  # ORCHESTRATOR BUILDER - Creates CityOrchestrator
+  # ============================================
+  - agent_id: orchestrator-builder
+    name: City Orchestrator Builder
+    agent_type: specialist
+    capabilities:
+      - javascript
+      - spatial_algorithms
+      - data_structures
+      - testing
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 95
+    metadata:
+      role: Create CityOrchestrator class (Task 2)
+      tasks:
+        - Task 2: Create CityOrchestrator class
+      key_elements:
+        - District-based positioning
+        - Building height/luminance calculation
+        - Bridge creation between buildings
+        - District pulse effects
+      test_file: systems/visual_shell/web/tests/test_city_orchestrator.js
+      source_file: systems/visual_shell/web/js/CityOrchestrator.js
+
+  # ============================================
+  # ENGINE BUILDER - Creates NeuralCityEngine
+  # ============================================
+  - agent_id: engine-builder
+    name: Neural City Engine Builder
+    agent_type: specialist
+    capabilities:
+      - javascript
+      - pixijs
+      - webgpu
+      - integration
+      - testing
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 90
+    metadata:
+      role: Create NeuralCityEngine controller (Task 3)
+      tasks:
+        - Task 3: Create NeuralCityEngine main controller
+      key_elements:
+        - TelemetryBus + CityOrchestrator integration
+        - PixiJS render layer management
+        - Central Tectonic Spire
+        - Building and bridge rendering
+      test_file: systems/visual_shell/web/tests/test_neural_city_engine.js
+      source_file: systems/visual_shell/web/js/NeuralCityEngine.js
+
+  # ============================================
+  # SHADER BUILDER - Creates WGSL shader
+  # ============================================
+  - agent_id: shader-builder
+    name: WGSL Shader Builder
+    agent_type: specialist
+    capabilities:
+      - wgsl
+      - webgpu
+      - procedural_generation
+      - graphics_programming
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 85
+    metadata:
+      role: Create WGSL procedural shader (Task 4)
+      tasks:
+        - Task 4: Create WGSL shader for procedural buildings
+      key_elements:
+        - vertex_main for cube generation
+        - fragment_main for coloring
+        - compute_layout for animation
+        - District color mapping
+      source_file: systems/visual_shell/web/shaders/neural_city.wgsl
+      test_file: systems/visual_shell/web/tests/test_neural_city_shader.html
+
+  # ============================================
+  # PYTHON INTEGRATOR - Wires EvolutionDaemon
+  # ============================================
+  - agent_id: python-integrator
+    name: Python Integration Specialist
+    agent_type: specialist
+    capabilities:
+      - python
+      - asyncio
+      - evolution_daemon
+      - websocket
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 80
+    metadata:
+      role: Integrate with EvolutionDaemon telemetry (Task 5)
+      tasks:
+        - Task 5: Integrate with EvolutionDaemon Telemetry
+      key_elements:
+        - broadcast_metabolism_telemetry() method
+        - Periodic telemetry in run_loop()
+        - WebMCP broadcast integration
+      source_file: systems/evolution_daemon/evolution_daemon.py
+
+  # ============================================
+  # DEMO BUILDER - Creates demo page
+  # ============================================
+  - agent_id: demo-builder
+    name: Demo Page Builder
+    agent_type: specialist
+    capabilities:
+      - html
+      - javascript
+      - css
+      - pixijs
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 75
+    metadata:
+      role: Create Neural City demo page (Task 6)
+      tasks:
+        - Task 6: Create Neural City Demo Page
+      key_elements:
+        - PixiJS v8 integration
+        - Real-time HUD
+        - Spawn/Pulse controls
+        - WebSocket connect button
+      source_file: systems/visual_shell/web/neural_city_demo.html
+
+  # ============================================
+  # ORCHESTRATOR - Team coordination
+  # ============================================
+  - agent_id: orchestrator
+    name: Neural City Team Orchestrator
+    agent_type: orchestrator
+    capabilities:
+      - orchestration
+      - monitoring
+      - task_execution
+      - git_operations
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 100
+    metadata:
+      role: Coordinate team execution and ensure quality
+      focuses:
+        - Task sequencing (1→2→3→4, 5 parallel)
+        - Test verification
+        - Commit management
+        - Progress tracking
+
+# Task routing
+task_routing:
+  - pattern: "Task 1|TelemetryBus|telemetry_bus.js"
+    assign_to: telemetry-builder
+
+  - pattern: "Task 2|CityOrchestrator|city_orchestrator.js"
+    assign_to: orchestrator-builder
+
+  - pattern: "Task 3|NeuralCityEngine|neural_city_engine.js"
+    assign_to: engine-builder
+
+  - pattern: "Task 4|WGSL|shader|neural_city.wgsl"
+    assign_to: shader-builder
+
+  - pattern: "Task 5|EvolutionDaemon|evolution_daemon.py"
+    assign_to: python-integrator
+
+  - pattern: "Task 6|Demo|demo.html"
+    assign_to: demo-builder
+
+# Task dependencies
+task_dependencies:
+  - task_id: "Task 1"
+    depends_on: []
+  - task_id: "Task 2"
+    depends_on: []
+  - task_id: "Task 3"
+    depends_on: ["Task 1", "Task 2"]
+  - task_id: "Task 4"
+    depends_on: []
+  - task_id: "Task 5"
+    depends_on: []
+  - task_id: "Task 6"
+    depends_on: ["Task 1", "Task 2", "Task 3"]
+
+# Success criteria
+completion_criteria:
+  - "All 6 tasks completed with commits"
+  - "TelemetryBus.js with subscribe/emit pattern"
+  - "CityOrchestrator.js with district positioning"
+  - "NeuralCityEngine.js with PixiJS integration"
+  - "neural_city.wgsl with procedural buildings"
+  - "EvolutionDaemon broadcasts metabolism telemetry"
+  - "neural_city_demo.html renders city with HUD"
+  - "All 12 tests passing"
+
+# Metrics to track
+metrics:
+  - tasks_completed
+  - tests_written
+  - tests_passing
+  - commits_made
+  - demo_renders

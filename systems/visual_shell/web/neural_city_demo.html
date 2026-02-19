@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural City - Geometry OS</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a1a;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        #app { width: 100vw; height: 100vh; }
+        #hud {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 20, 40, 0.8);
+            padding: 15px;
+            border: 1px solid #0ff;
+            border-radius: 8px;
+            color: #0ff;
+            font-size: 12px;
+            max-width: 300px;
+            z-index: 100;
+        }
+        #hud h2 { color: #0ff; margin-bottom: 10px; font-size: 16px; }
+        #hud .metric { margin: 5px 0; }
+        #hud .value { color: #0f0; }
+        #hud .label { color: #888; }
+        #controls {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+        button {
+            background: #0ff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        button:hover { background: #0aa; }
+        button:active { background: #088; }
+        #districts {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 20, 40, 0.8);
+            padding: 15px;
+            border: 1px solid #0ff;
+            border-radius: 8px;
+            color: #0ff;
+            font-size: 12px;
+            z-index: 100;
+        }
+        .district-item { margin: 5px 0; display: flex; align-items: center; gap: 8px; }
+        .district-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .cognitive-dot { background: #00aaff; }
+        .metabolic-dot { background: #ff8800; }
+        .substrate-dot { background: #00ff88; }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+    <div id="hud">
+        <h2>🏙️ Neural City</h2>
+        <div class="metric"><span class="label">Buildings:</span> <span id="building-count" class="value">0</span></div>
+        <div class="metric"><span class="label">Bridges:</span> <span id="bridge-count" class="value">0</span></div>
+        <div class="metric"><span class="label">Spire IPC:</span> <span id="spire-ipc" class="value">0.50</span></div>
+        <div class="metric"><span class="label">Throttle:</span> <span id="throttle-level" class="value">NONE</span></div>
+        <div class="metric"><span class="label">Tectonic:</span> <span id="tectonic-status" class="value">Idle</span></div>
+        <div class="metric"><span class="label">Status:</span> <span id="status" class="value">Initializing...</span></div>
+    </div>
+    <div id="districts">
+        <h3>Districts</h3>
+        <div class="district-item"><div class="district-dot cognitive-dot"></div> Cognitive</div>
+        <div class="district-item"><div class="district-dot metabolic-dot"></div> Metabolic</div>
+        <div class="district-item"><div class="district-dot substrate-dot"></div> Substrate</div>
+    </div>
+    <div id="controls">
+        <button id="btn-spawn">Spawn Agent</button>
+        <button id="btn-pulse">Pulse District</button>
+        <button id="btn-bridge">Create Bridge</button>
+        <button id="btn-connect">Connect WS</button>
+    </div>
+
+    <script src="https://pixijs.download/v8.1.0/pixi.min.js"></script>
+    <script src="js/TelemetryBus.js"></script>
+    <script src="js/CityOrchestrator.js"></script>
+    <script src="js/NeuralCityEngine.js"></script>
+    <script>
+        // Initialize PixiJS
+        const app = new PIXI.Application();
+        app.init({ background: 0x0a0a1a, resizeTo: window }).then(() => {
+            document.getElementById('app').appendChild(app.canvas);
+
+            // Create Neural City Engine
+            const engine = new NeuralCityEngine({
+                app: app,
+                container: app.stage,
+                wsUrl: 'ws://localhost:8768'
+            });
+
+            // Start engine
+            engine.start().then(() => {
+                document.getElementById('status').textContent = 'Running';
+
+                // Demo: Spawn some initial buildings
+                for (let i = 0; i < 5; i++) {
+                    engine.telemetryBus.emit('agent_spawn', {
+                        agent_id: `demo-agent-${i}`,
+                        role: ['cognitive', 'metabolic', 'substrate'][i % 3],
+                        metrics: { memory: 100 + i * 50, activity: Math.random() }
+                    });
+                }
+            });
+
+            // Update HUD
+            setInterval(() => {
+                const state = engine.getState();
+                document.getElementById('building-count').textContent = state.buildings;
+                document.getElementById('bridge-count').textContent = state.bridges;
+                document.getElementById('spire-ipc').textContent = state.spire.ipc.toFixed(2);
+                document.getElementById('throttle-level').textContent = state.spire.throttleLevel;
+                document.getElementById('tectonic-status').textContent = 
+                    state.spire.tectonicActive ? 'Active' : 'Idle';
+            }, 1000);
+
+            // Button handlers
+            document.getElementById('btn-spawn').onclick = () => {
+                const id = 'agent-' + Date.now();
+                const roles = ['cognitive', 'metabolic', 'substrate'];
+                engine.telemetryBus.emit('agent_spawn', {
+                    agent_id: id,
+                    role: roles[Math.floor(Math.random() * 3)],
+                    metrics: { memory: 100 + Math.random() * 200, activity: Math.random() }
+                });
+            };
+
+            document.getElementById('btn-pulse').onclick = () => {
+                const districts = ['cognitive', 'metabolic', 'substrate'];
+                engine.orchestrator.pulseDistrict(districts[Math.floor(Math.random() * 3)]);
+            };
+
+            document.getElementById('btn-bridge').onclick = () => {
+                const buildings = Array.from(engine.orchestrator.buildings.keys());
+                if (buildings.length >= 2) {
+                    const from = buildings[Math.floor(Math.random() * buildings.length)];
+                    const to = buildings[Math.floor(Math.random() * buildings.length)];
+                    if (from !== to) {
+                        engine.telemetryBus.emit('agent_comm', {
+                            from: from,
+                            to: to,
+                            event_type: ['llm_inference', 'system_command', 'evolution_event'][Math.floor(Math.random() * 3)]
+                        });
+                    }
+                }
+            };
+
+            document.getElementById('btn-connect').onclick = async () => {
+                const btn = document.getElementById('btn-connect');
+                if (!engine.telemetryBus.isConnected()) {
+                    btn.textContent = 'Connecting...';
+                    try {
+                        await engine.telemetryBus.connect();
+                    } catch (e) {
+                        console.warn('Connection failed:', e);
+                    }
+                }
+                const connected = engine.telemetryBus.isConnected();
+                btn.textContent = connected ? 'Connected' : 'Connect WS';
+                document.getElementById('status').textContent = connected ? 'Connected' : 'Disconnected';
+            };
+        }).catch(err => {
+            console.error('PixiJS init failed:', err);
+            document.getElementById('status').textContent = 'Error: ' + err.message;
+        });
+    </script>
+</body>
+</html>
