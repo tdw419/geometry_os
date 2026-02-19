@@ -76,6 +76,8 @@ global.PIXI = {
         lineStyle() { return this; }
         drawCircle() { return this; }
         drawRoundedRect() { return this; }
+        moveTo() { return this; }
+        lineTo() { return this; }
         clear() { return this; }
         addChild(child) { child.parent = this; }
     },

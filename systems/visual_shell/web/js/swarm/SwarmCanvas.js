@@ -11,12 +11,13 @@ class SwarmCanvas {
             particleSize: 8,
             gridSize: 100,
             nodeBorderColor: 0x333344,
+            arrowHeadSize: 6,
             ...config
         };
 
         this.app = null;
         this.viewport = null;
-        this.agentParticles = new Map(); // agent_id -> PIXI.Container (particle)
+        this.agentParticles = new Map(); // agent_id -> PIXI.Container
         this.nodeRegions = new Map(); // node_id -> PIXI.Container
         this.taskArrows = new Map(); // task_id -> PIXI.Graphics
 
@@ -122,7 +123,6 @@ class SwarmCanvas {
         container.addChild(graphics);
         container.graphics = graphics;
 
-        // Label
         const label = new PIXI.Text(nodeId, {
             fontFamily: 'Courier New',
             fontSize: 12,
@@ -160,10 +160,8 @@ class SwarmCanvas {
         particle.nodeId = data.nodeId;
         particle.taskCount = data.taskCount || 0;
 
-        // Position
         if (data.nodeId && this.nodeRegions.has(data.nodeId)) {
             const node = this.nodeRegions.get(data.nodeId);
-            // Random position within node if not specified
             particle.x = data.x !== undefined ? data.x : node.x + 20 + Math.random() * (node.width - 40);
             particle.y = data.y !== undefined ? data.y : node.y + 20 + Math.random() * (node.height - 40);
         } else {
@@ -171,7 +169,6 @@ class SwarmCanvas {
             particle.y = data.y || 0;
         }
 
-        // Visual representation
         const graphics = new PIXI.Graphics();
         this._drawAgentGraphics(graphics, particle.state);
         particle.addChild(graphics);
@@ -185,9 +182,6 @@ class SwarmCanvas {
         return particle;
     }
 
-    /**
-     * Update agent particle state or position
-     */
     updateAgent(agentId, data = {}) {
         const particle = this.agentParticles.get(agentId);
         if (!particle) return;
@@ -212,27 +206,102 @@ class SwarmCanvas {
         particle.scale.set(baseScale + taskScale);
     }
 
-    /**
-     * Draw agent graphics based on state
-     */
     _drawAgentGraphics(graphics, state) {
         graphics.clear();
-        
-        let color = 0x00FFFF; // Cyan (Idle)
-        if (state === 'working') color = 0x00FF00; // Green
-        if (state === 'error') color = 0xFF0000; // Red
+        let color = 0x00FFFF;
+        if (state === 'working') color = 0x00FF00;
+        if (state === 'error') color = 0xFF0000;
         
         graphics.beginFill(color);
         graphics.drawCircle(0, 0, this.config.particleSize);
         graphics.endFill();
-        
-        // Add glow
         graphics.lineStyle(2, color, 0.3);
         graphics.drawCircle(0, 0, this.config.particleSize + 2);
     }
 
     getAgentParticle(agentId) {
         return this.agentParticles.get(agentId);
+    }
+
+    /**
+     * Add a task flow arrow between agents
+     */
+    addTask(taskId, data = {}) {
+        if (this.taskArrows.has(taskId)) return;
+
+        const arrow = new PIXI.Graphics();
+        arrow.taskId = taskId;
+        arrow.fromAgent = data.from;
+        arrow.toAgent = data.to;
+        arrow.taskType = data.type || 'generic';
+        arrow.rate = data.rate || 1;
+        arrow.thickness = 1 + Math.min(arrow.rate / 10, 5);
+        arrow.offset = 0;
+        arrow.completed = false;
+
+        this._drawTaskArrow(arrow);
+        this.taskLayer.addChild(arrow);
+        this.taskArrows.set(taskId, arrow);
+        return arrow;
+    }
+
+    updateTask(taskId, data = {}) {
+        const arrow = this.taskArrows.get(taskId);
+        if (!arrow) return;
+
+        if (data.rate !== undefined) {
+            arrow.rate = data.rate;
+            arrow.thickness = 1 + Math.min(arrow.rate / 10, 5);
+        }
+        
+        if (data.type !== undefined) arrow.taskType = data.type;
+    }
+
+    completeTask(taskId) {
+        const arrow = this.taskArrows.get(taskId);
+        if (arrow) {
+            arrow.completed = true;
+        }
+    }
+
+    getTaskArrow(taskId) {
+        return this.taskArrows.get(taskId);
+    }
+
+    _drawTaskArrow(arrow) {
+        const from = this.agentParticles.get(arrow.fromAgent);
+        const to = this.agentParticles.get(arrow.toAgent);
+        if (!from || !to) return;
+
+        arrow.clear();
+        
+        let color = 0x00AAFF; // Blue (Scan)
+        if (arrow.taskType === 'compute') color = 0xAA00FF; // Purple
+        if (arrow.taskType === 'migrate') color = 0xFFAA00; // Orange
+        
+        arrow.lineStyle(arrow.thickness, color, arrow.alpha);
+        arrow.moveTo(from.x, from.y);
+        arrow.lineTo(to.x, to.y);
+
+        // Arrow head at 'to' position
+        const angle = Math.atan2(to.y - from.y, to.x - from.x);
+        const headLen = this.config.arrowHeadSize;
+        arrow.moveTo(to.x, to.y);
+        arrow.lineTo(to.x - headLen * Math.cos(angle - Math.PI/6), to.y - headLen * Math.sin(angle - Math.PI/6));
+        arrow.moveTo(to.x, to.y);
+        arrow.lineTo(to.x - headLen * Math.cos(angle + Math.PI/6), to.y - headLen * Math.sin(angle + Math.PI/6));
+        
+        // Animated pulse along the line
+        const dist = Math.sqrt((to.x-from.x)**2 + (to.y-from.y)**2);
+        const segments = 10;
+        const pos = (this.time * 2 + arrow.offset) % 1.0;
+        
+        const px = from.x + (to.x - from.x) * pos;
+        const py = from.y + (to.y - from.y) * pos;
+        
+        arrow.beginFill(0xFFFFFF, 0.8 * arrow.alpha);
+        arrow.drawCircle(px, py, arrow.thickness + 1);
+        arrow.endFill();
     }
 
     /**
@@ -249,9 +318,22 @@ class SwarmCanvas {
             if (particle.state === 'working') {
                 particle.alpha = 0.7 + Math.sin(this.time) * 0.3;
             } else if (particle.state === 'error') {
-                particle.alpha = 0.5 + Math.sin(this.time * 2) * 0.5; // Rapid blink
+                particle.alpha = 0.5 + Math.sin(this.time * 2) * 0.5;
             } else {
                 particle.alpha = 1.0;
+            }
+        }
+
+        // Update task arrows
+        for (const [taskId, arrow] of this.taskArrows.entries()) {
+            this._drawTaskArrow(arrow);
+            
+            if (arrow.completed) {
+                arrow.alpha -= delta * 0.01;
+                if (arrow.alpha <= 0) {
+                    this.taskLayer.removeChild(arrow);
+                    this.taskArrows.delete(taskId);
+                }
             }
         }
     }
