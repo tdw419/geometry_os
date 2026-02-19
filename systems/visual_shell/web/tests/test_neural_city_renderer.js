@@ -119,3 +119,61 @@ test('NeuralCityRenderer - calculateVRAM returns number', () => {
     const vram = renderer.calculateVRAM();
     assert.strictEqual(typeof vram, 'number');
 });
+
+test('NeuralCityRenderer - loadMetadata loads district data', async () => {
+    global.fetch = (url) => {
+        if (url.includes('district_metadata.json')) {
+            return Promise.resolve({
+                ok: true,
+                json: () => Promise.resolve([
+                    { x: 0, y: 0, dominant_q: 0.1, max_mag: 0.9, entropy: 0.3 },
+                    { x: 1, y: 0, dominant_q: 0.3, max_mag: 0.7, entropy: 0.5 }
+                ])
+            });
+        }
+        return Promise.resolve({ ok: false });
+    };
+
+    const mockApp = {
+        renderer: { type: 'webgpu' },
+        stage: { addChild: () => {} },
+        screen: { width: 1920, height: 1080 }
+    };
+
+    const renderer = new NeuralCityRenderer({ app: mockApp });
+    await renderer.loadMetadata();
+
+    assert.strictEqual(renderer.totalDistricts, 2);
+    assert.strictEqual(renderer.stats.total, 2);
+});
+
+test('NeuralCityRenderer - loadMetadata handles fetch failure', async () => {
+    global.fetch = () => Promise.resolve({ ok: false });
+
+    const mockApp = {
+        renderer: { type: 'webgpu' },
+        stage: { addChild: () => {} },
+        screen: { width: 1920, height: 1080 }
+    };
+
+    const renderer = new NeuralCityRenderer({ app: mockApp });
+    await renderer.loadMetadata();
+
+    assert.strictEqual(renderer.totalDistricts, 0);
+    assert.deepStrictEqual(renderer.districtMetadata, []);
+});
+
+test('NeuralCityRenderer - destroy clears resources', () => {
+    const mockApp = {
+        renderer: { type: 'webgpu' },
+        stage: { addChild: () => {} },
+        screen: { width: 1920, height: 1080 }
+    };
+
+    const renderer = new NeuralCityRenderer({ app: mockApp });
+    renderer.atlasCache.set('0_0', { texture: {}, lastUsed: Date.now() });
+    renderer.destroy();
+
+    assert.strictEqual(renderer.container, null);
+    assert.strictEqual(renderer.atlasCache.size, 0);
+});

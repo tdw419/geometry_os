@@ -82,6 +82,73 @@ class NeuralCityRenderer {
         const tileSizeMB = (this.config.districtSize * this.config.districtSize * 4) / (1024 * 1024);
         return Math.round(this.atlasCache.size * tileSizeMB);
     }
+
+    /**
+     * Load district metadata from JSON
+     * @returns {Promise<void>}
+     */
+    async loadMetadata() {
+        try {
+            const response = await fetch(this.config.metadataPath);
+            if (!response.ok) {
+                throw new Error(`Failed to load metadata: ${response.status}`);
+            }
+            this.districtMetadata = await response.json();
+            this.totalDistricts = this.districtMetadata.length;
+            this.stats.total = this.totalDistricts;
+            console.log(`✓ Loaded metadata for ${this.totalDistricts} districts`);
+        } catch (err) {
+            console.warn('Failed to load district metadata:', err.message);
+            this.districtMetadata = [];
+            this.totalDistricts = 0;
+        }
+    }
+
+    /**
+     * Create the PIXI container with low-res atlas sprite
+     * @returns {Promise<PIXI.Container>}
+     */
+    async createContainer() {
+        this.container = new PIXI.Container();
+        this.container.name = 'NeuralCity';
+
+        try {
+            const texture = await PIXI.Assets.load(this.config.atlasPath);
+            this.lowResSprite = new PIXI.Sprite(texture);
+            this.lowResSprite.name = 'NeuralCityLowRes';
+            this.container.addChild(this.lowResSprite);
+            console.log(`✓ Loaded low-res atlas: ${texture.width}x${texture.height}`);
+        } catch (err) {
+            console.error('Failed to load low-res atlas:', err.message);
+            throw err;
+        }
+
+        return this.container;
+    }
+
+    /**
+     * Initialize the renderer (load metadata + create container)
+     * @returns {Promise<PIXI.Container>}
+     */
+    async initialize() {
+        await this.loadMetadata();
+        const container = await this.createContainer();
+        console.log('NeuralCityRenderer ready');
+        return container;
+    }
+
+    /**
+     * Destroy and cleanup resources
+     */
+    destroy() {
+        if (this.container) {
+            this.container.destroy({ children: true });
+            this.container = null;
+        }
+        this.atlasCache.clear();
+        this.loadedDistricts.clear();
+        console.log('NeuralCityRenderer destroyed');
+    }
 }
 
 // Export for browser
