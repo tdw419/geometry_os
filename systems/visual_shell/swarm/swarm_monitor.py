@@ -35,6 +35,8 @@ class SwarmMonitor:
         # Task DAG tracking
         self.task_dag = {}  # task_id -> task info
         self.task_history = deque(maxlen=100)  # Recent task updates
+        # District tracking
+        self.agent_districts = {}  # agent_id -> district
 
     def _process_task_update(self, update: dict):
         """Process a task update and update the DAG."""
@@ -105,8 +107,23 @@ class SwarmMonitor:
             "total_tasks": len(self.task_dag),
             **status_counts,
             "active_tasks": active_tasks,
-            "recent_updates": list(self.task_history)[-10:]
+            "recent_updates": list(self.task_history)[-10:],
+            "district_load": self.get_district_load()
         }
+
+    def update_agent_district(self, agent_id: str, district: str):
+        """Update an agent's district assignment."""
+        self.agent_districts[agent_id] = district
+
+    def get_district_load(self) -> dict:
+        """Get current agent count per district."""
+        load = {"cognitive": 0, "metabolic": 0, "substrate": 0}
+
+        for district in self.agent_districts.values():
+            if district in load:
+                load[district] += 1
+
+        return load
 
     async def connect_bridge(self):
         """Connect to the Visual Bridge."""
