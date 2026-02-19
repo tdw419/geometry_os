@@ -74,6 +74,11 @@ class VisualDebugOverlay {
         this.draggedAgent = null;
         this.dropTarget = null;
 
+        // Neural City renderer state
+        this.neuralCityRenderer = null;
+        this.neuralCityFocus = { x: 0, y: 0 };
+        this.neuralCityZoom = 1.0;
+
         // Canvas layers
         this.hudCanvas = null;
         this.hudCtx = null;
@@ -201,6 +206,11 @@ class VisualDebugOverlay {
             this.handleRiscvUart(e.detail);
         });
 
+        // Listen for RISC-V execution state (Neuro-Silicon Bridge)
+        window.addEventListener('RISCV_STATE_UPDATE', (e) => {
+            this.handleRiscvState(e.detail);
+        });
+
         // Listen for Swarm Health updates
         window.addEventListener('SWARM_HEALTH_UPDATE', (e) => {
             this.swarmHealth = e.detail;
@@ -215,6 +225,12 @@ class VisualDebugOverlay {
         // Listen for agent relocation events
         window.addEventListener('AGENT_RELOCATED', (e) => {
             this.processAgentRelocation(e.detail);
+        });
+
+        // Listen for Neural City focus updates
+        window.addEventListener('neural_city_focus', (e) => {
+            this.neuralCityFocus = e.detail;
+            this._scheduleRender();
         });
 
         // Drag and drop handlers for canvas
@@ -294,6 +310,42 @@ class VisualDebugOverlay {
                 critical: intent.critical,
                 spatialRelations: intent.spatial_relations || []
             });
+        }
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle RISC-V execution state from Neuro-Silicon Bridge
+     */
+    handleRiscvState(data) {
+        if (!data) return;
+        
+        this.lastRiscvState = {
+            ...data,
+            timestamp: Date.now()
+        };
+
+        // Map PC to Silicon District coordinate
+        // The Silicon District is anchored at (-5120, -5120) tiles relative to Antigravity Prime
+        // Each tile is 512x512. 
+        // For visualization, we treat a 1024x1024 region as the core logic gate map.
+        const pc = data.pc || 0;
+        
+        // Order 10 Hilbert curve (1024x1024)
+        // Divide by 4 because RISC-V instructions are 4 bytes aligned
+        const [hx, hy] = (typeof HilbertLUT !== 'undefined') ? 
+            HilbertLUT.d2xy(1024, Math.floor(pc / 4) % (1024 * 1024)) : 
+            [0, 0];
+            
+        // Final world position
+        const worldX = -5120 + hx;
+        const worldY = -5120 + hy;
+
+        // Trigger Silicon Pulse (Green = 1.0)
+        const app = window.geometryOSApp;
+        if (app && app.neuralCity) {
+            app.neuralCity.addPulse(worldX, worldY, Date.now(), 1.0);
         }
 
         this._scheduleRender();
@@ -1355,13 +1407,13 @@ class VisualDebugOverlay {
         let startY;
         if (this.uartBuffer && this.uartBuffer.length > 0) {
             // Place above Silicon Terminal
-            startY = this.hudCanvas.height - 380;
+            startY = this.hudCanvas.height - 460;
         } else {
             // Place at bottom
-            startY = this.hudCanvas.height - 180;
+            startY = this.hudCanvas.height - 260;
         }
 
-        const sectionHeight = 170;
+        const sectionHeight = 250;
         let y = startY;
 
         // Background for section
@@ -1422,7 +1474,36 @@ class VisualDebugOverlay {
         ctx.fillText(`Atlas Cache: ${stats.loaded}/${stats.total} (${cachePercent}%)`, padding, y);
         y += 16;
 
+        // Silicon District Section (V14)
+        ctx.strokeStyle = '#00ff8844';
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+        ctx.stroke();
+        y += 15;
+
+        ctx.fillStyle = '#00ff88';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText('⚡ SILICON DISTRICT', padding, y);
+        y += 16;
+
+        if (this.lastRiscvState) {
+            const rs = this.lastRiscvState;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = '10px monospace';
+            ctx.fillText(`PC: 0x${(rs.pc || 0).toString(16).padStart(8, '0')}`, padding, y);
+            y += 14;
+            ctx.fillText(`Cycles: ${rs.cycles || 0}`, padding, y);
+            y += 14;
+            ctx.fillText(`Status: ${rs.running ? 'RUNNING' : 'HALTED'}`, padding, y);
+        } else {
+            ctx.fillStyle = '#666';
+            ctx.fillText('  (No execution active)', padding, y);
+        }
+        y += 16;
+
         // VRAM usage
+        ctx.fillStyle = '#FFFFFF';
         ctx.fillText(`VRAM: ${stats.vramMB}MB`, padding, y);
         y += 20;
 
@@ -1505,6 +1586,10 @@ class VisualDebugOverlay {
      * Get statistics
      */
     getStats() {
+        const neuralCityStats = (window.geometryOSApp && window.geometryOSApp.neuralCity)
+            ? window.geometryOSApp.neuralCity.getStats()
+            : null;
+
         return {
             enabled: this.config.enabled,
             showBoundingboxes: this.config.showBoundingboxes,
@@ -1519,7 +1604,19 @@ class VisualDebugOverlay {
             lastVerificationSuccess: this.lastVerification?.success,
             lastVerificationConfidence: this.lastVerification?.overall_confidence,
             taskDagCount: Object.keys(this.taskDag.tasks).length,
-            taskDagActiveFlows: this.taskDag.activeFlows.length
+            taskDagActiveFlows: this.taskDag.activeFlows.length,
+            // Neural City stats
+            neuralCity: neuralCityStats ? {
+                focus: this.neuralCityFocus,
+                zoom: this.neuralCityZoom,
+                loaded: neuralCityStats.loaded,
+                total: neuralCityStats.total,
+                vramMB: neuralCityStats.vramMB,
+                focusMaterial: neuralCityStats.focusMaterial,
+                metabolismIPC: neuralCityStats.metabolismIPC,
+                throttleLevel: neuralCityStats.throttleLevel,
+                pulseCount: neuralCityStats.pulseCount
+            } : null
         };
     }
 
