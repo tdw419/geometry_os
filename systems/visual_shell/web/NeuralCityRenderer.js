@@ -11,6 +11,13 @@
  * - Dust: Sparse/Zero Weights
  */
 
+// Import NeuralCityFilter for Node.js/CommonJS environments
+let NeuralCityFilter;
+if (typeof module !== 'undefined' && module.exports) {
+    const filterModule = require('./NeuralCityFilter.js');
+    NeuralCityFilter = filterModule.NeuralCityFilter;
+}
+
 class NeuralCityRenderer {
     constructor(config = {}) {
         this.config = {
@@ -148,6 +155,178 @@ class NeuralCityRenderer {
         this.atlasCache.clear();
         this.loadedDistricts.clear();
         console.log('NeuralCityRenderer destroyed');
+    }
+
+    /**
+     * Apply the Neural City filter to the sprite
+     */
+    applyFilter() {
+        if (!this.lowResSprite) {
+            console.warn('Cannot apply filter: sprite not loaded');
+            return;
+        }
+
+        if (!this.filter) {
+            this.filter = new NeuralCityFilter({
+                lowResTexture: this.lowResSprite.texture
+            });
+            console.log('✓ Created NeuralCityFilter');
+        }
+
+        this.lowResSprite.filters = [this.filter];
+    }
+
+    /**
+     * Update renderer state (call each frame)
+     * @param {number} deltaTime - Time since last frame in seconds
+     */
+    tick(deltaTime) {
+        if (this.filter) {
+            this.filter.updateTime(
+                (this.filter.uniforms.uTime || 0) + deltaTime
+            );
+        }
+    }
+
+    /**
+     * Set focus point for foveated rendering
+     * @param {number} x - Focus X in world coordinates
+     * @param {number} y - Focus Y in world coordinates
+     */
+    setFocus(x, y) {
+        this.focusDistrict = this.pixelToDistrict(x, y);
+
+        if (this.filter) {
+            this.filter.setFocusDistrict(x, y);
+        }
+
+        const districtId = this.getDistrictId(this.focusDistrict.x, this.focusDistrict.y);
+        if (this.districtMetadata) {
+            const meta = this.districtMetadata.find(
+                d => d.x === this.focusDistrict.x && d.y === this.focusDistrict.y
+            );
+            if (meta) {
+                const q = meta.dominant_q;
+                if (q < 0.25) this.stats.focusMaterial = 'Gold (F32)';
+                else if (q < 0.5) this.stats.focusMaterial = 'Steel (Q8)';
+                else if (q < 0.75) this.stats.focusMaterial = 'Rust (Q4)';
+                else this.stats.focusMaterial = 'Dust (Sparse)';
+            }
+        }
+    }
+
+    /**
+     * Handle viewport resize
+     * @param {number} width - New width
+     * @param {number} height - New height
+     */
+    resize(width, height) {
+        if (this.filter) {
+            this.filter.setResolution(width, height);
+        }
+    }
+
+    /**
+     * Load a hi-res district tile on demand
+     * @param {number} dx - District X
+     * @param {number} dy - District Y
+     * @returns {Promise<Object|null>}
+     */
+    async loadDistrict(dx, dy) {
+        const districtId = this.getDistrictId(dx, dy);
+
+        // Check cache first
+        if (this.atlasCache.has(districtId)) {
+            const cached = this.atlasCache.get(districtId);
+            cached.lastUsed = Date.now();
+            return cached;
+        }
+
+        // Extract tile from source RTS
+        try {
+            const tile = await this.extractTile(dx, dy);
+
+            if (!tile) {
+                return null;
+            }
+
+            // Add to cache
+            this.atlasCache.set(districtId, {
+                texture: tile.texture || tile,
+                lastUsed: Date.now()
+            });
+
+            this.loadedDistricts.add(districtId);
+            this.stats.loaded = this.loadedDistricts.size;
+            this.stats.vramMB = this.calculateVRAM();
+
+            console.log(`✓ Loaded district ${districtId} (cache: ${this.atlasCache.size}/${this.config.maxCacheSize})`);
+
+            // Evict if over limit
+            this._evictIfNeeded();
+
+            return this.atlasCache.get(districtId);
+        } catch (err) {
+            console.warn(`Failed to load district ${districtId}:`, err.message);
+            return null;
+        }
+    }
+
+    /**
+     * Extract a 512x512 tile from the source RTS
+     * Override this method to implement actual extraction
+     * @param {number} dx - District X
+     * @param {number} dy - District Y
+     * @returns {Promise<Object|null>}
+     */
+    async extractTile(dx, dy) {
+        // Placeholder - in production, this would:
+        // 1. Load source qwen_coder.rts.png if not loaded
+        // 2. Extract 512x512 region at (dx*512, dy*512)
+        // 3. Create PIXI.Texture from extracted region
+
+        // For now, return a mock tile for testing
+        return { texture: { width: 512, height: 512 }, mock: true };
+    }
+
+    /**
+     * Evict oldest tiles if cache is full (LRU policy)
+     * @private
+     */
+    _evictIfNeeded() {
+        while (this.atlasCache.size > this.config.maxCacheSize) {
+            // Find oldest entry
+            let oldestId = null;
+            let oldestTime = Infinity;
+
+            for (const [id, entry] of this.atlasCache) {
+                if (entry.lastUsed < oldestTime) {
+                    oldestTime = entry.lastUsed;
+                    oldestId = id;
+                }
+            }
+
+            if (oldestId) {
+                this.atlasCache.delete(oldestId);
+                this.loadedDistricts.delete(oldestId);
+                console.log(`  Evicted district ${oldestId}`);
+            }
+        }
+
+        this.stats.loaded = this.loadedDistricts.size;
+        this.stats.vramMB = this.calculateVRAM();
+    }
+
+    /**
+     * Get the current hi-res texture for the focused district
+     * @returns {Object|null}
+     */
+    getHiResTexture() {
+        const districtId = this.getDistrictId(this.focusDistrict.x, this.focusDistrict.y);
+        if (this.atlasCache.has(districtId)) {
+            return this.atlasCache.get(districtId).texture;
+        }
+        return null;
     }
 }
 
