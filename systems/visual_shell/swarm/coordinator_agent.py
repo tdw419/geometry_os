@@ -3,6 +3,8 @@ Coordinator Agent - Manages global swarm state, task assignment, and error recov
 
 Extends the A2A Router's coordination primitives (locks, barriers) with
 task orchestration and agent lifecycle management.
+
+Also provides district-based agent organization and relocation capabilities.
 """
 
 import asyncio
@@ -11,10 +13,39 @@ import logging
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any
+from enum import Enum, auto
+from typing import Dict, List, Optional, Any, Set
 import websockets
 
 logger = logging.getLogger(__name__)
+
+
+class District(Enum):
+    """Valid districts for agent placement."""
+    COGNITIVE = auto()   # Reasoning, planning, decision-making
+    METABOLIC = auto()   # Resource management, optimization
+    SUBSTRATE = auto()   # Low-level execution, GPU/compute
+
+
+@dataclass
+class RelocationResult:
+    """
+    Result of an agent relocation attempt.
+
+    Attributes:
+        success: Whether the relocation succeeded
+        agent_id: ID of the relocated agent
+        from_district: Previous district (None if agent not found)
+        to_district: Target district
+        error: Error message if relocation failed
+        timestamp: When the relocation was attempted
+    """
+    success: bool
+    agent_id: str
+    from_district: Optional[District]
+    to_district: District
+    error: str = ""
+    timestamp: float = field(default_factory=time.time)
 
 
 @dataclass
@@ -43,7 +74,15 @@ class CoordinatorAgent:
     - Agent registry and health tracking
     - Distributed lock/barrier coordination via A2A Router
     - Error recovery with automatic task reassignment
+    - District-based agent organization and relocation
+
+    Districts:
+        - COGNITIVE: High-level reasoning, planning, decision-making agents
+        - METABOLIC: Resource management, optimization, scheduling agents
+        - SUBSTRATE: Low-level execution, GPU/compute, infrastructure agents
     """
+
+    VALID_DISTRICTS: Set[District] = {District.COGNITIVE, District.METABOLIC, District.SUBSTRATE}
 
     def __init__(self, a2a_url: str = "ws://localhost:8766", agent_id: str = None):
         self.a2a_url = a2a_url
@@ -61,6 +100,9 @@ class CoordinatorAgent:
         # WebSocket connection
         self.ws = None
         self.running = False
+
+        # Visual bridge for telemetry (can be set externally)
+        self._visual_bridge: Optional[Any] = None
 
         logger.info(f"CoordinatorAgent initialized: {self.agent_id}")
 
@@ -259,3 +301,161 @@ class CoordinatorAgent:
             "active_agents": len(self.active_agents),
             "agents": list(self.active_agents.keys())
         }
+
+    # ===================== District Management =====================
+
+    def set_visual_bridge(self, bridge: Any) -> None:
+        """
+        Set the Visual Bridge for telemetry emission.
+
+        Args:
+            bridge: Visual Bridge instance with an emit() method
+        """
+        self._visual_bridge = bridge
+
+    def get_visual_bridge(self) -> Optional[Any]:
+        """
+        Get the current Visual Bridge.
+
+        Returns:
+            The Visual Bridge instance or None if not set
+        """
+        return self._visual_bridge
+
+    def relocate_agent(
+        self,
+        agent_id: str,
+        target_district: District
+    ) -> RelocationResult:
+        """
+        Relocate an agent to a different district.
+
+        Args:
+            agent_id: The agent's unique identifier
+            target_district: The destination district (must be District enum)
+
+        Returns:
+            RelocationResult indicating success/failure and details
+
+        Raises:
+            TypeError: If target_district is not a District enum
+        """
+        # Validate district type
+        if not isinstance(target_district, District):
+            raise TypeError(
+                f"target_district must be a District enum, got {type(target_district).__name__}"
+            )
+
+        # Check if agent exists
+        agent = self.active_agents.get(agent_id)
+        if agent is None:
+            return RelocationResult(
+                success=False,
+                agent_id=agent_id,
+                from_district=None,
+                to_district=target_district,
+                error=f"Agent {agent_id} not found"
+            )
+
+        # Store original district
+        from_district_str = agent.get("district")
+        if from_district_str:
+            try:
+                from_district = District[from_district_str] if isinstance(from_district_str, str) else from_district_str
+            except (KeyError, ValueError):
+                from_district = None
+        else:
+            from_district = None
+
+        # Perform relocation
+        agent["district"] = target_district.name
+
+        # Emit telemetry
+        self._emit_relocation_telemetry(agent_id, from_district, target_district)
+
+        logger.info(f"Agent {agent_id} relocated from {from_district} to {target_district.name}")
+
+        return RelocationResult(
+            success=True,
+            agent_id=agent_id,
+            from_district=from_district,
+            to_district=target_district
+        )
+
+    def _emit_relocation_telemetry(
+        self,
+        agent_id: str,
+        from_district: Optional[District],
+        to_district: District
+    ) -> None:
+        """
+        Emit relocation telemetry to the Visual Bridge.
+
+        Args:
+            agent_id: The relocated agent's ID
+            from_district: Previous district
+            to_district: New district
+        """
+        if self._visual_bridge is None:
+            return
+
+        telemetry = {
+            'type': 'agent_relocation',
+            'agent_id': agent_id,
+            'from_district': from_district.name if from_district else None,
+            'to_district': to_district.name,
+            'timestamp': time.time()
+        }
+
+        try:
+            if hasattr(self._visual_bridge, 'emit'):
+                self._visual_bridge.emit(telemetry)
+                logger.debug(f"Emitted relocation telemetry: {agent_id}")
+        except Exception as e:
+            logger.warning(f"Failed to emit relocation telemetry: {e}")
+
+    def get_district_load(self) -> Dict[District, int]:
+        """
+        Get the current load (agent count) for each district.
+
+        Returns:
+            Dictionary mapping each district to its agent count
+        """
+        load: Dict[District, int] = {
+            District.COGNITIVE: 0,
+            District.METABOLIC: 0,
+            District.SUBSTRATE: 0
+        }
+
+        for agent in self.active_agents.values():
+            district_name = agent.get("district")
+            if district_name:
+                try:
+                    district = District[district_name] if isinstance(district_name, str) else district_name
+                    if district in load:
+                        load[district] += 1
+                except (KeyError, ValueError):
+                    pass
+
+        return load
+
+    def get_agent(self, agent_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get information about an agent.
+
+        Args:
+            agent_id: The agent's unique identifier
+
+        Returns:
+            Agent metadata dict if found, None otherwise
+        """
+        return self.active_agents.get(agent_id)
+
+    def get_all_agents(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Get all registered agents.
+
+        Returns:
+            Dictionary mapping agent IDs to agent metadata
+        """
+        return self.active_agents.copy()
