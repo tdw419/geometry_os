@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Swarm Visual Dashboard Tests</title>
+    <!-- PixiJS -->
+    <script src="https://pixijs.download/v8.1.0/pixi.min.js"></script>
+    
+    <!-- Component Scripts -->
+    <script src="../js/swarm/SwarmCanvas.js"></script>
+    
+    <!-- Test Scripts -->
+    <script src="test_swarm_canvas.js"></script>
+    
+    <style>
+        body { font-family: sans-serif; background: #1a1a1a; color: #fff; padding: 20px; }
+        .pass { color: #00ff00; }
+        .fail { color: #ff0000; }
+        #test-results { background: #000; padding: 20px; border-radius: 5px; white-space: pre-wrap; font-family: monospace; }
+        #test-swarm-canvas-container { position: absolute; top: -1000px; left: -1000px; }
+    </style>
+</head>
+<body>
+    <h1>Swarm Visual Dashboard - Test Runner</h1>
+    <div id="test-results">Running tests...</div>
+
+    <script>
+        async function runTests() {
+            const results = document.getElementById('test-results');
+            results.innerHTML = '';
+            
+            const tests = new SwarmCanvasTests();
+            
+            // Redirect console.log to our results div
+            const originalLog = console.log;
+            console.log = (msg) => {
+                results.innerHTML += msg + '
+';
+                originalLog(msg);
+            };
+
+            try {
+                const success = await tests.execute();
+                if (success) {
+                    results.innerHTML += '
+<span class="pass">ALL TESTS PASSED</span>';
+                } else {
+                    results.innerHTML += '
+<span class="fail">SOME TESTS FAILED</span>';
+                }
+            } catch (e) {
+                results.innerHTML += '
+<span class="fail">CRITICAL ERROR: ' + e.message + '</span>';
+                console.error(e);
+            }
+        }
+
+        window.onload = runTests;
+    </script>
+</body>
+</html>
