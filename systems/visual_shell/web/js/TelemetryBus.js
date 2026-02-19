@@ -31,7 +31,7 @@ class TelemetryBus {
     }
 
     /**
-     * Emit an event to all subscribers.
+     * Emit an event to all subscribers and re-dispatch as window event.
      * @param {string} eventType - The event type to emit
      * @param {*} data - Data to pass to subscribers
      */
@@ -39,6 +39,15 @@ class TelemetryBus {
         const callbacks = this.subscribers.get(eventType);
         if (callbacks) {
             callbacks.forEach(cb => cb(data));
+        }
+
+        // Re-dispatch as custom window event for external components (like VisualDebugOverlay)
+        if (typeof window !== 'undefined' && eventType) {
+            const windowEventName = eventType.toUpperCase();
+            window.dispatchEvent(new CustomEvent(windowEventName, { detail: data }));
+            
+            // Also dispatch with specific prefix if needed for consistency
+            window.dispatchEvent(new CustomEvent(`TELEMETRY_${windowEventName}`, { detail: data }));
         }
     }
 
@@ -84,8 +93,12 @@ class TelemetryBus {
         try {
             const data = JSON.parse(event.data);
 
+            // Handle direct event types (e.g., riscv_uart, GUI_STATE_UPDATE)
+            if (data.type && !data.params) {
+                this.emit(data.type, data);
+            }
             // Handle RPC-style broadcast_event format
-            if (data.type === 'broadcast_event' && data.params) {
+            else if (data.type === 'broadcast_event' && data.params) {
                 this.emit(data.params.type, data.params.data);
             } else if (data.method === 'broadcast_event') {
                 this.emit(data.params?.type, data.params?.data);

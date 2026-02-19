@@ -64,7 +64,8 @@ class CityOrchestrator {
             activity: metrics.activity || 0,
             memory: metrics.memory || 100,
             luminance: 0.5,
-            createdAt: Date.now()
+            createdAt: Date.now(),
+            rtsPath: this._getRTSPath(agentId, role)
         };
 
         this.buildings.set(agentId, building);
@@ -74,6 +75,37 @@ class CityOrchestrator {
         }
 
         return building;
+    }
+
+    /**
+     * Get the RTS file path for an agent based on its role or ID.
+     * @private
+     */
+    _getRTSPath(agentId, role) {
+        // Mapping of roles to verified RTS files found on disk
+        // Using ../../../ prefix to reach project root from systems/visual_shell/web/
+        const root = '../../../';
+        const rolePaths = {
+            'cognitive': root + 'qwen_coder.rts.png',
+            'metabolic': root + 'process_hive.rts.png',
+            'substrate': root + 'system_monitor.rts.png',
+            'llm': root + 'qwen_coder.rts.png',
+            'tectonic': root + 'geometry_os_core.rts.png'
+        };
+
+        // Special case for known bootable agents
+        if (agentId.includes('alpine')) {
+            return root + 'alpine_visual.rts.png';
+        }
+        if (agentId.includes('antigravity')) {
+            return root + 'antigravity.pixelrts.png';
+        }
+        if (agentId.includes('ubuntu')) {
+            return root + 'ubuntu_kernel.rts.png';
+        }
+
+        // Fallback to role-based or generic
+        return rolePaths[role.toLowerCase()] || root + 'test.rts.png';
     }
 
     /**

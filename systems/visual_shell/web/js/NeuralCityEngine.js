@@ -361,41 +361,70 @@ class NeuralCityEngine {
 
     /**
      * Render a building graphics object.
+     * Now uses PIXI.Sprite with the agent's RTS texture for literal code rendering.
      * @private
      */
-    _renderBuilding(building) {
+    async _renderBuilding(building) {
         if (!this.dynamicLayer) return;
 
-        const graphics = new PIXI.Graphics();
-        graphics.name = `building_${building.id}`;
+        // Create a container for the building (body + labels + effects)
+        const buildingContainer = new PIXI.Container();
+        buildingContainer.name = `building_${building.id}`;
+        buildingContainer.x = building.position.x;
+        buildingContainer.y = building.position.y;
 
-        // Building body
+        // Load RTS texture
+        let texture;
+        try {
+            texture = await PIXI.Assets.load(building.rtsPath);
+        } catch (e) {
+            console.warn(`Failed to load RTS texture for ${building.id}:`, e.message);
+            // Fallback to district color if texture fails
+            const graphics = new PIXI.Graphics();
+            const color = this._getDistrictColor(building.district);
+            graphics.rect(-15, -building.height, 30, building.height);
+            graphics.fill({ color: color, alpha: 0.8 });
+            buildingContainer.addChild(graphics);
+            return;
+        }
+
+        // Building "Skin" (RTS Texture)
+        const skin = new PIXI.Sprite(texture);
+        skin.width = 30;
+        skin.height = building.height;
+        skin.anchor.set(0.5, 1.0); // Anchor to bottom center
+        skin.alpha = 0.8;
+        
+        // Apply district-based tint (optional, but helps visual organization)
         const color = this._getDistrictColor(building.district);
-        graphics.rect(-15, -building.height, 30, building.height);
-        graphics.fill({ color: color, alpha: 0.8 });
+        skin.tint = color;
 
-        // Building border
-        graphics.rect(-15, -building.height, 30, building.height);
-        graphics.stroke({ color: color, width: 1, alpha: 0.5 });
-
+        // Building Border
+        const border = new PIXI.Graphics();
+        border.name = 'border';
+        border.rect(-15, -building.height, 30, building.height);
+        border.stroke({ color: color, width: 2, alpha: 0.5 });
+        
         // Luminance glow (top edge)
-        graphics.rect(-15, -building.height, 30, 5);
-        graphics.fill({ color: 0xffffff, alpha: building.luminance });
+        const glow = new PIXI.Graphics();
+        glow.name = 'glow';
+        glow.rect(-15, -building.height, 30, 5);
+        glow.fill({ color: 0xffffff, alpha: building.luminance });
 
-        // Position
-        graphics.x = building.position.x;
-        graphics.y = building.position.y;
+        buildingContainer.addChild(skin);
+        buildingContainer.addChild(border);
+        buildingContainer.addChild(glow);
 
         // Enable click interaction for Glass Box introspection
-        graphics.eventMode = 'static';
-        graphics.cursor = 'pointer';
-        graphics.on('click', (e) => this._handleBuildingClick(building.id, e));
+        buildingContainer.eventMode = 'static';
+        buildingContainer.cursor = 'pointer';
+        buildingContainer.on('click', (e) => this._handleBuildingClick(building.id, e));
 
         // Store reference for updates
-        building.graphics = graphics;
-        this.buildingGraphics.set(building.id, graphics);
+        building.graphics = buildingContainer;
+        this.buildingGraphics.set(building.id, buildingContainer);
 
-        this.dynamicLayer.addChild(graphics);
+        this.dynamicLayer.addChild(buildingContainer);
     }
 
     /**
@@ -419,6 +448,7 @@ class NeuralCityEngine {
                 agentId: agentId,
                 role: building.role,
                 district: building.district,
+                rtsPath: building.rtsPath,
                 ...agentData
             });
 
@@ -477,8 +507,8 @@ class NeuralCityEngine {
      * Update building render when metrics change.
      */
     _updateBuildingRender(building) {
-        const graphics = this.buildingGraphics.get(building.id);
-        if (!graphics) {
+        const buildingContainer = this.buildingGraphics.get(building.id);
+        if (!buildingContainer) {
             // First render if not exists
             this._renderBuilding(building);
             return;
@@ -486,15 +516,25 @@ class NeuralCityEngine {
 
         const color = this._getDistrictColor(building.district);
 
-        graphics.clear();
-
-        // Re-render with new dimensions
-        graphics.rect(-15, -building.height, 30, building.height);
-        graphics.fill({ color: color, alpha: 0.8 });
-        graphics.rect(-15, -building.height, 30, building.height);
-        graphics.stroke({ color: color, width: 1, alpha: 0.5 });
-        graphics.rect(-15, -building.height, 30, 5);
-        graphics.fill({ color: 0xffffff, alpha: building.luminance });
+        // Update each component's dimensions/appearance
+        buildingContainer.children.forEach(child => {
+            if (child instanceof PIXI.Sprite) {
+                // Update skin (RTS texture)
+                child.height = building.height;
+                child.tint = color;
+                child.alpha = 0.8;
+            } else if (child instanceof PIXI.Graphics) {
+                // Update border and glow
+                child.clear();
+                if (child.name === 'border') {
+                    child.rect(-15, -building.height, 30, building.height);
+                    child.stroke({ color: color, width: 2, alpha: 0.5 });
+                } else if (child.name === 'glow') {
+                    child.rect(-15, -building.height, 30, 5);
+                    child.fill({ color: 0xffffff, alpha: building.luminance });
+                }
+            }
+        });
     }
 
     /**

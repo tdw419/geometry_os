@@ -20,7 +20,7 @@ class AgentDataPanel {
     }
 
     /**
-     * Create the panel DOM element with 4 data sections.
+     * Create the panel DOM element with 5 data sections.
      * @private
      */
     _createElement() {
@@ -39,12 +39,32 @@ class AgentDataPanel {
                 <h3>📊 Metabolic Pulse</h3>
                 <div class="metabolism-content"></div>
             </div>
+            <div class="data-section" id="substrate-view">
+                <h3>🧩 Substrate View (Raw Code)</h3>
+                <div class="substrate-content">
+                    <img class="rts-preview" style="width:100%; border:1px solid #0ff; image-rendering:pixelated;" alt="RTS Preview">
+                </div>
+            </div>
             <div class="data-section" id="communication-log">
                 <h3>📡 Communication Log</h3>
                 <div class="comm-log"></div>
             </div>
         `;
         return el;
+    }
+
+    /**
+     * Update the substrate view with RTS texture path.
+     * @param {string} rtsPath - Path to the agent's .rts.png file
+     */
+    setSubstrate(rtsPath) {
+        const img = this.element.querySelector('.rts-preview');
+        if (rtsPath) {
+            img.src = rtsPath;
+            img.style.display = 'block';
+        } else {
+            img.style.display = 'none';
+        }
     }
 
     /**
@@ -179,6 +199,9 @@ class AgentDataPanel {
         }
         if (agentData.communications !== undefined) {
             this.setCommunications(agentData.communications);
+        }
+        if (agentData.rtsPath !== undefined) {
+            this.setSubstrate(agentData.rtsPath);
         }
     }
 

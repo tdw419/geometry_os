@@ -95,6 +95,24 @@
         .comm-item { font-size: 11px; margin: 5px 0; color: #888; }
         .comm-item .direction { color: #0ff; font-weight: bold; }
         .comm-item .target { color: #0af; }
+        
+        /* Substrate View Styling */
+        .substrate-content { 
+            margin-top: 10px; 
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            background: #000;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        .rts-preview {
+            width: 100%;
+            height: auto;
+            max-height: 200px;
+            object-fit: contain;
+            image-rendering: pixelated; /* Essential for seeing code structure */
+            display: block;
+        }
+
         .control-bar { display: flex; gap: 5px; margin-top: 20px; flex-wrap: wrap; }
         .control-bar button { flex: 1; min-width: 80px; padding: 8px; font-size: 11px; background: #0ff; }
         .control-bar button:hover { background: #0aa; }
