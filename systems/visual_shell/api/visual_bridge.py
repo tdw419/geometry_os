@@ -115,7 +115,17 @@ class VisualBridge:
                         'data': data.get('data', {})
                     })
 
-                # 5. Task DAG Updates (Distributed Task Visualization)
+                # 5. Collective Consciousness Thoughts (Glass Box)
+                elif msg_type == 'thought_journal':
+                    # Broadcast thought to browser HUD
+                    thought_data = data.get('data', {})
+                    print(f"🧠 Thought Journal: {thought_data.get('agent_id')} → {thought_data.get('thought_type')}")
+                    await self._broadcast({
+                        'type': 'THOUGHT_JOURNAL',
+                        'data': thought_data
+                    })
+
+                # 6. Task DAG Updates (Distributed Task Visualization)
                 elif msg_type == 'task_update':
                     # Broadcast task update to browser HUD
                     task_data = data.get('data', data)
@@ -125,11 +135,23 @@ class VisualBridge:
                         'data': task_data
                     })
 
-                # 6. Echo/Ping
+                # 7. Agent Relocation (District Rebalancing)
+                elif msg_type == 'agent_relocated':
+                    # Broadcast agent relocation to browser HUD
+                    relocation_data = data.get('data', data)
+                    agent_id = relocation_data.get('agent_id', 'unknown')
+                    to_district = relocation_data.get('to_district', 'unknown')
+                    print(f"🔀 Agent Relocated: {agent_id} → {to_district}")
+                    await self._broadcast({
+                        'type': 'AGENT_RELOCATED',
+                        'data': relocation_data
+                    })
+
+                # 8. Echo/Ping
                 elif msg_type == 'ping':
                     await websocket.send(json.dumps({'type': 'pong'}))
 
-                # 7. Token Visualization Update (Neural City)
+                # 9. Token Visualization Update (Neural City)
                 elif msg_type == 'token_visualization_update':
                     await self.relay_token_pulse(data)
 
