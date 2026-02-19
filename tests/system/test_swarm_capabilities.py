@@ -16,6 +16,8 @@ sys.path.append(os.getcwd())
 from systems.visual_shell.tools.swarm_stress_harness import SwarmStressHarness
 from systems.visual_shell.swarm.healer_agent import HealerAgent
 from systems.visual_shell.swarm.collaborative_mission import CollaborativeSwarm
+from systems.visual_shell.swarm.coordinator_agent import CoordinatorAgent
+from systems.visual_shell.swarm.health_dashboard import HealthDashboard, HealthStatus
 
 import pytest_asyncio
 
@@ -177,3 +179,68 @@ class TestSwarmCapabilities:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+# === Production Hardening Tests ===
+
+class TestSwarmProduction:
+    """Production hardening tests for the swarm."""
+
+    @pytest.mark.asyncio
+    async def test_coordinator_task_lifecycle(self):
+        """Coordinator manages full task lifecycle."""
+        coordinator = CoordinatorAgent(a2a_url="ws://localhost:8766")
+
+        # Submit
+        task_id = await coordinator.submit_task(
+            task_type="scan_region",
+            params={"x": 0, "y": 0, "width": 100, "height": 100}
+        )
+
+        # Assign
+        await coordinator.register_agent("agent-001", {"type": "scanner"})
+        await coordinator.assign_task(task_id, "agent-001")
+
+        # Complete
+        await coordinator.complete_task(
+            task_id, "agent-001",
+            result={"artifacts_found": 5},
+            success=True
+        )
+
+        # Verify
+        assert len(coordinator.task_history) == 1
+        assert coordinator.task_history[0].status == "completed"
+
+    @pytest.mark.asyncio
+    async def test_health_dashboard_stale_detection(self):
+        """Dashboard detects stale agents."""
+        import time as t
+        dashboard = HealthDashboard(stale_threshold_seconds=1)
+
+        dashboard.register_agent("agent-001", {"type": "scanner"})
+
+        # Wait for stale threshold
+        await asyncio.sleep(1.5)
+
+        stale = dashboard.get_stale_agents()
+
+        assert len(stale) == 1
+        assert stale[0].agent_id == "agent-001"
+
+    @pytest.mark.asyncio
+    async def test_agent_disconnect_reassignment(self):
+        """Tasks are reassigned when agents disconnect."""
+        coordinator = CoordinatorAgent(a2a_url="ws://localhost:8766")
+
+        # Setup
+        task_id = await coordinator.submit_task("scan", {"x": 0})
+        await coordinator.register_agent("agent-001", {})
+        await coordinator.assign_task(task_id, "agent-001")
+
+        # Disconnect
+        await coordinator.unregister_agent("agent-001")
+
+        # Task should be pending again
+        assert len(coordinator.pending_tasks) == 1
+        assert coordinator.pending_tasks[0].task_id == task_id
