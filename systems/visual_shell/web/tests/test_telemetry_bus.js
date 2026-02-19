@@ -192,4 +192,79 @@ describe('TelemetryBus', () => {
 
         assert.deepEqual(calls, ['handler1:test-tile', 'handler2:DISTRICT_SYNC']);
     });
+
+    // ============================================
+    // Tectonic Event Tests (Phase 28)
+    // ============================================
+
+    it('should handle tectonic_drift messages', () => {
+        const bus = new TelemetryBus();
+        let received = null;
+        bus.subscribe('tectonic_drift', (data) => { received = data; });
+
+        const msg = {
+            data: JSON.stringify({
+                type: 'broadcast_event',
+                params: {
+                    type: 'tectonic_drift',
+                    data: {
+                        drifts: {
+                            'agent-001': { dx: 5.2, dy: -3.1, magnitude: 6.1 },
+                            'agent-002': { dx: -2.0, dy: 1.5, magnitude: 2.5 }
+                        }
+                    }
+                }
+            })
+        };
+        bus._handleMessage(msg);
+
+        assert.ok(received);
+        assert.ok(received.drifts['agent-001']);
+        assert.equal(received.drifts['agent-001'].dx, 5.2);
+    });
+
+    it('should handle agent_relocation messages', () => {
+        const bus = new TelemetryBus();
+        let received = null;
+        bus.subscribe('agent_relocation', (data) => { received = data; });
+
+        const msg = {
+            data: JSON.stringify({
+                type: 'broadcast_event',
+                params: {
+                    type: 'agent_relocation',
+                    data: {
+                        agent_id: 'agent-001',
+                        from_district: 'cognitive',
+                        to_district: 'metabolic'
+                    }
+                }
+            })
+        };
+        bus._handleMessage(msg);
+
+        assert.ok(received);
+        assert.equal(received.agent_id, 'agent-001');
+        assert.equal(received.to_district, 'metabolic');
+    });
+
+    it('should handle flux_mode messages', () => {
+        const bus = new TelemetryBus();
+        let received = null;
+        bus.subscribe('flux_mode', (data) => { received = data; });
+
+        const msg = {
+            data: JSON.stringify({
+                type: 'broadcast_event',
+                params: {
+                    type: 'flux_mode',
+                    data: { active: true, reason: 'evolution_event' }
+                }
+            })
+        };
+        bus._handleMessage(msg);
+
+        assert.ok(received);
+        assert.equal(received.active, true);
+    });
 });
