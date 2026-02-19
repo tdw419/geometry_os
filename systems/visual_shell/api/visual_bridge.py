@@ -90,21 +90,24 @@ class VisualBridge:
                     # Broadcast to all clients (specifically the browser)
                     await self._broadcast(event_data)
 
-                # 3. Echo/Ping
+                # 3. RISC-V UART Output (Neuro-Silicon Bridge)
+                elif msg_type == 'riscv_uart':
+                    # Broadcast UART output to browser HUD
+                    uart_text = data.get('text', data.get('data', {}).get('text', ''))
+                    print(f"🦾 RISC-V UART: {uart_text[:50]}...")
+                    await self._broadcast({
+                        'type': 'RISCV_UART_OUTPUT',
+                        'data': {
+                            'text': uart_text,
+                            'bytes': data.get('bytes', []),
+                            'timestamp': data.get('timestamp'),
+                            'vm_id': data.get('vm_id', 'riscv-gpu-vm')
+                        }
+                    })
+
+                # 4. Echo/Ping
                 elif msg_type == 'ping':
                     await websocket.send(json.dumps({'type': 'pong'}))
-
-                # 4. RISC-V UART Output (from silicon substrate)
-                elif msg_type == 'riscv_uart':
-                    # Broadcast UART bytes to all clients for HUD display
-                    print(f"🦾 RISC-V UART: {data.get('text', '')[:50]}...")
-                    await self._broadcast({
-                        'type': 'riscv_uart',
-                        'text': data.get('text', ''),
-                        'bytes': data.get('bytes', []),
-                        'timestamp': data.get('timestamp'),
-                        'vm_id': data.get('vm_id', 'default')
-                    })
 
         except websockets.exceptions.ConnectionClosed:
             pass
