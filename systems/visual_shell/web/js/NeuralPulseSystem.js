@@ -339,6 +339,9 @@ class NeuralPulseSystem {
             return null;
         }
 
+        // Emit tectonic pulse to Visual Bridge for Phase 28 Spatial Tectonics
+        this._emitTectonicPulse(fromTileId, toTileId, eventType, options.confidence || 1.0);
+
         // Create pulse
         const pulse = new NeuralPulse({
             id: `pulse-${++this.pulseCount}`,
@@ -373,6 +376,55 @@ class NeuralPulseSystem {
 
         pulse.graphics = new PIXI.Graphics();
         this.graphicsLayer.addChild(pulse.graphics);
+    }
+
+    /**
+     * Emit tectonic pulse to Visual Bridge for Phase 28 Spatial Tectonics.
+     * This allows the ConsensusEngine to aggregate pulses and propose layout realignments.
+     * @private
+     * @param {string} sourceTileId - Source tile ID
+     * @param {string} destTileId - Target tile ID
+     * @param {string} eventType - Event type (maps to pulse_type)
+     * @param {number} confidence - Confidence/volume of the pulse
+     */
+    _emitTectonicPulse(sourceTileId, destTileId, eventType, confidence) {
+        // Map event type to tectonic pulse type
+        // CODE_DISCOVERY -> cyan (semantic)
+        // DISTRICT_SYNC -> violet (cognitive)
+        // RESOURCE_PRESSURE -> violet (cognitive, treating as system activity)
+        let pulseType = 'violet'; // Default: cognitive
+        if (eventType === PulseEventType.CODE_DISCOVERY) {
+            pulseType = 'cyan'; // Semantic
+        }
+
+        // Emit to telemetry bus if connected
+        if (this.telemetryBus && this.telemetryBus.ws) {
+            try {
+                const message = {
+                    type: 'tectonic_pulse',
+                    source: parseInt(sourceTileId) || 0,
+                    dest: parseInt(destTileId) || 0,
+                    pulse_type: pulseType,
+                    volume: confidence,
+                    timestamp: Date.now()
+                };
+                this.telemetryBus.ws.send(JSON.stringify(message));
+            } catch (e) {
+                // Silently fail - tectonic tracking is optional
+            }
+        }
+
+        // Also emit as window event for local listeners
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('tectonic_pulse', {
+                detail: {
+                    source: sourceTileId,
+                    dest: destTileId,
+                    pulse_type: pulseType,
+                    volume: confidence
+                }
+            }));
+        }
     }
 
     /**

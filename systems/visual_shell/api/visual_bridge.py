@@ -43,6 +43,10 @@ class VisualBridge:
         self.ascii_scene_files: Dict[str, str] = {}  # filename -> content cache
         self._ascii_renderers_registered = False
 
+        # Spatial Tectonics (Phase 28)
+        self.consensus_engine = None  # Initialized lazily
+        self._tectonic_enabled = True
+
     def _query_memory_daemon(self, message):
         """Send a message to the Vector Memory Daemon and get response"""
         try:
@@ -174,6 +178,14 @@ class VisualBridge:
                 elif msg_type == 'token_visualization_update':
                     await self.relay_token_pulse(data)
 
+                # 9b. Tectonic Drift Update (Neural City V15)
+                elif msg_type == 'tectonic_drift':
+                    # Relay 16KB float32 buffer (base64 encoded in 'data' field)
+                    await self._broadcast({
+                        "type": "tectonic_drift_update",
+                        "data": data.get("data")
+                    })
+
                 # 10. Synaptic Query (Semantic Search)
                 elif msg_type == 'synaptic_query':
                     response = await self._handle_synaptic_query(data)
@@ -237,6 +249,56 @@ class VisualBridge:
                     })
                     # Trigger ASCII file refresh
                     await self.broadcast_ascii_file("evolution_pas.ascii")
+
+                # 15. Tectonic Pulse Events (Phase 28: Spatial Tectonics)
+                elif msg_type == 'tectonic_pulse':
+                    # Forward pulse to ConsensusEngine for spatial realignment
+                    source = data.get('source', 0)
+                    dest = data.get('dest', 0)
+                    pulse_type = data.get('pulse_type', 'violet')
+                    volume = data.get('volume', 1.0)
+                    print(f"🌋 Tectonic Pulse: {source} → {dest} ({pulse_type}, vol={volume})")
+
+                    # Record in ConsensusEngine if available
+                    if hasattr(self, 'consensus_engine') and self.consensus_engine:
+                        from systems.evolution_daemon.spatial_tectonics import PulseEvent
+                        event = PulseEvent(
+                            source_tile=source,
+                            dest_tile=dest,
+                            pulse_type=pulse_type,
+                            volume=volume,
+                            timestamp=time.time()
+                        )
+                        self.consensus_engine.record_pulse(event)
+
+                    # Broadcast to browser for visualization
+                    await self._broadcast({
+                        "type": "TECTONIC_PULSE",
+                        "source": source,
+                        "dest": dest,
+                        "pulse_type": pulse_type,
+                        "volume": volume,
+                        "timestamp": data.get('timestamp', time.time() * 1000)
+                    })
+
+                # 16. Tectonic Realignment Proposal (from ConsensusEngine)
+                elif msg_type == 'tectonic_proposal':
+                    # Forward proposal to Rust TectonicSimulator
+                    proposal_id = data.get('proposal_id')
+                    bonds = data.get('bonds', [])
+                    print(f"🌋 Tectonic Proposal: {proposal_id} with {len(bonds)} bonds")
+
+                    # Broadcast for HUD display
+                    await self._broadcast({
+                        "type": "TECTONIC_PROPOSAL",
+                        "proposal_id": proposal_id,
+                        "bonds": bonds,
+                        "expected_improvement": data.get('expected_improvement', 0),
+                        "timestamp": data.get('timestamp', time.time() * 1000)
+                    })
+
+                    # Trigger ASCII file refresh
+                    await self.broadcast_ascii_file("tectonic_activity.ascii")
 
         except websockets.exceptions.ConnectionClosed:
             pass
@@ -477,8 +539,30 @@ class VisualBridge:
         self.register_ascii_renderers()
         self._setup_ascii_scene_watcher()
 
+        # Initialize Spatial Tectonics (Phase 28)
+        if self._tectonic_enabled:
+            await self._setup_spatial_tectonics()
+
         async with serve(self.handle_client, "0.0.0.0", self.ws_port):
             await asyncio.Future()
+
+    async def _setup_spatial_tectonics(self):
+        """Initialize the Spatial Tectonics ConsensusEngine."""
+        try:
+            from systems.evolution_daemon.spatial_tectonics import ConsensusEngine
+            self.consensus_engine = ConsensusEngine(
+                aggregation_window_secs=60,
+                min_pulse_count=10,
+                min_bond_strength=0.1
+            )
+            await self.consensus_engine.start()
+            print("🌋 Spatial Tectonics initialized (60s aggregation window)")
+        except ImportError as e:
+            print(f"⚠️  Spatial Tectonics not available: {e}")
+            self.consensus_engine = None
+        except Exception as e:
+            print(f"⚠️  Failed to initialize Spatial Tectonics: {e}")
+            self.consensus_engine = None
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Visual Bridge for Geometry OS')
