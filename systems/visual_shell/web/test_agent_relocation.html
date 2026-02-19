@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Agent Relocation Test</title>
+    <style>
+        body { margin: 0; background: #111; color: #fff; font-family: monospace; }
+        #controls { padding: 20px; background: #222; border-bottom: 1px solid #444; }
+        button { background: #333; color: #0f0; border: 1px solid #0f0; padding: 8px 16px; margin: 5px; cursor: pointer; font-family: monospace; }
+        button:hover { background: #0f0; color: #000; }
+        .district { display: inline-block; padding: 10px 20px; margin: 5px; border-radius: 5px; }
+        .cognitive { background: #00aaff30; border: 1px solid #00aaff; }
+        .metabolic { background: #44ff4430; border: 1px solid #44ff44; }
+        .substrate { background: #ff884430; border: 1px solid #ff8844; }
+        #status { padding: 10px 20px; color: #888; }
+        .shortcut { color: #0af; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h2>Agent Relocation Test</h2>
+        <div class="district cognitive">Cognitive</div>
+        <div class="district metabolic">Metabolic</div>
+        <div class="district substrate">Substrate</div>
+        <br><br>
+        <button onclick="spawnAgent()">Spawn Agent</button>
+        <button onclick="simulateRelocation()">Simulate Relocation</button>
+        <button onclick="showLoadBalance()">Show Load Balance</button>
+        <p class="shortcut">Press <strong>Ctrl+Shift+V</strong> to toggle HUD</p>
+        <p class="shortcut">Drag agents between zones to relocate</p>
+    </div>
+    <div id="status">Ready</div>
+
+    <script src="visual_debug_overlay.js"></script>
+    <script src="js/AgentController.js"></script>
+    <script>
+        let overlay;
+        let agentCounter = 0;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            overlay = new VisualDebugOverlay();
+
+            // Initialize with some agents
+            spawnAgent();
+            spawnAgent();
+            spawnAgent();
+
+            updateStatus('Overlay initialized with 3 agents');
+        });
+
+        function spawnAgent() {
+            agentCounter++;
+            const agentId = `agent-${agentCounter.toString().padStart(3, '0')}`;
+            const districts = ['cognitive', 'metabolic', 'substrate'];
+            const district = districts[Math.floor(Math.random() * districts.length)];
+
+            overlay.agentPositions[agentId] = {
+                district: district,
+                x: 50,
+                y: 50
+            };
+
+            updateStatus(`Spawned ${agentId} in ${district}`);
+        }
+
+        function simulateRelocation() {
+            const agents = Object.keys(overlay.agentPositions);
+            if (agents.length === 0) {
+                updateStatus('No agents to relocate');
+                return;
+            }
+
+            const agentId = agents[Math.floor(Math.random() * agents.length)];
+            const oldDistrict = overlay.agentPositions[agentId].district;
+            const districts = ['cognitive', 'metabolic', 'substrate'].filter(d => d !== oldDistrict);
+            const newDistrict = districts[Math.floor(Math.random() * districts.length)];
+
+            // Simulate AGENT_RELOCATED event
+            window.dispatchEvent(new CustomEvent('AGENT_RELOCATED', {
+                detail: {
+                    agent_id: agentId,
+                    from_district: oldDistrict,
+                    to_district: newDistrict,
+                    timestamp: Date.now() / 1000
+                }
+            }));
+
+            updateStatus(`Relocated ${agentId}: ${oldDistrict} -> ${newDistrict}`);
+        }
+
+        function showLoadBalance() {
+            const load = { cognitive: 0, metabolic: 0, substrate: 0 };
+            for (const agent of Object.values(overlay.agentPositions)) {
+                load[agent.district]++;
+            }
+            updateStatus(`Load: Cognitive=${load.cognitive}, Metabolic=${load.metabolic}, Substrate=${load.substrate}`);
+        }
+
+        function updateStatus(msg) {
+            document.getElementById('status').textContent =
+                `${new Date().toLocaleTimeString()} - ${msg}`;
+        }
+    </script>
+</body>
+</html>
