@@ -344,6 +344,155 @@ class CityOrchestrator {
             .filter(b => b.stability.state === 'critical');
     }
 
+    // ===== Fluid Layout Methods (Phase 28: Tectonic Realignment) =====
+
+    /**
+     * Apply drift offset from TectonicEngine.
+     * Stores drift on the building object for rendering.
+     * @param {string} agentId - The agent ID
+     * @param {Object} drift - Drift offset {dx, dy, magnitude}
+     * @returns {Object|null} Updated building or null if not found
+     */
+    applyDrift(agentId, drift) {
+        const building = this.buildings.get(agentId);
+        if (!building) return null;
+
+        building.drift = {
+            dx: drift.dx || 0,
+            dy: drift.dy || 0,
+            magnitude: drift.magnitude || 0
+        };
+
+        if (this.onBuildingUpdate) {
+            this.onBuildingUpdate(building);
+        }
+
+        return building;
+    }
+
+    /**
+     * Get the rendered position including drift offset.
+     * If building is migrating, returns lerpPosition for smooth animation.
+     * @param {string} agentId - The agent ID
+     * @returns {Object|null} Position {x, y} or null if not found
+     */
+    getRenderedPosition(agentId) {
+        const building = this.buildings.get(agentId);
+        if (!building) return null;
+
+        // If migrating, return interpolated position
+        if (building.isMigrating && building.lerpPosition) {
+            return { ...building.lerpPosition };
+        }
+
+        // Otherwise return base position + drift offset
+        const basePos = building.position;
+        const drift = building.drift || { dx: 0, dy: 0 };
+
+        return {
+            x: basePos.x + drift.dx,
+            y: basePos.y + drift.dy
+        };
+    }
+
+    /**
+     * Set the target position for smooth glide animation.
+     * @param {string} agentId - The agent ID
+     * @param {Object} target - Target position {x, y}
+     * @returns {Object|null} Updated building or null if not found
+     */
+    setTargetPosition(agentId, target) {
+        const building = this.buildings.get(agentId);
+        if (!building) return null;
+
+        building.targetPosition = { ...target };
+        // Initialize lerpPosition to current rendered position
+        building.lerpPosition = this.getRenderedPosition(agentId);
+        building.lerpProgress = 0;
+
+        return building;
+    }
+
+    /**
+     * Interpolate toward target position by factor t.
+     * When lerpProgress >= 1.0, migration is complete.
+     * @param {string} agentId - The agent ID
+     * @param {number} t - Interpolation factor (0-1)
+     * @returns {Object|null} Updated building or null if not found
+     */
+    lerpToTarget(agentId, t) {
+        const building = this.buildings.get(agentId);
+        if (!building) return null;
+
+        if (!building.targetPosition || !building.lerpPosition) {
+            return building;
+        }
+
+        // Update progress
+        building.lerpProgress = Math.min(1.0, (building.lerpProgress || 0) + t);
+
+        // Interpolate position
+        const start = building.lerpPosition;
+        const end = building.targetPosition;
+        const progress = building.lerpProgress;
+
+        building.lerpPosition = {
+            x: start.x + (end.x - start.x) * t,
+            y: start.y + (end.y - start.y) * t
+        };
+
+        // Check if migration is complete
+        if (building.lerpProgress >= 1.0) {
+            // Finalize position
+            building.position = { ...building.targetPosition };
+
+            // Clear migration state
+            delete building.drift;
+            delete building.isMigrating;
+            delete building.targetPosition;
+            delete building.lerpPosition;
+            delete building.lerpProgress;
+
+            if (this.onBuildingUpdate) {
+                this.onBuildingUpdate(building);
+            }
+        }
+
+        return building;
+    }
+
+    /**
+     * Migrate a building to a new district (Phase Shift).
+     * Starts a smooth glide animation to the new position.
+     * @param {string} agentId - The agent ID to migrate
+     * @param {string} newDistrict - Target district name
+     * @returns {Object|null} Updated building or null if not found/invalid
+     */
+    migrateBuilding(agentId, newDistrict) {
+        const building = this.buildings.get(agentId);
+        if (!building) return null;
+
+        // Validate district exists
+        if (!DISTRICTS[newDistrict]) {
+            console.warn(`Invalid district for migration: ${newDistrict}`);
+            return null;
+        }
+
+        // Calculate new position in target district
+        const newPosition = this._calculateBuildingPosition(newDistrict, agentId);
+
+        // Update district
+        building.district = newDistrict;
+        building.isMigrating = true;
+
+        // Set up glide animation
+        this.setTargetPosition(agentId, newPosition);
+
+        console.log(`🏗️ Phase Shift: ${agentId} -> ${newDistrict}`);
+
+        return building;
+    }
+
     // Private methods
 
     _getDistrictForRole(role) {
