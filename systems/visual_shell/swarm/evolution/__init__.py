@@ -15,6 +15,7 @@ from .recursive_orchestrator import (
     EvolutionResult,
     RecursiveOrchestrator,
 )
+from .evolution_daemon import DaemonConfig, DaemonState, EvolutionDaemon
 
 __all__ = [
     "ValueScore",
@@ -30,4 +31,7 @@ __all__ = [
     "EvolutionState",
     "EvolutionResult",
     "RecursiveOrchestrator",
+    "DaemonConfig",
+    "DaemonState",
+    "EvolutionDaemon",
 ]
