@@ -105,6 +105,108 @@ body, html {
 .alert.warn { background: rgba(255, 170, 0, 0.2); border-left: 3px solid #ffaa00; }
 .alert.error { background: rgba(255, 0, 0, 0.2); border-left: 3px solid #ff0000; }
 
+/* Restoration Panel */
+.restoration-panel {
+    padding: 15px;
+    border-bottom: 1px solid var(--border-color);
+    background: rgba(0, 255, 255, 0.02);
+}
+
+.mission-status {
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+.mission-status .value {
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.state-idle { color: #8888aa; border: 1px solid #444466; }
+.state-running { color: #00ffff; border: 1px solid #00aaaa; background: rgba(0, 255, 255, 0.1); }
+.state-completed { color: #00ff00; border: 1px solid #00aa00; }
+.state-failed { color: #ff0000; border: 1px solid #aa0000; }
+
+.progress-container {
+    height: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #0088ff, #00ffff);
+    width: 0%;
+    transition: width 0.5s ease-out;
+}
+
+.progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 10px;
+    color: #fff;
+    font-weight: bold;
+    text-shadow: 0 0 2px #000;
+}
+
+.mission-phases {
+    font-size: 11px;
+}
+
+.phase-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.phase-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    opacity: 0.6;
+}
+
+.phase-item.current {
+    opacity: 1;
+    color: var(--accent-color);
+}
+
+.phase-item.phase-completed {
+    opacity: 1;
+    color: #00ff00;
+}
+
+.mission-controls {
+    margin-top: 15px;
+}
+
+.btn-start-mission {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid var(--accent-color);
+    color: var(--accent-color);
+    font-family: var(--header-font);
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-start-mission:hover {
+    background: rgba(0, 255, 255, 0.1);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+}
+
+.btn-start-mission:active {
+    transform: scale(0.98);
+}
+
 /* Event Log */
 .event-log {
     flex: 1;

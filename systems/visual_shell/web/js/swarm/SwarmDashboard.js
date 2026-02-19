@@ -33,7 +33,14 @@ class SwarmDashboard {
         // 2. Initialize Panels
         const sidebar = container.querySelector('.sidebar');
         this.healthPanel = new HealthPanel(sidebar);
+        this.restorationPanel = new RestorationPanel(sidebar);
         this.eventLog = new EventLog(sidebar);
+
+        // Setup Restoration Callbacks
+        this.restorationPanel.onStartMission = () => {
+            this.client.send({ type: 'start_restoration' });
+            this.eventLog.addEvent('Requesting mission start...', 'info');
+        };
 
         // 3. Initialize Client
         this.client = new SwarmClient(this.config.wsUrl);
@@ -66,6 +73,9 @@ class SwarmDashboard {
                 break;
             case 'tectonic_update':
                 this._handleTectonicUpdate(msg.data);
+                break;
+            case 'restoration_update':
+                this.restorationPanel.update(msg.data);
                 break;
             case 'security_alert':
                 this.eventLog.addEvent(`SECURITY: ${msg.message}`, 'error');
