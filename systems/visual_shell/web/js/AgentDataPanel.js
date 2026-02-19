@@ -1,11 +1,12 @@
 /**
- * AgentDataPanel - Six-section data display for Glass Box introspection.
+ * AgentDataPanel - Seven-section data display for Glass Box introspection.
  *
- * Displays agent internal state across six sections:
+ * Displays agent internal state across seven sections:
  * - VCC Stability: PAS score with color-coded state indicator (stable/degraded/critical)
  * - Thought Stream: Scrolling log of agent decisions with timestamps and type coloring
  * - Intent Map: Current goal and planned trajectory with completion checkmarks
  * - Metabolic Pulse: IPC, memory, and activity metrics with progress bars
+ * - Collective Context: Neural memory from distributed tiles (Phase 27)
  * - Substrate View: RTS texture preview of the agent's code
  * - Communication Log: Inbound/outbound messages with direction arrows
  */
@@ -16,6 +17,7 @@ class AgentDataPanel {
             thoughts: [],
             intent: { goal: '', steps: [] },
             metabolism: { ipc: 0, memory: { used: 0, total: 0 }, activity: 0 },
+            collectiveContext: { recentEvents: [], similarTiles: [], similarEvents: [] },
             communications: []
         };
 
@@ -23,7 +25,7 @@ class AgentDataPanel {
     }
 
     /**
-     * Create the panel DOM element with 6 data sections.
+     * Create the panel DOM element with 7 data sections.
      * @private
      */
     _createElement() {
@@ -45,6 +47,10 @@ class AgentDataPanel {
             <div class="data-section" id="metabolic-pulse">
                 <h3>📊 Metabolic Pulse</h3>
                 <div class="metabolism-content"></div>
+            </div>
+            <div class="data-section" id="collective-context">
+                <h3>🧠 Collective Context <span class="live-indicator">Neural</span></h3>
+                <div class="collective-content"></div>
             </div>
             <div class="data-section" id="substrate-view">
                 <h3>🧩 Substrate View (Raw Code)</h3>
@@ -206,6 +212,82 @@ class AgentDataPanel {
     }
 
     /**
+     * Update the Collective Context with neural memory data.
+     * Shows shared wisdom from distributed tiles.
+     * @param {Object} context - Context object with recentEvents, similarTiles, similarEvents
+     */
+    setCollectiveContext(context) {
+        this.data.collectiveContext = context || { recentEvents: [], similarTiles: [], similarEvents: [] };
+        const content = this.element.querySelector('.collective-content');
+
+        const recent = this.data.collectiveContext.recentEvents || [];
+        const similar = this.data.collectiveContext.similarTiles || [];
+        const similarEvents = this.data.collectiveContext.similarEvents || [];
+        const memSize = this.data.collectiveContext.total_memory_size || 0;
+
+        // Build similar tiles tags
+        let similarHtml = '';
+        if (similar.length > 0) {
+            similarHtml = `
+                <div class="similar-tiles">
+                    <span class="label">Related Tiles:</span>
+                    ${similar.slice(0, 5).map(t => `<span class="tile-tag">${this._escapeHtml(t)}</span>`).join(' ')}
+                </div>
+            `;
+        }
+
+        // Build recent events list (shared wisdom)
+        let eventsHtml = '';
+        if (recent.length > 0) {
+            eventsHtml = `
+                <div class="shared-wisdom">
+                    <span class="label">Shared Wisdom:</span>
+                    <ul class="wisdom-list">
+                        ${recent.slice(0, 3).map(e => {
+                            const type = e.event_type || 'unknown';
+                            const typeColors = {
+                                'CODE_DISCOVERY': '#00ffff',
+                                'RESOURCE_PRESSURE': '#ff8800',
+                                'DISTRICT_SYNC': '#aa00ff',
+                                'ERROR_STATE': '#ff4444'
+                            };
+                            const color = typeColors[type] || '#888';
+                            return `<li class="wisdom-item" style="border-left: 3px solid ${color}">
+                                <span class="source">${this._escapeHtml(e.tile_id || 'unknown')}</span>
+                                <span class="type">${type}</span>
+                            </li>`;
+                        }).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        // Empty state if no data
+        if (!similarHtml && !eventsHtml) {
+            content.innerHTML = `
+                <div class="empty-state">
+                    No collective context available.
+                    <br><small>Neural memory will populate as tiles share events.</small>
+                </div>
+                <div class="memory-stat">
+                    <span class="label">Memory Size:</span>
+                    <span class="value">${memSize} events</span>
+                </div>
+            `;
+            return;
+        }
+
+        content.innerHTML = `
+            <div class="memory-stat">
+                <span class="label">Collective Memory:</span>
+                <span class="value">${memSize} events</span>
+            </div>
+            ${similarHtml}
+            ${eventsHtml}
+        `;
+    }
+
+    /**
      * Update the communication log with messages.
      * @param {Array} comms - Array of communication objects with direction, target, type
      */
@@ -264,6 +346,9 @@ class AgentDataPanel {
         }
         if (agentData.metabolism !== undefined) {
             this.setMetabolism(agentData.metabolism);
+        }
+        if (agentData.collectiveContext !== undefined) {
+            this.setCollectiveContext(agentData.collectiveContext);
         }
         if (agentData.communications !== undefined) {
             this.setCommunications(agentData.communications);
