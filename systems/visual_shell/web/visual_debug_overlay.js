@@ -641,6 +641,11 @@ class VisualDebugOverlay {
         if (this.uartBuffer && this.uartBuffer.length > 0) {
             this._renderSiliconTerminal(ctx, width, padding);
         }
+
+        // Neural City HUD
+        if (window.geometryOSApp && window.geometryOSApp.neuralCity) {
+            this._renderNeuralCityHUD(ctx, width, padding);
+        }
     }
 
     /**
@@ -778,6 +783,81 @@ class VisualDebugOverlay {
             ? new Date(this.lastUartTimestamp).toLocaleTimeString()
             : 'N/A';
         ctx.fillText(`Lines: ${lineCount} | Last: ${lastTime}`, padding, y);
+    }
+
+    /**
+     * Render Neural City HUD section
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {number} width - HUD width
+     * @param {number} padding - Padding value
+     */
+    _renderNeuralCityHUD(ctx, width, padding) {
+        const neuralCity = window.geometryOSApp.neuralCity;
+        if (!neuralCity) return;
+
+        const stats = neuralCity.getStats();
+        const focus = neuralCity.focusDistrict;
+
+        // Calculate position - place between Silicon Terminal and bottom
+        // or at bottom if Silicon Terminal is not showing
+        let startY;
+        if (this.uartBuffer && this.uartBuffer.length > 0) {
+            // Place above Silicon Terminal
+            startY = this.hudCanvas.height - 320;
+        } else {
+            // Place at bottom
+            startY = this.hudCanvas.height - 130;
+        }
+
+        const sectionHeight = 120;
+        let y = startY;
+
+        // Background for section
+        ctx.fillStyle = 'rgba(40, 30, 0, 0.9)';
+        ctx.fillRect(0, y, width, sectionHeight);
+
+        // Border
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(0, y, width, sectionHeight);
+
+        y += 20;
+
+        // Title
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 12px monospace';
+        ctx.fillText('🏛️ NEURAL CITY', padding, y);
+        y += 20;
+
+        // District info
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '11px monospace';
+        ctx.fillText(`District: (${focus.x}, ${focus.y})`, padding, y);
+        y += 16;
+
+        // Material at focus
+        ctx.fillText(`Material: ${stats.focusMaterial}`, padding, y);
+        y += 16;
+
+        // Cache status
+        const cachePercent = stats.total > 0 ? Math.round((stats.loaded / stats.total) * 100) : 0;
+        ctx.fillText(`Loaded: ${stats.loaded}/${stats.total} (${cachePercent}%)`, padding, y);
+        y += 16;
+
+        // VRAM usage
+        ctx.fillText(`VRAM: ${stats.vramMB}MB`, padding, y);
+        y += 20;
+
+        // Material legend (compact)
+        ctx.font = '10px monospace';
+        ctx.fillStyle = '#FFD700';
+        ctx.fillText('■ Gold', padding, y);
+        ctx.fillStyle = '#4169E1';
+        ctx.fillText('  ■ Steel', 60, y);
+        ctx.fillStyle = '#B7410E';
+        ctx.fillText('  ■ Rust', 120, y);
+        ctx.fillStyle = '#666666';
+        ctx.fillText('  ■ Dust', 175, y);
     }
 
     /**
