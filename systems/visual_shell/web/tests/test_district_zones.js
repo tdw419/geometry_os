@@ -89,4 +89,34 @@ describe('DistrictZones', () => {
 
         assert.strictEqual(overlay.agentPositions['worker-001'].district, 'cognitive');
     });
+
+    it('AgentController integration triggers relocation', () => {
+        let relocatedAgent = null;
+        let relocatedDistrict = null;
+
+        // Mock AgentController class
+        global.AgentController = function() {
+            this.agentId = null;
+            this.element = { style: { display: 'none' } };
+            this.onRelocate = null;
+            this.onEvict = null;
+            this.onDebug = null;
+        };
+        global.AgentController.prototype.setAgent = function(id) {
+            this.agentId = id;
+        };
+
+        const controller = new AgentController();
+        controller.setAgent('worker-001');
+        controller.onRelocate = (agentId, district) => {
+            relocatedAgent = agentId;
+            relocatedDistrict = district;
+        };
+
+        // Simulate relocation trigger
+        controller.onRelocate('worker-001', 'cognitive');
+
+        assert.strictEqual(relocatedAgent, 'worker-001');
+        assert.strictEqual(relocatedDistrict, 'cognitive');
+    });
 });

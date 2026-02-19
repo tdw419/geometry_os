@@ -1298,6 +1298,46 @@ class VisualDebugOverlay {
     }
 
     /**
+     * Initialize AgentController integration
+     */
+    _initAgentController() {
+        if (typeof AgentController === 'undefined') return;
+
+        this.agentController = new AgentController();
+
+        // Wire up relocation callback
+        this.agentController.onRelocate = (agentId, targetDistrict) => {
+            this._sendRelocationCommand(agentId, targetDistrict);
+        };
+
+        // Wire up evict callback
+        this.agentController.onEvict = (agentId) => {
+            this._showNotification(`🚫 Evicting ${agentId}...`, '#ff4444');
+            window.dispatchEvent(new CustomEvent('EVICT_AGENT', {
+                detail: { agent_id: agentId }
+            }));
+        };
+
+        // Wire up debug callback
+        this.agentController.onDebug = (agentId) => {
+            this._showNotification(`🔍 Debug dump: ${agentId}`, '#00aaff');
+            console.log('Agent debug:', this.agentPositions[agentId]);
+        };
+    }
+
+    /**
+     * Show AgentController for clicked agent
+     */
+    _showAgentController(agentId) {
+        if (!this.agentController) {
+            this._initAgentController();
+        }
+
+        this.agentController.setAgent(agentId);
+        this.agentController.element.style.display = 'block';
+    }
+
+    /**
      * Render Neural City HUD section
      * @param {CanvasRenderingContext2D} ctx - Canvas context
      * @param {number} width - HUD width
