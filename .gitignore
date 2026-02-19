@@ -62,3 +62,8 @@ systems/visual_shell/electron/dist/
 *.snap
 *.rts.png
 *_zip
+
+# VM disk images
+*.qcow2
+*.iso
+*.raw

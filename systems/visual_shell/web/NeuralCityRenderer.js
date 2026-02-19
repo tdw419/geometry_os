@@ -47,6 +47,11 @@ class NeuralCityRenderer {
         // Current foveal state
         this.focusDistrict = { x: 0, y: 0 };
 
+        // Pulse buffer for LM Studio inference visualization
+        this.pulseBuffer = [];
+        this.pulseBufferMaxSize = 64;
+        this.pulseTTL = 1000; // milliseconds
+
         // Stats
         this.stats = {
             loaded: 0,
@@ -193,24 +198,32 @@ class NeuralCityRenderer {
      * @param {number} x - Focus X in world coordinates
      * @param {number} y - Focus Y in world coordinates
      */
-    setFocus(x, y) {
+    async setFocus(x, y) {
+        const prevFocus = { ...this.focusDistrict };
         this.focusDistrict = this.pixelToDistrict(x, y);
 
         if (this.filter) {
             this.filter.setFocusDistrict(x, y);
         }
 
+        // Auto-load hi-res district if focus changed
+        if (this.focusDistrict.x !== prevFocus.x || this.focusDistrict.y !== prevFocus.y) {
+            await this.loadDistrict(this.focusDistrict.x, this.focusDistrict.y);
+            
+            // Update filter with new hi-res texture if available
+            const hiRes = this.getHiResTexture();
+            if (hiRes && this.filter) {
+                this.filter.setHiResTexture(hiRes);
+            }
+        }
+
         const districtId = this.getDistrictId(this.focusDistrict.x, this.focusDistrict.y);
-        if (this.districtMetadata) {
-            const meta = this.districtMetadata.find(
-                d => d.x === this.focusDistrict.x && d.y === this.focusDistrict.y
+        if (this.districtMetadata && this.districtMetadata.districts) {
+            const meta = this.districtMetadata.districts.find(
+                d => d.id === districtId
             );
             if (meta) {
-                const q = meta.dominant_q;
-                if (q < 0.25) this.stats.focusMaterial = 'Gold (F32)';
-                else if (q < 0.5) this.stats.focusMaterial = 'Steel (Q8)';
-                else if (q < 0.75) this.stats.focusMaterial = 'Rust (Q4)';
-                else this.stats.focusMaterial = 'Dust (Sparse)';
+                this.stats.focusMaterial = meta.dominant_q;
             }
         }
     }
@@ -244,15 +257,15 @@ class NeuralCityRenderer {
 
         // Extract tile from source RTS
         try {
-            const tile = await this.extractTile(dx, dy);
+            const texture = await this.extractTile(dx, dy);
 
-            if (!tile) {
+            if (!texture) {
                 return null;
             }
 
             // Add to cache
             this.atlasCache.set(districtId, {
-                texture: tile.texture || tile,
+                texture: texture,
                 lastUsed: Date.now()
             });
 
@@ -273,20 +286,40 @@ class NeuralCityRenderer {
     }
 
     /**
-     * Extract a 512x512 tile from the source RTS
-     * Override this method to implement actual extraction
+     * Extract a 512x512 tile from the source RTS via Tile Server
      * @param {number} dx - District X
      * @param {number} dy - District Y
-     * @returns {Promise<Object|null>}
+     * @returns {Promise<PIXI.Texture|null>}
      */
     async extractTile(dx, dy) {
-        // Placeholder - in production, this would:
-        // 1. Load source qwen_coder.rts.png if not loaded
-        // 2. Extract 512x512 region at (dx*512, dy*512)
-        // 3. Create PIXI.Texture from extracted region
+        const x = dx * this.config.districtSize;
+        const y = dy * this.config.districtSize;
+        const url = `http://127.0.0.1:8000/tile/${x}/${y}`;
 
-        // For now, return a mock tile for testing
-        return { texture: { width: 512, height: 512 }, mock: true };
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Tile server error: ${response.status}`);
+            }
+
+            const buffer = await response.arrayBuffer();
+            const data = new Uint8Array(buffer);
+
+            // Create PIXI.Texture from raw RGBA buffer
+            // Note: PIXI v8 uses Texture.fromBuffer or similar
+            const resource = new PIXI.BufferResource(data, {
+                width: this.config.districtSize,
+                height: this.config.districtSize
+            });
+
+            const baseTexture = new PIXI.BaseTexture(resource);
+            const texture = new PIXI.Texture(baseTexture);
+
+            return texture;
+        } catch (err) {
+            console.warn(`Failed to fetch tile from ${url}:`, err.message);
+            return null;
+        }
     }
 
     /**
@@ -327,6 +360,164 @@ class NeuralCityRenderer {
             return this.atlasCache.get(districtId).texture;
         }
         return null;
+    }
+
+    /**
+     * Set the safety quarantine mask
+     * @param {Float32Array} mask - 32x32 mask (1.0 = quarantined)
+     */
+    setSafetyMask(mask) {
+        this.safetyMask = mask;
+        this.safetyMaskSize = 32;
+
+        // Update filter uniform if available
+        if (this.filter && this.filter.uniforms) {
+            this.filter.uniforms.uSafetyMask = mask;
+        }
+    }
+
+    /**
+     * Get quarantine status for a district
+     * @param {number} dx - District X coordinate (0-31, not pixels)
+     * @param {number} dy - District Y coordinate (0-31, not pixels)
+     * @returns {number} 1.0 if quarantined, 0.0 otherwise
+     */
+    getQuarantineStatus(dx, dy) {
+        if (!this.safetyMask) return 0.0;
+
+        // Direct 1:1 mapping: district coordinates map directly to mask cells
+        const maskX = Math.floor(dx);
+        const maskY = Math.floor(dy);
+
+        // Bounds check
+        if (maskX < 0 || maskX >= this.safetyMaskSize || maskY < 0 || maskY >= this.safetyMaskSize) {
+            return 0.0;
+        }
+
+        const index = maskY * this.safetyMaskSize + maskX;
+        return this.safetyMask[index] || 0.0;
+    }
+
+    /**
+     * Clear all quarantine entries
+     */
+    clearSafetyMask() {
+        if (this.safetyMask) {
+            this.safetyMask.fill(0.0);
+        }
+    }
+
+    /**
+     * Set quarantine status for a specific district
+     * @param {number} dx - District X coordinate (0-31, not pixels)
+     * @param {number} dy - District Y coordinate (0-31, not pixels)
+     * @param {boolean} quarantined - True to quarantine
+     */
+    setQuarantineStatus(dx, dy, quarantined) {
+        if (!this.safetyMask) {
+            this.safetyMask = new Float32Array(32 * 32);
+            this.safetyMaskSize = 32;
+        }
+
+        // Direct 1:1 mapping
+        const maskX = Math.floor(dx);
+        const maskY = Math.floor(dy);
+
+        // Bounds check
+        if (maskX < 0 || maskX >= this.safetyMaskSize || maskY < 0 || maskY >= this.safetyMaskSize) {
+            return;
+        }
+
+        const index = maskY * this.safetyMaskSize + maskX;
+        this.safetyMask[index] = quarantined ? 1.0 : 0.0;
+    }
+
+    /**
+     * Add a pulse at the given coordinate
+     * @param {number} x - X coordinate (world space)
+     * @param {number} y - Y coordinate (world space)
+     * @param {number} timestamp - When the pulse occurred
+     */
+    addPulse(x, y, timestamp) {
+        this.pulseBuffer.push({
+            coords: { x, y },
+            timestamp
+        });
+
+        // Enforce max size
+        while (this.pulseBuffer.length > this.pulseBufferMaxSize) {
+            this.pulseBuffer.shift();
+        }
+
+        // Update filter
+        this._updatePulseUniforms();
+    }
+
+    /**
+     * Remove pulses older than TTL
+     * @param {number} ttl - Time-to-live in milliseconds
+     */
+    expireOldPulses(ttl = this.pulseTTL) {
+        const now = Date.now();
+        this.pulseBuffer = this.pulseBuffer.filter(p =>
+            now - p.timestamp < ttl
+        );
+        this._updatePulseUniforms();
+    }
+
+    /**
+     * Clear all pulses
+     */
+    clearPulses() {
+        this.pulseBuffer = [];
+        this._updatePulseUniforms();
+    }
+
+    /**
+     * Update filter uniforms with pulse data
+     * @private
+     */
+    _updatePulseUniforms() {
+        if (!this.filter) return;
+
+        // Pack pulse coords into arrays for shader
+        const pulseX = new Float32Array(64);
+        const pulseY = new Float32Array(64);
+        const pulseAge = new Float32Array(64);
+
+        const now = Date.now();
+        for (let i = 0; i < Math.min(this.pulseBuffer.length, 64); i++) {
+            const pulse = this.pulseBuffer[i];
+            pulseX[i] = pulse.coords.x;
+            pulseY[i] = pulse.coords.y;
+            pulseAge[i] = (now - pulse.timestamp) / 1000; // seconds
+        }
+
+        this.filter.uniforms.uPulseX = pulseX;
+        this.filter.uniforms.uPulseY = pulseY;
+        this.filter.uniforms.uPulseAge = pulseAge;
+        this.filter.uniforms.uPulseCount = this.pulseBuffer.length;
+    }
+
+    /**
+     * Update metabolism values for ambient lighting control
+     * Task 5: Metabolism Ambient Lighting
+     * @param {Object} data - Metabolism data
+     * @param {number} data.ipc - Instructions per cycle (0.0 to 1.0)
+     * @param {string} data.throttle_level - Throttle level: 'NONE', 'MODERATE', 'AGGRESSIVE'
+     */
+    updateMetabolism(data) {
+        if (!this.filter) {
+            return;
+        }
+        if (!data || typeof data !== 'object') {
+            console.warn('NeuralCityRenderer.updateMetabolism: invalid data', data);
+            return;
+        }
+        this.filter.setMetabolism(
+            data.ipc ?? 0.5,
+            data.throttle_level ?? 'NONE'
+        );
     }
 }
 

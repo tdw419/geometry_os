@@ -18,6 +18,11 @@ class AgentController {
         this.onDebug = null;
         this.onCommand = null;
 
+        // Live tile controls
+        this.onStart = null;
+        this.onStop = null;
+        this.onRestart = null;
+
         this.element = this._createElement();
     }
 
@@ -35,6 +40,11 @@ class AgentController {
                 <button class="btn-debug" title="Debug Dump"> Debug</button>
                 <button class="btn-command" title="Send Command"> Command</button>
             </div>
+            <div class="live-controls" style="display:none;">
+                <button class="btn-start" title="Start Tile">▶️ Start</button>
+                <button class="btn-stop" title="Stop Tile">⏹️ Stop</button>
+                <button class="btn-restart" title="Restart Tile">🔄 Restart</button>
+            </div>
             <div class="command-panel" style="display:none;">
                 <input type="text" class="command-input" placeholder="Enter command...">
                 <button class="btn-send">Send</button>
@@ -51,6 +61,9 @@ class AgentController {
         el.querySelector('.btn-send').addEventListener('click', () => this._handleCommand());
         el.querySelector('.btn-cancel').addEventListener('click', () => this._hideCommandPanel());
 
+        // Live control handlers
+        this._setupLiveControls(el);
+
         // Allow Enter key to send command
         const input = el.querySelector('.command-input');
         input.addEventListener('keydown', (e) => {
@@ -62,6 +75,51 @@ class AgentController {
         });
 
         return el;
+    }
+
+    /**
+     * Setup live tile control handlers.
+     * @private
+     */
+    _setupLiveControls(el) {
+        const startBtn = el.querySelector('.btn-start');
+        const stopBtn = el.querySelector('.btn-stop');
+        const restartBtn = el.querySelector('.btn-restart');
+
+        if (startBtn) {
+            startBtn.addEventListener('click', () => {
+                if (this.onStart && this.agentId) {
+                    this.onStart(this.agentId);
+                }
+            });
+        }
+
+        if (stopBtn) {
+            stopBtn.addEventListener('click', () => {
+                if (this.onStop && this.agentId) {
+                    this.onStop(this.agentId);
+                }
+            });
+        }
+
+        if (restartBtn) {
+            restartBtn.addEventListener('click', () => {
+                if (this.onRestart && this.agentId) {
+                    this.onRestart(this.agentId);
+                }
+            });
+        }
+    }
+
+    /**
+     * Show or hide live tile controls.
+     * @param {boolean} show - Whether to show the controls
+     */
+    showLiveControls(show) {
+        const controls = this.element.querySelector('.live-controls');
+        if (controls) {
+            controls.style.display = show ? 'flex' : 'none';
+        }
     }
 
     /**

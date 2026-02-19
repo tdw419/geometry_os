@@ -175,3 +175,31 @@ application.js → MetabolismDashboard → EvolutionSafetyBridge → HTTP :31338
 | MEM Meter | Circular arc | Green < 60%, Yellow < 80%, Red > 80% |
 | Throttle | Status box | Green=none, Yellow=moderate, Red=aggressive |
 | Prognostics | Log feed | Green > 0.8, Yellow > 0.5, Red < 0.5 |
+
+---
+
+### Distributed Task Visualization (V14)
+
+| Component | Status | Tests | Key File |
+|-----------|--------|-------|----------|
+| CoordinatorAgent Telemetry | ✅ | 5 | `swarm/coordinator_agent.py` |
+| SwarmMonitor DAG Aggregation | ✅ | 4 | `swarm/swarm_monitor.py` |
+| Visual Bridge Handler | ✅ | 1 | `api/visual_bridge.py` |
+| HUD Task Graph Renderer | ✅ | 3 | `web/visual_debug_overlay.js` |
+| E2E Integration | ✅ | 3 | `tests/test_task_dag_e2e.py` |
+
+**Key Innovation**: Real-time task DAG visualization with flowing animations,
+status-colored nodes, and bottleneck detection.
+
+**Data Flow:**
+```
+CoordinatorAgent.submit_task()
+    ↓ (task_update telemetry)
+SwarmMonitor._process_task_update()
+    ↓ (aggregated task_dag)
+VisualBridge.handle_client()
+    ↓ (TASK_DAG_UPDATE broadcast)
+Browser VisualDebugOverlay.processTaskDagUpdate()
+    ↓ (render)
+HUD _renderTaskGraph()
+```

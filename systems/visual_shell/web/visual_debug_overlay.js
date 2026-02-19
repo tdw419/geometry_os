@@ -52,6 +52,16 @@ class VisualDebugOverlay {
         this.uartMaxLines = 50;
         this.lastUartTimestamp = null;
 
+        // Swarm Health state
+        this.swarmHealth = null;
+
+        // Task DAG state (Distributed Task Visualization)
+        this.taskDag = {
+            tasks: {},           // task_id -> {status, assigned_to, transitions, ...}
+            activeFlows: [],     // Animated flow lines
+            summary: null        // Latest DAG summary
+        };
+
         // Canvas layers
         this.hudCanvas = null;
         this.hudCtx = null;
@@ -177,6 +187,17 @@ class VisualDebugOverlay {
         // Listen for RISC-V UART output (Neuro-Silicon Bridge)
         window.addEventListener('RISCV_UART_OUTPUT', (e) => {
             this.handleRiscvUart(e.detail);
+        });
+
+        // Listen for Swarm Health updates
+        window.addEventListener('SWARM_HEALTH_UPDATE', (e) => {
+            this.swarmHealth = e.detail;
+            this._scheduleRender();
+        });
+
+        // Listen for Task DAG updates from TelemetryBus
+        window.addEventListener('TASK_DAG_UPDATE', (e) => {
+            this.processTaskDagUpdate(e.detail);
         });
     }
 
@@ -642,6 +663,16 @@ class VisualDebugOverlay {
             this._renderSiliconTerminal(ctx, width, padding);
         }
 
+        // Swarm Health section
+        if (this.swarmHealth) {
+            this._renderSwarmHealth(ctx, width, padding);
+        }
+
+        // Task Graph section
+        if (Object.keys(this.taskDag.tasks).length > 0 || this.taskDag.activeFlows.length > 0) {
+            this._renderTaskGraphSection(ctx, width, padding);
+        }
+
         // Neural City HUD
         if (window.geometryOSApp && window.geometryOSApp.neuralCity) {
             this._renderNeuralCityHUD(ctx, width, padding);
@@ -786,6 +817,258 @@ class VisualDebugOverlay {
     }
 
     /**
+     * Render Swarm Health section
+     */
+    _renderSwarmHealth(ctx, width, padding) {
+        if (!this.swarmHealth || !this.swarmHealth.agents) return;
+
+        const agents = this.swarmHealth.agents;
+        const agentIds = Object.keys(agents);
+        if (agentIds.length === 0) return;
+
+        // Position - place on left side, above Silicon Terminal if present
+        const sectionHeight = 40 + (agentIds.length * 15);
+        let startY = this.hudCanvas.height - sectionHeight - 10;
+        
+        if (this.uartBuffer && this.uartBuffer.length > 0) {
+            startY -= 210; // Shift up to avoid Silicon Terminal
+        }
+
+        let y = startY;
+
+        // Background
+        ctx.fillStyle = 'rgba(20, 0, 40, 0.95)';
+        ctx.fillRect(10, y, width - 20, sectionHeight);
+
+        // Border
+        ctx.strokeStyle = '#aa00ff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(10, y, width - 20, sectionHeight);
+
+        y += 18;
+        ctx.fillStyle = '#aa00ff';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText('🐝 SWARM HEALTH MONITOR', padding, y);
+        y += 5;
+
+        // Divider
+        ctx.strokeStyle = '#aa00ff44';
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+        ctx.stroke();
+        y += 15;
+
+        // Render each agent
+        ctx.font = '10px monospace';
+        for (const aid of agentIds) {
+            const h = agents[aid];
+            
+            // Status icon and color
+            let statusChar = '●';
+            if (h.status === 'healthy') ctx.fillStyle = '#44ff44';
+            else if (h.status === 'stale') ctx.fillStyle = '#ffaa00';
+            else if (h.status === 'offline') ctx.fillStyle = '#ff4444';
+            else ctx.fillStyle = '#888';
+
+            ctx.fillText(statusChar, padding, y);
+            
+            ctx.fillStyle = '#fff';
+            const name = aid.length > 15 ? aid.substring(0, 12) + '...' : aid;
+            ctx.fillText(`${name} [${h.type}]`, padding + 15, y);
+            
+            // Task count
+            ctx.fillStyle = '#888';
+            ctx.fillText(`C:${h.tasks_completed} F:${h.tasks_failed}`, width - padding - 60, y);
+            
+            y += 15;
+        }
+    }
+
+    /**
+     * Process Task DAG update from Visual Bridge
+     */
+    processTaskDagUpdate(update) {
+        if (!update || !update.task_id) return;
+
+        const taskId = update.task_id;
+        const previousStatus = this.taskDag.tasks[taskId]?.status;
+
+        // Update or create task entry
+        this.taskDag.tasks[taskId] = {
+            ...this.taskDag.tasks[taskId],
+            ...update,
+            lastUpdate: Date.now()
+        };
+
+        // Create flow animation if assignment changed
+        if (update.assigned_to && previousStatus !== update.status) {
+            this._createTaskFlow(taskId, update);
+        }
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Create animated flow for task assignment
+     */
+    _createTaskFlow(taskId, update) {
+        const flow = {
+            id: `${taskId}-${Date.now()}`,
+            taskId: taskId,
+            from: 'coordinator',
+            to: update.assigned_to,
+            progress: 0,
+            startTime: Date.now(),
+            color: this._getTaskStatusColor(update.status)
+        };
+
+        this.taskDag.activeFlows.push(flow);
+
+        // Animate for 1 second
+        const animate = () => {
+            flow.progress = Math.min(1, (Date.now() - flow.startTime) / 1000);
+            if (flow.progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                // Remove completed flow
+                const idx = this.taskDag.activeFlows.indexOf(flow);
+                if (idx >= 0) this.taskDag.activeFlows.splice(idx, 1);
+            }
+            this._scheduleRender();
+        };
+        requestAnimationFrame(animate);
+    }
+
+    /**
+     * Get color for task status
+     */
+    _getTaskStatusColor(status) {
+        const colors = {
+            'pending': '#ffaa00',    // Yellow-orange
+            'assigned': '#00aaff',   // Cyan
+            'completed': '#44ff44',  // Green
+            'failed': '#ff4444',     // Red
+            'retry': '#ff8800'       // Orange
+        };
+        return colors[status] || '#888888';
+    }
+
+    /**
+     * Render Task Graph section in HUD
+     */
+    _renderTaskGraph(ctx, x, y, width) {
+        const lineHeight = 18;
+        const padding = 10;
+        let currentY = y + padding;
+
+        // Section header
+        ctx.fillStyle = '#00ff88';
+        ctx.font = 'bold 14px monospace';
+        ctx.fillText('TASK PULSE', x + padding, currentY);
+        currentY += lineHeight + 5;
+
+        // Count by status
+        const statusCounts = { pending: 0, assigned: 0, completed: 0, failed: 0 };
+        const taskList = Object.values(this.taskDag.tasks);
+
+        for (const task of taskList) {
+            const status = task.status || 'pending';
+            if (statusCounts.hasOwnProperty(status)) {
+                statusCounts[status]++;
+            }
+        }
+
+        // Status summary bar
+        ctx.font = '12px monospace';
+        const statusText = `P:${statusCounts.pending} A:${statusCounts.assigned} C:${statusCounts.completed} F:${statusCounts.failed}`;
+        ctx.fillStyle = '#cccccc';
+        ctx.fillText(statusText, x + padding, currentY);
+        currentY += lineHeight + 8;
+
+        // Divider
+        ctx.strokeStyle = '#333333';
+        ctx.beginPath();
+        ctx.moveTo(x + padding, currentY);
+        ctx.lineTo(x + width - padding, currentY);
+        ctx.stroke();
+        currentY += 10;
+
+        // Active tasks list (max 5)
+        const activeTasks = taskList
+            .filter(t => t.status === 'pending' || t.status === 'assigned')
+            .slice(0, 5);
+
+        for (const task of activeTasks) {
+            const statusColor = this._getTaskStatusColor(task.status);
+
+            // Status dot
+            ctx.fillStyle = statusColor;
+            ctx.beginPath();
+            ctx.arc(x + padding + 6, currentY - 4, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Task info
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '11px monospace';
+            const taskText = `${task.task_type || 'task'} -> ${task.assigned_to || 'unassigned'}`;
+            ctx.fillText(taskText, x + padding + 16, currentY);
+
+            // Duration if available
+            if (task.duration) {
+                ctx.fillStyle = '#888888';
+                ctx.fillText(`${task.duration.toFixed(1)}s`, x + width - 50, currentY);
+            }
+
+            currentY += lineHeight;
+        }
+
+        // Render active flows (animated lines)
+        this._renderTaskFlows(ctx, x, currentY + 10, width);
+
+        return currentY + 50;
+    }
+
+    /**
+     * Render animated task flow lines
+     */
+    _renderTaskFlows(ctx, x, y, width) {
+        for (const flow of this.taskDag.activeFlows) {
+            const startX = x + 20;
+            const endX = x + width - 40;
+            const currentX = startX + (endX - startX) * flow.progress;
+
+            // Draw flow line
+            ctx.strokeStyle = flow.color;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 4]);
+
+            ctx.beginPath();
+            ctx.moveTo(startX, y);
+            ctx.lineTo(currentX, y);
+            ctx.stroke();
+
+            // Draw arrow head
+            if (flow.progress > 0.1) {
+                ctx.fillStyle = flow.color;
+                ctx.beginPath();
+                ctx.moveTo(currentX, y);
+                ctx.lineTo(currentX - 8, y - 4);
+                ctx.lineTo(currentX - 8, y + 4);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Flow label
+            ctx.fillStyle = flow.color;
+            ctx.font = '10px monospace';
+            ctx.fillText(flow.taskId.slice(0, 12), startX, y - 8);
+        }
+
+        ctx.setLineDash([]);
+    }
+
+    /**
      * Render Neural City HUD section
      * @param {CanvasRenderingContext2D} ctx - Canvas context
      * @param {number} width - HUD width
@@ -861,6 +1144,35 @@ class VisualDebugOverlay {
     }
 
     /**
+     * Render Task Graph section with proper positioning in HUD
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {number} width - HUD width
+     * @param {number} padding - Padding value
+     */
+    _renderTaskGraphSection(ctx, width, padding) {
+        // Calculate position - stack above other bottom sections
+        let offset = 0;
+        if (this.uartBuffer && this.uartBuffer.length > 0) offset += 210;
+        if (this.swarmHealth) offset += 100;
+        if (window.geometryOSApp && window.geometryOSApp.neuralCity) offset += 130;
+
+        const sectionHeight = 150;
+        let startY = this.hudCanvas.height - sectionHeight - offset - 10;
+
+        // Background for section
+        ctx.fillStyle = 'rgba(0, 60, 40, 0.95)';
+        ctx.fillRect(10, startY, width - 20, sectionHeight);
+
+        // Border
+        ctx.strokeStyle = '#00ff88';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(10, startY, width - 20, sectionHeight);
+
+        // Render task graph content
+        this._renderTaskGraph(ctx, 10, startY, width - 20);
+    }
+
+    /**
      * Wrap text to fit width
      */
     _wrapText(text, maxWidth) {
@@ -910,7 +1222,9 @@ class VisualDebugOverlay {
             renderTimeMs: this.renderTime.toFixed(2),
             frameCount: this.frameCount,
             lastVerificationSuccess: this.lastVerification?.success,
-            lastVerificationConfidence: this.lastVerification?.overall_confidence
+            lastVerificationConfidence: this.lastVerification?.overall_confidence,
+            taskDagCount: Object.keys(this.taskDag.tasks).length,
+            taskDagActiveFlows: this.taskDag.activeFlows.length
         };
     }
 
@@ -927,6 +1241,11 @@ class VisualDebugOverlay {
         this.currentScene = null;
         this.uartBuffer = [];
         this.lastUartTimestamp = null;
+        this.taskDag = {
+            tasks: {},
+            activeFlows: [],
+            summary: null
+        };
     }
 
     /**

@@ -46,6 +46,9 @@ class NeuralCityEngine {
 
         // Saccadic Eye-Tracking state
         this.saccades = new Map();
+
+        // Live Tile Manager
+        this.liveTileManager = null;
     }
 
     /**
@@ -65,6 +68,9 @@ class NeuralCityEngine {
         } catch (e) {
             console.warn('TelemetryBus connection failed, running in standalone mode:', e);
         }
+
+        // Setup Live Tile Manager
+        this._setupLiveTileManager();
 
         this.running = true;
         this._startRenderLoop();
@@ -155,6 +161,30 @@ class NeuralCityEngine {
                     agent_id: agentId,
                     command: command
                 });
+            }
+        };
+
+        // Wire up live tile controls
+        this.glassBox.controller.onStart = (agentId) => {
+            const building = this.orchestrator.getBuilding(agentId);
+            if (building && building.liveTile && this.liveTileManager) {
+                this.liveTileManager.bootTile(agentId, building.liveTile.rtsPath);
+            }
+        };
+
+        this.glassBox.controller.onStop = (agentId) => {
+            if (this.liveTileManager) {
+                this.liveTileManager.stopTile(agentId);
+            }
+        };
+
+        this.glassBox.controller.onRestart = (agentId) => {
+            const building = this.orchestrator.getBuilding(agentId);
+            if (building && building.liveTile && this.liveTileManager) {
+                this.liveTileManager.stopTile(agentId);
+                setTimeout(() => {
+                    this.liveTileManager.bootTile(agentId, building.liveTile.rtsPath);
+                }, 1000);
             }
         };
     }
@@ -849,6 +879,83 @@ class NeuralCityEngine {
         if (pas >= 0.7) return 0x00ff00;  // Green - Stable
         if (pas >= 0.5) return 0xffff00;  // Yellow - Degraded
         return 0xff0000;                   // Red - Critical
+    }
+
+    // =====================================================
+    // Live Tile Management
+    // =====================================================
+
+    /**
+     * Setup Live Tile Manager and wire callbacks.
+     * @private
+     */
+    _setupLiveTileManager() {
+        if (typeof LiveTileManager === 'undefined') {
+            console.warn('LiveTileManager not available, live tiles disabled');
+            return;
+        }
+
+        this.liveTileManager = new LiveTileManager(this.config.wsUrl);
+
+        this.liveTileManager.onTileBooted = (tile) => {
+            console.log(`🏙️ Live tile booted: ${tile.id}`);
+            // Create building for tile if not exists
+            if (!this.orchestrator.getBuilding(tile.id)) {
+                this.orchestrator.spawnBuilding(tile.id, 'substrate', { memory: 256 });
+            }
+            this.orchestrator.setLiveTile(tile.id, tile);
+        };
+
+        this.liveTileManager.onFramebufferUpdate = (tile) => {
+            this._updateLiveTexture(tile);
+        };
+
+        this.liveTileManager.connect().catch(e => {
+            console.warn('LiveTileManager connection failed:', e);
+        });
+    }
+
+    /**
+     * Update live texture for a tile.
+     * @private
+     * @param {LiveTile} tile - The tile with framebuffer data
+     */
+    _updateLiveTexture(tile) {
+        const building = this.orchestrator.getBuilding(tile.id);
+        if (!building || !tile.framebuffer) return;
+
+        // Create or update live texture
+        if (!building.liveTexture) {
+            // Create texture from framebuffer dimensions
+            building.liveTexture = PIXI.Texture.fromBuffer(
+                tile.framebuffer.data,
+                tile.framebuffer.width,
+                tile.framebuffer.height
+            );
+        } else {
+            // Update existing texture
+            building.liveTexture.baseTexture.resource.update(tile.framebuffer.data);
+        }
+
+        // Update building sprite to show live texture
+        if (building.graphics) {
+            const skin = building.graphics.children.find(c => c instanceof PIXI.Sprite);
+            if (skin) {
+                skin.texture = building.liveTexture;
+            }
+        }
+    }
+
+    /**
+     * Update all live framebuffers.
+     * @private
+     */
+    _updateLiveFramebuffers() {
+        this.orchestrator.buildings.forEach(building => {
+            if (building.liveTile && building.liveTile.isRunning()) {
+                this._updateLiveTexture(building.liveTile);
+            }
+        });
     }
 
     // =====================================================

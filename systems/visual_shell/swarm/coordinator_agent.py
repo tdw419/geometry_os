@@ -82,6 +82,9 @@ class CoordinatorAgent:
 
         logger.info(f"Task submitted: {task.task_id} ({task_type})")
 
+        # Emit telemetry for new task
+        await self._emit_task_update(task, previous_status=None)
+
         return task.task_id
 
     async def get_next_task(self) -> Optional[SwarmTask]:
@@ -96,6 +99,7 @@ class CoordinatorAgent:
             return False
 
         task = self.active_tasks[task_id]
+        previous_status = task.status
         task.assigned_to = agent_id
         task.status = "assigned"
         task.started_at = time.time()
@@ -106,6 +110,9 @@ class CoordinatorAgent:
         self.agent_tasks[agent_id] = task_id
 
         logger.info(f"Task {task_id} assigned to {agent_id}")
+
+        # Emit telemetry for task assignment
+        await self._emit_task_update(task, previous_status=previous_status)
 
         return True
 
@@ -121,6 +128,7 @@ class CoordinatorAgent:
             return False
 
         task = self.active_tasks[task_id]
+        previous_status = task.status
         task.status = "completed" if success else "failed"
         task.completed_at = time.time()
         task.result = result
@@ -134,6 +142,9 @@ class CoordinatorAgent:
 
         logger.info(f"Task {task_id} completed by {agent_id}: {task.status}")
 
+        # Emit telemetry for task completion
+        await self._emit_task_update(task, previous_status=previous_status)
+
         return True
 
     async def fail_task(self, task_id: str, agent_id: str, error: str) -> bool:
@@ -142,6 +153,7 @@ class CoordinatorAgent:
             return False
 
         task = self.active_tasks[task_id]
+        previous_status = task.status
         task.error = error
         task.retry_count += 1
 
@@ -160,6 +172,9 @@ class CoordinatorAgent:
 
         if agent_id in self.agent_tasks:
             del self.agent_tasks[agent_id]
+
+        # Emit telemetry for task failure
+        await self._emit_task_update(task, previous_status=previous_status)
 
         return True
 
@@ -196,6 +211,42 @@ class CoordinatorAgent:
         if agent_id in self.active_agents:
             self.active_agents[agent_id]["last_heartbeat"] = time.time()
             self.active_agents[agent_id]["status"] = status
+
+    async def _emit_task_update(self, task: SwarmTask, previous_status: str = None):
+        """Emit task telemetry to Visual Bridge for HUD visualization.
+
+        Args:
+            task: The SwarmTask instance to emit telemetry for
+            previous_status: The previous status of the task (for status transitions)
+        """
+        if not self.ws:
+            return
+
+        telemetry = {
+            "type": "task_update",
+            "data": {
+                "task_id": task.task_id,
+                "task_type": task.task_type,
+                "status": task.status,
+                "previous_status": previous_status,
+                "assigned_to": task.assigned_to,
+                "timestamp": time.time(),
+                "started_at": task.started_at,
+                "duration": task.started_at and (time.time() - task.started_at) or None,
+                "retry_count": task.retry_count,
+                "error": task.error
+            }
+        }
+
+        # Include result if available
+        if task.result is not None:
+            telemetry["data"]["result"] = task.result
+
+        try:
+            await self.ws.send(json.dumps(telemetry))
+            logger.debug(f"Emitted task telemetry: {task.task_id} -> {task.status}")
+        except Exception as e:
+            logger.warning(f"Failed to emit task telemetry: {e}")
 
     def get_status(self) -> Dict[str, Any]:
         """Get coordinator status summary."""

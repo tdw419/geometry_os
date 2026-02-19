@@ -143,6 +143,29 @@
             0%, 100% { background: rgba(255, 0, 0, 0.9); }
             50% { background: rgba(255, 100, 0, 0.9); }
         }
+
+        /* Live Console Styling */
+        .console-output {
+            background: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .console-line { margin: 2px 0; }
+        .console-line .time { color: #666; }
+        .live-controls {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .live-controls button {
+            flex: 1;
+            font-size: 11px;
+        }
     </style>
 </head>
 <body>
@@ -150,6 +173,7 @@
     <div id="hud">
         <h2>🏙️ Neural City</h2>
         <div class="metric"><span class="label">Buildings:</span> <span id="building-count" class="value">0</span></div>
+        <div class="metric"><span class="label">Live Tiles:</span> <span id="live-tile-count" class="value">0</span></div>
         <div class="metric"><span class="label">Bridges:</span> <span id="bridge-count" class="value">0</span></div>
         <div class="metric"><span class="label">Spire IPC:</span> <span id="spire-ipc" class="value">0.50</span></div>
         <div class="metric"><span class="label">Throttle:</span> <span id="throttle-level" class="value">NONE</span></div>
@@ -164,6 +188,7 @@
     </div>
     <div id="controls">
         <button id="btn-spawn">Spawn Agent</button>
+        <button id="btn-boot">Boot Alpine</button>
         <button id="btn-pulse">Pulse District</button>
         <button id="btn-saccade">Scan (Saccade)</button>
         <button id="btn-bridge">Create Bridge</button>
@@ -179,6 +204,8 @@
     <script src="https://pixijs.download/v8.1.0/pixi.min.js"></script>
     <script src="js/TelemetryBus.js"></script>
     <script src="js/CityOrchestrator.js"></script>
+    <script src="js/LiveTile.js"></script>
+    <script src="js/LiveTileManager.js"></script>
     <script src="js/NeuralCityEngine.js"></script>
     <script src="js/MockAgentData.js"></script>
     <script src="js/GlassBoxOverlay.js"></script>
@@ -218,8 +245,13 @@
                 document.getElementById('bridge-count').textContent = state.bridges;
                 document.getElementById('spire-ipc').textContent = state.spire.ipc.toFixed(2);
                 document.getElementById('throttle-level').textContent = state.spire.throttleLevel;
-                document.getElementById('tectonic-status').textContent = 
+                document.getElementById('tectonic-status').textContent =
                     state.spire.tectonicActive ? 'Active' : 'Idle';
+
+                // Update live tile count
+                const liveTiles = Array.from(engine.orchestrator.buildings.values())
+                    .filter(b => b.liveTile && b.liveTile.isRunning()).length;
+                document.getElementById('live-tile-count').textContent = liveTiles;
             }, 1000);
 
             // Button handlers
@@ -231,6 +263,41 @@
                     role: roles[Math.floor(Math.random() * 3)],
                     metrics: { memory: 100 + Math.random() * 200, activity: Math.random() }
                 });
+            };
+
+            // Boot Alpine live tile button
+            document.getElementById('btn-boot').onclick = () => {
+                const tileId = 'alpine-' + Date.now();
+                const rtsPath = 'rts_files/alpine_v2.rts.png';
+
+                // Show booting status
+                document.getElementById('status').textContent = 'Booting ' + tileId + '...';
+
+                // Create building for the tile
+                engine.orchestrator.spawnBuilding(tileId, 'substrate', {
+                    memory: 256,
+                    activity: 0.5
+                });
+
+                // Create LiveTile and attach
+                const tile = new LiveTile(tileId, rtsPath);
+                tile.setState('booting');
+                engine.orchestrator.setLiveTile(tileId, tile);
+
+                // Boot via LiveTileManager if available
+                if (engine.liveTileManager) {
+                    engine.liveTileManager.bootTile(tileId, rtsPath);
+                }
+
+                console.log('🏙️ Booting live tile:', tileId);
+
+                // Simulate boot completion after 2s for demo
+                setTimeout(() => {
+                    tile.setState('running');
+                    tile.appendConsole('Alpine Linux booted successfully');
+                    tile.appendConsole('Login: root');
+                    document.getElementById('status').textContent = 'Running';
+                }, 2000);
             };
 
             document.getElementById('btn-pulse').onclick = () => {

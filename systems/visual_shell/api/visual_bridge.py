@@ -10,6 +10,7 @@ Capabilities:
 - Semantic Memory Retrieval (Hippocampus)
 - Mirror Validation Results (Master Stage)
 - RISC-V UART Streaming (Neuro-Silicon Bridge)
+- Token Visualization Update (Neural City)
 - Visual Action Routing
 
 Port: 8768 (WebSocket)
@@ -105,9 +106,32 @@ class VisualBridge:
                         }
                     })
 
-                # 4. Echo/Ping
+                # 4. Swarm Health Updates
+                elif msg_type == 'swarm_health':
+                    # Broadcast Swarm Health to browser HUD
+                    print(f"🐝 Swarm Health Update received")
+                    await self._broadcast({
+                        'type': 'SWARM_HEALTH_UPDATE',
+                        'data': data.get('data', {})
+                    })
+
+                # 5. Task DAG Updates (Distributed Task Visualization)
+                elif msg_type == 'task_update':
+                    # Broadcast task update to browser HUD
+                    task_data = data.get('data', data)
+                    print(f"📋 Task Update: {task_data.get('task_id')} → {task_data.get('status')}")
+                    await self._broadcast({
+                        'type': 'TASK_DAG_UPDATE',
+                        'data': task_data
+                    })
+
+                # 6. Echo/Ping
                 elif msg_type == 'ping':
                     await websocket.send(json.dumps({'type': 'pong'}))
+
+                # 7. Token Visualization Update (Neural City)
+                elif msg_type == 'token_visualization_update':
+                    await self.relay_token_pulse(data)
 
         except websockets.exceptions.ConnectionClosed:
             pass
@@ -166,9 +190,31 @@ class VisualBridge:
         """Broadcast a message to all connected clients"""
         if not self.clients:
             return
-        
+
         message = json.dumps(data)
         await asyncio.gather(*[client.send(message) for client in self.clients], return_exceptions=True)
+
+    async def relay_token_pulse(self, token_event: dict):
+        """
+        Relay a token visualization event to Neural City clients.
+
+        Args:
+            token_event: Dict with hilbert_x, hilbert_y, token, timestamp
+        """
+        if not self.clients:
+            return
+
+        # Transform to Neural City pulse format
+        pulse_message = {
+            "type": "neural_city_pulse",
+            "x": token_event.get("hilbert_x", 0),
+            "y": token_event.get("hilbert_y", 0),
+            "token": token_event.get("token", ""),
+            "timestamp": token_event.get("timestamp", 0)
+        }
+
+        # Use existing _broadcast method
+        await self._broadcast(pulse_message)
 
     async def start(self):
         print(f"🚀 Visual Bridge starting...")

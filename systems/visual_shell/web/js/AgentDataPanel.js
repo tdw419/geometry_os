@@ -52,6 +52,10 @@ class AgentDataPanel {
                     <img class="rts-preview" style="width:100%; border:1px solid #0ff; image-rendering:pixelated;" alt="RTS Preview">
                 </div>
             </div>
+            <div class="data-section" id="live-console-section" style="display:none;">
+                <h3>🖥️ Live Console</h3>
+                <div class="console-output"></div>
+            </div>
             <div class="data-section" id="communication-log">
                 <h3>📡 Communication Log</h3>
                 <div class="comm-log"></div>
@@ -224,6 +228,25 @@ class AgentDataPanel {
     }
 
     /**
+     * Update the live console with VM output.
+     * @param {Array} consoleOutput - Array of console line objects with time and text
+     */
+    setLiveConsole(consoleOutput) {
+        const section = this.element.querySelector('#live-console-section');
+        const output = this.element.querySelector('.console-output');
+
+        if (consoleOutput && consoleOutput.length > 0) {
+            section.style.display = 'block';
+            output.innerHTML = consoleOutput.map(line =>
+                `<div class="console-line"><span class="time">${line.time}</span> ${this._escapeHtml(line.text)}</div>`
+            ).join('');
+            output.scrollTop = output.scrollHeight;
+        } else {
+            section.style.display = 'none';
+        }
+    }
+
+    /**
      * Set all data sections at once.
      * @param {Object} agentData - Complete agent data object
      */
@@ -247,6 +270,9 @@ class AgentDataPanel {
         }
         if (agentData.rtsPath !== undefined) {
             this.setSubstrate(agentData.rtsPath);
+        }
+        if (agentData.consoleOutput !== undefined) {
+            this.setLiveConsole(agentData.consoleOutput);
         }
     }
 

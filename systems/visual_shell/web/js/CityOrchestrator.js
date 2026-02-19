@@ -66,6 +66,7 @@ class CityOrchestrator {
             luminance: 0.5,
             createdAt: Date.now(),
             rtsPath: this._getRTSPath(agentId, role),
+            liveTile: null,
             stability: {
                 pas: metrics.pas || 0.7,
                 state: 'stable',
@@ -139,6 +140,34 @@ class CityOrchestrator {
      */
     getBuilding(agentId) {
         return this.buildings.get(agentId);
+    }
+
+    /**
+     * Set a LiveTile on a building.
+     * @param {string} agentId - The agent ID of the building
+     * @param {LiveTile} liveTile - The LiveTile instance to attach
+     * @returns {Object|null} Updated building or null if not found
+     */
+    setLiveTile(agentId, liveTile) {
+        const building = this.buildings.get(agentId);
+        if (!building) return null;
+
+        building.liveTile = liveTile;
+
+        if (this.onBuildingUpdate) {
+            this.onBuildingUpdate(building);
+        }
+
+        return building;
+    }
+
+    /**
+     * Get all buildings with active LiveTiles.
+     * @returns {Array} Array of buildings with running LiveTiles
+     */
+    getLiveTiles() {
+        return Array.from(this.buildings.values())
+            .filter(b => b.liveTile && b.liveTile.isRunning());
     }
 
     /**

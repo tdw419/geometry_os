@@ -1,0 +1,18 @@
+# Alpine setup answer file for automated installation
+# Use with: setup-alpine -f /path/to/answers
+
+KEYMAPOPTS="us us"
+HOSTNAMEOPTS="-n shotcut-vm"
+INTERFACESOPTS="auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet dhcp
+"
+DNSOPTS=""
+TIMEZONEOPTS="-z UTC"
+PROXYOPTS="none"
+APKREPOSOPTS="-1"
+SSHDOPTS="-c openssh"
+NTPOPTS="-c chrony"
+DISKOPTS="-m sys /dev/vda"
