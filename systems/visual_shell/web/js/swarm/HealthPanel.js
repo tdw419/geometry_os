@@ -27,17 +27,17 @@ class HealthPanel {
         grid.className = 'metrics-grid';
         this.element.appendChild(grid);
 
-        ['nodes', 'agents', 'tasks'].forEach(key => {
+        ['nodes', 'agents', 'tasks', 'locality'].forEach(key => {
             const m = document.createElement('div');
             m.className = `metric metric-${key}`;
             
             const label = document.createElement('span');
             label.className = 'label';
-            label.textContent = key.charAt(0).toUpperCase() + key.slice(1);
+            label.textContent = key === 'locality' ? 'Locality' : key.charAt(0).toUpperCase() + key.slice(1);
             
             const value = document.createElement('span');
             value.className = 'value';
-            value.textContent = '0';
+            value.textContent = key === 'locality' ? '0%' : '0';
             
             m.appendChild(label);
             m.appendChild(value);
@@ -56,6 +56,7 @@ class HealthPanel {
         if (data.nodes !== undefined) this.metrics.nodes.textContent = data.nodes;
         if (data.agents !== undefined) this.metrics.agents.textContent = data.agents;
         if (data.tasks !== undefined) this.metrics.tasks.textContent = data.tasks;
+        if (data.locality !== undefined) this.metrics.locality.textContent = (data.locality * 100).toFixed(1) + '%';
     }
 
     showAlert(message, severity = 'info') {

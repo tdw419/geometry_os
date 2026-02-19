@@ -353,3 +353,55 @@ class TestSwarmDistribution:
         await migrator.migrate_orphans()
         
         assert coord.active_tasks[task_id].status == "pending"
+
+# === Tectonic Optimization Tests ===
+
+from systems.visual_shell.swarm.access_analyzer import AccessAnalyzer
+from systems.visual_shell.swarm.tectonic_heatmap_generator import HeatMapGenerator
+from systems.visual_shell.swarm.fragmentation_detector import FragmentationDetector
+from systems.visual_shell.swarm.placement_calculator import PlacementCalculator
+from systems.visual_shell.swarm.migration_coordinator import MigrationCoordinator
+from systems.visual_shell.swarm.verification_agent import VerificationAgent
+
+class TestSwarmTectonic:
+    """Tectonic optimization capability tests for the swarm."""
+
+    @pytest.mark.asyncio
+    async def test_tectonic_analysis_to_placement(self):
+        """Verify the analysis and placement pipeline."""
+        analyzer = AccessAnalyzer()
+        detector = FragmentationDetector()
+        calculator = PlacementCalculator()
+        
+        # 1. Analysis
+        analyzer.record_access("file_1")
+        analyzer.record_access("file_2")
+        state = analyzer.get_state()
+        relationships = [("file_1", "file_2", 10)]
+        
+        # 2. Detector
+        detector.update_positions({"file_1": {"x": 0, "y": 0}, "file_2": {"x": 500, "y": 500}})
+        targets = detector.get_optimization_targets(relationships)
+        assert len(targets) > 0
+        
+        # 3. Placement
+        plan = calculator.generate_plan(detector.file_positions, relationships, iterations=5)
+        assert len(plan) > 0
+        assert plan[0]["file_id"] in ["file_1", "file_2"]
+
+    @pytest.mark.asyncio
+    async def test_tectonic_migration_and_verification(self):
+        """Verify the migration and verification pipeline."""
+        coordinator = MigrationCoordinator()
+        verifier = VerificationAgent()
+        
+        before = {"positions": {"a": {"x": 0}, "b": {"x": 100}}, "relationships": [("a", "b", 1)]}
+        after = {"positions": {"a": {"x": 0}, "b": {"x": 10}}, "relationships": [("a", "b", 1)]}
+        
+        improvement = verifier.compare_states(before, after)
+        assert improvement > 0
+        
+        # Simulation migration
+        plan = [{"file_id": "b", "target_x": 10, "target_y": 0}]
+        results = await coordinator.execute_plan(plan)
+        assert results["success_count"] == 1

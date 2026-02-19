@@ -64,6 +64,9 @@ class SwarmDashboard {
             case 'task_event':
                 this._handleTaskEvent(msg.data);
                 break;
+            case 'tectonic_update':
+                this._handleTectonicUpdate(msg.data);
+                break;
             case 'security_alert':
                 this.eventLog.addEvent(`SECURITY: ${msg.message}`, 'error');
                 this.healthPanel.showAlert(msg.message, 'error');
@@ -121,11 +124,22 @@ class SwarmDashboard {
         this._updateMetrics();
     }
 
+    _handleTectonicUpdate(data) {
+        if (data.event === 'optimization_complete') {
+            this.eventLog.addEvent(`TECTONIC: Optimization complete. Improvement: ${(data.improvement * 100).toFixed(1)}%`, 'info');
+            this.lastLocalityScore = data.score_after;
+        } else if (data.event === 'migration_start') {
+            this.eventLog.addEvent(`TECTONIC: Migrating ${data.file_count} files...`, 'info');
+        }
+        this._updateMetrics();
+    }
+
     _updateMetrics() {
         this.healthPanel.updateMetrics({
             nodes: this.canvas.nodeRegions.size,
             agents: this.canvas.agentParticles.size,
-            tasks: this.canvas.taskArrows.size
+            tasks: this.canvas.taskArrows.size,
+            locality: this.lastLocalityScore || 0
         });
     }
 }
