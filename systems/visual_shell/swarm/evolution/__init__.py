@@ -6,5 +6,14 @@ for recursive self-improvement of the Geometry OS codebase.
 """
 
 from .value_evaluator import ValueScore, ValueEvaluator
+from .axion_core import AxionCore, AxionTarget
+from .gravity_placer import GravityPosition, GravityPlacer
 
-__all__ = ["ValueScore", "ValueEvaluator"]
+__all__ = [
+    "ValueScore",
+    "ValueEvaluator",
+    "AxionCore",
+    "AxionTarget",
+    "GravityPosition",
+    "GravityPlacer",
+]
