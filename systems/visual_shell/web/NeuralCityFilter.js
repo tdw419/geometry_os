@@ -9,6 +9,13 @@
  * - uMaskSize: Size of the safety mask grid (default 32)
  * - uQuarantineActive: Whether any districts are quarantined
  *
+ *
+ * Task 3: Material Palette
+ * - Material colors representing neural network quantization levels
+ * - Gold: F32 (Full precision weights)
+ * - Steel: Q8 (8-bit quantization)
+ * - Rust: Q4 (4-bit quantization)
+ * - Dust: Sparse/Zero weights
  * Task 5: Metabolism Ambient Lighting
  * - uMetabolismIPC: Instructions per cycle (0.0 to 1.0) - controls city brightness
  * - uThrottleLevel: Throttle intensity (0.0=NONE, 0.5=MODERATE, 1.0=AGGRESSIVE)
@@ -16,12 +23,26 @@
 
 class NeuralCityFilter extends (typeof PIXI !== 'undefined' ? PIXI.Filter : Object) {
     constructor(options = {}) {
+        // Material palette colors (RGBA)
+        // Represents different quantization levels in neural network weights
+        const materials = {
+            gold: [1.0, 0.84, 0.0, 1.0],    // F32 - Full precision
+            steel: [0.69, 0.75, 0.77, 1.0], // Q8 - 8-bit quantization
+            rust: [0.72, 0.45, 0.20, 1.0],  // Q4 - 4-bit quantization
+            dust: [0.66, 0.66, 0.66, 1.0]   // Sparse/Zero weights
+        };
+
         // Uniforms for the WGSL shader
         const uniforms = {
-            uResolution: [window.innerWidth, window.innerHeight],
+            uResolution: [typeof window !== 'undefined' ? window.innerWidth : 800,
+                          typeof window !== 'undefined' ? window.innerHeight : 600],
             uTime: 0,
+            uFocusX: options.focusX !== undefined ? options.focusX : 0.5,
+            uFocusY: options.focusY !== undefined ? options.focusY : 0.5,
+            uZoom: options.zoom !== undefined ? options.zoom : 1.0,
             uFocusDistrict: [0, 0],
             uHiResValid: 0.0,
+            uHiResBlend: 0.0,
             uLowResTexture: options.lowResTexture || null,
             uHiResTexture: options.hiResTexture || null,
             // Task 2: The Void Shader Logic - Safety mask uniforms
@@ -30,7 +51,12 @@ class NeuralCityFilter extends (typeof PIXI !== 'undefined' ? PIXI.Filter : Obje
             uQuarantineActive: 0.0,
             // Task 5: Metabolism Ambient Lighting
             uMetabolismIPC: 0.5,      // 0.0 to 1.0 (instructions per cycle)
-            uThrottleLevel: 0.0       // 0.0=NONE, 0.5=MODERATE, 1.0=AGGRESSIVE
+            uThrottleLevel: 0.0,      // 0.0=NONE, 0.5=MODERATE, 1.0=AGGRESSIVE
+            // Task 3: Material Palette uniforms
+            uMaterialGold: materials.gold,
+            uMaterialSteel: materials.steel,
+            uMaterialRust: materials.rust,
+            uMaterialDust: materials.dust
         };
 
         // Note: PIXI v8 uses Filter.from() or a similar constructor
@@ -38,7 +64,18 @@ class NeuralCityFilter extends (typeof PIXI !== 'undefined' ? PIXI.Filter : Obje
         super(null, null, uniforms);
 
         this.uniforms = uniforms;
+        this.materials = materials;
+        this.filter = null;
         console.log('✓ NeuralCityFilter initialized');
+    }
+
+
+    /**
+     * Update filter time uniform with delta
+     * @param {number} delta - Delta time in milliseconds
+     */
+    update(delta) {
+        this.uniforms.uTime += delta * 0.01;
     }
 
     updateTime(time) {
@@ -47,6 +84,32 @@ class NeuralCityFilter extends (typeof PIXI !== 'undefined' ? PIXI.Filter : Obje
 
     setFocusDistrict(x, y) {
         this.uniforms.uFocusDistrict = [x, y];
+    }
+
+    /**
+     * Set focus position
+     * @param {number} x - Focus X position (0-1)
+     * @param {number} y - Focus Y position (0-1)
+     */
+    setFocus(x, y) {
+        this.uniforms.uFocusX = x;
+        this.uniforms.uFocusY = y;
+    }
+
+    /**
+     * Set zoom level
+     * @param {number} zoom - Zoom level
+     */
+    setZoom(zoom) {
+        this.uniforms.uZoom = zoom;
+    }
+
+    /**
+     * Set hi-res blend value with clamping to 0-1
+     * @param {number} value - Blend value (0-1)
+     */
+    setHiResBlend(value) {
+        this.uniforms.uHiResBlend = Math.max(0, Math.min(1, value));
     }
 
     /**
@@ -90,6 +153,25 @@ class NeuralCityFilter extends (typeof PIXI !== 'undefined' ? PIXI.Filter : Obje
      * @param {number} ipc - Instructions per cycle (0.0 to 1.0)
      * @param {string} throttleLevel - Throttle level: 'NONE', 'MODERATE', or 'AGGRESSIVE'
      */
+
+    /**
+     * Get material color by name
+     * @param {string} materialName - Name of material ("gold", "steel", "rust", "dust")
+     * @returns {number[]} RGBA color array
+     */
+    getMaterialColor(materialName) {
+        return this.materials[materialName] || this.materials.dust;
+    }
+
+    /**
+     * Get PIXI.Filter-compatible object
+     * @returns {Object} Filter object with uniforms
+     */
+    getFilter() {
+        return {
+            uniforms: this.uniforms
+        };
+    }
     setMetabolism(ipc, throttleLevel) {
         // Clamp IPC to valid range [0.0, 1.0]
         this.uniforms.uMetabolismIPC = Math.max(0.0, Math.min(1.0, ipc));
