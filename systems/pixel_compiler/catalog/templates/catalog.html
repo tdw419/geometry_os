@@ -148,6 +148,30 @@
             margin-bottom: 0.25rem;
         }
 
+        .vision-text {
+            color: #4ade80;
+            font-style: italic;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            margin-top: 0.5rem;
+        }
+
+        .tag {
+            background-color: #0f3460;
+            color: #4ade80;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            border: 1px solid #4ade80;
+        }
+
         .boot-button {
             width: 100%;
             padding: 0.5rem;
@@ -318,6 +342,8 @@
                             <span>${sizeMB} MB</span>
                             <span>${entry.distro || 'Unknown'} ${entry.architecture || ''}</span>
                             <span>Kernel: ${entry.kernel_version || 'Unknown'}</span>
+                            ${entry.visual_description ? `<span class="vision-text" title="${entry.visual_description}">${entry.visual_description}</span>` : ''}
+                            ${entry.detected_objects && entry.detected_objects.length > 0 ? `<div class="tags">${entry.detected_objects.map(obj => `<span class="tag">${obj}</span>`).join('')}</div>` : ''}
                         </div>
                         <button class="boot-button" data-entry-id="${entry.id}">Boot</button>
                     </div>

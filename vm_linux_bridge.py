@@ -171,11 +171,13 @@ class QEMUBridge(VMLinuxBridge):
     Connects to WebSocket on port 8767.
     """
 
-    def __init__(self, kernel: str = "alpine", bridge_port: int = 8767):
+    def __init__(self, kernel_path: str, initrd_path: str, disk_image: str, bridge_port: int = 8767):
         if websockets is None:
             raise ImportError("websockets not installed. Run: pip install websockets")
 
-        self.kernel = kernel
+        self.kernel_path = kernel_path
+        self.initrd_path = initrd_path
+        self.disk_image = disk_image
         self.bridge_port = bridge_port
         self.bridge_url = f"ws://localhost:{bridge_port}"
 
@@ -193,10 +195,16 @@ class QEMUBridge(VMLinuxBridge):
     async def start(self) -> bool:
         """Boot Linux via linux_bridge."""
         try:
+            boot_options = {
+                "memory": "512M",
+                "kernel_path": self.kernel_path,
+                "initrd_path": self.initrd_path,
+                "disk_image": self.disk_image,
+            }
             result = await self._send_command({
                 "command": "linux_boot",
-                "kernel": self.kernel,
-                "options": {"memory": "512M"}
+                "kernel": "custom",  # Use the 'custom' path in linux_bridge
+                "options": boot_options,
             })
 
             if result.get("status") in ("ready", "booting"):

@@ -178,25 +178,17 @@ export class GPUExecutionSystem {
         passEncoder.setPipeline(this.pipeline);
         passEncoder.setBindGroup(0, kernel.bindGroup);
 
-        // Dispatch (cycles / workgroup_size)
-        // Shader workgroup_size is usually 64 or 256.
-        // Assuming visual_cpu_riscv.wgsl uses @workgroup_size(1) for sequential execution per core?
-        // Or parallel threads?
-        // If it's a single core emulator, we dispatch(1, 1, 1) and loop inside shader?
-        // Or dispatch(cycles, 1, 1) if parallel?
-        // RISC-V is sequential. So usually dispatch(1) and a loop inside shader or dispatch(1) repeated.
-        // Let's assume the shader runs 1 cycle per dispatch or has a loop.
-        // For efficiency, we want a loop inside shader.
-        // Let's assume dispatch(1) performs 1 instruction step for now.
-
-        // For performance, we usually batch. 
-        // Let's dispatch 1 workgroup.
-        passEncoder.dispatchWorkgroups(1);
+        // Each dispatch executes 100 instructions (BATCH_SIZE in shader)
+        // We dispatch multiple times in a single command buffer for speed.
+        const dispatches = Math.max(1, Math.floor(cycles / 100));
+        for (let i = 0; i < dispatches; i++) {
+            passEncoder.dispatchWorkgroups(1);
+        }
 
         passEncoder.end();
         this.device.queue.submit([commandEncoder.finish()]);
 
-        kernel.cycleCount += cycles;
+        kernel.cycleCount += dispatches * 100;
     }
 
     /**
@@ -212,10 +204,10 @@ export class GPUExecutionSystem {
         // In RISC-V Linux, a7 (x17) is the syscall number
         const syscallNum = state.registers[17];
 
-        // We need a mechanism to know IF a ecall was actually executed.
-        // For now, we'll assume a specific PC or a 'trap' bit in state[33]
-        // If state[33] == 2, it's a syscall trap
-        if (state.halted && state.registers[17] > 0) {
+        // Check if we hit an ECALL trap (SCAUSE 8 or 11)
+        const isEcall = state.scause === 8 || state.scause === 11;
+
+        if (isEcall && syscallNum > 0) {
             const args = [
                 state.registers[10], // a0
                 state.registers[11], // a1
@@ -224,7 +216,17 @@ export class GPUExecutionSystem {
                 state.registers[14], // a4
                 state.registers[15]  // a5
             ];
+            
             await this.handleSyscall(syscallNum, args);
+            
+            // Note: In a real OS, we'd need to clear the trap and resume
+            // For now, we assume the JS handler manages the state or the kernel 
+            // is in a polling loop.
+        } else if (state.halted) {
+            // Check for exit via a7=93 even if not a formal trap
+            if (syscallNum === 93) {
+                await this.handleSyscall(93, [state.registers[10]]);
+            }
         }
     }
 

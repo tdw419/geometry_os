@@ -22,9 +22,7 @@ The definitive test that proves Geometry OS works: **Linux boots on a GPU shader
 
 3. Click "Boot Alpine Linux"
 
-4. W
-
-ait for shell prompt (30-60 seconds)
+4. Wait for shell prompt (30-60 seconds)
 
 5. Click "Run Golden Path Test"
 
@@ -37,7 +35,7 @@ If the boot demo is already running:
 ```javascript
 // Load the test
 const script = document.createElement('script');
-script.src = 'tests/test_golden_path.js';
+script.src = 'tests/test_golden_path_boot.js';
 document.head.appendChild(script);
 
 // Run the test
@@ -60,26 +58,26 @@ node tests/test_golden_path_node.js
 ========================================
 
 [Step 1] Checking hypervisor availability...
-  Hypervisor ready via WebMCP
+  ✓ Hypervisor ready via WebMCP
 [Step 2] Waiting for boot to reach shell prompt...
-  Shell prompt detected: "# "
+  ✓ Shell prompt detected: "# "
 [Step 3] Sending command: uname -a
-  Command sent via WebMCP
+  ✓ Command sent via WebMCP
 [Step 4] Validating output for "riscv64"...
-  Found pattern: /riscv64/i
-  Output contains "riscv64" - GPU RISC-V execution confirmed!
+  ✓ Found pattern: /riscv64/i
+  ✓ Output contains "riscv64" - GPU RISC-V execution confirmed!
 
 ========================================
   TEST RESULTS
 ========================================
-  Hypervisor Ready:
-  Boot Completed:
-  Input Sent:
-  Output Captured:
-  Output Valid:
+  Hypervisor Ready: ✅
+  Boot Completed:   ✅
+  Input Sent:       ✅
+  Output Captured:  ✅
+  Output Valid:     ✅
 ========================================
 
- GOLDEN PATH COMPLETE
+✅ GOLDEN PATH COMPLETE
    Linux boots on GPU shader.
    AI controls VM via WebMCP.
    System is fully operational.

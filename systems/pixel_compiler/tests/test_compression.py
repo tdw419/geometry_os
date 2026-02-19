@@ -54,16 +54,16 @@ def test_compress_file_with_threshold():
     """Compression only applied if file meets criteria."""
     engine = CompressionEngine(compress_threshold=100)
 
-    # Small file - below threshold
-    small = b"x" * 10
+    # Small file - below 512 byte threshold
+    small = b"x" * 100  # 100 bytes < 512
     result1 = engine.compress_file("small", small, file_size=len(small))
 
-    # Large file - above threshold
-    large = b"x" * 200
+    # Large file - above 512 byte threshold
+    large = b"x" * 1000  # 1000 bytes > 512, compressible data
     result2 = engine.compress_file("large", large, file_size=len(large))
 
-    assert result1 is None, "Small files should not be compressed"
-    assert result2 is not None, "Large files should be compressed"
+    assert result1 is None, "Small files (<512 bytes) should not be compressed"
+    assert result2 is not None, "Large files (>512 bytes) should be compressed"
 
 
 @pytest.mark.skipif(is_mock_mode(), reason="Mock mode doesn't compress (adds prefix)")
@@ -119,18 +119,19 @@ def test_get_compression_metadata():
     """Engine provides compression metadata."""
     engine = CompressionEngine()
 
-    data = b"test data for compression"
+    # Use larger data to exceed 512 byte threshold
+    data = b"test data for compression" * 50  # ~1200 bytes
     compressed = engine.compress_file("test/file", data)
 
     assert compressed is not None
 
     metadata = engine.get_compression_metadata("test/file")
 
-    assert metadata['path'] == "test/file"
-    assert metadata['compressed'] is True
-    assert metadata['original_size'] > 0
-    assert metadata['compressed_size'] > 0
-    assert metadata['compressed_size'] < metadata['original_size']
+    assert metadata.path == "test/file"
+    assert metadata.compressed is True
+    assert metadata.original_size > 0
+    assert metadata.compressed_size > 0
+    assert metadata.compressed_size < metadata.original_size
 
 
 @pytest.mark.skipif(is_mock_mode(), reason="Mock mode doesn't compress (adds prefix)")

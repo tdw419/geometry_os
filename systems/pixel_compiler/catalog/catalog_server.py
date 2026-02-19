@@ -61,6 +61,8 @@ class CatalogEntryResponse(BaseModel):
     kernel_version: Optional[str]
     distro: Optional[str]
     architecture: Optional[str]
+    visual_description: Optional[str]
+    detected_objects: List[str]
     thumbnail: str  # base64
     position: dict  # {"x": int, "y": int}
 
@@ -128,14 +130,15 @@ class CatalogServer:
         result = server.boot_entry("abc123", BootOptions(memory="4G"))
     """
 
-    def __init__(self, watch_paths: Optional[List[str]] = None):
+    def __init__(self, watch_paths: Optional[List[str]] = None, use_vision: bool = False):
         """
         Initialize catalog server.
 
         Args:
             watch_paths: Directories to scan for .rts.png files
+            use_vision: Whether to use vision model for analysis
         """
-        self.scanner = CatalogScanner(watch_paths)
+        self.scanner = CatalogScanner(watch_paths, use_vision=use_vision)
         self.thumbnail_cache = ThumbnailCache()
         self.layout_manager = SpatialLayoutManager()
 
@@ -218,6 +221,8 @@ class CatalogServer:
                 kernel_version=entry.kernel_version,
                 distro=entry.distro,
                 architecture=entry.architecture,
+                visual_description=entry.visual_description,
+                detected_objects=entry.detected_objects,
                 thumbnail=thumbnail_b64,
                 position=position.to_dict()
             ))
@@ -323,19 +328,20 @@ class CatalogServer:
 _catalog_server: Optional[CatalogServer] = None
 
 
-def get_catalog_server(watch_paths: Optional[List[str]] = None) -> CatalogServer:
+def get_catalog_server(watch_paths: Optional[List[str]] = None, use_vision: bool = False) -> CatalogServer:
     """
     Get or create the singleton CatalogServer instance.
 
     Args:
         watch_paths: Directories to scan (only used on first call)
+        use_vision: Whether to use vision model (only used on first call)
 
     Returns:
         CatalogServer instance
     """
     global _catalog_server
     if _catalog_server is None:
-        _catalog_server = CatalogServer(watch_paths)
+        _catalog_server = CatalogServer(watch_paths, use_vision=use_vision)
     return _catalog_server
 
 

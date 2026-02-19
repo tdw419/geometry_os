@@ -193,28 +193,52 @@ class AutofixDaemon:
         # Determine success based on failures
         result["success"] = result["failed"] == 0
 
-        # Extract individual failures
-        # Pattern: "____ test_name ____" followed by traceback ending with "file.py:line: Error"
-        failure_pattern = r"_+ ([^\s_][^\n]*?) _+\n(.*?)(\S+\.py):(\d+):"
+        # Extract individual failures with full traceback analysis
+        # Pattern: "____ test_name ____" followed by traceback
+        failure_pattern = r"_+ ([^\s_][^\n]*?) _+\n(.*?)(\S+\.py):(\d+): in (\S+)\s*\n(.*?)(?=_+ |\Z)"
 
         for match in re.finditer(failure_pattern, output, re.DOTALL):
             test_name = match.group(1).strip()
-            file_path = match.group(3).strip()
-            line_num = int(match.group(4))
-            # Get error from the traceback context
-            context = match.group(2)
-            error_lines = [l.strip() for l in context.split('\n') if l.strip() and 'assert' in l.lower()]
-            error_msg = error_lines[-1] if error_lines else "Assertion failed"
+            test_file = match.group(3).strip()
+            test_line = int(match.group(4))
+            test_func = match.group(5)
+            traceback_block = match.group(6)
 
-            # Extract just the relevant error (first few lines)
-            error_lines = error_msg.split("\n")[:5]
-            error = "\n".join(error_lines)
+            # Extract the error type and message from the traceback
+            error_type = "AssertionError"
+            error_msg = "Test failed"
+
+            # Look for the actual error line (starts with E)
+            error_match = re.search(r"^E\s+(\w+Error|AssertionError):\s*(.+)$", traceback_block, re.MULTILINE)
+            if error_match:
+                error_type = error_match.group(1)
+                error_msg = error_match.group(2).strip()
+
+            # Find the SOURCE file where the error actually occurred (not the test file)
+            # Look for the last non-test file in the traceback
+            source_file = test_file
+            source_line = test_line
+
+            traceback_lines = traceback_block.split('\n')
+            for line in traceback_lines:
+                # Match file:line: in function pattern
+                file_match = re.match(r'(\S+\.py):(\d+): in (\S+)', line)
+                if file_match:
+                    candidate_file = file_match.group(1)
+                    candidate_line = int(file_match.group(2))
+                    # Prefer non-test files as the source of the bug
+                    if 'test_' not in candidate_file and '/tests/' not in candidate_file:
+                        source_file = candidate_file
+                        source_line = candidate_line
 
             result["failures"].append({
                 "test_name": test_name,
-                "file": file_path,
-                "line": line_num,
-                "error": error,
+                "test_file": test_file,
+                "test_line": test_line,
+                "file": source_file,  # The file to fix
+                "line": source_line,  # The line to fix
+                "error_type": error_type,
+                "error": error_msg,
             })
 
         return result
@@ -274,9 +298,9 @@ class AutofixDaemon:
             print(f"  [ERROR] Could not read file")
             return
 
-        # Extract error type from error message
+        # Extract error type from failure dict or parse from error message
         error_message = failure.get("error", "")
-        error_type = self._extract_error_type(error_message)
+        error_type = failure.get("error_type") or self._extract_error_type(error_message)
 
         # Prepare failure info for the fix generator
         failure_info = {

@@ -47,14 +47,14 @@ class DesktopWindow extends PIXI.Container {
         this.frame.addChild(titleBar);
 
         // Title Text
-        const titleText = new PIXI.Text(title, {
+        this.titleText = new PIXI.Text(title, {
             fontFamily: 'Courier New',
             fontSize: 14,
             fill: 0x00ffff,
         });
-        titleText.x = 10;
-        titleText.y = 7;
-        titleBar.addChild(titleText);
+        this.titleText.x = 10;
+        this.titleText.y = 7;
+        titleBar.addChild(this.titleText);
 
         // Window Control Buttons
         this.buttons = new PIXI.Container();

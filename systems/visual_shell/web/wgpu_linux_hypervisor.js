@@ -16,7 +16,7 @@ export class WGPULinuxHypervisor {
         this.options = {
             width: options.width || 1024,
             height: options.height || 1024,
-            cyclesPerFrame: options.cyclesPerFrame || 10000,
+            cyclesPerFrame: options.cyclesPerFrame || 100000,
             displayMode: options.displayMode || 'canvas',
             dictionary: options.dictionary || {},
             dtbAddr: options.dtbAddr || 0x04000000 // 64MB offset
@@ -84,6 +84,14 @@ export class WGPULinuxHypervisor {
                 kernel.memoryBuffer,
                 this.kernelId
             );
+
+            // Wire character input to SBI
+            this.inputHandler.onCharacter = (char) => {
+                if (this.sbiHandler) {
+                    this.sbiHandler.queueInput(char.charCodeAt(0));
+                    console.log(`[Hypervisor] Queued input to SBI: '${char}' (0x${char.charCodeAt(0).toString(16)})`);
+                }
+            };
         }
     }
 
@@ -129,7 +137,20 @@ export class WGPULinuxHypervisor {
      * Load kernel from .rts.png URL
      */
     async loadKernelFromRTS(url) {
-        const kernelInfo = await this.kernelLoader.loadFromRTS(url);
+        // Fetch metadata first
+        let metadata = null;
+        try {
+            const metaUrl = url.endsWith('.rts.png') ? url.replace('.rts.png', '.rts.meta.json') : url + '.meta.json';
+            const metaResponse = await fetch(metaUrl);
+            if (metaResponse.ok) {
+                metadata = await metaResponse.json();
+                console.log(`[Hypervisor] Loaded metadata from ${metaUrl}`);
+            }
+        } catch (e) {
+            console.warn(`[Hypervisor] Could not load metadata for ${url}, assuming single blob`);
+        }
+
+        const kernelInfo = await this.kernelLoader.loadFromRTS(url, metadata);
 
         // Deploy to GPU
         await this.gpuSystem.deploy(
@@ -140,6 +161,19 @@ export class WGPULinuxHypervisor {
         // Write extracted kernel data to memory at 0x00000000
         const kernel = this.gpuSystem.kernels.get(this.kernelId);
         this.kernelLoader.writeToMemory(kernel.memoryBuffer, kernelInfo.data, 0);
+
+        // Handle initrd if present in sections
+        if (kernelInfo.sections && kernelInfo.sections.initrd) {
+            const initrdAddr = 0x06000000; // 96MB
+            this.kernelLoader.writeToMemory(kernel.memoryBuffer, kernelInfo.sections.initrd, initrdAddr);
+            this.initrdInfo = {
+                start: initrdAddr,
+                end: initrdAddr + kernelInfo.sections.initrd.byteLength
+            };
+            console.log(`[Hypervisor] Initrd loaded at 0x${initrdAddr.toString(16)} (${kernelInfo.sections.initrd.byteLength} bytes)`);
+        } else {
+            this.initrdInfo = null;
+        }
 
         // Initialize input handler
         if (this.display && this.display.canvas) {
@@ -188,7 +222,9 @@ export class WGPULinuxHypervisor {
      */
     async setupDTB() {
         console.log('🌳 Generating Device Tree Blob...');
-        const dtbData = this.dtbGenerator.generate();
+        const dtbData = this.dtbGenerator.generate({
+            initrd: this.initrdInfo
+        });
         
         const kernel = this.gpuSystem.kernels.get(this.kernelId);
         if (!kernel) return;
@@ -235,8 +271,21 @@ export class WGPULinuxHypervisor {
      * Execute N clock cycles
      */
     async tick(cycles = 1) {
-        this.cycleCount += BigInt(cycles);
-        await this.gpuSystem.tick(this.kernelId, cycles);
+        const startTime = performance.now();
+        
+        // The shader now executes 100 cycles per invocation
+        // So we dispatch (cycles / 100) workgroups or invocations
+        const actualCycles = Math.max(1, Math.floor(cycles / 100)) * 100;
+        
+        await this.gpuSystem.tick(this.kernelId, actualCycles);
+        this.cycleCount += BigInt(actualCycles);
+
+        // Calculate MIPS
+        const endTime = performance.now();
+        const duration = (endTime - startTime) / 1000; // seconds
+        if (duration > 0) {
+            this.mips = (actualCycles / duration) / 1000000;
+        }
 
         // Check for syscalls triggered in this batch
         if (this.gpuSystem._checkSyscalls) {

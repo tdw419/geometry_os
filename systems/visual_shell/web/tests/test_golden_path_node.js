@@ -5,24 +5,17 @@
  * Uses mocked WebMCP bridge to verify test logic.
  */
 
-import { readFileSync } from 'fs';
-import { runInThisContext } from 'vm';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Mock console output simulating a completed boot with shell prompt
-const mockConsoleOutput = 'alpine:~# Linux alpine 6.6.0-rc1 riscv64 GNU/Linux\nWelcome to Alpine\n';
-
 // Mock browser globals
 global.window = {
     invokeWebMCPTool: async (tool, params) => {
-        console.log('[Mock WebMCP] ' + tool + ' called with:', params);
+        console.log(`[Mock WebMCP] ${tool} called with:`, params);
 
+        // Simulate responses
         if (tool === 'hypervisor_status') {
-            return { hypervisor: true, state: { pc: 0x80000000, mode: 'supervisor', sepc: 0x80000000 } };
+            return {
+                hypervisor: true,
+                state: { pc: 0x80000000, sepc: 0x80000000, mode: 'supervisor' }
+            };
         }
         if (tool === 'hypervisor_input') {
             return { success: true };
@@ -34,14 +27,16 @@ global.window = {
         cachedState: { pc: 0x80000000, sepc: 0x80000000 },
         sbiHandler: {
             timerSet: true,
-            consoleBuffer: mockConsoleOutput,
+            consoleBuffer: 'Linux alpine 6.6.0-rc1 riscv64 GNU/Linux\nalpine:~# ',
             queueInput: () => {}
-        }
+        },
+        kernels: true
     },
     geometryOSApp: {
         stage: {
             children: [{
-                consoleText: { text: mockConsoleOutput }
+                constructor: { name: 'VMMonitorTile' },
+                consoleText: { text: 'Linux alpine 6.6.0-rc1 riscv64 GNU/Linux\nalpine:~# ' }
             }]
         }
     }
@@ -52,12 +47,18 @@ async function runTests() {
     console.log('  Golden Path Boot Test - Node.js');
     console.log('========================================\n');
 
+    // Import required modules
+    const fs = await import('fs');
+    const vm = await import('vm');
+    const path = await import('path');
+
     // Read and evaluate the test file
-    const testPath = join(__dirname, 'test_golden_path_boot.js');
-    const testCode = readFileSync(testPath, 'utf-8');
+    const testFilePath = './systems/visual_shell/web/tests/test_golden_path_boot.js';
+    const testCode = fs.readFileSync(testFilePath, 'utf-8');
 
     // Execute in global context
-    runInThisContext(testCode);
+    const script = new vm.Script(testCode);
+    script.runInThisContext();
 
     // Run the test
     const test = new window.GoldenPathBootTest();
@@ -70,15 +71,16 @@ async function runTests() {
         console.log('========================================');
 
         if (test.results.outputValid) {
-            console.log('  PASS: Golden Path verified');
+            console.log('  ✅ PASS: Golden Path verified');
             process.exit(0);
         } else {
-            console.log('  FAIL: Output validation failed');
-            console.log('  (Note: In CI, this is expected without real GPU)');
-            process.exit(0);
+            console.log('  ❌ FAIL: Output validation failed');
+            console.log('  Results:', JSON.stringify(test.results, null, 2));
+            process.exit(1);
         }
     } catch (error) {
-        console.error('  ERROR:', error.message);
+        console.error('  ❌ ERROR:', error.message);
+        console.error(error.stack);
         process.exit(1);
     }
 }

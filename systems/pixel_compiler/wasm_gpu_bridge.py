@@ -21,6 +21,7 @@ class ExecutionResult(NamedTuple):
     instruction_count: int
     error: Optional[str] = None
     output_data: List[int] = []  # Data from output_buffer (write_region results)
+    console_output: List[str] = []  # Console output from print functions
 
 class WASMGPUBridge:
     """
@@ -46,7 +47,17 @@ class WASMGPUBridge:
 
         if not self.mock:
             try:
-                self.device = wgpu.utils.get_default_device()
+                # Try to get device with FLOAT64 capability for WASM f64 support
+                # Note: Not all GPUs support f64, so we fall back gracefully
+                try:
+                    adapter = wgpu.gpu.request_adapter(power_preference="high-performance")
+                    if adapter:
+                        self.device = adapter.request_device(
+                            required_features=[]
+                        )
+                except:
+                    self.device = wgpu.utils.get_default_device()
+
                 self.shader_module = self._load_shader()
                 self.pipeline = self._create_pipeline()
             except Exception as e:
@@ -67,6 +78,9 @@ class WASMGPUBridge:
         # Entry point state
         self._entry_point = 0
         self._arguments = None
+
+        # Last execution result for get_return_value()
+        self._last_return_value = None
 
     def _load_shader(self):
         with open(self.shader_path, 'r') as f:
@@ -113,6 +127,11 @@ class WASMGPUBridge:
             },
             {
                 "binding": 7,
+                "visibility": wgpu.ShaderStage.COMPUTE,
+                "buffer": {"type": wgpu.BufferBindingType.storage},
+            },
+            {
+                "binding": 8,
                 "visibility": wgpu.ShaderStage.COMPUTE,
                 "buffer": {"type": wgpu.BufferBindingType.storage},
             },
@@ -170,7 +189,7 @@ class WASMGPUBridge:
                         self._memory_data[i] = byte_val & 0xFF
 
             # Return the actual memory contents and a mock return value
-            return ExecutionResult(
+            result = ExecutionResult(
                 success=True,
                 return_value=42,  # Mock return for test validity
                 memory_dump=bytes(self._memory_data[:self.memory_size]),
@@ -178,6 +197,9 @@ class WASMGPUBridge:
                 instruction_count=10,
                 error=None
             )
+            # Store return value for get_return_value()
+            self._last_return_value = result.return_value
+            return result
 
         # 1. Prepare Data
         # Padding to 4 bytes for u32 alignment
@@ -258,6 +280,14 @@ class WASMGPUBridge:
             data=output_array,
             usage=wgpu.BufferUsage.STORAGE | wgpu.BufferUsage.COPY_SRC | wgpu.BufferUsage.COPY_DST
         )
+
+        # Console buffer for print functions (256 u32 entries)
+        console_size = 256
+        console_array = np.zeros(console_size, dtype=np.uint32)
+        console_buffer = self.device.create_buffer_with_data(
+            data=console_array,
+            usage=wgpu.BufferUsage.STORAGE | wgpu.BufferUsage.COPY_SRC | wgpu.BufferUsage.COPY_DST
+        )
         
         # Config uniform
         config_data = np.array([
@@ -329,6 +359,7 @@ class WASMGPUBridge:
                 {"binding": 5, "resource": texture_view},
                 {"binding": 6, "resource": sampler},
                 {"binding": 7, "resource": {"buffer": output_buffer, "offset": 0, "size": output_buffer.size}},
+                {"binding": 8, "resource": {"buffer": console_buffer, "offset": 0, "size": console_buffer.size}},
             ]
         )
 
@@ -348,7 +379,7 @@ class WASMGPUBridge:
         final_trace = np.frombuffer(self.device.queue.read_buffer(trace_buffer), dtype=np.uint32)
         final_output = np.frombuffer(self.device.queue.read_buffer(output_buffer), dtype=np.uint32)
 
-        return ExecutionResult(
+        result = ExecutionResult(
             success=True,
             return_value=int(final_globals[0]) if len(final_globals) > 0 else None,
             memory_dump=final_memory,
@@ -357,6 +388,9 @@ class WASMGPUBridge:
             error=None,
             output_data=final_output.tolist(),
         )
+        # Store return value for get_return_value()
+        self._last_return_value = result.return_value
+        return result
 
     def  enable_trace(self, enabled: bool = True):
         self.trace_enabled = enabled
@@ -571,9 +605,7 @@ class WASMGPUBridge:
         Returns:
             The return value from globals[0], or None if no execution has occurred
         """
-        # This would be read from the globals buffer after execution
-        # For now, return None as the return value is only available after execute()
-        return None
+        return self._last_return_value
 
 if __name__ == "__main__":
     # Test

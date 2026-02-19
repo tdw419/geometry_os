@@ -20,7 +20,7 @@ Then in browser console:
 import argparse
 import asyncio
 import json
-import requests
+import aiohttp
 import websockets
 from websockets.server import serve
 import subprocess
@@ -102,7 +102,7 @@ class TerminalManager:
 class InputServer:
     """WebSocket server that receives keystrokes from browser."""
 
-    def __init__(self, manager: TerminalManager, port=8765):
+    def __init__(self, manager: TerminalManager, port=8767):
         self.manager = manager
         self.port = port
         self.clients = set()
@@ -258,7 +258,7 @@ class MapTerminal:
             // Connect to input server (once)
             if (!window._terminalInputSocket) {
                 try {
-                    window._terminalInputSocket = new WebSocket('ws://localhost:8765');
+                    window._terminalInputSocket = new WebSocket('ws://localhost:8767');
                     window._terminalInputSocket.onopen = () => console.log('Terminal input socket connected');
                     window._terminalInputSocket.onerror = (e) => console.error('Terminal input socket error:', e);
                 } catch (e) {
@@ -610,22 +610,47 @@ def parse_args():
         help='Execution backend: host (default), qemu, or wgpu'
     )
     parser.add_argument(
-        '--kernel',
-        default='alpine',
-        help='Kernel to use for QEMU backend (default: alpine)'
+        '--port',
+        type=int,
+        default=8767,
+        help='Port for terminal input server'
+    )
+    parser.add_argument(
+        '--qemu-kernel',
+        default='/home/jericho/zion/projects/geometry_os/geometry_os/vmlinuz-virt',
+        help='Path to the kernel for QEMU backend (default: vmlinuz-virt)'
+    )
+    parser.add_argument(
+        '--qemu-initrd',
+        default='/home/jericho/zion/projects/geometry_os/geometry_os/initramfs-virt',
+        help='Path to the initrd for QEMU backend (default: initramfs-virt)'
+    )
+    parser.add_argument(
+        '--qemu-disk-image',
+        default='geometry_os.raw',
+        help='Raw disk image to use for QEMU backend (default: geometry_os.raw)'
     )
     return parser.parse_args()
 
 
-async def create_bridge(backend: str, cdp_ws=None, kernel: str = 'alpine') -> VMLinuxBridge:
+async def create_bridge(backend: str, cdp_ws=None, qemu_opts: dict = None) -> VMLinuxBridge:
     """Create the appropriate bridge based on backend selection."""
     if backend == 'host':
         print(f"Using HostBridge (subprocess execution)")
         return HostBridge()
 
     elif backend == 'qemu':
-        print(f"Using QEMUBridge (kernel={kernel})")
-        bridge = QEMUBridge(kernel=kernel)
+        qemu_opts = qemu_opts or {}
+        print(f"Using QEMUBridge")
+        print(f"  - Kernel: {qemu_opts.get('kernel_path')}")
+        print(f"  - Initrd: {qemu_opts.get('initrd_path')}")
+        print(f"  - Disk:   {qemu_opts.get('disk_image')}")
+        
+        bridge = QEMUBridge(
+            kernel_path=qemu_opts.get('kernel_path'),
+            initrd_path=qemu_opts.get('initrd_path'),
+            disk_image=qemu_opts.get('disk_image')
+        )
         print("Starting QEMU VM...")
         if await bridge.start():
             print("QEMU VM started successfully")
@@ -653,77 +678,114 @@ async def create_bridge(backend: str, cdp_ws=None, kernel: str = 'alpine') -> VM
         return HostBridge()
 
 
-async def main():
-    """Main entry point."""
-    args = parse_args()
-
+async def start_terminal_service(cdp_ws: websockets.WebSocketClientProtocol, port: int, backend: str = 'host', qemu_opts: dict = None):
+    """
+    Starts the terminal service. Can be called directly by a manager script.
+    
+    Args:
+        cdp_ws: WebSocket connection to the Chrome DevTools Protocol.
+        port: Port for the terminal's input WebSocket server.
+        backend: Backend to use for command execution ('host', 'qemu', 'wgpu').
+        qemu_opts: Dictionary of QEMU options if backend is 'qemu'.
+    """
     print("=== Geometry OS: On-Map Terminal ===")
-    print(f"Backend: {args.backend}")
+    print(f"Backend: {backend}")
+    print(f"Input server port: {port}")
     print()
 
-    # Connect to browser
+    # Create the appropriate bridge
+    bridge = await create_bridge(backend, cdp_ws=cdp_ws, qemu_opts=qemu_opts)
+
+    # Create terminal manager
+    manager = TerminalManager(cdp_ws, bridge)
+
+    # Register with Agent Control Surface (for Pyodide)
     try:
-        resp = requests.get("http://localhost:9222/json")
-        pages = resp.json()
-        page = next((p for p in pages if "index.html" in p.get("url", "")), None)
+        from agent_control_surface import register_control_surface
+        # Pass the manager instance to the control surface
+        gemini = register_control_surface(manager)
+    except ImportError as e:
+        print(f"⚠ Agent Control Surface not available: {e}")
 
-        if not page:
-            print("ERROR: Could not find 'index.html'. Is the Geometry OS app running?")
-            return
+    # Create input server (uses manager instead of single terminal)
+    input_server = InputServer(manager, port=port)
 
-        ws_url = page['webSocketDebuggerUrl']
-        print(f"Connecting to: {page.get('url')}")
+    # Create first terminal
+    terminal = manager.create_terminal(x=100, y=100)
+    await terminal.init_display()
 
-    except requests.exceptions.ConnectionError:
-        print("ERROR: Cannot connect to Chrome. Is it running with --remote-debugging-port=9222?")
+    print()
+    print("Multi-Terminal ready!")
+    print()
+    print("  • Click on a terminal to focus it")
+    print("  • Press Ctrl+Shift+T for new terminal")
+    print("  • Type commands directly")
+    print("  • Press Enter to execute")
+    print("  • Press Escape to clear input")
+    print()
+
+    # Show backend info
+    info = bridge.get_info()
+    print(f"Backend: {info.get('vm_type', 'unknown')} ({info.get('backend', 'unknown')})")
+    print()
+
+    # Run welcome command
+    await terminal.input("echo 'Welcome to Geometry OS Terminal!'")
+    await asyncio.sleep(0.5)
+
+    # Start input server (this runs forever)
+    await input_server.start()
+    
+    # Keep the service running
+    try:
+        await input_server.server.serve_forever()
+    finally:
+        # Clean up any resources if needed
+        print("Terminal service shutting down.")
+
+
+async def main():
+    """Main entry point for standalone execution."""
+    args = parse_args()
+
+    # Connect to browser via CDP
+    ws_url = None
+    page = None
+    cdp_hosts = ["127.0.0.1", "10.0.2.2"]
+    
+    async with aiohttp.ClientSession() as session:
+        for host in cdp_hosts:
+            try:
+                print(f"Attempting to connect to Chrome DevTools at {host}:9222...")
+                async with session.get(f"http://{host}:9222/json", timeout=2) as resp:
+                    if resp.status == 200:
+                        pages = await resp.json()
+                        page = next((p for p in pages if "index.html" in p.get("url", "")), None)
+                        if not page:
+                            page = next((p for p in pages if p.get("type") == "page"), None)
+                        
+                        if page:
+                            ws_url = page['webSocketDebuggerUrl']
+                            print(f"Successfully connected to: {page.get('url')}")
+                            break
+            except (aiohttp.ClientConnectorError, asyncio.TimeoutError):
+                print(f"Connection to {host}:9222 failed.")
+                continue
+    
+    if not ws_url:
+        print("ERROR: Could not find an appropriate Chrome tab (index.html or test_gui_app.html) or any page of type 'page'.")
+        print("Please ensure your Geometry OS UI is open in Chrome.")
+        print("Is Chrome running with --remote-debugging-port=9222?")
         return
 
     async with websockets.connect(ws_url) as ws:
-        # Create the appropriate bridge
-        bridge = await create_bridge(args.backend, cdp_ws=ws, kernel=args.kernel)
-
-        # Create terminal manager
-        global manager
-        manager = TerminalManager(ws, bridge)
-
-        # Register with Agent Control Surface (for Pyodide)
-        try:
-            from agent_control_surface import register_control_surface
-            gemini = register_control_surface(manager)
-            # Expose globally for JavaScript access
-            # Note: In browser, this becomes accessible via window.pyodide.globals
-        except ImportError as e:
-            print(f"⚠ Agent Control Surface not available: {e}")
-
-        # Create input server (uses manager instead of single terminal)
-        input_server = InputServer(manager, port=8765)
-
-        # Create first terminal
-        terminal = manager.create_terminal(x=100, y=100)
-        await terminal.init_display()
-
-        print()
-        print("Multi-Terminal ready!")
-        print()
-        print("  • Click on a terminal to focus it")
-        print("  • Press Ctrl+Shift+T for new terminal")
-        print("  • Type commands directly")
-        print("  • Press Enter to execute")
-        print("  • Press Escape to clear input")
-        print()
-
-        # Show backend info
-        info = bridge.get_info()
-        print(f"Backend: {info.get('vm_type', 'unknown')} ({info.get('backend', 'unknown')})")
-        print()
-
-        # Run welcome command
-        await terminal.input("echo 'Welcome to Geometry OS Terminal!'")
-        await asyncio.sleep(0.5)
-
-        # Start input server (this runs forever)
-        await input_server.start()
-        await input_server.server.serve_forever()
+        # Prepare options for the QEMU backend
+        qemu_options = {
+            "kernel_path": args.qemu_kernel,
+            "initrd_path": args.qemu_initrd,
+            "disk_image": args.qemu_disk_image,
+        }
+        await start_terminal_service(ws, port=args.port, backend=args.backend, qemu_opts=qemu_options)
 
     print("\nTerminal session ended.")
 

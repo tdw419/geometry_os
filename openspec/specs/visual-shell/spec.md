@@ -105,3 +105,34 @@ The Visual Shell SHALL provide multiple test execution environments.
 - **THEN** it SHALL run with mocked WebMCP bridge
 - **AND** it SHALL exit with code 0 on success
 
+### Requirement: Frame-Time Stability (60 FPS)
+The Visual Shell SHALL maintain a target frame rate of 60 FPS (16.6ms per frame) under standard production loads.
+
+#### Scenario: 100 Tile Stress
+- **WHEN** 100 active `VMMonitorTile` instances are rendered on the Infinite Map
+- **THEN** the mean frame time SHALL NOT exceed 16.6ms.
+- **AND** the 99th percentile frame jitter SHALL NOT exceed 5ms.
+
+### Requirement: Resource Scaling
+The Infinite Map SHALL scale its rendering pipeline to handle massive geometric complexity.
+
+#### Scenario: 37 Million Particles
+- **WHEN** the WebGPU particle compute shader is active with 37,000,000 particles
+- **THEN** the compositor SHALL maintain 60 FPS by utilizing RenderGroup isolation and GPU-native updates.
+
+### Requirement: Foveated Rendering Optimization
+The Visual Shell SHALL implement foveated rendering to optimize GPU resource allocation based on visual focus.
+
+#### Scenario: Focus-Based Sampling
+- **WHEN** a Focus Point is defined on the Infinite Map
+- **THEN** pixels within the foveal radius SHALL be rendered at full resolution (1:1).
+- **AND** pixels outside the foveal radius SHALL be rendered at reduced resolution (e.g., 1:4 or 1:16).
+- **AND** the transition SHALL be smoothed to prevent visible artifacts.
+
+### Requirement: GPU Load Target
+The foveated rendering system SHALL achieve a significant reduction in GPU compute time.
+
+#### Scenario: Peripheral Load Reduction
+- **WHEN** foveated rendering is enabled in a complex scene (>20 tiles)
+- **THEN** the total GPU compute time per frame SHALL decrease by at least 50% compared to full-resolution rendering.
+

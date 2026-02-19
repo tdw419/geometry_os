@@ -1370,3 +1370,121 @@ class TestBuildSession:
         assert result["success"] is True
         assert len(result["tasks"]) == 2
         assert result["summary"]["pending"] == 2
+
+    # === Build Checkpointing Tests ===
+
+    def test_build_checkpoint_dataclass(self):
+        """BuildCheckpoint dataclass exists with required fields."""
+        from systems.pixel_compiler.a2a_router import BuildCheckpoint
+        import time
+
+        checkpoint = BuildCheckpoint(
+            checkpoint_id="ckpt_001",
+            session_id="sess_001",
+            checkpoint_name="pre-migration",
+            description="Before migration to new format",
+            created_at=time.time(),
+            created_by="agent_001",
+            contents={"tiles": 100, "shaders": 5}
+        )
+
+        assert checkpoint.checkpoint_id == "ckpt_001"
+        assert checkpoint.checkpoint_name == "pre-migration"
+        assert checkpoint.contents["tiles"] == 100
+
+    @pytest.mark.asyncio
+    async def test_create_checkpoint(self, router):
+        """Can create a checkpoint."""
+        session = await router.create_session(session_name="Test")
+        architect = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Architect",
+            role="architect"
+        )
+
+        result = await router.create_checkpoint(
+            session_id=session["session_id"],
+            checkpoint_name="pre-migration",
+            description="Before migration",
+            created_by=architect["agent_id"]
+        )
+
+        assert result["success"] is True
+        assert "checkpoint_id" in result
+        assert result["checkpoint_name"] == "pre-migration"
+
+    @pytest.mark.asyncio
+    async def test_list_checkpoints(self, router):
+        """Can list checkpoints."""
+        session = await router.create_session(session_name="Test")
+        architect = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Architect",
+            role="architect"
+        )
+
+        await router.create_checkpoint(
+            session_id=session["session_id"],
+            checkpoint_name="checkpoint-1",
+            description="First",
+            created_by=architect["agent_id"]
+        )
+        await router.create_checkpoint(
+            session_id=session["session_id"],
+            checkpoint_name="checkpoint-2",
+            description="Second",
+            created_by=architect["agent_id"]
+        )
+
+        result = await router.list_checkpoints(session_id=session["session_id"])
+
+        assert result["success"] is True
+        assert len(result["checkpoints"]) == 2
+
+    @pytest.mark.asyncio
+    async def test_rollback_checkpoint(self, router):
+        """Can rollback to a checkpoint."""
+        session = await router.create_session(session_name="Test")
+        architect = await router.join_session(
+            session_id=session["session_id"],
+            agent_name="Architect",
+            role="architect"
+        )
+
+        # Create checkpoint
+        checkpoint = await router.create_checkpoint(
+            session_id=session["session_id"],
+            checkpoint_name="pre-change",
+            description="Before changes",
+            created_by=architect["agent_id"]
+        )
+
+        # Make some changes (add a task)
+        await router.delegate_task(
+            session_id=session["session_id"],
+            from_agent=architect["agent_id"],
+            target_agent_id="any",
+            task_type="build",
+            description="New task"
+        )
+
+        # Rollback
+        result = await router.rollback_checkpoint(
+            session_id=session["session_id"],
+            checkpoint_id=checkpoint["checkpoint_id"]
+        )
+
+        assert result["success"] is True
+        assert result["rolled_back_to"] == checkpoint["checkpoint_id"]
+
+    @pytest.mark.asyncio
+    async def test_rollback_nonexistent_checkpoint(self, router):
+        """Cannot rollback to nonexistent checkpoint."""
+        session = await router.create_session(session_name="Test")
+
+        result = await router.rollback_checkpoint(
+            session_id=session["session_id"],
+            checkpoint_id="ckpt_nonexistent"
+        )
+
+        assert result["success"] is False

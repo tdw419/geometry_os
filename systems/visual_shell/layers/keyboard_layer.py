@@ -10,16 +10,22 @@ class KeyboardLayer:
     SHORTCUTS = {
         "general": {
             "open terminal": "ctrl-alt-t",
+            "terminal": "ctrl-alt-t",
+            "launch terminal": "ctrl-alt-t",
             "close window": "alt-f4",
+            "close": "alt-f4",
             "switch app": "alt-tab",
             "show desktop": "super-d",
-            "lock screen": "super-l"
+            "desktop": "super-d",
+            "lock screen": "super-l",
+            "run command": "alt-f2",
+            "activities": "super"
         },
         "shotcut": {
             "new project": "ctrl-n",
             "open project": "ctrl-o",
             "save": "ctrl-s",
-            "export": "e",  # Or specific export shortcut
+            "export": "e",
             "play": "space",
             "split": "s",
             "undo": "ctrl-z"
@@ -28,7 +34,14 @@ class KeyboardLayer:
             "new tab": "ctrl-t",
             "close tab": "ctrl-w",
             "address bar": "ctrl-l",
-            "refresh": "ctrl-r"
+            "refresh": "ctrl-r",
+            "search": "ctrl-f"
+        },
+        "terminal": {
+            "new tab": "ctrl-shift-t",
+            "close tab": "ctrl-shift-w",
+            "copy": "ctrl-shift-c",
+            "paste": "ctrl-shift-v"
         }
     }
 

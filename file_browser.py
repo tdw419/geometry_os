@@ -14,12 +14,13 @@ import asyncio
 import json
 import math
 import re
-import requests
+import aiohttp
 import websockets
 from websockets.server import serve
 from dataclasses import dataclass, field, asdict
 from typing import List, Dict, Set, Optional
 import time
+import js # Import Pyodide's JavaScript interop
 
 from vm_linux_bridge import VMLinuxBridge, HostBridge, QEMUBridge, WGPUBridge
 
@@ -194,35 +195,73 @@ class FileBrowser:
         self.expanded_dirs: Set[str] = set()
         self.file_cache: Dict[str, List[FileInfo]] = {}
         self.layout = SpatialLayout()
-        self.msg_id = int(time.time() * 1000)
+        self.msg_id = 0  # Start from 0, will increment to 1 on first use
         self.all_files: List[FileInfo] = []
 
     async def send_js(self, js_code: str) -> Optional[dict]:
         """Send JavaScript to browser via CDP."""
         self.msg_id += 1
+        msg_id = self.msg_id
         payload = {
-            "id": self.msg_id,
+            "id": msg_id,
             "method": "Runtime.evaluate",
             "params": {"expression": js_code, "returnByValue": True}
         }
-        await self.ws.send(json.dumps(payload))
+        payload_str = json.dumps(payload)
+        await self.ws.send(payload_str)
         try:
-            response = await asyncio.wait_for(self.ws.recv(), timeout=5.0)
-            return json.loads(response)
+            # Read responses until we get the one matching our ID
+            while True:
+                response = await asyncio.wait_for(self.ws.recv(), timeout=5.0)
+                result = json.loads(response)
+                # Skip events (they don't have 'id')
+                if "id" not in result:
+                    continue
+                # Check if this is our response
+                if result.get("id") == msg_id:
+                    if "error" in result:
+                        print(f"CDP error: {result['error']}")
+                    return result
         except asyncio.TimeoutError:
+            print("CDP timeout waiting for response")
             return None
 
     async def list_directory(self, path: str) -> List[FileInfo]:
-        """Get file listing for a directory."""
+        """Get file listing for a directory. Handles both host filesystem and in-browser VFS paths."""
         if path in self.file_cache:
             return self.file_cache[path]
 
-        result = await self.bridge.execute(f"ls -la '{path}'")
-        if result.exit_code != 0:
-            print(f"Error listing {path}: {result.stderr}")
-            return []
+        is_vfs_path = path.startswith('/vfs/')
+        files = []
 
-        files = parse_ls_output(result.stdout, path)
+        if is_vfs_path:
+            try:
+                # Use js.vfs.list_dir for VFS paths
+                vfs_contents = await js.js_vfs.list_dir(path)
+                for item in vfs_contents:
+                    # Map VFS item to FileInfo structure
+                    info = FileInfo(
+                        name=item['name'],
+                        path=f"{path.rstrip('/')}/{item['name']}",
+                        file_type=item['type'],
+                        size=0,  # VFS doesn't expose size yet
+                        permissions='-rwxr-xr-x', # Default permissions for VFS
+                        modified='N/A' # VFS doesn't expose modification time yet
+                    )
+                    info.color = info.get_color()
+                    files.append(info)
+            except Exception as e:
+                print(f"Error listing VFS directory {path}: {e}")
+                return []
+        else:
+            # Existing logic for host filesystem
+            result = await self.bridge.execute(f"ls -la '{path}'")
+            if result.exit_code != 0:
+                print(f"Error listing {path}: {result.stderr}")
+                return []
+
+            files = parse_ls_output(result.stdout, path)
+
         self.file_cache[path] = files
         return files
 
@@ -374,28 +413,51 @@ class FileBrowser:
 
     async def read_file(self, path: str, max_bytes: int = 10000) -> dict:
         """
-        Read file contents.
+        Read file contents. Handles both host filesystem and in-browser VFS paths.
 
         Args:
-            path: File path to read
-            max_bytes: Maximum bytes to read (default 10KB)
+            path: File path to read (can be '/vfs/...' for VFS)
+            max_bytes: Maximum bytes to read (default 10KB for host files)
 
         Returns:
-            Dict with content, truncated flag
+            Dict with content, truncated flag, or error
         """
-        result = await self.bridge.execute(f"head -c {max_bytes} {path}", timeout=5)
+        is_vfs_path = path.startswith('/vfs/')
+        content = ""
+        truncated = False
+        error_message = None
+        file_name = path.rsplit("/", 1)[-1] if "/" in path else path
 
-        if result.exit_code != 0:
-            return {"error": result.stderr, "content": "", "truncated": False}
+        if is_vfs_path:
+            try:
+                # Use js.vfs.read_file for VFS paths
+                # Note: max_bytes is not directly applicable to VFS read for now
+                vfs_content = await js.js_vfs.read_file(path)
+                content = str(vfs_content)
+                # VFS content is not truncated by default unless explicitly handled in JS
+                truncated = False
+            except Exception as e:
+                error_message = f"VFS Error: {e}"
+                print(f"Error reading VFS file {path}: {e}")
+        else:
+            # Existing logic for host filesystem
+            result = await self.bridge.execute(f"head -c {max_bytes} {path}", timeout=5)
 
-        content = result.stdout
-        truncated = len(content) >= max_bytes
+            if result.exit_code != 0:
+                error_message = result.stderr
+            else:
+                content = result.stdout
+                truncated = len(content) >= max_bytes
 
-        return {
-            "content": content,
-            "truncated": truncated,
-            "path": path,
-        }
+        if error_message:
+            return {"error": error_message, "content": "", "truncated": False, "path": path, "name": file_name}
+        else:
+            return {
+                "content": content,
+                "truncated": truncated,
+                "path": path,
+                "name": file_name,
+            }
 
     async def find_files(self, pattern: str, root: str = "/") -> list:
         """
@@ -425,6 +487,192 @@ class FileBrowser:
 
         return files
 
+    async def display_file_content(self, file_info: dict):
+        """Display file content in a new window on the map."""
+        file_path = file_info.get("path", "Unknown Path")
+        file_name = file_info.get("name", "Unknown File")
+        content = file_info.get("content", "")
+        truncated = file_info.get("truncated", False)
+
+        # Basic sanitization for display
+        display_content = content[:5000] # Limit content for display
+        if truncated:
+            display_content += "\n... [Content truncated]"
+        
+        # Escape content for JavaScript literal
+        safe_content = self._escape_js(display_content)
+        safe_name = self._escape_js(file_name)
+        safe_path = self._escape_js(file_path)
+
+        # Use a consistent position for the viewer
+        viewer_x = 200
+        viewer_y = 200
+        viewer_width = 600
+        viewer_height = 400
+        
+        js_code = f"""
+            (function() {{
+                const viewerId = 'file_viewer_{int(time.time())}';
+                const currentViewer = window.geometryOSApp.app.stage.getChildByName('file_viewer_window');
+                if (currentViewer) {{
+                    window.geometryOSApp.app.stage.removeChild(currentViewer);
+                    currentViewer.destroy({{ children: true }});
+                }}
+
+                const viewer = new PIXI.Container();
+                viewer.name = 'file_viewer_window';
+                viewer.x = {viewer_x};
+                viewer.y = {viewer_y};
+
+                // Background
+                const bg = new PIXI.Graphics();
+                bg.beginFill(0x1A1A2E, 0.9);
+                bg.drawRect(0, 0, {viewer_width}, {viewer_height});
+                bg.endFill();
+                viewer.addChild(bg);
+
+                // Title bar
+                const titleBar = new PIXI.Graphics();
+                titleBar.beginFill(0x0055AA);
+                titleBar.drawRect(0, 0, {viewer_width}, 30);
+                titleBar.endFill();
+                viewer.addChild(titleBar);
+
+                const titleText = new PIXI.Text('{safe_name} ({safe_path})', {{
+                    fontFamily: 'Courier New',
+                    fontSize: 14,
+                    fill: 0xFFFFFF
+                }});
+                titleText.x = 10;
+                titleText.y = 7;
+                viewer.addChild(titleText);
+
+                // Close button
+                const closeButton = new PIXI.Text('X', {{
+                    fontFamily: 'Arial',
+                    fontSize: 16,
+                    fill: 0xFFFFFF
+                }});
+                closeButton.x = {viewer_width} - 25;
+                closeButton.y = 5;
+                closeButton.interactive = true;
+                closeButton.buttonMode = true;
+                closeButton.on('pointerdown', () => {{
+                    window.geometryOSApp.app.stage.removeChild(viewer);
+                    viewer.destroy({{ children: true }});
+                }});
+                viewer.addChild(closeButton);
+
+                // Run button (only for .py files)
+                if ('{safe_name}'.endswith('.py')) {{
+                    const runButton = new PIXI.Text('Run', {{
+                        fontFamily: 'Arial',
+                        fontSize: 16,
+                        fill: 0xFFFFFF
+                    }});
+                    runButton.x = {viewer_width} - 80; // Position next to Close button
+                    runButton.y = 5;
+                    runButton.interactive = true;
+                    runButton.buttonMode = true;
+                    runButton.on('pointerdown', () => {{
+                        if (window.fileBrowser.clickSocket &&
+                            window.fileBrowser.clickSocket.readyState === WebSocket.OPEN) {{
+                            window.fileBrowser.clickSocket.send(JSON.stringify({{
+                                type: 'run_file',
+                                path: '{safe_path}'
+                            }}));
+                        }}
+                        window.geometryOSApp.app.stage.removeChild(viewer); // Close viewer after running
+                        viewer.destroy({{ children: true }});
+                    }});
+                    viewer.addChild(runButton);
+                }}
+
+                // Content
+                const contentText = new PIXI.Text('{safe_content}', {{
+                    fontFamily: 'Courier New',
+                    fontSize: 12,
+                    fill: 0x00FF00,
+                    wordWrap: true,
+                    wordWrapWidth: {viewer_width} - 20
+                }});
+                contentText.x = 10;
+                contentText.y = 40;
+                viewer.addChild(contentText);
+
+                window.geometryOSApp.app.stage.addChild(viewer);
+                console.log('Displayed file content for: {safe_name}');
+            }})();
+        """
+        await self.send_js(js_code)
+
+    async def display_error_message(self, message: str):
+        """Display a temporary error message on the map."""
+        safe_message = self._escape_js(message)
+        error_x = 100
+        error_y = 100
+        error_width = 400
+        error_height = 80
+        
+        js_code = f"""
+            (function() {{
+                const errorId = 'error_message_{int(time.time())}';
+                const errorMessage = new PIXI.Container();
+                errorMessage.name = errorId;
+                errorMessage.x = {error_x};
+                errorMessage.y = {error_y};
+
+                const bg = new PIXI.Graphics();
+                bg.beginFill(0xAA0000, 0.9);
+                bg.drawRect(0, 0, {error_width}, {error_height});
+                bg.endFill();
+                errorMessage.addChild(bg);
+
+                const text = new PIXI.Text('{safe_message}', {{
+                    fontFamily: 'Courier New',
+                    fontSize: 14,
+                    fill: 0xFFFFFF,
+                    wordWrap: true,
+                    wordWrapWidth: {error_width} - 20
+                }});
+                text.x = 10;
+                text.y = 10;
+                errorMessage.addChild(text);
+
+                window.geometryOSApp.app.stage.addChild(errorMessage);
+
+                setTimeout(() => {{
+                    window.geometryOSApp.app.stage.removeChild(errorMessage);
+                    errorMessage.destroy({{ children: true }});
+                }}, 5000); // Remove after 5 seconds
+                console.log('Displayed error: {safe_message}');
+            }})();
+        """
+        await self.send_js(js_code)
+
+    async def run_file_in_terminal(self, file_path: str):
+        """
+        Send a command to the map_terminal to execute the given file.
+        Assumes map_terminal's input server is running on port 8767.
+        """
+        if not file_path.endswith(".py"):
+            print(f"Can only run Python files for now. Skipping: {file_path}")
+            await self.display_error_message(f"Can only run .py files. Skipping {file_path}")
+            return
+
+        terminal_input_url = "ws://localhost:8767" # Map terminal input server
+
+        try:
+            async with websockets.connect(terminal_input_url) as ws:
+                command = f"python3 {file_path}"
+                message = json.dumps({"type": "key", "key": "Enter", "input_buffer": command})
+                await ws.send(message)
+                print(f"Sent command to terminal: {command}")
+                await self.display_error_message(f"Sent '{command}' to terminal.")
+        except Exception as e:
+            print(f"Error sending command to terminal: {e}")
+            await self.display_error_message(f"Failed to send command to terminal: {e}")
+
     def get_state(self) -> dict:
         """Get browser state as a dictionary."""
         return {
@@ -452,8 +700,13 @@ class ClickServer:
         self.clients.add(websocket)
         try:
             async for message in websocket:
-                data = json.loads(message)
-                await self.process_click(data)
+                try:
+                    data = json.loads(message)
+                    await self.process_click(data)
+                except json.JSONDecodeError:
+                    print(f"Received non-JSON message: {message}")
+                except Exception as e:
+                    print(f"Error in process_click: {e}")
         except websockets.exceptions.ConnectionClosed:
             pass
         finally:
@@ -465,16 +718,27 @@ class ClickServer:
 
         if event_type == 'tile_click':
             path = data.get('path', '')
-            # Find the clicked file
-            for f in self.browser.all_files:
-                if f.path == path:
-                    if f.file_type == 'directory':
-                        print(f"Expanding directory: {path}")
-                        await self.browser.expand_directory(f)
-                    else:
-                        print(f"Clicked file: {path}")
-                        # Future: show preview card
-                    break
+            file_type = data.get('fileType', '')
+            name = data.get('name', '') # Assuming 'name' is also passed in data
+
+            if file_type == 'directory':
+                print(f"Expanding directory: {path}")
+                await self.browser.expand_directory(FileInfo(name=name, path=path, file_type=file_type, size=0, permissions='', modified=''))
+            else:
+                print(f"Clicked file: {path}")
+                # Read file content and display
+                file_info = await self.browser.read_file(path)
+                if file_info.get("content") is not None:
+                    await self.browser.display_file_content(file_info)
+                elif file_info.get("error"):
+                    print(f"Error reading file {path}: {file_info['error']}")
+                    await self.browser.display_error_message(f"Error reading {name}: {file_info['error']}")
+                else:
+                    await self.browser.display_error_message(f"Could not read content for {name}")
+        elif event_type == 'run_file':
+            file_path = data.get('path', '')
+            if file_path:
+                await self.browser.run_file_in_terminal(file_path)
         elif event_type == 'navigate':
             path = data.get('path', '/')
             await self.browser.navigate_to(path)
@@ -493,6 +757,12 @@ def parse_args():
         choices=['host', 'qemu', 'wgpu'],
         default='host',
         help='Execution backend: host (default), qemu, or wgpu'
+    )
+    parser.add_argument(
+        '--port',
+        type=int,
+        default=8766,
+        help='Port for click server'
     )
     parser.add_argument(
         '--path',
@@ -530,56 +800,85 @@ async def create_bridge(backend: str, cdp_ws=None) -> VMLinuxBridge:
         return HostBridge()
 
 
-async def main():
-    """Main entry point."""
-    args = parse_args()
-
+async def start_file_browser_service(cdp_ws: websockets.WebSocketClientProtocol, port: int, start_path: str = "/", backend: str = 'host'):
+    """
+    Starts the file browser service. Can be called directly by a manager script.
+    
+    Args:
+        cdp_ws: WebSocket connection to the Chrome DevTools Protocol.
+        port: Port for the file browser's click WebSocket server.
+        start_path: Initial path for the file browser.
+        backend: Backend to use for command execution ('host', 'qemu', 'wgpu').
+    """
     print("=== Geometry OS: Visual File Browser ===")
-    print(f"Backend: {args.backend}")
-    print(f"Start path: {args.path}")
+    print(f"Backend: {backend}")
+    print(f"Start path: {start_path}")
+    print(f"Click server port: {port}")
     print()
 
-    # Connect to browser via CDP
+    # Create bridge and browser
+    bridge = await create_bridge(backend, cdp_ws=cdp_ws)
+    browser = FileBrowser(cdp_ws, bridge=bridge, start_path=start_path)
+
+    # Create click server
+    click_server = ClickServer(browser, port=port)
+
+    # Initialize display
+    await browser.init_display()
+    await click_server.start()
+
+    print()
+    print("File browser ready!")
+    print()
+    print("  • Click on directories to expand/collapse")
+    print("  • Click on files to see info")
+    print()
+
+    # Navigate to start path
+    await browser.navigate_to(start_path)
+
+    # Keep running
     try:
-        resp = requests.get("http://localhost:9222/json")
-        pages = resp.json()
-        page = next((p for p in pages if "index.html" in p.get("url", "")), None)
+        await click_server.server.serve_forever()
+    finally:
+        print("File browser service shutting down.")
 
-        if not page:
-            print("ERROR: Could not find 'index.html'. Is the Geometry OS app running?")
-            return
+async def main():
+    """Main entry point for standalone execution."""
+    args = parse_args()
 
-        ws_url = page['webSocketDebuggerUrl']
-        print(f"Connecting to: {page.get('url')}")
-
-    except requests.exceptions.ConnectionError:
-        print("ERROR: Cannot connect to Chrome. Is it running with --remote-debugging-port=9222?")
+    # Connect to browser, trying 127.0.0.1 first, then QEMU host IP
+    ws_url = None
+    page = None
+    cdp_hosts = ["127.0.0.1", "10.0.2.2"]
+    
+    async with aiohttp.ClientSession() as session:
+        for host in cdp_hosts:
+            try:
+                print(f"Attempting to connect to Chrome DevTools at {host}:9222...")
+                async with session.get(f"http://{host}:9222/json", timeout=2) as resp:
+                    if resp.status == 200:
+                        pages = await resp.json()
+                        # Prioritize index.html, then any page of type 'page'
+                        page = next((p for p in pages if "index.html" in p.get("url", "")), None)
+                        if not page:
+                            page = next((p for p in pages if p.get("type") == "page"), None)
+                        
+                        if page:
+                            ws_url = page['webSocketDebuggerUrl']
+                            print(f"Successfully connected to: {page.get('url')}")
+                            break
+            except (aiohttp.ClientConnectorError, asyncio.TimeoutError):
+                print(f"Connection to {host}:9222 failed.")
+                continue
+    
+    if not ws_url:
+        print("ERROR: Could not find an appropriate Chrome tab or connect to CDP.")
+        print("Please ensure your Geometry OS UI is open in Chrome and Chrome is running with --remote-debugging-port=9222.")
         return
 
     async with websockets.connect(ws_url) as ws:
-        # Create bridge and browser
-        bridge = await create_bridge(args.backend, cdp_ws=ws)
-        browser = FileBrowser(ws, bridge=bridge, start_path=args.path)
-
-        # Create click server
-        click_server = ClickServer(browser, port=8766)
-
-        # Initialize display
-        await browser.init_display()
-        await click_server.start()
-
-        print()
-        print("File browser ready!")
-        print()
-        print("  • Click on directories to expand/collapse")
-        print("  • Click on files to see info (coming soon)")
-        print()
-
-        # Navigate to start path
-        await browser.navigate_to(args.path)
-
-        # Run forever
-        await click_server.server.serve_forever()
+        await start_file_browser_service(ws, port=args.port, start_path=args.path, backend=args.backend)
 
     print("\nFile browser session ended.")
 

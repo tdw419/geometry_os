@@ -23,8 +23,6 @@ class GoldenPathBootTest {
             error: null
         };
         this.timeout = 60000; // 60 second max
-        this.hypervisor = null;
-        this.bootOutput = '';
     }
 
     async run() {
@@ -56,40 +54,6 @@ class GoldenPathBootTest {
         }
     }
 
-    reportResults() {
-        console.log('\n========================================');
-        console.log('  TEST RESULTS');
-        console.log('========================================');
-        console.log(`  Hypervisor Ready: ${this.results.hypervisorReady ? '✅' : '❌'}`);
-        console.log(`  Boot Completed:   ${this.results.bootCompleted ? '✅' : '❌'}`);
-        console.log(`  Input Sent:       ${this.results.inputSent ? '✅' : '❌'}`);
-        console.log(`  Output Captured:  ${this.results.outputCaptured ? '✅' : '❌'}`);
-        console.log(`  Output Valid:     ${this.results.outputValid ? '✅' : '❌'}`);
-        console.log('========================================');
-
-        if (this.results.outputCaptured) {
-            console.log('\nConsole Output:');
-            console.log('---');
-            console.log(this.results.fullOutput);
-            console.log('---\n');
-        }
-
-        if (this.results.error) {
-            console.log(`\n❌ ERROR: ${this.results.error}\n`);
-        }
-
-        if (this.results.outputValid) {
-            console.log('\n✅ GOLDEN PATH COMPLETE');
-            console.log('   Linux boots on GPU shader.');
-            console.log('   AI controls VM via WebMCP.');
-            console.log('   System is fully operational.\n');
-        }
-    }
-
-    /**
-     * Step 1: Check hypervisor availability
-     * Verifies WebMCP bridge exists and hypervisor is initialized
-     */
     async step1_checkHypervisor() {
         console.log('[Step 1] Checking hypervisor availability...');
 
@@ -117,10 +81,6 @@ class GoldenPathBootTest {
         this.hypervisor = status.hypervisor || window.hypervisorSystem;
     }
 
-    /**
-     * Step 2: Wait for boot to complete
-     * Polls for shell prompt indicators with 45s timeout
-     */
     async step2_waitForBoot() {
         console.log('[Step 2] Waiting for boot to reach shell prompt...');
 
@@ -168,10 +128,6 @@ class GoldenPathBootTest {
         throw new Error('Boot timeout - shell prompt not detected within 45 seconds');
     }
 
-    /**
-     * Step 3: Send command to hypervisor
-     * Sends "uname -a" via WebMCP with fallback to direct methods
-     */
     async step3_sendCommand() {
         console.log('[Step 3] Sending command: uname -a');
 
@@ -235,10 +191,6 @@ class GoldenPathBootTest {
         throw new Error('No method available to send input to hypervisor');
     }
 
-    /**
-     * Step 4: Validate output
-     * Captures console output and validates for riscv64 pattern
-     */
     async step4_validateOutput() {
         console.log('[Step 4] Validating output for "riscv64"...');
 
@@ -287,10 +239,6 @@ class GoldenPathBootTest {
         }
     }
 
-    /**
-     * Helper: Get hypervisor state
-     * Tries WebMCP first, falls back to direct access
-     */
     async getHypervisorState() {
         // Try WebMCP first
         if (typeof window.invokeWebMCPTool === 'function') {
@@ -306,10 +254,6 @@ class GoldenPathBootTest {
         return null;
     }
 
-    /**
-     * Helper: Get console output
-     * Tries VMMonitorTile first, falls back to SBI console buffer
-     */
     async getConsoleOutput() {
         // Try to get console text from VMMonitorTile
         const tiles = this.findVMMonitorTiles();
@@ -328,9 +272,6 @@ class GoldenPathBootTest {
         return '';
     }
 
-    /**
-     * Helper: Find VMMonitorTile instances in PixiJS stage
-     */
     findVMMonitorTiles() {
         // Find VMMonitorTile instances in the PixiJS stage
         const tiles = [];
@@ -346,37 +287,64 @@ class GoldenPathBootTest {
         return tiles;
     }
 
-    /**
-     * Helper: Delay for specified milliseconds
-     */
     delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    reportResults() {
+        console.log('\n========================================');
+        console.log('  TEST RESULTS');
+        console.log('========================================');
+        console.log(`  Hypervisor Ready: ${this.results.hypervisorReady ? '✅' : '❌'}`);
+        console.log(`  Boot Completed:   ${this.results.bootCompleted ? '✅' : '❌'}`);
+        console.log(`  Input Sent:       ${this.results.inputSent ? '✅' : '❌'}`);
+        console.log(`  Output Captured:  ${this.results.outputCaptured ? '✅' : '❌'}`);
+        console.log(`  Output Valid:     ${this.results.outputValid ? '✅' : '❌'}`);
+        console.log('========================================');
+
+        if (this.results.outputCaptured) {
+            console.log('\nConsole Output:');
+            console.log('---');
+            console.log(this.results.fullOutput);
+            console.log('---\n');
+        }
+
+        if (this.results.error) {
+            console.log(`\n❌ ERROR: ${this.results.error}\n`);
+        }
+
+        if (this.results.outputValid) {
+            console.log('\n✅ GOLDEN PATH COMPLETE');
+            console.log('   Linux boots on GPU shader.');
+            console.log('   AI controls VM via WebMCP.');
+            console.log('   System is fully operational.\n');
+        }
     }
 }
 
 // Export for module use
 if (typeof window !== 'undefined') {
     window.GoldenPathBootTest = GoldenPathBootTest;
-
-    /**
-     * Convenience function to run the test from browser console
-     */
-    window.runGoldenPathTest = async function() {
-        const test = new GoldenPathBootTest();
-        try {
-            await test.run();
-            return test.results;
-        } catch (error) {
-            console.error('Golden Path Test Failed:', error);
-            return test.results;
-        }
-    };
-
-    console.log('Golden Path Boot Test loaded.');
-    console.log('Run with: window.runGoldenPathTest()');
-    console.log('');
-    console.log('Prerequisites:');
-    console.log('  1. Open index.html with WebGPU boot demo');
-    console.log('  2. Wait for Alpine Linux to boot');
-    console.log('  3. Run window.runGoldenPathTest()');
 }
+
+/**
+ * Convenience function to run the test from browser console
+ */
+window.runGoldenPathTest = async function() {
+    const test = new GoldenPathBootTest();
+    try {
+        await test.run();
+        return test.results;
+    } catch (error) {
+        console.error('Golden Path Test Failed:', error);
+        return test.results;
+    }
+};
+
+console.log('Golden Path Boot Test loaded.');
+console.log('Run with: window.runGoldenPathTest()');
+console.log('');
+console.log('Prerequisites:');
+console.log('  1. Open index.html with WebGPU boot demo');
+console.log('  2. Wait for Alpine Linux to boot');
+console.log('  3. Run window.runGoldenPathTest()');

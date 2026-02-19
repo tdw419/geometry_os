@@ -253,6 +253,14 @@ class VMMonitorTile extends DesktopWindow {
             hudText += `MODE: ${privMode}\n`;
             hudText += `MMU: ${mmuMode}\n`;
             
+            // Performance Metrics
+            if (this.hypervisor) {
+                const mips = this.hypervisor.mips || 0;
+                const cycles = this.hypervisor.cycleCount || 0n;
+                hudText += `SPEED: ${mips.toFixed(2)} MIPS\n`;
+                hudText += `CYCLES: ${cycles.toLocaleString()}\n`;
+            }
+            
             if (state.scause !== 0) {
                 hudText += `\n⚠️ TRAP DETECTED\n`;
                 hudText += `CAUSE: ${state.scause}\n`;

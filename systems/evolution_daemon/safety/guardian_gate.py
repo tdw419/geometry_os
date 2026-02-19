@@ -120,6 +120,10 @@ class GuardianGate:
                 if ai_review.get("approved") is False:
                     approved = False
 
+        # Final decision based on risk level
+        if risk_level == "high":
+            approved = False
+
         # Create verdict
         verdict = GuardianVerdict(
             approved=approved,

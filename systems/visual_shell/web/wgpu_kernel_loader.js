@@ -27,9 +27,10 @@ export class WGPUKernelLoader {
     /**
      * Load kernel from a .rts.png texture URL
      * @param {string} url - URL to the .rts.png file
-     * @returns {{entryPoint: number, size: number, texture: GPUTexture}}
+     * @param {Object} metadata - Optional metadata for section offsets
+     * @returns {{entryPoint: number, size: number, data: Uint8Array, sections: Object}}
      */
-    async loadFromRTS(url) {
+    async loadFromRTS(url, metadata = null) {
         // Fetch the image
         const response = await fetch(url);
         const blob = await response.blob();
@@ -37,28 +38,45 @@ export class WGPUKernelLoader {
         img.src = URL.createObjectURL(blob);
         await img.decode();
 
-        // Create bitmap and texture
-        const bitmap = await createImageBitmap(img);
-        const texture = this.device.createTexture({
-            size: [bitmap.width, bitmap.height],
-            format: 'rgba8unorm',
-            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
-        });
+        // Create a temporary canvas to extract pixel data
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = new Uint8Array(imageData.data.buffer);
 
-        this.device.queue.copyExternalImageToTexture(
-            { source: bitmap },
-            { texture: texture },
-            [bitmap.width, bitmap.height]
-        );
+        console.log(`[WGPUKernelLoader] Extracted ${data.byteLength} bytes from ${url}`);
 
-        // Extract kernel size from metadata (first 4 pixels = size in bytes)
-        // For now, assume full texture is kernel data
-
-        return {
+        const result = {
             entryPoint: 0,
-            size: bitmap.width * bitmap.height * 4, // RGBA
-            texture: texture
+            size: data.byteLength,
+            data: data,
+            sections: {}
         };
+
+        // If metadata is provided, split into sections
+        if (metadata && metadata.offsets) {
+            for (const [name, offsetInfo] of Object.entries(metadata.offsets)) {
+                const start = offsetInfo.start !== undefined ? offsetInfo.start : offsetInfo[0];
+                const end = offsetInfo.end !== undefined ? offsetInfo.end : offsetInfo[1];
+                
+                if (start !== undefined && end !== undefined && end <= data.byteLength) {
+                    result.sections[name] = data.slice(start, end);
+                    console.log(`[WGPUKernelLoader] Identified section '${name}': ${result.sections[name].byteLength} bytes`);
+                }
+            }
+            
+            // If we have a explicit kernel section, use it as primary data
+            if (result.sections.kernel) {
+                result.data = result.sections.kernel;
+                result.size = result.data.byteLength;
+            }
+        }
+
+        return result;
     }
 
     /**

@@ -18,6 +18,9 @@ export class WGPUInputHandler {
         this.memoryBuffer = memoryBuffer;
         this.kernelId = kernelId;
 
+        // Callbacks
+        this.onCharacter = null;
+
         // MMIO offsets
         this.MMIO_BASE = 0x02000000;  // 32MB
         this.KEYBOARD_OFFSET = 0x0000;
@@ -76,6 +79,11 @@ export class WGPUInputHandler {
     }
 
     _onKeyDown(event) {
+        // Handle character input
+        if (this.onCharacter && event.key.length === 1) {
+            this.onCharacter(event.key);
+        }
+
         event.preventDefault();
         const packed = this.packKeyboard(event, true);
         this._writeKeyboard(packed);

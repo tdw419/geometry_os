@@ -117,28 +117,42 @@ class SwarmAgent:
                     slogan = msg["payload"]["slogan"]
                     print(f"[{self.role}] Received slogan: '{slogan}'")
 
-                    # Wait for Shotcut to be visible via Vision Bridge
-                    print(f"[{self.role}] Waiting for Shotcut window...")
-                    await asyncio.sleep(5)  # Give vision bridge time to capture state
-
-                    # Try to find text input field
-                    print(f"[{self.role}] Looking for text input...")
-                    element = await self.find_element("text", timeout=15.0)
-
+                    # Mission Sequence:
+                    # 1. Click "Open Other"
+                    print(f"[{self.role}] Looking for 'Open Other' button...")
+                    element = await self.find_element("Open Other", timeout=30.0)
                     if element.get("found"):
-                        print(f"[{self.role}] Found text input at ({element['x']}, {element['y']})")
-                        self.protocol._execute_bridge(f"click: text_field")
-                        await asyncio.sleep(1)
+                        self.protocol._execute_direct(f"move {element['x']} {element['y']} click 1")
                     else:
-                        # Fallback: click center of screen
-                        print(f"[{self.role}] Using fallback: click center")
-                        self.protocol._execute_direct("move 640 400 click 1")
-                        await asyncio.sleep(1)
+                        print(f"[{self.role}] 'Open Other' not found, using shortcut (Ctrl+Shift+O)...")
+                        self.protocol._execute_direct("key ctrl-shift-o")
+                    
+                    await asyncio.sleep(3)
 
-                    # Type the slogan
-                    print(f"[{self.role}] Typing slogan...")
-                    self.protocol._execute_bridge(f"type: {slogan}")
-                    print(f"[{self.role}] Slogan entered. Mission complete.")
+                    # 2. Find and select "Text"
+                    print(f"[{self.role}] Selecting 'Text' source...")
+                    element = await self.find_element("Text", timeout=20.0)
+                    if element.get("found"):
+                        self.protocol._execute_direct(f"move {element['x']} {element['y']} click 1")
+                    else:
+                        # Common location in the list
+                        self.protocol._execute_direct("key tab key down key down key enter")
+                    
+                    await asyncio.sleep(2)
+
+                    # 3. Type the slogan in the text box
+                    print(f"[{self.role}] Typing slogan into text field...")
+                    self.protocol._execute_direct(f"type {slogan}")
+                    await asyncio.sleep(1)
+                    self.protocol._execute_direct("key enter")
+                    
+                    # 4. Export
+                    print(f"[{self.role}] Exporting video...")
+                    self.protocol._execute_direct("key ctrl-e")
+                    await asyncio.sleep(2)
+                    self.protocol._execute_direct("type geometry_slogan.mp4 key enter")
+
+                    print(f"[{self.role}] Slogan entered and export started. Mission complete.")
                     break
 
 async def main():

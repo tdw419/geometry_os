@@ -1,88 +1,82 @@
 # AI PM Configuration for Geometry OS
-# This file configures the AI Project Manager system for managing the unified roadmap
+# PixelRTS Single-File Optimization
 
-# Roadmap configuration
-roadmap_path: UNIFIED_ROADMAP_2026.md
+# ----------------------------------------------------------------------
+# Roadmap Configuration
+# ----------------------------------------------------------------------
+roadmap_path: PIXELRTS_SINGLE_FILE_ROADMAP.md
+implementation_plan: PIXELRTS_IMPLEMENTATION_PLAN.md
+
+# ----------------------------------------------------------------------
+# OpenSpec Output Directory
+# ----------------------------------------------------------------------
 openspec_output_dir: .ai-pm-artifacts
 
-# Roadmap discovery settings
-roadmap:
-  primary_path: "UNIFIED_ROADMAP_2026.md"
-  discovery_enabled: true
-
-# Iteration configuration
-iteration_mode: until_complete  # Options: until_complete, until_converged, fixed_depth, continuous
-max_iterations: 10
+# ----------------------------------------------------------------------
+# Iteration Configuration
+# ----------------------------------------------------------------------
+iteration_mode: until_complete
+max_iterations: 50
 convergence_threshold: 0.95
 state_file: .ai-pm-state.json
 
-# MCP configuration
-mcp:
-  enabled: true
-  workers: 4
-  servers: []
+# ----------------------------------------------------------------------
+# LLM Autocomplete
+# ----------------------------------------------------------------------
+llm_autocomplete_enabled: true
+bridge_type: auto
+policy: manual_review
+confidence_threshold: 0.7
+lm_studio_url: http://localhost:1234
+zai_model: GLM-4.7
 
-# Improvement configuration
-improvement:
-  enabled: true
-  recursive_self_improvement: true  # Generate new tasks from improvement recommendations
-  recursive_improvement_min_confidence: 0.7  # Minimum confidence to create tasks
-  recursive_improvement_min_priority: MEDIUM  # Minimum priority level (LOW, MEDIUM, HIGH)
-  telemetry_path: .ai-pm-telemetry
-  knowledge_base_path: .ai-pm-knowledge
-  research_path: .ai-pm-research
+# ----------------------------------------------------------------------
+# Questioning Configuration
+# ----------------------------------------------------------------------
+questioning_enabled: true
+questioning_strategy: deferred
+research_path: .ai-pm-research
+question_db: .ai-pm-questions.db
 
-# Questioning configuration
-questioning:
-  enabled: true
-  question_db: .ai-pm-questions.db
-  strategy: deferred  # Options: immediate, deferred, auto_resolve
-  research_path: .ai-pm-research
+# ----------------------------------------------------------------------
+# Improvement Configuration
+# ----------------------------------------------------------------------
+improvement_enabled: true
+recursive_self_improvement: true
+recursive_improvement_min_confidence: 0.7
+recursive_improvement_min_priority: MEDIUM
+telemetry_path: .ai-pm-telemetry
+knowledge_base_path: .ai-pm-knowledge
 
-# LLM Autocomplete configuration
-llm_autocomplete:
-  enabled: true
-  bridge_type: auto  # Options: auto, lm_studio, zai
-  policy: manual_review  # Options: auto_apply, manual_review, confirm_first
-  confidence_threshold: 0.7
-  lm_studio_url: http://localhost:1234
-  zai_model: GLM-4.7
+# ----------------------------------------------------------------------
+# Research Configuration
+# ----------------------------------------------------------------------
+research_enabled: true
+research_interval_seconds: 300
+research_output_file: .ai-pm-research-findings.json
+max_tasks_per_cycle: 50
+min_priority: HIGH
 
+# ----------------------------------------------------------------------
+# Safety Configuration
+# ----------------------------------------------------------------------
+protected_branches:
+  - main
+  - master
+max_tasks_per_hour: 20
+max_consecutive_failures: 3
+cooldown_seconds: 300
+auto_rollback: true
+require_clean_workspace: false
+
+# ----------------------------------------------------------------------
 # Logging
+# ----------------------------------------------------------------------
 log_level: INFO
 
-# Task execution configuration
-execution:
-  auto_execute: true  # Enable autonomous task execution
-  max_tasks_per_cycle: 5  # Maximum number of tasks to execute per daemon cycle
-  repo_root: .  # Path to Geometry OS repository root (relative to config file)
-  state_file: .ai-pm-execution-state.json  # Execution state persistence file
-  history_dir: .ai-pm-execution-history  # Directory for execution history records
-
-# Safety configuration
-safety:
-  protected_branches: [main, master]  # Branches that require special protection
-  max_tasks_per_hour: 20  # Maximum number of tasks to execute per hour
-  max_consecutive_failures: 3  # Pause after this many consecutive failures
-  cooldown_seconds: 300  # Cooldown period after failures (5 minutes)
-  auto_rollback: true  # Automatically rollback on test failures
-  require_clean_workspace: false  # Require clean workspace before execution
-
-# Research configuration
-research:
-  enabled: true  # Enable autonomous research agents
-  interval_seconds: 300  # Run research every 5 minutes (300 seconds) for testing
-  output_file: .ai-pm-research-findings.json  # Output file for research findings
-  max_tasks_per_cycle: 50  # Maximum tasks to add per research cycle
-  min_priority: HIGH  # Minimum priority level for adding tasks (LOW, MEDIUM, HIGH, CRITICAL)
-
-  # Research sources
-  codebase:
-    path: /home/jericho/zion/projects/geometry_os/geometry_os/  # Path to codebase
-
-  conversations:
-    path: /home/jericho/.claude/projects/  # Path to Claude Code conversations
-
-  logs:
-    path: /home/jericho/.lmstudio/server-logs/  # Path to LM Studio server logs
-
+# ----------------------------------------------------------------------
+# MCP Configuration
+# ----------------------------------------------------------------------
+mcp_enabled: true
+mcp_workers: 4
+mcp_servers: []

@@ -937,6 +937,11 @@ def cmd_catalog(args):
         print(f"  Host: {args.host}")
         print(f"  Port: {args.port}")
         print(f"  Paths: {watch_paths}")
+        print(f"  Vision: {args.vision}")
+
+    # Initialize server singleton with options before uvicorn starts
+    from systems.pixel_compiler.catalog.catalog_server import get_catalog_server
+    get_catalog_server(watch_paths=watch_paths, use_vision=args.vision)
 
     # Open browser in background thread if not disabled
     if not args.no_browser:
@@ -1287,6 +1292,11 @@ Examples:
         '--no-browser',
         action='store_true',
         help="Don't open browser automatically"
+    )
+    catalog_parser.add_argument(
+        '--vision',
+        action='store_true',
+        help="Enable AI vision analysis during scanning"
     )
     catalog_parser.add_argument(
         '-v', '--verbose',

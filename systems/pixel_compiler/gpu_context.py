@@ -221,21 +221,41 @@ class GPUContext:
         if self._mock:
             return self._mock_textures[texture.handle].copy()
 
-        # Create staging buffer for readback
-        size = texture.width * texture.height * 4
-        staging = self.create_buffer(size, label="staging_readback")
+        # WebGPU requires bytes_per_row to be a multiple of 256
+        row_alignment = 256
+        actual_bytes_per_row = texture.width * 4
+        aligned_bytes_per_row = (
+            (actual_bytes_per_row + row_alignment - 1) // row_alignment
+        ) * row_alignment
+
+        # Create staging buffer with MAP_READ | COPY_DST usage
+        size = aligned_bytes_per_row * texture.height
+        usage = wgpu.BufferUsage.MAP_READ | wgpu.BufferUsage.COPY_DST
+        staging = self._device.create_buffer(size=size, usage=usage, label="staging_readback")
 
         # Encode copy command
         encoder = self._device.create_command_encoder()
         encoder.copy_texture_to_buffer(
             {"texture": texture.handle},
-            {"buffer": staging.handle, "bytes_per_row": texture.width * 4},
+            {"buffer": staging, "bytes_per_row": aligned_bytes_per_row},
             (texture.width, texture.height, 1)
         )
         self._device.queue.submit([encoder.finish()])
 
-        # Read from staging
-        return self.read_buffer(staging).reshape((texture.height, texture.width, 4))
+        # Map and read buffer synchronously
+        promise = staging.map_async(wgpu.MapMode.READ)
+        promise.sync_wait()
+
+        raw_data = np.frombuffer(staging.read_mapped(), dtype=np.uint8).copy()
+        staging.unmap()
+
+        # Extract actual pixel data, handling row padding
+        result = np.zeros((texture.height, texture.width, 4), dtype=np.uint8)
+        for row in range(texture.height):
+            start = row * aligned_bytes_per_row
+            end = start + actual_bytes_per_row
+            result[row] = raw_data[start:end].reshape((texture.width, 4))
+        return result
 
     def submit(self, command_buffer: Any) -> None:
         """Submit command buffer to GPU queue."""

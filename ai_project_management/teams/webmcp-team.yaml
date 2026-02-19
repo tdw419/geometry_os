@@ -371,6 +371,38 @@ agents:
         - docs/plans/2026-02-13-vision-cortex-design.md
         - docs/plans/2026-02-13-vision-cortex-implementation.md
 
+  # ============================================
+  # INPUT DRIVER SPECIALIST - Phase Input (MMIO to uinput)
+  # ============================================
+  - agent_id: input-driver-specialist
+    name: Input Driver Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - wgsl
+      - python
+      - uinput
+      - linux_kernel
+      - testing
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 95
+    metadata:
+      role: Dual-target input driver for AI GUI control
+      focuses:
+        - WGSL MMIO polling in RISC-V shader
+        - Python uinput daemon for Linux
+        - QEMU MMIO bridge
+        - hypervisor_input WebMCP tool
+        - Keyboard/mouse event injection
+      key_files:
+        - systems/visual_shell/web/shaders/visual_cpu_riscv.wgsl
+        - systems/visual_shell/web/gpu_execution_system.js
+        - systems/visual_shell/web/input_daemon.py
+        - systems/visual_shell/web/mmio_bridge.py
+        - systems/visual_shell/web/test_input_driver.html
+        - docs/plans/2026-02-14-input-driver-implementation.md
+
 # Task routing rules
 task_routing:
   # Phase C tasks

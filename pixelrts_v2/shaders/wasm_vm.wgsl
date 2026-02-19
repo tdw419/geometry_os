@@ -25,6 +25,7 @@
 @group(0) @binding(5) var spatial_texture: texture_2d<f32>;
 @group(0) @binding(6) var spatial_sampler: sampler;
 @group(0) @binding(7) var<storage, read_write> output_buffer: array<u32>;
+@group(0) @binding(8) var<storage, read_write> console_buffer_storage: array<u32>;
 
 struct VMConfig {
     bytecode_size: u32,
@@ -1553,6 +1554,19 @@ fn execute_instruction(opcode: u32, pc_ptr: ptr<function, u32>) -> bool {
                 // host_random() - returns u32
                 let result = host_random();
                 push_value(result);
+            } else if func_index == HOST_PRINT_I32 {
+                // host_print_i32(value)
+                let value = pop_value();
+                host_print_i32(value);
+            } else if func_index == HOST_PRINT_F32 {
+                // host_print_f32(value)
+                let value = pop_f32();
+                host_print_f32(value);
+            } else if func_index == HOST_PRINT_STR {
+                // host_print_str(addr_ptr, length)
+                let length = pop_value();
+                let addr_ptr = pop_value();
+                host_print_str(addr_ptr, length);
             } else {
                 // Type checking would happen here in a full implementation
                 // For now, we'll do basic bounds checking for regular functions
@@ -2236,8 +2250,8 @@ fn host_read_region(x: u32, y: u32, width: u32, height: u32, data_pointer: u32) 
     let read_height = min(height, tex_height - min(y, tex_height));
 
     // Read pixels and write to linear memory
-    for (py = 0u; py < read_height; py++) {
-        for (px = 0u; px < read_width; px++) {
+    for (var py = 0u; py < read_height; py++) {
+        for (var px = 0u; px < read_width; px++) {
             let tex_x = min(x + px, tex_width - 1u);
             let tex_y = min(y + py, tex_height - 1u);
 
@@ -2282,7 +2296,7 @@ fn host_write_region(x: u32, y: u32, width: u32, height: u32, data_pointer: u32)
 
     // Write pixel data to output buffer
     let pixel_count = width * height;
-    for (i = 0u; i < pixel_count; i++) {
+    for (var i = 0u; i < pixel_count; i++) {
         let mem_offset = data_pointer + i;
         let word_index = mem_offset / 4u;
 
@@ -2368,6 +2382,67 @@ fn host_random() -> u32 {
 }
 
 // ============================================
+// CONSOLE I/O HOST FUNCTIONS
+// ============================================
+
+// Host function indices for console I/O
+const HOST_PRINT_I32: u32 = 11u;
+const HOST_PRINT_F32: u32 = 12u;
+const HOST_PRINT_STR: u32 = 13u;
+
+// Console output index (stored in globals[15] for persistence)
+const CONSOLE_INDEX_GLOBAL: u32 = 15u;
+
+// host_print_i32(value) - Print integer to console buffer
+fn host_print_i32(value: u32) {
+    let idx = globals[CONSOLE_INDEX_GLOBAL];
+    if idx < arrayLength(&console_buffer_storage) {
+        console_buffer_storage[idx] = value;  // Plain integer (no marker)
+        globals[CONSOLE_INDEX_GLOBAL] = idx + 1u;
+    }
+}
+
+// host_print_f32(value) - Print float to console buffer
+fn host_print_f32(value: f32) {
+    let idx = globals[CONSOLE_INDEX_GLOBAL];
+    if idx < arrayLength(&console_buffer_storage) {
+        // Convert f32 to u32 bit pattern and set high bit to indicate float
+        let bits = bitcast<u32>(value);
+        console_buffer_storage[idx] = bits | 0x80000000u;
+        globals[CONSOLE_INDEX_GLOBAL] = idx + 1u;
+    }
+}
+
+// host_print_str(addr_ptr, length) - Print string from linear memory
+fn host_print_str(addr_ptr: u32, length: u32) {
+    let idx = globals[CONSOLE_INDEX_GLOBAL];
+
+    // Write string header (length with string marker)
+    if idx < arrayLength(&console_buffer_storage) {
+        // High 2 bits = 11 (string marker), low 30 bits = length
+        console_buffer_storage[idx] = length | 0xC0000000u;
+        var current_idx = idx + 1u;
+        globals[CONSOLE_INDEX_GLOBAL] = current_idx;
+
+        // Write each character (up to 256 chars)
+        let max_chars = min(length, 256u);
+        for (var i = 0u; i < max_chars; i++) {
+            if current_idx < arrayLength(&console_buffer_storage) {
+                let word_idx = (addr_ptr + i) / 4u;
+                let byte_offset = (addr_ptr + i) % 4u;
+                if word_idx < arrayLength(&linear_memory) {
+                    let word = linear_memory[word_idx];
+                    let byte_val = (word >> (byte_offset * 8u)) & 0xFFu;
+                    console_buffer_storage[current_idx] = byte_val;
+                    current_idx += 1u;
+                }
+            }
+        }
+        globals[CONSOLE_INDEX_GLOBAL] = current_idx;
+    }
+}
+
+// ============================================
 // MAIN EXECUTION LOOP
 // ============================================
 
@@ -2387,6 +2462,8 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>,
         atomicStore(&output_index_counter, 0u);
         // Initialize random seed with a non-zero value
         atomicStore(&random_seed, 12345u);
+        // Initialize console index in globals
+        globals[CONSOLE_INDEX_GLOBAL] = 0u;
     }
     workgroupBarrier();
     

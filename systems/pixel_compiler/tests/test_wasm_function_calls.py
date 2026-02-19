@@ -127,6 +127,21 @@ class TestFunctionCallConvention:
 
         assert result is None
 
+    def test_get_return_value_after_execution(self):
+        """Test that get_return_value returns the actual return value after execution."""
+        from systems.pixel_compiler.wasm_gpu_bridge import WASMGPUBridge
+
+        bridge = WASMGPUBridge()
+
+        # Execute WASM (mock mode returns 42)
+        exec_result = bridge.execute(wasm_bytes=b'\x00asm\x01\x00\x00\x00')
+
+        # get_return_value() should return the same value as ExecutionResult.return_value
+        returned = bridge.get_return_value()
+
+        assert returned == exec_result.return_value, \
+            f"get_return_value() returned {returned}, but expected {exec_result.return_value}"
+
     def test_entry_point_used_in_execute(self):
         """Test that entry point is used in execute()."""
         from systems.pixel_compiler.wasm_gpu_bridge import WASMGPUBridge

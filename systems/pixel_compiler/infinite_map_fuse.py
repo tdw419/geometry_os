@@ -47,6 +47,7 @@ from systems.rts_fuse.hilbert_lut import HilbertLUT
 from systems.pixel_compiler.vat_parser import VATParser, VATInspector, VATNotFoundError
 from systems.pixel_compiler.infinite_map_v2 import ClusterLocation, VisualAllocationTable
 from systems.pixel_compiler.infinite_map_cache import LRUCache
+from systems.pixel_compiler.infinite_map_wal import WALManager
 import numpy as np
 
 @dataclass
@@ -446,6 +447,19 @@ class InfiniteMapFilesystem(RTSFilesystem):
 
         if enable_writes:
             print("    Write support enabled (experimental)")
+            # Initialize WAL for crash recovery
+            # Note: auto_recover=False here - we'll recover after full init
+            wal_dir = str(Path(container_path).parent / (Path(container_path).stem + "_wal"))
+            try:
+                self.wal = WALManager(wal_dir, self, auto_recover=False)
+                print(f"    WAL: Enabled at {wal_dir}")
+                # Now perform recovery after filesystem is fully initialized
+                self.wal.recover_if_needed()
+            except Exception as e:
+                print(f"    WAL: Warning - Failed to initialize: {e}")
+                self.wal = None
+        else:
+            self.wal = None
 
         # Phase 2.2: Access Pattern Tracking
         self.access_counts = defaultdict(int)
@@ -453,6 +467,16 @@ class InfiniteMapFilesystem(RTSFilesystem):
 
     def destroy(self, path):
         """Called on filesystem unmount."""
+        # Close WAL first (checkpoint any pending transactions)
+        if self.wal is not None:
+            print(f"[*] Closing WAL...")
+            try:
+                self.wal.checkpoint()
+                self.wal.close()
+                print(f"    WAL checkpoint created and closed")
+            except Exception as e:
+                print(f"    Warning: Error closing WAL: {e}")
+
         print(f"[*] Saving access stats to {self.access_log_path}...")
         print(f"    Access counts: {dict(self.access_counts)}")
         try:
@@ -1190,6 +1214,33 @@ class InfiniteMapFilesystem(RTSFilesystem):
         # Normalize path
         filename = path[1:] if path.startswith('/') else path
 
+        # Use WAL for crash recovery if available
+        if self.wal is not None:
+            return self._write_with_wal(path, filename, data, offset)
+
+        return self._write_internal(path, filename, data, offset)
+
+    def _write_with_wal(self, path: str, filename: str, data: bytes, offset: int) -> int:
+        """
+        Write with WAL transaction for crash recovery.
+        """
+        try:
+            with self.wal.transaction() as txn:
+                # Log the write intent before performing it
+                self.wal.write(txn.txn_id, path, data, offset)
+
+                # Perform the actual write
+                result = self._write_internal(path, filename, data, offset)
+
+                return result
+        except Exception as e:
+            print(f"Error in WAL transaction: {e}")
+            raise FuseOSError(errno.EIO)
+
+    def _write_internal(self, path: str, filename: str, data: bytes, offset: int) -> int:
+        """
+        Internal write implementation without WAL.
+        """
         # Get or create file info (thread-safe)
         with self.lock:
             if filename not in self.container.vat.entries:

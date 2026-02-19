@@ -155,6 +155,10 @@ class FlorenceModel:
             x, y, w, h = region
             image = image.crop((x, y, x + w, y + h))
 
+        # Ensure RGB mode
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+
         # Use OCR_WITH_REGION for bounding boxes
         task = self.TASK_OCR_WITH_REGION
 
@@ -257,6 +261,10 @@ class FlorenceModel:
         if not self.is_loaded():
             raise RuntimeError("Model not loaded. Call load() first.")
 
+        # Ensure RGB mode
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+
         # Use OD task - task token must be the only text
         task = self.TASK_OD
 
@@ -321,6 +329,10 @@ class FlorenceModel:
         """
         if not self.is_loaded():
             raise RuntimeError("Model not loaded. Call load() first.")
+
+        # Ensure RGB mode
+        if image.mode != "RGB":
+            image = image.convert("RGB")
 
         # For phrase grounding, the format is task_token + space + caption
         prompt = f"{self.TASK_CAPTION_TO_GROUNDING} {text}"

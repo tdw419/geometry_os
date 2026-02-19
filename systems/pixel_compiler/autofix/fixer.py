@@ -103,6 +103,8 @@ class AutofixGenerator:
             return self._fix_attribute_error(error_message, line_number, lines)
         elif error_type == "IndexError":
             return self._fix_index_error(error_message, line_number, lines)
+        elif error_type == "ZeroDivisionError":
+            return self._fix_zero_division_error(error_message, line_number, lines)
         else:
             return {
                 "patch": None,
@@ -375,6 +377,66 @@ class AutofixGenerator:
             "patch": None,
             "confidence": 0.0,
             "explanation": "No specific fix pattern matched for this IndexError",
+            "lines_modified": []
+        }
+
+    def _fix_zero_division_error(self, error_message: str, line_number: int, lines: list) -> Dict[str, Any]:
+        """Generate fix for zero division errors.
+
+        Common patterns:
+        - Division by len() of empty list -> add empty check
+        - Division by zero variable -> add zero check
+        """
+        if line_number < 1 or line_number > len(lines):
+            return {"patch": None, "confidence": 0.0, "explanation": "Invalid line number", "lines_modified": []}
+
+        original_line = lines[line_number - 1]
+
+        # Pattern 1: Division by len(x) - add empty check
+        len_div_match = re.search(r'/\s*len\((\w+)\)', original_line)
+        if len_div_match:
+            var = len_div_match.group(1)
+            indent = len(original_line) - len(original_line.lstrip())
+
+            # Add guard for empty list
+            guard = f"{' ' * indent}if not {var}:"
+            return_line = " " * (indent + 4) + f"return 0  # Handle empty {var}"
+            indented_line = " " * (indent + 4) + original_line.lstrip()
+
+            new_lines = lines[:line_number - 1] + [guard, return_line, indented_line] + lines[line_number:]
+            return {
+                "patch": "\n".join(new_lines),
+                "confidence": 0.85,
+                "explanation": f"Added empty list check before division by len({var})",
+                "lines_modified": [line_number, line_number + 1, line_number + 2]
+            }
+
+        # Pattern 2: Direct division by variable - add zero check
+        var_div_match = re.search(r'/\s*(\w+)\s*$', original_line)
+        if var_div_match:
+            divisor = var_div_match.group(1)
+            indent = len(original_line) - len(original_line.lstrip())
+
+            # Add ternary for zero check
+            fixed_line = re.sub(
+                rf'/\s*{divisor}\s*$',
+                f'/ {divisor} if {divisor} != 0 else 1  # Avoid division by zero',
+                original_line
+            )
+            if fixed_line != original_line:
+                new_lines = lines.copy()
+                new_lines[line_number - 1] = fixed_line
+                return {
+                    "patch": "\n".join(new_lines),
+                    "confidence": 0.75,
+                    "explanation": f"Added zero check for divisor '{divisor}'",
+                    "lines_modified": [line_number]
+                }
+
+        return {
+            "patch": None,
+            "confidence": 0.0,
+            "explanation": "No specific fix pattern matched for this ZeroDivisionError",
             "lines_modified": []
         }
 
