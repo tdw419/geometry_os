@@ -55,3 +55,10 @@ test_*.ll.worktrees/
 
 # Git worktrees
 .worktrees/
+
+# Large build artifacts (exceed GitHub 100MB limit)
+systems/visual_shell/electron/dist/
+*.AppImage
+*.snap
+*.rts.png
+*_zip
