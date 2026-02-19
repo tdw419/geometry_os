@@ -183,3 +183,129 @@ if (typeof require !== 'undefined' && require.main === module) {
 if (typeof window !== 'undefined') {
     window.runNeuralCityFilterTests = runTests;
 }
+
+// ============================================
+// Task 3: MutationPulse Tests
+// ============================================
+
+async function runMutationPulseTests() {
+    console.log('\n=== MutationPulse Test Suite ===\n');
+
+    // Test 1: should have mutation pulse uniform
+    console.log('Test 1: should have mutation pulse uniform');
+    try {
+        const filter = new NeuralCityFilter();
+        assert(filter.uniforms.uMutationPulse !== undefined, 'uMutationPulse should be defined');
+        assert(filter.uniforms.uMutationPulse === 0, 'uMutationPulse should be 0 initially');
+        assert(filter.uniforms.uMutationFocusX !== undefined, 'uMutationFocusX should be defined');
+        assert(filter.uniforms.uMutationFocusY !== undefined, 'uMutationFocusY should be defined');
+        assert(filter.uniforms.uDistrictUpgrade !== undefined, 'uDistrictUpgrade should be defined');
+        assert(filter.uniforms.uMutationScale !== undefined, 'uMutationScale should be defined');
+        testResults.push({ group: 'MutationPulse Uniforms', passed: true });
+    } catch (e) {
+        assert(false, 'Mutation pulse uniform test failed: ' + e.message);
+    }
+
+    // Test 2: should trigger mutation pulse
+    console.log('\nTest 2: should trigger mutation pulse');
+    try {
+        const filter = new NeuralCityFilter();
+        filter.triggerMutation(0.5, 0.3);
+
+        assert(filter.uniforms.uMutationPulse > 0, 'uMutationPulse should be greater than 0');
+        assert(filter.uniforms.uMutationFocusX === 0.5, 'uMutationFocusX should be 0.5');
+        assert(filter.uniforms.uMutationFocusY === 0.3, 'uMutationFocusY should be 0.3');
+        assert(filter.uniforms.uMutationScale > 1.0, 'uMutationScale should increase during morph');
+        testResults.push({ group: 'Trigger Mutation', passed: true });
+    } catch (e) {
+        assert(false, 'Trigger mutation test failed: ' + e.message);
+    }
+
+    // Test 3: should decay mutation pulse over time
+    console.log('\nTest 3: should decay mutation pulse over time');
+    try {
+        const filter = new NeuralCityFilter();
+        filter.triggerMutation(0.5, 0.5);
+        const initialPulse = filter.uniforms.uMutationPulse;
+
+        // Simulate 3 frames of 16ms each
+        filter.update(16);
+        filter.update(16);
+        filter.update(16);
+
+        assert(filter.uniforms.uMutationPulse < initialPulse, 'uMutationPulse should decay over time');
+        testResults.push({ group: 'Mutation Decay', passed: true });
+    } catch (e) {
+        assert(false, 'Mutation decay test failed: ' + e.message);
+    }
+
+    // Test 4: should set district upgrade animation
+    console.log('\nTest 4: should set district upgrade animation');
+    try {
+        const filter = new NeuralCityFilter();
+        filter.startDistrictUpgrade('5_12', 'rust', 'gold');
+
+        assert(filter.uniforms.uDistrictUpgrade === 1, 'uDistrictUpgrade should be 1');
+        assert(Array.isArray(filter.uniforms.uUpgradeFrom), 'uUpgradeFrom should be an array');
+        assert(Array.isArray(filter.uniforms.uUpgradeTo), 'uUpgradeTo should be an array');
+        assert(filter.uniforms.uUpgradeFrom.length === 4, 'uUpgradeFrom should have 4 components');
+        assert(filter.uniforms.uUpgradeTo.length === 4, 'uUpgradeTo should have 4 components');
+        // Verify the colors match materials
+        assert(filter.uniforms.uUpgradeFrom[0] > 0.7, 'Rust red should be ~0.72');
+        assert(filter.uniforms.uUpgradeTo[0] === 1.0, 'Gold red should be 1.0');
+        testResults.push({ group: 'District Upgrade', passed: true });
+    } catch (e) {
+        assert(false, 'District upgrade test failed: ' + e.message);
+    }
+
+    // Test 5: should decay mutation scale back to normal
+    console.log('\nTest 5: should decay mutation scale back to normal');
+    try {
+        const filter = new NeuralCityFilter();
+        filter.triggerMutation(0.5, 0.5);
+        assert(filter.uniforms.uMutationScale > 1.0, 'Initial scale should be > 1.0');
+
+        // Simulate many frames to get scale back to normal
+        for (let i = 0; i < 30; i++) {
+            filter.update(16);
+        }
+
+        assert(filter.uniforms.uMutationScale === 1.0, 'Scale should return to 1.0');
+        testResults.push({ group: 'Scale Decay', passed: true });
+    } catch (e) {
+        assert(false, 'Scale decay test failed: ' + e.message);
+    }
+
+    // Summary for mutation tests
+    const mutationTests = testResults.filter(r => r.group && r.group.includes('Mutation'));
+    return mutationTests;
+}
+
+// Combined test runner
+async function runAllTests() {
+    await runTests();
+    await runMutationPulseTests();
+
+    console.log('\n=== Combined Test Summary ===');
+    const passed = testResults.filter(r => r.passed).length;
+    const total = testResults.length;
+    console.log('Passed: ' + passed + '/' + total);
+
+    if (passed === total) {
+        console.log('\nAll tests passed!');
+    } else {
+        console.log('\nSome tests failed.');
+    }
+
+    return { passed, total, results: testResults };
+}
+
+// Run combined tests if executed directly
+if (typeof require !== 'undefined' && require.main === module) {
+    runAllTests().then(function(result) {
+        process.exit(result.passed === result.total ? 0 : 1);
+    }).catch(function(err) {
+        console.error('Test runner error:', err);
+        process.exit(1);
+    });
+}

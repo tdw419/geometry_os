@@ -56,7 +56,27 @@ class NeuralCityFilter extends (typeof PIXI !== 'undefined' ? PIXI.Filter : Obje
             uMaterialGold: materials.gold,
             uMaterialSteel: materials.steel,
             uMaterialRust: materials.rust,
-            uMaterialDust: materials.dust
+            uMaterialDust: materials.dust,
+            // Task 3: The Pulse system
+            uPulseX: new Float32Array(64),
+            uPulseY: new Float32Array(64),
+            uPulseAge: new Float32Array(64),
+            uPulseType: new Float32Array(64), // 0.0=Neural, 1.0=Silicon
+            uPulseCount: 0,
+            // Task 5: Synaptic Query Highlights
+            uHighlightX: new Float32Array(16),
+            uHighlightY: new Float32Array(16),
+            uHighlightCount: 0,
+            // Task 1: Tectonic Drift (V15)
+            uDriftTexture: options.driftTexture || null,
+            // Task 3: MutationPulse for building morph animations
+            uMutationPulse: 0,         // Pulse intensity (0-1)
+            uMutationFocusX: 0.5,      // Focus X for morph
+            uMutationFocusY: 0.5,      // Focus Y for morph
+            uDistrictUpgrade: 0,       // District upgrade flag
+            uUpgradeFrom: [0, 0, 0, 0], // From material color
+            uUpgradeTo: [0, 0, 0, 0],   // To material color
+            uMutationScale: 1.0        // Building scale during morph
         };
 
         // Note: PIXI v8 uses Filter.from() or a similar constructor
@@ -66,6 +86,13 @@ class NeuralCityFilter extends (typeof PIXI !== 'undefined' ? PIXI.Filter : Obje
         this.uniforms = uniforms;
         this.materials = materials;
         this.filter = null;
+
+        // Mutation animation state
+        this.mutationDecay = 0.95;  // Decay per frame
+        this.upgradeBlendDuration = 1000; // ms
+        this._upgradeStartTime = null;
+        this._upgradeDistrictId = null;
+
         console.log('✓ NeuralCityFilter initialized');
     }
 
@@ -75,6 +102,32 @@ class NeuralCityFilter extends (typeof PIXI !== 'undefined' ? PIXI.Filter : Obje
      * @param {number} delta - Delta time in milliseconds
      */
     update(delta) {
+        // Decay mutation pulse
+        if (this.uniforms.uMutationPulse > 0) {
+            this.uniforms.uMutationPulse *= this.mutationDecay;
+            if (this.uniforms.uMutationPulse < 0.01) {
+                this.uniforms.uMutationPulse = 0;
+            }
+        }
+
+        // Decay mutation scale back to normal
+        if (this.uniforms.uMutationScale > 1.0) {
+            this.uniforms.uMutationScale -= 0.01;
+            if (this.uniforms.uMutationScale < 1.0) {
+                this.uniforms.uMutationScale = 1.0;
+            }
+        }
+
+        // Handle district upgrade blend
+        if (this.uniforms.uDistrictUpgrade > 0 && this._upgradeStartTime) {
+            const elapsed = Date.now() - this._upgradeStartTime;
+            if (elapsed >= this.upgradeBlendDuration) {
+                this.uniforms.uDistrictUpgrade = 0;
+                this._upgradeStartTime = null;
+            }
+        }
+
+        // Update time uniform
         this.uniforms.uTime += delta * 0.01;
     }
 
@@ -125,6 +178,18 @@ class NeuralCityFilter extends (typeof PIXI !== 'undefined' ? PIXI.Filter : Obje
         }
     }
 
+    /**
+     * Set synaptic query highlight points
+     * @param {Float32Array} x - X coordinates
+     * @param {Float32Array} y - Y coordinates
+     * @param {number} count - Number of points
+     */
+    setHighlights(x, y, count) {
+        this.uniforms.uHighlightX = x;
+        this.uniforms.uHighlightY = y;
+        this.uniforms.uHighlightCount = count;
+    }
+
     setResolution(width, height) {
         this.uniforms.uResolution = [width, height];
     }
@@ -172,6 +237,40 @@ class NeuralCityFilter extends (typeof PIXI !== 'undefined' ? PIXI.Filter : Obje
             uniforms: this.uniforms
         };
     }
+
+    /**
+     * Trigger a mutation pulse at specific location
+     * Creates a "heal" animation where building glows and scales
+     * @param {number} x - Focus X position (0-1)
+     * @param {number} y - Focus Y position (0-1)
+     */
+    triggerMutation(x, y) {
+        this.uniforms.uMutationPulse = 1.0;
+        this.uniforms.uMutationFocusX = x;
+        this.uniforms.uMutationFocusY = y;
+        this.uniforms.uMutationScale = 1.2; // Scale up during morph
+    }
+
+    /**
+     * Start a district-level upgrade animation
+     * Interpolates entire district from one material to another
+     * @param {string} districtId - District identifier (e.g., "5_12")
+     * @param {string} fromMaterial - Source material name
+     * @param {string} toMaterial - Target material name
+     */
+    startDistrictUpgrade(districtId, fromMaterial, toMaterial) {
+        const fromColor = this.getMaterialColor(fromMaterial);
+        const toColor = this.getMaterialColor(toMaterial);
+
+        this.uniforms.uDistrictUpgrade = 1;
+        this.uniforms.uUpgradeFrom = fromColor;
+        this.uniforms.uUpgradeTo = toColor;
+        this.uniforms.uMutationPulse = 0.8;
+
+        this._upgradeStartTime = Date.now();
+        this._upgradeDistrictId = districtId;
+    }
+
     setMetabolism(ipc, throttleLevel) {
         // Clamp IPC to valid range [0.0, 1.0]
         this.uniforms.uMetabolismIPC = Math.max(0.0, Math.min(1.0, ipc));
