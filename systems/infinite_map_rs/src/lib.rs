@@ -35,6 +35,14 @@ pub use cartridge_registry::{CartridgeEntry, CartridgeRegistry};
 pub mod cartridge_texture_manager;
 pub use cartridge_texture_manager::{CartridgeTextureManager, CartridgeTexture, CartridgeTextureStats};
 
+// Phase 28: Tectonic Realignment System
+pub mod tectonic;
+pub use tectonic::{
+    TectonicSimulator, TectonicConfig, PulseEvent, LayoutDelta,
+    CognitiveBond, CognitiveBondGraph, BondType,
+    ForceDirectedSolver, HilbertConstraint, TectonicAsciiRenderer,
+};
+
 // Re-export main types for convenience
 pub use compositor::Compositor;
 
