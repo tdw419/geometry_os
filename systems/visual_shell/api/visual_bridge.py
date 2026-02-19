@@ -25,6 +25,10 @@ from websockets.server import serve
 import numpy as np
 import argparse
 from pathlib import Path
+from typing import Dict, Any, Optional, List
+
+# Import SynapticQueryEngine for semantic search
+from systems.neural_city.synaptic_query_engine import SynapticQueryEngine
 
 class VisualBridge:
     def __init__(self, memory_socket="/tmp/vector_memory_daemon.sock", ws_port=8768, map_size=4096):
@@ -106,6 +110,15 @@ class VisualBridge:
                         }
                     })
 
+                # 3b. RISC-V Execution State (Execution Traces)
+                elif msg_type == 'riscv_state':
+                    # Broadcast execution state to browser for Silicon District pulses
+                    print(f"⚡ RISC-V State: PC=0x{data.get('pc', 0):08x}, Cycles={data.get('cycles', 0)}")
+                    await self._broadcast({
+                        'type': 'RISCV_STATE_UPDATE',
+                        'data': data
+                    })
+
                 # 4. Swarm Health Updates
                 elif msg_type == 'swarm_health':
                     # Broadcast Swarm Health to browser HUD
@@ -154,6 +167,11 @@ class VisualBridge:
                 # 9. Token Visualization Update (Neural City)
                 elif msg_type == 'token_visualization_update':
                     await self.relay_token_pulse(data)
+
+                # 10. Synaptic Query (Semantic Search)
+                elif msg_type == 'synaptic_query':
+                    response = await self._handle_synaptic_query(data)
+                    await websocket.send(json.dumps(response))
 
         except websockets.exceptions.ConnectionClosed:
             pass
@@ -208,6 +226,43 @@ class VisualBridge:
                 'message': f"Memory retrieval failed: {response.get('error')}"
             }))
 
+    async def _handle_synaptic_query(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Handle a synaptic_query message by routing to SynapticQueryEngine.
+
+        Args:
+            data: Dict containing 'query' (str) and optional 'limit' (int)
+
+        Returns:
+            Dict with:
+                - type: 'synaptic_query_response'
+                - results: List of search results
+                - navigate_to: Best match coordinates (or None if no results)
+        """
+        query_text = data.get('query', '')
+        limit = data.get('limit', 10)
+
+        # Create engine and execute query
+        engine = SynapticQueryEngine()
+        results = engine.query(query_text, limit=limit)
+
+        # Build response
+        response = {
+            'type': 'synaptic_query_response',
+            'results': results,
+            'navigate_to': None
+        }
+
+        # Include navigate_to for best match (highest similarity, already sorted)
+        if results:
+            best = results[0]
+            response['navigate_to'] = {
+                'x': best['x'],
+                'y': best['y']
+            }
+
+        return response
+
     async def _broadcast(self, data):
         """Broadcast a message to all connected clients"""
         if not self.clients:
@@ -252,6 +307,46 @@ def parse_args():
     parser.add_argument('--socket', default='/tmp/vector_memory_daemon.sock', help='Memory daemon socket')
     parser.add_argument('--map-size', type=int, default=4096, help='Map size for conversion')
     return parser.parse_args()
+
+
+# Standalone handler function for testing and external use
+async def handle_synaptic_query(bridge: Any, data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Standalone synaptic query handler for testing.
+
+    Args:
+        bridge: VisualBridge instance (or mock for testing)
+        data: Dict containing 'query' (str) and optional 'limit' (int)
+
+    Returns:
+        Dict with:
+            - type: 'synaptic_query_response'
+            - results: List of search results
+            - navigate_to: Best match coordinates (or None if no results)
+    """
+    query_text = data.get('query', '')
+    limit = data.get('limit', 10)
+
+    # Create engine and execute query
+    engine = SynapticQueryEngine()
+    results = engine.query(query_text, limit=limit)
+
+    # Build response
+    response = {
+        'type': 'synaptic_query_response',
+        'results': results,
+        'navigate_to': None
+    }
+
+    # Include navigate_to for best match (highest similarity, already sorted)
+    if results:
+        best = results[0]
+        response['navigate_to'] = {
+            'x': best['x'],
+            'y': best['y']
+        }
+
+    return response
 
 if __name__ == "__main__":
     args = parse_args()
