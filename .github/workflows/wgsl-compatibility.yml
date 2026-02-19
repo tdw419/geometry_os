@@ -1,0 +1,118 @@
+name: WGSL Compatibility Check
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main, develop ]
+
+jobs:
+  wgsl-compatibility:
+    name: Check WGSL Compatibility
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run WGSL compatibility checker
+        run: |
+          echo "🔍 Running WGSL compatibility check..."
+          ./.wgsl-tools/wgsl-compat-check.sh
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wgsl-check-results
+          path: |
+            wgsl-compat-report.txt
+          retention-days: 30
+
+  wgsl-tests:
+    name: Run WGSL Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run WGSL multiplication tests
+        run: |
+          cd systems/infinite_map_rs
+          cargo test --test wgsl_mulh_test --verbose
+
+      - name: Run integration tests
+        run: |
+          cd systems/infinite_map_rs
+          cargo test --test riscv_vm_integration_test --verbose
+
+  build-verification:
+    name: Verify Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build RISC-V GPU VM
+        run: |
+          cd systems/infinite_map_rs
+          cargo build --release --bin run_riscv
+
+      - name: Verify no i64/u64 errors
+        run: |
+          echo "Checking build output for i64/u64 errors..."
+          cd systems/infinite_map_rs
+          cargo build --release --bin run_riscv 2>&1 | grep -i "error.*i64\|error.*u64" && exit 1 || echo "✅ No i64/u64 errors found"
+
+  wgsl-audit:
+    name: Comprehensive WGSL Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run comprehensive audit
+        run: |
+          echo "📊 WGSL Project Audit"
+          echo "======================="
+          echo ""
+          echo "Total WGSL files:"
+          find . -name "*.wgsl" -type f | grep -v target | grep -v ".git" | wc -l
+          echo ""
+          echo "Checking for compatibility issues..."
+          ./.wgsl-tools/wgsl-compat-check.sh
+
+      - name: Generate audit report
+        if: always()
+        run: |
+          echo "# WGSL Audit Report" > wgsl-audit.md
+          echo "Generated: $(date)" >> wgsl-audit.md
+          echo "" >> wgsl-audit.md
+          echo "## Summary" >> wgsl-audit.md
+          ./wgsl-tools/wgsl-compat-check.sh >> wgsl-audit.md 2>&1 || true
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: wgsl-audit-report
+          path: wgsl-audit.md

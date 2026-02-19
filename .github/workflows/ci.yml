@@ -1,0 +1,192 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install system dependencies
+      run: |
+        apt-get update
+        apt-get install -y \
+          build-essential \
+          cmake \
+          python3 \
+          python3-pip \
+          python3-dev \
+          clang \
+          clang-tidy \
+          cppcheck \
+          valgrind \
+          git \
+          curl \
+          wget \
+          libssl-dev \
+          pkg-config \
+          libgtk-3-dev \
+          libcairo2-dev \
+          libpango1.0-dev \
+          libgdk-pixbuf2.0-dev \
+          libatk1.0-dev \
+          libgdk-pixbuf2.0-dev \
+          libgtk-3-0 \
+          x11-apps \
+          xvfb
+
+    - name: Install Python dependencies
+      run: |
+        python3 -m pip install --upgrade pip
+        pip3 install \
+          pytest \
+          pytest-cov \
+          pytest-xdist \
+          black \
+          flake8 \
+          mypy \
+          bandit \
+          safety \
+          matplotlib \
+          numpy \
+          pyyaml \
+          requests
+
+    - name: Cache build artifacts
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/pip
+          build/
+          bin/
+        key: ${{ runner.os }}-build-${{ hashFiles('**/build*.sh') }}
+        restore-keys: |
+          ${{ runner.os }}-build-
+
+    - name: Build VectorOS components
+      run: |
+        chmod +x build/*.sh
+        ./build/build_runner.sh
+        ./build/build_test.sh
+
+    - name: Run unit tests
+      run: |
+        ./run_integration_tests.sh --only-unit
+
+    - name: Run integration tests
+      run: |
+        ./run_integration_tests.sh --only-integration
+
+    - name: Run performance benchmarks
+      run: |
+        ./run_performance_benchmarks.sh --ci
+
+    - name: Code quality checks
+      run: |
+        # Python linting and formatting
+        echo "Running Python code quality checks..."
+        black --check --diff . || echo "Black formatting issues found"
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || echo "Flake8 issues found"
+        mypy . --ignore-missing-imports || echo "MyPy type checking issues found"
+
+        # C++ static analysis
+        echo "Running C++ static analysis..."
+        find . -name "*.cpp" -o -name "*.h" | head -10 | xargs -I {} sh -c 'cppcheck --enable=all --std=c++17 --language=c++ --suppress=missingIncludeSystem {} || true'
+
+    - name: Security scanning
+      run: |
+        echo "Running security scans..."
+        bandit -r . -f json -o security_report.json || echo "Bandit security scan completed with issues"
+        safety check --json > safety_report.json || echo "Safety dependency scan completed"
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ github.run_number }}
+        path: |
+          test_results/
+          benchmark_results/
+          security_report.json
+          safety_report.json
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      if: always()
+      with:
+        file: ./test_results/coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  build-artifacts:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
+    needs: test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install build dependencies
+      run: |
+        apt-get update
+        apt-get install -y \
+          build-essential \
+          cmake \
+          python3 \
+          python3-pip \
+          git \
+          curl \
+          wget \
+          grub-pc-bin \
+          xorriso \
+          libssl-dev \
+          pkg-config \
+          libgtk-3-dev \
+          libcairo2-dev \
+          libpango1.0-dev \
+          libgdk-pixbuf2.0-dev \
+          libatk1.0-dev
+
+    - name: Build VectorOS ISO
+      run: |
+        chmod +x build/*.sh
+        ./build/build_cortex_bundle.sh
+        ./build/build_vector_iso.sh
+
+    - name: Build documentation
+      run: |
+        ./build_docs.sh
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: vectoros-build-${{ github.run_number }}
+        path: |
+          VectorOS_v*.iso
+          VectorOS_v*.sha256
+          docs/_build/
+          bin/
+          build/
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [test, build-artifacts]
+    if: always()
+
+    steps:
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "CI pipeline failed. Check the logs for details."
+        # Add notification logic here (Slack, Discord, etc.)

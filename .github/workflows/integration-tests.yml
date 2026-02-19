@@ -1,0 +1,337 @@
+name: Integration Tests
+
+on:
+  # Trigger on push to main branches
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'geometry_os/**'
+      - '.github/workflows/integration-tests.yml'
+
+  # Trigger on pull requests
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - 'geometry_os/**'
+      - '.github/workflows/integration-tests.yml'
+
+  # Trigger nightly at 02:00 UTC
+  schedule:
+    - cron: '0 2 * * *'
+
+  # Allow manual workflow dispatch
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: 'Test suite to run (all, neural, health, cross-language)'
+        required: false
+        type: choice
+        options:
+          - all
+          - neural
+          - health
+          - cross-language
+        default: 'all'
+      verbose:
+        description: 'Run with verbose output'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  # ============================================================================
+  # Neural Pipeline Integration Tests
+  # ============================================================================
+  neural-pipeline-tests:
+    name: Neural Pipeline Integration Tests
+    runs-on: ubuntu-latest
+    if: |
+      github.event.inputs.test_suite == 'all' ||
+      github.event.inputs.test_suite == 'neural' ||
+      github.event.inputs.test_suite == ''
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            geometry_os/systems/infinite_map_rs/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install numpy aiohttp requests pytest pytest-asyncio pytest-cov
+          pip install pytest-xdist  # For parallel test execution
+
+      - name: Build Rust components
+        run: |
+          cd geometry_os/systems/infinite_map_rs
+          cargo build --release --bins
+
+      - name: Run neural pipeline integration tests
+        id: neural_tests
+        run: |
+          chmod +x geometry_os/scripts/test_e2e_pipeline.sh
+
+          if [ "${{ github.event.inputs.verbose }}" = "true" ]; then
+            ./geometry_os/scripts/test_e2e_pipeline.sh --verbose
+          else
+            ./geometry_os/scripts/test_e2e_pipeline.sh
+          fi
+        continue-on-error: false
+
+      - name: Run Python integration tests
+        run: |
+          pytest geometry_os/tests/integration/test_neural_pipeline.py -v \
+            --cov=geometry_os/systems/neural_substrate \
+            --cov-report=xml \
+            --cov-report=term-missing
+        continue-on-error: true
+
+      - name: Run SSE parser unit tests
+        run: |
+          pytest geometry_os/tests/unit/test_sse_parser.py -v
+        continue-on-error: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-test-results-${{ github.run_number }}
+          path: |
+            geometry_os/tests/integration/.pytest_cache/
+            /tmp/neural_pipeline_test_logs/
+          retention-days: 30
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-coverage-${{ github.run_number }}
+          path: |
+            geometry_os/coverage.xml
+            geometry_os/.coverage
+          retention-days: 30
+
+      - name: Publish coverage to Codecov
+        if: github.event_name != 'pull_request'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./geometry_os/coverage.xml
+          flags: neural-pipeline
+          name: neural-pipeline-coverage
+          fail_ci_if_error: false
+
+  # ============================================================================
+  # Health System Tests
+  # ============================================================================
+  health-system-tests:
+    name: Health System Tests
+    runs-on: ubuntu-latest
+    if: |
+      github.event.inputs.test_suite == 'all' ||
+      github.event.inputs.test_suite == 'health' ||
+      github.event.inputs.test_suite == ''
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install numpy aiohttp requests pytest pytest-cov
+
+      - name: Run SHM locking unit tests
+        id: shm_tests
+        run: |
+          pytest geometry_os/tests/unit/test_shm_locking.py -v \
+            --cov=geometry_os/systems/health \
+            --cov-report=xml
+        continue-on-error: false
+
+      - name: Run health check with diagnostics
+        run: |
+          python3 geometry_os/systems/health/software_shm.py --check > /tmp/shm_ci_check.log 2>&1 || true
+          cat /tmp/shm_ci_check.log
+
+      - name: Upload health test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-test-results-${{ github.run_number }}
+          path: |
+            /tmp/shm_ci_check.log
+            geometry_os/shm_report.json
+          retention-days: 30
+
+  # ============================================================================
+  # Cross-Language Interop Tests
+  # ============================================================================
+  cross-language-tests:
+    name: Cross-Language Interoperability Tests
+    runs-on: ubuntu-latest
+    if: |
+      github.event.inputs.test_suite == 'all' ||
+      github.event.inputs.test_suite == 'cross-language' ||
+      github.event.inputs.test_suite == ''
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install numpy pytest
+
+      - name: Run Hilbert consistency tests
+        id: hilbert_tests
+        run: |
+          pytest geometry_os/tests/cross_language/test_hilbert_consistency.py -v
+        continue-on-error: false
+
+      - name: Run RTS interoperability tests
+        id: rts_tests
+        run: |
+          pytest geometry_os/tests/cross_language/test_rts_interop.py -v
+        continue-on-error: false
+
+      - name: Upload cross-language test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-lang-test-results-${{ github.run_number }}
+          path: |
+            geometry_os/tests/cross_language/.pytest_cache/
+          retention-days: 30
+
+  # ============================================================================
+  # Full Integration Test Suite
+  # ============================================================================
+  full-integration:
+    name: Full Integration Test Suite
+    runs-on: ubuntu-latest
+    needs: [neural-pipeline-tests, health-system-tests, cross-language-tests]
+    if: always()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all test results
+        uses: actions/download-artifact@v4
+
+      - name: Generate integration test report
+        run: |
+          mkdir -p reports
+
+          cat > reports/integration-test-summary.md <<EOF
+          # Integration Test Summary
+
+          **Workflow Run:** #${{ github.run_number }}
+          **Event:** ${{ github.event_name }}
+          **Branch:** ${{ github.ref_name }}
+          **Commit:** ${{ github.sha }}
+          **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+          ## Test Results
+
+          ### Neural Pipeline Tests
+          - Status: ${{ needs.neural-pipeline-tests.result }}
+          - Suite: SSE parser, neural pipeline integration
+
+          ### Health System Tests
+          - Status: ${{ needs.health-system-tests.result }}
+          - Suite: SHM locking, health diagnostics
+
+          ### Cross-Language Tests
+          - Status: ${{ needs.cross-language-tests.result }}
+          - Suite: Hilbert consistency, RTS interoperability
+
+          ## Overall Status
+          EOF
+
+          if [ "${{ needs.neural-pipeline-tests.result }}" == "success" ] && \
+             [ "${{ needs.health-system-tests.result }}" == "success" ] && \
+             [ "${{ needs.cross-language-tests.result }}" == "success" ]; then
+            echo "- Status: PASSED" >> reports/integration-test-summary.md
+            echo "" >> reports/integration-test-summary.md
+            echo "All integration tests passed successfully!" >> reports/integration-test-summary.md
+          else
+            echo "- Status: FAILED" >> reports/integration-test-summary.md
+            echo "" >> reports/integration-test-summary.md
+            echo "One or more test suites failed. Please review the logs." >> reports/integration-test-summary.md
+          fi
+
+          cat reports/integration-test-summary.md
+
+      - name: Upload integration test summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-summary-${{ github.run_number }}
+          path: reports/integration-test-summary.md
+          retention-days: 90
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('reports/integration-test-summary.md', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+      - name: Notify on failure
+        if: failure() && github.event_name == 'schedule'
+        run: |
+          echo "::warning::Scheduled integration tests failed!"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"

@@ -1,0 +1,488 @@
+name: PixelRTS Blueprint Tests
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+    paths:
+      - 'systems/pixel_compiler/pixelrts_blueprint*.py'
+      - 'systems/pixel_compiler/tests/test_pixelrts_blueprint*.py'
+      - 'systems/pixel_compiler/benchmarks/**'
+      - '.github/workflows/blueprint-tests.yml'
+
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'systems/pixel_compiler/pixelrts_blueprint*.py'
+      - 'systems/pixel_compiler/tests/test_pixelrts_blueprint*.py'
+      - 'systems/pixel_compiler/benchmarks/**'
+      - '.github/workflows/blueprint-tests.yml'
+
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: 'Test suite to run'
+        required: false
+        type: choice
+        options:
+          - all
+          - unit
+          - integration
+          - benchmark
+          - security
+        default: 'all'
+      verbose:
+        description: 'Run with verbose output'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  PYTHON_VERSION: '3.11'
+  CACHE_VERSION: 'v1'
+
+jobs:
+  # ============================================================================
+  # Unit Tests Job
+  # ============================================================================
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            pytest>=7.0.0 \
+            pytest-cov>=4.0.0 \
+            pytest-xdist>=3.0.0 \
+            pytest-mock>=3.10.0 \
+            numpy>=1.24.0 \
+            pillow>=10.0.0
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ env.CACHE_VERSION }}-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ env.CACHE_VERSION }}-
+            ${{ runner.os }}-pip-
+
+      - name: Run unit tests
+        run: |
+          cd systems/pixel_compiler
+          if [ "${{ github.event.inputs.verbose }}" = "true" ]; then
+            pytest tests/test_pixelrts_blueprint*.py -v --tb=long -m "unit and not slow"
+          else
+            pytest tests/test_pixelrts_blueprint*.py -v --tb=short -m "unit and not slow"
+          fi
+
+      - name: Run unit tests with coverage
+        run: |
+          cd systems/pixel_compiler
+          pytest tests/test_pixelrts_blueprint*.py \
+            --cov=. \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --cov-report=html \
+            -m "unit and not slow"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./systems/pixel_compiler/coverage.xml
+          flags: blueprint-unit
+          name: blueprint-unit-coverage
+          fail_ci_if_error: false
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: blueprint-unit-coverage-${{ github.run_number }}
+          path: |
+            systems/pixel_compiler/coverage.xml
+            systems/pixel_compiler/htmlcov/
+          retention-days: 30
+
+  # ============================================================================
+  # Integration Tests Job
+  # ============================================================================
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            pytest>=7.0.0 \
+            pytest-cov>=4.0.0 \
+            pytest-xdist>=3.0.0 \
+            pytest-mock>=3.10.0 \
+            pytest-asyncio>=0.21.0 \
+            numpy>=1.24.0 \
+            pillow>=10.0.0 \
+            opencv-python>=4.8.0
+
+      - name: Run integration tests
+        run: |
+          cd systems/pixel_compiler
+          if [ "${{ github.event.inputs.verbose }}" = "true" ]; then
+            pytest tests/test_pixelrts_blueprint*.py -v --tb=long -m "integration"
+          else
+            pytest tests/test_pixelrts_blueprint*.py -v --tb=short -m "integration"
+          fi
+
+      - name: Run E2E tests
+        run: |
+          cd systems/pixel_compiler
+          if [ "${{ github.event.inputs.verbose }}" = "true" ]; then
+            pytest tests/test_pixelrts_blueprint*.py -v --tb=long -m "integration and slow"
+          else
+            pytest tests/test_pixelrts_blueprint*.py -v --tb=short -m "integration and slow"
+          fi
+
+      - name: Upload integration test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: blueprint-integration-results-${{ github.run_number }}
+          path: |
+            systems/pixel_compiler/.pytest_cache/
+            systems/pixel_compiler/test-results/
+          retention-days: 30
+
+  # ============================================================================
+  # Performance Tests Job
+  # ============================================================================
+  performance-tests:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            pytest>=7.0.0 \
+            pytest-benchmark>=4.0.0 \
+            numpy>=1.24.0 \
+            pillow>=10.0.0 \
+            opencv-python>=4.8.0 \
+            matplotlib>=3.7.0
+
+      - name: Run benchmark suite
+        run: |
+          cd systems/pixel_compiler
+          python -m pytest benchmarks/pattern_benchmark.py -v --benchmark-only
+
+      - name: Run blueprint encoder benchmarks
+        run: |
+          cd systems/pixel_compiler
+          python -c "
+          from benchmarks.pattern_benchmark import PatternBenchmark
+          import json
+
+          benchmark = PatternBenchmark(output_dir='./benchmark_results')
+          results = benchmark.benchmark_all(
+              sizes=[(256, 256), (512, 512), (1024, 1024)],
+              iterations=10
+          )
+
+          with open('benchmark_results.json', 'w') as f:
+              json.dump(benchmark.suite.to_dict(), f, indent=2)
+
+          benchmark.print_benchmark_report()
+          "
+
+      - name: Generate benchmark comparison
+        run: |
+          cd systems/pixel_compiler
+          python -c "
+          import json
+          from pathlib import Path
+
+          # Check if we have previous results to compare against
+          results_file = Path('benchmark_results.json')
+          if results_file.exists():
+              with open(results_file) as f:
+                  results = json.load(f)
+              print('Benchmark results generated successfully')
+              print(f'Total benchmarks: {len(results.get(\"results\", []))}')
+          else:
+              print('No benchmark results file found')
+          "
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: blueprint-benchmarks-${{ github.run_number }}
+          path: |
+            systems/pixel_compiler/benchmark_results/
+            systems/pixel_compiler/benchmark_results.json
+          retention-days: 90
+
+      - name: Comment benchmark results on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const resultsPath = 'systems/pixel_compiler/benchmark_results.json';
+
+            if (fs.existsSync(resultsPath)) {
+              const results = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
+
+              let comment = '## Blueprint Benchmark Results\n\n';
+              comment += '| Algorithm | Image Size | Avg Time (ms) | Throughput (img/s) |\n';
+              comment += '|-----------|------------|---------------|-------------------|\n';
+
+              for (const result of results.results || []) {
+                comment += `| ${result.algorithm} | ${result.image_size.join('x')} | ${result.avg_time.toFixed(2)} | ${result.throughput_ips.toFixed(2)} |\n`;
+              }
+
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+
+  # ============================================================================
+  # Security Tests Job
+  # ============================================================================
+  security-tests:
+    name: Security Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            pytest>=7.0.0 \
+            pytest-mock>=3.10.0 \
+            bandit>=1.7.5 \
+            safety>=2.3.0 \
+            numpy>=1.24.0 \
+            pillow>=10.0.0
+
+      - name: Run security unit tests
+        run: |
+          cd systems/pixel_compiler
+          pytest tests/ -v -m "security" -k "blueprint" || true
+
+      - name: Run Bandit security scan
+        run: |
+          cd systems/pixel_compiler
+          bandit -r . \
+            -f json \
+            -o bandit-report.json \
+            -f screen \
+            --exclude ./tests/,./benchmarks/ || true
+
+      - name: Run Bandit with confidence level
+        run: |
+          cd systems/pixel_compiler
+          bandit -r . \
+            -ll \
+            -f json \
+            -o bandit-report-high.json \
+            --exclude ./tests/,./benchmarks/ || true
+
+      - name: Run Safety check
+        run: |
+          safety check --json > safety-report.json || true
+          safety check || true
+
+      - name: Generate security summary
+        run: |
+          cd systems/pixel_compiler
+          python -c "
+          import json
+          from pathlib import Path
+
+          summary = {'security_tests': 'completed'}
+
+          # Parse bandit report
+          if Path('bandit-report.json').exists():
+              with open('bandit-report.json') as f:
+                  bandit = json.load(f)
+              summary['bandit_issues'] = len(bandit.get('results', []))
+              summary['bandit_high_confidence'] = bandit.get('metrics', {}).get('_totals', {}).get('SEVERITY.HIGH', 0)
+          else:
+              summary['bandit_issues'] = 'N/A'
+
+          # Parse safety report
+          if Path('safety-report.json').exists():
+              with open('safety-report.json') as f:
+                  safety = json.load(f)
+              summary['safety_issues'] = len(safety.get('vulnerabilities', []))
+          else:
+              summary['safety_issues'] = 'N/A'
+
+          with open('security-summary.json', 'w') as f:
+              json.dump(summary, f, indent=2)
+
+          print(json.dumps(summary, indent=2))
+          "
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: blueprint-security-reports-${{ github.run_number }}
+          path: |
+            systems/pixel_compiler/bandit-report.json
+            systems/pixel_compiler/bandit-report-high.json
+            systems/pixel_compiler/safety-report.json
+            systems/pixel_compiler/security-summary.json
+          retention-days: 90
+
+      - name: Upload SARIF for GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: systems/pixel_compiler/bandit-report.json
+          category: blueprint-bandit
+
+  # ============================================================================
+  # Full Test Suite Summary
+  # ============================================================================
+  test-summary:
+    name: Test Suite Summary
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, performance-tests, security-tests]
+    if: always()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Generate test summary
+        run: |
+          mkdir -p reports
+
+          cat > reports/blueprint-test-summary.md <<'EOF'
+          # PixelRTS Blueprint Layer - Test Summary
+
+          **Workflow Run:** #${{ github.run_number }}
+          **Event:** ${{ github.event_name }}
+          **Branch:** ${{ github.ref_name }}
+          **Commit:** ${{ github.sha }}
+          **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+          ## Test Results
+
+          | Job | Status |
+          |-----|--------|
+          | Unit Tests | ${{ needs.unit-tests.result }} |
+          | Integration Tests | ${{ needs.integration-tests.result }} |
+          | Performance Tests | ${{ needs.performance-tests.result }} |
+          | Security Tests | ${{ needs.security-tests.result }} |
+
+          ## Overall Status
+
+          EOF
+
+          if [ "${{ needs.unit-tests.result }}" == "success" ] && \
+             [ "${{ needs.integration-tests.result }}" == "success" ] && \
+             [ "${{ needs.performance-tests.result }}" == "success" ] && \
+             [ "${{ needs.security-tests.result }}" == "success" ]; then
+            echo "✅ **ALL TESTS PASSED**" >> reports/blueprint-test-summary.md
+          else
+            echo "❌ **SOME TESTS FAILED**" >> reports/blueprint-test-summary.md
+            echo "" >> reports/blueprint-test-summary.md
+            echo "Please review the logs for failed jobs." >> reports/blueprint-test-summary.md
+          fi
+
+          cat reports/blueprint-test-summary.md
+
+      - name: Upload test summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: blueprint-test-summary-${{ github.run_number }}
+          path: reports/blueprint-test-summary.md
+          retention-days: 90
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('reports/blueprint-test-summary.md', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+      - name: Fail if any job failed
+        if: |
+          needs.unit-tests.result == 'failure' ||
+          needs.integration-tests.result == 'failure' ||
+          needs.performance-tests.result == 'failure' ||
+          needs.security-tests.result == 'failure'
+        run: |
+          echo "::error::One or more test jobs failed. Check the logs for details."
+          exit 1

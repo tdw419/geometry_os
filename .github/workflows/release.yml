@@ -1,0 +1,183 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up release version
+      run: |
+        if [ "${{ github.event_name }}" = "push" ]; then
+          VERSION=${GITHUB_REF#refs/tags/}
+        else
+          VERSION=${{ github.event.inputs.version }}
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "Releasing version: $VERSION"
+
+    - name: Install build dependencies
+      run: |
+        apt-get update
+        apt-get install -y \
+          build-essential \
+          cmake \
+          python3 \
+          python3-pip \
+          python3-dev \
+          git \
+          curl \
+          wget \
+          grub-pc-bin \
+          xorriso \
+          libssl-dev \
+          pkg-config \
+          libgtk-3-dev \
+          libcairo2-dev \
+          libpango1.0-dev \
+          libgdk-pixbuf2.0-dev \
+          libatk1.0-dev
+
+    - name: Install Python dependencies
+      run: |
+        python3 -m pip install --upgrade pip
+        pip3 install \
+          pytest \
+          pytest-cov \
+          matplotlib \
+          numpy \
+          pyyaml \
+          requests \
+          twine \
+          build
+
+    - name: Build VectorOS components
+      run: |
+        chmod +x build/*.sh
+        ./build/build_runner.sh
+        ./build/build_test.sh
+
+    - name: Run full test suite
+      run: |
+        ./run_integration_tests.sh
+        ./run_performance_benchmarks.sh --ci
+
+    - name: Build release artifacts
+      run: |
+        # Build ISO
+        ./build/build_cortex_bundle.sh
+        ./build/build_vector_iso.sh
+
+        # Build documentation
+        ./build_docs.sh
+
+        # Create release archive
+        mkdir -p release_artifacts
+        cp VectorOS_v*.iso release_artifacts/
+        cp VectorOS_v*.sha256 release_artifacts/
+        cp -r docs/_build/html release_artifacts/docs
+        cp -r bin/* release_artifacts/ 2>/dev/null || true
+
+        # Create compressed archive
+        tar -czf VectorOS_${VERSION}.tar.gz release_artifacts/
+
+    - name: Generate release notes
+      run: |
+        # Extract changelog or generate from commits
+        if [ -f "CHANGELOG.md" ]; then
+          RELEASE_NOTES=$(cat CHANGELOG.md | head -50)
+        else
+          RELEASE_NOTES="## VectorOS ${VERSION}
+
+          ### Changes
+          $(git log --oneline --since='1 month ago' | head -20)
+
+          ### Build Information
+          - Built on: $(date)
+          - Commit: ${GITHUB_SHA}
+          - Branch: ${GITHUB_REF}
+          "
+        fi
+
+        echo "$RELEASE_NOTES" > release_notes.md
+
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ env.VERSION }}
+        release_name: VectorOS ${{ env.VERSION }}
+        body_path: release_notes.md
+        draft: false
+        prerelease: false
+
+    - name: Upload release assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: VectorOS_${{ env.VERSION }}.tar.gz
+        asset_name: VectorOS_${{ env.VERSION }}.tar.gz
+        asset_content_type: application/gzip
+
+    - name: Upload ISO to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: VectorOS_v*.iso
+        asset_name: VectorOS_${{ env.VERSION }}.iso
+        asset_content_type: application/octet-stream
+
+    - name: Upload SHA256 checksums
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: VectorOS_v*.sha256
+        asset_name: VectorOS_${{ env.VERSION }}.sha256
+        asset_content_type: text/plain
+
+    - name: Publish to PyPI (if applicable)
+      run: |
+        # If there are Python packages to publish
+        if [ -f "setup.py" ] || [ -f "pyproject.toml" ]; then
+          echo "Building and publishing Python package..."
+          python3 -m build
+          twine upload dist/* --skip-existing
+        else
+          echo "No Python package to publish"
+        fi
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+
+  notify-release:
+    runs-on: ubuntu-latest
+    needs: release
+    if: success()
+
+    steps:
+    - name: Notify successful release
+      run: |
+        echo "VectorOS ${{ env.VERSION }} has been successfully released!"
+        # Add notification logic here (Slack, Discord, email, etc.)

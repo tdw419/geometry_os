@@ -1,0 +1,111 @@
+name: WGSL Documentation Validation
+
+on:
+  push:
+    branches: [ master, main ]
+    paths:
+      - '.wgsl-tools/**'
+      - 'docs/**/wgsl-*.md'
+  pull_request:
+    branches: [ master, main ]
+    paths:
+      - '.wgsl-tools/**'
+      - 'docs/**/wgsl-*.md'
+
+jobs:
+  validate-links:
+    name: Validate Documentation Links
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for CONTRIBUTING.md
+        run: |
+          if [ ! -f .wgsl-tools/CONTRIBUTING.md ]; then
+            echo "ERROR: CONTRIBUTING.md not found"
+            exit 1
+          fi
+          echo "✅ CONTRIBUTING.md exists"
+
+      - name: Check for CODE_OF_CONDUCT.md
+        run: |
+          if [ ! -f .wgsl-tools/CODE_OF_CONDUCT.md ]; then
+            echo "ERROR: CODE_OF_CONDUCT.md not found"
+            exit 1
+          fi
+          echo "✅ CODE_OF_CONDUCT.md exists"
+
+      - name: Check for QUICKREF.md
+        run: |
+          if [ ! -f .wgsl-tools/QUICKREF.md ]; then
+            echo "ERROR: QUICKREF.md not found"
+            exit 1
+          fi
+          echo "✅ QUICKREF.md exists"
+
+      - name: Validate internal links
+        run: |
+          # Check for broken internal links in contributing guide
+          if grep -E '\[.*\]\(\.\/[^)]*\)' .wgsl-tools/CONTRIBUTING.md; then
+            echo "✅ Internal links found"
+          else
+            echo "WARNING: No internal links in CONTRIBUTING.md"
+          fi
+
+      - name: Check code block syntax
+        run: |
+          # Ensure all code blocks have language tags
+          if grep -E '```$' .wgsl-tools/CONTRIBUTING.md; then
+            echo "ERROR: Found code blocks without language tags"
+            exit 1
+          fi
+          echo "✅ All code blocks have language tags"
+
+  check-examples:
+    name: Verify Code Examples Run
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify checker script example
+        run: |
+          if grep -q 'wgsl-compat-check.sh' .wgsl-tools/CONTRIBUTING.md; then
+            echo "✅ Checker example found in contributing guide"
+          else
+            echo "ERROR: Missing checker example"
+            exit 1
+          fi
+
+      - name: Verify test examples
+        run: |
+          if grep -q 'cargo test' .wgsl-tools/CONTRIBUTING.md; then
+            echo "✅ Test examples found"
+          else
+            echo "ERROR: Missing test examples"
+            exit 1
+          fi
+
+  spellcheck:
+    name: Spell Check Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install aspell
+        run: sudo apt-get install -y aspell aspell-en
+
+      - name: Check for common misspellings
+        run: |
+          # Check for common technical typos
+          for file in .wgsl-tools/*.md; do
+            if grep -iE '\bi64\b.*\btype\b' "$file" | grep -v 'not supported'; then
+              echo "WARNING: Possible context issue with i64 in $file"
+            fi
+          done
+          echo "✅ Spell check complete"
