@@ -179,7 +179,7 @@ fn privilege_to_str(p: u32) -> &'static str {
 pub struct HeatHook {
     /// WebSocket sender (shared across threads)
     pub ws_sender: Arc<Mutex<Option<futures_util::stream::SplitSink<
-        tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+        tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>,
         Message
     >>>>,
     /// Grid size for heat map (default: 64)
@@ -192,7 +192,7 @@ pub struct HeatHook {
 
 impl HeatHook {
     pub fn new(ws_sender: Arc<Mutex<Option<futures_util::stream::SplitSink<
-        tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+        tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>,
         Message
     >>>>) -> Self {
         Self {
