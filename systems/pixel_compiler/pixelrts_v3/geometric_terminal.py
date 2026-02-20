@@ -346,6 +346,35 @@ class GeometricTerminal:
                 self.putc(chr(byte))
             # Ignore other control characters
 
+    def render_to_array(self) -> np.ndarray:
+        """
+        Render terminal to numpy array (H, W, 4).
+
+        Returns:
+            RGBA numpy array of the terminal texture
+        """
+        texture = np.zeros((self.grid_size, self.grid_size, 4), dtype=np.uint8)
+
+        for row in range(self.rows):
+            for col in range(self.cols):
+                cell = self.cells[row][col]
+
+                # Calculate linear index (row-major)
+                idx = row * self.cols + col
+
+                if self.use_hilbert and idx < self.grid_size * self.grid_size:
+                    x, y = self.hilbert.d2xy(idx)
+                else:
+                    x = col
+                    y = row
+
+                if x < self.grid_size and y < self.grid_size:
+                    r, g, b, a = cell.to_rgba()
+                    texture[y, x] = [r, g, b, a]
+
+        return texture
+
+
 
 def demo():
     """Demonstrate geometric terminal rendering."""
