@@ -119,7 +119,7 @@ _Design: Data Flow_
 
 ---
 
-### Task 1.5 [VERIFY] POC Checkpoint: E2E validation
+### Task 1.5 [VERIFY] POC Checkpoint: E2E validation [x]
 
 **Do**:
 1. Run batch analyzer fresh
@@ -161,7 +161,7 @@ print('POC VALIDATED')
 
 After POC validated, clean up code structure.
 
-### Task 2.1: Add type hints and docstrings to TruthTextureEncoder
+### Task 2.1: Add type hints and docstrings to TruthTextureEncoder [x]
 
 **Do**:
 1. Add comprehensive docstrings to `TruthTextureEncoder` class and methods
