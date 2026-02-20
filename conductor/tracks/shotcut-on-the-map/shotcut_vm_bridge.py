@@ -27,14 +27,13 @@ import json
 import subprocess
 import base64
 import os
-import signal
 import shutil
 import logging
 import argparse
 import socket
 from pathlib import Path
 from typing import Optional, Dict, Any
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 
 logging.basicConfig(
@@ -45,7 +44,6 @@ logger = logging.getLogger('shotcut-bridge')
 
 # Try to import optional dependencies
 try:
-    import websockets
     from websockets.server import serve
     HAS_WEBSOCKETS = True
 except ImportError:
@@ -98,11 +96,11 @@ class ShotcutVMBridge:
             sock.connect(self.vm.qmp_socket)
 
             # Read greeting
-            greeting = sock.recv(4096).decode()
+            sock.recv(4096).decode()
 
             # Send qmp_capabilities to negotiate
             sock.send(json.dumps({'execute': 'qmp_capabilities'}).encode() + b'\n')
-            response = sock.recv(4096).decode()
+            sock.recv(4096).decode()
 
             # Send actual command
             cmd = {'execute': command}
@@ -224,11 +222,11 @@ class ShotcutVMBridge:
 
         try:
             self.vm.status = 'booting'
-            
+
             # Redirect QEMU output to files to avoid pipe filling up
             qemu_log_out = open(f'/tmp/qemu-stdout-{self.vm.session_id}.log', 'w')
             qemu_log_err = open(f'/tmp/qemu-stderr-{self.vm.session_id}.log', 'w')
-            
+
             self.vm.process = subprocess.Popen(
                 qemu_cmd,
                 stdout=qemu_log_out,
@@ -301,11 +299,11 @@ class ShotcutVMBridge:
 
         try:
             self.vm.status = 'booting'
-            
+
             # Redirect QEMU output to files to avoid pipe filling up
             qemu_log_out = open(f'/tmp/qemu-stdout-{self.vm.session_id}.log', 'w')
             qemu_log_err = open(f'/tmp/qemu-stderr-{self.vm.session_id}.log', 'w')
-            
+
             self.vm.process = subprocess.Popen(
                 qemu_cmd,
                 stdout=qemu_log_out,
@@ -379,7 +377,9 @@ class ShotcutVMBridge:
             # Method 1: Use vncsnapshot if available
             vncsnapshot_path = shutil.which('vncsnapshot')
             if vncsnapshot_path:
-                logger.info(f"vncsnapshot found at: {vncsnapshot_path}. Attempting to capture screenshot.")
+                msg = f"vncsnapshot found at: {vncsnapshot_path}. "
+                msg += "Attempting to capture screenshot."
+                logger.info(msg)
                 try:
                     # Use display number (port - 5900), not raw port
                     display_num = self.vm.vnc_port - 5900
@@ -395,31 +395,32 @@ class ShotcutVMBridge:
                             'format': 'jpg'
                         }
                     else:
-                        error_msg = f"vncsnapshot failed with exit code {result.returncode}: {result.stderr.decode().strip()}"
-                        logger.warning(f"{error_msg} - falling back to QEMU screendump")
+                        err = result.stderr.decode().strip()
+                        emsg = f"vncsnapshot failed with exit code {result.returncode}: {err}"
+                        logger.warning(f"{emsg} - falling back to QEMU screendump")
                 except Exception as e:
-                    logger.warning(f"vncsnapshot exception: {e} - falling back to QEMU screendump")
+                    logger.warning(f"vncsnapshot exception: {e} - falling back")
             else:
                 logger.info("vncsnapshot not found, trying QEMU screendump")
 
-            # Method 2: Use QEMU QMP for screendump (more reliable than HMP monitor)
+            # Method 2: Use QEMU QMP for screendump (more reliable than HMP)
             logger.info("Attempting screendump via QMP socket...")
             screenshot_path = f'/tmp/shotcut-screenshot-{self.vm.session_id}.ppm'
             qmp_socket = f'/tmp/qemu-qmp-{self.vm.session_id}.sock'
 
             if os.path.exists(qmp_socket):
                 try:
-                    logger.info(f"Sending screendump via QMP socket")
+                    logger.info("Sending screendump via QMP socket")
                     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                     sock.settimeout(5)
                     sock.connect(qmp_socket)
 
                     # Read greeting
-                    greeting = sock.recv(4096).decode()
+                    sock.recv(4096).decode()
 
                     # Negotiate capabilities
                     sock.send(json.dumps({'execute': 'qmp_capabilities'}).encode() + b'\n')
-                    response = sock.recv(4096).decode()
+                    sock.recv(4096).decode()
 
                     # Send screendump command via QMP
                     cmd = {'execute': 'screendump', 'arguments': {'filename': screenshot_path}}
@@ -554,7 +555,7 @@ class ShotcutVMBridge:
         # Scale coordinates from 1024x768 to 0-32767 for usb-tablet
         raw_x = event.get('x', 0)
         raw_y = event.get('y', 0)
-        
+
         x = int(raw_x * 32767 / 1024)
         y = int(raw_y * 32767 / 768)
 
@@ -588,7 +589,7 @@ class ShotcutVMBridge:
         button_map = {1: 'left', 2: 'middle', 3: 'right'}
         btn_name = button_map.get(button, 'left')
 
-        result = self._send_qmp_command('input-send-event', {
+        self._send_qmp_command('input-send-event', {
             'events': [
                 {'type': 'btn', 'data': {'button': btn_name, 'down': True}},
                 {'type': 'btn', 'data': {'button': btn_name, 'down': False}}
@@ -611,7 +612,7 @@ class ShotcutVMBridge:
             '^': '6', '&': '7', '*': '8', '(': '9', ')': '0',
             '_': '-', '+': '=', '{': '[', '}': ']', '|': '\\'
         }
-        
+
         direct_chars = {
             '-': 'minus', '=': 'equal', '[': 'bracket_left', ']': 'bracket_right',
             '\\': 'backslash', ';': 'semicolon', "'": 'apostrophe', ',': 'comma',
@@ -721,6 +722,53 @@ class ShotcutVMBridge:
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
+    async def _capture_frame(self) -> Dict[str, Any]:
+        """Capture a single frame for real-time streaming."""
+        result = await self.handle_screenshot({})
+        if result.get('success'):
+            return {
+                'image': result.get('image', ''),
+                'format': result.get('format', 'png'),
+                'timestamp': datetime.now().isoformat()
+            }
+        return {
+            'image': '',
+            'format': 'png',
+            'timestamp': datetime.now().isoformat(),
+            'error': result.get('error', 'Screenshot failed')
+        }
+
+    async def handle_subscribe_frames(self, params: Dict[str, Any], websocket) -> None:
+        """
+        Subscribe to real-time frame streaming.
+
+        Args:
+            params: Dict with 'interval_ms' key specifying frame interval
+            websocket: WebSocket connection to send frames to
+        """
+        interval_ms = params.get('interval_ms', 1000)
+        interval_s = interval_ms / 1000.0
+
+        logger.info(f"Starting frame subscription with interval {interval_ms}ms")
+
+        try:
+            while True:
+                frame = await self._capture_frame()
+                message = json.dumps({
+                    'type': 'frame',
+                    'data': frame.get('image', ''),
+                    'format': frame.get('format', 'png'),
+                    'timestamp': frame.get('timestamp', '')
+                })
+                await websocket.send(message)
+                await asyncio.sleep(interval_s)
+        except asyncio.CancelledError:
+            logger.info("Frame subscription cancelled")
+            raise
+        except Exception as e:
+            logger.error(f"Frame subscription error: {e}")
+            raise
+
     async def handle_websocket(self, websocket, path):
         """Handle WebSocket connection."""
         self.clients.add(websocket)
@@ -764,7 +812,7 @@ class ShotcutVMBridge:
         logger.info(f"   Image: {self.image_path}")
 
         async with serve(self.handle_websocket, 'localhost', self.port):
-            logger.info(f"✅ Ready to accept connections")
+            logger.info("Ready to accept connections")
             await asyncio.Future()  # Run forever
 
 

@@ -3,14 +3,13 @@ Tests for WidgetDetector module.
 
 Follows TDD: Tests written BEFORE implementation.
 """
+from widget_detector import WidgetDetector, Widget, WidgetType
 import pytest
 import sys
 import os
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from widget_detector import WidgetDetector, Widget, WidgetType
 
 
 class TestWidgetDetector:

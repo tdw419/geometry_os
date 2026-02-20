@@ -8,6 +8,7 @@ import base64
 import subprocess
 from pathlib import Path
 
+
 def extract_text_ocr(image_path: str) -> str:
     """Extract text from image using tesseract OCR."""
     try:
@@ -24,6 +25,7 @@ def extract_text_ocr(image_path: str) -> str:
         return "[OCR unavailable - install tesseract-ocr]"
     except subprocess.TimeoutExpired:
         return "[OCR timeout]"
+
 
 async def send_command(output_path: str = None, do_ocr: bool = True):
     uri = "ws://localhost:8768"

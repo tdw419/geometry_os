@@ -35,6 +35,7 @@ INSTALL_SEQUENCE = [
     ("Erase", "y\n", 180),  # 3 min for install
 ]
 
+
 def main():
     print("=== Alpine Serial Console Installation ===\n")
 
@@ -139,6 +140,7 @@ def main():
         print("   SUCCESS: Installation appears complete!")
     else:
         print("   WARNING: Disk is small, installation may have failed.")
+
 
 if __name__ == "__main__":
     main()

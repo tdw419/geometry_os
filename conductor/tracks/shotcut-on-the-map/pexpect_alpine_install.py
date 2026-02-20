@@ -10,6 +10,7 @@ import time
 
 PTY_DEVICE = "/dev/pts/14"
 
+
 def main():
     print("=== Alpine Installation via pexpect ===\n")
 
@@ -34,7 +35,7 @@ def main():
     try:
         child.expect(["#", "login:", "$"], timeout=5)
         print(f"[+] Current state matched: {child.after}")
-    except:
+    except BaseException:
         print("[*] Checking state...")
 
     # If at login, login as root
@@ -44,7 +45,7 @@ def main():
         child.sendline("root")
         child.expect("#", timeout=5)
         print("[+] Logged in!")
-    except:
+    except BaseException:
         print("[*] Already logged in or different state")
 
     # Run setup-alpine
@@ -102,6 +103,7 @@ def main():
 
     os.close(fd)
     print("\n=== Stage 1 Complete ===")
+
 
 if __name__ == "__main__":
     import os

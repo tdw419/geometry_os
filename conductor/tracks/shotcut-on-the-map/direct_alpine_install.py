@@ -8,21 +8,29 @@ import subprocess
 import time
 import os
 
+
 def run_vncdo(command):
     """Run a vncdo command."""
     cmd = f"vncdo 127.0.0.1:0 {command}"
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     return result
 
+
 def screenshot(save_path="/tmp/vm_state.png"):
     """Take a screenshot."""
     subprocess.run(f"vncsnapshot -quiet 127.0.0.1:0 {save_path}", shell=True)
     return save_path
 
+
 def ocr(image_path):
     """Run OCR on an image."""
-    result = subprocess.run(f"tesseract {image_path} stdout 2>/dev/null", shell=True, capture_output=True, text=True)
+    result = subprocess.run(
+        f"tesseract {image_path} stdout 2>/dev/null",
+        shell=True,
+        capture_output=True,
+        text=True)
     return result.stdout
+
 
 def type_text(text):
     """Type text with Enter."""
@@ -39,6 +47,7 @@ def type_text(text):
     if not text.endswith("\n"):
         run_vncdo("key enter")
 
+
 def wait_for_prompt(expected, timeout=60):
     """Wait for expected text to appear."""
     for i in range(timeout):
@@ -51,6 +60,7 @@ def wait_for_prompt(expected, timeout=60):
         if i % 10 == 0:
             print(f"[*] Waiting for '{expected}'... ({i}s)")
     return False
+
 
 def main():
     print("=== Direct Alpine Linux Installation ===")
@@ -127,6 +137,7 @@ def main():
 
     print()
     print("=== Stage 1 Complete ===")
+
 
 if __name__ == "__main__":
     main()

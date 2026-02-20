@@ -91,18 +91,18 @@ fn sdLine(p: vec2f, a: vec2f, b: vec2f) -> f32 {
 
         These functions check hover, focus, and pressed states for widgets.
         """
-        return f"""
-fn is_hovered(widget_center: vec2f, threshold: f32) -> bool {{
+        return """
+fn is_hovered(widget_center: vec2f, threshold: f32) bool {
     return distance(widget_center, ui.mouse / ui.resolution) < threshold;
-}}
+}
 
-fn is_focused(widget_index: i32) -> bool {{
+fn is_focused(widget_index: i32) -> bool {
     return i32(ui.focused_widget) == widget_index;
-}}
+}
 
-fn is_pressed(hover: bool) -> bool {{
+fn is_pressed(hover: bool) -> bool {
     return hover && ui.mouse_pressed > 0.5;
-}}
+}
 """
 
     def _generate_uniforms(self) -> str:
@@ -160,14 +160,18 @@ struct Uniforms {
             lines.append(f"    let {name}_alpha = 1.0 - smoothstep(0.0, 0.003, {name}_d);")
             lines.append(f"    if ({name}_alpha > 0.0) {{")
             lines.append(f"        let {name}_base = vec4f(0.15, 0.15, 0.18, 1.0);")
-            lines.append(f"        let {name}_hover = distance(uv, ui.mouse / ui.resolution) < {self.hover_threshold:.4f};")
+            lines.append(
+                f"        let {name}_hover = distance(uv, ui.mouse / ui.resolution) < {self.hover_threshold:.4f};")
             lines.append(f"        let {name}_focused = i32(ui.focused_widget) == {index};")
-            lines.append(f"        var {name}_color = select({name}_base, {name}_base + vec4f(0.08), {name}_hover);")
+            lines.append(
+                f"        var {name}_color = select({name}_base, {name}_base + vec4f(0.08), {name}_hover);")
             if has_action:
                 lines.append(f"        // Pressed state for clickable widget")
-                lines.append(f"        if ({name}_hover && ui.mouse_pressed > 0.5) {{ {name}_color -= vec4f(0.05); }}")
+                lines.append(
+                    f"        if ({name}_hover && ui.mouse_pressed > 0.5) {{ {name}_color -= vec4f(0.05); }}")
             # Focus indicator - blue glow outline
-            lines.append(f"        if ({name}_focused && {name}_d < 0.005) {{ {name}_color = vec4f(0.2, 0.6, 1.0, 1.0); }}")
+            lines.append(
+                f"        if ({name}_focused && {name}_d < 0.005) {{ {name}_color = vec4f(0.2, 0.6, 1.0, 1.0); }}")
             lines.append(f"        color = mix(color, {name}_color, {name}_alpha);")
             lines.append(f"    }}")
 
@@ -181,14 +185,18 @@ struct Uniforms {
             lines.append(f"    if ({name}_alpha > 0.0) {{")
             lines.append(f"        // TODO: Sample texture for clip")
             lines.append(f"        let {name}_base = vec4f(0.3, 0.5, 0.7, 1.0);")
-            lines.append(f"        let {name}_hover = distance(uv, ui.mouse / ui.resolution) < {self.hover_threshold:.4f};")
+            lines.append(
+                f"        let {name}_hover = distance(uv, ui.mouse / ui.resolution) < {self.hover_threshold:.4f};")
             lines.append(f"        let {name}_focused = i32(ui.focused_widget) == {index};")
-            lines.append(f"        var {name}_color = select({name}_base, {name}_base + vec4f(0.08), {name}_hover);")
+            lines.append(
+                f"        var {name}_color = select({name}_base, {name}_base + vec4f(0.08), {name}_hover);")
             if has_action:
                 lines.append(f"        // Pressed state for clickable widget")
-                lines.append(f"        if ({name}_hover && ui.mouse_pressed > 0.5) {{ {name}_color -= vec4f(0.05); }}")
+                lines.append(
+                    f"        if ({name}_hover && ui.mouse_pressed > 0.5) {{ {name}_color -= vec4f(0.05); }}")
             # Focus indicator - blue glow outline
-            lines.append(f"        if ({name}_focused && {name}_d < 0.005) {{ {name}_color = vec4f(0.2, 0.6, 1.0, 1.0); }}")
+            lines.append(
+                f"        if ({name}_focused && {name}_d < 0.005) {{ {name}_color = vec4f(0.2, 0.6, 1.0, 1.0); }}")
             lines.append(f"        color = mix(color, {name}_color, {name}_alpha);")
             lines.append(f"    }}")
 
@@ -197,7 +205,8 @@ struct Uniforms {
             x_norm = bbox[0] / self.width
             y1_norm = bbox[1] / self.height
             y2_norm = (bbox[1] + bbox[3]) / self.height
-            lines.append(f"    let {name}_center = vec2f({x_norm:.6f}, {(y1_norm + y2_norm) / 2:.6f});")
+            lines.append(
+                f"    let {name}_center = vec2f({x_norm:.6f}, {(y1_norm + y2_norm) / 2:.6f});")
             lines.append(f"    let {name}_a = vec2f({x_norm:.6f}, {y1_norm:.6f});")
             lines.append(f"    let {name}_b = vec2f({x_norm:.6f}, {y2_norm:.6f});")
             lines.append(f"    let {name}_d = sdLine(uv, {name}_a, {name}_b);")
@@ -205,14 +214,18 @@ struct Uniforms {
             lines.append(f"    let {name}_alpha = 1.0 - smoothstep(0.0, 0.004, {name}_d);")
             lines.append(f"    if ({name}_alpha > 0.0) {{")
             lines.append(f"        let {name}_base = vec4f(1.0 * {name}_pulse, 0.3, 0.3, 1.0);")
-            lines.append(f"        let {name}_hover = distance(uv, ui.mouse / ui.resolution) < {self.hover_threshold:.4f};")
+            lines.append(
+                f"        let {name}_hover = distance(uv, ui.mouse / ui.resolution) < {self.hover_threshold:.4f};")
             lines.append(f"        let {name}_focused = i32(ui.focused_widget) == {index};")
-            lines.append(f"        var {name}_color = select({name}_base, {name}_base + vec4f(0.08), {name}_hover);")
+            lines.append(
+                f"        var {name}_color = select({name}_base, {name}_base + vec4f(0.08), {name}_hover);")
             if has_action:
                 lines.append(f"        // Pressed state for clickable widget")
-                lines.append(f"        if ({name}_hover && ui.mouse_pressed > 0.5) {{ {name}_color -= vec4f(0.05); }}")
+                lines.append(
+                    f"        if ({name}_hover && ui.mouse_pressed > 0.5) {{ {name}_color -= vec4f(0.05); }}")
             # Focus indicator - blue glow outline
-            lines.append(f"        if ({name}_focused && {name}_d < 0.005) {{ {name}_color = vec4f(0.2, 0.6, 1.0, 1.0); }}")
+            lines.append(
+                f"        if ({name}_focused && {name}_d < 0.005) {{ {name}_color = vec4f(0.2, 0.6, 1.0, 1.0); }}")
             lines.append(f"        color = mix(color, {name}_color, {name}_alpha);")
             lines.append(f"    }}")
 
@@ -225,14 +238,18 @@ struct Uniforms {
             lines.append(f"    let {name}_alpha = 1.0 - smoothstep(0.0, 0.003, {name}_d);")
             lines.append(f"    if ({name}_alpha > 0.0) {{")
             lines.append(f"        let {name}_base = vec4f(0.4, 0.4, 0.4, 1.0);")
-            lines.append(f"        let {name}_hover = distance(uv, ui.mouse / ui.resolution) < {self.hover_threshold:.4f};")
+            lines.append(
+                f"        let {name}_hover = distance(uv, ui.mouse / ui.resolution) < {self.hover_threshold:.4f};")
             lines.append(f"        let {name}_focused = i32(ui.focused_widget) == {index};")
-            lines.append(f"        var {name}_color = select({name}_base, {name}_base + vec4f(0.08), {name}_hover);")
+            lines.append(
+                f"        var {name}_color = select({name}_base, {name}_base + vec4f(0.08), {name}_hover);")
             if has_action:
                 lines.append(f"        // Pressed state for clickable widget")
-                lines.append(f"        if ({name}_hover && ui.mouse_pressed > 0.5) {{ {name}_color -= vec4f(0.05); }}")
+                lines.append(
+                    f"        if ({name}_hover && ui.mouse_pressed > 0.5) {{ {name}_color -= vec4f(0.05); }}")
             # Focus indicator - blue glow outline
-            lines.append(f"        if ({name}_focused && {name}_d < 0.005) {{ {name}_color = vec4f(0.2, 0.6, 1.0, 1.0); }}")
+            lines.append(
+                f"        if ({name}_focused && {name}_d < 0.005) {{ {name}_color = vec4f(0.2, 0.6, 1.0, 1.0); }}")
             lines.append(f"        color = mix(color, {name}_color, {name}_alpha);")
             lines.append(f"    }}")
 

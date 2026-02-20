@@ -10,14 +10,13 @@ Test coverage:
 - Uniform buffer size validation (32 bytes = 8 floats)
 """
 
+from ui_transmuter import UITransmuter, transmute_extraction
 import pytest
 import sys
 from pathlib import Path
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from ui_transmuter import UITransmuter, transmute_extraction
 
 
 class TestUniformBufferFields:
@@ -137,7 +136,7 @@ class TestPressedLogic:
         panel_section = [l for l in lines if "panel_0" in l]
         # Check that the pressed state comment is not there for this widget
         assert not any("Pressed state for clickable widget" in l for l in panel_section) or \
-               "mouse_pressed > 0.5" not in "\n".join(panel_section)
+            "mouse_pressed > 0.5" not in "\n".join(panel_section)
 
     def test_panel_with_action_has_pressed_logic(self):
         """Panel with action field includes pressed logic."""

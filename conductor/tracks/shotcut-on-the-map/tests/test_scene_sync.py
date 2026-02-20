@@ -9,6 +9,8 @@ Run with:
     pytest conductor/tracks/shotcut-on-the-map/tests/test_scene_sync.py -v
 """
 
+from gui_structure_analyzer import AnalysisResult, UIElement
+from scene_sync import SceneSyncService, SyncState
 import pytest
 import asyncio
 import tempfile
@@ -19,9 +21,6 @@ from unittest.mock import patch, MagicMock
 # Add parent directory to path for imports
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from scene_sync import SceneSyncService, SyncState
-from gui_structure_analyzer import AnalysisResult, UIElement
 
 
 @pytest.fixture
@@ -96,7 +95,7 @@ class TestSceneSyncService:
 
     def test_service_initialization_with_custom_params(self, test_screenshot):
         """SceneSyncService accepts custom parameters."""
-        callback = lambda x: None
+        def callback(x): return None
         service = SceneSyncService(
             test_screenshot,
             poll_interval=0.5,
@@ -107,7 +106,8 @@ class TestSceneSyncService:
 
     @pytest.mark.asyncio
     @patch('scene_sync.analyze_screenshot')
-    async def test_force_sync_detects_first_sync(self, mock_analyze, test_screenshot, mock_analysis_result):
+    async def test_force_sync_detects_first_sync(
+            self, mock_analyze, test_screenshot, mock_analysis_result):
         """First sync always detects a change."""
         mock_analyze.return_value = mock_analysis_result
 
@@ -124,7 +124,8 @@ class TestSceneSyncService:
 
     @pytest.mark.asyncio
     @patch('scene_sync.analyze_screenshot')
-    async def test_force_sync_no_change_same_image(self, mock_analyze, test_screenshot, mock_analysis_result):
+    async def test_force_sync_no_change_same_image(
+            self, mock_analyze, test_screenshot, mock_analysis_result):
         """No change detected if image is same."""
         mock_analyze.return_value = mock_analysis_result
 
@@ -146,7 +147,8 @@ class TestSceneSyncService:
 
     @pytest.mark.asyncio
     @patch('scene_sync.analyze_screenshot')
-    async def test_force_sync_detects_image_change(self, mock_analyze, test_screenshot, modified_screenshot, mock_analysis_result):
+    async def test_force_sync_detects_image_change(
+            self, mock_analyze, test_screenshot, modified_screenshot, mock_analysis_result):
         """Change detected when image is modified."""
         mock_analyze.return_value = mock_analysis_result
 
@@ -186,7 +188,8 @@ class TestSceneSyncService:
 
     @pytest.mark.asyncio
     @patch('scene_sync.analyze_screenshot')
-    async def test_on_change_callback_not_called_on_no_change(self, mock_analyze, test_screenshot, mock_analysis_result):
+    async def test_on_change_callback_not_called_on_no_change(
+            self, mock_analyze, test_screenshot, mock_analysis_result):
         """on_change callback is not called when no changes detected."""
         mock_analyze.return_value = mock_analysis_result
         callback_called = []
@@ -224,7 +227,8 @@ class TestSceneSyncService:
 
     @pytest.mark.asyncio
     @patch('scene_sync.analyze_screenshot')
-    async def test_polling_continues_after_first_change(self, mock_analyze, test_screenshot, mock_analysis_result, modified_screenshot):
+    async def test_polling_continues_after_first_change(
+            self, mock_analyze, test_screenshot, mock_analysis_result, modified_screenshot):
         """Polling continues to detect changes after initial sync."""
         mock_analyze.return_value = mock_analysis_result
 
@@ -247,7 +251,8 @@ class TestSceneSyncService:
 
     @pytest.mark.asyncio
     @patch('scene_sync.analyze_screenshot')
-    async def test_get_state_returns_current_state(self, mock_analyze, test_screenshot, mock_analysis_result):
+    async def test_get_state_returns_current_state(
+            self, mock_analyze, test_screenshot, mock_analysis_result):
         """get_state() returns current SyncState."""
         mock_analyze.return_value = mock_analysis_result
 
@@ -291,7 +296,8 @@ class TestSceneSyncService:
 
     @pytest.mark.asyncio
     @patch('scene_sync.analyze_screenshot')
-    async def test_pending_changes_accumulate(self, mock_analyze, test_screenshot, modified_screenshot, mock_analysis_result):
+    async def test_pending_changes_accumulate(
+            self, mock_analyze, test_screenshot, modified_screenshot, mock_analysis_result):
         """Pending changes list accumulates across syncs."""
         mock_analyze.return_value = mock_analysis_result
 

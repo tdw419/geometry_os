@@ -7,6 +7,7 @@ import pexpect
 import sys
 import time
 
+
 def main():
     print("=== Alpine Linux Serial Console Installation ===\n")
 
@@ -89,6 +90,7 @@ def main():
 
     pty.close()
     print("\n=== Stage 1 Complete ===")
+
 
 if __name__ == "__main__":
     main()

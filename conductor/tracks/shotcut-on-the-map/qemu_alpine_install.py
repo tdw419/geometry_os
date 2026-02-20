@@ -9,6 +9,7 @@ import time
 import os
 import glob
 
+
 def find_qemu_socket():
     """Find the QEMU monitor socket."""
     sockets = glob.glob("/tmp/qemu-monitor-*.sock")
@@ -16,11 +17,13 @@ def find_qemu_socket():
         return sockets[0]
     return None
 
+
 def send_key(sock, key):
     """Send a key via QEMU monitor."""
     cmd = f"sendkey {key}\n"
     sock.send(cmd.encode())
     time.sleep(0.1)
+
 
 def type_string(sock, text):
     """Type a string character by character."""
@@ -45,6 +48,7 @@ def type_string(sock, text):
             send_key(sock, char)
         time.sleep(0.05)
 
+
 def take_screenshot(path="/tmp/vm_screenshot.png"):
     """Take a VNC screenshot."""
     result = subprocess.run(
@@ -52,6 +56,7 @@ def take_screenshot(path="/tmp/vm_screenshot.png"):
         capture_output=True
     )
     return result.returncode == 0
+
 
 def ocr_screenshot(path="/tmp/vm_screenshot.png"):
     """Run OCR on a screenshot."""
@@ -61,6 +66,7 @@ def ocr_screenshot(path="/tmp/vm_screenshot.png"):
         text=True
     )
     return result.stdout
+
 
 def wait_for_text(expected, timeout=60):
     """Wait for expected text to appear."""
@@ -74,6 +80,7 @@ def wait_for_text(expected, timeout=60):
         if i % 5 == 0:
             print(f"[*] Waiting for '{expected}'... ({i}s)")
     return False
+
 
 def main():
     print("=== QEMU Monitor Alpine Installation ===\n")
@@ -156,6 +163,7 @@ def main():
 
     sock.close()
     print("\n=== Stage 1 Complete ===")
+
 
 if __name__ == "__main__":
     main()

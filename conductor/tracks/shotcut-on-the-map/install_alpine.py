@@ -33,6 +33,7 @@ ANSWERS = [
     ("erase", "y\n", 120),  # Wait 2 min for install
 ]
 
+
 async def send_command(ws, command, params=None):
     """Send command and get response."""
     msg = {"command": command}
@@ -42,11 +43,13 @@ async def send_command(ws, command, params=None):
     response = await ws.recv()
     return json.loads(response)
 
+
 async def type_text(ws, text):
     """Type text into VM."""
     result = await send_command(ws, "type", {"text": text})
     print(f"  Typed '{text.strip()}' -> {result.get('keystrokes', 0)} keystrokes")
     return result
+
 
 async def main():
     print("=== Alpine Linux Automated Installation ===\n")

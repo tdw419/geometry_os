@@ -22,15 +22,13 @@ import time
 import os
 import base64
 import tempfile
-import io
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
 from pathlib import Path
-from PIL import Image
 
-from gui_structure_analyzer import GUIAnalyzer, AnalysisResult, UIElement
-from semantic_clusterer import UICluster, OCRElement
-from widget_detector import WidgetDetector, Widget, WidgetType
+from gui_structure_analyzer import GUIAnalyzer, UIElement
+from semantic_clusterer import UICluster
+from widget_detector import WidgetDetector, Widget
 
 
 @dataclass
@@ -247,72 +245,6 @@ class ExtractionPipeline:
 
         return "\n".join(lines)
 
-
-class SafetyScanner:
-    """V16: Scans extracted text for safety anomalies (Panics, Errors, etc.)"""
-    
-    CRITICAL_TOKENS = ["PANIC", "BUG", "FAULT", "ABORT", "CRASH", "HALT"]
-    WARNING_TOKENS = ["ERROR", "FAIL", "WARN", "TIMEOUT", "RETRY"]
-
-    def scan(self, text: str) -> DiagnosticPulse:
-        upper_text = text.upper()
-        
-        found_critical = [t for t in self.CRITICAL_TOKENS if t in upper_text]
-        if found_critical:
-            return DiagnosticPulse(
-                severity="CRITICAL",
-                message=f"System Instability Detected: {found_critical[0]}",
-                tokens=found_critical
-            )
-            
-        found_warning = [t for t in self.WARNING_TOKENS if t in upper_text]
-        if found_warning:
-            return DiagnosticPulse(
-                severity="WARNING",
-                message=f"System Warning: {found_warning[0]}",
-                tokens=found_warning
-            )
-            
-        return DiagnosticPulse(
-            severity="SUCCESS",
-            message="Substrate logic operating within nominal parameters",
-            tokens=[]
-        )
-
-    def _build_enhanced_ascii_view(
-        self,
-        elements: List[UIElement],
-        widgets: List[Widget],
-        base_view: str
-    ) -> str:
-        """
-        Build ASCII view with [CLICKABLE] metadata annotations.
-
-        Args:
-            elements: List of UI elements
-            widgets: List of detected widgets
-            base_view: Base ASCII view from the analyzer
-
-        Returns:
-            Enhanced ASCII view with widget metadata section
-        """
-        lines = [base_view]
-        lines.append("")
-        lines.append("=== WIDGET METADATA ===")
-
-        for widget in widgets:
-            if widget.action:
-                lines.append(
-                    f"[CLICKABLE] {widget.type.value.upper()}: "
-                    f"'{widget.text}' at {widget.bbox} -> {widget.action}"
-                )
-            else:
-                lines.append(
-                    f"[{widget.type.value.upper()}] '{widget.text}' at {widget.bbox}"
-                )
-
-        return "\n".join(lines)
-
     def extract_to_file(self, image_path: str, output_path: str) -> ExtractionResult:
         """
         Extract and save result to file.
@@ -335,6 +267,38 @@ class SafetyScanner:
         return result
 
 
+class SafetyScanner:
+    """V16: Scans extracted text for safety anomalies (Panics, Errors, etc.)"""
+
+    CRITICAL_TOKENS = ["PANIC", "BUG", "FAULT", "ABORT", "CRASH", "HALT"]
+    WARNING_TOKENS = ["ERROR", "FAIL", "WARN", "TIMEOUT", "RETRY"]
+
+    def scan(self, text: str) -> DiagnosticPulse:
+        upper_text = text.upper()
+
+        found_critical = [t for t in self.CRITICAL_TOKENS if t in upper_text]
+        if found_critical:
+            return DiagnosticPulse(
+                severity="CRITICAL",
+                message=f"System Instability Detected: {found_critical[0]}",
+                tokens=found_critical
+            )
+
+        found_warning = [t for t in self.WARNING_TOKENS if t in upper_text]
+        if found_warning:
+            return DiagnosticPulse(
+                severity="WARNING",
+                message=f"System Warning: {found_warning[0]}",
+                tokens=found_warning
+            )
+
+        return DiagnosticPulse(
+            severity="SUCCESS",
+            message="Substrate logic operating within nominal parameters",
+            tokens=[]
+        )
+
+
 def extract_gui(image_path: str, output_path: Optional[str] = None) -> ExtractionResult:
     """
     Convenience function for quick extraction.
@@ -355,7 +319,6 @@ def extract_gui(image_path: str, output_path: Optional[str] = None) -> Extractio
 
 # CLI interface for testing
 if __name__ == "__main__":
-    import sys
     import argparse
 
     parser = argparse.ArgumentParser(description="Visual Extraction Pipeline")

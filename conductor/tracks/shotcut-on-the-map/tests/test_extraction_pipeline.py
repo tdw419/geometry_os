@@ -8,6 +8,12 @@ Test coverage:
 - Full pipeline integration with real screenshots
 """
 
+from widget_detector import WidgetType, Widget
+from extraction_pipeline import (
+    ExtractionPipeline,
+    ExtractionResult,
+    extract_gui
+)
 import pytest
 import tempfile
 import os
@@ -17,13 +23,6 @@ from pathlib import Path
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from extraction_pipeline import (
-    ExtractionPipeline,
-    ExtractionResult,
-    extract_gui
-)
-from widget_detector import WidgetType, Widget
 
 
 class TestExtractionResult:
@@ -202,7 +201,8 @@ class TestExtractionPipelineIntegration:
     def test_pipeline_produces_ascii_view(self):
         """Pipeline produces ASCII view with expected structure."""
         pipeline = ExtractionPipeline()
-        result = pipeline.extract("conductor/tracks/shotcut-on-the-map/screenshots/shotcut-running.png")
+        result = pipeline.extract(
+            "conductor/tracks/shotcut-on-the-map/screenshots/shotcut-running.png")
 
         # ASCII view should have structure
         assert isinstance(result.ascii_view, str)

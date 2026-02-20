@@ -13,6 +13,7 @@ PNG acts as a visual identifier and the actual disk image is stored
 separately (or can be regenerated/retrieved on demand).
 """
 
+from pixelrts_v2_core import PixelRTSEncoder, PixelRTSDecoder, HilbertCurve, calculate_grid_size
 import json
 import hashlib
 import os
@@ -23,8 +24,9 @@ import numpy as np
 
 # Import PixelRTS v2 core for encoding
 import sys
-sys.path.insert(0, '/home/jericho/zion/projects/geometry_os/geometry_os/pixelrts_v2/dist/spatial-v0.1.0/tools/lib')
-from pixelrts_v2_core import PixelRTSEncoder, PixelRTSDecoder, HilbertCurve, calculate_grid_size
+sys.path.insert(
+    0,
+    '/home/jericho/zion/projects/geometry_os/geometry_os/pixelrts_v2/dist/spatial-v0.1.0/tools/lib')
 
 
 class ShotcutCartridge:

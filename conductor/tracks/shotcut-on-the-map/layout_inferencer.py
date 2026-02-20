@@ -9,7 +9,6 @@ import cv2
 import numpy as np
 from dataclasses import dataclass, field
 from typing import List, Tuple, Optional, Dict, Any
-from pathlib import Path
 
 
 @dataclass
@@ -179,7 +178,7 @@ class LayoutInferencer:
         lines = cv2.HoughLinesP(
             edges,
             rho=1,
-            theta=np.pi/180,
+            theta=np.pi / 180,
             threshold=self.hough_threshold,
             minLineLength=self.hough_min_line_length,
             maxLineGap=self.hough_max_line_gap

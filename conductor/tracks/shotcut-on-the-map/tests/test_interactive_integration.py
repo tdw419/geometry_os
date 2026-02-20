@@ -11,6 +11,8 @@ This validates the integration between:
 - WidgetInteractionManager expected format (JS side)
 """
 
+from ui_transmuter import UITransmuter, transmute_extraction
+from extraction_pipeline import ExtractionPipeline, ExtractionResult, extract_gui
 import pytest
 import sys
 import os
@@ -20,9 +22,6 @@ from unittest.mock import Mock, patch, MagicMock
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from extraction_pipeline import ExtractionPipeline, ExtractionResult, extract_gui
-from ui_transmuter import UITransmuter, transmute_extraction
 
 
 class TestExtractionToTransmuterPipeline:
@@ -35,7 +34,16 @@ class TestExtractionToTransmuterPipeline:
             widgets=[
                 Mock(type=Mock(value="button"), text="Save", bbox=[10, 10, 50, 30], action="save"),
                 Mock(type=Mock(value="panel"), text="Panel1", bbox=[0, 0, 200, 100], action=None),
-                Mock(type=Mock(value="clip"), text="Clip1", bbox=[50, 50, 150, 80], action="select"),
+                Mock(
+                    type=Mock(
+                        value="clip"),
+                    text="Clip1",
+                    bbox=[
+                        50,
+                        50,
+                        150,
+                        80],
+                    action="select"),
             ],
             metadata={"source_image": "test.png"}
         )
@@ -66,7 +74,8 @@ class TestExtractionToTransmuterPipeline:
         extraction_data = {
             "widgets": [
                 {"type": "button", "text": "OK", "bbox": [100, 100, 150, 130], "action": "confirm"},
-                {"type": "button", "text": "Cancel", "bbox": [160, 100, 220, 130], "action": "cancel"},
+                {"type": "button", "text": "Cancel", "bbox": [
+                    160, 100, 220, 130], "action": "cancel"},
                 {"type": "panel", "text": "Dialog", "bbox": [50, 50, 300, 200], "action": None},
                 {"type": "menu", "text": "File", "bbox": [10, 10, 40, 30], "action": "menu_file"},
                 {"type": "clip", "text": "Video1", "bbox": [0, 300, 200, 350], "action": "select"},

@@ -5,14 +5,13 @@ Tests the ability to cluster adjacent OCR elements into semantic UI groups
 like menu bars, button groups, and form fields.
 """
 
+from semantic_clusterer import SemanticClusterer, OCRElement, UICluster
 import pytest
 import sys
 import os
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from semantic_clusterer import SemanticClusterer, OCRElement, UICluster
 
 
 class TestSemanticClusterer:

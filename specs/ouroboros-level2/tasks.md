@@ -389,7 +389,7 @@ _Design: Test Strategy - Integration_
 
 ## Phase 4: Quality Gates
 
-### Task 4.1: Local Quality Check
+### Task 4.1: [x] Local Quality Check
 **Do**:
 1. Run Python lint: `python3 -m flake8 conductor/tracks/shotcut-on-the-map/*.py --max-line-length=100 --exclude=__pycache__`
 2. Run all tests: `python3 -m pytest conductor/tracks/shotcut-on-the-map/tests/ -v`

@@ -4,6 +4,7 @@ Tests for GUI Structure Analyzer integration with SemanticClusterer.
 Tests that analyze_screenshot returns clustered UI components with bounds metadata.
 """
 
+from gui_structure_analyzer import analyze_screenshot, AnalysisResult, GUIAnalyzer
 import pytest
 import sys
 import os
@@ -11,7 +12,6 @@ import os
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from gui_structure_analyzer import analyze_screenshot, AnalysisResult, GUIAnalyzer
 
 # Use a screenshot that has more text content
 TEST_IMAGE = "conductor/tracks/shotcut-on-the-map/screenshots/shotcut_gui_test.png"

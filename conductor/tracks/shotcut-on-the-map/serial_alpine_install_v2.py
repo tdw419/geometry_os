@@ -19,6 +19,7 @@ QEMU_CMD = """qemu-system-x86_64 \
     -enable-kvm \
     -nographic"""
 
+
 def main():
     print("=" * 60)
     print("Alpine Linux Installation (Serial Console) v2")
@@ -97,6 +98,7 @@ def main():
     print("Stage 1 Complete!")
     print("Disk: conductor/tracks/shotcut-on-the-map/images/shotcut-fresh.qcow2")
     print("=" * 60)
+
 
 if __name__ == "__main__":
     main()

@@ -20,6 +20,7 @@ QEMU_CMD = """qemu-system-x86_64 \
     -enable-kvm \
     -nographic"""
 
+
 def main():
     print("=" * 60)
     print("Alpine Linux Fresh Installation (Serial Console)")
@@ -104,6 +105,7 @@ def main():
     print("\n" + "=" * 60)
     print("Stage 1 Complete!")
     print("=" * 60)
+
 
 if __name__ == "__main__":
     main()

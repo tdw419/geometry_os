@@ -17,6 +17,7 @@ QEMU_CMD = """qemu-system-x86_64 \
     -device virtio-net-pci,netdev=net0 \
     -enable-kvm -nographic"""
 
+
 def main():
     print("=" * 60)
     print("Alpine Linux Installation v3")
@@ -81,6 +82,7 @@ def main():
     print("Done! Disk: shotcut-fresh.qcow2")
     print("SSH: ssh -p 2222 root@localhost (password: root)")
     print("=" * 60)
+
 
 if __name__ == "__main__":
     main()

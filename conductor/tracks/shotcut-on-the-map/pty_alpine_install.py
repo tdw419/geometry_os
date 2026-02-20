@@ -9,11 +9,13 @@ import os
 
 PTY_DEVICE = "/dev/pts/14"
 
+
 def write_pty(text):
     """Write to PTY."""
     with open(PTY_DEVICE, "w") as f:
         f.write(text + "\n")
     print(f"[>] Sent: {text}")
+
 
 def read_pty(timeout=2):
     """Read from PTY with timeout."""
@@ -27,9 +29,10 @@ def read_pty(timeout=2):
                 try:
                     chunk = f.read(4096)
                     output += chunk
-                except:
+                except BaseException:
                     pass
     return output
+
 
 def main():
     print("=== Alpine Installation via PTY ===\n")
@@ -55,7 +58,7 @@ def main():
         ("UTC", 3),     # timezone
         ("none", 3),    # proxy
         ("1", 3),       # mirror
-        ("openssh", 3), # ssh server
+        ("openssh", 3),  # ssh server
         ("chrony", 3),  # ntp client
         ("vda", 3),     # disk
         ("sys", 3),     # use disk
@@ -79,6 +82,7 @@ def main():
     time.sleep(3)
 
     print("\n=== Stage 1 Complete ===")
+
 
 if __name__ == "__main__":
     main()

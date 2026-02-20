@@ -7,6 +7,7 @@ import sys
 
 ISO_PATH = "/home/jericho/zion/projects/geometry_os/geometry_os/conductor/tracks/shotcut-on-the-map/images/alpine-virt-3.19.0-x86_64.iso"
 
+
 async def send_command():
     uri = "ws://localhost:8768"
     try:

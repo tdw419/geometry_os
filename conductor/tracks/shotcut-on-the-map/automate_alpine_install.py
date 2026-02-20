@@ -6,6 +6,7 @@ This script uses the ShotcutAgent to automate the interactive installation
 of Alpine Linux in a QEMU VM.
 """
 
+from shotcut_agent import ShotcutAgent
 import asyncio
 import os
 import sys
@@ -14,7 +15,7 @@ from pathlib import Path
 
 # Add script directory to sys.path to find ShotcutAgent
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from shotcut_agent import ShotcutAgent
+
 
 async def automate_install():
     agent = ShotcutAgent(bridge_url="ws://127.0.0.1:8768")
@@ -33,10 +34,10 @@ async def automate_install():
 
     print("[*] Waiting for boot prompt...")
     # Wait for localhost login prompt
-    for i in range(120): # 120 seconds timeout
+    for i in range(120):  # 120 seconds timeout
         await asyncio.sleep(5)
         img, text = await agent.see()
-        print(f"[{i*5}s] Console output: {text.strip()[:100]}...")
+        print(f"[{i * 5}s] Console output: {text.strip()[:100]}...")
 
         if "localhost login:" in text or "login:" in text.lower():
             print("[+] Login prompt found!")
@@ -44,9 +45,9 @@ async def automate_install():
         elif "booting" in text.lower() or "loading" in text.lower():
             continue
         elif i > 10 and not text.strip():
-             # If it's blank but it's been a while, maybe it's graphical or something
-             # In this case it should be text mode
-             pass
+            # If it's blank but it's been a while, maybe it's graphical or something
+            # In this case it should be text mode
+            pass
     else:
         print("[-] Timeout waiting for login prompt")
         # Save last screenshot for debugging
@@ -115,10 +116,10 @@ async def automate_install():
             await asyncio.sleep(2)
 
     print("[*] Installation in progress (erasing disk and copying files)...")
-    for i in range(12): # 2 minutes
+    for i in range(12):  # 2 minutes
         await asyncio.sleep(10)
         img, text = await agent.see()
-        print(f"[{i*10}s] Status: {text.strip()[:100]}...")
+        print(f"[{i * 10}s] Status: {text.strip()[:100]}...")
         if "Installation is complete. Please reboot." in text:
             print("[+] Installation complete!")
             break

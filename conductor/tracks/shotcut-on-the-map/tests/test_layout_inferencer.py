@@ -12,6 +12,9 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Check if cv2 is available for tests that require it
+cv2 = pytest.importorskip("cv2", reason="OpenCV (cv2) not installed")
+
 
 class TestLayoutInferencerImport:
     """Tests for module import and basic structure."""
@@ -74,7 +77,6 @@ class TestEdgeDetection:
     def test_detect_edges_on_simple_image(self):
         """Edge detection should find boundaries in a simple image."""
         from layout_inferencer import LayoutInferencer
-        import cv2
 
         # Create a simple test image: white rectangle on black background
         img = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -102,7 +104,6 @@ class TestEdgeDetection:
     def test_detect_edges_returns_binary(self):
         """Edge detection should return binary image (0 or 255)."""
         from layout_inferencer import LayoutInferencer
-        import cv2
 
         # Create test image
         img = np.random.randint(0, 256, (50, 50, 3), dtype=np.uint8)
@@ -129,7 +130,6 @@ class TestContourDetection:
     def test_detect_rectangle_contour(self):
         """Should detect rectangular contour."""
         from layout_inferencer import LayoutInferencer
-        import cv2
 
         # Create image with rectangle
         img = np.zeros((200, 200, 3), dtype=np.uint8)
@@ -151,7 +151,6 @@ class TestContourDetection:
     def test_detect_button_sized_region(self):
         """Should detect button-sized regions."""
         from layout_inferencer import LayoutInferencer
-        import cv2
 
         # Create image with button-sized rectangle (50x30)
         img = np.zeros((200, 200, 3), dtype=np.uint8)
@@ -175,7 +174,6 @@ class TestContourDetection:
     def test_detect_panel_sized_region(self):
         """Should detect panel-sized regions."""
         from layout_inferencer import LayoutInferencer
-        import cv2
 
         # Create image with panel-sized rectangle (200x150)
         img = np.zeros((300, 300, 3), dtype=np.uint8)

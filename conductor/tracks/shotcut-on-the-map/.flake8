@@ -1,0 +1,26 @@
+[flake8]
+max-line-length = 100
+exclude = __pycache__
+ignore =
+    # Unused imports (acceptable in scripts/experiments)
+    F401,
+    # Unused variables
+    F841,
+    # f-string without placeholders
+    F541,
+    # Comparison to True/False
+    E712,
+    # Lambda assignment
+    E731,
+    # Ambiguous variable name
+    E741,
+    # Module import not at top
+    E402,
+    # Redefinition
+    F811,
+    # Nonlocal unused
+    F824,
+    # Line too long (formatting only)
+    E501,
+    # Multiple statements on one line
+    E704
