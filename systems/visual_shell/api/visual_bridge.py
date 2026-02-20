@@ -182,6 +182,35 @@ class VisualBridge:
                         'data': relocation_data
                     })
 
+                # 16. Diagnostic Pulse Events (Perceptual Bridge V16)
+                elif msg_type == 'diagnostic_pulse':
+                    status = data.get('status', 'HEALTHY')
+                    district_id = data.get('district_id', 'silicon')
+                    matched_pattern = data.get('matched_pattern', '')
+                    detected_text = data.get('detected_text', '')
+
+                    print(f"🔮 Diagnostic Pulse: {district_id} → {status}")
+                    if status == 'CRITICAL':
+                        print(f"   ⚠️  ANOMALY: {matched_pattern}")
+
+                    await self._broadcast({
+                        "type": "DIAGNOSTIC_PULSE",
+                        "district_id": district_id,
+                        "status": status,
+                        "matched_pattern": matched_pattern,
+                        "detected_text": detected_text[:200],
+                        "timestamp": data.get('timestamp', time.time())
+                    })
+
+                    if status == 'CRITICAL':
+                        await self._broadcast({
+                            "type": "QUARANTINE_DISTRICT",
+                            "district_id": district_id,
+                            "reason": matched_pattern,
+                            "severity": "CRITICAL",
+                            "timestamp": data.get('timestamp', time.time())
+                        })
+
                 # 8. Echo/Ping
                 elif msg_type == 'ping':
                     await websocket.send(json.dumps({'type': 'pong'}))
