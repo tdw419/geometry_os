@@ -137,6 +137,33 @@ class NeuralCityEngine {
             width: 400
         });
 
+        // Wire up widget click from data panel to VM command
+        this.glassBox.dataPanel.element.addEventListener('widget_click', (e) => {
+            const widget = e.detail.widget;
+            const agentId = this.glassBox.currentAgent?.agentId;
+            if (widget && agentId) {
+                // Calculate center of bbox
+                const bbox = widget.bbox; // [x, y, w, h] or similar
+                // Assuming bbox format from extraction_pipeline: [x1, y1, x2, y2]
+                const cx = (bbox[0] + bbox[2]) / 2;
+                const cy = (bbox[1] + bbox[3]) / 2;
+                
+                console.log(`Sending click to ${agentId} at (${cx}, ${cy}) for widget: ${widget.text}`);
+                
+                // If it's a live tile, send via LiveTileManager
+                const liveTile = this.liveTileManager?.getTile(agentId);
+                if (liveTile && liveTile.state === 'running') {
+                    this.liveTileManager.sendCommand(agentId, `click ${cx} ${cy}`);
+                } else if (this.telemetryBus.isConnected()) {
+                    // Fallback to telemetry bus
+                    this.telemetryBus.emit('agent_command', {
+                        agent_id: agentId,
+                        command: `click ${cx} ${cy}`
+                    });
+                }
+            }
+        });
+
         // Wire up control callbacks
         this.glassBox.controller.onRelocate = (agentId, district) => {
             const building = this.orchestrator.relocateAgent(agentId, district);
@@ -161,8 +188,13 @@ class NeuralCityEngine {
 
         this.glassBox.controller.onCommand = (agentId, command) => {
             console.log(`Sending command to ${agentId}: ${command}`);
-            // Emit command via telemetry bus if connected
-            if (this.telemetryBus.isConnected()) {
+            
+            // If it's a live tile, send via LiveTileManager
+            const liveTile = this.liveTileManager?.getTile(agentId);
+            if (liveTile && liveTile.state === 'running') {
+                this.liveTileManager.sendCommand(agentId, command);
+            } else if (this.telemetryBus.isConnected()) {
+                // Fallback to general telemetry bus for non-VM agents
                 this.telemetryBus.emit('agent_command', {
                     agent_id: agentId,
                     command: command
@@ -684,6 +716,14 @@ class NeuralCityEngine {
         // Get mock data for this agent (or real data when integrated)
         const agentData = this._getAgentData(agentId);
 
+        // Get live tile data if available
+        const liveTile = this.liveTileManager?.getTile(agentId);
+        if (liveTile) {
+            agentData.consoleOutput = liveTile.consoleOutput;
+            agentData.widgets = liveTile.widgets;
+            agentData.asciiView = liveTile.asciiView;
+        }
+
         // Open Glass Box with agent data
         if (this.glassBox) {
             this.glassBox.open({
@@ -919,6 +959,13 @@ class NeuralCityEngine {
 
         this.liveTileManager.onFramebufferUpdate = (tile) => {
             this._updateLiveTexture(tile);
+        };
+
+        this.liveTileManager.onExtractionResult = (tile) => {
+            // Update Glass Box if open for this tile
+            if (this.glassBox && this.glassBox.isVisible() && this.glassBox.currentAgent?.agentId === tile.id) {
+                this.glassBox.dataPanel.setSemanticData(tile.widgets, tile.asciiView);
+            }
         };
 
         this.liveTileManager.connect().catch(e => {

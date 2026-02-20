@@ -30,6 +30,9 @@ except ImportError:
 from systems.evolution_daemon.neural_event import NeuralEvent, EventType
 from systems.evolution_daemon.neural_memory_hub import get_neural_memory_hub
 
+# Import ExtractionBridge for semantic UI analysis
+from systems.evolution_daemon.extraction_bridge import get_extraction_bridge
+
 logger = logging.getLogger("evolution_daemon.live_tile")
 
 
@@ -80,10 +83,12 @@ class LiveTileService:
         self._vnc_offset = 10  # Start VNC displays at :10 to avoid conflicts
         self._memory_hub = get_neural_memory_hub()  # Neural memory integration
         self._last_shell_tokens: Dict[str, List[str]] = {}  # Track shell activity per tile
+        self._extraction_bridge = get_extraction_bridge()  # Semantic extraction bridge
 
     def set_webmcp(self, webmcp):
         """Set WebMCP instance for broadcasting events."""
         self._webmcp = webmcp
+        self._extraction_bridge.set_webmcp(webmcp)
         logger.info("LiveTileService: WebMCP bridge connected")
 
     def set_boot_callback(self, callback):
@@ -214,11 +219,12 @@ class LiveTileService:
             })
 
     async def _screenshot_loop(self, tile_id: str):
-        """Periodically capture VM screenshot for the 'Live Tile' texture."""
+        """Periodically capture VM screenshot and run semantic extraction."""
         import base64
         from PIL import Image
         import io
 
+        loop_count = 0
         while tile_id in self.tiles:
             tile = self.tiles[tile_id]
             if tile.status != "running" or not tile.bridge:
@@ -241,14 +247,22 @@ class LiveTileService:
                             encoded = base64.b64encode(f.read()).decode('utf-8')
                             tile.framebuffer = f"data:image/png;base64,{encoded}"
                         
-                        # Cleanup temp file
-                        temp_png.unlink()
-
                         # Broadcast framebuffer update
                         await self._broadcast_event("tile_framebuffer", {
                             "tile_id": tile_id,
                             "data": tile.framebuffer
                         })
+
+                        # Run semantic extraction every 5 loops (approx every 10s)
+                        loop_count += 1
+                        if loop_count % 5 == 0:
+                            asyncio.create_task(
+                                self._extraction_bridge.extract_tile_semantics(tile_id, temp_png)
+                            )
+                        else:
+                            # Cleanup temp file if not running extraction
+                            if temp_png.exists():
+                                temp_png.unlink()
             except Exception as e:
                 logger.debug(f"Screenshot failed for {tile_id}: {e}")
 
@@ -458,9 +472,36 @@ class LiveTileService:
         # Send to QEMU via BootBridge -> QemuBoot -> monitor
         if tile.bridge._qemu:
             loop = asyncio.get_event_loop()
-            await loop.run_in_executor(
-                None, tile.bridge._qemu.send_keys, input_text + "\n"
-            )
+            
+            # Check for special 'click x y' command
+            if input_text.startswith("click "):
+                try:
+                    _, x_str, y_str = input_text.split()
+                    # QEMU usb-tablet uses 0-32767 scale.
+                    # Assuming input is normalized 0-1000 or similar? 
+                    # Actually let's assume raw pixels if coming from OCR.
+                    # We might need to scale based on framebuffer dimensions.
+                    x = float(x_str)
+                    y = float(y_str)
+                    
+                    # Scaling logic: input is in VM pixel space
+                    # Scale to QEMU absolute range (0-32767)
+                    qx = int((x / tile.framebuffer_width) * 32767)
+                    qy = int((y / tile.framebuffer_height) * 32767)
+                    
+                    def perform_click():
+                        tile.bridge._qemu.mouse_move(qx, qy)
+                        time.sleep(0.1)
+                        tile.bridge._qemu.mouse_click(1) # Left click
+                        
+                    await loop.run_in_executor(None, perform_click)
+                except Exception as e:
+                    logger.error(f"Failed to perform click for {tile_id}: {e}")
+            else:
+                # Normal text input
+                await loop.run_in_executor(
+                    None, tile.bridge._qemu.send_keys, input_text + "\n"
+                )
 
         logger.debug(f"Tile {tile_id}: Console input sent: {input_text}")
 

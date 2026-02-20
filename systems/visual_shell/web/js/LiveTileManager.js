@@ -7,8 +7,8 @@
  * LiveTile - Represents a single live tile instance with its state.
  */
 class LiveTile {
-    constructor(tileId, rtsPath) {
-        this.tileId = tileId;
+    constructor(id, rtsPath) {
+        this.id = id;
         this.rtsPath = rtsPath;
         this.state = 'stopped'; // 'stopped', 'booting', 'running', 'error'
         this.framebuffer = null;
@@ -20,9 +20,11 @@ class LiveTile {
             uptime: 0,
             cycles: 0
         };
+        this.widgets = [];
+        this.asciiView = '';
         this.consoleOutput = [];
         this.bootedAt = null;
-        this.lastUpdate = null;
+        this.lastUpdate = Date.now();
     }
 
     /**
@@ -104,6 +106,7 @@ class LiveTileManager {
         this.onTileStopped = null;
         this.onFramebufferUpdate = null;
         this.onMetricsUpdate = null;
+        this.onExtractionResult = null;
         this.onConnectionChange = null;
         this.onError = null;
     }
@@ -184,18 +187,18 @@ class LiveTileManager {
 
     /**
      * Boot a new tile
-     * @param {string} tileId - Unique tile identifier
+     * @param {string} id - Unique tile identifier
      * @param {string} rtsPath - Path to the RTS image file
      */
-    bootTile(tileId, rtsPath) {
-        const tile = new LiveTile(tileId, rtsPath);
+    bootTile(id, rtsPath) {
+        const tile = new LiveTile(id, rtsPath);
         tile.setState('booting');
-        this.tiles.set(tileId, tile);
+        this.tiles.set(id, tile);
 
         this._send({
             method: 'boot_tile',
             params: {
-                tile_id: tileId,
+                tile_id: id,
                 rts_path: rtsPath
             }
         });
@@ -203,27 +206,42 @@ class LiveTileManager {
 
     /**
      * Stop a running tile
-     * @param {string} tileId - Tile identifier to stop
+     * @param {string} id - Tile identifier to stop
      */
-    stopTile(tileId) {
+    stopTile(id) {
         this._send({
             method: 'stop_tile',
-            params: { tile_id: tileId }
+            params: { tile_id: id }
         });
 
-        const tile = this.tiles.get(tileId);
+        const tile = this.tiles.get(id);
         if (tile) {
             tile.setState('stopped');
         }
     }
 
     /**
+     * Send a command to a running tile
+     * @param {string} id - Tile identifier
+     * @param {string} command - Command text (e.g. "ls -la" or "click 100 200")
+     */
+    sendCommand(id, command) {
+        this._send({
+            method: 'send_console_input',
+            params: {
+                tile_id: id,
+                input: command
+            }
+        });
+    }
+
+    /**
      * Get a tile by ID
-     * @param {string} tileId - Tile identifier
+     * @param {string} id - Tile identifier
      * @returns {LiveTile|undefined} The tile instance or undefined
      */
-    getTile(tileId) {
-        return this.tiles.get(tileId);
+    getTile(id) {
+        return this.tiles.get(id);
     }
 
     /**
@@ -257,6 +275,9 @@ class LiveTileManager {
                 this._handleEvent(data.params.event_type, data.params);
             } else if (data.method === 'tile_event') {
                 this._handleEvent(data.params?.event_type, data.params);
+            } else if ((data.type === 'broadcast_event' || data.method === 'broadcast_event') && data.params) {
+                // Support standard broadcast_event format
+                this._handleEvent(data.params.type, data.params.data);
             }
         } catch (e) {
             console.warn('LiveTileManager parse error:', e);
@@ -272,31 +293,35 @@ class LiveTileManager {
     _handleEvent(eventType, params) {
         if (!params) return;
 
-        const tileId = params.tile_id;
+        const id = params.tile_id;
 
         switch (eventType) {
             case 'tile_booted':
-                this._handleTileBooted(tileId, params);
+                this._handleTileBooted(id, params);
                 break;
 
             case 'tile_stopped':
-                this._handleTileStopped(tileId, params);
+                this._handleTileStopped(id, params);
                 break;
 
             case 'tile_framebuffer':
-                this._handleFramebuffer(tileId, params);
+                this._handleFramebuffer(id, params);
                 break;
 
             case 'tile_metrics':
-                this._handleMetrics(tileId, params);
+                this._handleMetrics(id, params);
                 break;
 
             case 'tile_console':
-                this._handleConsole(tileId, params);
+                this._handleConsole(id, params);
+                break;
+
+            case 'tile_extraction_result':
+                this._handleExtractionResult(id, params);
                 break;
 
             case 'tile_error':
-                this._handleError(tileId, params);
+                this._handleError(id, params);
                 break;
         }
     }
@@ -305,10 +330,10 @@ class LiveTileManager {
      * Handle tile booted event
      * @private
      */
-    _handleTileBooted(tileId, params) {
-        const tile = this.tiles.get(tileId) || new LiveTile(tileId, params.rts_path);
+    _handleTileBooted(id, params) {
+        const tile = this.tiles.get(id) || new LiveTile(id, params.rts_path);
         tile.setState('running');
-        this.tiles.set(tileId, tile);
+        this.tiles.set(id, tile);
         if (this.onTileBooted) this.onTileBooted(tile);
     }
 
@@ -316,8 +341,8 @@ class LiveTileManager {
      * Handle tile stopped event
      * @private
      */
-    _handleTileStopped(tileId, params) {
-        const stoppedTile = this.tiles.get(tileId);
+    _handleTileStopped(id, params) {
+        const stoppedTile = this.tiles.get(id);
         if (stoppedTile) {
             stoppedTile.setState('stopped');
             if (this.onTileStopped) this.onTileStopped(stoppedTile);
@@ -328,8 +353,8 @@ class LiveTileManager {
      * Handle framebuffer update event
      * @private
      */
-    _handleFramebuffer(tileId, params) {
-        const fbTile = this.tiles.get(tileId);
+    _handleFramebuffer(id, params) {
+        const fbTile = this.tiles.get(id);
         if (fbTile) {
             fbTile.updateFramebuffer(params.data, params.width, params.height);
             if (this.onFramebufferUpdate) this.onFramebufferUpdate(fbTile);
@@ -340,8 +365,8 @@ class LiveTileManager {
      * Handle metrics update event
      * @private
      */
-    _handleMetrics(tileId, params) {
-        const metricsTile = this.tiles.get(tileId);
+    _handleMetrics(id, params) {
+        const metricsTile = this.tiles.get(id);
         if (metricsTile) {
             metricsTile.updateMetrics(params.metrics);
             if (this.onMetricsUpdate) this.onMetricsUpdate(metricsTile);
@@ -352,10 +377,25 @@ class LiveTileManager {
      * Handle console output event
      * @private
      */
-    _handleConsole(tileId, params) {
-        const consoleTile = this.tiles.get(tileId);
+    _handleConsole(id, params) {
+        const consoleTile = this.tiles.get(id);
         if (consoleTile) {
             consoleTile.appendConsole(params.text);
+        }
+    }
+
+    /**
+     * Handle tile extraction result event
+     * @private
+     */
+    _handleExtractionResult(id, params) {
+        const tile = this.tiles.get(id);
+        if (tile) {
+            tile.widgets = params.widgets || [];
+            tile.asciiView = params.ascii_view || '';
+            if (this.onExtractionResult) {
+                this.onExtractionResult(tile);
+            }
         }
     }
 
@@ -363,14 +403,14 @@ class LiveTileManager {
      * Handle tile error event
      * @private
      */
-    _handleError(tileId, params) {
-        const errorTile = this.tiles.get(tileId);
+    _handleError(id, params) {
+        const errorTile = this.tiles.get(id);
         if (errorTile) {
             errorTile.setState('error');
             errorTile.appendConsole(`[ERROR] ${params.message || 'Unknown error'}`);
         }
         if (this.onError) {
-            this.onError({ tileId, message: params.message });
+            this.onError({ id, message: params.message });
         }
     }
 
@@ -401,10 +441,10 @@ class LiveTileManager {
 
     /**
      * Remove a tile from management
-     * @param {string} tileId - Tile to remove
+     * @param {string} id - Tile to remove
      */
-    removeTile(tileId) {
-        this.tiles.delete(tileId);
+    removeTile(id) {
+        this.tiles.delete(id);
     }
 
     /**

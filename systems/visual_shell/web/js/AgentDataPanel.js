@@ -62,6 +62,11 @@ class AgentDataPanel {
                 <h3>🖥️ Live Console</h3>
                 <div class="console-output"></div>
             </div>
+            <div class="data-section" id="semantic-view-section" style="display:none;">
+                <h3>🔍 Semantic View (Detected Widgets)</h3>
+                <div class="widget-list"></div>
+                <pre class="ascii-viewport"></pre>
+            </div>
             <div class="data-section" id="communication-log">
                 <h3>📡 Communication Log</h3>
                 <div class="comm-log"></div>
@@ -310,6 +315,55 @@ class AgentDataPanel {
     }
 
     /**
+     * Update the semantic view with detected widgets and ASCII art.
+     * @param {Array} widgets - Array of widget objects {text, type, bbox, action}
+     * @param {string} asciiView - Pre-formatted ASCII string of the UI
+     */
+    setSemanticData(widgets, asciiView) {
+        const section = this.element.querySelector('#semantic-view-section');
+        const widgetList = this.element.querySelector('.widget-list');
+        const asciiViewport = this.element.querySelector('.ascii-viewport');
+
+        if ((widgets && widgets.length > 0) || asciiView) {
+            section.style.display = 'block';
+            
+            if (widgets && widgets.length > 0) {
+                widgetList.innerHTML = widgets.slice(0, 10).map((w, i) => 
+                    `<div class="widget-item clickable" data-index="${i}" style="cursor:pointer; hover:background:rgba(0,255,255,0.1)">
+                        <span class="widget-type">${w.type.toUpperCase()}</span>: 
+                        <span class="widget-text">"${this._escapeHtml(w.text)}"</span>
+                        ${w.action ? `<span class="widget-action">⚡ ${w.action}</span>` : ''}
+                    </div>`
+                ).join('');
+
+                // Add click handlers
+                widgetList.querySelectorAll('.widget-item').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const idx = parseInt(el.dataset.index);
+                        const widget = widgets[idx];
+                        // Emit event for the controller to handle
+                        const event = new CustomEvent('widget_click', { 
+                            detail: { widget: widget } 
+                        });
+                        this.element.dispatchEvent(event);
+                    });
+                });
+            } else {
+                widgetList.innerHTML = '<div class="empty-state">No widgets detected</div>';
+            }
+
+            if (asciiView) {
+                asciiViewport.textContent = asciiView;
+                asciiViewport.style.display = 'block';
+            } else {
+                asciiViewport.style.display = 'none';
+            }
+        } else {
+            section.style.display = 'none';
+        }
+    }
+
+    /**
      * Update the live console with VM output.
      * @param {Array} consoleOutput - Array of console line objects with time and text
      */
@@ -358,6 +412,9 @@ class AgentDataPanel {
         }
         if (agentData.consoleOutput !== undefined) {
             this.setLiveConsole(agentData.consoleOutput);
+        }
+        if (agentData.widgets !== undefined || agentData.asciiView !== undefined) {
+            this.setSemanticData(agentData.widgets, agentData.asciiView);
         }
     }
 
