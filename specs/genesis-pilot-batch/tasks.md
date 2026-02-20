@@ -425,7 +425,7 @@ print('All imports successful')
 
 ---
 
-### Task 4.3 [VERIFY] AC checklist validation
+### Task 4.3 [VERIFY] AC checklist validation [x]
 
 **Do**:
 1. Read requirements.md acceptance criteria
@@ -482,7 +482,7 @@ print('ALL CHECKED ACs PASSED')
 
 ## Phase 5: PR Lifecycle
 
-### Task 5.1: Final validation and documentation
+### Task 5.1: Final validation and documentation [x]
 
 **Do**:
 1. Verify all ACs from requirements.md are met
