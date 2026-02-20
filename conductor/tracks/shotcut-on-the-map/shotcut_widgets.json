@@ -1,0 +1,2399 @@
+{
+  "widgets": [
+    {
+      "type": "unknown",
+      "text": "Mounting",
+      "bbox": [
+        24,
+        2,
+        87,
+        15
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "persistent",
+      "bbox": [
+        96,
+        2,
+        175,
+        15
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "storage",
+      "bbox": [
+        184,
+        2,
+        239,
+        15
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "(pstore)",
+      "bbox": [
+        250,
+        2,
+        310,
+        15
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "filesystem",
+      "bbox": [
+        321,
+        2,
+        399,
+        15
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "...",
+      "bbox": [
+        411,
+        10,
+        429,
+        12
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Starting",
+      "bbox": [
+        24,
+        18,
+        87,
+        31
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "busybox",
+      "bbox": [
+        96,
+        18,
+        151,
+        31
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "mdev",
+      "bbox": [
+        160,
+        18,
+        191,
+        28
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": ".",
+      "bbox": [
+        203,
+        26,
+        205,
+        28
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Scanning",
+      "bbox": [
+        24,
+        34,
+        87,
+        47
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "harduare",
+      "bbox": [
+        96,
+        34,
+        159,
+        44
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "for",
+      "bbox": [
+        169,
+        34,
+        191,
+        44
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "mdev",
+      "bbox": [
+        200,
+        37,
+        231,
+        44
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": ".",
+      "bbox": [
+        243,
+        42,
+        245,
+        44
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Loading",
+      "bbox": [
+        24,
+        50,
+        79,
+        63
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "harduare",
+      "bbox": [
+        88,
+        50,
+        151,
+        60
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "drivers",
+      "bbox": [
+        160,
+        50,
+        215,
+        60
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": ".",
+      "bbox": [
+        227,
+        58,
+        229,
+        60
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Loading",
+      "bbox": [
+        24,
+        66,
+        79,
+        79
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "modules",
+      "bbox": [
+        88,
+        66,
+        143,
+        76
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "...",
+      "bbox": [
+        155,
+        74,
+        173,
+        76
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Setting",
+      "bbox": [
+        24,
+        82,
+        79,
+        95
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "system",
+      "bbox": [
+        88,
+        82,
+        135,
+        95
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "clock",
+      "bbox": [
+        144,
+        82,
+        183,
+        92
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "using",
+      "bbox": [
+        192,
+        82,
+        231,
+        95
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "the",
+      "bbox": [
+        240,
+        82,
+        263,
+        92
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "harduare",
+      "bbox": [
+        272,
+        82,
+        335,
+        92
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "clock",
+      "bbox": [
+        344,
+        82,
+        383,
+        92
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "[UTC]",
+      "bbox": [
+        394,
+        82,
+        430,
+        92
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "...",
+      "bbox": [
+        443,
+        90,
+        461,
+        92
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Checking",
+      "bbox": [
+        24,
+        98,
+        87,
+        111
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "local",
+      "bbox": [
+        98,
+        98,
+        134,
+        108
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "filesystems",
+      "bbox": [
+        145,
+        98,
+        231,
+        111
+      ],
+      "action": null
+    },
+    {
+      "type": "label",
+      "text": "/aev/uda3:",
+      "bbox": [
+        0,
+        114,
+        77,
+        124
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "clean,",
+      "bbox": [
+        88,
+        114,
+        133,
+        125
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "9232/374624",
+      "bbox": [
+        144,
+        114,
+        231,
+        124
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "files,",
+      "bbox": [
+        241,
+        106,
+        285,
+        125
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "217945/1495808",
+      "bbox": [
+        296,
+        114,
+        407,
+        124
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "blocks",
+      "bbox": [
+        416,
+        114,
+        463,
+        124
+      ],
+      "action": null
+    },
+    {
+      "type": "label",
+      "text": "Jev/udal:",
+      "bbox": [
+        0,
+        130,
+        77,
+        140
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "recovering",
+      "bbox": [
+        88,
+        130,
+        167,
+        143
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "journal",
+      "bbox": [
+        177,
+        130,
+        230,
+        143
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "/devodal",
+      "bbox": [
+        0,
+        146,
+        71,
+        156
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "primary",
+      "bbox": [
+        80,
+        146,
+        135,
+        159
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "superblock",
+      "bbox": [
+        144,
+        146,
+        223,
+        159
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "features",
+      "bbox": [
+        233,
+        146,
+        295,
+        156
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "different",
+      "bbox": [
+        304,
+        146,
+        375,
+        156
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "from",
+      "bbox": [
+        385,
+        146,
+        415,
+        156
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "backup,",
+      "bbox": [
+        424,
+        146,
+        477,
+        159
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "check",
+      "bbox": [
+        488,
+        146,
+        527,
+        156
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "forced.",
+      "bbox": [
+        537,
+        146,
+        589,
+        156
+      ],
+      "action": null
+    },
+    {
+      "type": "label",
+      "text": "/devudal:",
+      "bbox": [
+        0,
+        162,
+        77,
+        172
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Feature",
+      "bbox": [
+        88,
+        162,
+        143,
+        172
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "orphan_present",
+      "bbox": [
+        152,
+        162,
+        263,
+        175
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "is",
+      "bbox": [
+        274,
+        162,
+        287,
+        172
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "set",
+      "bbox": [
+        296,
+        162,
+        319,
+        172
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "but",
+      "bbox": [
+        328,
+        162,
+        351,
+        172
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "orphan",
+      "bbox": [
+        360,
+        162,
+        407,
+        175
+      ],
+      "action": null
+    },
+    {
+      "type": "menu",
+      "text": "file",
+      "bbox": [
+        417,
+        162,
+        447,
+        172
+      ],
+      "action": "menu_file"
+    },
+    {
+      "type": "unknown",
+      "text": "is",
+      "bbox": [
+        458,
+        162,
+        471,
+        172
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "clean.",
+      "bbox": [
+        480,
+        162,
+        525,
+        172
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "CLEARED",
+      "bbox": [
+        0,
+        178,
+        61,
+        188
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": ".",
+      "bbox": [
+        58,
+        169,
+        66,
+        198
+      ],
+      "action": null
+    },
+    {
+      "type": "label",
+      "text": "/dev/udal:",
+      "bbox": [
+        0,
+        194,
+        77,
+        204
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "25/76912",
+      "bbox": [
+        88,
+        194,
+        151,
+        204
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "files",
+      "bbox": [
+        161,
+        194,
+        199,
+        204
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "(4.0%",
+      "bbox": [
+        210,
+        194,
+        247,
+        204
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "non-contiguous),",
+      "bbox": [
+        256,
+        194,
+        381,
+        207
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "53260/307200",
+      "bbox": [
+        392,
+        194,
+        487,
+        204
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "blocks",
+      "bbox": [
+        496,
+        194,
+        543,
+        204
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "RRR",
+      "bbox": [
+        8,
+        325,
+        16,
+        362
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "RK",
+      "bbox": [
+        8,
+        277,
+        16,
+        314
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "RK",
+      "bbox": [
+        8,
+        229,
+        16,
+        266
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Filesystens",
+      "bbox": [
+        24,
+        210,
+        111,
+        223
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "repaired",
+      "bbox": [
+        120,
+        210,
+        183,
+        223
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Renounting",
+      "bbox": [
+        24,
+        226,
+        103,
+        239
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "root",
+      "bbox": [
+        112,
+        226,
+        143,
+        236
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "filesystem",
+      "bbox": [
+        153,
+        226,
+        231,
+        239
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "read/urite",
+      "bbox": [
+        240,
+        226,
+        319,
+        236
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": ".",
+      "bbox": [
+        331,
+        234,
+        333,
+        236
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Renounting",
+      "bbox": [
+        24,
+        242,
+        103,
+        255
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "filesystems",
+      "bbox": [
+        113,
+        242,
+        199,
+        255
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Activating",
+      "bbox": [
+        24,
+        258,
+        103,
+        271
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "suap",
+      "bbox": [
+        112,
+        261,
+        143,
+        271
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "devices",
+      "bbox": [
+        152,
+        258,
+        207,
+        268
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": ".",
+      "bbox": [
+        219,
+        266,
+        221,
+        268
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Mounting",
+      "bbox": [
+        24,
+        274,
+        87,
+        287
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "local",
+      "bbox": [
+        98,
+        274,
+        134,
+        284
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "filesystens",
+      "bbox": [
+        145,
+        274,
+        231,
+        287
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": ".",
+      "bbox": [
+        243,
+        282,
+        245,
+        284
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Configuring",
+      "bbox": [
+        24,
+        290,
+        111,
+        303
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "kernel",
+      "bbox": [
+        120,
+        290,
+        166,
+        300
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "parameters",
+      "bbox": [
+        176,
+        290,
+        255,
+        303
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "...",
+      "bbox": [
+        267,
+        298,
+        285,
+        300
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Creating",
+      "bbox": [
+        24,
+        306,
+        87,
+        319
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "user",
+      "bbox": [
+        96,
+        309,
+        127,
+        316
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "login",
+      "bbox": [
+        138,
+        306,
+        175,
+        319
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "records",
+      "bbox": [
+        184,
+        306,
+        239,
+        316
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "...",
+      "bbox": [
+        251,
+        314,
+        269,
+        316
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Setting",
+      "bbox": [
+        24,
+        322,
+        79,
+        335
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "hostnane",
+      "bbox": [
+        88,
+        322,
+        151,
+        332
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Starting",
+      "bbox": [
+        24,
+        338,
+        87,
+        351
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "netuorking",
+      "bbox": [
+        96,
+        338,
+        175,
+        351
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "...",
+      "bbox": [
+        187,
+        346,
+        205,
+        348
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "lo...",
+      "bbox": [
+        42,
+        354,
+        85,
+        364
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "etho",
+      "bbox": [
+        40,
+        370,
+        71,
+        380
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": ".",
+      "bbox": [
+        83,
+        378,
+        85,
+        380
+      ],
+      "action": null
+    },
+    {
+      "type": "label",
+      "text": ":",
+      "bbox": [
+        51,
+        388,
+        53,
+        390
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "started,",
+      "bbox": [
+        64,
+        386,
+        125,
+        397
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "v1.36.1",
+      "bbox": [
+        136,
+        386,
+        191,
+        396
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "broadcasting",
+      "bbox": [
+        64,
+        402,
+        159,
+        415
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "discover",
+      "bbox": [
+        168,
+        402,
+        231,
+        412
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "broadcasting",
+      "bbox": [
+        64,
+        418,
+        159,
+        431
+      ],
+      "action": null
+    },
+    {
+      "type": "menu",
+      "text": "select",
+      "bbox": [
+        168,
+        418,
+        215,
+        428
+      ],
+      "action": "menu_select"
+    },
+    {
+      "type": "unknown",
+      "text": "for",
+      "bbox": [
+        225,
+        418,
+        247,
+        428
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "10.0.2.15,",
+      "bbox": [
+        257,
+        418,
+        333,
+        429
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "server",
+      "bbox": [
+        344,
+        421,
+        391,
+        428
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "10.0.2.2",
+      "bbox": [
+        401,
+        418,
+        463,
+        428
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "lease",
+      "bbox": [
+        66,
+        434,
+        103,
+        444
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "of",
+      "bbox": [
+        112,
+        434,
+        127,
+        444
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "10.0.2.15",
+      "bbox": [
+        137,
+        434,
+        207,
+        444
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "obtained",
+      "bbox": [
+        216,
+        434,
+        279,
+        444
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "from",
+      "bbox": [
+        289,
+        434,
+        319,
+        444
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "10.0.2.2,",
+      "bbox": [
+        329,
+        434,
+        397,
+        445
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "lease",
+      "bbox": [
+        410,
+        434,
+        447,
+        444
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "time",
+      "bbox": [
+        456,
+        434,
+        487,
+        444
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "86400",
+      "bbox": [
+        496,
+        434,
+        535,
+        444
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Seeding",
+      "bbox": [
+        24,
+        450,
+        79,
+        463
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "random",
+      "bbox": [
+        88,
+        450,
+        135,
+        460
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "number",
+      "bbox": [
+        144,
+        450,
+        191,
+        460
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "generator",
+      "bbox": [
+        200,
+        450,
+        271,
+        463
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "...",
+      "bbox": [
+        283,
+        458,
+        301,
+        460
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Seeding",
+      "bbox": [
+        24,
+        466,
+        79,
+        479
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "256",
+      "bbox": [
+        88,
+        466,
+        111,
+        476
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "bits",
+      "bbox": [
+        120,
+        466,
+        151,
+        476
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "without",
+      "bbox": [
+        160,
+        466,
+        215,
+        476
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "crediting",
+      "bbox": [
+        224,
+        466,
+        295,
+        479
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Saving",
+      "bbox": [
+        24,
+        482,
+        71,
+        495
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "256",
+      "bbox": [
+        80,
+        482,
+        103,
+        492
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "bits",
+      "bbox": [
+        112,
+        482,
+        143,
+        492
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "of",
+      "bbox": [
+        152,
+        482,
+        167,
+        492
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "non-creditable",
+      "bbox": [
+        176,
+        482,
+        287,
+        492
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "seed",
+      "bbox": [
+        296,
+        482,
+        327,
+        492
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "for",
+      "bbox": [
+        337,
+        482,
+        359,
+        492
+      ],
+      "action": null
+    },
+    {
+      "type": "button",
+      "text": "next",
+      "bbox": [
+        368,
+        482,
+        399,
+        492
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "boot",
+      "bbox": [
+        408,
+        482,
+        439,
+        492
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Starting",
+      "bbox": [
+        24,
+        498,
+        87,
+        511
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "busybox",
+      "bbox": [
+        96,
+        498,
+        151,
+        511
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "syslog",
+      "bbox": [
+        160,
+        498,
+        207,
+        511
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "...",
+      "bbox": [
+        219,
+        506,
+        237,
+        508
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Starting",
+      "bbox": [
+        24,
+        514,
+        87,
+        527
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "busybox",
+      "bbox": [
+        96,
+        514,
+        151,
+        527
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "acpid",
+      "bbox": [
+        160,
+        514,
+        199,
+        527
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Starting",
+      "bbox": [
+        24,
+        530,
+        87,
+        543
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "busybox",
+      "bbox": [
+        96,
+        530,
+        151,
+        543
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "crond",
+      "bbox": [
+        160,
+        530,
+        199,
+        540
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Starting",
+      "bbox": [
+        24,
+        546,
+        87,
+        559
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "sshd",
+      "bbox": [
+        96,
+        546,
+        127,
+        556
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "...",
+      "bbox": [
+        139,
+        554,
+        157,
+        556
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Welcone",
+      "bbox": [
+        0,
+        578,
+        55,
+        588
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "to",
+      "bbox": [
+        64,
+        578,
+        79,
+        588
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Alpine",
+      "bbox": [
+        88,
+        578,
+        135,
+        591
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Linux",
+      "bbox": [
+        144,
+        578,
+        183,
+        588
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "3.19",
+      "bbox": [
+        192,
+        578,
+        223,
+        588
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Kernel]",
+      "bbox": [
+        0,
+        594,
+        46,
+        604
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "6.6.117-0-virt",
+      "bbox": [
+        56,
+        594,
+        167,
+        604
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "on",
+      "bbox": [
+        176,
+        597,
+        191,
+        604
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "an",
+      "bbox": [
+        200,
+        597,
+        215,
+        604
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "x86_64",
+      "bbox": [
+        224,
+        594,
+        271,
+        606
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "(/deu/tty1)",
+      "bbox": [
+        282,
+        594,
+        366,
+        607
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "shotcut-um",
+      "bbox": [
+        0,
+        626,
+        79,
+        636
+      ],
+      "action": null
+    },
+    {
+      "type": "label",
+      "text": "login:",
+      "bbox": [
+        90,
+        626,
+        133,
+        639
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Welcome",
+      "bbox": [
+        0,
+        642,
+        55,
+        652
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "to",
+      "bbox": [
+        64,
+        642,
+        79,
+        652
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Alpine",
+      "bbox": [
+        88,
+        642,
+        135,
+        655
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Linux",
+      "bbox": [
+        144,
+        642,
+        183,
+        652
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "3.19",
+      "bbox": [
+        192,
+        642,
+        223,
+        652
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Kernel]",
+      "bbox": [
+        0,
+        658,
+        46,
+        668
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "6.6.11?-0-virt",
+      "bbox": [
+        56,
+        658,
+        167,
+        668
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "on",
+      "bbox": [
+        176,
+        661,
+        191,
+        668
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "an",
+      "bbox": [
+        200,
+        661,
+        215,
+        668
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "x86_64",
+      "bbox": [
+        224,
+        658,
+        271,
+        670
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "(/deu/tty1)",
+      "bbox": [
+        282,
+        658,
+        366,
+        671
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "shotcut-un",
+      "bbox": [
+        0,
+        690,
+        79,
+        700
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "login",
+      "bbox": [
+        90,
+        690,
+        127,
+        703
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Welcome",
+      "bbox": [
+        0,
+        706,
+        55,
+        716
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "to",
+      "bbox": [
+        64,
+        706,
+        79,
+        716
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Alpine",
+      "bbox": [
+        88,
+        706,
+        135,
+        719
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Linux",
+      "bbox": [
+        144,
+        706,
+        183,
+        716
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "3.19",
+      "bbox": [
+        192,
+        706,
+        223,
+        716
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "Kernel]",
+      "bbox": [
+        0,
+        722,
+        46,
+        732
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "6.6.11?-0-virt",
+      "bbox": [
+        56,
+        722,
+        167,
+        732
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "on",
+      "bbox": [
+        176,
+        725,
+        191,
+        732
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "an",
+      "bbox": [
+        200,
+        725,
+        215,
+        732
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "x86_64",
+      "bbox": [
+        224,
+        722,
+        271,
+        734
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "(/deu/tty1)",
+      "bbox": [
+        282,
+        722,
+        366,
+        735
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "shotcut-um",
+      "bbox": [
+        0,
+        754,
+        79,
+        764
+      ],
+      "action": null
+    },
+    {
+      "type": "unknown",
+      "text": "login",
+      "bbox": [
+        90,
+        754,
+        127,
+        767
+      ],
+      "action": null
+    },
+    {
+      "type": "button",
+      "text": "ok",
+      "bbox": [
+        992,
+        50,
+        1007,
+        60
+      ],
+      "action": "confirm"
+    },
+    {
+      "type": "button",
+      "text": "ok",
+      "bbox": [
+        992,
+        66,
+        1007,
+        76
+      ],
+      "action": "confirm"
+    },
+    {
+      "type": "button",
+      "text": "ok",
+      "bbox": [
+        992,
+        82,
+        1007,
+        92
+      ],
+      "action": "confirm"
+    },
+    {
+      "type": "unknown",
+      "text": "tt",
+      "bbox": [
+        994,
+        210,
+        1006,
+        220
+      ],
+      "action": null
+    },
+    {
+      "type": "button",
+      "text": "ok",
+      "bbox": [
+        992,
+        226,
+        1007,
+        236
+      ],
+      "action": "confirm"
+    },
+    {
+      "type": "button",
+      "text": "ok",
+      "bbox": [
+        992,
+        242,
+        1007,
+        252
+      ],
+      "action": "confirm"
+    },
+    {
+      "type": "button",
+      "text": "ok",
+      "bbox": [
+        992,
+        258,
+        1007,
+        268
+      ],
+      "action": "confirm"
+    },
+    {
+      "type": "button",
+      "text": "ok",
+      "bbox": [
+        992,
+        274,
+        1007,
+        284
+      ],
+      "action": "confirm"
+    },
+    {
+      "type": "button",
+      "text": "ok",
+      "bbox": [
+        992,
+        290,
+        1007,
+        300
+      ],
+      "action": "confirm"
+    },
+    {
+      "type": "button",
+      "text": "ok",
+      "bbox": [
+        992,
+        306,
+        1007,
+        316
+      ],
+      "action": "confirm"
+    },
+    {
+      "type": "button",
+      "text": "ok",
+      "bbox": [
+        992,
+        322,
+        1007,
+        332
+      ],
+      "action": "confirm"
+    },
+    {
+      "type": "button",
+      "text": "ok",
+      "bbox": [
+        992,
+        354,
+        1007,
+        364
+      ],
+      "action": "confirm"
+    },
+    {
+      "type": "button",
+      "text": "ok",
+      "bbox": [
+        992,
+        434,
+        1007,
+        444
+      ],
+      "action": "confirm"
+    },
+    {
+      "type": "button",
+      "text": "ok",
+      "bbox": [
+        992,
+        482,
+        1007,
+        492
+      ],
+      "action": "confirm"
+    },
+    {
+      "type": "button",
+      "text": "ok",
+      "bbox": [
+        992,
+        498,
+        1007,
+        508
+      ],
+      "action": "confirm"
+    },
+    {
+      "type": "button",
+      "text": "ok",
+      "bbox": [
+        992,
+        514,
+        1007,
+        524
+      ],
+      "action": "confirm"
+    },
+    {
+      "type": "button",
+      "text": "ok",
+      "bbox": [
+        992,
+        530,
+        1007,
+        540
+      ],
+      "action": "confirm"
+    },
+    {
+      "type": "button",
+      "text": "ok",
+      "bbox": [
+        992,
+        546,
+        1007,
+        556
+      ],
+      "action": "confirm"
+    }
+  ],
+  "metadata": {
+    "source_image": "screenshots/shotcut_gui_test.png",
+    "extraction_time_seconds": 1.207648754119873,
+    "element_count": 217,
+    "cluster_count": 4,
+    "widget_count": 217,
+    "clickable_count": 19
+  }
+}

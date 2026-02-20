@@ -183,7 +183,7 @@ _Design: Click Animation Feedback_
 _Requirements: FR-4_
 _Design: Interactive Test HTML_
 
-### Task 1.9: POC Checkpoint - End-to-End Interaction Verification
+### Task 1.9: [x] POC Checkpoint - End-to-End Interaction Verification
 **Do**:
 1. Run extraction_pipeline on sample screenshot to get widgets.json
 2. Run ui_transmuter on widgets.json to generate interactive.wgsl

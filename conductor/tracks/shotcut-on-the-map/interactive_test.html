@@ -41,36 +41,8 @@ const hoveredWidgetEl = document.getElementById('hovered-widget');
 const clickedWidgetEl = document.getElementById('clicked-widget');
 const cursorStateEl = document.getElementById('cursor-state');
 
-// Sample widget data for testing interactions
-const sampleWidgets = [
-    // Top menu bar buttons
-    { type: 'button', bbox: [10, 10, 60, 40], action: 'menu_file', label: 'File' },
-    { type: 'button', bbox: [70, 10, 130, 40], action: 'menu_edit', label: 'Edit' },
-    { type: 'button', bbox: [140, 10, 210, 40], action: 'menu_view', label: 'View' },
-    { type: 'button', bbox: [220, 10, 300, 40], action: 'menu_timeline', label: 'Timeline' },
-
-    // Timeline panel
-    { type: 'panel', bbox: [10, 400, 1014, 760], label: 'Timeline Panel' },
-
-    // Playhead (vertical line in timeline)
-    { type: 'playhead', bbox: [512, 400, 518, 760], action: 'scrub' },
-
-    // Sample clips on timeline
-    { type: 'clip', bbox: [20, 450, 200, 500], action: 'select_clip_1', label: 'Clip 1' },
-    { type: 'clip', bbox: [210, 450, 400, 500], action: 'select_clip_2', label: 'Clip 2' },
-    { type: 'clip', bbox: [20, 510, 350, 560], action: 'select_clip_3', label: 'Clip 3' },
-
-    // Transport controls (bottom)
-    { type: 'button', bbox: [420, 710, 470, 750], action: 'play', label: 'Play' },
-    { type: 'button', bbox: [480, 710, 530, 750], action: 'pause', label: 'Pause' },
-    { type: 'button', bbox: [540, 710, 590, 750], action: 'stop', label: 'Stop' },
-
-    // Preview panel (left side)
-    { type: 'panel', bbox: [10, 50, 400, 390], label: 'Preview Panel' },
-
-    // Properties panel (right side)
-    { type: 'panel', bbox: [700, 50, 1014, 390], label: 'Properties Panel' },
-];
+// Will load widgets from JSON file
+let sampleWidgets = [];
 
 // Callbacks for interaction events
 const interactionCallbacks = {
@@ -115,9 +87,19 @@ async function init() {
 
     context.configure({ device, format, alphaMode: 'premultiplied' });
 
+    // Load widgets from JSON file
+    statusEl.textContent = 'Loading widgets...';
+    const widgetsResponse = await fetch('shotcut_widgets.json');
+    const widgetsData = await widgetsResponse.json();
+    sampleWidgets = widgetsData.widgets.filter(w => w.action).map(w => ({
+        ...w,
+        label: w.text || w.action
+    }));
+    console.log(`Loaded ${sampleWidgets.length} clickable widgets from JSON`);
+
     // Fetch the generated shader
     statusEl.textContent = 'Loading shader...';
-    const shaderResponse = await fetch('../../systems/pixel_compiler/shaders/shotcut_clone.wgsl');
+    const shaderResponse = await fetch('shotcut_interactive.wgsl');
     const shaderCode = await shaderResponse.text();
 
     // Create shader module
