@@ -59,6 +59,10 @@ class VisualBridge:
         self.tectonic_handler = TectonicHandler()
         self.vat_manager = VATManager()
 
+        # Heat Map Aggregator (Visual Hotspot Debugger)
+        self.heat_aggregator: Optional[Any] = None  # Initialized in start_heat_aggregator()
+        self._heat_aggregator_enabled = True
+
     def _query_memory_daemon(self, message):
         """Send a message to the Vector Memory Daemon and get response"""
         try:
@@ -389,6 +393,31 @@ class VisualBridge:
                     # Trigger ASCII file refresh
                     await self.broadcast_ascii_file("tectonic_activity.ascii")
 
+                # 17. Heat Access Events (Visual Hotspot Debugger)
+                elif msg_type == 'heat_access':
+                    # Record heat access from external sources (e.g., RISC-V executor)
+                    heat_x = data.get('x', 0)
+                    heat_y = data.get('y', 0)
+                    access_type = data.get('access_type', 'unknown')
+                    source = data.get('source', 'unknown')
+
+                    if self.heat_aggregator:
+                        self.heat_aggregator.record_access(heat_x, heat_y, source)
+                        print(f"🔥 Heat Access: ({heat_x}, {heat_y}) from {source}")
+                    else:
+                        print(f"⚠️  Heat Aggregator not initialized, ignoring heat_access")
+
+                # 18. Heat Memory Access Events (from RISC-V executor)
+                elif msg_type == 'heat_memory_access':
+                    # Record heat for memory access (linear address)
+                    address = data.get('address', 0)
+                    access_type = data.get('access_type', 'read')
+                    source = data.get('source', 'riscv')
+
+                    if self.heat_aggregator:
+                        self.heat_aggregator.record_memory_access(address, source)
+                        print(f"🔥 Heat Memory: 0x{address:x} ({access_type}) from {source}")
+
         except websockets.exceptions.ConnectionClosed:
             pass
         except Exception as e:
@@ -635,6 +664,10 @@ class VisualBridge:
         # Initialize Perceptual Bridge V16 (New)
         await self._setup_perceptual_bridge()
 
+        # Initialize Heat Aggregator (Visual Hotspot Debugger)
+        if self._heat_aggregator_enabled:
+            await self.start_heat_aggregator()
+
         async with serve(self.handle_client, "0.0.0.0", self.ws_port):
             await asyncio.Future()
 
@@ -677,6 +710,81 @@ class VisualBridge:
         except Exception as e:
             print(f"⚠️  Failed to initialize Perceptual Bridge: {e}")
             self.perceptual_bridge = None
+
+    # --- Heat Aggregator Methods (Visual Hotspot Debugger) ---
+
+    async def start_heat_aggregator(self, vat_manager: Optional[Any] = None):
+        """
+        Start the heat aggregation service.
+
+        The HeatAggregator collects access patterns from multiple sources
+        (RISC-V execution, FUSE filesystem, Evolution Daemon) and broadcasts
+        a real-time heat map to connected clients.
+
+        Args:
+            vat_manager: Optional VATManager instance (uses self.vat_manager if not provided)
+
+        Example:
+            bridge = VisualBridge()
+            await bridge.start_heat_aggregator()
+            # Heat map updates will be broadcast via WebSocket
+        """
+        if self.heat_aggregator is not None:
+            print("⚠️  Heat Aggregator already running")
+            return
+
+        try:
+            from .heat_aggregator import HeatAggregator
+
+            vat = vat_manager or self.vat_manager
+            self.heat_aggregator = HeatAggregator(self, vat)
+            await self.heat_aggregator.start()
+            print("🔥 Heat Aggregator started (1 Hz update rate)")
+
+        except ImportError as e:
+            print(f"⚠️  Heat Aggregator not available: {e}")
+            self.heat_aggregator = None
+        except Exception as e:
+            print(f"⚠️  Failed to initialize Heat Aggregator: {e}")
+            self.heat_aggregator = None
+
+    async def stop_heat_aggregator(self):
+        """
+        Stop the heat aggregation service.
+
+        Persists the current heat state to disk before stopping.
+        """
+        if self.heat_aggregator is not None:
+            await self.heat_aggregator.stop()
+            self.heat_aggregator = None
+            print("🔥 Heat Aggregator stopped")
+
+    def record_heat_access(self, x: int, y: int, source: str = "unknown"):
+        """
+        Record a heat access event at the given coordinates.
+
+        Convenience method that delegates to HeatAggregator.record_access().
+
+        Args:
+            x: Grid X coordinate
+            y: Grid Y coordinate
+            source: Source identifier (e.g., "riscv", "fuse", "evolution")
+        """
+        if self.heat_aggregator is not None:
+            self.heat_aggregator.record_access(x, y, source)
+
+    def record_heat_memory_access(self, address: int, source: str = "riscv"):
+        """
+        Record a heat access event for a memory address.
+
+        Convenience method that delegates to HeatAggregator.record_memory_access().
+
+        Args:
+            address: Linear memory address
+            source: Source identifier (default: "riscv")
+        """
+        if self.heat_aggregator is not None:
+            self.heat_aggregator.record_memory_access(address, source)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Visual Bridge for Geometry OS')

@@ -6,6 +6,7 @@ use super::{ExecutionState};
 use std::sync::Arc;
 use std::fs;
 use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
 use serde_json::json;
 use tokio::sync::Mutex;
 use futures_util::sink::SinkExt;
@@ -15,10 +16,10 @@ use tokio_tungstenite::tungstenite::protocol::Message;
 pub trait RiscvHook: Send + Sync {
     /// Called when the VM execution batch completes
     fn on_batch_complete(&self, pc: u32, state: &ExecutionState, cycles: u32);
-    
+
     /// Called when new UART output is collected
     fn on_uart(&self, text: &str);
-    
+
     /// Called when the VM halts
     fn on_halt(&self, exit_code: u32, cycles: u32);
 }
@@ -167,6 +168,105 @@ fn privilege_to_str(p: u32) -> &'static str {
         1 => "Supervisor",
         3 => "Machine",
         _ => "Unknown",
+    }
+}
+
+/// A hook that sends heat map updates based on RISC-V execution patterns
+///
+/// When the VM executes code, the PC (program counter) is converted to
+/// heat map coordinates and sent to the Visual Bridge for visualization.
+/// This provides a real-time view of which memory regions are being accessed.
+pub struct HeatHook {
+    /// WebSocket sender (shared across threads)
+    pub ws_sender: Arc<Mutex<Option<futures_util::stream::SplitSink<
+        tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+        Message
+    >>>>,
+    /// Grid size for heat map (default: 64)
+    pub grid_size: u32,
+    /// Sample rate (send heat update every N batches)
+    pub sample_rate: u32,
+    /// Batch counter
+    pub batch_count: std::sync::atomic::AtomicU32,
+}
+
+impl HeatHook {
+    pub fn new(ws_sender: Arc<Mutex<Option<futures_util::stream::SplitSink<
+        tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+        Message
+    >>>>) -> Self {
+        Self {
+            ws_sender,
+            grid_size: 64,
+            sample_rate: 10, // Send every 10 batches (reduces overhead)
+            batch_count: std::sync::atomic::AtomicU32::new(0),
+        }
+    }
+
+    /// Convert a memory address to heat map grid coordinates
+    fn address_to_grid(&self, address: u32) -> (u32, u32) {
+        // Each 4-byte word gets a unique position, wrapped to grid
+        let word_addr = address / 4;
+        let x = word_addr % self.grid_size;
+        let y = (word_addr / self.grid_size) % self.grid_size;
+        (x, y)
+    }
+
+    /// Send a heat access event to the Visual Bridge
+    fn send_heat_access(&self, x: u32, y: u32, access_type: &str) {
+        let sender = self.ws_sender.clone();
+        let access_type = access_type.to_string();
+        tokio::spawn(async move {
+            if let Some(tx) = sender.lock().await.as_mut() {
+                let timestamp = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis();
+
+                let msg = json!({
+                    "type": "heat_access",
+                    "x": x,
+                    "y": y,
+                    "access_type": access_type,
+                    "source": "riscv",
+                    "timestamp": timestamp,
+                });
+                let _ = tx.send(Message::Text(msg.to_string())).await;
+            }
+        });
+    }
+}
+
+impl RiscvHook for HeatHook {
+    fn on_batch_complete(&self, pc: u32, _state: &ExecutionState, _cycles: u32) {
+        // Increment batch counter
+        let count = self.batch_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+
+        // Only send every N batches to reduce overhead
+        if count % self.sample_rate != 0 {
+            return;
+        }
+
+        // Convert PC to grid coordinates and send heat event
+        let (x, y) = self.address_to_grid(pc);
+        self.send_heat_access(x, y, "execute");
+
+        // Also add some heat to nearby addresses to simulate code block execution
+        // This creates a more realistic heat pattern
+        for offset in &[4, 8, 12, 16] {
+            let (nx, ny) = self.address_to_grid(pc + offset);
+            if (nx, ny) != (x, y) {
+                self.send_heat_access(nx, ny, "execute");
+            }
+        }
+    }
+
+    fn on_uart(&self, _text: &str) {
+        // UART output doesn't generate heat in this implementation
+    }
+
+    fn on_halt(&self, _exit_code: u32, _cycles: u32) {
+        // VM halt - could send a final heat summary if needed
     }
 }
 

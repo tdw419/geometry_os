@@ -104,6 +104,15 @@ class VisualDebugOverlay {
             pulseCount: 0
         };
 
+        // Heat Map state (Visual Hotspot Debugger)
+        this.heatmapState = {
+            visible: false,
+            hotspotCount: 0,
+            avgHeat: 0,
+            maxHeat: 0,
+            lastUpdate: null
+        };
+
         // Canvas layers
         this.hudCanvas = null;
         this.hudCtx = null;
@@ -304,6 +313,15 @@ class VisualDebugOverlay {
 
         window.addEventListener('TECTONIC_PROPOSAL', (e) => {
             this.handleTectonicProposal(e.detail);
+        });
+
+        // Listen for Heat Map events (Visual Hotspot Debugger)
+        window.addEventListener('HEATMAP_TOGGLED', (e) => {
+            this.handleHeatmapToggle(e.detail);
+        });
+
+        window.addEventListener('heat_map_update', (e) => {
+            this.handleHeatmapUpdate(e.detail);
         });
 
         // Drag and drop handlers for canvas
@@ -1162,6 +1180,11 @@ class VisualDebugOverlay {
         // Tectonic Activity HUD (Phase 28: Spatial Tectonics)
         if (this.tectonicState.pulseCount > 0 || this.tectonicState.totalMovements > 0) {
             this._renderTectonicSection(ctx, width, padding);
+        }
+
+        // Heat Map HUD (Visual Hotspot Debugger)
+        if (window.geometryOSApp && window.geometryOSApp.heatmapOverlay) {
+            this._renderHeatmapSection(ctx, width, padding);
         }
     }
 
@@ -2382,6 +2405,179 @@ class VisualDebugOverlay {
             `Movements: ${state.totalMovements} | Pulses: ${state.pulseCount}`,
             padding, y
         );
+    }
+
+    /**
+     * Handle heat map toggle event
+     */
+    handleHeatmapToggle(detail) {
+        if (detail) {
+            this.heatmapState.visible = detail.visible;
+        }
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle heat map update event
+     */
+    handleHeatmapUpdate(data) {
+        if (!data) return;
+
+        // Update state from the data
+        this.heatmapState.hotspotCount = (data.hotspots || []).length;
+        this.heatmapState.lastUpdate = data.timestamp || Date.now();
+
+        // Calculate average heat from grid if available
+        if (data.grid) {
+            try {
+                const hexString = data.grid;
+                const bytes = new Uint8Array(
+                    hexString.match(/.{2}/g).map(b => parseInt(b, 16))
+                );
+                const grid = new Float32Array(bytes.buffer);
+                const sum = grid.reduce((a, b) => a + b, 0);
+                this.heatmapState.avgHeat = sum / grid.length;
+                this.heatmapState.maxHeat = Math.max(...grid);
+            } catch (e) {
+                // Ignore parsing errors
+            }
+        }
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Render Heat Map HUD section (Visual Hotspot Debugger)
+     * Shows heat map status, hotspots, and color legend.
+     */
+    _renderHeatmapSection(ctx, width, padding) {
+        const heatmap = window.geometryOSApp?.heatmapOverlay;
+        if (!heatmap) return 0;
+
+        const stats = heatmap.getStats ? heatmap.getStats() : this.heatmapState;
+
+        const lineHeight = 16;
+        const sectionHeight = 110;
+        let currentY = 10;
+
+        // Position - stack with other sections from top
+        // Find the last bottom-positioned section offset
+        let offset = sectionHeight + 30;
+        if (this.uartBuffer && this.uartBuffer.length > 0) offset += 210;
+        if (this.swarmHealth) offset += 100;
+        if (window.geometryOSApp && window.geometryOSApp.neuralCity) offset += 260;
+        if (this.mutationStats.totalMutations > 0) offset += 100;
+        if (this.tectonicState.pulseCount > 0 || this.tectonicState.totalMovements > 0) offset += 100;
+
+        const startY = this.hudCanvas.height - offset;
+
+        // Background for section - warm colors for heat map
+        ctx.fillStyle = 'rgba(60, 20, 0, 0.95)';
+        ctx.fillRect(10, startY, width - 20, sectionHeight);
+
+        // Border with activity indicator (glowing when visible)
+        ctx.strokeStyle = stats.visible ? '#ff6600' : '#8B4513';
+        ctx.lineWidth = stats.visible ? 2 : 1;
+        ctx.strokeRect(10, startY, width - 20, sectionHeight);
+
+        currentY = startY + 18;
+
+        // Header with emoji
+        ctx.fillStyle = '#ff6600';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText('🔥 HEAT MAP', padding, currentY);
+        currentY += 5;
+
+        // Divider
+        ctx.strokeStyle = '#ff660044';
+        ctx.beginPath();
+        ctx.moveTo(padding, currentY);
+        ctx.lineTo(width - padding, currentY);
+        ctx.stroke();
+        currentY += 15;
+
+        // Stats
+        ctx.font = '11px monospace';
+
+        // Visible status
+        ctx.fillStyle = stats.visible ? '#44ff44' : '#888888';
+        const statusIcon = stats.visible ? '●' : '○';
+        ctx.fillText(`Visible: ${statusIcon} ${stats.visible ? 'ON' : 'OFF'}`, padding, currentY);
+        currentY += lineHeight;
+
+        // Hotspot count
+        ctx.fillStyle = '#ff4444';
+        ctx.fillText(`Hotspots: ${stats.hotspotCount}`, padding, currentY);
+        currentY += lineHeight;
+
+        // Average heat with progress bar
+        const avgPercent = (stats.avgHeat * 100).toFixed(1);
+        ctx.fillStyle = '#cccccc';
+        ctx.fillText(`Avg Heat: ${avgPercent}%`, padding, currentY);
+
+        // Progress bar
+        const barX = padding + 100;
+        const barWidth = width - barX - padding - 10;
+        ctx.fillStyle = '#333333';
+        ctx.fillRect(barX, currentY - 10, barWidth, 8);
+
+        // Fill bar with heat color
+        const heatColor = this._getHeatColor(stats.avgHeat);
+        ctx.fillStyle = heatColor;
+        ctx.fillRect(barX, currentY - 10, barWidth * stats.avgHeat, 8);
+        currentY += lineHeight;
+
+        // Color gradient legend
+        ctx.fillStyle = '#888888';
+        ctx.font = '10px monospace';
+        ctx.fillText('Legend:', padding, currentY);
+        currentY += 14;
+
+        // Draw gradient bar
+        const legendX = padding + 10;
+        const legendWidth = width - padding * 2 - 20;
+        for (let i = 0; i < legendWidth; i++) {
+            const t = i / legendWidth;
+            ctx.fillStyle = this._getHeatColor(t);
+            ctx.fillRect(legendX + i, currentY, 1, 10);
+        }
+
+        // Legend labels
+        ctx.fillStyle = '#666666';
+        ctx.font = '8px monospace';
+        ctx.fillText('Cold', legendX, currentY + 18);
+        ctx.fillText('Hot', legendX + legendWidth - 20, currentY + 18);
+
+        return sectionHeight;
+    }
+
+    /**
+     * Get color string for heat value (0-1)
+     */
+    _getHeatColor(value) {
+        const v = Math.max(0, Math.min(1, value));
+
+        // Interpolate through heat colors
+        const colors = [
+            { r: 0, g: 0, b: 255 },    // Cold (blue)
+            { r: 0, g: 255, b: 255 },  // Cool (cyan)
+            { r: 0, g: 255, b: 0 },    // Warm (green)
+            { r: 255, g: 255, b: 0 },  // Hot (yellow)
+            { r: 255, g: 0, b: 0 }     // Very hot (red)
+        ];
+
+        const scaled = v * (colors.length - 1);
+        const index = Math.floor(scaled);
+        const t = scaled - index;
+
+        const c1 = colors[Math.min(index, colors.length - 1)];
+        const c2 = colors[Math.min(index + 1, colors.length - 1)];
+
+        const r = Math.round(c1.r + (c2.r - c1.r) * t);
+        const g = Math.round(c1.g + (c2.g - c1.g) * t);
+        const b = Math.round(c1.b + (c2.b - c1.b) * t);
+
+        return `rgb(${r},${g},${b})`;
     }
 
     /**
