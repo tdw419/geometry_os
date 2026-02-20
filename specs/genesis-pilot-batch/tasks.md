@@ -96,7 +96,7 @@ _Design: C5 BatchAnalyzer Enhancement_
 
 ---
 
-### Task 1.4: Run full pilot and verify outputs
+### Task 1.4: Run full pilot and verify outputs [x]
 
 **Do**:
 1. Run batch analyzer: `python3 -m systems.intelligence.batch_analyzer`
