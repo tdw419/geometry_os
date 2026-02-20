@@ -199,19 +199,31 @@ class VisualPerceptionAgent(WorkerAgent):
                     screenshot_path = await self._capture_vm_screenshot(vm_id, config)
                     result = await self._extract_from_screenshot(screenshot_path)
 
-                    # Check for completion
+                    # Check for completion (text patterns)
                     match = self._completion_detector.detect(result)
+
+                    # Also check for PixelRTS v3 HALT (geometric programs)
+                    if not match:
+                        match = self._completion_detector.detect_from_screenshot(screenshot_path)
+
                     if match:
-                        await self._broadcast_event({
+                        event = {
                             "type": "RENDER_COMPLETE",
                             "payload": {
                                 "monitor_id": monitor_id,
                                 "vm_id": vm_id,
                                 "detected_text": match.text,
                                 "pattern": match.pattern,
+                                "source": match.source,
                                 "screenshot_path": screenshot_path
                             }
-                        })
+                        }
+
+                        # Add PixelRTS v3 data if available
+                        if match.pixelrts3_data:
+                            event["payload"]["pixelrts3"] = match.pixelrts3_data
+
+                        await self._broadcast_event(event)
                         break
 
                 except Exception as e:
@@ -248,8 +260,65 @@ class VisualPerceptionAgent(WorkerAgent):
             return {"widgets": [], "error": str(e)}
 
     async def _broadcast_event(self, event: Dict[str, Any]):
-        """Broadcast event to swarm."""
+        """Broadcast event to swarm and optionally to WordPress semantic memory."""
+        # Broadcast to swarm event bus
         if hasattr(self, 'send_event'):
             await self.send_event(event)
         else:
             logger.info(f"Event broadcast: {event['type']}")
+
+        # Publish to WordPress for human-readable semantic memory
+        if event.get("type") == "RENDER_COMPLETE":
+            await self._publish_to_wordpress_memory(event)
+
+    async def _publish_to_wordpress_memory(self, event: Dict[str, Any]):
+        """
+        Publish render completion to WordPress Semantic District.
+
+        This creates a human-readable memory entry that persists across sessions
+        and can be searched via the SynapticQueryEngine.
+        """
+        try:
+            from wordpress_zone.publish_to_wp import publish_to_wordpress
+
+            payload = event.get("payload", {})
+            vm_id = payload.get("vm_id", "unknown")
+            source = payload.get("source", "text")
+
+            # Format content based on detection source
+            if source == "pixelrts3":
+                pixelrts3 = payload.get("pixelrts3", {})
+                content = f"""
+                <h3>🧮 PixelRTS v3 Program Complete</h3>
+                <p><b>VM:</b> {vm_id}</p>
+                <p><b>Detection:</b> HALT opcode at PC={pixelrts3.get('pc', '?')}</p>
+                <p><b>Coordinates:</b> ({pixelrts3.get('x', '?')}, {pixelrts3.get('y', '?')})</p>
+                <p><b>Instruction:</b> RGBA = {pixelrts3.get('rgba', [])}</p>
+                <p><i>The geometric program has finished execution.</i></p>
+                """
+            else:
+                content = f"""
+                <h3>🎬 Render Complete</h3>
+                <p><b>VM:</b> {vm_id}</p>
+                <p><b>Detected:</b> {payload.get('detected_text', 'N/A')}</p>
+                <p><b>Pattern:</b> <code>{payload.get('pattern', 'N/A')}</code></p>
+                <p><i>Text-based completion detected.</i></p>
+                """
+
+            # Publish to WordPress
+            result = publish_to_wordpress(
+                title=f"Render Complete: {vm_id}",
+                content=content,
+                post_type="post"
+            )
+
+            if result:
+                logger.info(f"Published to WordPress memory: {result.get('url')}")
+            else:
+                logger.warning("WordPress publish failed (district may be offline)")
+
+        except ImportError:
+            logger.debug("WordPress district not available")
+        except Exception as e:
+            logger.warning(f"WordPress publish error: {e}")
+

@@ -11,17 +11,29 @@ mariadb_local/
 # Database data (runtime generated)
 mariadb_data/
 
-# WordPress core (downloaded)
-wordpress/wp-admin/
-wordpress/wp-includes/
+# WordPress core (ignore everything by default)
+wordpress/*
 
-# Standard plugins/themes (bundled with WP)
+# Whitelist custom/modified files
+!wordpress/wp-config.php
+!wordpress/ai-publisher.php
+!wordpress/wp-content/
+wordpress/wp-content/*
+!wordpress/wp-content/mu-plugins/
+!wordpress/wp-content/plugins/
+wordpress/wp-content/plugins/*
+!wordpress/wp-content/plugins/geometry_os_bridge.php
 wordpress/wp-content/plugins/akismet/
-wordpress/wp-content/themes/twentytwenty*/
-wordpress/wp-content/upgrade/
+wordpress/wp-content/plugins/hello.php
+wordpress/wp-content/plugins/index.php
+
+# Standard themes (ignore them)
+wordpress/wp-content/themes/*
+!wordpress/wp-content/themes/twentytwentyfour/
 
 # Runtime telemetry data
-telemetry/events.jsonl
+telemetry/
+!telemetry/.gitkeep
 
 # Python cache
 __pycache__/
