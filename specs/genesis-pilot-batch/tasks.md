@@ -365,7 +365,7 @@ _Design: Test Strategy - Texture_
 
 ---
 
-### Task 3.7 [VERIFY] Run full test suite
+### Task 3.7 [VERIFY] Run full test suite [x]
 
 **Do**:
 1. Run all tests in `tests/intelligence/`
@@ -382,7 +382,7 @@ _Design: Test Strategy - Texture_
 
 ## Phase 4: Quality Gates
 
-### Task 4.1 [VERIFY] Local quality check
+### Task 4.1 [VERIFY] Local quality check [x]
 
 **Do**:
 1. Run all quality checks locally
