@@ -307,7 +307,7 @@ _Design: Cursor State Management_
 
 ## Phase 3: Testing
 
-### Task 3.1: Write Unit Tests for WidgetInteractionManager
+### Task 3.1: [x] Write Unit Tests for WidgetInteractionManager
 **Do**:
 1. Create `conductor/tracks/shotcut-on-the-map/tests/test_widget_interaction_manager.js`
 2. Test: hitTest returns correct widget for known coords
