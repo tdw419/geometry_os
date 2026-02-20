@@ -64,7 +64,7 @@ _Design: WidgetInteractionManager component_
 _Requirements: FR-1, AC-6.2_
 _Design: WidgetInteractionManager.hitTest()_
 
-### Task 1.3: Implement Event Handlers (mousemove, mousedown, mouseup)
+### Task 1.3: [x] Implement Event Handlers (mousemove, mousedown, mouseup)
 **Do**:
 1. Add `_onMouseMove(e)`, `_onMouseDown(e)`, `_onMouseUp(e)` methods
 2. Bind event listeners in constructor, store references in `_boundHandlers`

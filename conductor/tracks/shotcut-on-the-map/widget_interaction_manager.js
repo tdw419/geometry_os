@@ -35,6 +35,103 @@ export class WidgetInteractionManager {
     this._clickableWidgets = this._widgets.filter(w => w.action);
 
     // Event handler references for cleanup
+    this._boundHandlers = {
+      mousemove: this._onMouseMove.bind(this),
+      mousedown: this._onMouseDown.bind(this),
+      mouseup: this._onMouseUp.bind(this)
+    };
+
+    // Bind event listeners
+    this._canvas.addEventListener('mousemove', this._boundHandlers.mousemove);
+    this._canvas.addEventListener('mousedown', this._boundHandlers.mousedown);
+    this._canvas.addEventListener('mouseup', this._boundHandlers.mouseup);
+  }
+
+  /**
+   * Handle mouse move events
+   * @param {MouseEvent} e - Mouse event
+   * @private
+   */
+  _onMouseMove(e) {
+    const coords = this._getCanvasCoords(e);
+    const widget = this.hitTest(coords.x, coords.y);
+
+    // Check if hover state changed
+    const prevHovered = this._hoveredWidget;
+    this._hoveredWidget = widget;
+
+    // Update cursor based on whether we're over a clickable widget
+    this._updateCursor(widget);
+
+    // Call onHover callback if hover state changed
+    if (prevHovered !== widget && this._callbacks.onHover) {
+      this._callbacks.onHover(widget, coords.x, coords.y);
+    }
+  }
+
+  /**
+   * Handle mouse down events
+   * @param {MouseEvent} e - Mouse event
+   * @private
+   */
+  _onMouseDown(e) {
+    this._mousePressed = true;
+
+    // Update cursor to indicate pressed state
+    if (this._hoveredWidget && this._hoveredWidget.action) {
+      this._canvas.style.cursor = 'pointer';
+    }
+  }
+
+  /**
+   * Handle mouse up events
+   * @param {MouseEvent} e - Mouse event
+   * @private
+   */
+  _onMouseUp(e) {
+    const wasPressed = this._mousePressed;
+    this._mousePressed = false;
+
+    // If mouse was pressed and released over a widget, trigger click
+    if (wasPressed && this._hoveredWidget && this._callbacks.onClick) {
+      const coords = this._getCanvasCoords(e);
+      this._callbacks.onClick(this._hoveredWidget, coords.x, coords.y);
+    }
+
+    // Restore cursor
+    this._updateCursor(this._hoveredWidget);
+  }
+
+  /**
+   * Update cursor style based on hovered widget
+   * @param {Object|null} widget - Currently hovered widget
+   * @private
+   */
+  _updateCursor(widget) {
+    if (widget && widget.action) {
+      this._canvas.style.cursor = 'pointer';
+    } else {
+      this._canvas.style.cursor = 'default';
+    }
+  }
+
+  /**
+   * Remove all event listeners and clean up
+   */
+  destroy() {
+    if (this._boundHandlers.mousemove) {
+      this._canvas.removeEventListener('mousemove', this._boundHandlers.mousemove);
+    }
+    if (this._boundHandlers.mousedown) {
+      this._canvas.removeEventListener('mousedown', this._boundHandlers.mousedown);
+    }
+    if (this._boundHandlers.mouseup) {
+      this._canvas.removeEventListener('mouseup', this._boundHandlers.mouseup);
+    }
+
+    // Clear state
+    this._hoveredWidget = null;
+    this._mousePressed = false;
     this._boundHandlers = {};
   }
 
