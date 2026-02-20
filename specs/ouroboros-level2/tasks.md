@@ -270,7 +270,7 @@ _Design: Keyboard Event Handler_
 _Requirements: FR-6, US-4, AC-4.5_
 _Design: Focus Visual Indicator_
 
-### Task 2.4: Implement Cursor State Management
+### Task 2.4: [x] Implement Cursor State Management
 **Do**:
 1. Add `_updateCursor()` private method to WidgetInteractionManager
 2. In `_onMouseMove`: check if hovered widget has action
