@@ -35,7 +35,7 @@ from pathlib import Path
 from typing import Optional, Tuple, Dict, Any, List
 
 # Import VATManager for tile position tracking
-from vat_manager import VATManager, TilePosition
+from .vat_manager import VATManager, TilePosition
 
 logger = logging.getLogger("terminal_vat_bridge")
 

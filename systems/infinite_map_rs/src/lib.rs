@@ -17,6 +17,8 @@ pub mod riscv;
 pub mod riscv_executor;
 pub mod riscv_native;
 pub mod cortex;
+pub mod terminal_emulator;
+pub mod terminal_clone;
 
 // Phase 48: GPU capability detection and i64 emulation
 pub mod gpu_capabilities;
