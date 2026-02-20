@@ -86,4 +86,39 @@ export class WidgetInteractionManager {
   get clickableWidgets() {
     return this._clickableWidgets;
   }
+
+  /**
+   * Test if a point (x, y) is inside any widget's bounding box
+   * @param {number} x - X coordinate in canvas pixels
+   * @param {number} y - Y coordinate in canvas pixels
+   * @returns {Object|null} First matching widget (topmost) or null if no hit
+   */
+  hitTest(x, y) {
+    // Handle edge cases: null/undefined coords
+    if (x == null || y == null) {
+      return null;
+    }
+
+    // Handle edge case: empty widgets array
+    if (!this._clickableWidgets || this._clickableWidgets.length === 0) {
+      return null;
+    }
+
+    // Iterate widgets in order (render order = z-order, first = topmost)
+    for (const widget of this._clickableWidgets) {
+      const bbox = widget.bbox;
+      if (!bbox || bbox.length < 4) {
+        continue; // Skip widgets without valid bbox
+      }
+
+      const [x1, y1, x2, y2] = bbox;
+
+      // Check if (x, y) is inside bbox [x1, y1, x2, y2]
+      if (x >= x1 && x <= x2 && y >= y1 && y <= y2) {
+        return widget;
+      }
+    }
+
+    return null;
+  }
 }

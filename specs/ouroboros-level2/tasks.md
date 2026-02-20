@@ -45,7 +45,7 @@ Focus: Validate interactive UI works end-to-end. Skip extensive testing, accept 
 _Requirements: FR-1, US-6, AC-6.1_
 _Design: WidgetInteractionManager component_
 
-### Task 1.2: Implement hitTest() Method
+### Task 1.2: [x] Implement hitTest() Method
 **Do**:
 1. Add `hitTest(x, y)` method to WidgetInteractionManager
 2. Iterate widgets array, check if (x,y) is inside each bbox `[x1, y1, x2, y2]`
