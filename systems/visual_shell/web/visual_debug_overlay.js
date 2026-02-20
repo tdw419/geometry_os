@@ -731,6 +731,70 @@ class VisualDebugOverlay {
         });
     }
 
+    // ========================================
+    // Module Registration System (V16)
+    // ========================================
+
+    /** @type {Map<string, Function>} Registered HUD module classes */
+    static registeredModules = new Map();
+
+    /** @type {Map<string, Object>} Instantiated module instances */
+    modules = new Map();
+
+    /**
+     * Register a HUD module class.
+     * Modules are instantiated when the overlay is enabled.
+     * @param {string} name - Module name
+     * @param {Function} ModuleClass - Module class constructor
+     */
+    static registerModule(name, ModuleClass) {
+        VisualDebugOverlay.registeredModules.set(name, ModuleClass);
+        console.log(`📦 HUD Module registered: ${name}`);
+
+        // If there's an existing global instance, instantiate immediately
+        if (window.visualDebugOverlay && window.visualDebugOverlay.config.enabled) {
+            window.visualDebugOverlay._instantiateModule(name, ModuleClass);
+        }
+    }
+
+    /**
+     * Instantiate a registered module.
+     * @param {string} name - Module name
+     * @param {Function} ModuleClass - Module class constructor
+     */
+    _instantiateModule(name, ModuleClass) {
+        if (this.modules.has(name)) return; // Already instantiated
+
+        try {
+            const instance = new ModuleClass(this.hudCanvas?.parentElement || document.body);
+            this.modules.set(name, instance);
+            console.log(`✅ HUD Module instantiated: ${name}`);
+        } catch (e) {
+            console.error(`Failed to instantiate HUD module ${name}:`, e);
+        }
+    }
+
+    /**
+     * Initialize all registered modules.
+     */
+    _initModules() {
+        for (const [name, ModuleClass] of VisualDebugOverlay.registeredModules) {
+            this._instantiateModule(name, ModuleClass);
+        }
+    }
+
+    /**
+     * Destroy all module instances.
+     */
+    _destroyModules() {
+        for (const [name, instance] of this.modules) {
+            if (instance && typeof instance.destroy === 'function') {
+                instance.destroy();
+            }
+        }
+        this.modules.clear();
+    }
+
     /**
      * Toggle overlay
      */
@@ -742,6 +806,11 @@ class VisualDebugOverlay {
         }
         if (this.overlayCanvas) {
             this.overlayCanvas.style.display = this.config.enabled ? 'block' : 'none';
+        }
+
+        // Initialize modules when enabling
+        if (this.config.enabled) {
+            this._initModules();
         }
 
         console.log(`Visual Debug Overlay ${this.config.enabled ? 'ENABLED' : 'DISABLED'}`);
