@@ -63,8 +63,8 @@ Convert extracted VM UI structures into native PixelRTS WGSL shaders.
 - **Files**: `tests/evolution_daemon/test_substrate_cloning_e2e.py`
 
 ### Task 7: Update Documentation
-- [ ] Create SUBSTRATE_CLONING_GUIDE.md
-- [ ] Include Python API, RPC API, Glass Box UI instructions
+- [x] Create SUBSTRATE_CLONING_GUIDE.md
+- [x] Include Python API, RPC API, Glass Box UI instructions
 - **Assignee**: clone-orchestrator
 - **Files**: `docs/SUBSTRATE_CLONING_GUIDE.md`
 
@@ -80,5 +80,5 @@ Convert extracted VM UI structures into native PixelRTS WGSL shaders.
 | 4 | LiveTileService RPC | 3 | ✅ Done |
 | 5 | Frontend Clone Button | - | ✅ Done |
 | 6 | E2E Integration | 2 | ✅ Done |
-| 7 | Documentation | - | Pending |
+| 7 | Documentation | - | ✅ Done |
 | **Total** | | **14** | |
