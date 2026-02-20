@@ -67,8 +67,8 @@ class TestRenderMonitorIntegration:
             # Wait for a few polling cycles
             await asyncio.sleep(0.3)
 
-            # Monitor should still be running (error is logged, not fatal)
-            # Or it should have stopped gracefully
+            # Monitor should still be running after errors (errors are logged, not fatal)
+            assert monitor_id in agent._active_monitors
 
     @pytest.mark.asyncio
     async def test_manual_stop_during_monitoring(self, agent):
