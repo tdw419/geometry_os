@@ -85,6 +85,26 @@ fn sdLine(p: vec2f, a: vec2f, b: vec2f) -> f32 {
 }
 """
 
+    def _generate_interaction_helpers(self) -> str:
+        """
+        Generate WGSL interaction helper functions.
+
+        These functions check hover, focus, and pressed states for widgets.
+        """
+        return f"""
+fn is_hovered(widget_center: vec2f, threshold: f32) -> bool {{
+    return distance(widget_center, ui.mouse / ui.resolution) < threshold;
+}}
+
+fn is_focused(widget_index: i32) -> bool {{
+    return i32(ui.focused_widget) == widget_index;
+}}
+
+fn is_pressed(hover: bool) -> bool {{
+    return hover && ui.mouse_pressed > 0.5;
+}}
+"""
+
     def _generate_uniforms(self) -> str:
         """
         Generate WGSL uniform struct.
@@ -145,7 +165,7 @@ struct Uniforms {
             lines.append(f"    }}")
 
         elif widget_type == "clip":
-            # Clip → sdBox + texture placeholder with smooth edges
+            # Clip → sdBox + texture placeholder with smooth edges + hover
             lines.append(f"    let {name}_center = vec2f({norm['cx']:.6f}, {norm['cy']:.6f});")
             lines.append(f"    let {name}_half = vec2f({norm['hw']:.6f}, {norm['hh']:.6f});")
             lines.append(f"    let {name}_uv = uv - {name}_center;")
@@ -153,34 +173,42 @@ struct Uniforms {
             lines.append(f"    let {name}_alpha = 1.0 - smoothstep(0.0, 0.003, {name}_d);")
             lines.append(f"    if ({name}_alpha > 0.0) {{")
             lines.append(f"        // TODO: Sample texture for clip")
-            lines.append(f"        let {name}_color = vec4f(0.3, 0.5, 0.7, 1.0);")
+            lines.append(f"        let {name}_base = vec4f(0.3, 0.5, 0.7, 1.0);")
+            lines.append(f"        let {name}_hover = distance(uv, ui.mouse / ui.resolution) < {self.hover_threshold:.4f};")
+            lines.append(f"        let {name}_color = select({name}_base, {name}_base + vec4f(0.08), {name}_hover);")
             lines.append(f"        color = mix(color, {name}_color, {name}_alpha);")
             lines.append(f"    }}")
 
         elif widget_type == "playhead":
-            # Playhead → sdLine (vertical) with pulse animation
+            # Playhead → sdLine (vertical) with pulse animation + hover
             x_norm = bbox[0] / self.width
             y1_norm = bbox[1] / self.height
             y2_norm = (bbox[1] + bbox[3]) / self.height
+            lines.append(f"    let {name}_center = vec2f({x_norm:.6f}, {(y1_norm + y2_norm) / 2:.6f});")
             lines.append(f"    let {name}_a = vec2f({x_norm:.6f}, {y1_norm:.6f});")
             lines.append(f"    let {name}_b = vec2f({x_norm:.6f}, {y2_norm:.6f});")
             lines.append(f"    let {name}_d = sdLine(uv, {name}_a, {name}_b);")
             lines.append(f"    let {name}_pulse = 0.8 + 0.2 * sin(ui.time * 3.0);")
             lines.append(f"    let {name}_alpha = 1.0 - smoothstep(0.0, 0.004, {name}_d);")
             lines.append(f"    if ({name}_alpha > 0.0) {{")
-            lines.append(f"        let {name}_color = vec4f(1.0 * {name}_pulse, 0.3, 0.3, 1.0);")
+            lines.append(f"        let {name}_base = vec4f(1.0 * {name}_pulse, 0.3, 0.3, 1.0);")
+            lines.append(f"        let {name}_hover = distance(uv, ui.mouse / ui.resolution) < {self.hover_threshold:.4f};")
+            lines.append(f"        let {name}_color = select({name}_base, {name}_base + vec4f(0.08), {name}_hover);")
             lines.append(f"        color = mix(color, {name}_color, {name}_alpha);")
             lines.append(f"    }}")
 
         else:
-            # Unknown type → sdBox with smooth edges
+            # Unknown type → sdBox with smooth edges + hover
             lines.append(f"    let {name}_center = vec2f({norm['cx']:.6f}, {norm['cy']:.6f});")
             lines.append(f"    let {name}_half = vec2f({norm['hw']:.6f}, {norm['hh']:.6f});")
             lines.append(f"    let {name}_uv = uv - {name}_center;")
             lines.append(f"    let {name}_d = sdBox({name}_uv, {name}_half);")
             lines.append(f"    let {name}_alpha = 1.0 - smoothstep(0.0, 0.003, {name}_d);")
             lines.append(f"    if ({name}_alpha > 0.0) {{")
-            lines.append(f"        color = mix(color, vec4f(0.4, 0.4, 0.4, 1.0), {name}_alpha);")
+            lines.append(f"        let {name}_base = vec4f(0.4, 0.4, 0.4, 1.0);")
+            lines.append(f"        let {name}_hover = distance(uv, ui.mouse / ui.resolution) < {self.hover_threshold:.4f};")
+            lines.append(f"        let {name}_color = select({name}_base, {name}_base + vec4f(0.08), {name}_hover);")
+            lines.append(f"        color = mix(color, {name}_color, {name}_alpha);")
             lines.append(f"    }}")
 
         return "\n".join(lines)
@@ -210,6 +238,7 @@ struct Uniforms {
             f"// Widgets: {len(widgets)}",
             "",
             self._generate_sdf_functions(),
+            self._generate_interaction_helpers(),
             self._generate_uniforms(),
             "",
             "@fragment",

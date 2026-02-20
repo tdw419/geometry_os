@@ -124,7 +124,7 @@ _Design: Uniform Buffer Layout_
 _Requirements: FR-2, FR-3_
 _Design: UITransmuter Enhancement_
 
-### Task 1.6: Enhance UITransmuter - Add Hover Logic for All Widget Types
+### Task 1.6: [x] Enhance UITransmuter - Add Hover Logic for All Widget Types
 **Do**:
 1. Create `_generate_interaction_helpers()` method with `is_hovered()`, `is_focused()`, `is_pressed()` WGSL functions
 2. Modify `_generate_widget_sdf()` to add hover logic for ALL widget types (clip, playhead, unknown - not just panel)
