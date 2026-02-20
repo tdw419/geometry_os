@@ -258,6 +258,55 @@ export class WidgetInteractionManager {
   }
 
   /**
+   * Move focus to next clickable widget (Tab navigation)
+   * Cycles through clickableWidgets array with wrap-around
+   * Calls onFocus callback with newly focused widget
+   */
+  focusNext() {
+    // Edge case: no clickable widgets
+    if (!this._clickableWidgets || this._clickableWidgets.length === 0) {
+      return;
+    }
+
+    // Move to next with wrap-around
+    this._focusedIndex = (this._focusedIndex + 1) % this._clickableWidgets.length;
+
+    // Update uniform buffer with new focus index
+    this._updateUniformBuffer();
+
+    // Call onFocus callback with newly focused widget
+    if (this._callbacks.onFocus) {
+      const focusedWidget = this._clickableWidgets[this._focusedIndex];
+      this._callbacks.onFocus(focusedWidget, this._focusedIndex);
+    }
+  }
+
+  /**
+   * Move focus to previous clickable widget (Shift+Tab navigation)
+   * Cycles through clickableWidgets array with wrap-around
+   * Calls onFocus callback with newly focused widget
+   */
+  focusPrev() {
+    // Edge case: no clickable widgets
+    if (!this._clickableWidgets || this._clickableWidgets.length === 0) {
+      return;
+    }
+
+    // Move to previous with wrap-around
+    const length = this._clickableWidgets.length;
+    this._focusedIndex = (this._focusedIndex - 1 + length) % length;
+
+    // Update uniform buffer with new focus index
+    this._updateUniformBuffer();
+
+    // Call onFocus callback with newly focused widget
+    if (this._callbacks.onFocus) {
+      const focusedWidget = this._clickableWidgets[this._focusedIndex];
+      this._callbacks.onFocus(focusedWidget, this._focusedIndex);
+    }
+  }
+
+  /**
    * Test if a point (x, y) is inside any widget's bounding box
    * @param {number} x - X coordinate in canvas pixels
    * @param {number} y - Y coordinate in canvas pixels

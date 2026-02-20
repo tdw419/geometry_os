@@ -208,7 +208,7 @@ _Design: Full integration_
 
 After POC validated, clean up code structure.
 
-### Task 2.1: Implement Keyboard Navigation (focusNext/focusPrev)
+### Task 2.1: [x] Implement Keyboard Navigation (focusNext/focusPrev)
 **Do**:
 1. Add `focusNext()` and `focusPrev()` methods to WidgetInteractionManager
 2. Filter widgets to `clickableWidgets` (those with action)
