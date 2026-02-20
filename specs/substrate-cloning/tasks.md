@@ -56,9 +56,9 @@ Convert extracted VM UI structures into native PixelRTS WGSL shaders.
 - **Files**: `systems/visual_shell/web/js/AgentController.js`
 
 ### Task 6: E2E Integration Test
-- [ ] Write E2E test for full clone pipeline
-- [ ] Test empty UI edge case
-- [ ] Verify tests pass (2 tests)
+- [x] Write E2E test for full clone pipeline
+- [x] Test empty UI edge case
+- [x] Verify tests pass (2 tests)
 - **Assignee**: clone-orchestrator
 - **Files**: `tests/evolution_daemon/test_substrate_cloning_e2e.py`
 
@@ -79,6 +79,6 @@ Convert extracted VM UI structures into native PixelRTS WGSL shaders.
 | 3 | CloneOrchestrator | 5 | ✅ Done |
 | 4 | LiveTileService RPC | 3 | ✅ Done |
 | 5 | Frontend Clone Button | - | ✅ Done |
-| 6 | E2E Integration | 2 | Pending |
+| 6 | E2E Integration | 2 | ✅ Done |
 | 7 | Documentation | - | Pending |
 | **Total** | | **14** | |
