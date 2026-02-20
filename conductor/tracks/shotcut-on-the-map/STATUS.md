@@ -15,6 +15,17 @@ Prove "The Screen is the Hard Drive" thesis by automating GUI applications via v
 - **GUI Stack**: Xorg → Openbox → Shotcut
 - **Result**: Shotcut running and visible via VNC capture
 
+### Stage 3: Visual HUD ✅ COMPLETE (2026-02-20)
+- **Commit**: `11eb1c3c`
+- **Components**:
+  - `extraction_pipeline.py` - Added `extract_from_base64()` for disk-less analysis
+  - `visual_bridge.py` - Added `shotcut_frame` event routing
+  - `realtime_feed.py` - HUD broadcast mode with cluster/widget serialization
+  - `application.js` - `SHOTCUT_FRAME_UPDATE` event dispatch
+  - `visual_debug_overlay.js` - Full HUD panel with bounding box rendering
+- **Activation**: **Ctrl+Shift+S** toggles Shotcut Vision HUD
+- **Features**: Real-time bounding boxes, cluster labels, AI thoughts, diagnostic pulses
+
 ## VM Details
 
 | Property | Value |
@@ -44,9 +55,18 @@ qemu-system-x86_64 \
 
 ## Next Steps
 
-1. **Visual Bridge**: Connect VNC capture to See → Decide → Act loop
-2. **Automation**: Control Shotcut programmatically via visual feedback
-3. **Project Creation**: Use visual automation to create/edit video projects
+1. ~~**Visual Bridge**: Connect VNC capture to See → Decide → Act loop~~ ✅ DONE
+2. ~~**Visual HUD**: Real-time AI perception overlay~~ ✅ DONE
+3. **Automation**: Control Shotcut programmatically via visual feedback (IN PROGRESS)
+4. **Project Creation**: Use visual automation to create/edit video projects
+5. **Diff-Detection**: Optimize to only send frames when pixels change
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| **Ctrl+Shift+V** | Toggle Visual Debug Overlay |
+| **Ctrl+Shift+S** | Toggle Shotcut Vision HUD |
 
 ## Files
 
