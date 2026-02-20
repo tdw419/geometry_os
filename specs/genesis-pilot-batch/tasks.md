@@ -265,7 +265,7 @@ _Design: Test Strategy - Data validation_
 
 ---
 
-### Task 3.3: Create test_verse_classifier.py
+### Task 3.3: Create test_verse_classifier.py [x]
 
 **Do**:
 1. Create `tests/intelligence/test_verse_classifier.py`
