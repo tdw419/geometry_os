@@ -33,6 +33,9 @@ from systems.evolution_daemon.neural_memory_hub import get_neural_memory_hub
 # Import ExtractionBridge for semantic UI analysis
 from systems.evolution_daemon.extraction_bridge import get_extraction_bridge
 
+# Import CloneOrchestrator for UI cloning
+from systems.evolution_daemon.clone_orchestrator import CloneOrchestrator
+
 logger = logging.getLogger("evolution_daemon.live_tile")
 
 
@@ -84,6 +87,7 @@ class LiveTileService:
         self._memory_hub = get_neural_memory_hub()  # Neural memory integration
         self._last_shell_tokens: Dict[str, List[str]] = {}  # Track shell activity per tile
         self._extraction_bridge = get_extraction_bridge()  # Semantic extraction bridge
+        self._clone_orchestrator = CloneOrchestrator()  # UI cloning orchestrator
 
     def set_webmcp(self, webmcp):
         """Set WebMCP instance for broadcasting events."""
@@ -401,6 +405,73 @@ class LiveTileService:
         )
         return context
 
+    async def clone_tile(self, tile_id: str, target_name: str) -> Dict[str, Any]:
+        """
+        Clone a tile's extracted UI into a native WGSL shader.
+
+        This uses the CloneOrchestrator to transform the tile's last
+        extraction result into a standalone WGSL shader that can run
+        without the VM.
+
+        Args:
+            tile_id: ID of the tile to clone
+            target_name: Name for the cloned output file
+
+        Returns:
+            Dict with task_id and status, or error if tile not found
+        """
+        tile = self.tiles.get(tile_id)
+        if not tile:
+            return {
+                "tile_id": tile_id,
+                "status": "error",
+                "error": f"Tile {tile_id} not found"
+            }
+
+        # Check for extraction data
+        extraction = getattr(tile, 'last_extraction', None)
+        if not extraction:
+            return {
+                "tile_id": tile_id,
+                "status": "error",
+                "error": f"Tile {tile_id} has no extraction data. Run extraction first."
+            }
+
+        logger.info(f"🔄 Cloning tile {tile_id} -> {target_name}")
+
+        # Request clone through orchestrator
+        task_id = self._clone_orchestrator.request_clone(
+            source_tile_id=tile_id,
+            extraction_result=extraction,
+            target_name=target_name
+        )
+
+        # Execute the clone
+        try:
+            self._clone_orchestrator._execute_clone(task_id)
+            task = self._clone_orchestrator.get_task(task_id)
+
+            if task.status == "completed":
+                logger.info(f"✅ Clone complete: {task.output_path}")
+                return {
+                    "task_id": task_id,
+                    "status": "completed",
+                    "output_path": str(task.output_path)
+                }
+            else:
+                return {
+                    "task_id": task_id,
+                    "status": "failed",
+                    "error": task.error
+                }
+        except Exception as e:
+            logger.error(f"❌ Clone failed: {e}")
+            return {
+                "task_id": task_id,
+                "status": "failed",
+                "error": str(e)
+            }
+
     async def stop_tile(self, tile_id: str) -> Dict[str, Any]:
         """Stop a running tile and cleanup BootBridge."""
         logger.info(f"🛑 Stopping tile {tile_id}")
@@ -534,6 +605,11 @@ class LiveTileService:
             return event.to_dict() if event else None
         elif method == "get_collective_context":
             return await self.get_collective_context(params.get("tile_id"))
+        elif method == "clone_tile":
+            return await self.clone_tile(
+                params.get("tile_id"),
+                params.get("target_name", "cloned_panel")
+            )
         else:
             raise ValueError(f"Unknown method: {method}")
 

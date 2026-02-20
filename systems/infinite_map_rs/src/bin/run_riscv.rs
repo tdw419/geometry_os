@@ -2,6 +2,7 @@
 //!
 //! CLI tool to run RISC-V programs encoded in .rts.png format on the GPU.
 //! Streams UART output to the Visual Bridge for Neuro-Silicon integration.
+//! Sends heat map updates for Visual Hotspot Debugger.
 
 use anyhow::Result;
 use std::env;
@@ -9,7 +10,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use infinite_map_rs::riscv::RiscvExecutor;
+use infinite_map_rs::riscv::{RiscvExecutor, AsciiSceneHook, WebSocketHook, HeatHook, RiscvHookBroadcaster};
 
 // WebSocket streaming to Visual Bridge
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
@@ -116,6 +117,24 @@ async fn main() -> Result<()> {
     let mut executor = RiscvExecutor::new(device, queue)?
         .with_max_cycles(max_cycles);
 
+    // Initialize Multi-Hook Broadcaster
+    let mut broadcaster = RiscvHookBroadcaster::new();
+
+    // 1. ASCII Scene Hook for AI perception
+    let ascii_dir = PathBuf::from("systems/riscv_gpu/ascii_scene");
+    let ascii_hook = AsciiSceneHook::new(ascii_dir);
+    broadcaster.add_hook(Box::new(ascii_hook));
+
+    // 2. WebSocket Hook for Visual Bridge streaming
+    let websocket_hook = WebSocketHook::new(ws_sender.clone());
+    broadcaster.add_hook(Box::new(websocket_hook));
+
+    // 3. Heat Hook for Visual Hotspot Debugger
+    let heat_hook = HeatHook::new(ws_sender.clone());
+    broadcaster.add_hook(Box::new(heat_hook));
+
+    executor.hooks = Some(Box::new(broadcaster));
+
     // Load program
     println!("Loading program...");
     executor.load_program(&program_path)?;
@@ -123,140 +142,21 @@ async fn main() -> Result<()> {
     // Run
     println!("Running...");
     
-    // Use a custom run loop to print UART output continuously
-    let memory = executor.memory.as_ref()
-        .ok_or_else(|| anyhow::anyhow!("No program loaded"))?;
-
-    // Run init shader first
-    let mut encoder = executor.device.create_command_encoder(&Default::default());
-    {
-        let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor::default());
-        pass.set_pipeline(&executor.pipeline.init_pipeline);
-        pass.set_bind_group(0, &memory.bind_group, &[]);
-        pass.dispatch_workgroups(1, 1, 1);
-    }
-    executor.queue.submit(Some(encoder.finish()));
-    executor.device.poll(wgpu::MaintainBase::Wait);
-
-    let mut cycles = 0;
-    let batch_size = 10000;
-    let mut uart_output = String::new();
-
-    while cycles < max_cycles {
-        let mut encoder = executor.device.create_command_encoder(&Default::default());
-        {
-            let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor::default());
-            pass.set_pipeline(&executor.pipeline.execute_pipeline);
-            pass.set_bind_group(0, &memory.bind_group, &[]);
-            pass.dispatch_workgroups(1, 1, 1);
-        }
-        executor.queue.submit(Some(encoder.finish()));
-        executor.device.poll(wgpu::MaintainBase::Wait);
-
-        // Debug: Check VM state every 50000 cycles
-        if cycles % 50000 == 0 {
-            let state_staging = executor.device.create_buffer(&wgpu::BufferDescriptor {
-                label: None,
-                size: 32, // ExecutionState size
-                usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
-                mapped_at_creation: false,
-            });
-            let mut state_encoder = executor.device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
-            state_encoder.copy_buffer_to_buffer(&memory.state_buffer, 0, &state_staging, 0, 32);
-            executor.queue.submit(Some(state_encoder.finish()));
-            executor.device.poll(wgpu::MaintainBase::Wait);
-
-            let state_slice = state_staging.slice(..);
-            state_slice.map_async(wgpu::MapMode::Read, |_| {});
-            executor.device.poll(wgpu::MaintainBase::Wait);
-            {
-                let data = state_slice.get_mapped_range();
-                let state_values: &[u32] = bytemuck::cast_slice(&data);
-                eprintln!("[CYCLE {}] running={} cycle_count={} instr_count={} privilege={}",
-                    cycles, state_values[0], state_values[2], state_values[3], state_values[4]);
-                drop(data);
-            }
-            state_staging.unmap();
-        }
-
-        // Collect UART output and print immediately
-        let old_len = uart_output.len();
-        infinite_map_rs::riscv::RiscvExecutor::collect_uart_output_static(
-            &executor.device,
-            &executor.queue,
-            &memory.stats_buffer,
-            &mut executor.uart_head,
-            &mut uart_output,
-        );
-        
-        // Debug: Check for UART write indicator
-        let stats_staging = executor.device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
-            size: 4 * 64, // Read entire stats buffer
-            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
-        let mut stats_encoder = executor.device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
-        stats_encoder.copy_buffer_to_buffer(&memory.stats_buffer, 0, &stats_staging, 0, 4 * 64);
-        executor.queue.submit(Some(stats_encoder.finish()));
-        executor.device.poll(wgpu::MaintainBase::Wait);
-
-        let stats_slice = stats_staging.slice(..);
-        stats_slice.map_async(wgpu::MapMode::Read, |_| {});
-        executor.device.poll(wgpu::MaintainBase::Wait);
-
-        {
-            let data = stats_slice.get_mapped_range();
-            let stats_values: &[u32] = bytemuck::cast_slice(&data);
-            // Print UART count on first iteration
-            if cycles == 0 && (stats_values[0] > 0 || stats_values[63] != 0) {
-                eprintln!("[DEBUG] UART writes: {}", stats_values[0]);
-            }
-            drop(data);
-        }
-        stats_staging.unmap();
-
-        if uart_output.len() > old_len {
-            let new_output = &uart_output[old_len..];
-            print!("{}", new_output);
-            std::io::Write::flush(&mut std::io::stdout())?;
-
-            // Stream to Visual Bridge (Neuro-Silicon Bridge)
-            let text = new_output.to_string();
-            let sender = sender_clone.clone();
-            tokio::spawn(async move {
-                if let Some(tx) = sender.lock().await.as_mut() {
-                    let msg = json!({
-                        "type": "riscv_uart",
-                        "text": text,
-                        "timestamp": chrono::Utc::now().timestamp_millis(),
-                        "vm_id": "riscv-gpu-vm"
-                    });
-                    let _ = tx.send(Message::Text(msg.to_string())).await;
-                }
-            });
-        }
-
-        cycles += batch_size;
-    }
-
-    let final_state = executor.is_halted(memory)?;
-    let exit_code = executor.get_exit_code(memory)?;
+    let result = executor.run()?;
 
     println!();
     println!("Results:");
     println!("--------");
-    println!("Cycles: {}", cycles);
-    println!("Exit Code: {}", exit_code);
+    println!("Cycles: {}", result.cycles_executed);
+    println!("Exit Code: {}", result.exit_code);
 
-    if !uart_output.is_empty() {
+    if !result.uart_output.is_empty() {
         println!();
         println!("UART Output:");
         println!("------------");
-        println!("{}", uart_output);
+        println!("{}", result.uart_output);
     }
 
     // Exit with the program's exit code
-    std::process::exit(exit_code as i32);
+    std::process::exit(result.exit_code as i32);
 }

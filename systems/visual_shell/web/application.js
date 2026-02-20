@@ -58,6 +58,9 @@ class GeometryOSApplication {
         // Neural City Renderer (P1 PIXI.js Layer)
         this.neuralCity = null;
 
+        // Visual Hotspot Debugger (Heat Map Overlay)
+        this.heatmapOverlay = null;
+
         // World Persistence
         this.localArtifacts = [];
     }
@@ -203,6 +206,13 @@ class GeometryOSApplication {
             console.log("🔮 Memory Beam Renderer initialized");
             this._setupMemoryBeamGestures();
             this._connectMemoryBridge();
+        }
+
+        // --- Visual Hotspot Debugger: Heat Map Overlay ---
+        if (typeof HeatmapOverlay !== 'undefined') {
+            this.heatmapOverlay = new HeatmapOverlay(this.app, this.viewport, this.worldContainer);
+            this._setupHeatmapKeyboard();
+            console.log("🔥 Heatmap Overlay initialized (Ctrl+Shift+M to toggle)");
         }
 
         // 4b. Initialize Creative Layers
@@ -389,7 +399,35 @@ class GeometryOSApplication {
                 // Apply filter
                 this.neuralCity.applyFilter();
 
-                console.log('✓ Neural City initialized');
+                // Wire up telemetry events
+                window.addEventListener('NEURAL_CITY_PULSE', (e) => {
+                    this.neuralCity.addPulse(e.detail.x, e.detail.y, e.detail.timestamp, 0.0);
+                });
+
+                window.addEventListener('TECTONIC_DRIFT_UPDATE', (e) => {
+                    if (e.detail && e.detail.data) {
+                        // Decode base64 to Float32Array
+                        const binaryString = atob(e.detail.data);
+                        const bytes = new Uint8Array(binaryString.length);
+                        for (let i = 0; i < binaryString.length; i++) {
+                            bytes[i] = binaryString.charCodeAt(i);
+                        }
+                        const floatData = new Float32Array(bytes.buffer);
+                        this.neuralCity.setDriftOffsets(floatData);
+                    }
+                });
+
+                window.addEventListener('METABOLISM_UPDATE', (e) => {
+                    this.neuralCity.updateMetabolism(e.detail);
+                });
+
+                window.addEventListener('QUARANTINE_UPDATE', (e) => {
+                    if (e.detail) {
+                        this.neuralCity.setQuarantineStatus(e.detail.dx, e.detail.dy, e.detail.quarantined);
+                    }
+                });
+
+                console.log('✓ Neural City initialized and wired to TelemetryBus');
             } catch (err) {
                 console.warn('Failed to initialize Neural City:', err.message);
             }
@@ -703,6 +741,11 @@ class GeometryOSApplication {
                 const camera = this.viewport.getCamera();
                 this.neuralCity.setFocus(camera.x, camera.y);
             }
+        }
+
+        // Update Heatmap Overlay (Visual Hotspot Debugger)
+        if (this.heatmapOverlay) {
+            this.heatmapOverlay.tick(delta / 16.67); // Normalize to ~60fps
         }
     }
 
@@ -2853,6 +2896,29 @@ class GeometryOSApplication {
         });
 
         console.log('🔮 Memory Beam gestures configured (Shift + Middle Mouse to activate)');
+    }
+
+    /**
+     * Setup keyboard shortcuts for Heatmap Overlay.
+     * Ctrl+Shift+M: Toggle heat map visibility
+     */
+    _setupHeatmapKeyboard() {
+        if (!this.heatmapOverlay) return;
+
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Shift+M: Toggle Heat Map
+            if (e.ctrlKey && e.shiftKey && (e.key === 'M' || e.key === 'm')) {
+                e.preventDefault();
+                const visible = this.heatmapOverlay.toggle();
+
+                // Dispatch event for HUD integration
+                window.dispatchEvent(new CustomEvent('HEATMAP_TOGGLED', {
+                    detail: { visible }
+                }));
+            }
+        });
+
+        console.log('🔥 Heatmap keyboard shortcuts configured (Ctrl+Shift+M to toggle)');
     }
 
     /**
