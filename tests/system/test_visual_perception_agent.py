@@ -1,5 +1,15 @@
+"""
+Tests for VisualPerceptionAgent - Render Monitoring.
+"""
+
 import pytest
 import asyncio
+import os
+import sys
+from unittest.mock import Mock, patch, AsyncMock, MagicMock
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../..'))
+
 from systems.visual_shell.swarm.visual_perception.visual_perception_agent import VisualPerceptionAgent
 
 class TestVisualPerceptionAgent:
@@ -42,3 +52,55 @@ class TestVisualPerceptionAgent:
         
         assert agent._detect_change(state1, state2) is False
         assert agent._detect_change(state2, state3) is True
+
+
+class TestRenderMonitorHandler:
+    """Test MONITOR_RENDER message handling."""
+
+    @pytest.fixture
+    def agent(self):
+        return VisualPerceptionAgent(agent_id="test-perception-001")
+
+    def test_handle_monitor_render_message_type(self, agent):
+        """Test that MONITOR_RENDER is a recognized message type."""
+        # The handler should exist
+        assert hasattr(agent, '_handle_monitor_render')
+
+    @pytest.mark.asyncio
+    async def test_monitor_render_starts_monitoring(self, agent):
+        """Test that MONITOR_RENDER starts a monitoring task."""
+        msg = {
+            "type": "MONITOR_RENDER",
+            "payload": {
+                "vm_id": "test-vm-001",
+                "poll_interval": 1
+            }
+        }
+
+        # Will fail until _handle_monitor_render is implemented to route to _start_render_monitor
+        with patch.object(agent, '_start_render_monitor', new_callable=AsyncMock, create=True) as mock_start:
+            mock_start.return_value = {"monitor_id": "monitor-001", "status": "active"}
+
+            result = await agent.handle_message(msg)
+
+        assert result is not None
+        assert result.get("type") == "MONITORING_STARTED"
+
+    @pytest.mark.asyncio
+    async def test_stop_monitor_stops_monitoring(self, agent):
+        """Test that STOP_MONITOR stops a monitoring task."""
+        msg = {
+            "type": "STOP_MONITOR",
+            "payload": {
+                "monitor_id": "monitor-001"
+            }
+        }
+
+        # Will fail until _handle_stop_monitor is implemented to route to _stop_render_monitor
+        with patch.object(agent, '_stop_render_monitor', new_callable=AsyncMock, create=True) as mock_stop:
+            mock_stop.return_value = {"status": "stopped"}
+
+            result = await agent.handle_message(msg)
+
+        assert result is not None
+        mock_stop.assert_called_once_with("monitor-001")
