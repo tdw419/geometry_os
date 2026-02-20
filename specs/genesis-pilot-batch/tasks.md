@@ -340,7 +340,7 @@ _Design: Test Strategy - Batch pipeline_
 
 ---
 
-### Task 3.6: Create test_truth_texture.py
+### Task 3.6: Create test_truth_texture.py [x]
 
 **Do**:
 1. Create `tests/intelligence/test_truth_texture.py`
