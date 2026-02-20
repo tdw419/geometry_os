@@ -40,7 +40,8 @@ export class WidgetInteractionManager {
     this._boundHandlers = {
       mousemove: this._onMouseMove.bind(this),
       mousedown: this._onMouseDown.bind(this),
-      mouseup: this._onMouseUp.bind(this)
+      mouseup: this._onMouseUp.bind(this),
+      keydown: this._onKeyDown.bind(this)
     };
 
     // Bind event listeners (skip if canvas doesn't support addEventListener - mock mode)
@@ -48,6 +49,40 @@ export class WidgetInteractionManager {
       this._canvas.addEventListener('mousemove', this._boundHandlers.mousemove);
       this._canvas.addEventListener('mousedown', this._boundHandlers.mousedown);
       this._canvas.addEventListener('mouseup', this._boundHandlers.mouseup);
+      this._canvas.addEventListener('keydown', this._boundHandlers.keydown);
+      // Make canvas focusable for keyboard events
+      this._canvas.setAttribute('tabindex', '0');
+    }
+  }
+
+  /**
+   * Handle keyboard events for navigation and activation
+   * @param {KeyboardEvent} e - Keyboard event
+   * @private
+   */
+  _onKeyDown(e) {
+    // Tab key: move focus to next widget
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      if (e.shiftKey) {
+        this.focusPrev();
+      } else {
+        this.focusNext();
+      }
+      return;
+    }
+
+    // Enter key: activate focused widget
+    if (e.key === 'Enter') {
+      const focusedWidget = this._clickableWidgets[this._focusedIndex];
+      if (focusedWidget && this._callbacks.onClick) {
+        // Use center of focused widget as click coordinates
+        const bbox = focusedWidget.bbox;
+        const x = (bbox[0] + bbox[2]) / 2;
+        const y = (bbox[1] + bbox[3]) / 2;
+        this._callbacks.onClick(focusedWidget, x, y);
+      }
+      return;
     }
   }
 
@@ -144,6 +179,9 @@ export class WidgetInteractionManager {
     }
     if (this._boundHandlers.mouseup) {
       this._canvas.removeEventListener('mouseup', this._boundHandlers.mouseup);
+    }
+    if (this._boundHandlers.keydown) {
+      this._canvas.removeEventListener('keydown', this._boundHandlers.keydown);
     }
 
     // Clear state
