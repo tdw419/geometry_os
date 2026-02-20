@@ -29,6 +29,7 @@ from pathlib import Path
 from gui_structure_analyzer import GUIAnalyzer, UIElement
 from semantic_clusterer import UICluster
 from widget_detector import WidgetDetector, Widget
+from layout_inferencer import LayoutInferencer, LayoutResult
 
 
 @dataclass
@@ -51,6 +52,7 @@ class ExtractionResult:
         widgets: Detected widgets with actions
         ascii_view: ASCII scene graph representation
         diagnostic: V16 Diagnostic pulse results
+        layout: OpenCV layout inference results (panels, buttons, lines)
         metadata: Additional metadata (timing, stats, etc.)
     """
     elements: List[UIElement] = field(default_factory=list)
@@ -58,6 +60,7 @@ class ExtractionResult:
     widgets: List[Widget] = field(default_factory=list)
     ascii_view: str = ""
     diagnostic: Optional[DiagnosticPulse] = None
+    layout: Optional[LayoutResult] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -85,6 +88,8 @@ class ExtractionResult:
                 "tokens": self.diagnostic.tokens,
                 "timestamp": self.diagnostic.timestamp
             }
+        if self.layout:
+            res["layout"] = self.layout.to_dict()
         return res
 
     def to_json(self) -> str:
@@ -129,6 +134,7 @@ class ExtractionPipeline:
         self.analyzer = GUIAnalyzer()
         self.widget_detector = WidgetDetector()
         self.safety_scanner = SafetyScanner()
+        self.layout_inferencer = LayoutInferencer()
         self.ascii_width = ascii_width
         self.ascii_height = ascii_height
 
@@ -167,7 +173,10 @@ class ExtractionPipeline:
         full_text = " ".join([e.text for e in analysis.elements])
         diagnostic = self.safety_scanner.scan(full_text)
 
-        # Step 4: Build ASCII view with [CLICKABLE] metadata
+        # Step 4: Layout inference (OpenCV)
+        layout = self.layout_inferencer.analyze(image_path)
+
+        # Step 5: Build ASCII view with [CLICKABLE] metadata
         ascii_view = self._build_enhanced_ascii_view(
             analysis.elements,
             widgets,
@@ -182,7 +191,10 @@ class ExtractionPipeline:
             "element_count": len(analysis.elements),
             "cluster_count": len(analysis.clusters),
             "widget_count": len(widgets),
-            "clickable_count": len([w for w in widgets if w.action])
+            "clickable_count": len([w for w in widgets if w.action]),
+            "panel_count": len(layout.panels),
+            "button_region_count": len(layout.buttons),
+            "line_count": len(layout.lines)
         }
 
         return ExtractionResult(
@@ -191,6 +203,7 @@ class ExtractionPipeline:
             widgets=widgets,
             ascii_view=ascii_view,
             diagnostic=diagnostic,
+            layout=layout,
             metadata=metadata
         )
 

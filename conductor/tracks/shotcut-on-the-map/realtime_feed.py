@@ -62,6 +62,7 @@ class RealtimeFeed:
                     {"type": w.type.value, "text": w.text, "bbox": w.bbox, "action": w.action}
                     for w in result.widgets
                 ],
+                "layout": self.serialize_layout(result.layout) if result.layout else None,
                 "diagnostic": {
                     "severity": result.diagnostic.severity,
                     "message": result.diagnostic.message,
@@ -75,6 +76,22 @@ class RealtimeFeed:
         except Exception as e:
             print(f"⚠️  HUD broadcast failed: {e}")
             self.hud_ws = None  # Reset for reconnection attempt
+
+    def serialize_layout(self, layout):
+        """Serialize a LayoutResult to dict for JSON transmission."""
+        if layout is None:
+            return None
+        return {
+            "panel_count": len(layout.panels),
+            "button_count": len(layout.buttons),
+            "line_count": len(layout.lines),
+            "panels": layout.panels[:5],  # Limit to 5 for bandwidth
+            "buttons": layout.buttons[:10],  # Limit to 10 for bandwidth
+            "lines": [
+                {"x1": l[0][0], "y1": l[0][1], "x2": l[1][0], "y2": l[1][1]}
+                for l in layout.lines[:10]  # Limit to 10 lines
+            ]
+        }
 
     async def run(self):
         import websockets

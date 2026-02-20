@@ -193,3 +193,85 @@ class TestContourDetection:
             assert panel["area"] >= 5000
         finally:
             os.unlink(temp_path)
+
+
+class TestLineDetection:
+    """Tests for Hough line detection."""
+
+    def test_detect_horizontal_line(self):
+        """Should detect horizontal lines."""
+        from layout_inferencer import LayoutInferencer
+
+        # Create image with horizontal line
+        img = np.zeros((100, 200, 3), dtype=np.uint8)
+        cv2.line(img, (10, 50), (190, 50), (255, 255, 255), 2)
+
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+            cv2.imwrite(f.name, img)
+            temp_path = f.name
+
+        try:
+            inferencer = LayoutInferencer()
+            result = inferencer.analyze(temp_path)
+
+            # Should detect at least one line
+            assert len(result.lines) >= 1
+
+            # Check line is roughly horizontal (y1 ≈ y2)
+            line = result.lines[0]
+            y1, y2 = line[0][1], line[1][1]
+            assert abs(y1 - y2) < 10, "Line should be horizontal"
+        finally:
+            os.unlink(temp_path)
+
+    def test_detect_vertical_line(self):
+        """Should detect vertical lines."""
+        from layout_inferencer import LayoutInferencer
+
+        # Create image with vertical line
+        img = np.zeros((200, 100, 3), dtype=np.uint8)
+        cv2.line(img, (50, 10), (50, 190), (255, 255, 255), 2)
+
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+            cv2.imwrite(f.name, img)
+            temp_path = f.name
+
+        try:
+            inferencer = LayoutInferencer()
+            result = inferencer.analyze(temp_path)
+
+            # Should detect at least one line
+            assert len(result.lines) >= 1
+
+            # Check line is roughly vertical (x1 ≈ x2)
+            line = result.lines[0]
+            x1, x2 = line[0][0], line[1][0]
+            assert abs(x1 - x2) < 10, "Line should be vertical"
+        finally:
+            os.unlink(temp_path)
+
+    def test_line_format(self):
+        """Lines should be in ((x1,y1), (x2,y2)) format."""
+        from layout_inferencer import LayoutInferencer
+
+        # Create image with line
+        img = np.zeros((100, 200, 3), dtype=np.uint8)
+        cv2.line(img, (0, 50), (199, 50), (255, 255, 255), 2)
+
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+            cv2.imwrite(f.name, img)
+            temp_path = f.name
+
+        try:
+            inferencer = LayoutInferencer()
+            result = inferencer.analyze(temp_path)
+
+            if result.lines:
+                line = result.lines[0]
+                assert len(line) == 2, "Line should have two points"
+                assert len(line[0]) == 2, "Each point should have x,y"
+                assert len(line[1]) == 2, "Each point should have x,y"
+                assert isinstance(line[0][0], int), "x should be int"
+                assert isinstance(line[0][1], int), "y should be int"
+        finally:
+            os.unlink(temp_path)
