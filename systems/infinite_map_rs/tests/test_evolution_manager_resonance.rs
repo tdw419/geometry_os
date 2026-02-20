@@ -28,7 +28,8 @@ fn test_evolution_manager_polls_cartridge_resonance() {
     });
 
     let mut file = fs::File::create("/tmp/geometry_os_sib_test.json").unwrap();
-    file.write_all(resonance_data.to_string().as_bytes()).unwrap();
+    file.write_all(resonance_data.to_string().as_bytes())
+        .unwrap();
 
     let mut manager = EvolutionManager::new("/tmp/test.sock".to_string());
     manager.set_sib_path("/tmp/geometry_os_sib_test.json".to_string());

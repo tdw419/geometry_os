@@ -1,7 +1,7 @@
 //! Cognitive Bond Graph for aggregating pulse volume between tiles.
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
 
 use super::TileId;
 
@@ -68,9 +68,11 @@ impl CognitiveBondGraph {
         entry.1 += 1;
 
         // Track pulse type
-        let type_entry = self.edge_types.entry(edge_key).or_insert(
-            if is_cognitive { BondType::Cognitive } else { BondType::Semantic }
-        );
+        let type_entry = self.edge_types.entry(edge_key).or_insert(if is_cognitive {
+            BondType::Cognitive
+        } else {
+            BondType::Semantic
+        });
         *type_entry = match (*type_entry, is_cognitive) {
             (BondType::Cognitive, false) | (BondType::Semantic, true) => BondType::Hybrid,
             other => other.0,
@@ -92,7 +94,9 @@ impl CognitiveBondGraph {
             .iter()
             .map(|((source, dest), (volume, count))| {
                 let strength = volume / self.max_volume;
-                let bond_type = self.edge_types.get(&(*source, *dest))
+                let bond_type = self
+                    .edge_types
+                    .get(&(*source, *dest))
                     .copied()
                     .unwrap_or(BondType::Hybrid);
 
@@ -167,22 +171,24 @@ mod tests {
         let mut graph = CognitiveBondGraph::new();
 
         // Add some pulses
-        graph.add_pulse(0, 1, 10.0, true);  // Cognitive
-        graph.add_pulse(0, 1, 5.0, false);  // Semantic -> becomes Hybrid
+        graph.add_pulse(0, 1, 10.0, true); // Cognitive
+        graph.add_pulse(0, 1, 5.0, false); // Semantic -> becomes Hybrid
         graph.add_pulse(1, 2, 20.0, false); // Semantic
 
         let bonds = graph.get_bonds(0.0);
         assert_eq!(bonds.len(), 2);
 
         // Check bond types
-        let bond_0_1 = bonds.iter().find(|b|
-            (b.source == 0 && b.dest == 1) || (b.source == 1 && b.dest == 0)
-        ).unwrap();
+        let bond_0_1 = bonds
+            .iter()
+            .find(|b| (b.source == 0 && b.dest == 1) || (b.source == 1 && b.dest == 0))
+            .unwrap();
         assert_eq!(bond_0_1.bond_type, BondType::Hybrid);
 
-        let bond_1_2 = bonds.iter().find(|b|
-            (b.source == 1 && b.dest == 2) || (b.source == 2 && b.dest == 1)
-        ).unwrap();
+        let bond_1_2 = bonds
+            .iter()
+            .find(|b| (b.source == 1 && b.dest == 2) || (b.source == 2 && b.dest == 1))
+            .unwrap();
         assert_eq!(bond_1_2.bond_type, BondType::Semantic);
     }
 

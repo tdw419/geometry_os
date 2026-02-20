@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use super::{TileId, Coord};
+use super::{Coord, TileId};
 
 /// Hilbert curve constraint system
 pub struct HilbertConstraint {
@@ -112,8 +112,8 @@ impl HilbertConstraint {
 
         for (&tile, &actual) in positions {
             let expected = self.hilbert_position(tile);
-            let deviation = ((actual.0 - expected.0).powi(2) +
-                            (actual.1 - expected.1).powi(2)).sqrt();
+            let deviation =
+                ((actual.0 - expected.0).powi(2) + (actual.1 - expected.1).powi(2)).sqrt();
             total_deviation += deviation;
         }
 

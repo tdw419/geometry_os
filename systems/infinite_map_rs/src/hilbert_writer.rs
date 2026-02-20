@@ -25,7 +25,7 @@ pub struct HilbertCoord {
 /// Writer for applying mutations to the RTS texture
 pub struct HilbertWriter {
     atlas_size: u32,
-    order: u32, // Hilbert curve order (log2 of size)
+    order: u32,                           // Hilbert curve order (log2 of size)
     pending_writes: Vec<(u32, u32, f32)>, // (x, y, new_value)
 }
 
@@ -51,11 +51,15 @@ impl HilbertWriter {
         let coord = self.index_to_2d(mutation.index_1d);
 
         if coord.x >= self.atlas_size || coord.y >= self.atlas_size {
-            return Err(format!("Coordinate out of bounds: ({}, {})", coord.x, coord.y));
+            return Err(format!(
+                "Coordinate out of bounds: ({}, {})",
+                coord.x, coord.y
+            ));
         }
 
         // Queue for batch write
-        self.pending_writes.push((coord.x, coord.y, mutation.weight_delta));
+        self.pending_writes
+            .push((coord.x, coord.y, mutation.weight_delta));
 
         Ok(())
     }

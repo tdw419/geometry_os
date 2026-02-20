@@ -7,7 +7,7 @@ use std::f64::consts::PI;
 
 use super::bonds::CognitiveBond;
 use super::constraints::HilbertConstraint;
-use super::{TileId, Coord};
+use super::{Coord, TileId};
 
 /// Configuration for the solver
 const ITERATIONS: usize = 100;
@@ -89,9 +89,8 @@ impl ForceDirectedSolver {
         positions: &HashMap<TileId, Coord>,
         bonds: &[CognitiveBond],
     ) -> HashMap<TileId, Coord> {
-        let mut forces: HashMap<TileId, Coord> = positions.keys()
-            .map(|&id| (id, (0.0, 0.0)))
-            .collect();
+        let mut forces: HashMap<TileId, Coord> =
+            positions.keys().map(|&id| (id, (0.0, 0.0))).collect();
 
         // Attractive forces from bonds
         for bond in bonds {
@@ -167,8 +166,8 @@ impl ForceDirectedSolver {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::bonds::BondType;
+    use super::*;
 
     #[test]
     fn test_solver_basic() {
@@ -194,7 +193,12 @@ mod tests {
         let pos_1 = result.get(&1).unwrap();
         let dist = ((pos_1.0 - pos_0.0).powi(2) + (pos_1.1 - pos_0.1).powi(2)).sqrt();
 
-        assert!(dist < 200.0, "Distance should decrease: {} -> {}", 200.0, dist);
+        assert!(
+            dist < 200.0,
+            "Distance should decrease: {} -> {}",
+            200.0,
+            dist
+        );
     }
 
     #[test]

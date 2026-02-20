@@ -99,6 +99,8 @@ impl DamageTracker {
     /// Create a new damage tracker for a terminal of the given size
     pub fn new(cols: u32, rows: u32) -> Self {
         let total_cells = (cols * rows) as usize;
+        // Integer ceiling division: (n + d - 1) / d
+        #[allow(clippy::manual_div_ceil)]
         let num_words = (total_cells + 63) / 64;
 
         Self {
@@ -274,7 +276,10 @@ impl DamageTracker {
         let (x, y): (u64, u64) = h2xy::<u64>(index as u128);
 
         // Clamp to actual grid bounds
-        (x.min(self.cols.saturating_sub(1) as u64) as u32, y.min(self.rows.saturating_sub(1) as u64) as u32)
+        (
+            x.min(self.cols.saturating_sub(1) as u64) as u32,
+            y.min(self.rows.saturating_sub(1) as u64) as u32,
+        )
     }
 }
 

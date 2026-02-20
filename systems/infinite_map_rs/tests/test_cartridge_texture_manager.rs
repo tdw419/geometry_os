@@ -105,7 +105,10 @@ fn test_cartridge_fixture_creator() {
 
     // Verify file size is reasonable (PNG compressed, so smaller than raw RGBA)
     let metadata = std::fs::metadata(&test_file).expect("Failed to get file metadata");
-    assert!(metadata.len() > 100, "Test fixture should be a valid PNG file (compressed)");
+    assert!(
+        metadata.len() > 100,
+        "Test fixture should be a valid PNG file (compressed)"
+    );
 
     // Cleanup
     cleanup_test_rts_png(&test_file);

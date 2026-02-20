@@ -4,8 +4,8 @@
 //! It supports both ASCII (via embedded bitmap font) and Unicode characters
 //! (via fontdue when a font is loaded).
 
-use std::collections::HashMap;
 use fontdue::{Font, FontSettings};
+use std::collections::HashMap;
 
 use crate::font_bitmap::FONT_8X16;
 
@@ -175,7 +175,7 @@ impl GlyphAtlas {
         let c = key.character as u8;
 
         // Our bitmap font covers ASCII 32-126
-        if c < 32 || c > 126 {
+        if !(32..=126).contains(&c) {
             return None;
         }
 
@@ -184,7 +184,7 @@ impl GlyphAtlas {
 
         // Scale factor based on requested size
         // Base font is 8 pixels wide, 16 pixels tall
-        let scale = (key.size_f32() / 16.0).max(0.5).min(4.0);
+        let scale = (key.size_f32() / 16.0).clamp(0.5, 4.0);
         let scaled_width = (8.0 * scale) as u32;
         let scaled_height = (16.0 * scale) as u32;
 
@@ -316,7 +316,11 @@ mod tests {
         for c in 32u8..=126u8 {
             let key = GlyphKey::new(c as char, 16.0);
             let glyph = atlas.render_glyph(&key);
-            assert!(glyph.is_some(), "Failed to render ASCII char: {}", c as char);
+            assert!(
+                glyph.is_some(),
+                "Failed to render ASCII char: {}",
+                c as char
+            );
         }
     }
 
@@ -360,7 +364,7 @@ mod tests {
 
         // Each glyph should have increasing x offset
         for i in 1..glyphs.len() {
-            assert!(glyphs[i].1 >= glyphs[i-1].1);
+            assert!(glyphs[i].1 >= glyphs[i - 1].1);
         }
     }
 }

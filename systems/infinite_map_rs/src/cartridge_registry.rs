@@ -50,8 +50,7 @@ impl CartridgeRegistry {
     /// Get entry at/near position (with tolerance in pixels)
     pub fn get_entry_at_position(&self, x: f32, y: f32, tolerance: f32) -> Option<&CartridgeEntry> {
         self.entries.values().find(|entry| {
-            (entry.spawn_x - x).abs() < tolerance
-                && (entry.spawn_y - y).abs() < tolerance
+            (entry.spawn_x - x).abs() < tolerance && (entry.spawn_y - y).abs() < tolerance
         })
     }
 

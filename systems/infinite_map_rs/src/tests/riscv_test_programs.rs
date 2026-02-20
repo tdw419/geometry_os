@@ -167,14 +167,19 @@ impl RiscvEncoder {
         // Sign-extend the immediate to 13 bits (imm[12:0])
         let imm_u32 = imm as u32;
 
-        let imm_lo = ((imm_u32 >> 1) & 0xF) as u32;   // imm[4:1]
-        let imm_hi = ((imm_u32 >> 5) & 0x3F) as u32;   // imm[10:5]
-        let imm_11 = ((imm_u32 >> 11) & 0x1) as u32;  // imm[11]
-        let imm_12 = ((imm_u32 >> 12) & 0x1) as u32;  // imm[12]
+        let imm_lo = ((imm_u32 >> 1) & 0xF) as u32; // imm[4:1]
+        let imm_hi = ((imm_u32 >> 5) & 0x3F) as u32; // imm[10:5]
+        let imm_11 = ((imm_u32 >> 11) & 0x1) as u32; // imm[11]
+        let imm_12 = ((imm_u32 >> 12) & 0x1) as u32; // imm[12]
 
-        let inst = (imm_12 << 31) | (imm_11 << 7) | (imm_hi << 25) |
-                   (rs2 << 20) | (rs1 << 15) | (funct3 << 12) |
-                   (imm_lo << 8) | opcode;
+        let inst = (imm_12 << 31)
+            | (imm_11 << 7)
+            | (imm_hi << 25)
+            | (rs2 << 20)
+            | (rs1 << 15)
+            | (funct3 << 12)
+            | (imm_lo << 8)
+            | opcode;
         self.code.push(inst);
         self.pc += 4;
     }
@@ -185,14 +190,13 @@ impl RiscvEncoder {
         // Sign-extend the immediate to 21 bits (imm[20:0])
         let imm_u32 = imm as u32;
 
-        let imm_lo = ((imm_u32 >> 1) & 0x3FF) as u32;   // imm[10:1]
-        let imm_11 = ((imm_u32 >> 11) & 0x1) as u32;     // imm[11]
-        let imm_hi = ((imm_u32 >> 12) & 0xFF) as u32;    // imm[19:12]
-        let imm_20 = ((imm_u32 >> 20) & 0x1) as u32;     // imm[20]
+        let imm_lo = ((imm_u32 >> 1) & 0x3FF) as u32; // imm[10:1]
+        let imm_11 = ((imm_u32 >> 11) & 0x1) as u32; // imm[11]
+        let imm_hi = ((imm_u32 >> 12) & 0xFF) as u32; // imm[19:12]
+        let imm_20 = ((imm_u32 >> 20) & 0x1) as u32; // imm[20]
 
-        let inst = (imm_20 << 31) | (imm_hi << 12) |
-                   (imm_11 << 20) | (imm_lo << 21) |
-                   (rd << 7) | opcode;
+        let inst =
+            (imm_20 << 31) | (imm_hi << 12) | (imm_11 << 20) | (imm_lo << 21) | (rd << 7) | opcode;
         self.code.push(inst);
         self.pc += 4;
     }
@@ -262,11 +266,11 @@ pub fn test_independent_adds() -> Vec<u8> {
     // Perform 100 independent additions
     // Each: x11 = x1 + x2, x12 = x3 + x4, etc.
     for _ in 0..100 {
-        e.add(11, 1, 2);   // x11 = x1 + x2
-        e.add(12, 3, 4);   // x12 = x3 + x4
-        e.add(13, 5, 6);   // x13 = x5 + x6
-        e.add(14, 7, 8);   // x14 = x7 + x8
-        e.add(15, 9, 10);  // x15 = x9 + x10
+        e.add(11, 1, 2); // x11 = x1 + x2
+        e.add(12, 3, 4); // x12 = x3 + x4
+        e.add(13, 5, 6); // x13 = x5 + x6
+        e.add(14, 7, 8); // x14 = x7 + x8
+        e.add(15, 9, 10); // x15 = x9 + x10
     }
 
     e.ecall(); // Syscall to signal completion
@@ -317,9 +321,9 @@ pub fn test_memory_access() -> Vec<u8> {
     // Simulate memory operations by doing arithmetic
     // In a real test, this would use LW/SW instructions
     for i in 0..100 {
-        e.addi(2, 1, i * 4);  // Calculate address
-        e.addi(3, 2, 0);      // Simulate load
-        e.addi(4, 3, 1);      // Simulate operation
+        e.addi(2, 1, i * 4); // Calculate address
+        e.addi(3, 2, 0); // Simulate load
+        e.addi(4, 3, 1); // Simulate operation
     }
 
     e.ecall();
@@ -372,15 +376,15 @@ pub fn test_arithmetic_intensive() -> Vec<u8> {
 
     // Perform many arithmetic operations
     for _ in 0..200 {
-        e.add(10, 1, 2);   // ADD
-        e.sub(11, 3, 4);   // SUB
-        e.xor(12, 5, 6);   // XOR
-        e.and(13, 7, 8);   // AND
-        e.or(14, 1, 3);    // OR
-        e.sll(15, 2, 4);   // SLL
-        e.srl(16, 5, 7);   // SRL
-        e.slt(17, 6, 8);   // SLT
-        e.sltu(18, 1, 2);  // SLTU
+        e.add(10, 1, 2); // ADD
+        e.sub(11, 3, 4); // SUB
+        e.xor(12, 5, 6); // XOR
+        e.and(13, 7, 8); // AND
+        e.or(14, 1, 3); // OR
+        e.sll(15, 2, 4); // SLL
+        e.srl(16, 5, 7); // SRL
+        e.slt(17, 6, 8); // SLT
+        e.sltu(18, 1, 2); // SLTU
     }
 
     e.ecall();
@@ -397,11 +401,11 @@ pub fn test_control_flow() -> Vec<u8> {
     let mut e = RiscvEncoder::new();
 
     // Initialize
-    e.addi(1, 0, 100);  // Loop counter
+    e.addi(1, 0, 100); // Loop counter
 
     // Simple loop (will be executed unrolled in benchmark)
     for _ in 0..50 {
-        e.addi(2, 2, 1);  // Accumulator
+        e.addi(2, 2, 1); // Accumulator
         e.addi(1, 1, -1); // Decrement counter (-1)
     }
 

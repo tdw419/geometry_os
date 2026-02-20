@@ -15,8 +15,8 @@ fn test_app_has_cartridge_texture_manager() {
 fn test_cartridge_texture_manager_module_exists() {
     // This test verifies the module compiles and is accessible
     // If this compiles, the module exists and is properly integrated
-    use systems::infinite_map_rs::cartridge_texture_manager::CartridgeTextureManager;
     use systems::infinite_map_rs::cartridge_texture_manager::CartridgeTexture;
+    use systems::infinite_map_rs::cartridge_texture_manager::CartridgeTextureManager;
     use systems::infinite_map_rs::cartridge_texture_manager::CartridgeTextureStats;
 
     // Just verify the types exist and can be referenced

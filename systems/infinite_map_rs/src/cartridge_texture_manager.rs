@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
-use wgpu::{self, Device, Queue, Texture, TextureView, BindGroup, Sampler};
+use wgpu::{self, BindGroup, Device, Queue, Sampler, Texture, TextureView};
 
 use crate::rts_texture::RTSTexture;
 

@@ -6,8 +6,8 @@ use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 
-use super::bonds::{CognitiveBond, BondType, BondGraphStats};
-use super::simulator::{TectonicState, TileMovement, LayoutDelta};
+use super::bonds::{BondGraphStats, BondType, CognitiveBond};
+use super::simulator::{LayoutDelta, TectonicState, TileMovement};
 
 /// ASCII renderer for tectonic activity
 pub struct TectonicAsciiRenderer {
@@ -33,14 +33,32 @@ impl TectonicAsciiRenderer {
         let mut lines = Vec::new();
 
         // Header
-        lines.push("┌──────────────────────────────────────────────────────────────────────────┐".to_string());
-        lines.push(format!("│ TECTONIC ACTIVITY MONITOR                                 Cycle: {:<5} │", state.cycle));
-        lines.push("├──────────────────────────────────────────────────────────────────────────┤".to_string());
-        lines.push("│                                                                          │".to_string());
+        lines.push(
+            "┌──────────────────────────────────────────────────────────────────────────┐"
+                .to_string(),
+        );
+        lines.push(format!(
+            "│ TECTONIC ACTIVITY MONITOR                                 Cycle: {:<5} │",
+            state.cycle
+        ));
+        lines.push(
+            "├──────────────────────────────────────────────────────────────────────────┤"
+                .to_string(),
+        );
+        lines.push(
+            "│                                                                          │"
+                .to_string(),
+        );
 
         // Cognitive Bonds Section
-        lines.push("│   COGNITIVE BONDS (top 10 by strength)                                  │".to_string());
-        lines.push("│   ────────────────────────────────────                                  │".to_string());
+        lines.push(
+            "│   COGNITIVE BONDS (top 10 by strength)                                  │"
+                .to_string(),
+        );
+        lines.push(
+            "│   ────────────────────────────────────                                  │"
+                .to_string(),
+        );
 
         for bond in state.top_bonds.iter().take(10) {
             let bond_type_str = match bond.bond_type {
@@ -55,27 +73,38 @@ impl TectonicAsciiRenderer {
 
             lines.push(format!(
                 "│   DIST-{} {}► DIST-{}   {:.2}  {}              │",
-                bond.source,
-                bar_padded,
-                bond.dest,
-                bond.strength,
-                bond_type_str
+                bond.source, bar_padded, bond.dest, bond.strength, bond_type_str
             ));
         }
 
-        lines.push("│                                                                          │".to_string());
+        lines.push(
+            "│                                                                          │"
+                .to_string(),
+        );
 
         // Pending Realignments Section
-        lines.push("│   PENDING REALIGNMENTS                                                  │".to_string());
-        lines.push("│   ────────────────────                                                  │".to_string());
+        lines.push(
+            "│   PENDING REALIGNMENTS                                                  │"
+                .to_string(),
+        );
+        lines.push(
+            "│   ────────────────────                                                  │"
+                .to_string(),
+        );
 
         for movement in state.pending_movements.iter().take(5) {
-            let gain_sign = if movement.saccade_gain >= 0.0 { "+" } else { "" };
+            let gain_sign = if movement.saccade_gain >= 0.0 {
+                "+"
+            } else {
+                ""
+            };
             lines.push(format!(
                 "│   DIST-{}: ({:.0}, {:.0}) → ({:.0}, {:.0})  Δ={:.0}px  Saccade: {}{:.0}%     │",
                 movement.tile_id,
-                movement.from.0, movement.from.1,
-                movement.to.0, movement.to.1,
+                movement.from.0,
+                movement.from.1,
+                movement.to.0,
+                movement.to.1,
                 movement.delta,
                 gain_sign,
                 movement.saccade_gain
@@ -83,26 +112,63 @@ impl TectonicAsciiRenderer {
         }
 
         if state.pending_movements.is_empty() {
-            lines.push("│   No pending realignments                                               │".to_string());
+            lines.push(
+                "│   No pending realignments                                               │"
+                    .to_string(),
+            );
         }
 
-        lines.push("│                                                                          │".to_string());
+        lines.push(
+            "│                                                                          │"
+                .to_string(),
+        );
 
         // Aggregation Window Section
-        lines.push("│   AGGREGATION WINDOW                                                    │".to_string());
-        lines.push("│   ───────────────────                                                   │".to_string());
-        lines.push(format!("│   Pulses recorded: {:<10}                                             │", state.stats.total_pulses));
-        lines.push(format!("│   Active edges: {:<10}                                               │", state.stats.total_edges));
-        lines.push(format!("│   Active tiles: {:<10}                                                │", state.stats.active_tiles));
-        lines.push(format!("│   Cycle: {:<10}                                                       │", state.cycle));
+        lines.push(
+            "│   AGGREGATION WINDOW                                                    │"
+                .to_string(),
+        );
+        lines.push(
+            "│   ───────────────────                                                   │"
+                .to_string(),
+        );
+        lines.push(format!(
+            "│   Pulses recorded: {:<10}                                             │",
+            state.stats.total_pulses
+        ));
+        lines.push(format!(
+            "│   Active edges: {:<10}                                               │",
+            state.stats.total_edges
+        ));
+        lines.push(format!(
+            "│   Active tiles: {:<10}                                                │",
+            state.stats.active_tiles
+        ));
+        lines.push(format!(
+            "│   Cycle: {:<10}                                                       │",
+            state.cycle
+        ));
 
-        lines.push("│                                                                          │".to_string());
+        lines.push(
+            "│                                                                          │"
+                .to_string(),
+        );
 
         // Spatial Metrics Section
-        lines.push("│   SPATIAL METRICS                                                       │".to_string());
-        lines.push("│   ───────────────                                                       │".to_string());
+        lines.push(
+            "│   SPATIAL METRICS                                                       │"
+                .to_string(),
+        );
+        lines.push(
+            "│   ───────────────                                                       │"
+                .to_string(),
+        );
 
-        let improvement_sign = if state.layout_delta.improvement_pct >= 0.0 { "↓" } else { "↑" };
+        let improvement_sign = if state.layout_delta.improvement_pct >= 0.0 {
+            "↓"
+        } else {
+            "↑"
+        };
         lines.push(format!(
             "│   Avg Saccade: {:.0}px → {:.0}px ({}{:.0}%)                            │",
             state.layout_delta.before_saccade,
@@ -122,11 +188,26 @@ impl TectonicAsciiRenderer {
         } else {
             0.0
         };
-        let entropy_status = if entropy < 0.3 { "healthy" } else if entropy < 0.6 { "moderate" } else { "high" };
-        lines.push(format!("│   Layout Entropy: {:.2} ({})                                            │", entropy, entropy_status));
+        let entropy_status = if entropy < 0.3 {
+            "healthy"
+        } else if entropy < 0.6 {
+            "moderate"
+        } else {
+            "high"
+        };
+        lines.push(format!(
+            "│   Layout Entropy: {:.2} ({})                                            │",
+            entropy, entropy_status
+        ));
 
-        lines.push("│                                                                          │".to_string());
-        lines.push("└──────────────────────────────────────────────────────────────────────────┘".to_string());
+        lines.push(
+            "│                                                                          │"
+                .to_string(),
+        );
+        lines.push(
+            "└──────────────────────────────────────────────────────────────────────────┘"
+                .to_string(),
+        );
 
         lines.join("\n")
     }
@@ -142,8 +223,7 @@ impl TectonicAsciiRenderer {
         file.write_all(content.as_bytes())
             .map_err(|e| format!("Failed to write content: {}", e))?;
 
-        fs::rename(&temp_path, &path)
-            .map_err(|e| format!("Failed to rename file: {}", e))?;
+        fs::rename(&temp_path, &path).map_err(|e| format!("Failed to rename file: {}", e))?;
 
         Ok(())
     }
@@ -160,24 +240,20 @@ mod tests {
 
         let state = TectonicState {
             cycle: 42,
-            top_bonds: vec![
-                CognitiveBond {
-                    source: 0,
-                    dest: 1,
-                    strength: 0.92,
-                    bond_type: BondType::Cognitive,
-                    pulse_count: 15847,
-                },
-            ],
-            pending_movements: vec![
-                TileMovement {
-                    tile_id: 0,
-                    from: (1024.0, 512.0),
-                    to: (1080.0, 480.0),
-                    delta: 44.0,
-                    saccade_gain: 12.0,
-                },
-            ],
+            top_bonds: vec![CognitiveBond {
+                source: 0,
+                dest: 1,
+                strength: 0.92,
+                bond_type: BondType::Cognitive,
+                pulse_count: 15847,
+            }],
+            pending_movements: vec![TileMovement {
+                tile_id: 0,
+                from: (1024.0, 512.0),
+                to: (1080.0, 480.0),
+                delta: 44.0,
+                saccade_gain: 12.0,
+            }],
             stats: BondGraphStats {
                 total_edges: 15,
                 total_volume: 1000.0,

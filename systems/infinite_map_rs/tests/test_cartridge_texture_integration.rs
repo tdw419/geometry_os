@@ -16,7 +16,10 @@ fn test_load_real_cartridge_texture() {
     // Run with: cargo test --package infinite_map_rs test_load_real_cartridge_texture -- --ignored
 
     let fixture_path = PathBuf::from("tests/fixtures/test_cartridge.rts.png");
-    assert!(fixture_path.exists(), "Test fixture not found. Run create_test_cartridge.py");
+    assert!(
+        fixture_path.exists(),
+        "Test fixture not found. Run create_test_cartridge.py"
+    );
 
     // Actual test would require device initialization
     // For now, we verify the file exists and is readable
@@ -47,7 +50,11 @@ fn test_cartridge_fixture_exists() {
     std::io::Read::read_exact(&mut file, &mut header).expect("Cannot read file header");
 
     // PNG signature: 137 80 78 71 13 10 26 10
-    assert_eq!(header, [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], "File is not a valid PNG");
+    assert_eq!(
+        header,
+        [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
+        "File is not a valid PNG"
+    );
 }
 
 /// Test that the test cartridge metadata sidecar exists.
@@ -63,8 +70,8 @@ fn test_cartridge_metadata_exists() {
 
     // Verify it's valid JSON
     let contents = std::fs::read_to_string(&meta_path).expect("Cannot read metadata file");
-    let _value: serde_json::Value = serde_json::from_str(&contents)
-        .expect("Metadata is not valid JSON");
+    let _value: serde_json::Value =
+        serde_json::from_str(&contents).expect("Metadata is not valid JSON");
 
     // Verify required fields
     let json = serde_json::from_str::<serde_json::Value>(&contents).unwrap();

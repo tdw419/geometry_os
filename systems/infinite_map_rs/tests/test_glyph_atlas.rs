@@ -2,7 +2,7 @@
 //!
 //! The GlyphAtlas provides Unicode font rendering with caching for terminal emulation.
 
-use infinite_map_rs::glyph_atlas::{GlyphAtlas, GlyphKey, GlyphInfo};
+use infinite_map_rs::glyph_atlas::{GlyphAtlas, GlyphInfo, GlyphKey};
 
 #[test]
 fn test_glyph_atlas_creation() {
@@ -59,13 +59,23 @@ fn test_ascii_glyph_rendering() {
     // Test all printable ASCII characters
     for c in 32u8..=126u8 {
         let key = GlyphKey::new(c as char, 16.0);
-        let glyph = atlas.render_glyph(&key)
+        let glyph = atlas
+            .render_glyph(&key)
             .unwrap_or_else(|| panic!("Failed to render ASCII char: {} ({})", c as char, c));
 
         // Basic validation
-        assert!(glyph.width <= 16, "Glyph width should be reasonable for 8x16 font");
-        assert!(glyph.height <= 16, "Glyph height should be reasonable for 8x16 font");
-        assert!(!glyph.pixels.is_empty() || c == 32, "Space can have empty pixels");
+        assert!(
+            glyph.width <= 16,
+            "Glyph width should be reasonable for 8x16 font"
+        );
+        assert!(
+            glyph.height <= 16,
+            "Glyph height should be reasonable for 8x16 font"
+        );
+        assert!(
+            !glyph.pixels.is_empty() || c == 32,
+            "Space can have empty pixels"
+        );
     }
 }
 
@@ -113,9 +123,15 @@ fn test_multiple_sizes() {
     let key_16 = GlyphKey::new('A', 16.0);
     let key_24 = GlyphKey::new('A', 24.0);
 
-    let glyph_12 = atlas.render_glyph(&key_12).expect("Failed to render at size 12");
-    let glyph_16 = atlas.render_glyph(&key_16).expect("Failed to render at size 16");
-    let glyph_24 = atlas.render_glyph(&key_24).expect("Failed to render at size 24");
+    let glyph_12 = atlas
+        .render_glyph(&key_12)
+        .expect("Failed to render at size 12");
+    let glyph_16 = atlas
+        .render_glyph(&key_16)
+        .expect("Failed to render at size 16");
+    let glyph_24 = atlas
+        .render_glyph(&key_24)
+        .expect("Failed to render at size 24");
 
     // Different sizes should be cached separately
     assert_ne!(glyph_12.height, glyph_16.height);

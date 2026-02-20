@@ -187,8 +187,8 @@ mod tests {
             return;
         }
 
-        let program = RiscvProgram::load_from_rts(program_path)
-            .expect("Failed to load RTS program");
+        let program =
+            RiscvProgram::load_from_rts(program_path).expect("Failed to load RTS program");
 
         assert_eq!(program.entry_point, 0x800000f8);
         assert!(!program.code.is_empty());

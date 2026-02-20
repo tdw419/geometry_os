@@ -1,15 +1,15 @@
 //! Main TectonicSimulator for Phase 28 Tectonic Realignment.
 
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
-use serde::{Serialize, Deserialize};
 
-use super::bonds::{CognitiveBond, CognitiveBondGraph, BondType};
-use super::solver::ForceDirectedSolver;
-use super::constraints::HilbertConstraint;
 use super::ascii::TectonicAsciiRenderer;
-use super::{TileId, Coord, TectonicConfig};
+use super::bonds::{BondType, CognitiveBond, CognitiveBondGraph};
+use super::constraints::HilbertConstraint;
+use super::solver::ForceDirectedSolver;
+use super::{Coord, TectonicConfig, TileId};
 
 /// A pulse event from the NeuralPulseSystem
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -154,12 +154,8 @@ impl TectonicSimulator {
 
         // Add to bond graph
         let is_cognitive = pulse.pulse_type == "violet";
-        self.bond_graph.add_pulse(
-            pulse.source,
-            pulse.dest,
-            pulse.volume,
-            is_cognitive,
-        );
+        self.bond_graph
+            .add_pulse(pulse.source, pulse.dest, pulse.volume, is_cognitive);
     }
 
     /// Set the current position of a tile
@@ -180,22 +176,21 @@ impl TectonicSimulator {
         let before_saccade = self.calculate_saccade_distance(&bonds);
 
         // Run force-directed solver
-        let proposed_positions = self.solver.solve(
-            &self.tile_positions,
-            &bonds,
-            &self.hilbert_constraint,
-        );
+        let proposed_positions =
+            self.solver
+                .solve(&self.tile_positions, &bonds, &self.hilbert_constraint);
 
         // Apply constraints and calculate movements
         let mut movements = Vec::new();
         for (tile_id, new_pos) in &proposed_positions {
             if let Some(&old_pos) = self.tile_positions.get(tile_id) {
-                let delta = ((new_pos.0 - old_pos.0).powi(2) +
-                             (new_pos.1 - old_pos.1).powi(2)).sqrt();
+                let delta =
+                    ((new_pos.0 - old_pos.0).powi(2) + (new_pos.1 - old_pos.1).powi(2)).sqrt();
 
                 // Only include meaningful movements
                 if delta > 1.0 {
-                    let saccade_gain = self.estimate_saccade_gain(*tile_id, &bonds, old_pos, *new_pos);
+                    let saccade_gain =
+                        self.estimate_saccade_gain(*tile_id, &bonds, old_pos, *new_pos);
                     movements.push(TileMovement {
                         tile_id: *tile_id,
                         from: old_pos,
@@ -246,12 +241,13 @@ impl TectonicSimulator {
         bonds: &[CognitiveBond],
         positions: &HashMap<TileId, Coord>,
     ) -> f64 {
-        bonds.iter()
+        bonds
+            .iter()
             .filter_map(|b| {
                 let src_pos = positions.get(&b.source)?;
                 let dst_pos = positions.get(&b.dest)?;
-                let dist = ((dst_pos.0 - src_pos.0).powi(2) +
-                            (dst_pos.1 - src_pos.1).powi(2)).sqrt();
+                let dist =
+                    ((dst_pos.0 - src_pos.0).powi(2) + (dst_pos.1 - src_pos.1).powi(2)).sqrt();
                 Some(dist * b.strength) // Weight by bond strength
             })
             .sum()
@@ -278,10 +274,12 @@ impl TectonicSimulator {
             };
 
             if let Some(&other_pos) = self.tile_positions.get(&other) {
-                old_dist += ((other_pos.0 - old_pos.0).powi(2) +
-                             (other_pos.1 - old_pos.1).powi(2)).sqrt() * bond.strength;
-                new_dist += ((other_pos.0 - new_pos.0).powi(2) +
-                             (other_pos.1 - new_pos.1).powi(2)).sqrt() * bond.strength;
+                old_dist += ((other_pos.0 - old_pos.0).powi(2) + (other_pos.1 - old_pos.1).powi(2))
+                    .sqrt()
+                    * bond.strength;
+                new_dist += ((other_pos.0 - new_pos.0).powi(2) + (other_pos.1 - new_pos.1).powi(2))
+                    .sqrt()
+                    * bond.strength;
             }
         }
 
@@ -320,7 +318,9 @@ impl TectonicSimulator {
             pending_movements: delta.movements.clone(),
             stats: self.bond_graph.stats(),
             layout_delta: delta.clone(),
-            hilbert_preservation: self.hilbert_constraint.preservation_score(&self.tile_positions),
+            hilbert_preservation: self
+                .hilbert_constraint
+                .preservation_score(&self.tile_positions),
         }
     }
 
@@ -328,7 +328,9 @@ impl TectonicSimulator {
     pub fn should_realign(&self) -> bool {
         match self.last_realignment {
             None => true,
-            Some(last) => last.elapsed() >= Duration::from_secs(self.config.aggregation_window_secs),
+            Some(last) => {
+                last.elapsed() >= Duration::from_secs(self.config.aggregation_window_secs)
+            }
         }
     }
 
@@ -374,7 +376,10 @@ mod tests {
             dest: 1,
             pulse_type: "violet".to_string(),
             volume: 10.0,
-            timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64,
+            timestamp: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64,
         });
 
         assert_eq!(sim.pulse_count(), 1);

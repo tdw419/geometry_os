@@ -2,9 +2,9 @@
 //
 // Tests for GlyphAtlas and DamageTracker integration with TerminalBuffer
 
-use infinite_map_rs::terminal_emulator::{TerminalBuffer, CellAttributes};
 use infinite_map_rs::damage_tracker::DamageTracker;
 use infinite_map_rs::glyph_atlas::{GlyphAtlas, GlyphKey};
+use infinite_map_rs::terminal_emulator::{CellAttributes, TerminalBuffer};
 
 /// Test that TerminalBuffer integrates with DamageTracker
 #[test]
@@ -99,7 +99,11 @@ fn test_glyph_atlas_ascii_rendering() {
     for c in 32u8..=126u8 {
         let key = GlyphKey::new(c as char, 16.0);
         let glyph = atlas.render_glyph(&key);
-        assert!(glyph.is_some(), "Failed to render ASCII char: {}", c as char);
+        assert!(
+            glyph.is_some(),
+            "Failed to render ASCII char: {}",
+            c as char
+        );
     }
 }
 

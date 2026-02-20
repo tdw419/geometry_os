@@ -1,7 +1,10 @@
-use std::os::unix::io::RawFd;
+use libc::{
+    close, execvp, fcntl, forkpty, ioctl, read, winsize, write, F_GETFL, F_SETFL, O_NONBLOCK,
+    TIOCSWINSZ,
+};
 use std::ffi::CString;
 use std::io;
-use libc::{forkpty, winsize, ioctl, TIOCSWINSZ, execvp, read, write, close, fcntl, F_GETFL, F_SETFL, O_NONBLOCK};
+use std::os::unix::io::RawFd;
 
 /// PTY Engine: Native pseudo-terminal support for Geometry OS
 pub struct PtyEngine {
@@ -20,10 +23,10 @@ impl PtyEngine {
         };
 
         let mut master: RawFd = -1;
-        
+
         unsafe {
             let pid = forkpty(&mut master, std::ptr::null_mut(), std::ptr::null_mut(), &ws);
-            
+
             if pid < 0 {
                 return Err(io::Error::last_os_error());
             } else if pid == 0 {
@@ -31,13 +34,13 @@ impl PtyEngine {
                 let shell_cstring = CString::new(shell).unwrap();
                 let shell_ptr = shell_cstring.as_ptr();
                 let args = [shell_ptr, std::ptr::null()];
-                
+
                 execvp(shell_ptr, args.as_ptr());
                 libc::_exit(1);
             } else {
                 // Parent process
                 let fd = master;
-                
+
                 // Set non-blocking
                 let flags = fcntl(fd, F_GETFL);
                 if flags == -1 {
@@ -54,9 +57,7 @@ impl PtyEngine {
 
     /// Read data from the PTY
     pub fn read(&self, buf: &mut [u8]) -> io::Result<usize> {
-        let n = unsafe {
-            read(self.fd, buf.as_mut_ptr() as *mut libc::c_void, buf.len())
-        };
+        let n = unsafe { read(self.fd, buf.as_mut_ptr() as *mut libc::c_void, buf.len()) };
 
         if n < 0 {
             let err = io::Error::last_os_error();
@@ -72,9 +73,7 @@ impl PtyEngine {
 
     /// Write data to the PTY
     pub fn write(&self, buf: &[u8]) -> io::Result<usize> {
-        let n = unsafe {
-            write(self.fd, buf.as_ptr() as *const libc::c_void, buf.len())
-        };
+        let n = unsafe { write(self.fd, buf.as_ptr() as *const libc::c_void, buf.len()) };
 
         if n < 0 {
             Err(io::Error::last_os_error())
@@ -122,8 +121,8 @@ impl Drop for PtyEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::{Duration, Instant};
     use std::thread;
+    use std::time::{Duration, Instant};
 
     #[test]
     fn test_pty_creation_and_basic_io() {
@@ -151,7 +150,10 @@ mod tests {
             }
         }
 
-        panic!("Failed to receive expected output from PTY. Received: {:?}", String::from_utf8_lossy(&output));
+        panic!(
+            "Failed to receive expected output from PTY. Received: {:?}",
+            String::from_utf8_lossy(&output)
+        );
     }
 
     #[test]

@@ -1,8 +1,8 @@
-use crate::terminal_emulator::TerminalEmulator;
 use crate::terminal_clone::pty_engine::PtyEngine;
+use crate::terminal_emulator::TerminalEmulator;
+use log::{error, info};
 use std::collections::HashMap;
 use std::io;
-use log::{info, error};
 
 /// Terminal Clone: Manages multiple terminal instances with PTY and Emulation
 #[cfg(feature = "hypervisor")]
@@ -34,7 +34,10 @@ impl TerminalCloneManager {
         let id = self.next_id;
         self.next_id += 1;
 
-        info!("🚀 Creating terminal clone {} ({}x{}) with shell: {}", id, rows, cols, shell);
+        info!(
+            "🚀 Creating terminal clone {} ({}x{}) with shell: {}",
+            id, rows, cols, shell
+        );
 
         let pty = PtyEngine::new(rows, cols, shell)?;
         let emulator = TerminalEmulator::new(rows as usize, cols as usize);
@@ -53,7 +56,7 @@ impl TerminalCloneManager {
     /// Update all terminal clones (read from PTY, feed to emulator)
     pub fn update(&mut self) {
         let mut buffer = [0u8; 4096];
-        
+
         for clone in self.terminals.values_mut() {
             loop {
                 match clone.pty.read(&mut buffer) {
@@ -77,7 +80,10 @@ impl TerminalCloneManager {
             clone.pty.write(data)?;
             Ok(())
         } else {
-            Err(io::Error::new(io::ErrorKind::NotFound, "Terminal not found"))
+            Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                "Terminal not found",
+            ))
         }
     }
 
@@ -88,7 +94,10 @@ impl TerminalCloneManager {
             clone.emulator.resize(rows as usize, cols as usize);
             Ok(())
         } else {
-            Err(io::Error::new(io::ErrorKind::NotFound, "Terminal not found"))
+            Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                "Terminal not found",
+            ))
         }
     }
 
@@ -111,23 +120,27 @@ impl TerminalCloneManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::{Duration, Instant};
     use std::thread;
+    use std::time::{Duration, Instant};
 
     #[test]
     #[cfg(feature = "hypervisor")]
     fn test_terminal_clone_creation_and_update() {
         let mut manager = TerminalCloneManager::new();
-        let id = manager.create_terminal(24, 80, "/bin/sh").expect("Failed to create terminal");
-        
+        let id = manager
+            .create_terminal(24, 80, "/bin/sh")
+            .expect("Failed to create terminal");
+
         // Write to terminal
-        manager.write_to_terminal(id, b"echo hello_clone\n").expect("Failed to write");
+        manager
+            .write_to_terminal(id, b"echo hello_clone\n")
+            .expect("Failed to write");
 
         // Update manager to read from PTY into emulator
         let start = Instant::now();
         while start.elapsed() < Duration::from_secs(2) {
             manager.update();
-            
+
             if let Some(emulator) = manager.get_emulator(id) {
                 let buffer = emulator.get_buffer();
                 // Check if buffer contains our string
@@ -144,7 +157,9 @@ mod tests {
                         break;
                     }
                 }
-                if found { return; }
+                if found {
+                    return;
+                }
             }
             thread::sleep(Duration::from_millis(10));
         }

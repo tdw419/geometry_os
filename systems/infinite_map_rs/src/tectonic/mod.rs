@@ -11,17 +11,17 @@
 //! Key concept: Districts that frequently exchange NeuralPulses become
 //! physically proximal, reducing "Saccade distance" for Area Agents.
 
+pub mod ascii;
 pub mod bonds;
+pub mod constraints;
 pub mod simulator;
 pub mod solver;
-pub mod constraints;
-pub mod ascii;
 
-pub use bonds::{CognitiveBond, CognitiveBondGraph, BondType};
-pub use simulator::{TectonicSimulator, PulseEvent, LayoutDelta};
-pub use solver::ForceDirectedSolver;
-pub use constraints::HilbertConstraint;
 pub use ascii::TectonicAsciiRenderer;
+pub use bonds::{BondType, CognitiveBond, CognitiveBondGraph};
+pub use constraints::HilbertConstraint;
+pub use simulator::{LayoutDelta, PulseEvent, TectonicSimulator};
+pub use solver::ForceDirectedSolver;
 
 use std::path::PathBuf;
 

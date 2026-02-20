@@ -11,7 +11,7 @@
 // - Advanced input (arrows, F-keys) are mapped to ANSI sequences
 
 #[cfg(feature = "hypervisor")]
-use vte::{Perform, Parser};
+use vte::{Parser, Perform};
 
 #[cfg(feature = "hypervisor")]
 use vte::Params;
@@ -64,13 +64,30 @@ impl TerminalColor {
             TerminalColor::Indexed(idx) => {
                 // Simplified 256-color palette (could be expanded)
                 let palette = [
-                    [0, 0, 0], [128, 0, 0], [0, 128, 0], [128, 128, 0],
-                    [0, 0, 128], [128, 0, 128], [0, 128, 128], [192, 192, 192],
-                    [128, 128, 128], [255, 0, 0], [0, 255, 0], [255, 255, 0],
-                    [0, 0, 255], [255, 0, 255], [0, 255, 255], [255, 255, 255],
+                    [0, 0, 0],
+                    [128, 0, 0],
+                    [0, 128, 0],
+                    [128, 128, 0],
+                    [0, 0, 128],
+                    [128, 0, 128],
+                    [0, 128, 128],
+                    [192, 192, 192],
+                    [128, 128, 128],
+                    [255, 0, 0],
+                    [0, 255, 0],
+                    [255, 255, 0],
+                    [0, 0, 255],
+                    [255, 0, 255],
+                    [0, 255, 255],
+                    [255, 255, 255],
                 ];
                 if (*idx as usize) < palette.len() {
-                    [palette[*idx as usize][0], palette[*idx as usize][1], palette[*idx as usize][2], 255]
+                    [
+                        palette[*idx as usize][0],
+                        palette[*idx as usize][1],
+                        palette[*idx as usize][2],
+                        255,
+                    ]
                 } else {
                     [128, 128, 128, 255]
                 }
@@ -91,7 +108,7 @@ impl TerminalColor {
             TerminalColor::Yellow | TerminalColor::BrightYellow => 0.70, // Warning
             TerminalColor::Magenta | TerminalColor::BrightMagenta => 0.80, // Creative
             TerminalColor::Cyan | TerminalColor::BrightCyan => 0.35, // Info
-            _ => 0.20, // Default
+            _ => 0.20,                                             // Default
         }
     }
 
@@ -228,45 +245,53 @@ impl TerminalBuffer {
 
     /// Resize the terminal buffer with text reflow
     pub fn resize(&mut self, new_rows: usize, new_cols: usize) {
-        log::info!("📐 Resizing terminal buffer: {}x{} -> {}x{}", self.rows, self.cols, new_rows, new_cols);
-        
+        log::info!(
+            "📐 Resizing terminal buffer: {}x{} -> {}x{}",
+            self.rows,
+            self.cols,
+            new_rows,
+            new_cols
+        );
+
         // Phase 32: Text reflow on resize
         // Extract all logical lines (including scrollback)
         let logical_lines = self.extract_logical_lines();
-        
+
         // Reflow lines to new width
         let reflowed_lines = self.reflow_lines(&logical_lines, new_cols);
-        
+
         // Create new buffer
         let mut new_cells = vec![vec![TerminalCell::blank(); new_cols]; new_rows];
-        
+
         // Copy reflowed lines (preserving as much as possible)
         let copy_count = std::cmp::min(reflowed_lines.len(), new_rows);
         for row in 0..copy_count {
             let line = &reflowed_lines[row];
-            for col in 0..std::cmp::min(line.len(), new_cols) {
-                new_cells[row][col] = line[col].clone();
-            }
+            let cols_to_copy = std::cmp::min(line.len(), new_cols);
+            new_cells[row][..cols_to_copy].clone_from_slice(&line[..cols_to_copy]);
         }
-        
+
         self.cells = new_cells;
 
         self.rows = new_rows;
         self.cols = new_cols;
         // Phase 30.8: Reset view offset on resize to prevent out-of-bounds
         self.view_offset = 0;
-        
+
         // Adjust cursor if needed
         self.cursor_row = std::cmp::min(self.cursor_row, new_rows - 1);
         self.cursor_col = std::cmp::min(self.cursor_col, new_cols - 1);
-        
-        log::info!("✅ Terminal resized with text reflow: {} lines reflowed", copy_count);
+
+        log::info!(
+            "✅ Terminal resized with text reflow: {} lines reflowed",
+            copy_count
+        );
     }
-    
+
     /// Extract all logical lines from buffer (including scrollback)
     fn extract_logical_lines(&self) -> Vec<Vec<TerminalCell>> {
         let mut logical_lines = Vec::new();
-        
+
         // Extract scrollback lines
         for line in &self.scrollback {
             // Pad or truncate scrollback lines to current width
@@ -278,19 +303,23 @@ impl TerminalBuffer {
             }
             logical_lines.push(padded_line);
         }
-        
+
         // Extract active buffer lines
         for row in &self.cells {
             logical_lines.push(row.clone());
         }
-        
+
         logical_lines
     }
-    
+
     /// Reflow lines to fit new width (with word wrapping)
-    fn reflow_lines(&self, lines: &[Vec<TerminalCell>], new_width: usize) -> Vec<Vec<TerminalCell>> {
+    fn reflow_lines(
+        &self,
+        lines: &[Vec<TerminalCell>],
+        new_width: usize,
+    ) -> Vec<Vec<TerminalCell>> {
         let mut reflowed = Vec::new();
-        
+
         for line in lines {
             if line.len() <= new_width {
                 // Line fits, just copy it
@@ -299,13 +328,13 @@ impl TerminalBuffer {
                 // Line is too wide, need to wrap
                 let mut current_line = Vec::new();
                 let mut word_start = 0;
-                
+
                 for (i, cell) in line.iter().enumerate() {
                     // Check if we've exceeded the width
                     if i >= new_width {
                         // Try to find a good break point
                         let break_point = self.find_break_point(&line[word_start..i]);
-                        
+
                         if break_point > word_start {
                             // Found a good break point
                             current_line.extend_from_slice(&line[word_start..break_point]);
@@ -318,20 +347,20 @@ impl TerminalBuffer {
                             word_start = new_width;
                         }
                     }
-                    
+
                     current_line.push(cell.clone());
                 }
-                
+
                 // Add remaining cells
                 if !current_line.is_empty() {
                     reflowed.push(current_line);
                 }
             }
         }
-        
+
         reflowed
     }
-    
+
     /// Find a good break point in a line (prefer word boundaries)
     fn find_break_point(&self, cells: &[TerminalCell]) -> usize {
         // Search backwards from the end for a space
@@ -340,7 +369,7 @@ impl TerminalBuffer {
                 return i + 1; // Break after the space
             }
         }
-        
+
         // No space found, return the end (force break)
         cells.len()
     }
@@ -378,11 +407,11 @@ impl TerminalBuffer {
     /// Advance cursor to next position (handles wrapping and scrolling)
     pub fn advance_cursor(&mut self) {
         self.cursor_col += 1;
-        
+
         if self.cursor_col >= self.cols {
             self.cursor_col = 0;
             self.cursor_row += 1;
-            
+
             if self.cursor_row >= self.rows {
                 self.scroll_up();
                 self.cursor_row = self.rows - 1;
@@ -408,18 +437,18 @@ impl TerminalBuffer {
         // Move first line to scrollback
         if let Some(first_line) = self.cells.first() {
             self.scrollback.push(first_line.clone());
-            
+
             // Limit scrollback size
             if self.scrollback.len() > self.max_scrollback {
                 self.scrollback.remove(0);
             }
         }
-        
+
         // Shift all lines up
         for row in 0..self.rows - 1 {
             self.cells[row] = self.cells[row + 1].clone();
         }
-        
+
         // Clear last line
         self.cells[self.rows - 1] = vec![TerminalCell::blank(); self.cols];
     }
@@ -453,7 +482,7 @@ impl TerminalBuffer {
     pub fn clear_screen_to_end(&mut self) {
         // Clear current line from cursor
         self.clear_line_to_end();
-        
+
         // Clear all lines below
         for row in (self.cursor_row + 1)..self.rows {
             self.cells[row] = vec![TerminalCell::blank(); self.cols];
@@ -466,7 +495,7 @@ impl TerminalBuffer {
         for row in 0..self.cursor_row {
             self.cells[row] = vec![TerminalCell::blank(); self.cols];
         }
-        
+
         // Clear current line to cursor
         self.clear_line_to_start();
     }
@@ -517,10 +546,10 @@ impl TerminalBuffer {
     /// Get cell for rendering (accounts for view offset)
     pub fn get_render_cell(&self, row: usize, col: usize) -> Option<&TerminalCell> {
         let total_history = self.scrollback.len();
-        
+
         // If no scrollback, just return normal cell
         if self.view_offset == 0 {
-             return self.get_cell(row, col);
+            return self.get_cell(row, col);
         }
 
         // Calculate logical line index
@@ -528,37 +557,38 @@ impl TerminalBuffer {
         // logic:
         // visible_bottom_index = total_history + self.rows (theoretical index if all concatenated)
         // we want to see lines: [visible_bottom_index - rows - view_offset ... visible_bottom_index - view_offset]
-        
+
         // Simpler logic:
         // We are looking 'view_offset' lines into the past.
         // effective_row = (current absolute row defined as scrollback + active) - view_offset
-        
+
         // Let's define absolute row 0 as start of scrollback.
         // Last line of scrollback is index 'total_history - 1'
         // Row 0 of cells is index 'total_history'
-        
+
         // The line we want to render at screen 'row' is:
         // absolute_index = total_history + row - view_offset
-        
+
         // Handle underflow (scrolled past top of history)
         if (total_history + row) < self.view_offset {
-             // Use blank cell for out of bounds at top
-             return None;
+            // Use blank cell for out of bounds at top
+            return None;
         }
-        
+
         let absolute_index = (total_history + row) - self.view_offset;
-        
+
         if absolute_index < total_history {
             // It's in history
-            if col < self.cols { // Assuming history lines are same width?
-                 // Note: scrollback lines might have different width if resized. 
-                 // We should handle that safely.
-                 let line = &self.scrollback[absolute_index];
-                 if col < line.len() {
-                     Some(&line[col])
-                 } else {
-                     None // treat as blank
-                 }
+            if col < self.cols {
+                // Assuming history lines are same width?
+                // Note: scrollback lines might have different width if resized.
+                // We should handle that safely.
+                let line = &self.scrollback[absolute_index];
+                if col < line.len() {
+                    Some(&line[col])
+                } else {
+                    None // treat as blank
+                }
             } else {
                 None
             }
@@ -572,8 +602,10 @@ impl TerminalBuffer {
     /// Scroll view up (back in time)
     pub fn scroll_view_up(&mut self, lines: usize) {
         let total_history = self.scrollback.len();
-        if total_history == 0 { return; }
-        
+        if total_history == 0 {
+            return;
+        }
+
         self.view_offset = std::cmp::min(self.view_offset + lines, total_history);
     }
 
@@ -595,7 +627,7 @@ impl TerminalBuffer {
     pub fn scroll_view_to_bottom(&mut self) {
         self.view_offset = 0;
     }
-    
+
     /// Get current view offset
     pub fn get_view_offset(&self) -> usize {
         self.view_offset
@@ -744,10 +776,10 @@ impl TerminalEmulator {
         if !self.cursor_visible {
             return;
         }
-        
+
         // Accumulate time
         self.cursor_blink_timer += delta_time;
-        
+
         // Blink every 500ms (0.5 seconds)
         if self.cursor_blink_timer >= 0.5 {
             self.cursor_blink_timer = 0.0;
@@ -779,7 +811,7 @@ impl TerminalEmulator {
     pub fn scroll_down(&mut self, lines: usize) {
         self.buffer.scroll_view_down(lines);
     }
-    
+
     pub fn get_view_offset(&self) -> usize {
         self.buffer.get_view_offset()
     }
@@ -797,7 +829,7 @@ impl Perform for TerminalEmulator {
     /// Execute a C0 or C1 control function
     fn execute(&mut self, byte: u8) {
         let buffer = self.get_current_buffer();
-        
+
         match byte {
             0x08 => {
                 // Backspace (move cursor back)
@@ -833,9 +865,17 @@ impl Perform for TerminalEmulator {
 
     /// Hook received
     fn hook(&mut self, params: &Params, intermediates: &[u8], ignore: bool, c: char) {
-        let params: Vec<i64> = params.into_iter().map(|p| *p.get(0).unwrap_or(&0) as i64).collect();
-        log::debug!("⚠️  Unhandled hook: params={:?}, intermediates={:?}, ignore={}, c={}", 
-                    params, intermediates, ignore, c);
+        let params: Vec<i64> = params
+            .into_iter()
+            .map(|p| p.first().copied().unwrap_or(0) as i64)
+            .collect();
+        log::debug!(
+            "⚠️  Unhandled hook: params={:?}, intermediates={:?}, ignore={}, c={}",
+            params,
+            intermediates,
+            ignore,
+            c
+        );
     }
 
     /// Put received
@@ -850,80 +890,86 @@ impl Perform for TerminalEmulator {
 
     /// OSC dispatch received
     fn osc_dispatch(&mut self, params: &[&[u8]], bell_terminated: bool) {
-        log::debug!("⚠️  Unhandled OSC dispatch: params={:?}, bell_terminated={}", 
-                    params, bell_terminated);
+        log::debug!(
+            "⚠️  Unhandled OSC dispatch: params={:?}, bell_terminated={}",
+            params,
+            bell_terminated
+        );
     }
 
     /// CSI dispatch received
     fn csi_dispatch(&mut self, params: &Params, _intermediates: &[u8], _ignore: bool, c: char) {
         // Collect params to Vec<i64> for backward compatibility and ownership
-        let params: Vec<i64> = params.into_iter().map(|p| *p.get(0).unwrap_or(&0) as i64).collect();
-        
+        let params: Vec<i64> = params
+            .into_iter()
+            .map(|p| p.first().copied().unwrap_or(0) as i64)
+            .collect();
+
         let buffer = if self.using_alt_buffer {
             self.alt_buffer.as_mut().unwrap()
         } else {
             &mut self.buffer
         };
-        
+
         match c {
             // Cursor Position
             'H' | 'f' => {
                 // CSI <row>;<col> H
-                let row = params.get(0).copied().unwrap_or(1).max(1) as usize - 1;
+                let row = params.first().copied().unwrap_or(1).max(1) as usize - 1;
                 let col = params.get(1).copied().unwrap_or(1).max(1) as usize - 1;
                 buffer.move_cursor(row, col);
             }
-            
+
             // Cursor Up
             'A' => {
-                let count = params.get(0).copied().unwrap_or(1).max(1) as i32;
-                buffer.move_cursor_relative(-(count as i32), 0);
+                let count = params.first().copied().unwrap_or(1).max(1) as i32;
+                buffer.move_cursor_relative(-count, 0);
             }
-            
+
             // Cursor Down
             'B' => {
-                let count = params.get(0).copied().unwrap_or(1).max(1) as i32;
-                buffer.move_cursor_relative(count as i32, 0);
+                let count = params.first().copied().unwrap_or(1).max(1) as i32;
+                buffer.move_cursor_relative(count, 0);
             }
-            
+
             // Cursor Forward
             'C' => {
-                let count = params.get(0).copied().unwrap_or(1).max(1) as i32;
-                buffer.move_cursor_relative(0, count as i32);
+                let count = params.first().copied().unwrap_or(1).max(1) as i32;
+                buffer.move_cursor_relative(0, count);
             }
-            
+
             // Cursor Back
             'D' => {
-                let count = params.get(0).copied().unwrap_or(1).max(1) as i32;
-                buffer.move_cursor_relative(0, -(count as i32));
+                let count = params.first().copied().unwrap_or(1).max(1) as i32;
+                buffer.move_cursor_relative(0, -count);
             }
-            
+
             // Cursor Next Line
             'E' => {
-                let count = params.get(0).copied().unwrap_or(1).max(1) as i32;
+                let count = params.first().copied().unwrap_or(1).max(1) as i32;
                 let (_, _col) = buffer.get_cursor();
-                buffer.move_cursor_relative(count as i32, 0);
+                buffer.move_cursor_relative(count, 0);
                 buffer.move_cursor(buffer.get_cursor().0, 0);
             }
-            
+
             // Cursor Previous Line
             'F' => {
-                let count = params.get(0).copied().unwrap_or(1).max(1) as i32;
+                let count = params.first().copied().unwrap_or(1).max(1) as i32;
                 let (_, _col) = buffer.get_cursor();
-                buffer.move_cursor_relative(-(count as i32), 0);
+                buffer.move_cursor_relative(-count, 0);
                 buffer.move_cursor(buffer.get_cursor().0, 0);
             }
-            
+
             // Cursor Horizontal Absolute
             'G' => {
-                let col = params.get(0).copied().unwrap_or(1).max(1) as usize - 1;
+                let col = params.first().copied().unwrap_or(1).max(1) as usize - 1;
                 let (row, _) = buffer.get_cursor();
                 buffer.move_cursor(row, col);
             }
-            
+
             // Erase Display
             'J' => {
-                let mode = params.get(0).copied().unwrap_or(0);
+                let mode = params.first().copied().unwrap_or(0);
                 match mode {
                     0 => buffer.clear_screen_to_end(),
                     1 => buffer.clear_screen_to_start(),
@@ -935,12 +981,10 @@ impl Perform for TerminalEmulator {
                     _ => log::warn!("⚠️  Unknown erase display mode: {}", mode),
                 }
             }
-            
 
-            
             // Erase in Line
             'K' => {
-                let mode = params.get(0).copied().unwrap_or(0);
+                let mode = params.first().copied().unwrap_or(0);
                 match mode {
                     0 => buffer.clear_line_to_end(),
                     1 => buffer.clear_line_to_start(),
@@ -948,7 +992,7 @@ impl Perform for TerminalEmulator {
                     _ => log::warn!("⚠️  Unknown erase line mode: {}", mode),
                 }
             }
-            
+
             // Select Graphic Rendition
             'm' => {
                 if params.is_empty() {
@@ -996,13 +1040,16 @@ impl Perform for TerminalEmulator {
                                     if mode == 5 {
                                         // 256-color mode
                                         if let Some(&idx) = params.get(2) {
-                                            self.current_attrs.fg = TerminalColor::Indexed(idx as u8);
+                                            self.current_attrs.fg =
+                                                TerminalColor::Indexed(idx as u8);
                                         }
                                     } else if mode == 2 {
                                         // 24-bit RGB mode
-                                        if let (Some(&r), Some(&g), Some(&b)) = 
-                                            (params.get(2), params.get(3), params.get(4)) {
-                                            self.current_attrs.fg = TerminalColor::Rgb(r as u8, g as u8, b as u8);
+                                        if let (Some(&r), Some(&g), Some(&b)) =
+                                            (params.get(2), params.get(3), params.get(4))
+                                        {
+                                            self.current_attrs.fg =
+                                                TerminalColor::Rgb(r as u8, g as u8, b as u8);
                                         }
                                     }
                                 }
@@ -1027,13 +1074,16 @@ impl Perform for TerminalEmulator {
                                     if mode == 5 {
                                         // 256-color mode
                                         if let Some(&idx) = params.get(2) {
-                                            self.current_attrs.bg = TerminalColor::Indexed(idx as u8);
+                                            self.current_attrs.bg =
+                                                TerminalColor::Indexed(idx as u8);
                                         }
                                     } else if mode == 2 {
                                         // 24-bit RGB mode
-                                        if let (Some(&r), Some(&g), Some(&b)) = 
-                                            (params.get(2), params.get(3), params.get(4)) {
-                                            self.current_attrs.bg = TerminalColor::Rgb(r as u8, g as u8, b as u8);
+                                        if let (Some(&r), Some(&g), Some(&b)) =
+                                            (params.get(2), params.get(3), params.get(4))
+                                        {
+                                            self.current_attrs.bg =
+                                                TerminalColor::Rgb(r as u8, g as u8, b as u8);
                                         }
                                     }
                                 }
@@ -1070,22 +1120,22 @@ impl Perform for TerminalEmulator {
                     }
                 }
             }
-            
+
             // Device Status Report
             'n' => {
-                let mode = params.get(0).copied().unwrap_or(0);
+                let mode = params.first().copied().unwrap_or(0);
                 if mode == 6 {
                     // Report cursor position (not implemented - would need to send response back to guest)
                     log::debug!("📍 Cursor position report requested");
                 }
             }
-            
+
             // Save Cursor
             's' => {
                 self.saved_cursor = Some(buffer.get_cursor());
                 self.saved_attrs = Some(self.current_attrs);
             }
-            
+
             // Restore Cursor
             'u' => {
                 let saved_cursor = self.saved_cursor;
@@ -1096,7 +1146,7 @@ impl Perform for TerminalEmulator {
                     self.current_attrs = attrs;
                 }
             }
-            
+
             _ => {
                 log::debug!("⚠️  Unhandled CSI sequence: params={:?}, c={}", params, c);
             }
@@ -1110,14 +1160,14 @@ impl Perform for TerminalEmulator {
         } else {
             &mut self.buffer
         };
-        
+
         match byte {
             // Save cursor (alternative to CSI s)
             b'7' => {
                 self.saved_cursor = Some(buffer.get_cursor());
                 self.saved_attrs = Some(self.current_attrs);
             }
-            
+
             // Restore cursor (alternative to CSI u)
             b'8' => {
                 let saved_cursor = self.saved_cursor;
@@ -1128,7 +1178,7 @@ impl Perform for TerminalEmulator {
                     self.current_attrs = attrs;
                 }
             }
-            
+
             // Next line
             b'D' => {
                 let (row, _) = buffer.get_cursor();
@@ -1139,7 +1189,7 @@ impl Perform for TerminalEmulator {
                     buffer.move_cursor(row + 1, 0);
                 }
             }
-            
+
             // Index
             b'E' => {
                 let (row, _) = buffer.get_cursor();
@@ -1150,7 +1200,7 @@ impl Perform for TerminalEmulator {
                     buffer.move_cursor(row + 1, 0);
                 }
             }
-            
+
             // Reverse Index
             b'M' => {
                 let (row, col) = buffer.get_cursor();
@@ -1161,16 +1211,20 @@ impl Perform for TerminalEmulator {
                     buffer.move_cursor(row - 1, col);
                 }
             }
-            
+
             // Reset terminal
             b'c' => {
                 buffer.clear_screen();
                 self.current_attrs = CellAttributes::default();
             }
-            
+
             _ => {
-                log::debug!("⚠️  Unhandled ESC sequence: intermediates={:?}, ignore={}, byte=0x{:02x}", 
-                           intermediates, ignore, byte);
+                log::debug!(
+                    "⚠️  Unhandled ESC sequence: intermediates={:?}, ignore={}, byte=0x{:02x}",
+                    intermediates,
+                    ignore,
+                    byte
+                );
             }
         }
     }
@@ -1284,8 +1338,8 @@ mod tests {
         let color = TerminalColor::Red;
         let rgba = color.to_rgba();
         assert_eq!(rgba[0], 194); // R
-        assert_eq!(rgba[1], 54);  // G
-        assert_eq!(rgba[2], 33);  // B
+        assert_eq!(rgba[1], 54); // G
+        assert_eq!(rgba[2], 33); // B
         assert_eq!(rgba[3], 255); // A
     }
 
@@ -1337,7 +1391,7 @@ mod tests {
         let mut emulator = TerminalEmulator::new(24, 80);
         emulator.feed(b"AB\x1b[2DC");
         let buffer = emulator.get_buffer();
-        // Cursor starts at 0. Write A (pos 1), B (pos 2). 
+        // Cursor starts at 0. Write A (pos 1), B (pos 2).
         // Move back 2 (pos 0). Write C. Result: C at 0, B at 1.
         assert_eq!(buffer.get_cell(0, 0).unwrap().c, 'C');
         assert_eq!(buffer.get_cell(0, 1).unwrap().c, 'B');

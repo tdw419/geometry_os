@@ -10,12 +10,14 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use infinite_map_rs::riscv::{RiscvExecutor, AsciiSceneHook, WebSocketHook, HeatHook, RiscvHookBroadcaster};
+use infinite_map_rs::riscv::{
+    AsciiSceneHook, HeatHook, RiscvExecutor, RiscvHookBroadcaster, WebSocketHook,
+};
 
 // WebSocket streaming to Visual Bridge
-use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use futures_util::{sink::SinkExt, stream::StreamExt};
 use serde_json::json;
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -46,7 +48,8 @@ async fn main() -> Result<()> {
     for i in 2..args.len() {
         match args[i].as_str() {
             "--max-cycles" if i + 1 < args.len() => {
-                max_cycles = args[i + 1].parse()
+                max_cycles = args[i + 1]
+                    .parse()
                     .map_err(|_| anyhow::anyhow!("Invalid max-cycles value"))?;
             }
             _ => {}
@@ -64,8 +67,10 @@ async fn main() -> Result<()> {
 
     // Type alias for WebSocket sender
     type WsSender = futures_util::stream::SplitSink<
-        tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>,
-        Message
+        tokio_tungstenite::WebSocketStream<
+            tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+        >,
+        Message,
     >;
 
     let ws_sender: Arc<Mutex<Option<WsSender>>> = Arc::new(Mutex::new(None));
@@ -77,7 +82,10 @@ async fn main() -> Result<()> {
             *ws_sender.lock().await = Some(ws_tx);
         }
         Err(e) => {
-            eprintln!("⚠️  Visual Bridge not available: {} (UART will still print to console)", e);
+            eprintln!(
+                "⚠️  Visual Bridge not available: {} (UART will still print to console)",
+                e
+            );
         }
     }
 
@@ -114,8 +122,7 @@ async fn main() -> Result<()> {
         .await?;
 
     // Create executor
-    let mut executor = RiscvExecutor::new(device, queue)?
-        .with_max_cycles(max_cycles);
+    let mut executor = RiscvExecutor::new(device, queue)?.with_max_cycles(max_cycles);
 
     // Initialize Multi-Hook Broadcaster
     let mut broadcaster = RiscvHookBroadcaster::new();
@@ -141,7 +148,7 @@ async fn main() -> Result<()> {
 
     // Run
     println!("Running...");
-    
+
     let result = executor.run()?;
 
     println!();
