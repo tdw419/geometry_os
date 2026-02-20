@@ -85,7 +85,7 @@ _Design: WidgetInteractionManager.hitTest()_
 _Requirements: FR-1, US-1, US-2, US-3, AC-1.1, AC-2.1, AC-3.1_
 _Design: WidgetInteractionManager event flow_
 
-### Task 1.4: Implement updateMouse() and Uniform Buffer Updates
+### Task 1.4: [x] Implement updateMouse() and Uniform Buffer Updates
 **Do**:
 1. Add `updateMouse(x, y, pressed)` method
 2. Create `_updateUniformBuffer()` that writes Float32Array to GPU buffer

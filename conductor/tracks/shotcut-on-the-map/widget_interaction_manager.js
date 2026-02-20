@@ -30,6 +30,8 @@ export class WidgetInteractionManager {
     this._hoveredWidget = null;
     this._focusedIndex = -1;
     this._mousePressed = false;
+    this._mouseX = 0;
+    this._mouseY = 0;
 
     // Filter clickable widgets (those with action field)
     this._clickableWidgets = this._widgets.filter(w => w.action);
@@ -41,10 +43,12 @@ export class WidgetInteractionManager {
       mouseup: this._onMouseUp.bind(this)
     };
 
-    // Bind event listeners
-    this._canvas.addEventListener('mousemove', this._boundHandlers.mousemove);
-    this._canvas.addEventListener('mousedown', this._boundHandlers.mousedown);
-    this._canvas.addEventListener('mouseup', this._boundHandlers.mouseup);
+    // Bind event listeners (skip if canvas doesn't support addEventListener - mock mode)
+    if (this._canvas && typeof this._canvas.addEventListener === 'function') {
+      this._canvas.addEventListener('mousemove', this._boundHandlers.mousemove);
+      this._canvas.addEventListener('mousedown', this._boundHandlers.mousedown);
+      this._canvas.addEventListener('mouseup', this._boundHandlers.mouseup);
+    }
   }
 
   /**
@@ -56,12 +60,19 @@ export class WidgetInteractionManager {
     const coords = this._getCanvasCoords(e);
     const widget = this.hitTest(coords.x, coords.y);
 
+    // Update mouse position
+    this._mouseX = coords.x;
+    this._mouseY = coords.y;
+
     // Check if hover state changed
     const prevHovered = this._hoveredWidget;
     this._hoveredWidget = widget;
 
     // Update cursor based on whether we're over a clickable widget
     this._updateCursor(widget);
+
+    // Update uniform buffer with new mouse position
+    this._updateUniformBuffer();
 
     // Call onHover callback if hover state changed
     if (prevHovered !== widget && this._callbacks.onHover) {
@@ -77,6 +88,9 @@ export class WidgetInteractionManager {
   _onMouseDown(e) {
     this._mousePressed = true;
 
+    // Update uniform buffer with pressed state
+    this._updateUniformBuffer();
+
     // Update cursor to indicate pressed state
     if (this._hoveredWidget && this._hoveredWidget.action) {
       this._canvas.style.cursor = 'pointer';
@@ -91,6 +105,9 @@ export class WidgetInteractionManager {
   _onMouseUp(e) {
     const wasPressed = this._mousePressed;
     this._mousePressed = false;
+
+    // Update uniform buffer with released state
+    this._updateUniformBuffer();
 
     // If mouse was pressed and released over a widget, trigger click
     if (wasPressed && this._hoveredWidget && this._callbacks.onClick) {
@@ -182,6 +199,62 @@ export class WidgetInteractionManager {
    */
   get clickableWidgets() {
     return this._clickableWidgets;
+  }
+
+  /**
+   * Update mouse position and pressed state, then write to uniform buffer
+   * @param {number} x - Mouse X coordinate in canvas pixels
+   * @param {number} y - Mouse Y coordinate in canvas pixels
+   * @param {boolean} pressed - Whether mouse button is pressed
+   */
+  updateMouse(x, y, pressed) {
+    this._mousePressed = pressed;
+    this._mouseX = x;
+    this._mouseY = y;
+    this._updateUniformBuffer();
+  }
+
+  /**
+   * Write uniform data to GPU buffer
+   * Layout: [time, mouse_pressed, mouse_x, mouse_y, resolution_x, resolution_y, focused_widget, pad]
+   * Total: 8 floats = 32 bytes (16-byte aligned)
+   * @private
+   */
+  _updateUniformBuffer() {
+    // Create uniform data array
+    const uniformData = new Float32Array(8);
+
+    // Time (could be passed in or use performance.now())
+    uniformData[0] = performance.now() / 1000.0;
+
+    // Mouse pressed state (0.0 or 1.0)
+    uniformData[1] = this._mousePressed ? 1.0 : 0.0;
+
+    // Mouse coordinates
+    uniformData[2] = this._mouseX || 0;
+    uniformData[3] = this._mouseY || 0;
+
+    // Canvas resolution
+    uniformData[4] = this._canvas?.width || 0;
+    uniformData[5] = this._canvas?.height || 0;
+
+    // Focused widget index
+    uniformData[6] = this._focusedIndex;
+
+    // Padding for alignment
+    uniformData[7] = 0.0;
+
+    // Write to GPU buffer if available
+    if (this._uniformBuffer && typeof this._uniformBuffer.write === 'function') {
+      // Mock mode: write(offset, data) where data is Float32Array with .buffer property
+      // Real WebGPU uses queue.writeBuffer, but mock mode has buffer.write for testing
+      this._uniformBuffer.write(0, uniformData);
+    } else if (this._uniformBuffer && this._device?.queue?.writeBuffer) {
+      // Real WebGPU: use queue.writeBuffer if buffer.write not available
+      this._device.queue.writeBuffer(this._uniformBuffer, 0, uniformData.buffer);
+    }
+    // If neither is available, data is still available in uniformData
+    // for testing purposes
   }
 
   /**
