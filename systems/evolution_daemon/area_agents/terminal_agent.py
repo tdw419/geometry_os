@@ -3,6 +3,10 @@ Terminal Area Agent - Phase 20-25: Generative Evolution
 
 An Area Agent that perceives terminal textures as cognitive artifacts
 and proposes evolutionary improvements.
+
+WordPress Integration:
+- Semantic journaling of evolution events
+- Visual sync via Visual Bridge (port 8768)
 """
 
 import numpy as np
@@ -13,6 +17,13 @@ import logging
 # Import analyzers
 from evolution_daemon.terminal_texture_analyzer import TerminalTextureAnalyzer
 from evolution_daemon.pattern_recognizer import PatternRecognizer
+
+# Import semantic publisher for WordPress integration
+try:
+    from evolution_daemon.semantic_publisher import EvolutionJournaler
+    SEMANTIC_PUBLISHING_ENABLED = True
+except ImportError:
+    SEMANTIC_PUBLISHING_ENABLED = False
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +51,7 @@ class TerminalAreaAgent:
         self,
         agent_id: str,
         bounds: Tuple[int, int, int, int],  # x1, y1, x2, y2
+        semantic_publishing: bool = True
     ):
         """
         Initialize the terminal area agent.
@@ -47,6 +59,7 @@ class TerminalAreaAgent:
         Args:
             agent_id: Unique identifier for this agent
             bounds: Region bounds as (x1, y1, x2, y2)
+            semantic_publishing: Enable WordPress semantic journaling
         """
         self.agent_id = agent_id
         self.bounds = bounds
@@ -63,6 +76,12 @@ class TerminalAreaAgent:
         # State tracking
         self.analysis_history: list = []
         self.evolution_count: int = 0
+
+        # Semantic publisher for WordPress integration
+        self.journaler = None
+        if semantic_publishing and SEMANTIC_PUBLISHING_ENABLED:
+            self.journaler = EvolutionJournaler(enabled=True)
+            logger.info(f"Semantic publishing enabled for {agent_id}")
 
         logger.info(f"Initialized TerminalAreaAgent: {agent_id}, bounds={bounds}")
 
@@ -112,6 +131,10 @@ class TerminalAreaAgent:
         """
         analysis = self.analyze(texture)
 
+        # Journal analysis event to WordPress
+        if self.journaler:
+            self.journaler.log_analysis(self.agent_id, analysis)
+
         # Decision logic based on analysis
         operation = None
         rationale = ""
@@ -133,7 +156,7 @@ class TerminalAreaAgent:
 
         if operation:
             self.evolution_count += 1
-            return EvolutionProposal(
+            proposal = EvolutionProposal(
                 agent_id=self.agent_id,
                 operation=operation,
                 region=self.bounds,
@@ -141,6 +164,12 @@ class TerminalAreaAgent:
                 rationale=rationale,
                 metadata=analysis
             )
+
+            # Journal proposal to WordPress
+            if self.journaler:
+                self.journaler.log_proposal(proposal)
+
+            return proposal
 
         return None
 
