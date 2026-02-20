@@ -25,10 +25,10 @@ Convert extracted VM UI structures into native PixelRTS WGSL shaders.
 - **Files**: `systems/evolution_daemon/ui_transmuter.py`, `tests/evolution_daemon/test_ui_transmuter.py`
 
 ### Task 2: Create SubstrateBrush for Binary Painting
-- [ ] Write failing tests for SubstrateBrush and HilbertBrush
-- [ ] Implement SubstrateBrush with paint_pixel/paint_rect
-- [ ] Implement HilbertBrush with d2xy/xy2d
-- [ ] Verify tests pass (5 tests)
+- [x] Write failing tests for SubstrateBrush and HilbertBrush
+- [x] Implement SubstrateBrush with paint_pixel/paint_rect
+- [x] Implement HilbertBrush with d2xy/xy2d
+- [x] Verify tests pass (5 tests)
 - **Assignee**: substrate-engineer
 - **Files**: `systems/evolution_daemon/substrate_brush.py`, `tests/evolution_daemon/test_substrate_brush.py`
 
@@ -75,7 +75,7 @@ Convert extracted VM UI structures into native PixelRTS WGSL shaders.
 | Task | Component | Tests | Status |
 |------|-----------|-------|--------|
 | 1 | UITransmuter Wrapper | 2 | ✅ Done |
-| 2 | SubstrateBrush | 5 | Pending |
+| 2 | SubstrateBrush | 5 | ✅ Done |
 | 3 | CloneOrchestrator | 4 | Pending |
 | 4 | LiveTileService RPC | 1 | Pending |
 | 5 | Frontend Clone Button | - | Pending |
