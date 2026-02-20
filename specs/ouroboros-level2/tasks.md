@@ -330,7 +330,7 @@ _Design: Cursor State Management_
 _Requirements: FR-1, AC-6.1-6.5_
 _Design: Test Strategy - Unit (JS)_
 
-### Task 3.2: Write Unit Tests for Enhanced UITransmuter
+### Task 3.2: [x] Write Unit Tests for Enhanced UITransmuter
 **Do**:
 1. Create `conductor/tracks/shotcut-on-the-map/tests/test_ui_transmuter_interaction.py`
 2. Test: generated WGSL contains mouse_pressed in Uniforms
