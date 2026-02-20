@@ -105,7 +105,7 @@ _Design: WidgetInteractionManager event flow_
 _Requirements: FR-1, FR-3, AC-6.3_
 _Design: Uniform Buffer Layout_
 
-### Task 1.5: Enhance UITransmuter - Add mouse_pressed and focused_widget to Uniforms
+### Task 1.5: [x] Enhance UITransmuter - Add mouse_pressed and focused_widget to Uniforms
 **Do**:
 1. Modify `_generate_uniforms()` in `ui_transmuter.py`
 2. Change struct to: `time: f32, mouse_pressed: f32, mouse: vec2f, resolution: vec2f, focused_widget: f32, pad: f32`
