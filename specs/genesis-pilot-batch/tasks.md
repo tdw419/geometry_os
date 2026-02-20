@@ -183,7 +183,7 @@ _Design: C6 TruthTexture Interface_
 
 ---
 
-### Task 2.2: Improve VerseClassifier API consistency
+### Task 2.2: Improve VerseClassifier API consistency [x]
 
 **Do**:
 1. Ensure all parameters have default values for backward compatibility
