@@ -104,6 +104,17 @@ class VisualDebugOverlay {
             pulseCount: 0
         };
 
+        // Shotcut Visual HUD state
+        this.shotcutHud = {
+            enabled: false,
+            frame: null,        // Base64 PNG data
+            clusters: [],
+            widgets: [],
+            diagnostic: null,
+            lastUpdate: null,
+            aiThought: "Watching Shotcut system..."
+        };
+
         // Heat Map state (Visual Hotspot Debugger)
         this.heatmapState = {
             visible: false,
@@ -208,6 +219,13 @@ class VisualDebugOverlay {
                 this.config.showVerificationHUD = !this.config.showVerificationHUD;
                 console.log(`Verification HUD: ${this.config.showVerificationHUD ? 'ON' : 'OFF'}`);
             }
+            // Ctrl+Shift+S to toggle Shotcut Visual HUD
+            if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+                e.preventDefault();
+                this.shotcutHud.enabled = !this.shotcutHud.enabled;
+                console.log(`Shotcut HUD: ${this.shotcutHud.enabled ? 'ON' : 'OFF'}`);
+                this._scheduleRender();
+            }
         });
     }
 
@@ -254,6 +272,11 @@ class VisualDebugOverlay {
         // Listen for V16 Diagnostic Pulses (Perceptual Bridge)
         window.addEventListener('DIAGNOSTIC_PULSE', (e) => {
             this.handleDiagnosticPulse(e.detail);
+        });
+
+        // Listen for Shotcut Visual HUD updates
+        window.addEventListener('SHOTCUT_FRAME_UPDATE', (e) => {
+            this.handleShotcutFrame(e.detail);
         });
 
         // Listen for Task DAG updates from TelemetryBus
@@ -461,6 +484,27 @@ class VisualDebugOverlay {
             if (!this.config.enabled) {
                 this.toggle();
             }
+        }
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle Shotcut Visual HUD update
+     */
+    handleShotcutFrame(data) {
+        if (!data) return;
+
+        this.shotcutHud.frame = data.frame;
+        this.shotcutHud.clusters = data.clusters || [];
+        this.shotcutHud.widgets = data.widgets || [];
+        this.shotcutHud.diagnostic = data.diagnostic;
+        this.shotcutHud.lastUpdate = Date.now();
+        this.shotcutHud.aiThought = data.ai_thought || "Analyzing Shotcut interface...";
+        
+        // Auto-enable Shotcut HUD if frames start arriving
+        if (!this.shotcutHud.enabled && this.config.enabled) {
+            this.shotcutHud.enabled = true;
         }
 
         this._scheduleRender();
@@ -1182,6 +1226,11 @@ class VisualDebugOverlay {
             this._renderTectonicSection(ctx, width, padding);
         }
 
+        // Shotcut Visual HUD (Phase 50)
+        if (this.shotcutHud.enabled) {
+            this._renderShotcutHUD(ctx, width, padding);
+        }
+
         // Heat Map HUD (Visual Hotspot Debugger)
         if (window.geometryOSApp && window.geometryOSApp.heatmapOverlay) {
             this._renderHeatmapSection(ctx, width, padding);
@@ -1395,7 +1444,158 @@ class VisualDebugOverlay {
     }
 
     /**
+     * Render Shotcut Visual HUD section
+     */
+    _renderShotcutHUD(ctx, width, padding) {
+        const hudHeight = 300;
+        let y = this.hudCanvas.height - hudHeight - 20;
+        
+        // Background
+        ctx.fillStyle = 'rgba(0, 20, 30, 0.95)';
+        ctx.fillRect(10, y, width - 20, hudHeight);
+        
+        // Border
+        ctx.strokeStyle = '#00ffcc';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(10, y, width - 20, hudHeight);
+        
+        y += 20;
+        ctx.fillStyle = '#00ffcc';
+        ctx.font = 'bold 12px monospace';
+        ctx.fillText('🎬 SHOTCUT VISUAL HUD', padding + 10, y);
+        y += 20;
+        
+        // AI Thought
+        ctx.fillStyle = '#fff';
+        ctx.font = 'italic 10px monospace';
+        ctx.fillText(`THOUGHT: ${this.shotcutHud.aiThought}`, padding + 10, y);
+        y += 25;
+        
+        // Panels/Clusters
+        ctx.fillStyle = '#aaa';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText('DETECTED PANELS:', padding + 10, y);
+        y += 15;
+        
+        const clusterColors = {
+            'timeline_panel': '#00ff88',
+            'menu_bar': '#ff8800',
+            'playback_controls': '#8800ff',
+            'filters_panel': '#ff0088',
+            'media_panel': '#00ffff',
+            'properties_panel': '#ffff00'
+        };
+        
+        if (this.shotcutHud.clusters.length === 0) {
+            ctx.fillStyle = '#666';
+            ctx.fillText('  No panels detected', padding + 10, y);
+            y += 15;
+        } else {
+            this.shotcutHud.clusters.forEach(c => {
+                const color = clusterColors[c.label] || '#ffffff';
+                ctx.fillStyle = color;
+                ctx.fillText(`■ ${c.label} (${c.element_count} elements)`, padding + 15, y);
+                y += 15;
+            });
+        }
+        
+        y += 10;
+        
+        // Widgets
+        ctx.fillStyle = '#aaa';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText('CLICKABLE TARGETS:', padding + 10, y);
+        y += 15;
+        
+        const widgets = this.shotcutHud.widgets.filter(w => w.action).slice(0, 8);
+        if (widgets.length === 0) {
+            ctx.fillStyle = '#666';
+            ctx.fillText('  No targets found', padding + 10, y);
+            y += 15;
+        } else {
+            widgets.forEach(w => {
+                ctx.fillStyle = '#00ffcc';
+                ctx.fillText(`• ${w.text} → ${w.action}`, padding + 15, y);
+                y += 12;
+            });
+        }
+        
+        // Diagnostic
+        y = this.hudCanvas.height - 40;
+        if (this.shotcutHud.diagnostic) {
+            const diag = this.shotcutHud.diagnostic;
+            ctx.fillStyle = diag.severity === 'SUCCESS' ? '#00ff00' : '#ff0000';
+            ctx.font = 'bold 9px monospace';
+            ctx.fillText(`STATUS: ${diag.severity} - ${diag.message}`, padding + 10, y);
+        }
+        
+        // Call overlay render (draw boxes on main canvas)
+        this._renderShotcutOverlay();
+    }
+
+    /**
+     * Render Shotcut bounding boxes on the overlay canvas
+     */
+    _renderShotcutOverlay() {
+        if (!this.overlayCtx || !this.shotcutHud.enabled) return;
+        
+        const ctx = this.overlayCtx;
+        const scaleX = window.innerWidth / 800; // Assuming 800x600 source
+        const scaleY = window.innerHeight / 600;
+        
+        const clusterColors = {
+            'timeline_panel': 'rgba(0, 255, 136, 0.3)',
+            'menu_bar': 'rgba(255, 136, 0, 0.3)',
+            'media_panel': 'rgba(0, 255, 255, 0.3)'
+        };
+        
+        // 1. Draw Clusters
+        this.shotcutHud.clusters.forEach(c => {
+            const [x1, y1, x2, y2] = c.bounds;
+            const color = clusterColors[c.label] || 'rgba(255, 255, 255, 0.1)';
+            
+            ctx.strokeStyle = color.replace('0.3', '1.0');
+            ctx.fillStyle = color;
+            ctx.lineWidth = 2;
+            
+            const rx = x1 * scaleX;
+            const ry = y1 * scaleY;
+            const rw = (x2 - x1) * scaleX;
+            const rh = (y2 - y1) * scaleY;
+            
+            ctx.strokeRect(rx, ry, rw, rh);
+            ctx.fillRect(rx, ry, rw, rh);
+            
+            // Label
+            ctx.fillStyle = '#fff';
+            ctx.font = '10px monospace';
+            ctx.fillText(c.label, rx + 5, ry + 12);
+        });
+        
+        // 2. Draw Widgets
+        this.shotcutHud.widgets.forEach(w => {
+            if (!w.action) return;
+            const [x1, y1, x2, y2] = w.bbox;
+            
+            ctx.strokeStyle = '#00ffcc';
+            ctx.lineWidth = 1;
+            
+            const rx = x1 * scaleX;
+            const ry = y1 * scaleY;
+            const rw = (x2 - x1) * scaleX;
+            const rh = (y2 - y1) * scaleY;
+            
+            ctx.strokeRect(rx, ry, rw, rh);
+            
+            // Action indicator
+            ctx.fillStyle = 'rgba(0, 255, 204, 0.2)';
+            ctx.fillRect(rx, ry, rw, rh);
+        });
+    }
+
+    /**
      * Process Task DAG update from Visual Bridge
+     */
      */
     processTaskDagUpdate(update) {
         if (!update || !update.task_id) return;

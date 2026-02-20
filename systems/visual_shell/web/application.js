@@ -2945,6 +2945,9 @@ class GeometryOSApplication {
                         console.log('🪞 Received Mirror Validation Result:', data);
                         // Dispatch to VisualDebugOverlay
                         window.dispatchEvent(new CustomEvent('MIRROR_VALIDATION_RESULT', { detail: data }));
+                    } else if (data.type === 'SHOTCUT_FRAME_UPDATE') {
+                        // Dispatch Shotcut Visual HUD update
+                        window.dispatchEvent(new CustomEvent('SHOTCUT_FRAME_UPDATE', { detail: data.data }));
                     } else if (data.type === 'error') {
                         console.warn('🔮 Memory Bridge error:', data.message);
                     }

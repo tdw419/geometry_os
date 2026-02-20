@@ -145,6 +145,15 @@ class VisualBridge:
                         'data': data
                     })
 
+                # 3c. Shotcut Visual HUD Update
+                elif msg_type == 'shotcut_frame':
+                    # Broadcast frame + extraction data to browser HUD
+                    print(f"🎬 Shotcut Frame: {len(data.get('widgets', []))} widgets detected")
+                    await self._broadcast({
+                        'type': 'SHOTCUT_FRAME_UPDATE',
+                        'data': data
+                    })
+
                 # 4. Swarm Health Updates
                 elif msg_type == 'swarm_health':
                     # Broadcast Swarm Health to browser HUD

@@ -19,9 +19,14 @@ Usage:
 
 import json
 import time
+import os
+import base64
+import tempfile
+import io
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
 from pathlib import Path
+from PIL import Image
 
 from gui_structure_analyzer import GUIAnalyzer, AnalysisResult, UIElement
 from semantic_clusterer import UICluster, OCRElement
@@ -190,6 +195,23 @@ class ExtractionPipeline:
             diagnostic=diagnostic,
             metadata=metadata
         )
+
+    def extract_from_bytes(self, image_bytes: bytes) -> ExtractionResult:
+        """Extract from raw image bytes."""
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+            f.write(image_bytes)
+            temp_path = f.name
+
+        try:
+            return self.extract(temp_path)
+        finally:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+
+    def extract_from_base64(self, b64_data: str) -> ExtractionResult:
+        """Extract from base64-encoded image data."""
+        image_data = base64.b64decode(b64_data)
+        return self.extract_from_bytes(image_data)
 
     def _build_enhanced_ascii_view(
         self,
