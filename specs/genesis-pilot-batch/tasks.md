@@ -71,7 +71,7 @@ _Design: C2 VerseClassifier Enhancement_
 
 ---
 
-### Task 1.3: Integrate TruthTexture into BatchAnalyzer
+### Task 1.3: Integrate TruthTexture into BatchAnalyzer [x]
 
 **Do**:
 1. Open `systems/intelligence/batch_analyzer.py`
