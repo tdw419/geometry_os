@@ -47,7 +47,7 @@ _Design: C6 TruthTexture_
 
 ---
 
-### Task 1.2: Add prophetic reference lookup to VerseClassifier
+### Task 1.2: Add prophetic reference lookup to VerseClassifier [x]
 
 **Do**:
 1. Open `systems/intelligence/verse_classifier.py`
