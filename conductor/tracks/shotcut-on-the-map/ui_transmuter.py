@@ -135,7 +135,7 @@ struct Uniforms {
         Generate SDF code for a single widget.
 
         Args:
-            widget: Widget dict with type, text, bbox
+            widget: Widget dict with type, text, bbox, action (optional)
             index: Widget index for naming
 
         Returns:
@@ -144,6 +144,7 @@ struct Uniforms {
         widget_type = widget.get("type", "unknown")
         text = widget.get("text", "")
         bbox = widget.get("bbox", [0, 0, 100, 100])
+        has_action = widget.get("action") is not None
 
         norm = self._normalize_bbox(bbox)
         name = f"{widget_type}_{index}"
@@ -160,7 +161,10 @@ struct Uniforms {
             lines.append(f"    if ({name}_alpha > 0.0) {{")
             lines.append(f"        let {name}_base = vec4f(0.15, 0.15, 0.18, 1.0);")
             lines.append(f"        let {name}_hover = distance(uv, ui.mouse / ui.resolution) < {self.hover_threshold:.4f};")
-            lines.append(f"        let {name}_color = select({name}_base, {name}_base + vec4f(0.08), {name}_hover);")
+            lines.append(f"        var {name}_color = select({name}_base, {name}_base + vec4f(0.08), {name}_hover);")
+            if has_action:
+                lines.append(f"        // Pressed state for clickable widget")
+                lines.append(f"        if ({name}_hover && ui.mouse_pressed > 0.5) {{ {name}_color -= vec4f(0.05); }}")
             lines.append(f"        color = mix(color, {name}_color, {name}_alpha);")
             lines.append(f"    }}")
 
@@ -175,7 +179,10 @@ struct Uniforms {
             lines.append(f"        // TODO: Sample texture for clip")
             lines.append(f"        let {name}_base = vec4f(0.3, 0.5, 0.7, 1.0);")
             lines.append(f"        let {name}_hover = distance(uv, ui.mouse / ui.resolution) < {self.hover_threshold:.4f};")
-            lines.append(f"        let {name}_color = select({name}_base, {name}_base + vec4f(0.08), {name}_hover);")
+            lines.append(f"        var {name}_color = select({name}_base, {name}_base + vec4f(0.08), {name}_hover);")
+            if has_action:
+                lines.append(f"        // Pressed state for clickable widget")
+                lines.append(f"        if ({name}_hover && ui.mouse_pressed > 0.5) {{ {name}_color -= vec4f(0.05); }}")
             lines.append(f"        color = mix(color, {name}_color, {name}_alpha);")
             lines.append(f"    }}")
 
@@ -193,7 +200,10 @@ struct Uniforms {
             lines.append(f"    if ({name}_alpha > 0.0) {{")
             lines.append(f"        let {name}_base = vec4f(1.0 * {name}_pulse, 0.3, 0.3, 1.0);")
             lines.append(f"        let {name}_hover = distance(uv, ui.mouse / ui.resolution) < {self.hover_threshold:.4f};")
-            lines.append(f"        let {name}_color = select({name}_base, {name}_base + vec4f(0.08), {name}_hover);")
+            lines.append(f"        var {name}_color = select({name}_base, {name}_base + vec4f(0.08), {name}_hover);")
+            if has_action:
+                lines.append(f"        // Pressed state for clickable widget")
+                lines.append(f"        if ({name}_hover && ui.mouse_pressed > 0.5) {{ {name}_color -= vec4f(0.05); }}")
             lines.append(f"        color = mix(color, {name}_color, {name}_alpha);")
             lines.append(f"    }}")
 
@@ -207,7 +217,10 @@ struct Uniforms {
             lines.append(f"    if ({name}_alpha > 0.0) {{")
             lines.append(f"        let {name}_base = vec4f(0.4, 0.4, 0.4, 1.0);")
             lines.append(f"        let {name}_hover = distance(uv, ui.mouse / ui.resolution) < {self.hover_threshold:.4f};")
-            lines.append(f"        let {name}_color = select({name}_base, {name}_base + vec4f(0.08), {name}_hover);")
+            lines.append(f"        var {name}_color = select({name}_base, {name}_base + vec4f(0.08), {name}_hover);")
+            if has_action:
+                lines.append(f"        // Pressed state for clickable widget")
+                lines.append(f"        if ({name}_hover && ui.mouse_pressed > 0.5) {{ {name}_color -= vec4f(0.05); }}")
             lines.append(f"        color = mix(color, {name}_color, {name}_alpha);")
             lines.append(f"    }}")
 

@@ -143,7 +143,7 @@ _Design: UITransmuter Enhancement_
 _Requirements: FR-2, US-1, AC-1.1_
 _Design: UITransmuter Interaction Logic_
 
-### Task 1.7: Add Pressed State Logic for Clickable Widgets
+### Task 1.7: [x] Add Pressed State Logic for Clickable Widgets
 **Do**:
 1. Modify `_generate_widget_sdf()` in UITransmuter
 2. For widgets with `action` field, add pressed state logic
