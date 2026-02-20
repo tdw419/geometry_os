@@ -352,7 +352,7 @@ _Design: Test Strategy - Unit (JS)_
 _Requirements: FR-2, FR-3, FR-5, FR-6_
 _Design: Test Strategy - Unit (Python)_
 
-### Task 3.3: Write Integration Test for Full Pipeline
+### Task 3.3: [x] Write Integration Test for Full Pipeline
 **Do**:
 1. Create `conductor/tracks/shotcut-on-the-map/tests/test_interactive_integration.py`
 2. Test: extraction_pipeline + ui_transmuter produces valid WGSL with interaction
