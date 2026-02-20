@@ -105,3 +105,51 @@ class TestRenderMonitorHandler:
 
         assert result is not None
         mock_stop.assert_called_once_with("monitor-001")
+
+
+class TestRenderMonitorLifecycle:
+    """Test render monitoring lifecycle."""
+
+    @pytest.fixture
+    def agent(self):
+        from systems.visual_shell.swarm.visual_perception.visual_perception_agent import VisualPerceptionAgent
+        agent = VisualPerceptionAgent(agent_id="test-perception-002")
+        # Mock the event bus
+        agent.send_event = AsyncMock()
+        return agent
+
+    @pytest.mark.asyncio
+    async def test_monitor_generates_unique_id(self, agent):
+        """Test that each monitor gets a unique ID."""
+        msg1 = {"type": "MONITOR_RENDER", "payload": {"vm_id": "vm-001"}}
+        msg2 = {"type": "MONITOR_RENDER", "payload": {"vm_id": "vm-002"}}
+
+        with patch.object(agent, '_run_monitor_loop', new_callable=AsyncMock):
+            result1 = await agent._start_render_monitor(msg1["payload"])
+            result2 = await agent._start_render_monitor(msg2["payload"])
+
+        assert result1["monitor_id"] != result2["monitor_id"]
+
+    @pytest.mark.asyncio
+    async def test_active_monitors_tracking(self, agent):
+        """Test that active monitors are tracked."""
+        msg = {"type": "MONITOR_RENDER", "payload": {"vm_id": "vm-001"}}
+
+        with patch.object(agent, '_run_monitor_loop', new_callable=AsyncMock):
+            result = await agent._start_render_monitor(msg["payload"])
+
+        monitor_id = result["monitor_id"]
+        assert monitor_id in agent._active_monitors
+
+    @pytest.mark.asyncio
+    async def test_stop_removes_from_active(self, agent):
+        """Test that STOP_MONITOR removes from active monitors."""
+        msg = {"type": "MONITOR_RENDER", "payload": {"vm_id": "vm-001"}}
+
+        with patch.object(agent, '_run_monitor_loop', new_callable=AsyncMock):
+            result = await agent._start_render_monitor(msg["payload"])
+
+        monitor_id = result["monitor_id"]
+        await agent._stop_render_monitor(monitor_id)
+
+        assert monitor_id not in agent._active_monitors
