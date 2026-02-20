@@ -743,7 +743,10 @@ class VisualBridge:
             return
 
         try:
-            from .heat_aggregator import HeatAggregator
+            try:
+                from .heat_aggregator import HeatAggregator
+            except ImportError:
+                from systems.visual_shell.api.heat_aggregator import HeatAggregator
 
             vat = vat_manager or self.vat_manager
             self.heat_aggregator = HeatAggregator(self, vat)
