@@ -225,8 +225,124 @@ python3 -m pytest tests/test_interactive_integration.py -v
 
 ---
 
+## Layout Inference
+
+OpenCV-based UI structure detection for richer visual analysis beyond OCR.
+
+### Components
+
+1. **`layout_inferencer.py`** - Core inference engine
+   - Canny edge detection for boundaries
+   - Contour detection for buttons/panels
+   - Hough line transform for separators
+
+### Detection Types
+
+| Type | Method | Use Case |
+|------|--------|----------|
+| Edges | Canny | All boundaries |
+| Contours | findContours | Buttons, panels |
+| Lines | HoughLinesP | Menu separators |
+| Panels | Area > 5000px² | Large UI regions |
+| Buttons | Area < 5000px² | Clickable elements |
+
+### Usage
+
+```python
+from layout_inferencer import LayoutInferencer
+
+inferencer = LayoutInferencer()
+result = inferencer.analyze("screenshot.png")
+
+print(f"Panels: {len(result.panels)}")
+print(f"Buttons: {len(result.buttons)}")
+print(f"Lines: {len(result.lines)}")
+```
+
+### Integration
+
+Layout inference is automatically run by `ExtractionPipeline`:
+
+```python
+from extraction_pipeline import ExtractionPipeline
+
+pipeline = ExtractionPipeline()
+result = pipeline.extract("screenshot.png")
+
+# Layout is included in the result
+print(result.layout.panels)
+print(result.ascii_view)  # Includes layout summary
+```
+
+---
+
+## PixelRTS v3 Layout Encoder
+
+Encode layout detection results as geometric RGBA textures that can be executed by the GeometricVM.
+
+### Concept
+
+The layout encoder converts detected UI structure into "the image IS the executable" format:
+- Panels become LDP (Load Panel) instructions
+- Buttons become LDB (Load Button) instructions
+- Lines become LDL (Load Line) instructions
+
+### Layout Instruction Set
+
+| Opcode | Hex | Description | G Channel | B Channel | A Channel |
+|--------|-----|-------------|-----------|-----------|-----------|
+| LDP | 0x10 | Load Panel | panel_id | x | y |
+| LDB | 0x11 | Load Button | button_id | x | y |
+| LDL | 0x12 | Load Line | orientation | x1 | y1 |
+| HALT | 0x07 | End of data | - | - | - |
+
+### Usage
+
+```python
+from layout_inferencer import LayoutInferencer
+from layout_encoder import LayoutEncoder
+
+# Detect layout
+inferencer = LayoutInferencer()
+layout = inferencer.analyze("screenshot.png")
+
+# Encode as PixelRTS v3 cartridge
+encoder = LayoutEncoder()
+encoder.encode_to_file(layout, "layout.rts.png")
+
+# The .rts.png file now contains executable layout data
+```
+
+### Data Flow
+
+```
+Screenshot → LayoutInferencer → LayoutResult
+                    ↓
+            LayoutEncoder → .rts.png (Hilbert-mapped RGBA)
+                    ↓
+            GeometricVM can execute layout data
+```
+
+---
+
+## Real-time Feed
+
+The `realtime_feed.py` module connects the extraction pipeline to live VM frames:
+
+```bash
+python3 realtime_feed.py --url ws://localhost:8768 --hud ws://localhost:8768 --interval 200
+```
+
+Features:
+- Subscribes to VM frame updates
+- Runs extraction pipeline on each frame
+- Broadcasts results to Visual HUD (Ctrl+Shift+S in browser)
+
+---
+
 ## Next Steps
 
-1.  **Semantic Clustering**: Group words into logical components (menus, toolbars).
-2.  **Layout Inference**: Detect lines and boxes (using OpenCV or edge detection) to improve the ASCII drawing.
-3.  **Real-time Feed**: Connect the bridge directly to the analyzer for live updates.
+1.  ~~**Semantic Clustering**: Group words into logical components (menus, toolbars).~~ ✅ DONE
+2.  ~~**Layout Inference**: Detect lines and boxes (using OpenCV or edge detection) to improve the ASCII drawing.~~ ✅ DONE
+3.  ~~**Real-time Feed**: Connect the bridge directly to the analyzer for live updates.~~ ✅ DONE
+4.  **Visual Automation**: Use layout inference for smarter click targeting
