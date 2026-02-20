@@ -409,7 +409,7 @@ print('All imports successful')
 
 ---
 
-### Task 4.2: Create PR and verify CI
+### Task 4.2: Create PR and verify CI [x]
 
 **Do**:
 1. Verify current branch is feature branch: `git branch --show-current`
