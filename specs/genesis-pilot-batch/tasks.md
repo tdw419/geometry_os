@@ -241,7 +241,7 @@ _Requirements: FR-6_
 
 ---
 
-### Task 3.2: Create test_genesis_data.py
+### Task 3.2: Create test_genesis_data.py [x]
 
 **Do**:
 1. Create `tests/intelligence/test_genesis_data.py`
