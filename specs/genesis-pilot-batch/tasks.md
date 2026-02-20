@@ -291,7 +291,7 @@ _Design: Test Strategy - Classification_
 
 ---
 
-### Task 3.4: Create test_evidence_scorer.py
+### Task 3.4: Create test_evidence_scorer.py [x]
 
 **Do**:
 1. Create `tests/intelligence/test_evidence_scorer.py`
