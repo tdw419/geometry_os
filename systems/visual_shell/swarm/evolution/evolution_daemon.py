@@ -65,6 +65,7 @@ class DaemonConfig:
     cooldown: int = 300  # Cooldown seconds between improvements
     dry_run: bool = False  # Preview only, don't apply changes
     target_dir: str = ""  # Directory to analyze (default: swarm/)
+    target_file: Optional[str] = None  # Specific file to evolve
     state_file: str = "evolution_state.json"  # Path to state file
     heartbeat_file: str = "evolution_heartbeat.json"  # Path to heartbeat file
     log_dir: str = "logs/evolution/"  # Directory for logs
@@ -594,7 +595,21 @@ class EvolutionDaemon:
                     continue
 
                 # Select target
-                target = self._select_target()
+                if self.config.target_file:
+                    target_path = Path(self.config.target_file)
+                    if target_path.exists():
+                        # Compute a score for the manual target
+                        score = self._compute_value_score(target_path)
+                        target = AxionTarget(
+                            file_path=str(target_path),
+                            value_score=score.composite_score,
+                            metadata={"reason": "Manual target override"},
+                        )
+                    else:
+                        self.logger.error(f"Manual target file not found: {self.config.target_file}")
+                        target = self._select_target()
+                else:
+                    target = self._select_target()
 
                 if target:
                     self.logger.info(
@@ -752,6 +767,11 @@ Control via evolution_ctl.sh:
         help="Directory to analyze (default: systems/visual_shell/swarm/)",
     )
     parser.add_argument(
+        "--target-file",
+        type=str,
+        help="Specific file to evolve",
+    )
+    parser.add_argument(
         "--state-file",
         type=str,
         default="evolution_state.json",
@@ -790,6 +810,7 @@ Control via evolution_ctl.sh:
         cooldown=args.cooldown,
         dry_run=args.dry_run,
         target_dir=args.target_dir,
+        target_file=args.target_file,
         state_file=args.state_file,
         heartbeat_file=args.heartbeat,
         log_dir=args.log_dir,

@@ -28,7 +28,7 @@ LOG_FILE="${LOG_DIR}/evolution_daemon.log"
 INTERVAL=${EVOLUTION_INTERVAL:-300}
 MAX_PER_HOUR=${EVOLUTION_MAX_PER_HOUR:-10}
 COOLDOWN=${EVOLUTION_COOLDOWN:-300}
-TARGET_DIR="${PROJECT_ROOT}/systems/visual_shell/swarm"
+TARGET_DIR="${PROJECT_ROOT}/systems/visual_shell"
 
 # Colors for output
 RED='\033[0;31m'
@@ -103,7 +103,21 @@ wait_for_shutdown() {
 }
 
 # Commands
+cmd_target() {
+    local target_file=$1
+    if [ -z "$target_file" ]; then
+        log_error "Target file not specified"
+        exit 1
+    fi
+
+    log_info "Redirecting evolution to: $target_file"
+    cmd_stop
+    sleep 2
+    cmd_start "$target_file"
+}
+
 cmd_start() {
+    local target_file=$1
     log_info "Starting Evolution Daemon..."
 
     if check_daemon_running; then
@@ -114,12 +128,20 @@ cmd_start() {
     # Ensure log directory exists
     mkdir -p "$LOG_DIR"
 
+    # Build target arg if provided
+    local target_arg=""
+    if [ -n "$target_file" ]; then
+        target_arg="--target-file $target_file"
+        log_info "Targeting specific file: $target_file"
+    fi
+
     # Start daemon in background
     nohup python3 "$DAEMON_SCRIPT" \
         --interval "$INTERVAL" \
         --max-per-hour "$MAX_PER_HOUR" \
         --cooldown "$COOLDOWN" \
         --target-dir "$TARGET_DIR" \
+        $target_arg \
         > /dev/null 2>&1 &
 
     local pid=$!
@@ -303,6 +325,7 @@ cmd_help() {
     echo "  tail        Follow daemon logs"
     echo "  report      Generate current status report"
     echo "  restart     Restart the daemon"
+    echo "  target      Focus evolution on a specific file"
     echo "  dry-run     Run in dry-run mode (foreground, no changes)"
     echo "  help        Show this help message"
     echo ""
@@ -343,6 +366,9 @@ case "${1:-help}" in
         ;;
     help|--help|-h)
         cmd_help
+        ;;
+    target)
+        cmd_target "$2"
         ;;
     *)
         log_error "Unknown command: $1"

@@ -180,7 +180,8 @@ class ExtractionPipeline:
         ascii_view = self._build_enhanced_ascii_view(
             analysis.elements,
             widgets,
-            analysis.ascii_view
+            analysis.ascii_view,
+            layout
         )
 
         # Build result
@@ -228,18 +229,20 @@ class ExtractionPipeline:
         self,
         elements: List[UIElement],
         widgets: List[Widget],
-        base_view: str
+        base_view: str,
+        layout: Any = None
     ) -> str:
         """
-        Build ASCII view with [CLICKABLE] metadata annotations.
+        Build ASCII view with [CLICKABLE] metadata and layout info.
 
         Args:
             elements: List of UI elements
             widgets: List of detected widgets
             base_view: Base ASCII view from the analyzer
+            layout: Optional layout result from OpenCV
 
         Returns:
-            Enhanced ASCII view with widget metadata section
+            Enhanced ASCII view
         """
         lines = [base_view]
         lines.append("")
@@ -255,6 +258,16 @@ class ExtractionPipeline:
                 lines.append(
                     f"[{widget.type.value.upper()}] '{widget.text}' at {widget.bbox}"
                 )
+
+        if layout:
+            lines.append("")
+            lines.append("=== LAYOUT INFERENCE (OpenCV) ===")
+            lines.append(f"Detected Panels: {len(layout.panels)}")
+            lines.append(f"Detected Button Regions: {len(layout.buttons)}")
+            lines.append(f"Detected Visual Edges: {len(layout.lines)}")
+            
+            for i, panel in enumerate(layout.panels[:3]):
+                lines.append(f"  Panel #{i+1}: {panel}")
 
         return "\n".join(lines)
 

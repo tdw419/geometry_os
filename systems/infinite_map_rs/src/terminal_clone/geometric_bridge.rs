@@ -192,29 +192,17 @@ impl GeometricTerminalBuffer {
         self.cells.iter().map(|c| c.to_u32()).collect()
     }
 
-    /// Resize the buffer
-    pub fn resize(&mut self, new_cols: usize, new_rows: usize) {
-        let mut new_cells = vec![GeometricCell::default(); new_cols * new_rows];
-
-        // Copy existing content
-        let min_cols = self.cols.min(new_cols);
-        let min_rows = self.rows.min(new_rows);
-
-        for row in 0..min_rows {
-            for col in 0..min_cols {
-                let old_idx = row * self.cols + col;
-                let new_idx = row * new_cols + col;
-                new_cells[new_idx] = self.cells[old_idx];
-            }
+    /// Generate PASM instructions for a string of text
+    pub fn generate_pasm(&self, text: &str) -> Vec<[u8; 4]> {
+        let mut instructions = Vec::new();
+        for c in text.chars() {
+            // PUTC opcode (0x40), G=char, B=fg, A=flags (or metadata)
+            // Note: In our v3 PASM, PUTC takes char from register or immediate.
+            // For this bridge, we'll pack them into pixels directly.
+            let pixel = [0x40, c as u8, self.current_fg, self.current_flags];
+            instructions.push(pixel);
         }
-
-        self.cols = new_cols;
-        self.rows = new_rows;
-        self.cells = new_cells;
-
-        // Clamp cursor
-        self.cursor_x = self.cursor_x.min(new_cols.saturating_sub(1));
-        self.cursor_y = self.cursor_y.min(new_rows.saturating_sub(1));
+        instructions
     }
 }
 

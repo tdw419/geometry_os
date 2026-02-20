@@ -110,6 +110,7 @@ class VisualDebugOverlay {
             frame: null,        // Base64 PNG data
             clusters: [],
             widgets: [],
+            layout: { lines: [] },
             diagnostic: null,
             lastUpdate: null,
             aiThought: "Watching Shotcut system..."
@@ -498,6 +499,7 @@ class VisualDebugOverlay {
         this.shotcutHud.frame = data.frame;
         this.shotcutHud.clusters = data.clusters || [];
         this.shotcutHud.widgets = data.widgets || [];
+        this.shotcutHud.layout = data.layout || { lines: [] };
         this.shotcutHud.diagnostic = data.diagnostic;
         this.shotcutHud.lastUpdate = Date.now();
         this.shotcutHud.aiThought = data.ai_thought || "Analyzing Shotcut interface...";
@@ -1591,6 +1593,22 @@ class VisualDebugOverlay {
             ctx.fillStyle = 'rgba(0, 255, 204, 0.2)';
             ctx.fillRect(rx, ry, rw, rh);
         });
+
+        // 3. Draw Layout Lines
+        if (this.shotcutHud.layout && this.shotcutHud.layout.lines) {
+            this.shotcutHud.layout.lines.forEach(line => {
+                const isHorizontal = Math.abs(line.y1 - line.y2) < Math.abs(line.x1 - line.x2);
+                ctx.strokeStyle = isHorizontal ? '#00ff88' : '#00aaff';
+                ctx.lineWidth = 1;
+                ctx.globalAlpha = 0.6;
+                
+                ctx.beginPath();
+                ctx.moveTo(line.x1 * scaleX, line.y1 * scaleY);
+                ctx.lineTo(line.x2 * scaleX, line.y2 * scaleY);
+                ctx.stroke();
+            });
+            ctx.globalAlpha = 1.0;
+        }
     }
 
     /**

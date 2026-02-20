@@ -59,3 +59,25 @@ class TestLayoutIntegration:
             assert hasattr(result.layout, 'buttons')
         finally:
             os.unlink(temp_path)
+
+    def test_ascii_view_includes_layout_info(self):
+        """ASCII view should contain layout summary."""
+        from extraction_pipeline import ExtractionPipeline
+
+        # Create a test image with a panel
+        img = np.zeros((200, 200, 3), dtype=np.uint8)
+        cv2.rectangle(img, (10, 10), (110, 110), (255, 255, 255), -1)
+
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+            cv2.imwrite(f.name, img)
+            temp_path = f.name
+
+        try:
+            pipeline = ExtractionPipeline()
+            result = pipeline.extract(temp_path)
+
+            # ASCII view should have layout section
+            assert "=== LAYOUT INFERENCE (OpenCV) ===" in result.ascii_view
+            assert "Detected Panels:" in result.ascii_view
+        finally:
+            os.unlink(temp_path)

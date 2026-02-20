@@ -22,6 +22,7 @@ pub mod rts_texture;
 pub mod terminal_clone;
 pub mod terminal_emulator;
 pub mod ui;
+pub mod geometric_terminal_tile;
 
 // Phase 30.8: Damage tracking for partial terminal updates
 pub use damage_tracker::{DamageTracker, DirtyRect};
