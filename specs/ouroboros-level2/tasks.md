@@ -162,7 +162,7 @@ _Design: UITransmuter Interaction Logic_
 _Requirements: FR-5, US-3, AC-3.1_
 _Design: Click Animation Feedback_
 
-### Task 1.8: Create Interactive Test HTML
+### Task 1.8: [x] Create Interactive Test HTML
 **Do**:
 1. Copy `render_test.html` to `interactive_test.html`
 2. Import WidgetInteractionManager as ES module

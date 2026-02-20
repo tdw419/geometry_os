@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shotcut Clone - Interactive Test</title>
+    <style>
+        body { margin: 0; background: #000; display: flex; flex-direction: column; align-items: center; }
+        canvas { border: 2px solid #333; }
+        #info { color: #0f0; font-family: monospace; padding: 10px; }
+        #status { color: #ff0; }
+        #interaction-status {
+            color: #0ff;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #0ff;
+            min-width: 300px;
+        }
+        #interaction-status h4 { margin: 0 0 5px 0; color: #fff; }
+        .hover-info { color: #0f0; }
+        .click-info { color: #f0f; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h3>Shotcut UI Clone - Ouroboros Level 2 (Interactive)</h3>
+        <div id="status">Loading WebGPU...</div>
+    </div>
+    <div id="interaction-status">
+        <h4>Interaction Status</h4>
+        <div class="hover-info">Hovered: <span id="hovered-widget">none</span></div>
+        <div class="click-info">Clicked: <span id="clicked-widget">none</span></div>
+        <div>Cursor: <span id="cursor-state">default</span></div>
+    </div>
+    <canvas id="canvas" width="1024" height="768"></canvas>
+
+<script type="module">
+import { WidgetInteractionManager } from './widget_interaction_manager.js';
+
+const canvas = document.getElementById('canvas');
+const statusEl = document.getElementById('status');
+const hoveredWidgetEl = document.getElementById('hovered-widget');
+const clickedWidgetEl = document.getElementById('clicked-widget');
+const cursorStateEl = document.getElementById('cursor-state');
+
+// Sample widget data for testing interactions
+const sampleWidgets = [
+    // Top menu bar buttons
+    { type: 'button', bbox: [10, 10, 60, 40], action: 'menu_file', label: 'File' },
+    { type: 'button', bbox: [70, 10, 130, 40], action: 'menu_edit', label: 'Edit' },
+    { type: 'button', bbox: [140, 10, 210, 40], action: 'menu_view', label: 'View' },
+    { type: 'button', bbox: [220, 10, 300, 40], action: 'menu_timeline', label: 'Timeline' },
+
+    // Timeline panel
+    { type: 'panel', bbox: [10, 400, 1014, 760], label: 'Timeline Panel' },
+
+    // Playhead (vertical line in timeline)
+    { type: 'playhead', bbox: [512, 400, 518, 760], action: 'scrub' },
+
+    // Sample clips on timeline
+    { type: 'clip', bbox: [20, 450, 200, 500], action: 'select_clip_1', label: 'Clip 1' },
+    { type: 'clip', bbox: [210, 450, 400, 500], action: 'select_clip_2', label: 'Clip 2' },
+    { type: 'clip', bbox: [20, 510, 350, 560], action: 'select_clip_3', label: 'Clip 3' },
+
+    // Transport controls (bottom)
+    { type: 'button', bbox: [420, 710, 470, 750], action: 'play', label: 'Play' },
+    { type: 'button', bbox: [480, 710, 530, 750], action: 'pause', label: 'Pause' },
+    { type: 'button', bbox: [540, 710, 590, 750], action: 'stop', label: 'Stop' },
+
+    // Preview panel (left side)
+    { type: 'panel', bbox: [10, 50, 400, 390], label: 'Preview Panel' },
+
+    // Properties panel (right side)
+    { type: 'panel', bbox: [700, 50, 1014, 390], label: 'Properties Panel' },
+];
+
+// Callbacks for interaction events
+const interactionCallbacks = {
+    onHover: (widget, x, y) => {
+        console.log(`[HOVER] Widget: ${widget?.label || widget?.action || 'null'}, Coords: (${x.toFixed(0)}, ${y.toFixed(0)})`);
+        if (widget) {
+            hoveredWidgetEl.textContent = `${widget.label || widget.action} (${widget.type})`;
+            hoveredWidgetEl.style.color = '#0f0';
+        } else {
+            hoveredWidgetEl.textContent = 'none';
+            hoveredWidgetEl.style.color = '#666';
+        }
+    },
+    onClick: (widget, x, y) => {
+        console.log(`[CLICK] Widget: ${widget?.label || widget?.action}, Coords: (${x.toFixed(0)}, ${y.toFixed(0)})`);
+        if (widget) {
+            clickedWidgetEl.textContent = `${widget.label || widget.action} (${widget.type})`;
+            clickedWidgetEl.style.color = '#f0f';
+        }
+    },
+    onFocus: (widget, index) => {
+        console.log(`[FOCUS] Widget: ${widget?.label || widget?.action}, Index: ${index}`);
+    }
+};
+
+// Track cursor changes via mutation observer for display
+const cursorObserver = new MutationObserver(() => {
+    cursorStateEl.textContent = canvas.style.cursor || 'default';
+});
+cursorObserver.observe(canvas, { attributes: true, attributeFilter: ['style'] });
+
+async function init() {
+    if (!navigator.gpu) {
+        statusEl.textContent = 'WebGPU not supported';
+        return;
+    }
+
+    const adapter = await navigator.gpu.requestAdapter();
+    const device = await adapter.requestDevice();
+    const context = canvas.getContext('webgpu');
+    const format = navigator.gpu.getPreferredCanvasFormat();
+
+    context.configure({ device, format, alphaMode: 'premultiplied' });
+
+    // Fetch the generated shader
+    statusEl.textContent = 'Loading shader...';
+    const shaderResponse = await fetch('../../systems/pixel_compiler/shaders/shotcut_clone.wgsl');
+    const shaderCode = await shaderResponse.text();
+
+    // Create shader module
+    let shaderModule;
+    try {
+        shaderModule = device.createShaderModule({ code: shaderCode });
+        statusEl.textContent = 'Shader compiled successfully';
+    } catch (e) {
+        statusEl.textContent = 'Shader error: ' + e.message;
+        console.error(e);
+        return;
+    }
+
+    // Full-screen quad vertex shader
+    const vertexShader = device.createShaderModule({
+        code: `
+        struct VertexOutput {
+            @builtin(position) pos: vec4f,
+            @location(0) uv: vec2f,
+        }
+
+        @vertex
+        fn vs_main(@builtin(vertex_index) vi: u32) -> VertexOutput {
+            var pos = array<vec2f, 6>(
+                vec2f(-1, -1), vec2f(1, -1), vec2f(-1, 1),
+                vec2f(-1, 1),  vec2f(1, -1), vec2f(1, 1)
+            );
+            var uv = array<vec2f, 6>(
+                vec2f(0, 1), vec2f(1, 1), vec2f(0, 0),
+                vec2f(0, 0), vec2f(1, 1), vec2f(1, 0)
+            );
+            return VertexOutput(vec4f(pos[vi], 0, 1), uv[vi]);
+        }
+        `
+    });
+
+    // Uniform buffer - 32 bytes for interaction uniforms
+    // Layout: [time, mouse_pressed, mouse_x, mouse_y, resolution_x, resolution_y, focused_widget, pad]
+    const uniformBuffer = device.createBuffer({
+        size: 32, // 8 floats = 32 bytes
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    // Initialize WidgetInteractionManager
+    const interactionManager = new WidgetInteractionManager({
+        canvas,
+        device,
+        uniformBuffer,
+        widgets: sampleWidgets,
+        callbacks: interactionCallbacks
+    });
+
+    console.log('[INIT] WidgetInteractionManager initialized');
+    console.log('[INIT] Clickable widgets:', interactionManager.clickableWidgets.length);
+
+    // Bind group layout
+    const bindGroupLayout = device.createBindGroupLayout({
+        entries: [{
+            binding: 0,
+            visibility: GPUShaderStage.FRAGMENT,
+            buffer: { type: 'uniform' }
+        }]
+    });
+
+    // Bind group
+    const bindGroup = device.createBindGroup({
+        layout: bindGroupLayout,
+        entries: [{
+            binding: 0,
+            resource: { buffer: uniformBuffer }
+        }]
+    });
+
+    // Pipeline
+    const pipeline = device.createRenderPipeline({
+        layout: device.createPipelineLayout({ bindGroupLayouts: [bindGroupLayout] }),
+        vertex: {
+            module: vertexShader,
+            entryPoint: 'vs_main'
+        },
+        fragment: {
+            module: shaderModule,
+            entryPoint: 'fragment_main',
+            targets: [{ format }]
+        },
+        primitive: { topology: 'triangle-list' }
+    });
+
+    // Animation loop
+    let startTime = performance.now();
+
+    function render() {
+        const time = (performance.now() - startTime) / 1000;
+
+        // Update uniforms with current mouse state from interaction manager
+        const uniformData = new Float32Array([
+            time,
+            interactionManager.mousePressed ? 1.0 : 0.0,
+            canvas.width / 2,  // Initial mouse position (center)
+            canvas.height / 2,
+            canvas.width,
+            canvas.height,
+            interactionManager.focusedIndex,
+            0  // pad
+        ]);
+        device.queue.writeBuffer(uniformBuffer, 0, uniformData);
+
+        const encoder = device.createCommandEncoder();
+        const pass = encoder.beginRenderPass({
+            colorAttachments: [{
+                view: context.getCurrentTexture().createView(),
+                loadOp: 'clear',
+                storeOp: 'store',
+                clearValue: { r: 0.05, g: 0.05, b: 0.08, a: 1 }
+            }]
+        });
+
+        pass.setPipeline(pipeline);
+        pass.setBindGroup(0, bindGroup);
+        pass.draw(6);
+        pass.end();
+
+        device.queue.submit([encoder.finish()]);
+        requestAnimationFrame(render);
+    }
+
+    render();
+    statusEl.textContent = 'Interactive - ' + sampleWidgets.length + ' widgets, ' + interactionManager.clickableWidgets.length + ' clickable';
+
+    // Log initial state
+    console.log('[INIT] Interactive test page ready');
+    console.log('[INIT] Move mouse over widgets to see hover events');
+    console.log('[INIT] Click on widgets to see click events');
+}
+
+init().catch(e => {
+    statusEl.textContent = 'Error: ' + e.message;
+    console.error(e);
+});
+</script>
+</body>
+</html>
