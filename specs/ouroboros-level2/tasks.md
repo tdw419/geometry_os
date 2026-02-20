@@ -251,7 +251,7 @@ _Design: Keyboard Navigation_
 _Requirements: FR-6, US-4, AC-4.5_
 _Design: Keyboard Event Handler_
 
-### Task 2.3: Add Focus Indicator in WGSL
+### Task 2.3: [x] Add Focus Indicator in WGSL
 **Do**:
 1. Modify `_generate_widget_sdf()` in UITransmuter
 2. For each widget, add focus check: `let widget_focused = i32(ui.focused_widget) == index;`
