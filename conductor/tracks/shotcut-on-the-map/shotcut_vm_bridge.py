@@ -28,6 +28,7 @@ import subprocess
 import base64
 import os
 import signal
+import shutil
 import logging
 import argparse
 import socket
@@ -107,8 +108,10 @@ class ShotcutVMBridge:
             cmd = {'execute': command}
             if arguments:
                 cmd['arguments'] = arguments
+            logger.info(f"Sending QMP command: {command} with args: {arguments}")
             sock.send(json.dumps(cmd).encode() + b'\n')
             response = sock.recv(4096).decode()
+            logger.info(f"QMP response: {response}")
 
             sock.close()
             return json.loads(response)
@@ -202,6 +205,8 @@ class ShotcutVMBridge:
             '-netdev', f'user,id=net0,hostfwd=tcp::{self.vm.ssh_port}-:22',
             '-device', 'virtio-net-pci,netdev=net0',
             '-device', 'qxl-vga,vgamem_mb=64',
+            '-device', 'usb-ehci,id=usb,bus=pci.0,addr=0x7',
+            '-device', 'usb-tablet,bus=usb.0',
             '-enable-kvm',  # Use KVM if available
             '-boot', 'order=c',  # Explicitly boot from the first hard disk
         ]
@@ -219,10 +224,15 @@ class ShotcutVMBridge:
 
         try:
             self.vm.status = 'booting'
+            
+            # Redirect QEMU output to files to avoid pipe filling up
+            qemu_log_out = open(f'/tmp/qemu-stdout-{self.vm.session_id}.log', 'w')
+            qemu_log_err = open(f'/tmp/qemu-stderr-{self.vm.session_id}.log', 'w')
+            
             self.vm.process = subprocess.Popen(
                 qemu_cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stdout=qemu_log_out,
+                stderr=qemu_log_err,
                 stdin=subprocess.PIPE
             )
             self.vm.started_at = datetime.now()
@@ -282,6 +292,8 @@ class ShotcutVMBridge:
             '-netdev', f'user,id=net0,hostfwd=tcp::{self.vm.ssh_port}-:22',
             '-device', 'virtio-net-pci,netdev=net0',
             '-device', 'qxl-vga,vgamem_mb=64',
+            '-device', 'usb-ehci,id=usb,bus=pci.0,addr=0x7',
+            '-device', 'usb-tablet,bus=usb.0',
         ]
 
         if os.path.exists('/dev/kvm'):
@@ -289,10 +301,15 @@ class ShotcutVMBridge:
 
         try:
             self.vm.status = 'booting'
+            
+            # Redirect QEMU output to files to avoid pipe filling up
+            qemu_log_out = open(f'/tmp/qemu-stdout-{self.vm.session_id}.log', 'w')
+            qemu_log_err = open(f'/tmp/qemu-stderr-{self.vm.session_id}.log', 'w')
+            
             self.vm.process = subprocess.Popen(
                 qemu_cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stdout=qemu_log_out,
+                stderr=qemu_log_err,
                 stdin=subprocess.PIPE
             )
             self.vm.started_at = datetime.now()
@@ -534,8 +551,12 @@ class ShotcutVMBridge:
 
     async def _inject_mouse(self, event: Dict[str, Any]) -> Dict[str, Any]:
         """Inject a mouse event via QMP."""
-        x = event.get('x', 0)
-        y = event.get('y', 0)
+        # Scale coordinates from 1024x768 to 0-32767 for usb-tablet
+        raw_x = event.get('x', 0)
+        raw_y = event.get('y', 0)
+        
+        x = int(raw_x * 32767 / 1024)
+        y = int(raw_y * 32767 / 768)
 
         # Use QMP input-send-event
         result = self._send_qmp_command('input-send-event', {
@@ -583,6 +604,20 @@ class ShotcutVMBridge:
         so we only call _inject_key once per character.
         """
         results = []
+        # Key map for punctuation and special characters
+        shift_chars = {
+            ':': ';', '"': "'", '<': ',', '>': '.', '?': '/',
+            '!': '1', '@': '2', '#': '3', '$': '4', '%': '5',
+            '^': '6', '&': '7', '*': '8', '(': '9', ')': '0',
+            '_': '-', '+': '=', '{': '[', '}': ']', '|': '\\'
+        }
+        
+        direct_chars = {
+            '-': 'minus', '=': 'equal', '[': 'bracket_left', ']': 'bracket_right',
+            '\\': 'backslash', ';': 'semicolon', "'": 'apostrophe', ',': 'comma',
+            '.': 'dot', '/': 'slash', '`': 'grave_accent'
+        }
+
         for char in text:
             if char == '\n':
                 result = await self._inject_key({'key': 'ret'})
@@ -602,12 +637,28 @@ class ShotcutVMBridge:
                     })
                 else:
                     result = await self._inject_key({'key': char})
+            elif char in shift_chars:
+                # Character requires shift
+                base_key = shift_chars[char]
+                qmp_key = direct_chars.get(base_key, base_key)
+                result = self._send_qmp_command('send-key', {
+                    'keys': [
+                        {'type': 'qcode', 'data': 'shift'},
+                        {'type': 'qcode', 'data': qmp_key}
+                    ],
+                    'hold-time': 50
+                })
+            elif char in direct_chars:
+                # Character is direct but needs QMP name
+                result = await self._inject_key({'key': direct_chars[char]})
+            elif char.isdigit():
+                result = await self._inject_key({'key': char})
             else:
-                # Skip special characters for now
-                continue
+                # Fallback for other characters
+                result = await self._inject_key({'key': char})
 
             results.append(result)
-            await asyncio.sleep(0.05)  # Delay between keystrokes for reliability
+            await asyncio.sleep(0.1)  # Increased delay for reliability
 
         return {'success': True, 'text': text, 'keystrokes': len(results)}
 
@@ -717,9 +768,6 @@ class ShotcutVMBridge:
             await asyncio.Future()  # Run forever
 
 
-import shutil  # Add at top of file
-
-
 def main():
     parser = argparse.ArgumentParser(description='Shotcut VM Bridge for Geometry OS')
     parser.add_argument('--port', type=int, default=8768, help='WebSocket port')
@@ -749,5 +797,4 @@ def main():
 
 
 if __name__ == '__main__':
-    import shutil  # Ensure shutil is imported
     main()

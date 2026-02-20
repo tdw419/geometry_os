@@ -29,6 +29,15 @@ from widget_detector import WidgetDetector, Widget, WidgetType
 
 
 @dataclass
+class DiagnosticPulse:
+    """V16: Safety anomaly detected by the Perception Bridge."""
+    severity: str  # SUCCESS, WARNING, CRITICAL
+    message: str
+    tokens: List[str]
+    timestamp: float = field(default_factory=time.time)
+
+
+@dataclass
 class ExtractionResult:
     """
     Complete result of the extraction pipeline.
@@ -38,17 +47,19 @@ class ExtractionResult:
         clusters: Semantic clusters of related elements
         widgets: Detected widgets with actions
         ascii_view: ASCII scene graph representation
+        diagnostic: V16 Diagnostic pulse results
         metadata: Additional metadata (timing, stats, etc.)
     """
     elements: List[UIElement] = field(default_factory=list)
     clusters: List[UICluster] = field(default_factory=list)
     widgets: List[Widget] = field(default_factory=list)
     ascii_view: str = ""
+    diagnostic: Optional[DiagnosticPulse] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
-        return {
+        res = {
             "elements": [
                 {"text": e.text, "bbox": list(e.bbox), "confidence": e.confidence}
                 for e in self.elements
@@ -64,6 +75,14 @@ class ExtractionResult:
             "ascii_view": self.ascii_view,
             "metadata": self.metadata
         }
+        if self.diagnostic:
+            res["diagnostic"] = {
+                "severity": self.diagnostic.severity,
+                "message": self.diagnostic.message,
+                "tokens": self.diagnostic.tokens,
+                "timestamp": self.diagnostic.timestamp
+            }
+        return res
 
     def to_json(self) -> str:
         """Convert to JSON string."""
@@ -106,6 +125,7 @@ class ExtractionPipeline:
         """
         self.analyzer = GUIAnalyzer()
         self.widget_detector = WidgetDetector()
+        self.safety_scanner = SafetyScanner()
         self.ascii_width = ascii_width
         self.ascii_height = ascii_height
 
@@ -122,6 +142,7 @@ class ExtractionPipeline:
             - Semantic clusters
             - Detected widgets with actions
             - ASCII view with [CLICKABLE] metadata
+            - V16 Diagnostic pulse
         """
         start_time = time.time()
 
@@ -139,7 +160,11 @@ class ExtractionPipeline:
         ]
         widgets = self.widget_detector.detect(elements_for_detection)
 
-        # Step 3: Build ASCII view with [CLICKABLE] metadata
+        # Step 3: Safety scanning (Diagnostic Pulse)
+        full_text = " ".join([e.text for e in analysis.elements])
+        diagnostic = self.safety_scanner.scan(full_text)
+
+        # Step 4: Build ASCII view with [CLICKABLE] metadata
         ascii_view = self._build_enhanced_ascii_view(
             analysis.elements,
             widgets,
@@ -162,7 +187,74 @@ class ExtractionPipeline:
             clusters=analysis.clusters,
             widgets=widgets,
             ascii_view=ascii_view,
+            diagnostic=diagnostic,
             metadata=metadata
+        )
+
+    def _build_enhanced_ascii_view(
+        self,
+        elements: List[UIElement],
+        widgets: List[Widget],
+        base_view: str
+    ) -> str:
+        """
+        Build ASCII view with [CLICKABLE] metadata annotations.
+
+        Args:
+            elements: List of UI elements
+            widgets: List of detected widgets
+            base_view: Base ASCII view from the analyzer
+
+        Returns:
+            Enhanced ASCII view with widget metadata section
+        """
+        lines = [base_view]
+        lines.append("")
+        lines.append("=== WIDGET METADATA ===")
+
+        for widget in widgets:
+            if widget.action:
+                lines.append(
+                    f"[CLICKABLE] {widget.type.value.upper()}: "
+                    f"'{widget.text}' at {widget.bbox} -> {widget.action}"
+                )
+            else:
+                lines.append(
+                    f"[{widget.type.value.upper()}] '{widget.text}' at {widget.bbox}"
+                )
+
+        return "\n".join(lines)
+
+
+class SafetyScanner:
+    """V16: Scans extracted text for safety anomalies (Panics, Errors, etc.)"""
+    
+    CRITICAL_TOKENS = ["PANIC", "BUG", "FAULT", "ABORT", "CRASH", "HALT"]
+    WARNING_TOKENS = ["ERROR", "FAIL", "WARN", "TIMEOUT", "RETRY"]
+
+    def scan(self, text: str) -> DiagnosticPulse:
+        upper_text = text.upper()
+        
+        found_critical = [t for t in self.CRITICAL_TOKENS if t in upper_text]
+        if found_critical:
+            return DiagnosticPulse(
+                severity="CRITICAL",
+                message=f"System Instability Detected: {found_critical[0]}",
+                tokens=found_critical
+            )
+            
+        found_warning = [t for t in self.WARNING_TOKENS if t in upper_text]
+        if found_warning:
+            return DiagnosticPulse(
+                severity="WARNING",
+                message=f"System Warning: {found_warning[0]}",
+                tokens=found_warning
+            )
+            
+        return DiagnosticPulse(
+            severity="SUCCESS",
+            message="Substrate logic operating within nominal parameters",
+            tokens=[]
         )
 
     def _build_enhanced_ascii_view(
