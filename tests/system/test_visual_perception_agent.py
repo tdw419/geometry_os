@@ -85,6 +85,7 @@ class TestRenderMonitorHandler:
 
         assert result is not None
         assert result.get("type") == "MONITORING_STARTED"
+        mock_start.assert_called_once_with(msg["payload"])
 
     @pytest.mark.asyncio
     async def test_stop_monitor_stops_monitoring(self, agent):
