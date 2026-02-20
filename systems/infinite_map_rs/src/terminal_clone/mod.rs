@@ -4,7 +4,12 @@
 // VM framebuffers and providing native PTY support for local shells.
 
 pub mod pty_engine;
+pub mod terminal_renderer;
+
+#[cfg(feature = "hypervisor")]
 pub mod terminal_clone_manager;
 
 pub use pty_engine::PtyEngine;
+#[cfg(feature = "hypervisor")]
 pub use terminal_clone_manager::TerminalCloneManager;
+pub use terminal_renderer::TerminalRenderer;

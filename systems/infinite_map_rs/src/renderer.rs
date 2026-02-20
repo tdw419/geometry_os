@@ -95,6 +95,9 @@ pub struct Renderer<'a> {
     // Phase 37.3: Cognitive Cartography
     pub cortex_renderer: Option<crate::cortex::CortexRenderer>,
 
+    // Phase 3: Terminal Clone Renderer
+    pub terminal_renderer: Option<crate::terminal_clone::TerminalRenderer>,
+
     // Phase 42: Compilation Visual Feedback
     compilation_status: crate::app::CompilationStatus,
     compilation_status_time: Option<std::time::Instant>,
@@ -737,6 +740,9 @@ impl<'a> Renderer<'a> {
             mapped_at_creation: false,
         });
 
+        // Phase 3: Terminal Clone Renderer
+        let terminal_renderer = Some(crate::terminal_clone::TerminalRenderer::new(&device));
+
         Self {
             surface,
             device: device.clone(),
@@ -806,6 +812,7 @@ impl<'a> Renderer<'a> {
             text_engine: None,
             visual_ast_renderer: Some(visual_ast_renderer),
             cortex_renderer: None,
+            terminal_renderer,
 
             // Phase 42: Compilation Visual Feedback
             compilation_status: crate::app::CompilationStatus::None,
@@ -1758,6 +1765,45 @@ impl<'a> Renderer<'a> {
         }
     }
 
+    /// Render a terminal tile using the GPU compute shader
+    pub fn render_terminal_tile(
+        &self,
+        window_id: usize,
+        rows: u32,
+        cols: u32,
+        terminal_buffer: &[u32],
+        cursor_x: u32,
+        cursor_y: u32,
+        time: f32,
+        vm_texture_manager: &mut crate::vm_texture_manager::VmTextureManager,
+    ) {
+        if let Some(ref tr) = self.terminal_renderer {
+            // 1. Ensure we have a texture in the manager
+            // We use a dummy 1x1 buffer first to create/resize the texture if needed
+            let _ = vm_texture_manager.update_vm_texture(window_id, &[0; 4], cols * 8, rows * 16);
+            
+            if let Some(vm_tex) = vm_texture_manager.get_texture(window_id) {
+                let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("Terminal Compute Encoder"),
+                });
+
+                tr.render(
+                    &self.device,
+                    &mut encoder,
+                    &vm_tex.view,
+                    rows,
+                    cols,
+                    terminal_buffer,
+                    cursor_x,
+                    cursor_y,
+                    time,
+                );
+
+                self.queue.submit(std::iter::once(encoder.finish()));
+            }
+        }
+    }
+
     pub fn render(&mut self, camera: &Camera, window_manager: &crate::window::WindowManager, thought_renderer: Option<&ThoughtRenderer>, vm_texture_manager: Option<&crate::vm_texture_manager::VmTextureManager>, memory_texture_manager: Option<&crate::memory_texture_manager::MemoryTextureManager>, cartridge_texture_manager: Option<&crate::cartridge_texture_manager::CartridgeTextureManager>, memory_artifact_manager: Option<&crate::memory_artifacts::MemoryArtifactManager>, graph_renderer: Option<&std::sync::Arc<crate::graph_renderer::GraphRenderer>>, inspector_ui: Option<&std::sync::Arc<crate::inspector_ui::InspectorUI>>, agent_manager: Option<&crate::cognitive::agents::CityAgentManager>, visual_ast: Option<&crate::visual_ast::VisualAST>, inspector_visible: bool, screenshot_request: Option<(i32, i32, u32, u32)>) -> Result<Option<(Vec<u8>, u32, u32)>, wgpu::SurfaceError> {
         self.check_hot_reload();
         let output = self.surface.get_current_texture()?;
@@ -1919,6 +1965,15 @@ impl<'a> Renderer<'a> {
             // Phase 30.2: Check for VM texture
             // If window has VM texture, use it instead of Wayland surface
             if window.has_vm_texture {
+                if let Some(vm_texture_manager) = vm_texture_manager {
+                    if let Some(vm_texture) = vm_texture_manager.get_texture(window.id) {
+                        surface_bind_group = Some(&vm_texture.bind_group);
+                    }
+                }
+            }
+
+            // Phase 3: Terminal Clone Integration
+            if window.has_terminal_texture {
                 if let Some(vm_texture_manager) = vm_texture_manager {
                     if let Some(vm_texture) = vm_texture_manager.get_texture(window.id) {
                         surface_bind_group = Some(&vm_texture.bind_group);

@@ -34,8 +34,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Tuple, Dict, Any, List
 
-# Import VATManager for tile position tracking
-from .vat_manager import VATManager, TilePosition
+try:
+    from .vat_manager import VATManager, TilePosition
+except (ImportError, ValueError):
+    from vat_manager import VATManager, TilePosition
 
 logger = logging.getLogger("terminal_vat_bridge")
 
@@ -185,7 +187,9 @@ class TerminalVatBridge:
                         "tile_id": tile_id,
                         "rows": config.rows,
                         "cols": config.cols,
-                        "shell": config.shell
+                        "shell": config.shell,
+                        "x": float(x),
+                        "y": float(y)
                     },
                     timeout=5.0
                 )

@@ -290,6 +290,8 @@ pub struct InfiniteMapApp<'a> {
     pub filesystem_hilbert_manager: Option<crate::filesystem_hilbert::FilesystemHilbertManager>,
     // Phase 45 / Horizon 1.3: Terminal Tiles
     pub terminal_tiles: Vec<crate::terminal_tile::TerminalTile>,
+    #[cfg(feature = "hypervisor")]
+    pub terminal_clone_manager: Option<crate::terminal_clone::TerminalCloneManager>,
 
     // Shader Execution Zone: Compositor for drag-and-drop WGSL .rts.png files
     pub compositor: Option<infinite_map_rs::Compositor>,
@@ -500,6 +502,8 @@ impl<'a> InfiniteMapApp<'a> {
                 std::path::PathBuf::from("/home/jericho/zion/projects/geometry_os/geometry_os")
             )),
             terminal_tiles: Vec::new(),
+            #[cfg(feature = "hypervisor")]
+            terminal_clone_manager: Some(crate::terminal_clone::TerminalCloneManager::new()),
             // Shader Execution Zone: Compositor initialized to None (will be set when device is available)
             compositor: None,
             // Phase 48: Initialize GPU capabilities with defaults (will be updated when adapter is available)
@@ -3389,11 +3393,133 @@ impl<'a> InfiniteMapApp<'a> {
         log::info!("🧬 Spawning Evolution Zone (ID: {})", window_id);
     }
 
+    #[cfg(feature = "hypervisor")]
+    pub fn spawn_terminal_clone(&mut self, req: crate::api_server::TerminalSpawnRequest) {
+        if let Some(ref mut manager) = self.terminal_clone_manager {
+            match manager.create_terminal(req.rows as u16, req.cols as u16, &req.shell) {
+                Ok(pty_id) => {
+                    // Create the tile
+                    let tile_idx = self.terminal_tiles.len();
+                    let mut tile = crate::terminal_tile::TerminalTile::new(tile_idx, format!("Terminal {}", pty_id), req.cols, req.rows);
+                    tile.pty_id = Some(pty_id);
+                    
+                    // Create the window
+                    let window_id = self.window_manager.create_demo_window(
+                        tile.title.clone(),
+                        "".to_string(),
+                        req.x, req.y,
+                        crate::window::WindowType::Default
+                    );
+                    
+                    tile.window_id = Some(window_id);
+                    self.terminal_tiles.push(tile);
+
+                    if let Some(window) = self.window_manager.get_window_mut(window_id) {
+                        window.width = self.terminal_tiles[tile_idx].texture_width as f32;
+                        window.height = self.terminal_tiles[tile_idx].texture_height as f32;
+                        window.custom_border_color = Some([0.0, 1.0, 1.0, 1.0]); // Cyan for PTY tools
+                        window.has_terminal_texture = true;
+                        window.terminal_tile_id = Some(tile_idx);
+                    }
+                    
+                    log::info!("🚀 Spawned terminal clone {} (PTY: {}) at ({}, {})", tile_idx, pty_id, req.x, req.y);
+                },
+                Err(e) => log::error!("Failed to create PTY: {}", e),
+            }
+        }
+    }
+
     // Phase 45 / Horizon 1.3: Update Terminal Tiles
     pub fn update_terminal_tiles(&mut self) {
+        // 1. Process pending requests from API
+        #[cfg(feature = "hypervisor")]
+        {
+            let mut spawns = Vec::new();
+            let mut resizes = Vec::new();
+            let mut destroys = Vec::new();
+
+            if let Ok(mut rs) = self.runtime_state.lock() {
+                if !rs.pending_terminal_spawns.is_empty() {
+                    spawns = rs.pending_terminal_spawns.drain(..).collect();
+                }
+                if !rs.pending_terminal_resizes.is_empty() {
+                    resizes = rs.pending_terminal_resizes.drain(..).collect();
+                }
+                if !rs.pending_terminal_destroys.is_empty() {
+                    destroys = rs.pending_terminal_destroys.drain(..).collect();
+                }
+            }
+
+            for req in spawns {
+                self.spawn_terminal_clone(req);
+            }
+
+            for req in resizes {
+                // Handle resize logic
+                if let Some(ref mut manager) = self.terminal_clone_manager {
+                    // Find the tile with this pty_id or matching tile_id
+                    // Note: API tile_id might not match internal tile index
+                    let _ = manager.resize_terminal(req.tile_id as usize, req.rows as u16, req.cols as u16);
+                }
+            }
+        }
+
+        // 2. Update existing clones from PTY
+        #[cfg(feature = "hypervisor")]
+        if let Some(ref mut manager) = self.terminal_clone_manager {
+            manager.update();
+            
+            // Sync emulator buffers to tiles
+            for tile in &mut self.terminal_tiles {
+                if let Some(pty_id) = tile.pty_id {
+                    if let Some(emulator) = manager.get_emulator(pty_id) {
+                        // Check if emulator buffer has changed (rough heuristic)
+                        // For now just always update if needs_render is true or periodically
+                        // In a real system we'd check a 'dirty' flag
+                        tile.needs_render = true; 
+                    }
+                }
+            }
+        }
+
+        // 3. Render tiles to textures
         for tile in &mut self.terminal_tiles {
             if tile.needs_render {
-                tile.update_texture();
+                let mut external_emu = None;
+                #[cfg(feature = "hypervisor")]
+                if let Some(pty_id) = tile.pty_id {
+                    if let Some(ref manager) = self.terminal_clone_manager {
+                        external_emu = manager.get_emulator(pty_id);
+                    }
+                }
+
+                // GPU Rendering (Phase 3)
+                let mut gpu_rendered = false;
+                if let (Some(window_id), Some(ref mut vtm)) = (tile.window_id, &mut self.vm_texture_manager) {
+                    let emulator = external_emu.unwrap_or(&tile.emulator);
+                    let buffer = tile.get_shader_buffer(emulator);
+                    let (rows, cols) = emulator.get_size();
+                    let (cursor_row, cursor_col) = emulator.get_cursor();
+                    
+                    self.renderer.render_terminal_tile(
+                        window_id,
+                        rows as u32,
+                        cols as u32,
+                        &buffer,
+                        cursor_col as u32,
+                        cursor_row as u32,
+                        0.0, // time
+                        vtm
+                    );
+                    gpu_rendered = true;
+                }
+
+                // Fallback or secondary CPU rendering for AI artifacts
+                tile.update_texture(external_emu);
+                
+                if gpu_rendered {
+                    tile.needs_render = false;
+                }
                 
                 // Upload to Visual Cortex as an Eye Artifact
                 if let Err(e) = self.visual_cortex.save_eye_artifact(

@@ -32,6 +32,15 @@ import websockets
 import socket
 import os
 
+# Import Extraction Pipeline
+try:
+    from extraction_pipeline import ExtractionPipeline
+except ImportError:
+    # If running from a different directory, try relative import or dynamic path
+    import sys
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    from extraction_pipeline import ExtractionPipeline
+
 # Attempt to import OCR
 try:
     import pytesseract
@@ -89,6 +98,8 @@ class ShotcutAgent:
         self.auto_boot = auto_boot
         self._last_screenshot = None
         self._screenshot_history = []
+        self.pipeline = ExtractionPipeline(ascii_width=80, ascii_height=24)
+        self.last_analysis = None
 
     async def _send_command(self, command: str, params: dict = None) -> dict:
         """
@@ -196,6 +207,76 @@ class ShotcutAgent:
 
         return img_data, ocr_text
 
+    async def visual_see(self) -> Any:
+        """
+        Capture screenshot and perform semantic analysis.
+        
+        Returns:
+            ExtractionResult object
+        """
+        img_data, _ = await self.see()
+        if not img_data:
+            return None
+            
+        self.last_analysis = self.pipeline.extract_from_bytes(img_data)
+        return self.last_analysis
+
+    async def visual_click(self, target_text: str, index: int = 0) -> bool:
+        """
+        Find an element by text and click it.
+        
+        Args:
+            target_text: Text to search for
+            index: Which match to use (if multiple)
+            
+        Returns:
+            True if element was found and clicked
+        """
+        analysis = await self.visual_see()
+        if not analysis:
+            return False
+            
+        # Search in widgets first (more accurate)
+        matches = [w for w in analysis.widgets if target_text.lower() in w.text.lower()]
+        
+        # Fallback to raw elements
+        if not matches:
+            matches = [e for e in analysis.elements if target_text.lower() in e.text.lower()]
+            
+        if not matches:
+            print(f"⚠️  Visual Click: Could not find '{target_text}'")
+            return False
+            
+        target = matches[min(index, len(matches)-1)]
+        
+        # Get center from bbox [x1, y1, x2, y2]
+        bbox = getattr(target, 'bbox', None)
+        if bbox is None and hasattr(target, 'bounds'):
+            bbox = target.bounds
+            
+        if bbox:
+            center_x = (bbox[0] + bbox[2]) // 2
+            center_y = (bbox[1] + bbox[3]) // 2
+        else:
+            print(f"⚠️  Visual Click: Could not determine coordinates for '{target_text}'")
+            return False
+
+        print(f"🎬 Visual Click: Found '{target_text}' at ({center_x}, {center_y})")
+        await self.click(center_x, center_y)
+        return True
+
+    async def wait_for_text(self, target_text: str, timeout: float = 10.0) -> bool:
+        """
+        Wait for specific text to appear on screen.
+        """
+        start = time.time()
+        while time.time() - start < timeout:
+            analysis = await self.visual_see()
+            if any(target_text.lower() in e.text.lower() for e in analysis.elements):
+                return True
+            await asyncio.sleep(1.0)
+        return False
+
     def get_last_screenshot(self) -> Optional[bytes]:
         """Get the last captured screenshot."""
         return self._last_screenshot
@@ -265,6 +346,41 @@ class ShotcutAgent:
         # Wait for app to start
         await asyncio.sleep(3)
 
+        return True
+
+    async def visual_create_title(self, text: str) -> bool:
+        """
+        Create a title clip using visual feedback for navigation.
+        """
+        print(f"🎬 Starting Visual Title Creation: '{text}'")
+        
+        # 1. Click 'Open Other'
+        if not await self.visual_click("Open Other"):
+            # Fallback to hardcoded position if text not detected
+            await self.click(80, 50)
+            
+        # 2. Wait for and click 'Text'
+        await asyncio.sleep(0.5)
+        if not await self.visual_click("Text"):
+            await self.click(80, 150)
+            
+        # 3. Wait for Text Dialog
+        print("⏳ Waiting for Text dialog...")
+        if not await self.wait_for_text("Text", timeout=5.0):
+            print("⚠️  Text dialog not detected, continuing anyway...")
+            
+        # 4. Click text field and type
+        # Text field usually contains default text like "Name" or similar
+        # We'll click near the center of the dialog
+        await self.click(400, 320)
+        await asyncio.sleep(0.2)
+        await self.type_text(text)
+        
+        # 5. Click OK
+        if not await self.visual_click("OK"):
+            await self.press_key("ret")
+            
+        print("✅ Visual Title Creation complete")
         return True
 
     async def create_title(

@@ -17,8 +17,14 @@ pub mod riscv;
 pub mod riscv_executor;
 pub mod riscv_native;
 pub mod cortex;
+pub mod font_bitmap;
+pub mod glyph_atlas;
 pub mod terminal_emulator;
 pub mod terminal_clone;
+pub mod damage_tracker;
+
+// Phase 30.8: Damage tracking for partial terminal updates
+pub use damage_tracker::{DamageTracker, DirtyRect};
 
 // Phase 48: GPU capability detection and i64 emulation
 pub mod gpu_capabilities;

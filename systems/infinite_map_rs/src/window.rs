@@ -114,6 +114,9 @@ pub struct Window {
     pub cartridge_texture_id: Option<String>,
     // Phase 35.9.3: Cartridge boot state
     pub boot_state: CartridgeBootState,
+    // Phase 3: Terminal Clone Integration
+    pub has_terminal_texture: bool,
+    pub terminal_tile_id: Option<usize>,
 }
 
 impl Window {
@@ -221,6 +224,8 @@ impl WindowManager {
             has_cartridge_texture: false,
             cartridge_texture_id: None,
             boot_state: CartridgeBootState::Idle,
+            has_terminal_texture: false,
+            terminal_tile_id: None,
         };
 
         self.windows.push(window);
@@ -258,6 +263,8 @@ impl WindowManager {
             has_cartridge_texture: false,
             cartridge_texture_id: None,
             boot_state: CartridgeBootState::Idle,
+            has_terminal_texture: false,
+            terminal_tile_id: None,
         };
 
         self.windows.push(window);
@@ -383,6 +390,8 @@ impl WindowManager {
             has_cartridge_texture: false,
             cartridge_texture_id: None,
             boot_state: CartridgeBootState::Idle,
+            has_terminal_texture: false,
+            terminal_tile_id: None,
         };
 
         self.windows.push(window);

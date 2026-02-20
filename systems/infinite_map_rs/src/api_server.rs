@@ -20,6 +20,8 @@ pub struct TerminalSpawnRequest {
     pub rows: usize,
     pub cols: usize,
     pub shell: String,
+    pub x: f32,
+    pub y: f32,
 }
 
 /// Terminal resize request
@@ -903,6 +905,8 @@ pub struct TerminalSpawnPayload {
     pub rows: usize,
     pub cols: usize,
     pub shell: String,
+    pub x: f32,
+    pub y: f32,
 }
 
 #[derive(Serialize)]
@@ -921,6 +925,8 @@ async fn handle_terminal_spawn(
         rows: payload.rows,
         cols: payload.cols,
         shell: payload.shell,
+        x: payload.x,
+        y: payload.y,
     };
 
     if let Ok(mut rs) = state.runtime_state.lock() {
