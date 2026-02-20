@@ -23,7 +23,7 @@ sys.path.append(str(Path(__file__).parent))
 
 
 class RealtimeFeed:
-    def __init__(self, bridge_url: str, interval_ms: int = 200, hud_url: str = None):
+    def __init__(self, bridge_url: str, interval_ms: int = 200, hud_url: str = None, telemetry_enabled: bool = True):
         self.bridge_url = bridge_url
         self.hud_url = hud_url
         self.interval_ms = interval_ms
@@ -31,6 +31,9 @@ class RealtimeFeed:
         self.frame_count = 0
         self.start_time = time.time()
         self.hud_ws = None
+        self.telemetry_enabled = telemetry_enabled
+        self.last_telemetry_time = 0
+        self.TELEMETRY_RATE_LIMIT = 30  # Seconds between telemetry pulses
 
     async def _connect_hud(self):
         """Connect to the Visual Bridge HUD."""
@@ -73,6 +76,10 @@ class RealtimeFeed:
                 "timestamp": time.time()
             }
             await self.hud_ws.send(json.dumps(msg))
+
+            # Send telemetry pulse for WordPress District sync
+            await self._send_telemetry_pulse(result, frame_data)
+
         except Exception as e:
             print(f"⚠️  HUD broadcast failed: {e}")
             self.hud_ws = None  # Reset for reconnection attempt
@@ -92,6 +99,74 @@ class RealtimeFeed:
                 for l in layout.lines[:10]  # Limit to 10 lines
             ]
         }
+
+    async def _send_telemetry_pulse(self, result, frame_data: str = None):
+        """
+        Send telemetry pulse to Visual Bridge for WordPress District sync.
+
+        This notifies the WordPress district on the Infinite Map that
+        significant UI structure has been detected.
+
+        Pulse Types:
+        - evolution_event: Significant layout detection
+        - diagnostic_pulse: Diagnostic alert (WARNING/CRITICAL)
+
+        Args:
+            result: ExtractionResult from pipeline
+            frame_data: Optional frame data for context
+        """
+        if not self.telemetry_enabled or not self.hud_ws:
+            return
+
+        # Rate limit telemetry
+        if time.time() - self.last_telemetry_time < self.TELEMETRY_RATE_LIMIT:
+            return
+
+        # Determine if we should send a pulse
+        should_pulse = False
+        pulse_type = None
+        pulse_data = {}
+
+        # Check for significant layout
+        if result.layout and (
+            len(result.layout.panels) >= 3 or
+            len(result.layout.buttons) >= 5
+        ):
+            should_pulse = True
+            pulse_type = "evolution_event"
+            pulse_data = {
+                "source": "shotcut_visual_hud",
+                "event": "significant_layout_detected",
+                "panel_count": len(result.layout.panels),
+                "button_count": len(result.layout.buttons),
+                "line_count": len(result.layout.lines),
+                "frame_number": self.frame_count
+            }
+
+        # Check for diagnostic alerts
+        elif result.diagnostic and result.diagnostic.severity != "SUCCESS":
+            should_pulse = True
+            pulse_type = "diagnostic_pulse"
+            pulse_data = {
+                "source": "shotcut_visual_hud",
+                "severity": result.diagnostic.severity,
+                "message": result.diagnostic.message,
+                "tokens": result.diagnostic.tokens,
+                "frame_number": self.frame_count
+            }
+
+        if should_pulse:
+            try:
+                pulse = {
+                    "type": pulse_type,
+                    "timestamp": time.time(),
+                    "data": pulse_data
+                }
+                await self.hud_ws.send(json.dumps(pulse))
+                self.last_telemetry_time = time.time()
+                print(f"📡 Telemetry pulse sent: {pulse_type}")
+            except Exception as e:
+                print(f"⚠️ Telemetry pulse failed: {e}")
 
     async def run(self):
         import websockets
