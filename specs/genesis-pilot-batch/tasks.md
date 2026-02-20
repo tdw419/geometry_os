@@ -315,7 +315,7 @@ _Design: Test Strategy - Scoring_
 
 ---
 
-### Task 3.5: Create test_batch_analyzer.py
+### Task 3.5: Create test_batch_analyzer.py [x]
 
 **Do**:
 1. Create `tests/intelligence/test_batch_analyzer.py`
