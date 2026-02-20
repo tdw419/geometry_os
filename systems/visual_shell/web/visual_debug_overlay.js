@@ -242,6 +242,11 @@ class VisualDebugOverlay {
             this._scheduleRender();
         });
 
+        // Listen for V16 Diagnostic Pulses (Perceptual Bridge)
+        window.addEventListener('DIAGNOSTIC_PULSE', (e) => {
+            this.handleDiagnosticPulse(e.detail);
+        });
+
         // Listen for Task DAG updates from TelemetryBus
         window.addEventListener('TASK_DAG_UPDATE', (e) => {
             this.processTaskDagUpdate(e.detail);
@@ -414,6 +419,30 @@ class VisualDebugOverlay {
         const app = window.geometryOSApp;
         if (app && app.neuralCity) {
             app.neuralCity.addPulse(worldX, worldY, Date.now(), 1.0);
+        }
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle V16 Diagnostic Pulse from Perceptual Bridge
+     */
+    handleDiagnosticPulse(data) {
+        if (!data) return;
+        
+        this.lastDiagnostic = {
+            ...data,
+            timestamp: Date.now()
+        };
+
+        // Show notification for critical events
+        if (data.severity === 'CRITICAL') {
+            this._showNotification(`🚨 SUBSTRATE PANIC: ${data.message}`, '#ff0000');
+            
+            // Auto-enable overlay to show the panic
+            if (!this.config.enabled) {
+                this.toggle();
+            }
         }
 
         this._scheduleRender();
@@ -1762,13 +1791,13 @@ class VisualDebugOverlay {
         let startY;
         if (this.uartBuffer && this.uartBuffer.length > 0) {
             // Place above Silicon Terminal
-            startY = this.hudCanvas.height - 460;
+            startY = this.hudCanvas.height - 520;
         } else {
             // Place at bottom
-            startY = this.hudCanvas.height - 260;
+            startY = this.hudCanvas.height - 320;
         }
 
-        const sectionHeight = 250;
+        const sectionHeight = 310;
         let y = startY;
 
         // Background for section
@@ -1828,6 +1857,26 @@ class VisualDebugOverlay {
         const cachePercent = stats.total > 0 ? Math.round((stats.loaded / stats.total) * 100) : 0;
         ctx.fillText(`Atlas Cache: ${stats.loaded}/${stats.total} (${cachePercent}%)`, padding, y);
         y += 16;
+
+        // Diagnostic Status (V16)
+        if (this.lastDiagnostic) {
+            const diag = this.lastDiagnostic;
+            const color = diag.severity === 'CRITICAL' ? '#ff4444' : 
+                         diag.severity === 'WARNING' ? '#ffaa00' : '#44ff44';
+            
+            ctx.fillStyle = color;
+            ctx.font = 'bold 11px monospace';
+            ctx.fillText(`👁️ PERCEPTION: ${diag.severity}`, padding, y);
+            y += 14;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = '10px monospace';
+            const lines = this._wrapText(diag.message, width - padding * 2);
+            for (const line of lines) {
+                ctx.fillText(`  ${line}`, padding, y);
+                y += 12;
+            }
+            y += 4;
+        }
 
         // Silicon District Section (V14)
         ctx.strokeStyle = '#00ff8844';
@@ -2394,10 +2443,206 @@ class VisualDebugOverlay {
     }
 }
 
+// ========================================
+// PERCEPTUAL BRIDGE V16 - Diagnostic HUD
+// ========================================
+
+class PerceptualBridgeHUD {
+    constructor(container) {
+        this.container = container;
+        this.section = null;
+        this.lastPulse = null;
+        this.anomalyCount = 0;
+        this.lastScanTime = null;
+        this.pcValue = null;
+        this._updateTimer = null;
+        this.createSection();
+        this._bindEvents();
+        // Register global instance for external access
+        window.perceptualBridgeHUD = this;
+    }
+
+    createSection() {
+        this.section = document.createElement('div');
+        this.section.className = 'hud-section perceptual-bridge';
+        this.section.innerHTML = `
+            <div class="hud-header">🔮 PERCEPTUAL BRIDGE V16</div>
+            <div class="hud-content">
+                <div class="status-row">
+                    <span class="label">Status:</span>
+                    <span class="value status-healthy" id="pb-status">✓ HEALTHY</span>
+                </div>
+                <div class="status-row">
+                    <span class="label">Last Scan:</span>
+                    <span class="value" id="pb-last-scan">--</span>
+                </div>
+                <div class="status-row">
+                    <span class="label">PC:</span>
+                    <span class="value" id="pb-pc">--</span>
+                </div>
+                <div class="status-row">
+                    <span class="label">Anomalies:</span>
+                    <span class="value" id="pb-anomalies">0</span>
+                </div>
+                <div class="anomaly-detail" id="pb-anomaly-detail" style="display:none;">
+                    <span class="warning-text" id="pb-warning"></span>
+                </div>
+            </div>
+        `;
+        this.container.appendChild(this.section);
+        this.statusEl = this.section.querySelector('#pb-status');
+        this.lastScanEl = this.section.querySelector('#pb-last-scan');
+        this.pcEl = this.section.querySelector('#pb-pc');
+        this.anomaliesEl = this.section.querySelector('#pb-anomalies');
+        this.anomalyDetailEl = this.section.querySelector('#pb-anomaly-detail');
+        this.warningEl = this.section.querySelector('#pb-warning');
+
+        // Inject styles if not already present
+        this._injectStyles();
+    }
+
+    _bindEvents() {
+        // Listen for DIAGNOSTIC_PULSE events from TelemetryBus/VisualBridge
+        window.addEventListener('DIAGNOSTIC_PULSE', (e) => {
+            this.updateFromPulse(e.detail);
+        });
+
+        // Listen for RISCV_STATE_UPDATE events for PC tracking
+        window.addEventListener('RISCV_STATE_UPDATE', (e) => {
+            if (e.detail && e.detail.pc !== undefined) {
+                this.updatePC(e.detail.pc);
+            }
+        });
+
+        // Start update timer for "time ago" display
+        this._startUpdateTimer();
+    }
+
+    _startUpdateTimer() {
+        // Update "time ago" display every second
+        this._updateTimer = setInterval(() => {
+            if (this.lastScanTime) {
+                const secs = Math.floor((Date.now() - this.lastScanTime.getTime()) / 1000);
+                this.lastScanEl.textContent = `${secs}s ago`;
+            }
+        }, 1000);
+    }
+
+    _injectStyles() {
+        const styleId = 'perceptual-bridge-styles';
+        if (document.getElementById(styleId)) return;
+
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+            .status-healthy { color: #00ff88; }
+            .status-warning { color: #ffaa00; }
+            .status-critical { color: #ff4444; font-weight: bold; }
+
+            .perceptual-bridge.alerting {
+                border: 2px solid #ff4444;
+                animation: pulse-alert 1s infinite;
+            }
+
+            @keyframes pulse-alert {
+                0%, 100% { background-color: rgba(255, 68, 68, 0.1); }
+                50% { background-color: rgba(255, 68, 68, 0.3); }
+            }
+
+            .anomaly-detail {
+                margin-top: 8px;
+                padding: 6px;
+                background: rgba(255, 68, 68, 0.2);
+                border-radius: 4px;
+            }
+
+            .warning-text {
+                color: #ff6666;
+                font-size: 11px;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    updateFromPulse(data) {
+        this.lastPulse = data;
+        this.lastScanTime = new Date();
+        this.updateDisplay();
+    }
+
+    updatePC(pcValue) {
+        this.pcValue = pcValue;
+        this.updateDisplay();
+    }
+
+    updateDisplay() {
+        if (!this.lastPulse) return;
+        const { status, matched_pattern } = this.lastPulse;
+
+        if (status === 'CRITICAL') {
+            this.statusEl.textContent = '✗ CRITICAL';
+            this.statusEl.className = 'value status-critical';
+            this.anomalyCount++;
+            this.showAnomalyDetail(matched_pattern);
+        } else if (status === 'WARNING') {
+            this.statusEl.textContent = '⚠ WARNING';
+            this.statusEl.className = 'value status-warning';
+            this.anomalyCount++;
+            this.showAnomalyDetail(matched_pattern);
+        } else {
+            this.statusEl.textContent = '✓ HEALTHY';
+            this.statusEl.className = 'value status-healthy';
+            this.hideAnomalyDetail();
+        }
+
+        if (this.lastScanTime) {
+            const secs = Math.floor((Date.now() - this.lastScanTime.getTime()) / 1000);
+            this.lastScanEl.textContent = `${secs}s ago`;
+        }
+        if (this.pcValue !== null) {
+            this.pcEl.textContent = `0x${this.pcValue.toString(16).padStart(8, '0')}`;
+        }
+        this.anomaliesEl.textContent = this.anomalyCount;
+    }
+
+    showAnomalyDetail(pattern) {
+        this.anomalyDetailEl.style.display = 'block';
+        this.warningEl.textContent = `⚠ ${pattern}`;
+        this.section.classList.add('alerting');
+    }
+
+    hideAnomalyDetail() {
+        this.anomalyDetailEl.style.display = 'none';
+        this.section.classList.remove('alerting');
+    }
+
+    destroy() {
+        // Stop update timer
+        if (this._updateTimer) {
+            clearInterval(this._updateTimer);
+            this._updateTimer = null;
+        }
+        // Remove global reference
+        if (window.perceptualBridgeHUD === this) {
+            window.perceptualBridgeHUD = null;
+        }
+        // Remove section from DOM
+        if (this.section && this.section.parentNode) {
+            this.section.parentNode.removeChild(this.section);
+        }
+    }
+}
+
+// Register with main HUD
+if (typeof VisualDebugOverlay !== 'undefined') {
+    VisualDebugOverlay.registerModule('perceptualBridge', PerceptualBridgeHUD);
+}
+
 // Export
 if (typeof window !== 'undefined') {
     window.VisualDebugOverlay = VisualDebugOverlay;
+    window.PerceptualBridgeHUD = PerceptualBridgeHUD;
 }
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { VisualDebugOverlay };
+    module.exports = { VisualDebugOverlay, PerceptualBridgeHUD };
 }
