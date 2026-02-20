@@ -632,6 +632,9 @@ class VisualBridge:
         if self._tectonic_enabled:
             await self._setup_spatial_tectonics()
 
+        # Initialize Perceptual Bridge V16 (New)
+        await self._setup_perceptual_bridge()
+
         async with serve(self.handle_client, "0.0.0.0", self.ws_port):
             await asyncio.Future()
 
@@ -652,6 +655,28 @@ class VisualBridge:
         except Exception as e:
             print(f"⚠️  Failed to initialize Spatial Tectonics: {e}")
             self.consensus_engine = None
+
+    async def _setup_perceptual_bridge(self):
+        """Initialize the Perceptual Bridge for Silicon District monitoring."""
+        try:
+            from systems.neural_city.perceptual_bridge import PerceptualBridge
+
+            self.perceptual_bridge = PerceptualBridge(
+                ws_url=f"ws://localhost:{self.ws_port}",
+                district_id="silicon",
+                scan_interval=2.0
+            )
+
+            # Start as background task
+            asyncio.create_task(self.perceptual_bridge.start())
+            print("🔮 Perceptual Bridge V16 initialized (2s scan interval)")
+
+        except ImportError as e:
+            print(f"⚠️  Perceptual Bridge not available: {e}")
+            self.perceptual_bridge = None
+        except Exception as e:
+            print(f"⚠️  Failed to initialize Perceptual Bridge: {e}")
+            self.perceptual_bridge = None
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Visual Bridge for Geometry OS')
