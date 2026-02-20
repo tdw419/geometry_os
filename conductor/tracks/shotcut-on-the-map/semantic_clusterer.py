@@ -130,6 +130,13 @@ class SemanticClusterer:
     FORM_KEYWORDS = {'name', 'email', 'phone', 'address', 'password', 'username', 'login'}
     BUTTON_KEYWORDS = {'ok', 'cancel', 'submit', 'save', 'open', 'close', 'yes', 'no', 'apply'}
 
+    # Video editor specific keywords (Shotcut, Premiere, etc.)
+    TIMELINE_KEYWORDS = {'timeline', 'track', 'clip', 'playhead', 'scrub', 'marker', 'in', 'out'}
+    PREVIEW_KEYWORDS = {'preview', 'play', 'pause', 'stop', 'forward', 'rewind', 'fullscreen'}
+    FILTER_KEYWORDS = {'filter', 'effect', 'transition', 'fade', 'blur', 'color', 'audio', 'video'}
+    MEDIA_KEYWORDS = {'media', 'import', 'playlist', 'clip', 'file', 'folder', 'project'}
+    PROPERTIES_KEYWORDS = {'properties', 'settings', 'config', 'position', 'size', 'opacity'}
+
     def cluster(self, elements: List[OCRElement]) -> List[UICluster]:
         """
         Cluster OCR elements into semantic UI groups.
@@ -216,11 +223,41 @@ class SemanticClusterer:
     def _infer_label(self, elements: List[OCRElement]) -> str:
         """
         Infer a semantic label for a group of elements based on their content.
+        Handles both generic UI patterns and video editor specific components.
         """
         if not elements:
             return "unknown"
 
         texts = [e.text.lower() for e in elements]
+
+        # === Video Editor Specific Detection ===
+
+        # Timeline panel (usually at bottom of screen)
+        timeline_match = self._detect_timeline_panel(elements, texts)
+        if timeline_match:
+            return timeline_match
+
+        # Preview/playback controls
+        preview_matches = sum(1 for t in texts if any(kw in t for kw in self.PREVIEW_KEYWORDS))
+        if preview_matches >= 2:
+            return "playback_controls"
+
+        # Filters/effects panel
+        filter_matches = sum(1 for t in texts if any(kw in t for kw in self.FILTER_KEYWORDS))
+        if filter_matches >= 1:
+            return "filters_panel"
+
+        # Media bin/playlist
+        media_matches = sum(1 for t in texts if any(kw in t for kw in self.MEDIA_KEYWORDS))
+        if media_matches >= 2:
+            return "media_panel"
+
+        # Properties/settings panel
+        props_matches = sum(1 for t in texts if any(kw in t for kw in self.PROPERTIES_KEYWORDS))
+        if props_matches >= 1:
+            return "properties_panel"
+
+        # === Generic UI Detection ===
 
         # Check for menu bar patterns (horizontal row of menu keywords)
         if len(elements) >= 2:
@@ -258,6 +295,109 @@ class SemanticClusterer:
                 return "horizontal_row"
 
         return "group"
+
+    def _detect_timeline_panel(self, elements: List[OCRElement], texts: List[str]) -> Optional[str]:
+        """Detect timeline panel based on content and position."""
+        timeline_matches = sum(1 for t in texts if any(kw in t for kw in self.TIMELINE_KEYWORDS))
+        if timeline_matches >= 1 and len(elements) >= 2:
+            x_spread = max(e.x for e in elements) - min(e.x for e in elements)
+            if x_spread > 400:
+                return "timeline_panel"
+        return None
+
+    def cluster_with_regions(
+        self,
+        elements: List[OCRElement],
+        screen_width: int = 1024,
+        screen_height: int = 768
+    ) -> List[UICluster]:
+        """
+        Cluster elements with screen region awareness.
+
+        Identifies UI regions (menu bar, bottom panels, side panels)
+        before clustering for better results with video editor layouts.
+
+        Args:
+            elements: List of OCRElement objects
+            screen_width: Screen width in pixels (default: 1024)
+            screen_height: Screen height in pixels (default: 768)
+
+        Returns:
+            List of UICluster objects with region-aware labels
+        """
+        if not elements:
+            return []
+
+        # Define screen regions
+        MENU_REGION_HEIGHT = 40  # Top menu bar region
+        BOTTOM_REGION_START = int(screen_height * 0.6)  # Bottom 40% for timeline
+        SIDE_PANEL_WIDTH = int(screen_width * 0.2)  # 20% for side panels
+
+        # Separate elements by region
+        menu_elements = []
+        bottom_elements = []
+        left_panel_elements = []
+        right_panel_elements = []
+        center_elements = []
+
+        for elem in elements:
+            if elem.y < MENU_REGION_HEIGHT:
+                menu_elements.append(elem)
+            elif elem.y > BOTTOM_REGION_START:
+                bottom_elements.append(elem)
+            elif elem.x < SIDE_PANEL_WIDTH:
+                left_panel_elements.append(elem)
+            elif elem.x > screen_width - SIDE_PANEL_WIDTH:
+                right_panel_elements.append(elem)
+            else:
+                center_elements.append(elem)
+
+        clusters = []
+
+        # Cluster menu region
+        if menu_elements:
+            menu_clusters = self._spatial_cluster(menu_elements)
+            for group in menu_clusters:
+                label = self._infer_label(group)
+                if label == "group":  # Upgrade to menu_bar if in menu region
+                    label = "menu_bar"
+                clusters.append(UICluster(label=label, elements=group))
+
+        # Cluster bottom region (timeline area)
+        if bottom_elements:
+            bottom_clusters = self._spatial_cluster(bottom_elements)
+            for group in bottom_clusters:
+                label = self._infer_label(group)
+                if label == "group" or label == "horizontal_row":
+                    label = "timeline_panel"
+                clusters.append(UICluster(label=label, elements=group))
+
+        # Cluster left panel
+        if left_panel_elements:
+            left_clusters = self._spatial_cluster(left_panel_elements)
+            for group in left_clusters:
+                label = self._infer_label(group)
+                if label == "group" or label == "vertical_list":
+                    label = "side_panel_left"
+                clusters.append(UICluster(label=label, elements=group))
+
+        # Cluster right panel
+        if right_panel_elements:
+            right_clusters = self._spatial_cluster(right_panel_elements)
+            for group in right_clusters:
+                label = self._infer_label(group)
+                if label == "group" or label == "vertical_list":
+                    label = "side_panel_right"
+                clusters.append(UICluster(label=label, elements=group))
+
+        # Cluster center elements normally
+        if center_elements:
+            center_clusters = self._spatial_cluster(center_elements)
+            for group in center_clusters:
+                label = self._infer_label(group)
+                clusters.append(UICluster(label=label, elements=group))
+
+        return clusters
 
 
 # Convenience function for direct usage

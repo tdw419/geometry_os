@@ -173,3 +173,148 @@ class TestUICluster:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+class TestVideoEditorClustering:
+    """Tests for video editor specific clustering (Shotcut, etc.)."""
+
+    def test_timeline_panel_detection(self):
+        """Wide horizontal cluster with timeline keywords should be labeled timeline_panel."""
+        # Elements close enough to cluster (within HORIZONTAL_THRESHOLD=50)
+        # but spread wide horizontally (>400px total spread)
+        elements = [
+            OCRElement(text="Timeline", x=0, y=600, width=60, height=20),
+            OCRElement(text="Track1", x=70, y=600, width=50, height=20),    # gap=10
+            OCRElement(text="Clip", x=130, y=600, width=40, height=20),     # gap=10
+            OCRElement(text="Marker", x=180, y=600, width=50, height=20),   # gap=10
+            OCRElement(text="In", x=240, y=600, width=20, height=20),       # gap=10
+            OCRElement(text="Out", x=270, y=600, width=25, height=20),      # gap=10
+            OCRElement(text="Track2", x=305, y=600, width=50, height=20),   # gap=10
+            OCRElement(text="Clip2", x=365, y=600, width=50, height=20),    # gap=10
+            OCRElement(text="Track3", x=425, y=600, width=50, height=20),   # x_spread now 475>400
+        ]
+
+        clusterer = SemanticClusterer()
+        clusters = clusterer.cluster(elements)
+
+        # All elements should cluster together (adjacent horizontally)
+        assert len(clusters) == 1
+        assert clusters[0].label == "timeline_panel"
+
+    def test_playback_controls_detection(self):
+        """Cluster with playback keywords should be labeled playback_controls."""
+        elements = [
+            OCRElement(text="Play", x=100, y=100, width=30, height=20),
+            OCRElement(text="Pause", x=140, y=100, width=30, height=20),
+            OCRElement(text="Stop", x=180, y=100, width=30, height=20),
+        ]
+
+        clusterer = SemanticClusterer()
+        clusters = clusterer.cluster(elements)
+
+        assert len(clusters) == 1
+        assert clusters[0].label == "playback_controls"
+
+    def test_filters_panel_detection(self):
+        """Cluster with filter keywords should be labeled filters_panel."""
+        elements = [
+            OCRElement(text="Filter", x=0, y=100, width=40, height=20),
+            OCRElement(text="Blur", x=0, y=130, width=30, height=20),
+        ]
+
+        clusterer = SemanticClusterer()
+        clusters = clusterer.cluster(elements)
+
+        assert len(clusters) == 1
+        assert clusters[0].label == "filters_panel"
+
+    def test_media_panel_detection(self):
+        """Cluster with media keywords should be labeled media_panel."""
+        elements = [
+            OCRElement(text="Media", x=0, y=100, width=40, height=20),
+            OCRElement(text="Playlist", x=0, y=130, width=50, height=20),
+            OCRElement(text="Import", x=0, y=160, width=45, height=20),
+        ]
+
+        clusterer = SemanticClusterer()
+        clusters = clusterer.cluster(elements)
+
+        assert len(clusters) == 1
+        assert clusters[0].label == "media_panel"
+
+    def test_properties_panel_detection(self):
+        """Cluster with properties keywords should be labeled properties_panel."""
+        elements = [
+            OCRElement(text="Properties", x=0, y=100, width=70, height=20),
+            OCRElement(text="Position", x=0, y=130, width=55, height=20),
+        ]
+
+        clusterer = SemanticClusterer()
+        clusters = clusterer.cluster(elements)
+
+        assert len(clusters) == 1
+        assert clusters[0].label == "properties_panel"
+
+    def test_cluster_with_regions_menu(self):
+        """cluster_with_regions should detect menu bar from position."""
+        elements = [
+            OCRElement(text="File", x=0, y=10, width=30, height=20),
+            OCRElement(text="Edit", x=35, y=10, width=30, height=20),
+        ]
+
+        clusterer = SemanticClusterer()
+        clusters = clusterer.cluster_with_regions(elements, screen_width=1024, screen_height=768)
+
+        assert len(clusters) == 1
+        assert clusters[0].label == "menu_bar"
+
+    def test_cluster_with_regions_timeline(self):
+        """cluster_with_regions should detect timeline from position."""
+        elements = [
+            OCRElement(text="Track1", x=0, y=650, width=50, height=20),
+            OCRElement(text="Track2", x=60, y=650, width=50, height=20),
+        ]
+
+        clusterer = SemanticClusterer()
+        clusters = clusterer.cluster_with_regions(elements, screen_width=1024, screen_height=768)
+
+        assert len(clusters) == 1
+        assert clusters[0].label == "timeline_panel"
+
+    def test_cluster_with_regions_side_panels(self):
+        """cluster_with_regions should detect side panels from position."""
+        # Use generic text that doesn't match specific panel types
+        left_elements = [
+            OCRElement(text="Item1", x=50, y=300, width=40, height=20),
+            OCRElement(text="Item2", x=50, y=330, width=40, height=20),
+        ]
+        right_elements = [
+            OCRElement(text="Info1", x=900, y=300, width=40, height=20),
+            OCRElement(text="Info2", x=900, y=330, width=40, height=20),
+        ]
+
+        clusterer = SemanticClusterer()
+        clusters = clusterer.cluster_with_regions(
+            left_elements + right_elements,
+            screen_width=1024,
+            screen_height=768
+        )
+
+        assert len(clusters) == 2
+        labels = {c.label for c in clusters}
+        assert "side_panel_left" in labels
+        assert "side_panel_right" in labels
+
+    def test_timeline_not_detected_for_narrow_cluster(self):
+        """Narrow cluster with timeline keywords should not be timeline_panel."""
+        elements = [
+            OCRElement(text="Timeline", x=0, y=600, width=60, height=20),
+            OCRElement(text="Track", x=70, y=600, width=40, height=20),
+        ]
+
+        clusterer = SemanticClusterer()
+        clusters = clusterer.cluster(elements)
+
+        # x_spread is only 110 pixels (< 400), so not detected as timeline
+        assert len(clusters) == 1
+        assert clusters[0].label != "timeline_panel"
