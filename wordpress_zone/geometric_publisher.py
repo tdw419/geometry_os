@@ -44,7 +44,8 @@ except ImportError:
 # Opcode definitions (synced with PixelRTS v3)
 OPCODES = {
     0x00: "NOP", 0x01: "MOV", 0x33: "ADD", 0x34: "SUB",
-    0x35: "MUL", 0x36: "DIV", 0x06: "JMP", 0x07: "HALT", 0x08: "LDI"
+    0x35: "MUL", 0x36: "DIV", 0x06: "JMP", 0x07: "HALT", 0x08: "LDI",
+    0x37: "CMP", 0x38: "BEQ", 0x47: "LDP", 0x48: "STP"
 }
 
 OPCODE_COLORS = {
@@ -57,6 +58,10 @@ OPCODE_COLORS = {
     0x06: "#FFFF44",  # JMP - yellow
     0x07: "#FF4444",  # HALT - bright red
     0x08: "#44FFFF",  # LDI - cyan
+    0x37: "#AAAAFF",  # CMP - lavender
+    0x38: "#FF88AA",  # BEQ - pink
+    0x47: "#AAFF88",  # LDP - light green
+    0x48: "#FFAAAA",  # STP - light red
 }
 
 
@@ -89,8 +94,14 @@ class GeometricPublisher:
 
         if r == 0x08:  # LDI
             return f'<span style="color:{color}"><b>LDI</b> r{a}, {g}</span>'
-        elif r in [0x33, 0x34, 0x35, 0x36]:  # ADD, SUB, MUL, DIV
+        elif r in [0x33, 0x34, 0x35, 0x36, 0x37]:  # ADD, SUB, MUL, DIV, CMP
             return f'<span style="color:{color}"><b>{op_name}</b> r{a}, r{g}, r{b}</span>'
+        elif r == 0x38:  # BEQ
+            return f'<span style="color:{color}"><b>BEQ</b> r{g}, r{b}, {a}</span>'
+        elif r == 0x47:  # LDP
+            return f'<span style="color:{color}"><b>LDP</b> r{a}, r{g}</span>'
+        elif r == 0x48:  # STP
+            return f'<span style="color:{color}"><b>STP</b> r{g}, r{a}</span>'
         elif r == 0x01:  # MOV
             return f'<span style="color:{color}"><b>MOV</b> r{a}, r{g}</span>'
         elif r == 0x06:  # JMP

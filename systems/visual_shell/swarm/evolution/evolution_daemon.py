@@ -41,6 +41,7 @@ from typing import Any, Dict, List, Optional
 # Add parent directories to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent))
 
+from systems.visual_shell.api.evolution_webmcp_bridge import create_evolution_wordpress_hook
 from systems.visual_shell.swarm.evolution import (
     RecursiveOrchestrator,
     EvolutionPhase,
@@ -172,6 +173,14 @@ class EvolutionDaemon:
                 str(Path(__file__).parent / "recursive_orchestrator.py"),
             ]
         )
+
+        # Initialize WordPress WebMCP Hook
+        try:
+            self.wordpress_hook = create_evolution_wordpress_hook()
+            self.logger.info("WordPress WebMCP Hook initialized")
+        except Exception as e:
+            self.wordpress_hook = None
+            self.logger.warning(f"Failed to initialize WordPress Hook: {e}")
 
         # Set up paths
         self._setup_paths()
@@ -508,6 +517,19 @@ class EvolutionDaemon:
 
         if result.success:
             self._record_improvement()
+
+            # Trigger WordPress WebMCP Hook
+            if self.wordpress_hook:
+                try:
+                    self.wordpress_hook.on_improvement(
+                        cycle=self.state.total_cycles,
+                        target=result.target_file,
+                        improvement=result.metadata.get("improvement_summary", "Self-improvement applied"),
+                        delta=result.improvement_delta,
+                        success=True
+                    )
+                except Exception as e:
+                    self.logger.warning(f"WordPress Hook execution failed: {e}")
 
             # Log to tracker
             event = EvolutionEvent(

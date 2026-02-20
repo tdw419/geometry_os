@@ -2,11 +2,30 @@ import requests
 import json
 import sys
 import os
+import websocket
+import time
 
 # Geometry OS WordPress Auto-Blogger Tool
 # ---------------------------------------
 # This script allows any AI agent to publish updates directly to the 
 # WordPress semantic district.
+
+def send_visual_pulse(title, content, url):
+    """Send an immediate telemetry pulse to the Visual Bridge."""
+    try:
+        ws = websocket.create_connection("ws://localhost:8768", timeout=1)
+        payload = {
+            "type": "wordpress_publish",
+            "title": title,
+            "content": content,
+            "url": url,
+            "timestamp": time.time()
+        }
+        ws.send(json.dumps(payload))
+        ws.close()
+        print("📡 Sent visual pulse to Visual Bridge.")
+    except Exception as e:
+        print(f"⚠️ Failed to send visual pulse: {e}")
 
 def publish_to_wordpress(title, content, post_type='post'):
     """
@@ -26,6 +45,10 @@ def publish_to_wordpress(title, content, post_type='post'):
             print(f"✅ Post published successfully!")
             print(f"🔗 URL: {result.get('url')}")
             print(f"🆔 ID: {result.get('post_id')}")
+            
+            # Send visual pulse for immediate feedback
+            send_visual_pulse(title, content, result.get('url', ''))
+            
             return result
         else:
             print(f"❌ Failed to publish: {response.status_code}")
