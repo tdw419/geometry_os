@@ -205,7 +205,7 @@ _Design: C2 VerseClassifier_
 
 ---
 
-### Task 2.3 [VERIFY] Quality checkpoint: type checking
+### Task 2.3 [VERIFY] Quality checkpoint: type checking [x]
 
 **Do**:
 1. Run mypy or pyright on modified files if available
@@ -222,7 +222,7 @@ _Design: C2 VerseClassifier_
 
 ## Phase 3: Testing
 
-### Task 3.1: Create test package structure
+### Task 3.1: Create test package structure [x]
 
 **Do**:
 1. Create directory `tests/intelligence/`
