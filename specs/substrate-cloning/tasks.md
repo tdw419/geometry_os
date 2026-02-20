@@ -41,10 +41,10 @@ Convert extracted VM UI structures into native PixelRTS WGSL shaders.
 - **Files**: `systems/evolution_daemon/clone_orchestrator.py`, `tests/evolution_daemon/test_clone_orchestrator.py`
 
 ### Task 4: Add clone_tile RPC to LiveTileService
-- [ ] Write failing test for clone RPC
-- [ ] Add CloneOrchestrator integration to LiveTileService
-- [ ] Add clone_tile handler to handle_rpc()
-- [ ] Verify tests pass (1 test)
+- [x] Write failing test for clone RPC
+- [x] Add CloneOrchestrator integration to LiveTileService
+- [x] Add clone_tile handler to handle_rpc()
+- [x] Verify tests pass (1 test)
 - **Assignee**: clone-orchestrator
 - **Files**: `systems/evolution_daemon/live_tile_service.py`, `tests/evolution_daemon/test_live_tile_service_clone.py`
 
@@ -77,7 +77,7 @@ Convert extracted VM UI structures into native PixelRTS WGSL shaders.
 | 1 | UITransmuter Wrapper | 2 | ✅ Done |
 | 2 | SubstrateBrush | 5 | ✅ Done |
 | 3 | CloneOrchestrator | 5 | ✅ Done |
-| 4 | LiveTileService RPC | 1 | Pending |
+| 4 | LiveTileService RPC | 3 | ✅ Done |
 | 5 | Frontend Clone Button | - | Pending |
 | 6 | E2E Integration | 2 | Pending |
 | 7 | Documentation | - | Pending |
