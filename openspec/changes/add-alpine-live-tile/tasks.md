@@ -2,17 +2,20 @@
 
 ## Phase 1: Core Infrastructure (P0)
 
-### Task 1.1: AlpineV3Builder
+### Task 1.1: AlpineV3Builder (Shim Approach)
 **File**: `systems/pixel_compiler/alpine_v3_builder.py`
 
-Create ISO to PixelRTS v3 converter:
+Create ISO to PixelRTS v3 converter using **shim strategy** (not full transpilation):
 - [ ] Parse Alpine ISO structure
-- [ ] Extract kernel and initramfs
-- [ ] Map to Hilbert coordinates
-- [ ] Generate RGBA instruction encoding
+- [ ] Extract kernel and initramfs as binary blobs
+- [ ] Create boot.pasm shim with NATIVE_EXEC call
+- [ ] Map blobs to Hilbert coordinates (768,0)+
+- [ ] Generate RGBA boot sector with shim loader
 - [ ] Output `alpine_v3.rts.png`
 
-**Verification**: Unit test generates valid v3 format file
+**Note**: Full opcode transpilation not required. Uses native_exec shim (Task 1.4) to execute standard Alpine kernel.
+
+**Verification**: Unit test generates valid v3 format file with bootable shim
 
 ---
 
@@ -40,6 +43,20 @@ Map keyboard events to memory-mapped I/O pixels:
 - [ ] Support for special keys (Enter, Backspace, arrows)
 
 **Verification**: Unit tests verify correct pixel coordinates
+
+---
+
+### Task 1.4: Native Exec Shim (NEW)
+**File**: `systems/pixel_compiler/pixelrts_v3/native_exec.py`
+
+Implement shim approach for native kernel execution (per review feedback):
+- [ ] Implement NATIVE_EXEC opcode (0xF0)
+- [ ] Create PixelIOBridge for native→pixel I/O routing
+- [ ] Support QEMU execution backend
+- [ ] Handle protected memory regions
+- [ ] Bridge native kernel to memory-mapped terminal
+
+**Verification**: Unit tests for shim execution with I/O bridge
 
 ---
 
@@ -118,16 +135,46 @@ Log Alpine commands to NeuralMemoryHub:
 
 ---
 
+## Phase 6: WordPress Semantic Publishing (P2)
+
+### Task 6.1: Alpine WordPress Bridge
+**File**: `systems/evolution_daemon/alpine_wordpress_bridge.py`
+
+Bridge Alpine events to WordPress Semantic District:
+- [ ] Implement `AlpineWordPressBridge` class
+- [ ] Add significant command pattern matching
+- [ ] Rate limiting (1 post / 30 seconds)
+- [ ] Semantic HTML formatting for posts
+- [ ] Visual Bridge pulse on publish
+
+**Verification**: Unit tests for bridge and rate limiting
+
+---
+
+### Task 6.2: WordPress-LiveTile Integration
+**File**: `systems/evolution_daemon/live_tile_service.py`
+
+Connect LiveTileService to WordPress bridge:
+- [ ] Add `wp_bridge` to LiveTileService
+- [ ] Track pending commands for output correlation
+- [ ] Call `publish_session_log` on significant output
+- [ ] Handle `_on_alpine_output` callback
+
+**Verification**: Integration test for end-to-end publishing
+
+---
+
 ## Test Coverage
 
 | Phase | Unit Tests | Integration Tests | E2E Tests |
 |-------|------------|-------------------|-----------|
-| 1 | 15 | 3 | 0 |
+| 1 | 19 | 3 | 0 |
 | 2 | 8 | 4 | 0 |
 | 3 | 0 | 0 | 3 |
 | 4 | 5 | 0 | 2 |
 | 5 | 4 | 0 | 0 |
-| **Total** | **32** | **7** | **5** |
+| 6 | 6 | 1 | 0 |
+| **Total** | **42** | **8** | **5** |
 
 ---
 
@@ -138,11 +185,13 @@ systems/
 ├── pixel_compiler/
 │   ├── alpine_v3_builder.py       # NEW
 │   └── pixelrts_v3/
-│       └── opcodes.py             # EXTEND
+│       ├── opcodes.py             # EXTEND
+│       └── native_exec.py         # NEW (Task 1.4)
 │
 ├── evolution_daemon/
 │   ├── live_tile_service.py       # EXTEND
-│   └── neural_event.py            # EXTEND
+│   ├── neural_event.py            # EXTEND
+│   └── alpine_wordpress_bridge.py # NEW (Task 6.1)
 │
 ├── visual_shell/
 │   ├── api/
@@ -151,9 +200,12 @@ systems/
 │   └── web/js/
 │       └── LiveTile.js            # EXTEND
 │
-└── riscv_gpu/
-    └── alpine_v3_kernel/          # NEW
-        ├── boot.pasm
-        ├── terminal.pasm
-        └── shell.pasm
+├── riscv_gpu/
+│   └── alpine_v3_kernel/          # NEW
+│       ├── boot.pasm
+│       ├── terminal.pasm
+│       └── shell.pasm
+│
+└── wordpress_zone/
+    └── publish_to_wp.py           # EXISTING (used by bridge)
 ```

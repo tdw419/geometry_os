@@ -432,7 +432,257 @@ def capture_alpine_event(tile_id: str, event_type: str, data: dict):
 
 ---
 
-## 6. Test Verification Matrix
+## 6. WordPress Semantic Publishing Integration
+
+The Alpine Live Tile integrates with the WordPress Semantic District for long-term memory persistence and human-readable system mirrors.
+
+### 6.1 Integration Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                ALPINE → WORDPRESS MEMORY PIPELINE                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   Alpine Terminal                                                       │
+│        │                                                                │
+│        ▼                                                                │
+│   capture_alpine_event() ──► NeuralMemoryHub (short-term)              │
+│        │                                                                │
+│        ├──────────────────────────────────────────────┐                 │
+│        ▼                                              ▼                 │
+│   Visual Bridge (8768)                      publish_to_wordpress()      │
+│   "evolution_event" pulse                   "Alpine Session Log"        │
+│        │                                              │                 │
+│        ▼                                              ▼                 │
+│   Infinite Map Pulse                  WordPress District (localhost)    │
+│   (WordPress tile glows)              Human-readable archive            │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 6.2 Event-to-WordPress Bridge
+
+```python
+# systems/evolution_daemon/alpine_wordpress_bridge.py
+
+from wordpress_zone.publish_to_wp import publish_to_wordpress
+import time
+
+class AlpineWordPressBridge:
+    """Bridge Alpine terminal events to WordPress Semantic District."""
+
+    # Rate limiting: max 1 post per 30 seconds
+    MIN_PUBLISH_INTERVAL = 30
+    last_publish_time = 0
+
+    # Significant command patterns that trigger journaling
+    SIGNIFICANT_PATTERNS = [
+        r'^git\s+(commit|push|merge)',     # Version control
+        r'^cargo\s+(build|test)',          # Build events
+        r'^python.*test',                   # Test runs
+        r'^echo.*>>',                       # File writes
+        r'^cat\s+',                         # File reads
+        r'^\./.*\.sh',                      # Script execution
+        r'^make\s+',                        # Build commands
+    ]
+
+    def should_publish(self, command: str, exit_code: int) -> bool:
+        """Determine if command is significant enough for WordPress."""
+        import re
+        # Always publish errors
+        if exit_code != 0:
+            return True
+        # Check patterns
+        for pattern in self.SIGNIFICANT_PATTERNS:
+            if re.match(pattern, command.strip()):
+                return True
+        return False
+
+    def publish_session_log(self, tile_id: str, command: str, output: str, exit_code: int):
+        """Publish significant Alpine events to WordPress."""
+        # Rate limiting
+        now = time.time()
+        if now - self.last_publish_time < self.MIN_PUBLISH_INTERVAL:
+            return
+        self.last_publish_time = now
+
+        # Format content with semantic HTML
+        status = "✅ Success" if exit_code == 0 else f"❌ Exit {exit_code}"
+        content = f"""
+        <h3>Alpine Terminal Session</h3>
+        <p><b>Tile:</b> <code>{tile_id}</code></p>
+        <p><b>Status:</b> {status}</p>
+        <h4>Command</h4>
+        <pre><code>{command}</code></pre>
+        <h4>Output</h4>
+        <pre>{output[:2000]}{'...' if len(output) > 2000 else ''}</pre>
+        <p><i>Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S')}</i></p>
+        """
+
+        publish_to_wordpress(
+            title=f"Alpine: {command[:50]}{'...' if len(command) > 50 else ''}",
+            content=content,
+            post_type="post"
+        )
+
+        # Pulse Visual Bridge for map visualization
+        self._pulse_wordpress_district(tile_id)
+
+    def _pulse_wordpress_district(self, tile_id: str):
+        """Send telemetry pulse to Visual Bridge."""
+        import websockets
+        import asyncio
+
+        async def send_pulse():
+            async with websockets.connect('ws://localhost:8768') as ws:
+                await ws.send(json.dumps({
+                    "type": "evolution_event",
+                    "source": "alpine_wordpress_bridge",
+                    "tile_id": tile_id,
+                    "district": "wordpress_zone",
+                    "action": "session_logged"
+                }))
+
+        asyncio.run(send_pulse())
+```
+
+### 6.3 LiveTileService WordPress Integration
+
+```python
+# Extension to LiveTileService
+
+class LiveTileService:
+    def __init__(self):
+        # ... existing init ...
+        self.wp_bridge = AlpineWordPressBridge()
+
+    async def send_alpine_input(self, tile_id: str, input: str, source: str) -> None:
+        """Send input and track for WordPress publishing."""
+        tile = self._tiles[tile_id]
+
+        # Store command for output correlation
+        if input.endswith('\n'):
+            tile._pending_command = input.strip()
+
+        # ... existing input handling ...
+
+    async def _on_alpine_output(self, tile_id: str, output: str, exit_code: int):
+        """Handle output completion with WordPress publishing."""
+        tile = self._tiles[tile_id]
+        command = getattr(tile, '_pending_command', '')
+
+        if command and self.wp_bridge.should_publish(command, exit_code):
+            self.wp_bridge.publish_session_log(
+                tile_id=tile_id,
+                command=command,
+                output=output,
+                exit_code=exit_code
+            )
+```
+
+### 6.4 Semantic Search Integration
+
+Alpine commands published to WordPress are indexed by the Memory Beam system:
+
+```python
+# Query past Alpine sessions via SynapticQueryEngine
+from systems.evolution_daemon.synaptic_query import SynapticQueryEngine
+
+engine = SynapticQueryEngine()
+
+# Find all git commits from Alpine
+results = engine.query("""
+    SELECT title, content, timestamp
+    FROM wordpress_posts
+    WHERE source = 'alpine_wordpress_bridge'
+    AND content LIKE '%git commit%'
+    ORDER BY timestamp DESC
+    LIMIT 10
+""")
+
+# Or browse visually at http://localhost:8080
+```
+
+### 6.5 Constraints
+
+| Constraint | Value | Reason |
+|------------|-------|--------|
+| Rate Limit | 1 post / 30s | Prevent database bloat |
+| Output Truncation | 2000 chars | Post size limits |
+| Localhost Only | 127.0.0.1 | Security (ai-publisher.php) |
+| Author Attribution | User ID 1 | Geometry OS Administrator |
+
+---
+
+## 7. AlpineV3Builder Kernel Strategy
+
+Per review feedback, the AlpineV3Builder uses a **shim approach** rather than full opcode transpilation:
+
+### 7.1 Shim Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    ALPINE V3 SHIM BOOT STRATEGY                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   boot.pasm (v3 opcodes):                                               │
+│   ┌─────────────────────────────────────────────────────────────────┐   │
+│   │ LDI r0, KERNEL_ADDR     # Load kernel blob address              │   │
+│   │ LDI r1, KERNEL_SIZE     # Load kernel size                      │   │
+│   │ CALL native_exec        # Execute native binary blob            │   │
+│   │                                                               │   │
+│   │ # native_exec is a v3 opcode that:                            │   │
+│   │ # 1. Sets up protected memory region                          │   │
+│   │ # 2. Jumps to native entry point                              │   │
+│   │ # 3. Bridges I/O to memory-mapped pixels                      │   │
+│   └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│   Native Kernel (unmodified):                                           │
+│   ┌─────────────────────────────────────────────────────────────────┐   │
+│   │ Standard Alpine vmlinux + initramfs                            │   │
+│   │ Stored as binary blob in Hilbert region (768,0)+               │   │
+│   │ Executed via native_exec shim                                  │   │
+│   └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 7.2 native_exec Opcode (0xF0)
+
+```python
+# New v3 opcode for native binary execution
+NATIVE_EXEC = 0xF0
+
+class NativeExecutor:
+    """Execute native binaries from v3 substrate with I/O bridging."""
+
+    def execute(self, blob_addr: int, blob_size: int, tile: LiveTileInstance):
+        """Execute native kernel blob with pixel I/O bridge."""
+        # 1. Load binary blob from Hilbert-mapped memory
+        kernel_blob = self._read_hilbert_region(tile, blob_addr, blob_size)
+
+        # 2. Set up I/O bridge (native → memory-mapped pixels)
+        io_bridge = PixelIOBridge(
+            keyboard_addr=0x0000,
+            framebuffer_addr=0x0010
+        )
+
+        # 3. Execute with QEMU or native CPU
+        # The bridge intercepts I/O and routes to pixel memory
+        self._execute_native(kernel_blob, io_bridge)
+```
+
+### 7.3 Benefits
+
+| Approach | Pros | Cons |
+|----------|------|------|
+| Full Transpilation | Pure v3, no native deps | Complex, slow build |
+| **Shim (chosen)** | Fast, uses standard Alpine | Requires native_exec |
+| Hybrid | Best of both | Most complex |
+
+---
+
+## 8. Test Verification Matrix
 
 | Component | Test File | Test Count |
 |-----------|-----------|------------|
@@ -443,4 +693,6 @@ def capture_alpine_event(tile_id: str, event_type: str, data: dict):
 | Adaptive FPS | `test_adaptive_fps.py` | 4 |
 | WebSocket Handlers | `test_alpine_websocket.py` | 5 |
 | Terminal Renderer | `test_terminal_renderer.py` | 5 |
-| **Total** | | **42** |
+| WordPress Bridge | `test_alpine_wordpress_bridge.py` | 6 |
+| Native Exec Shim | `test_native_exec.py` | 4 |
+| **Total** | | **52** |
