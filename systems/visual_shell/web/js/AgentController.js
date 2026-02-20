@@ -1,10 +1,11 @@
 // systems/visual_shell/web/js/AgentController.js
 /**
  * AgentController - Control action bar for Glass Box.
- * Provides: Relocate, Evict, Debug, Command actions.
+ * Provides: Relocate, Evict, Debug, Command, Clone actions.
  *
  * Part of the Glass Box Introspection Interface
  * Task 3: Create AgentController with 4 actions
+ * Task 5: Add Clone button for substrate cloning
  */
 class AgentController {
     constructor(config = {}) {
@@ -13,6 +14,7 @@ class AgentController {
         };
 
         this.agentId = null;
+        this.currentTile = null;  // Current tile data for clone feature
         this.onRelocate = null;
         this.onEvict = null;
         this.onDebug = null;
@@ -22,6 +24,9 @@ class AgentController {
         this.onStart = null;
         this.onStop = null;
         this.onRestart = null;
+
+        // Clone control
+        this.onClone = null;
 
         this.element = this._createElement();
     }
@@ -44,6 +49,9 @@ class AgentController {
                 <button class="btn-start" title="Start Tile">▶️ Start</button>
                 <button class="btn-stop" title="Stop Tile">⏹️ Stop</button>
                 <button class="btn-restart" title="Restart Tile">🔄 Restart</button>
+            </div>
+            <div class="clone-controls" style="display:none;">
+                <button class="btn-clone" title="Clone UI to native PixelRTS" style="background: linear-gradient(135deg, #9b59b6, #8e44ad); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 12px;">🧬 Clone</button>
             </div>
             <div class="command-panel" style="display:none;">
                 <input type="text" class="command-input" placeholder="Enter command...">
@@ -85,6 +93,7 @@ class AgentController {
         const startBtn = el.querySelector('.btn-start');
         const stopBtn = el.querySelector('.btn-stop');
         const restartBtn = el.querySelector('.btn-restart');
+        const cloneBtn = el.querySelector('.btn-clone');
 
         if (startBtn) {
             startBtn.addEventListener('click', () => {
@@ -109,6 +118,20 @@ class AgentController {
                 }
             });
         }
+
+        if (cloneBtn) {
+            cloneBtn.addEventListener('click', () => {
+                if (this.currentTile && this.currentTile.has_extraction && this.onClone) {
+                    this.onClone({
+                        method: 'clone_tile',
+                        params: {
+                            tile_id: this.currentTile.tile_id,
+                            target_name: `${this.currentTile.tile_id}_clone`
+                        }
+                    });
+                }
+            });
+        }
     }
 
     /**
@@ -128,6 +151,27 @@ class AgentController {
      */
     setAgent(agentId) {
         this.agentId = agentId;
+    }
+
+    /**
+     * Set the current tile data for clone feature.
+     * @param {Object} tile - Tile data with tile_id and has_extraction
+     */
+    setCurrentTile(tile) {
+        this.currentTile = tile;
+        // Show clone controls only if tile has extraction
+        this.showCloneControls(tile && tile.has_extraction);
+    }
+
+    /**
+     * Show or hide clone tile controls.
+     * @param {boolean} show - Whether to show the clone button
+     */
+    showCloneControls(show) {
+        const controls = this.element.querySelector('.clone-controls');
+        if (controls) {
+            controls.style.display = show ? 'flex' : 'none';
+        }
     }
 
     /**
@@ -208,10 +252,12 @@ class AgentController {
             this.element.parentNode.removeChild(this.element);
         }
         this.agentId = null;
+        this.currentTile = null;
         this.onRelocate = null;
         this.onEvict = null;
         this.onDebug = null;
         this.onCommand = null;
+        this.onClone = null;
     }
 }
 
