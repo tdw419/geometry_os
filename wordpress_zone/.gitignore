@@ -1,0 +1,28 @@
+# Runtime files
+*.log
+*.sock
+*.pid
+*.lock
+
+# System libraries (installed from packages)
+php_local/
+mariadb_local/
+
+# Database data (runtime generated)
+mariadb_data/
+
+# WordPress core (downloaded)
+wordpress/wp-admin/
+wordpress/wp-includes/
+
+# Standard plugins/themes (bundled with WP)
+wordpress/wp-content/plugins/akismet/
+wordpress/wp-content/themes/twentytwenty*/
+wordpress/wp-content/upgrade/
+
+# Runtime telemetry data
+telemetry/events.jsonl
+
+# Python cache
+__pycache__/
+*.pyc
