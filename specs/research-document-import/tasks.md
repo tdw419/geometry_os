@@ -88,7 +88,7 @@ After POC validated, clean up code.
   - **Commit**: `refactor(wp): add error handling to importer`
   - _Design: Error Handling_
 
-- [ ] 2.2 Add `searchResearch` API action to `ai-publisher.php`
+- [x] 2.2 Add `searchResearch` API action to `ai-publisher.php`
   - **Do**:
     1. Add case `'searchResearch'` to dispatcher switch
     2. Implement `handle_search_research($args)` using `WP_Query` with `s` parameter
