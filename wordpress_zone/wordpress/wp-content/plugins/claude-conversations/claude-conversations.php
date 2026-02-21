@@ -696,18 +696,21 @@ class Claude_Importer {
             return $this->category_id;
         }
 
-        // Create category
-        $result = wp_insert_category(array(
-            'cat_name' => $category_name,
-            'category_nicename' => $category_slug,
-            'category_description' => 'Conversations imported from Claude Code CLI',
-        ));
+        // Create category using wp_insert_term (available in CLI context)
+        $result = wp_insert_term(
+            $category_name,
+            'category',
+            array(
+                'slug' => $category_slug,
+                'description' => 'Conversations imported from Claude Code CLI',
+            )
+        );
 
         if (is_wp_error($result)) {
             // Fallback to uncategorized
             $this->category_id = 1;
         } else {
-            $this->category_id = $result;
+            $this->category_id = $result['term_id'];
         }
 
         return $this->category_id;

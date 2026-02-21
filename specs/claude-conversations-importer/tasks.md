@@ -266,7 +266,7 @@ _Design: PrismLoader_
 
 ---
 
-### Task 1.7: POC Checkpoint - End-to-End Import
+### Task 1.7: [x] POC Checkpoint - End-to-End Import
 
 **Do:**
 1. Verify plugin activates without errors
