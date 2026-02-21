@@ -19,9 +19,12 @@ class GeometryOS_Bridge {
         add_action('save_post', array($this, 'on_post_update'), 10, 3);
         add_action('activated_plugin', array($this, 'on_plugin_change'));
         add_action('deactivated_plugin', array($this, 'on_plugin_change'));
-        
+
         // Error logging
         add_action('wp_error_added', array($this, 'on_error'), 10, 4);
+
+        // Script enqueuing for Mission Control
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_health_scripts'));
     }
 
     public function heartbeat() {
@@ -88,6 +91,82 @@ class GeometryOS_Bridge {
         $file = $telemetry_dir . '/events.jsonl';
         $json = json_encode($payload);
         @file_put_contents($file, $json . "\n", FILE_APPEND | LOCK_EX);
+    }
+
+    /**
+     * Enqueue System Health Dashboard scripts for Mission Control
+     */
+    public function enqueue_health_scripts() {
+        // Check if on Mission Control page or has shortcode
+        $is_mission_control = $this->is_mission_control_page();
+
+        if (!$is_mission_control) {
+            return;
+        }
+
+        // Base URL for Geometry OS visual shell web assets
+        $base_url = 'http://localhost:8080';
+
+        // Enqueue in order: metrics -> dashboard -> bridge
+        wp_enqueue_script(
+            'geometry-os-metrics',
+            $base_url . '/MetricsCollector.js',
+            array(),
+            '1.0.0',
+            true
+        );
+
+        wp_enqueue_script(
+            'geometry-os-health-dashboard',
+            $base_url . '/SystemHealthDashboard.js',
+            array('geometry-os-metrics'),
+            '1.0.0',
+            true
+        );
+
+        wp_enqueue_script(
+            'geometry-os-health-bridge',
+            $base_url . '/wp_health_bridge.js',
+            array('geometry-os-health-dashboard'),
+            '1.0.0',
+            true
+        );
+    }
+
+    /**
+     * Check if current page is Mission Control
+     *
+     * @return bool True if Mission Control page or has shortcode
+     */
+    private function is_mission_control_page() {
+        // Check for shortcode in content
+        if (function_exists('has_shortcode')) {
+            global $post;
+            if ($post && has_shortcode($post->post_content, 'geometry_os_mission_control')) {
+                return true;
+            }
+        }
+
+        // Check for query var or page slug
+        if (function_exists('get_query_var')) {
+            if (get_query_var('geometry_os_mission_control') === '1') {
+                return true;
+            }
+        }
+
+        // Check page slug
+        if (function_exists('is_page')) {
+            if (is_page('mission-control') || is_page('geometry-os-mission-control')) {
+                return true;
+            }
+        }
+
+        // Check for custom indicator (data attribute or body class)
+        if (isset($_GET['mission_control']) || isset($_GET['geometry_os'])) {
+            return true;
+        }
+
+        return false;
     }
 }
 

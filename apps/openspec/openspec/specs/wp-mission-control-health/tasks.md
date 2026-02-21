@@ -39,7 +39,7 @@ Focus: MetricsCollector core + bridge integration + dashboard widget
   - _Requirements: FR-6, FR-7, FR-8, FR-9_
   - _Design: SystemHealthDashboard component_
 
-- [ ] 1.4 WordPress Bridge Health Integration
+- [x] 1.4 WordPress Bridge Health Integration
   - **Do**: Create wp_health_bridge.js, update PHP plugin to enqueue scripts, add Test 7
   - **Files**: `systems/visual_shell/web/wp_health_bridge.js`, `wordpress_zone/wordpress/wp-content/mu-plugins/geometry_os_bridge.php`, `systems/visual_shell/web/tests/verification_wp_integration.js`
   - **Done when**: Test 7 passes, dashboard visible in WordPress Mission Control

@@ -25,6 +25,7 @@ class WPIntegrationVerifier {
         await this.test4_SwarmHeartbeat();
         await this.test5_LateJoinerHistory();
         await this.test6_MetricsCollectorIntegration();
+        await this.test7_HealthDashboardRender();
 
         this.report();
     }
@@ -146,6 +147,25 @@ class WPIntegrationVerifier {
 
         const success = latency >= 50 && latency < 200;
         this.logResult("Metrics", success, success ? `Latency measurement: ${latency.toFixed(1)}ms` : `Latency out of range: ${latency}`);
+    }
+
+    async test7_HealthDashboardRender() {
+        console.log("
+%cTest 7: Health Dashboard Render", "color: #ffcc00; font-weight: bold;");
+
+        const dashboard = document.querySelector('#geometry-os-health-dashboard');
+        if (!dashboard) {
+            this.logResult("Health Dashboard", false, "#geometry-os-health-dashboard not found in DOM");
+            return;
+        }
+
+        const html = dashboard.innerHTML;
+        const hasLatency = html.includes('Latency') || html.includes('latency');
+        const hasStatus = html.includes('PASS') || html.includes('WARN') || html.includes('OK');
+
+        const success = hasLatency && hasStatus;
+        this.logResult("Health Dashboard", success,
+            success ? "Dashboard rendering correctly" : `Missing elements - latency: ${hasLatency}, status: ${hasStatus}`);
     }
 
     logResult(name, success, details) {
