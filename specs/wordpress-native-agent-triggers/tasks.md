@@ -61,7 +61,7 @@ generated: from-plan
 
 ## Phase 4: Integration Testing
 
-- [ ] 4.1 Create Integration Tests
+- [x] 4.1 Create Integration Tests
   - **Do**: Create end-to-end tests for WordPress → Bridge → Daemon flow
   - **Files**: `tests/test_wordpress_agent_integration.py`
   - **Done when**: All three agent types verified end-to-end
