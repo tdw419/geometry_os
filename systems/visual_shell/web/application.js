@@ -3084,6 +3084,9 @@ class GeometryOSApplication {
                     } else if (data.type === 'DAEMON_HEARTBEAT') {
                         // V2.0: Handle daemon heartbeat
                         window.dispatchEvent(new CustomEvent('DAEMON_HEARTBEAT', { detail: data }));
+                    } else if (data.type === 'radio_broadcast') {
+                        // GOSR Radio: Dispatch radio broadcast events to HUD
+                        window.dispatchEvent(new CustomEvent('RADIO_BROADCAST', { detail: data }));
                     } else if (data.type === 'narrative_session') {
                         // V2.0: Session info response
                         if (this.ambientNarrative) {

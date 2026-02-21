@@ -256,7 +256,7 @@ After POC validated, clean up code structure.
   - _Requirements: FR-6, AC-4.1 through AC-4.4_
   - _Design: HUD Radio Display section_
 
-- [ ] 4.2 Wire RADIO_BROADCAST events in application.js
+- [x] 4.2 Wire RADIO_BROADCAST events in application.js
   - **Do**:
     1. Add `RADIO_BROADCAST` event dispatcher in WebSocket message handler
     2. Dispatch to `window.dispatchEvent(new CustomEvent('RADIO_BROADCAST', {...}))`
