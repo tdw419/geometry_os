@@ -1432,6 +1432,11 @@ class VisualDebugOverlay {
         if (window.geometryOSApp && window.geometryOSApp.heatmapOverlay) {
             this._renderHeatmapSection(ctx, width, padding);
         }
+
+        // Ambient Narrative HUD (Phase R: V2.0)
+        if (this.narrativeState.enabled || this.narrativeState.state !== 'IDLE') {
+            this._renderNarrativeSection(ctx, width, padding);
+        }
     }
 
     /**
@@ -2965,6 +2970,7 @@ class VisualDebugOverlay {
             ctx.font = '10px monospace';
             const lastAction = state.steeringActions[0];
             ctx.fillText(`🎯 ${lastAction.action}${lastAction.target ? ` → ${lastAction.target}` : ''}`, padding, y);
+            y += 16;
         }
 
         // Last update timestamp
@@ -2972,7 +2978,7 @@ class VisualDebugOverlay {
             const age = ((Date.now() - state.lastUpdate) / 1000).toFixed(1);
             ctx.fillStyle = '#555';
             ctx.font = '9px monospace';
-            ctx.fillText(`Updated: ${age}s ago`, padding, y + 16);
+            ctx.fillText(`Updated: ${age}s ago`, padding, y);
         }
 
         this._lastSectionY = y + 30;
