@@ -24,7 +24,7 @@ Focus: Validate core claim/release cycle works end-to-end. Skip tests, accept ha
   - _Requirements: FR-2, AC-4.1, AC-4.2_
   - _Design: Component 2 (track_claim CPT)_
 
-- [ ] 1.2 Add track handlers to ai-publisher.php
+- [x] 1.2 Add track handlers to ai-publisher.php
   - **Do**:
     1. Add `claimTrack` switch case: check overlaps via `strpos()`, insert CPT, return claim_id
     2. Add `releaseTrack` switch case: verify agent_id owner, set post_status to `trash`

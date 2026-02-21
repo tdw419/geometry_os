@@ -603,3 +603,415 @@ function handle_search_research($args) {
         'offset' => $offset
     ));
 }
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ * Track Board Coordination API Handlers
+ * ─────────────────────────────────────────────────────────────
+ */
+
+/**
+ * Send notification to Visual Bridge WebSocket
+ * Non-blocking notification for claim/release events
+ * Gracefully degrades if socket extension not available
+ */
+function notify_visual_bridge($event_type, $track_id, $agent_id, $files = array()) {
+    // Check if socket extension is available
+    if (!function_exists('socket_create')) {
+        // Graceful degradation - skip notification
+        return false;
+    }
+
+    // Derive coordinates from track_id hash for visual pulse
+    $hash = crc32($track_id);
+    $x = ($hash % 1000) / 1000.0;  // 0.0 - 1.0
+    $y = (($hash >> 16) % 1000) / 1000.0;  // 0.0 - 1.0
+
+    $payload = json_encode(array(
+        'type' => $event_type,
+        'track_id' => $track_id,
+        'agent_id' => $agent_id,
+        'files' => $files,
+        'coordinates' => array('x' => $x, 'y' => $y),
+        'timestamp' => current_time('c')
+    ));
+
+    // Non-blocking UDP notification to Visual Bridge (port 8769 for track events)
+    $sock = @socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+    if ($sock) {
+        socket_set_nonblock($sock);
+        @socket_sendto($sock, $payload, strlen($payload), 0, '127.0.0.1', 8769);
+        socket_close($sock);
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Check if file paths overlap with existing claims
+ * Uses strpos() for path prefix matching
+ */
+function check_file_overlaps($files, $exclude_claim_id = 0) {
+    // Get all active claims (not trashed)
+    $args = array(
+        'post_type' => 'track_claim',
+        'post_status' => 'publish',
+        'posts_per_page' => 100,
+        'meta_query' => array(
+            array(
+                'key' => 'heartbeat',
+                'value' => date('Y-m-d H:i:s', strtotime('-10 minutes')),
+                'compare' => '>=',
+                'type' => 'DATETIME'
+            )
+        )
+    );
+
+    if ($exclude_claim_id > 0) {
+        $args['post__not_in'] = array($exclude_claim_id);
+    }
+
+    $query = new WP_Query($args);
+    $overlaps = array();
+
+    if ($query->have_posts()) {
+        while ($query->have_posts()) {
+            $query->the_post();
+            $claim_id = get_the_ID();
+            $existing_track_id = get_post_meta($claim_id, 'track_id', true);
+            $existing_agent_id = get_post_meta($claim_id, 'agent_id', true);
+            $existing_files = get_post_meta($claim_id, 'files', true);
+
+            if (!is_array($existing_files)) {
+                $existing_files = array($existing_files);
+            }
+
+            // Check each new file against each existing file
+            foreach ($files as $new_file) {
+                foreach ($existing_files as $existing_file) {
+                    // Check if either path is a prefix of the other
+                    if (strpos($new_file, $existing_file) === 0 ||
+                        strpos($existing_file, $new_file) === 0) {
+                        $overlaps[] = array(
+                            'conflicting_claim' => $claim_id,
+                            'track_id' => $existing_track_id,
+                            'agent_id' => $existing_agent_id,
+                            'conflicting_file' => $existing_file,
+                            'requested_file' => $new_file
+                        );
+                    }
+                }
+            }
+        }
+        wp_reset_postdata();
+    }
+
+    return $overlaps;
+}
+
+/**
+ * Handle claiming a track
+ * POST /ai-publisher.php {"action":"claimTrack","track_id":"...","agent_id":"...","files":["path/"]}
+ */
+function handle_claim_track($args) {
+    // Validate required fields
+    if (!isset($args['track_id']) || !isset($args['agent_id']) || !isset($args['files'])) {
+        echo json_encode(array(
+            'success' => false,
+            'error' => 'Missing required fields: track_id, agent_id, files'
+        ));
+        return;
+    }
+
+    $track_id = sanitize_text_field($args['track_id']);
+    $agent_id = sanitize_text_field($args['agent_id']);
+    $files = is_array($args['files']) ? $args['files'] : array($args['files']);
+
+    // Sanitize file paths
+    $files = array_map('sanitize_text_field', $files);
+
+    // Check for existing active claim with same track_id
+    $existing = get_posts(array(
+        'post_type' => 'track_claim',
+        'post_status' => 'publish',
+        'posts_per_page' => 1,
+        'meta_query' => array(
+            array(
+                'key' => 'track_id',
+                'value' => $track_id,
+                'compare' => '='
+            ),
+            array(
+                'key' => 'heartbeat',
+                'value' => date('Y-m-d H:i:s', strtotime('-10 minutes')),
+                'compare' => '>=',
+                'type' => 'DATETIME'
+            )
+        )
+    ));
+
+    if (!empty($existing)) {
+        echo json_encode(array(
+            'success' => false,
+            'error' => 'Track already claimed',
+            'existing_claim_id' => $existing[0]->ID,
+            'existing_agent' => get_post_meta($existing[0]->ID, 'agent_id', true)
+        ));
+        return;
+    }
+
+    // Check for file overlaps with other claims
+    $overlaps = check_file_overlaps($files);
+    if (!empty($overlaps)) {
+        echo json_encode(array(
+            'success' => false,
+            'error' => 'File conflict detected',
+            'conflicts' => $overlaps
+        ));
+        return;
+    }
+
+    // Create the claim
+    $post_data = array(
+        'post_title' => "Track: $track_id",
+        'post_status' => 'publish',
+        'post_author' => 1,
+        'post_type' => 'track_claim'
+    );
+
+    $claim_id = wp_insert_post($post_data);
+
+    if (is_wp_error($claim_id)) {
+        echo json_encode(array(
+            'success' => false,
+            'error' => $claim_id->get_error_message()
+        ));
+        return;
+    }
+
+    // Add meta fields
+    add_post_meta($claim_id, 'track_id', $track_id);
+    add_post_meta($claim_id, 'agent_id', $agent_id);
+    add_post_meta($claim_id, 'files', $files);
+    add_post_meta($claim_id, 'heartbeat', current_time('mysql'));
+    add_post_meta($claim_id, 'created_at', current_time('mysql'));
+
+    // Notify Visual Bridge
+    notify_visual_bridge('TRACK_CLAIMED', $track_id, $agent_id, $files);
+
+    echo json_encode(array(
+        'success' => true,
+        'claim_id' => $claim_id,
+        'track_id' => $track_id,
+        'agent_id' => $agent_id,
+        'files' => $files,
+        'message' => 'Track claimed successfully'
+    ));
+}
+
+/**
+ * Handle releasing a track
+ * POST /ai-publisher.php {"action":"releaseTrack","track_id":"...","agent_id":"..."}
+ */
+function handle_release_track($args) {
+    // Validate required fields
+    if (!isset($args['track_id']) || !isset($args['agent_id'])) {
+        echo json_encode(array(
+            'success' => false,
+            'error' => 'Missing required fields: track_id, agent_id'
+        ));
+        return;
+    }
+
+    $track_id = sanitize_text_field($args['track_id']);
+    $agent_id = sanitize_text_field($args['agent_id']);
+
+    // Find the claim
+    $claims = get_posts(array(
+        'post_type' => 'track_claim',
+        'post_status' => 'publish',
+        'posts_per_page' => 1,
+        'meta_query' => array(
+            array(
+                'key' => 'track_id',
+                'value' => $track_id,
+                'compare' => '='
+            ),
+            array(
+                'key' => 'agent_id',
+                'value' => $agent_id,
+                'compare' => '='
+            )
+        )
+    ));
+
+    if (empty($claims)) {
+        echo json_encode(array(
+            'success' => false,
+            'error' => 'No active claim found for this track_id and agent_id'
+        ));
+        return;
+    }
+
+    $claim = $claims[0];
+    $claim_id = $claim->ID;
+
+    // Verify ownership
+    $claim_agent = get_post_meta($claim_id, 'agent_id', true);
+    if ($claim_agent !== $agent_id) {
+        echo json_encode(array(
+            'success' => false,
+            'error' => 'Agent ID does not match claim owner',
+            'claim_owner' => $claim_agent
+        ));
+        return;
+    }
+
+    // Get files before trashing for notification
+    $files = get_post_meta($claim_id, 'files', true);
+
+    // Move to trash (not delete - for audit trail)
+    wp_trash_post($claim_id);
+
+    // Notify Visual Bridge
+    notify_visual_bridge('TRACK_RELEASED', $track_id, $agent_id, is_array($files) ? $files : array($files));
+
+    echo json_encode(array(
+        'success' => true,
+        'claim_id' => $claim_id,
+        'track_id' => $track_id,
+        'message' => 'Track released successfully'
+    ));
+}
+
+/**
+ * Handle listing active tracks
+ * POST /ai-publisher.php {"action":"listTracks","agent_id":"..."} or {} for all
+ */
+function handle_list_tracks($args) {
+    $agent_filter = isset($args['agent_id']) ? sanitize_text_field($args['agent_id']) : null;
+    $include_expired = isset($args['include_expired']) ? (bool)$args['include_expired'] : false;
+
+    $meta_query = array();
+
+    // Filter by agent if provided
+    if ($agent_filter) {
+        $meta_query[] = array(
+            'key' => 'agent_id',
+            'value' => $agent_filter,
+            'compare' => '='
+        );
+    }
+
+    // Filter by heartbeat (active only) unless include_expired
+    if (!$include_expired) {
+        $meta_query[] = array(
+            'key' => 'heartbeat',
+            'value' => date('Y-m-d H:i:s', strtotime('-10 minutes')),
+            'compare' => '>=',
+            'type' => 'DATETIME'
+        );
+    }
+
+    $query_args = array(
+        'post_type' => 'track_claim',
+        'post_status' => 'publish',
+        'posts_per_page' => 100,
+        'orderby' => 'modified',
+        'order' => 'DESC'
+    );
+
+    if (!empty($meta_query)) {
+        $query_args['meta_query'] = $meta_query;
+    }
+
+    $query = new WP_Query($query_args);
+    $tracks = array();
+
+    if ($query->have_posts()) {
+        while ($query->have_posts()) {
+            $query->the_post();
+            $claim_id = get_the_ID();
+            $heartbeat = get_post_meta($claim_id, 'heartbeat', true);
+            $heartbeat_time = strtotime($heartbeat);
+            $expired = ($heartbeat_time < strtotime('-10 minutes'));
+
+            $tracks[] = array(
+                'claim_id' => $claim_id,
+                'track_id' => get_post_meta($claim_id, 'track_id', true),
+                'agent_id' => get_post_meta($claim_id, 'agent_id', true),
+                'files' => get_post_meta($claim_id, 'files', true),
+                'heartbeat' => $heartbeat,
+                'expired' => $expired,
+                'created_at' => get_post_meta($claim_id, 'created_at', true)
+            );
+        }
+        wp_reset_postdata();
+    }
+
+    echo json_encode(array(
+        'success' => true,
+        'count' => count($tracks),
+        'tracks' => $tracks
+    ));
+}
+
+/**
+ * Handle heartbeat update for a track
+ * POST /ai-publisher.php {"action":"heartbeatTrack","track_id":"...","agent_id":"..."}
+ */
+function handle_heartbeat_track($args) {
+    // Validate required fields
+    if (!isset($args['track_id']) || !isset($args['agent_id'])) {
+        echo json_encode(array(
+            'success' => false,
+            'error' => 'Missing required fields: track_id, agent_id'
+        ));
+        return;
+    }
+
+    $track_id = sanitize_text_field($args['track_id']);
+    $agent_id = sanitize_text_field($args['agent_id']);
+
+    // Find the claim
+    $claims = get_posts(array(
+        'post_type' => 'track_claim',
+        'post_status' => 'publish',
+        'posts_per_page' => 1,
+        'meta_query' => array(
+            array(
+                'key' => 'track_id',
+                'value' => $track_id,
+                'compare' => '='
+            ),
+            array(
+                'key' => 'agent_id',
+                'value' => $agent_id,
+                'compare' => '='
+            )
+        )
+    ));
+
+    if (empty($claims)) {
+        echo json_encode(array(
+            'success' => false,
+            'error' => 'No active claim found for this track_id and agent_id'
+        ));
+        return;
+    }
+
+    $claim = $claims[0];
+    $claim_id = $claim->ID;
+
+    // Update heartbeat timestamp
+    $now = current_time('mysql');
+    update_post_meta($claim_id, 'heartbeat', $now);
+
+    echo json_encode(array(
+        'success' => true,
+        'claim_id' => $claim_id,
+        'track_id' => $track_id,
+        'heartbeat' => $now,
+        'message' => 'Heartbeat updated successfully'
+    ));
+}
