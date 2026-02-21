@@ -21,7 +21,7 @@ Focus: Validate HealerAgent works end-to-end. Skip WordPress integration, accept
   - _Requirements: FR-1, FR-9_
   - _Design: HealerAgent component_
 
-- [ ] 1.2 Implement HealerAgent core
+- [x] 1.2 Implement HealerAgent core
   - **Do**: Create `systems/visual_shell/swarm/healer_agent.py` with HealingAction enum, HealingResult dataclass, HealerAgent class with `_handle_diagnostic_pulse()` method
   - **Files**: `systems/visual_shell/swarm/healer_agent.py`
   - **Done when**: All init tests pass, event handling tests pass
