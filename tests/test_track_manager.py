@@ -429,5 +429,246 @@ class TestTrackManagerListActive(unittest.TestCase):
         self.assertEqual(result['tracks'][0]['agent_id'], 'agent-1')
 
 
+# ─────────────────────────────────────────────────────────────
+# Integration Tests (require live WordPress)
+# ─────────────────────────────────────────────────────────────
+
+import pytest
+import time
+import uuid
+
+
+def wordpress_available():
+    """Check if WordPress API is available for integration tests."""
+    try:
+        tm = TrackManager(timeout=2.0)
+        tm.list_active()
+        return True
+    except (WordPressUnavailableError, Exception):
+        return False
+
+
+# Skip all integration tests if WordPress unavailable
+pytestmark = pytest.mark.skipif(
+    not wordpress_available(),
+    reason="WordPress not available at localhost:8080"
+)
+
+
+@pytest.mark.integration
+class TestIntegrationClaimReleaseCycle:
+    """Integration tests for full claim -> check -> commit -> release cycle."""
+
+    def _unique_track_id(self):
+        """Generate unique track ID for test isolation."""
+        return f"test-track-{uuid.uuid4().hex[:8]}"
+
+    def test_full_claim_check_release_cycle(self):
+        """Test complete claim -> check -> release cycle."""
+        tm = TrackManager(timeout=5.0)
+        track_id = self._unique_track_id()
+        agent_id = "test-agent-integration"
+        files = ["tests/integration/module/"]
+
+        try:
+            # Step 1: Claim track
+            claim_result = tm.claim(track_id, files, agent_id)
+            assert claim_result['success'], f"Claim failed: {claim_result.get('error')}"
+            assert 'claim_id' in claim_result
+
+            # Step 2: Check conflicts - should find our own claim
+            conflicts = tm.check_conflicts(files)
+            # Note: We may or may not see our own claim depending on API behavior
+            # This tests that the conflict check works
+
+            # Step 3: Heartbeat to keep claim alive
+            heartbeat_result = tm.heartbeat(track_id, agent_id)
+            assert heartbeat_result['success'], f"Heartbeat failed: {heartbeat_result.get('error')}"
+
+            # Step 4: List active tracks - should include ours
+            list_result = tm.list_active(agent_id=agent_id)
+            assert list_result['success']
+            track_ids = [t['track_id'] for t in list_result.get('tracks', [])]
+            assert track_id in track_ids, f"Our track {track_id} not found in {track_ids}"
+
+        finally:
+            # Step 5: Release track (cleanup)
+            release_result = tm.release(track_id, agent_id)
+            assert release_result['success'], f"Release failed: {release_result.get('error')}"
+
+    def test_conflict_detection_between_two_agents(self):
+        """Test that two agents cannot claim overlapping files."""
+        tm = TrackManager(timeout=5.0)
+        track_id_1 = self._unique_track_id()
+        track_id_2 = self._unique_track_id()
+        agent_1 = "test-agent-conflict-1"
+        agent_2 = "test-agent-conflict-2"
+        shared_path = ["tests/integration/shared/"]
+
+        try:
+            # Agent 1 claims the shared path
+            claim1 = tm.claim(track_id_1, shared_path, agent_1)
+            assert claim1['success'], f"Agent 1 claim failed: {claim1.get('error')}"
+
+            # Agent 2 tries to claim overlapping path - should fail
+            claim2 = tm.claim(track_id_2, ["tests/integration/shared/file.py"], agent_2)
+            assert not claim2['success'], "Agent 2 should not be able to claim overlapping path"
+            assert 'conflict' in claim2.get('error', '').lower() or claim2.get('conflicts'), \
+                f"Expected conflict error, got: {claim2}"
+
+        finally:
+            # Cleanup
+            tm.release(track_id_1, agent_1)
+            # Agent 2's claim should not exist, but try release anyway (idempotent)
+            tm.release(track_id_2, agent_2)
+
+    def test_conflict_check_detects_existing_claim(self):
+        """Test that check_conflicts() finds existing claims."""
+        tm = TrackManager(timeout=5.0)
+        track_id = self._unique_track_id()
+        agent_id = "test-agent-conflict-check"
+        files = ["tests/integration/conflicted/"]
+
+        try:
+            # Claim a track
+            claim = tm.claim(track_id, files, agent_id)
+            assert claim['success']
+
+            # Check conflicts for overlapping path
+            conflicts = tm.check_conflicts(["tests/integration/conflicted/file.py"])
+            assert len(conflicts) > 0, "Should detect conflict with existing claim"
+            assert any(c['track_id'] == track_id for c in conflicts), \
+                f"Should find our track {track_id} in conflicts"
+
+        finally:
+            tm.release(track_id, agent_id)
+
+
+@pytest.mark.integration
+class TestIntegrationHeartbeatExpiry:
+    """Integration tests for heartbeat expiry behavior."""
+
+    def _unique_track_id(self):
+        """Generate unique track ID for test isolation."""
+        return f"test-hb-{uuid.uuid4().hex[:8]}"
+
+    def test_heartbeat_updates_timestamp(self):
+        """Test that heartbeat updates the claim timestamp."""
+        tm = TrackManager(timeout=5.0)
+        track_id = self._unique_track_id()
+        agent_id = "test-agent-heartbeat"
+
+        try:
+            # Claim track
+            claim = tm.claim(track_id, ["tests/integration/hb/"], agent_id)
+            assert claim['success']
+
+            # Wait a moment
+            time.sleep(0.5)
+
+            # Send heartbeat
+            hb_result = tm.heartbeat(track_id, agent_id)
+            assert hb_result['success'], f"Heartbeat failed: {hb_result.get('error')}"
+            assert 'heartbeat' in hb_result
+
+        finally:
+            tm.release(track_id, agent_id)
+
+    def test_heartbeat_wrong_agent_fails(self):
+        """Test that heartbeat from wrong agent fails."""
+        tm = TrackManager(timeout=5.0)
+        track_id = self._unique_track_id()
+        agent_id = "test-agent-hb-owner"
+        wrong_agent = "test-agent-hb-wrong"
+
+        try:
+            # Claim track
+            claim = tm.claim(track_id, ["tests/integration/hb2/"], agent_id)
+            assert claim['success']
+
+            # Try heartbeat with wrong agent
+            hb_result = tm.heartbeat(track_id, wrong_agent)
+            assert not hb_result['success'], "Heartbeat from wrong agent should fail"
+
+        finally:
+            tm.release(track_id, agent_id)
+
+
+@pytest.mark.integration
+class TestIntegrationIdempotentRelease:
+    """Integration tests for idempotent release behavior."""
+
+    def _unique_track_id(self):
+        """Generate unique track ID for test isolation."""
+        return f"test-release-{uuid.uuid4().hex[:8]}"
+
+    def test_release_non_existent_track_is_idempotent(self):
+        """Test that releasing a non-existent track returns success."""
+        tm = TrackManager(timeout=5.0)
+        track_id = f"nonexistent-{uuid.uuid4().hex[:8]}"
+        agent_id = "test-agent-release"
+
+        # Release a track that was never claimed
+        result = tm.release(track_id, agent_id)
+
+        # Should return success (idempotent behavior)
+        assert result['success'], f"Release of non-existent track should succeed: {result}"
+
+    def test_double_release_is_idempotent(self):
+        """Test that releasing an already-released track returns success."""
+        tm = TrackManager(timeout=5.0)
+        track_id = self._unique_track_id()
+        agent_id = "test-agent-double-release"
+
+        try:
+            # Claim and release
+            claim = tm.claim(track_id, ["tests/integration/double/"], agent_id)
+            assert claim['success']
+
+            release1 = tm.release(track_id, agent_id)
+            assert release1['success']
+
+            # Release again
+            release2 = tm.release(track_id, agent_id)
+            assert release2['success'], "Second release should also succeed (idempotent)"
+
+        except Exception:
+            # Cleanup on failure
+            tm.release(track_id, agent_id)
+            raise
+
+
+@pytest.mark.integration
+class TestIntegrationAgentIsolation:
+    """Integration tests for agent ownership isolation."""
+
+    def _unique_track_id(self):
+        """Generate unique track ID for test isolation."""
+        return f"test-iso-{uuid.uuid4().hex[:8]}"
+
+    def test_agent_cannot_release_other_agents_claim(self):
+        """Test that an agent cannot release another agent's claim."""
+        tm = TrackManager(timeout=5.0)
+        track_id = self._unique_track_id()
+        owner_agent = "test-agent-owner"
+        other_agent = "test-agent-other"
+
+        try:
+            # Owner claims track
+            claim = tm.claim(track_id, ["tests/integration/owner/"], owner_agent)
+            assert claim['success']
+
+            # Other agent tries to release
+            release = tm.release(track_id, other_agent)
+            assert not release['success'], "Other agent should not be able to release"
+            # Error message from WordPress: "Agent ID does not match claim owner"
+            error_lower = release.get('error', '').lower()
+            assert 'match' in error_lower or 'forbidden' in error_lower or 'owner' in error_lower
+
+        finally:
+            # Owner releases
+            tm.release(track_id, owner_agent)
+
+
 if __name__ == '__main__':
     unittest.main()

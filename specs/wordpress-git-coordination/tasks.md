@@ -156,7 +156,7 @@ After POC validated, clean up code structure.
   - _Requirements: FR-5_
   - _Design: Test Strategy - Unit Tests_
 
-- [ ] 3.2 Integration tests for claim/release cycle
+- [x] 3.2 Integration tests for claim/release cycle
   - **Do**:
     1. Add integration tests to `tests/test_track_manager.py`
     2. Test full claim -> check -> commit -> release cycle
