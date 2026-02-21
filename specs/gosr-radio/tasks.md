@@ -138,7 +138,7 @@ Focus: Core module structure, base classes, basic broadcast flow. Skip WordPress
   - _Requirements: FR-6_
   - _Design: Visual Bridge integration_
 
-- [ ] 1.11 POC Checkpoint: End-to-end radio broadcast
+- [x] 1.11 POC Checkpoint: End-to-end radio broadcast
   - **Do**:
     1. Start daemon with radio enabled
     2. Verify broadcasts appear in logs every 30s
