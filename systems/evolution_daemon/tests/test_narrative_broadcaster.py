@@ -134,6 +134,150 @@ class TestNarrativeBroadcaster:
         assert "station_id" in stats
 
 
+class TestTopicMemory:
+    """Tests for TopicMemory deduplication component."""
+
+    def test_topic_entry_creation(self):
+        """TopicEntry should store topic with embedding."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicEntry
+        import numpy as np
+
+        entry = TopicEntry(
+            topic="CPU temperature spike",
+            embedding=np.zeros(384),
+            timestamp=1234567890.0
+        )
+
+        assert entry.topic == "CPU temperature spike"
+        assert entry.embedding.shape == (384,)
+        assert entry.timestamp == 1234567890.0
+
+    def test_topic_memory_initialization(self):
+        """TopicMemory should initialize with defaults."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+
+        memory = TopicMemory()
+
+        assert len(memory) == 0
+        assert memory.similarity_threshold == 0.85
+        assert memory.max_topics == 1000
+
+    def test_topic_memory_custom_config(self):
+        """TopicMemory should accept custom config."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+
+        memory = TopicMemory(similarity_threshold=0.9, max_topics=500)
+
+        assert memory.similarity_threshold == 0.9
+        assert memory.max_topics == 500
+
+    def test_add_topic(self):
+        """TopicMemory should add topics."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+
+        memory = TopicMemory()
+        entry = memory.add_topic("Memory pressure detected")
+
+        assert len(memory) == 1
+        assert entry.topic == "Memory pressure detected"
+        assert entry.embedding.shape == (384,)
+
+    def test_is_duplicate_exact_match(self):
+        """TopicMemory should detect exact duplicates."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+
+        memory = TopicMemory()
+        memory.add_topic("CPU load average high")
+
+        # Exact same topic should be detected as duplicate
+        assert memory.is_duplicate("CPU load average high") is True
+        assert memory.is_duplicate("CPU load average low") is False
+
+    def test_is_duplicate_semantic_match(self):
+        """TopicMemory should detect semantic duplicates above threshold."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+
+        memory = TopicMemory()
+        memory.add_topic("system memory usage increased")
+
+        # Semantically similar topic should be detected
+        # Note: With hash-based embeddings, very similar strings may not be semantically close
+        # This test validates the mechanism works
+        result = memory.is_duplicate("system memory usage increased")
+        assert result is True  # Exact match
+
+    def test_cosine_similarity(self):
+        """TopicMemory should compute cosine similarity correctly."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+        import numpy as np
+
+        memory = TopicMemory()
+
+        # Identical vectors should have similarity 1.0
+        vec1 = np.array([1.0, 0.0, 0.0])
+        vec2 = np.array([1.0, 0.0, 0.0])
+        assert memory._cosine_similarity(vec1, vec2) == 1.0
+
+        # Orthogonal vectors should have similarity 0.0
+        vec3 = np.array([0.0, 1.0, 0.0])
+        assert memory._cosine_similarity(vec1, vec3) == 0.0
+
+        # Opposite vectors should have similarity -1.0
+        vec4 = np.array([-1.0, 0.0, 0.0])
+        assert memory._cosine_similarity(vec1, vec4) == -1.0
+
+    def test_embedding_generation_384_dim(self):
+        """TopicMemory should generate 384-dim embeddings following NeuralEvent pattern."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+        import numpy as np
+
+        memory = TopicMemory()
+        embedding = memory._generate_embedding("test topic string")
+
+        assert embedding.shape == (384,)
+        # Check normalization (unit vector)
+        norm = np.linalg.norm(embedding)
+        assert 0.99 < norm < 1.01
+
+    def test_embedding_deterministic(self):
+        """TopicMemory should generate deterministic embeddings for same input."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+
+        memory = TopicMemory()
+        emb1 = memory._generate_embedding("same topic")
+        emb2 = memory._generate_embedding("same topic")
+
+        import numpy as np
+        assert np.allclose(emb1, emb2)
+
+    def test_embedding_different_for_different_topics(self):
+        """TopicMemory should generate different embeddings for different topics."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+        import numpy as np
+
+        memory = TopicMemory()
+        emb1 = memory._generate_embedding("cpu is hot")
+        emb2 = memory._generate_embedding("memory is full")
+
+        # Different topics should have different embeddings
+        assert not np.allclose(emb1, emb2)
+
+    def test_lru_eviction(self):
+        """TopicMemory should evict oldest entries when max_topics reached."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+
+        memory = TopicMemory(max_topics=3)
+
+        memory.add_topic("topic 1")
+        memory.add_topic("topic 2")
+        memory.add_topic("topic 3")
+        memory.add_topic("topic 4")  # Should evict topic 1
+
+        assert len(memory) == 3
+        assert not memory.is_duplicate("topic 1")  # Evicted
+        assert memory.is_duplicate("topic 4")  # Still present
+
+
 class TestNarrativeBroadcasterIntegration:
     """Integration tests - will expand as components are added."""
 

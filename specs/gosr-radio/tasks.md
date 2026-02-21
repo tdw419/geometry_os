@@ -19,7 +19,7 @@ Focus: Core module structure, base classes, basic broadcast flow. Skip WordPress
   - _Requirements: FR-1, FR-5_
   - _Design: NarrativeBroadcaster component_
 
-- [ ] 1.2 Implement TopicMemory for deduplication
+- [x] 1.2 Implement TopicMemory for deduplication
   - **Do**:
     1. Create `topic_memory.py` with `TopicEntry` dataclass and `TopicMemory` class
     2. Implement `add_topic()`, `is_duplicate()` (exact match), `_cosine_similarity()`

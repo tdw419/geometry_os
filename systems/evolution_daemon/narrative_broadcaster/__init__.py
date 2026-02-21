@@ -8,15 +8,19 @@ Components:
 - NarrativeBroadcaster: Main orchestrator
 - BroadcastSegment: Content data structure
 - TopicMemory: Deduplication with embeddings
+- TopicEntry: Topic data structure
 - SegmentPool: Content generation
 - PersonalityEngine: Station voices
 """
 
 from .broadcaster import NarrativeBroadcaster, BroadcastSegment
+from .topic_memory import TopicMemory, TopicEntry
 
 __all__ = [
     'NarrativeBroadcaster',
     'BroadcastSegment',
+    'TopicMemory',
+    'TopicEntry',
 ]
 
 __version__ = '1.0.0'
