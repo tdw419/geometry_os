@@ -37,6 +37,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libudev-dev libasound2-dev libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -68,6 +73,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libudev-dev libasound2-dev libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable

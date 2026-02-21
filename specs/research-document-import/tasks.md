@@ -55,7 +55,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
   - _Requirements: FR-1, FR-4, AC-1.1-1.6_
   - _Design: Python Batch Importer_
 
-- [ ] 1.4 POC Checkpoint: Import 10 docs and verify in WordPress
+- [x] 1.4 POC Checkpoint: Import 10 docs and verify in WordPress
   - **Do**:
     1. Run importer with `--limit 10`
     2. Query WordPress for imported docs via REST API
