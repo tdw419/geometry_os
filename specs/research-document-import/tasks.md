@@ -39,7 +39,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
   - _Requirements: FR-3, FR-5, FR-6, AC-2.2-2.6, AC-3.1-3.4_
   - _Design: WordPress CPT Handler_
 
-- [ ] 1.3 Create `import_research_docs.py` batch importer
+- [x] 1.3 Create `import_research_docs.py` batch importer
   - **Do**:
     1. Fork structure from `sync_skills_to_wp.py`
     2. Create `ResearchDocument` dataclass with file_path, title, content, file_hash, line_count
