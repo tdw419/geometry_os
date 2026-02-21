@@ -27,7 +27,7 @@ Focus: Validate core flow from browser heartbeat to WordPress storage.
   - _Requirements: FR-1, FR-2, FR-3, FR-4_
   - _Design: Component 1_
 
-- [ ] 1.2 Heartbeat Mechanism in wp_health_bridge.js
+- [x] 1.2 Heartbeat Mechanism in wp_health_bridge.js
   - **Do**: Add 60-second heartbeat to push metrics to WordPress
   - **Files**: `systems/visual_shell/web/wp_health_bridge.js`
   - **Steps**:
@@ -41,7 +41,7 @@ Focus: Validate core flow from browser heartbeat to WordPress storage.
   - _Requirements: FR-5, FR-6_
   - _Design: Component 2_
 
-- [ ] 1.3 WordPress Admin HUD Widget
+- [x] 1.3 WordPress Admin HUD Widget
   - **Do**: Create dashboard widget showing real-time health metrics
   - **Files**: `wordpress_zone/wordpress/wp-content/mu-plugins/geometry_os_admin_ui.php`
   - **Steps**:
