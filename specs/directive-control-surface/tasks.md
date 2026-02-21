@@ -111,6 +111,7 @@ python -m pytest tests/test_directive_agent.py::TestCLIInterface -v
 ### Task 1.6: Create directive_ctl.sh control script
 **Type:** IMPLEMENT
 **Priority:** High
+**Status:** DONE
 **Depends on:** Task 1.5
 **Files:**
 - Create: `systems/intelligence/directive_ctl.sh`
@@ -132,6 +133,7 @@ python -m pytest tests/test_directive_agent.py::TestCLIInterface -v
 
 ### Task 1.7: [VERIFY] Control script works
 **Type:** VERIFY
+**Status:** DONE
 **Depends on:** Task 1.6
 
 **Steps:**
