@@ -95,6 +95,19 @@ switch ($action) {
         handle_list_tools();
         break;
 
+    // Directive Console API (Command Console)
+    case 'getDirectives':
+        handle_get_directives();
+        break;
+
+    case 'markDirectiveProcessed':
+        handle_mark_directive_processed($args);
+        break;
+
+    case 'postDirectiveResponse':
+        handle_post_directive_response($args);
+        break;
+
     default:
         header('HTTP/1.1 400 Bad Request');
         echo json_encode(array('success' => false, 'error' => 'Invalid action/tool: ' . $action));
@@ -218,4 +231,117 @@ function handle_create_widget($data) {
 
 function handle_list_tools() {
     echo json_encode(array('success' => true, 'tools' => array('createPost', 'editPage', 'logEvolution')));
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ * Directive Console API Handlers
+ * ─────────────────────────────────────────────────────────────
+ */
+
+/**
+ * Ensure the Directives category exists
+ */
+function ensure_directives_category() {
+    $cat_slug = 'directives';
+    $existing = get_term_by('slug', $cat_slug, 'category');
+    if ($existing) {
+        return $existing->term_id;
+    }
+    $result = wp_insert_term('Directives', 'category', array('slug' => $cat_slug));
+    if (is_wp_error($result)) {
+        return 1; // fallback to default category
+    }
+    return $result['term_id'];
+}
+
+/**
+ * Get unprocessed directives from WordPress
+ * Returns posts in Directives category where directive_processed meta is not set
+ */
+function handle_get_directives() {
+    $cat_id = ensure_directives_category();
+
+    $args = array(
+        'post_type' => 'post',
+        'post_status' => 'publish',
+        'posts_per_page' => 50,
+        'category' => $cat_id,
+        'meta_query' => array(
+            array(
+                'key' => 'directive_processed',
+                'compare' => 'NOT EXISTS'
+            )
+        )
+    );
+
+    $query = new WP_Query($args);
+    $directives = array();
+
+    if ($query->have_posts()) {
+        while ($query->have_posts()) {
+            $query->the_post();
+            $directives[] = array(
+                'id' => get_the_ID(),
+                'title' => get_the_title(),
+                'content' => get_the_content(),
+                'author' => get_the_author(),
+                'date' => get_the_date('c')
+            );
+        }
+        wp_reset_postdata();
+    }
+
+    echo json_encode(array('success' => true, 'directives' => $directives));
+}
+
+/**
+ * Mark a directive as processed
+ */
+function handle_mark_directive_processed($args) {
+    $post_id = isset($args['post_id']) ? intval($args['post_id']) : 0;
+
+    if (!$post_id) {
+        echo json_encode(array('success' => false, 'error' => 'Missing post_id'));
+        return;
+    }
+
+    update_post_meta($post_id, 'directive_processed', true);
+    echo json_encode(array('success' => true, 'post_id' => $post_id));
+}
+
+/**
+ * Post a response comment to a directive
+ */
+function handle_post_directive_response($args) {
+    $post_id = isset($args['post_id']) ? intval($args['post_id']) : 0;
+    $response = isset($args['response']) ? $args['response'] : '';
+    $status = isset($args['status']) ? $args['status'] : 'COMPLETED';
+
+    if (!$post_id) {
+        echo json_encode(array('success' => false, 'error' => 'Missing post_id'));
+        return;
+    }
+
+    if (!$response) {
+        echo json_encode(array('success' => false, 'error' => 'Missing response'));
+        return;
+    }
+
+    $comment_data = array(
+        'comment_post_ID' => $post_id,
+        'comment_author' => 'DirectiveAgent',
+        'comment_author_email' => 'agent@geometry.os',
+        'comment_content' => "**Status: $status**\n\n" . $response,
+        'comment_approved' => 1, // Auto-approve
+        'comment_type' => ''
+    );
+
+    $comment_id = wp_insert_comment($comment_data);
+
+    if (is_wp_error($comment_id)) {
+        echo json_encode(array('success' => false, 'error' => $comment_id->get_error_message()));
+    } else {
+        echo json_encode(array('success' => true, 'comment_id' => $comment_id));
+    }
 }
