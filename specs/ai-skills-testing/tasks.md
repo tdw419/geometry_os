@@ -163,7 +163,7 @@ _Design: TestSkillsIndex_
 
 ---
 
-### Task 1.7: POC Checkpoint
+### Task 1.7: [x] POC Checkpoint
 
 **Do:**
 1. Run all unit tests in tests/skills/

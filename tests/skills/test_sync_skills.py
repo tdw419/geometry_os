@@ -14,7 +14,16 @@ from sync_skills_to_wp import parse_skill_file
 
 
 class TestParseSkillFile:
-    """Tests for the parse_skill_file function."""
+    """Tests for the parse_skill_file function.
+
+    This test class validates YAML frontmatter parsing behavior including:
+    - Valid YAML extraction of name, description, category fields
+    - Default category assignment when category is missing
+    - Graceful handling of missing frontmatter
+    - Fallback to defaults for malformed YAML
+
+    Each test uses tmp_path fixture for isolated temporary files.
+    """
 
     def test_valid_yaml_frontmatter(self, tmp_path):
         """Test parsing a file with valid YAML frontmatter extracts metadata and content."""
@@ -99,7 +108,15 @@ Should fall back gracefully.
 
 
 class TestSkillFiles:
-    """Tests for validating skill files in the skills directory."""
+    """Tests for validating skill files in the .gemini/skills directory.
+
+    This test class ensures all skill files conform to the expected structure:
+    - Each skill directory must contain a SKILL.md file
+    - SKILL.md must have required frontmatter fields (name, description, category)
+    - Category values must be valid (testing, debugging, operations, coordination, general)
+
+    Uses skills_dir fixture for directory path lookup.
+    """
 
     def test_all_skills_have_skill_md(self, skills_dir):
         """Test that all skill directories contain a SKILL.md file."""
@@ -144,7 +161,15 @@ class TestSkillFiles:
 
 
 class TestSkillsIndex:
-    """Tests for validating the SKILLS.md index file in project root."""
+    """Tests for validating the SKILLS.md index file in project root.
+
+    This test class verifies:
+    - SKILLS.md exists at project root level
+    - All 5 known skills are documented in the index
+    - Index content stays synchronized with actual skill files
+
+    Uses project_root fixture for finding SKILLS.md location.
+    """
 
     def test_skills_md_exists(self, project_root):
         """Test that SKILLS.md exists in the project root."""
