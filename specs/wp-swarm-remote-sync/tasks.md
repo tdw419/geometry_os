@@ -88,6 +88,8 @@ Enable remote WordPress Swarm Nodes to discover and sync memories with the main 
 
 ## Task 5: Update Test Runner for Level 2 Tests
 
+- [x] Complete
+
 **Agent:** test-specialist
 **Files:**
 - Modify: `systems/swarm/test_swarm.py`
