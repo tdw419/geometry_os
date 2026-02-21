@@ -1,0 +1,13 @@
+{
+  "source": "plan",
+  "name": "semantic-geometric-terminal",
+  "basePath": "specs/semantic-geometric-terminal",
+  "phase": "execution",
+  "taskIndex": 0,
+  "totalTasks": 7,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": true
+}
