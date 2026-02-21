@@ -105,13 +105,13 @@ Focus: Core module structure, base classes, basic broadcast flow. Skip WordPress
   - _Requirements: FR-1, FR-2, FR-3_
   - _Design: Data flow sequence diagram_
 
-- [ ] 1.8 [VERIFY] Quality checkpoint: all radio tests pass
+- [x] 1.8 [VERIFY] Quality checkpoint: all radio tests pass
   - **Do**: Run full test suite for narrative_broadcaster module
   - **Verify**: `pytest systems/evolution_daemon/tests/test_narrative_broadcaster.py -v`
   - **Done when**: All tests pass (expect 15+ tests)
   - **Commit**: `chore(radio): pass quality checkpoint 1.8` (only if fixes needed)
 
-- [ ] 1.9 Wire broadcaster into Evolution Daemon
+- [x] 1.9 Wire broadcaster into Evolution Daemon
   - **Do**:
     1. Add conditional import for NarrativeBroadcaster in `evolution_daemon.py`
     2. Add `radio_enabled`, `radio_station_id`, `radio_broadcaster` state to `__init__`

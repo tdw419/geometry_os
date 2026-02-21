@@ -119,6 +119,15 @@ except ImportError:
     ServiceStats = None
     EvolutionWordPressHook = None
 
+# GOSR Radio - Narrative Broadcaster
+try:
+    from systems.evolution_daemon.narrative_broadcaster import NarrativeBroadcaster, BroadcastSegment
+    HAS_RADIO = True
+except ImportError:
+    HAS_RADIO = False
+    NarrativeBroadcaster = None
+    BroadcastSegment = None
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -440,6 +449,12 @@ class EvolutionDaemon:
         self.ambient_state = "MONITORING"  # MONITORING, SUGGESTING, STEERING
         self.webmcp_hook = None  # EvolutionWebMCPHook for WordPress
         self._ambient_heartbeat_task = None
+
+        # GOSR Radio - Narrative Broadcasting
+        self.radio_enabled = False
+        self.radio_station_id = "87.6"  # Default: Substrate Jazz
+        self.radio_broadcaster: Optional['NarrativeBroadcaster'] = None
+        self._radio_broadcast_task = None
 
         # Register tool callbacks for Z.ai function calling
         self._register_tools()
@@ -1268,6 +1283,8 @@ class EvolutionDaemon:
         self.running = False
         if self._ambient_heartbeat_task:
             self._ambient_heartbeat_task.cancel()
+        if self._radio_broadcast_task:
+            self._radio_broadcast_task.cancel()
         logger.info("🛑 Evolution Daemon stopped")
 
     # =========================================================================
@@ -1303,6 +1320,137 @@ class EvolutionDaemon:
 
         logger.info(f"📖 Ambient Narrative Mode enabled (WordPress: {wordpress_url})")
         return True
+
+    # =========================================================================
+    # GOSR RADIO - NARRATIVE BROADCASTING
+    # =========================================================================
+
+    def enable_radio(self, station_id: str = "87.6") -> bool:
+        """
+        Enable GOSR Radio Broadcasting.
+
+        When enabled, the daemon:
+        - Creates a NarrativeBroadcaster instance
+        - Broadcasts narrative segments based on OS telemetry
+        - Uses the specified station personality
+
+        Args:
+            station_id: Radio station identifier (FM frequency)
+                       "87.6" = Substrate Jazz (default)
+                       "92.3" = Debug Metal
+                       "95.1" = Silicon Noir
+                       "99.9" = Neutral Chronicler
+
+        Returns:
+            True if radio enabled successfully, False otherwise
+        """
+        if not HAS_RADIO:
+            logger.warning("NarrativeBroadcaster not available - radio disabled")
+            return False
+
+        self.radio_enabled = True
+        self.radio_station_id = station_id
+
+        # Create broadcaster instance
+        self.radio_broadcaster = NarrativeBroadcaster(
+            enabled=True,
+            station_id=station_id,
+            broadcast_interval=30.0  # 30 seconds between broadcasts
+        )
+
+        logger.info(f"📻 GOSR Radio enabled: Station {station_id} FM")
+        return True
+
+    def set_radio_station(self, station_id: str) -> bool:
+        """
+        Switch radio station at runtime.
+
+        Args:
+            station_id: New station identifier (FM frequency)
+
+        Returns:
+            True if station changed, False if radio not enabled
+        """
+        if not self.radio_enabled or not self.radio_broadcaster:
+            logger.warning("Radio not enabled - cannot change station")
+            return False
+
+        self.radio_station_id = station_id
+        self.radio_broadcaster.set_station(station_id)
+        logger.info(f"📻 Switched to station: {station_id} FM")
+        return True
+
+    async def _radio_broadcast_loop(self):
+        """
+        Background task that broadcasts radio segments.
+
+        Runs every broadcast_interval seconds when radio is enabled.
+        Uses telemetry data to generate contextual narratives.
+        """
+        while self.running:
+            try:
+                # Get broadcast interval from broadcaster
+                interval = 30.0
+                if self.radio_broadcaster:
+                    interval = self.radio_broadcaster.broadcast_interval
+
+                await asyncio.sleep(interval)
+
+                if not self.radio_enabled or not self.radio_broadcaster:
+                    continue
+
+                # Gather telemetry for broadcast
+                telemetry = await self._gather_radio_telemetry()
+
+                # Generate broadcast segment
+                segment = self.radio_broadcaster.broadcast(telemetry)
+
+                if segment:
+                    # Broadcast to visual bridge for HUD display
+                    if self.visual_connected and self.webmcp:
+                        await self.webmcp.broadcast_event('radio_broadcast', segment.to_dict())
+
+                    logger.info(f"📻 [{segment.station_id}] {segment.segment_type}: {segment.content[:60]}...")
+
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.warning(f"Radio broadcast error: {e}")
+                await asyncio.sleep(10)
+
+    async def _gather_radio_telemetry(self) -> dict:
+        """
+        Gather system telemetry for radio broadcast generation.
+
+        Returns:
+            Dict with telemetry values: entropy, fps, evolution_count, etc.
+        """
+        telemetry = {
+            "entropy": 0.5,  # Default entropy
+            "fps": 60,
+            "evolution_count": self.evolution_count,
+            "visual_connected": self.visual_connected,
+            "ambient_state": self.ambient_state,
+            "timestamp": datetime.now().isoformat()
+        }
+
+        # Try to get real FPS from visual state
+        if self.visual_connected and self.webmcp:
+            try:
+                state = await self.webmcp.get_os_state()
+                if state:
+                    telemetry["fps"] = state.get("fps", 60)
+                    telemetry["map_tiles"] = state.get("tile_count", 0)
+            except Exception:
+                pass
+
+        # Calculate entropy from recent activity
+        # High activity = high entropy, low activity = low entropy
+        if self.analysis and self.analysis.python_files > 0:
+            # Normalize to 0-1 range
+            telemetry["entropy"] = min(1.0, self.evolution_count / 10.0)
+
+        return telemetry
 
     async def _ambient_heartbeat_loop(self):
         """
@@ -1401,6 +1549,8 @@ async def main():
     parser.add_argument("--scan", action="store_true", help="Just scan codebase")
     parser.add_argument("--ambient", action="store_true", help="Enable Ambient Narrative Mode")
     parser.add_argument("--wordpress-url", default="http://localhost:8080", help="WordPress URL for ambient mode")
+    parser.add_argument("--radio", action="store_true", help="Enable GOSR Radio Broadcasting")
+    parser.add_argument("--station", default="87.6", help="Radio station ID (87.6=Jazz, 92.3=Metal, 95.1=Noir, 99.9=Chronicler)")
     args = parser.parse_args()
 
     daemon = EvolutionDaemon(api_key=args.api_key)
@@ -1413,6 +1563,12 @@ async def main():
         daemon.enable_ambient_mode(wordpress_url=args.wordpress_url)
         # Start heartbeat task
         daemon._ambient_heartbeat_task = asyncio.create_task(daemon._ambient_heartbeat_loop())
+
+    # Enable radio if requested
+    if args.radio:
+        if daemon.enable_radio(station_id=args.station):
+            # Start radio broadcast loop
+            daemon._radio_broadcast_task = asyncio.create_task(daemon._radio_broadcast_loop())
 
     if args.scan:
         print(json.dumps({
