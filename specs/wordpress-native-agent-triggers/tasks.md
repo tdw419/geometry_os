@@ -19,7 +19,7 @@ generated: from-plan
   - _Requirements: FR-1_
   - _Design: PHP Agent Request Handler_
 
-- [ ] 1.2 Add Visual Bridge Agent Endpoints
+- [x] 1.2 Add Visual Bridge Agent Endpoints
   - **Do**: Add `/agent/request` and `/agent/status/{task_id}` HTTP endpoints to Visual Bridge
   - **Files**: `systems/visual_shell/api/visual_bridge.py`
   - **Done when**: Endpoints queue tasks and return status

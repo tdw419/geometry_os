@@ -23,12 +23,14 @@ import os
 import sys
 import socket
 import time
+import uuid
 import websockets
 from websockets.server import serve
 import numpy as np
 import argparse
 from pathlib import Path
 from typing import Dict, Any, Optional, List
+from aiohttp import web
 
 # Add project root to path for imports
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -96,7 +98,114 @@ class VisualBridge:
         self._ambient_state = "MONITORING"
         self._fps_data = {"fps": 60.0, "draw_calls": 0, "last_update": time.time()}
 
-    def _is_already_running(self) -> bool:
+        # Agent task queue for WordPress agent requests
+        self.agent_task_queue: Dict[str, dict] = {}
+        self.task_counter = 0
+
+        # HTTP server for REST endpoints (WordPress agent requests)
+        self.http_port = 8769  # Different from WebSocket port
+        self.app = web.Application()
+
+        # Register HTTP routes
+        self._setup_http_routes()
+
+    def _setup_http_routes(self) -> None:
+        """Setup HTTP routes for WordPress agent requests."""
+        self.app.router.add_post('/agent/request', self._handle_agent_request_http)
+        self.app.router.add_get('/agent/status/{task_id}', self._handle_agent_status_http)
+
+    async def _handle_agent_request_http(self, request: web.Request) -> web.Response:
+        """HTTP endpoint for agent requests from WordPress."""
+        try:
+            data = await request.json()
+            result = self.handle_agent_request(data)
+            status_code = 200 if result.get('status') != 'error' else 400
+            return web.json_response(result, status=status_code)
+        except json.JSONDecodeError:
+            return web.json_response(
+                {'status': 'error', 'message': 'Invalid JSON'},
+                status=400
+            )
+        except Exception as e:
+            return web.json_response(
+                {'status': 'error', 'message': str(e)},
+                status=500
+            )
+
+    async def _handle_agent_status_http(self, request: web.Request) -> web.Response:
+        """HTTP endpoint to check task status."""
+        task_id = request.match_info['task_id']
+        status = self.get_task_status(task_id)
+        status_code = 200 if status.get('status') != 'error' else 404
+        return web.json_response(status, status=status_code)
+
+    def handle_agent_request(self, data: dict) -> dict:
+        """
+        Handle agent request from WordPress.
+
+        Args:
+            data: Dict containing:
+                - agent_type: One of 'content_intelligence', 'evolution_publish', 'plugin_analysis'
+                - payload: Dict with request-specific data
+                - request_id: Optional unique request identifier
+
+        Returns:
+            Dict with 'status' and 'task_id' or 'error' and 'message'
+        """
+        agent_type = data.get('agent_type')
+        payload = data.get('payload', {})
+        request_id = data.get('request_id', str(uuid.uuid4()))
+
+        valid_agent_types = ['content_intelligence', 'evolution_publish', 'plugin_analysis']
+        if agent_type not in valid_agent_types:
+            return {'status': 'error', 'message': f'Unknown agent type: {agent_type}'}
+
+        self.task_counter += 1
+        task_id = f"wp-{agent_type}-{self.task_counter}-{int(time.time())}"
+
+        task = {
+            'task_id': task_id,
+            'request_id': request_id,
+            'agent_type': agent_type,
+            'payload': payload,
+            'status': 'queued',
+            'created_at': time.time(),
+            'result': None
+        }
+
+        self.agent_task_queue[task_id] = task
+
+        # Notify Evolution Daemon via pulse system (only if event loop running)
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(self._send_agent_pulse(task))
+        except RuntimeError:
+            # No event loop running - pulse will be sent when server starts
+            pass
+
+        return {'status': 'queued', 'task_id': task_id}
+
+    def get_task_status(self, task_id: str) -> dict:
+        """Get status of agent task."""
+        task = self.agent_task_queue.get(task_id)
+        if not task:
+            return {'status': 'error', 'message': f'Task not found: {task_id}'}
+
+        return {
+            'task_id': task_id,
+            'status': task['status'],
+            'result': task.get('result')
+        }
+
+    async def _send_agent_pulse(self, task: dict) -> None:
+        """Send neural pulse to trigger Evolution Daemon."""
+        pulse = {
+            'type': 'agent_request',
+            'event': 'agent_request',
+            'task': task,
+            'timestamp': task['created_at']
+        }
+        await self._broadcast(pulse)
         """Check if another instance of visual_bridge is already running via PID file."""
         if not os.path.exists(self.lock_file):
             return False
