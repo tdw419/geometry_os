@@ -6,12 +6,24 @@ narrative content from OS telemetry.
 
 Design Pattern: Follows SemanticPublisher patterns for rate limiting
 and Visual Bridge integration.
+
+Broadcast Flow:
+1. Select segment type based on entropy (SegmentPool)
+2. Generate content from telemetry (SegmentPool)
+3. Check for duplicates (TopicMemory)
+4. Retry with alternate segment type if duplicate
+5. Transform with station personality (PersonalityEngine)
+6. Record broadcast for statistics
 """
 
 import logging
 import time
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, List
+
+from .segment_pool import SegmentPool, SegmentType
+from .topic_memory import TopicMemory
+from .personality_engine import PersonalityEngine
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +82,8 @@ class NarrativeBroadcaster:
         self,
         enabled: bool = True,
         station_id: str = "87.6",
-        broadcast_interval: float = 30.0
+        broadcast_interval: float = 30.0,
+        max_duplicate_retries: int = 3
     ):
         """
         Initialize the narrative broadcaster.
@@ -79,20 +92,22 @@ class NarrativeBroadcaster:
             enabled: Whether broadcasting is active
             station_id: Radio station identifier (FM frequency)
             broadcast_interval: Seconds between broadcasts
+            max_duplicate_retries: Max retries when duplicate detected
         """
         self.enabled = enabled
         self.station_id = station_id
         self.broadcast_interval = broadcast_interval
+        self.max_duplicate_retries = max_duplicate_retries
 
         # Statistics
         self._total_broadcasts = 0
         self._last_broadcast_time = 0.0
         self._broadcast_history: List[BroadcastSegment] = []
 
-        # Placeholder for components (will be added in later tasks)
-        self._segment_pool = None
-        self._topic_memory = None
-        self._personality_engine = None
+        # Initialize components
+        self._segment_pool = SegmentPool()
+        self._topic_memory = TopicMemory()
+        self._personality_engine = PersonalityEngine()
 
         logger.info(f"NarrativeBroadcaster initialized: station={station_id}, enabled={enabled}")
 
@@ -152,3 +167,116 @@ class NarrativeBroadcaster:
         # Keep only last 100 broadcasts
         if len(self._broadcast_history) > 100:
             self._broadcast_history = self._broadcast_history[-100:]
+
+    def broadcast(self, telemetry: Dict[str, Any]) -> Optional[BroadcastSegment]:
+        """
+        Generate and return a broadcast segment.
+
+        Flow:
+        1. Check if enabled
+        2. Select segment type based on entropy
+        3. Generate content from telemetry
+        4. Check for duplicates (retry with alternate type if needed)
+        5. Transform with station personality
+        6. Record and return segment
+
+        Args:
+            telemetry: System telemetry dict with fps, entropy, etc.
+
+        Returns:
+            BroadcastSegment if successful, None if disabled or exhausted
+        """
+        if not self.enabled:
+            logger.debug("Broadcast skipped: radio disabled")
+            return None
+
+        # Get entropy from telemetry (default 0.5)
+        entropy = telemetry.get("entropy", 0.5)
+
+        # Get station name for content generation
+        station = self._personality_engine.get_station(self.station_id)
+        station_name = station.name if station else "Unknown Station"
+
+        # Track attempted types to avoid repeating
+        attempted_types: List[SegmentType] = []
+        content: Optional[str] = None
+        selected_type: Optional[SegmentType] = None
+
+        # Try to generate unique content (with retries for dedup)
+        for attempt in range(self.max_duplicate_retries):
+            # Select segment type (avoid recently used if retrying)
+            if attempted_types:
+                # Force a different type on retry
+                available_types = [
+                    t for t in SegmentType if t not in attempted_types
+                ]
+                if available_types:
+                    import random
+                    selected_type = random.choice(available_types)
+                else:
+                    # All types exhausted, use any
+                    selected_type = self._segment_pool.select_segment(entropy)
+            else:
+                selected_type = self._segment_pool.select_segment(entropy)
+
+            attempted_types.append(selected_type)
+
+            # Generate content
+            raw_content = self._segment_pool.generate_content(
+                segment_type=selected_type,
+                telemetry=telemetry,
+                station_name=station_name
+            )
+
+            # Check for duplicate
+            if not self._topic_memory.is_duplicate(raw_content):
+                content = raw_content
+                break
+
+            logger.debug(
+                f"Duplicate detected on attempt {attempt + 1}, "
+                f"retrying with different type"
+            )
+
+        # If all retries failed due to duplicates, use last generated content
+        # but inject some variation via entropy adjustment
+        if content is None and raw_content:
+            # Accept the duplicate but add it to memory for future checks
+            content = raw_content
+            logger.warning(
+                f"Max duplicate retries ({self.max_duplicate_retries}) reached, "
+                "accepting last content"
+            )
+
+        if content is None:
+            logger.error("Failed to generate broadcast content")
+            return None
+
+        # Add to topic memory for future dedup
+        self._topic_memory.add_topic(content)
+
+        # Apply station personality transformation
+        transformed_content = self._personality_engine.apply_personality(
+            content=content,
+            station_id=self.station_id,
+            entropy=entropy
+        )
+
+        # Create segment
+        segment = BroadcastSegment(
+            segment_type=selected_type.value if selected_type else "unknown",
+            content=transformed_content,
+            entropy=entropy,
+            station_id=self.station_id,
+            timestamp=time.time()
+        )
+
+        # Record for statistics
+        self._record_broadcast(segment)
+
+        logger.info(
+            f"Broadcast: [{self.station_id}] {selected_type.value if selected_type else 'unknown'} - "
+            f"{transformed_content[:50]}..."
+        )
+
+        return segment

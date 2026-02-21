@@ -90,7 +90,7 @@ Focus: Core module structure, base classes, basic broadcast flow. Skip WordPress
   - _Requirements: AC-2.1_
   - _Design: Station reference table_
 
-- [ ] 1.7 Integrate components into NarrativeBroadcaster
+- [x] 1.7 Integrate components into NarrativeBroadcaster
   - **Do**:
     1. Wire SegmentPool, TopicMemory, PersonalityEngine into broadcaster `__init__`
     2. Implement full `broadcast()` method with flow: select -> generate -> dedup -> transform
