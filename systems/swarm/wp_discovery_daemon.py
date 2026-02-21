@@ -41,6 +41,7 @@ class SwarmDiscoveryDaemon:
 
     STATUS_FILE = Path("/tmp/wp_swarm_status.json")
     PID_FILE = Path("/tmp/wp_swarm_daemon.pid")
+    REMOTE_NODES_CONFIG = Path(__file__).parent / "remote_nodes.json"
 
     def __init__(self, shared_secret: str = "default-secret-change-me"):
         self.bridge = WordPressSwarmBridge(shared_secret=shared_secret)
@@ -60,6 +61,41 @@ class SwarmDiscoveryDaemon:
         self.sync_interval = 300  # 5 minutes
         self.remote_nodes: Dict[str, RemoteNode] = {}
 
+    def load_remote_nodes(self):
+        """Load remote nodes from configuration file."""
+        if not self.REMOTE_NODES_CONFIG.exists():
+            logger.debug(f"Remote nodes config not found: {self.REMOTE_NODES_CONFIG}")
+            return
+
+        try:
+            with open(self.REMOTE_NODES_CONFIG) as f:
+                config = json.load(f)
+
+            nodes = config.get("nodes", [])
+            for node_data in nodes:
+                if not node_data.get("enabled", True):
+                    logger.debug(f"Skipping disabled node: {node_data.get('node_id')}")
+                    continue
+
+                node_id = node_data["node_id"]
+                remote_node = RemoteNode(
+                    node_id=node_id,
+                    url=node_data["url"],
+                    api_url=node_data["api_url"],
+                    enabled=node_data.get("enabled", True)
+                )
+                self.remote_nodes[node_id] = remote_node
+                logger.info(f"Loaded remote node from config: {node_id} ({node_data['url']})")
+
+            logger.info(f"Loaded {len(self.remote_nodes)} remote nodes from config")
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse remote nodes config: {e}")
+        except KeyError as e:
+            logger.error(f"Missing required field in remote node config: {e}")
+        except Exception as e:
+            logger.error(f"Error loading remote nodes config: {e}")
+
     async def start(self):
         """Start the daemon."""
         # Write PID file
@@ -74,6 +110,9 @@ class SwarmDiscoveryDaemon:
 
         # Start the bridge
         await self.bridge.start()
+
+        # Load remote nodes from config
+        self.load_remote_nodes()
 
         # Start sync manager
         self.sync_manager = SyncManager(
