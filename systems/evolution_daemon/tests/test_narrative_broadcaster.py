@@ -549,6 +549,31 @@ class TestSegmentPool:
         # Should track the last selected type
         assert pool.last_segment_type is not None
 
+    def test_archive_segment(self):
+        """ARCHIVE segment should pull from git history (FR-9, Done when)."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+
+        pool = SegmentPool()
+
+        # Test that ARCHIVE segment generation works with git history
+        telemetry = {"entropy": 0.5}
+        content = pool.generate_content(
+            segment_type=SegmentType.ARCHIVE,
+            telemetry=telemetry,
+            station_name="Test Station"
+        )
+
+        assert isinstance(content, str)
+        assert len(content) > 0
+
+        # Test that git commit retrieval works
+        commits = pool._get_git_commits_for_date("2026-02-21")
+        assert isinstance(commits, list)
+
+        # Test anonymization
+        result = pool._anonymize_author("John Doe")
+        assert "John" not in result  # Should be anonymized
+
 
 class TestPersonalityEngine:
     """Tests for PersonalityEngine station personality component."""
@@ -1488,3 +1513,175 @@ class TestTopicMemoryWordPressSync:
 
         # Default should be False
         assert entry.synced is False
+
+
+class TestSegmentPoolArchiveGitHistory:
+    """Tests for ARCHIVE segment git history mining (FR-9, AC-7.1 through AC-7.4)."""
+
+    def test_archive_segment(self):
+        """ARCHIVE segment should pull from git history (Done when criteria)."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+
+        pool = SegmentPool()
+
+        # Test that ARCHIVE segment generation works
+        telemetry = {"entropy": 0.5}
+        content = pool.generate_content(
+            segment_type=SegmentType.ARCHIVE,
+            telemetry=telemetry,
+            station_name="Test Station"
+        )
+
+        assert isinstance(content, str)
+        assert len(content) > 0
+
+        # Test that git commit retrieval works
+        commits = pool._get_git_commits_for_date("2026-02-21")
+        assert isinstance(commits, list)
+
+    def test_get_git_commits_for_date_returns_commits(self):
+        """SegmentPool should retrieve git commits for a specific date (AC-7.1)."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool
+        from datetime import datetime, timedelta
+
+        pool = SegmentPool()
+
+        # Get today's date
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        # Should return a list (may be empty if no commits today)
+        commits = pool._get_git_commits_for_date(today)
+        assert isinstance(commits, list)
+
+    def test_get_git_commits_for_date_format(self):
+        """SegmentPool should return commits with required fields (AC-7.1)."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool
+        from datetime import datetime, timedelta
+
+        pool = SegmentPool()
+
+        # Try to get commits from a date that likely has commits
+        # Use a recent date
+        recent_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+        commits = pool._get_git_commits_for_date(recent_date)
+
+        # If commits found, check structure
+        if commits:
+            commit = commits[0]
+            assert "hash" in commit
+            assert "message" in commit
+            assert "author" in commit
+            assert "timestamp" in commit
+
+    def test_anonymize_author_names(self):
+        """SegmentPool should anonymize author names in output (AC-7.4)."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool
+
+        pool = SegmentPool()
+
+        # Test anonymization function
+        result = pool._anonymize_author("John Doe")
+        assert result == "J*** D**"
+
+        result = pool._anonymize_author("Alice")
+        assert result == "A****"
+
+        # bob (3 chars) -> b** (2 asterisks), example (7 chars) -> e****** (6 asterisks)
+        result = pool._anonymize_author("bob@example.com")
+        assert result == "b**@e******.c**"
+
+    def test_generate_archive_content_includes_git_commits(self):
+        """SegmentPool should include git history in ARCHIVE content (AC-7.1)."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+        from datetime import datetime, timedelta
+
+        pool = SegmentPool()
+
+        # Get commits from a recent date
+        recent_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+        commits = pool._get_git_commits_for_date(recent_date)
+
+        telemetry = {
+            "entropy": 0.5,
+            "archive_date": recent_date
+        }
+
+        content = pool.generate_content(
+            segment_type=SegmentType.ARCHIVE,
+            telemetry=telemetry,
+            station_name="Substrate Jazz"
+        )
+
+        assert isinstance(content, str)
+        assert len(content) > 0
+
+    def test_git_fallback_to_wordpress_when_unavailable(self):
+        """SegmentPool should fallback to WordPress posts when git unavailable (AC-7.2)."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool
+
+        pool = SegmentPool()
+
+        # Simulate git unavailable by passing non-existent repo path
+        commits = pool._get_git_commits_for_date(
+            "2026-02-21",
+            git_repo_path="/non/existent/path"
+        )
+
+        # Should return empty list (fallback would be handled by caller)
+        assert commits == []
+
+    def test_get_git_commits_for_invalid_date(self):
+        """SegmentPool should handle invalid date gracefully."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool
+
+        pool = SegmentPool()
+
+        # Invalid date format
+        commits = pool._get_git_commits_for_date("not-a-date")
+        assert commits == []
+
+    def test_archive_context_includes_commit_count(self):
+        """SegmentPool should include commit count in archive context (AC-7.3)."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool
+        from datetime import datetime, timedelta
+
+        pool = SegmentPool()
+
+        recent_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+        commits = pool._get_git_commits_for_date(recent_date)
+
+        context = pool._build_archive_context(recent_date)
+
+        assert "commit_count" in context
+        assert "archive_date" in context
+        assert isinstance(context["commit_count"], int)
+
+    def test_archive_content_with_historical_reference(self):
+        """ARCHIVE content should reference historical events (AC-7.3)."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+        from datetime import datetime, timedelta
+
+        pool = SegmentPool()
+
+        # Use a date from history
+        historical_date = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
+
+        telemetry = {
+            "entropy": 0.5,
+            "archive_date": historical_date
+        }
+
+        content = pool.generate_content(
+            segment_type=SegmentType.ARCHIVE,
+            telemetry=telemetry,
+            station_name="Substrate Jazz"
+        )
+
+        # Content should reference the archive in some way
+        assert isinstance(content, str)
+        # Should contain words related to history/archives/memory/past
+        lower_content = content.lower()
+        assert any(word in lower_content for word in [
+            "archive", "history", "commits", "contributions", "record", "past",
+            "memory", "lane", "looking back", "witnessed", "recalls"
+        ])

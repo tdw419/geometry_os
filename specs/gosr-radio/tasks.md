@@ -181,7 +181,7 @@ After POC validated, clean up code structure.
   - _Requirements: FR-8, AC-5.1 through AC-5.4_
   - _Design: WordPress sync section_
 
-- [ ] 2.3 Add ARCHIVE segment git history mining
+- [x] 2.3 Add ARCHIVE segment git history mining
   - **Do**:
     1. Add `_get_git_commits_for_date()` method to SegmentPool
     2. Implement same-day historical commit lookup

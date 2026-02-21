@@ -5,6 +5,10 @@ Generates broadcast segments with entropy-weighted selection.
 """
 
 import random
+import subprocess
+import re
+from datetime import datetime, timedelta
+from pathlib import Path
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional, Tuple
@@ -211,6 +215,11 @@ class SegmentPool:
         # Build substitution context from telemetry with defaults
         context = self._build_context(telemetry, station_name)
 
+        # For ARCHIVE segments, add git history context
+        if segment_type == SegmentType.ARCHIVE:
+            archive_context = self._build_archive_context(telemetry.get("archive_date"))
+            context.update(archive_context)
+
         # Substitute template variables
         try:
             content = template.format(**context)
@@ -282,3 +291,157 @@ class SegmentPool:
             "entropy_value": entropy_value,
             "total_commits": get("total_commits", 1000),
         }
+
+    def _get_git_commits_for_date(
+        self,
+        date_str: str,
+        git_repo_path: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieve git commits for a specific date (AC-7.1).
+
+        Uses git log to find commits made on the same date in history.
+
+        Args:
+            date_str: Date in YYYY-MM-DD format.
+            git_repo_path: Optional path to git repo. Defaults to current directory.
+
+        Returns:
+            List of commit dictionaries with hash, message, author, timestamp.
+            Empty list if git unavailable or invalid date.
+        """
+        # Validate date format
+        try:
+            datetime.strptime(date_str, "%Y-%m-%d")
+        except ValueError:
+            return []
+
+        # Determine repo path
+        repo_path = git_repo_path or "."
+
+        # Check if path is a git repository
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "--git-dir"],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode != 0:
+                return []
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            return []
+
+        # Get commits for the same date in history
+        try:
+            result = subprocess.run(
+                [
+                    "git", "log",
+                    "--all",
+                    f"--since={date_str} 00:00:00",
+                    f"--until={date_str} 23:59:59",
+                    "--format=%H|%s|%an|%at"
+                ],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+            if result.returncode != 0:
+                return []
+
+            commits = []
+            for line in result.stdout.strip().split("\n"):
+                if not line or "|" not in line:
+                    continue
+
+                parts = line.split("|", 3)
+                if len(parts) >= 4:
+                    commits.append({
+                        "hash": parts[0][:8],  # Short hash
+                        "message": parts[1][:100],  # Truncate long messages
+                        "author": self._anonymize_author(parts[2]),
+                        "timestamp": float(parts[3])
+                    })
+
+            return commits
+
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            return []
+
+    def _anonymize_author(self, author: str) -> str:
+        """
+        Anonymize author name for privacy (AC-7.4).
+
+        Replaces characters after the first with asterisks.
+        Preserves email format partially.
+
+        Args:
+            author: Author name or email to anonymize.
+
+        Returns:
+            Anonymized author string.
+        """
+        if not author:
+            return "Unknown"
+
+        # Handle email format
+        if "@" in author:
+            local, domain = author.split("@", 1)
+            # Anonymize local part
+            if len(local) > 1:
+                local = local[0] + "*" * (len(local) - 1)
+            # Anonymize domain
+            domain_parts = domain.split(".")
+            if len(domain_parts) > 1:
+                domain = domain_parts[0][0] + "*" * (len(domain_parts[0]) - 1) + "." + ".".join(
+                    p[0] + "*" * (len(p) - 1) for p in domain_parts[1:]
+                )
+            return f"{local}@{domain}"
+
+        # Handle regular name
+        parts = author.split()
+        anonymized_parts = []
+
+        for part in parts:
+            if len(part) > 1:
+                anonymized_parts.append(part[0] + "*" * (len(part) - 1))
+            else:
+                anonymized_parts.append(part)
+
+        return " ".join(anonymized_parts)
+
+    def _build_archive_context(
+        self,
+        archive_date: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Build context for ARCHIVE segment generation (AC-7.3).
+
+        Args:
+            archive_date: Optional date string (YYYY-MM-DD). Defaults to today
+                          in a previous year.
+
+        Returns:
+            Context dictionary with commit_count, archive_date, etc.
+        """
+        if archive_date is None:
+            # Use same date from 1 year ago
+            today = datetime.now()
+            one_year_ago = today - timedelta(days=365)
+            archive_date = one_year_ago.strftime("%Y-%m-%d")
+
+        commits = self._get_git_commits_for_date(archive_date)
+        commit_count = len(commits)
+
+        # Build context
+        context = {
+            "commit_count": commit_count,
+            "archive_date": archive_date,
+            "total_commits": commit_count * 100 if commit_count > 0 else 1000,  # Scale for templates
+            "commits": commits[:5] if commits else [],  # Top 5 for display
+        }
+
+        return context
