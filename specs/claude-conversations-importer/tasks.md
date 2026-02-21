@@ -60,7 +60,7 @@ _Design: Claude_Conversations_Admin_
 
 ---
 
-### Task 1.2: JSONL Parser Class
+### Task 1.2: [x] JSONL Parser Class
 
 **Do:**
 1. Add `Claude_JsonlParser` class to main plugin file
