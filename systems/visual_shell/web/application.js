@@ -63,6 +63,12 @@ class GeometryOSApplication {
 
         // World Persistence
         this.localArtifacts = [];
+
+        // V2.0: Ambient Narrative System
+        this.ambientNarrative = null;
+        this.ambientNarrativeHUD = null;
+        this._sceneStreamInterval = null;
+        this._fpsMonitorInterval = null;
     }
 
     /**
@@ -524,6 +530,105 @@ class GeometryOSApplication {
 
         // Phase 26: Signal readiness for external modules (like PixelLang IDE)
         window.geometryOSApp = this;
+
+        // --- WordPress Integration Bridge ---
+        window.geometryOS = {
+            tileRegistry: new Map(),
+            regions: {
+                origin: { x: 0, y: 0, zoom: 1.0 },
+                antigravity_prime: { x: 8192, y: 8192, zoom: 0.5 },
+                neural_nursery: { x: 1024, y: 1024, zoom: 1.0 },
+                system_console: { x: 2, y: 2, zoom: 2.0 },
+                wordpress_zone: { x: 3200, y: 1200, zoom: 1.0 }
+            },
+            registerTile: (tileId, data) => {
+                window.geometryOS.tileRegistry.set(tileId, data);
+                window.dispatchEvent(new CustomEvent('geometryOS:registryUpdate', { 
+                    detail: { tileId, data, action: 'register' } 
+                }));
+            },
+            navigateTo: (tileId) => {
+                const entry = window.geometryOS.tileRegistry.get(tileId);
+                if (entry && this.viewport) {
+                    const gridSize = this.config.gridSize || 100;
+                    this.viewport.moveTo(entry.x * gridSize, entry.y * gridSize);
+                    if (entry.zoom) this.viewport.zoomTo(entry.zoom);
+                    
+                    window.dispatchEvent(new CustomEvent('geometryOS:navigated', { 
+                        detail: { tileId, x: entry.x, y: entry.y } 
+                    }));
+                    return true;
+                }
+                return false;
+            },
+            navigateToRegion: (regionId) => {
+                const r = window.geometryOS.regions[regionId];
+                if (r && this.viewport) {
+                    const gridSize = this.config.gridSize || 100;
+                    this.viewport.moveTo(r.x * gridSize, r.y * gridSize);
+                    this.viewport.zoomTo(r.zoom || 1.0);
+                    return true;
+                }
+                return false;
+            },
+            startTile: (tileId) => {
+                const entry = window.geometryOS.tileRegistry.get(tileId);
+                if (entry && this.neuralCity?.liveTileManager) {
+                    this.neuralCity.liveTileManager.bootTile(tileId, entry.rtsPath || 'assets/alpine_v2.rts.png', entry.x, entry.y);
+                    return true;
+                }
+                return false;
+            },
+            stopTile: (tileId) => {
+                if (this.neuralCity?.liveTileManager) {
+                    this.neuralCity.liveTileManager.stopTile(tileId);
+                    return true;
+                }
+                return false;
+            },
+            restartTile: (tileId) => {
+                const entry = window.geometryOS.tileRegistry.get(tileId);
+                if (entry && this.neuralCity?.liveTileManager) {
+                    this.neuralCity.liveTileManager.stopTile(tileId);
+                    setTimeout(() => {
+                        this.neuralCity.liveTileManager.bootTile(tileId, entry.rtsPath || 'assets/alpine_v2.rts.png', entry.x, entry.y);
+                    }, 1000);
+                    return true;
+                }
+                return false;
+            },
+            sendCommand: (tileId, command) => {
+                if (this.neuralCity?.liveTileManager) {
+                    this.neuralCity.liveTileManager.sendCommand(tileId, command);
+                    return true;
+                }
+                return false;
+            },
+            broadcastCommand: (command) => {
+                let count = 0;
+                if (this.neuralCity?.liveTileManager) {
+                    const tiles = this.neuralCity.liveTileManager.getAllTiles();
+                    tiles.forEach((tile, id) => {
+                        if (tile.state === 'running') {
+                            this.neuralCity.liveTileManager.sendCommand(id, command);
+                            count++;
+                        }
+                    });
+                }
+                return count;
+            },
+            getConsoleOutput: (tileId, limit = 5) => {
+                if (this.neuralCity?.liveTileManager) {
+                    const tile = this.neuralCity.liveTileManager.getTile(tileId);
+                    if (tile && tile.consoleOutput) {
+                        return tile.consoleOutput.slice(-limit).map(l => l.text);
+                    }
+                }
+                return [];
+            },
+            getTiles: () => Array.from(window.geometryOS.tileRegistry.entries()).map(([id, data]) => ({ id, ...data }))
+        };
+
         window.dispatchEvent(new CustomEvent('geometry-os-ready'));
     }
 
@@ -2948,6 +3053,23 @@ class GeometryOSApplication {
                     } else if (data.type === 'SHOTCUT_FRAME_UPDATE') {
                         // Dispatch Shotcut Visual HUD update
                         window.dispatchEvent(new CustomEvent('SHOTCUT_FRAME_UPDATE', { detail: data.data }));
+                    } else if (data.type === 'NARRATIVE_EVENT') {
+                        // V2.0: Handle narrative events
+                        this._handleNarrativeEvent(data);
+                    } else if (data.type === 'DAEMON_HEARTBEAT') {
+                        // V2.0: Handle daemon heartbeat
+                        window.dispatchEvent(new CustomEvent('DAEMON_HEARTBEAT', { detail: data }));
+                    } else if (data.type === 'narrative_session') {
+                        // V2.0: Session info response
+                        if (this.ambientNarrative) {
+                            this.ambientNarrative.sessionId = data.session_id;
+                            this.ambientNarrative.state = data.ambient_state || 'MONITORING';
+                            
+                            // Update HUD if available
+                            if (this.ambientNarrativeHUD) {
+                                this.ambientNarrativeHUD.updateState(this.ambientNarrative.state);
+                            }
+                        }
                     } else if (data.type === 'error') {
                         console.warn('🔮 Memory Bridge error:', data.message);
                     }
@@ -2991,11 +3113,257 @@ class GeometryOSApplication {
         }
     }
 
+    // =========================================================================
+    // V2.0: AMBIENT NARRATIVE SYSTEM
+    // =========================================================================
+
+    /**
+     * Enable Ambient Narrative Mode for scene graph streaming.
+     *
+     * @param {Object} options - Configuration options
+     * @param {number} options.streamInterval - Scene graph stream interval in ms (default: 1000)
+     * @param {string} options.wordpressUrl - WordPress REST API URL
+     */
+    enableAmbientNarrative(options = {}) {
+        this.ambientNarrative = {
+            enabled: true,
+            streamInterval: options.streamInterval || 1000,
+            wordpressUrl: options.wordpressUrl || 'http://localhost:8080',
+            sessionId: null,
+            state: 'MONITORING',
+            lastSceneHash: null,
+            highlightedObjects: new Set()
+        };
+
+        // Get session from WordPress
+        this._fetchNarrativeSession();
+
+        // Start scene graph streaming
+        this._startSceneGraphStreaming();
+
+        // Start FPS monitoring
+        this._startFPSMonitoring();
+
+        // Initialize HUD (V2.0)
+        if (typeof AmbientNarrativeHUD !== 'undefined') {
+            this.ambientNarrativeHUD = new AmbientNarrativeHUD({
+                x: 20,
+                y: 20
+            });
+            this.worldContainer.addChild(this.ambientNarrativeHUD.create());
+        }
+
+        console.log('📖 Ambient Narrative System enabled');
+    }
+
+    /**
+     * Disable Ambient Narrative Mode.
+     */
+    disableAmbientNarrative() {
+        if (this.ambientNarrative) {
+            this.ambientNarrative.enabled = false;
+            
+            // Cleanup HUD (V2.0)
+            if (this.ambientNarrativeHUD) {
+                this.worldContainer.removeChild(this.ambientNarrativeHUD.container);
+                this.ambientNarrativeHUD = null;
+            }
+
+            if (this._sceneStreamInterval) {
+                clearInterval(this._sceneStreamInterval);
+            }
+            if (this._fpsMonitorInterval) {
+                clearInterval(this._fpsMonitorInterval);
+            }
+            this._clearNarrativeHighlights();
+        }
+        console.log('📖 Ambient Narrative System disabled');
+    }
+
+    /**
+     * Fetch the active narrative session from WordPress.
+     */
+    async _fetchNarrativeSession() {
+        if (!this.ambientNarrative?.enabled) return;
+
+        try {
+            const response = await fetch(`${this.ambientNarrative.wordpressUrl}/wp-json/geometry-os/v1/narrative-session`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.session) {
+                    this.ambientNarrative.sessionId = data.session.id;
+                    this.ambientNarrative.state = data.session.ambient_state || 'MONITORING';
+                    
+                    // Update HUD if available
+                    if (this.ambientNarrativeHUD) {
+                        this.ambientNarrativeHUD.updateState(this.ambientNarrative.state);
+                    }
+                    
+                    console.log(`📖 Narrative session: ${this.ambientNarrative.sessionId} (${this.ambientNarrative.state})`);
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to fetch narrative session:', e);
+        }
+    }
+
+    /**
+     * Start periodic scene graph streaming.
+     */
+    _startSceneGraphStreaming() {
+        if (this._sceneStreamInterval) {
+            clearInterval(this._sceneStreamInterval);
+        }
+
+        this._sceneStreamInterval = setInterval(() => {
+            if (!this.ambientNarrative?.enabled || !this.ambientNarrative.sessionId) return;
+
+            const sceneGraph = this.getSceneGraphAsJSON();
+            if (!sceneGraph) return;
+
+            // Simple hash check to avoid unnecessary sends
+            const hash = JSON.stringify(sceneGraph).length; // Simplified hash
+            if (hash === this.ambientNarrative.lastSceneHash) return;
+            this.ambientNarrative.lastSceneHash = hash;
+
+            // Send to visual bridge via WebSocket
+            if (this.memoryBridgeSocket && this.memoryBridgeSocket.readyState === WebSocket.OPEN) {
+                this.memoryBridgeSocket.send(JSON.stringify({
+                    type: 'scene_graph_update',
+                    session_id: this.ambientNarrative.sessionId,
+                    scene_graph: sceneGraph,
+                    fps: this.app.ticker.FPS || 60,
+                    draw_calls: this.app.renderer.rendering.stats?.drawCalls || 0
+                }));
+            }
+        }, this.ambientNarrative.streamInterval);
+    }
+
+    /**
+     * Start FPS monitoring for HUD updates.
+     */
+    _startFPSMonitoring() {
+        if (this._fpsMonitorInterval) {
+            clearInterval(this._fpsMonitorInterval);
+        }
+
+        this._fpsMonitorInterval = setInterval(() => {
+            if (!this.ambientNarrative?.enabled) return;
+
+            // Update FPS data for potential HUD display
+            const fps = Math.round(this.app.ticker.FPS || 60);
+            window.dispatchEvent(new CustomEvent('GEOMETRY_OS_FPS_UPDATE', {
+                detail: { fps, state: this.ambientNarrative.state }
+            }));
+        }, 500);
+    }
+
+    /**
+     * Handle incoming narrative events from the bridge.
+     * @param {Object} data - Narrative event data
+     */
+    _handleNarrativeEvent(data) {
+        if (!this.ambientNarrative?.enabled) return;
+
+        switch (data.event_type) {
+            case 'thought':
+                console.log(`💭 AI Thought: ${data.data?.thought?.substring(0, 100)}...`);
+                if (data.data?.state) {
+                    this.ambientNarrative.state = data.data.state;
+                }
+                break;
+
+            case 'steering':
+                console.log(`🎯 Steering Action: ${data.data?.action}`);
+                this.ambientNarrative.state = 'STEERING';
+                // Highlight affected objects
+                if (data.data?.target) {
+                    this._highlightNarrativeObject(data.data.target);
+                }
+                break;
+
+            case 'state_change':
+                this.ambientNarrative.state = data.new_state;
+                console.log(`📖 State: ${data.old_state} → ${data.new_state}`);
+                break;
+        }
+
+        // Dispatch for UI components
+        window.dispatchEvent(new CustomEvent('NARRATIVE_EVENT', { detail: data }));
+    }
+
+    /**
+     * Highlight an object being discussed by the AI.
+     * @param {string} targetId - Target object identifier
+     */
+    _highlightNarrativeObject(targetId) {
+        // Find the object in the scene
+        const target = this._findObjectById(targetId);
+        if (!target) return;
+
+        // Create highlight effect
+        const highlight = new PIXI.Graphics();
+        highlight.lineStyle(3, 0xffcc00, 0.8);
+
+        const bounds = target.getBounds();
+        highlight.drawRect(bounds.x - 5, bounds.y - 5, bounds.width + 10, bounds.height + 10);
+
+        this.worldContainer.addChild(highlight);
+        this.ambientNarrative.highlightedObjects.add(highlight);
+
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            this.worldContainer.removeChild(highlight);
+            this.ambientNarrative.highlightedObjects.delete(highlight);
+            highlight.destroy();
+        }, 3000);
+    }
+
+    /**
+     * Find a scene object by ID or name.
+     * @param {string} id - Object identifier
+     * @returns {PIXI.DisplayObject|null}
+     */
+    _findObjectById(id) {
+        // Recursive search
+        const search = (container) => {
+            for (const child of container.children) {
+                if (child.name === id || child.id === id) {
+                    return child;
+                }
+                if (child.children?.length > 0) {
+                    const found = search(child);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        return search(this.worldContainer);
+    }
+
+    /**
+     * Clear all narrative highlight effects.
+     */
+    _clearNarrativeHighlights() {
+        for (const highlight of this.ambientNarrative.highlightedObjects) {
+            this.worldContainer.removeChild(highlight);
+            highlight.destroy();
+        }
+        this.ambientNarrative.highlightedObjects.clear();
+    }
+
     /**
      * Cleanup method for application shutdown.
      * Destroys dashboard components and releases resources.
      */
     destroy() {
+        // Cleanup Ambient Narrative System (V2.0)
+        this.disableAmbientNarrative();
+
         // Cleanup Metabolism Dashboard (V13)
         if (this.metabolismDashboard) {
             this.metabolismDashboard.destroy();

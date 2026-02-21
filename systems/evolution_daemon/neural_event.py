@@ -18,6 +18,11 @@ class EventType(Enum):
     RESOURCE_PRESSURE = "resource_pressure" # High CPU/memory/IO
     DISTRICT_SYNC = "district_sync"        # District-wide state
     ERROR_STATE = "error_state"            # Error condition
+    
+    # Alpine-specific events (Phase 5)
+    ALPINE_COMMAND = "alpine_command"
+    ALPINE_OUTPUT = "alpine_output"
+    ALPINE_ERROR = "alpine_error"
 
 
 @dataclass

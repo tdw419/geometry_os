@@ -206,7 +206,7 @@ class NeuralCityEngine {
         this.glassBox.controller.onStart = (agentId) => {
             const building = this.orchestrator.getBuilding(agentId);
             if (building && building.liveTile && this.liveTileManager) {
-                this.liveTileManager.bootTile(agentId, building.liveTile.rtsPath);
+                this.liveTileManager.bootTile(agentId, building.liveTile.rtsPath, building.gridX, building.gridY);
             }
         };
 
@@ -221,7 +221,7 @@ class NeuralCityEngine {
             if (building && building.liveTile && this.liveTileManager) {
                 this.liveTileManager.stopTile(agentId);
                 setTimeout(() => {
-                    this.liveTileManager.bootTile(agentId, building.liveTile.rtsPath);
+                    this.liveTileManager.bootTile(agentId, building.liveTile.rtsPath, building.gridX, building.gridY);
                 }, 1000);
             }
         };

@@ -16,6 +16,9 @@ class LiveTile {
         this.rtsPath = rtsPath;
         this.state = 'stopped';  // stopped, booting, running, error
         this.framebuffer = null;
+        this.v3Format = rtsPath.includes('v3');
+        this.terminalGrid = Array(24).fill(0).map(() => Array(80).fill(' '));
+        this.cursor = { x: 0, y: 0 };
         this.metrics = {
             cpu: 0,
             memory: 0,
@@ -98,6 +101,26 @@ class LiveTile {
      */
     getConsoleText() {
         return this.consoleOutput.map(entry => `[${entry.time}] ${entry.text}`).join('\n');
+    }
+
+    /**
+     * Update the terminal grid from v3 output.
+     * @param {Array<Array<string>>} grid - 80x24 character grid
+     * @param {Object} cursor - {x, y} cursor position
+     */
+    updateTerminalGrid(grid, cursor) {
+        if (grid) this.terminalGrid = grid;
+        if (cursor) this.cursor = cursor;
+    }
+
+    /**
+     * Get terminal character at position.
+     */
+    getChar(x, y) {
+        if (y >= 0 && y < 24 && x >= 0 && x < 80) {
+            return this.terminalGrid[y][x];
+        }
+        return ' ';
     }
 
     /**

@@ -1,0 +1,12 @@
+[project]
+name = "prts_toolchain"
+version = "0.1.0"
+description = "Unified toolchain for PixelRTS v3"
+authors = [{ name = "Gemini" }]
+dependencies = [
+    "typer",
+    "Pillow",
+]
+
+[project.scripts]
+prts = "prts_toolchain.main:app"

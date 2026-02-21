@@ -4,7 +4,7 @@ HealerAgent - V16 Reaction Loop Consumer.
 Autonomous agent that subscribes to Visual Bridge WebSocket (ws://localhost:8768),
 processes DIAGNOSTIC_PULSE events, and executes healing actions based on pattern matching.
 
-Requirements: FR-2, FR-3, FR-6, FR-7, FR-8, FR-9
+Requirements: FR-1, FR-2, FR-3, FR-6, FR-7, FR-8, FR-9, FR-12
 """
 
 import asyncio
@@ -14,6 +14,13 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, Any, Optional, List
+
+try:
+    import websockets
+    WEBSOCKETS_AVAILABLE = True
+except ImportError:
+    WEBSOCKETS_AVAILABLE = False
+    websockets = None
 
 logger = logging.getLogger("HealerAgent")
 
@@ -62,6 +69,12 @@ class HealerAgent:
         self._auto_reboot = auto_reboot
         self._history: List[HealingResult] = []
         self._max_history = 100
+
+        # WebSocket connection state
+        self._ws: Optional[Any] = None
+        self._running = False
+        self._reconnect_delay = 1.0
+        self._max_reconnect_delay = 30.0
 
     @property
     def ws_url(self) -> str:
@@ -268,6 +281,116 @@ class HealerAgent:
     def history(self) -> List[HealingResult]:
         """Get healing history."""
         return self._history.copy()
+
+    @property
+    def is_running(self) -> bool:
+        """Check if the agent is actively running."""
+        return self._running
+
+    async def start(self) -> None:
+        """
+        Start the WebSocket client loop.
+
+        Connects to Visual Bridge, sends subscription message, and processes
+        incoming DIAGNOSTIC_PULSE events. Implements graceful reconnection
+        with exponential backoff on disconnect.
+        """
+        if not WEBSOCKETS_AVAILABLE:
+            logger.error("websockets library not available, cannot start")
+            raise RuntimeError("websockets library required for WebSocket support")
+
+        self._running = True
+        logger.info(f"HealerAgent starting, connecting to {self._ws_url}")
+
+        while self._running:
+            try:
+                await self._connect_and_listen()
+            except Exception as e:
+                if not self._running:
+                    break
+                logger.error(f"WebSocket error: {e}, reconnecting in {self._reconnect_delay}s")
+                await asyncio.sleep(self._reconnect_delay)
+                # Exponential backoff
+                self._reconnect_delay = min(
+                    self._reconnect_delay * 2,
+                    self._max_reconnect_delay
+                )
+
+        logger.info("HealerAgent stopped")
+
+    async def stop(self) -> None:
+        """
+        Stop the WebSocket client loop.
+
+        Closes the WebSocket connection gracefully and signals the loop to exit.
+        """
+        logger.info("HealerAgent stopping...")
+        self._running = False
+
+        if self._ws is not None:
+            try:
+                await self._ws.close()
+                logger.debug("WebSocket connection closed")
+            except Exception as e:
+                logger.warning(f"Error closing WebSocket: {e}")
+            finally:
+                self._ws = None
+
+    async def _connect_and_listen(self) -> None:
+        """
+        Connect to WebSocket server and listen for messages.
+
+        Sends subscription message on connect and processes incoming messages.
+        """
+        logger.debug(f"Connecting to {self._ws_url}")
+
+        async with websockets.connect(self._ws_url) as ws:
+            self._ws = ws
+            self._reconnect_delay = 1.0  # Reset backoff on successful connection
+            logger.info(f"Connected to {self._ws_url}")
+
+            # Send subscription message
+            subscribe_msg = json.dumps({
+                "type": "SUBSCRIBE",
+                "events": ["DIAGNOSTIC_PULSE"]
+            })
+            await ws.send(subscribe_msg)
+            logger.debug("Sent SUBSCRIBE message for DIAGNOSTIC_PULSE events")
+
+            # Listen for messages
+            async for message in ws:
+                if not self._running:
+                    break
+
+                try:
+                    await self._process_message(message)
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Invalid JSON in message: {e}")
+                except Exception as e:
+                    logger.error(f"Error processing message: {e}")
+
+    async def _process_message(self, message: str) -> None:
+        """
+        Process an incoming WebSocket message.
+
+        Args:
+            message: Raw JSON string from WebSocket
+        """
+        data = json.loads(message)
+        msg_type = data.get("type")
+
+        if msg_type == "DIAGNOSTIC_PULSE":
+            logger.debug(f"Received DIAGNOSTIC_PULSE: {data.get('status', 'unknown')}")
+            result = await self._handle_diagnostic_pulse(data)
+            if result:
+                logger.info(
+                    f"Healing action taken: {result['action']} "
+                    f"for district {result['district_id']}"
+                )
+        elif msg_type == "SUBSCRIBE_ACK":
+            logger.debug("Subscription acknowledged")
+        else:
+            logger.debug(f"Ignoring message type: {msg_type}")
 
 
 # For backward compatibility with old interface

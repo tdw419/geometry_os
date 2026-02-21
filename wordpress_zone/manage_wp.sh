@@ -35,9 +35,15 @@ status() {
     ps -ef | grep -E "mysqld|php8.3|area_agent_wp.py|system_observer_blogger.py" | grep -v grep
 }
 
+sync_skills() {
+    echo "Synchronizing AI Skills to WordPress..."
+    cd $BASE_DIR && python3 sync_skills_to_wp.py
+}
+
 case "$1" in
     start) start ;;
     stop) stop ;;
     status) status ;;
-    *) echo "Usage: $0 {start|stop|status}" ;;
+    sync-skills) sync_skills ;;
+    *) echo "Usage: $0 {start|stop|status|sync-skills}" ;;
 esac

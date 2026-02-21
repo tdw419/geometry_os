@@ -12,6 +12,7 @@ Capabilities:
 - RISC-V UART Streaming (Neuro-Silicon Bridge)
 - Token Visualization Update (Neural City)
 - Visual Action Routing
+- Ambient Narrative System (WordPress WebMCP)
 
 Port: 8768 (WebSocket)
 """
@@ -22,15 +23,18 @@ import os
 import sys
 import socket
 import time
+import uuid
 import websockets
 from websockets.server import serve
 import numpy as np
 import argparse
 from pathlib import Path
 from typing import Dict, Any, Optional, List
+from aiohttp import web
 
 # Add project root to path for imports
-sys.path.insert(0, os.getcwd())
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, PROJECT_ROOT)
 
 # Import SynapticQueryEngine for semantic search
 from systems.neural_city.synaptic_query_engine import SynapticQueryEngine
@@ -45,12 +49,25 @@ from systems.visual_shell.api.semantic_notification_bridge import (
     NotificationEvent,
 )
 
+# Import Evolution WebMCP Bridge (Ambient Narrative System)
+try:
+    from systems.visual_shell.api.evolution_webmcp_bridge import (
+        EvolutionWebMCPBridge,
+        EvolutionWebMCPHook
+    )
+    HAS_WEBMCP_BRIDGE = True
+except ImportError:
+    HAS_WEBMCP_BRIDGE = False
+    EvolutionWebMCPBridge = None
+    EvolutionWebMCPHook = None
+
 class VisualBridge:
     def __init__(self, memory_socket="/tmp/vector_memory_daemon.sock", ws_port=8768, map_size=4096):
         self.memory_socket = memory_socket
         self.ws_port = ws_port
         self.map_size = map_size
         self.clients = set()
+        self.lock_file = "/tmp/visual_bridge.pid"
 
         # ASCII Scene Graph state
         self.ascii_scene_dir = Path(".geometry/ascii_scene")
@@ -72,6 +89,150 @@ class VisualBridge:
         # Semantic Notification Bridge (WordPress → Terminal)
         self.semantic_bridge = SemanticNotificationBridge()
 
+        # Ambient Narrative System (WordPress WebMCP)
+        self.webmcp_bridge: Optional[EvolutionWebMCPBridge] = None
+        self._narrative_session_id: Optional[int] = None
+        self._webmcp_enabled = True  # Can be disabled via CLI
+
+        # Current session state for narrative
+        self._ambient_state = "MONITORING"
+        self._fps_data = {"fps": 60.0, "draw_calls": 0, "last_update": time.time()}
+
+        # Agent task queue for WordPress agent requests
+        self.agent_task_queue: Dict[str, dict] = {}
+        self.task_counter = 0
+
+        # HTTP server for REST endpoints (WordPress agent requests)
+        self.http_port = 8769  # Different from WebSocket port
+        self.app = web.Application()
+
+        # Register HTTP routes
+        self._setup_http_routes()
+
+    def _setup_http_routes(self) -> None:
+        """Setup HTTP routes for WordPress agent requests."""
+        self.app.router.add_post('/agent/request', self._handle_agent_request_http)
+        self.app.router.add_get('/agent/status/{task_id}', self._handle_agent_status_http)
+
+    async def _handle_agent_request_http(self, request: web.Request) -> web.Response:
+        """HTTP endpoint for agent requests from WordPress."""
+        try:
+            data = await request.json()
+            result = self.handle_agent_request(data)
+            status_code = 200 if result.get('status') != 'error' else 400
+            return web.json_response(result, status=status_code)
+        except json.JSONDecodeError:
+            return web.json_response(
+                {'status': 'error', 'message': 'Invalid JSON'},
+                status=400
+            )
+        except Exception as e:
+            return web.json_response(
+                {'status': 'error', 'message': str(e)},
+                status=500
+            )
+
+    async def _handle_agent_status_http(self, request: web.Request) -> web.Response:
+        """HTTP endpoint to check task status."""
+        task_id = request.match_info['task_id']
+        status = self.get_task_status(task_id)
+        status_code = 200 if status.get('status') != 'error' else 404
+        return web.json_response(status, status=status_code)
+
+    def handle_agent_request(self, data: dict) -> dict:
+        """
+        Handle agent request from WordPress.
+
+        Args:
+            data: Dict containing:
+                - agent_type: One of 'content_intelligence', 'evolution_publish', 'plugin_analysis'
+                - payload: Dict with request-specific data
+                - request_id: Optional unique request identifier
+
+        Returns:
+            Dict with 'status' and 'task_id' or 'error' and 'message'
+        """
+        agent_type = data.get('agent_type')
+        payload = data.get('payload', {})
+        request_id = data.get('request_id', str(uuid.uuid4()))
+
+        valid_agent_types = ['content_intelligence', 'evolution_publish', 'plugin_analysis']
+        if agent_type not in valid_agent_types:
+            return {'status': 'error', 'message': f'Unknown agent type: {agent_type}'}
+
+        self.task_counter += 1
+        task_id = f"wp-{agent_type}-{self.task_counter}-{int(time.time())}"
+
+        task = {
+            'task_id': task_id,
+            'request_id': request_id,
+            'agent_type': agent_type,
+            'payload': payload,
+            'status': 'queued',
+            'created_at': time.time(),
+            'result': None
+        }
+
+        self.agent_task_queue[task_id] = task
+
+        # Notify Evolution Daemon via pulse system (only if event loop running)
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(self._send_agent_pulse(task))
+        except RuntimeError:
+            # No event loop running - pulse will be sent when server starts
+            pass
+
+        return {'status': 'queued', 'task_id': task_id}
+
+    def get_task_status(self, task_id: str) -> dict:
+        """Get status of agent task."""
+        task = self.agent_task_queue.get(task_id)
+        if not task:
+            return {'status': 'error', 'message': f'Task not found: {task_id}'}
+
+        return {
+            'task_id': task_id,
+            'status': task['status'],
+            'result': task.get('result')
+        }
+
+    async def _send_agent_pulse(self, task: dict) -> None:
+        """Send neural pulse to trigger Evolution Daemon."""
+        pulse = {
+            'type': 'agent_request',
+            'event': 'agent_request',
+            'task': task,
+            'timestamp': task['created_at']
+        }
+        await self._broadcast(pulse)
+        """Check if another instance of visual_bridge is already running via PID file."""
+        if not os.path.exists(self.lock_file):
+            return False
+        
+        try:
+            with open(self.lock_file, 'r') as f:
+                pid = int(f.read().strip())
+            
+            # Check if process with this PID actually exists
+            os.kill(pid, 0)
+            return True
+        except (ValueError, ProcessLookupError, PermissionError, OSError):
+            return False
+
+    def _acquire_lock(self):
+        """Write current PID to lock file."""
+        with open(self.lock_file, 'w') as f:
+            f.write(str(os.getpid()))
+
+    def _release_lock(self):
+        """Remove the PID lock file."""
+        if os.path.exists(self.lock_file):
+            try:
+                os.remove(self.lock_file)
+            except OSError:
+                pass
+
     def _query_memory_daemon(self, message):
         """Send a message to the Vector Memory Daemon and get response"""
         try:
@@ -81,7 +242,7 @@ class VisualBridge:
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
                 sock.connect(self.memory_socket)
                 sock.sendall(json.dumps(message).encode('utf-8'))
-                
+
                 # Receive response
                 response_data = b""
                 while True:
@@ -89,10 +250,10 @@ class VisualBridge:
                     if not chunk:
                         break
                     response_data += chunk
-                
+
                 if not response_data:
                     return {"error": "Empty response from memory daemon"}
-                    
+
                 return json.loads(response_data.decode('utf-8'))
         except Exception as e:
             print(f"❌ Failed to connect to Memory Daemon: {e}")
@@ -506,6 +667,106 @@ class VisualBridge:
                         "data": data
                     })
 
+                # === Ambient Narrative System (V2.0) ===
+
+                elif msg_type == 'narrative_event':
+                    # AI agent publishing a thought or steering action
+                    event_type = data.get('event_type', 'thought')
+                    session_id = data.get('session_id', self._narrative_session_id)
+                    print(f"📖 Narrative Event: {event_type} (session={session_id})")
+
+                    # Relay to WordPress via WebMCP
+                    if self.webmcp_bridge and session_id:
+                        if event_type == 'thought':
+                            result = self.webmcp_bridge.invoke_tool('publishNarrative', {
+                                'session_id': session_id,
+                                'thought': data.get('thought', ''),
+                                'state': data.get('state', 'MONITORING')
+                            })
+                        elif event_type == 'steering':
+                            result = self.webmcp_bridge.invoke_tool('steerSession', {
+                                'session_id': session_id,
+                                'action': data.get('action', ''),
+                                'target': data.get('target', '')
+                            })
+                        else:
+                            result = {'success': False, 'error': f'Unknown event type: {event_type}'}
+
+                        if result.get('success'):
+                            print(f"   ✅ Published to WordPress")
+
+                    # Broadcast to browser clients
+                    await self._broadcast({
+                        "type": "NARRATIVE_EVENT",
+                        "event_type": event_type,
+                        "data": data
+                    })
+
+                elif msg_type == 'scene_graph_update':
+                    # PixiJS streaming scene graph for AI analysis
+                    scene_graph = data.get('scene_graph', {})
+                    session_id = data.get('session_id', self._narrative_session_id)
+                    fps = data.get('fps', 60.0)
+                    draw_calls = data.get('draw_calls', 0)
+
+                    # Update local FPS tracking
+                    self._fps_data = {
+                        "fps": fps,
+                        "draw_calls": draw_calls,
+                        "last_update": time.time()
+                    }
+
+                    # Relay to WordPress
+                    if self.webmcp_bridge and session_id:
+                        self.webmcp_bridge.invoke_tool('scene_update', {
+                            'session_id': session_id,
+                            'scene_graph': scene_graph
+                        })
+
+                    # Optional: Forward to VLM for visual analysis
+                    # This would be handled by a separate service
+
+                elif msg_type == 'daemon_heartbeat':
+                    # Evolution daemon status update
+                    daemon_state = data.get('state', 'unknown')
+                    evolution_count = data.get('evolution_count', 0)
+                    visual_connected = data.get('visual_connected', False)
+
+                    print(f"💓 Daemon Heartbeat: {daemon_state} (evolutions={evolution_count})")
+
+                    # Update ambient state
+                    self._ambient_state = daemon_state
+
+                    # Relay to WordPress
+                    if self.webmcp_bridge:
+                        self.webmcp_bridge.invoke_tool('daemon_status', {
+                            'state': daemon_state,
+                            'evolution_count': evolution_count,
+                            'visual_connected': visual_connected,
+                            'fps': self._fps_data.get('fps', 60.0),
+                            'draw_calls': self._fps_data.get('draw_calls', 0)
+                        })
+
+                    # Broadcast to browser
+                    await self._broadcast({
+                        "type": "DAEMON_HEARTBEAT",
+                        "state": daemon_state,
+                        "evolution_count": evolution_count,
+                        "visual_connected": visual_connected
+                    })
+
+                elif msg_type == 'get_narrative_session':
+                    # Client requesting current session info
+                    if self.webmcp_bridge:
+                        result = self.webmcp_bridge.invoke_tool('get_narrative_session', {})
+                        if result.get('success') and result.get('result', {}).get('session'):
+                            self._narrative_session_id = result['result']['session'].get('id')
+                    await websocket.send(json.dumps({
+                        "type": "narrative_session",
+                        "session_id": self._narrative_session_id,
+                        "ambient_state": self._ambient_state
+                    }))
+
         except websockets.exceptions.ConnectionClosed:
             pass
         except Exception as e:
@@ -737,27 +998,47 @@ class VisualBridge:
         await self._broadcast(pulse_message)
 
     async def start(self):
+        """Start the Visual Bridge server with singleton enforcement."""
+        # Check for existing instance
+        if self._is_already_running():
+            print(f"🛑 Visual Bridge is already running (PID lock found at {self.lock_file})")
+            print("   Connect as a client instead: VisualBridgeClient()")
+            sys.exit(1)
+
+        # Acquire lock
+        self._acquire_lock()
+
         print(f"🚀 Visual Bridge starting...")
         print(f"   WebSocket: ws://localhost:{self.ws_port}")
         print(f"   Memory Daemon: {self.memory_socket}")
+        print(f"   PID Lock: {self.lock_file}")
 
-        # Register ASCII renderers and start watcher
-        self.register_ascii_renderers()
-        self._setup_ascii_scene_watcher()
+        try:
+            # Register ASCII renderers and start watcher
+            self.register_ascii_renderers()
+            self._setup_ascii_scene_watcher()
 
-        # Initialize Spatial Tectonics (Phase 28)
-        if self._tectonic_enabled:
-            await self._setup_spatial_tectonics()
+            # Initialize Spatial Tectonics (Phase 28)
+            if self._tectonic_enabled:
+                await self._setup_spatial_tectonics()
 
-        # Initialize Perceptual Bridge V16 (New)
-        await self._setup_perceptual_bridge()
+            # Initialize Perceptual Bridge V16 (New)
+            await self._setup_perceptual_bridge()
 
-        # Initialize Heat Aggregator (Visual Hotspot Debugger)
-        if self._heat_aggregator_enabled:
-            await self.start_heat_aggregator()
+            # Initialize Heat Aggregator (Visual Hotspot Debugger)
+            if self._heat_aggregator_enabled:
+                await self.start_heat_aggregator()
 
-        async with serve(self.handle_client, "0.0.0.0", self.ws_port):
-            await asyncio.Future()
+            # Initialize WebMCP Bridge (Ambient Narrative System)
+            if self._webmcp_enabled:
+                await self._setup_webmcp_bridge()
+
+            async with serve(self.handle_client, "0.0.0.0", self.ws_port):
+                await asyncio.Future()
+        finally:
+            # Release lock on shutdown
+            self._release_lock()
+            print("🔓 PID lock released")
 
     async def _setup_spatial_tectonics(self):
         """Initialize the Spatial Tectonics ConsensusEngine."""
@@ -798,6 +1079,41 @@ class VisualBridge:
         except Exception as e:
             print(f"⚠️  Failed to initialize Perceptual Bridge: {e}")
             self.perceptual_bridge = None
+
+    async def _setup_webmcp_bridge(self):
+        """Initialize the WebMCP Bridge for Ambient Narrative System."""
+        if not HAS_WEBMCP_BRIDGE:
+            print("⚠️  WebMCP Bridge not available (evolution_webmcp_bridge not imported)")
+            return
+
+        try:
+            # Get WordPress URL from environment or use default
+            wordpress_url = os.environ.get('WORDPRESS_URL', 'http://localhost:8080')
+
+            self.webmcp_bridge = EvolutionWebMCPBridge(
+                wordpress_url=wordpress_url,
+                enabled=True
+            )
+
+            # Get or create narrative session
+            result = self.webmcp_bridge.invoke_tool('get_narrative_session', {})
+            if result.get('success') and result.get('result', {}).get('session'):
+                self._narrative_session_id = result['result']['session'].get('id')
+                print(f"📖 WebMCP Bridge initialized (session={self._narrative_session_id})")
+            else:
+                # Create new session
+                result = self.webmcp_bridge.invoke_tool('create_narrative_session', {})
+                if result.get('success'):
+                    self._narrative_session_id = result.get('result', {}).get('session_id')
+                    print(f"📖 WebMCP Bridge initialized (new session={self._narrative_session_id})")
+                else:
+                    print(f"⚠️  Failed to create narrative session: {result.get('error')}")
+
+            print(f"   WordPress URL: {wordpress_url}")
+
+        except Exception as e:
+            print(f"⚠️  Failed to initialize WebMCP Bridge: {e}")
+            self.webmcp_bridge = None
 
     # --- Heat Aggregator Methods (Visual Hotspot Debugger) ---
 
@@ -876,6 +1192,118 @@ class VisualBridge:
         """
         if self.heat_aggregator is not None:
             self.heat_aggregator.record_memory_access(address, source)
+
+
+class VisualBridgeClient:
+    """
+    Client for connecting to a running Visual Bridge server.
+
+    AI agents should use this class instead of starting their own VisualBridge
+    to avoid port conflicts and state fragmentation.
+
+    Usage:
+        client = VisualBridgeClient()
+        await client.connect()
+
+        # Send events
+        await client.broadcast("mirror_validation_result", {"task_id": "...", "passed": True})
+        await client.send("riscv_uart", {"text": "Hello from RISC-V"})
+
+        # Disconnect when done
+        await client.disconnect()
+    """
+
+    def __init__(self, ws_url: str = "ws://localhost:8768", agent_id: str = None):
+        self.ws_url = ws_url
+        self.agent_id = agent_id or f"agent-{os.getpid()}"
+        self._ws = None
+        self._connected = False
+
+    async def connect(self) -> bool:
+        """Connect to the Visual Bridge server."""
+        if self._connected:
+            return True
+
+        try:
+            self._ws = await websockets.connect(self.ws_url)
+            self._connected = True
+            print(f"🔌 {self.agent_id} connected to Visual Bridge at {self.ws_url}")
+            return True
+        except Exception as e:
+            print(f"❌ {self.agent_id} failed to connect to Visual Bridge: {e}")
+            return False
+
+    async def disconnect(self):
+        """Disconnect from the Visual Bridge server."""
+        if self._ws:
+            await self._ws.close()
+            self._ws = None
+            self._connected = False
+            print(f"🔌 {self.agent_id} disconnected from Visual Bridge")
+
+    async def send(self, msg_type: str, data: dict) -> bool:
+        """
+        Send a message to the Visual Bridge.
+
+        Args:
+            msg_type: Message type (e.g., "riscv_uart", "mirror_validation_result")
+            data: Message payload
+
+        Returns:
+            True if sent successfully, False otherwise
+        """
+        if not self._connected:
+            if not await self.connect():
+                return False
+
+        try:
+            message = {"type": msg_type, **data}
+            await self._ws.send(json.dumps(message))
+            return True
+        except Exception as e:
+            print(f"❌ {self.agent_id} failed to send message: {e}")
+            self._connected = False
+            return False
+
+    async def broadcast(self, msg_type: str, data: dict) -> bool:
+        """
+        Send a broadcast event to all connected clients.
+
+        This is an alias for send() - all messages are broadcast by the server.
+        """
+        return await self.send(msg_type, data)
+
+    async def receive(self, timeout: float = None) -> Optional[dict]:
+        """
+        Receive a message from the Visual Bridge.
+
+        Args:
+            timeout: Optional timeout in seconds
+
+        Returns:
+            Message dict or None if timeout/no message
+        """
+        if not self._connected:
+            if not await self.connect():
+                return None
+
+        try:
+            if timeout:
+                message = await asyncio.wait_for(self._ws.recv(), timeout=timeout)
+            else:
+                message = await self._ws.recv()
+            return json.loads(message)
+        except asyncio.TimeoutError:
+            return None
+        except Exception as e:
+            print(f"❌ {self.agent_id} failed to receive message: {e}")
+            self._connected = False
+            return None
+
+    @property
+    def connected(self) -> bool:
+        return self._connected
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Visual Bridge for Geometry OS')

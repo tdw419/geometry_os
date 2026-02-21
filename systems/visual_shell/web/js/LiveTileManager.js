@@ -189,17 +189,29 @@ class LiveTileManager {
      * Boot a new tile
      * @param {string} id - Unique tile identifier
      * @param {string} rtsPath - Path to the RTS image file
+     * @param {number} x - Grid X coordinate (optional)
+     * @param {number} y - Grid Y coordinate (optional)
      */
-    bootTile(id, rtsPath) {
+    bootTile(id, rtsPath, x = 0, y = 0) {
         const tile = new LiveTile(id, rtsPath);
         tile.setState('booting');
         this.tiles.set(id, tile);
+
+        // Pre-register in booting state
+        if (window.geometryOS && typeof window.geometryOS.registerTile === 'function') {
+            window.geometryOS.registerTile(id, {
+                x, y,
+                state: 'booting',
+                type: 'LiveTile'
+            });
+        }
 
         this._send({
             method: 'boot_tile',
             params: {
                 tile_id: id,
-                rts_path: rtsPath
+                rts_path: rtsPath,
+                x, y
             }
         });
     }
@@ -334,6 +346,18 @@ class LiveTileManager {
         const tile = this.tiles.get(id) || new LiveTile(id, params.rts_path);
         tile.setState('running');
         this.tiles.set(id, tile);
+
+        // Auto-register in the WordPress-visible registry
+        if (window.geometryOS && typeof window.geometryOS.registerTile === 'function') {
+            window.geometryOS.registerTile(id, {
+                x: params.x || 0,
+                y: params.y || 0,
+                zoom: params.zoom || 2.0,
+                state: 'running',
+                type: 'LiveTile'
+            });
+        }
+
         if (this.onTileBooted) this.onTileBooted(tile);
     }
 
@@ -345,6 +369,15 @@ class LiveTileManager {
         const stoppedTile = this.tiles.get(id);
         if (stoppedTile) {
             stoppedTile.setState('stopped');
+
+            // Update registration state
+            if (window.geometryOS && window.geometryOS.tileRegistry) {
+                const entry = window.geometryOS.tileRegistry.get(id);
+                if (entry) {
+                    entry.state = 'stopped';
+                }
+            }
+
             if (this.onTileStopped) this.onTileStopped(stoppedTile);
         }
     }
@@ -381,6 +414,11 @@ class LiveTileManager {
         const consoleTile = this.tiles.get(id);
         if (consoleTile) {
             consoleTile.appendConsole(params.text);
+            
+            // Dispatch global event for WordPress/external bridge
+            window.dispatchEvent(new CustomEvent('geometryOS:consoleOutput', {
+                detail: { tileId: id, text: params.text }
+            }));
         }
     }
 

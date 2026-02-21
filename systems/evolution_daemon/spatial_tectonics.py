@@ -26,6 +26,14 @@ from typing import Dict, List, Optional, Any, Callable
 from collections import defaultdict
 import time
 
+# Import VisualBridgeClient for proper singleton connection
+try:
+    from systems.visual_shell.api.visual_bridge import VisualBridgeClient
+    VISUAL_BRIDGE_CLIENT_AVAILABLE = True
+except ImportError:
+    VISUAL_BRIDGE_CLIENT_AVAILABLE = False
+    VisualBridgeClient = None
+
 logger = logging.getLogger("spatial_tectonics.consensus")
 
 
@@ -255,7 +263,7 @@ class TectonicBridge:
     """
     Bridge between ConsensusEngine and Rust TectonicSimulator.
 
-    Handles WebSocket communication and proposal submission.
+    Handles WebSocket communication and proposal submission via VisualBridgeClient.
     """
 
     def __init__(
@@ -265,29 +273,50 @@ class TectonicBridge:
     ):
         self.consensus = consensus_engine
         self.visual_bridge_url = visual_bridge_url
-        self.ws = None
+
+        # Use VisualBridgeClient for proper singleton connection
+        if VISUAL_BRIDGE_CLIENT_AVAILABLE:
+            self._client = VisualBridgeClient(ws_url=visual_bridge_url, agent_id="tectonic_bridge")
+        else:
+            self._client = None
+            self._ws = None  # Fallback direct websocket
+            logger.warning("VisualBridgeClient not available, using fallback websocket")
 
     async def connect(self):
         """Connect to Visual Bridge."""
-        try:
-            import websockets
-            self.ws = await websockets.connect(self.visual_bridge_url)
-            logger.info(f"Connected to Visual Bridge at {self.visual_bridge_url}")
-        except Exception as e:
-            logger.warning(f"Failed to connect to Visual Bridge: {e}")
-            self.ws = None
+        if self._client:
+            connected = await self._client.connect()
+            if connected:
+                logger.info(f"Connected to Visual Bridge via VisualBridgeClient: {self.visual_bridge_url}")
+            else:
+                logger.warning(f"Failed to connect to Visual Bridge via VisualBridgeClient")
+        else:
+            # Fallback to direct websocket
+            try:
+                import websockets
+                self._ws = await websockets.connect(self.visual_bridge_url)
+                logger.info(f"Connected to Visual Bridge (fallback): {self.visual_bridge_url}")
+            except Exception as e:
+                logger.warning(f"Failed to connect to Visual Bridge: {e}")
+                self._ws = None
 
     async def submit_proposal(self, proposal: TectonicProposal) -> bool:
         """Submit a realignment proposal to the Rust simulator."""
-        if not self.ws:
+        # Ensure connection
+        if self._client and not self._client.connected:
+            await self.connect()
+        elif not self._client and not self._ws:
             await self.connect()
 
-        if not self.ws:
+        # Check connection
+        if self._client and not self._client.connected:
+            logger.warning("Cannot submit proposal: not connected")
+            return False
+        elif not self._client and not self._ws:
             logger.warning("Cannot submit proposal: not connected")
             return False
 
         message = {
-            "type": "tectonic_proposal",
             "proposal_id": proposal.proposal_id,
             "bonds": proposal.bonds,
             "expected_improvement": proposal.expected_saccade_improvement,
@@ -296,19 +325,24 @@ class TectonicBridge:
         }
 
         try:
-            await self.ws.send(json.dumps(message))
+            if self._client:
+                await self._client.send("tectonic_proposal", message)
+            else:
+                message["type"] = "tectonic_proposal"
+                await self._ws.send(json.dumps(message))
             logger.info(f"Submitted proposal {proposal.proposal_id}")
             return True
         except Exception as e:
             logger.error(f"Failed to submit proposal: {e}")
-            self.ws = None
             return False
 
     async def close(self):
         """Close the connection."""
-        if self.ws:
-            await self.ws.close()
-            self.ws = None
+        if self._client:
+            await self._client.disconnect()
+        elif self._ws:
+            await self._ws.close()
+            self._ws = None
 
 
 # Integration with Visual Bridge

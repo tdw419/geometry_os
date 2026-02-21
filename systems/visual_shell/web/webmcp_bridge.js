@@ -93,6 +93,12 @@
  * 107. shotcut_click               — Click at coordinates
  * 108. shotcut_exec                — Run shell commands via SSH
  *
+ * Phase R: Ambient Narrative System (WordPress WebMCP):
+ * 109. narrative_get_session        — Get active session ID and ambient state
+ * 110. narrative_set_state          — Transition state (MONITORING→SUGGESTING→STEERING)
+ * 111. narrative_publish_thought    — Publish AI thought/observation to WordPress
+ * 112. narrative_steer              — Execute steering action with visual feedback
+ *
  * Area Agent A2A Integration:
  *   - spawn_area_agent now supports full A2A protocol
  *   - Agents can discover each other via registry
@@ -109,9 +115,9 @@
  * Requirements: Chrome 146+ with WebMCP support
  * Fallback: Logs warning, app runs normally without WebMCP
  *
- * @version 2.6.0
- * @phase Phase F: AI-Driven Visual Builder
- * @date 2026-02-15
+ * @version 2.7.0
+ * @phase Phase R: Ambient Narrative System (WordPress WebMCP)
+ * @date 2026-02-21
  */
 
 /**
@@ -1997,6 +2003,14 @@ class WebMCPBridge {
             
             // --- The Mirror Neuron ---
             await this.#registerRenderVisualLayout();
+
+            // ============================================================
+            // Phase R: Ambient Narrative System (WordPress WebMCP)
+            // ============================================================
+            await this.#registerNarrativeGetSession();
+            await this.#registerNarrativeSetState();
+            await this.#registerNarrativePublishThought();
+            await this.#registerNarrativeSteer();
 
             // Publish OS context alongside tools
             await this.#publishContext();
@@ -12261,6 +12275,271 @@ else:
         await navigator.modelContext.registerTool(tool, handler);
         this.#registeredTools.push(tool.name);
         console.log(`👁️  WebMCP Tool Registered: ${tool.name}`);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Phase R: Ambient Narrative System (WordPress WebMCP)
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Tool: narrative_get_session
+     * Purpose: Sync AI awareness with the WordPress Narrative Layer
+     */
+    async #registerNarrativeGetSession() {
+        const tool = {
+            name: 'narrative_get_session',
+            description: 'Get the active narrative session ID and current ambient state (MONITORING, SUGGESTING, STEERING). Use this to sync your awareness with the WordPress Narrative Layer.',
+            inputSchema: {
+                type: 'object',
+                properties: {}
+            }
+        };
+
+        const handler = async () => {
+            const app = window.geometryOSApp;
+            if (!app) {
+                return { error: 'Geometry OS application not available' };
+            }
+
+            // Check if ambient narrative is enabled
+            if (!app.ambientNarrative?.enabled) {
+                return {
+                    enabled: false,
+                    message: 'Ambient Narrative not enabled. Call enableAmbientNarrative() first.'
+                };
+            }
+
+            const narrative = app.ambientNarrative;
+            return {
+                enabled: true,
+                session_id: narrative.sessionId,
+                state: narrative.state || 'MONITORING',
+                wordpress_url: narrative.wordpressUrl,
+                stream_interval: narrative.streamInterval,
+                last_update: narrative.lastSceneHash ? 'active' : 'pending'
+            };
+        };
+
+        await navigator.modelContext.registerTool(tool, handler);
+        this.#registeredTools.push(tool.name);
+        console.log(`📖 WebMCP Tool Registered: ${tool.name}`);
+    }
+
+    /**
+     * Tool: narrative_set_state
+     * Purpose: Allow agents to "step in" and steer the OS
+     */
+    async #registerNarrativeSetState() {
+        const tool = {
+            name: 'narrative_set_state',
+            description: 'Change the ambient narrative state (e.g., from MONITORING to STEERING) and log the transition rationale to WordPress. States: MONITORING (passive), SUGGESTING (offering help), STEERING (active control).',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    state: {
+                        type: 'string',
+                        enum: ['MONITORING', 'SUGGESTING', 'STEERING'],
+                        description: 'The new ambient state'
+                    },
+                    rationale: {
+                        type: 'string',
+                        description: 'Reason for the state transition (logged to WordPress)'
+                    }
+                },
+                required: ['state']
+            }
+        };
+
+        const handler = async ({ state, rationale }) => {
+            const app = window.geometryOSApp;
+            if (!app) {
+                return { error: 'Geometry OS application not available' };
+            }
+
+            if (!app.ambientNarrative?.enabled) {
+                return { error: 'Ambient Narrative not enabled' };
+            }
+
+            const validStates = ['MONITORING', 'SUGGESTING', 'STEERING'];
+            if (!validStates.includes(state)) {
+                return { error: `Invalid state. Must be one of: ${validStates.join(', ')}` };
+            }
+
+            const oldState = app.ambientNarrative.state;
+            app.ambientNarrative.state = state;
+
+            // Log transition
+            console.log(`📖 Narrative State: ${oldState} → ${state}`);
+            if (rationale) {
+                console.log(`   Rationale: ${rationale}`);
+            }
+
+            // Dispatch event for UI components
+            window.dispatchEvent(new CustomEvent('NARRATIVE_STATE_CHANGE', {
+                detail: { oldState, newState: state, rationale }
+            }));
+
+            // Send to visual bridge for WordPress relay
+            if (app.memoryBridgeSocket && app.memoryBridgeSocket.readyState === WebSocket.OPEN) {
+                app.memoryBridgeSocket.send(JSON.stringify({
+                    type: 'narrative_event',
+                    event_type: 'state_change',
+                    old_state: oldState,
+                    new_state: state,
+                    rationale: rationale || 'No rationale provided'
+                }));
+            }
+
+            return {
+                success: true,
+                previous_state: oldState,
+                new_state: state,
+                logged: true
+            };
+        };
+
+        await navigator.modelContext.registerTool(tool, handler);
+        this.#registeredTools.push(tool.name);
+        console.log(`📖 WebMCP Tool Registered: ${tool.name}`);
+    }
+
+    /**
+     * Tool: narrative_publish_thought
+     * Purpose: Let AI publish thoughts to the narrative session
+     */
+    async #registerNarrativePublishThought() {
+        const tool = {
+            name: 'narrative_publish_thought',
+            description: 'Publish an AI thought or observation to the narrative session in WordPress. Use this to log your reasoning, observations, or suggestions for the developer.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    thought: {
+                        type: 'string',
+                        description: 'The thought or observation to publish'
+                    },
+                    category: {
+                        type: 'string',
+                        enum: ['observation', 'suggestion', 'warning', 'insight', 'question'],
+                        description: 'Category of the thought (default: observation)'
+                    }
+                },
+                required: ['thought']
+            }
+        };
+
+        const handler = async ({ thought, category = 'observation' }) => {
+            const app = window.geometryOSApp;
+            if (!app) {
+                return { error: 'Geometry OS application not available' };
+            }
+
+            if (!app.ambientNarrative?.enabled) {
+                return { error: 'Ambient Narrative not enabled' };
+            }
+
+            // Send to visual bridge for WordPress relay
+            if (app.memoryBridgeSocket && app.memoryBridgeSocket.readyState === WebSocket.OPEN) {
+                app.memoryBridgeSocket.send(JSON.stringify({
+                    type: 'narrative_event',
+                    event_type: 'thought',
+                    thought: thought,
+                    category: category,
+                    state: app.ambientNarrative.state
+                }));
+            }
+
+            console.log(`💭 Narrative Thought [${category}]: ${thought.substring(0, 50)}...`);
+
+            return {
+                success: true,
+                logged: true,
+                category: category
+            };
+        };
+
+        await navigator.modelContext.registerTool(tool, handler);
+        this.#registeredTools.push(tool.name);
+        console.log(`📖 WebMCP Tool Registered: ${tool.name}`);
+    }
+
+    /**
+     * Tool: narrative_steer
+     * Purpose: Execute a steering action on the session
+     */
+    async #registerNarrativeSteer() {
+        const tool = {
+            name: 'narrative_steer',
+            description: 'Execute a steering action to actively guide the session. This transitions to STEERING state and logs the action to WordPress. Use for proactive interventions.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    action: {
+                        type: 'string',
+                        description: 'The steering action to execute (e.g., "highlight_sprite", "suggest_refactor", "warn_performance")'
+                    },
+                    target: {
+                        type: 'string',
+                        description: 'Target object or component ID (optional)'
+                    },
+                    details: {
+                        type: 'string',
+                        description: 'Additional details about the action'
+                    }
+                },
+                required: ['action']
+            }
+        };
+
+        const handler = async ({ action, target, details }) => {
+            const app = window.geometryOSApp;
+            if (!app) {
+                return { error: 'Geometry OS application not available' };
+            }
+
+            if (!app.ambientNarrative?.enabled) {
+                return { error: 'Ambient Narrative not enabled' };
+            }
+
+            // Transition to STEERING state
+            const oldState = app.ambientNarrative.state;
+            app.ambientNarrative.state = 'STEERING';
+
+            // Send to visual bridge for WordPress relay
+            if (app.memoryBridgeSocket && app.memoryBridgeSocket.readyState === WebSocket.OPEN) {
+                app.memoryBridgeSocket.send(JSON.stringify({
+                    type: 'narrative_event',
+                    event_type: 'steering',
+                    action: action,
+                    target: target || null,
+                    details: details || null,
+                    previous_state: oldState
+                }));
+            }
+
+            // Highlight target if provided
+            if (target && app._highlightNarrativeObject) {
+                app._highlightNarrativeObject(target);
+            }
+
+            console.log(`🎯 Narrative Steering: ${action}${target ? ` → ${target}` : ''}`);
+
+            // Dispatch event for UI
+            window.dispatchEvent(new CustomEvent('NARRATIVE_STEERING', {
+                detail: { action, target, details }
+            }));
+
+            return {
+                success: true,
+                state: 'STEERING',
+                action: action,
+                target: target || null
+            };
+        };
+
+        await navigator.modelContext.registerTool(tool, handler);
+        this.#registeredTools.push(tool.name);
+        console.log(`📖 WebMCP Tool Registered: ${tool.name}`);
     }
 
 }
