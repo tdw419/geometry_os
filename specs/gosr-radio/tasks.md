@@ -267,7 +267,7 @@ After POC validated, clean up code structure.
   - **Commit**: `feat(web): wire RADIO_BROADCAST events to HUD`
   - _Requirements: FR-6_
 
-- [ ] 4.3 [VERIFY] E2E test: HUD displays radio
+- [x] 4.3 [VERIFY] E2E test: HUD displays radio
   - **Do**: Manual verification - start daemon with radio, open browser, press Ctrl+Shift+V
   - **Verify**:
     - `grep -c "_renderRadioSection" systems/visual_shell/web/visual_debug_overlay.js`
@@ -277,7 +277,7 @@ After POC validated, clean up code structure.
 
 ## Phase 5: Quality Gates
 
-- [ ] 5.1 [VERIFY] Full local CI
+- [x] 5.1 [VERIFY] Full local CI
   - **Do**: Run all verification commands
   - **Verify**:
     - `pytest systems/evolution_daemon/tests/test_narrative_broadcaster.py -v`
