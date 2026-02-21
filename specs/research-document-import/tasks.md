@@ -102,7 +102,7 @@ After POC validated, clean up code.
   - **Commit**: `feat(wp): add searchResearch API action`
   - _Requirements: FR-9, FR-10, AC-5.1-5.5_
 
-- [ ] 2.3 Create admin UI plugin directory structure
+- [x] 2.3 Create admin UI plugin directory structure
   - **Do**:
     1. Create `wordpress_zone/wordpress/wp-content/plugins/research-import-admin/` directory
     2. Create main plugin file `research-import-admin.php`
