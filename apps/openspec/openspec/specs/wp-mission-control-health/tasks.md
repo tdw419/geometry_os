@@ -58,7 +58,7 @@ Focus: MetricsCollector core + bridge integration + dashboard widget
 
 After POC validated, add stress and resilience tests.
 
-- [ ] 2.1 Stress Test Infrastructure
+- [x] 2.1 Stress Test Infrastructure
   - **Do**: Create WPBridgeStressTester with 50+ tile capacity, broadcast latency, DOM performance tests
   - **Files**: `systems/visual_shell/web/tests/stress_test_wp_bridge.js`
   - **Done when**: 3 stress tests run (swarm capacity, broadcast latency, FPS)
