@@ -99,6 +99,26 @@ except ImportError:
     EvolutionWebMCPBridge = None
     EvolutionWebMCPHook = None
 
+# V2.1 WordPress Evolution Integration
+try:
+    from systems.evolution_daemon.wordpress import (
+        WordPressEvolutionAgent,
+        WPEvolutionBridgeService,
+        BridgeServiceConfig,
+        ServiceStats,
+    )
+    from systems.visual_shell.api.evolution_wordpress_hook import (
+        EvolutionWordPressHook
+    )
+    HAS_WP_EVOLUTION = True
+except ImportError:
+    HAS_WP_EVOLUTION = False
+    WordPressEvolutionAgent = None
+    WPEvolutionBridgeService = None
+    BridgeServiceConfig = None
+    ServiceStats = None
+    EvolutionWordPressHook = None
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,

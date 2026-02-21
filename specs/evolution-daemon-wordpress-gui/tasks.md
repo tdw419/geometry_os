@@ -78,7 +78,7 @@ Focus: Create core components with tests. Skip memory sync, accept mock executor
 
 After POC validated, wire components together.
 
-- [ ] 2.1 Integrate with Main Evolution Daemon
+- [x] 2.1 Integrate with Main Evolution Daemon
   - **Do**:
     1. Add import to `systems/evolution_daemon/evolution_daemon.py`
     2. Create `tests/test_evolution_daemon_wordpress_integration.py` with 3 tests
