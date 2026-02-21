@@ -30,7 +30,7 @@ Focus: Validate HealerAgent works end-to-end. Skip WordPress integration, accept
   - _Requirements: FR-2, FR-3, FR-6, FR-7, FR-8, FR-9_
   - _Design: Components section_
 
-- [ ] 1.3 Add decision logic tests
+- [x] 1.3 Add decision logic tests
   - **Do**: Add tests to `test_healer_agent.py` for pattern-based decision making (panic→quarantine, segfault→analyze, frozen→quarantine/reboot)
   - **Files**: `tests/system/test_healer_agent.py`
   - **Done when**: Tests verify decision logic for all patterns
