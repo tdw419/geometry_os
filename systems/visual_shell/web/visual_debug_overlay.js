@@ -874,6 +874,110 @@ class VisualDebugOverlay {
     }
 
     /**
+     * Handle Narrative events from the Ambient Narrative System.
+     * @param {Object} data - Event data with event_type and payload
+     */
+    handleNarrativeEvent(data) {
+        if (!data) return;
+
+        this.narrativeState.enabled = true;
+        this.narrativeState.lastUpdate = Date.now();
+
+        switch (data.event_type) {
+            case 'thought':
+                this.narrativeState.lastThought = data.data?.thought || '';
+                this.narrativeState.lastThoughtCategory = data.data?.category || 'observation';
+                if (data.data?.state) {
+                    this.narrativeState.state = data.data.state;
+                }
+                break;
+
+            case 'steering':
+                this.narrativeState.state = 'STEERING';
+                const action = {
+                    action: data.data?.action || 'unknown',
+                    target: data.data?.target || null,
+                    timestamp: Date.now()
+                };
+                this.narrativeState.steeringActions.unshift(action);
+                // Keep only last 10 actions
+                if (this.narrativeState.steeringActions.length > 10) {
+                    this.narrativeState.steeringActions.pop();
+                }
+                break;
+
+            case 'state_change':
+                this.narrativeState.state = data.new_state || 'IDLE';
+                break;
+        }
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle narrative state changes.
+     * @param {Object} data - { oldState, newState, rationale }
+     */
+    handleNarrativeStateChange(data) {
+        if (!data) return;
+
+        this.narrativeState.enabled = true;
+        this.narrativeState.state = data.newState || 'IDLE';
+        this.narrativeState.lastUpdate = Date.now();
+
+        console.log(`📖 HUD: State change ${data.oldState} → ${data.newState}`);
+        if (data.rationale) {
+            this.narrativeState.lastThought = `[State] ${data.rationale}`;
+        }
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle narrative steering actions.
+     * @param {Object} data - { action, target, details }
+     */
+    handleNarrativeSteering(data) {
+        if (!data) return;
+
+        this.narrativeState.enabled = true;
+        this.narrativeState.state = 'STEERING';
+        this.narrativeState.lastUpdate = Date.now();
+
+        const action = {
+            action: data.action || 'unknown',
+            target: data.target || null,
+            details: data.details || null,
+            timestamp: Date.now()
+        };
+        this.narrativeState.steeringActions.unshift(action);
+
+        if (this.narrativeState.steeringActions.length > 10) {
+            this.narrativeState.steeringActions.pop();
+        }
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle daemon heartbeat for narrative sync.
+     * @param {Object} data - { state, evolution_count, visual_connected }
+     */
+    handleDaemonHeartbeat(data) {
+        if (!data) return;
+
+        this.narrativeState.enabled = true;
+        this.narrativeState.evolutionCount = data.evolution_count || 0;
+        this.narrativeState.lastUpdate = Date.now();
+
+        if (data.state) {
+            this.narrativeState.state = data.state;
+        }
+
+        this._scheduleRender();
+    }
+
+    /**
      * Schedule render on next animation frame
      */
     _scheduleRender() {
