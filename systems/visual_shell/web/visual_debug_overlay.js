@@ -2890,6 +2890,95 @@ class VisualDebugOverlay {
     }
 
     /**
+     * Render Ambient Narrative section in the HUD.
+     * Shows state, session info, and AI thoughts.
+     */
+    _renderNarrativeSection(ctx, width, padding) {
+        const state = this.narrativeState;
+        if (!state.enabled && state.state === 'IDLE') return;
+
+        let y = this._getNextSectionY();
+
+        // Background for section
+        ctx.fillStyle = 'rgba(0, 30, 50, 0.9)';
+        ctx.fillRect(0, y, width, 140);
+
+        y += 20;
+
+        // Header with state color
+        const stateColors = {
+            'MONITORING': '#00ffff',   // Cyan
+            'SUGGESTING': '#ffff00',    // Yellow
+            'STEERING': '#ff6600',      // Orange/Red
+            'IDLE': '#888888'           // Gray
+        };
+        const stateColor = stateColors[state.state] || '#888888';
+
+        ctx.fillStyle = stateColor;
+        ctx.font = 'bold 12px monospace';
+        ctx.fillText('📖 AMBIENT NARRATIVE', padding, y);
+        y += 20;
+
+        // State indicator with colored dot
+        ctx.fillStyle = stateColor;
+        ctx.beginPath();
+        ctx.arc(padding + 5, y - 4, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#fff';
+        ctx.font = '11px monospace';
+        ctx.fillText(`State: ${state.state}`, padding + 15, y);
+        y += 16;
+
+        // Session info
+        ctx.fillStyle = '#aaa';
+        if (state.sessionId) {
+            ctx.fillText(`Session: ${String(state.sessionId).substring(0, 12)}...`, padding, y);
+        } else {
+            ctx.fillText('Session: (not connected)', padding, y);
+        }
+        y += 16;
+
+        // Evolution count
+        ctx.fillText(`Evolutions: ${state.evolutionCount}`, padding, y);
+        y += 16;
+
+        // Last thought (if any)
+        if (state.lastThought) {
+            ctx.fillStyle = '#888';
+            ctx.fillText('Last Thought:', padding, y);
+            y += 14;
+
+            ctx.fillStyle = '#ccc';
+            ctx.font = '10px monospace';
+            const lines = this._wrapText(state.lastThought, width - padding * 2 - 10);
+            for (const line of lines.slice(0, 2)) { // Max 2 lines
+                ctx.fillText(`  ${line}`, padding, y);
+                y += 12;
+            }
+            y += 4;
+        }
+
+        // Steering actions (if any)
+        if (state.steeringActions.length > 0) {
+            ctx.fillStyle = '#ff6600';
+            ctx.font = '10px monospace';
+            const lastAction = state.steeringActions[0];
+            ctx.fillText(`🎯 ${lastAction.action}${lastAction.target ? ` → ${lastAction.target}` : ''}`, padding, y);
+        }
+
+        // Last update timestamp
+        if (state.lastUpdate) {
+            const age = ((Date.now() - state.lastUpdate) / 1000).toFixed(1);
+            ctx.fillStyle = '#555';
+            ctx.font = '9px monospace';
+            ctx.fillText(`Updated: ${age}s ago`, padding, y + 16);
+        }
+
+        this._lastSectionY = y + 30;
+    }
+
+    /**
      * Handle heat map toggle event
      */
     handleHeatmapToggle(detail) {
@@ -3060,6 +3149,14 @@ class VisualDebugOverlay {
         const b = Math.round(c1.b + (c2.b - c1.b) * t);
 
         return `rgb(${r},${g},${b})`;
+    }
+
+    /**
+     * Get the Y position for the next HUD section.
+     * @returns {number} Y coordinate
+     */
+    _getNextSectionY() {
+        return this._lastSectionY || 100;
     }
 
     /**
