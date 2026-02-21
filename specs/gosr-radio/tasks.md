@@ -34,7 +34,7 @@ Focus: Core module structure, base classes, basic broadcast flow. Skip WordPress
   - _Requirements: FR-2, FR-4, NFR-5_
   - _Design: TopicMemory component, hash embedding strategy_
 
-- [ ] 1.3 Implement SegmentPool for content generation
+- [x] 1.3 Implement SegmentPool for content generation
   - **Do**:
     1. Create `segment_pool.py` with `SegmentType` enum (WEATHER, NEWS, PHILOSOPHY, GOSSIP, MEDITATION, ARCHIVE)
     2. Create `SegmentConfig` dataclass with weight, entropy_range, templates

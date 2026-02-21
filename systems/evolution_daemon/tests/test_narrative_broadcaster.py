@@ -278,6 +278,246 @@ class TestTopicMemory:
         assert memory.is_duplicate("topic 4")  # Still present
 
 
+class TestSegmentPool:
+    """Tests for SegmentPool content generation component."""
+
+    def test_segment_type_enum_values(self):
+        """SegmentType should have all 6 segment types."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentType
+
+        assert SegmentType.WEATHER.value == "weather"
+        assert SegmentType.NEWS.value == "news"
+        assert SegmentType.PHILOSOPHY.value == "philosophy"
+        assert SegmentType.GOSSIP.value == "gossip"
+        assert SegmentType.MEDITATION.value == "meditation"
+        assert SegmentType.ARCHIVE.value == "archive"
+
+    def test_segment_config_creation(self):
+        """SegmentConfig should store weight, entropy_range, templates."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentConfig
+
+        config = SegmentConfig(
+            weight=1.0,
+            entropy_range=(0.0, 1.0),
+            templates=["Template 1", "Template 2"]
+        )
+
+        assert config.weight == 1.0
+        assert config.entropy_range == (0.0, 1.0)
+        assert len(config.templates) == 2
+
+    def test_segment_pool_initialization(self):
+        """SegmentPool should initialize with default configs."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool
+
+        pool = SegmentPool()
+
+        assert len(pool.segment_configs) == 6  # All 6 types
+
+    def test_select_segment_high_entropy(self):
+        """SegmentPool should prefer NEWS/GOSSIP for high entropy."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+
+        pool = SegmentPool()
+
+        # Run selection multiple times to check preference
+        results = []
+        for _ in range(50):
+            segment_type = pool.select_segment(entropy=0.8)  # High entropy
+            results.append(segment_type)
+
+        # NEWS and GOSSIP should be more common at high entropy
+        news_gossip_count = sum(1 for s in results if s in (SegmentType.NEWS, SegmentType.GOSSIP))
+        # At least 40% should be NEWS or GOSSIP (with 2x weight multiplier)
+        assert news_gossip_count >= 15
+
+    def test_select_segment_low_entropy(self):
+        """SegmentPool should prefer MEDITATION/PHILOSOPHY for low entropy."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+
+        pool = SegmentPool()
+
+        # Run selection multiple times to check preference
+        results = []
+        for _ in range(50):
+            segment_type = pool.select_segment(entropy=0.2)  # Low entropy
+            results.append(segment_type)
+
+        # MEDITATION and PHILOSOPHY should be more common at low entropy
+        med_phil_count = sum(1 for s in results if s in (SegmentType.MEDITATION, SegmentType.PHILOSOPHY))
+        # At least 40% should be MEDITATION or PHILOSOPHY (with 2x weight multiplier)
+        assert med_phil_count >= 15
+
+    def test_select_segment_medium_entropy(self):
+        """SegmentPool should prefer WEATHER/ARCHIVE for medium entropy."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+
+        pool = SegmentPool()
+
+        # Run selection multiple times to check preference
+        results = []
+        for _ in range(50):
+            segment_type = pool.select_segment(entropy=0.5)  # Medium entropy
+            results.append(segment_type)
+
+        # WEATHER and ARCHIVE should be more common at medium entropy (1.5x weight)
+        weather_archive_count = sum(1 for s in results if s in (SegmentType.WEATHER, SegmentType.ARCHIVE))
+        # At least 25% should be WEATHER or ARCHIVE
+        assert weather_archive_count >= 10
+
+    def test_select_segment_force_type(self):
+        """SegmentPool should return forced type when specified."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+
+        pool = SegmentPool()
+
+        # Force specific type regardless of entropy
+        result = pool.select_segment(entropy=0.9, force_type=SegmentType.MEDITATION)
+        assert result == SegmentType.MEDITATION
+
+        result = pool.select_segment(entropy=0.1, force_type=SegmentType.NEWS)
+        assert result == SegmentType.NEWS
+
+    def test_generate_content_weather(self):
+        """SegmentPool should generate weather content from telemetry."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+
+        pool = SegmentPool()
+        telemetry = {
+            "fps": 60.0,
+            "draw_calls": 150,
+            "memory_mb": 512.0
+        }
+
+        content = pool.generate_content(
+            segment_type=SegmentType.WEATHER,
+            telemetry=telemetry,
+            station_name="Substrate Jazz"
+        )
+
+        assert isinstance(content, str)
+        assert len(content) > 10
+        # Content should reference telemetry values
+        assert "60" in content or "150" in content or "512" in content
+
+    def test_generate_content_news(self):
+        """SegmentPool should generate news content from telemetry."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+
+        pool = SegmentPool()
+        telemetry = {
+            "tectonic_shifts": 3,
+            "relocations": 2,
+            "entropy": 0.75
+        }
+
+        content = pool.generate_content(
+            segment_type=SegmentType.NEWS,
+            telemetry=telemetry,
+            station_name="Substrate Jazz"
+        )
+
+        assert isinstance(content, str)
+        assert len(content) > 10
+
+    def test_generate_content_philosophy(self):
+        """SegmentPool should generate philosophy content."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+
+        pool = SegmentPool()
+        telemetry = {"entropy": 0.3}
+
+        content = pool.generate_content(
+            segment_type=SegmentType.PHILOSOPHY,
+            telemetry=telemetry,
+            station_name="Substrate Jazz"
+        )
+
+        assert isinstance(content, str)
+        assert len(content) > 10
+
+    def test_generate_content_gossip(self):
+        """SegmentPool should generate gossip content from evolution data."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+
+        pool = SegmentPool()
+        telemetry = {
+            "evolution_cycles": 42,
+            "mutations_accepted": 5,
+            "mutations_rejected": 3
+        }
+
+        content = pool.generate_content(
+            segment_type=SegmentType.GOSSIP,
+            telemetry=telemetry,
+            station_name="Substrate Jazz"
+        )
+
+        assert isinstance(content, str)
+        assert len(content) > 10
+
+    def test_generate_content_meditation(self):
+        """SegmentPool should generate meditation content."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+
+        pool = SegmentPool()
+        telemetry = {"entropy": 0.2}
+
+        content = pool.generate_content(
+            segment_type=SegmentType.MEDITATION,
+            telemetry=telemetry,
+            station_name="Substrate Jazz"
+        )
+
+        assert isinstance(content, str)
+        assert len(content) > 10
+
+    def test_generate_content_archive(self):
+        """SegmentPool should generate archive content."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+
+        pool = SegmentPool()
+        telemetry = {"entropy": 0.5}
+
+        content = pool.generate_content(
+            segment_type=SegmentType.ARCHIVE,
+            telemetry=telemetry,
+            station_name="Substrate Jazz"
+        )
+
+        assert isinstance(content, str)
+        assert len(content) > 10
+
+    def test_generate_content_empty_telemetry(self):
+        """SegmentPool should handle empty telemetry gracefully."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+
+        pool = SegmentPool()
+        telemetry = {}
+
+        # Should not raise, should return some content
+        content = pool.generate_content(
+            segment_type=SegmentType.WEATHER,
+            telemetry=telemetry,
+            station_name="Substrate Jazz"
+        )
+
+        assert isinstance(content, str)
+        assert len(content) > 0
+
+    def test_force_rotation_tracking(self):
+        """SegmentPool should track last segment type for rotation."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool
+
+        pool = SegmentPool()
+
+        # Select a segment
+        pool.select_segment(entropy=0.5)
+
+        # Should track the last selected type
+        assert pool.last_segment_type is not None
+
+
 class TestNarrativeBroadcasterIntegration:
     """Integration tests - will expand as components are added."""
 
