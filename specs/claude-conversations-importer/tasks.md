@@ -548,7 +548,7 @@ echo "TESTS PASS"
 
 ---
 
-### Task 4.2: Create README Documentation
+### Task 4.2: [x] Create README Documentation
 
 **Do:**
 1. Create `README.md` with:
