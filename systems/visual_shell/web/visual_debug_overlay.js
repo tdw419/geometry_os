@@ -325,6 +325,26 @@ class VisualDebugOverlay {
             this.handleGhostUpdate(e.detail);
         });
 
+        // Listen for Narrative events (Phase R: V2.0)
+        window.addEventListener('NARRATIVE_EVENT', (e) => {
+            this.handleNarrativeEvent(e.detail);
+        });
+
+        // Listen for Narrative state changes
+        window.addEventListener('NARRATIVE_STATE_CHANGE', (e) => {
+            this.handleNarrativeStateChange(e.detail);
+        });
+
+        // Listen for Narrative steering actions
+        window.addEventListener('NARRATIVE_STEERING', (e) => {
+            this.handleNarrativeSteering(e.detail);
+        });
+
+        // Listen for Daemon heartbeat for narrative sync
+        window.addEventListener('DAEMON_HEARTBEAT', (e) => {
+            this.handleDaemonHeartbeat(e.detail);
+        });
+
         // Listen for Task DAG updates from TelemetryBus
         window.addEventListener('TASK_DAG_UPDATE', (e) => {
             this.processTaskDagUpdate(e.detail);
