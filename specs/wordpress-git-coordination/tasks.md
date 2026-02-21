@@ -198,7 +198,7 @@ After POC validated, clean up code structure.
   - _Requirements: FR-6, AC-3.1, AC-3.2, AC-3.3, AC-3.5, AC-3.6_
   - _Design: Component 4 (Pre-commit Hook Extension)_
 
-- [ ] 4.2 [VERIFY] Full local CI: syntax + tests
+- [x] 4.2 [VERIFY] Full local CI: syntax + tests
   - **Do**: Run all quality commands on track-related code
   - **Verify**:
     ```bash
