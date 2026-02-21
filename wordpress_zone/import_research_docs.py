@@ -14,15 +14,30 @@ import glob
 import hashlib
 import argparse
 import time
+import logging
 import requests
 from dataclasses import dataclass
 from typing import List, Optional
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
+
 # Configuration
 RESEARCH_DOCS_DIR = "/home/jericho/zion/docs/research"
 WP_PUBLISHER_URL = "http://localhost:8080/ai-publisher.php"
+WP_AJAX_URL = "http://localhost:8080/wp-admin/admin-ajax.php"
+WP_NONCE = "research_import_nonce"  # Must match wp_create_nonce in PHP
 BATCH_SIZE = 50
 BATCH_DELAY = 2  # seconds between batches
+MAX_RETRIES = 2  # max retry attempts for transient API failures
+DEFAULT_TIMEOUT = 30  # seconds for standard requests
+LARGE_FILE_TIMEOUT = 120  # seconds for large file uploads (1MB+)
+PROGRESS_UPDATE_INTERVAL = 5  # Update progress every N documents
 
 
 @dataclass
@@ -69,8 +84,14 @@ def calculate_file_hash(file_path: str) -> str:
             for chunk in iter(lambda: f.read(8192), b''):
                 sha256.update(chunk)
         return sha256.hexdigest()
+    except PermissionError as e:
+        logger.error(f"Permission denied reading file for hash: {file_path} - {e}")
+        return ""
+    except OSError as e:
+        logger.error(f"OS error calculating hash for {file_path}: {e}")
+        return ""
     except Exception as e:
-        print(f"  Error calculating hash for {file_path}: {e}")
+        logger.error(f"Unexpected error calculating hash for {file_path}: {e}")
         return ""
 
 
@@ -96,12 +117,20 @@ def parse_document(file_path: str) -> Optional[ResearchDocument]:
     Returns ResearchDocument dataclass or None on error.
     """
     try:
+        # Check file size first
+        file_size = os.path.getsize(file_path)
+
+        # Handle empty files (0 bytes) - skip with warning
+        if file_size == 0:
+            logger.warning(f"Skipping empty file (0 bytes): {file_path}")
+            return None
+
         with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
             content = f.read()
 
-        # Skip empty files
+        # Skip files with only whitespace
         if not content.strip():
-            print(f"  Skipping empty file: {file_path}")
+            logger.warning(f"Skipping whitespace-only file: {file_path}")
             return None
 
         title = extract_title_from_filename(file_path)
@@ -115,12 +144,106 @@ def parse_document(file_path: str) -> Optional[ResearchDocument]:
             file_hash=file_hash,
             line_count=line_count
         )
-    except PermissionError:
-        print(f"  Permission denied: {file_path}")
+    except PermissionError as e:
+        logger.error(f"Permission denied: {file_path} - {e}")
+        return None
+    except FileNotFoundError as e:
+        logger.error(f"File not found: {file_path} - {e}")
+        return None
+    except IsADirectoryError as e:
+        logger.error(f"Path is a directory, not a file: {file_path} - {e}")
+        return None
+    except UnicodeDecodeError as e:
+        logger.error(f"Unicode decode error reading {file_path}: {e}")
+        return None
+    except OSError as e:
+        logger.error(f"OS error reading {file_path}: {e}")
         return None
     except Exception as e:
-        print(f"  Error parsing {file_path}: {e}")
+        logger.error(f"Unexpected error parsing {file_path}: {e}")
         return None
+
+
+def import_document_with_retry(
+    doc: ResearchDocument,
+    batch_id: str,
+    max_retries: int = MAX_RETRIES
+) -> tuple[str, Optional[str]]:
+    """
+    Import a single document with retry logic for transient failures.
+
+    Returns:
+        tuple of (status, error_message)
+        status: 'created', 'updated', 'skipped', 'error'
+        error_message: None on success, error string on failure
+    """
+    payload = {
+        "action": "importResearchDocument",
+        "title": doc.title,
+        "content": doc.content,
+        "meta": {
+            "source_path": doc.file_path,
+            "file_hash": doc.file_hash,
+            "line_count": doc.line_count,
+            "import_batch": batch_id
+        }
+    }
+
+    # Determine timeout based on content size
+    content_size = len(doc.content.encode('utf-8'))
+    timeout = LARGE_FILE_TIMEOUT if content_size > 1_000_000 else DEFAULT_TIMEOUT
+
+    last_error = None
+    for attempt in range(max_retries + 1):
+        try:
+            response = requests.post(
+                WP_PUBLISHER_URL,
+                json=payload,
+                timeout=timeout
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("success"):
+                    return (data.get("status", "unknown"), None)
+                else:
+                    return ("error", data.get("message", "Unknown error"))
+            elif response.status_code >= 500:
+                # Server error - retry
+                last_error = f"HTTP {response.status_code}"
+                if attempt < max_retries:
+                    logger.warning(f"Server error for {doc.title[:50]}, retrying ({attempt + 1}/{max_retries})")
+                    time.sleep(1 * (attempt + 1))  # Exponential backoff: 1s, 2s
+                    continue
+                return ("error", f"HTTP {response.status_code}")
+            else:
+                # Client error - don't retry
+                return ("error", f"HTTP {response.status_code}")
+
+        except requests.exceptions.Timeout:
+            last_error = "Request timeout"
+            if attempt < max_retries:
+                logger.warning(f"Timeout for {doc.title[:50]} ({content_size} bytes), retrying ({attempt + 1}/{max_retries})")
+                time.sleep(2 * (attempt + 1))  # Longer backoff for timeout
+                continue
+        except requests.exceptions.ConnectionError as e:
+            last_error = f"Connection error: {e}"
+            if attempt < max_retries:
+                logger.warning(f"Connection error for {doc.title[:50]}, retrying ({attempt + 1}/{max_retries})")
+                time.sleep(2 * (attempt + 1))
+                continue
+        except requests.exceptions.RequestException as e:
+            last_error = f"Request error: {e}"
+            if attempt < max_retries:
+                logger.warning(f"Request error for {doc.title[:50]}, retrying ({attempt + 1}/{max_retries})")
+                time.sleep(1 * (attempt + 1))
+                continue
+        except Exception as e:
+            last_error = f"Unexpected error: {e}"
+            logger.error(f"Unexpected error importing {doc.title[:50]}: {e}")
+            break
+
+    return ("error", last_error or "Unknown error")
 
 
 def import_batch(documents: List[ResearchDocument], batch_id: str, dry_run: bool = False) -> dict:
@@ -131,57 +254,91 @@ def import_batch(documents: List[ResearchDocument], batch_id: str, dry_run: bool
     results = {"created": 0, "updated": 0, "skipped": 0, "errors": 0}
 
     for doc in documents:
-        payload = {
-            "action": "importResearchDocument",
-            "title": doc.title,
-            "content": doc.content,
-            "meta": {
-                "source_path": doc.file_path,
-                "file_hash": doc.file_hash,
-                "line_count": doc.line_count,
-                "import_batch": batch_id
-            }
-        }
-
         if dry_run:
-            print(f"  [DRY-RUN] Would import: {doc.title[:50]}...")
+            logger.info(f"[DRY-RUN] Would import: {doc.title[:50]}...")
             results["created"] += 1
             continue
 
-        try:
-            response = requests.post(
-                WP_PUBLISHER_URL,
-                json=payload,
-                timeout=30
-            )
+        status, error_msg = import_document_with_retry(doc, batch_id)
 
-            if response.status_code == 200:
-                data = response.json()
-                if data.get("success"):
-                    status = data.get("status", "unknown")
-                    if status == "created":
-                        results["created"] += 1
-                    elif status == "updated":
-                        results["updated"] += 1
-                    elif status == "skipped":
-                        results["skipped"] += 1
-                    else:
-                        results["errors"] += 1
-                    print(f"  [{status}] {doc.title[:50]}")
-                else:
-                    results["errors"] += 1
-                    print(f"  [ERROR] {doc.title[:50]}: {data.get('message', 'Unknown error')}")
-            else:
-                results["errors"] += 1
-                print(f"  [ERROR] {doc.title[:50]}: HTTP {response.status_code}")
-        except requests.exceptions.Timeout:
+        if status == "created":
+            results["created"] += 1
+            logger.info(f"[created] {doc.title[:50]}")
+        elif status == "updated":
+            results["updated"] += 1
+            logger.info(f"[updated] {doc.title[:50]}")
+        elif status == "skipped":
+            results["skipped"] += 1
+            logger.info(f"[skipped] {doc.title[:50]}")
+        else:
             results["errors"] += 1
-            print(f"  [TIMEOUT] {doc.title[:50]}")
-        except Exception as e:
-            results["errors"] += 1
-            print(f"  [ERROR] {doc.title[:50]}: {e}")
+            logger.error(f"[error] {doc.title[:50]}: {error_msg}")
 
     return results
+
+
+def update_progress(
+    processed: int,
+    total: int,
+    created: int,
+    updated: int,
+    skipped: int,
+    errors: int,
+    status: str = "running"
+) -> bool:
+    """
+    Update import progress in WordPress transient via AJAX API.
+
+    Args:
+        processed: Number of documents processed so far
+        total: Total number of documents to process
+        created: Number of documents created
+        updated: Number of documents updated
+        skipped: Number of documents skipped
+        errors: Number of errors
+        status: Current status (running, complete, error)
+
+    Returns:
+        True if progress update succeeded, False otherwise
+    """
+    try:
+        percent = int((processed / total * 100)) if total > 0 else 0
+        message = f"Processing document {processed} of {total}..."
+
+        if status == "complete":
+            message = f"Import complete: {created} created, {updated} updated, {skipped} skipped, {errors} errors"
+        elif status == "error":
+            message = f"Import failed with {errors} errors"
+
+        payload = {
+            "action": "research_import_update_progress",
+            "nonce": WP_NONCE,
+            "status": status,
+            "message": message,
+            "percent": percent,
+            "processed": processed,
+            "total": total,
+            "created": created,
+            "updated": updated,
+            "skipped": skipped,
+            "errors": errors,
+        }
+
+        response = requests.post(
+            WP_AJAX_URL,
+            data=payload,
+            timeout=10
+        )
+
+        if response.status_code == 200:
+            return True
+        else:
+            logger.warning(f"Progress update failed: HTTP {response.status_code}")
+            return False
+
+    except Exception as e:
+        logger.warning(f"Progress update error: {e}")
+        return False
 
 
 def run_full_import(
@@ -206,28 +363,33 @@ def run_full_import(
         Summary dict with total counts
     """
     # Discover documents
-    print(f"Discovering documents in {docs_dir}...")
+    logger.info(f"Discovering documents in {docs_dir}...")
     file_paths = discover_documents(docs_dir, limit)
     total_files = len(file_paths)
-    print(f"discovered {total_files} documents")
+    logger.info(f"discovered {total_files} documents")
 
     if not file_paths:
-        print("No documents found to import.")
+        logger.info("No documents found to import.")
         return {"total": 0, "created": 0, "updated": 0, "skipped": 0, "errors": 0}
 
     # Generate batch ID
     batch_id = f"import_{int(time.time())}"
 
-    # Process in batches
+    # Initialize progress tracking
     total_results = {"created": 0, "updated": 0, "skipped": 0, "errors": 0}
     processed = 0
+    last_progress_update = 0
 
+    # Send initial progress update
+    update_progress(0, total_files, 0, 0, 0, 0, "running")
+
+    # Process in batches
     for i in range(0, total_files, batch_size):
         batch_paths = file_paths[i:i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_files + batch_size - 1) // batch_size
 
-        print(f"\nProcessing batch {batch_num}/{total_batches} ({len(batch_paths)} docs)...")
+        logger.info(f"Processing batch {batch_num}/{total_batches} ({len(batch_paths)} docs)...")
 
         # Parse documents
         batch_docs = []
@@ -243,23 +405,47 @@ def run_full_import(
                 total_results[key] += batch_results.get(key, 0)
 
         processed += len(batch_paths)
-        print(f"Progress: {processed}/{total_files} documents")
+        logger.info(f"Progress: {processed}/{total_files} documents")
+
+        # Update progress every PROGRESS_UPDATE_INTERVAL documents or at key points
+        if processed - last_progress_update >= PROGRESS_UPDATE_INTERVAL or processed == total_files:
+            update_progress(
+                processed,
+                total_files,
+                total_results["created"],
+                total_results["updated"],
+                total_results["skipped"],
+                total_results["errors"],
+                "running"
+            )
+            last_progress_update = processed
 
         # Delay between batches (except for last batch)
         if i + batch_size < total_files and batch_delay > 0:
-            print(f"Waiting {batch_delay}s before next batch...")
+            logger.info(f"Waiting {batch_delay}s before next batch...")
             time.sleep(batch_delay)
 
+    # Final progress update - complete
+    update_progress(
+        total_files,
+        total_files,
+        total_results["created"],
+        total_results["updated"],
+        total_results["skipped"],
+        total_results["errors"],
+        "complete"
+    )
+
     # Summary
-    print(f"\n{'=' * 50}")
-    print("Import Summary")
-    print(f"{'=' * 50}")
-    print(f"Total processed: {total_files}")
-    print(f"Created: {total_results['created']}")
-    print(f"Updated: {total_results['updated']}")
-    print(f"Skipped: {total_results['skipped']}")
-    print(f"Errors: {total_results['errors']}")
-    print(f"Batch ID: {batch_id}")
+    logger.info("=" * 50)
+    logger.info("Import Summary")
+    logger.info("=" * 50)
+    logger.info(f"Total processed: {total_files}")
+    logger.info(f"Created: {total_results['created']}")
+    logger.info(f"Updated: {total_results['updated']}")
+    logger.info(f"Skipped: {total_results['skipped']}")
+    logger.info(f"Errors: {total_results['errors']}")
+    logger.info(f"Batch ID: {batch_id}")
 
     return {**total_results, "total": total_files}
 

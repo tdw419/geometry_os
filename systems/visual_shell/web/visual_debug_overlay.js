@@ -137,6 +137,18 @@ class VisualDebugOverlay {
             evolutionCount: 0
         };
 
+        // GOSR Radio state (Phase 4: HUD Integration)
+        this.radioState = {
+            enabled: false,
+            stationId: null,
+            stationName: '',
+            frequency: '',
+            lastBroadcasts: [],    // Last 3 broadcast lines
+            broadcastCount: 0,
+            lastSegmentType: '',
+            lastUpdate: null
+        };
+
         // Heat Map state (Visual Hotspot Debugger)
         this.heatmapState = {
             visible: false,
@@ -343,6 +355,11 @@ class VisualDebugOverlay {
         // Listen for Daemon heartbeat for narrative sync
         window.addEventListener('DAEMON_HEARTBEAT', (e) => {
             this.handleDaemonHeartbeat(e.detail);
+        });
+
+        // Listen for GOSR Radio broadcasts
+        window.addEventListener('RADIO_BROADCAST', (e) => {
+            this.handleRadioBroadcast(e.detail);
         });
 
         // Listen for Task DAG updates from TelemetryBus
@@ -978,6 +995,51 @@ class VisualDebugOverlay {
     }
 
     /**
+     * Handle GOSR Radio broadcasts.
+     * @param {Object} data - { station_id, segment_type, content, timestamp, entropy, evolution_count }
+     */
+    handleRadioBroadcast(data) {
+        if (!data) return;
+
+        this.radioState.enabled = true;
+        this.radioState.lastUpdate = Date.now();
+
+        // Update station info
+        if (data.station_id) {
+            this.radioState.stationId = data.station_id;
+            this.radioState.frequency = data.station_id;
+        }
+
+        // Determine station name from frequency
+        const stationNames = {
+            '87.6': 'Substrate Jazz',
+            '92.3': 'Debug Metal',
+            '95.1': 'Silicon Noir',
+            '99.9': 'Neutral Chronicler'
+        };
+        this.radioState.stationName = stationNames[data.station_id] || 'Unknown Station';
+
+        // Update segment type
+        if (data.segment_type) {
+            this.radioState.lastSegmentType = data.segment_type;
+        }
+
+        // Add content to last broadcasts (max 3 lines)
+        if (data.content) {
+            const lines = data.content.split('\n').filter(l => l.trim());
+            this.radioState.lastBroadcasts.unshift(...lines);
+            this.radioState.lastBroadcasts = this.radioState.lastBroadcasts.slice(0, 3);
+        }
+
+        // Increment counter
+        this.radioState.broadcastCount++;
+
+        console.log(`📻 HUD: Radio broadcast [${data.station_id}] ${data.segment_type}`);
+
+        this._scheduleRender();
+    }
+
+    /**
      * Schedule render on next animation frame
      */
     _scheduleRender() {
@@ -1437,6 +1499,11 @@ class VisualDebugOverlay {
         if (this.narrativeState.enabled || this.narrativeState.state !== 'IDLE') {
             this._renderNarrativeSection(ctx, width, padding);
         }
+
+        // GOSR Radio HUD (Phase 4: HUD Integration)
+        if (this.radioState.enabled) {
+            this._renderRadioSection(ctx, width, padding);
+        }
     }
 
     /**
@@ -1882,7 +1949,6 @@ class VisualDebugOverlay {
 
     /**
      * Process Task DAG update from Visual Bridge
-     */
      */
     processTaskDagUpdate(update) {
         if (!update || !update.task_id) return;
@@ -2982,6 +3048,79 @@ class VisualDebugOverlay {
         }
 
         this._lastSectionY = y + 30;
+    }
+
+    /**
+     * Render GOSR Radio HUD section
+     * Purple-themed section showing station ID, last broadcasts, and counter.
+     */
+    _renderRadioSection(ctx, width, padding) {
+        const state = this.radioState;
+        if (!state.enabled) return;
+
+        let y = this._getNextSectionY();
+
+        // Background for section - purple theme
+        ctx.fillStyle = 'rgba(60, 0, 60, 0.9)';
+        ctx.fillRect(0, y, width, 130);
+
+        y += 20;
+
+        // Header with frequency
+        ctx.fillStyle = '#cc66ff';
+        ctx.font = 'bold 12px monospace';
+        const freq = state.frequency || '?.?';
+        ctx.fillText(`📻 GOSR RADIO ${freq} FM`, padding, y);
+        y += 18;
+
+        // Station name
+        ctx.fillStyle = '#aa88cc';
+        ctx.font = '10px monospace';
+        ctx.fillText(`${state.stationName || 'Unknown'}`, padding, y);
+        y += 18;
+
+        // Segment type with icon
+        const segmentIcons = {
+            'WEATHER': '🌤️',
+            'NEWS': '📰',
+            'PHILOSOPHY': '🤔',
+            'GOSSIP': '💬',
+            'MEDITATION': '🧘',
+            'ARCHIVE': '📜'
+        };
+        const icon = segmentIcons[state.lastSegmentType] || '📡';
+        ctx.fillStyle = '#88aacc';
+        ctx.fillText(`${icon} ${state.lastSegmentType || 'unknown'}`, padding, y);
+        y += 18;
+
+        // Last broadcast lines
+        if (state.lastBroadcasts.length > 0) {
+            ctx.fillStyle = '#888';
+            ctx.fillText('Last broadcast:', padding, y);
+            y += 14;
+
+            ctx.fillStyle = '#ccc';
+            ctx.font = '9px monospace';
+            for (const line of state.lastBroadcasts.slice(0, 3)) {
+                const truncated = line.length > 35 ? line.substring(0, 35) + '...' : line;
+                ctx.fillText(`  "${truncated}"`, padding, y);
+                y += 12;
+            }
+        }
+        y += 6;
+
+        // Counter and timestamp
+        ctx.fillStyle = '#666';
+        ctx.font = '9px monospace';
+        ctx.fillText(`Broadcasts: ${state.broadcastCount}`, padding, y);
+
+        if (state.lastUpdate) {
+            const age = ((Date.now() - state.lastUpdate) / 1000).toFixed(1);
+            ctx.fillStyle = '#555';
+            ctx.fillText(`| ${age}s ago`, padding + 110, y);
+        }
+
+        this._lastSectionY = y + 20;
     }
 
     /**

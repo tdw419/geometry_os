@@ -16,6 +16,7 @@ created: 2026-02-21T17:00:00Z
 ### Task 1.1: Add heartbeat support to DirectiveAgent
 **Type:** IMPLEMENT
 **Priority:** High
+**Status:** DONE
 **Files:**
 - Modify: `systems/intelligence/directive_agent.py`
 - Modify: `tests/test_directive_agent.py`
@@ -37,6 +38,7 @@ python -m pytest tests/test_directive_agent.py::TestHeartbeatSupport -v
 ### Task 1.2: [VERIFY] Heartbeat tests pass
 **Type:** VERIFY
 **Depends on:** Task 1.1
+**Status:** DONE
 
 **Steps:**
 1. Run heartbeat tests
@@ -56,6 +58,7 @@ tests/test_directive_agent.py::TestHeartbeatSupport::test_heartbeat_updates_on_c
 **Type:** IMPLEMENT
 **Priority:** High
 **Depends on:** Task 1.2
+**Status:** DONE
 **Files:**
 - Modify: `systems/intelligence/directive_agent.py`
 
@@ -78,6 +81,7 @@ python -m systems.intelligence.directive_agent --version
 **Type:** IMPLEMENT
 **Priority:** High
 **Depends on:** Task 1.3
+**Status:** DONE
 **Files:**
 - Modify: `tests/test_directive_agent.py`
 
@@ -96,6 +100,7 @@ python -m pytest tests/test_directive_agent.py::TestCLIInterface -v
 ### Task 1.5: [VERIFY] CLI tests pass
 **Type:** VERIFY
 **Depends on:** Task 1.4
+**Status:** DONE
 
 **Steps:**
 1. Run CLI tests
@@ -106,6 +111,7 @@ python -m pytest tests/test_directive_agent.py::TestCLIInterface -v
 ### Task 1.6: Create directive_ctl.sh control script
 **Type:** IMPLEMENT
 **Priority:** High
+**Status:** DONE
 **Depends on:** Task 1.5
 **Files:**
 - Create: `systems/intelligence/directive_ctl.sh`
@@ -127,6 +133,7 @@ python -m pytest tests/test_directive_agent.py::TestCLIInterface -v
 
 ### Task 1.7: [VERIFY] Control script works
 **Type:** VERIFY
+**Status:** DONE
 **Depends on:** Task 1.6
 
 **Steps:**
@@ -141,6 +148,7 @@ python -m pytest tests/test_directive_agent.py::TestCLIInterface -v
 ### Task 2.1: Create control script integration tests
 **Type:** IMPLEMENT
 **Priority:** Medium
+**Status:** DONE
 **Depends on:** Task 1.7
 **Files:**
 - Create: `tests/test_directive_ctl.sh`
@@ -161,6 +169,7 @@ bash tests/test_directive_ctl.sh
 
 ### Task 2.2: [VERIFY] Integration tests pass
 **Type:** VERIFY
+**Status:** DONE
 **Depends on:** Task 2.1
 
 **Steps:**
@@ -174,6 +183,7 @@ bash tests/test_directive_ctl.sh
 ### Task 3.1: Update Command Console README
 **Type:** IMPLEMENT
 **Priority:** Medium
+**Status:** DONE
 **Depends on:** Task 2.2
 **Files:**
 - Create: `specs/command-console/README.md`
@@ -194,6 +204,7 @@ cat specs/command-console/README.md
 
 ### Task 3.2: [VERIFY] Documentation complete
 **Type:** VERIFY
+**Status:** DONE
 **Depends on:** Task 3.1
 
 **Steps:**

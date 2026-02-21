@@ -65,7 +65,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
   - **Verify**: `curl -s "http://localhost:8080/wp-json/wp/v2/research_document?per_page=15" | jq 'length'`
   - **Commit**: `feat(wp): complete research doc import POC`
 
-- [ ] 1.5 [VERIFY] Quality checkpoint: Python syntax + PHP lint
+- [x] 1.5 [VERIFY] Quality checkpoint: Python syntax + PHP lint
   - **Do**: Run syntax checks on new files
   - **Verify**: `python3 -m py_compile wordpress_zone/import_research_docs.py && php -l wordpress_zone/wordpress/ai-publisher.php`
   - **Done when**: Both commands exit 0
@@ -75,7 +75,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
 
 After POC validated, clean up code.
 
-- [ ] 2.1 Add error handling to importer
+- [x] 2.1 Add error handling to importer
   - **Do**:
     1. Add try/catch around file reading with proper error logging
     2. Handle empty files (0 bytes) - skip with warning
@@ -88,7 +88,7 @@ After POC validated, clean up code.
   - **Commit**: `refactor(wp): add error handling to importer`
   - _Design: Error Handling_
 
-- [ ] 2.2 Add `searchResearch` API action to `ai-publisher.php`
+- [x] 2.2 Add `searchResearch` API action to `ai-publisher.php`
   - **Do**:
     1. Add case `'searchResearch'` to dispatcher switch
     2. Implement `handle_search_research($args)` using `WP_Query` with `s` parameter
@@ -102,7 +102,7 @@ After POC validated, clean up code.
   - **Commit**: `feat(wp): add searchResearch API action`
   - _Requirements: FR-9, FR-10, AC-5.1-5.5_
 
-- [ ] 2.3 Create admin UI plugin directory structure
+- [x] 2.3 Create admin UI plugin directory structure
   - **Do**:
     1. Create `wordpress_zone/wordpress/wp-content/plugins/research-import-admin/` directory
     2. Create main plugin file `research-import-admin.php`
@@ -114,7 +114,7 @@ After POC validated, clean up code.
   - **Commit**: `feat(wp): add research import admin plugin skeleton`
   - _Requirements: FR-7, AC-4.1_
 
-- [ ] 2.4 Implement admin UI page with import controls
+- [x] 2.4 Implement admin UI page with import controls
   - **Do**:
     1. Add "Run Import" button with nonce field
     2. Register AJAX handler `wp_ajax_research_import_start`
@@ -127,7 +127,7 @@ After POC validated, clean up code.
   - **Commit**: `feat(wp): add admin UI import controls`
   - _Requirements: FR-7, FR-8, AC-4.2-4.5_
 
-- [ ] 2.5 Add AJAX progress bar for import
+- [x] 2.5 Add AJAX progress bar for import
   - **Do**:
     1. Add progress bar HTML element
     2. Register AJAX handler `wp_ajax_research_import_progress`
@@ -140,7 +140,7 @@ After POC validated, clean up code.
   - **Commit**: `feat(wp): add import progress bar`
   - _Requirements: FR-8, AC-4.3_
 
-- [ ] 2.6 [VERIFY] Quality checkpoint: PHP lint + file structure
+- [x] 2.6 [VERIFY] Quality checkpoint: PHP lint + file structure
   - **Do**: Run lint on all PHP files, verify plugin structure
   - **Verify**: `php -l wordpress_zone/wordpress/ai-publisher.php && php -l wordpress_zone/wordpress/wp-content/plugins/research-import-admin/research-import-admin.php`
   - **Done when**: No PHP syntax errors
@@ -148,7 +148,7 @@ After POC validated, clean up code.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Create Python unit tests for importer
+- [x] 3.1 Create Python unit tests for importer
   - **Do**:
     1. Create `wordpress_zone/tests/test_import_research_docs.py`
     2. Test `parse_document()` with sample filenames
@@ -162,7 +162,7 @@ After POC validated, clean up code.
   - _Requirements: AC-1.1-1.6, AC-2.6_
   - _Design: Test Strategy - Unit Tests_
 
-- [ ] 3.2 Create PHP mock tests for API handlers
+- [x] 3.2 Create PHP mock tests for API handlers
   - **Do**:
     1. Create `wordpress_zone/tests/test_research_api.py` (mock PHP verification)
     2. Test `handle_import_research_document` structure
@@ -175,7 +175,7 @@ After POC validated, clean up code.
   - **Commit**: `test(wp): add API mock tests`
   - _Design: Test Strategy - Unit Tests_
 
-- [ ] 3.3 Create integration test for full import cycle
+- [x] 3.3 Create integration test for full import cycle
   - **Do**:
     1. Create `wordpress_zone/tests/test_research_integration.py`
     2. Test import of 5 sample documents
@@ -189,7 +189,7 @@ After POC validated, clean up code.
   - **Commit**: `test(wp): add integration tests`
   - _Design: Test Strategy - Integration Tests_
 
-- [ ] 3.4 [VERIFY] Quality checkpoint: All tests pass
+- [x] 3.4 [VERIFY] Quality checkpoint: All tests pass
   - **Do**: Run all test suites
   - **Verify**: `python3 -m pytest wordpress_zone/tests/test_import_research_docs.py wordpress_zone/tests/test_research_integration.py -v 2>&1 | grep -E "(PASSED|FAILED|ERROR|passed|failed)"`
   - **Done when**: All tests pass
@@ -197,7 +197,7 @@ After POC validated, clean up code.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Local quality check
+- [x] 4.1 Local quality check
   - **Do**: Run ALL quality checks locally
   - **Verify**:
     - Python syntax: `python3 -m py_compile wordpress_zone/import_research_docs.py`
@@ -207,7 +207,7 @@ After POC validated, clean up code.
   - **Done when**: All commands pass with no errors
   - **Commit**: `fix(wp): address quality issues` (if fixes needed)
 
-- [ ] 4.2 Create PR and verify CI
+- [x] 4.2 Create PR and verify CI
   - **Do**:
     1. Verify current branch is feature branch: `git branch --show-current`
     2. Push branch: `git push -u origin feat/research-document-import`
@@ -218,7 +218,7 @@ After POC validated, clean up code.
 
 ## Phase 5: PR Lifecycle
 
-- [ ] 5.1 Full import validation (100 docs)
+- [x] 5.1 Full import validation (100 docs)
   - **Do**:
     1. Run importer with `--limit 100` on staging/production
     2. Verify no timeout, correct counts
@@ -227,7 +227,7 @@ After POC validated, clean up code.
   - **Done when**: 100 docs imported successfully
   - **Commit**: None
 
-- [ ] 5.2 Search API validation
+- [x] 5.2 Search API validation
   - **Do**:
     1. Test search with known terms
     2. Test meta filtering
@@ -236,7 +236,7 @@ After POC validated, clean up code.
   - **Done when**: Search returns expected results
   - **Commit**: None
 
-- [ ] 5.3 Memory Beams integration verification
+- [x] 5.3 Memory Beams integration verification
   - **Do**:
     1. Import test document
     2. Run `WordPressMemoryProvider.sync_posts()`
@@ -245,7 +245,7 @@ After POC validated, clean up code.
   - **Done when**: Research docs visible in Memory Beams
   - **Commit**: None
 
-- [ ] 5.4 Admin UI E2E test
+- [x] 5.4 Admin UI E2E test
   - **Do**:
     1. Navigate to Tools > Research Import
     2. Click "Run Import" button
@@ -255,7 +255,7 @@ After POC validated, clean up code.
   - **Done when**: Admin UI fully functional
   - **Commit**: None
 
-- [ ] 5.5 AC checklist verification
+- [x] 5.5 AC checklist verification
   - **Do**: Read requirements.md, verify each AC-* is satisfied
   - **Verify**: Grep codebase for implementation, run test commands
   - **Done when**: All acceptance criteria confirmed met

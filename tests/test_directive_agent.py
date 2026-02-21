@@ -12,6 +12,10 @@ Tests cover:
 import pytest
 from unittest.mock import Mock, patch, mock_open
 import json
+import os
+import sys
+from datetime import datetime, timedelta
+from pathlib import Path
 
 from systems.intelligence.directive_agent import (
     DirectiveAgent,
@@ -553,8 +557,8 @@ class TestDirectiveAPI:
             payload = call_args.kwargs['json']
 
             assert payload['tool'] == "testTool"
-            assert payload['param1'] == "value1"
-            assert payload['param2'] == 123
+            assert payload['arguments']['param1'] == "value1"
+            assert payload['arguments']['param2'] == 123
 
     def test_post_response_includes_status_emoji(self, agent):
         """Test post_response includes status emoji in response."""
@@ -580,7 +584,9 @@ class TestDirectiveAPI:
 
             call_args = mock_post.call_args
             payload = call_args.kwargs['json']
-            response = payload['response']
+            # Arguments are nested in the 'arguments' field
+            arguments = payload['arguments']
+            response = arguments['response']
 
             assert "✅" in response
             assert "Completed" in response
@@ -839,3 +845,352 @@ class TestEdgeCases:
                     substrate_map_path="/path/to/map.json"
                 )
                 assert agent._substrate_cache == {}
+
+
+class TestHeartbeatSupport:
+    """Test heartbeat support for daemon monitoring."""
+
+    @pytest.fixture
+    def agent(self, tmp_path):
+        """Create DirectiveAgent with temp heartbeat path."""
+        heartbeat_path = tmp_path / "heartbeat.json"
+        with patch.object(
+            DirectiveAgent,
+            '_load_substrate_map',
+            return_value=None
+        ):
+            agent = DirectiveAgent(
+                wp_url="http://test.local",
+                heartbeat_path=str(heartbeat_path)
+            )
+            agent._substrate_cache = {"test": {"name": "Test"}}
+            return agent, heartbeat_path
+
+    def test_write_heartbeat_creates_file(self, agent):
+        """Test that write_heartbeat creates the heartbeat file."""
+        agent_instance, heartbeat_path = agent
+        agent_instance._start_time = datetime.utcnow()
+
+        agent_instance.write_heartbeat()
+
+        assert heartbeat_path.exists()
+
+    def test_heartbeat_contains_required_fields(self, agent):
+        """Test that heartbeat contains all required fields."""
+        agent_instance, heartbeat_path = agent
+        agent_instance._start_time = datetime.utcnow()
+        agent_instance._directives_processed = 5
+
+        agent_instance.write_heartbeat()
+
+        with open(heartbeat_path, 'r') as f:
+            data = json.load(f)
+
+        # Check all required fields
+        assert "timestamp" in data
+        assert "pid" in data
+        assert "running" in data
+        assert "uptime_seconds" in data
+        assert "directives_processed" in data
+        assert "wp_url" in data
+        assert "poll_interval" in data
+        assert "substrate_components" in data
+
+        # Check field values
+        assert data["pid"] == os.getpid()
+        assert data["running"] is True
+        assert data["directives_processed"] == 5
+        assert data["wp_url"] == "http://test.local"
+        assert data["poll_interval"] == 30
+        assert data["substrate_components"] == 1
+
+    def test_heartbeat_updates_on_cycle(self, agent):
+        """Test that heartbeat updates after process_one_cycle."""
+        agent_instance, heartbeat_path = agent
+
+        # Process a directive
+        directive = Directive(
+            id=1,
+            title="Explain test",
+            content="Explain 'test'",
+            date="2026-02-21",
+            author="user"
+        )
+
+        with patch.object(agent_instance, 'poll_directives', return_value=[directive]):
+            with patch.object(agent_instance, 'post_response', return_value=True):
+                with patch.object(agent_instance, 'mark_processed', return_value=True):
+                    agent_instance.process_one_cycle()
+
+        # Check heartbeat was written
+        assert heartbeat_path.exists()
+
+        with open(heartbeat_path, 'r') as f:
+            data = json.load(f)
+
+        # Should have processed 1 directive
+        assert data["directives_processed"] == 1
+        assert data["running"] is True
+        assert data["uptime_seconds"] > 0
+
+    def test_heartbeat_not_running_before_first_cycle(self, agent):
+        """Test that running is False before first cycle."""
+        agent_instance, heartbeat_path = agent
+
+        # Don't call process_one_cycle, just write heartbeat directly
+        agent_instance.write_heartbeat()
+
+        with open(heartbeat_path, 'r') as f:
+            data = json.load(f)
+
+        # _start_time is None, so running should be False
+        assert data["running"] is False
+        assert data["uptime_seconds"] == 0.0
+
+    def test_heartbeat_uptime_increases(self, agent):
+        """Test that uptime increases over time."""
+        agent_instance, heartbeat_path = agent
+
+        # Set start time in the past
+        agent_instance._start_time = datetime.utcnow() - timedelta(seconds=10)
+
+        agent_instance.write_heartbeat()
+
+        with open(heartbeat_path, 'r') as f:
+            data = json.load(f)
+
+        # Uptime should be at least 10 seconds
+        assert data["uptime_seconds"] >= 10.0
+
+    def test_heartbeat_creates_parent_directory(self, tmp_path):
+        """Test that write_heartbeat creates parent directories."""
+        heartbeat_path = tmp_path / "nested" / "dir" / "heartbeat.json"
+
+        with patch.object(DirectiveAgent, '_load_substrate_map', return_value=None):
+            agent = DirectiveAgent(
+                wp_url="http://test.local",
+                heartbeat_path=str(heartbeat_path)
+            )
+            agent._start_time = datetime.utcnow()
+            agent.write_heartbeat()
+
+        assert heartbeat_path.exists()
+        assert heartbeat_path.parent.is_dir()
+
+
+class TestCLIInterface:
+    """Test CLI interface for daemon control."""
+
+    def test_cli_help_shows_options(self):
+        """Test that --help shows all expected options."""
+        import subprocess
+
+        result = subprocess.run(
+            [sys.executable, "-m", "systems.intelligence.directive_agent", "--help"],
+            capture_output=True,
+            text=True,
+            cwd="/home/jericho/zion/projects/geometry_os/geometry_os"
+        )
+
+        assert result.returncode == 0
+        assert "--wp-url" in result.stdout
+        assert "--poll-interval" in result.stdout
+        assert "--heartbeat" in result.stdout
+        assert "--substrate-map" in result.stdout
+        assert "--once" in result.stdout
+        assert "--version" in result.stdout
+
+    def test_cli_version_flag(self):
+        """Test that --version returns correct version."""
+        import subprocess
+
+        result = subprocess.run(
+            [sys.executable, "-m", "systems.intelligence.directive_agent", "--version"],
+            capture_output=True,
+            text=True,
+            cwd="/home/jericho/zion/projects/geometry_os/geometry_os"
+        )
+
+        assert result.returncode == 0
+        assert "DirectiveAgent 1.0.0" in result.stdout
+
+
+class TestScopeDetectionEdgeCases:
+    """Edge case tests for scope detection."""
+
+    def test_scope_with_mixed_case_keywords(self):
+        """Keywords should match regardless of case."""
+        from systems.intelligence.directive_agent import Directive, DirectiveScope
+
+        directive = Directive(
+            id=1,
+            title="EXPLAIN the system",
+            content="Please EXPLAIN how this works",
+            date="2026-01-01",
+            author="user"
+        )
+        assert directive.scope == DirectiveScope.INFORMATIONAL
+
+    def test_scope_with_keyword_in_middle_of_word(self):
+        """Keywords should only match whole words."""
+        from systems.intelligence.directive_agent import Directive, DirectiveScope
+
+        directive = Directive(
+            id=1,
+            title="Explanation of the system",
+            content="This is an explanation",
+            date="2026-01-01",
+            author="user"
+        )
+        # "explain" in "explanation" should NOT match
+        assert directive.scope == DirectiveScope.UNKNOWN
+
+    def test_scope_with_multiple_keywords_same_category(self):
+        """Multiple informational keywords should still be INFORMATIONAL."""
+        from systems.intelligence.directive_agent import Directive, DirectiveScope
+
+        directive = Directive(
+            id=1,
+            title="Explain and describe the system",
+            content="Tell me about how does it work",
+            date="2026-01-01",
+            author="user"
+        )
+        assert directive.scope == DirectiveScope.INFORMATIONAL
+
+    def test_scope_mixed_informational_and_research(self):
+        """Informational should win when both present."""
+        from systems.intelligence.directive_agent import Directive, DirectiveScope
+
+        directive = Directive(
+            id=1,
+            title="Explain and investigate the system",
+            content="",
+            date="2026-01-01",
+            author="user"
+        )
+        # Informational keywords are checked first
+        assert directive.scope == DirectiveScope.INFORMATIONAL
+
+    def test_scope_with_punctuation(self):
+        """Punctuation should not affect keyword matching."""
+        from systems.intelligence.directive_agent import Directive, DirectiveScope
+
+        directive = Directive(
+            id=1,
+            title="What is the system?",
+            content="Explain, please!",
+            date="2026-01-01",
+            author="user"
+        )
+        assert directive.scope == DirectiveScope.INFORMATIONAL
+
+    def test_scope_empty_title_and_content(self):
+        """Empty directive should be UNKNOWN."""
+        from systems.intelligence.directive_agent import Directive, DirectiveScope
+
+        directive = Directive(
+            id=1,
+            title="",
+            content="",
+            date="2026-01-01",
+            author="user"
+        )
+        assert directive.scope == DirectiveScope.UNKNOWN
+
+    def test_scope_whitespace_only(self):
+        """Whitespace-only should be UNKNOWN."""
+        from systems.intelligence.directive_agent import Directive, DirectiveScope
+
+        directive = Directive(
+            id=1,
+            title="   ",
+            content="\n\t",
+            date="2026-01-01",
+            author="user"
+        )
+        assert directive.scope == DirectiveScope.UNKNOWN
+
+    def test_scope_with_html_tags(self):
+        """HTML tags should not affect keyword matching."""
+        from systems.intelligence.directive_agent import Directive, DirectiveScope
+
+        directive = Directive(
+            id=1,
+            title="<p>Explain</p> the system",
+            content="<div>How does it work</div>",
+            date="2026-01-01",
+            author="user"
+        )
+        assert directive.scope == DirectiveScope.INFORMATIONAL
+
+
+class TestComponentLookupEdgeCases:
+    """Edge case tests for substrate map component lookup."""
+
+    @pytest.fixture
+    def agent_with_components(self, tmp_path):
+        """Create agent with test substrate map."""
+        from systems.intelligence.directive_agent import DirectiveAgent
+
+        substrate = {
+            "evolution_daemon": {
+                "name": "Evolution Daemon",
+                "path": "systems/evolution_daemon",
+                "description": "Natural Selection for Operating Systems"
+            },
+            "visual_shell": {
+                "name": "Visual Shell",
+                "path": "systems/visual_shell",
+                "description": "PixiJS-based infinite map renderer"
+            },
+            "pixel_compiler": {
+                "name": "Pixel Compiler",
+                "path": "systems/pixel_compiler",
+                "description": "Converts code to executable images"
+            }
+        }
+
+        substrate_file = tmp_path / "substrate.json"
+        with open(substrate_file, 'w') as f:
+            json.dump(substrate, f)
+
+        agent = DirectiveAgent(substrate_map_path=str(substrate_file))
+        return agent
+
+    def test_lookup_with_extra_whitespace(self, agent_with_components):
+        """Target with extra whitespace should still match."""
+        result = agent_with_components._lookup_component("  evolution_daemon  ")
+        assert result is not None
+        assert result["name"] == "Evolution Daemon"
+
+    def test_lookup_with_underscores_vs_spaces(self, agent_with_components):
+        """Underscores and spaces should be treated similarly."""
+        result1 = agent_with_components._lookup_component("evolution daemon")
+        result2 = agent_with_components._lookup_component("evolution_daemon")
+        # At least one should match
+        assert result1 is not None or result2 is not None
+
+    def test_lookup_partial_name_match(self, agent_with_components):
+        """Partial name should match if unique."""
+        result = agent_with_components._lookup_component("pixel")
+        assert result is not None
+        assert "Pixel" in result["name"]
+
+    def test_lookup_description_search(self, agent_with_components):
+        """Search should also check descriptions."""
+        result = agent_with_components._lookup_component("renderer")
+        assert result is not None
+        assert "renderer" in result["description"].lower()
+
+    def test_lookup_returns_none_for_garbage(self, agent_with_components):
+        """Garbage input should return None, not raise."""
+        result = agent_with_components._lookup_component("xyzzy123nonexistent")
+        assert result is None
+
+    def test_lookup_with_numbers(self, agent_with_components):
+        """Numbers in target should be handled."""
+        # This should not crash
+        result = agent_with_components._lookup_component("daemon123")
+        # May or may not match, but shouldn't crash
+        assert result is None or isinstance(result, dict)

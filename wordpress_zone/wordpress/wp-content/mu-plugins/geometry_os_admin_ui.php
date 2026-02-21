@@ -370,3 +370,273 @@ add_action('wp_ajax_geometry_os_plugin_analysis', function() {
         }
     }
 });
+
+/**
+ * Geometry OS Admin HUD - Dashboard Widget for Real-Time Health Metrics
+ */
+class GeometryOS_AdminHUD {
+
+    /**
+     * Constructor - register hooks
+     */
+    public function __construct() {
+        add_action('wp_dashboard_setup', [$this, 'add_dashboard_widget']);
+        add_action('admin_enqueue_scripts', [$this, 'enqueue_styles']);
+    }
+
+    /**
+     * Add the dashboard widget
+     */
+    public function add_dashboard_widget() {
+        if (function_exists('wp_add_dashboard_widget')) {
+            wp_add_dashboard_widget(
+                'geometry_os_health_hud',
+                'Geometry OS Health',
+                [$this, 'render_hud']
+            );
+        }
+    }
+
+    /**
+     * Enqueue inline styles for the HUD
+     */
+    public function enqueue_styles($hook) {
+        // Only add styles on dashboard
+        if ($hook !== 'index.php') {
+            return;
+        }
+
+        if (function_exists('wp_add_inline_style')) {
+            wp_add_inline_style('wp-admin', $this->get_hud_styles());
+        }
+    }
+
+    /**
+     * Get inline CSS for dark theme HUD
+     */
+    private function get_hud_styles() {
+        return '
+            #geometry_os_health_hud .inside {
+                background: #1a1a2e;
+                border: 2px solid #00ffcc;
+                border-radius: 8px;
+                padding: 15px;
+                margin: 0;
+            }
+            #geometry_os_health_hud .hud-title {
+                color: #00ffcc;
+                font-family: monospace;
+                font-size: 14px;
+                font-weight: bold;
+                margin-bottom: 10px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+            #geometry_os_health_hud .hud-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-family: monospace;
+                font-size: 12px;
+                margin-bottom: 15px;
+            }
+            #geometry_os_health_hud .hud-table td {
+                padding: 6px 8px;
+                border-bottom: 1px solid #333;
+            }
+            #geometry_os_health_hud .hud-table .metric-label {
+                color: #888;
+                width: 50%;
+            }
+            #geometry_os_health_hud .hud-table .metric-value {
+                color: #fff;
+                text-align: right;
+                font-weight: bold;
+            }
+            #geometry_os_health_hud .status-pass { color: #00ff00; }
+            #geometry_os_health_hud .status-warn { color: #ffcc00; }
+            #geometry_os_health_hud .status-fail { color: #ff4444; }
+            #geometry_os_health_hud .hud-buttons {
+                display: flex;
+                gap: 10px;
+                margin-top: 10px;
+            }
+            #geometry_os_health_hud .hud-btn {
+                flex: 1;
+                padding: 8px 12px;
+                font-family: monospace;
+                font-size: 11px;
+                cursor: pointer;
+                border: 1px solid #00ffcc;
+                background: transparent;
+                color: #00ffcc;
+                border-radius: 4px;
+                transition: all 0.2s;
+            }
+            #geometry_os_health_hud .hud-btn:hover:not(:disabled) {
+                background: #00ffcc;
+                color: #1a1a2e;
+            }
+            #geometry_os_health_hud .hud-btn:disabled {
+                opacity: 0.4;
+                cursor: not-allowed;
+                border-color: #555;
+                color: #555;
+            }
+            #geometry_os_health_hud .hud-btn-emergency {
+                border-color: #ff4444;
+                color: #ff4444;
+            }
+            #geometry_os_health_hud .hud-btn-emergency:hover:not(:disabled) {
+                background: #ff4444;
+                color: #1a1a2e;
+            }
+            #geometry_os_health_hud .hud-alert {
+                background: rgba(255, 68, 68, 0.2);
+                border: 1px solid #ff4444;
+                color: #ff4444;
+                padding: 10px;
+                margin-top: 10px;
+                font-family: monospace;
+                font-size: 11px;
+                border-radius: 4px;
+            }
+            #geometry_os_health_hud .hud-timestamp {
+                color: #555;
+                font-family: monospace;
+                font-size: 10px;
+                margin-top: 10px;
+            }
+        ';
+    }
+
+    /**
+     * Render the HUD widget content
+     */
+    public function render_hud() {
+        // Get stored health metrics
+        $metrics = [];
+        if (function_exists('get_option')) {
+            $stored = get_option('geometry_os_health_metrics', []);
+            if (is_array($stored)) {
+                $metrics = $stored;
+            }
+        }
+
+        // Extract values with defaults
+        $bridge_latency = isset($metrics['bridge_latency']) ? (float)$metrics['bridge_latency'] : 0;
+        $swarm_capacity = isset($metrics['swarm_capacity']) ? (int)$metrics['swarm_capacity'] : 0;
+        $health_score = isset($metrics['health_score']) ? (int)$metrics['health_score'] : 0;
+        $buffer_drops = isset($metrics['buffer_drops']) ? (int)$metrics['buffer_drops'] : 0;
+        $reconnects = isset($metrics['reconnects']) ? (int)$metrics['reconnects'] : 0;
+        $timestamp = isset($metrics['timestamp']) ? $metrics['timestamp'] : '';
+
+        // Determine status classes
+        $latency_class = $bridge_latency < 100 ? 'status-pass' : ($bridge_latency < 200 ? 'status-warn' : 'status-fail');
+        $health_class = $health_score >= 80 ? 'status-pass' : ($health_score >= 50 ? 'status-warn' : 'status-fail');
+
+        // Emergency button enabled when health < 50
+        $emergency_disabled = $health_score >= 50;
+        $show_alert = $health_score < 50;
+
+        ?>
+        <div class="hud-title">System Health Monitor</div>
+
+        <table class="hud-table">
+            <tr>
+                <td class="metric-label">Bridge Latency</td>
+                <td class="metric-value <?php echo esc_attr($latency_class); ?>">
+                    <?php echo esc_html($bridge_latency); ?> ms
+                </td>
+            </tr>
+            <tr>
+                <td class="metric-label">Swarm Capacity</td>
+                <td class="metric-value">
+                    <?php echo esc_html($swarm_capacity); ?>%
+                </td>
+            </tr>
+            <tr>
+                <td class="metric-label">Health Score</td>
+                <td class="metric-value <?php echo esc_attr($health_class); ?>">
+                    <?php echo esc_html($health_score); ?>%
+                </td>
+            </tr>
+            <tr>
+                <td class="metric-label">Buffer Drops</td>
+                <td class="metric-value">
+                    <?php echo esc_html($buffer_drops); ?>
+                </td>
+            </tr>
+            <tr>
+                <td class="metric-label">Reconnects</td>
+                <td class="metric-value">
+                    <?php echo esc_html($reconnects); ?>
+                </td>
+            </tr>
+        </table>
+
+        <div class="hud-buttons">
+            <button type="button" class="hud-btn" id="geo-hud-refresh">
+                Refresh
+            </button>
+            <button type="button" class="hud-btn hud-btn-emergency" id="geo-hud-emergency" <?php echo $emergency_disabled ? 'disabled' : ''; ?>>
+                Emergency Reset
+            </button>
+        </div>
+
+        <?php if ($show_alert) : ?>
+        <div class="hud-alert">
+            WARNING: CRITICAL - Health score below 50%. Emergency reset available.
+        </div>
+        <?php endif; ?>
+
+        <?php if ($timestamp) : ?>
+        <div class="hud-timestamp">
+            Last updated: <?php echo esc_html($timestamp); ?>
+        </div>
+        <?php endif; ?>
+
+        <script>
+        jQuery(document).ready(function($) {
+            // Refresh button
+            $('#geo-hud-refresh').on('click', function() {
+                $(this).prop('disabled', true).text('Refreshing...');
+                location.reload();
+            });
+
+            // Emergency reset button
+            $('#geo-hud-emergency').on('click', function() {
+                if (!confirm('Are you sure you want to trigger an emergency reset?')) {
+                    return;
+                }
+
+                var $btn = $(this);
+                $btn.prop('disabled', true).text('Resetting...');
+
+                $.ajax({
+                    url: '<?php echo function_exists('rest_url') ? esc_js(rest_url('geometry-os/v1/emergency-reset')) : ''; ?>',
+                    method: 'POST',
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader('X-WP-Nonce', '<?php echo function_exists('wp_create_nonce') ? esc_js(wp_create_nonce('wp_rest')) : ''; ?>');
+                    },
+                    success: function(response) {
+                        alert('Emergency reset triggered. Check logs for details.');
+                        location.reload();
+                    },
+                    error: function(xhr) {
+                        var msg = 'Failed to trigger emergency reset.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            msg += ' Error: ' + xhr.responseJSON.message;
+                        }
+                        alert(msg);
+                        $btn.prop('disabled', false).text('Emergency Reset');
+                    }
+                });
+            });
+        });
+        </script>
+        <?php
+    }
+}
+
+// Initialize the Admin HUD
+new GeometryOS_AdminHUD();
