@@ -102,7 +102,7 @@ After POC validated, clean up code structure.
   - **Commit**: `refactor(tracks): add error handling to track handlers`
   - _Design: Error Handling section_
 
-- [ ] 2.2 Add error handling to TrackManager
+- [x] 2.2 Add error handling to TrackManager
   - **Do**:
     1. Add try/except around HTTP requests
     2. Raise `TrackManagerError` on WordPress unavailable

@@ -19,6 +19,7 @@ Usage (CLI):
 
 import json
 import os
+import socket
 import sys
 from typing import List, Dict, Optional, Any
 from urllib.request import Request, urlopen
@@ -96,22 +97,36 @@ class TrackManager:
             with urlopen(request, timeout=self.timeout) as response:
                 result = json.loads(response.read().decode('utf-8'))
                 return result
+        except socket.timeout as e:
+            raise WordPressUnavailableError(
+                f"WordPress request timed out after {self.timeout}s: {e}"
+            )
         except URLError as e:
             raise WordPressUnavailableError(
                 f"WordPress unavailable at {self.wp_url}: {e}"
             )
         except HTTPError as e:
-            # Try to read error response body
+            # Try to read error response body for structured error info
             try:
                 error_body = e.read().decode('utf-8')
                 error_data = json.loads(error_body)
+                # Ensure structured error format
+                if 'success' not in error_data:
+                    error_data['success'] = False
+                if 'error' not in error_data:
+                    error_data['error'] = f"HTTP {e.code}: {e.reason}"
                 return error_data
-            except Exception:
-                raise TrackManagerError(
-                    f"HTTP error {e.code}: {e.reason}"
-                )
+            except (json.JSONDecodeError, Exception):
+                # Return structured error for HTTP errors without JSON body
+                return {
+                    'success': False,
+                    'error': f"HTTP error {e.code}: {e.reason}"
+                }
         except json.JSONDecodeError as e:
             raise TrackManagerError(f"Invalid JSON response: {e}")
+        except Exception as e:
+            # Catch-all for unexpected errors, wrap in TrackManagerError
+            raise TrackManagerError(f"Unexpected error during request: {e}")
 
     def claim(
         self,
