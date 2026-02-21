@@ -41,7 +41,7 @@ _Design: Fixtures section_
 
 ---
 
-### Task 1.2: Create TestParseSkillFile - valid YAML test
+### Task 1.2: [x] Create TestParseSkillFile - valid YAML test
 
 **Do:**
 1. Create `tests/skills/test_sync_skills.py`
@@ -67,7 +67,7 @@ _Design: TestParseSkillFile_
 
 ---
 
-### Task 1.3: Complete TestParseSkillFile class
+### Task 1.3: [x] Complete TestParseSkillFile class [x]
 
 **Do:**
 1. Add `test_missing_category_defaults_general`

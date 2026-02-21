@@ -38,3 +38,61 @@ This is the markdown content of the skill.
         assert metadata["category"] == "testing"
         assert "# Test Skill" in content
         assert "This is the markdown content" in content
+
+    def test_missing_category_defaults_general(self, tmp_path):
+        """Test that missing category field defaults to 'general'."""
+        skill_file = tmp_path / "SKILL.md"
+        skill_file.write_text("""---
+name: no-category-skill
+description: A skill without category
+---
+
+# No Category Skill
+
+Content here.
+""")
+
+        metadata, content = parse_skill_file(skill_file)
+
+        assert metadata["name"] == "no-category-skill"
+        assert metadata["description"] == "A skill without category"
+        assert metadata["category"] == "general"
+        assert "# No Category Skill" in content
+
+    def test_no_frontmatter_returns_content(self, tmp_path):
+        """Test that file without frontmatter returns default metadata and content."""
+        skill_file = tmp_path / "SKILL.md"
+        skill_file.write_text("""# Plain Skill
+
+This is just markdown with no YAML frontmatter.
+
+- Item 1
+- Item 2
+""")
+
+        metadata, content = parse_skill_file(skill_file)
+
+        assert metadata == {"category": "general"}
+        assert "# Plain Skill" in content
+        assert "This is just markdown" in content
+        assert "- Item 1" in content
+
+    def test_malformed_yaml_returns_defaults(self, tmp_path):
+        """Test that malformed YAML frontmatter falls back to defaults."""
+        skill_file = tmp_path / "SKILL.md"
+        skill_file.write_text("""---
+name: broken
+description: [unclosed list
+category: testing
+---
+
+# Broken YAML
+
+Should fall back gracefully.
+""")
+
+        metadata, content = parse_skill_file(skill_file)
+
+        # Malformed YAML should fall back to default behavior
+        assert metadata == {"category": "general"}
+        assert "---" in content  # Original content preserved
