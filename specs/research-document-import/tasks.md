@@ -207,7 +207,7 @@ After POC validated, clean up code.
   - **Done when**: All commands pass with no errors
   - **Commit**: `fix(wp): address quality issues` (if fixes needed)
 
-- [ ] 4.2 Create PR and verify CI
+- [x] 4.2 Create PR and verify CI
   - **Do**:
     1. Verify current branch is feature branch: `git branch --show-current`
     2. Push branch: `git push -u origin feat/research-document-import`
