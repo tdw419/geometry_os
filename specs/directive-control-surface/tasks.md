@@ -148,6 +148,7 @@ python -m pytest tests/test_directive_agent.py::TestCLIInterface -v
 ### Task 2.1: Create control script integration tests
 **Type:** IMPLEMENT
 **Priority:** Medium
+**Status:** DONE
 **Depends on:** Task 1.7
 **Files:**
 - Create: `tests/test_directive_ctl.sh`
@@ -168,6 +169,7 @@ bash tests/test_directive_ctl.sh
 
 ### Task 2.2: [VERIFY] Integration tests pass
 **Type:** VERIFY
+**Status:** DONE
 **Depends on:** Task 2.1
 
 **Steps:**
