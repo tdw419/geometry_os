@@ -244,10 +244,10 @@ class TestCreateAndProcessDirective:
         """Test processing an informational directive."""
         agent = mock_substrate_map
 
-        # Create informational directive
+        # Create informational directive with quoted target for proper extraction
         unique_id = str(int(time.time()))
-        test_title = f"E2E: What is evolution_daemon? {unique_id}"
-        test_content = f"How does evolution_daemon work? Test {unique_id}"
+        test_title = f"E2E: Explain 'evolution_daemon' {unique_id}"
+        test_content = f"Explain 'evolution_daemon' for me. Test {unique_id}"
 
         post_id = self._create_test_directive(test_title, test_content)
 
