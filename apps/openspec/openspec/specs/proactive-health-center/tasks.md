@@ -69,7 +69,7 @@ Focus: Validate core flow from browser heartbeat to WordPress storage.
   - _Requirements: FR-8, FR-9, AC-3.1, AC-3.3, AC-3.4_
   - _Design: Component 4_
 
-- [ ] 1.5 POC Checkpoint
+- [x] 1.5 POC Checkpoint
   - **Do**: Verify end-to-end flow works
   - **Done when**:
     - Browser sends heartbeat every 60s

@@ -73,15 +73,113 @@
     }
 
     /**
+     * Calculate health score from metrics
+     *
+     * @param {Object} metrics - Health metrics object
+     * @returns {number} Health score 0-100
+     */
+    function calculateHealthScore(metrics) {
+        if (!metrics) return 100;
+
+        let score = 100;
+
+        // Latency penalty (target: <100ms)
+        const latency = metrics.bridgeLatency || 0;
+        if (latency > 200) score -= 20;
+        else if (latency > 100) score -= 10;
+
+        // Buffer drops penalty
+        const drops = metrics.bufferDrops || 0;
+        if (drops > 10) score -= 15;
+        else if (drops > 0) score -= 5;
+
+        // Reconnect penalty
+        const reconnects = metrics.reconnects || 0;
+        if (reconnects > 5) score -= 15;
+        else if (reconnects > 0) score -= 5;
+
+        return Math.max(0, Math.min(100, score));
+    }
+
+    /**
+     * Start health heartbeat to WordPress
+     * Sends metrics every 60 seconds
+     */
+    function startHealthHeartbeat() {
+        // Check for MetricsCollector availability
+        if (typeof window.MetricsCollector === 'undefined') {
+            console.warn('%c[System Health] MetricsCollector not available for heartbeat.', 'color: #ffcc00');
+            return false;
+        }
+
+        /**
+         * Send heartbeat to WordPress REST API
+         */
+        function sendHeartbeat() {
+            const metrics = window.MetricsCollector.getAllMetrics();
+
+            if (!metrics) {
+                console.warn('%c[System Health] No metrics available for heartbeat.', 'color: #ffcc00');
+                return;
+            }
+
+            const healthScore = calculateHealthScore(metrics);
+
+            const payload = {
+                latency_ms: metrics.bridgeLatency || 0,
+                swarm_count: metrics.activeSwarms || 0,
+                health_score: healthScore,
+                buffer_drops: metrics.bufferDrops || 0,
+                reconnects: metrics.reconnects || 0
+            };
+
+            // Send to WordPress REST API
+            const endpoint = '/wp-json/geometry-os/v1/health';
+
+            fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('%c[System Health] Heartbeat sent', 'color: #00ffcc', payload);
+                } else {
+                    console.warn('%c[System Health] Heartbeat failed:', 'color: #ffcc00', data);
+                }
+            })
+            .catch(err => {
+                console.warn('%c[System Health] Heartbeat error:', 'color: #ffcc00', err.message);
+            });
+        }
+
+        // Send initial heartbeat
+        sendHeartbeat();
+
+        // Set up 60-second interval
+        setInterval(sendHeartbeat, 60000);
+
+        console.log('%c[System Health] Heartbeat started (60s interval)', 'color: #00ffcc');
+        return true;
+    }
+
+    /**
      * Wait for DOM and required classes, then initialize
      */
     function onReady() {
         // Check if DOM is ready
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initHealthDashboard);
+            document.addEventListener('DOMContentLoaded', function() {
+                initHealthDashboard();
+                startHealthHeartbeat();
+            });
         } else {
             // DOM already loaded
             initHealthDashboard();
+            startHealthHeartbeat();
         }
     }
 
