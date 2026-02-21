@@ -245,7 +245,7 @@ After POC validated, clean up code.
   - **Done when**: Research docs visible in Memory Beams
   - **Commit**: None
 
-- [ ] 5.4 Admin UI E2E test
+- [x] 5.4 Admin UI E2E test
   - **Do**:
     1. Navigate to Tools > Research Import
     2. Click "Run Import" button
