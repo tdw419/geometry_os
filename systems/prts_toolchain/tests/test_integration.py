@@ -18,8 +18,9 @@ class TestIntegration(unittest.TestCase):
     def test_cli_flow(self):
         # 1. Compile
         env = os.environ.copy()
-        env["PYTHONPATH"] = str(Path("systems/prts_toolchain/src").absolute())
-        
+        # Use src directory relative to this test file
+        env["PYTHONPATH"] = str(Path(__file__).parent.parent / "src")
+
         subprocess.run(["python3", "-m", "prts_toolchain.main", "compile", self.src_file, self.img_file], env=env, check=True)
         self.assertTrue(os.path.exists(self.img_file))
 

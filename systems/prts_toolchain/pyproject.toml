@@ -9,4 +9,4 @@ dependencies = [
 ]
 
 [project.scripts]
-prts = "prts_toolchain.main:app"
+prts = "prts_toolchain.main:main"
