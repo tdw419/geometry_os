@@ -213,7 +213,7 @@ _Design: Test Strategy_
 
 ---
 
-### Task 2.2: [VERIFY] Quality checkpoint: code quality
+### Task 2.2: [x] [VERIFY] Quality checkpoint: code quality
 
 **Do:**
 1. Run pytest with verbose output
@@ -235,7 +235,7 @@ pytest tests/skills/ -v --tb=short 2>&1 | tail -10
 
 ## Phase 3: Testing
 
-### Task 3.1: Create WordPress integration test infrastructure
+### Task 3.1: [x] Create WordPress integration test infrastructure
 
 **Do:**
 1. Create `tests/skills/test_wordpress_integration.py`
