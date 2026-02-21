@@ -405,7 +405,7 @@ _Design: Test Strategy - Integration_
 
 **Commit**: `fix(shotcut): address lint and test issues` (if fixes needed)
 
-### Task 4.2: Create PR and Verify CI
+### Task 4.2: [x] Create PR and Verify CI
 **Do**:
 1. Check current branch: `git branch --show-current`
 2. If on main/master, create feature branch: `git checkout -b feat/ouroboros-level2-interactive-ui`
@@ -423,7 +423,7 @@ _Design: Test Strategy - Integration_
 
 **Commit**: None (PR creation)
 
-### Task 4.3: Documentation Update
+### Task 4.3: [x] Documentation Update
 **Do**:
 1. Update `conductor/tracks/shotcut-on-the-map/VISUAL_EXTRACTION_README.md`
 2. Add section: "Interactive UI (Ouroboros Level 2)"

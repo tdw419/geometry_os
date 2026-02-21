@@ -41,6 +41,7 @@ from typing import Any, Dict, List, Optional
 # Add parent directories to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent))
 
+from systems.visual_shell.api.evolution_webmcp_bridge import create_evolution_wordpress_hook
 from systems.visual_shell.swarm.evolution import (
     RecursiveOrchestrator,
     EvolutionPhase,
@@ -65,6 +66,7 @@ class DaemonConfig:
     cooldown: int = 300  # Cooldown seconds between improvements
     dry_run: bool = False  # Preview only, don't apply changes
     target_dir: str = ""  # Directory to analyze (default: swarm/)
+    target_file: Optional[str] = None  # Specific file to evolve
     state_file: str = "evolution_state.json"  # Path to state file
     heartbeat_file: str = "evolution_heartbeat.json"  # Path to heartbeat file
     log_dir: str = "logs/evolution/"  # Directory for logs
@@ -177,6 +179,14 @@ class EvolutionDaemon:
 
         # Set up logging
         self._setup_logging()
+
+        # Initialize WordPress WebMCP Hook
+        try:
+            self.wordpress_hook = create_evolution_wordpress_hook()
+            self.logger.info("WordPress WebMCP Hook initialized")
+        except Exception as e:
+            self.wordpress_hook = None
+            self.logger.warning(f"Failed to initialize WordPress Hook: {e}")
 
         # Set up signal handlers
         self._setup_signal_handlers()
@@ -508,6 +518,19 @@ class EvolutionDaemon:
         if result.success:
             self._record_improvement()
 
+            # Trigger WordPress WebMCP Hook
+            if self.wordpress_hook:
+                try:
+                    self.wordpress_hook.on_improvement(
+                        cycle=self.state.total_cycles,
+                        target=result.target_file,
+                        improvement=result.metadata.get("improvement_summary", "Self-improvement applied"),
+                        delta=result.improvement_delta,
+                        success=True
+                    )
+                except Exception as e:
+                    self.logger.warning(f"WordPress Hook execution failed: {e}")
+
             # Log to tracker
             event = EvolutionEvent(
                 type=EventType.SUCCESS,
@@ -594,7 +617,21 @@ class EvolutionDaemon:
                     continue
 
                 # Select target
-                target = self._select_target()
+                if self.config.target_file:
+                    target_path = Path(self.config.target_file)
+                    if target_path.exists():
+                        # Compute a score for the manual target
+                        score = self._compute_value_score(target_path)
+                        target = AxionTarget(
+                            file_path=str(target_path),
+                            value_score=score.composite_score,
+                            metadata={"reason": "Manual target override"},
+                        )
+                    else:
+                        self.logger.error(f"Manual target file not found: {self.config.target_file}")
+                        target = self._select_target()
+                else:
+                    target = self._select_target()
 
                 if target:
                     self.logger.info(
@@ -752,6 +789,11 @@ Control via evolution_ctl.sh:
         help="Directory to analyze (default: systems/visual_shell/swarm/)",
     )
     parser.add_argument(
+        "--target-file",
+        type=str,
+        help="Specific file to evolve",
+    )
+    parser.add_argument(
         "--state-file",
         type=str,
         default="evolution_state.json",
@@ -790,6 +832,7 @@ Control via evolution_ctl.sh:
         cooldown=args.cooldown,
         dry_run=args.dry_run,
         target_dir=args.target_dir,
+        target_file=args.target_file,
         state_file=args.state_file,
         heartbeat_file=args.heartbeat,
         log_dir=args.log_dir,

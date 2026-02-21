@@ -110,9 +110,31 @@ class VisualDebugOverlay {
             frame: null,        // Base64 PNG data
             clusters: [],
             widgets: [],
+            layout: { lines: [] },
             diagnostic: null,
             lastUpdate: null,
             aiThought: "Watching Shotcut system..."
+        };
+
+        // Memory Ghost state
+        this.ghostState = {
+            enabled: false,
+            ghosts: [],
+            lastUpdate: null,
+            ghostCount: 0
+        };
+        this.ghostRenderer = null;
+
+        // Ambient Narrative state (Phase R: V2.0)
+        this.narrativeState = {
+            enabled: false,
+            sessionId: null,
+            state: 'IDLE',        // MONITORING, SUGGESTING, STEERING, IDLE
+            lastThought: '',
+            lastThoughtCategory: '',
+            steeringActions: [],
+            lastUpdate: null,
+            evolutionCount: 0
         };
 
         // Heat Map state (Visual Hotspot Debugger)
@@ -226,7 +248,26 @@ class VisualDebugOverlay {
                 console.log(`Shotcut HUD: ${this.shotcutHud.enabled ? 'ON' : 'OFF'}`);
                 this._scheduleRender();
             }
+            // Ctrl+Shift+G to toggle Memory Ghost overlay
+            if (e.ctrlKey && e.shiftKey && e.key === 'G') {
+                e.preventDefault();
+                this.toggleGhostOverlay();
+            }
         });
+    }
+
+    /**
+     * Toggle Memory Ghost overlay
+     */
+    toggleGhostOverlay() {
+        this.ghostState.enabled = !this.ghostState.enabled;
+
+        if (this.ghostRenderer) {
+            this.ghostRenderer.setVisible(this.ghostState.enabled);
+        }
+
+        console.log(`👻 Ghost overlay: ${this.ghostState.enabled ? 'ENABLED' : 'DISABLED'}`);
+        this._scheduleRender();
     }
 
     /**
@@ -277,6 +318,31 @@ class VisualDebugOverlay {
         // Listen for Shotcut Visual HUD updates
         window.addEventListener('SHOTCUT_FRAME_UPDATE', (e) => {
             this.handleShotcutFrame(e.detail);
+        });
+
+        // Listen for Memory Ghost updates
+        window.addEventListener('MEMORY_GHOST_UPDATE', (e) => {
+            this.handleGhostUpdate(e.detail);
+        });
+
+        // Listen for Narrative events (Phase R: V2.0)
+        window.addEventListener('NARRATIVE_EVENT', (e) => {
+            this.handleNarrativeEvent(e.detail);
+        });
+
+        // Listen for Narrative state changes
+        window.addEventListener('NARRATIVE_STATE_CHANGE', (e) => {
+            this.handleNarrativeStateChange(e.detail);
+        });
+
+        // Listen for Narrative steering actions
+        window.addEventListener('NARRATIVE_STEERING', (e) => {
+            this.handleNarrativeSteering(e.detail);
+        });
+
+        // Listen for Daemon heartbeat for narrative sync
+        window.addEventListener('DAEMON_HEARTBEAT', (e) => {
+            this.handleDaemonHeartbeat(e.detail);
         });
 
         // Listen for Task DAG updates from TelemetryBus
@@ -498,15 +564,42 @@ class VisualDebugOverlay {
         this.shotcutHud.frame = data.frame;
         this.shotcutHud.clusters = data.clusters || [];
         this.shotcutHud.widgets = data.widgets || [];
+        this.shotcutHud.layout = data.layout || { lines: [] };
         this.shotcutHud.diagnostic = data.diagnostic;
         this.shotcutHud.lastUpdate = Date.now();
         this.shotcutHud.aiThought = data.ai_thought || "Analyzing Shotcut interface...";
-        
+
+        // Handle ghosts if present in frame data
+        if (data.ghosts) {
+            this.handleGhostUpdate(data.ghosts);
+        }
+
         // Auto-enable Shotcut HUD if frames start arriving
         if (!this.shotcutHud.enabled && this.config.enabled) {
             this.shotcutHud.enabled = true;
         }
 
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle Memory Ghost update
+     */
+    handleGhostUpdate(data) {
+        if (!data) return;
+
+        // Handle array of ghosts
+        const ghosts = Array.isArray(data) ? data : (data.ghosts || [data]);
+        this.ghostState.ghosts = ghosts;
+        this.ghostState.lastUpdate = Date.now();
+        this.ghostState.ghostCount = ghosts.length;
+
+        // Update ghost renderer if initialized
+        if (this.ghostRenderer) {
+            this.ghostRenderer.updateGhosts(ghosts);
+        }
+
+        // Request redraw
         this._scheduleRender();
     }
 
@@ -775,6 +868,110 @@ class VisualDebugOverlay {
                     );
                 }
             }
+        }
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle Narrative events from the Ambient Narrative System.
+     * @param {Object} data - Event data with event_type and payload
+     */
+    handleNarrativeEvent(data) {
+        if (!data) return;
+
+        this.narrativeState.enabled = true;
+        this.narrativeState.lastUpdate = Date.now();
+
+        switch (data.event_type) {
+            case 'thought':
+                this.narrativeState.lastThought = data.data?.thought || '';
+                this.narrativeState.lastThoughtCategory = data.data?.category || 'observation';
+                if (data.data?.state) {
+                    this.narrativeState.state = data.data.state;
+                }
+                break;
+
+            case 'steering':
+                this.narrativeState.state = 'STEERING';
+                const action = {
+                    action: data.data?.action || 'unknown',
+                    target: data.data?.target || null,
+                    timestamp: Date.now()
+                };
+                this.narrativeState.steeringActions.unshift(action);
+                // Keep only last 10 actions
+                if (this.narrativeState.steeringActions.length > 10) {
+                    this.narrativeState.steeringActions.pop();
+                }
+                break;
+
+            case 'state_change':
+                this.narrativeState.state = data.new_state || 'IDLE';
+                break;
+        }
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle narrative state changes.
+     * @param {Object} data - { oldState, newState, rationale }
+     */
+    handleNarrativeStateChange(data) {
+        if (!data) return;
+
+        this.narrativeState.enabled = true;
+        this.narrativeState.state = data.newState || 'IDLE';
+        this.narrativeState.lastUpdate = Date.now();
+
+        console.log(`📖 HUD: State change ${data.oldState} → ${data.newState}`);
+        if (data.rationale) {
+            this.narrativeState.lastThought = `[State] ${data.rationale}`;
+        }
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle narrative steering actions.
+     * @param {Object} data - { action, target, details }
+     */
+    handleNarrativeSteering(data) {
+        if (!data) return;
+
+        this.narrativeState.enabled = true;
+        this.narrativeState.state = 'STEERING';
+        this.narrativeState.lastUpdate = Date.now();
+
+        const action = {
+            action: data.action || 'unknown',
+            target: data.target || null,
+            details: data.details || null,
+            timestamp: Date.now()
+        };
+        this.narrativeState.steeringActions.unshift(action);
+
+        if (this.narrativeState.steeringActions.length > 10) {
+            this.narrativeState.steeringActions.pop();
+        }
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle daemon heartbeat for narrative sync.
+     * @param {Object} data - { state, evolution_count, visual_connected }
+     */
+    handleDaemonHeartbeat(data) {
+        if (!data) return;
+
+        this.narrativeState.enabled = true;
+        this.narrativeState.evolutionCount = data.evolution_count || 0;
+        this.narrativeState.lastUpdate = Date.now();
+
+        if (data.state) {
+            this.narrativeState.state = data.state;
         }
 
         this._scheduleRender();
@@ -1235,6 +1432,11 @@ class VisualDebugOverlay {
         if (window.geometryOSApp && window.geometryOSApp.heatmapOverlay) {
             this._renderHeatmapSection(ctx, width, padding);
         }
+
+        // Ambient Narrative HUD (Phase R: V2.0)
+        if (this.narrativeState.enabled || this.narrativeState.state !== 'IDLE') {
+            this._renderNarrativeSection(ctx, width, padding);
+        }
     }
 
     /**
@@ -1519,7 +1721,27 @@ class VisualDebugOverlay {
                 y += 12;
             });
         }
-        
+
+        // Memory Ghosts
+        if (this.ghostState.ghostCount > 0) {
+            y += 10;
+            ctx.fillStyle = '#aaa';
+            ctx.font = 'bold 10px monospace';
+            ctx.fillText('MEMORY GHOSTS:', padding + 10, y);
+            y += 15;
+
+            const ghosts = this.ghostState.ghosts;
+            const highConf = ghosts.filter(g => g.confidence === 'HIGH').length;
+            const medConf = ghosts.filter(g => g.confidence === 'MEDIUM').length;
+
+            ctx.fillStyle = '#00FF00';
+            ctx.fillText(`HIGH: ${highConf}`, padding + 15, y);
+            ctx.fillStyle = '#FFFF00';
+            ctx.fillText(`MED: ${medConf}`, padding + 80, y);
+            ctx.fillStyle = '#fff';
+            ctx.fillText(`Total: ${ghosts.length}`, padding + 145, y);
+        }
+
         // Diagnostic
         y = this.hudCanvas.height - 40;
         if (this.shotcutHud.diagnostic) {
@@ -1591,6 +1813,71 @@ class VisualDebugOverlay {
             ctx.fillStyle = 'rgba(0, 255, 204, 0.2)';
             ctx.fillRect(rx, ry, rw, rh);
         });
+
+        // 3. Draw Layout Lines
+        if (this.shotcutHud.layout && this.shotcutHud.layout.lines) {
+            this.shotcutHud.layout.lines.forEach(line => {
+                const isHorizontal = Math.abs(line.y1 - line.y2) < Math.abs(line.x1 - line.x2);
+                ctx.strokeStyle = isHorizontal ? '#00ff88' : '#00aaff';
+                ctx.lineWidth = 1;
+                ctx.globalAlpha = 0.6;
+
+                ctx.beginPath();
+                ctx.moveTo(line.x1 * scaleX, line.y1 * scaleY);
+                ctx.lineTo(line.x2 * scaleX, line.y2 * scaleY);
+                ctx.stroke();
+            });
+            ctx.globalAlpha = 1.0;
+        }
+
+        // 4. Draw Memory Ghosts (semi-transparent overlays)
+        if (this.ghostState.enabled && this.ghostState.ghosts.length > 0) {
+            this._drawGhostOverlays(ctx, scaleX, scaleY);
+        }
+    }
+
+    /**
+     * Draw Memory Ghost overlays
+     */
+    _drawGhostOverlays(ctx, scaleX, scaleY) {
+        for (const ghost of this.ghostState.ghosts) {
+            const alpha = ghost.opacity || 0.5;
+            const color = ghost.color || '#00FF00';
+
+            // Draw ghost panels (dashed outline)
+            ctx.globalAlpha = alpha * 0.3;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([8, 4]);
+
+            for (const panel of (ghost.panels || [])) {
+                const [x1, y1, x2, y2] = panel.bbox || [0, 0, 0, 0];
+                ctx.strokeRect(x1 * scaleX, y1 * scaleY, (x2 - x1) * scaleX, (y2 - y1) * scaleY);
+            }
+
+            // Draw ghost buttons (solid outline)
+            ctx.setLineDash([]);
+            ctx.globalAlpha = alpha * 0.5;
+
+            for (const button of (ghost.buttons || [])) {
+                const [x1, y1, x2, y2] = button.bbox || [0, 0, 0, 0];
+                ctx.strokeRect(x1 * scaleX, y1 * scaleY, (x2 - x1) * scaleX, (y2 - y1) * scaleY);
+            }
+
+            // Draw ghost lines
+            ctx.globalAlpha = alpha * 0.4;
+            ctx.strokeStyle = '#FFFF00';
+
+            for (const line of (ghost.lines || [])) {
+                ctx.beginPath();
+                ctx.moveTo(line.x1 * scaleX, line.y1 * scaleY);
+                ctx.lineTo(line.x2 * scaleX, line.y2 * scaleY);
+                ctx.stroke();
+            }
+        }
+
+        ctx.globalAlpha = 1.0;
+        ctx.setLineDash([]);
     }
 
     /**
@@ -2608,6 +2895,96 @@ class VisualDebugOverlay {
     }
 
     /**
+     * Render Ambient Narrative section in the HUD.
+     * Shows state, session info, and AI thoughts.
+     */
+    _renderNarrativeSection(ctx, width, padding) {
+        const state = this.narrativeState;
+        if (!state.enabled && state.state === 'IDLE') return;
+
+        let y = this._getNextSectionY();
+
+        // Background for section
+        ctx.fillStyle = 'rgba(0, 30, 50, 0.9)';
+        ctx.fillRect(0, y, width, 140);
+
+        y += 20;
+
+        // Header with state color
+        const stateColors = {
+            'MONITORING': '#00ffff',   // Cyan
+            'SUGGESTING': '#ffff00',    // Yellow
+            'STEERING': '#ff6600',      // Orange/Red
+            'IDLE': '#888888'           // Gray
+        };
+        const stateColor = stateColors[state.state] || '#888888';
+
+        ctx.fillStyle = stateColor;
+        ctx.font = 'bold 12px monospace';
+        ctx.fillText('📖 AMBIENT NARRATIVE', padding, y);
+        y += 20;
+
+        // State indicator with colored dot
+        ctx.fillStyle = stateColor;
+        ctx.beginPath();
+        ctx.arc(padding + 5, y - 4, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#fff';
+        ctx.font = '11px monospace';
+        ctx.fillText(`State: ${state.state}`, padding + 15, y);
+        y += 16;
+
+        // Session info
+        ctx.fillStyle = '#aaa';
+        if (state.sessionId) {
+            ctx.fillText(`Session: ${String(state.sessionId).substring(0, 12)}...`, padding, y);
+        } else {
+            ctx.fillText('Session: (not connected)', padding, y);
+        }
+        y += 16;
+
+        // Evolution count
+        ctx.fillText(`Evolutions: ${state.evolutionCount}`, padding, y);
+        y += 16;
+
+        // Last thought (if any)
+        if (state.lastThought) {
+            ctx.fillStyle = '#888';
+            ctx.fillText('Last Thought:', padding, y);
+            y += 14;
+
+            ctx.fillStyle = '#ccc';
+            ctx.font = '10px monospace';
+            const lines = this._wrapText(state.lastThought, width - padding * 2 - 10);
+            for (const line of lines.slice(0, 2)) { // Max 2 lines
+                ctx.fillText(`  ${line}`, padding, y);
+                y += 12;
+            }
+            y += 4;
+        }
+
+        // Steering actions (if any)
+        if (state.steeringActions.length > 0) {
+            ctx.fillStyle = '#ff6600';
+            ctx.font = '10px monospace';
+            const lastAction = state.steeringActions[0];
+            ctx.fillText(`🎯 ${lastAction.action}${lastAction.target ? ` → ${lastAction.target}` : ''}`, padding, y);
+            y += 16;
+        }
+
+        // Last update timestamp
+        if (state.lastUpdate) {
+            const age = ((Date.now() - state.lastUpdate) / 1000).toFixed(1);
+            ctx.fillStyle = '#555';
+            ctx.font = '9px monospace';
+            ctx.fillText(`Updated: ${age}s ago`, padding, y);
+        }
+
+        this._lastSectionY = y + 30;
+    }
+
+    /**
      * Handle heat map toggle event
      */
     handleHeatmapToggle(detail) {
@@ -2778,6 +3155,14 @@ class VisualDebugOverlay {
         const b = Math.round(c1.b + (c2.b - c1.b) * t);
 
         return `rgb(${r},${g},${b})`;
+    }
+
+    /**
+     * Get the Y position for the next HUD section.
+     * @returns {number} Y coordinate
+     */
+    _getNextSectionY() {
+        return this._lastSectionY || 100;
     }
 
     /**

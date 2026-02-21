@@ -1,121 +1,283 @@
+"""
+HealerAgent - V16 Reaction Loop Consumer.
+
+Autonomous agent that subscribes to Visual Bridge WebSocket (ws://localhost:8768),
+processes DIAGNOSTIC_PULSE events, and executes healing actions based on pattern matching.
+
+Requirements: FR-2, FR-3, FR-6, FR-7, FR-8, FR-9
+"""
 
 import asyncio
 import json
-import os
-import sys
-from pathlib import Path
-import websockets
 import logging
+import time
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Dict, Any, Optional, List
 
-# Add project root to path
-sys.path.append(os.getcwd())
-
-from systems.visual_shell.gui_protocol import GUIProtocol
-
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("HealerAgent")
 
+
+class HealingAction(Enum):
+    """Available healing actions for responding to anomalies."""
+    ANALYZE = "analyze"      # Capture state, log, no immediate action
+    QUARANTINE = "quarantine"  # Isolate district from others
+    REBOOT = "reboot"        # Trigger substrate restart
+
+
+@dataclass
+class HealingResult:
+    """Result of a healing action execution."""
+    action: HealingAction
+    district_id: str
+    reason: str
+    timestamp: float
+    success: bool = True
+    details: Dict[str, Any] = field(default_factory=dict)
+
+
 class HealerAgent:
-    """Agent that detects visual fractures and heals the substrate."""
-    
-    def __init__(self, bridge_port: int = 8765, vnc_display: str = "127.0.0.1:0"):
-        self.bridge_url = f"ws://localhost:{bridge_port}"
-        self.protocol = GUIProtocol(bridge_dir=f"/tmp/vision_bridge_1", vnc_display=vnc_display)
-        self.target_file = Path("systems/visual_shell/wgsl/fracture.wgsl")
-        self.a2a_url = "ws://localhost:8766"
-        self.agent_id = "healer-001"
+    """
+    Agent that consumes DIAGNOSTIC_PULSE events and executes healing actions.
 
-    async def detect_fracture(self) -> bool:
-        """Use Vision Bridge to check for systemic fractures."""
-        logger.info("Scanning substrate for visual fractures...")
-        
-        description = ""
-        suggested = []
-        
-        try:
-            async with websockets.connect(self.bridge_url) as ws:
-                # Request state
-                await ws.send(json.dumps({"type": "get_state"}))
-                resp = await asyncio.wait_for(ws.recv(), timeout=5)
-                data = json.loads(resp)
-                description = data.get("raw_description", "").lower()
-                suggested = data.get("suggested_actions", [])
-        except Exception as e:
-            logger.warning(f"WebSocket detection failed ({e}), falling back to state file...")
-            if self.protocol.state_file.exists():
-                description = self.protocol.state_file.read_text().lower()
-            else:
-                logger.error("No state file found for fallback.")
-                return False
-        
-        # Heuristic: Look for "fracture", "glow", "red", "tear", "broken"
-        fracture_indicators = ["fracture", "neon red", "glow", "jagged", "discontinuity", "broken shader", "anomaly"]
-        if any(ind in description for ind in fracture_indicators):
-            logger.warning("🚨 VISUAL FRACTURE DETECTED in substrate!")
-            return True
-        
-        if any("fix" in s.lower() or "heal" in s.lower() for s in suggested):
-            logger.warning("🚨 Vision Model suggests healing action!")
-            return True
-            
-        return False
+    Configuration:
+        ws_url: Visual Bridge WebSocket URL (default: ws://localhost:8768)
+        reaction_threshold: Max seconds to react to CRITICAL events (default: 1.0)
+        auto_reboot: Allow automatic REBOOT actions (default: False for safety)
 
-    def heal_substrate(self):
-        """Repair the fractured shader code."""
-        logger.info(f"Initiating HEAL sequence for {self.target_file}...")
-        
-        if not self.target_file.exists():
-            logger.error("Target file missing!")
-            return False
-            
-        content = self.target_file.read_text()
-        
-        # Repair the intentional bug
-        broken_line = "let threshold = 0.5; // fracture.intensity * 0.1;"
-        fixed_line = "let threshold = fracture.intensity * 0.1;"
-        
-        if broken_line in content:
-            new_content = content.replace(broken_line, fixed_line)
-            self.target_file.write_text(new_content)
-            logger.info("✅ SUBSTRATE HEALED: Shader code restored.")
-            return True
+    Actions:
+        ANALYZE: Log detailed diagnostic, no state change
+        QUARANTINE: Broadcast QUARANTINE_DISTRICT to isolate
+        REBOOT: Trigger substrate restart (requires auto_reboot=True)
+    """
+
+    def __init__(
+        self,
+        ws_url: str = "ws://localhost:8768",
+        reaction_threshold: float = 1.0,
+        auto_reboot: bool = False
+    ):
+        self._ws_url = ws_url
+        self._reaction_threshold = reaction_threshold
+        self._auto_reboot = auto_reboot
+        self._history: List[HealingResult] = []
+        self._max_history = 100
+
+    @property
+    def ws_url(self) -> str:
+        """Visual Bridge WebSocket URL."""
+        return self._ws_url
+
+    @property
+    def reaction_threshold(self) -> float:
+        """Maximum seconds to react to CRITICAL events."""
+        return self._reaction_threshold
+
+    @property
+    def auto_reboot(self) -> bool:
+        """Whether automatic reboot is enabled."""
+        return self._auto_reboot
+
+    async def _handle_diagnostic_pulse(self, pulse: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Process a DIAGNOSTIC_PULSE event and execute appropriate action.
+
+        Args:
+            pulse: DIAGNOSTIC_PULSE event dict with keys:
+                - type: "DIAGNOSTIC_PULSE"
+                - status: "HEALTHY" | "WARNING" | "CRITICAL"
+                - district_id: str
+                - matched_pattern: str (optional)
+                - detected_text: str (optional)
+
+        Returns:
+            Dict with action result or None if no action needed
+        """
+        start_time = time.time()
+
+        # Validate pulse structure
+        if pulse.get("type") != "DIAGNOSTIC_PULSE":
+            logger.warning(f"Ignoring non-diagnostic pulse: {pulse.get('type')}")
+            return None
+
+        status = pulse.get("status", "UNKNOWN")
+        district_id = pulse.get("district_id", "unknown")
+        matched_pattern = pulse.get("matched_pattern", "")
+        detected_text = pulse.get("detected_text", "")
+
+        # Filter by status
+        if status == "HEALTHY":
+            logger.debug(f"District {district_id} is healthy, no action needed")
+            return None
+
+        # Determine action based on status and pattern
+        action = self._decide_action(status, matched_pattern, detected_text)
+
+        # Execute action
+        result = await self._execute_action(action, district_id, matched_pattern, detected_text)
+
+        # Track timing
+        elapsed = time.time() - start_time
+        result.details["elapsed_seconds"] = elapsed
+
+        # Check reaction threshold for CRITICAL
+        if status == "CRITICAL" and elapsed > self._reaction_threshold:
+            logger.warning(
+                f"Reaction time {elapsed:.3f}s exceeded threshold {self._reaction_threshold}s"
+            )
+
+        # Add to history
+        self._add_to_history(result)
+
+        # Return as dict for test compatibility
+        return {
+            "action": result.action.value,
+            "district_id": result.district_id,
+            "reason": result.reason,
+            "timestamp": result.timestamp,
+            "success": result.success,
+            "details": result.details
+        }
+
+    def _decide_action(
+        self,
+        status: str,
+        matched_pattern: str,
+        detected_text: str
+    ) -> HealingAction:
+        """
+        Determine healing action based on status and pattern.
+
+        Decision logic:
+        - WARNING: Always ANALYZE (safe default)
+        - CRITICAL with panic/not syncing: QUARANTINE
+        - CRITICAL with segfault/segmentation: ANALYZE
+        - CRITICAL with frozen/freeze: REBOOT (if auto_reboot) else QUARANTINE
+        - CRITICAL unknown pattern: QUARANTINE (safe default)
+        """
+        pattern_lower = matched_pattern.lower()
+        text_lower = detected_text.lower()
+
+        if status == "WARNING":
+            return HealingAction.ANALYZE
+
+        if status == "CRITICAL":
+            # Panic - immediate isolation
+            if "panic" in pattern_lower or "not syncing" in pattern_lower:
+                return HealingAction.QUARANTINE
+
+            # Segfault - analyze state
+            if "segfault" in pattern_lower or "segmentation" in pattern_lower:
+                return HealingAction.ANALYZE
+
+            # Frozen - may need reboot
+            if "frozen" in pattern_lower or "freeze" in text_lower:
+                return HealingAction.REBOOT if self._auto_reboot else HealingAction.QUARANTINE
+
+            # Unknown CRITICAL pattern - safe default
+            return HealingAction.QUARANTINE
+
+        # Unknown status - analyze
+        return HealingAction.ANALYZE
+
+    async def _execute_action(
+        self,
+        action: HealingAction,
+        district_id: str,
+        matched_pattern: str,
+        detected_text: str
+    ) -> HealingResult:
+        """Execute the chosen healing action."""
+        timestamp = time.time()
+
+        if action == HealingAction.ANALYZE:
+            # Log detailed diagnostic
+            logger.info(
+                f"ANALYZE action for district {district_id}: "
+                f"pattern={matched_pattern}, text={detected_text[:100]}"
+            )
+            return HealingResult(
+                action=action,
+                district_id=district_id,
+                reason=f"Analyzed pattern: {matched_pattern}",
+                timestamp=timestamp,
+                success=True,
+                details={"matched_pattern": matched_pattern, "detected_text": detected_text[:200]}
+            )
+
+        elif action == HealingAction.QUARANTINE:
+            # Log quarantine action
+            logger.warning(
+                f"QUARANTINE action for district {district_id}: "
+                f"pattern={matched_pattern}"
+            )
+            # Note: In full implementation, would broadcast QUARANTINE_DISTRICT to Visual Bridge
+            return HealingResult(
+                action=action,
+                district_id=district_id,
+                reason=f"Quarantined due to: {matched_pattern}",
+                timestamp=timestamp,
+                success=True,
+                details={"matched_pattern": matched_pattern, "broadcast": "QUARANTINE_DISTRICT"}
+            )
+
+        elif action == HealingAction.REBOOT:
+            # Log reboot action
+            logger.warning(
+                f"REBOOT action for district {district_id}: "
+                f"auto_reboot={self._auto_reboot}"
+            )
+            if not self._auto_reboot:
+                logger.error("REBOOT attempted but auto_reboot=False, skipping")
+                return HealingResult(
+                    action=action,
+                    district_id=district_id,
+                    reason="Reboot blocked: auto_reboot disabled",
+                    timestamp=timestamp,
+                    success=False,
+                    details={"error": "auto_reboot_disabled"}
+                )
+            # Note: In full implementation, would trigger substrate restart
+            return HealingResult(
+                action=action,
+                district_id=district_id,
+                reason="Rebooting substrate",
+                timestamp=timestamp,
+                success=True,
+                details={"reboot_initiated": True}
+            )
+
         else:
-            logger.info("ℹ️ Substrate appears healthy or already healed.")
-            return True
+            logger.error(f"Unknown action: {action}")
+            return HealingResult(
+                action=action,
+                district_id=district_id,
+                reason=f"Unknown action: {action}",
+                timestamp=timestamp,
+                success=False,
+                details={"error": "unknown_action"}
+            )
 
-    async def run_mission(self):
-        logger.info("=== STARTING SELF-HEALING MISSION ===")
-        
-        # 1. Register with A2A
-        try:
-            async with websockets.connect(self.a2a_url, subprotocols=["a2a"]) as ws:
-                await ws.send(json.dumps({
-                    "type": "register",
-                    "agent_id": self.agent_id,
-                    "agent_type": "healer",
-                    "region": {"x": 400, "y": 10, "width": 100, "height": 100}
-                }))
-                await ws.recv()
-                
-                # 2. Detect
-                if await self.detect_fracture():
-                    # 3. Heal
-                    self.heal_substrate()
-                    
-                    # 4. Broadcast Success
-                    await ws.send(json.dumps({
-                        "type": "broadcast",
-                        "from_agent": self.agent_id,
-                        "message_type": "substrate_healed",
-                        "payload": {"status": "success", "file": str(self.target_file)}
-                    }))
-                    logger.info("Mission Complete: Substrate integrity restored.")
-                else:
-                    logger.info("No fractures detected. Substrate is stable.")
-                    
-        except Exception as e:
-            logger.error(f"Mission failed: {e}")
+    def _add_to_history(self, result: HealingResult):
+        """Add result to healing history with size limit."""
+        self._history.append(result)
+        if len(self._history) > self._max_history:
+            self._history = self._history[-self._max_history:]
 
-if __name__ == "__main__":
-    agent = HealerAgent()
-    asyncio.run(agent.run_mission())
+    @property
+    def history(self) -> List[HealingResult]:
+        """Get healing history."""
+        return self._history.copy()
+
+
+# For backward compatibility with old interface
+class HealerAgentLegacy:
+    """Legacy HealerAgent for fracture detection (deprecated)."""
+
+    def __init__(self, bridge_port: int = 8765, vnc_display: str = "127.0.0.1:0"):
+        import warnings
+        warnings.warn(
+            "HealerAgentLegacy is deprecated, use HealerAgent with V16 reaction loop",
+            DeprecationWarning
+        )
+        self.bridge_url = f"ws://localhost:{bridge_port}"

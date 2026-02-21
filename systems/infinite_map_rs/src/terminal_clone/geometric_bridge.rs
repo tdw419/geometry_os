@@ -192,29 +192,107 @@ impl GeometricTerminalBuffer {
         self.cells.iter().map(|c| c.to_u32()).collect()
     }
 
-    /// Resize the buffer
-    pub fn resize(&mut self, new_cols: usize, new_rows: usize) {
-        let mut new_cells = vec![GeometricCell::default(); new_cols * new_rows];
+    /// Generate PASM instructions for a string of text
+    pub fn generate_pasm(&self, text: &str) -> Vec<[u8; 4]> {
+        let mut instructions = Vec::new();
+        for c in text.chars() {
+            // PUTC opcode (0x40), G=char, B=fg, A=flags (or metadata)
+            // Note: In our v3 PASM, PUTC takes char from register or immediate.
+            // For this bridge, we'll pack them into pixels directly.
+            let pixel = [0x40, c as u8, self.current_fg, self.current_flags];
+            instructions.push(pixel);
+        }
+        instructions
+    }
 
-        // Copy existing content
-        let min_cols = self.cols.min(new_cols);
-        let min_rows = self.rows.min(new_rows);
+    /// Write a notification line with timestamp prefix
+    ///
+    /// Format: [HH:MM:SS] Message
+    /// Uses bright colors and bold for visibility
+    pub fn write_notification(&mut self, message: &str, fg_color: u8) {
+        let timestamp = Self::get_timestamp();
+        self.cursor_x = 0;
 
-        for row in 0..min_rows {
-            for col in 0..min_cols {
-                let old_idx = row * self.cols + col;
-                let new_idx = row * new_cols + col;
-                new_cells[new_idx] = self.cells[old_idx];
+        let saved_fg = self.current_fg;
+        let saved_flags = self.current_flags;
+
+        // Write timestamp in dim gray
+        self.current_fg = 8; // Bright black (dim gray)
+        self.current_flags = 0;
+        for c in format!("[{}] ", timestamp).chars() {
+            if c.is_ascii() {
+                self.putc(c as u8);
             }
         }
 
-        self.cols = new_cols;
-        self.rows = new_rows;
-        self.cells = new_cells;
+        // Write message in specified color with bold
+        self.current_fg = fg_color;
+        self.current_flags = flags::BOLD;
+        for c in message.chars() {
+            if c.is_ascii() {
+                self.putc(c as u8);
+            }
+        }
 
-        // Clamp cursor
-        self.cursor_x = self.cursor_x.min(new_cols.saturating_sub(1));
-        self.cursor_y = self.cursor_y.min(new_rows.saturating_sub(1));
+        // Restore colors and advance to next line
+        self.current_fg = saved_fg;
+        self.current_flags = saved_flags;
+        self.cursor_x = 0;
+        if self.cursor_y + 1 < self.rows {
+            self.cursor_y += 1;
+        } else {
+            self.scroll(1);
+        }
+    }
+
+    /// Write notification with explicit timestamp (for testing)
+    pub fn write_notification_with_time(&mut self, message: &str, timestamp: &str, fg_color: u8) {
+        self.cursor_x = 0;
+
+        let saved_fg = self.current_fg;
+        let saved_flags = self.current_flags;
+
+        // Timestamp in dim gray
+        self.current_fg = 8;
+        self.current_flags = 0;
+        for c in format!("[{}] ", timestamp).chars() {
+            if c.is_ascii() {
+                self.putc(c as u8);
+            }
+        }
+
+        // Message in specified color with bold
+        self.current_fg = fg_color;
+        self.current_flags = flags::BOLD;
+        for c in message.chars() {
+            if c.is_ascii() {
+                self.putc(c as u8);
+            }
+        }
+
+        self.current_fg = saved_fg;
+        self.current_flags = saved_flags;
+        self.cursor_x = 0;
+        if self.cursor_y + 1 < self.rows {
+            self.cursor_y += 1;
+        } else {
+            self.scroll(1);
+        }
+    }
+
+    /// Get current timestamp as HH:MM:SS
+    fn get_timestamp() -> String {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let duration = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default();
+        let total_secs = duration.as_secs();
+        let hours = (total_secs / 3600) % 24;
+        let mins = (total_secs / 60) % 60;
+        let secs = total_secs % 60;
+
+        format!("{:02}:{:02}:{:02}", hours, mins, secs)
     }
 }
 
@@ -267,5 +345,36 @@ mod tests {
         assert_eq!(buf.cells[0].char, b'L'); // Line2
         assert_eq!(buf.cells[10].char, b'L'); // Line3
         assert_eq!(buf.cells[20].char, b'L'); // Line4
+    }
+
+    #[test]
+    fn test_write_notification_single_line() {
+        let mut buf = GeometricTerminalBuffer::new(80, 24);
+
+        buf.write_notification("Test Event", 11); // Bright yellow
+
+        // Should start with timestamp bracket
+        assert_eq!(buf.cells[0].char, b'[');
+        assert_eq!(buf.cells[0].fg, 8); // Dim gray for timestamp
+
+        // Cursor should have advanced to next line
+        assert_eq!(buf.cursor_y, 1);
+    }
+
+    #[test]
+    fn test_write_notification_with_timestamp() {
+        let mut buf = GeometricTerminalBuffer::new(80, 24);
+
+        buf.write_notification_with_time("Evolution Complete", "14:32:05", 10);
+
+        // Timestamp prefix
+        assert_eq!(buf.cells[0].char, b'[');
+        assert_eq!(buf.cells[1].char, b'1');
+        assert_eq!(buf.cells[2].char, b'4');
+
+        // "Evolution" starts after "[14:32:05] " (11 chars)
+        assert_eq!(buf.cells[11].char, b'E');
+        assert_eq!(buf.cells[11].fg, 10); // Bright green
+        assert_eq!(buf.cells[11].flags, flags::BOLD);
     }
 }

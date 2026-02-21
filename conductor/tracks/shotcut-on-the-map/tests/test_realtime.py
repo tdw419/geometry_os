@@ -101,5 +101,37 @@ class TestRealtimeStreaming(unittest.IsolatedAsyncioTestCase):
         print("✅ Frame serialization verified.")
 
 
+class TestMemoryGhostIntegration:
+    """Tests for Memory Ghost integration with RealtimeFeed."""
+
+    def test_realtime_feed_has_ghost_registry(self):
+        """RealtimeFeed should have GhostRegistry."""
+        from realtime_feed import RealtimeFeed
+        from memory_ghost import GhostRegistry
+
+        feed = RealtimeFeed("ws://localhost:8768")
+        assert hasattr(feed, 'ghost_registry')
+        assert isinstance(feed.ghost_registry, GhostRegistry)
+
+    def test_ghost_broadcast_includes_ghosts(self):
+        """Broadcast message should include ghosts field."""
+        from realtime_feed import RealtimeFeed
+        from memory_ghost import MemoryGhost
+
+        feed = RealtimeFeed("ws://localhost:8768")
+        ghost = MemoryGhost(
+            ghost_id="test",
+            source_memory="Test",
+            panels=[],
+            buttons=[],
+            similarity=0.8,
+            confidence="HIGH"
+        )
+        feed.ghost_registry.add_ghost(ghost)
+
+        # Check registry has ghost
+        assert len(feed.ghost_registry.get_active_ghosts()) == 1
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -29,6 +29,14 @@ from pathlib import Path
 from gui_structure_analyzer import GUIAnalyzer, UIElement
 from semantic_clusterer import UICluster
 from widget_detector import WidgetDetector, Widget
+from layout_inferencer import LayoutInferencer, LayoutResult
+
+# WordPress Semantic District Integration
+try:
+    from wordpress_zone.publish_to_wp import publish_to_wordpress
+    WORDPRESS_AVAILABLE = True
+except ImportError:
+    WORDPRESS_AVAILABLE = False
 
 
 @dataclass
@@ -51,6 +59,7 @@ class ExtractionResult:
         widgets: Detected widgets with actions
         ascii_view: ASCII scene graph representation
         diagnostic: V16 Diagnostic pulse results
+        layout: OpenCV layout inference results (panels, buttons, lines)
         metadata: Additional metadata (timing, stats, etc.)
     """
     elements: List[UIElement] = field(default_factory=list)
@@ -58,6 +67,7 @@ class ExtractionResult:
     widgets: List[Widget] = field(default_factory=list)
     ascii_view: str = ""
     diagnostic: Optional[DiagnosticPulse] = None
+    layout: Optional[LayoutResult] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -85,6 +95,8 @@ class ExtractionResult:
                 "tokens": self.diagnostic.tokens,
                 "timestamp": self.diagnostic.timestamp
             }
+        if self.layout:
+            res["layout"] = self.layout.to_dict()
         return res
 
     def to_json(self) -> str:
@@ -118,19 +130,23 @@ class ExtractionPipeline:
         print(result.ascii_view)
     """
 
-    def __init__(self, ascii_width: int = 80, ascii_height: int = 24):
+    def __init__(self, ascii_width: int = 80, ascii_height: int = 24, wordpress_enabled: bool = False):
         """
         Initialize the ExtractionPipeline.
 
         Args:
             ascii_width: Width of ASCII view in characters (default: 80)
             ascii_height: Height of ASCII view in characters (default: 24)
+            wordpress_enabled: Enable WordPress Semantic District publishing (default: False)
         """
         self.analyzer = GUIAnalyzer()
         self.widget_detector = WidgetDetector()
         self.safety_scanner = SafetyScanner()
+        self.layout_inferencer = LayoutInferencer()
+        self.wordpress_publisher = WordPressPublisher() if wordpress_enabled else None
         self.ascii_width = ascii_width
         self.ascii_height = ascii_height
+        self.wordpress_enabled = wordpress_enabled
 
     def extract(self, image_path: str) -> ExtractionResult:
         """
@@ -167,11 +183,15 @@ class ExtractionPipeline:
         full_text = " ".join([e.text for e in analysis.elements])
         diagnostic = self.safety_scanner.scan(full_text)
 
-        # Step 4: Build ASCII view with [CLICKABLE] metadata
+        # Step 4: Layout inference (OpenCV)
+        layout = self.layout_inferencer.analyze(image_path)
+
+        # Step 5: Build ASCII view with [CLICKABLE] metadata
         ascii_view = self._build_enhanced_ascii_view(
             analysis.elements,
             widgets,
-            analysis.ascii_view
+            analysis.ascii_view,
+            layout
         )
 
         # Build result
@@ -182,7 +202,10 @@ class ExtractionPipeline:
             "element_count": len(analysis.elements),
             "cluster_count": len(analysis.clusters),
             "widget_count": len(widgets),
-            "clickable_count": len([w for w in widgets if w.action])
+            "clickable_count": len([w for w in widgets if w.action]),
+            "panel_count": len(layout.panels),
+            "button_region_count": len(layout.buttons),
+            "line_count": len(layout.lines)
         }
 
         return ExtractionResult(
@@ -191,7 +214,33 @@ class ExtractionPipeline:
             widgets=widgets,
             ascii_view=ascii_view,
             diagnostic=diagnostic,
+            layout=layout,
             metadata=metadata
+        )
+
+    def _maybe_document_layout(
+        self,
+        result: ExtractionResult,
+        image_path: str
+    ) -> Optional[Dict]:
+        """
+        Publish significant layout discoveries to WordPress Semantic District.
+
+        Args:
+            result: ExtractionResult from extract()
+            image_path: Source screenshot path
+
+        Returns:
+            WordPress response dict or None
+        """
+        if not self.wordpress_publisher or not result.layout:
+            return None
+
+        return self.wordpress_publisher.publish_layout_analysis(
+            layout=result.layout,
+            image_path=image_path,
+            ascii_view=result.ascii_view,
+            metadata=result.metadata
         )
 
     def extract_from_bytes(self, image_bytes: bytes) -> ExtractionResult:
@@ -215,18 +264,20 @@ class ExtractionPipeline:
         self,
         elements: List[UIElement],
         widgets: List[Widget],
-        base_view: str
+        base_view: str,
+        layout: Any = None
     ) -> str:
         """
-        Build ASCII view with [CLICKABLE] metadata annotations.
+        Build ASCII view with [CLICKABLE] metadata and layout info.
 
         Args:
             elements: List of UI elements
             widgets: List of detected widgets
             base_view: Base ASCII view from the analyzer
+            layout: Optional layout result from OpenCV
 
         Returns:
-            Enhanced ASCII view with widget metadata section
+            Enhanced ASCII view
         """
         lines = [base_view]
         lines.append("")
@@ -243,15 +294,26 @@ class ExtractionPipeline:
                     f"[{widget.type.value.upper()}] '{widget.text}' at {widget.bbox}"
                 )
 
+        if layout:
+            lines.append("")
+            lines.append("=== LAYOUT INFERENCE (OpenCV) ===")
+            lines.append(f"Detected Panels: {len(layout.panels)}")
+            lines.append(f"Detected Button Regions: {len(layout.buttons)}")
+            lines.append(f"Detected Visual Edges: {len(layout.lines)}")
+            
+            for i, panel in enumerate(layout.panels[:3]):
+                lines.append(f"  Panel #{i+1}: {panel}")
+
         return "\n".join(lines)
 
-    def extract_to_file(self, image_path: str, output_path: str) -> ExtractionResult:
+    def extract_to_file(self, image_path: str, output_path: str, publish: bool = False) -> ExtractionResult:
         """
         Extract and save result to file.
 
         Args:
             image_path: Path to screenshot
             output_path: Path for output JSON file
+            publish: Also publish to WordPress if enabled (default: False)
 
         Returns:
             ExtractionResult
@@ -263,6 +325,10 @@ class ExtractionPipeline:
 
         with open(output_file, 'w') as f:
             f.write(result.to_json())
+
+        # Optionally publish to WordPress
+        if publish:
+            self._maybe_document_layout(result, image_path)
 
         return result
 
@@ -297,6 +363,153 @@ class SafetyScanner:
             message="Substrate logic operating within nominal parameters",
             tokens=[]
         )
+
+
+class WordPressPublisher:
+    """
+    Publishes significant layout analysis results to WordPress Semantic District.
+
+    Follows the SEMANTIC PUBLISHING PROTOCOL:
+    - Rate limited to 1 post per 30 seconds
+    - Uses semantic HTML formatting
+    - Sends telemetry pulses for visual sync
+    """
+
+    MIN_PANELS = 3  # Minimum panels to trigger documentation
+    MIN_BUTTONS = 5  # Minimum buttons to trigger documentation
+    RATE_LIMIT_SECONDS = 30
+
+    def __init__(self):
+        self.last_publish_time = 0
+        self.enabled = WORDPRESS_AVAILABLE
+
+    def should_publish(self, layout: LayoutResult) -> bool:
+        """Check if layout is significant enough to document."""
+        if not self.enabled:
+            return False
+
+        # Check rate limit
+        if time.time() - self.last_publish_time < self.RATE_LIMIT_SECONDS:
+            return False
+
+        # Check significance thresholds
+        has_significant_structure = (
+            len(layout.panels) >= self.MIN_PANELS or
+            len(layout.buttons) >= self.MIN_BUTTONS
+        )
+
+        return has_significant_structure
+
+    def publish_layout_analysis(
+        self,
+        layout: LayoutResult,
+        image_path: str,
+        ascii_view: str = "",
+        metadata: Dict[str, Any] = None
+    ) -> Optional[Dict]:
+        """
+        Publish layout analysis to WordPress as a journal post.
+
+        Args:
+            layout: LayoutResult from LayoutInferencer
+            image_path: Source screenshot path
+            ascii_view: ASCII representation of the UI
+            metadata: Additional metadata dict
+
+        Returns:
+            WordPress response dict or None if not published
+        """
+        if not self.should_publish(layout):
+            return None
+
+        source_name = Path(image_path).stem
+        title = f"UI Structure Analysis: {source_name}"
+
+        # Build semantic HTML content
+        content = f"""<h3>Layout Analysis Report</h3>
+<p><b>Source:</b> <code>{image_path}</code></p>
+<p><b>Timestamp:</b> {time.strftime('%Y-%m-%d %H:%M:%S')}</p>
+
+<h4>Structure Summary</h4>
+<table>
+<tr><td><b>Panels</b></td><td>{len(layout.panels)}</td></tr>
+<tr><td><b>Button Regions</b></td><td>{len(layout.buttons)}</td></tr>
+<tr><td><b>Visual Edges</b></td><td>{len(layout.lines)}</td></tr>
+</table>
+
+<h4>Panel Details</h4>
+<ul>
+"""
+
+        for i, panel in enumerate(layout.panels[:5]):
+            bbox = panel.get('bbox', [0, 0, 0, 0])
+            w = panel.get('width', 0)
+            h = panel.get('height', 0)
+            content += f"<li>Panel #{i+1}: {w}x{h} at ({bbox[0]}, {bbox[1]})</li>\n"
+
+        content += "</ul>\n"
+
+        # Add ASCII preview if available
+        if ascii_view:
+            ascii_preview = ascii_view[:500].replace('\n', '<br/>\n')
+            content += f"""<h4>ASCII Preview</h4>
+<pre>{ascii_preview}</pre>
+"""
+
+        # Add metadata
+        if metadata:
+            content += f"""<h4>Metadata</h4>
+<p>Extraction time: {metadata.get('extraction_time_seconds', 0):.2f}s</p>
+<p>Elements: {metadata.get('element_count', 0)} | Clusters: {metadata.get('cluster_count', 0)}</p>
+"""
+
+        try:
+            result = publish_to_wordpress(title, content, post_type='post')
+            if result:
+                self.last_publish_time = time.time()
+                print(f"📖 Published to WordPress: {result.get('url')}")
+            return result
+        except Exception as e:
+            print(f"⚠️ WordPress publish failed: {e}")
+            return None
+
+    def publish_diagnostic_alert(
+        self,
+        diagnostic: DiagnosticPulse,
+        source: str = "Visual HUD"
+    ) -> Optional[Dict]:
+        """
+        Publish a diagnostic alert to WordPress.
+
+        Args:
+            diagnostic: DiagnosticPulse from SafetyScanner
+            source: Source identifier
+
+        Returns:
+            WordPress response dict or None
+        """
+        if not self.enabled:
+            return None
+
+        if diagnostic.severity == "SUCCESS":
+            return None  # Don't publish success states
+
+        title = f"⚠️ Diagnostic Alert: {diagnostic.severity}"
+
+        content = f"""<h3>System Alert</h3>
+<p><b>Severity:</b> <span style="color: {'red' if diagnostic.severity == 'CRITICAL' else 'orange'}">{diagnostic.severity}</span></p>
+<p><b>Source:</b> {source}</p>
+<p><b>Message:</b> {diagnostic.message}</p>
+<p><b>Tokens:</b> {', '.join(diagnostic.tokens)}</p>
+<p><b>Timestamp:</b> {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(diagnostic.timestamp))}</p>
+"""
+
+        try:
+            result = publish_to_wordpress(title, content, post_type='post')
+            return result
+        except Exception as e:
+            print(f"⚠️ WordPress alert failed: {e}")
+            return None
 
 
 def extract_gui(image_path: str, output_path: Optional[str] = None) -> ExtractionResult:
