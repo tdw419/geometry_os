@@ -557,8 +557,8 @@ class TestDirectiveAPI:
             payload = call_args.kwargs['json']
 
             assert payload['tool'] == "testTool"
-            assert payload['param1'] == "value1"
-            assert payload['param2'] == 123
+            assert payload['arguments']['param1'] == "value1"
+            assert payload['arguments']['param2'] == 123
 
     def test_post_response_includes_status_emoji(self, agent):
         """Test post_response includes status emoji in response."""
@@ -584,7 +584,9 @@ class TestDirectiveAPI:
 
             call_args = mock_post.call_args
             payload = call_args.kwargs['json']
-            response = payload['response']
+            # Arguments are nested in the 'arguments' field
+            arguments = payload['arguments']
+            response = arguments['response']
 
             assert "✅" in response
             assert "Completed" in response
