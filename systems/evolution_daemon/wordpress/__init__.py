@@ -11,8 +11,15 @@ from .content_analyzer import (
     WordPressContentAnalyzer,
 )
 
+from .evolution_agent import (
+    EvolutionCycleResult,
+    WordPressEvolutionAgent,
+)
+
 __all__ = [
     "ContentAnalysis",
     "ImprovementProposal",
     "WordPressContentAnalyzer",
+    "EvolutionCycleResult",
+    "WordPressEvolutionAgent",
 ]
