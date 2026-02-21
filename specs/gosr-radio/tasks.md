@@ -233,7 +233,7 @@ After POC validated, clean up code structure.
   - **Commit**: `test(radio): add daemon integration tests`
   - _Requirements: FR-5, FR-10_
 
-- [ ] 3.3 [VERIFY] Quality checkpoint: full test suite
+- [x] 3.3 [VERIFY] Quality checkpoint: full test suite
   - **Do**: Run complete test suite
   - **Verify**: `pytest systems/evolution_daemon/tests/test_narrative_broadcaster.py -v`
   - **Done when**: All tests pass (expect 25+ tests)
@@ -241,7 +241,7 @@ After POC validated, clean up code structure.
 
 ## Phase 4: HUD Integration
 
-- [ ] 4.1 Add radio section to Visual Debug Overlay
+- [x] 4.1 Add radio section to Visual Debug Overlay
   - **Do**:
     1. Add `radioState` to `VisualDebugOverlay` constructor
     2. Add `handleRadioBroadcast()` method
