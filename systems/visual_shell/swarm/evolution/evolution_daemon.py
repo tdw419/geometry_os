@@ -174,6 +174,12 @@ class EvolutionDaemon:
             ]
         )
 
+        # Set up paths
+        self._setup_paths()
+
+        # Set up logging
+        self._setup_logging()
+
         # Initialize WordPress WebMCP Hook
         try:
             self.wordpress_hook = create_evolution_wordpress_hook()
@@ -181,12 +187,6 @@ class EvolutionDaemon:
         except Exception as e:
             self.wordpress_hook = None
             self.logger.warning(f"Failed to initialize WordPress Hook: {e}")
-
-        # Set up paths
-        self._setup_paths()
-
-        # Set up logging
-        self._setup_logging()
 
         # Set up signal handlers
         self._setup_signal_handlers()

@@ -174,7 +174,7 @@ class EvolutionWebMCPBridge:
     def __init__(
         self,
         wordpress_url: str = "http://localhost:8080",
-        api_endpoint: str = "/wp-json/geometry-os/v1",
+        api_endpoint: str = "/ai-publisher.php",
         auth_token: Optional[str] = None,
         timeout: float = 10.0,
         enabled: bool = True
