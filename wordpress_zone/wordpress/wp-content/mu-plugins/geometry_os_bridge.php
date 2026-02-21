@@ -188,6 +188,12 @@ class GeometryOS_Bridge {
                 'permission_callback' => array($this, 'verify_local_request'),
             ),
         ));
+
+        register_rest_route('geometry-os/v1', '/emergency-reset', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'handle_emergency_reset'),
+            'permission_callback' => array($this, 'verify_local_request'),
+        ));
     }
 
     /**
@@ -276,6 +282,73 @@ class GeometryOS_Bridge {
             'success' => true,
             'metrics' => $metrics,
         ), 200);
+    }
+
+    /**
+     * Handle POST request for emergency reset
+     *
+     * @param WP_REST_Request $request Request object
+     * @return WP_REST_Response Response with status
+     */
+    public function handle_emergency_reset($request) {
+        // Collect audit information
+        $audit_data = array(
+            'timestamp' => time(),
+            'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
+            'district_id' => $this->zone_id,
+        );
+
+        // Log the reset event to OS telemetry
+        $this->log_to_os('emergency_reset', $audit_data);
+
+        // Clear the health metrics option
+        delete_option('geometry_os_health_metrics');
+
+        // Send POST to Visual Bridge for map restart
+        $bridge_response = function_exists('wp_remote_post')
+            ? wp_remote_post('http://127.0.0.1:8768/emergency-reset', array(
+                'timeout' => 5,
+                'headers' => array('Content-Type' => 'application/json'),
+                'body' => json_encode($audit_data),
+            ))
+            : null;
+
+        // Check if Visual Bridge notification succeeded
+        $bridge_success = true;
+        $bridge_error = '';
+
+        if (function_exists('is_wp_error') && is_wp_error($bridge_response)) {
+            $bridge_success = false;
+            $bridge_error = $bridge_response->get_error_message();
+        } elseif ($bridge_response === null) {
+            // WordPress HTTP functions not available - still succeed locally
+            $bridge_success = false;
+            $bridge_error = 'WordPress HTTP functions not available';
+        } else {
+            $response_code = function_exists('wp_remote_retrieve_response_code')
+                ? wp_remote_retrieve_response_code($bridge_response)
+                : ($bridge_response['response']['code'] ?? 500);
+
+            if ($response_code >= 400) {
+                $bridge_success = false;
+                $bridge_error = "Visual Bridge returned HTTP $response_code";
+            }
+        }
+
+        // Return success even if Visual Bridge failed (local reset succeeded)
+        if ($bridge_success) {
+            return new WP_REST_Response(array(
+                'success' => true,
+                'message' => 'Emergency reset initiated. Map will restart.',
+            ), 200);
+        } else {
+            // Still return success for local reset, but note bridge issue
+            return new WP_REST_Response(array(
+                'success' => true,
+                'message' => 'Emergency reset completed locally. Visual Bridge notification failed: ' . $bridge_error,
+            ), 200);
+        }
     }
 }
 

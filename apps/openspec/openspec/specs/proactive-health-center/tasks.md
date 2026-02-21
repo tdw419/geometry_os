@@ -55,7 +55,7 @@ Focus: Validate core flow from browser heartbeat to WordPress storage.
   - _Requirements: FR-7, AC-1.1, AC-1.3_
   - _Design: Component 3_
 
-- [ ] 1.4 Emergency Reset Endpoint
+- [x] 1.4 Emergency Reset Endpoint
   - **Do**: Add emergency reset capability with audit logging
   - **Files**: `wordpress_zone/wordpress/wp-content/mu-plugins/geometry_os_bridge.php`
   - **Steps**:
