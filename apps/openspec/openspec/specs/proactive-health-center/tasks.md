@@ -98,7 +98,7 @@ After POC validated, clean up and add persistence.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Integration Tests
+- [x] 3.1 Integration Tests
   - **Do**: Create browser-based integration tests
   - **Files**: `systems/visual_shell/web/tests/test_proactive_health.js`
   - **Steps**:
