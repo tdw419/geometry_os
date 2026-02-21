@@ -1013,3 +1013,113 @@ class TestCLIInterface:
 
         assert result.returncode == 0
         assert "DirectiveAgent 1.0.0" in result.stdout
+
+
+class TestScopeDetectionEdgeCases:
+    """Edge case tests for scope detection."""
+
+    def test_scope_with_mixed_case_keywords(self):
+        """Keywords should match regardless of case."""
+        from systems.intelligence.directive_agent import Directive, DirectiveScope
+
+        directive = Directive(
+            id=1,
+            title="EXPLAIN the system",
+            content="Please EXPLAIN how this works",
+            date="2026-01-01",
+            author="user"
+        )
+        assert directive.scope == DirectiveScope.INFORMATIONAL
+
+    def test_scope_with_keyword_in_middle_of_word(self):
+        """Keywords should only match whole words."""
+        from systems.intelligence.directive_agent import Directive, DirectiveScope
+
+        directive = Directive(
+            id=1,
+            title="Explanation of the system",
+            content="This is an explanation",
+            date="2026-01-01",
+            author="user"
+        )
+        # "explain" in "explanation" should NOT match
+        assert directive.scope == DirectiveScope.UNKNOWN
+
+    def test_scope_with_multiple_keywords_same_category(self):
+        """Multiple informational keywords should still be INFORMATIONAL."""
+        from systems.intelligence.directive_agent import Directive, DirectiveScope
+
+        directive = Directive(
+            id=1,
+            title="Explain and describe the system",
+            content="Tell me about how does it work",
+            date="2026-01-01",
+            author="user"
+        )
+        assert directive.scope == DirectiveScope.INFORMATIONAL
+
+    def test_scope_mixed_informational_and_research(self):
+        """Informational should win when both present."""
+        from systems.intelligence.directive_agent import Directive, DirectiveScope
+
+        directive = Directive(
+            id=1,
+            title="Explain and investigate the system",
+            content="",
+            date="2026-01-01",
+            author="user"
+        )
+        # Informational keywords are checked first
+        assert directive.scope == DirectiveScope.INFORMATIONAL
+
+    def test_scope_with_punctuation(self):
+        """Punctuation should not affect keyword matching."""
+        from systems.intelligence.directive_agent import Directive, DirectiveScope
+
+        directive = Directive(
+            id=1,
+            title="What is the system?",
+            content="Explain, please!",
+            date="2026-01-01",
+            author="user"
+        )
+        assert directive.scope == DirectiveScope.INFORMATIONAL
+
+    def test_scope_empty_title_and_content(self):
+        """Empty directive should be UNKNOWN."""
+        from systems.intelligence.directive_agent import Directive, DirectiveScope
+
+        directive = Directive(
+            id=1,
+            title="",
+            content="",
+            date="2026-01-01",
+            author="user"
+        )
+        assert directive.scope == DirectiveScope.UNKNOWN
+
+    def test_scope_whitespace_only(self):
+        """Whitespace-only should be UNKNOWN."""
+        from systems.intelligence.directive_agent import Directive, DirectiveScope
+
+        directive = Directive(
+            id=1,
+            title="   ",
+            content="\n\t",
+            date="2026-01-01",
+            author="user"
+        )
+        assert directive.scope == DirectiveScope.UNKNOWN
+
+    def test_scope_with_html_tags(self):
+        """HTML tags should not affect keyword matching."""
+        from systems.intelligence.directive_agent import Directive, DirectiveScope
+
+        directive = Directive(
+            id=1,
+            title="<p>Explain</p> the system",
+            content="<div>How does it work</div>",
+            date="2026-01-01",
+            author="user"
+        )
+        assert directive.scope == DirectiveScope.INFORMATIONAL
