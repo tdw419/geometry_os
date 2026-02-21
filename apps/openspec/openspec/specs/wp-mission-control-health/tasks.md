@@ -12,7 +12,7 @@ generated: auto
 
 Focus: MetricsCollector core + bridge integration + dashboard widget
 
-- [ ] 1.1 MetricsCollector Core
+- [x] 1.1 MetricsCollector Core
   - **Do**: Create MetricsCollector class with latency measurement, sync/tile tracking, event emission
   - **Files**: `systems/visual_shell/web/MetricsCollector.js`, `systems/visual_shell/web/tests/test_metrics_collector.js`
   - **Done when**: 5 unit tests pass (latency measure, sync count, tile count, average latency, event emission)
