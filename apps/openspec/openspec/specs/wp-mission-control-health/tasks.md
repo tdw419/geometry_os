@@ -67,7 +67,7 @@ After POC validated, add stress and resilience tests.
   - _Requirements: FR-11, FR-12, FR-13_
   - _Design: Stress test patterns_
 
-- [ ] 2.2 Resilience Test Infrastructure
+- [x] 2.2 Resilience Test Infrastructure
   - **Do**: Create WPBridgeResilienceTester with late joiner and metrics persistence tests
   - **Files**: `systems/visual_shell/web/tests/resilience_test_wp_bridge.js`
   - **Done when**: 2 resilience tests run
