@@ -232,7 +232,7 @@ _Design: Claude_Conversations_Admin_
 
 ---
 
-### Task 1.6: Prism.js Frontend Integration
+### Task 1.6: [x] Prism.js Frontend Integration
 
 **Do:**
 1. Add `claude_conversations_enqueue_prism()` function

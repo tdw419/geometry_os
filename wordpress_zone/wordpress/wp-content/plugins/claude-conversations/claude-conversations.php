@@ -1014,5 +1014,60 @@ CSS;
     }
 }
 
+/**
+ * Enqueue Prism.js for syntax highlighting on Claude Conversation posts
+ */
+function claude_conversations_enqueue_prism() {
+    // Only load on single posts
+    if (!is_single()) {
+        return;
+    }
+
+    // Get the current post
+    $post = get_post();
+    if (!$post) {
+        return;
+    }
+
+    // Check if post has "Claude Conversations" category
+    if (!has_category('Claude Conversations', $post)) {
+        return;
+    }
+
+    // Enqueue Prism CSS (Tomorrow Night theme)
+    wp_enqueue_style(
+        'prism-css',
+        'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css',
+        array(),
+        '1.29.0'
+    );
+
+    // Enqueue Prism JS core
+    wp_enqueue_script(
+        'prism-js',
+        'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js',
+        array(),
+        '1.29.0',
+        true
+    );
+
+    // Enqueue language components
+    $languages = array('python', 'bash', 'javascript', 'rust');
+    foreach ($languages as $lang) {
+        wp_enqueue_script(
+            "prism-js-{$lang}",
+            "https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-{$lang}.min.js",
+            array('prism-js'),
+            '1.29.0',
+            true
+        );
+    }
+
+    // Add inline CSS for message styling
+    $formatter = new Claude_HtmlFormatter();
+    wp_add_inline_style('prism-css', $formatter->get_css());
+}
+add_action('wp_enqueue_scripts', 'claude_conversations_enqueue_prism');
+
 // Initialize the plugin
 new Claude_Conversations_Admin();
