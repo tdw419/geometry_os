@@ -23,7 +23,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
   - _Requirements: FR-2, AC-2.1_
   - _Design: WordPress CPT Handler_
 
-- [ ] 1.2 Add `importResearchDocument` action to `ai-publisher.php`
+- [x] 1.2 Add `importResearchDocument` action to `ai-publisher.php`
   - **Do**:
     1. Add case `'importResearchDocument'` to dispatcher switch
     2. Implement `handle_import_research_document($args)` function
