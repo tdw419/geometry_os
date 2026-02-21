@@ -50,7 +50,7 @@ Focus: Core module structure, base classes, basic broadcast flow. Skip WordPress
   - _Requirements: FR-11, FR-3.3, FR-3.4_
   - _Design: SegmentPool component, entropy weighting table_
 
-- [ ] 1.4 [VERIFY] Quality checkpoint: pytest + import check
+- [x] 1.4 [VERIFY] Quality checkpoint: pytest + import check
   - **Do**: Run pytest on new module, verify imports work from parent package
   - **Verify**:
     - `cd /home/jericho/zion/projects/geometry_os/geometry_os && python3 -c "from systems.evolution_daemon.narrative_broadcaster import NarrativeBroadcaster; print('OK')"`
@@ -58,7 +58,7 @@ Focus: Core module structure, base classes, basic broadcast flow. Skip WordPress
   - **Done when**: All tests pass, no import errors
   - **Commit**: `chore(radio): pass quality checkpoint 1.4` (only if fixes needed)
 
-- [ ] 1.5 Implement PersonalityEngine with station configs
+- [x] 1.5 Implement PersonalityEngine with station configs
   - **Do**:
     1. Create `systems/evolution_daemon/narrative_broadcaster/stations/` directory
     2. Create `substrate_jazz.yaml` (87.6 FM) - contemplative, elevated vocabulary

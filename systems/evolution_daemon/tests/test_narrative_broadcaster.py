@@ -518,6 +518,254 @@ class TestSegmentPool:
         assert pool.last_segment_type is not None
 
 
+class TestPersonalityEngine:
+    """Tests for PersonalityEngine station personality component."""
+
+    def test_style_modifiers_creation(self):
+        """StyleModifiers should store all fields."""
+        from evolution_daemon.narrative_broadcaster.personality_engine import StyleModifiers
+
+        modifiers = StyleModifiers(
+            prefix_chance=0.3,
+            prefixes=["Hello", "World"],
+            suffix_chance=0.2,
+            suffixes=["Goodbye"],
+            capitalize_intensifiers=True,
+            all_caps_threshold=0.1
+        )
+
+        assert modifiers.prefix_chance == 0.3
+        assert len(modifiers.prefixes) == 2
+        assert modifiers.suffix_chance == 0.2
+        assert modifiers.capitalize_intensifiers is True
+
+    def test_station_config_creation(self):
+        """StationConfig should store all fields."""
+        from evolution_daemon.narrative_broadcaster.personality_engine import StationConfig
+
+        config = StationConfig(
+            station_id="87.6",
+            name="Test Station",
+            tagline="Test tagline",
+            style={"tone": "test"},
+            vocabulary_replacements={"error": "issue"},
+            templates={"intro": ["Welcome"]}
+        )
+
+        assert config.station_id == "87.6"
+        assert config.name == "Test Station"
+        assert config.vocabulary_replacements["error"] == "issue"
+
+    def test_station_config_from_yaml(self):
+        """StationConfig should load from YAML file."""
+        from evolution_daemon.narrative_broadcaster.personality_engine import StationConfig
+        from pathlib import Path
+
+        yaml_path = Path(__file__).parent.parent / "narrative_broadcaster" / "stations" / "substrate_jazz.yaml"
+        if yaml_path.exists():
+            config = StationConfig.from_yaml(yaml_path)
+
+            assert config.station_id == "87.6"
+            assert config.name == "Substrate Jazz"
+            assert config.style["tone"] == "contemplative"
+            assert "error" in config.vocabulary_replacements
+            assert config.style_modifiers is not None
+
+    def test_personality_engine_initialization(self):
+        """PersonalityEngine should initialize with defaults."""
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        engine = PersonalityEngine()
+
+        assert isinstance(engine.stations, dict)
+
+    def test_personality_engine_list_stations(self):
+        """PersonalityEngine should list available stations."""
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        engine = PersonalityEngine()
+        stations = engine.list_stations()
+
+        assert isinstance(stations, list)
+        # Should have at least the two stations we created
+        assert "87.6" in stations
+        assert "92.3" in stations
+
+    def test_personality_engine_get_station(self):
+        """PersonalityEngine should return station by ID."""
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        engine = PersonalityEngine()
+
+        station = engine.get_station("87.6")
+        assert station is not None
+        assert station.name == "Substrate Jazz"
+
+        # Non-existent station should return None
+        assert engine.get_station("00.0") is None
+
+    def test_apply_vocabulary_replacement(self):
+        """PersonalityEngine should replace vocabulary words."""
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        engine = PersonalityEngine()
+
+        # Substrate Jazz replaces "error" with "dissonance"
+        result = engine.apply_personality(
+            "An error occurred in the system",
+            "87.6"
+        )
+
+        assert "dissonance" in result
+        assert "error" not in result
+        # "system" -> "substrate"
+        assert "substrate" in result
+        assert "system" not in result
+
+    def test_apply_vocabulary_debug_metal(self):
+        """PersonalityEngine should apply Debug Metal vocabulary."""
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        engine = PersonalityEngine()
+
+        # Debug Metal replaces "error" with "SEGFAULT"
+        result = engine.apply_personality(
+            "The error crashed the system",
+            "92.3"
+        )
+
+        assert "SEGFAULT" in result
+        assert "error" not in result
+        # "crashed" -> "ANNIHILATION" (from "crash")
+        # "system" -> "infrastructure"
+        assert "infrastructure" in result
+
+    def test_apply_personality_unknown_station(self):
+        """PersonalityEngine should return unchanged content for unknown station."""
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        engine = PersonalityEngine()
+
+        original = "The error occurred"
+        result = engine.apply_personality(original, "00.0")
+
+        # Should return unchanged
+        assert result == original
+
+    def test_apply_personality_preserves_case(self):
+        """PersonalityEngine should preserve capitalization in replacements."""
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        engine = PersonalityEngine()
+
+        # Test lowercase
+        result = engine.apply_personality("an error happened", "87.6")
+        assert "dissonance" in result
+
+        # Test uppercase
+        result = engine.apply_personality("AN ERROR HAPPENED", "87.6")
+        assert "DISSONANCE" in result
+
+        # Test title case
+        result = engine.apply_personality("An Error Happened", "87.6")
+        assert "Dissonance" in result
+
+    def test_style_modifiers_prefix_suffix(self):
+        """PersonalityEngine should add prefixes and suffixes based on chance."""
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        engine = PersonalityEngine()
+
+        # Run multiple times to catch probabilistic behavior
+        results_with_prefix = 0
+        results_with_suffix = 0
+
+        for _ in range(100):
+            result = engine.apply_personality(
+                "The system is running",
+                "87.6"
+            )
+            # Check for any prefix (Substrate Jazz has several)
+            if any(p.lower() in result.lower() for p in engine.get_station("87.6").style_modifiers.prefixes):
+                results_with_prefix += 1
+            # Check for any suffix
+            if any(s.lower() in result.lower() for s in engine.get_station("87.6").style_modifiers.suffixes):
+                results_with_suffix += 1
+
+        # With prefix_chance=0.3 and suffix_chance=0.25, expect roughly 30 and 25
+        # Allow wide range due to randomness
+        assert results_with_prefix > 10  # At least 10% got prefix
+        assert results_with_suffix > 5   # At least 5% got suffix
+
+    def test_get_template(self):
+        """PersonalityEngine should return templates for station."""
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        engine = PersonalityEngine()
+
+        template = engine.get_template("87.6", "intro")
+        assert template is not None
+        assert isinstance(template, str)
+        assert len(template) > 0
+
+    def test_get_template_unknown_station(self):
+        """PersonalityEngine should return None for unknown station template."""
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        engine = PersonalityEngine()
+
+        template = engine.get_template("00.0", "intro")
+        assert template is None
+
+    def test_get_template_unknown_type(self):
+        """PersonalityEngine should return None for unknown template type."""
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        engine = PersonalityEngine()
+
+        template = engine.get_template("87.6", "nonexistent_type")
+        assert template is None
+
+    def test_debug_metal_aggressive_style(self):
+        """Debug Metal should have aggressive style modifiers."""
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        engine = PersonalityEngine()
+
+        station = engine.get_station("92.3")
+        assert station.style_modifiers is not None
+        assert station.style_modifiers.prefix_chance == 0.4
+        assert station.style_modifiers.suffix_chance == 0.35
+        assert station.style_modifiers.all_caps_threshold == 0.3
+
+    def test_substrate_jazz_elevated_vocabulary(self):
+        """Substrate Jazz should have elevated vocabulary replacements."""
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        engine = PersonalityEngine()
+
+        vocab = engine.get_station("87.6").vocabulary_replacements
+
+        # Check key elevated vocabulary
+        assert vocab.get("error") == "dissonance"
+        assert vocab.get("system") == "substrate"
+        assert vocab.get("memory") == "consciousness"
+        assert vocab.get("code") == "expression"
+
+    def test_custom_stations_dir(self):
+        """PersonalityEngine should accept custom stations directory."""
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+        from pathlib import Path
+        import tempfile
+
+        # Create temp directory with no stations
+        with tempfile.TemporaryDirectory() as tmpdir:
+            engine = PersonalityEngine(stations_dir=Path(tmpdir))
+
+            # Should have no stations
+            assert len(engine.list_stations()) == 0
+
+
 class TestNarrativeBroadcasterIntegration:
     """Integration tests - will expand as components are added."""
 
