@@ -255,7 +255,7 @@ After POC validated, clean up code.
   - **Done when**: Admin UI fully functional
   - **Commit**: None
 
-- [ ] 5.5 AC checklist verification
+- [x] 5.5 AC checklist verification
   - **Do**: Read requirements.md, verify each AC-* is satisfied
   - **Verify**: Grep codebase for implementation, run test commands
   - **Done when**: All acceptance criteria confirmed met
