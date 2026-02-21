@@ -166,7 +166,7 @@ After POC validated, clean up code structure.
   - _Requirements: FR-7_
   - _Design: FeedbackOrchestrator component_
 
-- [ ] 2.2 Implement WordPress topic sync in TopicMemory
+- [x] 2.2 Implement WordPress topic sync in TopicMemory
   - **Do**:
     1. Add `sync_to_wordpress()` async method to TopicMemory
     2. Add `load_from_wordpress()` async method for startup recovery

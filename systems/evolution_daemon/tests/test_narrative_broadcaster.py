@@ -277,6 +277,38 @@ class TestTopicMemory:
         assert not memory.is_duplicate("topic 1")  # Evicted
         assert memory.is_duplicate("topic 4")  # Still present
 
+    @pytest.mark.asyncio
+    async def test_wordpress_sync(self):
+        """TopicMemory should sync to and load from WordPress (FR-8)."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+
+        # Test sync_to_wordpress
+        mock_publisher = MagicMock(return_value={"post_id": 123, "url": "http://test"})
+        memory = TopicMemory(wordpress_publisher=mock_publisher)
+
+        # Add topics
+        for i in range(5):
+            memory.add_topic(f"Topic {i}")
+
+        # Sync to WordPress
+        result = await memory.sync_to_wordpress()
+        assert result is not None
+        assert result["topics_synced"] == 5
+
+        # Test load_from_wordpress
+        with patch('evolution_daemon.narrative_broadcaster.topic_memory._fetch_topics_from_wordpress') as mock_fetch:
+            mock_fetch.return_value = [
+                {"topic": "Loaded topic 1", "timestamp": 1700000000.0},
+                {"topic": "Loaded topic 2", "timestamp": 1700000001.0},
+            ]
+
+            new_memory = TopicMemory()
+            loaded = await new_memory.load_from_wordpress()
+
+            assert loaded == 2
+            assert new_memory.is_duplicate("Loaded topic 1")
+            assert new_memory.is_duplicate("Loaded topic 2")
+
 
 class TestSegmentPool:
     """Tests for SegmentPool content generation component."""
@@ -1273,3 +1305,186 @@ class TestFeedbackOrchestrator:
 
         # Weights should have minimum (0.1)
         assert weights[SegmentType.MEDITATION] >= 0.1
+
+
+class TestTopicMemoryWordPressSync:
+    """Tests for TopicMemory WordPress persistence (FR-8, AC-5.1 through AC-5.4)."""
+
+    @pytest.mark.asyncio
+    async def test_sync_to_wordpress_batch(self):
+        """TopicMemory should sync topics to WordPress in batches (AC-5.1, AC-5.4)."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+
+        # Create mock publisher
+        mock_publisher = MagicMock(return_value={"post_id": 123, "url": "http://test"})
+
+        # Inject mock via constructor
+        memory = TopicMemory(wordpress_publisher=mock_publisher)
+
+        # Add some topics
+        for i in range(10):
+            memory.add_topic(f"Topic {i}")
+
+        # Sync to WordPress
+        result = await memory.sync_to_wordpress()
+
+        # Should have called publish
+        assert result is not None
+        assert result["topics_synced"] == 10
+        mock_publisher.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_sync_to_wordpress_batch_size_limit(self):
+        """TopicMemory should limit batch to 50 topics max (NFR-4)."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+
+        mock_publisher = MagicMock(return_value={"post_id": 123, "url": "http://test"})
+        memory = TopicMemory(wordpress_publisher=mock_publisher)
+
+        # Add more than 50 topics
+        for i in range(75):
+            memory.add_topic(f"Topic {i}")
+
+        result = await memory.sync_to_wordpress()
+
+        # Should only sync 50 (the batch limit)
+        assert result["topics_synced"] == 50
+
+    @pytest.mark.asyncio
+    async def test_sync_to_wordpress_rate_limiting(self):
+        """TopicMemory should respect rate limiting between batches (AC-5.3)."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+
+        mock_publisher = MagicMock(return_value={"post_id": 123, "url": "http://test"})
+        memory = TopicMemory(wordpress_publisher=mock_publisher)
+
+        # Add topics
+        for i in range(10):
+            memory.add_topic(f"Topic {i}")
+
+        # First sync
+        await memory.sync_to_wordpress()
+
+        # Immediate second sync should be rate-limited
+        result = await memory.sync_to_wordpress()
+
+        # Should return None due to rate limiting
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_sync_to_wordpress_respects_interval(self):
+        """TopicMemory should respect 5 minute sync interval (AC-5.2)."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+
+        memory = TopicMemory(sync_interval_seconds=300)  # 5 minutes
+
+        # Check interval is set
+        assert memory.sync_interval_seconds == 300
+
+    @pytest.mark.asyncio
+    async def test_load_from_wordpress(self):
+        """TopicMemory should load topics from WordPress on startup (AC-5.4)."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+
+        with patch('evolution_daemon.narrative_broadcaster.topic_memory._fetch_topics_from_wordpress') as mock_fetch:
+            # Mock WordPress response
+            mock_fetch.return_value = [
+                {"topic": "Previous topic 1", "timestamp": 1700000000.0},
+                {"topic": "Previous topic 2", "timestamp": 1700000001.0},
+            ]
+
+            memory = TopicMemory()
+            await memory.load_from_wordpress()
+
+            # Should have loaded the topics
+            assert len(memory) == 2
+            assert memory.is_duplicate("Previous topic 1")
+            assert memory.is_duplicate("Previous topic 2")
+
+    @pytest.mark.asyncio
+    async def test_load_from_wordpress_empty(self):
+        """TopicMemory should handle empty WordPress response gracefully."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+
+        with patch('evolution_daemon.narrative_broadcaster.topic_memory._fetch_topics_from_wordpress') as mock_fetch:
+            mock_fetch.return_value = []
+
+            memory = TopicMemory()
+            await memory.load_from_wordpress()
+
+            assert len(memory) == 0
+
+    @pytest.mark.asyncio
+    async def test_load_from_wordpress_connection_error(self):
+        """TopicMemory should handle WordPress connection errors gracefully."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+
+        with patch('evolution_daemon.narrative_broadcaster.topic_memory._fetch_topics_from_wordpress') as mock_fetch:
+            mock_fetch.side_effect = Exception("Connection refused")
+
+            memory = TopicMemory()
+            # Should not raise
+            await memory.load_from_wordpress()
+
+            # Memory should still be usable
+            assert len(memory) == 0
+            memory.add_topic("New topic")
+            assert len(memory) == 1
+
+    @pytest.mark.asyncio
+    async def test_sync_marks_topics_as_synced(self):
+        """TopicMemory should mark topics as synced after successful publish."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+
+        mock_publisher = MagicMock(return_value={"post_id": 123, "url": "http://test"})
+        memory = TopicMemory(wordpress_publisher=mock_publisher)
+
+        # Add topics
+        for i in range(5):
+            memory.add_topic(f"Topic {i}")
+
+        await memory.sync_to_wordpress()
+
+        # Check topics are marked as synced
+        synced_count = sum(1 for entry in memory._topics.values() if entry.synced)
+        assert synced_count == 5
+
+    @pytest.mark.asyncio
+    async def test_sync_only_unsynced_topics(self):
+        """TopicMemory should only sync topics that haven't been synced."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicMemory
+
+        mock_publisher = MagicMock(return_value={"post_id": 123, "url": "http://test"})
+        memory = TopicMemory(wordpress_publisher=mock_publisher)
+
+        # Add topics
+        for i in range(10):
+            memory.add_topic(f"Topic {i}")
+
+        # First sync - should sync all 10
+        result1 = await memory.sync_to_wordpress()
+        assert result1["topics_synced"] == 10
+
+        # Add 5 more topics
+        for i in range(10, 15):
+            memory.add_topic(f"Topic {i}")
+
+        # Second sync (after rate limit) - should only sync 5 new ones
+        memory._last_sync_time = 0  # Reset rate limit for test
+        result2 = await memory.sync_to_wordpress()
+        assert result2["topics_synced"] == 5
+
+    @pytest.mark.asyncio
+    async def test_topic_entry_synced_field(self):
+        """TopicEntry should have synced field for tracking WordPress status."""
+        from evolution_daemon.narrative_broadcaster.topic_memory import TopicEntry
+        import numpy as np
+
+        entry = TopicEntry(
+            topic="Test topic",
+            embedding=np.zeros(384),
+            timestamp=1234567890.0
+        )
+
+        # Default should be False
+        assert entry.synced is False
