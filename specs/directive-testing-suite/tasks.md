@@ -39,7 +39,7 @@ Focus: Add all test cases following existing patterns. Skip optimization.
   - _Requirements: FR-3_
   - _Design: TestPollingPerformance, TestHeartbeatPerformance, TestMemoryEfficiency_
 
-- [ ] 1.4 Create stress tests
+- [x] 1.4 Create stress tests
   - **Do**: Create `tests/test_directive_stress.py` with 4 test classes (7 tests total)
   - **Files**: `tests/test_directive_stress.py`
   - **Done when**: `pytest tests/test_directive_stress.py -v` passes all tests
