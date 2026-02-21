@@ -92,3 +92,80 @@ class GeometryOS_Bridge {
 }
 
 new GeometryOS_Bridge();
+
+/**
+ * Send agent request to Evolution Daemon via Visual Bridge
+ *
+ * @param string $agent_type content_intelligence|evolution_publish|plugin_analysis
+ * @param array $payload Task-specific data
+ * @return array Response with status and task_id
+ */
+function geometry_os_send_agent_request(string $agent_type, array $payload): array {
+    $request = [
+        'type' => 'agent_request',
+        'agent_type' => $agent_type,
+        'payload' => $payload,
+        'source' => 'wordpress',
+        'timestamp' => time(),
+        'request_id' => function_exists('wp_generate_uuid4') ? wp_generate_uuid4() : uniqid('wp-', true)
+    ];
+
+    // Send via HTTP to Visual Bridge (localhost only for security)
+    $response = function_exists('wp_remote_post')
+        ? wp_remote_post('http://127.0.0.1:8768/agent/request', [
+            'timeout' => 5,
+            'body' => json_encode($request),
+            'headers' => [
+                'Content-Type' => 'application/json'
+            ]
+        ])
+        : null;
+
+    if (function_exists('is_wp_error') && is_wp_error($response)) {
+        return [
+            'status' => 'error',
+            'message' => $response->get_error_message()
+        ];
+    }
+
+    if ($response === null) {
+        return [
+            'status' => 'error',
+            'message' => 'WordPress HTTP functions not available'
+        ];
+    }
+
+    $body = function_exists('wp_remote_retrieve_body')
+        ? json_decode(wp_remote_retrieve_body($response), true)
+        : json_decode($response['body'] ?? '', true);
+
+    return $body ?? ['status' => 'unknown'];
+}
+
+/**
+ * Check agent task status
+ *
+ * @param string $task_id Task identifier from previous request
+ * @return array Status and result if complete
+ */
+function geometry_os_get_task_status(string $task_id): array {
+    $response = function_exists('wp_remote_get')
+        ? wp_remote_get("http://127.0.0.1:8768/agent/status/{$task_id}", [
+            'timeout' => 5
+        ])
+        : null;
+
+    if (function_exists('is_wp_error') && is_wp_error($response)) {
+        return ['status' => 'error', 'message' => $response->get_error_message()];
+    }
+
+    if ($response === null) {
+        return ['status' => 'error', 'message' => 'WordPress HTTP functions not available'];
+    }
+
+    $body = function_exists('wp_remote_retrieve_body')
+        ? json_decode(wp_remote_retrieve_body($response), true)
+        : json_decode($response['body'] ?? '', true);
+
+    return $body ?? ['status' => 'unknown'];
+}
