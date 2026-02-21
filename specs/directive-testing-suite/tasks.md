@@ -48,7 +48,7 @@ Focus: Add all test cases following existing patterns. Skip optimization.
   - _Requirements: FR-4_
   - _Design: TestHighVolume, TestLongRunning, TestConcurrentAccess, TestErrorRecovery_
 
-- [ ] 1.5 Create API contract tests
+- [x] 1.5 Create API contract tests
   - **Do**: Create `tests/test_directive_contracts.py` with 4 test classes (13 tests total)
   - **Files**: `tests/test_directive_contracts.py`
   - **Done when**: `pytest tests/test_directive_contracts.py -v` passes all tests
