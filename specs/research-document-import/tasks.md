@@ -114,7 +114,7 @@ After POC validated, clean up code.
   - **Commit**: `feat(wp): add research import admin plugin skeleton`
   - _Requirements: FR-7, AC-4.1_
 
-- [ ] 2.4 Implement admin UI page with import controls
+- [x] 2.4 Implement admin UI page with import controls
   - **Do**:
     1. Add "Run Import" button with nonce field
     2. Register AJAX handler `wp_ajax_research_import_start`

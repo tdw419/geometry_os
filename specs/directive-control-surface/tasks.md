@@ -183,6 +183,7 @@ bash tests/test_directive_ctl.sh
 ### Task 3.1: Update Command Console README
 **Type:** IMPLEMENT
 **Priority:** Medium
+**Status:** DONE
 **Depends on:** Task 2.2
 **Files:**
 - Create: `specs/command-console/README.md`
@@ -203,6 +204,7 @@ cat specs/command-console/README.md
 
 ### Task 3.2: [VERIFY] Documentation complete
 **Type:** VERIFY
+**Status:** DONE
 **Depends on:** Task 3.1
 
 **Steps:**
