@@ -28,17 +28,28 @@ class Claude_Importer {
      * Import all sessions from Claude directory
      *
      * @param string $claude_dir Base Claude directory (e.g., ~/.claude/projects/).
-     * @return array Stats array with imported, skipped, errors counts.
+     * @return array|WP_Error Stats array with imported, skipped, errors counts, or WP_Error.
      */
-    public function import_all(string $claude_dir): array {
+    public function import_all(string $claude_dir) {
         $stats = array(
             'imported' => 0,
             'skipped' => 0,
             'errors' => 0,
+            'error_details' => array(),
         );
 
         // Expand ~ to home directory
         $claude_dir = str_replace('~', getenv('HOME'), $claude_dir);
+
+        // Validate directory path - prevent directory traversal
+        if (preg_match('/\.\./', $claude_dir)) {
+            return new WP_Error('invalid_path', 'Directory traversal not allowed in directory path.');
+        }
+
+        // Check if directory exists
+        if (!is_dir($claude_dir)) {
+            return new WP_Error('dir_not_found', sprintf('Claude directory not found: %s', $claude_dir));
+        }
 
         // Glob all .jsonl files from all project subdirectories
         $pattern = rtrim($claude_dir, '/') . '/*/*.jsonl';
@@ -48,7 +59,18 @@ class Claude_Importer {
             return $stats;
         }
 
+        $batch_start_time = time();
+        $max_execution_time = (int) ini_get('max_execution_time');
+        // Reserve 5 seconds for cleanup
+        $safe_execution_time = max(30, $max_execution_time - 5);
+
         foreach ($files as $filepath) {
+            // Check execution time before each batch operation
+            if ($max_execution_time > 0 && (time() - $batch_start_time) > $safe_execution_time) {
+                $stats['error_details'][] = 'Import paused due to execution time limit. Some files not imported.';
+                break;
+            }
+
             // Extract project name from path
             $project = basename(dirname($filepath));
 
@@ -58,6 +80,13 @@ class Claude_Importer {
                 $stats['imported']++;
             } elseif ($result === 'skipped') {
                 $stats['skipped']++;
+            } elseif (is_wp_error($result)) {
+                $stats['errors']++;
+                $stats['error_details'][] = sprintf(
+                    '%s: %s',
+                    basename($filepath),
+                    $result->get_error_message()
+                );
             } else {
                 $stats['errors']++;
             }
@@ -71,11 +100,21 @@ class Claude_Importer {
      *
      * @param string $filepath Path to JSONL file.
      * @param string $project Project name.
-     * @return bool|string True on success, 'skipped' if duplicate, false on error.
+     * @return bool|string|WP_Error True on success, 'skipped' if duplicate, WP_Error on error.
      */
     public function import_session(string $filepath, string $project) {
+        // Validate filepath - prevent directory traversal
+        if (preg_match('/\.\./', $filepath)) {
+            return new WP_Error('invalid_path', 'Directory traversal not allowed in file path.');
+        }
+
         // Extract session_id from filename
         $session_id = basename($filepath, '.jsonl');
+
+        // Validate session_id format (should be alphanumeric with dashes/underscores)
+        if (!preg_match('/^[a-zA-Z0-9_-]+$/', $session_id)) {
+            return new WP_Error('invalid_session_id', sprintf('Invalid session ID format: %s', $session_id));
+        }
 
         // Check for existing post (duplicate detection)
         $existing = $this->find_existing_post($session_id);
@@ -88,7 +127,7 @@ class Claude_Importer {
         $conversation = $parser->parse();
 
         if (is_wp_error($conversation)) {
-            return false;
+            return $conversation;
         }
 
         // Check if conversation has any messages
@@ -101,11 +140,15 @@ class Claude_Importer {
         $content = $formatter->format($conversation);
         $content = $formatter->get_css() . $content;
 
-        // Extract title
+        // Extract title (already truncated to 80 chars by parser)
         $title = $parser->extract_title($conversation);
 
         // Create the post
         $post_id = $this->create_post($title, $content, $session_id, $project, $conversation['metadata']);
+
+        if (is_wp_error($post_id)) {
+            return $post_id;
+        }
 
         return $post_id !== false;
     }
@@ -146,10 +189,21 @@ class Claude_Importer {
      * @param string $session_id Session ID.
      * @param string $project Project name.
      * @param array $metadata Additional metadata.
-     * @return int|false Post ID on success, false on failure.
+     * @return int|WP_Error Post ID on success, WP_Error on failure.
      */
     public function create_post(string $title, string $content, string $session_id, string $project, array $metadata) {
         $category_id = $this->ensure_category();
+
+        // Truncate title to 80 chars with ellipsis (safety check)
+        if (strlen($title) > 80) {
+            $title = substr($title, 0, 77) . '...';
+        }
+
+        // Sanitize inputs
+        $title = sanitize_text_field($title);
+        $content = wp_kses_post($content);
+        $session_id = sanitize_key($session_id);
+        $project = sanitize_file_name($project);
 
         $post_data = array(
             'post_title' => $title,
@@ -162,7 +216,7 @@ class Claude_Importer {
         $post_id = wp_insert_post($post_data, true);
 
         if (is_wp_error($post_id)) {
-            return false;
+            return $post_id;
         }
 
         // Add post meta

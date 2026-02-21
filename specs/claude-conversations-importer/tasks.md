@@ -333,7 +333,7 @@ _Design: File Structure_
 
 ---
 
-### Task 2.2: Add Error Handling and Edge Cases
+### Task 2.2: [x] Add Error Handling and Edge Cases
 
 **Do:**
 1. Add try/catch in parser for file read errors

@@ -119,11 +119,37 @@ class Claude_Conversations_Admin {
                 $imported = intval($_GET['claude_imported']);
                 $skipped = intval($_GET['claude_skipped']);
                 $errors = intval($_GET['claude_errors']);
-                echo '<div class="notice notice-success is-dismissible"><p>';
-                echo sprintf(
+                $notice_class = ($errors > 0) ? 'notice-warning' : 'notice-success';
+                echo '<div class="notice ' . esc_attr($notice_class) . ' is-dismissible"><p>';
+                echo esc_html(sprintf(
                     'Import complete: %d imported, %d skipped (duplicates), %d errors.',
                     $imported, $skipped, $errors
-                );
+                ));
+                echo '</p></div>';
+            }
+
+            // Display error notices
+            if (isset($_GET['claude_error'])) {
+                $error_type = sanitize_key($_GET['claude_error']);
+                $error_msg = isset($_GET['claude_error_msg']) ? sanitize_text_field(urldecode($_GET['claude_error_msg'])) : '';
+                echo '<div class="notice notice-error is-dismissible"><p>';
+                echo '<strong>Error:</strong> ';
+                switch ($error_type) {
+                    case 'no_files':
+                        echo 'No .jsonl files found in the Claude directory.';
+                        break;
+                    case 'parse_error':
+                        echo 'Failed to parse session file.';
+                        break;
+                    case 'import_error':
+                        echo esc_html($error_msg) ?: 'An error occurred during import.';
+                        break;
+                    case 'empty_conversation':
+                        echo 'The conversation has no messages.';
+                        break;
+                    default:
+                        echo esc_html($error_msg) ?: 'An unknown error occurred.';
+                }
                 echo '</p></div>';
             }
             ?>
@@ -214,6 +240,16 @@ class Claude_Conversations_Admin {
         $importer = new Claude_Importer();
         $stats = $importer->import_all('~/.claude/projects/');
 
+        // Handle WP_Error from import_all
+        if (is_wp_error($stats)) {
+            wp_redirect(add_query_arg(array(
+                'page' => 'claude-conversations',
+                'claude_error' => 'import_error',
+                'claude_error_msg' => urlencode($stats->get_error_message()),
+            ), admin_url('admin.php')));
+            exit;
+        }
+
         // Redirect with stats
         wp_redirect(add_query_arg(array(
             'page' => 'claude-conversations',
@@ -256,7 +292,7 @@ class Claude_Conversations_Admin {
             exit;
         }
 
-        // Parse first file
+        // Parse first file with error handling
         $filepath = $files[0];
         $parser = new Claude_JsonlParser($filepath);
         $conversation = $parser->parse();
@@ -265,6 +301,16 @@ class Claude_Conversations_Admin {
             wp_redirect(add_query_arg(array(
                 'page' => 'claude-conversations',
                 'claude_error' => 'parse_error',
+                'claude_error_msg' => urlencode($conversation->get_error_message()),
+            ), admin_url('admin.php')));
+            exit;
+        }
+
+        // Check for empty conversation
+        if (empty($conversation['messages'])) {
+            wp_redirect(add_query_arg(array(
+                'page' => 'claude-conversations',
+                'claude_error' => 'empty_conversation',
             ), admin_url('admin.php')));
             exit;
         }
@@ -280,7 +326,7 @@ class Claude_Conversations_Admin {
         $preview .= $formatter->get_css();
         $preview .= $formatter->format($conversation);
 
-        // Store in transient for display
+        // Store in transient for display (sanitized content)
         set_transient('claude_preview_html', $preview, 60);
 
         // Redirect to show preview

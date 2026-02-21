@@ -39,12 +39,22 @@ class Claude_JsonlParser {
      * @return array|WP_Error Structured conversation data or error.
      */
     public function parse() {
+        // Validate filepath - prevent directory traversal
+        if (preg_match('/\.\./', $this->filepath)) {
+            return new WP_Error('invalid_path', 'Directory traversal not allowed in file path.');
+        }
+
         if (!file_exists($this->filepath)) {
             return new WP_Error('file_not_found', sprintf('File not found: %s', $this->filepath));
         }
 
         if (!is_readable($this->filepath)) {
             return new WP_Error('file_not_readable', sprintf('File not readable: %s', $this->filepath));
+        }
+
+        // Validate file extension
+        if (substr($this->filepath, -6) !== '.jsonl') {
+            return new WP_Error('invalid_format', 'File must have .jsonl extension.');
         }
 
         $session_id = basename($this->filepath, '.jsonl');
@@ -57,62 +67,82 @@ class Claude_JsonlParser {
             'end_time' => 0,
         );
 
-        $handle = fopen($this->filepath, 'r');
-        if (!$handle) {
-            return new WP_Error('file_open_failed', sprintf('Cannot open file: %s', $this->filepath));
+        try {
+            $handle = @fopen($this->filepath, 'r');
+            if (!$handle) {
+                return new WP_Error('file_open_failed', sprintf('Cannot open file: %s', $this->filepath));
+            }
+        } catch (Exception $e) {
+            return new WP_Error('file_read_error', sprintf('Error reading file: %s', $e->getMessage()));
         }
 
         $line_number = 0;
-        while (($line = fgets($handle)) !== false) {
-            $line_number++;
-            $line = trim($line);
+        $valid_lines = 0;
+        $invalid_lines = 0;
 
-            if (empty($line)) {
-                continue;
-            }
+        try {
+            while (($line = fgets($handle)) !== false) {
+                $line_number++;
+                $line = trim($line);
 
-            $entry = json_decode($line, true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                // Skip malformed JSON lines silently
-                continue;
-            }
+                if (empty($line)) {
+                    continue;
+                }
 
-            // Extract metadata from first valid entry
-            if (empty($metadata['project']) && isset($entry['cwd'])) {
-                $metadata['project'] = basename($entry['cwd']);
-            }
-            if (empty($metadata['git_branch']) && isset($entry['gitBranch'])) {
-                $metadata['git_branch'] = $entry['gitBranch'];
-            }
+                $entry = json_decode($line, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    // Track invalid lines but continue parsing
+                    $invalid_lines++;
+                    continue;
+                }
 
-            // Track timestamps
-            if (isset($entry['timestamp'])) {
-                $timestamp = strtotime($entry['timestamp']);
-                if ($timestamp !== false) {
-                    $metadata['start_time'] = min($metadata['start_time'], $timestamp);
-                    $metadata['end_time'] = max($metadata['end_time'], $timestamp);
+                $valid_lines++;
+
+                // Extract metadata from first valid entry
+                if (empty($metadata['project']) && isset($entry['cwd'])) {
+                    $metadata['project'] = basename($entry['cwd']);
+                }
+                if (empty($metadata['git_branch']) && isset($entry['gitBranch'])) {
+                    $metadata['git_branch'] = $entry['gitBranch'];
+                }
+
+                // Track timestamps
+                if (isset($entry['timestamp'])) {
+                    $timestamp = strtotime($entry['timestamp']);
+                    if ($timestamp !== false) {
+                        $metadata['start_time'] = min($metadata['start_time'], $timestamp);
+                        $metadata['end_time'] = max($metadata['end_time'], $timestamp);
+                    }
+                }
+
+                // Process user messages
+                if (isset($entry['type']) && $entry['type'] === 'user') {
+                    $content = $this->extract_user_content($entry);
+                    if ($content !== '') {
+                        $messages[] = array(
+                            'role' => 'user',
+                            'content' => $content,
+                            'timestamp' => isset($entry['timestamp']) ? strtotime($entry['timestamp']) : 0,
+                        );
+                    }
+                }
+
+                // Process assistant messages
+                if (isset($entry['type']) && $entry['type'] === 'assistant') {
+                    $this->extract_assistant_content($entry, $messages, $thinking);
                 }
             }
-
-            // Process user messages
-            if (isset($entry['type']) && $entry['type'] === 'user') {
-                $content = $this->extract_user_content($entry);
-                if ($content !== '') {
-                    $messages[] = array(
-                        'role' => 'user',
-                        'content' => $content,
-                        'timestamp' => isset($entry['timestamp']) ? strtotime($entry['timestamp']) : 0,
-                    );
-                }
-            }
-
-            // Process assistant messages
-            if (isset($entry['type']) && $entry['type'] === 'assistant') {
-                $this->extract_assistant_content($entry, $messages, $thinking);
-            }
+        } catch (Exception $e) {
+            fclose($handle);
+            return new WP_Error('parse_error', sprintf('Error parsing file at line %d: %s', $line_number, $e->getMessage()));
         }
 
         fclose($handle);
+
+        // Check for empty conversation (no valid JSONL lines)
+        if ($valid_lines === 0) {
+            return new WP_Error('empty_file', 'File contains no valid JSONL entries.');
+        }
 
         // Fix timestamps if none were found
         if ($metadata['start_time'] === PHP_INT_MAX) {
