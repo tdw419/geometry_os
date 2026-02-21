@@ -39,6 +39,12 @@ from systems.neural_city.synaptic_query_engine import SynapticQueryEngine
 from systems.visual_shell.api.tectonic_handler import TectonicHandler
 from systems.visual_shell.api.vat_manager import VATManager
 
+# Import Semantic Notification Bridge (PixelRTS v3 integration)
+from systems.visual_shell.api.semantic_notification_bridge import (
+    SemanticNotificationBridge,
+    NotificationEvent,
+)
+
 class VisualBridge:
     def __init__(self, memory_socket="/tmp/vector_memory_daemon.sock", ws_port=8768, map_size=4096):
         self.memory_socket = memory_socket
@@ -62,6 +68,9 @@ class VisualBridge:
         # Heat Map Aggregator (Visual Hotspot Debugger)
         self.heat_aggregator: Optional[Any] = None  # Initialized in start_heat_aggregator()
         self._heat_aggregator_enabled = True
+
+        # Semantic Notification Bridge (WordPress → Terminal)
+        self.semantic_bridge = SemanticNotificationBridge()
 
     def _query_memory_daemon(self, message):
         """Send a message to the Vector Memory Daemon and get response"""
@@ -304,6 +313,34 @@ class VisualBridge:
                     # Trigger ASCII file refresh
                     await self.broadcast_ascii_file("evolution_pas.ascii")
 
+                # 14b. WordPress Semantic Publishing (Memory District)
+                elif msg_type == 'wordpress_publish':
+                    title = data.get('title', 'Untitled')
+                    content = data.get('content', '')
+                    url = data.get('url', '')
+                    print(f"📝 WordPress Publish: {title}")
+
+                    # Create notification event for semantic bridge
+                    event = NotificationEvent(
+                        title=title,
+                        content=content,
+                        url=url,
+                    )
+
+                    # Broadcast to browser clients
+                    await self._broadcast({
+                        "type": "WORDPRESS_PUBLISH",
+                        "title": title,
+                        "content": content,
+                        "url": url,
+                        "timestamp": time.time()
+                    })
+
+                    # Send to geometric terminal (PixelRTS v3)
+                    terminal_op = self.semantic_bridge.to_terminal_opcode(event)
+                    await self._broadcast(terminal_op)
+                    print(f"📺 Terminal notification: {title[:40]}...")
+
                 # 15a. Mutation Batch Events (Evolution Daemon)
                 elif msg_type == 'mutation_batch':
                     # Broadcast mutation batch to all clients for visualization
@@ -426,6 +463,48 @@ class VisualBridge:
                     if self.heat_aggregator:
                         self.heat_aggregator.record_memory_access(address, source)
                         print(f"🔥 Heat Memory: 0x{address:x} ({access_type}) from {source}")
+
+                # 19. Alpine Linux Live Tile Handlers (v3)
+                elif msg_type == 'alpine_input':
+                    # Forward input to LiveTileService
+                    tile_id = data.get('tile_id')
+                    input_text = data.get('input', '')
+                    source = data.get('source', 'human')
+                    print(f"⌨️ Alpine Input: {tile_id} <- '{input_text.strip()}' ({source})")
+                    
+                    # Implementation depends on LiveTileService integration
+                    # For now, broadcast to all (including agents)
+                    await self._broadcast({
+                        "type": "ALPINE_INPUT_RELAY",
+                        "tile_id": tile_id,
+                        "input": input_text,
+                        "source": source
+                    })
+
+                elif msg_type == 'alpine_output':
+                    # Relay terminal grid updates to browser
+                    await self._broadcast({
+                        "type": "ALPINE_OUTPUT",
+                        "data": data
+                    })
+
+                elif msg_type == 'alpine_focus':
+                    # Handle focus changes
+                    tile_id = data.get('tile_id')
+                    focused = data.get('focused', False)
+                    print(f"🎯 Alpine Focus: {tile_id} -> {'FOCUSED' if focused else 'IDLE'}")
+                    await self._broadcast({
+                        "type": "ALPINE_FOCUS_UPDATE",
+                        "tile_id": tile_id,
+                        "focused": focused
+                    })
+
+                elif msg_type == 'alpine_stats':
+                    # Relay metrics
+                    await self._broadcast({
+                        "type": "ALPINE_STATS",
+                        "data": data
+                    })
 
         except websockets.exceptions.ConnectionClosed:
             pass
