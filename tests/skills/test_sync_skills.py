@@ -96,3 +96,48 @@ Should fall back gracefully.
         # Malformed YAML should fall back to default behavior
         assert metadata == {"category": "general"}
         assert "---" in content  # Original content preserved
+
+
+class TestSkillFiles:
+    """Tests for validating skill files in the skills directory."""
+
+    def test_all_skills_have_skill_md(self, skills_dir):
+        """Test that all skill directories contain a SKILL.md file."""
+        skill_dirs = [d for d in skills_dir.iterdir() if d.is_dir()]
+
+        assert len(skill_dirs) > 0, "No skill directories found"
+
+        for skill_dir in skill_dirs:
+            skill_md = skill_dir / "SKILL.md"
+            assert skill_md.exists(), f"Missing SKILL.md in {skill_dir.name}"
+            assert skill_md.is_file(), f"SKILL.md in {skill_dir.name} is not a file"
+
+    def test_all_skills_have_required_fields(self, skills_dir):
+        """Test that all skill files have required frontmatter fields (name, description, category)."""
+        skill_dirs = [d for d in skills_dir.iterdir() if d.is_dir()]
+
+        for skill_dir in skill_dirs:
+            skill_md = skill_dir / "SKILL.md"
+            metadata, _ = parse_skill_file(skill_md)
+
+            assert "name" in metadata, f"Missing 'name' field in {skill_dir.name}/SKILL.md"
+            assert "description" in metadata, f"Missing 'description' field in {skill_dir.name}/SKILL.md"
+            assert "category" in metadata, f"Missing 'category' field in {skill_dir.name}/SKILL.md"
+
+            assert metadata["name"], f"'name' field is empty in {skill_dir.name}/SKILL.md"
+            assert metadata["description"], f"'description' field is empty in {skill_dir.name}/SKILL.md"
+            assert metadata["category"], f"'category' field is empty in {skill_dir.name}/SKILL.md"
+
+    def test_all_categories_valid(self, skills_dir, valid_categories):
+        """Test that all skill categories are valid."""
+        skill_dirs = [d for d in skills_dir.iterdir() if d.is_dir()]
+
+        for skill_dir in skill_dirs:
+            skill_md = skill_dir / "SKILL.md"
+            metadata, _ = parse_skill_file(skill_md)
+
+            category = metadata.get("category", "")
+            assert category in valid_categories, (
+                f"Invalid category '{category}' in {skill_dir.name}/SKILL.md. "
+                f"Valid categories: {valid_categories}"
+            )

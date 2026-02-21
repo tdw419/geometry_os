@@ -93,7 +93,7 @@ _Design: TestParseSkillFile_
 
 ---
 
-### Task 1.4: [VERIFY] Quality checkpoint: unit tests pass
+### Task 1.4: [x] [VERIFY] Quality checkpoint: unit tests pass
 
 **Do:**
 1. Run pytest on tests/skills/ directory
@@ -112,7 +112,7 @@ pytest tests/skills/ -v --tb=short 2>&1 | tail -5 | grep -q "passed"
 
 ---
 
-### Task 1.5: Create TestSkillFiles class
+### Task 1.5: [x] Create TestSkillFiles class [x]
 
 **Do:**
 1. Add `TestSkillFiles` class to test_sync_skills.py
