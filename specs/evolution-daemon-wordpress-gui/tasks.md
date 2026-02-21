@@ -68,7 +68,7 @@ Focus: Create core components with tests. Skip memory sync, accept mock executor
   - _Requirements: FR-5, FR-7, FR-8, FR-9_
   - _Design: BridgeService component_
 
-- [ ] 1.5 POC Checkpoint
+- [x] 1.5 POC Checkpoint
   - **Do**: Run all tests, verify components work in isolation
   - **Done when**: All 13 tests pass
   - **Verify**: `pytest tests/test_wordpress_*.py tests/test_wp_evolution_*.py -v`
