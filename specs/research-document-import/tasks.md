@@ -218,7 +218,7 @@ After POC validated, clean up code.
 
 ## Phase 5: PR Lifecycle
 
-- [ ] 5.1 Full import validation (100 docs)
+- [x] 5.1 Full import validation (100 docs)
   - **Do**:
     1. Run importer with `--limit 100` on staging/production
     2. Verify no timeout, correct counts
@@ -227,7 +227,7 @@ After POC validated, clean up code.
   - **Done when**: 100 docs imported successfully
   - **Commit**: None
 
-- [ ] 5.2 Search API validation
+- [x] 5.2 Search API validation
   - **Do**:
     1. Test search with known terms
     2. Test meta filtering
