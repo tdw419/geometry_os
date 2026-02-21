@@ -12,7 +12,7 @@ generated: auto
 
 Focus: Add all test cases following existing patterns. Skip optimization.
 
-- [ ] 1.1 Add scope detection edge case tests
+- [x] 1.1 Add scope detection edge case tests
   - **Do**: Add `TestScopeDetectionEdgeCases` class with 8 tests to `tests/test_directive_agent.py`
   - **Files**: `tests/test_directive_agent.py`
   - **Done when**: `pytest tests/test_directive_agent.py::TestScopeDetectionEdgeCases -v` passes 8 tests
@@ -21,7 +21,7 @@ Focus: Add all test cases following existing patterns. Skip optimization.
   - _Requirements: FR-1_
   - _Design: TestScopeDetectionEdgeCases_
 
-- [ ] 1.2 Add component lookup edge case tests
+- [x] 1.2 Add component lookup edge case tests
   - **Do**: Add `TestComponentLookupEdgeCases` class with 6 tests to `tests/test_directive_agent.py`
   - **Files**: `tests/test_directive_agent.py`
   - **Done when**: `pytest tests/test_directive_agent.py::TestComponentLookupEdgeCases -v` passes 6 tests
@@ -57,7 +57,7 @@ Focus: Add all test cases following existing patterns. Skip optimization.
   - _Requirements: FR-5_
   - _Design: TestGetDirectivesContract, TestMarkDirectiveProcessedContract, TestPostDirectiveResponseContract, TestSubstrateCacheContract_
 
-- [ ] 1.6 POC Checkpoint
+- [x] 1.6 POC Checkpoint
   - **Do**: Run all directive tests and verify total count
   - **Done when**: All directive tests pass, count >= 107
   - **Verify**: `python -m pytest tests/test_directive*.py -v --tb=short`
