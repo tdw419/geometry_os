@@ -189,7 +189,7 @@ After POC validated, clean up code.
   - **Commit**: `test(wp): add integration tests`
   - _Design: Test Strategy - Integration Tests_
 
-- [ ] 3.4 [VERIFY] Quality checkpoint: All tests pass
+- [x] 3.4 [VERIFY] Quality checkpoint: All tests pass
   - **Do**: Run all test suites
   - **Verify**: `python3 -m pytest wordpress_zone/tests/test_import_research_docs.py wordpress_zone/tests/test_research_integration.py -v 2>&1 | grep -E "(PASSED|FAILED|ERROR|passed|failed)"`
   - **Done when**: All tests pass
@@ -197,7 +197,7 @@ After POC validated, clean up code.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Local quality check
+- [x] 4.1 Local quality check
   - **Do**: Run ALL quality checks locally
   - **Verify**:
     - Python syntax: `python3 -m py_compile wordpress_zone/import_research_docs.py`
