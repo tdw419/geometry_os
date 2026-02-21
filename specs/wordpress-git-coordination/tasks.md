@@ -90,7 +90,7 @@ Focus: Validate core claim/release cycle works end-to-end. Skip tests, accept ha
 
 After POC validated, clean up code structure.
 
-- [ ] 2.1 Add error handling to ai-publisher.php handlers
+- [x] 2.1 Add error handling to ai-publisher.php handlers
   - **Do**:
     1. Add input validation (missing track_id, agent_id, files)
     2. Return proper HTTP status codes (400, 404, 409, 410)

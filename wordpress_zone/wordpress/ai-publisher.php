@@ -712,20 +712,48 @@ function check_file_overlaps($files, $exclude_claim_id = 0) {
 /**
  * Handle claiming a track
  * POST /ai-publisher.php {"action":"claimTrack","track_id":"...","agent_id":"...","files":["path/"]}
+ *
+ * HTTP Status Codes:
+ * - 200: Success
+ * - 400: Missing or invalid required fields
+ * - 409: Track already claimed or file conflict
+ * - 500: Internal server error
  */
 function handle_claim_track($args) {
     // Validate required fields
-    if (!isset($args['track_id']) || !isset($args['agent_id']) || !isset($args['files'])) {
+    $missing = array();
+    if (!isset($args['track_id']) || empty($args['track_id'])) {
+        $missing[] = 'track_id';
+    }
+    if (!isset($args['agent_id']) || empty($args['agent_id'])) {
+        $missing[] = 'agent_id';
+    }
+    if (!isset($args['files'])) {
+        $missing[] = 'files';
+    }
+
+    if (!empty($missing)) {
+        header('HTTP/1.1 400 Bad Request');
         echo json_encode(array(
             'success' => false,
-            'error' => 'Missing required fields: track_id, agent_id, files'
+            'error' => 'Missing required fields: ' . implode(', ', $missing)
         ));
         return;
     }
 
     $track_id = sanitize_text_field($args['track_id']);
     $agent_id = sanitize_text_field($args['agent_id']);
+
+    // Validate files is array and not empty
     $files = is_array($args['files']) ? $args['files'] : array($args['files']);
+    if (empty($files) || (count($files) === 1 && empty($files[0]))) {
+        header('HTTP/1.1 400 Bad Request');
+        echo json_encode(array(
+            'success' => false,
+            'error' => 'Files array cannot be empty'
+        ));
+        return;
+    }
 
     // Sanitize file paths
     $files = array_map('sanitize_text_field', $files);
@@ -751,6 +779,7 @@ function handle_claim_track($args) {
     ));
 
     if (!empty($existing)) {
+        header('HTTP/1.1 409 Conflict');
         echo json_encode(array(
             'success' => false,
             'error' => 'Track already claimed',
@@ -763,6 +792,7 @@ function handle_claim_track($args) {
     // Check for file overlaps with other claims
     $overlaps = check_file_overlaps($files);
     if (!empty($overlaps)) {
+        header('HTTP/1.1 409 Conflict');
         echo json_encode(array(
             'success' => false,
             'error' => 'File conflict detected',
@@ -782,9 +812,10 @@ function handle_claim_track($args) {
     $claim_id = wp_insert_post($post_data);
 
     if (is_wp_error($claim_id)) {
+        header('HTTP/1.1 500 Internal Server Error');
         echo json_encode(array(
             'success' => false,
-            'error' => $claim_id->get_error_message()
+            'error' => 'Failed to create claim: ' . $claim_id->get_error_message()
         ));
         return;
     }
@@ -812,13 +843,28 @@ function handle_claim_track($args) {
 /**
  * Handle releasing a track
  * POST /ai-publisher.php {"action":"releaseTrack","track_id":"...","agent_id":"..."}
+ *
+ * HTTP Status Codes:
+ * - 200: Success (or idempotent release of non-existent/expired claim)
+ * - 400: Missing or invalid required fields
+ * - 403: Agent ID does not match claim owner (forbidden)
+ * - 410: Claim has expired (gone)
  */
 function handle_release_track($args) {
     // Validate required fields
-    if (!isset($args['track_id']) || !isset($args['agent_id'])) {
+    $missing = array();
+    if (!isset($args['track_id']) || empty($args['track_id'])) {
+        $missing[] = 'track_id';
+    }
+    if (!isset($args['agent_id']) || empty($args['agent_id'])) {
+        $missing[] = 'agent_id';
+    }
+
+    if (!empty($missing)) {
+        header('HTTP/1.1 400 Bad Request');
         echo json_encode(array(
             'success' => false,
-            'error' => 'Missing required fields: track_id, agent_id'
+            'error' => 'Missing required fields: ' . implode(', ', $missing)
         ));
         return;
     }
@@ -826,29 +872,26 @@ function handle_release_track($args) {
     $track_id = sanitize_text_field($args['track_id']);
     $agent_id = sanitize_text_field($args['agent_id']);
 
-    // Find the claim
+    // Find the claim (any status to handle expired cases)
     $claims = get_posts(array(
         'post_type' => 'track_claim',
-        'post_status' => 'publish',
+        'post_status' => 'any', // Include trashed for idempotent behavior
         'posts_per_page' => 1,
         'meta_query' => array(
             array(
                 'key' => 'track_id',
                 'value' => $track_id,
                 'compare' => '='
-            ),
-            array(
-                'key' => 'agent_id',
-                'value' => $agent_id,
-                'compare' => '='
             )
         )
     ));
 
+    // Idempotent: No claim found is success (already released or never claimed)
     if (empty($claims)) {
         echo json_encode(array(
-            'success' => false,
-            'error' => 'No active claim found for this track_id and agent_id'
+            'success' => true,
+            'track_id' => $track_id,
+            'message' => 'No active claim found (already released or never claimed)'
         ));
         return;
     }
@@ -856,13 +899,47 @@ function handle_release_track($args) {
     $claim = $claims[0];
     $claim_id = $claim->ID;
 
+    // Check if already trashed (idempotent)
+    if ($claim->post_status === 'trash') {
+        echo json_encode(array(
+            'success' => true,
+            'claim_id' => $claim_id,
+            'track_id' => $track_id,
+            'message' => 'Track already released (was in trash)'
+        ));
+        return;
+    }
+
     // Verify ownership
     $claim_agent = get_post_meta($claim_id, 'agent_id', true);
     if ($claim_agent !== $agent_id) {
+        header('HTTP/1.1 403 Forbidden');
         echo json_encode(array(
             'success' => false,
             'error' => 'Agent ID does not match claim owner',
             'claim_owner' => $claim_agent
+        ));
+        return;
+    }
+
+    // Check if claim has expired (heartbeat > 10 min)
+    $heartbeat = get_post_meta($claim_id, 'heartbeat', true);
+    $heartbeat_time = strtotime($heartbeat);
+    $is_expired = ($heartbeat_time < strtotime('-10 minutes'));
+
+    if ($is_expired) {
+        // Still release it, but indicate it was expired
+        $files = get_post_meta($claim_id, 'files', true);
+        wp_trash_post($claim_id);
+        notify_visual_bridge('TRACK_RELEASED', $track_id, $agent_id, is_array($files) ? $files : array($files));
+
+        header('HTTP/1.1 410 Gone');
+        echo json_encode(array(
+            'success' => true,
+            'claim_id' => $claim_id,
+            'track_id' => $track_id,
+            'message' => 'Track released (claim was expired)',
+            'was_expired' => true
         ));
         return;
     }
@@ -959,13 +1036,29 @@ function handle_list_tracks($args) {
 /**
  * Handle heartbeat update for a track
  * POST /ai-publisher.php {"action":"heartbeatTrack","track_id":"...","agent_id":"..."}
+ *
+ * HTTP Status Codes:
+ * - 200: Success
+ * - 400: Missing or invalid required fields
+ * - 404: No active claim found
+ * - 403: Agent ID does not match claim owner (forbidden)
+ * - 410: Claim has expired (gone) - heartbeat not updated
  */
 function handle_heartbeat_track($args) {
     // Validate required fields
-    if (!isset($args['track_id']) || !isset($args['agent_id'])) {
+    $missing = array();
+    if (!isset($args['track_id']) || empty($args['track_id'])) {
+        $missing[] = 'track_id';
+    }
+    if (!isset($args['agent_id']) || empty($args['agent_id'])) {
+        $missing[] = 'agent_id';
+    }
+
+    if (!empty($missing)) {
+        header('HTTP/1.1 400 Bad Request');
         echo json_encode(array(
             'success' => false,
-            'error' => 'Missing required fields: track_id, agent_id'
+            'error' => 'Missing required fields: ' . implode(', ', $missing)
         ));
         return;
     }
@@ -973,7 +1066,7 @@ function handle_heartbeat_track($args) {
     $track_id = sanitize_text_field($args['track_id']);
     $agent_id = sanitize_text_field($args['agent_id']);
 
-    // Find the claim
+    // Find the claim (only active ones)
     $claims = get_posts(array(
         'post_type' => 'track_claim',
         'post_status' => 'publish',
@@ -983,25 +1076,49 @@ function handle_heartbeat_track($args) {
                 'key' => 'track_id',
                 'value' => $track_id,
                 'compare' => '='
-            ),
-            array(
-                'key' => 'agent_id',
-                'value' => $agent_id,
-                'compare' => '='
             )
         )
     ));
 
     if (empty($claims)) {
+        header('HTTP/1.1 404 Not Found');
         echo json_encode(array(
             'success' => false,
-            'error' => 'No active claim found for this track_id and agent_id'
+            'error' => 'No claim found for this track_id'
         ));
         return;
     }
 
     $claim = $claims[0];
     $claim_id = $claim->ID;
+
+    // Verify ownership
+    $claim_agent = get_post_meta($claim_id, 'agent_id', true);
+    if ($claim_agent !== $agent_id) {
+        header('HTTP/1.1 403 Forbidden');
+        echo json_encode(array(
+            'success' => false,
+            'error' => 'Agent ID does not match claim owner',
+            'claim_owner' => $claim_agent
+        ));
+        return;
+    }
+
+    // Check if claim has already expired
+    $heartbeat = get_post_meta($claim_id, 'heartbeat', true);
+    $heartbeat_time = strtotime($heartbeat);
+    $is_expired = ($heartbeat_time < strtotime('-10 minutes'));
+
+    if ($is_expired) {
+        header('HTTP/1.1 410 Gone');
+        echo json_encode(array(
+            'success' => false,
+            'error' => 'Claim has expired, heartbeat cannot be updated',
+            'claim_id' => $claim_id,
+            'last_heartbeat' => $heartbeat
+        ));
+        return;
+    }
 
     // Update heartbeat timestamp
     $now = current_time('mysql');
