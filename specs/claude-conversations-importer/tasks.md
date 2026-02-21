@@ -145,7 +145,7 @@ _Design: Claude_HtmlFormatter_
 
 ---
 
-### Task 1.4: Import Engine Class
+### Task 1.4: [x] Import Engine Class
 
 **Do:**
 1. Add `Claude_Importer` class to main plugin file
