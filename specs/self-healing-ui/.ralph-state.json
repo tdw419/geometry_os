@@ -1,0 +1,13 @@
+{
+  "source": "plan",
+  "name": "self-healing-ui",
+  "basePath": "./specs/self-healing-ui",
+  "phase": "execution",
+  "taskIndex": 0,
+  "totalTasks": 5,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": true
+}
