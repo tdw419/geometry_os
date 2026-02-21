@@ -1,0 +1,152 @@
+# Command Console Team
+# Bidirectional human-AI collaboration via WordPress Directives
+
+team:
+  name: command-console-team
+  description: |
+    Builds the Command Console feature for bidirectional human-AI collaboration.
+    Humans write WordPress posts (Directives), AI agents read and execute them,
+    posting results as comments.
+
+  project_root: /home/jericho/zion/projects/geometry_os/geometry_os
+
+  agents:
+    - name: php-api-developer
+      role: Extends WordPress API with directive endpoints
+      focus:
+        - Add getDirectives, markDirectiveProcessed, postDirectiveResponse handlers
+        - Update handle_list_tools() to include new tools
+        - Maintain localhost-only security
+      files:
+        - wordpress_zone/wordpress/ai-publisher.php
+
+    - name: python-agent-developer
+      role: Implements DirectiveAgent core class
+      focus:
+        - DirectiveAgent class with poll, parse, execute, respond methods
+        - Directive parsing (scope, action, target extraction)
+        - Out-of-scope detection
+        - Substrate map lookup
+      files:
+        - systems/intelligence/directive_agent.py
+        - systems/intelligence/__init__.py
+
+    - name: cache-integrator
+      role: Adds substrate map cache export to ArchitectAgent
+      focus:
+        - export_cache() method in ArchitectAgent
+        - .geometry/substrate_map.json generation
+        - Integration with DirectiveAgent._load_substrate_map()
+      files:
+        - systems/intelligence/architect_agent_wp.py
+
+    - name: test-engineer
+      role: Writes comprehensive tests
+      focus:
+        - Unit tests for DirectiveAgent parsing and execution
+        - Integration tests for WordPress API round-trip
+        - E2E tests for full directive flow
+        - Mock responses for WordPress API
+      files:
+        - tests/test_directive_agent.py
+        - tests/test_directive_console_e2e.py
+
+    - name: ops-automation
+      role: Creates management and automation scripts
+      focus:
+        - directive_ctl.sh for start/stop/status/process-once
+        - Log file management
+        - PID file handling
+      files:
+        - systems/intelligence/directive_ctl.sh
+
+  tasks:
+    - id: task-1
+      title: WordPress API Extensions
+      assignee: php-api-developer
+      dependencies: []
+      description: |
+        Extend ai-publisher.php with directive endpoints:
+        - Add getDirectives, markDirectiveProcessed, postDirectiveResponse handlers
+        - Update handle_list_tools()
+        - Create Directives category if not exists
+
+    - id: task-2
+      title: DirectiveAgent Core Class
+      assignee: python-agent-developer
+      dependencies: []
+      description: |
+        Create systems/intelligence/directive_agent.py:
+        - DirectiveScope, DirectiveStatus enums
+        - Directive dataclass
+        - DirectiveAgent class with poll_directives(), parse_directive(), execute_directive()
+        - Scope detection (informational, research, out-of-scope)
+        - Target extraction
+
+    - id: task-3
+      title: Substrate Map Cache
+      assignee: cache-integrator
+      dependencies: []
+      description: |
+        Add cache export to ArchitectAgent:
+        - export_cache() method
+        - Call in run() after publish_map()
+        - Output to .geometry/substrate_map.json
+
+    - id: task-4
+      title: Unit Tests
+      assignee: test-engineer
+      dependencies: [task-2]
+      description: |
+        Create tests/test_directive_agent.py:
+        - TestDirectiveParsing: explain, investigate, out-of-scope detection
+        - TestDirectiveExecution: informational, research, not found
+        - TestDirectiveAPI: poll, mark_processed, post_response mocks
+        - TestComponentLookup: exact match, partial match, empty map
+
+    - id: task-5
+      title: E2E Integration Tests
+      assignee: test-engineer
+      dependencies: [task-1, task-2]
+      description: |
+        Create tests/test_directive_console_e2e.py:
+        - Test WordPress API availability
+        - Test create and process directive flow
+        - Test out-of-scope rejection
+
+    - id: task-6
+      title: Control Script
+      assignee: ops-automation
+      dependencies: [task-2]
+      description: |
+        Create systems/intelligence/directive_ctl.sh:
+        - start: Launch daemon in background
+        - stop: Kill daemon process
+        - status: Check if running
+        - process-once: Single cycle execution
+        - tail: Follow log file
+
+    - id: task-7
+      title: Integration Verification
+      assignee: test-engineer
+      dependencies: [task-1, task-2, task-3, task-4, task-5, task-6]
+      description: |
+        Final integration verification:
+        - All tests pass: pytest tests/test_directive*.py -v
+        - DirectiveAgent can poll WordPress
+        - Test directive processed correctly
+        - Response posted as comment
+
+  success_criteria:
+    - All 7 tasks completed
+    - 15+ tests passing
+    - DirectiveAgent daemon starts successfully
+    - WordPress API responds to getDirectives
+    - Test directive processed and response posted
+    - Control script operational (start/stop/status)
+
+  reference_docs:
+    - docs/plans/2026-02-21-command-console.md
+    - specs/command-console/research.md
+    - systems/intelligence/architect_agent_wp.py
+    - wordpress_zone/wordpress/ai-publisher.php
