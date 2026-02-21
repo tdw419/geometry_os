@@ -295,6 +295,9 @@ class DirectiveAgent:
         if not target or not self._substrate_cache:
             return None
 
+        # Strip whitespace from target
+        target = target.strip()
+
         # Exact match
         if target in self._substrate_cache:
             return self._substrate_cache[target]

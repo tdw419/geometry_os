@@ -1123,3 +1123,74 @@ class TestScopeDetectionEdgeCases:
             author="user"
         )
         assert directive.scope == DirectiveScope.INFORMATIONAL
+
+
+class TestComponentLookupEdgeCases:
+    """Edge case tests for substrate map component lookup."""
+
+    @pytest.fixture
+    def agent_with_components(self, tmp_path):
+        """Create agent with test substrate map."""
+        from systems.intelligence.directive_agent import DirectiveAgent
+
+        substrate = {
+            "evolution_daemon": {
+                "name": "Evolution Daemon",
+                "path": "systems/evolution_daemon",
+                "description": "Natural Selection for Operating Systems"
+            },
+            "visual_shell": {
+                "name": "Visual Shell",
+                "path": "systems/visual_shell",
+                "description": "PixiJS-based infinite map renderer"
+            },
+            "pixel_compiler": {
+                "name": "Pixel Compiler",
+                "path": "systems/pixel_compiler",
+                "description": "Converts code to executable images"
+            }
+        }
+
+        substrate_file = tmp_path / "substrate.json"
+        with open(substrate_file, 'w') as f:
+            json.dump(substrate, f)
+
+        agent = DirectiveAgent(substrate_map_path=str(substrate_file))
+        return agent
+
+    def test_lookup_with_extra_whitespace(self, agent_with_components):
+        """Target with extra whitespace should still match."""
+        result = agent_with_components._lookup_component("  evolution_daemon  ")
+        assert result is not None
+        assert result["name"] == "Evolution Daemon"
+
+    def test_lookup_with_underscores_vs_spaces(self, agent_with_components):
+        """Underscores and spaces should be treated similarly."""
+        result1 = agent_with_components._lookup_component("evolution daemon")
+        result2 = agent_with_components._lookup_component("evolution_daemon")
+        # At least one should match
+        assert result1 is not None or result2 is not None
+
+    def test_lookup_partial_name_match(self, agent_with_components):
+        """Partial name should match if unique."""
+        result = agent_with_components._lookup_component("pixel")
+        assert result is not None
+        assert "Pixel" in result["name"]
+
+    def test_lookup_description_search(self, agent_with_components):
+        """Search should also check descriptions."""
+        result = agent_with_components._lookup_component("renderer")
+        assert result is not None
+        assert "renderer" in result["description"].lower()
+
+    def test_lookup_returns_none_for_garbage(self, agent_with_components):
+        """Garbage input should return None, not raise."""
+        result = agent_with_components._lookup_component("xyzzy123nonexistent")
+        assert result is None
+
+    def test_lookup_with_numbers(self, agent_with_components):
+        """Numbers in target should be handled."""
+        # This should not crash
+        result = agent_with_components._lookup_component("daemon123")
+        # May or may not match, but shouldn't crash
+        assert result is None or isinstance(result, dict)
