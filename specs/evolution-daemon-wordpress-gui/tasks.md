@@ -91,7 +91,7 @@ After POC validated, wire components together.
   - _Requirements: FR-5_
   - _Design: Architecture diagram_
 
-- [ ] 2.2 Create startup script and documentation
+- [x] 2.2 Create startup script and documentation
   - **Do**:
     1. Create `wordpress_zone/start_evolution_bridge.sh` with prerequisite checks
     2. Create `systems/evolution_daemon/wordpress/README.md` with architecture, quickstart, config
