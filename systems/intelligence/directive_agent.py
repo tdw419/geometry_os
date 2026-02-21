@@ -13,9 +13,11 @@ import time
 import logging
 import re
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from typing import Optional
 from pathlib import Path
+import os
 
 import requests
 
@@ -149,7 +151,8 @@ class DirectiveAgent:
         self,
         wp_url: Optional[str] = None,
         poll_interval: Optional[int] = None,
-        substrate_map_path: Optional[str] = None
+        substrate_map_path: Optional[str] = None,
+        heartbeat_path: Optional[str] = None
     ):
         self.wp_url = wp_url or self.WP_URL
         self.wp_api = f"{self.wp_url}/ai-publisher.php"
@@ -158,6 +161,11 @@ class DirectiveAgent:
         # Substrate map cache
         self.substrate_map_path = substrate_map_path or ".geometry/substrate_map.json"
         self._substrate_cache: dict = {}
+
+        # Heartbeat tracking
+        self.heartbeat_path = heartbeat_path or ".geometry/directive_agent_heartbeat.json"
+        self._directives_processed: int = 0
+        self._start_time: Optional[datetime] = None
 
         # Logging setup
         self.logger = logging.getLogger("DirectiveAgent")
@@ -179,6 +187,36 @@ class DirectiveAgent:
                 self._substrate_cache = {}
         else:
             self.logger.info("Substrate map not found, will return NEEDS_CLARIFICATION for lookups")
+
+    def write_heartbeat(self) -> None:
+        """
+        Write heartbeat file for external monitoring.
+
+        Writes JSON with: timestamp, pid, running, uptime_seconds,
+        directives_processed, wp_url, poll_interval, substrate_components.
+        """
+        uptime = 0.0
+        if self._start_time:
+            uptime = (datetime.utcnow() - self._start_time).total_seconds()
+
+        heartbeat_data = {
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "pid": os.getpid(),
+            "running": self._start_time is not None,
+            "uptime_seconds": uptime,
+            "directives_processed": self._directives_processed,
+            "wp_url": self.wp_url,
+            "poll_interval": self.poll_interval,
+            "substrate_components": len(self._substrate_cache),
+        }
+
+        try:
+            path = Path(self.heartbeat_path)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with open(path, 'w') as f:
+                json.dump(heartbeat_data, f, indent=2)
+        except (IOError, OSError) as e:
+            self.logger.error(f"Failed to write heartbeat: {e}")
 
     def _api_call(self, tool: str, **kwargs) -> Optional[dict]:
         """Make API call to WordPress."""
@@ -445,6 +483,10 @@ class DirectiveAgent:
         Returns:
             Number of directives processed
         """
+        # Initialize start time on first cycle
+        if self._start_time is None:
+            self._start_time = datetime.utcnow()
+
         self.logger.info("Starting processing cycle")
 
         # Poll for directives
@@ -452,6 +494,7 @@ class DirectiveAgent:
 
         if not directives:
             self.logger.info("No directives to process")
+            self.write_heartbeat()
             return 0
 
         processed = 0
@@ -471,11 +514,13 @@ class DirectiveAgent:
                 self.mark_processed(directive.id)
 
                 processed += 1
+                self._directives_processed += 1
 
             except Exception as e:
                 self.logger.error(f"Error processing directive {directive.id}: {e}")
 
         self.logger.info(f"Processed {processed} directives")
+        self.write_heartbeat()
         return processed
 
     def run_forever(self) -> None:

@@ -16,6 +16,7 @@ created: 2026-02-21T17:00:00Z
 ### Task 1.1: Add heartbeat support to DirectiveAgent
 **Type:** IMPLEMENT
 **Priority:** High
+**Status:** DONE
 **Files:**
 - Modify: `systems/intelligence/directive_agent.py`
 - Modify: `tests/test_directive_agent.py`

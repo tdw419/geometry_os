@@ -12,6 +12,9 @@ Tests cover:
 import pytest
 from unittest.mock import Mock, patch, mock_open
 import json
+import os
+from datetime import datetime, timedelta
+from pathlib import Path
 
 from systems.intelligence.directive_agent import (
     DirectiveAgent,
@@ -839,3 +842,134 @@ class TestEdgeCases:
                     substrate_map_path="/path/to/map.json"
                 )
                 assert agent._substrate_cache == {}
+
+
+class TestHeartbeatSupport:
+    """Test heartbeat support for daemon monitoring."""
+
+    @pytest.fixture
+    def agent(self, tmp_path):
+        """Create DirectiveAgent with temp heartbeat path."""
+        heartbeat_path = tmp_path / "heartbeat.json"
+        with patch.object(
+            DirectiveAgent,
+            '_load_substrate_map',
+            return_value=None
+        ):
+            agent = DirectiveAgent(
+                wp_url="http://test.local",
+                heartbeat_path=str(heartbeat_path)
+            )
+            agent._substrate_cache = {"test": {"name": "Test"}}
+            return agent, heartbeat_path
+
+    def test_write_heartbeat_creates_file(self, agent):
+        """Test that write_heartbeat creates the heartbeat file."""
+        agent_instance, heartbeat_path = agent
+        agent_instance._start_time = datetime.utcnow()
+
+        agent_instance.write_heartbeat()
+
+        assert heartbeat_path.exists()
+
+    def test_heartbeat_contains_required_fields(self, agent):
+        """Test that heartbeat contains all required fields."""
+        agent_instance, heartbeat_path = agent
+        agent_instance._start_time = datetime.utcnow()
+        agent_instance._directives_processed = 5
+
+        agent_instance.write_heartbeat()
+
+        with open(heartbeat_path, 'r') as f:
+            data = json.load(f)
+
+        # Check all required fields
+        assert "timestamp" in data
+        assert "pid" in data
+        assert "running" in data
+        assert "uptime_seconds" in data
+        assert "directives_processed" in data
+        assert "wp_url" in data
+        assert "poll_interval" in data
+        assert "substrate_components" in data
+
+        # Check field values
+        assert data["pid"] == os.getpid()
+        assert data["running"] is True
+        assert data["directives_processed"] == 5
+        assert data["wp_url"] == "http://test.local"
+        assert data["poll_interval"] == 30
+        assert data["substrate_components"] == 1
+
+    def test_heartbeat_updates_on_cycle(self, agent):
+        """Test that heartbeat updates after process_one_cycle."""
+        agent_instance, heartbeat_path = agent
+
+        # Process a directive
+        directive = Directive(
+            id=1,
+            title="Explain test",
+            content="Explain 'test'",
+            date="2026-02-21",
+            author="user"
+        )
+
+        with patch.object(agent_instance, 'poll_directives', return_value=[directive]):
+            with patch.object(agent_instance, 'post_response', return_value=True):
+                with patch.object(agent_instance, 'mark_processed', return_value=True):
+                    agent_instance.process_one_cycle()
+
+        # Check heartbeat was written
+        assert heartbeat_path.exists()
+
+        with open(heartbeat_path, 'r') as f:
+            data = json.load(f)
+
+        # Should have processed 1 directive
+        assert data["directives_processed"] == 1
+        assert data["running"] is True
+        assert data["uptime_seconds"] > 0
+
+    def test_heartbeat_not_running_before_first_cycle(self, agent):
+        """Test that running is False before first cycle."""
+        agent_instance, heartbeat_path = agent
+
+        # Don't call process_one_cycle, just write heartbeat directly
+        agent_instance.write_heartbeat()
+
+        with open(heartbeat_path, 'r') as f:
+            data = json.load(f)
+
+        # _start_time is None, so running should be False
+        assert data["running"] is False
+        assert data["uptime_seconds"] == 0.0
+
+    def test_heartbeat_uptime_increases(self, agent):
+        """Test that uptime increases over time."""
+        agent_instance, heartbeat_path = agent
+
+        # Set start time in the past
+        agent_instance._start_time = datetime.utcnow() - timedelta(seconds=10)
+
+        agent_instance.write_heartbeat()
+
+        with open(heartbeat_path, 'r') as f:
+            data = json.load(f)
+
+        # Uptime should be at least 10 seconds
+        assert data["uptime_seconds"] >= 10.0
+
+    def test_heartbeat_creates_parent_directory(self, tmp_path):
+        """Test that write_heartbeat creates parent directories."""
+        heartbeat_path = tmp_path / "nested" / "dir" / "heartbeat.json"
+
+        with patch.object(DirectiveAgent, '_load_substrate_map', return_value=None):
+            agent = DirectiveAgent(
+                wp_url="http://test.local",
+                heartbeat_path=str(heartbeat_path)
+            )
+            agent._start_time = datetime.utcnow()
+            agent.write_heartbeat()
+
+        assert heartbeat_path.exists()
+        assert heartbeat_path.parent.is_dir()
