@@ -39,7 +39,7 @@ generated: from-plan
 
 ## Phase 2: Admin UI
 
-- [ ] 2.1 Create Admin UI Plugin
+- [x] 2.1 Create Admin UI Plugin
   - **Do**: Create `geometry_os_admin_ui.php` with metabox, buttons, AJAX handlers, and tools page
   - **Files**: `wordpress_zone/wordpress/wp-content/mu-plugins/geometry_os_admin_ui.php`
   - **Done when**: Metabox shows on post editor with working buttons
