@@ -803,6 +803,28 @@ class VisualBridge:
                         "ambient_state": self._ambient_state
                     }))
 
+                # === GOSR Radio Broadcast Events ===
+
+                elif msg_type == 'radio_broadcast':
+                    # Radio segment broadcast from GOSR (Geometry OS Radio)
+                    station_id = data.get('station_id', '87.6')
+                    segment_type = data.get('segment_type', 'NEWS')
+                    content = data.get('content', '')
+                    timestamp = data.get('timestamp', time.time())
+
+                    print(f"📻 Radio Broadcast: {station_id} FM [{segment_type}] {content[:50]}...")
+
+                    # Broadcast to all WebSocket clients (browser HUD, etc.)
+                    await self._broadcast({
+                        "type": "RADIO_BROADCAST",
+                        "station_id": station_id,
+                        "segment_type": segment_type,
+                        "content": content,
+                        "timestamp": timestamp,
+                        "entropy": data.get('entropy', 0.5),
+                        "evolution_count": data.get('evolution_count', 0)
+                    })
+
         except websockets.exceptions.ConnectionClosed:
             pass
         except Exception as e:

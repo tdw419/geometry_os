@@ -126,7 +126,7 @@ Focus: Core module structure, base classes, basic broadcast flow. Skip WordPress
   - _Requirements: FR-5_
   - _Design: Evolution Daemon Integration section_
 
-- [ ] 1.10 Add RADIO_BROADCAST event to Visual Bridge
+- [x] 1.10 Add RADIO_BROADCAST event to Visual Bridge
   - **Do**:
     1. Add `radio_broadcast` event handler in `visual_bridge.py`
     2. Broadcast to WebSocket clients on radio segment generation
