@@ -263,7 +263,7 @@ _Design: TestWordPressSync_
 
 ---
 
-### Task 3.2: [VERIFY] Quality checkpoint: integration tests
+### Task 3.2: [x] [VERIFY] Quality checkpoint: integration tests
 
 **Do:**
 1. Run all tests including integration
@@ -283,7 +283,7 @@ pytest tests/skills/ -v --tb=short 2>&1 | tail -15
 
 ---
 
-### Task 3.3: Create AI verification test documentation
+### Task 3.3: [x] Create AI verification test documentation
 
 **Do:**
 1. Create `tests/skills/AI_VERIFICATION_TESTS.md`
