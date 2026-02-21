@@ -206,6 +206,8 @@ class VisualBridge:
             'timestamp': task['created_at']
         }
         await self._broadcast(pulse)
+
+    def _is_already_running(self):
         """Check if another instance of visual_bridge is already running via PID file."""
         if not os.path.exists(self.lock_file):
             return False
