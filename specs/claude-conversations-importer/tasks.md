@@ -103,7 +103,7 @@ _Design: Claude_JsonlParser_
 
 ---
 
-### Task 1.3: HTML Formatter Class
+### Task 1.3: [x] HTML Formatter Class
 
 **Do:**
 1. Add `Claude_HtmlFormatter` class to main plugin file
