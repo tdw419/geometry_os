@@ -197,6 +197,7 @@ After POC validated, clean up code structure.
   - **Commit**: `feat(tracks): add pre-commit track conflict check`
   - _Requirements: FR-6, AC-3.1, AC-3.2, AC-3.3, AC-3.5, AC-3.6_
   - _Design: Component 4 (Pre-commit Hook Extension)_
+  - _Note: Project uses `core.hooksPath = .githooks`, so track check was added to `.githooks/pre-commit` instead_
 
 - [x] 4.2 [VERIFY] Full local CI: syntax + tests
   - **Do**: Run all quality commands on track-related code
