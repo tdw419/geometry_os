@@ -25,6 +25,9 @@ class GeometryOS_Bridge {
 
         // Script enqueuing for Mission Control
         add_action('wp_enqueue_scripts', array($this, 'enqueue_health_scripts'));
+
+        // REST API for health metrics
+        add_action('rest_api_init', array($this, 'register_health_api'));
     }
 
     public function heartbeat() {
@@ -167,6 +170,112 @@ class GeometryOS_Bridge {
         }
 
         return false;
+    }
+
+    /**
+     * Register REST API routes for health metrics
+     */
+    public function register_health_api() {
+        register_rest_route('geometry-os/v1', '/health', array(
+            array(
+                'methods' => 'POST',
+                'callback' => array($this, 'handle_health_update'),
+                'permission_callback' => array($this, 'verify_local_request'),
+            ),
+            array(
+                'methods' => 'GET',
+                'callback' => array($this, 'get_health_status'),
+                'permission_callback' => array($this, 'verify_local_request'),
+            ),
+        ));
+    }
+
+    /**
+     * Verify request is from localhost only (security)
+     *
+     * @param WP_REST_Request $request Request object
+     * @return bool|WP_Error True if local, WP_Error otherwise
+     */
+    public function verify_local_request($request) {
+        $allowed_ips = array('127.0.0.1', '::1');
+
+        // Get client IP
+        $client_ip = $_SERVER['REMOTE_ADDR'] ?? '';
+
+        // Check for proxied IPs (X-Forwarded-For)
+        if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $forwarded_ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+            $client_ip = trim($forwarded_ips[0]);
+        }
+
+        if (!in_array($client_ip, $allowed_ips)) {
+            return new WP_Error(
+                'rest_forbidden',
+                __('Health endpoints are restricted to localhost only.', 'geometry-os'),
+                array('status' => 403)
+            );
+        }
+
+        return true;
+    }
+
+    /**
+     * Handle POST request to update health metrics
+     *
+     * @param WP_REST_Request $request Request object
+     * @return WP_REST_Response Response with status
+     */
+    public function handle_health_update($request) {
+        $metrics = array(
+            'latency_ms' => (float) $request->get_param('latency_ms'),
+            'swarm_count' => (int) $request->get_param('swarm_count'),
+            'health_score' => (float) $request->get_param('health_score'),
+            'buffer_drops' => (int) $request->get_param('buffer_drops'),
+            'reconnects' => (int) $request->get_param('reconnects'),
+            'timestamp' => time(),
+        );
+
+        // Validate required fields
+        if ($metrics['health_score'] < 0 || $metrics['health_score'] > 100) {
+            return new WP_REST_Response(array(
+                'success' => false,
+                'error' => 'health_score must be between 0 and 100',
+            ), 400);
+        }
+
+        // Store in WordPress options
+        update_option('geometry_os_health_metrics', $metrics);
+
+        // Log to OS telemetry
+        $this->log_to_os('health_pulse', $metrics);
+
+        return new WP_REST_Response(array(
+            'success' => true,
+            'stored' => $metrics,
+        ), 200);
+    }
+
+    /**
+     * Handle GET request to retrieve health status
+     *
+     * @param WP_REST_Request $request Request object
+     * @return WP_REST_Response Response with health metrics
+     */
+    public function get_health_status($request) {
+        $metrics = get_option('geometry_os_health_metrics', array());
+
+        if (empty($metrics)) {
+            return new WP_REST_Response(array(
+                'success' => true,
+                'metrics' => null,
+                'message' => 'No health metrics recorded yet',
+            ), 200);
+        }
+
+        return new WP_REST_Response(array(
+            'success' => true,
+            'metrics' => $metrics,
+        ), 200);
     }
 }
 
