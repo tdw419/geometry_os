@@ -31,8 +31,7 @@ class WPIntegrationVerifier {
     }
 
     async test1_ZeroConfigDiscovery() {
-        console.log("
-%cTest 1: Zero-Config Discovery", "color: #ffcc00; font-weight: bold;");
+        console.log("\n%cTest 1: Zero-Config Discovery", "color: #ffcc00; font-weight: bold;");
         const testId = 'test-agent-' + Math.floor(Math.random() * 1000);
         
         // Action: Register a new mock tile
@@ -51,8 +50,7 @@ class WPIntegrationVerifier {
     }
 
     async test2_BlindPilotNavigation() {
-        console.log("
-%cTest 2: Blind Pilot Navigation", "color: #ffcc00; font-weight: bold;");
+        console.log("\n%cTest 2: Blind Pilot Navigation", "color: #ffcc00; font-weight: bold;");
         
         // Setup: Ensure a tile exists
         const testId = 'nav-test-tile';
@@ -74,8 +72,7 @@ class WPIntegrationVerifier {
     }
 
     async test3_EchoLoopDuplex() {
-        console.log("
-%cTest 3: Echo Loop Duplex", "color: #ffcc00; font-weight: bold;");
+        console.log("\n%cTest 3: Echo Loop Duplex", "color: #ffcc00; font-weight: bold;");
         
         const testId = 'echo-tile';
         const testMsg = "PING_" + Math.random();
@@ -102,8 +99,7 @@ class WPIntegrationVerifier {
     }
 
     async test4_SwarmHeartbeat() {
-        console.log("
-%cTest 4: Swarm Heartbeat (Batch)", "color: #ffcc00; font-weight: bold;");
+        console.log("\n%cTest 4: Swarm Heartbeat (Batch)", "color: #ffcc00; font-weight: bold;");
         
         // Setup: Multiple tiles
         window.geometryOS?.registerTile('t1', { x: 0, y: 0, state: 'running' });
@@ -117,8 +113,7 @@ class WPIntegrationVerifier {
     }
 
     async test5_LateJoinerHistory() {
-        console.log("
-%cTest 5: Late Joiner History Sync", "color: #ffcc00; font-weight: bold;");
+        console.log("\n%cTest 5: Late Joiner History Sync", "color: #ffcc00; font-weight: bold;");
 
         // Action: Fetch history from a tile
         if (window.geometryOS?.getConsoleOutput) {
@@ -132,8 +127,7 @@ class WPIntegrationVerifier {
     }
 
     async test6_MetricsCollectorIntegration() {
-        console.log("
-%cTest 6: Metrics Collector Integration", "color: #ffcc00; font-weight: bold;");
+        console.log("\n%cTest 6: Metrics Collector Integration", "color: #ffcc00; font-weight: bold;");
 
         const hasCollector = !!window.geometryOS?.metrics;
         if (!hasCollector) {
@@ -150,8 +144,7 @@ class WPIntegrationVerifier {
     }
 
     async test7_HealthDashboardRender() {
-        console.log("
-%cTest 7: Health Dashboard Render", "color: #ffcc00; font-weight: bold;");
+        console.log("\n%cTest 7: Health Dashboard Render", "color: #ffcc00; font-weight: bold;");
 
         const dashboard = document.querySelector('#geometry-os-health-dashboard');
         if (!dashboard) {
@@ -175,8 +168,7 @@ class WPIntegrationVerifier {
     }
 
     report() {
-        console.log("
-" + "=".repeat(40));
+        console.log("\n" + "=".repeat(40));
         console.log("%cGEOMETRY OS INTEGRATION REPORT", "color: #00ffcc; font-weight: bold;");
         console.log("=".repeat(40));
         

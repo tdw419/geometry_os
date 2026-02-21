@@ -48,7 +48,7 @@ Focus: MetricsCollector core + bridge integration + dashboard widget
   - _Requirements: FR-10_
   - _Design: wp_health_bridge component_
 
-- [ ] 1.5 POC Checkpoint
+- [x] 1.5 POC Checkpoint
   - **Do**: Verify all functional tests pass end-to-end
   - **Done when**: All 7 verification tests pass, dashboard shows real metrics
   - **Verify**: `await new WPIntegrationVerifier().runAll()` shows 7/7 PASSED
