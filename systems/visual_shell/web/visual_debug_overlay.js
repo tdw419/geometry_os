@@ -116,6 +116,15 @@ class VisualDebugOverlay {
             aiThought: "Watching Shotcut system..."
         };
 
+        // Memory Ghost state
+        this.ghostState = {
+            enabled: false,
+            ghosts: [],
+            lastUpdate: null,
+            ghostCount: 0
+        };
+        this.ghostRenderer = null;
+
         // Heat Map state (Visual Hotspot Debugger)
         this.heatmapState = {
             visible: false,
@@ -227,7 +236,26 @@ class VisualDebugOverlay {
                 console.log(`Shotcut HUD: ${this.shotcutHud.enabled ? 'ON' : 'OFF'}`);
                 this._scheduleRender();
             }
+            // Ctrl+Shift+G to toggle Memory Ghost overlay
+            if (e.ctrlKey && e.shiftKey && e.key === 'G') {
+                e.preventDefault();
+                this.toggleGhostOverlay();
+            }
         });
+    }
+
+    /**
+     * Toggle Memory Ghost overlay
+     */
+    toggleGhostOverlay() {
+        this.ghostState.enabled = !this.ghostState.enabled;
+
+        if (this.ghostRenderer) {
+            this.ghostRenderer.setVisible(this.ghostState.enabled);
+        }
+
+        console.log(`👻 Ghost overlay: ${this.ghostState.enabled ? 'ENABLED' : 'DISABLED'}`);
+        this._scheduleRender();
     }
 
     /**
@@ -278,6 +306,11 @@ class VisualDebugOverlay {
         // Listen for Shotcut Visual HUD updates
         window.addEventListener('SHOTCUT_FRAME_UPDATE', (e) => {
             this.handleShotcutFrame(e.detail);
+        });
+
+        // Listen for Memory Ghost updates
+        window.addEventListener('MEMORY_GHOST_UPDATE', (e) => {
+            this.handleGhostUpdate(e.detail);
         });
 
         // Listen for Task DAG updates from TelemetryBus
@@ -503,12 +536,38 @@ class VisualDebugOverlay {
         this.shotcutHud.diagnostic = data.diagnostic;
         this.shotcutHud.lastUpdate = Date.now();
         this.shotcutHud.aiThought = data.ai_thought || "Analyzing Shotcut interface...";
-        
+
+        // Handle ghosts if present in frame data
+        if (data.ghosts) {
+            this.handleGhostUpdate(data.ghosts);
+        }
+
         // Auto-enable Shotcut HUD if frames start arriving
         if (!this.shotcutHud.enabled && this.config.enabled) {
             this.shotcutHud.enabled = true;
         }
 
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle Memory Ghost update
+     */
+    handleGhostUpdate(data) {
+        if (!data) return;
+
+        // Handle array of ghosts
+        const ghosts = Array.isArray(data) ? data : (data.ghosts || [data]);
+        this.ghostState.ghosts = ghosts;
+        this.ghostState.lastUpdate = Date.now();
+        this.ghostState.ghostCount = ghosts.length;
+
+        // Update ghost renderer if initialized
+        if (this.ghostRenderer) {
+            this.ghostRenderer.updateGhosts(ghosts);
+        }
+
+        // Request redraw
         this._scheduleRender();
     }
 
@@ -1521,7 +1580,27 @@ class VisualDebugOverlay {
                 y += 12;
             });
         }
-        
+
+        // Memory Ghosts
+        if (this.ghostState.ghostCount > 0) {
+            y += 10;
+            ctx.fillStyle = '#aaa';
+            ctx.font = 'bold 10px monospace';
+            ctx.fillText('MEMORY GHOSTS:', padding + 10, y);
+            y += 15;
+
+            const ghosts = this.ghostState.ghosts;
+            const highConf = ghosts.filter(g => g.confidence === 'HIGH').length;
+            const medConf = ghosts.filter(g => g.confidence === 'MEDIUM').length;
+
+            ctx.fillStyle = '#00FF00';
+            ctx.fillText(`HIGH: ${highConf}`, padding + 15, y);
+            ctx.fillStyle = '#FFFF00';
+            ctx.fillText(`MED: ${medConf}`, padding + 80, y);
+            ctx.fillStyle = '#fff';
+            ctx.fillText(`Total: ${ghosts.length}`, padding + 145, y);
+        }
+
         // Diagnostic
         y = this.hudCanvas.height - 40;
         if (this.shotcutHud.diagnostic) {
@@ -1601,7 +1680,7 @@ class VisualDebugOverlay {
                 ctx.strokeStyle = isHorizontal ? '#00ff88' : '#00aaff';
                 ctx.lineWidth = 1;
                 ctx.globalAlpha = 0.6;
-                
+
                 ctx.beginPath();
                 ctx.moveTo(line.x1 * scaleX, line.y1 * scaleY);
                 ctx.lineTo(line.x2 * scaleX, line.y2 * scaleY);
@@ -1609,6 +1688,55 @@ class VisualDebugOverlay {
             });
             ctx.globalAlpha = 1.0;
         }
+
+        // 4. Draw Memory Ghosts (semi-transparent overlays)
+        if (this.ghostState.enabled && this.ghostState.ghosts.length > 0) {
+            this._drawGhostOverlays(ctx, scaleX, scaleY);
+        }
+    }
+
+    /**
+     * Draw Memory Ghost overlays
+     */
+    _drawGhostOverlays(ctx, scaleX, scaleY) {
+        for (const ghost of this.ghostState.ghosts) {
+            const alpha = ghost.opacity || 0.5;
+            const color = ghost.color || '#00FF00';
+
+            // Draw ghost panels (dashed outline)
+            ctx.globalAlpha = alpha * 0.3;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([8, 4]);
+
+            for (const panel of (ghost.panels || [])) {
+                const [x1, y1, x2, y2] = panel.bbox || [0, 0, 0, 0];
+                ctx.strokeRect(x1 * scaleX, y1 * scaleY, (x2 - x1) * scaleX, (y2 - y1) * scaleY);
+            }
+
+            // Draw ghost buttons (solid outline)
+            ctx.setLineDash([]);
+            ctx.globalAlpha = alpha * 0.5;
+
+            for (const button of (ghost.buttons || [])) {
+                const [x1, y1, x2, y2] = button.bbox || [0, 0, 0, 0];
+                ctx.strokeRect(x1 * scaleX, y1 * scaleY, (x2 - x1) * scaleX, (y2 - y1) * scaleY);
+            }
+
+            // Draw ghost lines
+            ctx.globalAlpha = alpha * 0.4;
+            ctx.strokeStyle = '#FFFF00';
+
+            for (const line of (ghost.lines || [])) {
+                ctx.beginPath();
+                ctx.moveTo(line.x1 * scaleX, line.y1 * scaleY);
+                ctx.lineTo(line.x2 * scaleX, line.y2 * scaleY);
+                ctx.stroke();
+            }
+        }
+
+        ctx.globalAlpha = 1.0;
+        ctx.setLineDash([]);
     }
 
     /**
