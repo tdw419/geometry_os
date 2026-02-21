@@ -10,6 +10,7 @@ Usage:
 """
 
 from extraction_pipeline import ExtractionPipeline
+from memory_ghost import MemoryGhost, GhostRegistry
 import asyncio
 import json
 import base64
@@ -34,6 +35,7 @@ class RealtimeFeed:
         self.telemetry_enabled = telemetry_enabled
         self.last_telemetry_time = 0
         self.TELEMETRY_RATE_LIMIT = 30  # Seconds between telemetry pulses
+        self.ghost_registry = GhostRegistry()  # Memory Ghost registry
 
     async def _connect_hud(self):
         """Connect to the Visual Bridge HUD."""
@@ -66,6 +68,7 @@ class RealtimeFeed:
                     for w in result.widgets
                 ],
                 "layout": self.serialize_layout(result.layout) if result.layout else None,
+                "ghosts": self.ghost_registry.to_broadcast(),
                 "diagnostic": {
                     "severity": result.diagnostic.severity,
                     "message": result.diagnostic.message,
