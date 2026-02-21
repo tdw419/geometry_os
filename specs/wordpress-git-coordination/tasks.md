@@ -41,7 +41,7 @@ Focus: Validate core claim/release cycle works end-to-end. Skip tests, accept ha
   - _Requirements: FR-1, AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-2.1, AC-2.2, AC-2.3, AC-2.5_
   - _Design: Component 1 (ai-publisher.php Track Handlers)_
 
-- [ ] 1.3 Create TrackManager Python client
+- [x] 1.3 Create TrackManager Python client
   - **Do**:
     1. Create `wordpress_zone/track_manager.py`
     2. Implement `TrackManager.__init__(wp_url, timeout=5.0)`
