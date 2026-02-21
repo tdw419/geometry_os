@@ -13,6 +13,42 @@ import tempfile
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+class TestGhostGeneration:
+    """Tests for ghost generation during automation."""
+
+    def test_semantic_automation_has_ghost_registry(self):
+        """SemanticDrivenAutomation should have GhostRegistry."""
+        from semantic_driven_automation import SemanticDrivenAutomation
+        from memory_ghost import GhostRegistry
+
+        automation = SemanticDrivenAutomation(wordpress_enabled=False)
+        assert hasattr(automation, 'ghost_registry')
+        assert isinstance(automation.ghost_registry, GhostRegistry)
+
+    def test_execute_creates_ghost(self):
+        """execute_with_memory should create a MemoryGhost."""
+        from semantic_driven_automation import SemanticDrivenAutomation
+        from memory_ghost import MemoryGhost
+        cv2 = pytest.importorskip("cv2", reason="OpenCV not installed")
+
+        # Create test image
+        img = np.zeros((200, 200, 3), dtype=np.uint8)
+        cv2.rectangle(img, (10, 10), (110, 110), (255, 255, 255), -1)
+
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+            cv2.imwrite(f.name, img)
+            temp_path = f.name
+
+        try:
+            automation = SemanticDrivenAutomation(wordpress_enabled=False)
+            result = automation.execute_with_memory(temp_path, "Test")
+
+            # Should have ghosts in result
+            assert "ghosts" in result
+        finally:
+            os.unlink(temp_path)
+
+
 class TestSemanticDrivenAutomationImport:
     """Tests for module import and basic structure."""
 

@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "wordpress_zone"))
 
 from extraction_pipeline import ExtractionPipeline, ExtractionResult
 from layout_inferencer import LayoutResult
+from memory_ghost import MemoryGhost, GhostRegistry
 
 try:
     from layout_memory import LayoutMemorySearch, LayoutMemory
@@ -70,6 +71,7 @@ class SemanticDrivenAutomation:
         self.pipeline = ExtractionPipeline(wordpress_enabled=wordpress_enabled)
         self.memory_search = LayoutMemorySearch() if MEMORY_SEARCH_AVAILABLE else None
         self.verification_history: List[Dict] = []
+        self.ghost_registry = GhostRegistry()
 
     def query_memory_for_action(self, action_keyword: str, limit: int = 5) -> List[Any]:
         """
@@ -261,6 +263,15 @@ class SemanticDrivenAutomation:
         # Step 4: Execute action
         print(f"\n🎬 Step 4: Executing Action ({action_confidence})...")
 
+        # Create ghost from current layout
+        ghost_id = None
+        if result.layout:
+            ghost = MemoryGhost.from_layout_result(result.layout, action_keyword)
+            ghost.similarity = match.similarity if match else 0.0
+            ghost.confidence = action_confidence.replace("EXECUTE", "HIGH").replace("CAUTIOUS", "MEDIUM").replace("VERIFY", "LOW").replace("LEARN", "LOW")
+            self.ghost_registry.add_ghost(ghost)
+            ghost_id = ghost.ghost_id
+
         execution_result = {
             "action": action_keyword,
             "confidence": action_confidence,
@@ -271,6 +282,8 @@ class SemanticDrivenAutomation:
                 {"type": w.type.value, "text": w.text, "bbox": w.bbox}
                 for w in result.widgets
             ],
+            "ghost_id": ghost_id,
+            "ghosts": self.ghost_registry.to_broadcast(),
             "timestamp": time.time()
         }
 
