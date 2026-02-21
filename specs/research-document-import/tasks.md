@@ -140,7 +140,7 @@ After POC validated, clean up code.
   - **Commit**: `feat(wp): add import progress bar`
   - _Requirements: FR-8, AC-4.3_
 
-- [ ] 2.6 [VERIFY] Quality checkpoint: PHP lint + file structure
+- [x] 2.6 [VERIFY] Quality checkpoint: PHP lint + file structure
   - **Do**: Run lint on all PHP files, verify plugin structure
   - **Verify**: `php -l wordpress_zone/wordpress/ai-publisher.php && php -l wordpress_zone/wordpress/wp-content/plugins/research-import-admin/research-import-admin.php`
   - **Done when**: No PHP syntax errors
@@ -148,7 +148,7 @@ After POC validated, clean up code.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Create Python unit tests for importer
+- [x] 3.1 Create Python unit tests for importer
   - **Do**:
     1. Create `wordpress_zone/tests/test_import_research_docs.py`
     2. Test `parse_document()` with sample filenames
