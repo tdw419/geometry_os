@@ -28,7 +28,7 @@ generated: from-plan
   - _Requirements: FR-2, FR-3_
   - _Design: Visual Bridge Endpoints_
 
-- [ ] 1.3 Create WordPress Task Handler
+- [x] 1.3 Create WordPress Task Handler
   - **Do**: Create `wordpress_task_handler.py` with handlers for content_intelligence, evolution_publish, plugin_analysis
   - **Files**: `systems/evolution_daemon/wordpress_task_handler.py`
   - **Done when**: Handler executes all three agent types
@@ -39,7 +39,7 @@ generated: from-plan
 
 ## Phase 2: Admin UI
 
-- [ ] 2.1 Create Admin UI Plugin
+- [x] 2.1 Create Admin UI Plugin
   - **Do**: Create `geometry_os_admin_ui.php` with metabox, buttons, AJAX handlers, and tools page
   - **Files**: `wordpress_zone/wordpress/wp-content/mu-plugins/geometry_os_admin_ui.php`
   - **Done when**: Metabox shows on post editor with working buttons
@@ -50,7 +50,7 @@ generated: from-plan
 
 ## Phase 3: Automatic Hooks
 
-- [ ] 3.1 Add Automatic WordPress Hooks
+- [x] 3.1 Add Automatic WordPress Hooks
   - **Do**: Add `transition_post_status` hook for auto-tag and cron for evolution polling
   - **Files**: `wordpress_zone/wordpress/wp-content/mu-plugins/geometry_os_bridge.php`
   - **Done when**: Posts auto-tagged on publish, evolution events polled every 5 min
@@ -61,7 +61,7 @@ generated: from-plan
 
 ## Phase 4: Integration Testing
 
-- [ ] 4.1 Create Integration Tests
+- [x] 4.1 Create Integration Tests
   - **Do**: Create end-to-end tests for WordPress → Bridge → Daemon flow
   - **Files**: `tests/test_wordpress_agent_integration.py`
   - **Done when**: All three agent types verified end-to-end

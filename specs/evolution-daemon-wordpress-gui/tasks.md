@@ -40,7 +40,7 @@ Focus: Create core components with tests. Skip memory sync, accept mock executor
   - _Requirements: FR-3_
   - _Design: EvolutionAgent component_
 
-- [ ] 1.3 Create Playwright Action Executor
+- [x] 1.3 Create Playwright Action Executor
   - **Do**:
     1. Create `systems/evolution_daemon/wordpress/action_executor.py` with ExecutionResult, PlaywrightActionExecutor
     2. Create `tests/test_wordpress_action_executor.py` with 3 tests
@@ -54,7 +54,7 @@ Focus: Create core components with tests. Skip memory sync, accept mock executor
   - _Requirements: FR-4_
   - _Design: ActionExecutor component_
 
-- [ ] 1.4 Create Bridge Service
+- [x] 1.4 Create Bridge Service
   - **Do**:
     1. Create `systems/evolution_daemon/wordpress/bridge_service.py` with BridgeServiceConfig, WPEvolutionBridgeService
     2. Create `tests/test_wp_evolution_bridge_service.py` with 3 tests
@@ -68,7 +68,7 @@ Focus: Create core components with tests. Skip memory sync, accept mock executor
   - _Requirements: FR-5, FR-7, FR-8, FR-9_
   - _Design: BridgeService component_
 
-- [ ] 1.5 POC Checkpoint
+- [x] 1.5 POC Checkpoint
   - **Do**: Run all tests, verify components work in isolation
   - **Done when**: All 13 tests pass
   - **Verify**: `pytest tests/test_wordpress_*.py tests/test_wp_evolution_*.py -v`
@@ -78,7 +78,7 @@ Focus: Create core components with tests. Skip memory sync, accept mock executor
 
 After POC validated, wire components together.
 
-- [ ] 2.1 Integrate with Main Evolution Daemon
+- [x] 2.1 Integrate with Main Evolution Daemon
   - **Do**:
     1. Add import to `systems/evolution_daemon/evolution_daemon.py`
     2. Create `tests/test_evolution_daemon_wordpress_integration.py` with 3 tests
@@ -91,7 +91,7 @@ After POC validated, wire components together.
   - _Requirements: FR-5_
   - _Design: Architecture diagram_
 
-- [ ] 2.2 Create startup script and documentation
+- [x] 2.2 Create startup script and documentation
   - **Do**:
     1. Create `wordpress_zone/start_evolution_bridge.sh` with prerequisite checks
     2. Create `systems/evolution_daemon/wordpress/README.md` with architecture, quickstart, config
@@ -105,7 +105,7 @@ After POC validated, wire components together.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Create E2E verification tests
+- [x] 3.1 Create E2E verification tests
   - **Do**:
     1. Create `tests/test_wp_evolution_e2e.py` with TestWPEvolutionE2E class
     2. Test full cycle flow: analyze -> propose -> (mock) execute

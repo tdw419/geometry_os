@@ -152,7 +152,7 @@ class DirectiveAgent:
         substrate_map_path: Optional[str] = None
     ):
         self.wp_url = wp_url or self.WP_URL
-        self.wp_api = f"{self.wp_url}/?rest_route=/geometry-os/v1/invoke"
+        self.wp_api = f"{self.wp_url}/ai-publisher.php"
         self.poll_interval = poll_interval or self.POLL_INTERVAL
 
         # Substrate map cache
@@ -182,7 +182,7 @@ class DirectiveAgent:
 
     def _api_call(self, tool: str, **kwargs) -> Optional[dict]:
         """Make API call to WordPress."""
-        payload = {"tool": tool, **kwargs}
+        payload = {"tool": tool, "arguments": kwargs}
 
         try:
             response = requests.post(

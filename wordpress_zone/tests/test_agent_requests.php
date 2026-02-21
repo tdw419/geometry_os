@@ -59,6 +59,98 @@ if (!function_exists('is_wp_error')) {
     }
 }
 
+if (!function_exists('wp_is_post_revision')) {
+    function wp_is_post_revision($post) {
+        return false;
+    }
+}
+
+if (!function_exists('wp_get_post_tags')) {
+    function wp_get_post_tags($post_id, $args = []) {
+        return [];
+    }
+}
+
+if (!function_exists('update_post_meta')) {
+    function update_post_meta($post_id, $meta_key, $meta_value) {
+        global $post_meta_storage;
+        if (!isset($post_meta_storage)) {
+            $post_meta_storage = [];
+        }
+        $post_meta_storage[$post_id][$meta_key] = $meta_value;
+        return true;
+    }
+}
+
+if (!function_exists('get_post_meta')) {
+    function get_post_meta($post_id, $key = '', $single = false) {
+        global $post_meta_storage;
+        if (!isset($post_meta_storage) || !isset($post_meta_storage[$post_id])) {
+            return $single ? '' : [];
+        }
+        if (empty($key)) {
+            return $post_meta_storage[$post_id];
+        }
+        return $single ? ($post_meta_storage[$post_id][$key] ?? '') : [$post_meta_storage[$post_id][$key] ?? ''];
+    }
+}
+
+if (!function_exists('get_posts')) {
+    function get_posts($args = []) {
+        return [];
+    }
+}
+
+if (!function_exists('wp_next_scheduled')) {
+    function wp_next_scheduled($hook) {
+        return false;
+    }
+}
+
+if (!function_exists('wp_schedule_event')) {
+    function wp_schedule_event($timestamp, $recurrence, $hook) {
+        return true;
+    }
+}
+
+if (!function_exists('add_action')) {
+    $GLOBALS['registered_actions'] = [];
+    function add_action($hook, $callback, $priority = 10, $accepted_args = 1) {
+        $GLOBALS['registered_actions'][$hook] = [
+            'callback' => $callback,
+            'priority' => $priority,
+            'accepted_args' => $accepted_args
+        ];
+    }
+}
+
+if (!function_exists('add_filter')) {
+    $GLOBALS['registered_filters'] = [];
+    function add_filter($hook, $callback, $priority = 10, $accepted_args = 1) {
+        $GLOBALS['registered_filters'][$hook] = [
+            'callback' => $callback,
+            'priority' => $priority,
+            'accepted_args' => $accepted_args
+        ];
+    }
+}
+
+if (!class_exists('WP_Post')) {
+    class WP_Post {
+        public $ID;
+        public $post_title;
+        public $post_content;
+        public $post_status;
+
+        public function __construct($id = 1, $title = 'Test Post', $content = 'Test content') {
+            $this->ID = $id;
+            $this->post_title = $title;
+            $this->post_content = $content;
+            $this->post_status = 'publish';
+        }
+    }
+}
+
 if (!class_exists('WP_Error')) {
     class WP_Error {
         private $errors = [];
@@ -234,6 +326,134 @@ class TestAgentRequests {
     }
 
     /**
+     * Test auto-publish on evolution commit event
+     */
+    public static function test_auto_publish_on_evolution_commit() {
+        global $mock_wp_response, $post_meta_storage;
+        $post_meta_storage = [];
+
+        // Mock for checking duplicates (no existing posts)
+        $mock_wp_response = [
+            'response' => ['code' => 200],
+            'body' => json_encode([
+                'status' => 'queued',
+                'task_id' => 'wp-evolution_publish-test-' . time()
+            ])
+        ];
+
+        // Simulate evolution daemon writing commit event
+        $event = [
+            'type' => 'evolution_commit',
+            'commit_hash' => 'abc123def',
+            'message' => 'feat: add new feature'
+        ];
+
+        $result = geometry_os_handle_evolution_event($event);
+
+        if (!is_array($result)) {
+            echo "FAIL: test_auto_publish_on_evolution_commit - Expected array, got " . gettype($result) . "\n";
+            return false;
+        }
+        if ($result['status'] !== 'published') {
+            echo "FAIL: test_auto_publish_on_evolution_commit - Expected 'published', got '{$result['status']}'\n";
+            return false;
+        }
+        if (!isset($result['task_id'])) {
+            echo "FAIL: test_auto_publish_on_evolution_commit - Missing 'task_id' key\n";
+            return false;
+        }
+
+        echo "PASS: test_auto_publish_on_evolution_commit\n";
+        return true;
+    }
+
+    /**
+     * Test evolution event handler ignores non-commit events
+     */
+    public static function test_evolution_event_ignores_non_commit() {
+        $event = [
+            'type' => 'other_event',
+            'data' => 'something'
+        ];
+
+        $result = geometry_os_handle_evolution_event($event);
+
+        if (!is_array($result)) {
+            echo "FAIL: test_evolution_event_ignores_non_commit - Expected array, got " . gettype($result) . "\n";
+            return false;
+        }
+        if ($result['status'] !== 'ignored') {
+            echo "FAIL: test_evolution_event_ignores_non_commit - Expected 'ignored', got '{$result['status']}'\n";
+            return false;
+        }
+
+        echo "PASS: test_evolution_event_ignores_non_commit\n";
+        return true;
+    }
+
+    /**
+     * Test cron schedule registration
+     */
+    public static function test_cron_schedule_registered() {
+        global $registered_filters;
+
+        if (!isset($registered_filters['cron_schedules'])) {
+            echo "FAIL: test_cron_schedule_registered - 'cron_schedules' filter not registered\n";
+            return false;
+        }
+
+        // Call the filter callback to verify it adds the five_minutes schedule
+        $callback = $registered_filters['cron_schedules']['callback'];
+        $schedules = $callback([]);
+
+        if (!isset($schedules['five_minutes'])) {
+            echo "FAIL: test_cron_schedule_registered - 'five_minutes' schedule not added\n";
+            return false;
+        }
+        if ($schedules['five_minutes']['interval'] !== 300) {
+            echo "FAIL: test_cron_schedule_registered - Expected interval 300, got '{$schedules['five_minutes']['interval']}'\n";
+            return false;
+        }
+
+        echo "PASS: test_cron_schedule_registered\n";
+        return true;
+    }
+
+    /**
+     * Test auto-tag hook is registered
+     */
+    public static function test_auto_tag_hook_registered() {
+        global $registered_actions;
+
+        if (!isset($registered_actions['transition_post_status'])) {
+            echo "FAIL: test_auto_tag_hook_registered - 'transition_post_status' action not registered\n";
+            return false;
+        }
+
+        echo "PASS: test_auto_tag_hook_registered\n";
+        return true;
+    }
+
+    /**
+     * Test evolution polling hook is registered
+     */
+    public static function test_evolution_polling_hooks_registered() {
+        global $registered_actions;
+
+        if (!isset($registered_actions['init'])) {
+            echo "FAIL: test_evolution_polling_hooks_registered - 'init' action not registered\n";
+            return false;
+        }
+        if (!isset($registered_actions['geometry_os_poll_evolution'])) {
+            echo "FAIL: test_evolution_polling_hooks_registered - 'geometry_os_poll_evolution' action not registered\n";
+            return false;
+        }
+
+        echo "PASS: test_evolution_polling_hooks_registered\n";
+        return true;
+    }
+
+    /**
      * Run all tests
      */
     public static function run_all() {
@@ -242,7 +462,12 @@ class TestAgentRequests {
             'test_send_evolution_publish_request',
             'test_send_plugin_analysis_request',
             'test_get_task_status',
-            'test_error_handling'
+            'test_error_handling',
+            'test_auto_publish_on_evolution_commit',
+            'test_evolution_event_ignores_non_commit',
+            'test_cron_schedule_registered',
+            'test_auto_tag_hook_registered',
+            'test_evolution_polling_hooks_registered'
         ];
 
         $passed = 0;

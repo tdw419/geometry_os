@@ -125,7 +125,7 @@ Bidirectional human-AI collaboration via WordPress Directives.
 
 **Commit**: `feat(intelligence): add substrate map cache export to ArchitectAgent`
 
-**Status**: [ ] PENDING
+**Status**: [x] COMPLETE
 
 ---
 
@@ -169,7 +169,7 @@ Bidirectional human-AI collaboration via WordPress Directives.
 
 **Commit**: `test(intelligence): add Directive Console E2E tests`
 
-**Status**: [ ] PENDING
+**Status**: [x] COMPLETE
 
 ---
 

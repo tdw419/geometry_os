@@ -1,0 +1,1 @@
+Create a fragment shader that renders a colorful gradient pattern using time and screen coordinates. The gradient should smoothly transition between colors based on a sine wave function of time and position.

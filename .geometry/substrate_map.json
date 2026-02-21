@@ -1,0 +1,1049 @@
+{
+  "Daemons": {
+    "name": "Daemons",
+    "path": "systems/daemons",
+    "description": "Core daemons module responsible for the 'daemons' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 2184,
+    "entry_points": [
+      "main.py",
+      "__init__.py"
+    ]
+  },
+  "Research": {
+    "name": "Research",
+    "path": "systems/research",
+    "description": "# Research Agent System  This module provides an autonomous agent for researching Geometry OS concepts using the local Vector Research Database (`research_docs.lance`).  ## Components  ### `knowledge_...",
+    "language": "MD",
+    "files": 3,
+    "entry_points": []
+  },
+  "Ace": {
+    "name": "Ace",
+    "path": "systems/ace",
+    "description": "Core ace module responsible for the 'ace' layer of the Neural Substrate.",
+    "language": "O",
+    "files": 334,
+    "entry_points": [
+      "visual_bridge.py",
+      "__init__.py"
+    ]
+  },
+  "Rag": {
+    "name": "Rag",
+    "path": "systems/rag",
+    "description": "# Research RAG System  This system provides a Retrieval-Augmented Generation (RAG) vector database for the research documents in `docs/research`.  ## Prerequisites  1.  Python 3.8+ 2.  Dependencies (i...",
+    "language": "PY",
+    "files": 38129,
+    "entry_points": [
+      "main.py",
+      "__init__.py"
+    ]
+  },
+  "X86 Bootloader": {
+    "name": "X86 Bootloader",
+    "path": "systems/x86_bootloader",
+    "description": "# x86 Bootloader - Geometry OS  Minimal x86 bootloader for transitioning from real mode to protected mode and loading the kernel.  ## Files  - `setup.S` - Bootloader assembly source - `bootloader.ld`...",
+    "language": "",
+    "files": 6,
+    "entry_points": []
+  },
+  "Wgsl Shader Registry": {
+    "name": "Wgsl Shader Registry",
+    "path": "systems/wgsl_shader_registry",
+    "description": "# WGSL Shader Registry  **Phase 4.2** of the WGSL Community & Ecosystem roadmap.  A centralized platform for storing, validating, searching, and sharing WGSL shaders that comply with the Geometry OS c...",
+    "language": "",
+    "files": 3212,
+    "entry_points": [
+      "main.rs"
+    ]
+  },
+  "Virtualization": {
+    "name": "Virtualization",
+    "path": "systems/virtualization",
+    "description": "Core virtualization module responsible for the 'virtualization' layer of the Neural Substrate.",
+    "language": "PYC",
+    "files": 23,
+    "entry_points": []
+  },
+  "Memory": {
+    "name": "Memory",
+    "path": "systems/memory",
+    "description": "# Vector Memory System - The \"Hippocampus\" of Geometry OS  ## Overview  The Vector Memory System provides long-term semantic memory for Geometry OS using PostgreSQL with the pgvector extension. It sto...",
+    "language": "PY",
+    "files": 11,
+    "entry_points": []
+  },
+  "Transpiler": {
+    "name": "Transpiler",
+    "path": "systems/transpiler",
+    "description": "# PixelRTS Transpiler - Geometry OS  Converts x86 binaries to PixelRTS PNG format for GPU-based emulation.  ## Files  - `x86_to_pxlerfts.py` - Binary to PNG converter - `README.md` - This file  ## Wha...",
+    "language": "PY",
+    "files": 120,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Linux To Vector": {
+    "name": "Linux To Vector",
+    "path": "systems/linux_to_vector",
+    "description": "# Linux-to-Vector Conversion System  This directory contains a complete toolchain for converting Linux kernel code to Vector Assembly and running it on the Neural CPU.  ## \ud83d\ude80 Quick Start  ### 1. Conver...",
+    "language": "PY",
+    "files": 61,
+    "entry_points": []
+  },
+  "Tectonic Poc": {
+    "name": "Tectonic Poc",
+    "path": "systems/tectonic_poc",
+    "description": "Core tectonic poc module responsible for the 'tectonic poc' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 1,
+    "entry_points": []
+  },
+  "Pixel Map": {
+    "name": "Pixel Map",
+    "path": "systems/pixel_map",
+    "description": "Core pixel map module responsible for the 'pixel map' layer of the Neural Substrate.",
+    "language": "PNG",
+    "files": 11,
+    "entry_points": []
+  },
+  "Evolution Daemon": {
+    "name": "Evolution Daemon",
+    "path": "systems/evolution_daemon",
+    "description": "# Evolution Daemon **\"Natural Selection for Operating Systems\"**  The Evolution Daemon answers the question: *What if the OS could rewrite itself?*  By connecting **PixelRTS Linux** (The Append-Only C...",
+    "language": "PY",
+    "files": 170,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Orbitiny Integration": {
+    "name": "Orbitiny Integration",
+    "path": "systems/orbitiny_integration",
+    "description": "Core orbitiny integration module responsible for the 'orbitiny integration' layer of the Neural Substrate.",
+    "language": "SH",
+    "files": 8,
+    "entry_points": []
+  },
+  "Crystallization": {
+    "name": "Crystallization",
+    "path": "systems/crystallization",
+    "description": "Core crystallization module responsible for the 'crystallization' layer of the Neural Substrate.",
+    "language": "PNG",
+    "files": 13,
+    "entry_points": []
+  },
+  "Ouroboros": {
+    "name": "Ouroboros",
+    "path": "systems/ouroboros",
+    "description": "Core ouroboros module responsible for the 'ouroboros' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 71,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Hardware Federation": {
+    "name": "Hardware Federation",
+    "path": "systems/hardware_federation",
+    "description": "# Hardware Federation System  The Hardware Federation System provides a unified interface for federating hardware sensors and actuators through the Neural Bridge, enabling VectorOS to perceive and int...",
+    "language": "PY",
+    "files": 37,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Documentation": {
+    "name": "Documentation",
+    "path": "systems/documentation",
+    "description": "Core documentation module responsible for the 'documentation' layer of the Neural Substrate.",
+    "language": "MD",
+    "files": 1,
+    "entry_points": []
+  },
+  "Gguf X": {
+    "name": "Gguf X",
+    "path": "systems/gguf_x",
+    "description": "# GGUF-X: The Self-Contained Executable Model Standard  **Documentation & User Guide**  ## 1. Introduction  **GGUF-X** (GGUF Executable) is a revolutionary standard that transforms static neural model...",
+    "language": "PY",
+    "files": 46,
+    "entry_points": [
+      "main.py",
+      "__init__.py"
+    ]
+  },
+  "Geometry Os Runtime": {
+    "name": "Geometry Os Runtime",
+    "path": "systems/geometry_os_runtime",
+    "description": "# Geometry OS Runtime ## PixiJS Spatial Desktop Environment  The visual layer of Geometry OS - an infinite spatial canvas where AI-driven computing happens.  ---  ## Quick Start  ### 1. Serve the Runt...",
+    "language": "JS",
+    "files": 11,
+    "entry_points": []
+  },
+  "Substrate": {
+    "name": "Substrate",
+    "path": "systems/substrate",
+    "description": "Core substrate module responsible for the 'substrate' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 21,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Vectorland": {
+    "name": "Vectorland",
+    "path": "systems/vectorland",
+    "description": "# Vectorland - Neural Compositor  Vectorland is the \"GUI\" of Geometry OS. Unlike traditional compositors that manage windows of pixel buffers, Vectorland manages **Semantic Tensor Frames**.  ## Key Co...",
+    "language": "PY",
+    "files": 604,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Test Daemon": {
+    "name": "Test Daemon",
+    "path": "systems/test_daemon",
+    "description": "Core test daemon module responsible for the 'test daemon' layer of the Neural Substrate.",
+    "language": "",
+    "files": 1013,
+    "entry_points": [
+      "main.rs"
+    ]
+  },
+  "Neural Substrate": {
+    "name": "Neural Substrate",
+    "path": "systems/neural_substrate",
+    "description": "Core neural substrate module responsible for the 'neural substrate' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 24,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Packaging": {
+    "name": "Packaging",
+    "path": "systems/packaging",
+    "description": "Core packaging module responsible for the 'packaging' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 12,
+    "entry_points": []
+  },
+  "Synapse": {
+    "name": "Synapse",
+    "path": "systems/synapse",
+    "description": "Core synapse module responsible for the 'synapse' layer of the Neural Substrate.",
+    "language": "MD",
+    "files": 2,
+    "entry_points": []
+  },
+  "Lang Translator": {
+    "name": "Lang Translator",
+    "path": "systems/lang_translator",
+    "description": "Core lang translator module responsible for the 'lang translator' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 7,
+    "entry_points": []
+  },
+  "Vision": {
+    "name": "Vision",
+    "path": "systems/vision",
+    "description": "Core vision module responsible for the 'vision' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 81,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Docs": {
+    "name": "Docs",
+    "path": "systems/docs",
+    "description": "Core docs module responsible for the 'docs' layer of the Neural Substrate.",
+    "language": "MD",
+    "files": 9,
+    "entry_points": []
+  },
+  "Vector Linux": {
+    "name": "Vector Linux",
+    "path": "systems/vector_linux",
+    "description": "Core vector linux module responsible for the 'vector linux' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 2529,
+    "entry_points": [
+      "main.py",
+      "__init__.py"
+    ]
+  },
+  "Pixel Compiler": {
+    "name": "Pixel Compiler",
+    "path": "systems/pixel_compiler",
+    "description": "# PixelRTS - Visual Programming & GPU Execution System  PixelRTS is a visual programming language where code is stored as executable images (.rts.png files). Execute WebAssembly directly on GPU using...",
+    "language": "PY",
+    "files": 30271,
+    "entry_points": [
+      "main.py",
+      "__init__.py"
+    ]
+  },
+  "Vector Bus": {
+    "name": "Vector Bus",
+    "path": "systems/vector_bus",
+    "description": "# Vector Bus - Neural Inter-Process Communication  ## Overview The Vector Bus provides neural-based IPC (Inter-Process Communication) for VectorOS components. Instead of traditional message queues, it...",
+    "language": "PY",
+    "files": 13,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Apps": {
+    "name": "Apps",
+    "path": "systems/apps",
+    "description": "Core apps module responsible for the 'apps' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 31,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Intelligence": {
+    "name": "Intelligence",
+    "path": "systems/intelligence",
+    "description": "# Geometry OS Intelligence System  This directory contains the cognitive architecture for Geometry OS, moving from discrete symbolic manipulation to continuous geometric processing.  ## Components  ##...",
+    "language": "PY",
+    "files": 150,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Neural Web": {
+    "name": "Neural Web",
+    "path": "systems/neural_web",
+    "description": "Core neural web module responsible for the 'neural web' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 6,
+    "entry_points": []
+  },
+  "Append Only Computer": {
+    "name": "Append Only Computer",
+    "path": "systems/append_only_computer",
+    "description": "# The Append-Only Computer  **Immutable Infrastructure at the OS Level**  The Append-Only Computer transforms Linux from a stateful OS into a stateless, time-travel-capable system using Copy-on-Write...",
+    "language": "PY",
+    "files": 17,
+    "entry_points": []
+  },
+  "Luanti Os": {
+    "name": "Luanti Os",
+    "path": "systems/luanti_os",
+    "description": "Core luanti os module responsible for the 'luanti os' layer of the Neural Substrate.",
+    "language": "LUA",
+    "files": 389,
+    "entry_points": []
+  },
+  "Vector Kernel": {
+    "name": "Vector Kernel",
+    "path": "systems/vector_kernel",
+    "description": "Core vector kernel module responsible for the 'vector kernel' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 9,
+    "entry_points": []
+  },
+  "Replication": {
+    "name": "Replication",
+    "path": "systems/replication",
+    "description": "Core replication module responsible for the 'replication' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 78437,
+    "entry_points": [
+      "index.js",
+      "main.py",
+      "main.rs"
+    ]
+  },
+  "Bridge Client Unreal": {
+    "name": "Bridge Client Unreal",
+    "path": "systems/bridge_client_unreal",
+    "description": "# Geometry OS Unreal Client  This directory contains the C++ Source Code required to build the **Glass Monitor** plugin for Unreal Engine 5.  ## Installation  1.  **Create a UE5 C++ Project**:     *...",
+    "language": "MD",
+    "files": 3,
+    "entry_points": []
+  },
+  "Learning": {
+    "name": "Learning",
+    "path": "systems/learning",
+    "description": "Core learning module responsible for the 'learning' layer of the Neural Substrate.",
+    "language": "MD",
+    "files": 3,
+    "entry_points": []
+  },
+  "Neural Attention Dynamics": {
+    "name": "Neural Attention Dynamics",
+    "path": "systems/neural_attention_dynamics",
+    "description": "Core neural attention dynamics module responsible for the 'neural attention dynamics' layer of the Neural Substrate.",
+    "language": "MD",
+    "files": 1,
+    "entry_points": []
+  },
+  "Masonry": {
+    "name": "Masonry",
+    "path": "systems/masonry",
+    "description": "# Masonry System  The **Masonry System** allows you to \"stamp\" compiled V2 Spatial Bricks (software packages) into the living Geometry OS substrate (`.rts`).  ## Workflow  1.  **Foundry**: Compile Lin...",
+    "language": "PY",
+    "files": 15,
+    "entry_points": []
+  },
+  "Contenders": {
+    "name": "Contenders",
+    "path": "systems/contenders",
+    "description": "Core contenders module responsible for the 'contenders' layer of the Neural Substrate.",
+    "language": "JS",
+    "files": 1,
+    "entry_points": []
+  },
+  "Macro Agents": {
+    "name": "Macro Agents",
+    "path": "systems/macro_agents",
+    "description": "Core macro agents module responsible for the 'macro agents' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 3,
+    "entry_points": []
+  },
+  "Integration": {
+    "name": "Integration",
+    "path": "systems/integration",
+    "description": "Core integration module responsible for the 'integration' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 4,
+    "entry_points": []
+  },
+  "Integrationtestclass": {
+    "name": "Integrationtestclass",
+    "path": "systems/integrationtestclass",
+    "description": "Core integrationtestclass module responsible for the 'integrationtestclass' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 1,
+    "entry_points": []
+  },
+  "Relativity": {
+    "name": "Relativity",
+    "path": "systems/relativity",
+    "description": "Core relativity module responsible for the 'relativity' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 5,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Strategy": {
+    "name": "Strategy",
+    "path": "systems/strategy",
+    "description": "Core strategy module responsible for the 'strategy' layer of the Neural Substrate.",
+    "language": "MD",
+    "files": 27,
+    "entry_points": []
+  },
+  "Glass Substrate": {
+    "name": "Glass Substrate",
+    "path": "systems/glass_substrate",
+    "description": "Core glass substrate module responsible for the 'glass substrate' layer of the Neural Substrate.",
+    "language": "MD",
+    "files": 1,
+    "entry_points": []
+  },
+  "Evolution Inference": {
+    "name": "Evolution Inference",
+    "path": "systems/evolution_inference",
+    "description": "Core evolution inference module responsible for the 'evolution inference' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 9,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Pixel Applications": {
+    "name": "Pixel Applications",
+    "path": "systems/pixel_applications",
+    "description": "Core pixel applications module responsible for the 'pixel applications' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 3,
+    "entry_points": [
+      "main.py"
+    ]
+  },
+  "Bridges": {
+    "name": "Bridges",
+    "path": "systems/bridges",
+    "description": "Core bridges module responsible for the 'bridges' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 3,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Tectonic": {
+    "name": "Tectonic",
+    "path": "systems/tectonic",
+    "description": "Core tectonic module responsible for the 'tectonic' layer of the Neural Substrate.",
+    "language": "VASM",
+    "files": 9,
+    "entry_points": []
+  },
+  "Neural Swarm": {
+    "name": "Neural Swarm",
+    "path": "systems/neural_swarm",
+    "description": "# Neural Swarm - Service-Oriented Intelligence Architecture for Geometry OS  ## Overview  The Neural Swarm is a comprehensive daemon management system that transforms Geometry OS from traditional back...",
+    "language": "PY",
+    "files": 18,
+    "entry_points": []
+  },
+  "Reinforcement Learning": {
+    "name": "Reinforcement Learning",
+    "path": "systems/reinforcement_learning",
+    "description": "Core reinforcement learning module responsible for the 'reinforcement learning' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 1,
+    "entry_points": []
+  },
+  "Codes": {
+    "name": "Codes",
+    "path": "systems/codes",
+    "description": "Core codes module responsible for the 'codes' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 18,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Testclass": {
+    "name": "Testclass",
+    "path": "systems/testclass",
+    "description": "Core testclass module responsible for the 'testclass' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 1,
+    "entry_points": []
+  },
+  "Ai Gui": {
+    "name": "Ai Gui",
+    "path": "systems/ai_gui",
+    "description": "Core ai gui module responsible for the 'ai gui' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 40,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Wasm Gpu": {
+    "name": "Wasm Gpu",
+    "path": "systems/wasm_gpu",
+    "description": "Core wasm gpu module responsible for the 'wasm gpu' layer of the Neural Substrate.",
+    "language": "MD",
+    "files": 15,
+    "entry_points": []
+  },
+  "Xwayland": {
+    "name": "Xwayland",
+    "path": "systems/xwayland",
+    "description": "# XWayland Completion Daemon  AI-powered daemon that automatically generates XWayland/Ubuntu integration code using LM Studio.  ## Overview  This daemon uses a local LLM (via LM Studio) to generate th...",
+    "language": "PY",
+    "files": 3,
+    "entry_points": []
+  },
+  "Arbiter": {
+    "name": "Arbiter",
+    "path": "systems/arbiter",
+    "description": "# Map Competition Protocol - Arbiter System  > \"The program that controls the largest territory BECOMES the infinite map.\"  ## Overview  The Arbiter is the referee of the Map Competition. It tracks co...",
+    "language": "PY",
+    "files": 5,
+    "entry_points": []
+  },
+  "Graphics": {
+    "name": "Graphics",
+    "path": "systems/graphics",
+    "description": "Core graphics module responsible for the 'graphics' layer of the Neural Substrate.",
+    "language": "WGSL",
+    "files": 1,
+    "entry_points": []
+  },
+  "App Forge": {
+    "name": "App Forge",
+    "path": "systems/app_forge",
+    "description": "Core app forge module responsible for the 'app forge' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 28,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Riscv Gpu": {
+    "name": "Riscv Gpu",
+    "path": "systems/riscv_gpu",
+    "description": "# RISC-V GPU Toolchain  Tools for encoding RISC-V binaries to Pixel CPU format and building Linux for GPU execution.  ## Components  ### 1. RISC-V Encoder (`src/riscv_encoder_standalone.py`)  Converts...",
+    "language": "C",
+    "files": 84827,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Evolution": {
+    "name": "Evolution",
+    "path": "systems/evolution",
+    "description": "# System Evolution  This directory contains the core components for the evolution of the Geometry OS. This includes systems for memory management, neural network architecture, and data compression....",
+    "language": "PY",
+    "files": 903,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Workflow": {
+    "name": "Workflow",
+    "path": "systems/workflow",
+    "description": "Core workflow module responsible for the 'workflow' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 14,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Tests": {
+    "name": "Tests",
+    "path": "systems/tests",
+    "description": "Core tests module responsible for the 'tests' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 1,
+    "entry_points": []
+  },
+  "Neural Cortex": {
+    "name": "Neural Cortex",
+    "path": "systems/neural_cortex",
+    "description": "Core neural cortex module responsible for the 'neural cortex' layer of the Neural Substrate.",
+    "language": "PYC",
+    "files": 34,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Proposals": {
+    "name": "Proposals",
+    "path": "systems/proposals",
+    "description": "Core proposals module responsible for the 'proposals' layer of the Neural Substrate.",
+    "language": "MD",
+    "files": 2,
+    "entry_points": []
+  },
+  "Bus": {
+    "name": "Bus",
+    "path": "systems/bus",
+    "description": "Core bus module responsible for the 'bus' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 2,
+    "entry_points": []
+  },
+  "Mcp Geometry Os": {
+    "name": "Mcp Geometry Os",
+    "path": "systems/mcp_geometry_os",
+    "description": "Core mcp geometry os module responsible for the 'mcp geometry os' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 1,
+    "entry_points": []
+  },
+  "Testing": {
+    "name": "Testing",
+    "path": "systems/testing",
+    "description": "Core testing module responsible for the 'testing' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 25,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Compositor": {
+    "name": "Compositor",
+    "path": "systems/compositor",
+    "description": "# LM Studio Compositor Daemon  ## Overview  The LM Studio Compositor Daemon is a specialized subsystem within Geometry OS that mediates between Large Language Model (LLM) code generation outputs and t...",
+    "language": "JS",
+    "files": 10615,
+    "entry_points": [
+      "index.js"
+    ]
+  },
+  "Quantum": {
+    "name": "Quantum",
+    "path": "systems/quantum",
+    "description": "Core quantum module responsible for the 'quantum' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 6,
+    "entry_points": []
+  },
+  "Agents": {
+    "name": "Agents",
+    "path": "systems/agents",
+    "description": "Core agents module responsible for the 'agents' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 6,
+    "entry_points": []
+  },
+  "Common": {
+    "name": "Common",
+    "path": "systems/common",
+    "description": "Core common module responsible for the 'common' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 6,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Orchestration": {
+    "name": "Orchestration",
+    "path": "systems/orchestration",
+    "description": "Core orchestration module responsible for the 'orchestration' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 1,
+    "entry_points": []
+  },
+  "Lnx": {
+    "name": "Lnx",
+    "path": "systems/lnx",
+    "description": "Core lnx module responsible for the 'lnx' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 2,
+    "entry_points": []
+  },
+  "Core": {
+    "name": "Core",
+    "path": "systems/core",
+    "description": "Core core module responsible for the 'core' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 1,
+    "entry_points": []
+  },
+  "Vector Lang": {
+    "name": "Vector Lang",
+    "path": "systems/vector_lang",
+    "description": "Core vector lang module responsible for the 'vector lang' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 14,
+    "entry_points": []
+  },
+  "Rts Nbd": {
+    "name": "Rts Nbd",
+    "path": "systems/rts_nbd",
+    "description": "Core rts nbd module responsible for the 'rts nbd' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 1,
+    "entry_points": []
+  },
+  "Genome": {
+    "name": "Genome",
+    "path": "systems/genome",
+    "description": "Core genome module responsible for the 'genome' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 20,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Neural City": {
+    "name": "Neural City",
+    "path": "systems/neural_city",
+    "description": "Core neural city module responsible for the 'neural city' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 3727,
+    "entry_points": [
+      "main.py",
+      "__init__.py"
+    ]
+  },
+  "Build": {
+    "name": "Build",
+    "path": "systems/build",
+    "description": "Core build module responsible for the 'build' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 12,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Infinite Map": {
+    "name": "Infinite Map",
+    "path": "systems/infinite_map",
+    "description": "Core infinite map module responsible for the 'infinite map' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 28,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Neural Cpu": {
+    "name": "Neural Cpu",
+    "path": "systems/neural_cpu",
+    "description": "# Neural CPU & Software Evolution Toolchain  **Version**: 1.0 (Prototype)   **Status**: Validated (100% Fidelity on Boot Sectors)  This directory contains the core components of the **Vector Linux**...",
+    "language": "PY",
+    "files": 8640,
+    "entry_points": [
+      "main.py",
+      "main.rs",
+      "__init__.py"
+    ]
+  },
+  "Calibration": {
+    "name": "Calibration",
+    "path": "systems/calibration",
+    "description": "Core calibration module responsible for the 'calibration' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 10,
+    "entry_points": []
+  },
+  "Pxos": {
+    "name": "Pxos",
+    "path": "systems/pxos",
+    "description": "Core pxos module responsible for the 'pxos' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 8,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Roadmap": {
+    "name": "Roadmap",
+    "path": "systems/roadmap",
+    "description": "# Roadmap-Driven Autonomous Project Execution System  This system transforms high-level project roadmaps into autonomously executable OpenSpec changes through AI-powered decomposition and MCP orchestr...",
+    "language": "PY",
+    "files": 28,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Foundry": {
+    "name": "Foundry",
+    "path": "systems/foundry",
+    "description": "Core foundry module responsible for the 'foundry' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 41,
+    "entry_points": []
+  },
+  "Transmutation": {
+    "name": "Transmutation",
+    "path": "systems/transmutation",
+    "description": "Core transmutation module responsible for the 'transmutation' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 77,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Prts Toolchain": {
+    "name": "Prts Toolchain",
+    "path": "systems/prts_toolchain",
+    "description": "Core prts toolchain module responsible for the 'prts toolchain' layer of the Neural Substrate.",
+    "language": "PYC",
+    "files": 2459,
+    "entry_points": [
+      "main.py",
+      "__init__.py"
+    ]
+  },
+  "Glass Boot": {
+    "name": "Glass Boot",
+    "path": "systems/glass_boot",
+    "description": "# Optical Hypervisor - Glass Boot System  ## The Image is the Computer  This is the **final form** of Geometry OS - a Liquid State Architecture where the OS itself is a texture that evolves itself.  #...",
+    "language": "",
+    "files": 1032,
+    "entry_points": [
+      "main.rs"
+    ]
+  },
+  "Visual Shell": {
+    "name": "Visual Shell",
+    "path": "systems/visual_shell",
+    "description": "Core visual shell module responsible for the 'visual shell' layer of the Neural Substrate.",
+    "language": "JS",
+    "files": 7876,
+    "entry_points": [
+      "index.js",
+      "visual_bridge.py",
+      "__init__.py"
+    ]
+  },
+  "Consciousness": {
+    "name": "Consciousness",
+    "path": "systems/consciousness",
+    "description": "Core consciousness module responsible for the 'consciousness' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 23,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Kernel": {
+    "name": "Kernel",
+    "path": "systems/kernel",
+    "description": "Core kernel module responsible for the 'kernel' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 74,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Sdk": {
+    "name": "Sdk",
+    "path": "systems/sdk",
+    "description": "# Geometry Development Kit (GDK) Specification  > \"The era of symbolic computation is over. The era of geometric intelligence has begun.\"  ## Architecture The GDK is a monorepo serving as the standard...",
+    "language": "JS",
+    "files": 6,
+    "entry_points": [
+      "index.js"
+    ]
+  },
+  "Phase15": {
+    "name": "Phase15",
+    "path": "systems/phase15",
+    "description": "Core phase15 module responsible for the 'phase15' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 5,
+    "entry_points": []
+  },
+  "Rts Fuse": {
+    "name": "Rts Fuse",
+    "path": "systems/rts_fuse",
+    "description": "# RTS FUSE Filesystem (rtsfs) v2.0  \"The Screen is Hard Drive\"  A modular, production-ready FUSE filesystem for mounting PixelRTS v2 (.rts.png) containers as data filesystems.  ## Features  ### Phase...",
+    "language": "",
+    "files": 519,
+    "entry_points": [
+      "main.py",
+      "__init__.py",
+      "main.rs"
+    ]
+  },
+  "Builder": {
+    "name": "Builder",
+    "path": "systems/builder",
+    "description": "Core builder module responsible for the 'builder' layer of the Neural Substrate.",
+    "language": "JSON",
+    "files": 283,
+    "entry_points": []
+  },
+  "Clipping": {
+    "name": "Clipping",
+    "path": "systems/clipping",
+    "description": "Core clipping module responsible for the 'clipping' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 4,
+    "entry_points": []
+  },
+  "Pixel Llm": {
+    "name": "Pixel Llm",
+    "path": "systems/pixel_llm",
+    "description": "Core pixel llm module responsible for the 'pixel llm' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 1222,
+    "entry_points": [
+      "main.py",
+      "__init__.py"
+    ]
+  },
+  "Visual Cortex": {
+    "name": "Visual Cortex",
+    "path": "systems/visual_cortex",
+    "description": "Core visual cortex module responsible for the 'visual cortex' layer of the Neural Substrate.",
+    "language": "",
+    "files": 12684,
+    "entry_points": [
+      "main.rs"
+    ]
+  },
+  "Health": {
+    "name": "Health",
+    "path": "systems/health",
+    "description": "# Tectonic Canary: Visual Structural Health Monitoring  ## The Geometric Canary  > \"The screen is the hard drive, and the canary is the eye.\"  The Tectonic Canary is a **Visual Structural Health Monit...",
+    "language": "VAT",
+    "files": 17,
+    "entry_points": []
+  },
+  "Infinite Map Rs": {
+    "name": "Infinite Map Rs",
+    "path": "systems/infinite_map_rs",
+    "description": "# infinite_map_rs - Production-Ready Wayland Compositor  **The Screen is the Hard Drive**  A production-ready Wayland compositor that renders RTS (Raw Tensor Substrate) filesystems as infinite, zoomab...",
+    "language": "O",
+    "files": 36794,
+    "entry_points": [
+      "app.rs"
+    ]
+  },
+  "Monitoring": {
+    "name": "Monitoring",
+    "path": "systems/monitoring",
+    "description": "# Neural Pipeline Monitoring System  A comprehensive monitoring and alerting system for the neural pipeline, featuring threshold-based alerting with multiple notification channels and Prometheus metri...",
+    "language": "PY",
+    "files": 6,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Vector Vm": {
+    "name": "Vector Vm",
+    "path": "systems/vector_vm",
+    "description": "# Vector Virtual Machine (VVM)  The execution environment for Vector-Native Programs.  ## Core Components  *   **Heap (`memory.py`)**: Stores vector objects uniquely identified by UUIDs. Supports met...",
+    "language": "PY",
+    "files": 123,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Visual Shader Engine": {
+    "name": "Visual Shader Engine",
+    "path": "systems/visual_shader_engine",
+    "description": "Core visual shader engine module responsible for the 'visual shader engine' layer of the Neural Substrate.",
+    "language": "unknown",
+    "files": 0,
+    "entry_points": []
+  },
+  "Experiments": {
+    "name": "Experiments",
+    "path": "systems/experiments",
+    "description": "Core experiments module responsible for the 'experiments' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 5,
+    "entry_points": []
+  },
+  "Qemu Bridge": {
+    "name": "Qemu Bridge",
+    "path": "systems/qemu_bridge",
+    "description": "Core qemu bridge module responsible for the 'qemu bridge' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 1,
+    "entry_points": []
+  },
+  "Storage": {
+    "name": "Storage",
+    "path": "systems/storage",
+    "description": "Core storage module responsible for the 'storage' layer of the Neural Substrate.",
+    "language": "JSON",
+    "files": 4,
+    "entry_points": []
+  },
+  "Scripts": {
+    "name": "Scripts",
+    "path": "systems/scripts",
+    "description": "Core scripts module responsible for the 'scripts' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 1,
+    "entry_points": []
+  },
+  "Swarm": {
+    "name": "Swarm",
+    "path": "systems/swarm",
+    "description": "Core swarm module responsible for the 'swarm' layer of the Neural Substrate.",
+    "language": "PY",
+    "files": 13,
+    "entry_points": [
+      "__init__.py"
+    ]
+  },
+  "Linux Boot": {
+    "name": "Linux Boot",
+    "path": "systems/linux_boot",
+    "description": "Core linux boot module responsible for the 'linux boot' layer of the Neural Substrate.",
+    "language": "SH",
+    "files": 1,
+    "entry_points": []
+  }
+}

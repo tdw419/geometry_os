@@ -95,6 +95,24 @@ switch ($action) {
         handle_list_tools();
         break;
 
+    // Directive Console API (Command Console)
+    case 'getDirectives':
+        handle_get_directives();
+        break;
+
+    case 'markDirectiveProcessed':
+        handle_mark_directive_processed($args);
+        break;
+
+    case 'postDirectiveResponse':
+        handle_post_directive_response($args);
+        break;
+
+    // Research Document Import API
+    case 'importResearchDocument':
+        handle_import_research_document($args);
+        break;
+
     default:
         header('HTTP/1.1 400 Bad Request');
         echo json_encode(array('success' => false, 'error' => 'Invalid action/tool: ' . $action));
@@ -201,7 +219,36 @@ function handle_get_stats() {
 }
 
 function handle_list_posts($data) {
-    echo json_encode(array('success' => true, 'posts' => array()));
+    $limit = isset($data['limit']) ? intval($data['limit']) : 20;
+    $post_type = isset($data['post_type']) ? $data['post_type'] : 'post';
+
+    $args = array(
+        'post_type' => $post_type,
+        'post_status' => 'publish',
+        'posts_per_page' => $limit,
+        'orderby' => 'date',
+        'order' => 'DESC'
+    );
+
+    $query = new WP_Query($args);
+    $posts = array();
+
+    if ($query->have_posts()) {
+        while ($query->have_posts()) {
+            $query->the_post();
+            $posts[] = array(
+                'id' => get_the_ID(),
+                'title' => get_the_title(),
+                'content' => get_the_content(),
+                'excerpt' => get_the_excerpt(),
+                'date' => get_the_date('c'),
+                'url' => get_permalink()
+            );
+        }
+        wp_reset_postdata();
+    }
+
+    echo json_encode(array('success' => true, 'posts' => $posts));
 }
 
 function handle_get_categories() {
@@ -218,4 +265,225 @@ function handle_create_widget($data) {
 
 function handle_list_tools() {
     echo json_encode(array('success' => true, 'tools' => array('createPost', 'editPage', 'logEvolution')));
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ * Directive Console API Handlers
+ * ─────────────────────────────────────────────────────────────
+ */
+
+/**
+ * Ensure the Directives category exists
+ */
+function ensure_directives_category() {
+    $cat_slug = 'directives';
+    $existing = get_term_by('slug', $cat_slug, 'category');
+    if ($existing) {
+        return $existing->term_id;
+    }
+    $result = wp_insert_term('Directives', 'category', array('slug' => $cat_slug));
+    if (is_wp_error($result)) {
+        return 1; // fallback to default category
+    }
+    return $result['term_id'];
+}
+
+/**
+ * Get unprocessed directives from WordPress
+ * Returns posts in Directives category where directive_processed meta is not set
+ */
+function handle_get_directives() {
+    $cat_id = ensure_directives_category();
+
+    $args = array(
+        'post_type' => 'post',
+        'post_status' => 'publish',
+        'posts_per_page' => 50,
+        'category' => $cat_id,
+        'meta_query' => array(
+            array(
+                'key' => 'directive_processed',
+                'compare' => 'NOT EXISTS'
+            )
+        )
+    );
+
+    $query = new WP_Query($args);
+    $directives = array();
+
+    if ($query->have_posts()) {
+        while ($query->have_posts()) {
+            $query->the_post();
+            $directives[] = array(
+                'id' => get_the_ID(),
+                'title' => get_the_title(),
+                'content' => get_the_content(),
+                'author' => get_the_author(),
+                'date' => get_the_date('c')
+            );
+        }
+        wp_reset_postdata();
+    }
+
+    echo json_encode(array('success' => true, 'directives' => $directives));
+}
+
+/**
+ * Mark a directive as processed
+ */
+function handle_mark_directive_processed($args) {
+    $post_id = isset($args['post_id']) ? intval($args['post_id']) : 0;
+
+    if (!$post_id) {
+        echo json_encode(array('success' => false, 'error' => 'Missing post_id'));
+        return;
+    }
+
+    update_post_meta($post_id, 'directive_processed', true);
+    echo json_encode(array('success' => true, 'post_id' => $post_id));
+}
+
+/**
+ * Post a response comment to a directive
+ */
+function handle_post_directive_response($args) {
+    $post_id = isset($args['post_id']) ? intval($args['post_id']) : 0;
+    $response = isset($args['response']) ? $args['response'] : '';
+    $status = isset($args['status']) ? $args['status'] : 'COMPLETED';
+
+    if (!$post_id) {
+        echo json_encode(array('success' => false, 'error' => 'Missing post_id'));
+        return;
+    }
+
+    if (!$response) {
+        echo json_encode(array('success' => false, 'error' => 'Missing response'));
+        return;
+    }
+
+    $comment_data = array(
+        'comment_post_ID' => $post_id,
+        'comment_author' => 'DirectiveAgent',
+        'comment_author_email' => 'agent@geometry.os',
+        'comment_content' => "**Status: $status**\n\n" . $response,
+        'comment_approved' => 1, // Auto-approve
+        'comment_type' => ''
+    );
+
+    $comment_id = wp_insert_comment($comment_data);
+
+    if (is_wp_error($comment_id)) {
+        echo json_encode(array('success' => false, 'error' => $comment_id->get_error_message()));
+    } else {
+        echo json_encode(array('success' => true, 'comment_id' => $comment_id));
+    }
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ * Research Document Import Handler
+ * ─────────────────────────────────────────────────────────────
+ */
+
+/**
+ * Handle importing a research document
+ * Supports create/update/skip based on existing document state
+ */
+function handle_import_research_document($args) {
+    // Validate required fields
+    if (!isset($args['title']) || !isset($args['content'])) {
+        header('HTTP/1.1 400 Bad Request');
+        echo json_encode(array('success' => false, 'error' => 'Missing title or content.'));
+        return;
+    }
+
+    // Extract meta fields with defaults
+    $meta = isset($args['meta']) ? $args['meta'] : array();
+    $source_path = isset($meta['source_path']) ? sanitize_text_field($meta['source_path']) : '';
+    $file_hash = isset($meta['file_hash']) ? sanitize_text_field($meta['file_hash']) : '';
+    $line_count = isset($meta['line_count']) ? intval($meta['line_count']) : 0;
+    $import_batch = isset($meta['import_batch']) ? sanitize_text_field($meta['import_batch']) : '';
+
+    // Check for existing post by source_path meta
+    $existing_posts = get_posts(array(
+        'post_type' => 'research_document',
+        'post_status' => 'any',
+        'posts_per_page' => 1,
+        'meta_query' => array(
+            array(
+                'key' => 'source_path',
+                'value' => $source_path,
+                'compare' => '='
+            )
+        )
+    ));
+
+    $post_data = array(
+        'post_title'   => wp_strip_all_tags($args['title']),
+        'post_content' => $args['content'],
+        'post_status'  => 'publish',
+        'post_author'  => 1,
+        'post_type'    => 'research_document'
+    );
+
+    // Case 1: Existing post found
+    if (!empty($existing_posts)) {
+        $existing_post = $existing_posts[0];
+        $existing_hash = get_post_meta($existing_post->ID, 'file_hash', true);
+
+        // Case 1a: Hash matches - skip (no changes)
+        if ($existing_hash === $file_hash) {
+            echo json_encode(array(
+                'success' => true,
+                'status' => 'skipped',
+                'post_id' => $existing_post->ID,
+                'message' => 'Document unchanged (hash match).'
+            ));
+            return;
+        }
+
+        // Case 1b: Hash differs - update existing post
+        $post_data['ID'] = $existing_post->ID;
+        $post_id = wp_update_post($post_data);
+
+        if (is_wp_error($post_id)) {
+            echo json_encode(array('success' => false, 'error' => $post_id->get_error_message()));
+            return;
+        }
+
+        // Update meta fields
+        update_post_meta($post_id, 'file_hash', $file_hash);
+        update_post_meta($post_id, 'line_count', $line_count);
+        update_post_meta($post_id, 'import_batch', $import_batch);
+
+        echo json_encode(array(
+            'success' => true,
+            'status' => 'updated',
+            'post_id' => $post_id,
+            'message' => 'Document updated successfully.'
+        ));
+        return;
+    }
+
+    // Case 2: New post - create
+    $post_id = wp_insert_post($post_data);
+
+    if (is_wp_error($post_id)) {
+        echo json_encode(array('success' => false, 'error' => $post_id->get_error_message()));
+        return;
+    }
+
+    // Save meta fields for new post
+    add_post_meta($post_id, 'source_path', $source_path);
+    add_post_meta($post_id, 'file_hash', $file_hash);
+    add_post_meta($post_id, 'line_count', $line_count);
+    add_post_meta($post_id, 'import_batch', $import_batch);
+
+    echo json_encode(array(
+        'success' => true,
+        'status' => 'created',
+        'post_id' => $post_id,
+        'message' => 'Document created successfully.'
+    ));
 }

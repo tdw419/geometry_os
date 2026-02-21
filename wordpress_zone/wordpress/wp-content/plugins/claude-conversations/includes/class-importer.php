@@ -51,13 +51,30 @@ class Claude_Importer {
             return new WP_Error('dir_not_found', sprintf('Claude directory not found: %s', $claude_dir));
         }
 
-        // Glob all .jsonl files from all project subdirectories
-        $pattern = rtrim($claude_dir, '/') . '/*/*.jsonl';
-        $files = glob($pattern);
+        // Find all .jsonl files recursively using RecursiveDirectoryIterator
+        $files = array();
+        try {
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($claude_dir, RecursiveDirectoryIterator::SKIP_DOTS),
+                RecursiveIteratorIterator::LEAVES_ONLY
+            );
+            foreach ($iterator as $file) {
+                if ($file->isFile() && $file->getExtension() === 'jsonl') {
+                    $files[] = $file->getPathname();
+                }
+            }
+        } catch (Exception $e) {
+            return new WP_Error('scan_error', sprintf('Failed to scan directory: %s', $e->getMessage()));
+        }
 
         if (empty($files)) {
             return $stats;
         }
+
+        // Sort files by modification time (newest first) for consistent ordering
+        usort($files, function($a, $b) {
+            return filemtime($b) - filemtime($a);
+        });
 
         $batch_start_time = time();
         $max_execution_time = (int) ini_get('max_execution_time');
@@ -71,8 +88,10 @@ class Claude_Importer {
                 break;
             }
 
-            // Extract project name from path
-            $project = basename(dirname($filepath));
+            // Extract project name from path (project is the top-level directory under projects/)
+            $relative_path = str_replace($claude_dir, '', $filepath);
+            $parts = explode('/', trim($relative_path, '/'));
+            $project = isset($parts[0]) ? $parts[0] : 'unknown';
 
             $result = $this->import_session($filepath, $project);
 
@@ -205,12 +224,20 @@ class Claude_Importer {
         $session_id = sanitize_key($session_id);
         $project = sanitize_file_name($project);
 
+        // Set post date from conversation start time
+        $post_date = current_time('mysql');
+        if (!empty($metadata['start_time']) && $metadata['start_time'] > 0) {
+            $post_date = date('Y-m-d H:i:s', $metadata['start_time']);
+        }
+
         $post_data = array(
             'post_title' => $title,
             'post_content' => $content,
             'post_status' => 'publish',
             'post_category' => array($category_id),
             'post_type' => 'post',
+            'post_date' => $post_date,
+            'post_date_gmt' => get_gmt_from_date($post_date),
         );
 
         $post_id = wp_insert_post($post_data, true);
