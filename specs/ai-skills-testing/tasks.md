@@ -138,7 +138,7 @@ _Design: TestSkillFiles_
 
 ---
 
-### Task 1.6: Create TestSkillsIndex class
+### Task 1.6: [x] Create TestSkillsIndex class [x]
 
 **Do:**
 1. Add `TestSkillsIndex` class to test_sync_skills.py

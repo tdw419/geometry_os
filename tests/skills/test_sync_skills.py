@@ -141,3 +141,29 @@ class TestSkillFiles:
                 f"Invalid category '{category}' in {skill_dir.name}/SKILL.md. "
                 f"Valid categories: {valid_categories}"
             )
+
+
+class TestSkillsIndex:
+    """Tests for validating the SKILLS.md index file in project root."""
+
+    def test_skills_md_exists(self, project_root):
+        """Test that SKILLS.md exists in the project root."""
+        skills_md = project_root / "SKILLS.md"
+        assert skills_md.exists(), "SKILLS.md not found in project root"
+        assert skills_md.is_file(), "SKILLS.md is not a file"
+
+    def test_all_skills_in_index(self, project_root):
+        """Test that all 5 skills appear in SKILLS.md content."""
+        skills_md = project_root / "SKILLS.md"
+        content = skills_md.read_text()
+
+        expected_skills = [
+            "golden-path-boot-test",
+            "parallel-swarm-production",
+            "evolution-daemon-control",
+            "visual-shell-debug",
+            "infinite-map-testing",
+        ]
+
+        for skill_name in expected_skills:
+            assert skill_name in content, f"Skill '{skill_name}' not found in SKILLS.md index"

@@ -4,9 +4,14 @@ from pathlib import Path
 
 
 @pytest.fixture(scope="session")
-def skills_dir():
+def project_root():
+    """Path to the project root directory."""
+    return Path(__file__).parent.parent.parent
+
+
+@pytest.fixture(scope="session")
+def skills_dir(project_root):
     """Path to the .gemini/skills directory containing skill files."""
-    project_root = Path(__file__).parent.parent.parent
     return project_root / ".gemini" / "skills"
 
 
