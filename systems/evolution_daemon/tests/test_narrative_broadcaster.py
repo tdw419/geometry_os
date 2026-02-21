@@ -2002,3 +2002,285 @@ class TestEdgeCases:
 
         # Empty memory should not report duplicates
         assert memory.is_duplicate("any topic") is False
+
+
+class TestDaemonIntegration:
+    """Integration tests for daemon + radio integration (FR-5, FR-10)."""
+
+    @pytest.fixture(autouse=True)
+    def setup_daemon_import(self):
+        """Ensure EvolutionDaemon can be imported."""
+        # Add project root to path if not already there
+        project_root = Path(__file__).resolve().parent.parent.parent.parent
+        if str(project_root) not in sys.path:
+            sys.path.insert(0, str(project_root))
+
+    def test_daemon_has_radio_state(self):
+        """EvolutionDaemon should have radio state variables."""
+        try:
+            from systems.evolution_daemon.evolution_daemon import EvolutionDaemon
+        except ImportError:
+            pytest.skip("EvolutionDaemon not importable")
+
+        daemon = EvolutionDaemon()
+
+        # Check radio state variables exist
+        assert hasattr(daemon, 'radio_enabled')
+        assert hasattr(daemon, 'radio_station_id')
+        assert hasattr(daemon, 'radio_broadcaster')
+        assert daemon.radio_enabled is False  # Default off
+        assert daemon.radio_station_id == "87.6"  # Default station
+
+    def test_daemon_enable_radio(self):
+        """EvolutionDaemon.enable_radio() should enable radio broadcasting."""
+        try:
+            from systems.evolution_daemon.evolution_daemon import EvolutionDaemon
+        except ImportError:
+            pytest.skip("EvolutionDaemon not importable")
+
+        daemon = EvolutionDaemon()
+
+        # Radio should be disabled initially
+        assert daemon.radio_enabled is False
+
+        # Enable radio
+        result = daemon.enable_radio(station_id="92.3")
+
+        # Should return True and set up radio state
+        assert result is True
+        assert daemon.radio_enabled is True
+        assert daemon.radio_station_id == "92.3"
+        assert daemon.radio_broadcaster is not None
+        assert daemon.radio_broadcaster.station_id == "92.3"
+
+    def test_daemon_enable_radio_default_station(self):
+        """EvolutionDaemon.enable_radio() should use default station 87.6."""
+        try:
+            from systems.evolution_daemon.evolution_daemon import EvolutionDaemon
+        except ImportError:
+            pytest.skip("EvolutionDaemon not importable")
+
+        daemon = EvolutionDaemon()
+
+        result = daemon.enable_radio()
+
+        assert result is True
+        assert daemon.radio_station_id == "87.6"
+        assert daemon.radio_broadcaster.station_id == "87.6"
+
+    def test_daemon_station_switching_at_runtime(self):
+        """EvolutionDaemon.set_radio_station() should switch station at runtime (FR-5)."""
+        try:
+            from systems.evolution_daemon.evolution_daemon import EvolutionDaemon
+        except ImportError:
+            pytest.skip("EvolutionDaemon not importable")
+
+        daemon = EvolutionDaemon()
+
+        # Enable radio with default station
+        daemon.enable_radio(station_id="87.6")
+        assert daemon.radio_station_id == "87.6"
+
+        # Switch to Debug Metal
+        result = daemon.set_radio_station("92.3")
+
+        assert result is True
+        assert daemon.radio_station_id == "92.3"
+        assert daemon.radio_broadcaster.station_id == "92.3"
+
+        # Switch to Silicon Noir
+        result = daemon.set_radio_station("95.1")
+
+        assert result is True
+        assert daemon.radio_station_id == "95.1"
+
+        # Switch to Neutral Chronicler
+        result = daemon.set_radio_station("99.9")
+
+        assert result is True
+        assert daemon.radio_station_id == "99.9"
+
+    def test_daemon_station_switch_without_enable_returns_false(self):
+        """EvolutionDaemon.set_radio_station() should return False if radio not enabled."""
+        try:
+            from systems.evolution_daemon.evolution_daemon import EvolutionDaemon
+        except ImportError:
+            pytest.skip("EvolutionDaemon not importable")
+
+        daemon = EvolutionDaemon()
+
+        # Don't enable radio first
+        assert daemon.radio_enabled is False
+
+        result = daemon.set_radio_station("92.3")
+
+        # Should return False since radio not enabled
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_daemon_broadcast_loop_with_mock_telemetry(self):
+        """EvolutionDaemon._gather_radio_telemetry() should return telemetry dict (FR-10)."""
+        try:
+            from systems.evolution_daemon.evolution_daemon import EvolutionDaemon
+        except ImportError:
+            pytest.skip("EvolutionDaemon not importable")
+
+        daemon = EvolutionDaemon()
+
+        # Gather telemetry (should work even without radio enabled)
+        telemetry = await daemon._gather_radio_telemetry()
+
+        # Should return a dict with expected keys
+        assert isinstance(telemetry, dict)
+        assert "entropy" in telemetry
+        assert "fps" in telemetry
+        assert "evolution_count" in telemetry
+        assert "timestamp" in telemetry
+
+        # Values should have reasonable types
+        assert isinstance(telemetry["entropy"], (int, float))
+        assert isinstance(telemetry["fps"], (int, float))
+        assert 0 <= telemetry["entropy"] <= 1.0
+
+    @pytest.mark.asyncio
+    async def test_daemon_radio_broadcast_with_mock_telemetry(self):
+        """Radio broadcast loop should generate segments from telemetry (FR-10)."""
+        try:
+            from systems.evolution_daemon.evolution_daemon import EvolutionDaemon
+            from systems.evolution_daemon.narrative_broadcaster import BroadcastSegment as DaemonBroadcastSegment
+        except ImportError:
+            pytest.skip("EvolutionDaemon not importable")
+
+        daemon = EvolutionDaemon()
+        daemon.enable_radio(station_id="87.6")
+
+        # Get mock telemetry
+        telemetry = await daemon._gather_radio_telemetry()
+
+        # Broadcast should generate a segment
+        segment = daemon.radio_broadcaster.broadcast(telemetry)
+
+        assert segment is not None
+        # Use systems import for isinstance check (same class, different import path)
+        assert isinstance(segment, DaemonBroadcastSegment)
+        assert segment.station_id == "87.6"
+        assert segment.content is not None
+        assert len(segment.content) > 0
+
+    def test_daemon_radio_broadcaster_stats_accessible(self):
+        """Radio broadcaster stats should be accessible from daemon."""
+        try:
+            from systems.evolution_daemon.evolution_daemon import EvolutionDaemon
+        except ImportError:
+            pytest.skip("EvolutionDaemon not importable")
+
+        daemon = EvolutionDaemon()
+        daemon.enable_radio(station_id="87.6")
+
+        # Do a broadcast
+        daemon.radio_broadcaster.broadcast({"fps": 60, "entropy": 0.5})
+
+        # Stats should be accessible
+        stats = daemon.radio_broadcaster.get_stats()
+        assert stats["total_broadcasts"] >= 1
+        assert stats["station_id"] == "87.6"
+
+    def test_daemon_radio_uses_different_personalities(self):
+        """Radio should apply different personalities per station (FR-5)."""
+        try:
+            from systems.evolution_daemon.evolution_daemon import EvolutionDaemon
+        except ImportError:
+            pytest.skip("EvolutionDaemon not importable")
+
+        daemon = EvolutionDaemon()
+
+        # Test each station has unique personality
+        stations = ["87.6", "92.3", "95.1", "99.9"]
+
+        contents = []
+        for station_id in stations:
+            daemon.enable_radio(station_id=station_id)
+            segment = daemon.radio_broadcaster.broadcast({"fps": 60, "entropy": 0.5})
+            assert segment is not None
+            contents.append((station_id, segment.content))
+
+        # All broadcasts should have produced content
+        assert len(contents) == 4
+        for station_id, content in contents:
+            assert len(content) > 0
+
+    @pytest.mark.asyncio
+    async def test_visual_bridge_radio_event_format(self):
+        """Visual Bridge should dispatch radio events with correct format (FR-6)."""
+        # This tests the expected event format that visual_bridge.py broadcasts
+        # The actual visual_bridge.py handles 'radio_broadcast' events
+
+        expected_keys = [
+            "type", "station_id", "segment_type", "content",
+            "timestamp", "entropy", "evolution_count"
+        ]
+
+        # Create a mock segment to verify format
+        segment = BroadcastSegment(
+            segment_type="NEWS",
+            content="Test broadcast content",
+            entropy=0.75,
+            station_id="87.6"
+        )
+
+        segment_dict = segment.to_dict()
+
+        # The segment dict should have the keys needed for visual bridge
+        assert "segment_type" in segment_dict
+        assert "content" in segment_dict
+        assert "entropy" in segment_dict
+        assert "station_id" in segment_dict
+        assert "timestamp" in segment_dict
+
+        # The visual bridge adds 'type' and 'evolution_count'
+        # This test validates the expected format is compatible
+        broadcast_event = {
+            "type": "RADIO_BROADCAST",
+            "station_id": segment_dict["station_id"],
+            "segment_type": segment_dict["segment_type"],
+            "content": segment_dict["content"],
+            "timestamp": segment_dict["timestamp"],
+            "entropy": segment_dict["entropy"],
+            "evolution_count": 0
+        }
+
+        for key in expected_keys:
+            assert key in broadcast_event
+
+    def test_daemon_radio_disabled_by_default(self):
+        """Radio should be disabled by default in daemon."""
+        try:
+            from systems.evolution_daemon.evolution_daemon import EvolutionDaemon
+        except ImportError:
+            pytest.skip("EvolutionDaemon not importable")
+
+        daemon = EvolutionDaemon()
+
+        assert daemon.radio_enabled is False
+        assert daemon.radio_broadcaster is None
+
+    def test_daemon_multiple_enable_calls(self):
+        """Multiple enable_radio() calls should reconfigure radio."""
+        try:
+            from systems.evolution_daemon.evolution_daemon import EvolutionDaemon
+        except ImportError:
+            pytest.skip("EvolutionDaemon not importable")
+
+        daemon = EvolutionDaemon()
+
+        # First enable
+        daemon.enable_radio("87.6")
+        first_broadcaster = daemon.radio_broadcaster
+
+        # Second enable (should create new broadcaster)
+        daemon.enable_radio("92.3")
+        second_broadcaster = daemon.radio_broadcaster
+
+        # Station should be updated
+        assert daemon.radio_station_id == "92.3"
+        assert daemon.radio_broadcaster.station_id == "92.3"

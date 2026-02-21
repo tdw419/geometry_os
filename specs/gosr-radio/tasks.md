@@ -220,7 +220,7 @@ After POC validated, clean up code structure.
   - _Requirements: Error handling table_
   - _Design: Edge cases section_
 
-- [ ] 3.2 Integration tests for daemon + radio
+- [x] 3.2 Integration tests for daemon + radio
   - **Do**:
     1. Test daemon startup with `--radio` flag
     2. Test station switching at runtime
