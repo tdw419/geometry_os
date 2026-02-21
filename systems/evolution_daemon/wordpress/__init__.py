@@ -21,6 +21,12 @@ from .action_executor import (
     PlaywrightActionExecutor,
 )
 
+from .bridge_service import (
+    BridgeServiceConfig,
+    WPEvolutionBridgeService,
+    ServiceStats,
+)
+
 __all__ = [
     "ContentAnalysis",
     "ImprovementProposal",
@@ -29,4 +35,7 @@ __all__ = [
     "WordPressEvolutionAgent",
     "ExecutionResult",
     "PlaywrightActionExecutor",
+    "BridgeServiceConfig",
+    "WPEvolutionBridgeService",
+    "ServiceStats",
 ]
