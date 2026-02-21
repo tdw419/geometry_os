@@ -82,7 +82,7 @@ Focus: Validate core flow from browser heartbeat to WordPress storage.
 
 After POC validated, clean up and add persistence.
 
-- [ ] 2.1 Hourly Health Report Posts
+- [x] 2.1 Hourly Health Report Posts
   - **Do**: Add cron-generated health summary posts
   - **Files**: `wordpress_zone/wordpress/wp-content/mu-plugins/geometry_os_bridge.php`
   - **Steps**:

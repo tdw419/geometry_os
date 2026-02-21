@@ -28,6 +28,12 @@ class GeometryOS_Bridge {
 
         // REST API for health metrics
         add_action('rest_api_init', array($this, 'register_health_api'));
+
+        // Health report post type
+        add_action('init', array($this, 'register_health_report_post_type'));
+
+        // Hourly health report cron
+        add_action('geometry_os_hourly_health_report', array($this, 'generate_health_report'));
     }
 
     public function heartbeat() {
@@ -350,6 +356,205 @@ class GeometryOS_Bridge {
             ), 200);
         }
     }
+
+    /**
+     * Register the health report custom post type
+     */
+    public function register_health_report_post_type() {
+        register_post_type('geo_health_report', array(
+            'labels' => array(
+                'name' => 'Health Reports',
+                'singular_name' => 'Health Report',
+                'add_new' => 'Add New',
+                'add_new_item' => 'Add New Health Report',
+                'edit_item' => 'Edit Health Report',
+                'new_item' => 'New Health Report',
+                'view_item' => 'View Health Report',
+                'search_items' => 'Search Health Reports',
+                'not_found' => 'No health reports found',
+                'not_found_in_trash' => 'No health reports found in trash',
+            ),
+            'public' => true,
+            'has_archive' => true,
+            'show_in_rest' => true,
+            'supports' => array('title', 'editor', 'custom-fields'),
+            'menu_icon' => 'dashicons-heart',
+            'capability_type' => 'post',
+            'rewrite' => array('slug' => 'health-reports'),
+        ));
+    }
+
+    /**
+     * Generate hourly health report post (called by cron)
+     */
+    public function generate_health_report() {
+        // Get current metrics from option
+        $current_metrics = get_option('geometry_os_health_metrics', array());
+
+        // Read last hour's health_pulse events from telemetry file
+        $telemetry_dir = '/home/jericho/zion/projects/geometry_os/geometry_os/wordpress_zone/telemetry';
+        $telemetry_file = $telemetry_dir . '/events.jsonl';
+
+        $events = array();
+        $one_hour_ago = time() - 3600;
+
+        if (file_exists($telemetry_file)) {
+            $lines = file($telemetry_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            if ($lines !== false) {
+                // Read last 1000 lines (for performance)
+                $recent_lines = array_slice($lines, -1000);
+                foreach ($recent_lines as $line) {
+                    $event = json_decode($line, true);
+                    if ($event && isset($event['type']) && $event['type'] === 'health_pulse') {
+                        if (isset($event['timestamp']) && $event['timestamp'] >= $one_hour_ago) {
+                            $events[] = $event['data'];
+                        }
+                    }
+                }
+            }
+        }
+
+        // Calculate averages
+        $avg_latency = 0;
+        $avg_score = 0;
+        $max_swarm = 0;
+
+        if (!empty($events)) {
+            $total_latency = 0;
+            $total_score = 0;
+            $count = 0;
+
+            foreach ($events as $event) {
+                if (isset($event['latency_ms'])) {
+                    $total_latency += (float) $event['latency_ms'];
+                }
+                if (isset($event['health_score'])) {
+                    $total_score += (float) $event['health_score'];
+                }
+                if (isset($event['swarm_count'])) {
+                    $max_swarm = max($max_swarm, (int) $event['swarm_count']);
+                }
+                $count++;
+            }
+
+            if ($count > 0) {
+                $avg_latency = round($total_latency / $count, 2);
+                $avg_score = round($total_score / $count, 2);
+            }
+        } elseif (!empty($current_metrics)) {
+            // Fallback to current metrics if no events
+            $avg_latency = (float) ($current_metrics['latency_ms'] ?? 0);
+            $avg_score = (float) ($current_metrics['health_score'] ?? 0);
+            $max_swarm = (int) ($current_metrics['swarm_count'] ?? 0);
+        }
+
+        // Generate report content
+        $content = $this->generate_report_content($events, $avg_latency, $avg_score, $max_swarm);
+
+        // Create post
+        $post_data = array(
+            'post_title' => 'Health Report - ' . date('Y-m-d H:i'),
+            'post_content' => $content,
+            'post_type' => 'geo_health_report',
+            'post_status' => 'publish',
+            'post_date' => current_time('mysql'),
+        );
+
+        $post_id = wp_insert_post($post_data);
+
+        // Store metrics as post meta
+        if ($post_id && !is_wp_error($post_id)) {
+            update_post_meta($post_id, '_health_avg_latency', $avg_latency);
+            update_post_meta($post_id, '_health_avg_score', $avg_score);
+            update_post_meta($post_id, '_health_max_swarm', $max_swarm);
+            update_post_meta($post_id, '_health_event_count', count($events));
+            update_post_meta($post_id, '_health_report_time', time());
+        }
+
+        return $post_id;
+    }
+
+    /**
+     * Generate HTML content for health report
+     *
+     * @param array $events Health pulse events from last hour
+     * @param float $avg_latency Average latency in ms
+     * @param float $avg_score Average health score
+     * @param int $max_swarm Maximum swarm count
+     * @return string HTML content
+     */
+    private function generate_report_content($events, $avg_latency, $avg_score, $max_swarm) {
+        // Determine overall status
+        if ($avg_score >= 80) {
+            $status = 'HEALTHY';
+            $status_color = '#00ff00';
+        } elseif ($avg_score >= 50) {
+            $status = 'DEGRADED';
+            $status_color = '#ffcc00';
+        } else {
+            $status = 'CRITICAL';
+            $status_color = '#ff4444';
+        }
+
+        $event_count = count($events);
+        $timestamp = date('Y-m-d H:i:s T');
+
+        ob_start();
+        ?>
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; background: #1a1a2e; color: #e0e0e0; padding: 20px; border-radius: 8px;">
+    <h2 style="color: #00ffcc; margin-top: 0; border-bottom: 1px solid #00ffcc; padding-bottom: 10px;">
+        Geometry OS - Hourly Health Report
+    </h2>
+
+    <div style="margin-bottom: 20px;">
+        <span style="font-size: 14px; color: #888;">System Status:</span>
+        <span style="font-size: 18px; font-weight: bold; color: <?php echo esc_attr($status_color); ?>; margin-left: 10px;">
+            <?php echo esc_html($status); ?>
+        </span>
+    </div>
+
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <thead>
+            <tr style="background: #2a2a4e;">
+                <th style="padding: 12px; text-align: left; border: 1px solid #00ffcc; color: #00ffcc;">Metric</th>
+                <th style="padding: 12px; text-align: right; border: 1px solid #00ffcc; color: #00ffcc;">Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #3a3a5e;">Average Health Score</td>
+                <td style="padding: 10px; border: 1px solid #3a3a5e; text-align: right; color: <?php echo esc_attr($avg_score >= 80 ? '#00ff00' : ($avg_score >= 50 ? '#ffcc00' : '#ff4444')); ?>;">
+                    <?php echo esc_html($avg_score); ?>%
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #3a3a5e;">Average Latency</td>
+                <td style="padding: 10px; border: 1px solid #3a3a5e; text-align: right; color: <?php echo esc_attr($avg_latency < 100 ? '#00ff00' : ($avg_latency < 500 ? '#ffcc00' : '#ff4444')); ?>;">
+                    <?php echo esc_html($avg_latency); ?>ms
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #3a3a5e;">Peak Swarm Count</td>
+                <td style="padding: 10px; border: 1px solid #3a3a5e; text-align: right;">
+                    <?php echo esc_html($max_swarm); ?> agents
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #3a3a5e;">Heartbeats This Hour</td>
+                <td style="padding: 10px; border: 1px solid #3a3a5e; text-align: right;">
+                    <?php echo esc_html($event_count); ?>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div style="font-size: 12px; color: #666; border-top: 1px solid #3a3a5e; padding-top: 15px;">
+        Report generated: <?php echo esc_html($timestamp); ?>
+    </div>
+</div>
+<?php
+        return ob_get_clean();
+    }
 }
 
 new GeometryOS_Bridge();
@@ -509,18 +714,22 @@ function geometry_os_handle_evolution_event($event) {
 }
 
 /**
- * Register custom cron interval for 5-minute polling
+ * Register custom cron intervals for 5-minute polling and hourly health reports
  */
 add_filter('cron_schedules', function($schedules) {
     $schedules['five_minutes'] = [
         'interval' => 300,
         'display' => 'Every 5 Minutes'
     ];
+    $schedules['hourly'] = [
+        'interval' => 3600,
+        'display' => 'Once Hourly'
+    ];
     return $schedules;
 });
 
 /**
- * Schedule evolution polling cron on init
+ * Schedule evolution polling and health report crons on init
  */
 add_action('init', function() {
     if (!function_exists('wp_next_scheduled') || !function_exists('wp_schedule_event')) {
@@ -529,6 +738,10 @@ add_action('init', function() {
 
     if (!wp_next_scheduled('geometry_os_poll_evolution')) {
         wp_schedule_event(time(), 'five_minutes', 'geometry_os_poll_evolution');
+    }
+
+    if (!wp_next_scheduled('geometry_os_hourly_health_report')) {
+        wp_schedule_event(time(), 'hourly', 'geometry_os_hourly_health_report');
     }
 });
 
