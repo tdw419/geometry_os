@@ -77,7 +77,7 @@ Focus: Core module structure, base classes, basic broadcast flow. Skip WordPress
   - _Requirements: FR-3, AC-2.1, AC-2.3, AC-2.4_
   - _Design: PersonalityEngine component, station config schema_
 
-- [ ] 1.6 Add remaining station configs (Silicon Noir, Neutral Chronicler)
+- [x] 1.6 Add remaining station configs (Silicon Noir, Neutral Chronicler)
   - **Do**:
     1. Create `silicon_noir.yaml` (95.1 FM) - cyberpunk, mysterious
     2. Create `neutral_chronicler.yaml` (99.9 FM) - factual, dry
