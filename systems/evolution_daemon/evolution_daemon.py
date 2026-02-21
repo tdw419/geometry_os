@@ -43,6 +43,14 @@ try:
 except ImportError:
     HAS_WEBSOCKETS = False
 
+# VisualBridgeClient for proper singleton connection
+try:
+    from systems.visual_shell.api.visual_bridge import VisualBridgeClient
+    HAS_VISUAL_BRIDGE_CLIENT = True
+except ImportError:
+    HAS_VISUAL_BRIDGE_CLIENT = False
+    VisualBridgeClient = None
+
 # Import Z.ai Integration (our new intelligence layer)
 from zai_agent_integration import ZAIIntegration, ZHIPU_AVAILABLE
 
@@ -79,6 +87,17 @@ from systems.evolution_daemon.stages.mirror_bridge import SubprocessMirrorBridge
 
 # V15 Tectonic Stage - Substrate Self-Optimization
 from systems.evolution_daemon.stages.tectonic_stage import TectonicStage, TectonicShiftResult
+
+# V2.0 Ambient Narrative System - WordPress WebMCP
+try:
+    from systems.visual_shell.api.evolution_webmcp_bridge import (
+        EvolutionWebMCPBridge, EvolutionWebMCPHook
+    )
+    HAS_WEBMCP = True
+except ImportError:
+    HAS_WEBMCP = False
+    EvolutionWebMCPBridge = None
+    EvolutionWebMCPHook = None
 
 # Configure logging
 logging.basicConfig(
@@ -395,6 +414,12 @@ class EvolutionDaemon:
 
         # V15 Tectonic Stage - Substrate Self-Optimization
         self.tectonic_stage = TectonicStage(evolution_daemon=self)
+
+        # V2.0 Ambient Narrative System
+        self.ambient_mode = False
+        self.ambient_state = "MONITORING"  # MONITORING, SUGGESTING, STEERING
+        self.webmcp_hook = None  # EvolutionWebMCPHook for WordPress
+        self._ambient_heartbeat_task = None
 
         # Register tool callbacks for Z.ai function calling
         self._register_tools()
@@ -1221,7 +1246,128 @@ class EvolutionDaemon:
     async def stop(self):
         """Stop the evolution daemon"""
         self.running = False
+        if self._ambient_heartbeat_task:
+            self._ambient_heartbeat_task.cancel()
         logger.info("🛑 Evolution Daemon stopped")
+
+    # =========================================================================
+    # V2.0: AMBIENT NARRATIVE SYSTEM
+    # =========================================================================
+
+    def enable_ambient_mode(self, wordpress_url: str = "http://localhost:8080"):
+        """
+        Enable Ambient Narrative Mode.
+
+        When enabled, the daemon:
+        - Connects to WordPress via WebMCP
+        - Broadcasts heartbeat status to the narrative session
+        - Logs thoughts and steering actions to WordPress
+
+        Args:
+            wordpress_url: WordPress base URL for WebMCP
+        """
+        if not HAS_WEBMCP:
+            logger.warning("⚠️ WebMCP not available - ambient mode disabled")
+            return False
+
+        self.ambient_mode = True
+
+        # Initialize WebMCP hook
+        bridge = EvolutionWebMCPBridge(wordpress_url=wordpress_url, enabled=True)
+        self.webmcp_hook = EvolutionWebMCPHook(
+            bridge=bridge,
+            log_improvements=True,
+            update_architecture=True,
+            min_delta_threshold=0.01
+        )
+
+        logger.info(f"📖 Ambient Narrative Mode enabled (WordPress: {wordpress_url})")
+        return True
+
+    async def _ambient_heartbeat_loop(self):
+        """
+        Background task that sends heartbeat updates to WordPress.
+
+        Runs every 5 seconds when ambient mode is enabled.
+        """
+        while self.running:
+            try:
+                await asyncio.sleep(5)
+
+                if not self.ambient_mode or not self.webmcp_hook:
+                    continue
+
+                # Send daemon status to visual bridge (which forwards to WordPress)
+                if self.visual_connected and self.webmcp:
+                    await self.webmcp._call("daemon_heartbeat", {
+                        "state": self.ambient_state,
+                        "evolution_count": self.evolution_count,
+                        "visual_connected": self.visual_connected
+                    })
+
+                logger.debug(f"💓 Ambient heartbeat: {self.ambient_state}")
+
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.warning(f"Ambient heartbeat error: {e}")
+                await asyncio.sleep(10)
+
+    async def set_ambient_state(self, new_state: str):
+        """
+        Change the ambient state and log to WordPress.
+
+        States:
+        - MONITORING: Passive observation
+        - SUGGESTING: AI has suggestions to offer
+        - STEERING: AI is actively steering the session
+
+        Args:
+            new_state: The new ambient state
+        """
+        valid_states = ["MONITORING", "SUGGESTING", "STEERING"]
+        if new_state not in valid_states:
+            logger.warning(f"Invalid ambient state: {new_state}")
+            return
+
+        old_state = self.ambient_state
+        self.ambient_state = new_state
+
+        # Log state change
+        logger.info(f"📖 Ambient state: {old_state} → {new_state}")
+
+        # Broadcast to visual bridge
+        if self.visual_connected and self.webmcp:
+            await self.webmcp._call("narrative_event", {
+                "event_type": "state_change",
+                "old_state": old_state,
+                "new_state": new_state,
+                "evolution_count": self.evolution_count
+            })
+
+    async def publish_narrative_thought(self, thought: str, state: str = None):
+        """
+        Publish an AI thought to the narrative session.
+
+        Args:
+            thought: The thought text
+            state: Optional state to transition to
+        """
+        if not self.ambient_mode:
+            return
+
+        if state:
+            await self.set_ambient_state(state)
+
+        # Broadcast to visual bridge
+        if self.visual_connected and self.webmcp:
+            await self.webmcp._call("narrative_event", {
+                "event_type": "thought",
+                "thought": thought,
+                "state": self.ambient_state
+            })
+
+        logger.info(f"💭 Published thought: {thought[:50]}...")
 
 
 # CLI Interface
@@ -1233,12 +1379,20 @@ async def main():
     parser.add_argument("--max-evolutions", type=int, default=3, help="Max evolutions per session")
     parser.add_argument("--task", help="Run a specific evolution task")
     parser.add_argument("--scan", action="store_true", help="Just scan codebase")
+    parser.add_argument("--ambient", action="store_true", help="Enable Ambient Narrative Mode")
+    parser.add_argument("--wordpress-url", default="http://localhost:8080", help="WordPress URL for ambient mode")
     args = parser.parse_args()
 
     daemon = EvolutionDaemon(api_key=args.api_key)
     daemon.max_evolutions_per_session = args.max_evolutions
 
     await daemon.initialize()
+
+    # Enable ambient mode if requested
+    if args.ambient:
+        daemon.enable_ambient_mode(wordpress_url=args.wordpress_url)
+        # Start heartbeat task
+        daemon._ambient_heartbeat_task = asyncio.create_task(daemon._ambient_heartbeat_loop())
 
     if args.scan:
         print(json.dumps({

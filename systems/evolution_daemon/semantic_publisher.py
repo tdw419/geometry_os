@@ -14,7 +14,6 @@ import json
 import time
 import logging
 import asyncio
-import websockets
 from dataclasses import dataclass, asdict
 from typing import Optional, Dict, Any, List
 from pathlib import Path
@@ -24,6 +23,14 @@ from datetime import datetime
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "wordpress_zone"))
 from publish_to_wp import publish_to_wordpress
+
+# Import VisualBridgeClient for proper singleton connection
+try:
+    from systems.visual_shell.api.visual_bridge import VisualBridgeClient
+    VISUAL_BRIDGE_CLIENT_AVAILABLE = True
+except ImportError:
+    VISUAL_BRIDGE_CLIENT_AVAILABLE = False
+    VisualBridgeClient = None
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +103,14 @@ class SemanticPublisher:
         self.rate_limit_seconds = rate_limit_seconds
         self.last_publish_time = 0.0
         self.event_queue: List[EvolutionEvent] = []
-        self.ws = None
+
+        # Use VisualBridgeClient for proper singleton connection
+        if VISUAL_BRIDGE_CLIENT_AVAILABLE:
+            self._client = VisualBridgeClient(ws_url=bridge_url, agent_id="semantic_publisher")
+        else:
+            self._client = None
+            logger.warning("VisualBridgeClient not available, falling back to direct websocket")
+
         self.running = False
 
         # District positioning (Spatial Tectonics)
@@ -117,33 +131,57 @@ class SemanticPublisher:
         if not self.enabled:
             return False
 
-        try:
-            self.ws = await websockets.connect(self.bridge_url)
-            self.running = True
+        if self._client:
+            try:
+                connected = await self._client.connect()
+                if connected:
+                    self.running = True
 
-            # Register district
-            await self.ws.send(json.dumps({
-                "type": "district_upgrade",
-                "district_id": self.district_id,
-                "upgrade_type": "SEMANTIC_PUBLISHER_INIT",
-                "status": "ONLINE",
-                "position": self.spatial_pos
-            }))
+                    # Register district
+                    await self._client.send("district_upgrade", {
+                        "district_id": self.district_id,
+                        "upgrade_type": "SEMANTIC_PUBLISHER_INIT",
+                        "status": "ONLINE",
+                        "position": self.spatial_pos
+                    })
 
-            logger.info(f"Connected to Visual Bridge: {self.bridge_url}")
-            return True
+                    logger.info(f"Connected to Visual Bridge via VisualBridgeClient: {self.bridge_url}")
+                    return True
+                else:
+                    logger.warning("VisualBridgeClient connection failed")
+                    return False
+            except Exception as e:
+                logger.warning(f"Visual Bridge connection failed: {e}")
+                return False
+        else:
+            # Fallback to direct websocket if VisualBridgeClient not available
+            import websockets
+            try:
+                self._ws = await websockets.connect(self.bridge_url)
+                self.running = True
 
-        except Exception as e:
-            logger.warning(f"Visual Bridge connection failed: {e}")
-            return False
+                # Register district
+                await self._ws.send(json.dumps({
+                    "type": "district_upgrade",
+                    "district_id": self.district_id,
+                    "upgrade_type": "SEMANTIC_PUBLISHER_INIT",
+                    "status": "ONLINE",
+                    "position": self.spatial_pos
+                }))
+
+                logger.info(f"Connected to Visual Bridge (fallback): {self.bridge_url}")
+                return True
+
+            except Exception as e:
+                logger.warning(f"Visual Bridge connection failed: {e}")
+                return False
 
     async def send_pulse(self, event: EvolutionEvent) -> None:
         """Send telemetry pulse to Visual Bridge."""
-        if not self.ws or not self.running:
+        if not self.running:
             return
 
         pulse = {
-            "type": "evolution_event",
             "district_id": self.district_id,
             "event_type": event.event_type,
             "component": event.component,
@@ -154,7 +192,11 @@ class SemanticPublisher:
         }
 
         try:
-            await self.ws.send(json.dumps(pulse))
+            if self._client:
+                await self._client.send("evolution_event", pulse)
+            elif hasattr(self, '_ws') and self._ws:
+                pulse["type"] = "evolution_event"
+                await self._ws.send(json.dumps(pulse))
         except Exception as e:
             logger.warning(f"Pulse send failed: {e}")
 

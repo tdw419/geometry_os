@@ -384,6 +384,24 @@ impl TerminalBuffer {
         }
     }
 
+    /// Write a string at the cursor position
+    pub fn write_string(&mut self, s: &str, attrs: CellAttributes) {
+        for c in s.chars() {
+            if c == '\n' {
+                self.cursor_col = 0;
+                if self.cursor_row + 1 >= self.rows {
+                    self.scroll_up();
+                } else {
+                    self.cursor_row += 1;
+                }
+            } else if c == '\r' {
+                self.cursor_col = 0;
+            } else {
+                self.write_char(c, attrs);
+            }
+        }
+    }
+
     /// Write character with damage tracking (Phase 30.8)
     pub fn write_char_tracked(
         &mut self,
@@ -685,6 +703,11 @@ impl TerminalEmulator {
             }
             self.parser = Some(parser);
         }
+    }
+
+    /// Write a plain string to the terminal without ANSI parsing
+    pub fn write_string(&mut self, s: &str, attrs: CellAttributes) {
+        self.buffer.write_string(s, attrs);
     }
 
     /// Get the current buffer (main or alternate)

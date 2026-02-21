@@ -17,6 +17,7 @@ set -e
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../../.." && pwd)"
+export PYTHONPATH="${PROJECT_ROOT}:${PYTHONPATH}"
 DAEMON_SCRIPT="${SCRIPT_DIR}/evolution_daemon.py"
 PID_FILE="${SCRIPT_DIR}/evolution_daemon.pid"
 STATE_FILE="${SCRIPT_DIR}/evolution_state.json"
@@ -122,7 +123,7 @@ cmd_start() {
 
     if check_daemon_running; then
         log_warn "Daemon is already running (PID: $(get_pid))"
-        exit 0
+        return 0
     fi
 
     # Ensure log directory exists
@@ -167,7 +168,7 @@ cmd_stop() {
     if ! check_daemon_running; then
         log_warn "Daemon is not running"
         rm -f "$PID_FILE"
-        exit 0
+        return 0
     fi
 
     local pid=$(get_pid)

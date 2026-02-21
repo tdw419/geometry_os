@@ -216,6 +216,20 @@ class ViewportManager {
     }
 
     /**
+     * Move camera to center on a world position (alias for moveCenter)
+     */
+    moveTo(x, y, immediate = false) {
+        this.setPosition(x, y, immediate);
+    }
+
+    /**
+     * Set camera zoom level
+     */
+    zoomTo(zoom, immediate = false) {
+        this.setZoom(zoom, immediate);
+    }
+
+    /**
      * Pan camera by offset
      */
     pan(deltaX, deltaY, immediate = false) {

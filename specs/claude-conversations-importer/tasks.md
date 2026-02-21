@@ -519,7 +519,7 @@ echo "All tests passed"
 
 Final verification before PR.
 
-### Task 4.1: Local Quality Check
+### Task 4.1: [x] Local Quality Check
 
 **Do:**
 1. Run PHP lint on all files

@@ -1771,7 +1771,7 @@ impl<'a> Renderer<'a> {
         window_id: usize,
         rows: u32,
         cols: u32,
-        terminal_buffer: &[u32],
+        terminal_ram_view: &wgpu::TextureView,
         cursor_x: u32,
         cursor_y: u32,
         time: f32,
@@ -1779,7 +1779,6 @@ impl<'a> Renderer<'a> {
     ) {
         if let Some(ref tr) = self.terminal_renderer {
             // 1. Ensure we have a texture in the manager
-            // We use a dummy 1x1 buffer first to create/resize the texture if needed
             let _ = vm_texture_manager.update_vm_texture(window_id, &[0; 4], cols * 8, rows * 16);
             
             if let Some(vm_tex) = vm_texture_manager.get_texture(window_id) {
@@ -1793,7 +1792,7 @@ impl<'a> Renderer<'a> {
                     &vm_tex.view,
                     rows,
                     cols,
-                    terminal_buffer,
+                    terminal_ram_view,
                     cursor_x,
                     cursor_y,
                     time,

@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: prts_toolchain
+Version: 0.1.0
+Summary: Unified toolchain for PixelRTS v3
+Author: Gemini
+Requires-Dist: typer
+Requires-Dist: Pillow

@@ -67,3 +67,5 @@ systems/visual_shell/electron/dist/
 *.qcow2
 *.iso
 *.raw
+specs/.current-spec
+**/.progress.md

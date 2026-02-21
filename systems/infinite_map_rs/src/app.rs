@@ -53,6 +53,7 @@ use crate::cartridge_texture_manager::CartridgeTextureManager;
 use crate::virtual_machine::QemuProcessWithShm;
 use crate::antigravity_watcher::AntigravityWatcher;
 use crate::tectonic_simulator::TectonicSimulator;
+use crate::gpu::geometric_vm::GeometricVM;
 use visual_shell::VisualShellIntegration;
 use crate::bridge::unreal::UnrealBridge;
 use crate::neural_console::ConsoleAction;
@@ -167,6 +168,7 @@ pub struct InfiniteMapApp<'a> {
     pub rts_watcher: Option<AntigravityWatcher>,
     pub antigravity_window_id: Option<usize>,
     pub tectonic_simulator: Option<TectonicSimulator>,
+    pub geometric_vm: Option<GeometricVM>,
 
     // Phase 35.9: Cartridges Rendered
     pub cartridges_rendered: std::collections::HashSet<String>,
@@ -397,6 +399,7 @@ impl<'a> InfiniteMapApp<'a> {
             rts_watcher: None,
             antigravity_window_id: None,
             tectonic_simulator: None,
+            geometric_vm: None,
             
             // Phase 35.9
             cartridges_rendered: std::collections::HashSet::new(),
@@ -3495,17 +3498,37 @@ impl<'a> InfiniteMapApp<'a> {
 
                 // GPU Rendering (Phase 3)
                 let mut gpu_rendered = false;
-                if let (Some(window_id), Some(ref mut vtm)) = (tile.window_id, &mut self.vm_texture_manager) {
+                if let (Some(window_id), Some(ref mut vtm), Some(ref geo_vm)) = (tile.window_id, &mut self.vm_texture_manager, &self.geometric_vm) {
                     let emulator = external_emu.unwrap_or(&tile.emulator);
+                    
+                    // Option 4: Full Migration - Use GeometricVM for terminal state
+                    // 1. Convert cells to pixels (RGBA8Uint)
                     let buffer = tile.get_shader_buffer(emulator);
+                    let mut pixels = Vec::with_capacity(buffer.len());
+                    for &packed in &buffer {
+                        // packed: (char << 24) | (fg << 16) | (bg << 8) | flags
+                        pixels.push([
+                            ((packed >> 24) & 0xFF) as u8,
+                            ((packed >> 16) & 0xFF) as u8,
+                            ((packed >> 8) & 0xFF) as u8,
+                            (packed & 0xFF) as u8
+                        ]);
+                    }
+                    
+                    // 2. Upload to RAM (Offset by 1000 for terminal region as per WGSL)
+                    // For now, we upload to the beginning of the grid for this tile
+                    geo_vm.upload_program(&pixels);
+                    
                     let (rows, cols) = emulator.get_size();
                     let (cursor_row, cursor_col) = emulator.get_cursor();
                     
+                    let ram_view = geo_vm.ram_texture.create_view(&wgpu::TextureViewDescriptor::default());
+
                     self.renderer.render_terminal_tile(
                         window_id,
                         rows as u32,
                         cols as u32,
-                        &buffer,
+                        &ram_view,
                         cursor_col as u32,
                         cursor_row as u32,
                         0.0, // time
@@ -3841,6 +3864,10 @@ impl<'a> InfiniteMapApp<'a> {
             
             let simulator = TectonicSimulator::new(&device, width, height);
             simulator.upload_state(&queue, &data, width, height);
+            
+            // Initialize Geometric VM (PixelRTS v3)
+            let geo_vm = GeometricVM::new(device.clone(), queue.clone(), 256);
+            self.geometric_vm = Some(geo_vm);
             
             // Set Renderer ground texture to simulator view
             self.renderer.set_background_texture(simulator.get_current_view());
