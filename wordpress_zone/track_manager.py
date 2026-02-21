@@ -176,14 +176,11 @@ class TrackManager:
             - conflicting_file: str
             - requested_file: str
 
-        Note:
-            Returns empty list if WordPress unavailable (graceful degradation).
+        Raises:
+            WordPressUnavailableError: If WordPress is unreachable.
+                CLI uses exit code 2 to allow commit with warning.
         """
-        try:
-            result = self._post('listTracks', {'include_expired': False})
-        except WordPressUnavailableError:
-            # Graceful degradation for pre-commit hook
-            return []
+        result = self._post('listTracks', {'include_expired': False})
 
         if not result.get('success'):
             return []

@@ -58,7 +58,7 @@ Focus: Validate core claim/release cycle works end-to-end. Skip tests, accept ha
   - _Requirements: FR-5, AC-1.1, AC-2.1_
   - _Design: Component 3 (track_manager.py)_
 
-- [ ] 1.4 Add CLI interface to track_manager.py
+- [x] 1.4 Add CLI interface to track_manager.py
   - **Do**:
     1. Add `if __name__ == "__main__":` block with argparse
     2. Add `check` subcommand: `python3 track_manager.py check --files "file1 file2"`
