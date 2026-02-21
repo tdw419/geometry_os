@@ -113,6 +113,27 @@ switch ($action) {
         handle_import_research_document($args);
         break;
 
+    case 'searchResearch':
+        handle_search_research($args);
+        break;
+
+    // Track Board Coordination API (Multi-Agent Git Coordination)
+    case 'claimTrack':
+        handle_claim_track($args);
+        break;
+
+    case 'releaseTrack':
+        handle_release_track($args);
+        break;
+
+    case 'listTracks':
+        handle_list_tracks($args);
+        break;
+
+    case 'heartbeatTrack':
+        handle_heartbeat_track($args);
+        break;
+
     default:
         header('HTTP/1.1 400 Bad Request');
         echo json_encode(array('success' => false, 'error' => 'Invalid action/tool: ' . $action));
@@ -485,5 +506,100 @@ function handle_import_research_document($args) {
         'status' => 'created',
         'post_id' => $post_id,
         'message' => 'Document created successfully.'
+    ));
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ * Research Document Search Handler
+ * ─────────────────────────────────────────────────────────────
+ */
+
+/**
+ * Handle searching research documents
+ * Supports full-text search and meta filtering
+ */
+function handle_search_research($args) {
+    // Pagination params
+    $limit = isset($args['limit']) ? intval($args['limit']) : 50;
+    $offset = isset($args['offset']) ? intval($args['offset']) : 0;
+
+    // Build WP_Query args
+    $query_args = array(
+        'post_type' => 'research_document',
+        'post_status' => 'publish',
+        'posts_per_page' => $limit,
+        'offset' => $offset,
+        'orderby' => 'relevance',
+        'order' => 'DESC'
+    );
+
+    // Full-text search on title/content
+    if (isset($args['q']) && !empty($args['q'])) {
+        $query_args['s'] = sanitize_text_field($args['q']);
+    }
+
+    // Meta filtering
+    $meta_query = array();
+
+    // Filter by import_batch
+    if (isset($args['meta_filter']['import_batch'])) {
+        $meta_query[] = array(
+            'key' => 'import_batch',
+            'value' => sanitize_text_field($args['meta_filter']['import_batch']),
+            'compare' => '='
+        );
+    }
+
+    // Filter by min_line_count
+    if (isset($args['meta_filter']['min_line_count'])) {
+        $meta_query[] = array(
+            'key' => 'line_count',
+            'value' => intval($args['meta_filter']['min_line_count']),
+            'compare' => '>=',
+            'type' => 'NUMERIC'
+        );
+    }
+
+    // Filter by max_line_count
+    if (isset($args['meta_filter']['max_line_count'])) {
+        $meta_query[] = array(
+            'key' => 'line_count',
+            'value' => intval($args['meta_filter']['max_line_count']),
+            'compare' => '<=',
+            'type' => 'NUMERIC'
+        );
+    }
+
+    if (!empty($meta_query)) {
+        $meta_query['relation'] = 'AND';
+        $query_args['meta_query'] = $meta_query;
+    }
+
+    $query = new WP_Query($query_args);
+    $results = array();
+
+    if ($query->have_posts()) {
+        while ($query->have_posts()) {
+            $query->the_post();
+            $post_id = get_the_ID();
+            $results[] = array(
+                'id' => $post_id,
+                'title' => get_the_title(),
+                'excerpt' => get_the_excerpt(),
+                'url' => get_permalink(),
+                'source_path' => get_post_meta($post_id, 'source_path', true),
+                'line_count' => intval(get_post_meta($post_id, 'line_count', true))
+            );
+        }
+        wp_reset_postdata();
+    }
+
+    echo json_encode(array(
+        'success' => true,
+        'results' => $results,
+        'total' => $query->found_posts,
+        'limit' => $limit,
+        'offset' => $offset
     ));
 }

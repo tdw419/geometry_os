@@ -65,7 +65,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
   - **Verify**: `curl -s "http://localhost:8080/wp-json/wp/v2/research_document?per_page=15" | jq 'length'`
   - **Commit**: `feat(wp): complete research doc import POC`
 
-- [ ] 1.5 [VERIFY] Quality checkpoint: Python syntax + PHP lint
+- [x] 1.5 [VERIFY] Quality checkpoint: Python syntax + PHP lint
   - **Do**: Run syntax checks on new files
   - **Verify**: `python3 -m py_compile wordpress_zone/import_research_docs.py && php -l wordpress_zone/wordpress/ai-publisher.php`
   - **Done when**: Both commands exit 0
