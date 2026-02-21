@@ -175,7 +175,7 @@ After POC validated, clean up code.
   - **Commit**: `test(wp): add API mock tests`
   - _Design: Test Strategy - Unit Tests_
 
-- [ ] 3.3 Create integration test for full import cycle
+- [x] 3.3 Create integration test for full import cycle
   - **Do**:
     1. Create `wordpress_zone/tests/test_research_integration.py`
     2. Test import of 5 sample documents
