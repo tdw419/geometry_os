@@ -302,7 +302,7 @@ _Requirements: US-1, US-2, US-3, US-4, US-5_
 
 Clean up POC code, improve structure and error handling.
 
-### Task 2.1: Extract Classes to Separate Files
+### Task 2.1: [x] Extract Classes to Separate Files
 
 **Do:**
 1. Create `includes/` subdirectory
