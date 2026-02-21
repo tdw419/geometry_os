@@ -27,6 +27,8 @@ class Claude_Conversations_Admin {
      */
     public function __construct() {
         add_action('admin_menu', array($this, 'add_menu'));
+        add_action('admin_init', array($this, 'handle_import'));
+        add_action('admin_init', array($this, 'test_parse'));
     }
 
     /**
@@ -45,12 +47,74 @@ class Claude_Conversations_Admin {
     }
 
     /**
+     * Get the Claude projects directory path
+     *
+     * @return string Expanded path
+     */
+    private function get_claude_dir(): string {
+        return str_replace('~', getenv('HOME'), '~/.claude/projects/');
+    }
+
+    /**
+     * Count total session files
+     *
+     * @return int Number of .jsonl files
+     */
+    private function count_sessions(): int {
+        $claude_dir = $this->get_claude_dir();
+        $pattern = rtrim($claude_dir, '/') . '/*/*.jsonl';
+        $files = glob($pattern);
+        return $files ? count($files) : 0;
+    }
+
+    /**
+     * Count imported posts
+     *
+     * @return int Number of posts with _claude_session_id meta
+     */
+    private function count_imported(): int {
+        $query = new WP_Query(array(
+            'post_type' => 'post',
+            'post_status' => 'any',
+            'posts_per_page' => -1,
+            'meta_query' => array(
+                array(
+                    'key' => '_claude_session_id',
+                    'compare' => 'EXISTS',
+                ),
+            ),
+            'fields' => 'ids',
+        ));
+        return $query->found_posts;
+    }
+
+    /**
      * Render the admin page
      */
     public function render_page() {
+        // Get counts
+        $claude_dir = $this->get_claude_dir();
+        $session_count = $this->count_sessions();
+        $imported_count = $this->count_imported();
+
         ?>
         <div class="wrap">
             <h1>Claude Conversations Importer</h1>
+
+            <?php
+            // Display admin notices
+            if (isset($_GET['claude_imported'])) {
+                $imported = intval($_GET['claude_imported']);
+                $skipped = intval($_GET['claude_skipped']);
+                $errors = intval($_GET['claude_errors']);
+                echo '<div class="notice notice-success is-dismissible"><p>';
+                echo sprintf(
+                    'Import complete: %d imported, %d skipped (duplicates), %d errors.',
+                    $imported, $skipped, $errors
+                );
+                echo '</p></div>';
+            }
+            ?>
 
             <div class="card" style="max-width: 800px; margin-top: 20px;">
                 <h2>Status</h2>
@@ -59,27 +123,160 @@ class Claude_Conversations_Admin {
                 <table class="form-table">
                     <tr>
                         <th scope="row">Claude Directory</th>
-                        <td><code>~/.claude/projects/</code></td>
+                        <td><code><?php echo esc_html($claude_dir); ?></code></td>
                     </tr>
                     <tr>
                         <th scope="row">Session Count</th>
-                        <td>Not yet scanned</td>
+                        <td><?php echo esc_html($session_count); ?> .jsonl files found</td>
                     </tr>
                     <tr>
                         <th scope="row">Imported Count</th>
-                        <td>0</td>
+                        <td><?php echo esc_html($imported_count); ?> posts imported</td>
                     </tr>
                 </table>
 
                 <h3>Actions</h3>
-                <p>Import actions will be available after parser implementation.</p>
 
-                <p class="description">
-                    Plugin skeleton active. Use "Test Parse" and "Import All" once parser is implemented.
-                </p>
+                <!-- Import All Sessions Form -->
+                <form method="post" action="" style="margin-bottom: 20px;">
+                    <?php wp_nonce_field('claude_import_all', 'claude_import_nonce'); ?>
+                    <input type="hidden" name="claude_action" value="import_all">
+                    <button type="submit" class="button button-primary">
+                        Import All Sessions
+                    </button>
+                    <p class="description">
+                        Import all .jsonl sessions from the Claude directory. Duplicates will be skipped.
+                    </p>
+                </form>
+
+                <!-- Test Parse First Session Form -->
+                <form method="post" action="">
+                    <?php wp_nonce_field('claude_test_parse', 'claude_test_nonce'); ?>
+                    <input type="hidden" name="claude_action" value="test_parse">
+                    <button type="submit" class="button">
+                        Test Parse First Session
+                    </button>
+                    <p class="description">
+                        Parse and preview the first .jsonl file found without creating a post.
+                    </p>
+                </form>
+
+                <?php
+                // Display test parse preview if available
+                if (isset($_GET['claude_preview']) && $_GET['claude_preview'] === '1') {
+                    $preview = get_transient('claude_preview_html');
+                    if ($preview) {
+                        echo '<h3>Preview</h3>';
+                        echo '<div style="background: #fff; border: 1px solid #ccc; padding: 15px; max-height: 500px; overflow: auto;">';
+                        echo $preview;
+                        echo '</div>';
+                        delete_transient('claude_preview_html');
+                    }
+                }
+                ?>
             </div>
         </div>
         <?php
+    }
+
+    /**
+     * Handle import all sessions action
+     */
+    public function handle_import() {
+        // Check if this is our action
+        if (!isset($_POST['claude_action']) || $_POST['claude_action'] !== 'import_all') {
+            return;
+        }
+
+        // Verify nonce
+        if (!isset($_POST['claude_import_nonce']) || !wp_verify_nonce($_POST['claude_import_nonce'], 'claude_import_all')) {
+            wp_die('Security check failed');
+        }
+
+        // Check capabilities
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        // Run import
+        $importer = new Claude_Importer();
+        $stats = $importer->import_all('~/.claude/projects/');
+
+        // Redirect with stats
+        wp_redirect(add_query_arg(array(
+            'page' => 'claude-conversations',
+            'claude_imported' => $stats['imported'],
+            'claude_skipped' => $stats['skipped'],
+            'claude_errors' => $stats['errors'],
+        ), admin_url('admin.php')));
+        exit;
+    }
+
+    /**
+     * Handle test parse action
+     */
+    public function test_parse() {
+        // Check if this is our action
+        if (!isset($_POST['claude_action']) || $_POST['claude_action'] !== 'test_parse') {
+            return;
+        }
+
+        // Verify nonce
+        if (!isset($_POST['claude_test_nonce']) || !wp_verify_nonce($_POST['claude_test_nonce'], 'claude_test_parse')) {
+            wp_die('Security check failed');
+        }
+
+        // Check capabilities
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        // Find first .jsonl file
+        $claude_dir = $this->get_claude_dir();
+        $pattern = rtrim($claude_dir, '/') . '/*/*.jsonl';
+        $files = glob($pattern);
+
+        if (empty($files)) {
+            wp_redirect(add_query_arg(array(
+                'page' => 'claude-conversations',
+                'claude_error' => 'no_files',
+            ), admin_url('admin.php')));
+            exit;
+        }
+
+        // Parse first file
+        $filepath = $files[0];
+        $parser = new Claude_JsonlParser($filepath);
+        $conversation = $parser->parse();
+
+        if (is_wp_error($conversation)) {
+            wp_redirect(add_query_arg(array(
+                'page' => 'claude-conversations',
+                'claude_error' => 'parse_error',
+            ), admin_url('admin.php')));
+            exit;
+        }
+
+        // Format with HTML formatter
+        $formatter = new Claude_HtmlFormatter();
+        $preview = '<div style="background: #f9f9f9; padding: 10px; margin-bottom: 15px; border-radius: 4px;">';
+        $preview .= '<strong>File:</strong> ' . esc_html(basename($filepath)) . '<br>';
+        $preview .= '<strong>Session ID:</strong> ' . esc_html($conversation['session_id']) . '<br>';
+        $preview .= '<strong>Messages:</strong> ' . count($conversation['messages']) . '<br>';
+        $preview .= '<strong>Thinking Blocks:</strong> ' . count($conversation['thinking']);
+        $preview .= '</div>';
+        $preview .= $formatter->get_css();
+        $preview .= $formatter->format($conversation);
+
+        // Store in transient for display
+        set_transient('claude_preview_html', $preview, 60);
+
+        // Redirect to show preview
+        wp_redirect(add_query_arg(array(
+            'page' => 'claude-conversations',
+            'claude_preview' => '1',
+        ), admin_url('admin.php')));
+        exit;
     }
 }
 

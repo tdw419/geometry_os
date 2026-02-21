@@ -188,7 +188,7 @@ _Design: Claude_Importer_
 
 ---
 
-### Task 1.5: Complete Admin UI with Actions
+### Task 1.5: [x] Complete Admin UI with Actions
 
 **Do:**
 1. Update `Claude_Conversations_Admin::render_page()`:
