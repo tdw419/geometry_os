@@ -940,3 +940,336 @@ class TestNarrativeBroadcasterIntegration:
 
         # History should be capped at 100
         assert len(broadcaster._broadcast_history) == 100
+
+
+class TestFeedbackOrchestrator:
+    """Tests for FeedbackOrchestrator evolution component."""
+
+    def test_feedback_signal_creation(self):
+        """FeedbackSignal should store all fields."""
+        from evolution_daemon.narrative_broadcaster.feedback_orchestrator import FeedbackSignal
+        import time
+
+        signal = FeedbackSignal(
+            signal_type="entropy_delta",
+            value=0.25,
+            segment_type="news"
+        )
+
+        assert signal.signal_type == "entropy_delta"
+        assert signal.value == 0.25
+        assert signal.segment_type == "news"
+        assert signal.timestamp > 0
+
+    def test_feedback_signal_defaults(self):
+        """FeedbackSignal should have sensible defaults."""
+        from evolution_daemon.narrative_broadcaster.feedback_orchestrator import FeedbackSignal
+
+        signal = FeedbackSignal(
+            signal_type="human_rating",
+            value=-0.5
+        )
+
+        assert signal.segment_type is None
+        assert signal.timestamp > 0
+
+    def test_feedback_orchestrator_initialization(self):
+        """FeedbackOrchestrator should initialize with defaults."""
+        from evolution_daemon.narrative_broadcaster.feedback_orchestrator import FeedbackOrchestrator
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        orchestrator = FeedbackOrchestrator(
+            segment_pool=SegmentPool(),
+            personality_engine=PersonalityEngine()
+        )
+
+        assert orchestrator is not None
+
+    def test_accept_feedback_entropy_delta(self):
+        """FeedbackOrchestrator should accept entropy delta signals."""
+        from evolution_daemon.narrative_broadcaster.feedback_orchestrator import (
+            FeedbackOrchestrator, FeedbackSignal
+        )
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        orchestrator = FeedbackOrchestrator(
+            segment_pool=SegmentPool(),
+            personality_engine=PersonalityEngine()
+        )
+
+        signal = FeedbackSignal(
+            signal_type="entropy_delta",
+            value=0.3,
+            segment_type="news"
+        )
+
+        # Should not raise
+        orchestrator.accept_feedback(signal)
+
+    def test_accept_feedback_human_rating(self):
+        """FeedbackOrchestrator should accept human rating signals."""
+        from evolution_daemon.narrative_broadcaster.feedback_orchestrator import (
+            FeedbackOrchestrator, FeedbackSignal
+        )
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        orchestrator = FeedbackOrchestrator(
+            segment_pool=SegmentPool(),
+            personality_engine=PersonalityEngine()
+        )
+
+        signal = FeedbackSignal(
+            signal_type="human_rating",
+            value=1.0,  # Thumbs up
+            segment_type="philosophy"
+        )
+
+        # Should not raise
+        orchestrator.accept_feedback(signal)
+
+    def test_get_adjusted_weights_returns_dict(self):
+        """FeedbackOrchestrator should return adjusted weights as dict."""
+        from evolution_daemon.narrative_broadcaster.feedback_orchestrator import FeedbackOrchestrator
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        orchestrator = FeedbackOrchestrator(
+            segment_pool=SegmentPool(),
+            personality_engine=PersonalityEngine()
+        )
+
+        weights = orchestrator.get_adjusted_weights()
+
+        assert isinstance(weights, dict)
+        # Should have all 6 segment types
+        assert len(weights) == 6
+        # All values should be positive floats
+        for segment_type, weight in weights.items():
+            assert isinstance(segment_type, SegmentType)
+            assert isinstance(weight, float)
+            assert weight > 0
+
+    def test_get_adjusted_weights_reflects_feedback(self):
+        """FeedbackOrchestrator should adjust weights based on feedback."""
+        from evolution_daemon.narrative_broadcaster.feedback_orchestrator import (
+            FeedbackOrchestrator, FeedbackSignal
+        )
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        orchestrator = FeedbackOrchestrator(
+            segment_pool=SegmentPool(),
+            personality_engine=PersonalityEngine()
+        )
+
+        # Get initial weights
+        initial_weights = orchestrator.get_adjusted_weights()
+        initial_news_weight = initial_weights[SegmentType.NEWS]
+
+        # Provide positive feedback for news segments
+        for _ in range(5):
+            signal = FeedbackSignal(
+                signal_type="human_rating",
+                value=1.0,
+                segment_type="news"
+            )
+            orchestrator.accept_feedback(signal)
+
+        # Get adjusted weights
+        adjusted_weights = orchestrator.get_adjusted_weights()
+        adjusted_news_weight = adjusted_weights[SegmentType.NEWS]
+
+        # News weight should have increased
+        assert adjusted_news_weight > initial_news_weight
+
+    def test_get_adjusted_weights_negative_feedback(self):
+        """FeedbackOrchestrator should decrease weights for negative feedback."""
+        from evolution_daemon.narrative_broadcaster.feedback_orchestrator import (
+            FeedbackOrchestrator, FeedbackSignal
+        )
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        orchestrator = FeedbackOrchestrator(
+            segment_pool=SegmentPool(),
+            personality_engine=PersonalityEngine()
+        )
+
+        # Get initial weights
+        initial_weights = orchestrator.get_adjusted_weights()
+        initial_gossip_weight = initial_weights[SegmentType.GOSSIP]
+
+        # Provide negative feedback for gossip segments
+        for _ in range(5):
+            signal = FeedbackSignal(
+                signal_type="human_rating",
+                value=-1.0,
+                segment_type="gossip"
+            )
+            orchestrator.accept_feedback(signal)
+
+        # Get adjusted weights
+        adjusted_weights = orchestrator.get_adjusted_weights()
+        adjusted_gossip_weight = adjusted_weights[SegmentType.GOSSIP]
+
+        # Gossip weight should have decreased
+        assert adjusted_gossip_weight < initial_gossip_weight
+
+    def test_get_vocabulary_adjustments(self):
+        """FeedbackOrchestrator should return vocabulary adjustments."""
+        from evolution_daemon.narrative_broadcaster.feedback_orchestrator import FeedbackOrchestrator
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        orchestrator = FeedbackOrchestrator(
+            segment_pool=SegmentPool(),
+            personality_engine=PersonalityEngine()
+        )
+
+        # Get vocabulary adjustments for a station
+        adjustments = orchestrator.get_vocabulary_adjustments("87.6")
+
+        # Should return a dict (even if empty for skeleton)
+        assert isinstance(adjustments, dict)
+
+    def test_record_broadcast_result(self):
+        """FeedbackOrchestrator should record broadcast results."""
+        from evolution_daemon.narrative_broadcaster.feedback_orchestrator import FeedbackOrchestrator
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+        from evolution_daemon.narrative_broadcaster import BroadcastSegment
+
+        orchestrator = FeedbackOrchestrator(
+            segment_pool=SegmentPool(),
+            personality_engine=PersonalityEngine()
+        )
+
+        segment = BroadcastSegment(
+            segment_type="news",
+            content="Test broadcast content",
+            entropy=0.5,
+            station_id="87.6"
+        )
+
+        # Should not raise
+        orchestrator.record_broadcast_result(
+            segment=segment,
+            entropy_before=0.3,
+            entropy_after=0.5
+        )
+
+    def test_record_broadcast_result_generates_entropy_feedback(self):
+        """FeedbackOrchestrator should generate entropy delta feedback from results."""
+        from evolution_daemon.narrative_broadcaster.feedback_orchestrator import (
+            FeedbackOrchestrator, FeedbackSignal
+        )
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+        from evolution_daemon.narrative_broadcaster import BroadcastSegment
+
+        orchestrator = FeedbackOrchestrator(
+            segment_pool=SegmentPool(),
+            personality_engine=PersonalityEngine()
+        )
+
+        segment = BroadcastSegment(
+            segment_type="philosophy",
+            content="Deep thoughts",
+            entropy=0.5,
+            station_id="87.6"
+        )
+
+        # Record a broadcast that increased entropy (positive implicit feedback)
+        orchestrator.record_broadcast_result(
+            segment=segment,
+            entropy_before=0.3,
+            entropy_after=0.5
+        )
+
+        # Get adjusted weights - philosophy should be boosted
+        weights = orchestrator.get_adjusted_weights()
+        # The weight should be higher than baseline
+        assert weights[SegmentType.PHILOSOPHY] > 1.0
+
+    def test_feedback_signal_types(self):
+        """FeedbackOrchestrator should handle all signal types."""
+        from evolution_daemon.narrative_broadcaster.feedback_orchestrator import (
+            FeedbackOrchestrator, FeedbackSignal
+        )
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        orchestrator = FeedbackOrchestrator(
+            segment_pool=SegmentPool(),
+            personality_engine=PersonalityEngine()
+        )
+
+        # Test all valid signal types
+        signal_types = ["entropy_delta", "human_rating", "template_effect"]
+
+        for signal_type in signal_types:
+            signal = FeedbackSignal(
+                signal_type=signal_type,
+                value=0.5,
+                segment_type="news"
+            )
+            # Should not raise
+            orchestrator.accept_feedback(signal)
+
+    def test_weight_adjustment_bounds(self):
+        """FeedbackOrchestrator should keep weights within reasonable bounds."""
+        from evolution_daemon.narrative_broadcaster.feedback_orchestrator import (
+            FeedbackOrchestrator, FeedbackSignal
+        )
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        orchestrator = FeedbackOrchestrator(
+            segment_pool=SegmentPool(),
+            personality_engine=PersonalityEngine()
+        )
+
+        # Provide extreme positive feedback
+        for _ in range(20):
+            signal = FeedbackSignal(
+                signal_type="human_rating",
+                value=1.0,
+                segment_type="weather"
+            )
+            orchestrator.accept_feedback(signal)
+
+        weights = orchestrator.get_adjusted_weights()
+
+        # Weights should be capped (max 3.0)
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentType
+        assert weights[SegmentType.WEATHER] <= 3.0
+
+    def test_weight_adjustment_minimum(self):
+        """FeedbackOrchestrator should not let weights go below minimum."""
+        from evolution_daemon.narrative_broadcaster.feedback_orchestrator import (
+            FeedbackOrchestrator, FeedbackSignal
+        )
+        from evolution_daemon.narrative_broadcaster.segment_pool import SegmentPool, SegmentType
+        from evolution_daemon.narrative_broadcaster.personality_engine import PersonalityEngine
+
+        orchestrator = FeedbackOrchestrator(
+            segment_pool=SegmentPool(),
+            personality_engine=PersonalityEngine()
+        )
+
+        # Provide extreme negative feedback
+        for _ in range(20):
+            signal = FeedbackSignal(
+                signal_type="human_rating",
+                value=-1.0,
+                segment_type="meditation"
+            )
+            orchestrator.accept_feedback(signal)
+
+        weights = orchestrator.get_adjusted_weights()
+
+        # Weights should have minimum (0.1)
+        assert weights[SegmentType.MEDITATION] >= 0.1

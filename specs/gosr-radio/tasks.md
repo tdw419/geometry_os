@@ -152,7 +152,7 @@ Focus: Core module structure, base classes, basic broadcast flow. Skip WordPress
 
 After POC validated, clean up code structure.
 
-- [ ] 2.1 Add FeedbackOrchestrator skeleton
+- [x] 2.1 Add FeedbackOrchestrator skeleton
   - **Do**:
     1. Create `feedback_orchestrator.py` with `FeedbackSignal` dataclass
     2. Create `FeedbackOrchestrator` class with `accept_feedback()` and `get_adjusted_weights()`
