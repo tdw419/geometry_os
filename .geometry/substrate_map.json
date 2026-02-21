@@ -25,8 +25,8 @@
     "language": "O",
     "files": 334,
     "entry_points": [
-      "__init__.py",
-      "visual_bridge.py"
+      "visual_bridge.py",
+      "__init__.py"
     ]
   },
   "Rag": {
@@ -355,8 +355,8 @@
     "files": 78437,
     "entry_points": [
       "index.js",
-      "main.rs",
-      "app.rs"
+      "main.py",
+      "main.rs"
     ]
   },
   "Bridge Client Unreal": {
@@ -859,8 +859,8 @@
     "files": 7876,
     "entry_points": [
       "index.js",
-      "__init__.py",
-      "visual_bridge.py"
+      "visual_bridge.py",
+      "__init__.py"
     ]
   },
   "Consciousness": {
@@ -909,8 +909,8 @@
     "files": 519,
     "entry_points": [
       "main.py",
-      "main.rs",
-      "__init__.py"
+      "__init__.py",
+      "main.rs"
     ]
   },
   "Builder": {
