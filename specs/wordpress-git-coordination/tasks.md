@@ -124,7 +124,7 @@ After POC validated, clean up code structure.
   - **Done when**: Python compiles without syntax errors
   - **Commit**: `chore(tracks): pass quality checkpoint` (only if fixes needed)
 
-- [ ] 2.4 Add Visual Bridge handlers for track events
+- [x] 2.4 Add Visual Bridge handlers for track events
   - **Do**:
     1. Add `track_claim` handler in `handle_client()` switch
     2. Add `track_release` handler in `handle_client()` switch

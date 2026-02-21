@@ -206,6 +206,8 @@ class VisualBridge:
             'timestamp': task['created_at']
         }
         await self._broadcast(pulse)
+
+    def _is_already_running(self):
         """Check if another instance of visual_bridge is already running via PID file."""
         if not os.path.exists(self.lock_file):
             return False
@@ -665,6 +667,40 @@ class VisualBridge:
                     await self._broadcast({
                         "type": "ALPINE_STATS",
                         "data": data
+                    })
+
+                # === Track Coordination (WordPress Git Coordination) ===
+
+                elif msg_type == 'track_claim':
+                    # Track claim event from WordPress Track Board
+                    track_id = data.get('track_id')
+                    agent_id = data.get('agent_id')
+                    files = data.get('files', [])
+                    coordinates = data.get('coordinates', {'x': 0, 'y': 0})
+
+                    print(f"🎯 Track Claimed: {track_id} by {agent_id} ({len(files)} files)")
+
+                    await self._broadcast({
+                        "type": "TRACK_CLAIMED",
+                        "track_id": track_id,
+                        "agent_id": agent_id,
+                        "files": files,
+                        "coordinates": coordinates,
+                        "timestamp": data.get('timestamp', time.time())
+                    })
+
+                elif msg_type == 'track_release':
+                    # Track release event from WordPress Track Board
+                    track_id = data.get('track_id')
+                    agent_id = data.get('agent_id')
+
+                    print(f"🔓 Track Released: {track_id} by {agent_id}")
+
+                    await self._broadcast({
+                        "type": "TRACK_RELEASED",
+                        "track_id": track_id,
+                        "agent_id": agent_id,
+                        "timestamp": data.get('timestamp', time.time())
                     })
 
                 # === Ambient Narrative System (V2.0) ===
