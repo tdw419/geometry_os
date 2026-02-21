@@ -1,0 +1,3 @@
+Create a shimmering blue sky shader with drifting clouds.
+Use a procedural noise function for the clouds.
+The sky color should degrade from deep blue to cyan.
