@@ -31,6 +31,8 @@ class Research_Import_Admin {
     public function __construct() {
         add_action('admin_menu', array($this, 'add_menu'));
         add_action('wp_ajax_research_import_start', array($this, 'ajax_import_start'));
+        add_action('wp_ajax_research_import_progress', array($this, 'ajax_get_progress'));
+        add_action('wp_ajax_research_import_update_progress', array($this, 'ajax_update_progress'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_scripts'));
     }
 
@@ -339,6 +341,71 @@ class Research_Import_Admin {
         }
 
         return $summary;
+    }
+
+    /**
+     * AJAX handler for getting import progress
+     * Called by JavaScript polling every 2 seconds during import
+     */
+    public function ajax_get_progress() {
+        // Verify nonce
+        check_ajax_referer('research_import_nonce', 'nonce');
+
+        // Get progress from transient
+        $progress = get_transient('research_import_progress');
+
+        if ($progress === false) {
+            // No progress data yet
+            wp_send_json_success(array(
+                'status' => 'pending',
+                'message' => 'Waiting for import to start...',
+                'percent' => 0,
+                'processed' => 0,
+                'total' => 0,
+                'created' => 0,
+                'updated' => 0,
+                'skipped' => 0,
+                'errors' => 0,
+            ));
+        }
+
+        wp_send_json_success($progress);
+    }
+
+    /**
+     * AJAX handler for updating import progress
+     * Called by Python importer during batch processing
+     */
+    public function ajax_update_progress() {
+        // Verify nonce
+        check_ajax_referer('research_import_nonce', 'nonce');
+
+        // Check capabilities (allow for internal calls from importer)
+        $internal_key = isset($_POST['internal_key']) ? sanitize_text_field($_POST['internal_key']) : '';
+        $expected_key = wp_hash('research_import_progress_' . get_current_user_id());
+
+        if (!current_user_can('manage_options') && $internal_key !== $expected_key) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+        }
+
+        // Get progress data from request
+        $progress = array(
+            'status' => isset($_POST['status']) ? sanitize_text_field($_POST['status']) : 'running',
+            'message' => isset($_POST['message']) ? sanitize_text_field($_POST['message']) : '',
+            'percent' => isset($_POST['percent']) ? intval($_POST['percent']) : 0,
+            'processed' => isset($_POST['processed']) ? intval($_POST['processed']) : 0,
+            'total' => isset($_POST['total']) ? intval($_POST['total']) : 0,
+            'created' => isset($_POST['created']) ? intval($_POST['created']) : 0,
+            'updated' => isset($_POST['updated']) ? intval($_POST['updated']) : 0,
+            'skipped' => isset($_POST['skipped']) ? intval($_POST['skipped']) : 0,
+            'errors' => isset($_POST['errors']) ? intval($_POST['errors']) : 0,
+            'timestamp' => current_time('mysql'),
+        );
+
+        // Store in transient (expires in 1 hour)
+        set_transient('research_import_progress', $progress, HOUR_IN_SECONDS);
+
+        wp_send_json_success(array('message' => 'Progress updated'));
     }
 }
 

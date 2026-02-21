@@ -30,11 +30,14 @@ logger = logging.getLogger(__name__)
 # Configuration
 RESEARCH_DOCS_DIR = "/home/jericho/zion/docs/research"
 WP_PUBLISHER_URL = "http://localhost:8080/ai-publisher.php"
+WP_AJAX_URL = "http://localhost:8080/wp-admin/admin-ajax.php"
+WP_NONCE = "research_import_nonce"  # Must match wp_create_nonce in PHP
 BATCH_SIZE = 50
 BATCH_DELAY = 2  # seconds between batches
 MAX_RETRIES = 2  # max retry attempts for transient API failures
 DEFAULT_TIMEOUT = 30  # seconds for standard requests
 LARGE_FILE_TIMEOUT = 120  # seconds for large file uploads (1MB+)
+PROGRESS_UPDATE_INTERVAL = 5  # Update progress every N documents
 
 
 @dataclass
@@ -274,6 +277,70 @@ def import_batch(documents: List[ResearchDocument], batch_id: str, dry_run: bool
     return results
 
 
+def update_progress(
+    processed: int,
+    total: int,
+    created: int,
+    updated: int,
+    skipped: int,
+    errors: int,
+    status: str = "running"
+) -> bool:
+    """
+    Update import progress in WordPress transient via AJAX API.
+
+    Args:
+        processed: Number of documents processed so far
+        total: Total number of documents to process
+        created: Number of documents created
+        updated: Number of documents updated
+        skipped: Number of documents skipped
+        errors: Number of errors
+        status: Current status (running, complete, error)
+
+    Returns:
+        True if progress update succeeded, False otherwise
+    """
+    try:
+        percent = int((processed / total * 100)) if total > 0 else 0
+        message = f"Processing document {processed} of {total}..."
+
+        if status == "complete":
+            message = f"Import complete: {created} created, {updated} updated, {skipped} skipped, {errors} errors"
+        elif status == "error":
+            message = f"Import failed with {errors} errors"
+
+        payload = {
+            "action": "research_import_update_progress",
+            "nonce": WP_NONCE,
+            "status": status,
+            "message": message,
+            "percent": percent,
+            "processed": processed,
+            "total": total,
+            "created": created,
+            "updated": updated,
+            "skipped": skipped,
+            "errors": errors,
+        }
+
+        response = requests.post(
+            WP_AJAX_URL,
+            data=payload,
+            timeout=10
+        )
+
+        if response.status_code == 200:
+            return True
+        else:
+            logger.warning(f"Progress update failed: HTTP {response.status_code}")
+            return False
+
+    except Exception as e:
+        logger.warning(f"Progress update error: {e}")
+        return False
+
+
 def run_full_import(
     docs_dir: str = RESEARCH_DOCS_DIR,
     limit: Optional[int] = None,
@@ -308,10 +375,15 @@ def run_full_import(
     # Generate batch ID
     batch_id = f"import_{int(time.time())}"
 
-    # Process in batches
+    # Initialize progress tracking
     total_results = {"created": 0, "updated": 0, "skipped": 0, "errors": 0}
     processed = 0
+    last_progress_update = 0
 
+    # Send initial progress update
+    update_progress(0, total_files, 0, 0, 0, 0, "running")
+
+    # Process in batches
     for i in range(0, total_files, batch_size):
         batch_paths = file_paths[i:i + batch_size]
         batch_num = (i // batch_size) + 1
@@ -335,10 +407,34 @@ def run_full_import(
         processed += len(batch_paths)
         logger.info(f"Progress: {processed}/{total_files} documents")
 
+        # Update progress every PROGRESS_UPDATE_INTERVAL documents or at key points
+        if processed - last_progress_update >= PROGRESS_UPDATE_INTERVAL or processed == total_files:
+            update_progress(
+                processed,
+                total_files,
+                total_results["created"],
+                total_results["updated"],
+                total_results["skipped"],
+                total_results["errors"],
+                "running"
+            )
+            last_progress_update = processed
+
         # Delay between batches (except for last batch)
         if i + batch_size < total_files and batch_delay > 0:
             logger.info(f"Waiting {batch_delay}s before next batch...")
             time.sleep(batch_delay)
+
+    # Final progress update - complete
+    update_progress(
+        total_files,
+        total_files,
+        total_results["created"],
+        total_results["updated"],
+        total_results["skipped"],
+        total_results["errors"],
+        "complete"
+    )
 
     # Summary
     logger.info("=" * 50)

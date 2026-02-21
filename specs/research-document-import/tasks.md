@@ -127,7 +127,7 @@ After POC validated, clean up code.
   - **Commit**: `feat(wp): add admin UI import controls`
   - _Requirements: FR-7, FR-8, AC-4.2-4.5_
 
-- [ ] 2.5 Add AJAX progress bar for import
+- [x] 2.5 Add AJAX progress bar for import
   - **Do**:
     1. Add progress bar HTML element
     2. Register AJAX handler `wp_ajax_research_import_progress`
