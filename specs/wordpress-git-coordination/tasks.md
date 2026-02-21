@@ -221,7 +221,7 @@ After POC validated, clean up code structure.
 
 ## Phase 5: PR Lifecycle
 
-- [ ] 5.1 E2E manual verification
+- [x] 5.1 E2E manual verification
   - **Do**:
     1. Start WordPress: verify `localhost:8080` responds
     2. Claim track via Python: `TrackManager().claim('e2e-test', ['e2e/'], 'e2e-agent')`
