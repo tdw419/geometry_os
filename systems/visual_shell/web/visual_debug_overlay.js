@@ -125,6 +125,18 @@ class VisualDebugOverlay {
         };
         this.ghostRenderer = null;
 
+        // Ambient Narrative state (Phase R: V2.0)
+        this.narrativeState = {
+            enabled: false,
+            sessionId: null,
+            state: 'IDLE',        // MONITORING, SUGGESTING, STEERING, IDLE
+            lastThought: '',
+            lastThoughtCategory: '',
+            steeringActions: [],
+            lastUpdate: null,
+            evolutionCount: 0
+        };
+
         // Heat Map state (Visual Hotspot Debugger)
         this.heatmapState = {
             visible: false,
