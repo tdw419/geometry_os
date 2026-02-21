@@ -22,6 +22,8 @@ import time
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from systems.swarm.wp_node_discovery import WordPressSwarmBridge, WordPressNode
+from systems.swarm.sync_manager import SyncManager, RemoteNode
+from typing import Dict, Optional
 
 logging.basicConfig(
     level=logging.INFO,
@@ -48,8 +50,15 @@ class SwarmDiscoveryDaemon:
             "discoveries": 0,
             "health_checks": 0,
             "tasks_routed": 0,
-            "errors": 0
+            "errors": 0,
+            "syncs": 0,
+            "sync_errors": 0,
+            "posts_mirrored": 0
         }
+        # Sync manager for remote nodes
+        self.sync_manager: Optional[SyncManager] = None
+        self.sync_interval = 300  # 5 minutes
+        self.remote_nodes: Dict[str, RemoteNode] = {}
 
     async def start(self):
         """Start the daemon."""
@@ -66,9 +75,16 @@ class SwarmDiscoveryDaemon:
         # Start the bridge
         await self.bridge.start()
 
+        # Start sync manager
+        self.sync_manager = SyncManager(
+            state_dir=Path("/tmp/geoos_sync")
+        )
+        await self.sync_manager.start()
+
         # Start monitoring loops
         asyncio.create_task(self._status_report_loop())
         asyncio.create_task(self._health_check_loop())
+        asyncio.create_task(self._sync_loop())
 
         logger.info("=" * 60)
         logger.info("🐝 WordPress Swarm Discovery Daemon Started")
@@ -89,6 +105,10 @@ class SwarmDiscoveryDaemon:
         """Stop the daemon."""
         self._running = False
         await self.bridge.stop()
+
+        # Stop sync manager
+        if self.sync_manager:
+            await self.sync_manager.stop()
 
         # Clean up PID file
         if self.PID_FILE.exists():
@@ -120,6 +140,14 @@ class SwarmDiscoveryDaemon:
                 "list": [n.to_dict() for n in self.bridge.nodes.values()]
             },
             "stats": self._stats,
+            "sync": {
+                "last_sync": max(
+                    (n.last_sync for n in self.remote_nodes.values()),
+                    default=0
+                ),
+                "remote_nodes_count": len(self.remote_nodes),
+                "mirrored_posts": len(self.sync_manager.get_mirrored_posts()) if self.sync_manager else 0
+            },
             "last_update": datetime.now().isoformat()
         }
 
@@ -157,6 +185,39 @@ class SwarmDiscoveryDaemon:
                 self._stats["errors"] += 1
 
             self._stats["health_checks"] += 1
+
+    async def _sync_loop(self):
+        """Periodically sync with all known remote nodes."""
+        while self._running:
+            await asyncio.sleep(self.sync_interval)
+
+            if not self.sync_manager:
+                continue
+
+            for node_id, node in list(self.bridge.nodes.items()):
+                # Skip local nodes (same machine)
+                if "localhost" in node.url or "0.0.0.0" in node.url or "127.0.0.1" in node.url:
+                    continue
+
+                # Create RemoteNode if not exists
+                if node_id not in self.remote_nodes:
+                    self.remote_nodes[node_id] = RemoteNode(
+                        node_id=node_id,
+                        url=node.url,
+                        api_url=node.api_url
+                    )
+
+                # Perform sync
+                logger.info(f"Syncing with remote node: {node_id}")
+                result = await self.sync_manager.sync_node(self.remote_nodes[node_id])
+
+                self._stats["syncs"] = self._stats.get("syncs", 0) + 1
+                if result.success:
+                    self._stats["posts_mirrored"] = self._stats.get("posts_mirrored", 0) + result.posts_stored
+                    logger.info(f"Sync complete: {result.posts_stored} posts from {node_id}")
+                else:
+                    self._stats["sync_errors"] = self._stats.get("sync_errors", 0) + 1
+                    logger.error(f"Sync failed for {node_id}: {result.error}")
 
     def get_status(self) -> dict:
         """Get current status."""

@@ -663,5 +663,102 @@ class TestSyncManagerNodeManagement:
         await manager.stop()
 
 
+class TestSyncIntegration:
+    """Integration tests for sync with WordPress nodes."""
+
+    @pytest.fixture
+    def temp_state_dir(self):
+        """Create a temporary directory for state files."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yield Path(tmpdir)
+
+    @pytest.mark.asyncio
+    async def test_sync_with_local_wordpress(self, temp_state_dir):
+        """Integration test: sync from local WordPress if available."""
+        manager = SyncManager(state_dir=temp_state_dir)
+        await manager.start()
+
+        try:
+            # Fetch from local WordPress (if running)
+            posts, error = await manager.fetch_posts(
+                api_url="http://localhost:8080/index.php?rest_route=/geoos/v1",
+                since=0,
+                limit=5
+            )
+
+            # If WordPress is running, we should get posts
+            # If not running, we should get an error message
+            assert isinstance(posts, list)
+            if error:
+                # WordPress not running or endpoint not available - that's okay for CI
+                error_lower = error.lower()
+                assert (
+                    "connection" in error_lower or
+                    "refused" in error_lower or
+                    "timeout" in error_lower or
+                    "404" in error or
+                    "cannot connect" in error_lower
+                )
+            else:
+                # WordPress running - verify post structure
+                if posts:
+                    assert "title" in posts[0]
+                    assert "content" in posts[0]
+
+        finally:
+            await manager.stop()
+
+    @pytest.mark.asyncio
+    async def test_sync_node_integration(self, temp_state_dir):
+        """Integration test: full sync_node workflow."""
+        manager = SyncManager(state_dir=temp_state_dir)
+        await manager.start()
+
+        try:
+            # Create a remote node
+            node = RemoteNode(
+                node_id="test-local-node",
+                url="http://localhost:8080",
+                api_url="http://localhost:8080/index.php?rest_route=/geoos/v1"
+            )
+
+            # Attempt sync
+            result = await manager.sync_node(node)
+
+            # Verify result structure
+            assert result.node_id == "test-local-node"
+            assert isinstance(result.success, bool)
+            assert isinstance(result.posts_fetched, int)
+            assert isinstance(result.posts_stored, int)
+
+            # If successful, verify node was updated
+            if result.success:
+                assert node.last_sync > 0
+                assert node.sync_count == 1
+            else:
+                # WordPress not available - should have error message
+                assert result.error is not None
+
+        finally:
+            await manager.stop()
+
+    @pytest.mark.asyncio
+    async def test_sync_daemon_integration(self, temp_state_dir):
+        """Integration test: daemon can create and use sync manager."""
+        from systems.swarm.wp_discovery_daemon import SwarmDiscoveryDaemon
+
+        daemon = SwarmDiscoveryDaemon(shared_secret="test-secret")
+
+        # Verify sync manager is None before start
+        assert daemon.sync_manager is None
+        assert daemon.sync_interval == 300
+        assert daemon.remote_nodes == {}
+
+        # Verify stats include sync fields
+        assert "syncs" in daemon._stats
+        assert "sync_errors" in daemon._stats
+        assert "posts_mirrored" in daemon._stats
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
