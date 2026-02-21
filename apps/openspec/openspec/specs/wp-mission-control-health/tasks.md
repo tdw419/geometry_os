@@ -21,7 +21,7 @@ Focus: MetricsCollector core + bridge integration + dashboard widget
   - _Requirements: FR-1, FR-2, FR-3, FR-4, FR-5_
   - _Design: MetricsCollector component_
 
-- [ ] 1.2 Integrate MetricsCollector into Bridge
+- [x] 1.2 Integrate MetricsCollector into Bridge
   - **Do**: Wrap sendCommand for latency measurement, expose metrics accessor, track tile count
   - **Files**: `systems/visual_shell/web/application.js`, `systems/visual_shell/web/tests/verification_wp_integration.js`
   - **Done when**: Test 6 in verification_wp_integration.js passes

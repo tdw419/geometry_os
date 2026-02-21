@@ -532,6 +532,9 @@ class GeometryOSApplication {
         window.geometryOSApp = this;
 
         // --- WordPress Integration Bridge ---
+        // Initialize MetricsCollector for health monitoring
+        window.geometryOSMetrics = new MetricsCollector();
+
         window.geometryOS = {
             tileRegistry: new Map(),
             regions: {
@@ -543,9 +546,11 @@ class GeometryOSApplication {
             },
             registerTile: (tileId, data) => {
                 window.geometryOS.tileRegistry.set(tileId, data);
-                window.dispatchEvent(new CustomEvent('geometryOS:registryUpdate', { 
-                    detail: { tileId, data, action: 'register' } 
+                window.dispatchEvent(new CustomEvent('geometryOS:registryUpdate', {
+                    detail: { tileId, data, action: 'register' }
                 }));
+                // Update metrics tile count
+                window.geometryOSMetrics.setTileCount(window.geometryOS.tileRegistry.size);
             },
             navigateTo: (tileId) => {
                 const entry = window.geometryOS.tileRegistry.get(tileId);
@@ -599,7 +604,23 @@ class GeometryOSApplication {
             },
             sendCommand: (tileId, command) => {
                 if (this.neuralCity?.liveTileManager) {
+                    // Start latency measurement
+                    const measureId = `cmd-${tileId}-${Date.now()}`;
+                    const t0 = window.geometryOSMetrics.startLatencyMeasure(measureId);
+
                     this.neuralCity.liveTileManager.sendCommand(tileId, command);
+
+                    // Listen for first output to end latency measurement
+                    const outputListener = (e) => {
+                        if (e.detail.tileId === tileId) {
+                            window.geometryOSMetrics.endLatencyMeasure(measureId, t0);
+                            window.geometryOSMetrics.recordSync();
+                            window.geometryOSMetrics.emitUpdate();
+                            window.removeEventListener('geometryOS:consoleOutput', outputListener);
+                        }
+                    };
+                    window.addEventListener('geometryOS:consoleOutput', outputListener);
+
                     return true;
                 }
                 return false;
@@ -626,7 +647,11 @@ class GeometryOSApplication {
                 }
                 return [];
             },
-            getTiles: () => Array.from(window.geometryOS.tileRegistry.entries()).map(([id, data]) => ({ id, ...data }))
+            getTiles: () => Array.from(window.geometryOS.tileRegistry.entries()).map(([id, data]) => ({ id, ...data })),
+            // Metrics accessor
+            get metrics() {
+                return window.geometryOSMetrics;
+            }
         };
 
         window.dispatchEvent(new CustomEvent('geometry-os-ready'));
