@@ -30,7 +30,7 @@ Focus: MetricsCollector core + bridge integration + dashboard widget
   - _Requirements: FR-1, FR-3, FR-5_
   - _Design: Bridge Integration section_
 
-- [ ] 1.3 SystemHealthDashboard Widget
+- [x] 1.3 SystemHealthDashboard Widget
   - **Do**: Create dashboard class that renders metrics table and listens for update events
   - **Files**: `systems/visual_shell/web/SystemHealthDashboard.js`, `systems/visual_shell/web/tests/test_system_health_dashboard.js`
   - **Done when**: 4 unit tests pass (render table, update on event, PASS for low latency, WARN for high latency)
