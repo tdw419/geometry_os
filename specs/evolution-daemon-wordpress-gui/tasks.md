@@ -105,7 +105,7 @@ After POC validated, wire components together.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Create E2E verification tests
+- [x] 3.1 Create E2E verification tests
   - **Do**:
     1. Create `tests/test_wp_evolution_e2e.py` with TestWPEvolutionE2E class
     2. Test full cycle flow: analyze -> propose -> (mock) execute

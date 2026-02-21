@@ -50,7 +50,7 @@ generated: from-plan
 
 ## Phase 3: Automatic Hooks
 
-- [ ] 3.1 Add Automatic WordPress Hooks
+- [x] 3.1 Add Automatic WordPress Hooks
   - **Do**: Add `transition_post_status` hook for auto-tag and cron for evolution polling
   - **Files**: `wordpress_zone/wordpress/wp-content/mu-plugins/geometry_os_bridge.php`
   - **Done when**: Posts auto-tagged on publish, evolution events polled every 5 min

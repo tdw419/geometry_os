@@ -169,3 +169,134 @@ function geometry_os_get_task_status(string $task_id): array {
 
     return $body ?? ['status' => 'unknown'];
 }
+
+// ============================================================================
+// AUTOMATIC HOOKS
+// ============================================================================
+
+/**
+ * Automatic hook: Auto-tag posts on publish (draft -> publish transition)
+ *
+ * Triggers content_intelligence agent when a post is published without tags.
+ */
+add_action('transition_post_status', function($new_status, $old_status, $post) {
+    // Only trigger on publish transition
+    if ($new_status !== 'publish' || $old_status === 'publish') {
+        return;
+    }
+
+    // Skip revisions and autosaves
+    if (function_exists('wp_is_post_revision') && wp_is_post_revision($post->ID)) {
+        return;
+    }
+
+    // Skip if already has tags
+    if (function_exists('wp_get_post_tags')) {
+        $tags = wp_get_post_tags($post->ID);
+        if (!empty($tags)) {
+            return;
+        }
+    }
+
+    // Queue auto-tag task
+    $result = geometry_os_send_agent_request('content_intelligence', [
+        'post_id' => $post->ID,
+        'action' => 'auto_tag'
+    ]);
+
+    // Store task ID for tracking
+    if ($result['status'] === 'queued' && function_exists('update_post_meta')) {
+        update_post_meta($post->ID, '_geo_agent_task', $result['task_id']);
+    }
+}, 10, 3);
+
+/**
+ * Handle evolution event from Visual Bridge
+ *
+ * @param array $event Event data with type, commit_hash, message
+ * @return array Status of handling
+ */
+function geometry_os_handle_evolution_event($event) {
+    if (!isset($event['type']) || $event['type'] !== 'evolution_commit') {
+        return ['status' => 'ignored'];
+    }
+
+    $commit_hash = $event['commit_hash'] ?? '';
+
+    // Check if already published (avoid duplicates)
+    if (function_exists('get_posts')) {
+        $existing = get_posts([
+            'meta_key' => '_evolution_commit',
+            'meta_value' => $commit_hash,
+            'post_type' => 'post',
+            'post_status' => 'any',
+            'posts_per_page' => 1
+        ]);
+
+        if (!empty($existing)) {
+            return ['status' => 'duplicate'];
+        }
+    }
+
+    // Queue evolution publish task
+    $result = geometry_os_send_agent_request('evolution_publish', [
+        'commit_hash' => $commit_hash,
+        'message' => $event['message'] ?? ''
+    ]);
+
+    return ['status' => 'published', 'task_id' => $result['task_id'] ?? null];
+}
+
+/**
+ * Register custom cron interval for 5-minute polling
+ */
+add_filter('cron_schedules', function($schedules) {
+    $schedules['five_minutes'] = [
+        'interval' => 300,
+        'display' => 'Every 5 Minutes'
+    ];
+    return $schedules;
+});
+
+/**
+ * Schedule evolution polling cron on init
+ */
+add_action('init', function() {
+    if (!function_exists('wp_next_scheduled') || !function_exists('wp_schedule_event')) {
+        return;
+    }
+
+    if (!wp_next_scheduled('geometry_os_poll_evolution')) {
+        wp_schedule_event(time(), 'five_minutes', 'geometry_os_poll_evolution');
+    }
+});
+
+/**
+ * Poll Visual Bridge for evolution events (runs every 5 minutes via cron)
+ */
+add_action('geometry_os_poll_evolution', function() {
+    if (!function_exists('wp_remote_get')) {
+        return;
+    }
+
+    // Query Visual Bridge for recent evolution events
+    $response = wp_remote_get('http://127.0.0.1:8768/evolution/events', [
+        'timeout' => 5
+    ]);
+
+    if (function_exists('is_wp_error') && is_wp_error($response)) {
+        return;
+    }
+
+    $body = function_exists('wp_remote_retrieve_body')
+        ? wp_remote_retrieve_body($response)
+        : ($response['body'] ?? '');
+
+    $events = json_decode($body, true);
+
+    if (is_array($events)) {
+        foreach ($events as $event) {
+            geometry_os_handle_evolution_event($event);
+        }
+    }
+});
