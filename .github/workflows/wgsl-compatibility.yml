@@ -40,7 +40,25 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libudev-dev libasound2-dev libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev
+          sudo apt-get install -y \
+            libudev-dev \
+            libasound2-dev \
+            libxcb1-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libseat-dev \
+            libxkbcommon-dev \
+            wayland-protocols \
+            libwayland-dev \
+            libdrm-dev \
+            libgbm-dev \
+            libegl-dev \
+            libgl1-mesa-dev \
+            libinput-dev \
+            libpixman-1-dev \
+            libssl-dev \
+            pkg-config
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -77,7 +95,25 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libudev-dev libasound2-dev libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev
+          sudo apt-get install -y \
+            libudev-dev \
+            libasound2-dev \
+            libxcb1-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libseat-dev \
+            libxkbcommon-dev \
+            wayland-protocols \
+            libwayland-dev \
+            libdrm-dev \
+            libgbm-dev \
+            libegl-dev \
+            libgl1-mesa-dev \
+            libinput-dev \
+            libpixman-1-dev \
+            libssl-dev \
+            pkg-config
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
