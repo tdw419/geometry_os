@@ -8,6 +8,7 @@ Tests the full batch processing pipeline including:
 - Report structure validation
 - Truth manifold texture generation
 - Performance timing validation
+- WordPress publishing integration
 """
 
 import json
@@ -16,9 +17,10 @@ import time
 import unittest
 import tempfile
 import shutil
+from unittest.mock import patch, MagicMock
 from PIL import Image
 
-from systems.intelligence.batch_analyzer import BatchAnalyzer
+from systems.intelligence.batch_analyzer import BatchAnalyzer, _get_wordpress_publisher
 
 
 class TestBatchAnalyzer(unittest.TestCase):
@@ -169,6 +171,81 @@ class TestBatchAnalyzer(unittest.TestCase):
 
         self.assertLess(elapsed_time, 30.0,
             f"Batch processing took {elapsed_time:.2f}s, expected < 30s")
+
+    def test_wordpress_publisher_available(self):
+        """WordPress publisher function is accessible."""
+        publisher = _get_wordpress_publisher()
+        # Publisher may be None if dependencies not installed
+        # We just verify the function exists and returns callable or None
+        if publisher is not None:
+            self.assertTrue(callable(publisher),
+                "Publisher should be callable if available")
+
+    def test_publish_results_method_exists(self):
+        """BatchAnalyzer has publish_results_to_wordpress method."""
+        analyzer = BatchAnalyzer(self.data_path, self.output_path)
+        self.assertTrue(hasattr(analyzer, 'publish_results_to_wordpress'),
+            "BatchAnalyzer missing publish_results_to_wordpress method")
+
+    @patch('systems.intelligence.batch_analyzer._get_wordpress_publisher')
+    def test_publish_to_wordpress_success(self, mock_get_publisher):
+        """Publish creates formatted WordPress post with CTRM stats."""
+        # Mock the publisher
+        mock_publisher = MagicMock(return_value={
+            'post_id': 123,
+            'url': 'http://localhost:8080/?p=123'
+        })
+        mock_get_publisher.return_value = mock_publisher
+
+        analyzer = BatchAnalyzer(self.data_path, self.output_path)
+
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(self.test_dir)
+            results = analyzer.run_pilot(max_verses=10)
+
+            # Reset mock to clear any calls during run_pilot
+            mock_publisher.reset_mock()
+
+            # Publish results
+            success = analyzer.publish_results_to_wordpress(results)
+
+            self.assertTrue(success, "Publish should return True on success")
+            mock_publisher.assert_called_once()
+
+            # Verify the post content includes CTRM metrics
+            call_args = mock_publisher.call_args
+            self.assertIsNotNone(call_args, "Publisher should be called")
+
+            title = call_args[0][0]
+            content = call_args[0][1]
+
+            self.assertIn('Genesis Pilot Batch', title)
+            self.assertIn('CTRM', content)
+            self.assertIn('Cronbach', content)
+            self.assertIn('Category Distribution', content)
+
+        finally:
+            os.chdir(original_cwd)
+
+    @patch('systems.intelligence.batch_analyzer._get_wordpress_publisher')
+    def test_publish_to_wordpress_handles_unavailable(self, mock_get_publisher):
+        """Publish returns False gracefully when WordPress unavailable."""
+        # Mock unavailable publisher
+        mock_get_publisher.return_value = None
+
+        analyzer = BatchAnalyzer(self.data_path, self.output_path)
+
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(self.test_dir)
+            results = analyzer.run_pilot(max_verses=5)
+            success = analyzer.publish_results_to_wordpress(results)
+
+            self.assertFalse(success, "Publish should return False when unavailable")
+
+        finally:
+            os.chdir(original_cwd)
 
 
 if __name__ == "__main__":
