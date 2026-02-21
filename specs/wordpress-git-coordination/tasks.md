@@ -74,7 +74,7 @@ Focus: Validate core claim/release cycle works end-to-end. Skip tests, accept ha
   - _Requirements: FR-6, AC-3.4, AC-3.5_
   - _Design: Component 3 (track_manager.py CLI)_
 
-- [ ] 1.5 POC Checkpoint: End-to-end claim cycle
+- [x] 1.5 POC Checkpoint: End-to-end claim cycle
   - **Do**:
     1. Claim track via Python: `TrackManager().claim('test-track', ['test/path/'], 'test-agent')`
     2. Verify claim appears in WordPress admin at `edit.php?post_type=track_claim`
