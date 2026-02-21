@@ -101,12 +101,9 @@ class TrackManager:
             raise WordPressUnavailableError(
                 f"WordPress request timed out after {self.timeout}s: {e}"
             )
-        except URLError as e:
-            raise WordPressUnavailableError(
-                f"WordPress unavailable at {self.wp_url}: {e}"
-            )
         except HTTPError as e:
             # Try to read error response body for structured error info
+            # NOTE: HTTPError must be caught before URLError (it's a subclass)
             try:
                 error_body = e.read().decode('utf-8')
                 error_data = json.loads(error_body)
@@ -122,6 +119,10 @@ class TrackManager:
                     'success': False,
                     'error': f"HTTP error {e.code}: {e.reason}"
                 }
+        except URLError as e:
+            raise WordPressUnavailableError(
+                f"WordPress unavailable at {self.wp_url}: {e}"
+            )
         except json.JSONDecodeError as e:
             raise TrackManagerError(f"Invalid JSON response: {e}")
         except Exception as e:

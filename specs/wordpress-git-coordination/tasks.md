@@ -139,7 +139,7 @@ After POC validated, clean up code structure.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Unit tests for TrackManager
+- [x] 3.1 Unit tests for TrackManager
   - **Do**:
     1. Create `tests/test_track_manager.py`
     2. Test `claim()` returns success dict on 200 response
