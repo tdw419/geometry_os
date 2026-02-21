@@ -196,7 +196,7 @@ After POC validated, clean up code structure.
   - _Requirements: FR-9, AC-7.1 through AC-7.4_
   - _Design: ARCHIVE segment type_
 
-- [ ] 2.4 [VERIFY] Quality checkpoint: pytest + type hints
+- [x] 2.4 [VERIFY] Quality checkpoint: pytest + type hints
   - **Do**: Run tests, verify no new lint issues
   - **Verify**:
     - `pytest systems/evolution_daemon/tests/test_narrative_broadcaster.py -v`
@@ -206,7 +206,7 @@ After POC validated, clean up code structure.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Unit tests for edge cases
+- [x] 3.1 Unit tests for edge cases
   - **Do**:
     1. Test content exhaustion (3 duplicate rejections triggers entropy injection)
     2. Test memory pressure (LRU eviction at 1000 topics)

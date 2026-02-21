@@ -130,7 +130,7 @@ class SegmentPool:
         Select a segment type based on entropy weighting.
 
         Args:
-            entropy: Current system entropy (0.0 to 1.0).
+            entropy: Current system entropy (0.0 to 1.0). None treated as 0.5.
             force_type: If provided, return this type regardless of entropy.
 
         Returns:
@@ -140,6 +140,16 @@ class SegmentPool:
         if force_type is not None:
             self.last_segment_type = force_type
             return force_type
+
+        # Handle None or invalid entropy (edge case)
+        if entropy is None:
+            entropy = 0.5
+        elif not isinstance(entropy, (int, float)):
+            entropy = 0.5
+        elif entropy < 0:
+            entropy = 0.0
+        elif entropy > 1.0:
+            entropy = 1.0
 
         # Calculate entropy-weighted probabilities
         weighted_types: List[Tuple[SegmentType, float]] = []
