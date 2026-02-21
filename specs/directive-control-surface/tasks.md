@@ -38,6 +38,7 @@ python -m pytest tests/test_directive_agent.py::TestHeartbeatSupport -v
 ### Task 1.2: [VERIFY] Heartbeat tests pass
 **Type:** VERIFY
 **Depends on:** Task 1.1
+**Status:** DONE
 
 **Steps:**
 1. Run heartbeat tests
@@ -57,6 +58,7 @@ tests/test_directive_agent.py::TestHeartbeatSupport::test_heartbeat_updates_on_c
 **Type:** IMPLEMENT
 **Priority:** High
 **Depends on:** Task 1.2
+**Status:** DONE
 **Files:**
 - Modify: `systems/intelligence/directive_agent.py`
 
@@ -79,6 +81,7 @@ python -m systems.intelligence.directive_agent --version
 **Type:** IMPLEMENT
 **Priority:** High
 **Depends on:** Task 1.3
+**Status:** DONE
 **Files:**
 - Modify: `tests/test_directive_agent.py`
 
@@ -97,6 +100,7 @@ python -m pytest tests/test_directive_agent.py::TestCLIInterface -v
 ### Task 1.5: [VERIFY] CLI tests pass
 **Type:** VERIFY
 **Depends on:** Task 1.4
+**Status:** DONE
 
 **Steps:**
 1. Run CLI tests

@@ -8,7 +8,9 @@ and posts responses as comments.
 Phase 3 Scope: INFORMATIONAL + RESEARCH only
 """
 
+import argparse
 import json
+import sys
 import time
 import logging
 import re
@@ -541,14 +543,64 @@ class DirectiveAgent:
 
 
 def main():
-    """Entry point for running DirectiveAgent."""
+    """Entry point for running DirectiveAgent with CLI arguments."""
+    parser = argparse.ArgumentParser(
+        description="DirectiveAgent - Bidirectional Human-AI Collaboration"
+    )
+    parser.add_argument(
+        "--wp-url",
+        default="http://localhost:8080",
+        help="WordPress URL (default: http://localhost:8080)"
+    )
+    parser.add_argument(
+        "--poll-interval",
+        type=int,
+        default=30,
+        help="Polling interval in seconds (default: 30)"
+    )
+    parser.add_argument(
+        "--heartbeat",
+        default="",
+        help="Path to heartbeat file (default: .geometry/directive_agent_heartbeat.json)"
+    )
+    parser.add_argument(
+        "--substrate-map",
+        default=".geometry/substrate_map.json",
+        help="Path to substrate map JSON (default: .geometry/substrate_map.json)"
+    )
+    parser.add_argument(
+        "--once",
+        action="store_true",
+        help="Run one cycle and exit"
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="DirectiveAgent 1.0.0"
+    )
+
+    args = parser.parse_args()
+
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
 
-    agent = DirectiveAgent()
-    agent.run_forever()
+    # Use default heartbeat path if not specified
+    heartbeat_path = args.heartbeat if args.heartbeat else None
+
+    agent = DirectiveAgent(
+        wp_url=args.wp_url,
+        poll_interval=args.poll_interval,
+        substrate_map_path=args.substrate_map,
+        heartbeat_path=heartbeat_path
+    )
+
+    if args.once:
+        agent.process_one_cycle()
+        sys.exit(0)
+    else:
+        agent.run_forever()
 
 
 if __name__ == "__main__":

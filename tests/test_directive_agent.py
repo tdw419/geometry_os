@@ -13,6 +13,7 @@ import pytest
 from unittest.mock import Mock, patch, mock_open
 import json
 import os
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -973,3 +974,40 @@ class TestHeartbeatSupport:
 
         assert heartbeat_path.exists()
         assert heartbeat_path.parent.is_dir()
+
+
+class TestCLIInterface:
+    """Test CLI interface for daemon control."""
+
+    def test_cli_help_shows_options(self):
+        """Test that --help shows all expected options."""
+        import subprocess
+
+        result = subprocess.run(
+            [sys.executable, "-m", "systems.intelligence.directive_agent", "--help"],
+            capture_output=True,
+            text=True,
+            cwd="/home/jericho/zion/projects/geometry_os/geometry_os"
+        )
+
+        assert result.returncode == 0
+        assert "--wp-url" in result.stdout
+        assert "--poll-interval" in result.stdout
+        assert "--heartbeat" in result.stdout
+        assert "--substrate-map" in result.stdout
+        assert "--once" in result.stdout
+        assert "--version" in result.stdout
+
+    def test_cli_version_flag(self):
+        """Test that --version returns correct version."""
+        import subprocess
+
+        result = subprocess.run(
+            [sys.executable, "-m", "systems.intelligence.directive_agent", "--version"],
+            capture_output=True,
+            text=True,
+            cwd="/home/jericho/zion/projects/geometry_os/geometry_os"
+        )
+
+        assert result.returncode == 0
+        assert "DirectiveAgent 1.0.0" in result.stdout
