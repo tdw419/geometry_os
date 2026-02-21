@@ -162,7 +162,7 @@ After POC validated, clean up code.
   - _Requirements: AC-1.1-1.6, AC-2.6_
   - _Design: Test Strategy - Unit Tests_
 
-- [ ] 3.2 Create PHP mock tests for API handlers
+- [x] 3.2 Create PHP mock tests for API handlers
   - **Do**:
     1. Create `wordpress_zone/tests/test_research_api.py` (mock PHP verification)
     2. Test `handle_import_research_document` structure
