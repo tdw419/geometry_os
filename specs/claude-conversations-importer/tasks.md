@@ -600,7 +600,7 @@ gh pr checks --watch || echo "No CI configured"
 
 Continuous validation after PR creation.
 
-### Task 5.1: Address Review Comments
+### Task 5.1: [x] Address Review Comments
 
 **Do:**
 1. Monitor PR for review comments
