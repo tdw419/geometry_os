@@ -109,6 +109,13 @@ class GeometryOS_SwarmNode {
             'callback' => [$this, 'api_evolution_propose'],
             'permission_callback' => [$this, 'verify_swarm_auth']
         ]);
+
+        // Sync endpoint for remote node synchronization
+        register_rest_route('geoos/v1', '/sync', [
+            'methods' => 'GET',
+            'callback' => [$this, 'api_sync'],
+            'permission_callback' => '__return_true'
+        ]);
     }
 
     /**
@@ -311,6 +318,62 @@ class GeometryOS_SwarmNode {
             'proposals' => $proposals,
             'analyzed_count' => count($posts),
             'node_id' => $this->node_id
+        ];
+    }
+
+    /**
+     * GET /wp-json/geoos/v1/sync - Sync posts for remote node synchronization
+     *
+     * Query params:
+     * - since: Unix timestamp to fetch posts modified after (default: 0)
+     * - limit: Maximum number of posts to return (default: 100, max: 500)
+     */
+    public function api_sync($request): array {
+        $since = intval($request->get_param('since') ?? 0);
+        $limit = min(intval($request->get_param('limit') ?? 100), 500);
+
+        // Build query for posts modified after the 'since' timestamp
+        $args = [
+            'post_type' => 'post',
+            'post_status' => 'publish',
+            'posts_per_page' => $limit,
+            'orderby' => 'modified',
+            'order' => 'DESC',
+        ];
+
+        // Add date query if since is specified
+        if ($since > 0) {
+            $args['date_query'] = [
+                [
+                    'column' => 'post_modified_gmt',
+                    'after' => gmdate('Y-m-d H:i:s', $since),
+                ]
+            ];
+        }
+
+        $query = new WP_Query($args);
+        $posts = [];
+
+        foreach ($query->posts as $post) {
+            $posts[] = [
+                'id' => $post->ID,
+                'title' => $post->post_title,
+                'content' => $post->post_content,
+                'excerpt' => $post->post_excerpt,
+                'slug' => $post->post_name,
+                'url' => get_permalink($post),
+                'created_at' => $post->post_date_gmt,
+                'modified_at' => $post->post_modified_gmt,
+                'author_id' => $post->post_author,
+            ];
+        }
+
+        return [
+            'node_id' => $this->node_id,
+            'since' => $since,
+            'limit' => $limit,
+            'count' => count($posts),
+            'posts' => $posts,
         ];
     }
 
@@ -599,6 +662,11 @@ class GeometryOS_SwarmNode {
                             <td><code>/wp-json/geoos/v1/analyze</code></td>
                             <td>POST</td>
                             <td>Analyze content</td>
+                        </tr>
+                        <tr>
+                            <td><code>/wp-json/geoos/v1/sync</code></td>
+                            <td>GET</td>
+                            <td>Remote node sync</td>
                         </tr>
                     </tbody>
                 </table>
