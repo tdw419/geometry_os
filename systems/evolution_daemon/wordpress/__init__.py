@@ -16,10 +16,17 @@ from .evolution_agent import (
     WordPressEvolutionAgent,
 )
 
+from .action_executor import (
+    ExecutionResult,
+    PlaywrightActionExecutor,
+)
+
 __all__ = [
     "ContentAnalysis",
     "ImprovementProposal",
     "WordPressContentAnalyzer",
     "EvolutionCycleResult",
     "WordPressEvolutionAgent",
+    "ExecutionResult",
+    "PlaywrightActionExecutor",
 ]
