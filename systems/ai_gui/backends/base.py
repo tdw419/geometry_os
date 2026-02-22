@@ -42,6 +42,37 @@ class AppConfig:
     args: list = field(default_factory=list)  # Command-line arguments
 
 
+@dataclass
+class ConnectionConfig:
+    """Configuration for connecting to a backend."""
+    display: Optional[str] = None  # X11 display (e.g., ":0")
+    host: Optional[str] = None     # Remote host for VNC, etc.
+    port: Optional[int] = None     # Port number
+    password: Optional[str] = None # Password for authentication
+    timeout: float = 30.0          # Connection timeout
+
+
+@dataclass
+class WindowInfo:
+    """Information about a desktop window."""
+    id: str                       # Window identifier
+    title: str                    # Window title
+    app_name: str = ""            # Application name/class
+    x: int = 0                    # X position
+    y: int = 0                    # Y position
+    width: int = 0                # Window width
+    height: int = 0               # Window height
+
+
+@dataclass
+class CommandResult:
+    """Result of a shell command execution."""
+    stdout: str                   # Standard output
+    stderr: str                   # Standard error
+    exit_code: int                # Exit code (0 = success)
+    duration: float = 0.0         # Execution duration in seconds
+
+
 class BaseBackend(ABC):
     """
     Abstract base class for tile backends.

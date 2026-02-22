@@ -21,7 +21,7 @@ Focus: Critical safety tests first, then core unit tests.
   - _Requirements: FR-1, FR-2, FR-3, FR-4_
   - _Design: test_desktop_agent_sanitizer.py section_
 
-- [ ] 1.2 SessionManager Unit Tests
+- [x] 1.2 SessionManager Unit Tests
   - **Do**: Create `tests/test_desktop_agent_session.py` with 15+ tests covering creation, retrieval, destruction, stale cleanup, max limit
   - **Files**: `tests/test_desktop_agent_session.py`, `systems/desktop_agent/session_manager.py`
   - **Done when**: All 15+ tests pass with MockBackend
@@ -30,7 +30,7 @@ Focus: Critical safety tests first, then core unit tests.
   - _Requirements: FR-5, FR-6, FR-7_
   - _Design: test_desktop_agent_session.py section_
 
-- [ ] 1.3 LocalBackend Unit Tests
+- [x] 1.3 LocalBackend Unit Tests
   - **Do**: Create `tests/test_desktop_agent_backend.py` with 20+ tests mocking xdotool, wmctrl, mss, pyperclip
   - **Files**: `tests/test_desktop_agent_backend.py`, `systems/desktop_agent/backends/local_backend.py`
   - **Done when**: All 20+ tests pass without real X11/display
@@ -39,7 +39,7 @@ Focus: Critical safety tests first, then core unit tests.
   - _Requirements: FR-8, FR-9, FR-10, FR-11, FR-12_
   - _Design: test_desktop_agent_backend.py section_
 
-- [ ] 1.4 TrackBoardClient Unit Tests
+- [x] 1.4 TrackBoardClient Unit Tests
   - **Do**: Create `tests/test_desktop_agent_track.py` with 15+ tests mocking TrackManager, WordPress unavailable fallback
   - **Files**: `tests/test_desktop_agent_track.py`, `systems/desktop_agent/safety/track_client.py`
   - **Done when**: All 15+ tests pass, fallback path tested
@@ -56,7 +56,7 @@ Focus: Critical safety tests first, then core unit tests.
 
 ## Phase 2: Integration Tests
 
-- [ ] 2.1 DesktopAgentService Integration Tests
+- [x] 2.1 DesktopAgentService Integration Tests
   - **Do**: Create `tests/test_desktop_agent_service.py` with 15+ tests for full service flow (connect, screenshot, input, exec, windows)
   - **Files**: `tests/test_desktop_agent_service.py`, `systems/desktop_agent/service.py`
   - **Done when**: All 15+ integration tests pass with MockLocalBackend
@@ -67,7 +67,7 @@ Focus: Critical safety tests first, then core unit tests.
 
 ## Phase 3: Performance Tests
 
-- [ ] 3.1 Performance Benchmarks
+- [x] 3.1 Performance Benchmarks
   - **Do**: Create `tests/test_desktop_agent_performance.py` with 6 benchmarks validating NFR latency targets
   - **Files**: `tests/test_desktop_agent_performance.py`
   - **Done when**: All benchmarks pass, validation < 1ms, session < 10ms
@@ -78,7 +78,7 @@ Focus: Critical safety tests first, then core unit tests.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Test Coverage Configuration
+- [x] 4.1 Test Coverage Configuration
   - **Do**: Create `tests/conftest_desktop_agent.py` with shared fixtures (mock_backend, mock_track_manager), configure 80% coverage gate
   - **Files**: `tests/conftest_desktop_agent.py`
   - **Done when**: Coverage report shows 80%+ with shared fixtures
@@ -87,7 +87,7 @@ Focus: Critical safety tests first, then core unit tests.
   - _Requirements: NFR-1, NFR-3_
   - _Design: Fixtures section_
 
-- [ ] 4.2 Quality Gate Script
+- [x] 4.2 Quality Gate Script
   - **Do**: Create `scripts/run_desktop_agent_tests.sh` that runs all tests, generates coverage report, enforces 80% gate
   - **Files**: `scripts/run_desktop_agent_tests.sh`
   - **Done when**: Script runs all 6 test files, fails if coverage < 80% or any test fails

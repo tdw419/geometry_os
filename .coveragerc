@@ -1,0 +1,28 @@
+# Coverage configuration for Geometry OS
+# For desktop agent tests, run with:
+#   pytest tests/test_desktop_agent*.py --cov=systems/desktop_agent --cov-fail-under=80
+
+[run]
+source = systems/desktop_agent
+omit =
+    systems/desktop_agent/bridge.py
+    */tests/*
+    */__pycache__/*
+    */.venv/*
+
+[report]
+fail_under = 80
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    class .*\bProtocol\):
+    @(abc\.)?abstractmethod
+
+[html]
+directory = htmlcov
+
+[xml]
+output = coverage.xml

@@ -29,7 +29,7 @@ Focus: Plugin skeleton, CPT registration, shell exec wrappers. No UI polish yet.
   - **Commit**: `feat(wp): add ASCII_View shell exec wrapper`
   - _Requirements: FR-1, IR-1_
 
-- [ ] 1.3 Create Directive_API class with CPT CRUD
+- [x] 1.3 Create Directive_API class with CPT CRUD
   - **Do**:
     1. Create `includes/class-directive-api.php`
     2. Implement `create($title, $content)` with duplicate check
@@ -42,7 +42,7 @@ Focus: Plugin skeleton, CPT registration, shell exec wrappers. No UI polish yet.
   - **Commit**: `feat(wp): add Directive_API with CPT CRUD`
   - _Requirements: FR-3, FR-5, FR-6, FR-7_
 
-- [ ] 1.4 Create Daemon_Status class with pgrep and caching
+- [x] 1.4 Create Daemon_Status class with pgrep and caching
   - **Do**:
     1. Create `includes/class-daemon-status.php`
     2. Implement `is_running()` with pgrep shell exec
@@ -54,7 +54,7 @@ Focus: Plugin skeleton, CPT registration, shell exec wrappers. No UI polish yet.
   - **Commit**: `feat(wp): add Daemon_Status with pgrep and caching`
   - _Requirements: FR-9, AC-6.3, AC-6.4_
 
-- [ ] 1.5 Register directive CPT in main plugin file
+- [x] 1.5 Register directive CPT in main plugin file
   - **Do**:
     1. Add `register_directive_cpt()` method to main class
     2. Call on `init` hook
@@ -72,7 +72,7 @@ Focus: Plugin skeleton, CPT registration, shell exec wrappers. No UI polish yet.
   - **Done when**: No syntax errors
   - **Commit**: `chore(wp): pass quality checkpoint` (only if fixes needed)
 
-- [ ] 1.7 Register settings via Settings API
+- [x] 1.7 Register settings via Settings API
   - **Do**:
     1. Add `register_settings()` method to main class
     2. Register settings: ascii_polling_interval, ascii_grid_width, ascii_grid_height, ascii_llm_endpoint, ascii_llm_model, ascii_log_retention_days, ascii_daemon_enabled
@@ -84,7 +84,7 @@ Focus: Plugin skeleton, CPT registration, shell exec wrappers. No UI polish yet.
   - **Commit**: `feat(wp): register plugin settings via Settings API`
   - _Requirements: FR-8, AC-5.7_
 
-- [ ] 1.8 Implement AJAX handlers in main class
+- [x] 1.8 Implement AJAX handlers in main class
   - **Do**:
     1. Add `wp_ajax_ascii_get_view` handler - calls ASCII_View->get_view()
     2. Add `wp_ajax_ascii_post_directive` handler - calls Directive_API->create()
@@ -104,7 +104,7 @@ Focus: Plugin skeleton, CPT registration, shell exec wrappers. No UI polish yet.
   - **Done when**: All files pass syntax check
   - **Commit**: `chore(wp): pass quality checkpoint` (only if fixes needed)
 
-- [ ] 1.10 Add admin menu pages
+- [x] 1.10 Add admin menu pages
   - **Do**:
     1. Add `add_menu()` method with add_menu_page for "ASCII Control" (toplevel)
     2. Add submenu page for Settings (under Settings menu via add_options_page)
@@ -126,7 +126,7 @@ Focus: Plugin skeleton, CPT registration, shell exec wrappers. No UI polish yet.
 
 Focus: Control page, settings page, logs page with real UI templates.
 
-- [ ] 2.1 Create control page template
+- [x] 2.1 Create control page template
   - **Do**:
     1. Create `admin/page-control.php` with HTML structure
     2. Add ASCII grid container (pre-formatted, monospace)
@@ -140,7 +140,7 @@ Focus: Control page, settings page, logs page with real UI templates.
   - **Commit**: `feat(wp): add control page template`
   - _Requirements: AC-1.1, AC-2.1, AC-3.1, AC-6.1_
 
-- [x] 2.2 Create settings page template
+- [ ] 2.2 Create settings page template
   - **Do**:
     1. Create `admin/page-settings.php` with form structure
     2. Add fields: polling_interval (1-60), grid_width (40-200), grid_height (10-60)
@@ -154,7 +154,7 @@ Focus: Control page, settings page, logs page with real UI templates.
   - **Commit**: `feat(wp): add settings page template`
   - _Requirements: AC-5.1 through AC-5.8_
 
-- [x] 2.3 Create logs page template
+- [ ] 2.3 Create logs page template
   - **Do**:
     1. Create `admin/page-logs.php` with table structure
     2. Add filter form (status dropdown, date range, search)
@@ -189,7 +189,7 @@ Focus: Control page, settings page, logs page with real UI templates.
   - **Commit**: `feat(wp): add JavaScript polling and UI logic`
   - _Requirements: AC-1.2, AC-2.5, AC-3.6, UI-4, UI-5_
 
-- [ ] 2.6 Create CSS dark theme styles
+- [x] 2.6 Create CSS dark theme styles
   - **Do**:
     1. Create `assets/css/admin.css` with dark theme
     2. Style ASCII grid: monospace font, #1e1e1e bg, #d4d4d4 text
@@ -203,7 +203,7 @@ Focus: Control page, settings page, logs page with real UI templates.
   - **Commit**: `feat(wp): add dark theme CSS styles`
   - _Requirements: UI-1, UI-2, UI-3, UI-6, UI-8_
 
-- [ ] 2.7 Enqueue JS/CSS on plugin pages only
+- [x] 2.7 Enqueue JS/CSS on plugin pages only
   - **Do**:
     1. Add `enqueue_assets($hook)` method to main class
     2. Check if current page is plugin page (ascii-control, settings, logs)
@@ -226,7 +226,7 @@ Focus: Control page, settings page, logs page with real UI templates.
 
 Focus: Rate limiting, admin bar link, activation hooks, final verification.
 
-- [ ] 3.1 Add rate limiting for ASCII view endpoint
+- [x] 3.1 Add rate limiting for ASCII view endpoint
   - **Do**:
     1. Add rate limit check in `ajax_get_view()` handler
     2. Use transient with key `ascii_rate_limit_{user_id}` set to 1 second
@@ -238,7 +238,7 @@ Focus: Rate limiting, admin bar link, activation hooks, final verification.
   - **Commit**: `feat(wp): add rate limiting for ASCII view endpoint`
   - _Requirements: NFR-12_
 
-- [ ] 3.2 Add admin bar quick link
+- [x] 3.2 Add admin bar quick link
   - **Do**:
     1. Add `add_admin_bar_link()` method hooked to `admin_bar_menu`
     2. Add "ASCII Control" node linking to main control page
@@ -250,7 +250,7 @@ Focus: Rate limiting, admin bar link, activation hooks, final verification.
   - **Commit**: `feat(wp): add admin bar quick link`
   - _Requirements: UI-9_
 
-- [ ] 3.3 Write activation/deactivation hooks
+- [x] 3.3 Write activation/deactivation hooks
   - **Do**:
     1. Create `activate()` static method for register_activation_hook
     2. Flush rewrite rules for directive CPT
@@ -270,7 +270,7 @@ Focus: Rate limiting, admin bar link, activation hooks, final verification.
   - **Done when**: Zero syntax errors
   - **Commit**: `chore(wp): pass quality checkpoint` (only if fixes needed)
 
-- [ ] 3.5 Final integration test
+- [x] 3.5 Final integration test
   - **Do**:
     1. Verify plugin directory structure is complete
     2. Verify all required files exist
@@ -282,7 +282,7 @@ Focus: Rate limiting, admin bar link, activation hooks, final verification.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Local quality check
+- [x] 4.1 Local quality check
   - **Do**: Run all quality verification commands
   - **Verify**:
     - PHP syntax: `find /home/jericho/zion/projects/geometry_os/geometry_os/wordpress_zone/wordpress/wp-content/plugins/ascii-desktop-control -name "*.php" -exec php -l {} \; 2>&1 | grep -v "No syntax errors" | wc -l`
@@ -291,7 +291,7 @@ Focus: Rate limiting, admin bar link, activation hooks, final verification.
   - **Done when**: All commands pass (syntax=0 errors, files=9, security>=5)
   - **Commit**: `fix(wp): address quality issues` (if fixes needed)
 
-- [ ] 4.2 Create PR and verify CI
+- [x] 4.2 Create PR and verify CI
   - **Do**:
     1. Verify current branch: `git branch --show-current`
     2. Stage files: `git add wordpress_zone/wordpress/wp-content/plugins/ascii-desktop-control/`
@@ -304,13 +304,13 @@ Focus: Rate limiting, admin bar link, activation hooks, final verification.
 
 ## Phase 5: PR Lifecycle
 
-- [ ] 5.1 Monitor CI and address failures
+- [x] 5.1 Monitor CI and address failures
   - **Do**: Check CI status, fix any issues found
   - **Verify**: `git status` shows clean working tree
   - **Done when**: All CI checks pass or no CI configured
   - **Commit**: `fix(wp): address CI failures` (if fixes needed)
 
-- [ ] 5.2 Final validation: AC checklist verification
+- [x] 5.2 Final validation: AC checklist verification
   - **Do**: Read requirements.md, verify each acceptance criteria is implemented
   - **Verify**: `grep -c "AC-" /home/jericho/zion/projects/geometry_os/geometry_os/.auto-claude/specs/ascii-wp-plugin/requirements.md` (count total ACs)
   - **Done when**: All ACs traceable to implemented code

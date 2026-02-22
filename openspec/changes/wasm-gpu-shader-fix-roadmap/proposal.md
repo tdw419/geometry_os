@@ -1,0 +1,34 @@
+# Wasm Gpu Shader Fix Roadmap
+
+## Summary
+
+Enable real GPU execution
+
+## Motivation
+
+This change implements the architecture described below, enabling spec-driven development
+and verification of the implementation.
+
+## Architecture
+
+TBD
+
+## Tech Stack
+
+TBD
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| (See tasks.md for detailed file list) | |
+
+## Success Criteria
+
+- [ ] All tasks in tasks.md are completed
+- [ ] Tests pass
+- [ ] Documentation updated
+
+## Related
+
+- Source Plan: `docs/plans/2026-02-10-wasm-gpu-shader-fix-roadmap.md`

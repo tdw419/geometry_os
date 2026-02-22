@@ -17,7 +17,6 @@ from systems.swarm.swarm_agent import SwarmAgent
 class TestParallelIsolation:
     """Test concurrent task claiming and execution."""
 
-    @pytest.mark.skip(reason="Race condition in get_pending() - doesn't acquire lock for reads")
     def test_concurrent_claiming_no_double_claims(self, tmp_path):
         """
         5 threads claim from 10 tasks, verify no duplicates.

@@ -12,7 +12,7 @@ generated: auto
 
 Focus: Implement all 14 test cases. Let failures guide production code fixes.
 
-- [ ] 1.1 Create parallel isolation tests
+- [x] 1.1 Create parallel isolation tests
   - **Do**: Create `tests/swarm/test_parallel_isolation.py` with 3 tests:
     - `test_concurrent_claiming_no_double_claims`: 5 threads claim from 10 tasks, verify no duplicates
     - `test_concurrent_results_no_mixing`: 3 agents complete tasks, verify correct result attribution
@@ -24,7 +24,7 @@ Focus: Implement all 14 test cases. Let failures guide production code fixes.
   - _Requirements: FR-1, FR-2, FR-3_
   - _Design: test_parallel_isolation.py_
 
-- [ ] 1.2 Create cross-process coordination tests
+- [x] 1.2 Create cross-process coordination tests
   - **Do**: Create `tests/swarm/test_cross_process.py` with 3 tests:
     - `test_subprocess_agents_coordinate_via_shared_taskboard`: 3 subprocesses via Popen, verify all complete
     - `test_no_communication_except_taskboard`: Verify no shared env vars, only file storage
@@ -36,7 +36,7 @@ Focus: Implement all 14 test cases. Let failures guide production code fixes.
   - _Requirements: FR-4, FR-5, FR-6_
   - _Design: test_cross_process.py_
 
-- [ ] 1.3 Create fault tolerance tests
+- [x] 1.3 Create fault tolerance tests
   - **Do**: Create `tests/swarm/test_fault_tolerance.py` with 4 tests:
     - `test_claimed_task_becomes_reclaimable_after_timeout`: Simulate crash by aging claimed_at timestamp
     - `test_corrupted_task_file_quarantined`: Write invalid JSON, verify get_pending() skips it
@@ -49,7 +49,7 @@ Focus: Implement all 14 test cases. Let failures guide production code fixes.
   - _Requirements: FR-7, FR-8, FR-9, FR-10_
   - _Design: test_fault_tolerance.py, Production Code Changes section_
 
-- [ ] 1.4 Create scalability tests
+- [x] 1.4 Create scalability tests
   - **Do**: Create `tests/swarm/test_scalability.py` with 4 tests:
     - `test_100_tasks_distributed_across_10_agents`: Verify distribution variance <= 2
     - `test_1000_tasks_with_progress_tracking`: Verify progress_pct at 50% after 500 completions
@@ -62,7 +62,7 @@ Focus: Implement all 14 test cases. Let failures guide production code fixes.
   - _Requirements: FR-11, FR-12, FR-13, FR-14_
   - _Design: test_scalability.py_
 
-- [ ] 1.5 POC Checkpoint
+- [x] 1.5 POC Checkpoint
   - **Do**: Verify all 14 new tests + 32 existing = 46 total pass
   - **Done when**: All swarm tests pass
   - **Verify**: `pytest tests/swarm/ -v --tb=short`
@@ -72,7 +72,7 @@ Focus: Implement all 14 test cases. Let failures guide production code fixes.
 
 After POC validated, fix any production code gaps exposed by tests.
 
-- [ ] 2.1 Add corruption handling to TaskBoard.get_pending()
+- [x] 2.1 Add corruption handling to TaskBoard.get_pending()
   - **Do**: Wrap Task.from_json() in try/except, skip corrupted files
   - **Files**: `systems/swarm/task_board.py`
   - **Done when**: `test_corrupted_task_file_quarantined` passes
@@ -80,7 +80,7 @@ After POC validated, fix any production code gaps exposed by tests.
   - **Commit**: `fix(swarm): handle corrupted task files gracefully`
   - _Design: Production Code Changes section_
 
-- [ ] 2.2 Add stale claim recovery (if needed)
+- [x] 2.2 Add stale claim recovery (if needed)
   - **Do**: If test 1.3 first test fails, implement timeout-based reclamation
   - **Files**: `systems/swarm/task_board.py`, possibly `systems/swarm/task.py`
   - **Done when**: `test_claimed_task_becomes_reclaimable_after_timeout` passes
@@ -90,14 +90,14 @@ After POC validated, fix any production code gaps exposed by tests.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Run full swarm test suite with timing
+- [x] 3.1 Run full swarm test suite with timing
   - **Do**: Execute all tests, capture durations
   - **Files**: All swarm tests
   - **Done when**: All pass, total < 60s
   - **Verify**: `pytest tests/swarm/ --durations=20`
   - **Commit**: N/A (verification only)
 
-- [ ] 3.2 Verify test isolation
+- [x] 3.2 Verify test isolation
   - **Do**: Run tests multiple times, check for flakiness
   - **Files**: All swarm tests
   - **Done when**: 3 consecutive runs all pass
@@ -106,13 +106,13 @@ After POC validated, fix any production code gaps exposed by tests.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Local quality check
+- [x] 4.1 Local quality check
   - **Do**: Run type check, lint, all tests
   - **Verify**: Type check passes, lint clean, all tests green
   - **Done when**: All commands pass
   - **Commit**: `fix(swarm): address lint/type issues` (if needed)
 
-- [ ] 4.2 Create PR and verify CI
+- [x] 4.2 Create PR and verify CI
   - **Do**: Push branch, create PR with gh CLI
   - **Verify**: `gh pr checks --watch` all green
   - **Done when**: PR ready for review
