@@ -224,7 +224,7 @@ Focus: Validate LLM integration works end-to-end. Skip edge cases, accept hardco
   - **Done when**: Coverage > 80% on new modules
   - **Commit**: `test(evolution): improve test coverage to >80%`
 
-- [ ] 4.2 Create documentation
+- [x] 4.2 Create documentation
   - **Do**:
     1. Create `systems/evolution_daemon/wordpress/README_LLM_EXPANSION.md`
     2. Document template mode vs LLM mode usage
