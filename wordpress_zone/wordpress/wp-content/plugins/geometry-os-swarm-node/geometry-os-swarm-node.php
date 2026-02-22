@@ -116,6 +116,13 @@ class GeometryOS_SwarmNode {
             'callback' => [$this, 'api_sync'],
             'permission_callback' => '__return_true'
         ]);
+
+        // Swarm join info endpoint - for remote AIs to discover and join
+        register_rest_route('geoos/v1', '/swarm/info', [
+            'methods' => 'GET',
+            'callback' => [$this, 'api_swarm_info'],
+            'permission_callback' => '__return_true'
+        ]);
     }
 
     /**
@@ -374,6 +381,44 @@ class GeometryOS_SwarmNode {
             'limit' => $limit,
             'count' => count($posts),
             'posts' => $posts,
+        ];
+    }
+
+    /**
+     * GET /wp-json/geoos/v1/swarm/info - Get swarm join information
+     *
+     * Returns information for remote AIs to discover and join this swarm.
+     */
+    public function api_swarm_info($request): array {
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+
+        // Try to detect the actual reachable host
+        $detected_host = parse_url(site_url(), PHP_URL_HOST) ?: $host;
+        $detected_port = parse_url(site_url(), PHP_URL_PORT) ?: ($scheme === 'https' ? 443 : 80);
+
+        return [
+            'swarm_name' => 'geometry-os-swarm',
+            'node_id' => $this->node_id,
+            'version' => '1.0',
+            'capabilities' => $this->capabilities,
+            'endpoints' => [
+                'sync' => rest_url('geoos/v1/sync'),
+                'info' => rest_url('geoos/v1/swarm/info'),
+                'node' => rest_url('geoos/v1/node'),
+            ],
+            'join_config' => [
+                'node_id' => $this->node_id,
+                'url' => site_url(),
+                'api_url' => rest_url('geoos/v1'),
+                'sync_url' => rest_url('geoos/v1/sync'),
+            ],
+            'posts_count' => wp_count_posts()->publish,
+            'instructions' => [
+                '1. Install geometry-os-swarm-node plugin on your WordPress',
+                '2. Add this node to your remote_nodes.json',
+                '3. Run: python3 systems/swarm/wp_discovery_daemon.py -f',
+            ],
         ];
     }
 
