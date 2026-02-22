@@ -12,7 +12,7 @@ generated: auto
 
 Focus: Build core components and verify browser UI works end-to-end.
 
-- [ ] 1.1 Create CertificationTests.js test registry
+- [x] 1.1 Create CertificationTests.js test registry
   - **Do**: Create `systems/visual_shell/web/CertificationTests.js` with standalone registry class containing tests for all 3 levels. Each test is an object with id, name, level, description, timeout, run(). Include getByLevel(), get(), getAll() methods.
   - **Files**: `systems/visual_shell/web/CertificationTests.js`
   - **Done when**: File exists, exports `window.CertificationTests`, console shows "[CertificationTests] Registry loaded with N tests"
