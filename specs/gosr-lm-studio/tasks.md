@@ -41,7 +41,7 @@ Focus: Validate LLM integration works end-to-end. Skip tests, accept hardcoded v
   - _Requirements: FR-5_
   - _Design: SegmentPool Modification section_
 
-- [ ] 1.4 Wire LLM into NarrativeBroadcaster
+- [x] 1.4 Wire LLM into NarrativeBroadcaster
   - **Do**:
     1. Modify `NarrativeBroadcaster.__init__()` to accept `use_llm` and `llm_config` parameters
     2. Create `LLMNarrativeClient` when `use_llm=True`
