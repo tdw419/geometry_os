@@ -2,7 +2,7 @@
   "source": "plan",
   "name": "llm-powered-expansion",
   "basePath": "./specs/llm-powered-expansion",
-  "phase": "requirements",
+  "phase": "design",
   "taskIndex": 0,
   "totalTasks": 0,
   "taskIteration": 1,
