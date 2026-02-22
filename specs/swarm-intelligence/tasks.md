@@ -90,10 +90,11 @@ Focus: Validate Task data structure and TaskBoard storage. Core components first
   - **Done when**: 34 tests pass (4+7+8+6+4+5)
   - **Commit**: `fix(swarm): address test issues` (if needed)
 
-- [ ] 4.2 Create PR and verify CI
+- [x] 4.2 Create PR and verify CI
   - **Do**: Push branch, create PR
   - **Verify**: CI passes
   - **Done when**: PR ready for review
+  - _Status_: Work already merged to main, 48 tests passing
 
 ## Summary
 
