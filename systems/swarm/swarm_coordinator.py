@@ -8,7 +8,7 @@ import uuid
 import logging
 from typing import List, Dict, Any, Optional
 
-from systems.swarm.task import Task, TaskType
+from systems.swarm.task import Task, TaskType, TaskStatus
 from systems.swarm.task_board import TaskBoard
 from systems.swarm.reduction import reduce_results
 
