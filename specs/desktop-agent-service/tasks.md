@@ -49,7 +49,7 @@ Focus: Validate unified desktop control works end-to-end via WebMCP. Skip tests,
 
 ### 1.2 Extend BaseBackend Interface
 
-- [ ] 1.2 Extend BaseBackend with desktop control methods
+- [x] 1.2 Extend BaseBackend with desktop control methods
   - **Do**:
     1. Open `systems/ai_gui/backends/base.py`
     2. Add abstract methods: `connect(config)`, `disconnect()`, `get_windows()`, `focus_window(window_id)`, `get_clipboard()`, `set_clipboard(text)`, `exec_command(cmd, timeout)`
