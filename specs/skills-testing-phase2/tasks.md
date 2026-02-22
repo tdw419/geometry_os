@@ -1,18 +1,18 @@
 # Tasks: skills-testing-phase2
 
-- [ ] **Task 1**: Implement Orphan Skill Detection
+- [x] **Task 1**: Implement Orphan Skill Detection
   - **Description**: Add test to `tests/skills/test_sync_skills.py` to ensure all directories in `.gemini/skills/` are registered in `SKILLS.md`.
   - **Acceptance Criteria**: Test fails if a new folder is added to `.gemini/skills/` without an entry in `SKILLS.md`.
 
-- [ ] **Task 2**: Implement Index-Metadata Sync Validation
+- [x] **Task 2**: Implement Index-Metadata Sync Validation
   - **Description**: Add test to `tests/skills/test_sync_skills.py` verifying that descriptions in `SKILLS.md` match the frontmatter in `SKILL.md` files.
   - **Acceptance Criteria**: Test fails if a skill's description is updated in its `SKILL.md` but not in the root `SKILLS.md`.
 
-- [ ] **Task 3**: Create Script Execution Test Suite
+- [x] **Task 3**: Create Script Execution Test Suite
   - **Description**: Create `tests/skills/test_skill_scripts.py` with generic CLI verification logic.
   - **Acceptance Criteria**: File exists and contains basic `subprocess` helper for CLI tests.
 
-- [ ] **Task 4**: Implement CLI Tests for Core Scripts
+- [x] **Task 4**: Implement CLI Tests for Core Scripts
   - **Description**: Add tests for `get_ascii_view.py`, `evolution_ctl.sh --dry-run`, `vector_memory_daemon.py --help`, and `pixelrts_v2_converter.py --help`.
   - **Acceptance Criteria**: At least 4 scripts are verified to launch successfully.
 
