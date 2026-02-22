@@ -75,7 +75,7 @@ Focus: Get RtsWatcherAgent enhanced with core features, create control script.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Unit tests for RtsWatcherAgent heartbeat
+- [x] 3.1 Unit tests for RtsWatcherAgent heartbeat
   - **Do**: Create test_rts_watcher_agent.py with TestHeartbeatSupport class. Test file creation, field presence, updates.
   - **Files**: `tests/test_rts_watcher_agent.py`
   - **Done when**: Tests cover write_heartbeat, heartbeat on cycle, uptime tracking
