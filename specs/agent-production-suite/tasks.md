@@ -39,7 +39,7 @@ Focus: Get RtsWatcherAgent enhanced with core features, create control script.
   - _Requirements: FR-1_
   - _Design: Component 1_
 
-- [ ] 1.4 Create rts_watcher_ctl.sh control script
+- [x] 1.4 Create rts_watcher_ctl.sh control script
   - **Do**: Create bash script with start/stop/status/tail/scan commands following directive_ctl.sh pattern exactly.
   - **Files**: `systems/intelligence/rts_watcher_ctl.sh`
   - **Done when**: All commands work (start, stop, status, tail, scan, restart)
