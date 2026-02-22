@@ -1,0 +1,13 @@
+{
+  "source": "spec",
+  "name": "skills-testing-phase2",
+  "basePath": "./specs/skills-testing-phase2",
+  "phase": "implement",
+  "taskIndex": 0,
+  "totalTasks": 10,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": true
+}
