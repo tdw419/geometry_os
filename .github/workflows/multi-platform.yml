@@ -105,8 +105,8 @@ jobs:
 
     - name: Build and test
       run: |
-        # Skip C++ builds on Windows for now (focus on Python components)
-        python -m pytest test_*.py -v --tb=short || echo "Some tests failed on Windows"
+        python -m pytest tests/ -v --tb=short || echo "Some tests failed on Windows"
+      shell: bash
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
