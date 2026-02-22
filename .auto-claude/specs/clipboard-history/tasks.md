@@ -6,7 +6,7 @@
 - Create `tests/test_clipboard_history.py`
 - TDD: Write tests first, then implement
 
-## Task 2: Create Enhanced HTTP Clipboard Server
+## Task 2: Create Enhanced HTTP Clipboard Server [x]
 - Create `systems/clipboard/server.py` with enhanced endpoints
 - Create `tests/test_clipboard_server.py`
 - Endpoints: /clipboard, /clipboard/history, /clipboard/history/N, /clipboard/since/<id>
