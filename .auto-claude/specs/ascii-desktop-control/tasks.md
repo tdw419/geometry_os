@@ -57,7 +57,7 @@
 
 ## Phase 4: Integration & Service
 
-- [ ] 4.1 Create WordPress integration tests
+- [x] 4.1 Create WordPress integration tests
   - **Do**: Create test_ascii_wp_integration.py testing directive post/retrieve/respond flow
   - **Files**: `tests/test_ascii_wp_integration.py`
   - **Done when**: Integration tests pass (or skip if WordPress unavailable)
