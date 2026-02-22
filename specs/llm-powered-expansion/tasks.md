@@ -41,7 +41,7 @@ Focus: Validate LLM integration works end-to-end. Skip edge cases, accept hardco
   - _Requirements: FR-1, FR-6_
   - _Design: LLMExpansionService component_
 
-- [ ] 1.2 Create SafetyConfig and ContentBackup classes
+- [x] 1.2 Create SafetyConfig and ContentBackup classes
   - **Do**:
     1. Create `systems/evolution_daemon/wordpress/safety_config.py`
     2. Define `SafetyConfig` dataclass with require_backup, min_confidence, backup_dir, max_modifications_per_hour
