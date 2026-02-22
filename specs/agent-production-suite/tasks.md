@@ -109,7 +109,7 @@ Focus: Get RtsWatcherAgent enhanced with core features, create control script.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Local quality check
+- [x] 4.1 Local quality check
   - **Do**: Run all tests, check coverage, verify lint passes
   - **Verify**: `python3 -m pytest tests/test_rts_watcher_agent.py tests/test_control_scripts.py -v --cov=systems.intelligence.rts_watcher_agent --cov-report=term-missing`
   - **Done when**: All tests pass, coverage > 80%

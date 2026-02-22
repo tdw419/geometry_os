@@ -542,5 +542,240 @@ class TestCLI:
         assert "ERROR" in result.stdout
 
 
+class TestErrorHandling:
+    """Test error handling branches for improved coverage."""
+
+    @pytest.fixture
+    def agent(self, tmp_path):
+        """Create RtsWatcherAgent with temp heartbeat path."""
+        heartbeat_path = tmp_path / "heartbeat.json"
+        watch_dir = tmp_path / "watch"
+        watch_dir.mkdir()
+        agent = RtsWatcherAgent(
+            wp_url="http://test.local",
+            watch_dir=str(watch_dir),
+            heartbeat_path=str(heartbeat_path),
+            log_level="ERROR"
+        )
+        return agent, watch_dir, heartbeat_path
+
+    def test_handles_ioerror_reading_metadata(self, agent):
+        """Test IOError handling when reading metadata file."""
+        agent_instance, watch_dir, _ = agent
+
+        # Create RTS file
+        rts_file = watch_dir / "ioerror.rts.png"
+        rts_file.write_bytes(b"\x89PNG" + b"\x00" * 100)
+
+        meta_file = watch_dir / "ioerror.rts.meta.json"
+        meta_file.write_text(json.dumps({"name": "Test"}))
+
+        # Mock open to raise IOError
+        import builtins
+        original_open = builtins.open
+
+        def mock_open_func(file, *args, **kwargs):
+            if "ioerror.rts.meta.json" in str(file):
+                raise IOError("Permission denied")
+            return original_open(file, *args, **kwargs)
+
+        with patch.object(builtins, 'open', mock_open_func):
+            result = agent_instance.scan_and_ingest(str(watch_dir))
+
+        assert result == 0
+        assert agent_instance._errors >= 1
+        assert agent_instance._files_skipped >= 1
+
+    def test_handles_unicode_decode_error(self, agent):
+        """Test UnicodeDecodeError handling when reading metadata file."""
+        agent_instance, watch_dir, _ = agent
+
+        # Create RTS file
+        rts_file = watch_dir / "unicode.rts.png"
+        rts_file.write_bytes(b"\x89PNG" + b"\x00" * 100)
+
+        # Create file with invalid UTF-8
+        meta_file = watch_dir / "unicode.rts.meta.json"
+        meta_file.write_bytes(b"\xff\xfe {" + b"\x00" * 10)  # Invalid UTF-8
+
+        result = agent_instance.scan_and_ingest(str(watch_dir))
+
+        assert result == 0
+        assert agent_instance._errors >= 1
+        assert agent_instance._files_skipped >= 1
+
+    @patch('systems.intelligence.rts_watcher_agent.requests.post')
+    def test_handles_api_timeout(self, mock_post, agent):
+        """Test handling of API timeout errors."""
+        import requests
+        agent_instance, watch_dir, _ = agent
+
+        rts_file = watch_dir / "timeout.rts.png"
+        rts_file.write_bytes(b"\x89PNG" + b"\x00" * 100)
+
+        meta_file = watch_dir / "timeout.rts.meta.json"
+        meta_file.write_text(json.dumps({"name": "Test"}))
+
+        mock_post.side_effect = requests.exceptions.Timeout("Connection timed out")
+
+        result = agent_instance.scan_and_ingest(str(watch_dir))
+
+        assert result == 0
+        assert agent_instance._errors >= 1
+
+    @patch('systems.intelligence.rts_watcher_agent.requests.post')
+    def test_handles_api_connection_error(self, mock_post, agent):
+        """Test handling of API connection errors."""
+        import requests
+        agent_instance, watch_dir, _ = agent
+
+        rts_file = watch_dir / "connerr.rts.png"
+        rts_file.write_bytes(b"\x89PNG" + b"\x00" * 100)
+
+        meta_file = watch_dir / "connerr.rts.meta.json"
+        meta_file.write_text(json.dumps({"name": "Test"}))
+
+        mock_post.side_effect = requests.exceptions.ConnectionError("Failed to connect")
+
+        result = agent_instance.scan_and_ingest(str(watch_dir))
+
+        assert result == 0
+        assert agent_instance._errors >= 1
+
+    @patch('systems.intelligence.rts_watcher_agent.requests.post')
+    def test_handles_api_http_error(self, mock_post, agent):
+        """Test handling of HTTP errors from API."""
+        import requests
+        agent_instance, watch_dir, _ = agent
+
+        rts_file = watch_dir / "httperr.rts.png"
+        rts_file.write_bytes(b"\x89PNG" + b"\x00" * 100)
+
+        meta_file = watch_dir / "httperr.rts.meta.json"
+        meta_file.write_text(json.dumps({"name": "Test"}))
+
+        mock_post.side_effect = requests.exceptions.HTTPError("500 Server Error")
+
+        result = agent_instance.scan_and_ingest(str(watch_dir))
+
+        assert result == 0
+        assert agent_instance._errors >= 1
+
+    @patch('systems.intelligence.rts_watcher_agent.requests.post')
+    def test_handles_api_generic_request_error(self, mock_post, agent):
+        """Test handling of generic request errors."""
+        import requests
+        agent_instance, watch_dir, _ = agent
+
+        rts_file = watch_dir / "reqerr.rts.png"
+        rts_file.write_bytes(b"\x89PNG" + b"\x00" * 100)
+
+        meta_file = watch_dir / "reqerr.rts.meta.json"
+        meta_file.write_text(json.dumps({"name": "Test"}))
+
+        mock_post.side_effect = requests.exceptions.RequestException("Unknown error")
+
+        result = agent_instance.scan_and_ingest(str(watch_dir))
+
+        assert result == 0
+        assert agent_instance._errors >= 1
+
+    @patch('systems.intelligence.rts_watcher_agent.requests.post')
+    def test_handles_api_json_decode_error(self, mock_post, agent):
+        """Test handling of invalid JSON response from API."""
+        agent_instance, watch_dir, _ = agent
+
+        rts_file = watch_dir / "jsonerr.rts.png"
+        rts_file.write_bytes(b"\x89PNG" + b"\x00" * 100)
+
+        meta_file = watch_dir / "jsonerr.rts.meta.json"
+        meta_file.write_text(json.dumps({"name": "Test"}))
+
+        # Mock response that raises JSONDecodeError when .json() is called
+        mock_response = Mock()
+        mock_response.raise_for_status = Mock()
+        mock_response.json.side_effect = json.JSONDecodeError("Invalid", "", 0)
+        mock_post.return_value = mock_response
+
+        result = agent_instance.scan_and_ingest(str(watch_dir))
+
+        assert result == 0
+        assert agent_instance._errors >= 1
+
+
+class TestRunForever:
+    """Test run_forever and signal handling for improved coverage."""
+
+    @pytest.fixture
+    def agent(self, tmp_path):
+        """Create RtsWatcherAgent with temp heartbeat path."""
+        heartbeat_path = tmp_path / "heartbeat.json"
+        watch_dir = tmp_path / "watch"
+        watch_dir.mkdir()
+        agent = RtsWatcherAgent(
+            wp_url="http://test.local",
+            watch_dir=str(watch_dir),
+            heartbeat_path=str(heartbeat_path),
+            log_level="ERROR"
+        )
+        return agent, watch_dir, heartbeat_path
+
+    def test_sigterm_handler_sets_running_false(self, agent):
+        """Test that SIGTERM handler sets _running to False."""
+        agent_instance, _, _ = agent
+        agent_instance._running = True
+
+        # Call handler directly
+        agent_instance._handle_sigterm(15, None)
+
+        assert agent_instance._running == False
+
+    def test_run_forever_initializes_state(self, agent):
+        """Test that run_forever initializes start time and running flag."""
+        agent_instance, _, heartbeat_path = agent
+
+        # Set running to False immediately after first cycle to exit loop
+        original_process = agent_instance.process_one_cycle
+        def stop_after_first(*args):
+            agent_instance._running = False
+            return 0
+
+        with patch.object(agent_instance, 'process_one_cycle', stop_after_first):
+            agent_instance.run_forever()
+
+        assert agent_instance._start_time is not None
+        assert heartbeat_path.exists()
+
+    def test_run_forever_handles_cycle_exception(self, agent):
+        """Test that run_forever continues on cycle exceptions."""
+        agent_instance, _, heartbeat_path = agent
+
+        call_count = [0]
+        def failing_cycle(*args):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise Exception("Cycle error")
+            agent_instance._running = False
+            return 0
+
+        with patch.object(agent_instance, 'process_one_cycle', failing_cycle):
+            agent_instance.run_forever()
+
+        assert call_count[0] == 2  # Failed once, then stopped
+        assert agent_instance._errors >= 1
+
+    def test_run_forever_writes_shutdown_heartbeat(self, agent):
+        """Test that run_forever writes heartbeat with running=False on exit."""
+        agent_instance, _, heartbeat_path = agent
+
+        with patch.object(agent_instance, 'process_one_cycle', lambda: setattr(agent_instance, '_running', False) or 0):
+            agent_instance.run_forever()
+
+        with open(heartbeat_path) as f:
+            data = json.load(f)
+
+        assert data["running"] == False
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
