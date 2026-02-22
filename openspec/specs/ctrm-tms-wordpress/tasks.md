@@ -41,8 +41,8 @@
 ## Phase 2: Refactoring (3 tasks)
 
 ### Task 2.1: Add error handling to CTRM handlers
-- [ ] Add try-catch blocks
-- [ ] Return proper error responses
+- [x] Add try-catch blocks
+- [x] Return proper error responses
 
 ### Task 2.2: Add input validation utilities
 - [x] Create shared validation functions
