@@ -15,8 +15,8 @@
 - [ ] Return success with post_id
 
 ### Task 1.4: Add syncTruths action case to dispatcher
-- [ ] Add `case 'syncTruths':` to switch statement
-- [ ] Wire to `handle_sync_truths($args)` handler
+- [x] Add `case 'syncTruths':` to switch statement
+- [x] Wire to `handle_sync_truths($args)` handler
 
 ### Task 1.5: Implement handle_sync_truths() handler function
 - [ ] Fetch truths from TMS via HTTP API
@@ -24,8 +24,8 @@
 - [ ] Return sync stats
 
 ### Task 1.6: Add getTruthStats action case to dispatcher
-- [ ] Add `case 'getTruthStats':` to switch statement
-- [ ] Wire to `handle_get_truth_stats()` handler
+- [x] Add `case 'getTruthStats':` to switch statement
+- [x] Wire to `handle_get_truth_stats()` handler
 
 ### Task 1.7: Implement handle_get_truth_stats() handler function
 - [ ] Query truth_entry post counts by confidence ranges

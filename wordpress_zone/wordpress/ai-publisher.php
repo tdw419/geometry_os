@@ -139,6 +139,14 @@ switch ($action) {
         handle_log_truth($args);
         break;
 
+    case 'syncTruths':
+        handle_sync_truths($args);
+        break;
+
+    case 'getTruthStats':
+        handle_get_truth_stats($args);
+        break;
+
     default:
         header('HTTP/1.1 400 Bad Request');
         echo json_encode(array('success' => false, 'error' => 'Invalid action/tool: ' . $action));
