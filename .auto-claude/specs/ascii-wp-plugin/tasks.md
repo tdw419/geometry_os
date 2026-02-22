@@ -270,7 +270,7 @@ Focus: Rate limiting, admin bar link, activation hooks, final verification.
   - **Done when**: Zero syntax errors
   - **Commit**: `chore(wp): pass quality checkpoint` (only if fixes needed)
 
-- [ ] 3.5 Final integration test
+- [x] 3.5 Final integration test
   - **Do**:
     1. Verify plugin directory structure is complete
     2. Verify all required files exist
