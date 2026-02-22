@@ -2837,3 +2837,225 @@ class TestLLMNarrativeClient:
 
         # Only one POST call should have been made (second skipped due to cached unavailable)
         assert mock_post.call_count == 1
+
+
+class TestSegmentPoolLLMIntegration:
+    """Integration tests for SegmentPool LLM client integration.
+
+    Tests verify that SegmentPool.generate_content() properly uses LLM client
+    when available and falls back to templates when LLM is unavailable or
+    returns invalid responses.
+
+    Requirements: AC-2.2, AC-2.5 (LM Studio integration with template fallback)
+    """
+
+    def test_pool_without_llm_uses_templates(self):
+        """SegmentPool without LLM client should use template-based content."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import (
+            SegmentPool, SegmentType
+        )
+
+        # Create pool WITHOUT LLM client (default)
+        pool = SegmentPool()
+
+        telemetry = {"fps": 60, "entropy": 0.5}
+
+        # Generate content - should use templates
+        content = pool.generate_content(
+            segment_type=SegmentType.WEATHER,
+            telemetry=telemetry,
+            station_name="Test Station"
+        )
+
+        assert content is not None
+        assert isinstance(content, str)
+        assert len(content) > 0
+        # Template content should contain telemetry values like "60" or default
+        assert "60" in content or "30" in content  # FPS value or default
+
+    def test_pool_with_mock_llm_uses_llm_content(self):
+        """SegmentPool with available mock LLM should use LLM-generated content."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import (
+            SegmentPool, SegmentType
+        )
+
+        # Create mock LLM client that returns valid content
+        mock_llm = MagicMock()
+        mock_llm.generate_narrative.return_value = "The cosmic harmony flows through 60 frames of existence."
+
+        # Create pool WITH mock LLM client
+        pool = SegmentPool(llm_client=mock_llm)
+
+        telemetry = {"fps": 60, "entropy": 0.5}
+
+        # Generate content - should use LLM
+        content = pool.generate_content(
+            segment_type=SegmentType.PHILOSOPHY,
+            telemetry=telemetry,
+            station_name="Substrate Jazz",
+            station_id="87.6"
+        )
+
+        # Should return LLM content
+        assert content == "The cosmic harmony flows through 60 frames of existence."
+        # Verify LLM was called
+        mock_llm.generate_narrative.assert_called_once_with(
+            "philosophy", telemetry, "87.6"
+        )
+
+    def test_pool_with_llm_returning_none_falls_back_to_template(self):
+        """SegmentPool should fall back to templates when LLM returns None."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import (
+            SegmentPool, SegmentType
+        )
+
+        # Create mock LLM client that returns None (unavailable)
+        mock_llm = MagicMock()
+        mock_llm.generate_narrative.return_value = None
+
+        # Create pool WITH mock LLM client
+        pool = SegmentPool(llm_client=mock_llm)
+
+        telemetry = {"fps": 45, "entropy": 0.5}
+
+        # Generate content - should fall back to template
+        content = pool.generate_content(
+            segment_type=SegmentType.WEATHER,
+            telemetry=telemetry,
+            station_name="Substrate Jazz",
+            station_id="87.6"
+        )
+
+        # Should still return content (from template)
+        assert content is not None
+        assert isinstance(content, str)
+        assert len(content) > 0
+        # Verify LLM was attempted
+        mock_llm.generate_narrative.assert_called_once()
+
+    def test_pool_with_llm_returning_empty_string_falls_back(self):
+        """SegmentPool should fall back to templates when LLM returns empty string."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import (
+            SegmentPool, SegmentType
+        )
+
+        # Create mock LLM client that returns empty string
+        mock_llm = MagicMock()
+        mock_llm.generate_narrative.return_value = ""
+
+        # Create pool WITH mock LLM client
+        pool = SegmentPool(llm_client=mock_llm)
+
+        telemetry = {"tectonic_shifts": 5, "entropy": 0.8}
+
+        # Generate content - should fall back to template
+        content = pool.generate_content(
+            segment_type=SegmentType.NEWS,
+            telemetry=telemetry,
+            station_name="Debug Metal",
+            station_id="92.3"
+        )
+
+        # Should still return content (from template)
+        assert content is not None
+        assert isinstance(content, str)
+        assert len(content) > 0
+        # Verify LLM was attempted
+        mock_llm.generate_narrative.assert_called_once()
+
+    def test_pool_with_llm_returning_too_long_falls_back(self):
+        """SegmentPool should fall back when LLM returns content > 500 chars."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import (
+            SegmentPool, SegmentType
+        )
+
+        # Create mock LLM client that returns content > 500 chars
+        mock_llm = MagicMock()
+        # 600 chars - exceeds the 500 char limit in generate_content
+        mock_llm.generate_narrative.return_value = "x" * 600
+
+        # Create pool WITH mock LLM client
+        pool = SegmentPool(llm_client=mock_llm)
+
+        telemetry = {"mutations_accepted": 10, "mutations_rejected": 5, "entropy": 0.7}
+
+        # Generate content - should fall back to template
+        content = pool.generate_content(
+            segment_type=SegmentType.GOSSIP,
+            telemetry=telemetry,
+            station_name="Silicon Noir",
+            station_id="95.1"
+        )
+
+        # Should still return content (from template)
+        assert content is not None
+        assert isinstance(content, str)
+        assert len(content) > 0
+        # Content should NOT be the 600 char string
+        assert len(content) < 600
+        # Verify LLM was attempted
+        mock_llm.generate_narrative.assert_called_once()
+
+    def test_pool_with_llm_valid_short_content_uses_llm(self):
+        """SegmentPool should use LLM content when it's valid and under 500 chars."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import (
+            SegmentPool, SegmentType
+        )
+
+        # Create mock LLM client that returns valid short content
+        mock_llm = MagicMock()
+        # 100 chars - valid
+        mock_llm.generate_narrative.return_value = "The geometry contemplates its own existence in silence."
+
+        # Create pool WITH mock LLM client
+        pool = SegmentPool(llm_client=mock_llm)
+
+        telemetry = {"evolution_cycles": 100, "entropy": 0.3}
+
+        # Generate content - should use LLM
+        content = pool.generate_content(
+            segment_type=SegmentType.MEDITATION,
+            telemetry=telemetry,
+            station_name="Substrate Jazz",
+            station_id="87.6"
+        )
+
+        # Should return LLM content
+        assert content == "The geometry contemplates its own existence in silence."
+        assert len(content) == 55  # Exact length of the string
+        # Verify LLM was called
+        mock_llm.generate_narrative.assert_called_once_with(
+            "meditation", telemetry, "87.6"
+        )
+
+    def test_pool_with_llm_whitespace_only_falls_back(self):
+        """SegmentPool should fall back when LLM returns only whitespace."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import (
+            SegmentPool, SegmentType
+        )
+
+        # Create mock LLM client that returns whitespace only
+        mock_llm = MagicMock()
+        mock_llm.generate_narrative.return_value = "   \n\t  "
+
+        # Create pool WITH mock LLM client
+        pool = SegmentPool(llm_client=mock_llm)
+
+        telemetry = {"entropy": 0.5, "total_commits": 500}
+
+        # Generate content - should fall back to template
+        content = pool.generate_content(
+            segment_type=SegmentType.ARCHIVE,
+            telemetry=telemetry,
+            station_name="Neutral Chronicler",
+            station_id="99.9"
+        )
+
+        # Should still return content (from template)
+        assert content is not None
+        assert isinstance(content, str)
+        assert len(content) > 0
+        # Content should not be just whitespace
+        assert content.strip() != ""
+        # Verify LLM was attempted
+        mock_llm.generate_narrative.assert_called_once()

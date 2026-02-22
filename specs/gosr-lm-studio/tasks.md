@@ -114,7 +114,7 @@ Focus: Validate LLM integration works end-to-end. Skip tests, accept hardcoded v
   - _Requirements: AC-1.1 to AC-1.6, AC-3.1 to AC-3.4, AC-5.1 to AC-5.6_
   - _Design: Test Strategy section_
 
-- [ ] 3.2 Add integration tests for SegmentPool LLM integration
+- [x] 3.2 Add integration tests for SegmentPool LLM integration
   - **Do**:
     1. Create `TestSegmentPoolLLMIntegration` class
     2. Test: pool without LLM uses templates
