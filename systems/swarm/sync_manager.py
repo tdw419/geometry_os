@@ -228,8 +228,13 @@ class SyncManager:
 
         try:
             # Build sync endpoint URL
-            # api_url already contains /geoos/v1, so just append /sync
-            sync_url = f"{api_url.rstrip('/')}/sync"
+            # Handle both pretty permalinks (/wp-json/geoos/v1) and query params (?rest_route=/geoos/v1)
+            if "rest_route=" in api_url:
+                # Query parameter format: append /sync to rest_route value
+                sync_url = api_url.replace("rest_route=/geoos/v1", "rest_route=/geoos/v1/sync")
+            else:
+                # Pretty permalink format: append /sync to path
+                sync_url = f"{api_url.rstrip('/')}/sync"
 
             params = {
                 "since": int(since),
