@@ -134,6 +134,11 @@ switch ($action) {
         handle_heartbeat_track($args);
         break;
 
+    // CTRM Truth Management System API
+    case 'logTruth':
+        handle_log_truth($args);
+        break;
+
     default:
         header('HTTP/1.1 400 Bad Request');
         echo json_encode(array('success' => false, 'error' => 'Invalid action/tool: ' . $action));
