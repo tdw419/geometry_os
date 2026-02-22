@@ -25,7 +25,7 @@ created: 2026-02-21
 
 Focus: Validate LLM integration works end-to-end. Skip edge cases, accept hardcoded values.
 
-- [ ] 1.1 Create LLMExpansionService with ZAIBridge integration
+- [x] 1.1 Create LLMExpansionService with ZAIBridge integration
   - **Do**:
     1. Create `systems/evolution_daemon/wordpress/llm_expansion_service.py`
     2. Define `LLMExpansionConfig` dataclass with model, temperature, timeout settings
