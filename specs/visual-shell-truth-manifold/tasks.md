@@ -41,7 +41,7 @@ Focus: Validate CTRM data flow from Python backend to HUD display. Skip tests, a
   - _Requirements: FR-3_
   - _Design: Data Flow_
 
-- [ ] 1.3 Add truthManifoldState to VisualDebugOverlay
+- [x] 1.3 Add truthManifoldState to VisualDebugOverlay
   - **Do**:
     1. Modify `systems/visual_shell/web/visual_debug_overlay.js`
     2. Add `truthManifoldState` object in constructor (after other state objects):

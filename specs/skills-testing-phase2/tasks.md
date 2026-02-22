@@ -16,7 +16,7 @@
   - **Description**: Add tests for `get_ascii_view.py`, `evolution_ctl.sh --dry-run`, `vector_memory_daemon.py --help`, and `pixelrts_v2_converter.py --help`.
   - **Acceptance Criteria**: At least 4 scripts are verified to launch successfully.
 
-- [ ] **Task 5**: Verify `get_ascii_view.py` Output Format
+- [x] **Task 5**: Verify `get_ascii_view.py` Output Format
   - **Description**: Add a test that runs `get_ascii_view.py` (if possible in test env) and verifies it produces valid JSON or ASCII structure.
   - **Acceptance Criteria**: Output matches expected schema.
 

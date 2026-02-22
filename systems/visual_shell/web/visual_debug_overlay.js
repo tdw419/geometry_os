@@ -158,6 +158,18 @@ class VisualDebugOverlay {
             lastUpdate: null
         };
 
+        // Truth Manifold state (CTRM HUD Integration)
+        this.truthManifoldState = {
+            enabled: false,
+            connected: false,
+            cronbachAlpha: 0,
+            elementalIndependence: false,
+            meanScores: { E1_archaeology: 0, E2_manuscript: 0, E3_prophecy: 0 },
+            verseCount: 0,
+            lastUpdate: null,
+            error: null
+        };
+
         // Canvas layers
         this.hudCanvas = null;
         this.hudCtx = null;
