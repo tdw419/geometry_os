@@ -2284,3 +2284,864 @@ class TestDaemonIntegration:
         # Station should be updated
         assert daemon.radio_station_id == "92.3"
         assert daemon.radio_broadcaster.station_id == "92.3"
+
+
+class TestLLMNarrativeClient:
+    """Tests for LLMNarrativeClient - LM Studio integration component.
+
+    Tests for:
+    - Initialization with default and custom config
+    - Availability caching (60s TTL)
+    - Station prompt selection (87.6, 92.3, 95.1, 99.9)
+    - Telemetry context builder for different segment types
+    - Error handling returns None
+    """
+
+    def test_client_initialization_default_config(self):
+        """LLMNarrativeClient should initialize with default config."""
+        from evolution_daemon.narrative_broadcaster.llm_client import (
+            LLMNarrativeClient, LLMConfig
+        )
+
+        client = LLMNarrativeClient()
+
+        assert client.config is not None
+        assert isinstance(client.config, LLMConfig)
+        assert client.config.lm_studio_url == "http://localhost:1234/v1"
+        assert client.config.model == "local-model"
+        assert client.config.timeout == 30.0
+        assert client.config.max_tokens == 150
+        assert client.config.temperature == 0.8
+        assert client.config.availability_cache_ttl == 60.0
+
+    def test_client_initialization_custom_config(self):
+        """LLMNarrativeClient should accept custom config."""
+        from evolution_daemon.narrative_broadcaster.llm_client import (
+            LLMNarrativeClient, LLMConfig
+        )
+
+        custom_config = LLMConfig(
+            lm_studio_url="http://custom:8080/v1",
+            model="custom-model",
+            timeout=60.0,
+            max_tokens=300,
+            temperature=0.5,
+            availability_cache_ttl=120.0
+        )
+
+        client = LLMNarrativeClient(config=custom_config)
+
+        assert client.config.lm_studio_url == "http://custom:8080/v1"
+        assert client.config.model == "custom-model"
+        assert client.config.timeout == 60.0
+        assert client.config.max_tokens == 300
+        assert client.config.temperature == 0.5
+        assert client.config.availability_cache_ttl == 120.0
+
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.get')
+    def test_is_available_returns_true_when_responding(self, mock_get):
+        """is_available() should return True when LM Studio responds with 200."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+
+        client = LLMNarrativeClient()
+        result = client.is_available()
+
+        assert result is True
+        mock_get.assert_called_once()
+
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.get')
+    def test_is_available_returns_false_on_connection_error(self, mock_get):
+        """is_available() should return False when connection fails."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+        import requests
+
+        mock_get.side_effect = requests.ConnectionError("Connection refused")
+
+        client = LLMNarrativeClient()
+        result = client.is_available()
+
+        assert result is False
+
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.get')
+    def test_is_available_returns_false_on_non_200_status(self, mock_get):
+        """is_available() should return False on non-200 status codes."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+
+        mock_response = MagicMock()
+        mock_response.status_code = 503
+        mock_get.return_value = mock_response
+
+        client = LLMNarrativeClient()
+        result = client.is_available()
+
+        assert result is False
+
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.get')
+    def test_availability_caching_within_ttl(self, mock_get):
+        """is_available() should cache result for 60s (availability_cache_ttl)."""
+        from evolution_daemon.narrative_broadcaster.llm_client import (
+            LLMNarrativeClient, LLMConfig
+        )
+        import time
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+
+        config = LLMConfig(availability_cache_ttl=60.0)
+        client = LLMNarrativeClient(config=config)
+
+        # First call - should make HTTP request
+        result1 = client.is_available()
+        assert result1 is True
+        assert mock_get.call_count == 1
+
+        # Second call immediately - should use cache (no new HTTP request)
+        result2 = client.is_available()
+        assert result2 is True
+        assert mock_get.call_count == 1  # Still 1, not 2
+
+        # Third call immediately - still cached
+        result3 = client.is_available()
+        assert result3 is True
+        assert mock_get.call_count == 1  # Still 1
+
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.get')
+    def test_availability_cache_expires_after_ttl(self, mock_get):
+        """is_available() should refresh cache after TTL expires."""
+        from evolution_daemon.narrative_broadcaster.llm_client import (
+            LLMNarrativeClient, LLMConfig
+        )
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+
+        config = LLMConfig(availability_cache_ttl=0.1)  # 100ms for fast test
+        client = LLMNarrativeClient(config=config)
+
+        # First call
+        result1 = client.is_available()
+        assert result1 is True
+        assert mock_get.call_count == 1
+
+        # Wait for cache to expire
+        import time
+        time.sleep(0.15)
+
+        # Second call - cache expired, should make new HTTP request
+        result2 = client.is_available()
+        assert result2 is True
+        assert mock_get.call_count == 2  # New request made
+
+    def test_station_prompt_selection_87_6(self):
+        """_get_system_prompt() should return Jazz prompt for 87.6."""
+        from evolution_daemon.narrative_broadcaster.llm_client import (
+            LLMNarrativeClient, STATION_SYSTEM_PROMPTS
+        )
+
+        client = LLMNarrativeClient()
+        prompt = client._get_system_prompt("87.6")
+
+        assert prompt == STATION_SYSTEM_PROMPTS["87.6"]
+        assert "Substrate Jazz" in prompt
+        assert "jazz" in prompt.lower()
+
+    def test_station_prompt_selection_92_3(self):
+        """_get_system_prompt() should return Debug Metal prompt for 92.3."""
+        from evolution_daemon.narrative_broadcaster.llm_client import (
+            LLMNarrativeClient, STATION_SYSTEM_PROMPTS
+        )
+
+        client = LLMNarrativeClient()
+        prompt = client._get_system_prompt("92.3")
+
+        assert prompt == STATION_SYSTEM_PROMPTS["92.3"]
+        assert "Debug Metal" in prompt
+        assert "BRUTAL" in prompt
+
+    def test_station_prompt_selection_95_1(self):
+        """_get_system_prompt() should return Silicon Noir prompt for 95.1."""
+        from evolution_daemon.narrative_broadcaster.llm_client import (
+            LLMNarrativeClient, STATION_SYSTEM_PROMPTS
+        )
+
+        client = LLMNarrativeClient()
+        prompt = client._get_system_prompt("95.1")
+
+        assert prompt == STATION_SYSTEM_PROMPTS["95.1"]
+        assert "Silicon Noir" in prompt
+        assert "cyberpunk" in prompt.lower()
+
+    def test_station_prompt_selection_99_9(self):
+        """_get_system_prompt() should return Neutral Chronicler prompt for 99.9."""
+        from evolution_daemon.narrative_broadcaster.llm_client import (
+            LLMNarrativeClient, STATION_SYSTEM_PROMPTS
+        )
+
+        client = LLMNarrativeClient()
+        prompt = client._get_system_prompt("99.9")
+
+        assert prompt == STATION_SYSTEM_PROMPTS["99.9"]
+        assert "Neutral Chronicler" in prompt
+        assert "factual" in prompt.lower()
+
+    def test_station_prompt_unknown_station_falls_back_to_jazz(self):
+        """_get_system_prompt() should fall back to Jazz for unknown stations."""
+        from evolution_daemon.narrative_broadcaster.llm_client import (
+            LLMNarrativeClient, STATION_SYSTEM_PROMPTS
+        )
+
+        client = LLMNarrativeClient()
+        prompt = client._get_system_prompt("00.0")
+
+        # Should return default Jazz prompt
+        assert prompt == STATION_SYSTEM_PROMPTS["87.6"]
+
+    def test_telemetry_context_weather_segment(self):
+        """_build_telemetry_context() should include FPS/memory for weather."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+
+        client = LLMNarrativeClient()
+        telemetry = {
+            "fps": 60,
+            "memory_mb": 512,
+            "draw_calls": 100
+        }
+
+        context = client._build_telemetry_context("weather", telemetry)
+
+        assert "Frame rate: 60 FPS" in context
+        assert "Memory usage: 512 MB" in context
+        assert "Performance:" in context  # excellent/good/degraded
+
+    def test_telemetry_context_news_segment(self):
+        """_build_telemetry_context() should include tectonic shifts for news."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+
+        client = LLMNarrativeClient()
+        telemetry = {
+            "tectonic_shifts": 5,
+            "relocations": 3,
+            "mutations_accepted": 10,
+            "mutations_rejected": 2
+        }
+
+        context = client._build_telemetry_context("news", telemetry)
+
+        assert "Tectonic shifts: 5" in context
+        assert "Tile relocations: 3" in context
+        assert "Mutations accepted: 10" in context
+        assert "Mutations rejected: 2" in context
+
+    def test_telemetry_context_philosophy_segment(self):
+        """_build_telemetry_context() should include evolution cycles for philosophy."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+
+        client = LLMNarrativeClient()
+        telemetry = {
+            "evolution_cycles": 42,
+            "entropy": 0.75,
+            "active_tiles": 100
+        }
+
+        context = client._build_telemetry_context("philosophy", telemetry)
+
+        assert "Evolution cycles: 42" in context
+        assert "System entropy: 0.750" in context
+        assert "Active tiles: 100" in context
+
+    def test_telemetry_context_meditation_segment(self):
+        """_build_telemetry_context() should include FPS and entropy for meditation."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+
+        client = LLMNarrativeClient()
+        telemetry = {
+            "fps": 60,
+            "memory_mb": 256,
+            "evolution_cycles": 10,
+            "entropy": 0.3,
+            "active_tiles": 50
+        }
+
+        context = client._build_telemetry_context("meditation", telemetry)
+
+        # Meditation includes both weather (fps, memory) and philosophy (cycles, entropy) fields
+        assert "Frame rate: 60 FPS" in context
+        assert "System entropy: 0.300" in context
+
+    def test_telemetry_context_gossip_segment(self):
+        """_build_telemetry_context() should include mutations for gossip."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+
+        client = LLMNarrativeClient()
+        telemetry = {
+            "tectonic_shifts": 2,
+            "relocations": 1,
+            "mutations_accepted": 5,
+            "mutations_rejected": 3
+        }
+
+        context = client._build_telemetry_context("gossip", telemetry)
+
+        assert "Tectonic shifts: 2" in context
+        assert "Mutations accepted: 5" in context
+        assert "Mutations rejected: 3" in context
+
+    def test_telemetry_context_archive_segment(self):
+        """_build_telemetry_context() should include commits for archive."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+
+        client = LLMNarrativeClient()
+        telemetry = {
+            "total_commits": 1234
+        }
+
+        context = client._build_telemetry_context("archive", telemetry)
+
+        assert "Total commits: 1234" in context
+
+    def test_telemetry_context_empty_telemetry(self):
+        """_build_telemetry_context() should handle empty telemetry with defaults."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+
+        client = LLMNarrativeClient()
+        context = client._build_telemetry_context("weather", {})
+
+        # Should return defaults: fps=30, memory_mb=256
+        assert "Frame rate: 30 FPS" in context
+        assert "Memory usage: 256 MB" in context
+
+    def test_telemetry_context_performance_excellent(self):
+        """_build_telemetry_context() should report excellent performance for FPS >= 55."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+
+        client = LLMNarrativeClient()
+        telemetry = {"fps": 60, "memory_mb": 256}
+
+        context = client._build_telemetry_context("weather", telemetry)
+
+        assert "Performance: excellent" in context
+
+    def test_telemetry_context_performance_good(self):
+        """_build_telemetry_context() should report good performance for FPS >= 30."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+
+        client = LLMNarrativeClient()
+        telemetry = {"fps": 45, "memory_mb": 256}
+
+        context = client._build_telemetry_context("weather", telemetry)
+
+        assert "Performance: good" in context
+
+    def test_telemetry_context_performance_degraded(self):
+        """_build_telemetry_context() should report degraded performance for FPS < 30."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+
+        client = LLMNarrativeClient()
+        telemetry = {"fps": 20, "memory_mb": 256}
+
+        context = client._build_telemetry_context("weather", telemetry)
+
+        assert "Performance: degraded" in context
+
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.get')
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.post')
+    def test_generate_narrative_returns_content_on_success(self, mock_post, mock_get):
+        """generate_narrative() should return content on successful API call."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+
+        # Mock availability check
+        mock_get_response = MagicMock()
+        mock_get_response.status_code = 200
+        mock_get.return_value = mock_get_response
+
+        # Mock chat completion
+        mock_post_response = MagicMock()
+        mock_post_response.status_code = 200
+        mock_post_response.json.return_value = {
+            "choices": [
+                {"message": {"content": "The system breathes with cosmic harmony."}}
+            ]
+        }
+        mock_post_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_post_response
+
+        client = LLMNarrativeClient()
+        result = client.generate_narrative(
+            segment_type="philosophy",
+            telemetry={"entropy": 0.5},
+            station_id="87.6"
+        )
+
+        assert result == "The system breathes with cosmic harmony."
+        mock_post.assert_called_once()
+
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.get')
+    def test_generate_narrative_returns_none_when_unavailable(self, mock_get):
+        """generate_narrative() should return None when LM Studio unavailable."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+        import requests
+
+        mock_get.side_effect = requests.ConnectionError("Connection refused")
+
+        client = LLMNarrativeClient()
+        result = client.generate_narrative(
+            segment_type="weather",
+            telemetry={"fps": 60},
+            station_id="87.6"
+        )
+
+        assert result is None
+
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.get')
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.post')
+    def test_generate_narrative_returns_none_on_timeout(self, mock_post, mock_get):
+        """generate_narrative() should return None on request timeout."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+        import requests
+
+        # Mock availability check succeeds
+        mock_get_response = MagicMock()
+        mock_get_response.status_code = 200
+        mock_get.return_value = mock_get_response
+
+        # Mock chat completion times out
+        mock_post.side_effect = requests.Timeout("Request timed out")
+
+        client = LLMNarrativeClient()
+        result = client.generate_narrative(
+            segment_type="news",
+            telemetry={"tectonic_shifts": 5},
+            station_id="92.3"
+        )
+
+        assert result is None
+
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.get')
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.post')
+    def test_generate_narrative_returns_none_on_connection_error(self, mock_post, mock_get):
+        """generate_narrative() should return None on connection error."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+        import requests
+
+        # Mock availability check succeeds
+        mock_get_response = MagicMock()
+        mock_get_response.status_code = 200
+        mock_get.return_value = mock_get_response
+
+        # Mock chat completion connection error
+        mock_post.side_effect = requests.ConnectionError("Connection refused")
+
+        client = LLMNarrativeClient()
+        result = client.generate_narrative(
+            segment_type="gossip",
+            telemetry={"mutations_accepted": 5},
+            station_id="95.1"
+        )
+
+        assert result is None
+
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.get')
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.post')
+    def test_generate_narrative_returns_none_on_empty_response(self, mock_post, mock_get):
+        """generate_narrative() should return None on empty LLM response."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+
+        # Mock availability check
+        mock_get_response = MagicMock()
+        mock_get_response.status_code = 200
+        mock_get.return_value = mock_get_response
+
+        # Mock empty response
+        mock_post_response = MagicMock()
+        mock_post_response.status_code = 200
+        mock_post_response.json.return_value = {
+            "choices": [
+                {"message": {"content": ""}}  # Empty content
+            ]
+        }
+        mock_post_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_post_response
+
+        client = LLMNarrativeClient()
+        result = client.generate_narrative(
+            segment_type="meditation",
+            telemetry={"entropy": 0.3},
+            station_id="87.6"
+        )
+
+        assert result is None
+
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.get')
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.post')
+    def test_generate_narrative_returns_none_on_too_long_response(self, mock_post, mock_get):
+        """generate_narrative() should return None if response > 500 chars."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+
+        # Mock availability check
+        mock_get_response = MagicMock()
+        mock_get_response.status_code = 200
+        mock_get.return_value = mock_get_response
+
+        # Mock too-long response
+        long_content = "x" * 600
+        mock_post_response = MagicMock()
+        mock_post_response.status_code = 200
+        mock_post_response.json.return_value = {
+            "choices": [
+                {"message": {"content": long_content}}
+            ]
+        }
+        mock_post_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_post_response
+
+        client = LLMNarrativeClient()
+        result = client.generate_narrative(
+            segment_type="archive",
+            telemetry={"total_commits": 100},
+            station_id="99.9"
+        )
+
+        assert result is None
+
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.get')
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.post')
+    def test_generate_narrative_marks_unavailable_after_timeout(self, mock_post, mock_get):
+        """generate_narrative() should cache unavailability after timeout."""
+        from evolution_daemon.narrative_broadcaster.llm_client import LLMNarrativeClient
+        import requests
+
+        # First availability check succeeds
+        mock_get_response = MagicMock()
+        mock_get_response.status_code = 200
+        mock_get.return_value = mock_get_response
+
+        # Chat completion times out
+        mock_post.side_effect = requests.Timeout("Request timed out")
+
+        client = LLMNarrativeClient()
+
+        # First call times out
+        result = client.generate_narrative("news", {}, "87.6")
+        assert result is None
+
+        # After timeout, availability should be cached as False
+        # (subsequent call should not even try HTTP)
+        result2 = client.generate_narrative("news", {}, "87.6")
+        assert result2 is None
+
+        # Only one POST call should have been made (second skipped due to cached unavailable)
+        assert mock_post.call_count == 1
+
+
+class TestSegmentPoolLLMIntegration:
+    """Integration tests for SegmentPool LLM client integration.
+
+    Tests verify that SegmentPool.generate_content() properly uses LLM client
+    when available and falls back to templates when LLM is unavailable or
+    returns invalid responses.
+
+    Requirements: AC-2.2, AC-2.5 (LM Studio integration with template fallback)
+    """
+
+    def test_pool_without_llm_uses_templates(self):
+        """SegmentPool without LLM client should use template-based content."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import (
+            SegmentPool, SegmentType
+        )
+
+        # Create pool WITHOUT LLM client (default)
+        pool = SegmentPool()
+
+        telemetry = {"fps": 60, "entropy": 0.5}
+
+        # Generate content - should use templates
+        content = pool.generate_content(
+            segment_type=SegmentType.WEATHER,
+            telemetry=telemetry,
+            station_name="Test Station"
+        )
+
+        assert content is not None
+        assert isinstance(content, str)
+        assert len(content) > 0
+        # Template content should contain telemetry values like "60" or default
+        assert "60" in content or "30" in content  # FPS value or default
+
+    def test_pool_with_mock_llm_uses_llm_content(self):
+        """SegmentPool with available mock LLM should use LLM-generated content."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import (
+            SegmentPool, SegmentType
+        )
+
+        # Create mock LLM client that returns valid content
+        mock_llm = MagicMock()
+        mock_llm.generate_narrative.return_value = "The cosmic harmony flows through 60 frames of existence."
+
+        # Create pool WITH mock LLM client
+        pool = SegmentPool(llm_client=mock_llm)
+
+        telemetry = {"fps": 60, "entropy": 0.5}
+
+        # Generate content - should use LLM
+        content = pool.generate_content(
+            segment_type=SegmentType.PHILOSOPHY,
+            telemetry=telemetry,
+            station_name="Substrate Jazz",
+            station_id="87.6"
+        )
+
+        # Should return LLM content
+        assert content == "The cosmic harmony flows through 60 frames of existence."
+        # Verify LLM was called
+        mock_llm.generate_narrative.assert_called_once_with(
+            "philosophy", telemetry, "87.6"
+        )
+
+    def test_pool_with_llm_returning_none_falls_back_to_template(self):
+        """SegmentPool should fall back to templates when LLM returns None."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import (
+            SegmentPool, SegmentType
+        )
+
+        # Create mock LLM client that returns None (unavailable)
+        mock_llm = MagicMock()
+        mock_llm.generate_narrative.return_value = None
+
+        # Create pool WITH mock LLM client
+        pool = SegmentPool(llm_client=mock_llm)
+
+        telemetry = {"fps": 45, "entropy": 0.5}
+
+        # Generate content - should fall back to template
+        content = pool.generate_content(
+            segment_type=SegmentType.WEATHER,
+            telemetry=telemetry,
+            station_name="Substrate Jazz",
+            station_id="87.6"
+        )
+
+        # Should still return content (from template)
+        assert content is not None
+        assert isinstance(content, str)
+        assert len(content) > 0
+        # Verify LLM was attempted
+        mock_llm.generate_narrative.assert_called_once()
+
+    def test_pool_with_llm_returning_empty_string_falls_back(self):
+        """SegmentPool should fall back to templates when LLM returns empty string."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import (
+            SegmentPool, SegmentType
+        )
+
+        # Create mock LLM client that returns empty string
+        mock_llm = MagicMock()
+        mock_llm.generate_narrative.return_value = ""
+
+        # Create pool WITH mock LLM client
+        pool = SegmentPool(llm_client=mock_llm)
+
+        telemetry = {"tectonic_shifts": 5, "entropy": 0.8}
+
+        # Generate content - should fall back to template
+        content = pool.generate_content(
+            segment_type=SegmentType.NEWS,
+            telemetry=telemetry,
+            station_name="Debug Metal",
+            station_id="92.3"
+        )
+
+        # Should still return content (from template)
+        assert content is not None
+        assert isinstance(content, str)
+        assert len(content) > 0
+        # Verify LLM was attempted
+        mock_llm.generate_narrative.assert_called_once()
+
+    def test_pool_with_llm_returning_too_long_falls_back(self):
+        """SegmentPool should fall back when LLM returns content > 500 chars."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import (
+            SegmentPool, SegmentType
+        )
+
+        # Create mock LLM client that returns content > 500 chars
+        mock_llm = MagicMock()
+        # 600 chars - exceeds the 500 char limit in generate_content
+        mock_llm.generate_narrative.return_value = "x" * 600
+
+        # Create pool WITH mock LLM client
+        pool = SegmentPool(llm_client=mock_llm)
+
+        telemetry = {"mutations_accepted": 10, "mutations_rejected": 5, "entropy": 0.7}
+
+        # Generate content - should fall back to template
+        content = pool.generate_content(
+            segment_type=SegmentType.GOSSIP,
+            telemetry=telemetry,
+            station_name="Silicon Noir",
+            station_id="95.1"
+        )
+
+        # Should still return content (from template)
+        assert content is not None
+        assert isinstance(content, str)
+        assert len(content) > 0
+        # Content should NOT be the 600 char string
+        assert len(content) < 600
+        # Verify LLM was attempted
+        mock_llm.generate_narrative.assert_called_once()
+
+    def test_pool_with_llm_valid_short_content_uses_llm(self):
+        """SegmentPool should use LLM content when it's valid and under 500 chars."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import (
+            SegmentPool, SegmentType
+        )
+
+        # Create mock LLM client that returns valid short content
+        mock_llm = MagicMock()
+        # 100 chars - valid
+        mock_llm.generate_narrative.return_value = "The geometry contemplates its own existence in silence."
+
+        # Create pool WITH mock LLM client
+        pool = SegmentPool(llm_client=mock_llm)
+
+        telemetry = {"evolution_cycles": 100, "entropy": 0.3}
+
+        # Generate content - should use LLM
+        content = pool.generate_content(
+            segment_type=SegmentType.MEDITATION,
+            telemetry=telemetry,
+            station_name="Substrate Jazz",
+            station_id="87.6"
+        )
+
+        # Should return LLM content
+        assert content == "The geometry contemplates its own existence in silence."
+        assert len(content) == 55  # Exact length of the string
+        # Verify LLM was called
+        mock_llm.generate_narrative.assert_called_once_with(
+            "meditation", telemetry, "87.6"
+        )
+
+    def test_pool_with_llm_whitespace_only_falls_back(self):
+        """SegmentPool should fall back when LLM returns only whitespace."""
+        from evolution_daemon.narrative_broadcaster.segment_pool import (
+            SegmentPool, SegmentType
+        )
+
+        # Create mock LLM client that returns whitespace only
+        mock_llm = MagicMock()
+        mock_llm.generate_narrative.return_value = "   \n\t  "
+
+        # Create pool WITH mock LLM client
+        pool = SegmentPool(llm_client=mock_llm)
+
+        telemetry = {"entropy": 0.5, "total_commits": 500}
+
+        # Generate content - should fall back to template
+        content = pool.generate_content(
+            segment_type=SegmentType.ARCHIVE,
+            telemetry=telemetry,
+            station_name="Neutral Chronicler",
+            station_id="99.9"
+        )
+
+        # Should still return content (from template)
+        assert content is not None
+        assert isinstance(content, str)
+        assert len(content) > 0
+        # Content should not be just whitespace
+        assert content.strip() != ""
+        # Verify LLM was attempted
+        mock_llm.generate_narrative.assert_called_once()
+
+
+class TestNarrativeBroadcasterLLMIntegration:
+    """Integration tests for NarrativeBroadcaster LLM client integration.
+
+    Tests verify that NarrativeBroadcaster properly initializes LLM client
+    based on use_llm flag and that broadcast() method uses LLM content
+    when available with fallback to templates.
+
+    Requirements: FR-5 (LLM narrative generation with fallback)
+    """
+
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.get')
+    def test_broadcaster_creates_llm_client_when_use_llm_true(self, mock_get):
+        """NarrativeBroadcaster should create LLM client when use_llm=True."""
+        from evolution_daemon.narrative_broadcaster import NarrativeBroadcaster
+
+        # Mock LM Studio availability check
+        mock_get_response = MagicMock()
+        mock_get_response.status_code = 200
+        mock_get.return_value = mock_get_response
+
+        # Create broadcaster WITH LLM enabled
+        broadcaster = NarrativeBroadcaster(use_llm=True)
+
+        # Verify LLM client was created and attached to segment pool
+        assert broadcaster._segment_pool._llm_client is not None
+
+    def test_broadcaster_without_llm_has_no_llm_client(self):
+        """NarrativeBroadcaster should NOT have LLM client when use_llm=False."""
+        from evolution_daemon.narrative_broadcaster import NarrativeBroadcaster
+
+        # Create broadcaster WITHOUT LLM (default)
+        broadcaster = NarrativeBroadcaster(use_llm=False)
+
+        # Verify no LLM client on segment pool
+        assert broadcaster._segment_pool._llm_client is None
+
+    def test_broadcast_uses_llm_content_when_available(self):
+        """broadcast() should use LLM-generated content when LLM client returns valid content."""
+        from evolution_daemon.narrative_broadcaster import NarrativeBroadcaster
+
+        # Create broadcaster without LLM initially
+        broadcaster = NarrativeBroadcaster(use_llm=False)
+
+        # Inject mock LLM client into segment pool
+        mock_llm = MagicMock()
+        llm_content = "The silicon dreams in electric harmonics."
+        mock_llm.generate_narrative.return_value = llm_content
+        broadcaster._segment_pool._llm_client = mock_llm
+
+        telemetry = {"fps": 60, "entropy": 0.5}
+
+        # Broadcast should use LLM content
+        segment = broadcaster.broadcast(telemetry)
+
+        assert segment is not None
+        # LLM content should be in the final content (PersonalityEngine may add prefixes/suffixes)
+        assert llm_content in segment.content
+        # Verify LLM was called
+        mock_llm.generate_narrative.assert_called()
+
+    def test_broadcast_falls_back_to_template_when_llm_unavailable(self):
+        """broadcast() should fall back to template content when LLM returns None."""
+        from evolution_daemon.narrative_broadcaster import NarrativeBroadcaster
+
+        # Create broadcaster without LLM initially
+        broadcaster = NarrativeBroadcaster(use_llm=False)
+
+        # Inject mock LLM client that returns None (unavailable)
+        mock_llm = MagicMock()
+        mock_llm.generate_narrative.return_value = None
+        broadcaster._segment_pool._llm_client = mock_llm
+
+        telemetry = {"fps": 45, "entropy": 0.5}
+
+        # Broadcast should fall back to template
+        segment = broadcaster.broadcast(telemetry)
+
+        assert segment is not None
+        assert isinstance(segment.content, str)
+        assert len(segment.content) > 0
+        # Content should NOT be "None" or empty
+        assert segment.content != "None"
+        # Verify LLM was attempted
+        mock_llm.generate_narrative.assert_called()

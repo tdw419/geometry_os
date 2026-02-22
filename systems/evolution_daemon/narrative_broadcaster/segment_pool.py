@@ -11,7 +11,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from enum import Enum
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .llm_client import LLMNarrativeClient
 
 
 class SegmentType(Enum):
@@ -111,15 +114,21 @@ class SegmentPool:
     Force rotation prevents fixation on a single segment type.
     """
 
-    def __init__(self, segment_configs: Optional[Dict[SegmentType, SegmentConfig]] = None):
+    def __init__(
+        self,
+        segment_configs: Optional[Dict[SegmentType, SegmentConfig]] = None,
+        llm_client: Optional["LLMNarrativeClient"] = None
+    ):
         """
-        Initialize SegmentPool with optional custom configs.
+        Initialize SegmentPool with optional custom configs and LLM client.
 
         Args:
             segment_configs: Custom segment configurations, or None for defaults.
+            llm_client: Optional LLM client for AI-generated narratives.
         """
         self.segment_configs = segment_configs or DEFAULT_SEGMENT_CONFIGS
         self.last_segment_type: Optional[SegmentType] = None
+        self._llm_client = llm_client
 
     def select_segment(
         self,
@@ -202,20 +211,47 @@ class SegmentPool:
         self,
         segment_type: SegmentType,
         telemetry: Dict[str, Any],
-        station_name: str
+        station_name: str,
+        station_id: str = "87.6"
     ) -> str:
         """
-        Generate content for a segment type using template substitution.
+        Generate content for a segment type.
+
+        Tries LLM client first if available, falls back to template substitution.
 
         Args:
-            segment_type: The type of segment to generate.
+            segment_type: The type of segment to generate (SegmentType enum or string).
             telemetry: System telemetry data for template variables.
             station_name: Name of the radio station.
+            station_id: Station frequency ID for LLM personality (default: 87.6).
 
         Returns:
             Generated content string.
         """
-        config = self.segment_configs.get(segment_type)
+        # Normalize segment_type to enum for consistent handling
+        segment_type_enum: Optional[SegmentType] = None
+        if isinstance(segment_type, SegmentType):
+            segment_type_enum = segment_type
+        elif isinstance(segment_type, str):
+            # Convert string to enum (e.g., "weather" -> SegmentType.WEATHER)
+            for st in SegmentType:
+                if st.value == segment_type:
+                    segment_type_enum = st
+                    break
+
+        # Try LLM first if client is available
+        if self._llm_client is not None:
+            # Use string value for LLM client
+            segment_type_str = segment_type.value if isinstance(segment_type, SegmentType) else str(segment_type)
+            llm_content = self._llm_client.generate_narrative(
+                segment_type_str, telemetry, station_id
+            )
+            # Validate LLM response: non-empty and <500 chars
+            if llm_content and len(llm_content.strip()) > 0 and len(llm_content) < 500:
+                return llm_content.strip()
+
+        # Fallback to template-based generation
+        config = self.segment_configs.get(segment_type_enum)
         if not config or not config.templates:
             return f"Broadcasting from {station_name}."
 
@@ -226,7 +262,7 @@ class SegmentPool:
         context = self._build_context(telemetry, station_name)
 
         # For ARCHIVE segments, add git history context
-        if segment_type == SegmentType.ARCHIVE:
+        if segment_type_enum == SegmentType.ARCHIVE:
             archive_context = self._build_archive_context(telemetry.get("archive_date"))
             context.update(archive_context)
 

@@ -18,6 +18,7 @@ from .broadcaster import NarrativeBroadcaster, BroadcastSegment
 from .topic_memory import TopicMemory, TopicEntry
 from .segment_pool import SegmentPool, SegmentType, SegmentConfig
 from .feedback_orchestrator import FeedbackOrchestrator, FeedbackSignal
+from .llm_client import LLMNarrativeClient, LLMConfig
 
 __all__ = [
     'NarrativeBroadcaster',
@@ -29,6 +30,8 @@ __all__ = [
     'SegmentConfig',
     'FeedbackOrchestrator',
     'FeedbackSignal',
+    'LLMNarrativeClient',
+    'LLMConfig',
 ]
 
 __version__ = '1.0.0'
