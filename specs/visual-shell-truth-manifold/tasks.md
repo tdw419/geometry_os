@@ -123,7 +123,7 @@ Focus: Validate CTRM data flow from Python backend to HUD display. Skip tests, a
 
 ## Phase 2: Refactoring
 
-- [ ] 2.1 Add graceful error handling for missing CTRM data
+- [x] 2.1 Add graceful error handling for missing CTRM data
   - **Do**:
     1. Add error field to truthManifoldState
     2. Handle CTRM_TRUTH_UPDATE with error payload (show "No CTRM data" in HUD)
