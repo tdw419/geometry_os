@@ -56,7 +56,7 @@ Focus: Critical safety tests first, then core unit tests.
 
 ## Phase 2: Integration Tests
 
-- [ ] 2.1 DesktopAgentService Integration Tests
+- [x] 2.1 DesktopAgentService Integration Tests
   - **Do**: Create `tests/test_desktop_agent_service.py` with 15+ tests for full service flow (connect, screenshot, input, exec, windows)
   - **Files**: `tests/test_desktop_agent_service.py`, `systems/desktop_agent/service.py`
   - **Done when**: All 15+ integration tests pass with MockLocalBackend
