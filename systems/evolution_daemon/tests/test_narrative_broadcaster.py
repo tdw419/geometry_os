@@ -3059,3 +3059,89 @@ class TestSegmentPoolLLMIntegration:
         assert content.strip() != ""
         # Verify LLM was attempted
         mock_llm.generate_narrative.assert_called_once()
+
+
+class TestNarrativeBroadcasterLLMIntegration:
+    """Integration tests for NarrativeBroadcaster LLM client integration.
+
+    Tests verify that NarrativeBroadcaster properly initializes LLM client
+    based on use_llm flag and that broadcast() method uses LLM content
+    when available with fallback to templates.
+
+    Requirements: FR-5 (LLM narrative generation with fallback)
+    """
+
+    @patch('evolution_daemon.narrative_broadcaster.llm_client.requests.get')
+    def test_broadcaster_creates_llm_client_when_use_llm_true(self, mock_get):
+        """NarrativeBroadcaster should create LLM client when use_llm=True."""
+        from evolution_daemon.narrative_broadcaster import NarrativeBroadcaster
+
+        # Mock LM Studio availability check
+        mock_get_response = MagicMock()
+        mock_get_response.status_code = 200
+        mock_get.return_value = mock_get_response
+
+        # Create broadcaster WITH LLM enabled
+        broadcaster = NarrativeBroadcaster(use_llm=True)
+
+        # Verify LLM client was created and attached to segment pool
+        assert broadcaster._segment_pool._llm_client is not None
+
+    def test_broadcaster_without_llm_has_no_llm_client(self):
+        """NarrativeBroadcaster should NOT have LLM client when use_llm=False."""
+        from evolution_daemon.narrative_broadcaster import NarrativeBroadcaster
+
+        # Create broadcaster WITHOUT LLM (default)
+        broadcaster = NarrativeBroadcaster(use_llm=False)
+
+        # Verify no LLM client on segment pool
+        assert broadcaster._segment_pool._llm_client is None
+
+    def test_broadcast_uses_llm_content_when_available(self):
+        """broadcast() should use LLM-generated content when LLM client returns valid content."""
+        from evolution_daemon.narrative_broadcaster import NarrativeBroadcaster
+
+        # Create broadcaster without LLM initially
+        broadcaster = NarrativeBroadcaster(use_llm=False)
+
+        # Inject mock LLM client into segment pool
+        mock_llm = MagicMock()
+        llm_content = "The silicon dreams in electric harmonics."
+        mock_llm.generate_narrative.return_value = llm_content
+        broadcaster._segment_pool._llm_client = mock_llm
+
+        telemetry = {"fps": 60, "entropy": 0.5}
+
+        # Broadcast should use LLM content
+        segment = broadcaster.broadcast(telemetry)
+
+        assert segment is not None
+        # LLM content should be in the final content (PersonalityEngine may add prefixes/suffixes)
+        assert llm_content in segment.content
+        # Verify LLM was called
+        mock_llm.generate_narrative.assert_called()
+
+    def test_broadcast_falls_back_to_template_when_llm_unavailable(self):
+        """broadcast() should fall back to template content when LLM returns None."""
+        from evolution_daemon.narrative_broadcaster import NarrativeBroadcaster
+
+        # Create broadcaster without LLM initially
+        broadcaster = NarrativeBroadcaster(use_llm=False)
+
+        # Inject mock LLM client that returns None (unavailable)
+        mock_llm = MagicMock()
+        mock_llm.generate_narrative.return_value = None
+        broadcaster._segment_pool._llm_client = mock_llm
+
+        telemetry = {"fps": 45, "entropy": 0.5}
+
+        # Broadcast should fall back to template
+        segment = broadcaster.broadcast(telemetry)
+
+        assert segment is not None
+        assert isinstance(segment.content, str)
+        assert len(segment.content) > 0
+        # Content should NOT be "None" or empty
+        assert segment.content != "None"
+        # Verify LLM was attempted
+        mock_llm.generate_narrative.assert_called()

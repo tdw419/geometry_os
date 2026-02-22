@@ -129,7 +129,7 @@ Focus: Validate LLM integration works end-to-end. Skip tests, accept hardcoded v
   - _Requirements: AC-2.2, AC-2.5_
   - _Design: Test Strategy - Integration Tests section_
 
-- [ ] 3.3 Add integration tests for NarrativeBroadcaster LLM integration
+- [x] 3.3 Add integration tests for NarrativeBroadcaster LLM integration
   - **Do**:
     1. Create `TestNarrativeBroadcasterLLMIntegration` class
     2. Test: broadcaster creates LLM client by default when use_llm=True
