@@ -197,7 +197,7 @@ class WPEvolutionBridgeService:
         # Convert proposal to dict for safety validation
         proposal_dict = {
             "confidence": proposal.confidence,
-            "content": proposal.proposed_content,
+            "content": proposal.suggested_content,
             "post_id": proposal.post_id,
             "improvement_type": proposal.improvement_type
         }
@@ -223,7 +223,7 @@ class WPEvolutionBridgeService:
             try:
                 backup_path = self._backup_manager.save(
                     post_id=proposal.post_id,
-                    content=proposal.original_content,
+                    content=proposal.suggested_content,
                     metadata={
                         "improvement_type": proposal.improvement_type,
                         "confidence": proposal.confidence
