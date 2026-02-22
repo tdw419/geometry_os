@@ -586,17 +586,17 @@ function geometry_os_render_scorecard_page() {
 
             <!-- Actions -->
             <div class="scorecard-actions">
-                <button class="scorecard-btn primary" onclick="runAllCertifications()">
-                    ▶ Run All Certifications
-                </button>
+                <a href="<?php echo admin_url('tools.php?page=geoos-certify'); ?>" class="scorecard-btn primary">
+                     Run Certifications
+                </a>
                 <button class="scorecard-btn" onclick="runLevel3Tests()">
-                    🏆 Run Level 3 Only
+                     Run Level 3 Only
                 </button>
                 <button class="scorecard-btn" onclick="exportReport()">
-                    📊 Export Report
+                     Export Report
                 </button>
                 <button class="scorecard-btn" onclick="resetCertification()">
-                    🔄 Reset Scores
+                     Reset Scores
                 </button>
             </div>
 

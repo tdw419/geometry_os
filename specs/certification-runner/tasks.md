@@ -49,7 +49,7 @@ Focus: Build core components and verify browser UI works end-to-end.
 
 After POC validated, update CLI runner to use new architecture.
 
-- [ ] 2.1 Update CLI runner for new modules
+- [x] 2.1 Update CLI runner for new modules
   - **Do**: Replace `systems/visual_shell/web/tests/cli_certification_runner.js` to target new certification page, use CertificationTests/CertificationRunner, implement mock handlers for interactive tests (restart-tile, verify-sync)
   - **Files**: `systems/visual_shell/web/tests/cli_certification_runner.js`
   - **Done when**: CLI runner navigates to geoos-certify page, handles prompts via mock handlers
