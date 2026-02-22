@@ -23,7 +23,7 @@ class Directive_API {
     /**
      * Directive CPT slug.
      */
-    public const CPT_SLUG = 'ascii_directive';
+    public const CPT_SLUG = 'directive';
 
     /**
      * Default status for new directives.
@@ -99,9 +99,9 @@ class Directive_API {
         }
 
         // Set initial status in post meta
-        update_post_meta($post_id, '_directive_status', self::DEFAULT_STATUS);
-        update_post_meta($post_id, '_directive_created', current_time('mysql'));
-        update_post_meta($post_id, '_directive_result', '');
+        update_post_meta($post_id, 'directive_status', self::DEFAULT_STATUS);
+        update_post_meta($post_id, 'directive_created', current_time('mysql'));
+        update_post_meta($post_id, 'directive_result', '');
 
         return [
             'success' => true,
@@ -125,7 +125,7 @@ class Directive_API {
             'fields'         => 'ids',
             'meta_query'     => [
                 [
-                    'key'   => '_directive_status',
+                    'key'   => 'directive_status',
                     'value' => 'pending',
                 ],
             ],
@@ -215,7 +215,7 @@ class Directive_API {
         if (!empty($filters['status']) && in_array($filters['status'], self::VALID_STATUSES, true)) {
             $args['meta_query'] = [
                 [
-                    'key'   => '_directive_status',
+                    'key'   => 'directive_status',
                     'value' => $filters['status'],
                 ],
             ];
@@ -296,12 +296,12 @@ class Directive_API {
         }
 
         // Update status
-        update_post_meta($post_id, '_directive_status', $status);
-        update_post_meta($post_id, '_directive_updated', current_time('mysql'));
+        update_post_meta($post_id, 'directive_status', $status);
+        update_post_meta($post_id, 'directive_updated', current_time('mysql'));
 
         // Update result if provided
         if (!empty($result)) {
-            update_post_meta($post_id, '_directive_result', sanitize_textarea_field($result));
+            update_post_meta($post_id, 'directive_result', sanitize_textarea_field($result));
         }
 
         return [
@@ -380,10 +380,10 @@ class Directive_API {
             'id'         => $post_id,
             'title'      => $post->post_title,
             'content'    => $post->post_content,
-            'status'     => get_post_meta($post_id, '_directive_status', true) ?: self::DEFAULT_STATUS,
-            'result'     => get_post_meta($post_id, '_directive_result', true) ?: '',
-            'created'    => get_post_meta($post_id, '_directive_created', true) ?: $post->post_date,
-            'updated'    => get_post_meta($post_id, '_directive_updated', true) ?: '',
+            'status'     => get_post_meta($post_id, 'directive_status', true) ?: self::DEFAULT_STATUS,
+            'result'     => get_post_meta($post_id, 'directive_result', true) ?: '',
+            'created'    => get_post_meta($post_id, 'directive_created', true) ?: $post->post_date,
+            'updated'    => get_post_meta($post_id, 'directive_updated', true) ?: '',
             'author'     => get_the_author_meta('display_name', $post->post_author),
             'author_id'  => (int) $post->post_author,
             'edit_link'  => get_edit_post_link($post_id, 'raw'),
@@ -408,7 +408,7 @@ class Directive_API {
                 'fields'         => 'ids',
                 'meta_query'     => [
                     [
-                        'key'   => '_directive_status',
+                        'key'   => 'directive_status',
                         'value' => $status,
                     ],
                 ],
@@ -452,7 +452,7 @@ class Directive_API {
             // Only delete completed or failed directives
             'meta_query' => [
                 [
-                    'key'     => '_directive_status',
+                    'key'     => 'directive_status',
                     'value'   => ['completed', 'failed'],
                     'compare' => 'IN',
                 ],
