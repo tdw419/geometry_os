@@ -62,6 +62,9 @@ class ASCII_Desktop_Control {
         add_action('admin_menu', [$this, 'add_menu']);
         add_action('admin_init', [$this, 'admin_init']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
+        add_action('init', [$this, 'register_directive_cpt']);
+        add_action('add_meta_boxes_directive', [$this, 'add_directive_meta_boxes']);
+        add_action('save_post_directive', [$this, 'save_directive_meta']);
     }
 
     /**
@@ -169,6 +172,137 @@ class ASCII_Desktop_Control {
      */
     public static function deactivate(): void {
         flush_rewrite_rules();
+    }
+
+    /**
+     * Register the directive custom post type.
+     */
+    public function register_directive_cpt(): void {
+        $labels = [
+            'name'               => __('Directives', 'ascii-desktop-control'),
+            'singular_name'      => __('Directive', 'ascii-desktop-control'),
+            'add_new'            => __('Add New', 'ascii-desktop-control'),
+            'add_new_item'       => __('Add New Directive', 'ascii-desktop-control'),
+            'edit_item'          => __('Edit Directive', 'ascii-desktop-control'),
+            'new_item'           => __('New Directive', 'ascii-desktop-control'),
+            'view_item'          => __('View Directive', 'ascii-desktop-control'),
+            'search_items'       => __('Search Directives', 'ascii-desktop-control'),
+            'not_found'          => __('No directives found', 'ascii-desktop-control'),
+            'not_found_in_trash' => __('No directives found in trash', 'ascii-desktop-control'),
+            'menu_name'          => __('Directives', 'ascii-desktop-control'),
+        ];
+
+        $args = [
+            'labels'              => $labels,
+            'public'              => false,
+            'publicly_queryable'  => false,
+            'show_ui'             => true,
+            'show_in_menu'        => true,
+            'query_var'           => false,
+            'rewrite'             => false,
+            'capability_type'     => 'post',
+            'has_archive'         => false,
+            'hierarchical'        => false,
+            'menu_position'       => null,
+            'menu_icon'           => 'dashicons-megaphone',
+            'supports'            => ['title', 'content', 'author'],
+            'show_in_rest'        => false,
+        ];
+
+        register_post_type('directive', $args);
+    }
+
+    /**
+     * Add meta boxes for directive CPT.
+     */
+    public function add_directive_meta_boxes(): void {
+        add_meta_box(
+            'directive_status_meta',
+            __('Directive Status', 'ascii-desktop-control'),
+            [$this, 'render_directive_status_meta_box'],
+            'directive',
+            'side',
+            'high'
+        );
+    }
+
+    /**
+     * Render the directive status meta box.
+     *
+     * @param WP_Post $post Current post object.
+     */
+    public function render_directive_status_meta_box(\WP_Post $post): void {
+        wp_nonce_field('directive_status_nonce', 'directive_status_nonce');
+
+        $status = get_post_meta($post->ID, 'directive_status', true);
+        if (empty($status)) {
+            $status = 'pending';
+        }
+
+        $statuses = [
+            'pending'    => __('Pending', 'ascii-desktop-control'),
+            'processing' => __('Processing', 'ascii-desktop-control'),
+            'completed'  => __('Completed', 'ascii-desktop-control'),
+            'failed'     => __('Failed', 'ascii-desktop-control'),
+        ];
+
+        echo '<p>';
+        echo '<label for="directive_status"><strong>' . esc_html__('Status:', 'ascii-desktop-control') . '</strong></label><br>';
+        echo '<select name="directive_status" id="directive_status" style="width: 100%;">';
+        foreach ($statuses as $value => $label) {
+            printf(
+                '<option value="%s" %s>%s</option>',
+                esc_attr($value),
+                selected($status, $value, false),
+                esc_html($label)
+            );
+        }
+        echo '</select>';
+        echo '</p>';
+
+        $result = get_post_meta($post->ID, 'directive_result', true);
+        echo '<p>';
+        echo '<label for="directive_result"><strong>' . esc_html__('Result:', 'ascii-desktop-control') . '</strong></label><br>';
+        echo '<textarea name="directive_result" id="directive_result" rows="5" style="width: 100%;">' . esc_textarea($result) . '</textarea>';
+        echo '</p>';
+    }
+
+    /**
+     * Save directive meta data.
+     *
+     * @param int $post_id Post ID.
+     */
+    public function save_directive_meta(int $post_id): void {
+        // Verify nonce
+        if (!isset($_POST['directive_status_nonce']) ||
+            !wp_verify_nonce($_POST['directive_status_nonce'], 'directive_status_nonce')) {
+            return;
+        }
+
+        // Check autosave
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return;
+        }
+
+        // Check permissions
+        if (!current_user_can('edit_post', $post_id)) {
+            return;
+        }
+
+        // Save directive_status
+        if (isset($_POST['directive_status'])) {
+            $allowed_statuses = ['pending', 'processing', 'completed', 'failed'];
+            $status = sanitize_text_field(wp_unslash($_POST['directive_status']));
+            if (in_array($status, $allowed_statuses, true)) {
+                update_post_meta($post_id, 'directive_status', $status);
+            }
+        }
+
+        // Save directive_result
+        if (isset($_POST['directive_result'])) {
+            $result = sanitize_textarea_field(wp_unslash($_POST['directive_result']));
+            update_post_meta($post_id, 'directive_result', $result);
+        }
     }
 }
 

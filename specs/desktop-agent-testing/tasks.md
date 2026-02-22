@@ -30,7 +30,7 @@ Focus: Critical safety tests first, then core unit tests.
   - _Requirements: FR-5, FR-6, FR-7_
   - _Design: test_desktop_agent_session.py section_
 
-- [ ] 1.3 LocalBackend Unit Tests
+- [x] 1.3 LocalBackend Unit Tests
   - **Do**: Create `tests/test_desktop_agent_backend.py` with 20+ tests mocking xdotool, wmctrl, mss, pyperclip
   - **Files**: `tests/test_desktop_agent_backend.py`, `systems/desktop_agent/backends/local_backend.py`
   - **Done when**: All 20+ tests pass without real X11/display

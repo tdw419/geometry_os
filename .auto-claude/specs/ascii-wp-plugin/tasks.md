@@ -54,7 +54,7 @@ Focus: Plugin skeleton, CPT registration, shell exec wrappers. No UI polish yet.
   - **Commit**: `feat(wp): add Daemon_Status with pgrep and caching`
   - _Requirements: FR-9, AC-6.3, AC-6.4_
 
-- [ ] 1.5 Register directive CPT in main plugin file
+- [x] 1.5 Register directive CPT in main plugin file
   - **Do**:
     1. Add `register_directive_cpt()` method to main class
     2. Call on `init` hook
