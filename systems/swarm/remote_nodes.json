@@ -6,6 +6,13 @@
       "api_url": "https://example-remote-server.com/wp-json/geoos/v1",
       "secret": "your-shared-secret-here",
       "enabled": false
+    },
+    {
+      "node_id": "wp-node-8081",
+      "url": "http://localhost:8081",
+      "api_url": "http://localhost:8081/index.php?rest_route=/geoos/v1",
+      "secret": "local-test",
+      "enabled": true
     }
   ]
 }
