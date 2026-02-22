@@ -14,6 +14,12 @@ SKILL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".ge
 GET_VIEW_SCRIPT = os.path.join(SKILL_PATH, "scripts", "get_ascii_view.py")
 ACTION_SCRIPT = os.path.join(SKILL_PATH, "scripts", "desktop_action.py")
 
+# LLM Configuration (Phase 3.2)
+USE_LLM = os.environ.get("USE_LLM", "false").lower() in ("true", "1", "yes")
+LLM_ENDPOINT = os.environ.get("LLM_ENDPOINT", "http://localhost:11434/api/generate")
+LLM_MODEL = os.environ.get("LLM_MODEL", "llama3.2:latest")
+LLM_TIMEOUT = int(os.environ.get("LLM_TIMEOUT", "30"))
+
 # ============================================================================
 # Heuristic Intent Parsing (Phase 3.1)
 # ============================================================================
@@ -102,6 +108,85 @@ def parse_directive_intent(directive: Dict) -> Dict:
         result['confidence'] = min(result['confidence'] + 0.15, 0.98)
 
     return result
+
+
+# ============================================================================
+# LLM Integration (Phase 3.2)
+# ============================================================================
+
+def call_llm(prompt: str, model: Optional[str] = None, endpoint: Optional[str] = None) -> str:
+    """
+    Call an LLM API (Ollama or LM Studio) with a prompt.
+
+    Supports:
+    - Ollama: http://localhost:11434/api/generate
+    - LM Studio: http://localhost:1234/v1/chat/completions
+
+    Args:
+        prompt: The prompt to send to the LLM
+        model: Model name (defaults to LLM_MODEL env var)
+        endpoint: API endpoint URL (defaults to LLM_ENDPOINT env var)
+
+    Returns:
+        The LLM response text
+
+    Raises:
+        RuntimeError: If LLM call fails
+    """
+    model = model or LLM_MODEL
+    endpoint = endpoint or LLM_ENDPOINT
+
+    # Detect endpoint type and format request accordingly
+    if "/api/generate" in endpoint:
+        # Ollama format
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "stream": False,
+        }
+    elif "/v1/chat/completions" in endpoint:
+        # LM Studio / OpenAI-compatible format
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.7,
+        }
+    else:
+        # Default to Ollama format
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "stream": False,
+        }
+
+    try:
+        response = requests.post(
+            endpoint,
+            json=payload,
+            timeout=LLM_TIMEOUT,
+            headers={"Content-Type": "application/json"},
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        # Extract response text based on endpoint type
+        if "/v1/chat/completions" in endpoint:
+            # OpenAI/LM Studio format
+            return data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        else:
+            # Ollama format
+            return data.get("response", "")
+
+    except requests.exceptions.Timeout:
+        raise RuntimeError(f"LLM request timed out after {LLM_TIMEOUT}s")
+    except requests.exceptions.ConnectionError:
+        raise RuntimeError(f"Failed to connect to LLM at {endpoint}")
+    except requests.exceptions.HTTPError as e:
+        raise RuntimeError(f"LLM API error: {e.response.status_code} - {e.response.text}")
+    except Exception as e:
+        raise RuntimeError(f"LLM call failed: {e}")
 
 
 def build_llm_prompt(ascii_view: str, bindings: Dict, directive: Dict) -> str:
@@ -256,31 +341,167 @@ def post_response(post_id, result, status="COMPLETED"):
     }
     requests.post(WP_URL, json=payload)
 
+def parse_ascii_view_output(output: str) -> tuple:
+    """
+    Parse the output from get_ascii_view.py to extract ASCII view and bindings.
+
+    Args:
+        output: Raw output from get_ascii_view.py (ASCII + JSON)
+
+    Returns:
+        Tuple of (ascii_view: str, bindings: Dict)
+    """
+    lines = output.strip().split('\n')
+
+    # Find where JSON starts (look for lines starting with { or [)
+    json_start_idx = None
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.startswith('{') or stripped.startswith('['):
+            json_start_idx = i
+            break
+
+    if json_start_idx is None:
+        # No JSON found, return entire output as ASCII
+        return output, {}
+
+    # Split into ASCII and JSON parts
+    ascii_lines = lines[:json_start_idx]
+    json_lines = lines[json_start_idx:]
+    ascii_view = '\n'.join(ascii_lines)
+    json_str = '\n'.join(json_lines)
+
+    # Parse JSON
+    try:
+        bindings = json.loads(json_str)
+    except json.JSONDecodeError:
+        bindings = {}
+
+    return ascii_view, bindings
+
+
+def execute_action(action: Dict, bindings: Dict) -> bool:
+    """
+    Execute a single action using desktop_action.py.
+
+    Args:
+        action: Dict with 'action', 'target', 'text' fields
+        bindings: Dict mapping labels to coordinates
+
+    Returns:
+        True if action succeeded, False otherwise
+    """
+    action_type = action.get('action', 'click')
+    target = action.get('target')
+    text = action.get('text')
+
+    try:
+        if action_type == 'click' and target:
+            # Get coordinates from bindings
+            if target in bindings:
+                coords = bindings[target]
+                x = coords.get('x', 0) + coords.get('w', 0) // 2
+                y = coords.get('y', 0) + coords.get('h', 0) // 2
+                subprocess.run(["python3", ACTION_SCRIPT, "click", str(x), str(y)], check=True)
+                return True
+        elif action_type == 'type' and text:
+            subprocess.run(["python3", ACTION_SCRIPT, "type", text], check=True)
+            return True
+        elif action_type == 'key' and text:
+            subprocess.run(["python3", ACTION_SCRIPT, "key", text], check=True)
+            return True
+        elif action_type == 'move' and target:
+            if target in bindings:
+                coords = bindings[target]
+                x = coords.get('x', 0) + coords.get('w', 0) // 2
+                y = coords.get('y', 0) + coords.get('h', 0) // 2
+                subprocess.run(["python3", ACTION_SCRIPT, "move", str(x), str(y)], check=True)
+                return True
+        elif action_type == 'wait':
+            import time
+            wait_time = float(text) if text else 1.0
+            time.sleep(wait_time)
+            return True
+    except subprocess.CalledProcessError as e:
+        print(f"Action failed: {e}")
+        return False
+
+    return False
+
+
 def execute_directive(directive):
+    """Execute a directive using heuristic parsing or LLM-powered decision making."""
     print(f"Executing Directive: {directive['title']}")
     content = directive['content']
-    
-    # 1. Get current state
+
+    # 1. Get current state (ASCII view + bindings)
     try:
         view_output = subprocess.check_output(["python3", GET_VIEW_SCRIPT]).decode()
-        # The script prints ASCII and then JSON Bindings. We need to parse.
-        # This is a simplified version; in a real scenario, we'd pass this to an LLM.
+        ascii_view, bindings = parse_ascii_view_output(view_output)
     except Exception as e:
         return f"Failed to get desktop view: {e}"
 
-    # 2. Logic: For now, we simulate a 'read-only' success or simple action
-    # In a full integration, we would call an LLM API here with the ASCII view + Directive.
-    
-    result = f"""I've scanned the desktop. The current focused window is visible in ASCII.
-Directive '{content}' received.
+    # 2. Decide how to process the directive
+    if USE_LLM:
+        # LLM-powered execution
+        try:
+            prompt = build_llm_prompt(ascii_view, bindings, directive)
+            llm_response = call_llm(prompt)
+            parsed = parse_llm_response(llm_response)
 
-[SIMULATED EXECUTION COMPLETED]"""
+            if parsed['parse_success'] and parsed['actions']:
+                results = []
+                for action in parsed['actions']:
+                    success = execute_action(action, bindings)
+                    results.append(f"  - {action['action']}: {'OK' if success else 'FAILED'}")
+
+                result = f"""LLM-powered execution completed.
+Directive: {content}
+
+Actions planned by LLM:
+{chr(10).join(results)}
+
+Raw LLM response excerpt:
+{llm_response[:500]}..."""
+            else:
+                # LLM parsing failed, fall back to heuristic
+                result = f"""LLM parsing failed: {parsed.get('error', 'Unknown error')}
+Falling back to heuristic parsing.
+
+"""
+                intent = parse_directive_intent(directive)
+                success = execute_action(intent, bindings)
+                result += f"Heuristic action: {intent['action']} -> {'OK' if success else 'FAILED'}"
+
+        except RuntimeError as e:
+            result = f"LLM call failed: {e}\nDirective '{content}' not executed."
+    else:
+        # Heuristic execution (no LLM)
+        intent = parse_directive_intent(directive)
+        success = execute_action(intent, bindings)
+
+        result = f"""Heuristic execution completed.
+Directive: {content}
+
+Parsed intent:
+  - Action: {intent['action']}
+  - Target: {intent['target']}
+  - Text: {intent['text']}
+  - Confidence: {intent['confidence']:.2f}
+
+Execution: {'SUCCESS' if success else 'FAILED'}
+[HEURISTIC MODE - Set USE_LLM=true for LLM-powered execution]"""
+
     return result
 
 def main():
     print("🚀 Geometry OS: Directive Polling Daemon Started.")
     print(f"Polling {WP_URL} every {POLL_INTERVAL}s...")
-    
+    if USE_LLM:
+        print(f"🧠 LLM Mode: ENABLED (model={LLM_MODEL}, endpoint={LLM_ENDPOINT})")
+    else:
+        print("⚙️ LLM Mode: DISABLED (using heuristic parsing)")
+
     while True:
         directives = poll_directives()
         for d in directives:
@@ -289,7 +510,7 @@ def main():
             result = execute_directive(d)
             post_response(post_id, result)
             print(f"✅ Processed Directive {post_id}")
-            
+
         time.sleep(POLL_INTERVAL)
 
 if __name__ == "__main__":

@@ -41,7 +41,7 @@
   - **Verify**: `python3 -c "from directive_daemon import parse_directive_intent; print(parse_directive_intent({'title': 'Open Browser', 'content': 'Click Firefox'}))"`
   - **Commit**: `feat(daemon): add heuristic intent parsing`
 
-- [ ] 3.2 Add LLM integration to directive daemon
+- [x] 3.2 Add LLM integration to directive daemon
   - **Do**: Add `call_llm()` function with Ollama/LM Studio support, integrate with execute_directive
   - **Files**: `scripts/directive_daemon.py`
   - **Done when**: Daemon can use LLM for decision making when USE_LLM=true
