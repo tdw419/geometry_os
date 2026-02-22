@@ -430,8 +430,15 @@ function openspec_register_taxonomies() {
         'labels' => array(
             'name' => 'Document Types',
             'singular_name' => 'Document Type',
+            'menu_name' => 'Document Types',
+            'all_items' => 'All Types',
+            'edit_item' => 'Edit Type',
+            'add_new_item' => 'Add New Type',
         ),
         'hierarchical' => true,
+        'public' => true,
+        'show_ui' => true,
+        'show_admin_column' => true,
         'show_in_rest' => true,
         'rewrite' => array('slug' => 'openspec-type'),
     ));
@@ -441,8 +448,15 @@ function openspec_register_taxonomies() {
         'labels' => array(
             'name' => 'Projects',
             'singular_name' => 'Project',
+            'menu_name' => 'Projects',
+            'all_items' => 'All Projects',
+            'edit_item' => 'Edit Project',
+            'add_new_item' => 'Add New Project',
         ),
         'hierarchical' => false,
+        'public' => true,
+        'show_ui' => true,
+        'show_admin_column' => true,
         'show_in_rest' => true,
         'rewrite' => array('slug' => 'openspec-project'),
     ));
