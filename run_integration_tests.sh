@@ -199,6 +199,10 @@ EOF
 
 # Main execution
 main() {
+    # Create test results directory FIRST before any logging
+    mkdir -p "$TEST_RESULTS_DIR"
+    mkdir -p "$COVERAGE_DIR"
+
     local run_unit=true
     local run_integration=true
     local run_performance=true
