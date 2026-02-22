@@ -33,6 +33,10 @@ class BridgeServiceConfig:
     auto_execute: bool = False  # Safety: require manual approval by default
     min_confidence: float = 0.5  # Minimum confidence to consider a proposal
     safety_config: Optional[SafetyConfig] = None
+    # LLM configuration
+    llm_enabled: bool = False  # Feature flag - disabled by default
+    llm_model: str = "glm-4-plus"
+    llm_temperature: float = 0.7
 
 
 @dataclass
@@ -323,6 +327,28 @@ def create_cli_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Enable verbose logging"
     )
+    # LLM flags
+    parser.add_argument(
+        "--llm",
+        action="store_true",
+        help="Enable LLM-powered content expansion (default: False)"
+    )
+    parser.add_argument(
+        "--llm-model",
+        default="glm-4-plus",
+        help="LLM model to use for expansion"
+    )
+    parser.add_argument(
+        "--llm-temperature",
+        type=float,
+        default=0.7,
+        help="LLM temperature for content generation (0.0-1.0)"
+    )
+    parser.add_argument(
+        "--no-backup",
+        action="store_true",
+        help="Disable content backups before modification"
+    )
 
     return parser
 
@@ -339,7 +365,11 @@ async def main_async(args: argparse.Namespace):
         ws_uri=args.ws_uri,
         cycle_interval=args.interval,
         auto_execute=args.auto_execute,
-        min_confidence=args.min_confidence
+        min_confidence=args.min_confidence,
+        llm_enabled=args.llm,
+        llm_model=args.llm_model,
+        llm_temperature=args.llm_temperature,
+        safety_config=SafetyConfig(require_backup=not args.no_backup)
     )
 
     service = WPEvolutionBridgeService(config)
