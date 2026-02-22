@@ -169,7 +169,7 @@ Focus: Validate LLM integration works end-to-end. Skip tests, accept hardcoded v
 
 ## Phase 5: PR Lifecycle
 
-- [ ] 5.1 Monitor CI and address failures
+- [x] 5.1 Monitor CI and address failures
   - **Do**: Watch for CI failures, fix promptly
   - **Verify**: `gh pr checks`
   - **Done when**: All checks show passing status
