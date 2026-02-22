@@ -283,7 +283,7 @@ pytest tests/skills/ -v --tb=short 2>&1 | tail -15
 
 ---
 
-### Task 3.3: [x] Create AI verification test documentation
+### Task 3.3: [x] [x] Create AI verification test documentation
 
 **Do:**
 1. Create `tests/skills/AI_VERIFICATION_TESTS.md`
@@ -313,7 +313,7 @@ _Design: Manual Verification_
 
 ## Phase 4: Quality Gates
 
-### Task 4.1: Local quality check
+### Task 4.1: [x] Local quality check
 
 **Do:**
 1. Run all tests in tests/skills/
