@@ -30,7 +30,7 @@ Focus: Validate Task data structure and TaskBoard storage. Core components first
   - _Requirements: FR-2_
   - _Design: TaskBoard component_
 
-- [ ] 1.3 Reduction strategies
+- [x] 1.3 Reduction strategies
   - **Do**: Create strategy pattern for result merging (first, best_score, merge_all, majority_vote)
   - **Files**: `systems/swarm/reduction.py`, `tests/swarm/test_reduction.py`
   - **Done when**: 6 tests pass (each strategy + factory)
