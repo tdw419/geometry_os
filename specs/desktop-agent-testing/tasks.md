@@ -67,7 +67,7 @@ Focus: Critical safety tests first, then core unit tests.
 
 ## Phase 3: Performance Tests
 
-- [ ] 3.1 Performance Benchmarks
+- [x] 3.1 Performance Benchmarks
   - **Do**: Create `tests/test_desktop_agent_performance.py` with 6 benchmarks validating NFR latency targets
   - **Files**: `tests/test_desktop_agent_performance.py`
   - **Done when**: All benchmarks pass, validation < 1ms, session < 10ms

@@ -3,7 +3,7 @@
   "name": "desktop-agent-testing",
   "basePath": "specs/desktop-agent-testing",
   "phase": "execution",
-  "taskIndex": 5,
+  "taskIndex": 6,
   "totalTasks": 8,
   "taskIteration": 1,
   "maxTaskIterations": 5,
