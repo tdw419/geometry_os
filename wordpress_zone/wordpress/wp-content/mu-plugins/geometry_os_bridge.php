@@ -264,6 +264,12 @@ class GeometryOS_Bridge {
 
         // Store in WordPress options
         update_option('geometry_os_health_metrics', $metrics);
+        update_option('geometry_os_health_last_update', time());
+        update_option('geometry_os_start_time', get_option('geometry_os_start_time', time()));
+
+        // Increment heartbeat count
+        $count = get_option('geometry_os_heartbeat_count', 0);
+        update_option('geometry_os_heartbeat_count', $count + 1);
 
         // Log to OS telemetry
         $this->log_to_os('health_pulse', $metrics);
