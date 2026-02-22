@@ -25,6 +25,7 @@ from .segment_pool import SegmentPool, SegmentType
 from .topic_memory import TopicMemory
 from .personality_engine import PersonalityEngine
 from .llm_client import LLMNarrativeClient, LLMConfig
+from .wordpress_publisher import WordPressPublisher, WordPressConfig
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +87,9 @@ class NarrativeBroadcaster:
         broadcast_interval: float = 30.0,
         max_duplicate_retries: int = 3,
         use_llm: bool = False,
-        llm_config: Optional[LLMConfig] = None
+        llm_config: Optional[LLMConfig] = None,
+        publish_to_wordpress: bool = False,
+        wordpress_config: Optional[WordPressConfig] = None
     ):
         """
         Initialize the narrative broadcaster.
@@ -98,6 +101,8 @@ class NarrativeBroadcaster:
             max_duplicate_retries: Max retries when duplicate detected
             use_llm: Whether to use LLM for narrative generation
             llm_config: Optional LLM configuration (uses defaults if not provided)
+            publish_to_wordpress: Whether to publish broadcasts to WordPress
+            wordpress_config: Optional WordPress configuration
         """
         self.enabled = enabled
         self.station_id = station_id
@@ -111,12 +116,22 @@ class NarrativeBroadcaster:
 
         # Initialize LLM client if requested
         llm_client: Optional[LLMNarrativeClient] = None
+        self._llm_generated = False
         if use_llm:
             llm_client = LLMNarrativeClient(config=llm_config)
             llm_available = llm_client.is_available()
             logger.info(f"LLM narrative client initialized: available={llm_available}")
         else:
             logger.info("LLM narrative client disabled (use_llm=False)")
+
+        # Initialize WordPress publisher if requested
+        self._wordpress_publisher: Optional[WordPressPublisher] = None
+        if publish_to_wordpress:
+            self._wordpress_publisher = WordPressPublisher(config=wordpress_config)
+            wp_available = self._wordpress_publisher.is_available()
+            logger.info(f"WordPress publisher initialized: available={wp_available}")
+        else:
+            logger.debug("WordPress publishing disabled")
 
         # Initialize components
         self._segment_pool = SegmentPool(llm_client=llm_client)
@@ -292,5 +307,16 @@ class NarrativeBroadcaster:
             f"Broadcast: [{self.station_id}] {selected_type.value if selected_type else 'unknown'} - "
             f"{transformed_content[:50]}..."
         )
+
+        # Publish to WordPress if configured
+        if self._wordpress_publisher:
+            self._wordpress_publisher.publish(
+                station_id=self.station_id,
+                segment_type=segment.segment_type,
+                content=transformed_content,
+                entropy=entropy,
+                telemetry=telemetry,
+                llm_generated=self._segment_pool._llm_client is not None
+            )
 
         return segment
