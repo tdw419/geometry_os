@@ -26,6 +26,7 @@ wordpress/wp-content/plugins/*
 !wordpress/wp-content/plugins/geometry-os-webmcp/
 !wordpress/wp-content/plugins/geometry-os-swarm-node/
 !wordpress/wp-content/plugins/claude-conversations/
+!wordpress/wp-content/plugins/openspec-importer/
 !wordpress/wp-content/plugins/research-document-cpt/
 !wordpress/wp-content/plugins/research-import-admin/
 wordpress/wp-content/plugins/akismet/
