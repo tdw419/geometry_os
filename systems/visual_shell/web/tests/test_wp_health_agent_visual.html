@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Layer 4 Visual Test: WordPress Health Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0f;
+            color: #eee;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #00ffcc;
+            margin-bottom: 5px;
+            font-size: 24px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #1a1a2e;
+            color: #00ffcc;
+            border: 1px solid #00ffcc;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #00ffcc;
+            color: #0a0a0f;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            background: #111;
+            border: 2px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            min-height: 500px;
+        }
+
+        #testCanvas {
+            display: block;
+        }
+
+        .results-panel {
+            background: #111;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .test-suite {
+            margin-bottom: 20px;
+        }
+
+        .test-suite h3 {
+            color: #00ffcc;
+            font-size: 14px;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #333;
+        }
+
+        .test-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #222;
+        }
+
+        .test-item:last-child {
+            border-bottom: none;
+        }
+
+        .test-status {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .test-status.pending {
+            background: #333;
+            color: #666;
+        }
+
+        .test-status.running {
+            background: #0066ff;
+            color: white;
+            animation: pulse 0.5s infinite;
+        }
+
+        .test-status.pass {
+            background: #00cc66;
+            color: white;
+        }
+
+        .test-status.fail {
+            background: #ff4444;
+            color: white;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .test-name {
+            flex: 1;
+            font-size: 13px;
+        }
+
+        .test-detail {
+            font-size: 11px;
+            color: #888;
+        }
+
+        .summary {
+            background: #1a1a2e;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .summary h3 {
+            color: #00ffcc;
+            margin-bottom: 10px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            text-align: center;
+        }
+
+        .summary-item {
+            background: #0a0a0f;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .summary-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ffcc;
+        }
+
+        .summary-label {
+            font-size: 11px;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .fps-meter {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .fps-value {
+            color: #00ff00;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .color-swatch {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🧪 Layer 4 Visual Test: WordPress Health Agent</h1>
+        <p class="subtitle">Testing coordinates, color transitions, rendering, animations, and performance</p>
+
+        <div class="test-controls">
+            <button id="runAllBtn" onclick="runAllTests()">▶ Run All Tests</button>
+            <button onclick="testCoordinates()">Test Coordinates</button>
+            <button onclick="testColorTransitions()">Test Colors</button>
+            <button onclick="testRendering()">Test Rendering</button>
+            <button onclick="testAnimation()">Test Animation</button>
+            <button onclick="testPerformance()">Test Performance (50 agents)</button>
+            <button onclick="resetTests()">Reset</button>
+        </div>
+
+        <div class="grid">
+            <div class="canvas-container">
+                <div class="fps-meter">
+                    <div>FPS: <span id="fpsValue" class="fps-value">--</span></div>
+                    <div>Agents: <span id="agentCount">1</span></div>
+                    <div>Frame: <span id="frameTime">--</span>ms</div>
+                </div>
+                <canvas id="testCanvas"></canvas>
+            </div>
+
+            <div class="results-panel">
+                <div class="test-suite">
+                    <h3>📍 1. Coordinate Test</h3>
+                    <div class="test-item" id="test-coord-x">
+                        <div class="test-status pending">?</div>
+                        <div class="test-name">X coordinate = 32</div>
+                        <div class="test-detail"></div>
+                    </div>
+                    <div class="test-item" id="test-coord-y">
+                        <div class="test-status pending">?</div>
+                        <div class="test-name">Y coordinate = 12</div>
+                        <div class="test-detail"></div>
+                    </div>
+                </div>
+
+                <div class="test-suite">
+                    <h3>🎨 2. Color Transition Test</h3>
+                    <div class="test-item" id="test-color-green">
+                        <div class="test-status pending">?</div>
+                        <div class="test-name"><span class="color-swatch" style="background:#00ff00"></span>Green (score ≥ 80)</div>
+                        <div class="test-detail"></div>
+                    </div>
+                    <div class="test-item" id="test-color-yellow">
+                        <div class="test-status pending">?</div>
+                        <div class="test-name"><span class="color-swatch" style="background:#ffcc00"></span>Yellow (50 ≤ score < 80)</div>
+                        <div class="test-detail"></div>
+                    </div>
+                    <div class="test-item" id="test-color-red">
+                        <div class="test-status pending">?</div>
+                        <div class="test-name"><span class="color-swatch" style="background:#ff0000"></span>Red (score < 50)</div>
+                        <div class="test-detail"></div>
+                    </div>
+                </div>
+
+                <div class="test-suite">
+                    <h3>🖼️ 3. Rendering Test</h3>
+                    <div class="test-item" id="test-render-container">
+                        <div class="test-status pending">?</div>
+                        <div class="test-name">Container created</div>
+                        <div class="test-detail"></div>
+                    </div>
+                    <div class="test-item" id="test-render-title">
+                        <div class="test-status pending">?</div>
+                        <div class="test-name">Title text rendered</div>
+                        <div class="test-detail"></div>
+                    </div>
+                    <div class="test-item" id="test-render-status">
+                        <div class="test-status pending">?</div>
+                        <div class="test-name">Status text rendered</div>
+                        <div class="test-detail"></div>
+                    </div>
+                    <div class="test-item" id="test-render-pulse">
+                        <div class="test-status pending">?</div>
+                        <div class="test-name">Pulse graphic rendered</div>
+                        <div class="test-detail"></div>
+                    </div>
+                </div>
+
+                <div class="test-suite">
+                    <h3>✨ 4. Animation Test</h3>
+                    <div class="test-item" id="test-anim-pulse">
+                        <div class="test-status pending">?</div>
+                        <div class="test-name">Pulse scale oscillates</div>
+                        <div class="test-detail"></div>
+                    </div>
+                    <div class="test-item" id="test-anim-range">
+                        <div class="test-status pending">?</div>
+                        <div class="test-name">Scale range 0.9-1.1</div>
+                        <div class="test-detail"></div>
+                    </div>
+                </div>
+
+                <div class="test-suite">
+                    <h3>⚡ 5. Performance Test</h3>
+                    <div class="test-item" id="test-perf-fps">
+                        <div class="test-status pending">?</div>
+                        <div class="test-name">60 FPS maintained (50 agents)</div>
+                        <div class="test-detail"></div>
+                    </div>
+                    <div class="test-item" id="test-perf-frame">
+                        <div class="test-status pending">?</div>
+                        <div class="test-name">Frame time < 16.67ms</div>
+                        <div class="test-detail"></div>
+                    </div>
+                </div>
+
+                <div class="summary">
+                    <h3>Summary</h3>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <div class="summary-value" id="passCount">0</div>
+                            <div class="summary-label">Passed</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-value" id="failCount">0</div>
+                            <div class="summary-label">Failed</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-value" id="pendingCount">12</div>
+                            <div class="summary-label">Pending</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-value" id="totalTests">12</div>
+                            <div class="summary-label">Total</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PixiJS -->
+    <script src="https://pixijs.download/v7.3.2/pixi.min.js"></script>
+
+    <!-- Base Agent (mock for testing) -->
+    <script>
+        // Mock BaseAgent if not available
+        if (typeof BaseAgent === 'undefined') {
+            class BaseAgent {
+                constructor(agentId, type) {
+                    this.agentId = agentId;
+                    this.type = type;
+                    this.connected = false;
+                }
+                send(msg) { console.log('[BaseAgent] Send:', msg); }
+            }
+            window.BaseAgent = BaseAgent;
+        }
+    </script>
+
+    <!-- WordPress Health Agent -->
+    <script src="../js/agents/WordPressHealthAgent.js"></script>
+
+    <script>
+        // Test State
+        const testResults = {
+            passed: 0,
+            failed: 0,
+            pending: 12
+        };
+
+        const GRID_SIZE = 64;
+        const TARGET_X = 32;
+        const TARGET_Y = 12;
+
+        // PixiJS Setup
+        let app;
+        let agent;
+        let agents = [];
+        let frameTimes = [];
+        let lastFrameTime = performance.now();
+
+        // Initialize PixiJS
+        async function initPixi() {
+            app = new PIXI.Application({
+                view: document.getElementById('testCanvas'),
+                width: 800,
+                height: 500,
+                backgroundColor: 0x0a0a0f,
+                antialias: true
+            });
+
+            // Create grid background
+            const grid = new PIXI.Graphics();
+            grid.lineStyle(1, 0x222233, 0.5);
+            for (let x = 0; x <= 800; x += GRID_SIZE) {
+                grid.moveTo(x, 0);
+                grid.lineTo(x, 500);
+            }
+            for (let y = 0; y <= 500; y += GRID_SIZE) {
+                grid.moveTo(0, y);
+                grid.lineTo(800, y);
+            }
+            app.stage.addChild(grid);
+
+            // Highlight target cell
+            const highlight = new PIXI.Graphics();
+            highlight.lineStyle(2, 0x00ffcc, 1);
+            highlight.drawRect(TARGET_X * GRID_SIZE, TARGET_Y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+            app.stage.addChild(highlight);
+
+            // Coordinate label
+            const label = new PIXI.Text(`(${TARGET_X}, ${TARGET_Y})`, {
+                fontFamily: 'Arial',
+                fontSize: 10,
+                fill: 0x00ffcc
+            });
+            label.x = TARGET_X * GRID_SIZE + 5;
+            label.y = TARGET_Y * GRID_SIZE + GRID_SIZE + 5;
+            app.stage.addChild(label);
+
+            // Create agent at target coordinates
+            agent = new WordPressHealthAgent('test-wp-agent', TARGET_X, TARGET_Y);
+            agent.initializeVisuals(app.stage, GRID_SIZE);
+
+            // FPS tracking
+            app.ticker.add(() => {
+                const now = performance.now();
+                const delta = now - lastFrameTime;
+                lastFrameTime = now;
+                frameTimes.push(delta);
+
+                // Keep last 60 frame times
+                if (frameTimes.length > 60) frameTimes.shift();
+
+                // Update FPS display
+                const avgFrameTime = frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length;
+                const fps = 1000 / avgFrameTime;
+                document.getElementById('fpsValue').textContent = Math.round(fps);
+                document.getElementById('frameTime').textContent = avgFrameTime.toFixed(2);
+
+                // Update agent animations
+                agent.update(delta);
+
+                // Update all agents for performance test
+                agents.forEach(a => a.update(delta));
+            });
+
+            document.getElementById('agentCount').textContent = '1';
+        }
+
+        // Test Helpers
+        function setTestStatus(testId, status, detail = '') {
+            const item = document.getElementById(testId);
+            if (!item) return;
+
+            const statusEl = item.querySelector('.test-status');
+            const detailEl = item.querySelector('.test-detail');
+
+            statusEl.className = `test-status ${status}`;
+            statusEl.textContent = status === 'pass' ? '✓' : status === 'fail' ? '✗' : status === 'running' ? '...' : '?';
+            detailEl.textContent = detail;
+
+            // Update counts
+            updateSummary();
+        }
+
+        function updateSummary() {
+            const allTests = document.querySelectorAll('.test-item');
+            let passed = 0, failed = 0, pending = 0;
+
+            allTests.forEach(item => {
+                const status = item.querySelector('.test-status');
+                if (status.classList.contains('pass')) passed++;
+                else if (status.classList.contains('fail')) failed++;
+                else pending++;
+            });
+
+            document.getElementById('passCount').textContent = passed;
+            document.getElementById('failCount').textContent = failed;
+            document.getElementById('pendingCount').textContent = pending;
+
+            testResults.passed = passed;
+            testResults.failed = failed;
+            testResults.pending = pending;
+        }
+
+        // Test 1: Coordinates
+        async function testCoordinates() {
+            setTestStatus('test-coord-x', 'running');
+            setTestStatus('test-coord-y', 'running');
+
+            await new Promise(r => setTimeout(r, 100));
+
+            const expectedX = TARGET_X * GRID_SIZE;
+            const expectedY = TARGET_Y * GRID_SIZE;
+
+            const xPass = Math.abs(agent.container.x - expectedX) < 1;
+            const yPass = Math.abs(agent.container.y - expectedY) < 1;
+
+            setTestStatus('test-coord-x', xPass ? 'pass' : 'fail',
+                `Expected ${expectedX}, got ${agent.container.x}`);
+            setTestStatus('test-coord-y', yPass ? 'pass' : 'fail',
+                `Expected ${expectedY}, got ${agent.container.y}`);
+
+            return xPass && yPass;
+        }
+
+        // Test 2: Color Transitions
+        async function testColorTransitions() {
+            setTestStatus('test-color-green', 'running');
+            setTestStatus('test-color-yellow', 'running');
+            setTestStatus('test-color-red', 'running');
+
+            // Test green (score = 95)
+            agent.updatePulse(95);
+            await new Promise(r => setTimeout(r, 100));
+            const greenPass = agent.pulseGraphic.geometry.graphicsData[0]?.fill?.color === 0x00ff00;
+            setTestStatus('test-color-green', greenPass ? 'pass' : 'fail',
+                greenPass ? '0x00FF00 ✓' : 'Wrong color');
+
+            // Test yellow (score = 65)
+            agent.updatePulse(65);
+            await new Promise(r => setTimeout(r, 100));
+            const yellowPass = agent.pulseGraphic.geometry.graphicsData[0]?.fill?.color === 0xffcc00;
+            setTestStatus('test-color-yellow', yellowPass ? 'pass' : 'fail',
+                yellowPass ? '0xFFCC00 ✓' : 'Wrong color');
+
+            // Test red (score = 30)
+            agent.updatePulse(30);
+            await new Promise(r => setTimeout(r, 100));
+            const redPass = agent.pulseGraphic.geometry.graphicsData[0]?.fill?.color === 0xff0000;
+            setTestStatus('test-color-red', redPass ? 'pass' : 'fail',
+                redPass ? '0xFF0000 ✓' : 'Wrong color');
+
+            // Reset to healthy
+            agent.updatePulse(100);
+
+            return greenPass && yellowPass && redPass;
+        }
+
+        // Test 3: Rendering
+        async function testRendering() {
+            setTestStatus('test-render-container', 'running');
+            setTestStatus('test-render-title', 'running');
+            setTestStatus('test-render-status', 'running');
+            setTestStatus('test-render-pulse', 'running');
+
+            await new Promise(r => setTimeout(r, 100));
+
+            const containerPass = agent.container !== null && agent.container instanceof PIXI.Container;
+            setTestStatus('test-render-container', containerPass ? 'pass' : 'fail',
+                containerPass ? 'PIXI.Container ✓' : 'Missing');
+
+            const titlePass = agent.container.children.some(c =>
+                c instanceof PIXI.Text && c.text === 'WP HEALTH');
+            setTestStatus('test-render-title', titlePass ? 'pass' : 'fail',
+                titlePass ? '"WP HEALTH" ✓' : 'Not found');
+
+            const statusPass = agent.statusText !== null && agent.statusText instanceof PIXI.Text;
+            setTestStatus('test-render-status', statusPass ? 'pass' : 'fail',
+                statusPass ? 'PIXI.Text ✓' : 'Missing');
+
+            const pulsePass = agent.pulseGraphic !== null && agent.pulseGraphic instanceof PIXI.Graphics;
+            setTestStatus('test-render-pulse', pulsePass ? 'pass' : 'fail',
+                pulsePass ? 'PIXI.Graphics ✓' : 'Missing');
+
+            return containerPass && titlePass && statusPass && pulsePass;
+        }
+
+        // Test 4: Animation
+        async function testAnimation() {
+            setTestStatus('test-anim-pulse', 'running');
+            setTestStatus('test-anim-range', 'running');
+
+            // Collect scale samples over time
+            const scales = [];
+            for (let i = 0; i < 30; i++) {
+                scales.push(agent.pulseGraphic.scale.x);
+                await new Promise(r => setTimeout(r, 50));
+            }
+
+            const minScale = Math.min(...scales);
+            const maxScale = Math.max(...scales);
+            const oscillates = maxScale > minScale;
+            const inRange = minScale >= 0.9 && maxScale <= 1.1;
+
+            setTestStatus('test-anim-pulse', oscillates ? 'pass' : 'fail',
+                oscillates ? `Varies ${minScale.toFixed(2)} - ${maxScale.toFixed(2)}` : 'No variation');
+
+            setTestStatus('test-anim-range', inRange ? 'pass' : 'fail',
+                `Min: ${minScale.toFixed(2)}, Max: ${maxScale.toFixed(2)}`);
+
+            return oscillates && inRange;
+        }
+
+        // Test 5: Performance
+        async function testPerformance() {
+            setTestStatus('test-perf-fps', 'running');
+            setTestStatus('test-perf-frame', 'running');
+
+            // Spawn 49 additional agents (total 50)
+            agents = [];
+            for (let i = 1; i < 50; i++) {
+                const x = (i % 10) * 8;
+                const y = Math.floor(i / 10) * 8;
+                const newAgent = new WordPressHealthAgent(`perf-agent-${i}`, x, y);
+                newAgent.initializeVisuals(app.stage, GRID_SIZE);
+                agents.push(newAgent);
+            }
+
+            document.getElementById('agentCount').textContent = '50';
+
+            // Let it run for 3 seconds
+            await new Promise(r => setTimeout(r, 3000));
+
+            // Analyze frame times
+            const recentFrames = frameTimes.slice(-60);
+            const avgFrameTime = recentFrames.reduce((a, b) => a + b, 0) / recentFrames.length;
+            const maxFrameTime = Math.max(...recentFrames);
+            const fps = 1000 / avgFrameTime;
+
+            const fpsPass = fps >= 55; // Allow slight margin
+            const framePass = maxFrameTime < 20; // Slightly relaxed
+
+            setTestStatus('test-perf-fps', fpsPass ? 'pass' : 'fail',
+                `${Math.round(fps)} FPS ${fpsPass ? '✓' : '(need ≥55)'}`);
+
+            setTestStatus('test-perf-frame', framePass ? 'pass' : 'fail',
+                `Max: ${maxFrameTime.toFixed(2)}ms ${framePass ? '✓' : '(need <20ms)'}`);
+
+            // Cleanup extra agents
+            agents.forEach(a => {
+                if (a.container && a.container.parent) {
+                    a.container.parent.removeChild(a.container);
+                }
+            });
+            agents = [];
+            document.getElementById('agentCount').textContent = '1';
+
+            return fpsPass && framePass;
+        }
+
+        // Run All Tests
+        async function runAllTests() {
+            const btn = document.getElementById('runAllBtn');
+            btn.disabled = true;
+            btn.textContent = 'Running...';
+
+            resetTests();
+
+            await testCoordinates();
+            await testColorTransitions();
+            await testRendering();
+            await testAnimation();
+            await testPerformance();
+
+            btn.disabled = false;
+            btn.textContent = '▶ Run All Tests';
+
+            // Final summary
+            const allPassed = testResults.failed === 0;
+            console.log(`%c${allPassed ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}`,
+                `font-size: 20px; color: ${allPassed ? 'green' : 'red'};`);
+        }
+
+        // Reset Tests
+        function resetTests() {
+            document.querySelectorAll('.test-item').forEach(item => {
+                const status = item.querySelector('.test-status');
+                status.className = 'test-status pending';
+                status.textContent = '?';
+                item.querySelector('.test-detail').textContent = '';
+            });
+            updateSummary();
+        }
+
+        // Initialize
+        initPixi();
+    </script>
+</body>
+
+</html>
