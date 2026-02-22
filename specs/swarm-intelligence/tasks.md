@@ -21,7 +21,7 @@ Focus: Validate Task data structure and TaskBoard storage. Core components first
   - _Requirements: FR-1, FR-8_
   - _Design: Task component_
 
-- [ ] 1.2 TaskBoard implementation
+- [x] 1.2 TaskBoard implementation
   - **Do**: Create file-based task storage with flock atomic claim
   - **Files**: `systems/swarm/task_board.py`, `tests/swarm/test_task_board.py`
   - **Done when**: 7 tests pass (create, post, claim, get_pending, complete, get_by_type, get_results_by_parent)
