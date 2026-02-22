@@ -200,6 +200,13 @@ class GeometryOS_Bridge {
             'callback' => array($this, 'handle_emergency_reset'),
             'permission_callback' => array($this, 'verify_local_request'),
         ));
+
+        // Heartbeat status endpoint for scorecard
+        register_rest_route('geometry-os/v1', '/heartbeat-status', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_heartbeat_status'),
+            'permission_callback' => '__return_true',
+        ));
     }
 
     /**
@@ -257,6 +264,16 @@ class GeometryOS_Bridge {
 
         // Store in WordPress options
         update_option('geometry_os_health_metrics', $metrics);
+        update_option('geometry_os_health_last_update', time());
+
+        // Initialize start time if not set
+        if (!get_option('geometry_os_start_time')) {
+            update_option('geometry_os_start_time', time());
+        }
+
+        // Increment heartbeat count
+        $count = get_option('geometry_os_heartbeat_count', 0);
+        update_option('geometry_os_heartbeat_count', $count + 1);
 
         // Log to OS telemetry
         $this->log_to_os('health_pulse', $metrics);
@@ -555,6 +572,28 @@ class GeometryOS_Bridge {
 <?php
         return ob_get_clean();
     }
+
+    /**
+     * Get heartbeat status for scorecard
+     */
+    public function get_heartbeat_status($request) {
+        $metrics = get_option('geometry_os_health_metrics', array());
+        $last_update = get_option('geometry_os_health_last_update', 0);
+        $heartbeat_count = get_option('geometry_os_heartbeat_count', 0);
+        $start_time = get_option('geometry_os_start_time', time());
+
+        $seconds_ago = $last_update > 0 ? time() - $last_update : 0;
+        $status = empty($metrics) ? 'no_data' : ($seconds_ago < 120 ? 'active' : 'stale');
+
+        return new WP_REST_Response(array(
+            'status' => $status,
+            'last_update' => (int)$last_update,
+            'seconds_ago' => $seconds_ago,
+            'heartbeat_count' => (int)$heartbeat_count,
+            'uptime_seconds' => time() - (int)$start_time,
+            'metrics' => $metrics,
+        ), 200);
+    }
 }
 
 new GeometryOS_Bridge();
@@ -772,5 +811,14 @@ add_action('geometry_os_poll_evolution', function() {
         foreach ($events as $event) {
             geometry_os_handle_evolution_event($event);
         }
+    }
+});
+
+/**
+ * Schedule the poll evolution event if not already scheduled
+ */
+add_action('init', function() {
+    if (!wp_next_scheduled('geometry_os_poll_evolution')) {
+        wp_schedule_event(time(), 'five_minutes', 'geometry_os_poll_evolution');
     }
 });
