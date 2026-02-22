@@ -285,12 +285,10 @@ class ASCII_Desktop_Control {
     }
 
     /**
-     * Render control page (placeholder for now).
+     * Render control page.
      */
     public function render_control_page(): void {
-        echo '<div class="wrap"><h1>ASCII Desktop Control</h1>';
-        echo '<p>Control page will be implemented in Phase 2.</p>';
-        echo '</div>';
+        include $this->plugin_dir . 'admin/page-control.php';
     }
 
     /**

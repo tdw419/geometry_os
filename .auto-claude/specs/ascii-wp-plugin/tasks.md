@@ -126,7 +126,7 @@ Focus: Plugin skeleton, CPT registration, shell exec wrappers. No UI polish yet.
 
 Focus: Control page, settings page, logs page with real UI templates.
 
-- [ ] 2.1 Create control page template
+- [x] 2.1 Create control page template
   - **Do**:
     1. Create `admin/page-control.php` with HTML structure
     2. Add ASCII grid container (pre-formatted, monospace)
