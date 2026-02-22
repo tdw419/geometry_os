@@ -285,7 +285,34 @@ function handle_create_widget($data) {
 }
 
 function handle_list_tools() {
-    echo json_encode(array('success' => true, 'tools' => array('createPost', 'editPage', 'logEvolution')));
+    $tools = array(
+        'content' => array(
+            'createPost',
+            'editPage',
+            'createWidget'
+        ),
+        'ctrm' => array(
+            'logTruth',
+            'syncTruths',
+            'getTruthStats'
+        ),
+        'tms' => array(
+            'logAnsmoCycle'
+        ),
+        'evolution' => array(
+            'logEvolution'
+        ),
+        'directives' => array(
+            'getDirectives',
+            'markDirectiveProcessed'
+        )
+    );
+
+    echo json_encode(array(
+        'success' => true,
+        'tools' => $tools,
+        'categories' => array_keys($tools)
+    ));
 }
 
 /**
