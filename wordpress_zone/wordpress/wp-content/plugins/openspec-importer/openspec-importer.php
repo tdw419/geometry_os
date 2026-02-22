@@ -1,9 +1,16 @@
 <?php
 /**
  * Plugin Name: OpenSpec Importer
+ * Plugin URI: https://wordpress.org/plugins/openspec-importer/
  * Description: Import OpenSpec documents (requirements, design, tasks, proposals) from openspec/ folder into WordPress as formatted posts
  * Version: 1.0.0
  * Author: Geometry OS
+ * Author URI: https://geometryos.com
+ * License: GPL v2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: openspec-importer
+ * Requires at least: 6.0
+ * Requires PHP: 8.0
  *
  * This plugin imports OpenSpec markdown documents with YAML frontmatter
  * into WordPress posts with:
@@ -509,3 +516,4 @@ add_action('wp_enqueue_scripts', 'openspec_enqueue_prism');
 
 // Initialize the plugin
 new OpenSpec_Importer_Admin();
+
