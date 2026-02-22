@@ -1,0 +1,423 @@
+// ============================================
+// GEOMETRY OS - VISUAL CPU SHADER (RISC-V)
+// Phase 25: Native GPU-RISCV Substrate
+// ============================================
+
+// --- BINDINGS ---
+
+// 0: Expanded Instruction Buffer (RISC-V 32-bit)
+@group(0) @binding(0) var<storage, read> expanded_code: array<u32>;
+
+// 1: System Memory / Heap (Storage Buffer)
+@group(0) @binding(1) var<storage, read_write> system_memory: array<u32>;
+
+// 2: CPU State (Registers x0-x31, PC, Cycles)
+// Structured as: [thread_0_regs(32), thread_0_pc, thread_0_halted, ..., thread_n...]
+@group(0) @binding(2) var<storage, read_write> cpu_states: array<u32>;
+
+// --- CONSTANTS ---
+const REGS_PER_CORE: u32 = 46u; // 32 regs + PC + Halt + CSRs (6) + Trap CSRs (6)
+
+// --- CSR INDICES (in cpu_states array) ---
+const CSR_SATP: u32 = 34u;      // Page table base + mode
+const CSR_STVEC: u32 = 35u;     // Trap handler address
+const CSR_SSCRATCH: u32 = 36u;  // Scratch register for traps
+const CSR_MODE: u32 = 37u;      // Privilege mode (0=user, 1=supervisor)
+const CSR_HALT: u32 = 38u;      // Halted flag (moved from 33)
+const CSR_RESERVATION: u32 = 39u; // Reservation address for LR/SC
+
+// --- NEW: Trap Handling CSRs ---
+const CSR_SEPC: u32 = 40u;      // Exception program counter
+const CSR_SCAUSE: u32 = 41u;    // Exception cause code
+const CSR_STVAL: u32 = 42u;     // Trap value (faulting address)
+const CSR_SSTATUS: u32 = 43u;   // Status register (SIE, SPIE, SPP)
+const CSR_SIE: u32 = 44u;       // Supervisor interrupt enable
+const CSR_SIP: u32 = 45u;       // Supervisor interrupt pending
+
+// SSTATUS bit positions (per RISC-V Privileged Spec v1.12)
+const SSTATUS_SIE: u32 = 2u;    // Bit 1: Supervisor Interrupt Enable
+const SSTATUS_SPIE: u32 = 32u;  // Bit 5: Supervisor Previous Interrupt Enable
+const SSTATUS_SPP: u32 = 256u;  // Bit 8: Previous privilege mode (1=S, 0=U)
+
+// --- MMIO INPUT REGION (Offset 32MB) ---
+const MMIO_INPUT_BASE: u32 = 0x02000000u;  // 32MB offset
+const MMIO_INPUT_STATUS: u32 = 0u;   // Offset from base
+const MMIO_INPUT_TYPE: u32 = 4u;     // Offset from base
+const MMIO_INPUT_KEY: u32 = 8u;      // Offset from base
+const MMIO_INPUT_X: u32 = 12u;       // Offset from base
+const MMIO_INPUT_Y: u32 = 16u;       // Offset from base
+const MMIO_INPUT_FLAGS: u32 = 20u;   // Offset from base
+
+// --- UART REGION (Offset 80MB) ---
+const UART_BASE: u32 = 0x05000000u;
+const UART_FIFO_BASE: u32 = 0x05000400u;
+const UART_FIFO_PTR: u32 = 0x050004FCu; // Counter for writes
+
+// Input types
+const INPUT_TYPE_NONE: u32 = 0u;
+const INPUT_TYPE_KEYBOARD: u32 = 1u;
+const INPUT_TYPE_MOUSE: u32 = 2u;
+const INPUT_TYPE_TOUCH: u32 = 3u;
+
+// Input flags
+const INPUT_FLAG_PRESSED: u32 = 1u;
+const INPUT_FLAG_RELEASED: u32 = 2u;
+
+// --- SBI CONSTANTS ---
+const SBI_EID_TIMER: u32 = 0x00u;
+const SBI_EID_CONSOLE: u32 = 0x01u;
+const SBI_EID_SRST: u32 = 0x08u;
+const SBI_EID_BASE: u32 = 0x10u;
+
+// SBI memory region for JS bridge
+const SBI_BRIDGE_ADDR: u32 = 0x05010000u; // After UART FIFO
+const SBI_BRIDGE_FLAG: u32 = 0x05010000u; // Flag to signal JS
+const SBI_BRIDGE_EID: u32 = 0x05010004u;
+const SBI_BRIDGE_FID: u32 = 0x05010008u;
+const SBI_BRIDGE_ARGS: u32 = 0x0501000Cu; // 6 args = 24 bytes
+const SBI_BRIDGE_RET: u32 = 0x05010024u; // 2 returns = 8 bytes
+
+// --- DECODING HELPERS ---
+fn get_opcode(inst: u32) -> u32 { return inst & 0x7Fu; }
+fn get_rd(inst: u32) -> u32     { return (inst >> 7u) & 0x1Fu; }
+fn get_funct3(inst: u32) -> u32 { return (inst >> 12u) & 0x07u; }
+fn get_rs1(inst: u32) -> u32    { return (inst >> 15u) & 0x1Fu; }
+fn get_rs2(inst: u32) -> u32    { return (inst >> 20u) & 0x1Fu; }
+
+// --- CSR HELPER ---
+// Maps CSR number to its index in cpu_states array
+// Returns 255u for unknown CSRs (should trap in full implementation)
+fn _get_csr_index(csr_num: u32) -> u32 {
+    switch (csr_num) {
+        case 0x180u: { return CSR_SATP; }      // satp
+        case 0x105u: { return CSR_STVEC; }     // stvec
+        case 0x140u: { return CSR_SSCRATCH; }  // sscratch
+        case 0x100u: { return CSR_SSTATUS; }   // sstatus
+        case 0x141u: { return CSR_SEPC; }      // sepc
+        case 0x142u: { return CSR_SCAUSE; }    // scause
+        case 0x143u: { return CSR_STVAL; }     // stval
+        case 0x104u: { return CSR_SIE; }       // sie
+        case 0x144u: { return CSR_SIP; }       // sip
+        default: { return 255u; }              // Unknown CSR
+    }
+}
+
+// --- TRAP HANDLING ---
+// Exception codes (SCAUSE values)
+const CAUSE_ILLEGAL_INST: u32 = 2u;
+const CAUSE_BREAKPOINT: u32 = 3u;
+const CAUSE_ECALL_U: u32 = 8u;
+const CAUSE_ECALL_S: u32 = 11u;
+const CAUSE_INST_PAGE_FAULT: u32 = 12u;
+const CAUSE_LOAD_PAGE_FAULT: u32 = 13u;
+const CAUSE_STORE_PAGE_FAULT: u32 = 15u;
+
+// Interrupt codes (SCAUSE with interrupt bit set)
+const CAUSE_S_TIMER_INT: u32 = 0x80000005u; // Supervisor Timer Interrupt (bit 31 set)
+const SIP_STIP: u32 = 0x20u;                // Bit 5: Timer interrupt pending
+const SIE_STIE: u32 = 0x20u;                // Bit 5: Timer interrupt enable
+
+// Enter trap handler
+// Saves PC to SEPC, sets SCAUSE/STVAL, updates SSTATUS, jumps to STVEC
+fn trap_enter(base_idx: u32, cause: u32, tval: u32, pc: u32) -> u32 {
+    // 1. Save exception PC to SEPC
+    cpu_states[base_idx + CSR_SEPC] = pc;
+
+    // 2. Set exception cause
+    cpu_states[base_idx + CSR_SCAUSE] = cause;
+
+    // 3. Set trap value (faulting address)
+    cpu_states[base_idx + CSR_STVAL] = tval;
+
+    // 4. Update SSTATUS:
+    let current_mode = cpu_states[base_idx + CSR_MODE];
+    let current_sstatus = cpu_states[base_idx + CSR_SSTATUS];
+
+    var new_sstatus = current_sstatus;
+
+    if ((current_sstatus & SSTATUS_SIE) != 0u) {
+        new_sstatus = new_sstatus | SSTATUS_SPIE;
+    } else {
+        new_sstatus = new_sstatus & ~SSTATUS_SPIE;
+    }
+
+    new_sstatus = new_sstatus & ~SSTATUS_SIE;
+
+    if (current_mode == 0u) {
+        new_sstatus = new_sstatus & ~SSTATUS_SPP;     
+    } else {
+        new_sstatus = new_sstatus | SSTATUS_SPP;      
+    }
+    cpu_states[base_idx + CSR_SSTATUS] = new_sstatus;
+
+    // 5. Set MODE to supervisor
+    cpu_states[base_idx + CSR_MODE] = 1u;
+
+    // 6. Return STVEC as new PC
+    let stvec = cpu_states[base_idx + CSR_STVEC];
+    return stvec;
+}
+
+// Return from trap (SRET instruction)
+fn trap_ret(base_idx: u32) -> u32 {
+    let epc = cpu_states[base_idx + CSR_SEPC];
+    let sstatus = cpu_states[base_idx + CSR_SSTATUS];
+    let spie = (sstatus >> 5u) & 1u;  
+    let spp = (sstatus >> 8u) & 1u;   
+
+    var new_sstatus = sstatus;
+    if (spie == 1u) {
+        new_sstatus = new_sstatus | SSTATUS_SIE;
+    } else {
+        new_sstatus = new_sstatus & ~SSTATUS_SIE;
+    }
+    new_sstatus = new_sstatus & ~SSTATUS_SPIE;  
+    cpu_states[base_idx + CSR_SSTATUS] = new_sstatus;
+
+    cpu_states[base_idx + CSR_MODE] = spp;
+    return epc;
+}
+
+// --- INTERRUPT CHECKING ---
+fn check_timer_interrupt(base_idx: u32) -> bool {
+    let sstatus = cpu_states[base_idx + CSR_SSTATUS];
+    let mode = cpu_states[base_idx + CSR_MODE];
+    if (mode == 1u && (sstatus & SSTATUS_SIE) == 0u) { return false; }
+    let sie = cpu_states[base_idx + CSR_SIE];
+    if ((sie & SIE_STIE) == 0u) { return false; }
+    let sip = cpu_states[base_idx + CSR_SIP];
+    if ((sip & SIP_STIP) == 0u) { return false; }
+    return true;
+}
+
+fn take_timer_interrupt(base_idx: u32, pc: u32) -> u32 {
+    let sip = cpu_states[base_idx + CSR_SIP];
+    cpu_states[base_idx + CSR_SIP] = sip & ~SIP_STIP;
+    return trap_enter(base_idx, CAUSE_S_TIMER_INT, 0u, pc);
+}
+
+// --- MMU: Sv32 PAGE TABLE WALKER ---
+fn translate_address(vaddr: u32, is_write: u32, base_idx: u32) -> u32 {
+    let satp = cpu_states[base_idx + CSR_SATP];
+    let satp_mode = (satp >> 31u) & 1u;
+    if (satp_mode == 0u) { return vaddr; }
+
+    let vpn1 = (vaddr >> 22u) & 0x3FFu;   
+    let vpn0 = (vaddr >> 12u) & 0x3FFu;   
+    let offset = vaddr & 0xFFFu;            
+
+    let ppn_root = satp & 0x3FFFFFu;
+    let pte1_addr = (ppn_root * 4096u) + (vpn1 * 4u);
+    if (pte1_addr >= 134217728u) { return 0xFFFFFFFFu; }
+
+    let pte1 = system_memory[pte1_addr / 4u];
+    let pte1_v = pte1 & 1u;
+    if (pte1_v == 0u) { return 0xFFFFFFFFu; }
+
+    let pte1_xwr = (pte1 >> 1u) & 0x7u;
+    if (pte1_xwr != 0u) {
+        let ppn1 = (pte1 >> 10u) & 0xFFFFFu;
+        return (ppn1 << 22u) | (vpn0 << 12u) | offset;
+    }
+
+    let ppn1_from_pte1 = (pte1 >> 10u) & 0x3FFFFFu;
+    let pte0_addr = (ppn1_from_pte1 * 4096u) + (vpn0 * 4u);
+    if (pte0_addr >= 134217728u) { return 0xFFFFFFFFu; }
+
+    let pte0 = system_memory[pte0_addr / 4u];
+    let pte0_v = pte0 & 1u;
+    if (pte0_v == 0u) { return 0xFFFFFFFFu; }
+
+    let pte0_w = (pte0 >> 2u) & 1u;
+    if (is_write == 1u && pte0_w == 0u) { return 0xFFFFFFFFu; }
+
+    let ppn0 = (pte0 >> 10u) & 0xFFFFFu;
+    return (ppn0 << 12u) | offset;
+}
+
+// --- MMIO INPUT POLLING ---
+fn poll_input(base_idx: u32) -> bool {
+    let status_addr = (MMIO_INPUT_BASE + MMIO_INPUT_STATUS) / 4u;
+    if (status_addr >= arrayLength(&system_memory)) { return false; }
+    let status = system_memory[status_addr];
+    if ((status & 1u) == 0u) { return false; }
+
+    let type_addr = (MMIO_INPUT_BASE + MMIO_INPUT_TYPE) / 4u;
+    let input_type = system_memory[type_addr];
+
+    if (input_type == INPUT_TYPE_KEYBOARD) {
+        let key_addr = (MMIO_INPUT_BASE + MMIO_INPUT_KEY) / 4u;
+        let flags_addr = (MMIO_INPUT_BASE + MMIO_INPUT_FLAGS) / 4u;
+        let key_code = system_memory[key_addr];
+        let flags = system_memory[flags_addr];
+        let kb_buf_addr = 0x02100000u / 4u;
+        if (kb_buf_addr < arrayLength(&system_memory)) {
+            system_memory[kb_buf_addr] = key_code | (flags << 16u);
+        }
+    } else if (input_type == INPUT_TYPE_MOUSE) {
+        let x_addr = (MMIO_INPUT_BASE + MMIO_INPUT_X) / 4u;
+        let y_addr = (MMIO_INPUT_BASE + MMIO_INPUT_Y) / 4u;
+        let flags_addr = (MMIO_INPUT_BASE + MMIO_INPUT_FLAGS) / 4u;
+        let mouse_x = system_memory[x_addr];
+        let mouse_y = system_memory[y_addr];
+        let flags = system_memory[flags_addr];
+        let mouse_buf_addr = 0x02200000u / 4u;
+        if (mouse_buf_addr + 2u < arrayLength(&system_memory)) {
+            system_memory[mouse_buf_addr] = mouse_x;
+            system_memory[mouse_buf_addr + 1u] = mouse_y;
+            system_memory[mouse_buf_addr + 2u] = flags;
+        }
+    }
+    system_memory[status_addr] = status & ~1u;
+    return true;
+}
+
+// --- COMPUTE KERNEL ---
+
+@compute @workgroup_size(64)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+    let core_id = global_id.x;
+    let base_idx = core_id * REGS_PER_CORE;
+    
+    for (var step = 0u; step < 100u; step++) {
+        let halted = cpu_states[base_idx + CSR_HALT];
+        if (halted > 0u) { break; }
+
+        let sbi_flag = system_memory[SBI_BRIDGE_FLAG / 4u];
+        if (sbi_flag != 0u) { break; }
+
+        if (core_id == 0u) { poll_input(base_idx); }
+
+        var pc = cpu_states[base_idx + 32u];
+
+        if (check_timer_interrupt(base_idx)) {
+            pc = take_timer_interrupt(base_idx, pc);
+            cpu_states[base_idx + 32u] = pc;
+            break; 
+        }
+
+        let inst = expanded_code[pc];
+        let opcode = get_opcode(inst);
+        let rd = get_rd(inst);
+        let funct3 = get_funct3(inst);
+        let rs1 = get_rs1(inst);
+        let rs2 = get_rs2(inst);
+        
+        var pc_changed = false;
+        var trap_triggered = false;
+
+        switch (opcode) {
+            case 0x13u: { 
+                if (funct3 == 0u) { 
+                    let imm = i32(inst) >> 20u;
+                    let val1 = i32(cpu_states[base_idx + rs1]);
+                    if (rd != 0u) { cpu_states[base_idx + rd] = u32(val1 + imm); }
+                }
+            }
+            case 0x33u: { 
+                let val1 = i32(cpu_states[base_idx + rs1]);
+                let val2 = i32(cpu_states[base_idx + rs2]);
+                let funct7 = (inst >> 25u) & 0x7Fu;
+                if (funct7 == 0x01u) {
+                    if (funct3 == 0u) { if (rd != 0u) { cpu_states[base_idx + rd] = u32(val1 * val2); } }
+                    else if (funct3 == 4u) { if (val2 != 0 && rd != 0u) { cpu_states[base_idx + rd] = u32(val1 / val2); } }
+                } else if (funct3 == 0u) {
+                    if (funct7 == 0x00u) { if (rd != 0u) { cpu_states[base_idx + rd] = u32(val1 + val2); } }
+                    else if (funct7 == 0x20u) { if (rd != 0u) { cpu_states[base_idx + rd] = u32(val1 - val2); } }
+                }
+            }
+            case 0x6Fu: { // JAL
+                let imm = ( (inst >> 31u) << 20u ) | ( ((inst >> 12u) & 0xFFu) << 12u ) | ( ((inst >> 20u) & 1u) << 11u ) | ( ((inst >> 21u) & 0x3FFu) << 1u );
+                let offset = (i32(imm) << 11u) >> 11u; 
+                if (rd != 0u) { cpu_states[base_idx + rd] = pc + 1u; }
+                pc = u32(i32(pc) + (offset / 4));
+                pc_changed = true;
+            }
+            case 0x67u: { // JALR
+                let imm = i32(inst) >> 20u; 
+                let val1 = i32(cpu_states[base_idx + rs1]);
+                let target = u32(val1 + imm) & ~1u;
+                if (rd != 0u) { cpu_states[base_idx + rd] = pc + 1u; }
+                pc = target / 4u;
+                pc_changed = true;
+            }
+            case 0x63u: { 
+                let val1 = cpu_states[base_idx + rs1];
+                let val2 = cpu_states[base_idx + rs2];
+                var branch = false;
+                if (funct3 == 0u) { branch = (val1 == val2); }
+                else if (funct3 == 1u) { branch = (val1 != val2); }
+                if (branch) {
+                    let imm = ( (inst >> 31u) << 12u ) | ( ((inst >> 7u) & 1u) << 11u ) | ( ((inst >> 25u) & 0x3Fu) << 5u ) | ( ((inst >> 8u) & 0xFu) << 1u );
+                    let offset = (i32(imm) << 19u) >> 19u; 
+                    pc = u32(i32(pc) + (offset / 4));
+                    pc_changed = true;
+                }
+            }
+            case 0x03u: { 
+                if (funct3 == 0x2u) { 
+                     let offset = i32(inst) >> 20u;
+                     let val1 = i32(cpu_states[base_idx + rs1]);
+                     let vaddr = u32(val1 + offset);
+                     let paddr = translate_address(vaddr, 0u, base_idx);
+                     if (paddr == 0xFFFFFFFFu) { pc = trap_enter(base_idx, CAUSE_LOAD_PAGE_FAULT, vaddr, pc); trap_triggered = true; }
+                     else if (paddr < 134217728u) { if (rd != 0u) { cpu_states[base_idx + rd] = system_memory[paddr / 4u]; } }
+                }
+            }
+            case 0x23u: { 
+                if (funct3 == 0x2u) { 
+                     let imm_s = ((inst >> 25u) & 0x7Fu) << 5u | ((inst >> 7u) & 0x1Fu);
+                     let offset_s = (i32(imm_s) << 20u) >> 20u;
+                     let val1 = i32(cpu_states[base_idx + rs1]);
+                     let val2 = i32(cpu_states[base_idx + rs2]);
+                     let vaddr = u32(val1 + offset_s);
+                     let paddr = translate_address(vaddr, 1u, base_idx);
+                     if (paddr == 0xFFFFFFFFu) { pc = trap_enter(base_idx, CAUSE_STORE_PAGE_FAULT, vaddr, pc); trap_triggered = true; }
+                     else if (paddr < 134217728u) {
+                         system_memory[paddr / 4u] = val2;
+                         if (paddr == UART_BASE) {
+                             let char_byte = val2 & 0xFFu;
+                             let head = system_memory[UART_FIFO_PTR / 4u];
+                             system_memory[(UART_FIFO_BASE / 4u) + (head % 256u)] = char_byte;
+                             system_memory[UART_FIFO_PTR / 4u] = head + 1u;
+                         }
+                     }
+                }
+            }
+            case 0x73u: { 
+                let funct3_sys = (inst >> 12u) & 0x7u;
+                let funct7_sys = (inst >> 25u) & 0x7Fu;
+                if (funct7_sys == 0x30u) { pc = trap_ret(base_idx); pc_changed = true; }
+                else if (funct3_sys == 0u) {
+                    let eid = cpu_states[base_idx + 17u]; 
+                    let fid = cpu_states[base_idx + 16u]; 
+                    system_memory[SBI_BRIDGE_EID / 4u] = eid;
+                    system_memory[SBI_BRIDGE_FID / 4u] = fid;
+                    system_memory[(SBI_BRIDGE_ARGS + 0u) / 4u] = cpu_states[base_idx + 10u];
+                    system_memory[(SBI_BRIDGE_ARGS + 4u) / 4u] = cpu_states[base_idx + 11u];
+                    system_memory[(SBI_BRIDGE_ARGS + 8u) / 4u] = cpu_states[base_idx + 12u];
+                    system_memory[(SBI_BRIDGE_ARGS + 12u) / 4u] = cpu_states[base_idx + 13u];
+                    system_memory[(SBI_BRIDGE_ARGS + 16u) / 4u] = cpu_states[base_idx + 14u];
+                    system_memory[(SBI_BRIDGE_ARGS + 20u) / 4u] = cpu_states[base_idx + 15u];
+                    system_memory[SBI_BRIDGE_FLAG / 4u] = 1u;
+                    let priv = cpu_states[base_idx + CSR_MODE];
+                    pc = trap_enter(base_idx, select(CAUSE_ECALL_S, CAUSE_ECALL_U, priv == 0u), eid, pc);
+                    trap_triggered = true;
+                } else if (funct3_sys == 1u) { 
+                    let csr_idx = _get_csr_index(inst >> 20u);
+                    if (csr_idx < 255u) {
+                        let old = cpu_states[base_idx + csr_idx];
+                        if (rd != 0u) { cpu_states[base_idx + rd] = old; }
+                        cpu_states[base_idx + csr_idx] = cpu_states[base_idx + rs1];
+                    }
+                }
+            }
+            case 0x2Fu: { trap_triggered = true; }
+            default: { pc = trap_enter(base_idx, CAUSE_ILLEGAL_INST, inst, pc); trap_triggered = true; }
+        }
+
+        if (!pc_changed && !trap_triggered) { cpu_states[base_idx + 32u] = pc + 1u; }
+        else { cpu_states[base_idx + 32u] = pc; }
+        if (trap_triggered || pc_changed) { break; }
+    }
+}

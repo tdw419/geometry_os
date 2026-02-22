@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DebugOverlays Test Runner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #00ff00;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #16213e;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #00ff00;
+            color: #1a1a2e;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button.running {
+            background: #00ff00;
+            color: #1a1a2e;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .test-section {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .test-section h2 {
+            color: #00ff00;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .test-output {
+            background: #0f0f1a;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .test-output .success {
+            color: #00ff00;
+        }
+
+        .test-output .error {
+            color: #ff4444;
+        }
+
+        .test-output .warning {
+            color: #ffaa00;
+        }
+
+        .test-output .info {
+            color: #00aaff;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: #0f0f1a;
+            border-radius: 4px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-card .label {
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .value {
+            color: #00ff00;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .keyboard-shortcuts {
+            background: #0f0f1a;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .keyboard-shortcuts h3 {
+            color: #ffaa00;
+            margin-bottom: 10px;
+        }
+
+        .keyboard-shortcuts ul {
+            list-style: none;
+            color: #888;
+        }
+
+        .keyboard-shortcuts li {
+            padding: 5px 0;
+        }
+
+        .keyboard-shortcuts kbd {
+            background: #333;
+            padding: 2px 8px;
+            border-radius: 3px;
+            color: #fff;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>DebugOverlays Test Runner</h1>
+        <p class="subtitle">Phase 47: Tectonic Saccadic Optimization - Visual Debugging Tools</p>
+
+        <div class="test-controls">
+            <button id="runAllBtn">Run All Tests</button>
+            <button id="clearBtn">Clear Output</button>
+        </div>
+
+        <div class="test-section">
+            <h2>Test Output</h2>
+            <div id="testOutput" class="test-output">
+                <div class="info">Ready to run tests...</div>
+            </div>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="label">Tests Run</div>
+                <div class="value" id="testsRun">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Passed</div>
+                <div class="value" id="testsPassed">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Failed</div>
+                <div class="value" id="testsFailed">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Duration</div>
+                <div class="value" id="testDuration">0ms</div>
+            </div>
+        </div>
+
+        <div class="keyboard-shortcuts">
+            <h3>Debug Overlay Keyboard Shortcuts</h3>
+            <ul>
+                <li><kbd>Alt</kbd> + <kbd>S</kbd> - Toggle Saccade Path</li>
+                <li><kbd>Alt</kbd> + <kbd>L</kbd> - Toggle LOD Heatmap</li>
+                <li><kbd>Alt</kbd> + <kbd>P</kbd> - Toggle Prefetch Display</li>
+                <li><kbd>Alt</kbd> + <kbd>A</kbd> - Toggle Attention Heatmap</li>
+                <li><kbd>Alt</kbd> + <kbd>F</kbd> - Toggle Performance Stats</li>
+                <li><kbd>Alt</kbd> + <kbd>D</kbd> - Toggle All Overlays</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Load Dependencies -->
+    <script src="../saccadic_controller.js"></script>
+    <script src="../smooth_lod_transition.js"></script>
+    <script src="../lod_system.js"></script>
+    <script src="../predictive_prefetcher.js"></script>
+    <script src="../focus_tracker.js"></script>
+    <script src="../debug_overlays.js"></script>
+
+    <!-- Test Framework -->
+    <script>
+        class TestCase {
+            constructor(name, options = {}) {
+                this.name = name;
+                this.options = {
+                    timeout: 5000,
+                    ...options
+                };
+            }
+
+            async execute() {
+                throw new Error('TestCase.execute() must be implemented');
+            }
+
+            async run() {
+                const startTime = performance.now();
+                try {
+                    await Promise.race([
+                        this.execute(),
+                        new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error('Test timeout')), this.options.timeout)
+                        )
+                    ]);
+                    const duration = performance.now() - startTime;
+                    return { passed: true, duration, error: null };
+                } catch (error) {
+                    const duration = performance.now() - startTime;
+                    return { passed: false, duration, error: error.message || String(error) };
+                }
+            }
+        }
+
+        class TestRunner {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+            }
+
+            add(test) {
+                this.tests.push(test);
+            }
+
+            async runAll(onProgress) {
+                this.results = [];
+                const startTime = performance.now();
+
+                for (const test of this.tests) {
+                    if (onProgress) onProgress(test.name);
+                    const result = await test.run();
+                    result.name = test.name;
+                    this.results.push(result);
+                }
+
+                const duration = performance.now() - startTime;
+                return {
+                    results: this.results,
+                    duration,
+                    passed: this.results.filter(r => r.passed).length,
+                    failed: this.results.filter(r => !r.passed).length
+                };
+            }
+        }
+    </script>
+
+    <!-- DebugOverlays Tests -->
+    <script src="test_debug_overlays.js"></script>
+
+    <!-- Main Script -->
+    <script>
+        const testOutput = document.getElementById('testOutput');
+        const runAllBtn = document.getElementById('runAllBtn');
+        const clearBtn = document.getElementById('clearBtn');
+
+        function log(message, type = 'info') {
+            const line = document.createElement('div');
+            line.className = type;
+            line.textContent = message;
+            testOutput.appendChild(line);
+            testOutput.scrollTop = testOutput.scrollHeight;
+        }
+
+        function clearOutput() {
+            testOutput.innerHTML = '<div class="info">Ready to run tests...</div>';
+        }
+
+        function updateStats(summary) {
+            document.getElementById('testsRun').textContent = summary.results.length;
+            document.getElementById('testsPassed').textContent = summary.passed;
+            document.getElementById('testsFailed').textContent = summary.failed;
+            document.getElementById('testDuration').textContent = Math.round(summary.duration) + 'ms';
+        }
+
+        async function runTests() {
+            clearOutput();
+            runAllBtn.disabled = true;
+            runAllBtn.classList.add('running');
+
+            const runner = new TestRunner();
+            const testSuite = new DebugOverlaysTests();
+
+            // Get all test methods
+            const testMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(testSuite))
+                .filter(name => name.startsWith('test') && typeof testSuite[name] === 'method');
+
+            log('Starting DebugOverlays tests...', 'info');
+            log('='.repeat(50), 'info');
+
+            const startTime = performance.now();
+
+            // Run each test
+            const tests = [
+                { name: 'Initialization', fn: () => testSuite.testInitialization() },
+                { name: 'Canvas Creation', fn: () => testSuite.testCanvasCreation() },
+                { name: 'Keyboard Shortcuts', fn: () => testSuite.testKeyboardShortcuts() },
+                { name: 'Toggle Functionality', fn: () => testSuite.testToggleFunctionality() },
+                { name: 'Saccade Path Visualization', fn: () => testSuite.testSaccadePathVisualization() },
+                { name: 'LOD Heatmap', fn: () => testSuite.testLodHeatmap() },
+                { name: 'Prefetch Display', fn: () => testSuite.testPrefetchDisplay() },
+                { name: 'Attention Heatmap', fn: () => testSuite.testAttentionHeatmap() },
+                { name: 'Performance Impact', fn: () => testSuite.testPerformanceImpact() },
+                { name: 'Data Export', fn: () => testSuite.testDataExport() },
+                { name: 'Module Integration', fn: () => testSuite.testModuleIntegration() },
+                { name: 'Cleanup', fn: () => testSuite.testCleanup() }
+            ];
+
+            let passed = 0;
+            let failed = 0;
+
+            for (const test of tests) {
+                log(`Running: ${test.name}...`, 'info');
+                const testStartTime = performance.now();
+
+                try {
+                    await test.fn();
+                    const duration = performance.now() - testStartTime;
+                    log(`  ✓ ${test.name} (${duration.toFixed(2)}ms)`, 'success');
+                    passed++;
+                } catch (error) {
+                    const duration = performance.now() - testStartTime;
+                    log(`  ✗ ${test.name}: ${error.message}`, 'error');
+                    failed++;
+                }
+            }
+
+            const duration = performance.now() - startTime;
+
+            log('='.repeat(50), 'info');
+            log(`Tests complete: ${passed} passed, ${failed} failed in ${duration.toFixed(2)}ms`,
+                failed === 0 ? 'success' : 'error');
+
+            updateStats({ results: tests, passed, failed, duration });
+
+            runAllBtn.disabled = false;
+            runAllBtn.classList.remove('running');
+        }
+
+        runAllBtn.addEventListener('click', runTests);
+        clearBtn.addEventListener('click', clearOutput);
+
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            log('DebugOverlays Test Runner loaded', 'info');
+            log('Press "Run All Tests" to start', 'info');
+        });
+    </script>
+</body>
+</html>

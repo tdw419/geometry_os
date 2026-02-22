@@ -1,0 +1,10 @@
+{
+  "task_id": "task-6",
+  "type": "implement",
+  "source": "",
+  "intent": "RPO: Recovery Point Objective, max acceptable data loss",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}

@@ -1,0 +1,13 @@
+{
+    "task_id": "full-linux-crystallization",
+    "type": "crystallize_system",
+    "source": "/",
+    "paths": [
+        "/bin",
+        "/etc",
+        "/usr/bin"
+    ],
+    "max_files_per_path": 10,
+    "texture_size": 256,
+    "ai_model": "glm-4.7-flash"
+}

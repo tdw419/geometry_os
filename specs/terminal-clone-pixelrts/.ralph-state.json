@@ -1,0 +1,16 @@
+{
+  "source": "spec",
+  "name": "terminal-clone-pixelrts",
+  "basePath": "specs/terminal-clone-pixelrts",
+  "phase": "complete",
+  "taskIndex": 6,
+  "totalTasks": 6,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "awaitingApproval": false,
+  "completedAt": "2026-02-20T20:00:00Z",
+  "testCount": 42,
+  "testStatus": "all passing"
+}

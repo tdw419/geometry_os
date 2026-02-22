@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission Control Health Dashboard - Test Runner</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: #00ffcc; margin-bottom: 10px; }
+        .subtitle { color: #666; margin-bottom: 30px; }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            background: #16213e;
+            color: #00ffcc;
+            border: 1px solid #00ffcc;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        button:hover { background: #00ffcc; color: #1a1a2e; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        #results {
+            background: #0f0f1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            min-height: 400px;
+            overflow-x: auto;
+        }
+        .pass { color: #00ff00; }
+        .fail { color: #ff4444; }
+        .warn { color: #ffcc00; }
+        .info { color: #00ffcc; }
+        .header { color: #00ffcc; font-weight: bold; }
+        .dashboard-preview {
+            margin-top: 20px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        #health-dashboard-container {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 Mission Control Health Dashboard</h1>
+        <p class="subtitle">Test Runner for WordPress-Map Integration</p>
+
+        <div class="controls">
+            <button onclick="runUnitTests()">Run Unit Tests</button>
+            <button onclick="runFunctionalTests()">Run Functional Tests</button>
+            <button onclick="runStressTests()">Run Stress Tests</button>
+            <button onclick="runResilienceTests()">Run Resilience Tests</button>
+            <button onclick="runAllTests()" style="background: #00ffcc; color: #1a1a2e;">Run All (12 Tests)</button>
+        </div>
+
+        <div id="results">Click a button above to run tests...</div>
+
+        <div class="dashboard-preview">
+            <h3 style="color: #00ffcc; margin-bottom: 10px;">Dashboard Preview</h3>
+            <div id="health-dashboard-container"></div>
+        </div>
+    </div>
+
+    <!-- Load test dependencies -->
+    <script src="../MetricsCollector.js"></script>
+    <script src="../SystemHealthDashboard.js"></script>
+    <script src="test_metrics_collector.js"></script>
+    <script src="test_system_health_dashboard.js"></script>
+    <script src="verification_wp_integration.js"></script>
+    <script src="stress_test_wp_bridge.js"></script>
+    <script src="resilience_test_wp_bridge.js"></script>
+    <script src="run_all_wp_tests.js"></script>
+
+    <script>
+        const resultsEl = document.getElementById('results: { resultsEl.textContent = message; }
+        function log(message, className = '') {
+            const span = document.createElement('span');
+            span.className = className;
+            span.textContent = message + '\n';
+            resultsEl.appendChild(span);
+        }
+        function clear() { resultsEl.innerHTML = ''; }
+
+        // Mock geometryOS for standalone testing
+        window.geometryOS = {
+            tileRegistry: new Map(),
+            registerTile: function(id, data) {
+                this.tileRegistry.set(id, data);
+                window.dispatchEvent(new CustomEvent('geometryOS:registryUpdate', {
+                    detail: { tileId: id, data: data }
+                }));
+            },
+            unregisterTile: function(id) {
+                this.tileRegistry.delete(id);
+            },
+            sendCommand: function(tileId, cmd) {
+                // Simulate command echo
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('geometryOS:consoleOutput', {
+                        detail: { tileId: tileId, text: cmd }
+                    }));
+                }, 10);
+            },
+            broadcastCommand: function(cmd) {
+                let count = 0;
+                this.tileRegistry.forEach((data, id) => {
+                    if (data.state === 'running') {
+                        count++;
+                        this.sendCommand(id, cmd);
+                    }
+                });
+                return count;
+            },
+            getConsoleOutput: function(tileId, lines) {
+                return [`Mock output for ${tileId}`];
+            },
+            metrics: null // Will be set below
+        };
+
+        // Initialize metrics
+        window.geometryOSMetrics = new MetricsCollector();
+        window.geometryOS.metrics = window.geometryOSMetrics;
+
+        // Initialize dashboard preview
+        const dashboardContainer = document.getElementById('health-dashboard-container');
+        const previewDashboard = new SystemHealthDashboard(dashboardContainer);
+
+        // Simulate some metrics
+        window.geometryOSMetrics.setTileCount(5);
+        window.geometryOSMetrics.recordSync();
+        window.geometryOSMetrics.recordLatency(42);
+
+        async function runUnitTests() {
+            clear();
+            log('════════════════════════════════════════════════════════════', 'header');
+            log('UNIT TESTS', 'header');
+            log('════════════════════════════════════════════════════════════', 'header');
+            log('');
+
+            if (typeof MetricsCollectorTester !== 'undefined') {
+                log('--- MetricsCollector Tests ---', 'info');
+                const tester = new MetricsCollectorTester();
+                await tester.runAll();
+            } else {
+                log('MetricsCollectorTester not loaded', 'warn');
+            }
+
+            log('');
+            if (typeof SystemHealthDashboardTester !== 'undefined') {
+                log('--- SystemHealthDashboard Tests ---', 'info');
+                const tester = new SystemHealthDashboardTester();
+                await tester.runAll();
+            } else {
+                log('SystemHealthDashboardTester not loaded', 'warn');
+            }
+        }
+
+        async function runFunctionalTests() {
+            clear();
+            log('════════════════════════════════════════════════════════════', 'header');
+            log('FUNCTIONAL TESTS (Golden Paths)', 'header');
+            log('════════════════════════════════════════════════════════════', 'header');
+            log('');
+
+            if (typeof WPIntegrationVerifier !== 'undefined') {
+                const verifier = new WPIntegrationVerifier();
+                await verifier.runAll();
+            } else {
+                log('WPIntegrationVerifier not loaded', 'warn');
+            }
+        }
+
+        async function runStressTests() {
+            clear();
+            log('════════════════════════════════════════════════════════════', 'header');
+            log('STRESS TESTS', 'header');
+            log('════════════════════════════════════════════════════════════', 'header');
+            log('');
+
+            if (typeof WPBridgeStressTester !== 'undefined') {
+                const tester = new WPBridgeStressTester();
+                await tester.runStressTests();
+            } else {
+                log('WPBridgeStressTester not loaded', 'warn');
+            }
+        }
+
+        async function runResilienceTests() {
+            clear();
+            log('════════════════════════════════════════════════════════════', 'header');
+            log('RESILIENCE TESTS', 'header');
+            log('════════════════════════════════════════════════════════════', 'header');
+            log('');
+
+            if (typeof WPBridgeResilienceTester !== 'undefined') {
+                const tester = new WPBridgeResilienceTester();
+                await tester.runResilienceTests();
+            } else {
+                log('WPBridgeResilienceTester not loaded', 'warn');
+            }
+        }
+
+        async function runAllTests() {
+            clear();
+            if (typeof WPUnifiedTestRunner !== 'undefined') {
+                const runner = new WPUnifiedTestRunner();
+                await runner.runAll();
+            } else {
+                log('WPUnifiedTestRunner not loaded - running tests sequentially', 'warn');
+                await runFunctionalTests();
+                await runStressTests();
+                await runResilienceTests();
+            }
+        }
+
+        // Log ready status
+        console.log('%c🏥 Mission Control Health Test Runner Ready', 'color: #00ffcc; font-weight: bold;');
+        console.log('Available functions: runUnitTests(), runFunctionalTests(), runStressTests(), runResilienceTests(), runAllTests()');
+    </script>
+</body>
+</html>

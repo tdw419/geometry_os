@@ -1,0 +1,212 @@
+# Neural IDE Builder Team Configuration
+#
+# Team for implementing Phase J.2: Neural IDE - Complex app in Visual Builder
+# Tasks 3-7: WGSL Renderer, Semantic Overlay, AI Assembly, Cartridge Export, Tests
+
+name: neural-ide-builder
+description: |
+  Agent team for Neural IDE Visual Builder implementation.
+
+  Goal: Build complete Neural IDE with WGSL-rendered tiles, semantic overlay,
+  AI assembly engine, and cartridge export.
+
+  Architecture:
+  - IDETileRenderer with 6 WGSL shaders
+  - IDESemanticOverlay for state tracking
+  - IDEAssemblyEngine for programmatic construction
+  - Cartridge export/import for portability
+  - Integration tests for quality assurance
+
+  Implementation Plan: docs/plans/2026-02-14-neural-ide-impl.md
+  Roadmap: ai_project_management/roadmaps/neural-ide-roadmap.md
+
+selection_policy: best_fit
+scaling_policy: fixed
+failure_policy: failover
+
+max_retries: 3
+retry_delay: 5.0
+
+enable_event_bus: true
+enable_health_monitoring: true
+health_check_interval: 30.0
+
+max_concurrent_tasks: 5
+task_timeout: 300.0
+
+metadata:
+  project: geometry-os
+  phase: J.2
+  goal: neural-ide-visual-builder
+  plan: docs/plans/2026-02-14-neural-ide-impl.md
+  roadmap: ai_project_management/roadmaps/neural-ide-roadmap.md
+
+agents:
+  # ============================================
+  # ORCHESTRATOR - Team coordination
+  # ============================================
+  - agent_id: ide-orchestrator
+    name: Neural IDE Orchestrator
+    agent_type: orchestrator
+    capabilities:
+      - orchestration
+      - plan_execution
+      - tdd_workflow
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 100
+    metadata:
+      role: Coordinate task execution per implementation plan
+      focuses:
+        - TDD workflow (test first, then implement)
+        - Sequential task execution (3→4→5→6→7)
+        - Commit checkpoints
+        - Integration verification
+      plan_file: docs/plans/2026-02-14-neural-ide-impl.md
+
+  # ============================================
+  # JAVASCRIPT SPECIALIST - Core classes
+  # ============================================
+  - agent_id: js-specialist
+    name: JavaScript Frontend Specialist
+    agent_type: specialist
+    capabilities:
+      - javascript
+      - es6
+      - pixijs
+      - code_generation
+      - testing
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 95
+    metadata:
+      role: JavaScript class implementation (Renderer, Overlay, Engine)
+      focuses:
+        - IDETileRenderer class with LOD support
+        - IDESemanticOverlay with query interface
+        - IDEAssemblyEngine with validation
+        - HTML test runners
+      key_files:
+        - systems/visual_shell/web/ide_tile_renderer.js
+        - systems/visual_shell/web/ide_semantic_overlay.js
+        - systems/visual_shell/web/ide_assembly_engine.js
+
+  # ============================================
+  # WGSL SPECIALIST - Shader implementation
+  # ============================================
+  - agent_id: wgsl-specialist
+    name: WGSL Shader Specialist
+    agent_type: specialist
+    capabilities:
+      - wgsl
+      - webgpu
+      - gpu_compute
+      - shader_development
+    enabled: true
+    max_concurrent_tasks: 3
+    priority: 95
+    metadata:
+      role: WGSL shader implementation for all 6 IDE tile types
+      focuses:
+        - Code editor shader (syntax highlighting, cursor)
+        - File browser shader (tree structure, icons)
+        - Terminal shader (ANSI colors, scrollback)
+        - Placeholder shaders for debugger/output/nav
+      key_files:
+        - systems/visual_shell/web/shaders/ide_code_editor.wgsl
+        - systems/visual_shell/web/shaders/ide_file_browser.wgsl
+        - systems/visual_shell/web/shaders/ide_terminal.wgsl
+        - systems/visual_shell/web/shaders/ide_debugger.wgsl
+        - systems/visual_shell/web/shaders/ide_output_panel.wgsl
+        - systems/visual_shell/web/shaders/ide_semantic_nav.wgsl
+
+  # ============================================
+  # DEMO SPECIALIST - Scripted demo
+  # ============================================
+  - agent_id: demo-specialist
+    name: Demo & Integration Specialist
+    agent_type: specialist
+    capabilities:
+      - javascript
+      - html
+      - css
+      - demo_development
+      - testing
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 90
+    metadata:
+      role: Scripted demo and integration test suite
+      focuses:
+        - test_neural_ide_builder.html demo page
+        - 8-step assembly demo with controls
+        - Integration test module (IDEIntegrationTests)
+        - Performance benchmarks
+      key_files:
+        - systems/visual_shell/web/test_neural_ide_builder.html
+        - systems/visual_shell/web/test_ide_builder_integration.js
+        - systems/visual_shell/web/test_ide_integration.html
+
+# Task routing rules
+task_routing:
+  - pattern: "IDETileRenderer|ide_tile_renderer|LOD|tile_content"
+    assign_to: js-specialist
+
+  - pattern: "IDESemanticOverlay|semantic_overlay|queryDefinition|traceFlow"
+    assign_to: js-specialist
+
+  - pattern: "IDEAssemblyEngine|assembly_engine|placeIDETile|connectIDETiles"
+    assign_to: js-specialist
+
+  - pattern: "shader|wgsl|ide_code_editor.wgsl|ide_terminal.wgsl"
+    assign_to: wgsl-specialist
+
+  - pattern: "demo|test_neural_ide|integration_test|benchmark"
+    assign_to: demo-specialist
+
+  - pattern: "cartridge|exportCartridge|importCartridge"
+    assign_to: js-specialist
+
+# Task dependencies (from implementation plan)
+task_dependencies:
+  - task: "Task 3.2: Code Editor Shader"
+    depends_on: ["Task 3.1: IDETileRenderer Class"]
+
+  - task: "Task 3.3: Remaining Shaders"
+    depends_on: ["Task 3.2: Code Editor Shader"]
+
+  - task: "Task 4.1: Semantic Overlay"
+    depends_on: ["Task 3.1: IDETileRenderer Class"]
+
+  - task: "Task 5.1: Assembly Engine"
+    depends_on: ["Task 3.1: IDETileRenderer Class", "Task 4.1: Semantic Overlay"]
+
+  - task: "Task 5.2: Scripted Demo"
+    depends_on: ["Task 5.1: Assembly Engine"]
+
+  - task: "Task 6.1: Cartridge Export"
+    depends_on: ["Task 5.1: Assembly Engine"]
+
+  - task: "Task 7.1: Integration Tests"
+    depends_on: ["Task 5.2: Scripted Demo", "Task 6.1: Cartridge Export"]
+
+# Success criteria
+success_criteria:
+  - "IDETileRenderer with LOD support implemented"
+  - "All 6 WGSL shaders created and loadable"
+  - "IDESemanticOverlay with query interface working"
+  - "IDEAssemblyEngine can place/connect/export tiles"
+  - "Scripted demo runs all 8 steps successfully"
+  - "Cartridge export/import roundtrip works"
+  - "All 5 integration tests pass"
+  - "Performance: Full assembly in <5 seconds"
+
+# File locations for context
+key_directories:
+  - systems/visual_shell/web/
+  - systems/visual_shell/web/shaders/
+
+existing_files:
+  - systems/visual_shell/web/ide_tile_types.js
+  - systems/visual_shell/web/tile_connections.js
+  - systems/visual_shell/web/BuilderPanel.js

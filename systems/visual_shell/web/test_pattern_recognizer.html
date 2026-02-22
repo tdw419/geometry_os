@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatternRecognizer.js Test Suite</title>
+    <style>
+        body {
+            font-family: 'Monaco', 'Consolas', monospace;
+            background-color: #0a0a0a;
+            color: #00ff00;
+            margin: 20px;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #ff00ff;
+            border-bottom: 2px solid #ff00ff;
+            padding-bottom: 10px;
+        }
+
+        .test-section {
+            background-color: #111;
+            border: 1px solid #333;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .test-section h2 {
+            color: #ffaa00;
+            margin-top: 0;
+        }
+
+        .success {
+            color: #00ff00;
+        }
+
+        .warning {
+            color: #ffaa00;
+        }
+
+        .error {
+            color: #ff0000;
+        }
+
+        .info {
+            color: #00aaff;
+        }
+
+        .summary {
+            background-color: #1a1a1a;
+            border: 2px solid #ff00ff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .summary h2 {
+            color: #ff00ff;
+            margin-top: 0;
+        }
+
+        button {
+            background-color: #ff00ff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #ff66ff;
+        }
+
+        #output {
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔮 PatternRecognizer.js Test Suite</h1>
+
+    <div>
+        <button onclick="runTests()">Run All Tests</button>
+        <button onclick="clearOutput()">Clear Output</button>
+    </div>
+
+    <div id="output"></div>
+
+    <script src="ExecutionTracer.js"></script>
+    <script src="PatternRecognizer.js"></script>
+    <script src="test_pattern_recognizer.js"></script>
+
+    <script>
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '';
+        }
+
+        function runTests() {
+            clearOutput();
+            const suite = new PatternRecognizerTestSuite();
+            suite.runAllTests();
+        }
+
+        // Override console methods to capture output
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const originalError = console.error;
+
+        function formatOutput(args) {
+            return args.map(arg => {
+                if (typeof arg === 'object') {
+                    return JSON.stringify(arg, null, 2);
+                }
+                return String(arg);
+            }).join(' ');
+        }
+
+        function appendOutput(args, className = '') {
+            const output = document.getElementById('output');
+            const line = document.createElement('div');
+            line.className = className;
+            line.textContent = formatOutput(args);
+            output.appendChild(line);
+        }
+
+        console.log = function (...args) {
+            originalLog.apply(console, args);
+            appendOutput(args, 'info');
+        };
+
+        console.warn = function (...args) {
+            originalWarn.apply(console, args);
+            appendOutput(args, 'warning');
+        };
+
+        console.error = function (...args) {
+            originalError.apply(console, args);
+            appendOutput(args, 'error');
+        };
+
+        // Auto-run on page load
+        window.addEventListener('load', () => {
+            console.log('✓ PatternRecognizer Test Suite loaded');
+            console.log('Click "Run All Tests" to begin testing\n');
+        });
+    </script>
+</body>
+
+</html>

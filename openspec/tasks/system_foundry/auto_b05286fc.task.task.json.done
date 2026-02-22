@@ -1,0 +1,7 @@
+{
+  "task_id": "auto-b05286fc",
+  "type": "analyze_system",
+  "source": "/home/jericho/zion/projects/geometry_os/geometry_os/openspec/changes/archive/2026-01-13-add-rust-rts-driver",
+  "intent": "Initialize Rust project `systems/rts_fuse/rts_rs`",
+  "auto_generated": true
+}

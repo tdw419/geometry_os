@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PixelRTS Catalog</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #1a1a2e;
+            color: #eaeaea;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: #16213e;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #0f3460;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            color: #e94560;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #e94560;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #d63850;
+        }
+
+        .btn-secondary {
+            background-color: #0f3460;
+            color: #eaeaea;
+        }
+
+        .btn-secondary:hover {
+            background-color: #1a4a7a;
+        }
+
+        main {
+            padding: 2rem;
+        }
+
+        .status-bar {
+            background-color: #16213e;
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        .status-bar .count {
+            color: #a0a0a0;
+        }
+
+        .status-bar .error {
+            color: #e94560;
+        }
+
+        .catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .catalog-entry {
+            background-color: #16213e;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: grab;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .catalog-entry:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .catalog-entry.dragging {
+            opacity: 0.5;
+            transform: scale(0.95);
+        }
+
+        .catalog-entry.drag-over {
+            border-color: #4ade80;
+            box-shadow: 0 0 20px rgba(74, 222, 128, 0.3);
+        }
+
+        .catalog-thumbnail {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: contain;
+            background-color: #0a0a14;
+            display: block;
+        }
+
+        .catalog-info {
+            padding: 1rem;
+        }
+
+        .catalog-name {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .catalog-metadata {
+            font-size: 0.8rem;
+            color: #a0a0a0;
+            margin-bottom: 0.75rem;
+        }
+
+        .catalog-metadata span {
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .vision-text {
+            color: #4ade80;
+            font-style: italic;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            margin-top: 0.5rem;
+        }
+
+        .tag {
+            background-color: #0f3460;
+            color: #4ade80;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            border: 1px solid #4ade80;
+        }
+
+        .boot-button {
+            width: 100%;
+            padding: 0.5rem;
+            background-color: #e94560;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .boot-button:hover {
+            background-color: #d63850;
+        }
+
+        .boot-button:disabled {
+            background-color: #4a4a4a;
+            cursor: not-allowed;
+        }
+
+        .boot-button.booting {
+            background-color: #0f3460;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #a0a0a0;
+        }
+
+        .empty-state h2 {
+            margin-bottom: 1rem;
+            color: #eaeaea;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+            color: #a0a0a0;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: 4px;
+            color: white;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(1rem);
+            transition: opacity 0.3s, transform 0.3s;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.success {
+            background-color: #22c55e;
+        }
+
+        .toast.error {
+            background-color: #e94560;
+        }
+
+        .toast.info {
+            background-color: #0f3460;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>PixelRTS Catalog</h1>
+        <div class="header-actions">
+            <button class="btn btn-secondary" id="refresh-btn">Refresh</button>
+        </div>
+    </header>
+
+    <main>
+        <div class="status-bar">
+            <span class="count" id="entry-count">Loading...</span>
+            <span class="error" id="error-message"></span>
+        </div>
+
+        <div class="catalog-grid" id="catalog-grid">
+            <div class="loading">Loading catalog...</div>
+        </div>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // Catalog state
+        let catalogEntries = [];
+        let gridDimensions = { width: 4, height: 4 };
+        let draggedEntry = null;
+
+        // DOM elements
+        const catalogGrid = document.getElementById('catalog-grid');
+        const entryCount = document.getElementById('entry-count');
+        const errorMessage = document.getElementById('error-message');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const toast = document.getElementById('toast');
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            toast.textContent = message;
+            toast.className = 'toast ' + type;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Load catalog from API
+        async function loadCatalog() {
+            try {
+                const response = await fetch('/api/v1/catalog');
+                if (!response.ok) {
+                    throw new Error('Failed to load catalog');
+                }
+                const data = await response.json();
+                catalogEntries = data.entries || [];
+                gridDimensions = data.grid_dimensions || { width: 4, height: 4 };
+                renderCatalog();
+                updateStatus();
+            } catch (error) {
+                console.error('Error loading catalog:', error);
+                catalogGrid.innerHTML = '<div class="empty-state"><h2>Error Loading Catalog</h2><p>' + error.message + '</p></div>';
+                showToast('Failed to load catalog', 'error');
+            }
+        }
+
+        // Render catalog entries
+        function renderCatalog() {
+            if (catalogEntries.length === 0) {
+                catalogGrid.innerHTML = '<div class="empty-state"><h2>No Entries Found</h2><p>Add .rts.png files to your watched directories</p></div>';
+                return;
+            }
+
+            catalogGrid.innerHTML = '';
+
+            catalogEntries.forEach(entry => {
+                const entryEl = document.createElement('div');
+                entryEl.className = 'catalog-entry';
+                entryEl.draggable = true;
+                entryEl.dataset.entryId = entry.id;
+
+                // Format size
+                const sizeMB = (entry.size / (1024 * 1024)).toFixed(1);
+
+                // Build thumbnail src
+                const thumbnailSrc = entry.thumbnail
+                    ? 'data:image/png;base64,' + entry.thumbnail
+                    : 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect fill="#1a1a2e" width="200" height="200"/><text fill="#666" x="100" y="100" text-anchor="middle" dominant-baseline="middle">No Preview</text></svg>');
+
+                entryEl.innerHTML = `
+                    <img class="catalog-thumbnail" src="${thumbnailSrc}" alt="${entry.name}" />
+                    <div class="catalog-info">
+                        <div class="catalog-name" title="${entry.name}">${entry.name}</div>
+                        <div class="catalog-metadata">
+                            <span>${sizeMB} MB</span>
+                            <span>${entry.distro || 'Unknown'} ${entry.architecture || ''}</span>
+                            <span>Kernel: ${entry.kernel_version || 'Unknown'}</span>
+                            ${entry.visual_description ? `<span class="vision-text" title="${entry.visual_description}">${entry.visual_description}</span>` : ''}
+                            ${entry.detected_objects && entry.detected_objects.length > 0 ? `<div class="tags">${entry.detected_objects.map(obj => `<span class="tag">${obj}</span>`).join('')}</div>` : ''}
+                        </div>
+                        <button class="boot-button" data-entry-id="${entry.id}">Boot</button>
+                    </div>
+                `;
+
+                // Drag events
+                entryEl.addEventListener('dragstart', handleDragStart);
+                entryEl.addEventListener('dragend', handleDragEnd);
+                entryEl.addEventListener('dragover', handleDragOver);
+                entryEl.addEventListener('dragleave', handleDragLeave);
+                entryEl.addEventListener('drop', handleDrop);
+
+                // Boot button click
+                const bootBtn = entryEl.querySelector('.boot-button');
+                bootBtn.addEventListener('click', () => bootEntry(entry.id));
+
+                catalogGrid.appendChild(entryEl);
+            });
+        }
+
+        // Update status bar
+        function updateStatus() {
+            entryCount.textContent = catalogEntries.length + ' entries';
+            errorMessage.textContent = '';
+        }
+
+        // Boot an entry
+        async function bootEntry(entryId) {
+            const entry = catalogEntries.find(e => e.id === entryId);
+            if (!entry) return;
+
+            const bootBtn = document.querySelector(`.boot-button[data-entry-id="${entryId}"]`);
+            if (!bootBtn) return;
+
+            bootBtn.disabled = true;
+            bootBtn.textContent = 'Booting...';
+            bootBtn.classList.add('booting');
+
+            try {
+                const response = await fetch(`/api/v1/catalog/${entryId}/boot`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        memory: '2G',
+                        cpus: 2
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(`${entry.name} booted successfully! VNC port: ${result.vnc_port || 'N/A'}`, 'success');
+                    bootBtn.textContent = 'Running';
+                } else {
+                    showToast(`Boot failed: ${result.error_message || 'Unknown error'}`, 'error');
+                    bootBtn.textContent = 'Boot';
+                    bootBtn.disabled = false;
+                    bootBtn.classList.remove('booting');
+                }
+            } catch (error) {
+                console.error('Boot error:', error);
+                showToast('Boot failed: ' + error.message, 'error');
+                bootBtn.textContent = 'Boot';
+                bootBtn.disabled = false;
+                bootBtn.classList.remove('booting');
+            }
+        }
+
+        // Drag-and-drop handlers
+        function handleDragStart(e) {
+            draggedEntry = e.target.closest('.catalog-entry');
+            if (!draggedEntry) return;
+
+            draggedEntry.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', draggedEntry.dataset.entryId);
+        }
+
+        function handleDragEnd(e) {
+            if (draggedEntry) {
+                draggedEntry.classList.remove('dragging');
+            }
+            draggedEntry = null;
+
+            // Remove all drag-over classes
+            document.querySelectorAll('.catalog-entry').forEach(el => {
+                el.classList.remove('drag-over');
+            });
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            const entry = e.target.closest('.catalog-entry');
+            if (entry && entry !== draggedEntry) {
+                entry.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            const entry = e.target.closest('.catalog-entry');
+            if (entry) {
+                entry.classList.remove('drag-over');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+
+            const targetEntry = e.target.closest('.catalog-entry');
+            if (!targetEntry || !draggedEntry || targetEntry === draggedEntry) return;
+
+            const draggedId = draggedEntry.dataset.entryId;
+            const targetId = targetEntry.dataset.entryId;
+
+            // Find entries
+            const draggedIndex = catalogEntries.findIndex(e => e.id === draggedId);
+            const targetIndex = catalogEntries.findIndex(e => e.id === targetId);
+
+            if (draggedIndex === -1 || targetIndex === -1) return;
+
+            // Swap positions in local array
+            const draggedPos = catalogEntries[draggedIndex].position;
+            const targetPos = catalogEntries[targetIndex].position;
+
+            catalogEntries[draggedIndex].position = targetPos;
+            catalogEntries[targetIndex].position = draggedPos;
+
+            // Update layout on server
+            updateLayout(draggedId, targetPos);
+
+            // Re-render
+            renderCatalog();
+
+            showToast('Layout updated', 'success');
+        }
+
+        // Update layout on server
+        async function updateLayout(entryId, newPosition) {
+            try {
+                await fetch('/api/v1/catalog/layout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        entry_id: entryId,
+                        new_position: newPosition
+                    })
+                });
+            } catch (error) {
+                console.error('Layout update error:', error);
+            }
+        }
+
+        // Refresh catalog
+        async function refreshCatalog() {
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = 'Refreshing...';
+
+            try {
+                const response = await fetch('/api/v1/catalog/refresh');
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    await loadCatalog();
+                } else {
+                    showToast('Refresh failed', 'error');
+                }
+            } catch (error) {
+                console.error('Refresh error:', error);
+                showToast('Refresh failed: ' + error.message, 'error');
+            } finally {
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = 'Refresh';
+            }
+        }
+
+        // Event listeners
+        refreshBtn.addEventListener('click', refreshCatalog);
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCatalog();
+
+            // Auto-refresh every 30 seconds
+            setInterval(loadCatalog, 30000);
+        });
+    </script>
+</body>
+</html>

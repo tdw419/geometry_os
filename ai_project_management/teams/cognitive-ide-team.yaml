@@ -1,0 +1,324 @@
+# Cognitive IDE Team Configuration
+#
+# This team builds the first Neural Application on the Geometry OS swarm:
+# a Collaborative Code Synthesizer where the Collective Consciousness
+# partitions coding tasks across specialized agents.
+
+name: cognitive-ide
+description: |
+  Agent team for Cognitive IDE implementation.
+
+  Goal: Build the first Neural Application - a Collaborative Code Synthesizer
+  where Researcher, Architect, Implementer, and Validator agents work together
+  via Collective Consciousness to write, test, and integrate code autonomously.
+
+  Swarm Foundation (All Complete):
+  - Production Hardening (Coordinator, Health, Scanner)
+  - Security Layer (Auth, Signing, Sandbox, Audit)
+  - Multi-Node Distribution (Cluster, Failover, Migration)
+  - Visual UI (Real-time Dashboard)
+  - Tectonic Optimization (Self-organizing Map)
+  - Collective Consciousness (Federated Reasoning)
+  - Map Restoration (Real-world Application)
+
+  Cognitive IDE Components:
+  - ResearcherAgent: Scan codebase, extract patterns
+  - ArchitectAgent: Design interfaces, structure
+  - ImplementerAgent: Write code from specs
+  - ValidatorAgent: Test, secure, verify
+  - CognitiveIDE Orchestrator: Coordinate workflow
+
+# Selection: Choose agent with best capability match
+selection_policy: best_fit
+
+# Fixed team size
+scaling_policy: fixed
+
+# Failover to another agent on failure
+failure_policy: failover
+
+# Retry configuration
+max_retries: 3
+retry_delay: 5.0
+
+# Team communication
+enable_event_bus: true
+enable_health_monitoring: true
+
+# Health monitoring
+health_check_interval: 30.0
+heartbeat_timeout: 120.0
+health_history_limit: 100
+
+# Team constraints
+max_concurrent_tasks: 4
+max_queue_size: 20
+task_timeout: 300.0
+
+# Team metadata
+metadata:
+  project: geometry-os
+  component: cognitive-ide
+  implementation_plan: docs/plans/2026-02-19-cognitive-ide.md
+  openspec_change: apps/openspec/openspec/changes/cognitive-ide/
+
+# Agent definitions
+agents:
+  # ============================================
+  # ORCHESTRATOR - IDE coordination
+  # ============================================
+  - agent_id: orchestrator
+    name: Cognitive IDE Orchestrator
+    agent_type: orchestrator
+    capabilities:
+      - orchestration
+      - monitoring
+      - task_execution
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 100
+    metadata:
+      role: IDE workflow coordination
+      focuses:
+        - Task decomposition
+        - Phase sequencing
+        - Consensus checkpoints
+        - Iteration handling
+
+  # ============================================
+  # RESEARCHER SPECIALIST - Codebase scanning
+  # ============================================
+  - agent_id: researcher-specialist
+    name: Researcher Agent Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - code_analysis
+      - pattern_recognition
+      - embeddings
+      - testing
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 95
+    metadata:
+      role: ResearcherAgent implementation
+      focuses:
+        - Code file scanning
+        - Pattern extraction
+        - Embedding generation
+        - ResearchReport creation
+      key_files:
+        - systems/visual_shell/swarm/ide/researcher_agent.py
+        - tests/system/test_researcher_agent.py
+
+  # ============================================
+  # ARCHITECT SPECIALIST - Code design
+  # ============================================
+  - agent_id: architect-specialist
+    name: Architect Agent Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - architecture
+      - design_patterns
+      - dependencies
+      - testing
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 90
+    metadata:
+      role: ArchitectAgent implementation
+      focuses:
+        - Attention maps
+        - Interface design
+        - File structure
+        - DesignSpec generation
+      key_files:
+        - systems/visual_shell/swarm/ide/architect_agent.py
+        - tests/system/test_architect_agent.py
+
+  # ============================================
+  # IMPLEMENTER SPECIALIST - Code writing
+  # ============================================
+  - agent_id: implementer-specialist
+    name: Implementer Agent Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - code_style
+      - multi_file
+      - testing
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 85
+    metadata:
+      role: ImplementerAgent implementation
+      focuses:
+        - Code generation
+        - Style matching
+        - Multi-file coordination
+        - CodeArtifact creation
+      key_files:
+        - systems/visual_shell/swarm/ide/implementer_agent.py
+        - tests/system/test_implementer_agent.py
+
+  # ============================================
+  # VALIDATOR SPECIALIST - Code verification
+  # ============================================
+  - agent_id: validator-specialist
+    name: Validator Agent Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - testing
+      - security
+      - linting
+      - coverage
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 80
+    metadata:
+      role: ValidatorAgent implementation
+      focuses:
+        - Test generation
+        - Test execution
+        - Security scanning
+        - ValidationReport
+      key_files:
+        - systems/visual_shell/swarm/ide/validator_agent.py
+        - tests/system/test_validator_agent.py
+
+  # ============================================
+  # IDE ORCHESTRATOR SPECIALIST - Workflow
+  # ============================================
+  - agent_id: ide-orchestrator-specialist
+    name: IDE Orchestrator Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - async_programming
+      - state_machines
+      - consensus
+      - testing
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 75
+    metadata:
+      role: CognitiveIDE orchestrator implementation
+      focuses:
+        - Task decomposition
+        - Phase sequencing
+        - Consensus checkpoints
+        - Iteration handling
+      key_files:
+        - systems/visual_shell/swarm/ide/cognitive_ide.py
+        - tests/system/test_cognitive_ide.py
+
+  # ============================================
+  # DASHBOARD SPECIALIST - Visualization
+  # ============================================
+  - agent_id: dashboard-specialist
+    name: IDE Dashboard Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - javascript
+      - html
+      - css
+      - visualization
+      - testing
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 70
+    metadata:
+      role: IDE dashboard integration
+      focuses:
+        - IDE status panel
+        - Agent activity viz
+        - Code diff preview
+        - Consensus progress
+      key_files:
+        - systems/visual_shell/web/js/swarm/IDEPanel.js
+        - systems/visual_shell/web/js/swarm/CodeDiff.js
+
+  # ============================================
+  # TEST ENGINEER - E2E testing
+  # ============================================
+  - agent_id: test-engineer
+    name: Test Engineer
+    agent_type: specialist
+    capabilities:
+      - testing
+      - integration_testing
+      - e2e_testing
+      - python
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 65
+    metadata:
+      role: IDE E2E testing
+      focuses:
+        - Full workflow tests
+        - "Add endpoint" scenario
+        - Quality verification
+        - Performance benchmarks
+      key_files:
+        - tests/system/test_cognitive_ide_e2e.py
+
+  # ============================================
+  # PERCEPTION SPECIALIST - Visual Ingestion
+  # ============================================
+  - agent_id: perception-specialist
+    name: Perception Agent Specialist
+    agent_type: specialist
+    capabilities:
+      - visual_extraction
+      - ocr
+      - semantic_clustering
+      - reverse_ui_engineering
+      - perception
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 85
+    metadata:
+      role: Visual Ingestion for Swarm
+      focuses:
+        - Screenshot analysis
+        - Widget detection
+        - Semantic grounding
+        - UI reverse engineering
+      key_files:
+        - systems/visual_shell/swarm/perception_agent.py
+        - tests/system/test_perception_agent.py
+
+# Task routing rules
+task_routing:
+  - pattern: "perception|visual.*extract|ocr|semantic.*cluster|screenshot.*analy|widget.*detect|ui.*reverse"
+    assign_to: perception-specialist
+  - pattern: "researcher|scan.*code|pattern.*extract|embedding.*code|research.*report"
+    assign_to: researcher-specialist
+  - pattern: "architect|design.*spec|interface.*design|attention.*map|file.*structure"
+    assign_to: architect-specialist
+  - pattern: "implementer|code.*generation|style.*match|code.*artifact|write.*code"
+    assign_to: implementer-specialist
+  - pattern: "validator|test.*generat|security.*scan|validation.*report|coverage"
+    assign_to: validator-specialist
+  - pattern: "cognitive.*ide.*orchestrat|phase.*sequenc|task.*decompos|consensus.*checkpoint"
+    assign_to: ide-orchestrator-specialist
+  - pattern: "dashboard|ide.*panel|code.*diff|progress.*indicator"
+    assign_to: dashboard-specialist
+  - pattern: "integration.*test|e2e.*test|scenario|benchmark"
+    assign_to: test-engineer
+  - pattern: "python|async|test"
+    assign_to: researcher-specialist

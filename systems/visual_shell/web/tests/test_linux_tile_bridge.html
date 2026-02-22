@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Linux Tile Bridge Tests</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a2e; color: #00ccff; }
+        .pass { color: #00ff88; }
+        .fail { color: #ff6666; }
+    </style>
+</head>
+<body>
+    <h1>Linux Tile Bridge Tests</h1>
+    <div id="results"></div>
+    <script type="module">
+        import { LinuxTileBridge } from '../linux_tile_bridge.js';
+
+        const results = document.getElementById('results');
+        let passed = 0, failed = 0;
+
+        async function test(name, fn) {
+            try {
+                await fn();
+                results.innerHTML += `<p class="pass">✓ ${name}</p>`;
+                passed++;
+            } catch (e) {
+                results.innerHTML += `<p class="fail">✗ ${name}: ${e.message}</p>`;
+                failed++;
+            }
+        }
+
+        async function runTests() {
+            // Mock map for testing
+            const mockMap = {
+                config: { gridSize: 100 },
+                tiles: new Map(),
+                writeTile: async (x, y, type, meta) => {
+                    const key = `${x},${y}`;
+                    mockMap.tiles.set(key, { type, meta, timestamp: Date.now() });
+                    console.log(`📍 Mock tile at (${x}, ${y}):`, type);
+                    return true;
+                }
+            };
+
+            // Mock bridge client
+            const mockClient = {
+                connected: true,
+                call: async (command, params) => {
+                    if (command === 'status') return { status: 'running', session_id: 'test-123' };
+                    if (command === 'exec') return { stdout: 'test output\n', exit_code: 0 };
+                    return { error: 'unknown command' };
+                }
+            };
+
+            const bridge = new LinuxTileBridge(mockMap, mockClient);
+
+            await test('constructor initializes with map and client', async () => {
+                if (!bridge.map) throw new Error('map not set');
+                if (!bridge.client) throw new Error('client not set');
+            });
+
+            await test('bootAtPosition creates session tile', async () => {
+                const result = await bridge.bootAtPosition('alpine', { x: 500, y: 300 });
+                if (!result.tilePlaced) throw new Error('tile not placed');
+                if (!mockMap.tiles.has('5,3')) throw new Error('tile not at expected grid position');
+            });
+
+            await test('execToTile places result tile', async () => {
+                const result = await bridge.execToTile('echo hello', { x: 600, y: 400 });
+                if (!result.success) throw new Error('exec failed');
+                if (!result.tilePlaced) throw new Error('result tile not placed');
+            });
+
+            await test('getSessionPosition returns coordinates', async () => {
+                const pos = bridge.getSessionPosition('test-123');
+                if (!pos) throw new Error('no position for session');
+                if (pos.x !== 500) throw new Error(`expected x=500, got ${pos.x}`);
+            });
+
+            await test('updateSessionHealth updates session metadata', async () => {
+                bridge.updateSessionHealth('test-123', { cpu: 45, memory: 256 });
+                const sessions = bridge.getActiveSessions();
+                const session = sessions.find(s => s.sessionId === 'test-123');
+                if (!session.health || session.health.cpu !== 45) {
+                    throw new Error('Health not updated');
+                }
+            });
+
+            results.innerHTML += `<h2>Results: ${passed} passed, ${failed} failed</h2>`;
+        }
+
+        runTests();
+    </script>
+</body>
+</html>

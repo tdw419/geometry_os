@@ -1,0 +1,173 @@
+#!/bin/bash
+#
+# Geometry OS Pre-Commit Hook
+# Runs linting, type checking, and quick tests before each commit
+#
+
+set -e
+
+echo "=== Geometry OS Pre-Commit Checks ==="
+
+# Get list of staged files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [ -z "$STAGED_FILES" ]; then
+    echo "No staged files to check"
+    exit 0
+fi
+
+# JavaScript/TypeScript checks
+JS_FILES=$(echo "$STAGED_FILES" | grep -E '\.(js|ts|jsx|tsx)$' || true)
+if [ -n "$JS_FILES" ]; then
+    echo ""
+    echo "📦 Checking JavaScript/TypeScript files..."
+
+    # ESLint
+    if command -v eslint &> /dev/null; then
+        echo "  Running ESLint..."
+        echo "$JS_FILES" | xargs eslint --quiet --max-warnings=0 || {
+            echo "❌ ESLint found issues"
+            exit 1
+        }
+    fi
+
+    # TypeScript check
+    if [ -f "tsconfig.json" ]; then
+        echo "  Running TypeScript check..."
+        npx tsc --noEmit --incremental false || {
+            echo "❌ TypeScript errors found"
+            exit 1
+        }
+    fi
+fi
+
+# Python checks
+PY_FILES=$(echo "$STAGED_FILES" | grep -E '\.py$' || true)
+if [ -n "$PY_FILES" ]; then
+    echo ""
+    echo "🐍 Checking Python files..."
+
+    # Black format check
+    if command -v black &> /dev/null; then
+        echo "  Checking Black formatting..."
+        black --check --quiet $PY_FILES || {
+            echo "❌ Python formatting issues. Run: black $PY_FILES"
+            exit 1
+        }
+    fi
+
+    # Ruff linting
+    if command -v ruff &> /dev/null; then
+        echo "  Running Ruff linter..."
+        ruff check $PY_FILES || {
+            echo "❌ Ruff found issues"
+            exit 1
+        }
+    fi
+
+    # Type checking
+    if command -v mypy &> /dev/null; then
+        echo "  Running MyPy type check..."
+        mypy $PY_FILES --ignore-missing-imports || {
+            echo "⚠️  MyPy warnings (non-blocking)"
+        }
+    fi
+fi
+
+# WebMCP bridge validation
+WEBMCP_FILE="systems/visual_shell/web/webmcp_bridge.js"
+if echo "$STAGED_FILES" | grep -q "$WEBMCP_FILE"; then
+    echo ""
+    echo "🔧 Validating WebMCP Bridge..."
+
+    # Check syntax
+    node --check "$WEBMCP_FILE" || {
+        echo "❌ WebMCP Bridge syntax error"
+        exit 1
+    }
+
+    # Validate tool registration format
+    node -e "
+        const fs = require('fs');
+        const content = fs.readFileSync('$WEBMCP_FILE', 'utf8');
+        const toolCount = (content.match(/name:\s*['\"]/g) || []).length;
+        console.log('  Found ' + toolCount + ' tool registrations');
+        if (toolCount < 8) {
+            console.error('  ❌ Expected at least 8 tools');
+            process.exit(1);
+        }
+        console.log('  ✓ WebMCP tools validated');
+    " || exit 1
+fi
+
+# Quick test for critical paths
+if echo "$STAGED_FILES" | grep -qE "(webmcp|pixel_cpu|infinite_map)"; then
+    echo ""
+    echo "🧪 Running quick tests..."
+
+    # Just check test file syntax for now (full tests in CI)
+    for test_file in systems/visual_shell/web/test_*.html; do
+        if [ -f "$test_file" ]; then
+            # Basic HTML validation
+            if grep -q "</html>" "$test_file"; then
+                echo "  ✓ $test_file valid"
+            fi
+        fi
+    done
+fi
+
+# ─────────────────────────────────────────────────────────────
+# Track Conflict Check
+# Prevents commits that modify files claimed by other agents
+# ─────────────────────────────────────────────────────────────
+
+# Skip track check if bypass is set
+if [ "${SKIP_TRACK_CHECK:-false}" = "true" ]; then
+    echo ""
+    echo "⚠️  SKIP_TRACK_CHECK set, skipping track conflict check"
+    echo "✅ All pre-commit checks passed!"
+    exit 0
+fi
+
+echo ""
+echo "🔍 Checking for track conflicts..."
+
+# Convert newline-separated files to space-separated for CLI
+STAGED_FILES_STR=$(echo "$STAGED_FILES" | tr '\n' ' ' | sed 's/ $//')
+
+# Run track conflict check
+python3 wordpress_zone/track_manager.py check --files "$STAGED_FILES_STR"
+TRACK_EXIT_CODE=$?
+
+case $TRACK_EXIT_CODE in
+    0)
+        # No conflicts
+        echo "✅ No track conflicts detected"
+        ;;
+    1)
+        # Conflicts found - block commit
+        echo ""
+        echo "❌ Commit blocked: files conflict with active track claims"
+        echo ""
+        echo "To bypass this check (not recommended), use:"
+        echo "  SKIP_TRACK_CHECK=true git commit ..."
+        echo ""
+        exit 1
+        ;;
+    2)
+        # WordPress unavailable - allow commit with warning
+        echo ""
+        echo "⚠️  Warning: WordPress unavailable, track check skipped"
+        echo "    Proceeding with commit (graceful degradation)"
+        ;;
+    *)
+        # Unexpected exit code - allow commit with warning
+        echo ""
+        echo "⚠️  Warning: Track check returned unexpected exit code $TRACK_EXIT_CODE"
+        echo "    Proceeding with commit"
+        ;;
+esac
+
+echo ""
+echo "✅ All pre-commit checks passed!"
+exit 0

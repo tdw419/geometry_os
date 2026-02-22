@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PixiJS Renderer Tests</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #111;
+            color: #0f0;
+            padding: 20px;
+            margin: 0;
+        }
+        h1 { margin: 0 0 20px 0; }
+        button {
+            background: #030;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin: 5px;
+            border-radius: 4px;
+        }
+        button:hover { background: #050; }
+        button:disabled {
+            background: #222;
+            color: #555;
+            cursor: not-allowed;
+        }
+        .results {
+            background: #000;
+            border: 1px solid #0f0;
+            padding: 15px;
+            margin-top: 20px;
+            min-height: 100px;
+        }
+        .test-pass { color: #0f0; }
+        .test-fail { color: #f00; }
+        .test-warn { color: #ff0; }
+        .display-container {
+            border: 2px solid #0f0;
+            margin-top: 20px;
+        }
+    </style>
+    <!-- Load PixiJS from CDN -->
+    <script src="https://pixijs.download/v8.2.5/pixi.min.js"></script>
+</head>
+<body>
+    <h1>PixiJS Renderer Tests</h1>
+
+    <div id="controls">
+        <button onclick="runAllTests()" id="runAllBtn">Run All Tests</button>
+        <button onclick="runTest('exists')" id="testExistsBtn">Test: Exists</button>
+        <button onclick="runTest('container')" id="testContainerBtn">Test: Has Container</button>
+        <button onclick="runTest('sprite')" id="testSpriteBtn">Test: Has Sprite</button>
+        <button onclick="runTest('canvas')" id="testCanvasBtn">Test: Has Canvas</button>
+        <button onclick="runTest('render')" id="testRenderBtn">Test: Render</button>
+        <button onclick="runTest('clear')" id="testClearBtn">Test: Clear</button>
+        <button onclick="runTest('attach')" id="testAttachBtn">Test: AttachTo</button>
+        <button onclick="runTest('capture')" id="testCaptureBtn">Test: Capture</button>
+        <button onclick="runTest('resize')" id="testResizeBtn">Test: Resize</button>
+        <button onclick="runDemo()" id="demoBtn">Run Demo</button>
+    </div>
+
+    <div class="results" id="results">Ready to run tests...</div>
+
+    <div class="display-container" id="display"></div>
+
+    <script type="module">
+        import {
+            testPixiRendererExists,
+            testPixiRendererHasContainer,
+            testPixiRendererHasSprite,
+            testPixiRendererHasCanvas,
+            testPixiRendererRender,
+            testPixiRendererClear,
+            testPixiRendererAttachTo,
+            testPixiRendererCapture,
+            testPixiRendererResize
+        } from './tests/test_pixi_renderer.js';
+
+        import { PixiRenderer } from './display/pixi_renderer.js';
+
+        const results = document.getElementById('results');
+        const display = document.getElementById('display');
+        let app = null;
+        let renderer = null;
+
+        function log(msg, isPass = true) {
+            const className = isPass ? 'test-pass' : (isPass === null ? 'test-warn' : 'test-fail');
+            results.innerHTML += `<div class="${className}">${msg}</div>`;
+            results.scrollTop = results.scrollHeight;
+        }
+
+        async function initApp() {
+            if (app) return app;
+
+            if (typeof PIXI === 'undefined') {
+                log('❌ PixiJS not loaded', false);
+                return null;
+            }
+
+            // Create PixiJS application
+            app = new PIXI.Application({
+                width: 640,
+                height: 480,
+                backgroundColor: 0x111111,
+                antialias: true
+            });
+
+            display.appendChild(app.view);
+            log('✅ PixiJS application initialized');
+            return app;
+        }
+
+        async function runTest(testName) {
+            results.innerHTML = `<div>Running: ${testName}</div>`;
+
+            const mockApp = {
+                stage: {
+                    children: [],
+                    addChild: function(child) { this.children.push(child); }
+                }
+            };
+
+            try {
+                switch (testName) {
+                    case 'exists':
+                        await testPixiRendererExists();
+                        log('✅ Test: Exists');
+                        break;
+                    case 'container':
+                        await testPixiRendererHasContainer();
+                        log('✅ Test: Has Container');
+                        break;
+                    case 'sprite':
+                        await testPixiRendererHasSprite();
+                        log('✅ Test: Has Sprite');
+                        break;
+                    case 'canvas':
+                        await testPixiRendererHasCanvas();
+                        log('✅ Test: Has Canvas');
+                        break;
+                    case 'render':
+                        await testPixiRendererRender();
+                        log('✅ Test: Render');
+                        break;
+                    case 'clear':
+                        await testPixiRendererClear();
+                        log('✅ Test: Clear');
+                        break;
+                    case 'attach':
+                        await testPixiRendererAttachTo();
+                        log('✅ Test: AttachTo');
+                        break;
+                    case 'capture':
+                        await testPixiRendererCapture();
+                        log('✅ Test: Capture');
+                        break;
+                    case 'resize':
+                        await testPixiRendererResize();
+                        log('✅ Test: Resize');
+                        break;
+                }
+            } catch (e) {
+                log(`❌ Error: ${e.message}`, false);
+                console.error(e);
+            }
+        }
+
+        async function runAllTests() {
+            results.innerHTML = '<div>Running all tests...</div>';
+
+            const mockApp = {
+                stage: {
+                    children: [],
+                    addChild: function(child) { this.children.push(child); }
+                }
+            };
+
+            const tests = [
+                { name: 'Exists', fn: testPixiRendererExists },
+                { name: 'Has Container', fn: testPixiRendererHasContainer },
+                { name: 'Has Sprite', fn: testPixiRendererHasSprite },
+                { name: 'Has Canvas', fn: testPixiRendererHasCanvas },
+                { name: 'Render', fn: testPixiRendererRender },
+                { name: 'Clear', fn: testPixiRendererClear },
+                { name: 'AttachTo', fn: testPixiRendererAttachTo },
+                { name: 'Capture', fn: testPixiRendererCapture },
+                { name: 'Resize', fn: testPixiRendererResize }
+            ];
+
+            let passed = 0;
+            let failed = 0;
+
+            for (const test of tests) {
+                try {
+                    await test.fn();
+                    log(`✅ ${test.name}`);
+                    passed++;
+                } catch (e) {
+                    log(`❌ ${test.name}: ${e.message}`, false);
+                    failed++;
+                }
+            }
+
+            log(`\n${passed} passed, ${failed} failed`, failed === 0);
+        }
+
+        async function runDemo() {
+            results.innerHTML = '<div>Running demo...</div>';
+
+            const pixiApp = await initApp();
+            if (!pixiApp) {
+                log('❌ Cannot initialize PixiJS application', false);
+                return;
+            }
+
+            display.innerHTML = '';
+            display.appendChild(pixiApp.view);
+
+            renderer = new PixiRenderer(pixiApp, 320, 240);
+            renderer.attachTo(display);
+
+            // Animate a gradient
+            let frame = 0;
+            const animate = () => {
+                const fbData = new Uint8Array(320 * 240 * 4);
+
+                for (let y = 0; y < 240; y++) {
+                    for (let x = 0; x < 320; x++) {
+                        const i = (y * 320 + x) * 4;
+                        fbData[i] = Math.floor(128 + 127 * Math.sin(frame * 0.02 + x * 0.02));     // R
+                        fbData[i + 1] = Math.floor(128 + 127 * Math.sin(frame * 0.03 + y * 0.02));   // G
+                        fbData[i + 2] = Math.floor(128 + 127 * Math.sin(frame * 0.01 + (x + y) * 0.02)); // B
+                        fbData[i + 3] = 255; // A
+                    }
+                }
+
+                renderer.render(fbData);
+                frame++;
+
+                if (frame < 300) {
+                    requestAnimationFrame(animate);
+                } else {
+                    log('✅ Demo complete - 300 frames rendered');
+                }
+            };
+
+            animate();
+        }
+
+        // Export to window
+        window.runTest = runTest;
+        window.runAllTests = runAllTests;
+        window.runDemo = runDemo;
+    </script>
+</body>
+</html>

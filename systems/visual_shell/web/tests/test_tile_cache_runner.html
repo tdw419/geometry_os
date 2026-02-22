@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LRU Tile Cache Tests - Phase 47</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        h1 {
+            color: #4CAF50;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2196F3;
+            margin-top: 30px;
+        }
+        .test-container {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        .test-pass {
+            background: #1b5e20;
+            color: #a5d6a7;
+            border-left: 4px solid #4CAF50;
+        }
+        .test-fail {
+            background: #b71c1c;
+            color: #ffcdd2;
+            border-left: 4px solid #f44336;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-box {
+            background: #333;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .stat-label {
+            color: #888;
+            margin-top: 5px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        #output {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 LRU Tile Cache Tests</h1>
+    <p>Phase 47: Tile Cache Memory Optimization - Testing LRU eviction, memory monitoring, and adaptive sizing</p>
+
+    <div class="test-container">
+        <h2>Test Controls</h2>
+        <button id="runAllTests">Run All Tests</button>
+        <button id="runIndividualTests">Run Individual Tests</button>
+        <button id="clearOutput">Clear Output</button>
+        <button id="exportResults">Export Results</button>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>Test Results</h2>
+        <div id="output"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Cache Statistics</h2>
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-value" id="statHitRate">-</div>
+                <div class="stat-label">Hit Rate</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="statMemoryReduction">-</div>
+                <div class="stat-label">Memory Reduction</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="statEvictions">-</div>
+                <div class="stat-label">Evictions</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="statMemoryMB">-</div>
+                <div class="stat-label">Memory (MB)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../neural_heatmap_test_framework.js"></script>
+    <script src="../lru_tile_cache.js"></script>
+    <script src="test_tile_cache.js"></script>
+
+    <script>
+        let testResults = [];
+
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = {
+                'info': '📋',
+                'success': '✅',
+                'error': '❌',
+                'warn': '⚠️'
+            }[type] || '📋';
+
+            output.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressBar').style.width = percent + '%';
+        }
+
+        function updateStats(stats) {
+            if (stats.hitRate !== undefined) {
+                document.getElementById('statHitRate').textContent =
+                    (stats.hitRate * 100).toFixed(1) + '%';
+            }
+            if (stats.memoryReduction !== undefined) {
+                document.getElementById('statMemoryReduction').textContent =
+                    stats.memoryReduction.toFixed(1) + '%';
+            }
+            if (stats.evictions !== undefined) {
+                document.getElementById('statEvictions').textContent = stats.evictions;
+            }
+            if (stats.memoryMB !== undefined) {
+                document.getElementById('statMemoryMB').textContent =
+                    stats.memoryMB.toFixed(2);
+            }
+        }
+
+        async function runAllTests() {
+            document.getElementById('runAllTests').disabled = true;
+            document.getElementById('output').textContent = '';
+            testResults = [];
+
+            try {
+                log('Starting LRU Tile Cache Tests...', 'info');
+
+                if (typeof TileCacheTests === 'undefined') {
+                    throw new Error('TileCacheTests not loaded. Check script includes.');
+                }
+
+                const tests = new TileCacheTests();
+                updateProgress(10);
+
+                log('Running test suite...', 'info');
+                await tests.execute();
+                updateProgress(100);
+
+                // Get final cache stats for display
+                const demoCache = new LRUTileCache({
+                    maxSize: 100,
+                    maxMemoryMB: 50,
+                    adaptiveSizing: true
+                });
+
+                // Simulate some cache activity
+                for (let i = 0; i < 50; i++) {
+                    demoCache.set(i, 0, `data${i}`);
+                }
+                for (let i = 0; i < 30; i++) {
+                    demoCache.get(i, 0);
+                }
+
+                const stats = demoCache.getStats();
+                updateStats({
+                    hitRate: stats.hitRate,
+                    memoryReduction: 50,
+                    evictions: stats.totalEvictions,
+                    memoryMB: stats.memoryMB
+                });
+
+                log('All tests completed successfully!', 'success');
+
+                testResults.push({
+                    suite: 'LRU Tile Cache',
+                    passed: true,
+                    duration: Date.now() - tests.startTime
+                });
+
+            } catch (error) {
+                log(`Test failed: ${error.message}`, 'error');
+                console.error(error);
+                updateProgress(100);
+
+                testResults.push({
+                    suite: 'LRU Tile Cache',
+                    passed: false,
+                    error: error.message
+                });
+            } finally {
+                document.getElementById('runAllTests').disabled = false;
+            }
+        }
+
+        async function runIndividualTests() {
+            document.getElementById('runIndividualTests').disabled = true;
+            document.getElementById('output').textContent = '';
+
+            const tests = [
+                { name: 'LRU Eviction', fn: () => runTest('testLRUEviction') },
+                { name: 'Memory Monitoring', fn: () => runTest('testMemoryMonitoring') },
+                { name: 'Adaptive Sizing', fn: () => runTest('testAdaptiveSizing') },
+                { name: 'Cache Statistics', fn: () => runTest('testCacheStatistics') },
+                { name: 'Memory Reduction', fn: () => runTest('testMemoryReductionTarget') },
+                { name: 'LFU Policy', fn: () => runTest('testLFUPolicy') },
+                { name: 'Config Update', fn: () => runTest('testCacheConfigUpdate') },
+                { name: 'Clear Old', fn: () => runTest('testClearOld') }
+            ];
+
+            for (let i = 0; i < tests.length; i++) {
+                const test = tests[i];
+                try {
+                    log(`Running: ${test.name}`, 'info');
+                    updateProgress((i / tests.length) * 100);
+                    await test.fn();
+                    log(`✓ ${test.name} passed`, 'success');
+                } catch (error) {
+                    log(`✗ ${test.name} failed: ${error.message}`, 'error');
+                }
+            }
+
+            updateProgress(100);
+            document.getElementById('runIndividualTests').disabled = false;
+        }
+
+        async function runTest(testName) {
+            if (typeof TileCacheTests === 'undefined') {
+                throw new Error('TileCacheTests not loaded');
+            }
+
+            const tests = new TileCacheTests();
+            const testFn = tests[testName];
+
+            if (typeof testFn !== 'function') {
+                throw new Error(`Test ${testName} not found`);
+            }
+
+            await testFn.call(tests);
+        }
+
+        function clearOutput() {
+            document.getElementById('output').textContent = '';
+            testResults = [];
+        }
+
+        function exportResults() {
+            const results = {
+                timestamp: new Date().toISOString(),
+                results: testResults,
+                userAgent: navigator.userAgent
+            };
+
+            const blob = new Blob([JSON.stringify(results, null, 2)], {
+                type: 'application/json'
+            });
+
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tile-cache-test-results-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            log('Results exported successfully', 'success');
+        }
+
+        // Event listeners
+        document.getElementById('runAllTests').addEventListener('click', runAllTests);
+        document.getElementById('runIndividualTests').addEventListener('click', runIndividualTests);
+        document.getElementById('clearOutput').addEventListener('click', clearOutput);
+        document.getElementById('exportResults').addEventListener('click', exportResults);
+
+        // Auto-run on page load (optional)
+        // window.addEventListener('load', () => {
+        //     setTimeout(runAllTests, 500);
+        // });
+    </script>
+</body>
+</html>

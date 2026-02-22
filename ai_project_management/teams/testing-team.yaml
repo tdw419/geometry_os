@@ -1,0 +1,187 @@
+# ai_project_management/teams/testing-team.yaml
+#
+# Agent team for continuous testing and validation.
+#
+# Phase O: Full Cycle Continuous Testing
+# Goal: AI identifies tests → runs them → analyzes failures → suggests fixes
+
+name: continuous-testing
+description: |
+  Agent team for continuous testing and validation.
+
+  Goal: Maintain code quality through autonomous test execution,
+  failure analysis, and fix suggestions.
+
+  Loop: IDENTIFY → RUN → ANALYZE → SUGGEST → VALIDATE
+
+  Current State:
+  - Phase O.1-O.4: Core Components (COMPLETE)
+  - Phase O.5: WebMCP Integration (NEXT)
+
+# Selection: Choose agent with best capability match
+selection_policy: best_fit
+
+# Fixed team size
+scaling_policy: fixed
+
+# Failover to another agent on failure
+failure_policy: failover
+
+# Retry configuration
+max_retries: 3
+retry_delay: 5.0
+
+# Team communication
+enable_event_bus: true
+enable_health_monitoring: true
+
+# Health monitoring
+health_check_interval: 30.0
+heartbeat_timeout: 120.0
+health_history_limit: 100
+
+# Event bus
+event_history_limit: 1000
+enable_dead_letter_queue: true
+
+# Team constraints
+max_concurrent_tasks: 4
+max_queue_size: 50
+task_timeout: 300.0
+
+# Team metadata
+metadata:
+  project: geometry-os
+  component: continuous-testing
+  phase: O
+  current_version: "0.1.0"
+  key_files:
+    - systems/testing/test_runner.py
+    - systems/testing/test_selector.py
+    - systems/testing/failure_analyzer.py
+    - systems/testing/fix_suggester.py
+
+# Agent definitions
+agents:
+  # ============================================
+  # TEST SELECTOR - Intelligent test selection
+  # ============================================
+  - agent_id: test-selector
+    name: Test Selection Specialist
+    agent_type: specialist
+    capabilities:
+      - test_selection
+      - coverage_analysis
+      - git_diff_parsing
+      - dependency_analysis
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 90
+    metadata:
+      role: Select tests to run based on context
+      focuses:
+        - Changed file analysis
+        - Coverage gap detection
+        - Test dependency mapping
+      key_files:
+        - systems/testing/test_selector.py
+      webmcp_tools:
+        - test_select
+
+  # ============================================
+  # TEST RUNNER - Execute tests
+  # ============================================
+  - agent_id: test-runner
+    name: Test Execution Specialist
+    agent_type: specialist
+    capabilities:
+      - test_execution
+      - pytest
+      - junit_parsing
+      - coverage_collection
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 95
+    metadata:
+      role: Execute tests and collect results
+      focuses:
+        - pytest orchestration
+        - JUnit XML parsing
+        - Coverage reporting
+      key_files:
+        - systems/testing/test_runner.py
+      webmcp_tools:
+        - ide_test
+        - test_run
+
+  # ============================================
+  # FAILURE ANALYST - Analyze test failures
+  # ============================================
+  - agent_id: failure-analyst
+    name: Failure Analysis Specialist
+    agent_type: specialist
+    capabilities:
+      - failure_analysis
+      - stack_trace_parsing
+      - root_cause_identification
+      - error_classification
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 85
+    metadata:
+      role: Analyze test failures and identify root causes
+      focuses:
+        - Error pattern matching
+        - Stack trace analysis
+        - Root cause extraction
+      key_files:
+        - systems/testing/failure_analyzer.py
+      webmcp_tools:
+        - test_analyze
+
+  # ============================================
+  # FIX SUGGESTER - Generate fix recommendations
+  # ============================================
+  - agent_id: fix-suggester
+    name: Fix Suggestion Specialist
+    agent_type: specialist
+    capabilities:
+      - code_analysis
+      - fix_generation
+      - validation
+      - suggestion_ranking
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 80
+    metadata:
+      role: Generate code fix suggestions
+      focuses:
+        - Common fix patterns
+        - LLM-powered suggestions (future)
+        - Fix validation
+      key_files:
+        - systems/testing/fix_suggester.py
+      webmcp_tools:
+        - test_suggest_fix
+        - test_validate_fix
+
+# Task routing rules
+task_routing:
+  - pattern: "select.*test|which.*test|coverage.*gap|what.*test"
+    assign_to: test-selector
+  - pattern: "run.*test|execute.*test|ide_test|test.*suite"
+    assign_to: test-runner
+  - pattern: "analyze.*failure|why.*fail|root.*cause|error.*analysis"
+    assign_to: failure-analyst
+  - pattern: "fix.*suggest|how.*fix|resolve.*error|suggest.*fix"
+    assign_to: fix-suggester
+
+# Phase completion criteria
+phase_completion:
+  O:
+    - "TestRunner executes pytest and returns structured results"
+    - "TestSelector selects tests by changed files, coverage gaps"
+    - "FailureAnalyzer classifies errors and extracts root causes"
+    - "FixSuggester generates actionable fix suggestions"
+    - "All component tests passing (33 tests)"
+    - "AI PM team configuration created"

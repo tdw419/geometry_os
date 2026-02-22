@@ -1,0 +1,290 @@
+# Terminal Clone Agent Team Configuration
+#
+# This team is responsible for the Terminal Clone → PixelRTS hybrid system,
+# including PTY engine, terminal emulation, GPU rendering, and VAT integration.
+
+name: terminal-clone
+description: |
+  Agent team for Terminal Clone → PixelRTS development.
+
+  Goal: Build a hybrid system that "rips" terminals from VMs and renders them
+  as PixelRTS tiles with native PTY support for local shells.
+
+  Architecture:
+  - PTY Engine: nix::pty for shell spawning (Rust)
+  - TerminalEmulator: VT100/ANSI parsing (reuse existing)
+  - GPU Renderer: WGSL compute shader for cell rendering
+  - VAT Integration: Python bridge for spatial placement
+  - VM Detection: Auto-detect terminal windows in framebuffers
+
+  Current State:
+  - TerminalEmulator: ✅ Ready (1324 lines, VT100/ANSI)
+  - FONT_8X16: ✅ Ready (8x16 bitmap atlas)
+  - VATManager: ✅ Ready (focal-point placement)
+  - PTY Engine: 🚧 Needs nix features + implementation
+  - WGSL Renderer: 🚧 Needs creation (pattern exists)
+  - VM Detector: 🚧 Needs implementation
+
+# Selection: Choose agent with best capability match
+selection_policy: best_fit
+
+# Fixed team size
+scaling_policy: fixed
+
+# Failover to another agent on failure
+failure_policy: failover
+
+# Retry configuration
+max_retries: 3
+retry_delay: 5.0
+
+# Team communication
+enable_event_bus: true
+enable_health_monitoring: true
+
+# Health monitoring
+health_check_interval: 30.0
+heartbeat_timeout: 120.0
+health_history_limit: 100
+
+# Event bus
+event_history_limit: 1000
+enable_dead_letter_queue: true
+
+# Team constraints
+max_concurrent_tasks: 8
+max_queue_size: 50
+task_timeout: 300.0
+
+# Team metadata
+metadata:
+  project: geometry-os
+  component: terminal-clone
+  architecture: docs/plans/2026-02-20-terminal-clone-pixelrts.md
+  spec: specs/terminal-clone-pixelrts/
+  current_phase: research
+  current_version: "0.1.0"
+  reuse_estimate: "80%"
+  risk_level: low
+
+# Agent definitions
+agents:
+  # ============================================
+  # ORCHESTRATOR - Team coordination
+  # ============================================
+  - agent_id: orchestrator
+    name: Terminal Clone Orchestrator
+    agent_type: orchestrator
+    capabilities:
+      - orchestration
+      - monitoring
+      - task_execution
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 100
+    metadata:
+      role: Team coordination and plan execution
+      focuses:
+        - Plan task execution
+        - Agent coordination
+        - Progress tracking
+      key_files:
+        - docs/plans/2026-02-20-terminal-clone-pixelrts.md
+        - specs/terminal-clone-pixelrts/requirements.md
+
+  # ============================================
+  # PTY SPECIALIST - Shell spawning
+  # ============================================
+  - agent_id: pty-specialist
+    name: PTY Engine Specialist
+    agent_type: specialist
+    capabilities:
+      - rust
+      - nix
+      - pty
+      - systems_programming
+      - code_generation
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 95
+    metadata:
+      role: PTY engine implementation using nix::pty
+      focuses:
+        - nix::pty::openpty() API
+        - Fork/exec patterns
+        - Non-blocking I/O
+        - Terminal size handling (TIOCSWINSZ)
+        - Process lifecycle management
+      key_files:
+        - systems/infinite_map_rs/src/terminal_clone/pty_engine.rs
+        - systems/infinite_map_rs/Cargo.toml
+
+  # ============================================
+  # TERMINAL EMULATOR SPECIALIST - VT100/ANSI
+  # ============================================
+  - agent_id: emulator-specialist
+    name: Terminal Emulator Specialist
+    agent_type: specialist
+    capabilities:
+      - rust
+      - terminal
+      - vt100
+      - ansi
+      - code_generation
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 90
+    metadata:
+      role: Terminal emulator integration and extension
+      focuses:
+        - VT100/ANSI escape sequence handling
+        - TerminalBuffer management
+        - Cell attributes (colors, styles)
+        - Scrollback buffer
+        - Resize/reflow handling
+      key_files:
+        - systems/infinite_map_rs/src/terminal_emulator.rs
+        - systems/infinite_map_rs/src/font_bitmap.rs
+
+  # ============================================
+  # WGSL SPECIALIST - GPU rendering
+  # ============================================
+  - agent_id: wgsl-specialist
+    name: WGSL Terminal Renderer Specialist
+    agent_type: specialist
+    capabilities:
+      - wgsl
+      - webgpu
+      - compute_shaders
+      - texture_upload
+      - code_generation
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 90
+    metadata:
+      role: GPU terminal rendering shader
+      focuses:
+        - Compute shader cell rendering
+        - Font atlas sampling
+        - Cell storage buffer design
+        - Cursor blink animation
+        - Color attribute handling
+      key_files:
+        - systems/infinite_map_rs/src/shaders/terminal_renderer.wgsl
+        - systems/infinite_map_rs/src/shaders/text_buffer.wgsl
+
+  # ============================================
+  # PYTHON INTEGRATION SPECIALIST - VAT Bridge
+  # ============================================
+  - agent_id: python-specialist
+    name: Python Integration Specialist
+    agent_type: specialist
+    capabilities:
+      - python
+      - ipc
+      - vat
+      - code_generation
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 85
+    metadata:
+      role: Python-Rust IPC and VAT integration
+      focuses:
+        - TerminalVatBridge implementation
+        - File-based IPC (TectonicIpc pattern)
+        - Focal-point placement
+        - Tile lifecycle management
+      key_files:
+        - systems/visual_shell/api/terminal_vat_bridge.py
+        - systems/visual_shell/api/vat_manager.py
+
+  # ============================================
+  # VM DETECTION SPECIALIST - Auto-extraction
+  # ============================================
+  - agent_id: vm-detection-specialist
+    name: VM Terminal Detection Specialist
+    agent_type: specialist
+    capabilities:
+      - python
+      - ocr
+      - pattern_matching
+      - code_generation
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 80
+    metadata:
+      role: VM terminal auto-detection
+      focuses:
+        - ExtractionPipeline integration
+        - Terminal pattern recognition (regex)
+        - Grid size estimation
+        - Bounding box extraction
+      key_files:
+        - systems/visual_shell/api/vm_terminal_detector.py
+        - conductor/tracks/shotcut-on-the-map/extraction_pipeline.py
+
+  # ============================================
+  # TEST ENGINEER - Quality assurance
+  # ============================================
+  - agent_id: test-engineer
+    name: Test Engineer
+    agent_type: specialist
+    capabilities:
+      - testing
+      - rust
+      - python
+      - verification
+    enabled: true
+    max_concurrent_tasks: 3
+    priority: 75
+    metadata:
+      role: Test coverage and verification
+      focuses:
+        - PTY engine unit tests
+        - Terminal emulator tests
+        - E2E integration tests
+        - Coverage targets (>80%)
+      key_files:
+        - systems/infinite_map_rs/tests/test_pty_engine.rs
+        - systems/infinite_map_rs/tests/test_terminal_clone_e2e.rs
+        - systems/visual_shell/api/tests/test_terminal_vat_bridge.py
+
+# Task routing rules
+task_routing:
+  # PTY tasks
+  - pattern: "pty|openpty|fork|shell.*spawn|TIOCSWINSZ"
+    assign_to: pty-specialist
+  # Emulator tasks
+  - pattern: "terminal.*emulator|vt100|ansi|escape.*sequence|terminal.*buffer"
+    assign_to: emulator-specialist
+  # WGSL/GPU tasks
+  - pattern: "wgsl|shader|compute.*shader|texture.*upload|font.*atlas"
+    assign_to: wgsl-specialist
+  # Python/VAT tasks
+  - pattern: "python|vat|ipc|bridge|focal.*point"
+    assign_to: python-specialist
+  # VM detection tasks
+  - pattern: "vm.*detect|ocr|extraction|terminal.*pattern"
+    assign_to: vm-detection-specialist
+  # Testing
+  - pattern: "test|verification|coverage"
+    assign_to: test-engineer
+
+# Phase completion criteria
+phase_completion:
+  research:
+    - "research.md created with feasibility assessment"
+    - "Existing infrastructure identified for reuse"
+    - "Technical approach validated"
+  requirements:
+    - "User stories defined"
+    - "Acceptance criteria written"
+    - "Integration points documented"
+  design:
+    - "Technical design complete"
+    - "API interfaces defined"
+    - "Data structures documented"
+  tasks:
+    - "Tasks broken down with file paths"
+    - "Test cases identified"
+    - "Dependencies mapped"

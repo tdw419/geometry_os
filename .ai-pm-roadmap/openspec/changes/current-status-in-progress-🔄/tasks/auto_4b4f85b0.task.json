@@ -1,0 +1,10 @@
+{
+  "task_id": "task-3",
+  "type": "implement",
+  "source": "",
+  "intent": "Full metadata integration",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}

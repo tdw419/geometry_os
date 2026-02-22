@@ -1,0 +1,10 @@
+{
+  "task_id": "task-0",
+  "type": "implement",
+  "source": "",
+  "intent": "Rust SDK matches Python SDK functionality",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}

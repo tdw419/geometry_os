@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGPU Renderer Tests</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #111;
+            color: #0f0;
+            padding: 20px;
+            margin: 0;
+        }
+        h1 { margin: 0 0 20px 0; }
+        button {
+            background: #030;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin: 5px;
+            border-radius: 4px;
+        }
+        button:hover { background: #050; }
+        button:disabled {
+            background: #222;
+            color: #555;
+            cursor: not-allowed;
+        }
+        .results {
+            background: #000;
+            border: 1px solid #0f0;
+            padding: 15px;
+            margin-top: 20px;
+            min-height: 100px;
+        }
+        .test-pass { color: #0f0; }
+        .test-fail { color: #f00; }
+        .test-warn { color: #ff0; }
+        .display-container {
+            border: 2px solid #0f0;
+            margin-top: 20px;
+            display: inline-block;
+        }
+        canvas { display: block; image-rendering: pixelated; }
+    </style>
+</head>
+<body>
+    <h1>WebGPU Renderer Tests</h1>
+
+    <div id="controls">
+        <button onclick="runAllTests()" id="runAllBtn">Run All Tests</button>
+        <button onclick="runTest('exists')" id="testExistsBtn">Test: Exists</button>
+        <button onclick="runTest('texture')" id="testTextureBtn">Test: Has Texture</button>
+        <button onclick="runTest('canvas')" id="testCanvasBtn">Test: Has Canvas</button>
+        <button onclick="runTest('render')" id="testRenderBtn">Test: Render</button>
+        <button onclick="runTest('attach')" id="testAttachBtn">Test: AttachTo</button>
+        <button onclick="runTest('clear')" id="testClearBtn">Test: Clear</button>
+        <button onclick="runDemo()" id="demoBtn">Run Demo</button>
+    </div>
+
+    <div class="results" id="results">Ready to run tests...</div>
+
+    <div class="display-container" id="display"></div>
+
+    <script type="module">
+        import {
+            testWebGPURendererExists,
+            testWebGPURendererHasTexture,
+            testWebGPURendererHasCanvas,
+            testWebGPURendererRender,
+            testWebGPURendererAttachTo,
+            testWebGPURendererClear
+        } from './tests/test_webgpu_renderer.js';
+
+        import { WebGPURenderer } from './display/webgpu_renderer.js';
+
+        const results = document.getElementById('results');
+        const display = document.getElementById('display');
+        let device = null;
+        let renderer = null;
+
+        function log(msg, isPass = true) {
+            const className = isPass ? 'test-pass' : (isPass === null ? 'test-warn' : 'test-fail');
+            results.innerHTML += `<div class="${className}">${msg}</div>`;
+            results.scrollTop = results.scrollHeight;
+        }
+
+        async function initDevice() {
+            if (device) return device;
+
+            if (!navigator.gpu) {
+                log('❌ WebGPU not supported in this browser', false);
+                return null;
+            }
+
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                log('❌ No WebGPU adapter available', false);
+                return null;
+            }
+
+            device = await adapter.requestDevice();
+            log('✅ WebGPU device initialized');
+            return device;
+        }
+
+        async function runTest(testName) {
+            results.innerHTML = `<div>Running: ${testName}</div>`;
+
+            const dev = await initDevice();
+            if (!dev) {
+                log('❌ Cannot initialize WebGPU device', false);
+                return;
+            }
+
+            try {
+                switch (testName) {
+                    case 'exists':
+                        await testWebGPURendererExists();
+                        log('✅ Test: Exists');
+                        break;
+                    case 'texture':
+                        await testWebGPURendererHasTexture();
+                        log('✅ Test: Has Texture');
+                        break;
+                    case 'canvas':
+                        await testWebGPURendererHasCanvas();
+                        log('✅ Test: Has Canvas');
+                        break;
+                    case 'render':
+                        await testWebGPURendererRender();
+                        log('✅ Test: Render');
+                        break;
+                    case 'attach':
+                        await testWebGPURendererAttachTo();
+                        log('✅ Test: AttachTo');
+                        break;
+                    case 'clear':
+                        await testWebGPURendererClear();
+                        log('✅ Test: Clear');
+                        break;
+                }
+            } catch (e) {
+                log(`❌ Error: ${e.message}`, false);
+                console.error(e);
+            }
+        }
+
+        async function runAllTests() {
+            results.innerHTML = '<div>Running all tests...</div>';
+
+            const dev = await initDevice();
+            if (!dev) {
+                log('❌ Cannot initialize WebGPU device', false);
+                return;
+            }
+
+            const tests = [
+                { name: 'Exists', fn: testWebGPURendererExists },
+                { name: 'Has Texture', fn: testWebGPURendererHasTexture },
+                { name: 'Has Canvas', fn: testWebGPURendererHasCanvas },
+                { name: 'Render', fn: testWebGPURendererRender },
+                { name: 'AttachTo', fn: testWebGPURendererAttachTo },
+                { name: 'Clear', fn: testWebGPURendererClear }
+            ];
+
+            let passed = 0;
+            let failed = 0;
+
+            for (const test of tests) {
+                try {
+                    await test.fn();
+                    log(`✅ ${test.name}`);
+                    passed++;
+                } catch (e) {
+                    log(`❌ ${test.name}: ${e.message}`, false);
+                    failed++;
+                }
+            }
+
+            log(`\n${passed} passed, ${failed} failed`, failed === 0);
+        }
+
+        async function runDemo() {
+            results.innerHTML = '<div>Running demo...</div>';
+
+            const dev = await initDevice();
+            if (!dev) {
+                log('❌ Cannot initialize WebGPU device', false);
+                return;
+            }
+
+            display.innerHTML = '';
+            renderer = new WebGPURenderer(dev, 320, 240);
+            renderer.attachTo(display);
+
+            // Animate a gradient
+            let frame = 0;
+            const animate = () => {
+                const fbData = new Uint8Array(320 * 240 * 4);
+
+                for (let y = 0; y < 240; y++) {
+                    for (let x = 0; x < 320; x++) {
+                        const i = (y * 320 + x) * 4;
+                        fbData[i] = Math.floor(128 + 127 * Math.sin(frame * 0.02 + x * 0.02));     // R
+                        fbData[i + 1] = Math.floor(128 + 127 * Math.sin(frame * 0.03 + y * 0.02));   // G
+                        fbData[i + 2] = Math.floor(128 + 127 * Math.sin(frame * 0.01 + (x + y) * 0.02)); // B
+                        fbData[i + 3] = 255; // A
+                    }
+                }
+
+                renderer.render(fbData);
+                frame++;
+
+                if (frame < 300) {
+                    requestAnimationFrame(animate);
+                } else {
+                    log('✅ Demo complete - 300 frames rendered');
+                }
+            };
+
+            animate();
+        }
+
+        // Export to window
+        window.runTest = runTest;
+        window.runAllTests = runAllTests;
+        window.runDemo = runDemo;
+    </script>
+</body>
+</html>

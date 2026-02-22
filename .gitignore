@@ -1,0 +1,71 @@
+# Logs
+logs/
+*.log
+
+# Backups
+backups/
+*.tar.gz
+*.tdl
+
+# Build artifacts and binaries
+build/
+
+*.o
+*.so
+*.img
+*.cpio
+*.pid
+
+# Temporary files
+*.tmp
+*.swp
+debug/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Databases
+*.db
+*.db-shm
+*.db-wal
+
+# IDE
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test results
+test_results_*.json
+
+# Downloaded tools
+*.deb
+
+# Neural CPU specific
+/tmp/
+*.ggufx
+*.rts
+neural_apps/
+*.ll
+*.bc
+test_*.ll.worktrees/
+
+# Git worktrees
+.worktrees/
+
+# Large build artifacts (exceed GitHub 100MB limit)
+systems/visual_shell/electron/dist/
+*.AppImage
+*.snap
+*.rts.png
+*_zip
+
+# VM disk images
+*.qcow2
+*.iso
+*.raw
+specs/.current-spec
+**/.progress.md

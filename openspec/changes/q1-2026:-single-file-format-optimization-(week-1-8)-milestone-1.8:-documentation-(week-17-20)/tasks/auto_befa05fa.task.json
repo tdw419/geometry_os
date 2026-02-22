@@ -1,0 +1,10 @@
+{
+  "task_id": "task-2",
+  "type": "implement",
+  "source": "",
+  "intent": "API reference has 100% function coverage",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}

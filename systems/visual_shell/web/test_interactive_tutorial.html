@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Tutorial System - Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #0a0a1a;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+        }
+
+        #neural-heatmap-container {
+            width: 600px;
+            height: 400px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #00FFFF;
+            border-radius: 10px;
+            margin: 20px auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 5px;
+            padding: 10px;
+        }
+
+        .layer-cell {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .layer-cell:hover {
+            background: rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        #analytics-ui-controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00FFFF;
+            border-radius: 5px;
+            padding: 8px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .control-button {
+            width: 40px;
+            height: 40px;
+            background: #222;
+            border: 2px solid;
+            color: white;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .correlation-button { border-color: #4488ff; }
+        .temporal-button { border-color: #44ff88; }
+        .theme-button { border-color: #888888; }
+        .filter-button { border-color: #ff8844; }
+        .compare-button { border-color: #8844ff; }
+
+        .control-button:hover {
+            opacity: 0.7;
+            transform: scale(1.05);
+        }
+
+        #model-zoo-button {
+            position: fixed;
+            top: 80px;
+            left: 20px;
+            background: linear-gradient(135deg, #4488ff 0%, #8844ff 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .test-section {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .test-section h2 {
+            color: #00FFFF;
+            margin-top: 0;
+        }
+
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+
+        .test-result.pass {
+            background: rgba(0, 255, 136, 0.2);
+            border-left: 4px solid #00ff88;
+        }
+
+        .test-result.fail {
+            background: rgba(255, 68, 68, 0.2);
+            border-left: 4px solid #ff4444;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; color: #00FFFF;">Interactive Tutorial System Test</h1>
+
+    <!-- Analytics UI Controls -->
+    <div id="analytics-ui-controls">
+        <button class="control-button correlation-button" title="Correlation Matrix">M</button>
+        <button class="control-button temporal-button" title="Temporal View">T</button>
+        <button class="control-button theme-button" title="Toggle Theme">D</button>
+        <button class="control-button filter-button" title="Filter Panel">F</button>
+        <button class="control-button compare-button" title="Comparison View">C</button>
+    </div>
+
+    <!-- Model Zoo Button -->
+    <button id="model-zoo-button">Model Zoo</button>
+
+    <!-- Neural Heatmap Container -->
+    <div id="neural-heatmap-container">
+        <!-- 16 layer cells -->
+        <div class="layer-cell">L1</div>
+        <div class="layer-cell">L2</div>
+        <div class="layer-cell">L3</div>
+        <div class="layer-cell">L4</div>
+        <div class="layer-cell">L5</div>
+        <div class="layer-cell">L6</div>
+        <div class="layer-cell">L7</div>
+        <div class="layer-cell">L8</div>
+        <div class="layer-cell">L9</div>
+        <div class="layer-cell">L10</div>
+        <div class="layer-cell">L11</div>
+        <div class="layer-cell">L12</div>
+        <div class="layer-cell">L13</div>
+        <div class="layer-cell">L14</div>
+        <div class="layer-cell">L15</div>
+        <div class="layer-cell">L16</div>
+    </div>
+
+    <!-- Test Section -->
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="test-results"></div>
+    </div>
+
+    <!-- Tutorial Button -->
+    <button id="start-tutorial-btn" style="position: fixed; top: 80px; right: 20px; z-index: 9999; background: linear-gradient(135deg, #00FFFF 0%, #0088FF 100%); color: #000; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: 'Courier New', monospace; box-shadow: 0 4px 15px rgba(0, 255, 255, 0.3); transition: all 0.3s ease; display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 18px;">📚</span>
+        <span>Tutorial</span>
+    </button>
+
+    <script src="interactive_tutorial.js"></script>
+    <script>
+        // Test Suite
+        class TutorialTestSuite {
+            constructor() {
+                this.results = [];
+                this.manager = null;
+            }
+
+            log(testName, passed, message) {
+                this.results.push({ testName, passed, message });
+                this.render();
+
+                const icon = passed ? '✓' : '✗';
+                const className = passed ? 'pass' : 'fail';
+                console.log(`[${icon}] ${testName}: ${message}`);
+            }
+
+            render() {
+                const container = document.getElementById('test-results');
+                container.innerHTML = this.results.map(r => `
+                    <div class="test-result ${r.passed ? 'pass' : 'fail'}">
+                        [${r.passed ? 'PASS' : 'FAIL'}] ${r.testName}: ${r.message}
+                    </div>
+                `).join('');
+            }
+
+            async runAll() {
+                console.log('Starting Tutorial System Tests...');
+
+                // Test 1: Manager Initialization
+                try {
+                    this.manager = new TutorialManager();
+                    this.log('Manager Initialization', true, 'TutorialManager created successfully');
+                } catch (e) {
+                    this.log('Manager Initialization', false, e.message);
+                    return;
+                }
+
+                // Test 2: Tour Definitions
+                try {
+                    const tours = this.manager.getAvailableTours();
+                    const expectedTours = ['getting-started', 'correlation-analysis', 'temporal-patterns', 'anomaly-detection', 'advanced-features'];
+                    const tourIds = tours.map(t => t.id);
+
+                    const allPresent = expectedTours.every(id => tourIds.includes(id));
+                    this.log('Tour Definitions', allPresent,
+                        `Found ${tours.length} tours: ${tourIds.join(', ')}`);
+                } catch (e) {
+                    this.log('Tour Definitions', false, e.message);
+                }
+
+                // Test 3: Progress Tracking
+                try {
+                    const progress = this.manager.getProgress();
+                    this.log('Progress Tracking', true,
+                        `Completed tours: ${progress.completedTours.length}`);
+                } catch (e) {
+                    this.log('Progress Tracking', false, e.message);
+                }
+
+                // Test 4: Prerequisite Checking
+                try {
+                    const canStartGettingStarted = this.manager._checkPrerequisites('getting-started');
+                    const canStartCorrelation = this.manager._checkPrerequisites('correlation-analysis');
+
+                    this.log('Prerequisite Checking', canStartGettingStarted && !canStartCorrelation,
+                        'Getting Started: accessible, Correlation: requires prerequisite');
+                } catch (e) {
+                    this.log('Prerequisite Checking', false, e.message);
+                }
+
+                // Test 5: Tutorial Menu Creation
+                try {
+                    const menu = this.manager.createTutorialMenu();
+                    const hasMenuItems = menu.querySelectorAll('.tour-menu-item').length > 0;
+
+                    this.log('Tutorial Menu Creation', hasMenuItems,
+                        `Menu created with ${menu.querySelectorAll('.tour-menu-item').length} items`);
+                    menu.remove();
+                } catch (e) {
+                    this.log('Tutorial Menu Creation', false, e.message);
+                }
+
+                // Test 6: Help Button Addition
+                try {
+                    this.manager.addHelpButton('#neural-heatmap-container', 'test-help', 'This is a test help tooltip.');
+                    const hasHelpButton = document.querySelector('.context-help-button') !== null;
+
+                    this.log('Help Button Addition', hasHelpButton,
+                        'Context help button added successfully');
+
+                    if (hasHelpButton) {
+                        document.querySelector('.context-help-button').remove();
+                    }
+                } catch (e) {
+                    this.log('Help Button Addition', false, e.message);
+                }
+
+                // Test 7: UI Creation
+                try {
+                    // Mock starting a tour briefly to test UI creation
+                    this.manager.startTour('getting-started');
+                    const hasBackdrop = document.getElementById('tutorial-backdrop') !== null;
+                    const hasTooltip = document.getElementById('tutorial-tooltip') !== null;
+
+                    this.log('UI Creation', hasBackdrop && hasTooltip,
+                        'Backdrop and tooltip elements created');
+
+                    // End the tour
+                    this.manager.endTour();
+                } catch (e) {
+                    this.log('UI Creation', false, e.message);
+                }
+
+                // Test 8: Progress Persistence
+                try {
+                    const initialProgress = this.manager.getProgress();
+                    this.manager.progress.completedTours.push('test-tour');
+                    this.manager._saveProgress();
+
+                    const newManager = new TutorialManager();
+                    const savedProgress = newManager.getProgress();
+                    const hasTestTour = savedProgress.completedTours.includes('test-tour');
+
+                    this.log('Progress Persistence', hasTestTour,
+                        'Progress saved and loaded from localStorage');
+
+                    // Clean up
+                    newManager.progress.completedTours = newManager.progress.completedTours.filter(t => t !== 'test-tour');
+                    newManager._saveProgress();
+                } catch (e) {
+                    this.log('Progress Persistence', false, e.message);
+                }
+
+                const passCount = this.results.filter(r => r.passed).length;
+                const failCount = this.results.filter(r => !r.passed).length;
+
+                console.log(`\nTest Complete: ${passCount} passed, ${failCount} failed`);
+            }
+        }
+
+        // Initialize on load
+        window.onload = async () => {
+            // Initialize Tutorial Manager
+            window.tutorialManager = new TutorialManager({
+                autoStart: false
+            });
+
+            // Setup tutorial button
+            const tutorialBtn = document.getElementById('start-tutorial-btn');
+            tutorialBtn.onclick = () => {
+                const menu = window.tutorialManager.createTutorialMenu();
+                document.body.appendChild(menu);
+            };
+
+            // Add hover effect
+            tutorialBtn.onmouseover = () => {
+                tutorialBtn.style.transform = 'translateY(-2px)';
+                tutorialBtn.style.boxShadow = '0 6px 20px rgba(0, 255, 255, 0.5)';
+            };
+            tutorialBtn.onmouseout = () => {
+                tutorialBtn.style.transform = 'translateY(0)';
+                tutorialBtn.style.boxShadow = '0 4px 15px rgba(0, 255, 255, 0.3)';
+            };
+
+            // Run tests automatically
+            const testSuite = new TutorialTestSuite();
+            await testSuite.runAll();
+
+            // Auto-start tour for demonstration (commented out for manual testing)
+            // setTimeout(() => {
+            //     window.tutorialManager.startTour('getting-started');
+            // }, 1000);
+        };
+
+        // Keyboard shortcut for tutorial (Ctrl+H)
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
+                e.preventDefault();
+                document.getElementById('start-tutorial-btn').click();
+            }
+        });
+    </script>
+</body>
+</html>

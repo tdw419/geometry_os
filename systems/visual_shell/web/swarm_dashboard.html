@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry OS: Swarm Visual Dashboard</title>
+    <link rel="stylesheet" href="swarm_dashboard.css">
+    
+    <!-- PixiJS -->
+    <script src="https://pixijs.download/v8.1.0/pixi.min.js"></script>
+    
+    <!-- Component Scripts -->
+    <script src="js/swarm/SwarmCanvas.js"></script>
+    <script src="js/swarm/HealthPanel.js"></script>
+    <script src="js/swarm/RestorationPanel.js"></script>
+    <script src="js/swarm/EventLog.js"></script>
+    <script src="js/swarm/SwarmClient.js"></script>
+    <script src="js/swarm/SwarmDashboard.js"></script>
+</head>
+<body>
+    <div id="dashboard-container">
+        <div class="canvas-area" id="canvas-area">
+            <div id="loading-overlay" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #00ffff; font-size: 18px;">
+                INITIALIZING SWARM CANVAS...
+            </div>
+        </div>
+        <div class="sidebar">
+            <!-- Panels injected here -->
+        </div>
+    </div>
+
+    <script>
+        window.onload = async () => {
+            try {
+                const dashboard = new SwarmDashboard({
+                    wsUrl: 'ws://' + window.location.hostname + ':8766',
+                    containerId: 'dashboard-container'
+                });
+                window.swarmDashboard = dashboard;
+                await dashboard.initialize();
+                
+                // Hide loading overlay
+                const loader = document.getElementById('loading-overlay');
+                if (loader) loader.style.display = 'none';
+                
+            } catch (error) {
+                console.error('Failed to start dashboard:', error);
+                document.getElementById('loading-overlay').innerHTML = 
+                    '<span style="color: #ff0000">DASHBOARD ERROR: ' + error.message + '</span>';
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "main",
+  "description": "RISC-V program assembled from main",
+  "author": "AI Agent",
+  "version": "1.0.0",
+  "riscv_version": "RV64I",
+  "entry_symbol": "main",
+  "symbols": {
+    "main": 0,
+    "loop": 8
+  },
+  "relocations": [],
+  "checksum": "bd251b582baf650ac9ccb9b222f5cbfa2e68baade0e4c1633e98f3d3c0f18bf1"
+}

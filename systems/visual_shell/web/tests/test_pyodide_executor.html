@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pyodide Executor Tests</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+</head>
+<body>
+    <h1>Pyodide Executor Tests</h1>
+    <div id="results"></div>
+    <script type="module">
+        import { PyodideExecutor } from '../pyodide_executor.js';
+
+        const results = document.getElementById('results');
+        let passed = 0;
+        let failed = 0;
+
+        async function test(name, fn) {
+            try {
+                await fn();
+                results.innerHTML += `<p style="color:green">${name}</p>`;
+                passed++;
+            } catch (e) {
+                results.innerHTML += `<p style="color:red">${name}: ${e.message}</p>`;
+                failed++;
+            }
+        }
+
+        async function runTests() {
+            const executor = new PyodideExecutor();
+
+            await test('initializes with pyodide null', async () => {
+                if (executor.pyodide !== null) throw new Error('pyodide should be null before init');
+            });
+
+            await test('load() initializes pyodide', async () => {
+                await executor.load();
+                if (!executor.pyodide) throw new Error('pyodide should be initialized');
+            });
+
+            await test('runPython() returns result', async () => {
+                const result = await executor.runPython('1 + 1');
+                if (result !== 2) throw new Error(`Expected 2, got ${result}`);
+            });
+
+            await test('runPython() captures stdout', async () => {
+                const output = await executor.runPython('print("hello world")');
+                if (!executor.lastStdout.includes('hello world')) {
+                    throw new Error(`stdout not captured: ${executor.lastStdout}`);
+                }
+            });
+
+            await test('runPython() captures stderr on error', async () => {
+                try {
+                    await executor.runPython('raise Exception("test error")');
+                    throw new Error('Should have thrown');
+                } catch (e) {
+                    if (!e.message.includes('test error')) {
+                        throw new Error(`Error message not captured: ${e.message}`);
+                    }
+                }
+            });
+
+            results.innerHTML += `<h2>Results: ${passed} passed, ${failed} failed</h2>`;
+        }
+
+        runTests();
+    </script>
+</body>
+</html>

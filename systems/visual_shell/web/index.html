@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry OS: Infinite Map</title>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #111;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            transition: background-color 300ms ease, color 300ms ease;
+        }
+
+        /* Dark theme (default) */
+        body.theme-dark {
+            background-color: #0a0a1a;
+            color: #ffffff;
+        }
+
+        /* Light theme */
+        body.theme-light {
+            background-color: #f5f5f5;
+            color: #222222;
+        }
+
+        /* High contrast theme */
+        body.theme-highContrast {
+            background-color: #000000;
+            color: #ffffff;
+        }
+
+        #app-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        #loading-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00FFFF;
+            font-size: 24px;
+            pointer-events: none;
+            text-align: center;
+            transition: opacity 300ms ease;
+        }
+
+        /* Theme-aware loading overlay */
+        body.theme-light #loading-overlay {
+            color: #008B8B;
+        }
+
+        body.theme-highContrast #loading-overlay {
+            color: #00FFFF;
+        }
+    </style>
+    <!-- PixiJS -->
+    <script src="https://pixijs.download/v8.1.0/pixi.min.js"></script>
+    <script src="lib/typed-signals.js"></script>
+    <script src="lib/pixi-ui.min.js"></script>
+
+    <!-- Geometry OS Modules -->
+    <script src="spatial_core.js"></script>
+    <script src="sprite_pool.js"></script>
+    <script src="chunk_manager.js"></script>
+    <script src="viewport_manager.js"></script>
+    <script src="lod_system.js"></script>
+    <script src="infinite_map_v2.js"></script>
+    <script src="infinite_map.js"></script> <!-- Manifest-based tile loading with LLM chat -->
+    <script src="brick_loader.js"></script> <!-- Brick File Loader with V2BrickHeader -->
+    <script src="ExecutionTracer.js"></script>
+    <script src="pixel_cpu.js"></script> <!-- Pixel CPU Emulator -->
+    <script src="PerformanceMonitor.js"></script> <!-- Performance Monitor -->
+    <script src="MemoryAnalyzer.js"></script>
+    <script src="pixel_cpu_integration.js"></script> <!-- Pixel CPU - PixiJS Integration -->
+    <script src="pixi_adapter.js"></script> <!-- Mock Adapter for Browser -->
+    <script src="visual_boot_loader.js"></script>
+    <script src="llm_chat_panel.js"></script> <!-- LLM Chat Panel -->
+    <script src="activity_tracker.js"></script> <!-- Neural Heatmap: Activity tracking with temporal decay -->
+    <script src="layer_mapper.js"></script> <!-- Neural Heatmap: Layer metadata parser -->
+    <script src="canvas_fallback.js"></script>
+    <!-- Neural Heatmap Phase 2.1.1: Canvas fallback for graceful degradation -->
+    <script src="browser_compatibility.js"></script> <!-- Neural Heatmap Phase 2.1.1: Cross-browser compatibility -->
+    <script src="error_recovery.js"></script>
+    <!-- Neural Heatmap Phase 2.1.1: Error recovery and graceful degradation -->
+    <script src="performance_monitor.js"></script> <!-- Neural Heatmap Phase 2.1.1: Performance monitoring -->
+    <script src="performance_dashboard.js"></script> <!-- Neural Heatmap Phase 2.1.1: Performance dashboard UI -->
+    <script src="memory_leak_detector.js"></script> <!-- Neural Heatmap Phase 2.1.1: Memory leak detection -->
+    <script src="gpu_memory_optimizer.js"></script>
+    <!-- Neural Heatmap Phase 2.1.1: GPU memory optimization with LOD -->
+    <script src="model_metadata.js"></script> <!-- Neural Heatmap Phase 2.1.3: Model metadata and validation -->
+    <script src="model_registry.js"></script> <!-- Neural Heatmap Phase 2.1.3: Persistent model registry -->
+    <script src="model_discovery.js"></script> <!-- Neural Heatmap Phase 2.1.3: Auto-discovery of LM Studio models -->
+    <script src="model_zoo_manager.js"></script> <!-- Neural Heatmap Phase 2: Model Zoo Manager -->
+    <script src="model_zoo_ui.js"></script> <!-- Neural Heatmap Phase 2: Model Zoo UI -->
+    <script src="multi_model_tracker.js"></script> <!-- Neural Heatmap Phase 2: Multi-Model Activity Tracking -->
+    <script src="comparative_heatmap.js"></script> <!-- Neural Heatmap Phase 2: Comparative Heatmap Renderer -->
+    <script src="advanced_differential.js"></script> <!-- Neural Heatmap Phase 2.1.2: Statistical comparison -->
+    <script src="interactive_analysis.js"></script> <!-- Neural Heatmap Phase 2.1.2: Interactive analysis -->
+    <script src="enhanced_overlay.js"></script> <!-- Neural Heatmap Phase 2.1.2: Enhanced overlay modes -->
+    <script src="export_utils.js"></script> <!-- Neural Heatmap Phase 2.1.2: Export utilities -->
+    <script src="comparison_exporter.js"></script> <!-- Neural Heatmap Phase 2.1.2: Multi-model export capabilities -->
+    <script src="worker_manager.js"></script> <!-- Neural Heatmap Phase 2.2: Web Worker pool manager -->
+    <script src="cross_layer_analyzer.js"></script>
+    <!-- Neural Heatmap Phase 2.1.4: Cross-layer correlation analysis -->
+    <script src="temporal_analyzer.js"></script> <!-- Neural Heatmap Phase 2.1.4: Temporal pattern detection -->
+    <script src="anomaly_detector.js"></script> <!-- Neural Heatmap Phase 2.1.4: Statistical anomaly detection -->
+    <script src="correlation_matrix_view.js"></script>
+    <!-- Neural Heatmap Phase 2.1.4: Correlation matrix visualization -->
+    <script src="temporal_view.js"></script> <!-- Neural Heatmap Phase 2.1.4: Temporal patterns visualization -->
+    <script src="test_cross_layer_analyzer.js"></script>
+    <!-- Neural Heatmap Phase 2.1.4: Tests for CrossLayerAnalyzer -->
+    <script src="test_temporal_analyzer.js"></script> <!-- Neural Heatmap Phase 2.1.4: Tests for TemporalAnalyzer -->
+    <script src="test_anomaly_detector.js"></script> <!-- Neural Heatmap Phase 2.1.4: Tests for AnomalyDetector -->
+    <script src="loading_indicator.js"></script> <!-- Neural Heatmap Phase 2.1.4: Loading indicator component -->
+    <script src="analytics_theme_manager.js"></script> <!-- Neural Heatmap Phase 2.2: Theme management system -->
+    <script src="dashboard_layout_manager.js"></script> <!-- Neural Heatmap Phase 2.3: Dashboard layout manager -->
+    <script src="analytics_ui_controls.js"></script>
+    <!-- Neural Heatmap Phase 2.1.4: UI controls for analytics views -->
+    <script src="analytics_filter_panel.js"></script> <!-- Neural Heatmap Phase 2.2: Advanced filtering panel -->
+    <script src="multi_model_comparison_view.js"></script>
+    <!-- Neural Heatmap Phase 2.2: Multi-model comparison view -->
+    <script src="analytics_exporter.js"></script> <!-- Neural Heatmap Phase 2.1.4: Data export functionality -->
+    <script src="tensorboard_exporter.js"></script> <!-- Neural Heatmap Phase 2.2: TensorBoard export functionality -->
+    <script src="enhanced_tooltip.js"></script> <!-- Neural Heatmap Phase 2.2: Enhanced tooltip system -->
+    <script src="test_integration_analytics.js"></script> <!-- Neural Heatmap Phase 2.2: Integration tests -->
+    <script src="test_performance_benchmarks.js"></script> <!-- Neural Heatmap Phase 2.2: Performance benchmarks -->
+    <script src="virtual_matrix_renderer.js"></script>
+    <!-- Neural Heatmap Phase 2.2: Virtual matrix renderer for large datasets -->
+    <script src="virtual_timeline_renderer.js"></script>
+    <!-- Neural Heatmap Phase 2.2: Virtual timeline renderer for temporal data -->
+    <script src="predictive_analytics.js"></script> <!-- Neural Heatmap Phase 2.3: Predictive analytics engine -->
+    <script src="test_predictive_analytics.js"></script> <!-- Neural Heatmap Phase 2.3: Predictive analytics tests -->
+    <script src="demo_predictive_analytics.js"></script> <!-- Neural Heatmap Phase 2.3: Predictive analytics demo -->
+    <script src="neural_heatmap_overlay.js"></script> <!-- Neural Heatmap: Main overlay system -->
+    <script src="layer_tooltip.js"></script> <!-- Neural Heatmap: Layer tooltip component -->
+    <script src="heatmap_graphics_pool.js"></script> <!-- Neural Heatmap: Graphics object pooling -->
+    <script src="heatmap_playback_controls.js"></script> <!-- Neural Heatmap: History playback controls -->
+    <script src="llm_inference_tracker.js"></script> <!-- Neural Heatmap: LM Studio API tracking -->
+    <script src="lm_studio_bridge.js"></script> <!-- Neural Heatmap Phase 2.1.1: LM Studio WebSocket integration -->
+    <script src="lmstudio_websocket.js"></script> <!-- Neural Heatmap Phase 2.1.1: LM Studio WebSocket client -->
+    <script src="Holodeck.js"></script> <!-- ACE Cognitive Holodeck -->
+    <script src="interactive_tutorial.js"></script> <!-- Neural Heatmap Phase 2.3: Interactive Tutorial System -->
+    <script src="collaboration_manager.js"></script> <!-- Neural Heatmap Phase 2.3: Real-time collaboration -->
+    <script src="accessibility.js"></script> <!-- Neural Heatmap Phase 2.3: Accessibility Layer -->
+
+    <!-- Pixel-Exec Protocol: "The Screen is the Hard Drive" -->
+    <script src="hilbert_lut.js"></script> <!-- Hilbert Curve LUT for pixel-to-memory mapping -->
+    <script src="holographic_dictionary.js"></script> <!-- Geometric Codebook for semantic expansion -->
+    <script src="semantic_token_library.js"></script> <!-- Pre-built holographic tokens -->
+    <script src="pixel_executor.js"></script> <!-- Direct pixel-to-execution engine with semantic support -->
+    <script src="webgpu_semantic_manager.js"></script> <!-- GPU-accelerated semantic expansion -->
+    <script src="gpu_execution_system.js"></script> <!-- Full GPU-RISCV execution pipeline -->
+
+    <!-- PixelLang IDE: "The Canvas is the IDE" -->
+    <script src="geometric_canvas.js"></script> <!-- Morphological drawing surface -->
+    <script src="pixel_palette.js"></script> <!-- Chromatic programming palette -->
+    <script src="token_browser_ui.js"></script>
+    <script src="pixellang_ide.js"></script>
+    <script src="geoscript_transpiler.js"></script> <!-- GeoScript Transpiler -->
+    <script src="MorphologicalWorkbench.js"></script> <!-- Geometric IDE / Morphological Painting -->
+    <script src="webgpu_expansion_demo.js"></script> <!-- WebGPU expansion demo -->
+    <script src="llm_world_builder.js"></script> <!-- LLM World Builder -->
+    <script src="test_status_oracle.js"></script> <!-- Phase 30.2: Garden Tending Oracle -->
+    <script src="evolutionary_architect_enhanced.js"></script> <!-- Phase 30: Enhanced Self-Correction Loop -->
+
+    <!-- Test script (development only) -->
+    <!-- <script src="../tests/web/test_lm_studio_integration.js"></script> -->
+
+    <!-- Desktop Environment -->
+    <script src="WindowManager.js"></script>
+    <script src="DesktopWindow.js"></script>
+    <script src="linux_kernel_loader.js"></script> <!-- Linux Kernel Loader -->
+    <script src="linux_gpu_loader.js"></script> <!-- Phase 29.1: Linux GPU Boot -->
+    <script src="vlm_health_heatmap.js"></script> <!-- VLM Self-Healing: Visual health status dashboard -->
+    <script src="structure_interactions.js"></script> <!-- Phase 29.4: Interactive Structures -->
+    <script src="demo_spatial_linux.js"></script> <!-- Spatial Linux Boot Demo -->
+    <script src="demo_shotcut.js"></script> <!-- Semantic Shotcut Demo -->
+
+    <!-- Phase 47: Tectonic Saccadic Optimization -->
+    <script src="saccadic_controller.js"></script>
+    <script src="saccade_gpu.js"></script> <!-- Phase 47 Improvements: GPU-accelerated saccades -->
+    <script src="lru_tile_cache.js"></script> <!-- Phase 47 Improvements: LRU tile cache -->
+    <script src="smooth_lod_transition.js"></script>
+    <script src="predictive_prefetcher.js"></script>
+    <script src="predictive_prefetcher_worker.js"></script>
+    <script src="predictive_prefetcher_worker_wrapper.js"></script>
+    <script src="motion_quality_scaler.js"></script>
+    <script src="focus_tracker.js"></script>
+    <script src="vergence_controller.js"></script> <!-- Phase 47 Advanced: Vergence eye movements -->
+    <script src="pursuit_controller.js"></script> <!-- Phase 47 Advanced: Pursuit movements -->
+    <script src="microsaccade_detector.js"></script> <!-- Phase 47 Advanced: Microsaccade detection -->
+    <script src="per_tile_lod.js"></script> <!-- Phase 47 Advanced: Per-tile LOD -->
+    <script src="temporal_upscaler.js"></script> <!-- Phase 47 Advanced: Temporal upscaling -->
+    <script src="hlod_system.js"></script> <!-- Phase 47 Advanced: HLOD system -->
+    <script src="preset_sharing.js"></script> <!-- Phase 47 Advanced: Preset sharing -->
+    <script src="tectonic_saccadic_manager.js"></script>
+    <script src="debug_overlays.js"></script> <!-- Phase 47 Improvements: Visual debugging tools -->
+    <script src="perf_hud.js"></script> <!-- Phase 47 Improvements: Performance profiling HUD -->
+    <script src="saccadic_presets.js"></script> <!-- Phase 47 Advanced: Configuration presets -->
+
+    <!-- Phase 31: Python Transmutation Pipeline -->
+    <script src="python_loader.js"></script> <!-- Python Drag-Drop Transmutation -->
+
+    <!-- Shared Reality Protocol: Neural Quine (Self-Hosting Evolution) -->
+    <script src="js/evolution_engine.js"></script> <!-- Native JavaScript Evolution Engine -->
+
+    <!-- Vision Cortex: Client-side OCR -->
+    <script src="VisionCortex.js"></script>
+    <script src="semantic_overlay.js"></script> <!-- "AI Buttons" Visualization -->
+
+    <!-- WebMCP Bridge: AI Agent → Visual Shell structured tool surface -->
+    <script src="evolution_safety_bridge.js"></script> <!-- V13 Safety Features -->
+    <script src="metabolism_dashboard.js"></script> <!-- V13 Metabolism Dashboard -->
+    <script src="webmcp_bridge.js"></script> <!-- Phase A: WebMCP Tool Layer (Chrome 146+, silent fallback) -->
+    <script src="wordpress_mcp.js"></script> <!-- WordPress Zone WebMCP Tools -->
+    <script type="module" src="vfs_pyodide_bridge.js"></script> <!-- Bridge for Pyodide to interact with VFS WebMCP tools -->
+
+    <!-- Phase F: AI-Driven Visual Builder -->
+    <script src="BuilderPanel.js"></script>
+
+    <!-- Phase 50: Advanced Visual Tools (Glass Box AI) -->
+    <script src="visual_debug_overlay.js"></script>
+    <script src="visual_verification_bridge.js"></script>
+    <script src="wgsl_hot_loader.js"></script>
+
+    <!-- PixelRTS Phase 4: Visual Catalog Manager -->
+    <script src="spatial_catalog.js"></script>
+
+    <!-- Path 2: Memory Beams (Hippocampus Integration) -->
+    <script src="MemoryBeamRenderer.js"></script>
+
+    <!-- Neural City Renderer (P1) -->
+    <script src="NeuralCityFilter.js"></script>
+    <script src="NeuralCityRenderer.js"></script>
+
+    <!-- Phase J.2: Neural IDE -->
+    <script src="ide_tile_types.js"></script>
+    <script src="tile_connections.js"></script>
+
+    <script type="module" src="sbi_handler.js"></script>
+    <script type="module" src="dtb_generator.js"></script>
+    <script type="module" src="wgpu_kernel_loader.js"></script>
+    <script type="module" src="wgpu_input_handler.js"></script>
+    <script type="module" src="test_initrd_support.js"></script>
+    <script type="module" src="test_boot_to_shell.js"></script>
+    <script type="module" src="test_sbi_echo.js"></script>
+    <script type="module" src="wgpu_linux_hypervisor.js"></script>
+    <script src="vm_monitor_tile.js"></script>
+    <script src="js/AmbientNarrativeHUD.js"></script> <!-- V2.0 Narrative HUD -->
+    <script src="application.js"></script>
+</head>
+
+<body>
+    <div id="app-container"></div>
+    <div id="loading-overlay">
+        BOOTING GEOMETRY KERNEL...<br>
+        <span style="font-size: 14px; opacity: 0.7">Antigravity Prime Sequence</span>
+    </div>
+
+    <!-- Test Runner Link (development) -->
+    <div id="test-runner-link" style="position: fixed; bottom: 10px; right: 10px; z-index: 10000; display: flex; gap: 10px;">
+        <a href="improvement_dashboard.html"
+            style="color: #00FFFF; text-decoration: none; font-size: 12px; background: rgba(0,0,0,0.7); padding: 5px 10px; border-radius: 3px;">📊
+            Dashboard</a>
+        <a href="tests/test_runner.html"
+            style="color: #00FFFF; text-decoration: none; font-size: 12px; background: rgba(0,0,0,0.7); padding: 5px 10px; border-radius: 3px;">🧪
+            Test Runner</a>
+    </div>
+
+    <!-- Tutorial Button -->
+    <button id="start-tutorial-btn"
+        style="position: fixed; top: 80px; right: 20px; z-index: 9999; background: linear-gradient(135deg, #00FFFF 0%, #0088FF 100%); color: #000; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: 'Courier New', monospace; box-shadow: 0 4px 15px rgba(0, 255, 255, 0.3); transition: all 0.3s ease; display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 18px;">📚</span>
+        <span>Tutorial</span>
+    </button>
+
+    <script>
+        // Initialize Application
+        window.onload = async () => {
+            // Parse URL params
+            const urlParams = new URLSearchParams(window.location.search);
+            const mode = urlParams.get('mode'); // 'desktop' or null
+
+            const app = new GeometryOSApplication();
+            window.geometryOSApp = app; // Expose for WebMCP creative tools
+            await app.initialize('app-container');
+
+            // Initialize ACE Holodeck (hidden until connected)
+            window.holodeck = new Holodeck(app.app);
+
+            // Initialize Tutorial Manager (Neural Heatmap Phase 2.3)
+            window.tutorialManager = new TutorialManager({
+                autoStart: false,
+                showProgress: true
+            });
+
+            // Setup tutorial button
+            const tutorialBtn = document.getElementById('start-tutorial-btn');
+            if (tutorialBtn) {
+                tutorialBtn.onclick = () => {
+                    const menu = window.tutorialManager.createTutorialMenu();
+                    document.body.appendChild(menu);
+                };
+
+                // Add hover effect
+                tutorialBtn.onmouseover = () => {
+                    tutorialBtn.style.transform = 'translateY(-2px)';
+                    tutorialBtn.style.boxShadow = '0 6px 20px rgba(0, 255, 255, 0.5)';
+                };
+                tutorialBtn.onmouseout = () => {
+                    tutorialBtn.style.transform = 'translateY(0)';
+                    tutorialBtn.style.boxShadow = '0 4px 15px rgba(0, 255, 255, 0.3)';
+                };
+
+                // Add keyboard shortcut (Ctrl+H for Help)
+                document.addEventListener('keydown', (e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
+                        e.preventDefault();
+                        tutorialBtn.click();
+                    }
+                });
+            }
+
+            // Auto-start tutorial for first-time users
+            if (window.tutorialManager.getProgress().completedTours.length === 0) {
+                setTimeout(() => {
+                    const shouldStart = confirm('Welcome to Neural Heatmap! Would you like to take a quick tutorial to learn the basics?');
+                    if (shouldStart) {
+                        window.tutorialManager.startTour('getting-started');
+                    }
+                }, 2000);
+            }
+
+            if (mode === 'desktop') {
+                console.log("🖥️ Running in INFINITE DESKTOP MODE (Wallpaper)");
+                // Hide standard UI overlays if they obscure the desktop icons/panel
+                // But keep the map interactive
+                if (app.ui_layer) {
+                    // app.ui_layer.visible = false; // Example
+                }
+                // Set background to transparent effectively?
+                // Actually we want the map to BE the background.
+            }
+
+            // Fade out loader
+            const loader = document.getElementById('loading-overlay');
+            if (loader) {
+                loader.style.opacity = 0;
+                setTimeout(() => loader.remove(), 1000);
+            }
+        };
+    </script>
+
+    <!-- Vision Pipeline Demo -->
+    <script src="demo_vision_pipeline.js"></script>
+
+    <!-- Pyodide -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+    <div id="pyodide-output" style="position: fixed; bottom: 0; left: 0; background: rgba(0,0,0,0.8); color: white; padding: 10px; width: 100%; height: 100px; overflow-y: scroll; font-family: monospace; font-size: 10px; display: none;"></div>
+</body>
+
+</html>

@@ -1,0 +1,167 @@
+# Visual Ingestion Team Configuration (Frontier G)
+#
+# This team implements the "Retina" of the Swarm - enabling visual perception
+# and reverse UI engineering capabilities for Geometry OS.
+#
+# Goal: Build the PerceptionAgent that wraps the Visual Extraction Pipeline
+# as a swarm-capable agent, enabling any agent to "see" and analyze interfaces.
+
+name: visual-ingestion
+description: |
+  Agent team for Frontier G: Visual Ingestion.
+
+  Goal: Create a PerceptionAgent that wraps the Visual Extraction Pipeline
+  as a swarm-capable agent, enabling any agent in the collective to "see"
+  and analyze pixel-based interfaces.
+
+  Components:
+  - PerceptionAgent: Visual extraction service for the swarm
+  - Team Configuration: Add perception-specialist to Cognitive IDE
+  - Integration Tests: Verify extraction from real screenshots
+  - Documentation: Usage guide and architecture
+
+# Selection: Choose agent with best capability match
+selection_policy: best_fit
+
+# Fixed team size
+scaling_policy: fixed
+
+# Failover to another agent on failure
+failure_policy: failover
+
+# Retry configuration
+max_retries: 3
+retry_delay: 5.0
+
+# Team communication
+enable_event_bus: true
+enable_health_monitoring: true
+
+# Health monitoring
+health_check_interval: 30.0
+heartbeat_timeout: 120.0
+health_history_limit: 100
+
+# Team constraints
+max_concurrent_tasks: 4
+max_queue_size: 20
+task_timeout: 300.0
+
+# Team metadata
+metadata:
+  project: geometry-os
+  component: visual-ingestion
+  frontier: G
+  implementation_plan: docs/plans/2026-02-19-perception-agent.md
+  openspec_change: apps/openspec/openspec/changes/perception-agent/
+
+# Agent definitions
+agents:
+  # ============================================
+  # PERCEPTION IMPLEMENTER - Core agent
+  # ============================================
+  - agent_id: perception-implementer
+    name: Perception Agent Implementer
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - asyncio
+      - websockets
+      - testing
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 100
+    metadata:
+      role: Implement PerceptionAgent core
+      focuses:
+        - WorkerAgent subclass
+        - Message handling
+        - Extraction pipeline integration
+      key_files:
+        - systems/visual_shell/swarm/perception_agent.py
+        - conductor/tracks/shotcut-on-the-map/extraction_pipeline.py
+
+  # ============================================
+  # TEST ENGINEER - Test file creation
+  # ============================================
+  - agent_id: perception-tester
+    name: Perception Test Engineer
+    agent_type: specialist
+    capabilities:
+      - testing
+      - python
+      - pytest
+      - asyncio
+      - mocking
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 95
+    metadata:
+      role: Create test files for PerceptionAgent
+      focuses:
+        - Unit tests
+        - Integration tests
+        - Mock extraction pipeline
+      key_files:
+        - tests/system/test_perception_agent.py
+        - tests/system/test_perception_agent_integration.py
+
+  # ============================================
+  # CONFIG SPECIALIST - Team configuration
+  # ============================================
+  - agent_id: config-specialist
+    name: Team Configuration Specialist
+    agent_type: specialist
+    capabilities:
+      - yaml
+      - configuration
+      - python
+      - testing
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 90
+    metadata:
+      role: Update team configurations
+      focuses:
+        - cognitive-ide-team.yaml
+        - Task routing
+        - Agent capabilities
+      key_files:
+        - ai_project_management/teams/cognitive-ide-team.yaml
+
+  # ============================================
+  # DOC WRITER - Documentation
+  # ============================================
+  - agent_id: doc-writer
+    name: Documentation Writer
+    agent_type: specialist
+    capabilities:
+      - documentation
+      - markdown
+      - python
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 85
+    metadata:
+      role: Create PerceptionAgent documentation
+      focuses:
+        - Usage guide
+        - API reference
+        - Architecture diagrams
+      key_files:
+        - docs/perception_agent.md
+
+# Task routing rules
+task_routing:
+  - pattern: "perception.*agent|implement.*perception|worker.*agent"
+    assign_to: perception-implementer
+  - pattern: "test.*perception|unit.*test|integration.*test|mock.*extract"
+    assign_to: perception-tester
+  - pattern: "team.*config|yaml|cognitive.*ide.*team|task.*routing"
+    assign_to: config-specialist
+  - pattern: "doc.*|documentation|readme|usage.*guide"
+    assign_to: doc-writer
+  - pattern: "python|async|test|tdd"
+    assign_to: perception-implementer

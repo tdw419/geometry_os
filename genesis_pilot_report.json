@@ -1,0 +1,4019 @@
+{
+  "report_metadata": {
+    "system": "CTRM-STA",
+    "version": "2.0.0-TRIAD",
+    "total_verses": 100,
+    "avg_confidence": 0.5450630000000001
+  },
+  "ctrm_system_report": {
+    "total_verses_analyzed": 100,
+    "system_metrics": {
+      "cronbach_alpha": 0.1954,
+      "elemental_independence": true,
+      "pearson_r1": 0.1114,
+      "configurational_stability": false,
+      "pairwise_correlations": {
+        "E1_E2": 0.0416,
+        "E1_E3": 0.091,
+        "E2_E3": 0.2016
+      }
+    },
+    "mean_scores": {
+      "E1_archaeology": 0.2307,
+      "E2_manuscript": 0.9507,
+      "E3_prophecy": 0.6602
+    }
+  },
+  "verses": [
+    {
+      "id": "STA_15b4bd0b",
+      "reference": "Genesis 1:1",
+      "bible_id": "0x0000402000000019",
+      "text": "In the beginning God created the heaven and the earth.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.17,
+        "E2_manuscript": 0.92,
+        "E3_prophecy": 0.47
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.0,
+        "elemental_independence": false,
+        "pearson_r1": 0.0,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.4534,
+        "distance_from_center": 63.7,
+        "spatial_coords": {
+          "x": 4,
+          "y": 132
+        },
+        "timestamp": 1771618859.8249564,
+        "reasoning": "Analysis of Genesis 1:1 (cosmological): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.17)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.17,
+          "manuscript": 0.92,
+          "prophecy": 0.47
+        }
+      }
+    },
+    {
+      "id": "STA_010210d7",
+      "reference": "Genesis 1:2",
+      "bible_id": "0x0000404000000019",
+      "text": "And the earth was without form, and void; and darkness was upon the face of the deep. And the Spirit of God moved upon the face of the waters.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.171,
+        "E2_manuscript": 0.921,
+        "E3_prophecy": 0.471
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.0,
+        "elemental_independence": false,
+        "pearson_r1": 0.0,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.4544,
+        "distance_from_center": 63.7,
+        "spatial_coords": {
+          "x": 8,
+          "y": 128
+        },
+        "timestamp": 1771618859.825015,
+        "reasoning": "Analysis of Genesis 1:2 (cosmological): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.17)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.171,
+          "manuscript": 0.921,
+          "prophecy": 0.471
+        }
+      }
+    },
+    {
+      "id": "STA_df060304",
+      "reference": "Genesis 1:3",
+      "bible_id": "0x0000406000000019",
+      "text": "And God said, Let there be light: and there was light.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.207,
+        "E2_manuscript": 0.957,
+        "E3_prophecy": 0.507
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 1.0,
+        "elemental_independence": false,
+        "pearson_r1": 0.0,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.4881,
+        "distance_from_center": 61.0,
+        "spatial_coords": {
+          "x": 12,
+          "y": 132
+        },
+        "timestamp": 1771618859.825366,
+        "reasoning": "Analysis of Genesis 1:3 (cosmological): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.21)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.207,
+          "manuscript": 0.957,
+          "prophecy": 0.507
+        }
+      }
+    },
+    {
+      "id": "STA_03721cc6",
+      "reference": "Genesis 1:4",
+      "bible_id": "0x0000408000000019",
+      "text": "And God saw the light, that it was good: and God divided the light from the darkness.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.181,
+        "E2_manuscript": 0.931,
+        "E3_prophecy": 0.481
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 1.0,
+        "elemental_independence": false,
+        "pearson_r1": 0.0,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.4637,
+        "distance_from_center": 62.9,
+        "spatial_coords": {
+          "x": 8,
+          "y": 136
+        },
+        "timestamp": 1771618859.8254433,
+        "reasoning": "Analysis of Genesis 1:4 (cosmological): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.18)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.181,
+          "manuscript": 0.931,
+          "prophecy": 0.481
+        }
+      }
+    },
+    {
+      "id": "STA_f99a8fc5",
+      "reference": "Genesis 1:5",
+      "bible_id": "0x000040a000000019",
+      "text": "And God called the light Day, and the darkness he called Night. And the evening and the morning were the first day.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.233,
+        "E2_manuscript": 0.983,
+        "E3_prophecy": 0.533
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 1.0,
+        "elemental_independence": false,
+        "pearson_r1": 1.0,
+        "configurational_stability": true,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5693,
+        "distance_from_center": 54.5,
+        "spatial_coords": {
+          "x": 12,
+          "y": 140
+        },
+        "timestamp": 1771618859.826588,
+        "reasoning": "Analysis of Genesis 1:5 (cosmological): Experimental truth status due to lack of empirical corroboration. Stable configuration (r\u2081 > 0.7).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.23)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.233,
+          "manuscript": 0.983,
+          "prophecy": 0.533
+        }
+      }
+    },
+    {
+      "id": "STA_6246601a",
+      "reference": "Genesis 1:6",
+      "bible_id": "0x000040c000000019",
+      "text": "And God said, Let there be a firmament in the midst of the waters, and let it divide the waters from the waters.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.245,
+        "E2_manuscript": 0.995,
+        "E3_prophecy": 0.545
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 1.0,
+        "elemental_independence": false,
+        "pearson_r1": 1.0,
+        "configurational_stability": true,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5818,
+        "distance_from_center": 53.5,
+        "spatial_coords": {
+          "x": 7,
+          "y": 143
+        },
+        "timestamp": 1771618859.8274736,
+        "reasoning": "Analysis of Genesis 1:6 (cosmological): Experimental truth status due to lack of empirical corroboration. Stable configuration (r\u2081 > 0.7).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.24)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.245,
+          "manuscript": 0.995,
+          "prophecy": 0.545
+        }
+      }
+    },
+    {
+      "id": "STA_9d04365a",
+      "reference": "Genesis 1:7",
+      "bible_id": "0x000040e000000019",
+      "text": "And God made the firmament, and divided the waters which were under the firmament from the waters which were above the firmament: and it was so.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.221,
+        "E2_manuscript": 0.971,
+        "E3_prophecy": 0.521
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 1.0,
+        "elemental_independence": false,
+        "pearson_r1": 1.0,
+        "configurational_stability": true,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5568,
+        "distance_from_center": 55.5,
+        "spatial_coords": {
+          "x": 3,
+          "y": 139
+        },
+        "timestamp": 1771618859.828408,
+        "reasoning": "Analysis of Genesis 1:7 (cosmological): Experimental truth status due to lack of empirical corroboration. Stable configuration (r\u2081 > 0.7).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.22)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.221,
+          "manuscript": 0.971,
+          "prophecy": 0.521
+        }
+      }
+    },
+    {
+      "id": "STA_7102e97f",
+      "reference": "Genesis 1:8",
+      "bible_id": "0x0000410000000019",
+      "text": "And God called the firmament Heaven. And the evening and the morning were the second day.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.221,
+        "E2_manuscript": 0.971,
+        "E3_prophecy": 0.521
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 1.0,
+        "elemental_independence": false,
+        "pearson_r1": 1.0,
+        "configurational_stability": true,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5568,
+        "distance_from_center": 55.5,
+        "spatial_coords": {
+          "x": 0,
+          "y": 144
+        },
+        "timestamp": 1771618859.8292644,
+        "reasoning": "Analysis of Genesis 1:8 (cosmological): Experimental truth status due to lack of empirical corroboration. Stable configuration (r\u2081 > 0.7).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.22)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.221,
+          "manuscript": 0.971,
+          "prophecy": 0.521
+        }
+      }
+    },
+    {
+      "id": "STA_0d318a9b",
+      "reference": "Genesis 1:9",
+      "bible_id": "0x0000412000000019",
+      "text": "And God said, Let the waters under the heaven be gathered together unto one place, and let the dry land appear: and it was so.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.174,
+        "E2_manuscript": 0.924,
+        "E3_prophecy": 0.474
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 1.0,
+        "elemental_independence": false,
+        "pearson_r1": 1.0,
+        "configurational_stability": true,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.508,
+        "distance_from_center": 59.4,
+        "spatial_coords": {
+          "x": 4,
+          "y": 148
+        },
+        "timestamp": 1771618859.830141,
+        "reasoning": "Analysis of Genesis 1:9 (cosmological): Experimental truth status due to lack of empirical corroboration. Stable configuration (r\u2081 > 0.7).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.17)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.174,
+          "manuscript": 0.924,
+          "prophecy": 0.474
+        }
+      }
+    },
+    {
+      "id": "STA_0ce484c4",
+      "reference": "Genesis 1:10",
+      "bible_id": "0x0000414000000019",
+      "text": "And God called the dry land Earth; and the gathering together of the waters called he Seas: and God saw that it was good.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.164,
+        "E2_manuscript": 0.914,
+        "E3_prophecy": 0.464
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 1.0,
+        "elemental_independence": false,
+        "pearson_r1": 1.0,
+        "configurational_stability": true,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.4976,
+        "distance_from_center": 60.2,
+        "spatial_coords": {
+          "x": 0,
+          "y": 152
+        },
+        "timestamp": 1771618859.8310385,
+        "reasoning": "Analysis of Genesis 1:10 (cosmological): Experimental truth status due to lack of empirical corroboration. Stable configuration (r\u2081 > 0.7).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.16)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.164,
+          "manuscript": 0.914,
+          "prophecy": 0.464
+        }
+      }
+    },
+    {
+      "id": "STA_9ffe41af",
+      "reference": "Genesis 1:11",
+      "bible_id": "0x0000416000000019",
+      "text": "And God said, Let the earth bring forth grass, the herb yielding seed, and the fruit tree yielding fruit after his kind, whose seed is in itself, upon the earth: and it was so.",
+      "category": "prophetic",
+      "triad_scores": {
+        "E1_archaeology": 0.196,
+        "E2_manuscript": 0.946,
+        "E3_prophecy": 0.896
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.3156,
+        "elemental_independence": false,
+        "pearson_r1": 0.4688,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.6002,
+        "distance_from_center": 52.0,
+        "spatial_coords": {
+          "x": 4,
+          "y": 156
+        },
+        "timestamp": 1771618859.8319895,
+        "reasoning": "Analysis of Genesis 1:11 (prophetic): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.20)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.196,
+          "manuscript": 0.946,
+          "prophecy": 0.896
+        }
+      }
+    },
+    {
+      "id": "STA_2bb84ba1",
+      "reference": "Genesis 1:12",
+      "bible_id": "0x0000418000000019",
+      "text": "And the earth brought forth grass, and herb yielding seed after his kind, and the tree yielding fruit, whose seed was in itself, after his kind: and God saw that it was good.",
+      "category": "prophetic",
+      "triad_scores": {
+        "E1_archaeology": 0.156,
+        "E2_manuscript": 0.906,
+        "E3_prophecy": 0.856
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": -0.0112,
+        "elemental_independence": true,
+        "pearson_r1": 0.4064,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5627,
+        "distance_from_center": 55.0,
+        "spatial_coords": {
+          "x": 8,
+          "y": 152
+        },
+        "timestamp": 1771618859.8329175,
+        "reasoning": "Analysis of Genesis 1:12 (prophetic): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.16)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.156,
+          "manuscript": 0.906,
+          "prophecy": 0.856
+        }
+      }
+    },
+    {
+      "id": "STA_4c35faed",
+      "reference": "Genesis 1:13",
+      "bible_id": "0x000041a000000019",
+      "text": "And the evening and the morning were the third day.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.176,
+        "E2_manuscript": 0.926,
+        "E3_prophecy": 0.476
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.0252,
+        "elemental_independence": true,
+        "pearson_r1": 0.3845,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.459,
+        "distance_from_center": 63.3,
+        "spatial_coords": {
+          "x": 12,
+          "y": 156
+        },
+        "timestamp": 1771618859.833832,
+        "reasoning": "Analysis of Genesis 1:13 (cosmological): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.18)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.176,
+          "manuscript": 0.926,
+          "prophecy": 0.476
+        }
+      }
+    },
+    {
+      "id": "STA_f5696b6b",
+      "reference": "Genesis 1:14",
+      "bible_id": "0x000041c000000019",
+      "text": "And God said, Let there be lights in the firmament of the heaven to divide the day from the night; and let them be for signs, and for seasons, and for days, and years:",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.244,
+        "E2_manuscript": 0.994,
+        "E3_prophecy": 0.544
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.0386,
+        "elemental_independence": true,
+        "pearson_r1": 0.3855,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5227,
+        "distance_from_center": 58.2,
+        "spatial_coords": {
+          "x": 15,
+          "y": 151
+        },
+        "timestamp": 1771618859.8347454,
+        "reasoning": "Analysis of Genesis 1:14 (cosmological): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.24)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.244,
+          "manuscript": 0.994,
+          "prophecy": 0.544
+        }
+      }
+    },
+    {
+      "id": "STA_af74a4a1",
+      "reference": "Genesis 1:15",
+      "bible_id": "0x000041e000000019",
+      "text": "And let them be for lights in the firmament of the heaven to give light upon the earth: and it was so.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.171,
+        "E2_manuscript": 0.921,
+        "E3_prophecy": 0.471
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.0829,
+        "elemental_independence": true,
+        "pearson_r1": 0.3604,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.4544,
+        "distance_from_center": 63.7,
+        "spatial_coords": {
+          "x": 11,
+          "y": 147
+        },
+        "timestamp": 1771618859.835644,
+        "reasoning": "Analysis of Genesis 1:15 (cosmological): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.17)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.171,
+          "manuscript": 0.921,
+          "prophecy": 0.471
+        }
+      }
+    },
+    {
+      "id": "STA_5f996c96",
+      "reference": "Genesis 1:16",
+      "bible_id": "0x0000420000000019",
+      "text": "And God made two great lights; the greater light to rule the day, and the lesser light to rule the night: he made the stars also.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.155,
+        "E2_manuscript": 0.905,
+        "E3_prophecy": 0.455
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.1538,
+        "elemental_independence": true,
+        "pearson_r1": 0.3458,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.4394,
+        "distance_from_center": 64.8,
+        "spatial_coords": {
+          "x": 16,
+          "y": 144
+        },
+        "timestamp": 1771618859.8365898,
+        "reasoning": "Analysis of Genesis 1:16 (cosmological): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.15)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.155,
+          "manuscript": 0.905,
+          "prophecy": 0.455
+        }
+      }
+    },
+    {
+      "id": "STA_e4376f25",
+      "reference": "Genesis 1:17",
+      "bible_id": "0x0000422000000019",
+      "text": "And God set them in the firmament of the heaven to give light upon the earth,",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.231,
+        "E2_manuscript": 0.981,
+        "E3_prophecy": 0.531
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.1567,
+        "elemental_independence": true,
+        "pearson_r1": 0.341,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5105,
+        "distance_from_center": 59.2,
+        "spatial_coords": {
+          "x": 20,
+          "y": 148
+        },
+        "timestamp": 1771618859.8375158,
+        "reasoning": "Analysis of Genesis 1:17 (cosmological): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.23)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.231,
+          "manuscript": 0.981,
+          "prophecy": 0.531
+        }
+      }
+    },
+    {
+      "id": "STA_145d0cb9",
+      "reference": "Genesis 1:18",
+      "bible_id": "0x0000424000000019",
+      "text": "And to rule over the day and over the night, and to divide the light from the darkness: and God saw that it was good.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.234,
+        "E2_manuscript": 0.984,
+        "E3_prophecy": 0.534
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.162,
+        "elemental_independence": true,
+        "pearson_r1": 0.3377,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5133,
+        "distance_from_center": 58.9,
+        "spatial_coords": {
+          "x": 16,
+          "y": 152
+        },
+        "timestamp": 1771618859.838477,
+        "reasoning": "Analysis of Genesis 1:18 (cosmological): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.23)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.234,
+          "manuscript": 0.984,
+          "prophecy": 0.534
+        }
+      }
+    },
+    {
+      "id": "STA_e141a484",
+      "reference": "Genesis 1:19",
+      "bible_id": "0x0000426000000019",
+      "text": "And the evening and the morning were the fourth day.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.223,
+        "E2_manuscript": 0.973,
+        "E3_prophecy": 0.523
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.159,
+        "elemental_independence": true,
+        "pearson_r1": 0.3334,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.503,
+        "distance_from_center": 59.8,
+        "spatial_coords": {
+          "x": 20,
+          "y": 156
+        },
+        "timestamp": 1771618859.8393984,
+        "reasoning": "Analysis of Genesis 1:19 (cosmological): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.22)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.223,
+          "manuscript": 0.973,
+          "prophecy": 0.523
+        }
+      }
+    },
+    {
+      "id": "STA_c6b32369",
+      "reference": "Genesis 1:20",
+      "bible_id": "0x0000428000000019",
+      "text": "And God said, Let the waters bring forth abundantly the moving creature that hath life, and fowl that may fly above the earth in the open firmament of heaven.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.16,
+        "E2_manuscript": 0.91,
+        "E3_prophecy": 0.46
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.209,
+        "elemental_independence": false,
+        "pearson_r1": 0.3602,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.4441,
+        "distance_from_center": 64.5,
+        "spatial_coords": {
+          "x": 24,
+          "y": 152
+        },
+        "timestamp": 1771618859.840307,
+        "reasoning": "Analysis of Genesis 1:20 (cosmological): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.16)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.16,
+          "manuscript": 0.91,
+          "prophecy": 0.46
+        }
+      }
+    },
+    {
+      "id": "STA_f8ee9a1f",
+      "reference": "Genesis 1:21",
+      "bible_id": "0x000042a000000019",
+      "text": "And God created great whales, and every living creature that moveth, which the waters brought forth abundantly, after their kind, and every winged fowl after his kind: and God saw that it was good.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.239,
+        "E2_manuscript": 0.989,
+        "E3_prophecy": 0.539
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2203,
+        "elemental_independence": false,
+        "pearson_r1": 0.36,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.518,
+        "distance_from_center": 58.6,
+        "spatial_coords": {
+          "x": 28,
+          "y": 156
+        },
+        "timestamp": 1771618859.841198,
+        "reasoning": "Analysis of Genesis 1:21 (cosmological): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.24)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.239,
+          "manuscript": 0.989,
+          "prophecy": 0.539
+        }
+      }
+    },
+    {
+      "id": "STA_cfffb5de",
+      "reference": "Genesis 1:22",
+      "bible_id": "0x000042c000000019",
+      "text": "And God blessed them, saying, Be fruitful, and multiply, and fill the waters in the seas, and let fowl multiply in the earth.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.236,
+        "E2_manuscript": 0.986,
+        "E3_prophecy": 0.536
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2274,
+        "elemental_independence": false,
+        "pearson_r1": 0.3589,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5152,
+        "distance_from_center": 58.8,
+        "spatial_coords": {
+          "x": 31,
+          "y": 151
+        },
+        "timestamp": 1771618859.8421066,
+        "reasoning": "Analysis of Genesis 1:22 (cosmological): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.24)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.236,
+          "manuscript": 0.986,
+          "prophecy": 0.536
+        }
+      }
+    },
+    {
+      "id": "STA_e1bcfa82",
+      "reference": "Genesis 1:23",
+      "bible_id": "0x000042e000000019",
+      "text": "And the evening and the morning were the fifth day.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.174,
+        "E2_manuscript": 0.924,
+        "E3_prophecy": 0.474
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2495,
+        "elemental_independence": false,
+        "pearson_r1": 0.3715,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.4572,
+        "distance_from_center": 63.4,
+        "spatial_coords": {
+          "x": 27,
+          "y": 147
+        },
+        "timestamp": 1771618859.8430471,
+        "reasoning": "Analysis of Genesis 1:23 (cosmological): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.17)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.174,
+          "manuscript": 0.924,
+          "prophecy": 0.474
+        }
+      }
+    },
+    {
+      "id": "STA_513bf950",
+      "reference": "Genesis 1:24",
+      "bible_id": "0x0000430000000019",
+      "text": "And God said, Let the earth bring forth the living creature after his kind, cattle, and creeping thing, and beast of the earth after his kind: and it was so.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.216,
+        "E2_manuscript": 0.966,
+        "E3_prophecy": 0.516
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.247,
+        "elemental_independence": false,
+        "pearson_r1": 0.3689,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.4965,
+        "distance_from_center": 60.3,
+        "spatial_coords": {
+          "x": 31,
+          "y": 143
+        },
+        "timestamp": 1771618859.84397,
+        "reasoning": "Analysis of Genesis 1:24 (cosmological): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.22)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.216,
+          "manuscript": 0.966,
+          "prophecy": 0.516
+        }
+      }
+    },
+    {
+      "id": "STA_63a0c49f",
+      "reference": "Genesis 1:25",
+      "bible_id": "0x0000432000000019",
+      "text": "And God made the beast of the earth after his kind, and cattle after their kind, and every thing that creepeth upon the earth after his kind: and God saw that it was good.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.216,
+        "E2_manuscript": 0.966,
+        "E3_prophecy": 0.516
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2446,
+        "elemental_independence": false,
+        "pearson_r1": 0.3665,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.4965,
+        "distance_from_center": 60.3,
+        "spatial_coords": {
+          "x": 27,
+          "y": 139
+        },
+        "timestamp": 1771618859.8448863,
+        "reasoning": "Analysis of Genesis 1:25 (cosmological): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.22)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.216,
+          "manuscript": 0.966,
+          "prophecy": 0.516
+        }
+      }
+    },
+    {
+      "id": "STA_241b52c5",
+      "reference": "Genesis 1:26",
+      "bible_id": "0x0000434000000019",
+      "text": "And God said, Let us make man in our image, after our likeness: and let them have dominion over the fish of the sea, and over the fowl of the air, and over the cattle, and over all the earth, and over every creeping thing that creepeth upon the earth.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.166,
+        "E2_manuscript": 0.916,
+        "E3_prophecy": 0.466
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.275,
+        "elemental_independence": false,
+        "pearson_r1": 0.3831,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.4497,
+        "distance_from_center": 64.0,
+        "spatial_coords": {
+          "x": 23,
+          "y": 143
+        },
+        "timestamp": 1771618859.8458138,
+        "reasoning": "Analysis of Genesis 1:26 (cosmological): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.17)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.166,
+          "manuscript": 0.916,
+          "prophecy": 0.466
+        }
+      }
+    },
+    {
+      "id": "STA_65b65165",
+      "reference": "Genesis 1:27",
+      "bible_id": "0x0000436000000019",
+      "text": "So God created man in his own image, in the image of God created he him; male and female created he them.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.16,
+        "E2_manuscript": 0.91,
+        "E3_prophecy": 0.46
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.3088,
+        "elemental_independence": false,
+        "pearson_r1": 0.4015,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.4441,
+        "distance_from_center": 64.5,
+        "spatial_coords": {
+          "x": 19,
+          "y": 139
+        },
+        "timestamp": 1771618859.8467817,
+        "reasoning": "Analysis of Genesis 1:27 (cosmological): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.16)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.16,
+          "manuscript": 0.91,
+          "prophecy": 0.46
+        }
+      }
+    },
+    {
+      "id": "STA_b333821c",
+      "reference": "Genesis 1:28",
+      "bible_id": "0x0000438000000019",
+      "text": "And God blessed them, and God said unto them, Be fruitful, and multiply, and replenish the earth, and subdue it: and have dominion over the fish of the sea, and over the fowl of the air, and over every living thing that moveth upon the earth.",
+      "category": "poetic",
+      "triad_scores": {
+        "E1_archaeology": 0.152,
+        "E2_manuscript": 0.902,
+        "E3_prophecy": 0.652
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2454,
+        "elemental_independence": false,
+        "pearson_r1": 0.3578,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.4978,
+        "distance_from_center": 60.2,
+        "spatial_coords": {
+          "x": 23,
+          "y": 135
+        },
+        "timestamp": 1771618859.8476827,
+        "reasoning": "Analysis of Genesis 1:28 (poetic): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.15)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.152,
+          "manuscript": 0.902,
+          "prophecy": 0.652
+        }
+      }
+    },
+    {
+      "id": "STA_c4925760",
+      "reference": "Genesis 1:29",
+      "bible_id": "0x000043a000000019",
+      "text": "And God said, Behold, I have given you every herb bearing seed, which is upon the face of all the earth, and every tree, in the which is the fruit of a tree yielding seed; to you it shall be for meat.",
+      "category": "prophetic",
+      "triad_scores": {
+        "E1_archaeology": 0.202,
+        "E2_manuscript": 0.952,
+        "E3_prophecy": 0.902
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.207,
+        "elemental_independence": false,
+        "pearson_r1": 0.3663,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.6058,
+        "distance_from_center": 51.5,
+        "spatial_coords": {
+          "x": 19,
+          "y": 131
+        },
+        "timestamp": 1771618859.8485923,
+        "reasoning": "Analysis of Genesis 1:29 (prophetic): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.20)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.202,
+          "manuscript": 0.952,
+          "prophecy": 0.902
+        }
+      }
+    },
+    {
+      "id": "STA_a5491982",
+      "reference": "Genesis 1:30",
+      "bible_id": "0x000043c000000019",
+      "text": "And to every beast of the earth, and to every fowl of the air, and to every thing that creepeth upon the earth, wherein there is life, I have given every green herb for meat: and it was so.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.203,
+        "E2_manuscript": 0.953,
+        "E3_prophecy": 0.503
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2041,
+        "elemental_independence": false,
+        "pearson_r1": 0.3646,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.4843,
+        "distance_from_center": 61.3,
+        "spatial_coords": {
+          "x": 24,
+          "y": 128
+        },
+        "timestamp": 1771618859.849488,
+        "reasoning": "Analysis of Genesis 1:30 (cosmological): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.20)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.203,
+          "manuscript": 0.953,
+          "prophecy": 0.503
+        }
+      }
+    },
+    {
+      "id": "STA_11b17f85",
+      "reference": "Genesis 1:31",
+      "bible_id": "0x000043e000000019",
+      "text": "And God saw every thing that he had made, and, behold, it was very good. And the evening and the morning were the sixth day.",
+      "category": "prophetic",
+      "triad_scores": {
+        "E1_archaeology": 0.242,
+        "E2_manuscript": 0.992,
+        "E3_prophecy": 0.942
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2836,
+        "elemental_independence": false,
+        "pearson_r1": 0.4362,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.6432,
+        "distance_from_center": 48.5,
+        "spatial_coords": {
+          "x": 28,
+          "y": 132
+        },
+        "timestamp": 1771618859.8504138,
+        "reasoning": "Analysis of Genesis 1:31 (prophetic): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.24)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.242,
+          "manuscript": 0.992,
+          "prophecy": 0.942
+        }
+      }
+    },
+    {
+      "id": "STA_b908ec2a",
+      "reference": "Genesis 2:1",
+      "bible_id": "0x0000802000000019",
+      "text": "Thus the heavens and the earth were finished, and all the host of them.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.227,
+        "E2_manuscript": 0.977,
+        "E3_prophecy": 0.527
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2802,
+        "elemental_independence": false,
+        "pearson_r1": 0.4193,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5068,
+        "distance_from_center": 59.5,
+        "spatial_coords": {
+          "x": 132,
+          "y": 132
+        },
+        "timestamp": 1771618859.8512971,
+        "reasoning": "Analysis of Genesis 2:1 (cosmological): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.23)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.227,
+          "manuscript": 0.977,
+          "prophecy": 0.527
+        }
+      }
+    },
+    {
+      "id": "STA_6143ffde",
+      "reference": "Genesis 2:2",
+      "bible_id": "0x0000804000000019",
+      "text": "And on the seventh day God ended his work which he had made; and he rested on the seventh day from all his work which he had made.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.246,
+        "E2_manuscript": 0.996,
+        "E3_prophecy": 0.546
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2827,
+        "elemental_independence": false,
+        "pearson_r1": 0.4148,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5246,
+        "distance_from_center": 58.0,
+        "spatial_coords": {
+          "x": 136,
+          "y": 128
+        },
+        "timestamp": 1771618859.8522167,
+        "reasoning": "Analysis of Genesis 2:2 (cosmological): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.25)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.246,
+          "manuscript": 0.996,
+          "prophecy": 0.546
+        }
+      }
+    },
+    {
+      "id": "STA_dc2095f2",
+      "reference": "Genesis 2:3",
+      "bible_id": "0x0000806000000019",
+      "text": "And God blessed the seventh day, and sanctified it: because that in it he had rested from all his work which God created and made.",
+      "category": "poetic",
+      "triad_scores": {
+        "E1_archaeology": 0.196,
+        "E2_manuscript": 0.946,
+        "E3_prophecy": 0.696
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2726,
+        "elemental_independence": false,
+        "pearson_r1": 0.4016,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.539,
+        "distance_from_center": 56.9,
+        "spatial_coords": {
+          "x": 140,
+          "y": 132
+        },
+        "timestamp": 1771618859.8531463,
+        "reasoning": "Analysis of Genesis 2:3 (poetic): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.20)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.196,
+          "manuscript": 0.946,
+          "prophecy": 0.696
+        }
+      }
+    },
+    {
+      "id": "STA_29a3068d",
+      "reference": "Genesis 2:4",
+      "bible_id": "0x0000808000000019",
+      "text": "These are the generations of the heavens and of the earth when they were created, in the day that the LORD God made the earth and the heavens,",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.217,
+        "E2_manuscript": 0.967,
+        "E3_prophecy": 0.517
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2686,
+        "elemental_independence": false,
+        "pearson_r1": 0.404,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.4974,
+        "distance_from_center": 60.2,
+        "spatial_coords": {
+          "x": 136,
+          "y": 136
+        },
+        "timestamp": 1771618859.854124,
+        "reasoning": "Analysis of Genesis 2:4 (cosmological): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.22)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.217,
+          "manuscript": 0.967,
+          "prophecy": 0.517
+        }
+      }
+    },
+    {
+      "id": "STA_39bf4635",
+      "reference": "Genesis 2:5",
+      "bible_id": "0x000080a000000019",
+      "text": "And every plant of the field before it was in the earth, and every herb of the field before it grew: for the LORD God had not caused it to rain upon the earth, and there was not a man to till the ground.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.176,
+        "E2_manuscript": 0.926,
+        "E3_prophecy": 0.476
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2794,
+        "elemental_independence": false,
+        "pearson_r1": 0.4218,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.459,
+        "distance_from_center": 63.3,
+        "spatial_coords": {
+          "x": 140,
+          "y": 140
+        },
+        "timestamp": 1771618859.8550436,
+        "reasoning": "Analysis of Genesis 2:5 (cosmological): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.18)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.176,
+          "manuscript": 0.926,
+          "prophecy": 0.476
+        }
+      }
+    },
+    {
+      "id": "STA_258527c2",
+      "reference": "Genesis 2:6",
+      "bible_id": "0x000080c000000019",
+      "text": "But there went up a mist from the earth, and watered the whole face of the ground.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.222,
+        "E2_manuscript": 0.972,
+        "E3_prophecy": 0.522
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2759,
+        "elemental_independence": false,
+        "pearson_r1": 0.4216,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5021,
+        "distance_from_center": 59.8,
+        "spatial_coords": {
+          "x": 135,
+          "y": 143
+        },
+        "timestamp": 1771618859.8559306,
+        "reasoning": "Analysis of Genesis 2:6 (cosmological): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.22)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.222,
+          "manuscript": 0.972,
+          "prophecy": 0.522
+        }
+      }
+    },
+    {
+      "id": "STA_1ff8ac5a",
+      "reference": "Genesis 2:7",
+      "bible_id": "0x000080e000000019",
+      "text": "And the LORD God formed man of the dust of the ground, and breathed into his nostrils the breath of life; and man became a living soul.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.155,
+        "E2_manuscript": 0.905,
+        "E3_prophecy": 0.655
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2514,
+        "elemental_independence": false,
+        "pearson_r1": 0.4058,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5006,
+        "distance_from_center": 60.0,
+        "spatial_coords": {
+          "x": 131,
+          "y": 139
+        },
+        "timestamp": 1771618859.8569264,
+        "reasoning": "Analysis of Genesis 2:7 (historical): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.15)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.155,
+          "manuscript": 0.905,
+          "prophecy": 0.655
+        }
+      }
+    },
+    {
+      "id": "STA_fe4db481",
+      "reference": "Genesis 2:8",
+      "bible_id": "0x0000810000000019",
+      "text": "And the LORD God planted a garden eastward in Eden; and there he put the man whom he had formed.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.398,
+        "E2_manuscript": 0.948,
+        "E3_prophecy": 0.698
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.3061,
+        "elemental_independence": false,
+        "pearson_r1": 0.3095,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0.1721,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.6128,
+        "distance_from_center": 51.0,
+        "spatial_coords": {
+          "x": 128,
+          "y": 144
+        },
+        "timestamp": 1771618859.8578632,
+        "reasoning": "Analysis of Genesis 2:8 (historical): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.40)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.398,
+          "manuscript": 0.948,
+          "prophecy": 0.698
+        }
+      }
+    },
+    {
+      "id": "STA_e04b69d0",
+      "reference": "Genesis 2:9",
+      "bible_id": "0x0000812000000019",
+      "text": "And out of the ground made the LORD God to grow every tree that is pleasant to the sight, and good for food; the tree of life also in the midst of the garden, and the tree of knowledge of good and evil.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.19,
+        "E2_manuscript": 0.94,
+        "E3_prophecy": 0.69
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2938,
+        "elemental_independence": false,
+        "pearson_r1": 0.2839,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5333,
+        "distance_from_center": 57.3,
+        "spatial_coords": {
+          "x": 132,
+          "y": 148
+        },
+        "timestamp": 1771618859.858811,
+        "reasoning": "Analysis of Genesis 2:9 (historical): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.19)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.19,
+          "manuscript": 0.94,
+          "prophecy": 0.69
+        }
+      }
+    },
+    {
+      "id": "STA_0f2108c7",
+      "reference": "Genesis 2:10",
+      "bible_id": "0x0000814000000019",
+      "text": "And a river went out of Eden to water the garden; and from thence it was parted, and became into four heads.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.351,
+        "E2_manuscript": 0.901,
+        "E3_prophecy": 0.651
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2883,
+        "elemental_independence": false,
+        "pearson_r1": 0.2204,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0.1281,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5688,
+        "distance_from_center": 54.5,
+        "spatial_coords": {
+          "x": 128,
+          "y": 152
+        },
+        "timestamp": 1771618859.859751,
+        "reasoning": "Analysis of Genesis 2:10 (historical): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.35)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.351,
+          "manuscript": 0.901,
+          "prophecy": 0.651
+        }
+      }
+    },
+    {
+      "id": "STA_9c78709a",
+      "reference": "Genesis 2:11",
+      "bible_id": "0x0000816000000019",
+      "text": "The name of the first is Pison: that is it which compasseth the whole land of Havilah, where there is gold;",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.37,
+        "E2_manuscript": 0.92,
+        "E3_prophecy": 0.67
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2992,
+        "elemental_independence": false,
+        "pearson_r1": 0.2422,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0.1459,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5866,
+        "distance_from_center": 53.1,
+        "spatial_coords": {
+          "x": 132,
+          "y": 156
+        },
+        "timestamp": 1771618859.8607068,
+        "reasoning": "Analysis of Genesis 2:11 (historical): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.37)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.37,
+          "manuscript": 0.92,
+          "prophecy": 0.67
+        }
+      }
+    },
+    {
+      "id": "STA_48af2a2a",
+      "reference": "Genesis 2:12",
+      "bible_id": "0x0000818000000019",
+      "text": "And the gold of that land is good: there is bdellium and the onyx stone.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.179,
+        "E2_manuscript": 0.929,
+        "E3_prophecy": 0.679
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2844,
+        "elemental_independence": false,
+        "pearson_r1": 0.2164,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.523,
+        "distance_from_center": 58.2,
+        "spatial_coords": {
+          "x": 136,
+          "y": 152
+        },
+        "timestamp": 1771618859.8616693,
+        "reasoning": "Analysis of Genesis 2:12 (historical): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.18)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.179,
+          "manuscript": 0.929,
+          "prophecy": 0.679
+        }
+      }
+    },
+    {
+      "id": "STA_038da79e",
+      "reference": "Genesis 2:13",
+      "bible_id": "0x000081a000000019",
+      "text": "And the name of the second river is Gihon: the same is it that compasseth the whole land of Ethiopia.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.824,
+        "E2_manuscript": 0.924,
+        "E3_prophecy": 0.674
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2864,
+        "elemental_independence": false,
+        "pearson_r1": 0.1177,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0.551,
+          0.9537
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.7524,
+        "distance_from_center": 39.8,
+        "spatial_coords": {
+          "x": 140,
+          "y": 156
+        },
+        "timestamp": 1771618859.8626523,
+        "reasoning": "Analysis of Genesis 2:13 (historical): Moderate verification; secondary evidence required for full anchoring.",
+        "uncertainty_sources": [],
+        "evidence_breakdown": {
+          "archaeology": 0.824,
+          "manuscript": 0.924,
+          "prophecy": 0.674
+        }
+      }
+    },
+    {
+      "id": "STA_04a384a7",
+      "reference": "Genesis 2:14",
+      "bible_id": "0x000081c000000019",
+      "text": "And the name of the third river is Hiddekel: that is it which goeth toward the east of Assyria. And the fourth river is Euphrates.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.801,
+        "E2_manuscript": 0.901,
+        "E3_prophecy": 0.651
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2548,
+        "elemental_independence": false,
+        "pearson_r1": 0.1555,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0.5295,
+          0.9322
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.7308,
+        "distance_from_center": 41.5,
+        "spatial_coords": {
+          "x": 143,
+          "y": 151
+        },
+        "timestamp": 1771618859.8635798,
+        "reasoning": "Analysis of Genesis 2:14 (historical): Moderate verification; secondary evidence required for full anchoring.",
+        "uncertainty_sources": [],
+        "evidence_breakdown": {
+          "archaeology": 0.801,
+          "manuscript": 0.901,
+          "prophecy": 0.651
+        }
+      }
+    },
+    {
+      "id": "STA_f5b712ee",
+      "reference": "Genesis 2:15",
+      "bible_id": "0x000081e000000019",
+      "text": "And the LORD God took the man, and put him into the garden of Eden to dress it and to keep it.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.386,
+        "E2_manuscript": 0.936,
+        "E3_prophecy": 0.686
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2679,
+        "elemental_independence": false,
+        "pearson_r1": 0.1683,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0.1609,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.6016,
+        "distance_from_center": 51.9,
+        "spatial_coords": {
+          "x": 139,
+          "y": 147
+        },
+        "timestamp": 1771618859.8645246,
+        "reasoning": "Analysis of Genesis 2:15 (historical): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.39)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.386,
+          "manuscript": 0.936,
+          "prophecy": 0.686
+        }
+      }
+    },
+    {
+      "id": "STA_6c466c95",
+      "reference": "Genesis 2:16",
+      "bible_id": "0x0000820000000019",
+      "text": "And the LORD God commanded the man, saying, Of every tree of the garden thou mayest freely eat:",
+      "category": "law",
+      "triad_scores": {
+        "E1_archaeology": 0.235,
+        "E2_manuscript": 0.985,
+        "E3_prophecy": 0.885
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2676,
+        "elemental_independence": false,
+        "pearson_r1": 0.1741,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.6214,
+        "distance_from_center": 50.3,
+        "spatial_coords": {
+          "x": 144,
+          "y": 144
+        },
+        "timestamp": 1771618859.865439,
+        "reasoning": "Analysis of Genesis 2:16 (law): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.23)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.235,
+          "manuscript": 0.985,
+          "prophecy": 0.885
+        }
+      }
+    },
+    {
+      "id": "STA_b0cea456",
+      "reference": "Genesis 2:17",
+      "bible_id": "0x0000822000000019",
+      "text": "But of the tree of the knowledge of good and evil, thou shalt not eat of it: for in the day that thou eatest thereof thou shalt surely die.",
+      "category": "law",
+      "triad_scores": {
+        "E1_archaeology": 0.18,
+        "E2_manuscript": 0.93,
+        "E3_prophecy": 0.83
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.239,
+        "elemental_independence": false,
+        "pearson_r1": 0.1541,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5699,
+        "distance_from_center": 54.4,
+        "spatial_coords": {
+          "x": 148,
+          "y": 148
+        },
+        "timestamp": 1771618859.8663812,
+        "reasoning": "Analysis of Genesis 2:17 (law): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.18)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.18,
+          "manuscript": 0.93,
+          "prophecy": 0.83
+        }
+      }
+    },
+    {
+      "id": "STA_ca9dfecb",
+      "reference": "Genesis 2:18",
+      "bible_id": "0x0000824000000019",
+      "text": "And the LORD God said, It is not good that the man should be alone; I will make him an help meet for him.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.186,
+        "E2_manuscript": 0.936,
+        "E3_prophecy": 0.686
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.231,
+        "elemental_independence": false,
+        "pearson_r1": 0.1531,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5296,
+        "distance_from_center": 57.6,
+        "spatial_coords": {
+          "x": 144,
+          "y": 152
+        },
+        "timestamp": 1771618859.867324,
+        "reasoning": "Analysis of Genesis 2:18 (historical): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.19)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.186,
+          "manuscript": 0.936,
+          "prophecy": 0.686
+        }
+      }
+    },
+    {
+      "id": "STA_7cfe8249",
+      "reference": "Genesis 2:19",
+      "bible_id": "0x0000826000000019",
+      "text": "And out of the ground the LORD God formed every beast of the field, and every fowl of the air; and brought them unto Adam to see what he would call them: and whatsoever Adam called every living creature, that was the name thereof.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.178,
+        "E2_manuscript": 0.928,
+        "E3_prophecy": 0.678
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2231,
+        "elemental_independence": false,
+        "pearson_r1": 0.1319,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5221,
+        "distance_from_center": 58.2,
+        "spatial_coords": {
+          "x": 148,
+          "y": 156
+        },
+        "timestamp": 1771618859.8682775,
+        "reasoning": "Analysis of Genesis 2:19 (historical): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.18)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.178,
+          "manuscript": 0.928,
+          "prophecy": 0.678
+        }
+      }
+    },
+    {
+      "id": "STA_ca274cdd",
+      "reference": "Genesis 2:20",
+      "bible_id": "0x0000828000000019",
+      "text": "And Adam gave names to all cattle, and to the fowl of the air, and to every beast of the field; but for Adam there was not found an help meet for him.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.164,
+        "E2_manuscript": 0.914,
+        "E3_prophecy": 0.664
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2015,
+        "elemental_independence": false,
+        "pearson_r1": 0.132,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.509,
+        "distance_from_center": 59.3,
+        "spatial_coords": {
+          "x": 152,
+          "y": 152
+        },
+        "timestamp": 1771618859.8692389,
+        "reasoning": "Analysis of Genesis 2:20 (historical): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.16)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.164,
+          "manuscript": 0.914,
+          "prophecy": 0.664
+        }
+      }
+    },
+    {
+      "id": "STA_06920db2",
+      "reference": "Genesis 2:21",
+      "bible_id": "0x000082a000000019",
+      "text": "And the LORD God caused a deep sleep to fall upon Adam, and he slept: and he took one of his ribs, and closed up the flesh instead thereof;",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.191,
+        "E2_manuscript": 0.941,
+        "E3_prophecy": 0.691
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.1798,
+        "elemental_independence": true,
+        "pearson_r1": 0.1448,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5343,
+        "distance_from_center": 57.3,
+        "spatial_coords": {
+          "x": 156,
+          "y": 156
+        },
+        "timestamp": 1771618859.8702388,
+        "reasoning": "Analysis of Genesis 2:21 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.19)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.191,
+          "manuscript": 0.941,
+          "prophecy": 0.691
+        }
+      }
+    },
+    {
+      "id": "STA_9c2d6e20",
+      "reference": "Genesis 2:22",
+      "bible_id": "0x000082c000000019",
+      "text": "And the rib, which the LORD God had taken from man, made he a woman, and brought her unto the man.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.188,
+        "E2_manuscript": 0.938,
+        "E3_prophecy": 0.688
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.1721,
+        "elemental_independence": true,
+        "pearson_r1": 0.1318,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5315,
+        "distance_from_center": 57.5,
+        "spatial_coords": {
+          "x": 159,
+          "y": 151
+        },
+        "timestamp": 1771618859.8711677,
+        "reasoning": "Analysis of Genesis 2:22 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.19)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.188,
+          "manuscript": 0.938,
+          "prophecy": 0.688
+        }
+      }
+    },
+    {
+      "id": "STA_1da16cef",
+      "reference": "Genesis 2:23",
+      "bible_id": "0x000082e000000019",
+      "text": "And Adam said, This is now bone of my bones, and flesh of my flesh: she shall be called Woman, because she was taken out of Man.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.191,
+        "E2_manuscript": 0.941,
+        "E3_prophecy": 0.691
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.1544,
+        "elemental_independence": true,
+        "pearson_r1": 0.1386,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5343,
+        "distance_from_center": 57.3,
+        "spatial_coords": {
+          "x": 155,
+          "y": 147
+        },
+        "timestamp": 1771618859.8721159,
+        "reasoning": "Analysis of Genesis 2:23 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.19)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.191,
+          "manuscript": 0.941,
+          "prophecy": 0.691
+        }
+      }
+    },
+    {
+      "id": "STA_11390e9d",
+      "reference": "Genesis 2:24",
+      "bible_id": "0x0000830000000019",
+      "text": "Therefore shall a man leave his father and his mother, and shall cleave unto his wife: and they shall be one flesh.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.238,
+        "E2_manuscript": 0.988,
+        "E3_prophecy": 0.738
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.1649,
+        "elemental_independence": true,
+        "pearson_r1": 0.156,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5783,
+        "distance_from_center": 53.7,
+        "spatial_coords": {
+          "x": 159,
+          "y": 143
+        },
+        "timestamp": 1771618859.8730419,
+        "reasoning": "Analysis of Genesis 2:24 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.24)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.238,
+          "manuscript": 0.988,
+          "prophecy": 0.738
+        }
+      }
+    },
+    {
+      "id": "STA_a98ff477",
+      "reference": "Genesis 2:25",
+      "bible_id": "0x0000832000000019",
+      "text": "And they were both naked, the man and his wife, and were not ashamed.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.228,
+        "E2_manuscript": 0.978,
+        "E3_prophecy": 0.728
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.1724,
+        "elemental_independence": true,
+        "pearson_r1": 0.1455,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5689,
+        "distance_from_center": 54.5,
+        "spatial_coords": {
+          "x": 155,
+          "y": 139
+        },
+        "timestamp": 1771618859.8739862,
+        "reasoning": "Analysis of Genesis 2:25 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.23)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.228,
+          "manuscript": 0.978,
+          "prophecy": 0.728
+        }
+      }
+    },
+    {
+      "id": "STA_15beaadd",
+      "reference": "Genesis 3:1",
+      "bible_id": "0x0000c02000000019",
+      "text": "Now the serpent was more subtil than any beast of the field which the LORD God had made. And he said unto the woman, Yea, hath God said, Ye shall not eat of every tree of the garden?",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.166,
+        "E2_manuscript": 0.916,
+        "E3_prophecy": 0.666
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.171,
+        "elemental_independence": true,
+        "pearson_r1": 0.1215,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5109,
+        "distance_from_center": 59.1,
+        "spatial_coords": {
+          "x": 251,
+          "y": 123
+        },
+        "timestamp": 1771618859.8749218,
+        "reasoning": "Analysis of Genesis 3:1 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.17)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.166,
+          "manuscript": 0.916,
+          "prophecy": 0.666
+        }
+      }
+    },
+    {
+      "id": "STA_ab6d2e98",
+      "reference": "Genesis 3:2",
+      "bible_id": "0x0000c04000000019",
+      "text": "And the woman said unto the serpent, We may eat of the fruit of the trees of the garden:",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.245,
+        "E2_manuscript": 0.995,
+        "E3_prophecy": 0.745
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.1828,
+        "elemental_independence": true,
+        "pearson_r1": 0.145,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5848,
+        "distance_from_center": 53.2,
+        "spatial_coords": {
+          "x": 255,
+          "y": 119
+        },
+        "timestamp": 1771618859.8758564,
+        "reasoning": "Analysis of Genesis 3:2 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.24)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.245,
+          "manuscript": 0.995,
+          "prophecy": 0.745
+        }
+      }
+    },
+    {
+      "id": "STA_69895306",
+      "reference": "Genesis 3:3",
+      "bible_id": "0x0000c06000000019",
+      "text": "But of the fruit of the tree which is in the midst of the garden, God hath said, Ye shall not eat of it, neither shall ye touch it, lest ye die.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.243,
+        "E2_manuscript": 0.993,
+        "E3_prophecy": 0.743
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.1738,
+        "elemental_independence": true,
+        "pearson_r1": 0.1481,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5829,
+        "distance_from_center": 53.4,
+        "spatial_coords": {
+          "x": 251,
+          "y": 115
+        },
+        "timestamp": 1771618859.8768024,
+        "reasoning": "Analysis of Genesis 3:3 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.24)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.243,
+          "manuscript": 0.993,
+          "prophecy": 0.743
+        }
+      }
+    },
+    {
+      "id": "STA_20ae69d2",
+      "reference": "Genesis 3:4",
+      "bible_id": "0x0000c08000000019",
+      "text": "And the serpent said unto the woman, Ye shall not surely die:",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.225,
+        "E2_manuscript": 0.975,
+        "E3_prophecy": 0.725
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.1495,
+        "elemental_independence": true,
+        "pearson_r1": 0.164,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5661,
+        "distance_from_center": 54.7,
+        "spatial_coords": {
+          "x": 247,
+          "y": 119
+        },
+        "timestamp": 1771618859.877754,
+        "reasoning": "Analysis of Genesis 3:4 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.23)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.225,
+          "manuscript": 0.975,
+          "prophecy": 0.725
+        }
+      }
+    },
+    {
+      "id": "STA_14b2c69c",
+      "reference": "Genesis 3:5",
+      "bible_id": "0x0000c0a000000019",
+      "text": "For God doth know that in the day ye eat thereof, then your eyes shall be opened, and ye shall be as gods, knowing good and evil.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.208,
+        "E2_manuscript": 0.958,
+        "E3_prophecy": 0.508
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.1735,
+        "elemental_independence": true,
+        "pearson_r1": 0.1147,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.489,
+        "distance_from_center": 60.9,
+        "spatial_coords": {
+          "x": 243,
+          "y": 115
+        },
+        "timestamp": 1771618859.8789818,
+        "reasoning": "Analysis of Genesis 3:5 (cosmological): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.21)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.208,
+          "manuscript": 0.958,
+          "prophecy": 0.508
+        }
+      }
+    },
+    {
+      "id": "STA_921c590c",
+      "reference": "Genesis 3:6",
+      "bible_id": "0x0000c0c000000019",
+      "text": "And when the woman saw that the tree was good for food, and that it was pleasant to the eyes, and a tree to be desired to make one wise, she took of the fruit thereof, and did eat, and gave also unto her husband with her; and he did eat.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.195,
+        "E2_manuscript": 0.945,
+        "E3_prophecy": 0.695
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2097,
+        "elemental_independence": false,
+        "pearson_r1": 0.129,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.538,
+        "distance_from_center": 57.0,
+        "spatial_coords": {
+          "x": 240,
+          "y": 120
+        },
+        "timestamp": 1771618859.879955,
+        "reasoning": "Analysis of Genesis 3:6 (historical): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.20)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.195,
+          "manuscript": 0.945,
+          "prophecy": 0.695
+        }
+      }
+    },
+    {
+      "id": "STA_3714ca58",
+      "reference": "Genesis 3:7",
+      "bible_id": "0x0000c0e000000019",
+      "text": "And the eyes of them both were opened, and they knew that they were naked; and they sewed fig leaves together, and made themselves aprons.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.198,
+        "E2_manuscript": 0.948,
+        "E3_prophecy": 0.698
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.1875,
+        "elemental_independence": true,
+        "pearson_r1": 0.1728,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5408,
+        "distance_from_center": 56.7,
+        "spatial_coords": {
+          "x": 244,
+          "y": 124
+        },
+        "timestamp": 1771618859.8808804,
+        "reasoning": "Analysis of Genesis 3:7 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.20)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.198,
+          "manuscript": 0.948,
+          "prophecy": 0.698
+        }
+      }
+    },
+    {
+      "id": "STA_c547877f",
+      "reference": "Genesis 3:8",
+      "bible_id": "0x0000c10000000019",
+      "text": "And they heard the voice of the LORD God walking in the garden in the cool of the day: and Adam and his wife hid themselves from the presence of the LORD God amongst the trees of the garden.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.167,
+        "E2_manuscript": 0.917,
+        "E3_prophecy": 0.467
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2168,
+        "elemental_independence": false,
+        "pearson_r1": 0.1897,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.4506,
+        "distance_from_center": 64.0,
+        "spatial_coords": {
+          "x": 239,
+          "y": 127
+        },
+        "timestamp": 1771618859.8818233,
+        "reasoning": "Analysis of Genesis 3:8 (cosmological): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.17)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.167,
+          "manuscript": 0.917,
+          "prophecy": 0.467
+        }
+      }
+    },
+    {
+      "id": "STA_7120cc4a",
+      "reference": "Genesis 3:9",
+      "bible_id": "0x0000c12000000019",
+      "text": "And the LORD God called unto Adam, and said unto him, Where art thou?",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.246,
+        "E2_manuscript": 0.996,
+        "E3_prophecy": 0.746
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2044,
+        "elemental_independence": false,
+        "pearson_r1": 0.2119,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5858,
+        "distance_from_center": 53.1,
+        "spatial_coords": {
+          "x": 235,
+          "y": 123
+        },
+        "timestamp": 1771618859.88274,
+        "reasoning": "Analysis of Genesis 3:9 (historical): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.25)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.246,
+          "manuscript": 0.996,
+          "prophecy": 0.746
+        }
+      }
+    },
+    {
+      "id": "STA_9c18a321",
+      "reference": "Genesis 3:10",
+      "bible_id": "0x0000c14000000019",
+      "text": "And he said, I heard thy voice in the garden, and I was afraid, because I was naked; and I hid myself.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.166,
+        "E2_manuscript": 0.916,
+        "E3_prophecy": 0.666
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.1677,
+        "elemental_independence": true,
+        "pearson_r1": 0.2048,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5109,
+        "distance_from_center": 59.1,
+        "spatial_coords": {
+          "x": 231,
+          "y": 127
+        },
+        "timestamp": 1771618859.883671,
+        "reasoning": "Analysis of Genesis 3:10 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.17)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.166,
+          "manuscript": 0.916,
+          "prophecy": 0.666
+        }
+      }
+    },
+    {
+      "id": "STA_04f9dd36",
+      "reference": "Genesis 3:11",
+      "bible_id": "0x0000c16000000019",
+      "text": "And he said, Who told thee that thou wast naked? Hast thou eaten of the tree, whereof I commanded thee that thou shouldest not eat?",
+      "category": "law",
+      "triad_scores": {
+        "E1_archaeology": 0.175,
+        "E2_manuscript": 0.925,
+        "E3_prophecy": 0.825
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.1474,
+        "elemental_independence": true,
+        "pearson_r1": 0.2321,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5652,
+        "distance_from_center": 54.8,
+        "spatial_coords": {
+          "x": 227,
+          "y": 123
+        },
+        "timestamp": 1771618859.8846052,
+        "reasoning": "Analysis of Genesis 3:11 (law): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.17)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.175,
+          "manuscript": 0.925,
+          "prophecy": 0.825
+        }
+      }
+    },
+    {
+      "id": "STA_e4d17376",
+      "reference": "Genesis 3:12",
+      "bible_id": "0x0000c18000000019",
+      "text": "And the man said, The woman whom thou gavest to be with me, she gave me of the tree, and I did eat.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.239,
+        "E2_manuscript": 0.989,
+        "E3_prophecy": 0.739
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.1589,
+        "elemental_independence": true,
+        "pearson_r1": 0.2501,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5792,
+        "distance_from_center": 53.7,
+        "spatial_coords": {
+          "x": 231,
+          "y": 119
+        },
+        "timestamp": 1771618859.8855212,
+        "reasoning": "Analysis of Genesis 3:12 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.24)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.239,
+          "manuscript": 0.989,
+          "prophecy": 0.739
+        }
+      }
+    },
+    {
+      "id": "STA_f51eba5f",
+      "reference": "Genesis 3:13",
+      "bible_id": "0x0000c1a000000019",
+      "text": "And the LORD God said unto the woman, What is this that thou hast done? And the woman said, The serpent beguiled me, and I did eat.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.233,
+        "E2_manuscript": 0.983,
+        "E3_prophecy": 0.733
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.1651,
+        "elemental_independence": true,
+        "pearson_r1": 0.2557,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5736,
+        "distance_from_center": 54.1,
+        "spatial_coords": {
+          "x": 227,
+          "y": 115
+        },
+        "timestamp": 1771618859.8864992,
+        "reasoning": "Analysis of Genesis 3:13 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.23)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.233,
+          "manuscript": 0.983,
+          "prophecy": 0.733
+        }
+      }
+    },
+    {
+      "id": "STA_6b7248c3",
+      "reference": "Genesis 3:14",
+      "bible_id": "0x0000c1c000000019",
+      "text": "And the LORD God said unto the serpent, Because thou hast done this, thou art cursed above all cattle, and above every beast of the field; upon thy belly shalt thou go, and dust shalt thou eat all the days of thy life:",
+      "category": "law",
+      "triad_scores": {
+        "E1_archaeology": 0.214,
+        "E2_manuscript": 0.964,
+        "E3_prophecy": 0.864
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.1208,
+        "elemental_independence": true,
+        "pearson_r1": 0.2657,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.6017,
+        "distance_from_center": 51.9,
+        "spatial_coords": {
+          "x": 232,
+          "y": 112
+        },
+        "timestamp": 1771618859.8874383,
+        "reasoning": "Analysis of Genesis 3:14 (law): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.21)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.214,
+          "manuscript": 0.964,
+          "prophecy": 0.864
+        }
+      }
+    },
+    {
+      "id": "STA_ad01ae2f",
+      "reference": "Genesis 3:15",
+      "bible_id": "0x0000c1e000000019",
+      "text": "And I will put enmity between thee and the woman, and between thy seed and her seed; it shall bruise thy head, and thou shalt bruise his heel.",
+      "category": "prophetic",
+      "triad_scores": {
+        "E1_archaeology": 0.166,
+        "E2_manuscript": 0.916,
+        "E3_prophecy": 0.866
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.0958,
+        "elemental_independence": true,
+        "pearson_r1": 0.2187,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5721,
+        "distance_from_center": 54.2,
+        "spatial_coords": {
+          "x": 236,
+          "y": 116
+        },
+        "timestamp": 1771618859.8883653,
+        "reasoning": "Analysis of Genesis 3:15 (prophetic): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.17)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.166,
+          "manuscript": 0.916,
+          "prophecy": 0.866
+        }
+      }
+    },
+    {
+      "id": "STA_ac907235",
+      "reference": "Genesis 3:16",
+      "bible_id": "0x0000c20000000019",
+      "text": "Unto the woman he said, I will greatly multiply thy sorrow and thy conception; in sorrow thou shalt bring forth children; and thy desire shall be to thy husband, and he shall rule over thee.",
+      "category": "law",
+      "triad_scores": {
+        "E1_archaeology": 0.241,
+        "E2_manuscript": 0.991,
+        "E3_prophecy": 0.891
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.1174,
+        "elemental_independence": true,
+        "pearson_r1": 0.2233,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.627,
+        "distance_from_center": 49.8,
+        "spatial_coords": {
+          "x": 239,
+          "y": 111
+        },
+        "timestamp": 1771618859.8892741,
+        "reasoning": "Analysis of Genesis 3:16 (law): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.24)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.241,
+          "manuscript": 0.991,
+          "prophecy": 0.891
+        }
+      }
+    },
+    {
+      "id": "STA_5673cb2d",
+      "reference": "Genesis 3:17",
+      "bible_id": "0x0000c22000000019",
+      "text": "And unto Adam he said, Because thou hast hearkened unto the voice of thy wife, and hast eaten of the tree, of which I commanded thee, saying, Thou shalt not eat of it: cursed is the ground for thy sake; in sorrow shalt thou eat of it all the days of thy life;",
+      "category": "law",
+      "triad_scores": {
+        "E1_archaeology": 0.179,
+        "E2_manuscript": 0.929,
+        "E3_prophecy": 0.829
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.0695,
+        "elemental_independence": true,
+        "pearson_r1": 0.2158,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5689,
+        "distance_from_center": 54.5,
+        "spatial_coords": {
+          "x": 235,
+          "y": 107
+        },
+        "timestamp": 1771618859.8902247,
+        "reasoning": "Analysis of Genesis 3:17 (law): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.18)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.179,
+          "manuscript": 0.929,
+          "prophecy": 0.829
+        }
+      }
+    },
+    {
+      "id": "STA_533bc916",
+      "reference": "Genesis 3:18",
+      "bible_id": "0x0000c24000000019",
+      "text": "Thorns also and thistles shall it bring forth to thee; and thou shalt eat the herb of the field;",
+      "category": "law",
+      "triad_scores": {
+        "E1_archaeology": 0.159,
+        "E2_manuscript": 0.909,
+        "E3_prophecy": 0.809
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.0491,
+        "elemental_independence": true,
+        "pearson_r1": 0.1478,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5502,
+        "distance_from_center": 56.0,
+        "spatial_coords": {
+          "x": 231,
+          "y": 111
+        },
+        "timestamp": 1771618859.8911946,
+        "reasoning": "Analysis of Genesis 3:18 (law): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.16)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.159,
+          "manuscript": 0.909,
+          "prophecy": 0.809
+        }
+      }
+    },
+    {
+      "id": "STA_ef95be12",
+      "reference": "Genesis 3:19",
+      "bible_id": "0x0000c26000000019",
+      "text": "In the sweat of thy face shalt thou eat bread, till thou return unto the ground; for out of it wast thou taken: for dust thou art, and unto dust shalt thou return.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.246,
+        "E2_manuscript": 0.996,
+        "E3_prophecy": 0.746
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.0559,
+        "elemental_independence": true,
+        "pearson_r1": 0.3069,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5858,
+        "distance_from_center": 53.1,
+        "spatial_coords": {
+          "x": 227,
+          "y": 107
+        },
+        "timestamp": 1771618859.8921413,
+        "reasoning": "Analysis of Genesis 3:19 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.25)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.246,
+          "manuscript": 0.996,
+          "prophecy": 0.746
+        }
+      }
+    },
+    {
+      "id": "STA_c9ef9bd4",
+      "reference": "Genesis 3:20",
+      "bible_id": "0x0000c28000000019",
+      "text": "And Adam called his wife's name Eve; because she was the mother of all living.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.243,
+        "E2_manuscript": 0.993,
+        "E3_prophecy": 0.743
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.0141,
+        "elemental_independence": true,
+        "pearson_r1": 0.4872,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5829,
+        "distance_from_center": 53.4,
+        "spatial_coords": {
+          "x": 231,
+          "y": 103
+        },
+        "timestamp": 1771618859.8930602,
+        "reasoning": "Analysis of Genesis 3:20 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.24)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.243,
+          "manuscript": 0.993,
+          "prophecy": 0.743
+        }
+      }
+    },
+    {
+      "id": "STA_5e5df7e1",
+      "reference": "Genesis 3:21",
+      "bible_id": "0x0000c2a000000019",
+      "text": "Unto Adam also and to his wife did the LORD God make coats of skins, and clothed them.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.249,
+        "E2_manuscript": 0.999,
+        "E3_prophecy": 0.749
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": -0.0443,
+        "elemental_independence": true,
+        "pearson_r1": 0.4608,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5886,
+        "distance_from_center": 52.9,
+        "spatial_coords": {
+          "x": 227,
+          "y": 99
+        },
+        "timestamp": 1771618859.8939767,
+        "reasoning": "Analysis of Genesis 3:21 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.25)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.249,
+          "manuscript": 0.999,
+          "prophecy": 0.749
+        }
+      }
+    },
+    {
+      "id": "STA_6b446f6a",
+      "reference": "Genesis 3:22",
+      "bible_id": "0x0000c2c000000019",
+      "text": "And the LORD God said, Behold, the man is become as one of us, to know good and evil: and now, lest he put forth his hand, and take also of the tree of life, and eat, and live for ever:",
+      "category": "prophetic",
+      "triad_scores": {
+        "E1_archaeology": 0.242,
+        "E2_manuscript": 0.992,
+        "E3_prophecy": 0.942
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": -0.0482,
+        "elemental_independence": true,
+        "pearson_r1": 0.5265,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.6432,
+        "distance_from_center": 48.5,
+        "spatial_coords": {
+          "x": 232,
+          "y": 96
+        },
+        "timestamp": 1771618859.8949533,
+        "reasoning": "Analysis of Genesis 3:22 (prophetic): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.24)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.242,
+          "manuscript": 0.992,
+          "prophecy": 0.942
+        }
+      }
+    },
+    {
+      "id": "STA_838ac93f",
+      "reference": "Genesis 3:23",
+      "bible_id": "0x0000c2e000000019",
+      "text": "Therefore the LORD God sent him forth from the garden of Eden, to till the ground from whence he was taken.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.36,
+        "E2_manuscript": 0.91,
+        "E3_prophecy": 0.66
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": -0.0478,
+        "elemental_independence": true,
+        "pearson_r1": 0.3256,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0.1366,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5773,
+        "distance_from_center": 53.8,
+        "spatial_coords": {
+          "x": 236,
+          "y": 100
+        },
+        "timestamp": 1771618859.8958943,
+        "reasoning": "Analysis of Genesis 3:23 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.36)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.36,
+          "manuscript": 0.91,
+          "prophecy": 0.66
+        }
+      }
+    },
+    {
+      "id": "STA_9e97b259",
+      "reference": "Genesis 3:24",
+      "bible_id": "0x0000c30000000019",
+      "text": "So he drove out the man; and he placed at the east of the garden of Eden Cherubims, and a flaming sword which turned every way, to keep the way of the tree of life.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.417,
+        "E2_manuscript": 0.967,
+        "E3_prophecy": 0.717
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": -0.057,
+        "elemental_independence": true,
+        "pearson_r1": 0.2638,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0.1899,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.6306,
+        "distance_from_center": 49.6,
+        "spatial_coords": {
+          "x": 240,
+          "y": 96
+        },
+        "timestamp": 1771618859.896853,
+        "reasoning": "Analysis of Genesis 3:24 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [],
+        "evidence_breakdown": {
+          "archaeology": 0.417,
+          "manuscript": 0.967,
+          "prophecy": 0.717
+        }
+      }
+    },
+    {
+      "id": "STA_9a0c7858",
+      "reference": "Genesis 4:1",
+      "bible_id": "0x0001002000000019",
+      "text": "And Adam knew Eve his wife; and she conceived, and bare Cain, and said, I have gotten a man from the LORD.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.215,
+        "E2_manuscript": 0.965,
+        "E3_prophecy": 0.715
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": -0.077,
+        "elemental_independence": true,
+        "pearson_r1": 0.2383,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5567,
+        "distance_from_center": 55.5,
+        "spatial_coords": {
+          "x": 260,
+          "y": 4
+        },
+        "timestamp": 1771618859.897795,
+        "reasoning": "Analysis of Genesis 4:1 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.21)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.215,
+          "manuscript": 0.965,
+          "prophecy": 0.715
+        }
+      }
+    },
+    {
+      "id": "STA_7f5af358",
+      "reference": "Genesis 4:2",
+      "bible_id": "0x0001004000000019",
+      "text": "And she again bare his brother Abel. And Abel was a keeper of sheep, but Cain was a tiller of the ground.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.199,
+        "E2_manuscript": 0.949,
+        "E3_prophecy": 0.699
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": -0.0755,
+        "elemental_independence": true,
+        "pearson_r1": 0.2347,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5418,
+        "distance_from_center": 56.7,
+        "spatial_coords": {
+          "x": 264,
+          "y": 0
+        },
+        "timestamp": 1771618859.898775,
+        "reasoning": "Analysis of Genesis 4:2 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.20)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.199,
+          "manuscript": 0.949,
+          "prophecy": 0.699
+        }
+      }
+    },
+    {
+      "id": "STA_7a0893a4",
+      "reference": "Genesis 4:3",
+      "bible_id": "0x0001006000000019",
+      "text": "And in process of time it came to pass, that Cain brought of the fruit of the ground an offering unto the LORD.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.226,
+        "E2_manuscript": 0.976,
+        "E3_prophecy": 0.726
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": -0.0622,
+        "elemental_independence": true,
+        "pearson_r1": 0.2239,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.567,
+        "distance_from_center": 54.6,
+        "spatial_coords": {
+          "x": 268,
+          "y": 4
+        },
+        "timestamp": 1771618859.8997128,
+        "reasoning": "Analysis of Genesis 4:3 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.23)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.226,
+          "manuscript": 0.976,
+          "prophecy": 0.726
+        }
+      }
+    },
+    {
+      "id": "STA_30ed7467",
+      "reference": "Genesis 4:4",
+      "bible_id": "0x0001008000000019",
+      "text": "And Abel, he also brought of the firstlings of his flock and of the fat thereof. And the LORD had respect unto Abel and to his offering:",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.225,
+        "E2_manuscript": 0.975,
+        "E3_prophecy": 0.725
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": -0.0661,
+        "elemental_independence": true,
+        "pearson_r1": 0.2139,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5661,
+        "distance_from_center": 54.7,
+        "spatial_coords": {
+          "x": 264,
+          "y": 8
+        },
+        "timestamp": 1771618859.9006355,
+        "reasoning": "Analysis of Genesis 4:4 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.23)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.225,
+          "manuscript": 0.975,
+          "prophecy": 0.725
+        }
+      }
+    },
+    {
+      "id": "STA_3abb9ad7",
+      "reference": "Genesis 4:5",
+      "bible_id": "0x000100a000000019",
+      "text": "But unto Cain and to his offering he had not respect. And Cain was very wroth, and his countenance fell.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.202,
+        "E2_manuscript": 0.952,
+        "E3_prophecy": 0.702
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": -0.0739,
+        "elemental_independence": true,
+        "pearson_r1": 0.2175,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5446,
+        "distance_from_center": 56.4,
+        "spatial_coords": {
+          "x": 268,
+          "y": 12
+        },
+        "timestamp": 1771618859.901597,
+        "reasoning": "Analysis of Genesis 4:5 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.20)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.202,
+          "manuscript": 0.952,
+          "prophecy": 0.702
+        }
+      }
+    },
+    {
+      "id": "STA_0d2664c7",
+      "reference": "Genesis 4:6",
+      "bible_id": "0x000100c000000019",
+      "text": "And the LORD said unto Cain, Why art thou wroth? and why is thy countenance fallen?",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.194,
+        "E2_manuscript": 0.944,
+        "E3_prophecy": 0.694
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": -0.1413,
+        "elemental_independence": true,
+        "pearson_r1": 0.2252,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5371,
+        "distance_from_center": 57.0,
+        "spatial_coords": {
+          "x": 263,
+          "y": 15
+        },
+        "timestamp": 1771618859.9025319,
+        "reasoning": "Analysis of Genesis 4:6 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.19)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.194,
+          "manuscript": 0.944,
+          "prophecy": 0.694
+        }
+      }
+    },
+    {
+      "id": "STA_146531cf",
+      "reference": "Genesis 4:7",
+      "bible_id": "0x000100e000000019",
+      "text": "If thou doest well, shalt thou not be accepted? and if thou doest not well, sin lieth at the door. And unto thee shall be his desire, and thou shalt rule over him.",
+      "category": "law",
+      "triad_scores": {
+        "E1_archaeology": 0.192,
+        "E2_manuscript": 0.942,
+        "E3_prophecy": 0.842
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": -0.1682,
+        "elemental_independence": true,
+        "pearson_r1": 0.1986,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5811,
+        "distance_from_center": 53.5,
+        "spatial_coords": {
+          "x": 259,
+          "y": 11
+        },
+        "timestamp": 1771618859.90358,
+        "reasoning": "Analysis of Genesis 4:7 (law): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.19)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.192,
+          "manuscript": 0.942,
+          "prophecy": 0.842
+        }
+      }
+    },
+    {
+      "id": "STA_8ea49d3e",
+      "reference": "Genesis 4:8",
+      "bible_id": "0x0001010000000019",
+      "text": "And Cain talked with Abel his brother: and it came to pass, when they were in the field, that Cain rose up against Abel his brother, and slew him.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.248,
+        "E2_manuscript": 0.998,
+        "E3_prophecy": 0.748
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": -0.2114,
+        "elemental_independence": true,
+        "pearson_r1": 0.1992,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5876,
+        "distance_from_center": 53.0,
+        "spatial_coords": {
+          "x": 256,
+          "y": 16
+        },
+        "timestamp": 1771618859.9045274,
+        "reasoning": "Analysis of Genesis 4:8 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.25)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.248,
+          "manuscript": 0.998,
+          "prophecy": 0.748
+        }
+      }
+    },
+    {
+      "id": "STA_ae27be2c",
+      "reference": "Genesis 4:9",
+      "bible_id": "0x0001012000000019",
+      "text": "And the LORD said unto Cain, Where is Abel thy brother? And he said, I know not: Am I my brother's keeper?",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.157,
+        "E2_manuscript": 0.907,
+        "E3_prophecy": 0.657
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": -0.1579,
+        "elemental_independence": true,
+        "pearson_r1": 0.2203,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5025,
+        "distance_from_center": 59.8,
+        "spatial_coords": {
+          "x": 260,
+          "y": 20
+        },
+        "timestamp": 1771618859.9054427,
+        "reasoning": "Analysis of Genesis 4:9 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.16)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.157,
+          "manuscript": 0.907,
+          "prophecy": 0.657
+        }
+      }
+    },
+    {
+      "id": "STA_3c0f9dd0",
+      "reference": "Genesis 4:10",
+      "bible_id": "0x0001014000000019",
+      "text": "And he said, What hast thou done? the voice of thy brother's blood crieth unto me from the ground.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.242,
+        "E2_manuscript": 0.992,
+        "E3_prophecy": 0.742
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": -0.1667,
+        "elemental_independence": true,
+        "pearson_r1": 0.2226,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.582,
+        "distance_from_center": 53.4,
+        "spatial_coords": {
+          "x": 256,
+          "y": 24
+        },
+        "timestamp": 1771618859.906412,
+        "reasoning": "Analysis of Genesis 4:10 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.24)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.242,
+          "manuscript": 0.992,
+          "prophecy": 0.742
+        }
+      }
+    },
+    {
+      "id": "STA_52c5bd60",
+      "reference": "Genesis 4:11",
+      "bible_id": "0x0001016000000019",
+      "text": "And now art thou cursed from the earth, which hath opened her mouth to receive thy brother's blood from thy hand;",
+      "category": "law",
+      "triad_scores": {
+        "E1_archaeology": 0.194,
+        "E2_manuscript": 0.944,
+        "E3_prophecy": 0.844
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": -0.1588,
+        "elemental_independence": true,
+        "pearson_r1": 0.2308,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.583,
+        "distance_from_center": 53.4,
+        "spatial_coords": {
+          "x": 260,
+          "y": 28
+        },
+        "timestamp": 1771618859.907327,
+        "reasoning": "Analysis of Genesis 4:11 (law): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.19)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.194,
+          "manuscript": 0.944,
+          "prophecy": 0.844
+        }
+      }
+    },
+    {
+      "id": "STA_d279f96c",
+      "reference": "Genesis 4:12",
+      "bible_id": "0x0001018000000019",
+      "text": "When thou tillest the ground, it shall not henceforth yield unto thee her strength; a fugitive and a vagabond shalt thou be in the earth.",
+      "category": "cosmological",
+      "triad_scores": {
+        "E1_archaeology": 0.216,
+        "E2_manuscript": 0.966,
+        "E3_prophecy": 0.516
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": -0.1199,
+        "elemental_independence": true,
+        "pearson_r1": 0.2118,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.4965,
+        "distance_from_center": 60.3,
+        "spatial_coords": {
+          "x": 264,
+          "y": 24
+        },
+        "timestamp": 1771618859.9082801,
+        "reasoning": "Analysis of Genesis 4:12 (cosmological): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.22)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.216,
+          "manuscript": 0.966,
+          "prophecy": 0.516
+        }
+      }
+    },
+    {
+      "id": "STA_c1723278",
+      "reference": "Genesis 4:13",
+      "bible_id": "0x000101a000000019",
+      "text": "And Cain said unto the LORD, My punishment is greater than I can bear.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.194,
+        "E2_manuscript": 0.944,
+        "E3_prophecy": 0.694
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": -0.1297,
+        "elemental_independence": true,
+        "pearson_r1": 0.2125,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5371,
+        "distance_from_center": 57.0,
+        "spatial_coords": {
+          "x": 268,
+          "y": 28
+        },
+        "timestamp": 1771618859.9092398,
+        "reasoning": "Analysis of Genesis 4:13 (historical): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.19)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.194,
+          "manuscript": 0.944,
+          "prophecy": 0.694
+        }
+      }
+    },
+    {
+      "id": "STA_d193049e",
+      "reference": "Genesis 4:14",
+      "bible_id": "0x000101c000000019",
+      "text": "Behold, thou hast driven me out this day from the face of the earth; and from thy face shall I be hid; and I shall be a fugitive and a vagabond in the earth; and it shall come to pass, that every one that findeth me shall slay me.",
+      "category": "prophetic",
+      "triad_scores": {
+        "E1_archaeology": 0.222,
+        "E2_manuscript": 0.972,
+        "E3_prophecy": 0.922
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": -0.0024,
+        "elemental_independence": true,
+        "pearson_r1": 0.2094,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.6245,
+        "distance_from_center": 50.0,
+        "spatial_coords": {
+          "x": 271,
+          "y": 23
+        },
+        "timestamp": 1771618859.9102213,
+        "reasoning": "Analysis of Genesis 4:14 (prophetic): Experimental truth status due to lack of empirical corroboration. Triad independence confirmed (\u03b1 < 0.2).",
+        "uncertainty_sources": [
+          "Low archaeology score (0.22)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.222,
+          "manuscript": 0.972,
+          "prophecy": 0.922
+        }
+      }
+    },
+    {
+      "id": "STA_4388c044",
+      "reference": "Genesis 4:15",
+      "bible_id": "0x000101e000000019",
+      "text": "And the LORD said unto him, Therefore whosoever slayeth Cain, vengeance shall be taken on him sevenfold. And the LORD set a mark upon Cain, lest any finding him should kill him.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.201,
+        "E2_manuscript": 0.951,
+        "E3_prophecy": 0.701
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2947,
+        "elemental_independence": false,
+        "pearson_r1": 0.2084,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5436,
+        "distance_from_center": 56.5,
+        "spatial_coords": {
+          "x": 267,
+          "y": 19
+        },
+        "timestamp": 1771618859.9112911,
+        "reasoning": "Analysis of Genesis 4:15 (historical): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.20)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.201,
+          "manuscript": 0.951,
+          "prophecy": 0.701
+        }
+      }
+    },
+    {
+      "id": "STA_c35f5b26",
+      "reference": "Genesis 4:16",
+      "bible_id": "0x0001020000000019",
+      "text": "And Cain went out from the presence of the LORD, and dwelt in the land of Nod, on the east of Eden.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.44,
+        "E2_manuscript": 0.99,
+        "E3_prophecy": 0.74
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.3449,
+        "elemental_independence": false,
+        "pearson_r1": 0.2026,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0.2114,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.6521,
+        "distance_from_center": 47.8,
+        "spatial_coords": {
+          "x": 272,
+          "y": 16
+        },
+        "timestamp": 1771618859.9122407,
+        "reasoning": "Analysis of Genesis 4:16 (historical): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [],
+        "evidence_breakdown": {
+          "archaeology": 0.44,
+          "manuscript": 0.99,
+          "prophecy": 0.74
+        }
+      }
+    },
+    {
+      "id": "STA_d17cf2a2",
+      "reference": "Genesis 4:17",
+      "bible_id": "0x0001022000000019",
+      "text": "And Cain knew his wife; and she conceived, and bare Enoch: and he builded a city, and called the name of the city, after the name of his son, Enoch.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.462,
+        "E2_manuscript": 0.912,
+        "E3_prophecy": 0.662
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2367,
+        "elemental_independence": false,
+        "pearson_r1": 0.1652,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0.2543,
+          0.9759
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.6151,
+        "distance_from_center": 50.8,
+        "spatial_coords": {
+          "x": 276,
+          "y": 20
+        },
+        "timestamp": 1771618859.9131927,
+        "reasoning": "Analysis of Genesis 4:17 (historical): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [],
+        "evidence_breakdown": {
+          "archaeology": 0.462,
+          "manuscript": 0.912,
+          "prophecy": 0.662
+        }
+      }
+    },
+    {
+      "id": "STA_44814d4b",
+      "reference": "Genesis 4:18",
+      "bible_id": "0x0001024000000019",
+      "text": "And unto Enoch was born Irad: and Irad begat Mehujael: and Mehujael begat Methusael: and Methusael begat Lamech.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.179,
+        "E2_manuscript": 0.929,
+        "E3_prophecy": 0.679
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2724,
+        "elemental_independence": false,
+        "pearson_r1": 0.1757,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.523,
+        "distance_from_center": 58.2,
+        "spatial_coords": {
+          "x": 272,
+          "y": 24
+        },
+        "timestamp": 1771618859.9141316,
+        "reasoning": "Analysis of Genesis 4:18 (historical): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.18)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.179,
+          "manuscript": 0.929,
+          "prophecy": 0.679
+        }
+      }
+    },
+    {
+      "id": "STA_caf68156",
+      "reference": "Genesis 4:19",
+      "bible_id": "0x0001026000000019",
+      "text": "And Lamech took unto him two wives: the name of the one was Adah, and the name of the other Zillah.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.179,
+        "E2_manuscript": 0.929,
+        "E3_prophecy": 0.679
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2765,
+        "elemental_independence": false,
+        "pearson_r1": 0.1857,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.523,
+        "distance_from_center": 58.2,
+        "spatial_coords": {
+          "x": 276,
+          "y": 28
+        },
+        "timestamp": 1771618859.915065,
+        "reasoning": "Analysis of Genesis 4:19 (historical): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.18)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.179,
+          "manuscript": 0.929,
+          "prophecy": 0.679
+        }
+      }
+    },
+    {
+      "id": "STA_5af375ad",
+      "reference": "Genesis 4:20",
+      "bible_id": "0x0001028000000019",
+      "text": "And Adah bare Jabal: he was the father of such as dwell in tents, and of such as have cattle.",
+      "category": "historical",
+      "triad_scores": {
+        "E1_archaeology": 0.208,
+        "E2_manuscript": 0.958,
+        "E3_prophecy": 0.708
+      },
+      "ctrm_validation": {
+        "cronbach_alpha": 0.2638,
+        "elemental_independence": false,
+        "pearson_r1": 0.1796,
+        "configurational_stability": false,
+        "confidence_interval": [
+          0,
+          1
+        ]
+      },
+      "ctrm_evaluation": {
+        "confidence": 0.5502,
+        "distance_from_center": 56.0,
+        "spatial_coords": {
+          "x": 280,
+          "y": 24
+        },
+        "timestamp": 1771618859.9159884,
+        "reasoning": "Analysis of Genesis 4:20 (historical): Experimental truth status due to lack of empirical corroboration.",
+        "uncertainty_sources": [
+          "Low archaeology score (0.21)"
+        ],
+        "evidence_breakdown": {
+          "archaeology": 0.208,
+          "manuscript": 0.958,
+          "prophecy": 0.708
+        }
+      }
+    }
+  ]
+}

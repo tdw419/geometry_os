@@ -1,0 +1,2 @@
+[console_scripts]
+prts = prts_toolchain.main:app

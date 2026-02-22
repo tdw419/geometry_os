@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WGPU Linux Hypervisor - Interactive Shell</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+        }
+        h1 {
+            color: #00ffcc;
+            text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+        #controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        button {
+            background: linear-gradient(180deg, #1a3a2a 0%, #0a2a1a 100%);
+            color: #00ff88;
+            border: 1px solid #00ff88;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        button:hover:not(:disabled) {
+            background: linear-gradient(180deg, #2a5a3a 0%, #1a4a2a 100%);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        button.danger {
+            border-color: #ff4444;
+            color: #ff4444;
+            background: linear-gradient(180deg, #3a1a1a 0%, #2a0a0a 100%);
+        }
+        #status {
+            padding: 12px 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border-left: 3px solid #00ff88;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+        #status.error { border-left-color: #ff4444; color: #ff8866; }
+        #status.success { border-left-color: #00ff88; color: #88ffaa; }
+        #display-container {
+            position: relative;
+            border: 2px solid #00ff88;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #000;
+        }
+        #display {
+            width: 100%;
+            height: auto;
+            display: block;
+            cursor: text;
+        }
+        #display:focus {
+            outline: 2px solid #00ffff;
+            outline-offset: -2px;
+        }
+        #overlay {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            pointer-events: none;
+        }
+        #overlay div { margin: 3px 0; }
+        .overlay-label { color: #888; }
+        .overlay-value { color: #00ff88; font-family: monospace; }
+        #log {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            margin-top: 15px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+        #log::-webkit-scrollbar { width: 8px; }
+        #log::-webkit-scrollbar-track { background: #111; }
+        #log::-webkit-scrollbar-thumb { background: #00ff88; border-radius: 4px; }
+        .log-entry { margin: 2px 0; }
+        .log-entry.error { color: #ff6655; }
+        .log-entry.success { color: #55ff88; }
+        .log-entry.info { color: #88ccff; }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .metric {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .metric-label {
+            font-size: 0.7rem;
+            color: #888;
+            margin-bottom: 5px;
+        }
+        .metric-value {
+            font-size: 1.2rem;
+            color: #00ff88;
+        }
+        #instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid #00ff88;
+            border-radius: 4px;
+        }
+        #instructions h3 {
+            margin: 0 0 10px 0;
+            color: #00ffcc;
+            font-size: 1rem;
+        }
+        #instructions ol {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 0.9rem;
+        }
+        #instructions li { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>WGPU Linux Hypervisor - Milestone 2: Interactive Shell</h1>
+    <div class="subtitle">RISC-V Linux running in WebGPU compute shaders</div>
+
+    <div id="controls">
+        <button id="btn-init" onclick="initHypervisor()">Initialize WebGPU</button>
+        <button id="boot-boot-fake" onclick="bootFakeKernel()" disabled>Boot Fake Kernel</button>
+        <button id="boot-boot-mmu" onclick="bootMMUKernel()" disabled>Boot MMU Test</button>
+        <button id="ctrl-start" onclick="startLoop()" disabled>Start</button>
+        <button id="ctrl-stop" onclick="stopLoop()" disabled>Stop</button>
+        <button id="ctrl-step" onclick="stepOnce()" disabled>Step</button>
+        <button id="ctrl-capture" onclick="captureScreen()" disabled>Screenshot</button>
+        <button id="ctrl-clear" onclick="clearLog()" class="danger">Clear Log</button>
+    </div>
+
+    <div id="status">Status: Ready to initialize</div>
+
+    <div id="display-container">
+        <canvas id="display" width="1024" height="768" tabindex="0"></canvas>
+        <div id="overlay">
+            <div><span class="overlay-label">PC:</span> <span class="overlay-value" id="ov-pc">-</span></div>
+            <div><span class="overlay-label">Cycles:</span> <span class="overlay-value" id="ov-cycles">0</span></div>
+            <div><span class="overlay-label">Halted:</span> <span class="overlay-value" id="ov-halted">-</span></div>
+        </div>
+    </div>
+
+    <div class="metrics">
+        <div class="metric">
+            <div class="metric-label">FPS</div>
+            <div class="metric-value" id="metric-fps">-</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Cycles/Frame</div>
+            <div class="metric-value" id="metric-cpf">-</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">State</div>
+            <div class="metric-value" id="metric-state">Idle</div>
+        </div>
+    </div>
+
+    <div id="log"></div>
+
+    <div id="instructions">
+        <h3>Interactive Shell Test - Instructions</h3>
+        <ol>
+            <li><strong>Initialize</strong> - Set up WebGPU device and hypervisor</li>
+            <li><strong>Boot Kernel</strong> - Load a test kernel (Fake: simple pattern, MMU: memory test)</li>
+            <li><strong>Start</strong> - Begin continuous execution loop</li>
+            <li><strong>Click display</strong> - Focus the canvas to capture keyboard input</li>
+            <li><strong>Type</strong> - Keyboard events are written to MMIO region at 0x02000000</li>
+            <li><strong>Stop</strong> - Pause execution; <strong>Step</strong> - Single cycle advance</li>
+        </ol>
+    </div>
+
+    <script type="module">
+        import { WGPULinuxHypervisor } from './wgpu_linux_hypervisor.js';
+
+        let hypervisor = null;
+        let running = false;
+        let frameCount = 0;
+        let lastFrameTime = 0;
+        let fps = 0;
+
+        window.initHypervisor = async function() {
+            log('Initializing WebGPU...', 'info');
+            setStatus('Initializing...', '');
+
+            try {
+                hypervisor = new WGPULinuxHypervisor({
+                    width: 1024,
+                    height: 768,
+                    cyclesPerFrame: 1000,
+                    displayMode: 'canvas'
+                });
+                await hypervisor.init();
+
+                const container = document.getElementById('display-container');
+                const canvas = document.getElementById('display');
+                canvas.parentElement.replaceChild(hypervisor.display.canvas, canvas);
+
+                log('✅ Hypervisor initialized', 'success');
+                setStatus('Ready - boot a kernel to begin', 'success');
+
+                document.getElementById('boot-boot-fake').disabled = false;
+                document.getElementById('boot-boot-mmu').disabled = false;
+                document.getElementById('btn-init').disabled = true;
+
+            } catch (e) {
+                log(`❌ Init failed: ${e.message}`, 'error');
+                setStatus(`Error: ${e.message}`, 'error');
+                console.error(e);
+            }
+        };
+
+        window.bootFakeKernel = async function() {
+            if (!hypervisor) { log('❌ Initialize first', 'error'); return; }
+
+            log('Loading fake kernel (pattern test)...', 'info');
+            setStatus('Loading kernel...', '');
+
+            try {
+                const kernel = buildPatternKernel();
+                await hypervisor.loadKernel(kernel.buffer);
+                await hypervisor.setupMMU();
+
+                log(`✅ Fake kernel loaded: ${kernel.length} bytes`, 'success');
+                setStatus('Kernel loaded - click Start', 'success');
+
+                document.getElementById('ctrl-start').disabled = false;
+                document.getElementById('ctrl-step').disabled = false;
+                document.getElementById('boot-boot-fake').disabled = true;
+                document.getElementById('boot-boot-mmu').disabled = true;
+
+            } catch (e) {
+                log(`❌ Boot failed: ${e.message}`, 'error');
+                setStatus(`Error: ${e.message}`, 'error');
+            }
+        };
+
+        window.bootMMUKernel = async function() {
+            if (!hypervisor) { log('❌ Initialize first', 'error'); return; }
+
+            log('Loading MMU test kernel...', 'info');
+
+            try {
+                const response = await fetch('kernels/mmu_test_kernel.riscv');
+                if (!response.ok) throw new Error('MMU test kernel not found');
+
+                const kernelData = new Uint8Array(await response.arrayBuffer());
+                await hypervisor.loadKernel(kernelData.buffer);
+                await hypervisor.setupMMU();
+
+                log(`✅ MMU test kernel loaded: ${kernelData.length} bytes`, 'success');
+                setStatus('MMU kernel loaded', 'success');
+
+                document.getElementById('ctrl-start').disabled = false;
+                document.getElementById('ctrl-step').disabled = false;
+
+            } catch (e) {
+                log(`❌ MMU boot failed: ${e.message}`, 'error');
+                log('   Falling back to fake kernel...', 'info');
+                window.bootFakeKernel();
+            }
+        };
+
+        window.startLoop = function() {
+            if (!hypervisor) return;
+
+            running = true;
+            frameCount = 0;
+            lastFrameTime = performance.now();
+
+            const loop = async () => {
+                if (!running) return;
+
+                await hypervisor.render();
+
+                frameCount++;
+                const now = performance.now();
+                if (now - lastFrameTime >= 1000) {
+                    fps = frameCount;
+                    frameCount = 0;
+                    lastFrameTime = now;
+                    updateMetrics();
+                }
+
+                const state = hypervisor.getState();
+                updateOverlay(state);
+
+                requestAnimationFrame(loop);
+            };
+
+            loop();
+            log('▶️ Execution started', 'info');
+            setStatus('Running - click display to type', 'success');
+            document.getElementById('metric-state').textContent = 'Running';
+
+            document.getElementById('ctrl-start').disabled = true;
+            document.getElementById('ctrl-stop').disabled = false;
+            document.getElementById('ctrl-step').disabled = true;
+            document.getElementById('ctrl-capture').disabled = false;
+        };
+
+        window.stopLoop = function() {
+            running = false;
+            log('⏹️ Execution stopped', 'info');
+            setStatus('Stopped', '');
+            document.getElementById('metric-state').textContent = 'Stopped';
+            document.getElementById('ctrl-start').disabled = false;
+            document.getElementById('ctrl-stop').disabled = true;
+            document.getElementById('ctrl-step').disabled = false;
+        };
+
+        window.stepOnce = async function() {
+            if (!hypervisor) return;
+            await hypervisor.tick(1);
+            await hypervisor.render();
+            const state = hypervisor.getState();
+            updateOverlay(state);
+            log(`Step: PC=${state.pc.toString(16)}, halted=${state.halted}`, 'info');
+        };
+
+        window.captureScreen = function() {
+            if (!hypervisor) return;
+            const dataUrl = hypervisor.capture();
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = `screenshot_${Date.now()}.png`;
+            link.click();
+            log('📸 Screenshot saved', 'success');
+        };
+
+        window.clearLog = function() {
+            document.getElementById('log').innerHTML = '';
+        };
+
+        function buildPatternKernel() {
+            return new Uint32Array([
+                0x010002b7, // lui x5, 0x01000 (framebuffer base)
+                0x00ff0637, // lui x6, 0x00ff0 (color base)
+                0x6ff30313, // addi x6, x6, 0x6ff (magenta)
+                0x001003b7, // lui x7, 0x00100 (1024)
+                0x0e038313, // addi x7, x7, 0x0e00 (4096)
+                0x0062a023, // sw x6, 0(x5)
+                0x00428293, // addi x5, x5, 4
+                0x007af663, // bltu x5, x7, -8
+                0x00000013, // nop
+                0x00100073, // ebreak
+            ]);
+        }
+
+        function updateOverlay(state) {
+            if (!state) return;
+            document.getElementById('ov-pc').textContent = `0x${state.pc.toString(16).padStart(8, '0')}`;
+            document.getElementById('ov-cycles').textContent = hypervisor.options?.cyclesPerFrame || 1000;
+            document.getElementById('ov-halted').textContent = state.halted ? 'Yes' : 'No';
+        }
+
+        function updateMetrics() {
+            document.getElementById('metric-fps').textContent = fps;
+            document.getElementById('metric-cpf').textContent = hypervisor.options?.cyclesPerFrame || 1000;
+        }
+
+        function log(msg, type = '') {
+            const logEl = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function setStatus(msg, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = `Status: ${msg}`;
+            statusEl.className = type;
+        }
+    </script>
+</body>
+</html>

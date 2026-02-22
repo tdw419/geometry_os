@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel CPU Integration - Simple Test</title>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #111;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+        }
+
+        #app-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00FF00;
+            border-radius: 8px;
+            padding: 15px;
+            color: #00FF00;
+            z-index: 10000;
+        }
+
+        button {
+            background: #003300;
+            color: #00FF00;
+            border: 1px solid #00FF00;
+            padding: 8px 16px;
+            margin: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+
+        button:hover {
+            background: #006600;
+        }
+
+        #output {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00AAFF;
+            border-radius: 8px;
+            padding: 15px;
+            color: #00FF00;
+            font-size: 12px;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 10000;
+        }
+
+        #fps-counter {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #FFFF00;
+            border-radius: 8px;
+            padding: 10px;
+            color: #FFFF00;
+            font-size: 14px;
+            z-index: 10000;
+        }
+    </style>
+    <!-- PixiJS -->
+    <script src="https://pixijs.download/v8.1.0/pixi.min.js"></script>
+
+    <!-- Pixel CPU Modules -->
+    <script src="brick_loader.js"></script>
+    <script src="pixel_cpu.js"></script>
+    <script src="pixel_cpu_integration.js"></script>
+</head>
+
+<body>
+    <div id="app-container"></div>
+
+    <div id="controls">
+        <h3>🖥️ Pixel CPU Controls</h3>
+        <button onclick="loadHelloWorld()">Load Hello World</button>
+        <button onclick="loadCounter()">Load Counter</button>
+        <button onclick="loadKernel()">Load Kernel Boot</button>
+        <br><br>
+        <button onclick="pauseCPU()">Pause</button>
+        <button onclick="resumeCPU()">Resume</button>
+        <button onclick="resetCPU()">Reset</button>
+        <br><br>
+        <button onclick="stepCPU()">Step</button>
+    </div>
+
+    <div id="output">
+        <h3>📟 Console Output</h3>
+        <div id="console-output"></div>
+    </div>
+
+    <div id="fps-counter">
+        FPS: <span id="fps-value">0</span><br>
+        Frame Time: <span id="frame-time">0.00</span>ms
+    </div>
+
+    <script>
+        // Global variables
+        let app = null;
+        let world = null;
+        let cpuIntegration = null;
+        let lastFrameTime = 0;
+        let frameCount = 0;
+        let fpsUpdateTime = 0;
+
+        // Initialize application
+        async function init() {
+            console.log('🚀 Initializing Pixel CPU Integration...');
+
+            // Initialize PixiJS
+            app = new PIXI.Application({
+                width: window.innerWidth,
+                height: window.innerHeight,
+                backgroundColor: 0x111111,
+                antialias: true
+            });
+            document.getElementById('app-container').appendChild(app.view);
+
+            // Create world container
+            world = new PIXI.Container();
+            app.stage.addChild(world);
+
+            console.log('✓ PixiJS initialized');
+            console.log('✓ Ready to load brick files');
+        }
+
+        // Load Hello World brick
+        async function loadHelloWorld() {
+            try {
+                console.log('📦 Loading hello_world.brick...');
+                addOutput('Loading hello_world.brick...');
+
+                // Create simple world if not exists
+                if (!cpuIntegration) {
+                    cpuIntegration = new PixelCPUIntegration(world, {
+                        cyclesPerFrame: 1000,
+                        framebufferWidth: 640,
+                        framebufferHeight: 480
+                    });
+
+                    // Add CPU execution to ticker
+                    app.ticker.add(() => {
+                        cpuIntegration.executeFrame();
+                        updateFPS();
+                    });
+                }
+
+                // Load brick file
+                await cpuIntegration.loadBrick('hello_world.brick');
+                addOutput('✓ Hello World loaded successfully!');
+
+            } catch (error) {
+                console.error('Failed to load hello_world.brick:', error);
+                addOutput('✗ Failed: ' + error.message);
+            }
+        }
+
+        // Load Counter brick
+        async function loadCounter() {
+            try {
+                console.log('📦 Loading counter.brick...');
+                addOutput('Loading counter.brick...');
+
+                if (!cpuIntegration) {
+                    cpuIntegration = new PixelCPUIntegration(world, {
+                        cyclesPerFrame: 1000,
+                        framebufferWidth: 640,
+                        framebufferHeight: 480
+                    });
+
+                    app.ticker.add(() => {
+                        cpuIntegration.executeFrame();
+                        updateFPS();
+                    });
+                }
+
+                await cpuIntegration.loadBrick('counter.brick');
+                addOutput('✓ Counter loaded successfully!');
+
+            } catch (error) {
+                console.error('Failed to load counter.brick:', error);
+                addOutput('✗ Failed: ' + error.message);
+            }
+        }
+
+        // Load Kernel Boot brick
+        async function loadKernel() {
+            try {
+                console.log('📦 Loading riscv_kernel_boot.brick...');
+                addOutput('Loading riscv_kernel_boot.brick...');
+
+                if (!cpuIntegration) {
+                    cpuIntegration = new PixelCPUIntegration(world, {
+                        cyclesPerFrame: 1000,
+                        framebufferWidth: 640,
+                        framebufferHeight: 480
+                    });
+
+                    app.ticker.add(() => {
+                        cpuIntegration.executeFrame();
+                        updateFPS();
+                    });
+                }
+
+                await cpuIntegration.loadBrick('riscv_kernel_boot.brick');
+                addOutput('✓ Kernel boot loaded successfully!');
+
+            } catch (error) {
+                console.error('Failed to load riscv_kernel_boot.brick:', error);
+                addOutput('✗ Failed: ' + error.message);
+            }
+        }
+
+        // Pause CPU
+        function pauseCPU() {
+            if (cpuIntegration) {
+                cpuIntegration.pause();
+                addOutput('⏸️ CPU paused');
+            }
+        }
+
+        // Resume CPU
+        function resumeCPU() {
+            if (cpuIntegration) {
+                cpuIntegration.resume();
+                addOutput('▶️ CPU resumed');
+            }
+        }
+
+        // Reset CPU
+        function resetCPU() {
+            if (cpuIntegration) {
+                cpuIntegration.reset();
+                addOutput('🔄 CPU reset');
+            }
+        }
+
+        // Step CPU
+        function stepCPU() {
+            if (cpuIntegration) {
+                cpuIntegration.step();
+                const state = cpuIntegration.getState();
+                addOutput(`Step: PC=${state.pc}, Cycles=${state.cycles}`);
+            }
+        }
+
+        // Update FPS counter
+        function updateFPS() {
+            const now = performance.now();
+            frameCount++;
+
+            if (now - fpsUpdateTime >= 1000) {
+                const fps = Math.round(frameCount * 1000 / (now - fpsUpdateTime));
+                document.getElementById('fps-value').textContent = fps;
+
+                const state = cpuIntegration ? cpuIntegration.getState() : null;
+                const frameTime = state ? state.lastExecutionTime.toFixed(2) : '0.00';
+                document.getElementById('frame-time').textContent = frameTime;
+
+                frameCount = 0;
+                fpsUpdateTime = now;
+            }
+        }
+
+        // Add output to console
+        function addOutput(message) {
+            const consoleOutput = document.getElementById('console-output');
+            const line = document.createElement('div');
+            line.textContent = message;
+            line.style.marginBottom = '4px';
+            consoleOutput.appendChild(line);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (app) {
+                app.renderer.resize(window.innerWidth, window.innerHeight);
+            }
+        });
+
+        // Initialize on load
+        window.onload = init;
+    </script>
+</body>
+
+</html>

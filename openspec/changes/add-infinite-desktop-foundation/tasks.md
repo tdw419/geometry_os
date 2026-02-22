@@ -1,0 +1,5 @@
+- [x] Scaffold `systems/infinite_map_rs` Rust project
+- [x] Implement `Camera` and `CoordinateSystem` in Rust (from HTML prototype)
+- [x] Implement `SubstrateRenderer` using WGPU (Shader-based grid/Hilbert curve)
+- [x] Integrate `rts_rs` library to read `geometry_os.rts` as a texture
+- [x] Create basic window container logic (Rectangles in world space)

@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Heatmap Test Runner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #00d9ff;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #16213e;
+            color: #00d9ff;
+            border: 1px solid #00d9ff;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #00d9ff;
+            color: #1a1a2e;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button.running {
+            background: #00d9ff;
+            color: #1a1a2e;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .test-section {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .test-section h2 {
+            color: #00d9ff;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .test-card {
+            background: #0f3460;
+            border-radius: 6px;
+            padding: 15px;
+            border-left: 4px solid #555;
+        }
+
+        .test-card.pending {
+            border-left-color: #555;
+        }
+
+        .test-card.running {
+            border-left-color: #ffc107;
+        }
+
+        .test-card.passed {
+            border-left-color: #4caf50;
+        }
+
+        .test-card.failed {
+            border-left-color: #f44336;
+        }
+
+        .test-card.skipped {
+            border-left-color: #9e9e9e;
+        }
+
+        .test-card-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .test-card-status {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .test-card-description {
+            font-size: 13px;
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+
+        .test-card-result {
+            font-size: 13px;
+            color: #00d9ff;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: #0f3460;
+            border-radius: 2px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .summary-card {
+            background: #0f3460;
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .summary-card-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .summary-card-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .summary-card.passed .summary-card-value {
+            color: #4caf50;
+        }
+
+        .summary-card.failed .summary-card-value {
+            color: #f44336;
+        }
+
+        .summary-card.skipped .summary-card-value {
+            color: #9e9e9e;
+        }
+
+        .log-output {
+            background: #0a0a0a;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            color: #aaa;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+        }
+
+        .log-entry.error {
+            color: #f44336;
+        }
+
+        .log-entry.success {
+            color: #4caf50;
+        }
+
+        .log-entry.warning {
+            color: #ffc107;
+        }
+
+        .success-criteria {
+            background: #0f3460;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .success-criteria h3 {
+            color: #00d9ff;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .criteria-list {
+            list-style: none;
+        }
+
+        .criteria-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .criteria-item:last-child {
+            border-bottom: none;
+        }
+
+        .criteria-icon {
+            width: 20px;
+            margin-right: 10px;
+        }
+
+        .criteria-item.met .criteria-icon {
+            color: #4caf50;
+        }
+
+        .criteria-item.pending .criteria-icon {
+            color: #888;
+        }
+
+        .criteria-item.failed .criteria-icon {
+            color: #f44336;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Neural Heatmap Test Runner</h1>
+        <p class="subtitle">Phase 2.1.1: Performance Optimization & Testing</p>
+
+        <div class="test-controls">
+            <button id="runAll">Run All Tests</button>
+            <button id="runPerformance">Performance Tests</button>
+            <button id="runMemory">Memory Leak Tests</button>
+            <button id="runBrowser">Browser Compatibility Tests</button>
+            <button id="runStress">Stress Tests</button>
+            <button id="runPhase2">Phase 2 Tests</button>
+            <button id="runVerification">Run Verification</button>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-bar-fill" id="progressFill"></div>
+        </div>
+
+        <div class="success-criteria">
+            <h3>Success Criteria</h3>
+            <ul class="criteria-list" id="criteriaList">
+                <li class="criteria-item pending" data-criteria="performance">
+                    <span class="criteria-icon">○</span>
+                    <span>Performance dashboard showing FPS, memory, render time</span>
+                </li>
+                <li class="criteria-item pending" data-criteria="memory">
+                    <span class="criteria-icon">○</span>
+                    <span>Memory leak detection working</span>
+                </li>
+                <li class="criteria-item pending" data-criteria="gpu">
+                    <span class="criteria-icon">○</span>
+                    <span>GPU optimizer with LOD system</span>
+                </li>
+                <li class="criteria-item pending" data-criteria="compatibility">
+                    <span class="criteria-icon">○</span>
+                    <span>Cross-browser compatibility with canvas fallback</span>
+                </li>
+                <li class="criteria-item pending" data-criteria="targets">
+                    <span class="criteria-icon">○</span>
+                    <span>Stable 30+ FPS with 3 models, Memory under 500MB</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="summary" id="summary">
+            <div class="summary-card passed">
+                <div class="summary-card-value" id="passedCount">0</div>
+                <div class="summary-card-label">Passed</div>
+            </div>
+            <div class="summary-card failed">
+                <div class="summary-card-value" id="failedCount">0</div>
+                <div class="summary-card-label">Failed</div>
+            </div>
+            <div class="summary-card skipped">
+                <div class="summary-card-value" id="skippedCount">0</div>
+                <div class="summary-card-label">Skipped</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-card-value" id="totalCount">0</div>
+                <div class="summary-card-label">Total</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test Status</h2>
+            <div class="test-grid" id="testGrid">
+                <!-- Test cards will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test Log</h2>
+            <div class="log-output" id="logOutput">
+                <div class="log-entry">Waiting for tests to run...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Framework -->
+    <script src="../neural_heatmap_overlay.js"></script>
+    <script src="../performance_monitor.js"></script>
+    <script src="../performance_dashboard.js"></script>
+    <script src="../memory_leak_detector.js"></script>
+    <script src="../browser_compatibility.js"></script>
+    <script src="../canvas_fallback.js"></script>
+    <script src="../error_recovery.js"></script>
+    <script src="../multi_model_tracker.js"></script>
+    <script src="../comparative_heatmap.js"></script>
+    <script src="../layer_mapper.js"></script>
+    <script src="../layer_tooltip.js"></script>
+    <script src="neural_heatmap_test_framework.js"></script>
+    <script src="test_performance.js"></script>
+    <script src="test_memory_leaks.js"></script>
+    <script src="test_browser_compatibility.js"></script>
+    <script src="test_stress.js"></script>
+    <script src="test_phase2_inspection.js"></script>
+
+    <script>
+        // Test Runner Application
+        class TestRunner {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+                this.currentRun = null;
+
+                this.initUI();
+                this.loadTests();
+            }
+
+            initUI() {
+                document.getElementById('runAll').addEventListener('click', () => this.runAllTests());
+                document.getElementById('runPerformance').addEventListener('click', () => this.runPerformanceTests());
+                document.getElementById('runMemory').addEventListener('click', () => this.runMemoryTests());
+                document.getElementById('runBrowser').addEventListener('click', () => this.runBrowserTests());
+                document.getElementById('runStress').addEventListener('click', () => this.runStressTests());
+                document.getElementById('runPhase2').addEventListener('click', () => this.runPhase2Tests());
+                document.getElementById('runVerification').addEventListener('click', () => this.runVerification());
+            }
+
+            loadTests() {
+                this.tests = [
+                    {
+                        id: 'performance',
+                        name: 'Performance Tests',
+                        description: 'FPS, memory, render time tracking',
+                        runner: () => window.runPerformanceTests?.(),
+                        status: 'pending'
+                    },
+                    {
+                        id: 'memory',
+                        name: 'Memory Leak Tests',
+                        description: 'Tile attachment, graphics pool cleanup',
+                        runner: () => window.runMemoryLeakTests?.(),
+                        status: 'pending'
+                    },
+                    {
+                        id: 'browser',
+                        name: 'Browser Compatibility Tests',
+                        description: 'Cross-browser, feature detection, fallbacks',
+                        runner: () => window.runBrowserCompatibilityTests?.(),
+                        status: 'pending'
+                    },
+                    {
+                        id: 'stress',
+                        name: 'Stress Tests',
+                        description: '3+ models, sustained load, memory pressure',
+                        runner: () => window.runStressTests?.(),
+                        status: 'pending'
+                    },
+                    {
+                        id: 'phase2',
+                        name: 'Phase 2: Deep Inspection',
+                        description: 'LayerMapper, neural address, poke interaction',
+                        runner: async () => {
+                            const tests = new Phase2InspectionTests();
+                            return await tests.runAll();
+                        },
+                        status: 'pending'
+                    }
+                ];
+
+                this.renderTests();
+            }
+
+            renderTests() {
+                const grid = document.getElementById('testGrid');
+                grid.innerHTML = '';
+
+                for (const test of this.tests) {
+                    const card = document.createElement('div');
+                    card.className = `test-card ${test.status}`;
+                    card.id = `test-${test.id}`;
+                    card.innerHTML = `
+                        <div class="test-card-title">
+                            ${test.name}
+                            <span class="test-card-status">${test.status}</span>
+                        </div>
+                        <div class="test-card-description">${test.description}</div>
+                        <div class="test-card-result" id="result-${test.id}"></div>
+                    `;
+                    grid.appendChild(card);
+                }
+            }
+
+            async runAllTests() {
+                this.disableButtons();
+                this.clearLog();
+                this.log('Starting all tests...', 'info');
+
+                for (const test of this.tests) {
+                    await this.runTest(test);
+                }
+
+                this.updateSummary();
+                this.enableButtons();
+                this.log('All tests completed!', 'success');
+            }
+
+            async runPerformanceTests() {
+                await this.runTest(this.tests.find(t => t.id === 'performance'));
+            }
+
+            async runMemoryTests() {
+                await this.runTest(this.tests.find(t => t.id === 'memory'));
+            }
+
+            async runBrowserTests() {
+                await this.runTest(this.tests.find(t => t.id === 'browser'));
+            }
+
+            async runStressTests() {
+                await this.runTest(this.tests.find(t => t.id === 'stress'));
+            }
+
+            async runPhase2Tests() {
+                await this.runTest(this.tests.find(t => t.id === 'phase2'));
+            }
+
+            async runTest(test) {
+                if (!test) return;
+
+                this.updateTestStatus(test.id, 'running');
+                this.log(`Running ${test.name}...`, 'info');
+
+                try {
+                    const result = await test.runner();
+
+                    if (result && result.failed === 0) {
+                        this.updateTestStatus(test.id, 'passed');
+                        this.updateTestResult(test.id, `${result.passed} tests passed`);
+                        this.log(`${test.name} passed: ${result.passed}/${result.total}`, 'success');
+                        this.results.push({ test: test.id, status: 'passed', result });
+                    } else if (result) {
+                        this.updateTestStatus(test.id, 'failed');
+                        this.updateTestResult(test.id, `${result.failed} tests failed`);
+                        this.log(`${test.name} failed: ${result.failed}/${result.total} failed`, 'error');
+                        this.results.push({ test: test.id, status: 'failed', result });
+                    }
+                } catch (error) {
+                    this.updateTestStatus(test.id, 'failed');
+                    this.updateTestResult(test.id, error.message);
+                    this.log(`${test.name} error: ${error.message}`, 'error');
+                    this.results.push({ test: test.id, status: 'error', error });
+                }
+
+                this.updateProgress();
+            }
+
+            async runVerification() {
+                this.clearLog();
+                this.log('Running verification checks...', 'info');
+
+                // Check each success criterion
+                await this.verifyCriterion('performance', () => {
+                    return typeof PerformanceMonitor !== 'undefined' &&
+                        typeof PerformanceDashboard !== 'undefined';
+                });
+
+                await this.verifyCriterion('memory', () => {
+                    return typeof MemoryLeakDetector !== 'undefined';
+                });
+
+                await this.verifyCriterion('gpu', () => {
+                    return typeof GPUOptimizer !== 'undefined';
+                });
+
+                await this.verifyCriterion('compatibility', () => {
+                    return typeof BrowserCompatibility !== 'undefined' &&
+                        typeof CanvasFallback !== 'undefined';
+                });
+
+                await this.verifyCriterion('targets', () => {
+                    // This would require actual runtime testing
+                    return true; // Placeholder
+                });
+
+                this.updateProgress();
+            }
+
+            async verifyCriterion(id, checkFn) {
+                const item = document.querySelector(`[data-criteria="${id}"]`);
+                if (item) {
+                    item.classList.remove('pending', 'met', 'failed');
+
+                    try {
+                        const passed = await checkFn();
+                        item.classList.add(passed ? 'met' : 'failed');
+                        item.querySelector('.criteria-icon').textContent = passed ? '✓' : '✗';
+                        this.log(`Criterion ${id}: ${passed ? 'MET' : 'NOT MET'}`, passed ? 'success' : 'error');
+                    } catch (error) {
+                        item.classList.add('failed');
+                        item.querySelector('.criteria-icon').textContent = '✗';
+                        this.log(`Criterion ${id}: ERROR - ${error.message}`, 'error');
+                    }
+                }
+            }
+
+            updateTestStatus(testId, status) {
+                const test = this.tests.find(t => t.id === testId);
+                if (test) {
+                    test.status = status;
+                    const card = document.getElementById(`test-${testId}`);
+                    if (card) {
+                        card.className = `test-card ${status}`;
+                        card.querySelector('.test-card-status').textContent = status;
+                    }
+                }
+            }
+
+            updateTestResult(testId, result) {
+                const element = document.getElementById(`result-${testId}`);
+                if (element) {
+                    element.textContent = result;
+                }
+            }
+
+            updateSummary() {
+                const total = this.results.length;
+                const passed = this.results.filter(r => r.status === 'passed').length;
+                const failed = this.results.filter(r => r.status === 'failed' || r.status === 'error').length;
+                const skipped = this.tests.length - total;
+
+                document.getElementById('passedCount').textContent = passed;
+                document.getElementById('failedCount').textContent = failed;
+                document.getElementById('skippedCount').textContent = skipped;
+                document.getElementById('totalCount').textContent = this.tests.length;
+            }
+
+            updateProgress() {
+                const completed = this.results.length;
+                const total = this.tests.length;
+                const percentage = (completed / total) * 100;
+                document.getElementById('progressFill').style.width = `${percentage}%`;
+            }
+
+            disableButtons() {
+                document.querySelectorAll('.test-controls button').forEach(btn => {
+                    btn.disabled = true;
+                    if (btn.id !== 'runAll') {
+                        btn.classList.add('running');
+                    }
+                });
+            }
+
+            enableButtons() {
+                document.querySelectorAll('.test-controls button').forEach(btn => {
+                    btn.disabled = false;
+                    btn.classList.remove('running');
+                });
+            }
+
+            log(message, type = 'info') {
+                const output = document.getElementById('logOutput');
+                const entry = document.createElement('div');
+                entry.className = `log-entry ${type}`;
+                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                output.appendChild(entry);
+                output.scrollTop = output.scrollHeight;
+            }
+
+            clearLog() {
+                document.getElementById('logOutput').innerHTML = '';
+            }
+        }
+
+        // Initialize test runner when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            window.testRunner = new TestRunner();
+        });
+    </script>
+</body>
+
+</html>

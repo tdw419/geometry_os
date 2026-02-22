@@ -1,0 +1,29 @@
+# Neural Heatmap Python API Requirements
+# Part of Neural Heatmap Phase 2.3 - Python API Expansion
+
+# Core dependencies
+aiohttp>=3.9.0          # Async HTTP client for REST API
+websockets>=12.0        # WebSocket client for real-time streaming
+
+# Data manipulation and analysis
+pandas>=2.0.0           # DataFrame operations and data export
+numpy>=1.24.0           # Numerical operations
+
+# Visualization (for Jupyter notebooks)
+matplotlib>=3.7.0       # Plotting and visualization
+seaborn>=0.12.0         # Statistical visualization
+
+# Optional dependencies for advanced analysis
+scipy>=1.11.0           # Scientific computing (hierarchical clustering)
+statsmodels>=0.14.0     # Statistical models (time series decomposition)
+networkx>=3.1           # Network analysis (correlation networks)
+
+# Jupyter support
+jupyter>=1.0.0          # Jupyter notebook support
+ipykernel>=6.25.0       # IPython kernel for Jupyter
+
+# Development dependencies (optional)
+pytest>=7.4.0           # Testing framework
+pytest-asyncio>=0.21.0  # Async support for pytest
+black>=23.0.0           # Code formatting
+mypy>=1.5.0            # Type checking

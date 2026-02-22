@@ -1,0 +1,53 @@
+{
+  "format": "PixelRTS-2.0",
+  "version": 2,
+  "grid_size": 8,
+  "encoding": {
+    "type": "RGBA-dense",
+    "bytes_per_pixel": 4,
+    "description": "4 consecutive raw bytes packed into RGBA channels",
+    "mapping": "Hilbert space-filling curve (precomputed LUT)"
+  },
+  "offsets": {
+    "main": {
+      "start": 0,
+      "end": 66,
+      "size": 66,
+      "sha256": "575986e580b5accc106f0f2507bcd5f90352836e0b3fcba79d4d0c2448180509"
+    }
+  },
+  "entropy": {
+    "block_size": 16384,
+    "mean_entropy": 39.0,
+    "max_entropy": 39,
+    "min_entropy": 39,
+    "entropy_histogram": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      256,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "hashes": {
+    "main": "575986e580b5accc106f0f2507bcd5f90352836e0b3fcba79d4d0c2448180509"
+  },
+  "original_rts": {
+    "version": null,
+    "arch": null,
+    "bootable": null,
+    "kernel_cmdline": null,
+    "boot_method": null
+  }
+}

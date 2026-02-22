@@ -1,0 +1,10 @@
+{
+  "task_id": "task-4",
+  "type": "implement",
+  "source": "",
+  "intent": "Documentation covers 100% of CLI features",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}

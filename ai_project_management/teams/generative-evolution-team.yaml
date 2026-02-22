@@ -1,0 +1,237 @@
+# Generative Evolution Team Configuration
+#
+# Phase 20-25: Enables Area Agents to analyze terminal textures as live
+# cognitive artifacts and perform generative evolution on the geometric substrate.
+
+name: generative-evolution
+description: |
+  Agent team for Phase 20-25: Generative Evolution implementation.
+
+  Goal: Enable Area Agents to analyze terminal textures as live cognitive
+  artifacts and perform generative evolution on the geometric substrate.
+
+  Architecture:
+  - Terminal textures (PixelRTS v3) fed to Area Agents for pattern recognition
+  - Agents apply morphological operations (erosion, dilation, convolution)
+  - Evolution daemon uses insights for autonomous improvement
+
+  Components:
+  - TerminalTextureAnalyzer: Statistical analysis of terminal textures
+  - MorphologicalOps: CV operations on geometric code
+  - PatternRecognizer: Semantic pattern detection
+  - GenerativePainter: AI code painting to substrate
+  - TerminalAreaAgent: Area agent for terminal evolution
+
+# Selection: Choose agent with best capability match
+selection_policy: best_fit
+
+# Fixed team size
+scaling_policy: fixed
+
+# Failover to another agent on failure
+failure_policy: failover
+
+# Retry configuration
+max_retries: 3
+retry_delay: 5.0
+
+# Team communication
+enable_event_bus: true
+enable_health_monitoring: true
+
+# Health monitoring
+health_check_interval: 30.0
+heartbeat_timeout: 120.0
+health_history_limit: 100
+
+# Team constraints
+max_concurrent_tasks: 4
+max_queue_size: 20
+task_timeout: 300.0
+
+# Team metadata
+metadata:
+  project: geometry-os
+  component: generative-evolution
+  implementation_plan: docs/plans/2026-02-20-phase-20-25-generative-evolution.md
+  prerequisites:
+    - Terminal Clone PixelRTS v3 integrated
+    - GeometricTerminalBuffer encoding/decoding
+    - Hilbert spatial mapping verified
+    - Swarm Recursive Evolution (v2.1-EVO) active
+
+# Agent definitions
+agents:
+  # ============================================
+  # TEXTURE ANALYZER SPECIALIST
+  # ============================================
+  - agent_id: texture-analyzer
+    name: Texture Analyzer Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - numpy
+      - image_processing
+      - testing
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 95
+    metadata:
+      role: TerminalTextureAnalyzer implementation
+      focuses:
+        - Cell distribution analysis
+        - Entropy calculation
+        - Density metrics
+        - RGBA texture processing
+      key_files:
+        - systems/evolution_daemon/terminal_texture_analyzer.py
+        - systems/evolution_daemon/tests/test_terminal_texture_analyzer.py
+
+  # ============================================
+  # MORPHOLOGICAL OPS SPECIALIST
+  # ============================================
+  - agent_id: morphological-ops
+    name: Morphological Operations Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - numpy
+      - scipy
+      - image_processing
+      - testing
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 90
+    metadata:
+      role: MorphologicalOps implementation
+      focuses:
+        - Erosion (dead code elimination)
+        - Dilation (redundancy)
+        - Blur (probabilistic execution)
+        - Sharpen (determinism)
+      key_files:
+        - systems/evolution_daemon/morphological_ops.py
+        - systems/evolution_daemon/tests/test_morphological_ops.py
+
+  # ============================================
+  # PATTERN RECOGNIZER SPECIALIST
+  # ============================================
+  - agent_id: pattern-recognizer
+    name: Pattern Recognizer Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - numpy
+      - pattern_matching
+      - testing
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 85
+    metadata:
+      role: PatternRecognizer implementation
+      focuses:
+        - Shell prompt detection
+        - Code block detection
+        - Empty region detection
+        - Error message detection
+      key_files:
+        - systems/evolution_daemon/pattern_recognizer.py
+        - systems/evolution_daemon/tests/test_pattern_recognizer.py
+
+  # ============================================
+  # GENERATIVE PAINTER SPECIALIST
+  # ============================================
+  - agent_id: generative-painter
+    name: Generative Painter Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - numpy
+      - image_processing
+      - testing
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 80
+    metadata:
+      role: GenerativePainter implementation
+      focuses:
+        - Opcode painting
+        - Sequence painting
+        - Texture export
+        - Morphology integration
+      key_files:
+        - systems/pixel_compiler/pixelrts_v3/generative_painter.py
+        - systems/pixel_compiler/pixelrts_v3/tests/test_generative_painter.py
+
+  # ============================================
+  # AREA AGENT SPECIALIST
+  # ============================================
+  - agent_id: area-agent
+    name: Terminal Area Agent Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - numpy
+      - integration
+      - testing
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 75
+    metadata:
+      role: TerminalAreaAgent implementation
+      focuses:
+        - Region analysis
+        - Evolution proposals
+        - Morphology application
+        - Integration with analyzers
+      key_files:
+        - systems/evolution_daemon/area_agents/terminal_agent.py
+        - systems/evolution_daemon/tests/test_terminal_agent.py
+
+  # ============================================
+  # TEST ENGINEER - Integration tests
+  # ============================================
+  - agent_id: test-engineer
+    name: Integration Test Engineer
+    agent_type: specialist
+    capabilities:
+      - testing
+      - integration_testing
+      - python
+      - numpy
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 70
+    metadata:
+      role: Pipeline integration testing
+      focuses:
+        - Full pipeline verification
+        - Morphological roundtrip
+        - Pattern recognition accuracy
+      key_files:
+        - systems/evolution_daemon/tests/test_generative_evolution_pipeline.py
+
+# Task routing rules
+task_routing:
+  - pattern: "texture.*analyz|cell.*distribution|entropy|density.*metric"
+    assign_to: texture-analyzer
+  - pattern: "morpholog|erode|dilate|blur|sharpen|convolve"
+    assign_to: morphological-ops
+  - pattern: "pattern.*recogni|shell.*prompt|code.*block|empty.*region"
+    assign_to: pattern-recognizer
+  - pattern: "generative.*paint|paint.*opcode|hilbert.*paint|texture.*export"
+    assign_to: generative-painter
+  - pattern: "area.*agent|terminal.*agent|evolution.*propose|region.*analyz"
+    assign_to: area-agent
+  - pattern: "integration.*test|pipeline.*test|roundtrip|accuracy"
+    assign_to: test-engineer

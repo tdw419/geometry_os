@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase L: Autonomous Operator Tools Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        h1 { color: #4ecca3; }
+        h2 { color: #7b68ee; margin-top: 30px; }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .pass { background: #1e4d2b; border-left: 4px solid #4ecca3; }
+        .fail { background: #4d1e1e; border-left: 4px solid #ff6b6b; }
+        .info { background: #1e3a4d; border-left: 4px solid #4ecdc4; }
+        pre {
+            background: #16213e;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            background: #4ecca3;
+            color: #1a1a2e;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px 10px 0;
+        }
+        button:hover { background: #3db892; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        #output { margin-top: 20px; }
+        .progress-bar {
+            height: 20px;
+            background: #16213e;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ecca3, #7b68ee);
+            transition: width 0.3s ease;
+        }
+        .summary {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Phase L: Autonomous Operator Tools Test</h1>
+    <p>Testing WebMCP integration for autonomous kernel management.</p>
+
+    <button onclick="runAllTests()">Run All Tests</button>
+    <button onclick="testOperatorLifecycle()">Test Lifecycle</button>
+    <button onclick="clearOutput()">Clear Output</button>
+
+    <div class="progress-bar">
+        <div class="progress-fill" id="progress" style="width: 0%"></div>
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+        const output = document.getElementById('output');
+        const progress = document.getElementById('progress');
+
+        // Mock KernelOperator for browser testing
+        class MockKernelOperator {
+            constructor() {
+                this.state = 'IDLE';
+                this.mode = 'monitor';
+                this.config = {
+                    checkInterval: 1000,
+                    swapThreshold: 0.8,
+                    recoveryThreshold: 0.5
+                };
+                this.metrics = {
+                    totalSyscalls: 0,
+                    avgLatencyNs: 0,
+                    successRate: 1.0
+                };
+                this.recommendations = [];
+                this.startTime = null;
+            }
+
+            getStatus() {
+                return {
+                    state: this.state,
+                    mode: this.mode,
+                    config: this.config,
+                    metrics: this.metrics,
+                    activeKernel: 'hybrid',
+                    uptime: this.startTime ? (Date.now() - this.startTime) / 1000 : 0,
+                    recommendationsPending: this.recommendations.length
+                };
+            }
+
+            start(options = {}) {
+                if (this.state !== 'IDLE' && this.state !== 'STOPPED') {
+                    throw new Error('Operator already running');
+                }
+                this.state = 'MONITORING';
+                this.mode = options.mode || 'monitor';
+                this.config = { ...this.config, ...options.config };
+                this.startTime = Date.now();
+                return {
+                    success: true,
+                    state: this.state,
+                    mode: this.mode,
+                    message: 'Operator started successfully'
+                };
+            }
+
+            stop(options = {}) {
+                this.state = 'STOPPED';
+                const status = this.getStatus();
+                return {
+                    success: true,
+                    state: this.state,
+                    finalStatus: status,
+                    message: 'Operator stopped'
+                };
+            }
+
+            getRecommendations(options = {}) {
+                const recs = [
+                    {
+                        id: 'rec-1',
+                        type: 'kernel_swap',
+                        target: 'gpu_resident',
+                        confidence: 0.85,
+                        reason: 'Sequential access pattern detected',
+                        expectedImpact: '+15% throughput'
+                    },
+                    {
+                        id: 'rec-2',
+                        type: 'parameter_tune',
+                        parameter: 'learning_rate',
+                        value: 0.02,
+                        confidence: 0.72,
+                        reason: 'High latency variance observed',
+                        expectedImpact: '-10% latency variance'
+                    }
+                ];
+
+                // Store recommendations so apply() can find them
+                this.recommendations = recs;
+
+                if (options.min_confidence) {
+                    return recs.filter(r => r.confidence >= options.min_confidence);
+                }
+                return recs;
+            }
+
+            apply(options) {
+                const rec = this.recommendations.find(r => r.id === options.recommendation_id);
+                if (!rec && options.recommendation_id) {
+                    throw new Error('Recommendation not found');
+                }
+
+                if (options.dry_run) {
+                    return {
+                        success: true,
+                        dryRun: true,
+                        message: 'Would apply: ' + (rec ? rec.type : 'config')
+                    };
+                }
+
+                return {
+                    success: true,
+                    applied: rec ? rec.type : 'manual_config',
+                    message: 'Change applied successfully'
+                };
+            }
+
+            // Simulate syscall recording
+            recordSyscall(syscall, latency, success) {
+                this.metrics.totalSyscalls++;
+                this.metrics.avgLatencyNs =
+                    (this.metrics.avgLatencyNs * (this.metrics.totalSyscalls - 1) + latency) /
+                    this.metrics.totalSyscalls;
+            }
+        }
+
+        // Initialize mock operator
+        window.kernelOperator = new MockKernelOperator();
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            output.appendChild(div);
+        }
+
+        function clearOutput() {
+            output.innerHTML = '';
+            progress.style.width = '0%';
+        }
+
+        function updateProgress(current, total) {
+            const percent = (current / total) * 100;
+            progress.style.width = `${percent}%`;
+        }
+
+        async function test(name, fn) {
+            try {
+                const result = await fn();
+                const pass = result.success !== false;
+                log(`${pass ? '✓' : '✗'} ${name}`, pass ? 'pass' : 'fail');
+                if (!pass && result.error) {
+                    log(`  Error: ${result.error}`, 'fail');
+                }
+                return pass;
+            } catch (e) {
+                log(`✗ ${name}`, 'fail');
+                log(`  Exception: ${e.message}`, 'fail');
+                return false;
+            }
+        }
+
+        async function runAllTests() {
+            clearOutput();
+            log('Starting Phase L Autonomous Operator Tests...\n');
+
+            let passed = 0;
+            let total = 0;
+
+            // Reset operator
+            window.kernelOperator = new MockKernelOperator();
+
+            // Test 1: operator_status
+            total++;
+            if (await test('operator_status returns initial state', async () => {
+                const status = window.kernelOperator.getStatus();
+                return {
+                    success: status.state === 'IDLE',
+                    state: status.state
+                };
+            })) passed++;
+            updateProgress(1, 12);
+
+            // Test 2: operator_start
+            total++;
+            if (await test('operator_start begins monitoring', async () => {
+                const result = window.kernelOperator.start({ mode: 'monitor' });
+                return {
+                    success: result.success && result.state === 'MONITORING',
+                    ...result
+                };
+            })) passed++;
+            updateProgress(2, 12);
+
+            // Test 3: operator_status after start
+            total++;
+            if (await test('operator_status shows MONITORING state', async () => {
+                const status = window.kernelOperator.getStatus();
+                return {
+                    success: status.state === 'MONITORING',
+                    state: status.state
+                };
+            })) passed++;
+            updateProgress(3, 12);
+
+            // Test 4: operator_recommendations
+            total++;
+            if (await test('operator_recommendations returns suggestions', async () => {
+                const recs = window.kernelOperator.getRecommendations();
+                return {
+                    success: recs.length > 0,
+                    count: recs.length
+                };
+            })) passed++;
+            updateProgress(4, 12);
+
+            // Test 5: Recommendations have required fields
+            total++;
+            if (await test('Recommendations have all required fields', async () => {
+                const recs = window.kernelOperator.getRecommendations();
+                const rec = recs[0];
+                const hasFields = rec.id && rec.type && rec.confidence && rec.reason;
+                return { success: hasFields };
+            })) passed++;
+            updateProgress(5, 12);
+
+            // Test 6: Recommendations confidence filter
+            total++;
+            if (await test('Recommendations respect min_confidence filter', async () => {
+                const all = window.kernelOperator.getRecommendations();
+                const filtered = window.kernelOperator.getRecommendations({ min_confidence: 0.8 });
+                return {
+                    success: filtered.length <= all.length,
+                    all: all.length,
+                    filtered: filtered.length
+                };
+            })) passed++;
+            updateProgress(6, 12);
+
+            // Test 7: operator_apply dry run
+            total++;
+            if (await test('operator_apply dry_run works', async () => {
+                const result = window.kernelOperator.apply({
+                    recommendation_id: 'rec-1',
+                    dry_run: true
+                });
+                return {
+                    success: result.success && result.dryRun,
+                    ...result
+                };
+            })) passed++;
+            updateProgress(7, 12);
+
+            // Test 8: operator_apply for real
+            total++;
+            if (await test('operator_apply applies changes', async () => {
+                const result = window.kernelOperator.apply({
+                    recommendation_id: 'rec-1',
+                    dry_run: false
+                });
+                return {
+                    success: result.success && result.applied,
+                    ...result
+                };
+            })) passed++;
+            updateProgress(8, 12);
+
+            // Test 9: operator_stop
+            total++;
+            if (await test('operator_stop halts monitoring', async () => {
+                const result = window.kernelOperator.stop();
+                return {
+                    success: result.success && result.state === 'STOPPED',
+                    ...result
+                };
+            })) passed++;
+            updateProgress(9, 12);
+
+            // Test 10: Status after stop
+            total++;
+            if (await test('Status shows STOPPED after stop', async () => {
+                const status = window.kernelOperator.getStatus();
+                return {
+                    success: status.state === 'STOPPED',
+                    state: status.state
+                };
+            })) passed++;
+            updateProgress(10, 12);
+
+            // Test 11: Cannot start twice
+            total++;
+            window.kernelOperator = new MockKernelOperator();
+            window.kernelOperator.start();
+            if (await test('Cannot start already-running operator', async () => {
+                try {
+                    window.kernelOperator.start();
+                    return { success: false, error: 'Should have thrown' };
+                } catch (e) {
+                    return { success: true, message: e.message };
+                }
+            })) passed++;
+            updateProgress(11, 12);
+
+            // Test 12: Full lifecycle
+            total++;
+            if (await test('Full lifecycle: start → status → recommendations → apply → stop', async () => {
+                const op = new MockKernelOperator();
+
+                // Start
+                const start = op.start({ mode: 'auto_swap' });
+                if (!start.success) return { success: false, stage: 'start' };
+
+                // Status
+                const status = op.getStatus();
+                if (status.state !== 'MONITORING') return { success: false, stage: 'status' };
+
+                // Simulate syscalls
+                for (let i = 0; i < 10; i++) {
+                    op.recordSyscall('READ', 1000 + Math.random() * 500, true);
+                }
+
+                // Get recommendations
+                const recs = op.getRecommendations();
+                if (recs.length === 0) return { success: false, stage: 'recommendations' };
+
+                // Apply (dry run)
+                const apply = op.apply({ recommendation_id: recs[0].id, dry_run: true });
+                if (!apply.success) return { success: false, stage: 'apply' };
+
+                // Stop
+                const stop = op.stop();
+                if (!stop.success) return { success: false, stage: 'stop' };
+
+                return { success: true, stages: ['start', 'status', 'syscalls', 'recommendations', 'apply', 'stop'] };
+            })) passed++;
+            updateProgress(12, 12);
+
+            // Summary
+            log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+            log(`Tests: ${passed}/${total} passed (${Math.round(passed/total*100)}%)`);
+            log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+
+            if (passed === total) {
+                log('\n✓ All Phase L Autonomous Operator tests passed!');
+            } else {
+                log(`\n✗ ${total - passed} test(s) failed`);
+            }
+
+            // Final summary box
+            const summary = document.createElement('div');
+            summary.className = 'summary';
+            summary.innerHTML = `
+                <h3>Test Summary</h3>
+                <p><strong>Passed:</strong> ${passed}/${total}</p>
+                <p><strong>Success Rate:</strong> ${Math.round(passed/total*100)}%</p>
+                <p><strong>Operator Tools:</strong> 5 tools tested</p>
+                <ul>
+                    <li>operator_status - Get operator state</li>
+                    <li>operator_start - Start monitoring</li>
+                    <li>operator_stop - Stop operator</li>
+                    <li>operator_recommendations - Get suggestions</li>
+                    <li>operator_apply - Apply changes</li>
+                </ul>
+            `;
+            output.appendChild(summary);
+        }
+
+        async function testOperatorLifecycle() {
+            clearOutput();
+            log('Testing Operator Lifecycle...\n');
+
+            const op = new MockKernelOperator();
+
+            log('1. Initial state: ' + op.getStatus().state, 'info');
+            log('2. Starting operator...', 'info');
+            const start = op.start({ mode: 'full_autonomous' });
+            log(`   Result: ${start.state} - ${start.message}`, start.success ? 'pass' : 'fail');
+
+            log('3. Simulating syscalls...', 'info');
+            for (let i = 0; i < 20; i++) {
+                op.recordSyscall('READ', 1000 + Math.random() * 500, i < 18);
+            }
+            const status = op.getStatus();
+            log(`   Total syscalls: ${status.metrics.totalSyscalls}`, 'info');
+            log(`   Avg latency: ${status.metrics.avgLatencyNs.toFixed(0)}ns`, 'info');
+
+            log('4. Getting recommendations...', 'info');
+            const recs = op.getRecommendations();
+            recs.forEach(r => {
+                log(`   - [${r.confidence.toFixed(2)}] ${r.type}: ${r.reason}`, 'info');
+            });
+
+            log('5. Stopping operator...', 'info');
+            const stop = op.stop();
+            log(`   Final state: ${stop.state}`, 'info');
+            log(`   Uptime: ${stop.finalStatus.uptime.toFixed(2)}s`, 'info');
+
+            log('\n✓ Lifecycle test complete!', 'pass');
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            log('Mock KernelOperator initialized.');
+            log('Click "Run All Tests" to begin automated testing.');
+            log('Click "Test Lifecycle" for interactive demo.');
+        });
+    </script>
+</body>
+</html>

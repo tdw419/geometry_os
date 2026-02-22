@@ -1,0 +1,72 @@
+name: OpenSpec Validation
+
+on:
+  push:
+    paths:
+      - 'openspec/**'
+  pull_request:
+    paths:
+      - 'openspec/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install OpenSpec CLI
+        run: npm install -g @fission-ai/openspec@latest
+
+      - name: List active changes
+        run: openspec list
+
+      - name: Validate all specs
+        run: |
+          for spec in openspec/specs/*/spec.md; do
+            spec_name=$(dirname "$spec" | xargs basename)
+            echo "Validating $spec_name..."
+            openspec validate "$spec_name" || true
+          done
+
+      - name: Validate all changes
+        run: |
+          for change in openspec/changes/*/; do
+            if [ -d "$change" ] && [[ ! "$change" =~ archive ]]; then
+              change_name=$(basename "$change")
+              echo "Validating change: $change_name..."
+              openspec validate "$change_name" || true
+            fi
+          done
+
+      - name: Check spec format
+        run: |
+          python3 << 'PYEOF'
+          import re
+          from pathlib import Path
+
+          errors = []
+
+          for spec_file in Path("openspec").glob("**/spec.md"):
+              content = spec_file.read_text()
+
+              # Check for SHALL/MUST in requirements
+              if "### Requirement:" in content:
+                  if "SHALL" not in content and "MUST" not in content:
+                      errors.append(f"{spec_file}: Requirements should use SHALL or MUST")
+
+              # Check for Scenario blocks
+              if "### Requirement:" in content:
+                  if "#### Scenario:" not in content:
+                      errors.append(f"{spec_file}: Requirements need Scenario blocks")
+
+          if errors:
+              for err in errors:
+                  print(f"WARNING: {err}")
+
+          print(f"\nValidation complete: {len(errors)} warnings")
+          PYEOF

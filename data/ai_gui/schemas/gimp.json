@@ -1,0 +1,79 @@
+{
+  "app": "gimp",
+  "version": "2.10",
+  "toolkit": "gtk",
+  "shortcuts": [
+    {"keys": "Ctrl+N", "action": "New", "category": "file", "description": "Create new image"},
+    {"keys": "Ctrl+O", "action": "Open", "category": "file", "description": "Open image"},
+    {"keys": "Ctrl+S", "action": "Save", "category": "file", "description": "Save image"},
+    {"keys": "Ctrl+Shift+S", "action": "Save As", "category": "file", "description": "Save image as"},
+    {"keys": "Ctrl+Q", "action": "Quit", "category": "file", "description": "Quit GIMP"},
+    {"keys": "Ctrl+Z", "action": "Undo", "category": "edit", "description": "Undo last action"},
+    {"keys": "Ctrl+Y", "action": "Redo", "category": "edit", "description": "Redo last action"},
+    {"keys": "Ctrl+C", "action": "Copy", "category": "edit", "description": "Copy selection"},
+    {"keys": "Ctrl+X", "action": "Cut", "category": "edit", "description": "Cut selection"},
+    {"keys": "Ctrl+V", "action": "Paste", "category": "edit", "description": "Paste clipboard"},
+    {"keys": "Ctrl+Shift+V", "action": "Paste As New Layer", "category": "edit", "description": "Paste as new layer"},
+    {"keys": "Ctrl+D", "action": "Duplicate Layer", "category": "layer", "description": "Duplicate current layer"},
+    {"keys": "Ctrl+Shift+D", "action": "Duplicate Image", "category": "image", "description": "Duplicate entire image"},
+    {"keys": "B", "action": "Brush Tool", "category": "tools", "description": "Select brush tool"},
+    {"keys": "E", "action": "Eraser Tool", "category": "tools", "description": "Select eraser tool"},
+    {"keys": "F", "action": "Fill Tool", "category": "tools", "description": "Select fill/bucket tool"},
+    {"keys": "T", "action": "Text Tool", "category": "tools", "description": "Select text tool"},
+    {"keys": "M", "action": "Move Tool", "category": "tools", "description": "Select move tool"},
+    {"keys": "R", "action": "Rectangle Select", "category": "tools", "description": "Rectangle selection tool"},
+    {"keys": "L", "action": "Lasso Select", "category": "tools", "description": "Freehand selection tool"},
+    {"keys": "Ctrl+Shift+A", "action": "Select None", "category": "select", "description": "Deselect all"},
+    {"keys": "Ctrl+A", "action": "Select All", "category": "select", "description": "Select entire image"},
+    {"keys": "Ctrl+I", "action": "Invert Selection", "category": "select", "description": "Invert current selection"},
+    {"keys": "Ctrl+M", "action": "Merge Visible Layers", "category": "layer", "description": "Merge all visible layers"},
+    {"keys": "Ctrl+Shift+E", "action": "Export", "category": "file", "description": "Export image"},
+    {"keys": "[", "action": "Decrease Brush Size", "category": "tools", "description": "Make brush smaller"},
+    {"keys": "]", "action": "Increase Brush Size", "category": "tools", "description": "Make brush larger"}
+  ],
+  "widgets": {
+    "toolbox": {
+      "type": "panel",
+      "label": "Toolbox",
+      "description": "Main tool selection panel",
+      "items": ["brush", "eraser", "fill", "text", "move", "select", "crop", "transform"]
+    },
+    "layers_dialog": {
+      "type": "panel",
+      "label": "Layers",
+      "description": "Layer management panel"
+    },
+    "canvas": {
+      "type": "drawing_area",
+      "label": "Canvas",
+      "description": "Main image editing area"
+    },
+    "tool_options": {
+      "type": "panel",
+      "label": "Tool Options",
+      "description": "Options for current tool"
+    },
+    "brushes_dialog": {
+      "type": "panel",
+      "label": "Brushes",
+      "description": "Brush selection panel"
+    }
+  },
+  "custom_actions": [
+    "filter_blur",
+    "filter_sharpen",
+    "filter_noise",
+    "layer_new",
+    "layer_delete",
+    "layer_opacity",
+    "image_resize",
+    "image_crop",
+    "color_brightness_contrast",
+    "color_hue_saturation"
+  ],
+  "metadata": {
+    "description": "GNU Image Manipulation Program",
+    "category": "graphics",
+    "url": "https://www.gimp.org"
+  }
+}

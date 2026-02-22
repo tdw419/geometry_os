@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BottleneckDetector Test Suite (Task 2.2)</title>
+    <style>
+        body {
+            font-family: 'Monaco', 'Consolas', monospace;
+            background-color: #0a0a0a;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: #00AAFF;
+            border-bottom: 2px solid #00AAFF;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #FFAA00;
+            margin-top: 30px;
+        }
+
+        .test-section {
+            background-color: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .test-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .test-title {
+            font-weight: bold;
+            color: #e0e0e0;
+        }
+
+        .test-status {
+            font-weight: bold;
+            padding: 4px 12px;
+            border-radius: 4px;
+        }
+
+        .status-pass {
+            background-color: #004400;
+            color: #00FF00;
+        }
+
+        .status-fail {
+            background-color: #440000;
+            color: #FF4444;
+        }
+
+        .status-pending {
+            background-color: #333;
+            color: #888;
+        }
+
+        .test-output {
+            background-color: #080808;
+            border-left: 3px solid #444;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 12px;
+            white-space: pre-wrap;
+            color: #aaa;
+        }
+
+        button {
+            background-color: #00AAFF;
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #00CCFF;
+        }
+
+        button:disabled {
+            background-color: #444;
+            color: #888;
+            cursor: not-allowed;
+        }
+
+        .summary {
+            background-color: #1a1a1a;
+            border: 2px solid #FFAA00;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .summary-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #FFAA00;
+            margin-bottom: 15px;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-box {
+            background-color: #222;
+            padding: 15px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #00AAFF;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #00AAFF;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        #output {
+            background-color: #080808;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+            max-height: 500px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 2px solid #444;
+        }
+
+        .log-info {
+            border-left-color: #00AAFF;
+        }
+
+        .log-success {
+            border-left-color: #00FF00;
+            color: #00FF00;
+        }
+
+        .log-warning {
+            border-left-color: #FFAA00;
+            color: #FFAA00;
+        }
+
+        .log-error {
+            border-left-color: #FF4444;
+            color: #FF4444;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🚧 BottleneckDetector Test Suite (Task 2.2)</h1>
+
+    <div class="controls">
+        <button id="runAllTests">Run All Tests</button>
+        <button id="clearOutput">Clear Output</button>
+    </div>
+
+    <div class="summary" id="summary" style="display: none;">
+        <div class="summary-title">Test Results Summary</div>
+        <div class="summary-stats">
+            <div class="stat-box">
+                <div class="stat-value" id="totalTests">0</div>
+                <div class="stat-label">Total Tests</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="passedTests" style="color: #00FF00;">0</div>
+                <div class="stat-label">Passed</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="failedTests" style="color: #FF4444;">0</div>
+                <div class="stat-label">Failed</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="avgAnalysisTime">0</div>
+                <div class="stat-label">Avg Analysis Time (ms)</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="output">
+        <div class="log-entry log-info">Ready to run tests. Click "Run All Tests" to begin.</div>
+    </div>
+
+    <div id="testResults"></div>
+
+    <!-- Load BottleneckDetector -->
+    <script src="BottleneckDetector.js"></script>
+
+    <!-- Load test suite -->
+    <script src="test_bottleneck_detector.js"></script>
+
+    <script>
+        // Test runner UI
+        const output = document.getElementById('output');
+        const testResults = document.getElementById('testResults');
+        const summary = document.getElementById('summary');
+
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = message;
+            output.appendChild(entry);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function createTestSection(name) {
+            const section = document.createElement('div');
+            section.className = 'test-section';
+            section.id = `test-${name.replace(/\s+/g, '-')}`;
+
+            const header = document.createElement('div');
+            header.className = 'test-header';
+
+            const title = document.createElement('div');
+            title.className = 'test-title';
+            title.textContent = name;
+
+            const status = document.createElement('div');
+            status.className = 'test-status status-pending';
+            status.textContent = 'PENDING';
+
+            header.appendChild(title);
+            header.appendChild(status);
+
+            const outputDiv = document.createElement('div');
+            outputDiv.className = 'test-output';
+            outputDiv.textContent = 'Waiting to run...';
+
+            section.appendChild(header);
+            section.appendChild(outputDiv);
+            testResults.appendChild(section);
+
+            return { section, outputDiv, status };
+        }
+
+        function updateTestStatus(sectionId, status, output) {
+            const section = document.getElementById(sectionId);
+            if (!section) return;
+
+            const statusEl = section.querySelector('.test-status');
+            const outputEl = section.querySelector('.test-output');
+
+            statusEl.className = `test-status status-${status}`;
+            statusEl.textContent = status.toUpperCase();
+            outputEl.textContent = output;
+        }
+
+        async function runTest(testName, testFn) {
+            log(`Running test: ${testName}`, 'info');
+
+            const { outputDiv, status } = createTestSection(testName);
+            const sectionId = `test-${testName.replace(/\s+/g, '-')}`;
+
+            // Capture console.log output
+            const originalLog = console.log;
+            const logs = [];
+            console.log = (...args) => {
+                logs.push(args.join(' '));
+                originalLog.apply(console, args);
+            };
+
+            try {
+                const startTime = performance.now();
+                const passed = await testFn();
+                const endTime = performance.now();
+                const duration = endTime - startTime;
+
+                console.log = originalLog;
+
+                const output = logs.join('\n');
+                updateTestStatus(sectionId, passed ? 'pass' : 'fail', output);
+
+                if (passed) {
+                    log(`✓ ${testName} passed (${duration.toFixed(2)}ms)`, 'success');
+                } else {
+                    log(`✗ ${testName} failed`, 'error');
+                }
+
+                return { passed, duration, output };
+            } catch (error) {
+                console.log = originalLog;
+                const output = logs.join('\n') + `\nError: ${error.message}\nStack: ${error.stack}`;
+                updateTestStatus(sectionId, 'fail', output);
+                log(`✗ ${testName} error: ${error.message}`, 'error');
+                return { passed: false, error: error.message, output };
+            }
+        }
+
+        async function runAllTests() {
+            // Clear previous results
+            testResults.innerHTML = '';
+            output.innerHTML = '';
+            summary.style.display = 'none';
+
+            document.getElementById('runAllTests').disabled = true;
+
+            log('========================================', 'info');
+            log('BottleneckDetector Test Suite (Task 2.2)', 'info');
+            log('========================================', 'info');
+
+            const tests = [
+                { name: 'Slow Instruction Detection', fn: window.BottleneckDetectorTests.testSlowInstructionDetection },
+                { name: 'Memory Operation Detection', fn: window.BottleneckDetectorTests.testMemoryOperationDetection },
+                { name: 'Excessive Jump Detection', fn: window.BottleneckDetectorTests.testExcessiveJumpDetection },
+                { name: 'Console I/O Detection', fn: window.BottleneckDetectorTests.testConsoleIODetection },
+                { name: 'Framebuffer I/O Detection', fn: window.BottleneckDetectorTests.testFramebufferIODetection },
+                { name: 'PerformanceMonitor Integration', fn: window.BottleneckDetectorTests.testPerformanceMonitorIntegration },
+                { name: 'Analysis Time Performance', fn: window.BottleneckDetectorTests.testAnalysisTimePerformance },
+                { name: 'Bottleneck Statistics and History', fn: window.BottleneckDetectorTests.testBottleneckStatistics },
+                { name: 'Export Report', fn: window.BottleneckDetectorTests.testExportReport },
+                { name: 'Clear Functionality', fn: window.BottleneckDetectorTests.testClearFunctionality }
+            ];
+
+            const results = [];
+            let totalAnalysisTime = 0;
+
+            for (const test of tests) {
+                const result = await runTest(test.name, test.fn);
+                results.push({ name: test.name, ...result });
+                if (result.duration) {
+                    totalAnalysisTime += result.duration;
+                }
+            }
+
+            // Update summary
+            const passed = results.filter(r => r.passed).length;
+            const total = results.length;
+            const avgAnalysisTime = totalAnalysisTime / total;
+
+            document.getElementById('totalTests').textContent = total;
+            document.getElementById('passedTests').textContent = passed;
+            document.getElementById('failedTests').textContent = total - passed;
+            document.getElementById('avgAnalysisTime').textContent = avgAnalysisTime.toFixed(2);
+            summary.style.display = 'block';
+
+            log('========================================', 'info');
+            log('Test Results Summary', 'info');
+            log('========================================', 'info');
+
+            for (const result of results) {
+                const status = result.passed ? '✓ PASS' : '✗ FAIL';
+                log(`${status}: ${result.name}`, result.passed ? 'success' : 'error');
+            }
+
+            log(`\nTotal: ${passed}/${total} tests passed`, passed === total ? 'success' : 'warning');
+
+            if (passed === total) {
+                log('✓ All tests passed!', 'success');
+            } else {
+                log('✗ Some tests failed', 'error');
+            }
+
+            document.getElementById('runAllTests').disabled = false;
+        }
+
+        function clearOutput() {
+            output.innerHTML = '<div class="log-entry log-info">Output cleared.</div>';
+        }
+
+        // Event listeners
+        document.getElementById('runAllTests').addEventListener('click', runAllTests);
+        document.getElementById('clearOutput').addEventListener('click', clearOutput);
+    </script>
+</body>
+
+</html>

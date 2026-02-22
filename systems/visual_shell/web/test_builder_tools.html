@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebMCP Phase F: AI Builder Tools Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0f;
+            color: #00ff88;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 { color: #00ffff; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        h2 { color: #ff00ff; margin-top: 30px; }
+        .test-section {
+            background: #111;
+            border: 1px solid #333;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .pass { background: #001a00; border-left: 3px solid #00ff00; }
+        .fail { background: #1a0000; border-left: 3px solid #ff0000; }
+        .pending { background: #1a1a00; border-left: 3px solid #ffff00; }
+        button {
+            background: #222;
+            color: #00ff88;
+            border: 1px solid #00ff88;
+            padding: 8px 16px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: inherit;
+        }
+        button:hover { background: #00ff88; color: #000; }
+        pre {
+            background: #000;
+            padding: 10px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        #summary { font-size: 18px; padding: 20px; background: #111; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>WebMCP Phase F: AI Builder Tools Test</h1>
+
+    <div class="test-section">
+        <h2>Prerequisites Check</h2>
+        <div id="prereq-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Builder Tool Registration</h2>
+        <div id="tool-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>BuilderPanel UI Tests</h2>
+        <div id="panel-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Interactive Builder Test</h2>
+        <button onclick="testPlaceTile()">Place System Tile</button>
+        <button onclick="testLoadShader()">Load Test Shader</button>
+        <button onclick="testGetState()">Get Builder State</button>
+        <button onclick="testPreview()">Preview</button>
+        <button onclick="testUndo()">Undo</button>
+        <div id="interactive-results"></div>
+    </div>
+
+    <div id="summary">
+        <strong>Test Summary:</strong> <span id="summary-text">Run tests to see results</span>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="location.reload()">Reload Page</button>
+    </div>
+
+    <script>
+        const results = { passed: 0, failed: 0, pending: 0 };
+
+        function updateSummary() {
+            document.getElementById('summary-text').innerHTML =
+                `<span style="color:#00ff00">${results.passed} passed</span> ` +
+                `<span style="color:#ff0000">${results.failed} failed</span> ` +
+                `<span style="color:#ffff00">${results.pending} pending</span>`;
+        }
+
+        function addResult(containerId, test, status, message = '') {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `test-result ${status}`;
+            div.innerHTML = `<strong>${test}</strong>: ${status.toUpperCase()}${message ? `<br><pre>${message}</pre>` : ''}`;
+            container.appendChild(div);
+            results[status === 'pass' ? 'passed' : status === 'fail' ? 'failed' : 'pending']++;
+            updateSummary();
+        }
+
+        async function testPrerequisites() {
+            const container = 'prereq-results';
+
+            const webmcpAvailable = typeof navigator !== 'undefined' && 'modelContext' in navigator;
+            addResult(container, 'WebMCP API available',
+                webmcpAvailable ? 'pass' : 'pending',
+                webmcpAvailable ? 'navigator.modelContext detected' : 'Chrome 146+ required');
+
+            const bridgeReady = typeof window.webmcpBridge !== 'undefined';
+            addResult(container, 'WebMCP Bridge loaded',
+                bridgeReady ? 'pass' : 'fail',
+                bridgeReady ? JSON.stringify(window.webmcpBridge.getStatus()) : 'webmcp_bridge.js not loaded');
+
+            const panelReady = typeof window.builderPanel !== 'undefined';
+            addResult(container, 'BuilderPanel loaded',
+                panelReady ? 'pass' : 'fail',
+                panelReady ? 'BuilderPanel initialized' : 'BuilderPanel.js not loaded');
+
+            return webmcpAvailable && bridgeReady && panelReady;
+        }
+
+        async function testToolRegistration() {
+            const container = 'tool-results';
+            const status = window.webmcpBridge?.getStatus();
+
+            if (!status) {
+                addResult(container, 'Tool registration check', 'fail', 'Bridge not available');
+                return false;
+            }
+
+            const builderTools = [
+                'builder_place_tile',
+                'builder_load_shader',
+                'builder_evolve_shader',
+                'builder_assemble_cartridge',
+                'builder_preview',
+                'builder_get_state'
+            ];
+
+            // Phase J.2: Neural IDE
+            const j2Tools = ['builder_connect_tiles', 'builder_remove_connection', 'ide_get_state'];
+
+            let allRegistered = true;
+            for (const tool of builderTools) {
+                const registered = status.tools.includes(tool);
+                addResult(container, `Tool: ${tool}`,
+                    registered ? 'pass' : 'fail',
+                    registered ? 'Registered' : 'NOT registered');
+                if (!registered) allRegistered = false;
+            }
+
+            for (const tool of j2Tools) {
+                const registered = status.tools.includes(tool);
+                addResult(container, `Tool: ${tool} (J.2)`,
+                    registered ? 'pass' : 'fail',
+                    registered ? 'Registered' : 'NOT registered');
+                if (!registered) allRegistered = false;
+            }
+
+            return allRegistered;
+        }
+
+        async function testPanelUI() {
+            const container = 'panel-results';
+
+            const panel = document.getElementById('builder-panel');
+            addResult(container, 'BuilderPanel DOM element',
+                panel ? 'pass' : 'fail',
+                panel ? 'Found in document' : 'Not found');
+
+            const tabs = document.querySelectorAll('.builder-tab');
+            addResult(container, 'BuilderPanel tabs',
+                tabs.length >= 3 ? 'pass' : 'fail',
+                `${tabs.length}/3 tabs found`);
+
+            const tileButtons = document.querySelectorAll('.tile-button');
+            addResult(container, 'Tile palette buttons',
+                tileButtons.length >= 6 ? 'pass' : 'fail',
+                `${tileButtons.length}/6 tile buttons found`);
+
+            const actionLog = document.getElementById('builder-action-log');
+            addResult(container, 'Action log element',
+                actionLog ? 'pass' : 'fail',
+                actionLog ? 'Found' : 'Not found');
+
+            return true;
+        }
+
+        async function testPlaceTile() {
+            const container = 'interactive-results';
+            if (!window.builderPanel) {
+                addResult(container, 'Place tile', 'fail', 'BuilderPanel not available');
+                return;
+            }
+
+            const result = window.builderPanel.placeTile('system', 5, 5, { size: 100 });
+            addResult(container, 'Place tile at (5, 5)',
+                result.success ? 'pass' : 'fail',
+                JSON.stringify(result, null, 2));
+        }
+
+        async function testLoadShader() {
+            const container = 'interactive-results';
+            if (!window.builderPanel) {
+                addResult(container, 'Load shader', 'fail', 'BuilderPanel not available');
+                return;
+            }
+
+            const testWGSL = '@compute @workgroup_size(64) fn main() { }';
+            const result = window.builderPanel.loadShader('test_shader', testWGSL);
+            addResult(container, 'Load test shader',
+                result.success ? 'pass' : 'fail',
+                JSON.stringify(result, null, 2));
+        }
+
+        async function testGetState() {
+            const container = 'interactive-results';
+            if (!window.builderPanel) {
+                addResult(container, 'Get state', 'fail', 'BuilderPanel not available');
+                return;
+            }
+
+            const state = window.builderPanel.getState();
+            addResult(container, 'Get builder state',
+                state ? 'pass' : 'fail',
+                JSON.stringify(state, null, 2));
+        }
+
+        async function testPreview() {
+            const container = 'interactive-results';
+            if (!window.builderPanel) {
+                addResult(container, 'Preview', 'fail', 'BuilderPanel not available');
+                return;
+            }
+
+            const result = window.builderPanel.preview();
+            addResult(container, 'Preview build',
+                result.success ? 'pass' : 'fail',
+                JSON.stringify(result, null, 2));
+        }
+
+        async function testUndo() {
+            const container = 'interactive-results';
+            if (!window.builderPanel) {
+                addResult(container, 'Undo', 'fail', 'BuilderPanel not available');
+                return;
+            }
+
+            const result = window.builderPanel.undo();
+            addResult(container, 'Undo last action',
+                result.success ? 'pass' : 'pending',
+                JSON.stringify(result, null, 2));
+        }
+
+        async function runAllTests() {
+            results.passed = 0;
+            results.failed = 0;
+            results.pending = 0;
+
+            document.getElementById('prereq-results').innerHTML = '';
+            document.getElementById('tool-results').innerHTML = '';
+            document.getElementById('panel-results').innerHTML = '';
+            document.getElementById('interactive-results').innerHTML = '';
+
+            await testPrerequisites();
+            await testToolRegistration();
+            await testPanelUI();
+
+            updateSummary();
+        }
+
+        window.addEventListener('load', () => {
+            setTimeout(runAllTests, 1000);
+        });
+    </script>
+</body>
+</html>

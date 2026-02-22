@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry OS - Hypervisor Tools Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #4fc3f7;
+        }
+
+        .test-section {
+            background-color: #2d2d2d;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #81c784;
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+        }
+
+        .status-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .status-item {
+            background-color: #333;
+            padding: 10px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-label {
+            font-weight: bold;
+            color: #aaa;
+        }
+
+        .status-value {
+            font-family: monospace;
+        }
+
+        .status-value.ok {
+            color: #81c784;
+        }
+
+        .status-value.error {
+            color: #e57373;
+        }
+
+        .status-value.pending {
+            color: #ffb74d;
+        }
+
+        button {
+            background-color: #0277bd;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            background-color: #0288d1;
+        }
+
+        button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        pre {
+            background-color: #111;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            color: #aed581;
+            max-height: 300px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            border-bottom: 1px solid #222;
+            padding-bottom: 2px;
+        }
+
+        .log-time {
+            color: #666;
+            margin-right: 10px;
+        }
+
+        .log-info {
+            color: #81c784;
+        }
+
+        .log-warn {
+            color: #ffb74d;
+        }
+
+        .log-error {
+            color: #e57373;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Geometry OS - Phase H: Hypervisor Tools Test</h1>
+
+        <div class="test-section">
+            <h2>System Status</h2>
+            <div class="status-panel">
+                <div class="status-item">
+                    <span class="status-label">WebMCP Bridge</span>
+                    <span id="bridge-status" class="status-value pending">Checking...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">WebGPU Support</span>
+                    <span id="webgpu-status" class="status-value pending">Checking...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Hypervisor Tools</span>
+                    <span id="tools-status" class="status-value pending">Checking...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">VisionCortex</span>
+                    <span id="vision-status" class="status-value pending">Checking...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Tool Tests</h2>
+            <div id="controls">
+                <button onclick="testToolRegistration()">1. Verify Tool Registration</button>
+                <button onclick="testHypervisorBoot()" disabled id="btn-boot">2. Test hypervisor_boot (Mock)</button>
+                <button onclick="testHypervisorStatus()" disabled id="btn-status">3. Test hypervisor_status</button>
+                <button onclick="testHypervisorInput()" disabled id="btn-input">4. Test hypervisor_input</button>
+                <button onclick="testHypervisorFrame()" disabled id="btn-frame">5. Test hypervisor_frame</button>
+                <button onclick="runAllTests()">Run All Tests</button>
+            </div>
+            <div id="results">
+                <pre id="log-output">System ready. Click verification to start.</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module">
+        import { WebMCPBridge } from './webmcp_bridge.js';
+        import { GPUExecutionSystem } from './gpu_execution_system.js';
+
+        window.WebMCPBridge = WebMCPBridge;
+        window.GPUExecutionSystem = GPUExecutionSystem;
+    </script>
+    <script src="wgpu_kernel_loader.js"></script>
+    <script>
+        // Mock ModelContext for testing without Chrome 146+
+        if (!navigator.modelContext) {
+            navigator.modelContext = {
+                registerTool: async (tool) => {
+                    console.log(`[Mock] Registered tool: ${tool.name}`);
+                    window.mockTools = window.mockTools || {};
+                    window.mockTools[tool.name] = tool;
+                    return true;
+                },
+                toolHandlers: {}
+            };
+        }
+
+        // Logger
+        function log(msg, type = 'info') {
+            const el = document.getElementById('log-output');
+            const time = new Date().toLocaleTimeString();
+            el.innerHTML += `<div class="log-entry"><span class="log-time">[${time}]</span><span class="log-${type}">${msg}</span></div>`;
+            el.scrollTop = el.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${msg}`);
+        }
+
+        // Initialize Bridge
+        let bridge = null;
+
+        async function init() {
+            try {
+                // Check WebGPU
+                if (navigator.gpu) {
+                    document.getElementById('webgpu-status').textContent = "Available";
+                    document.getElementById('webgpu-status').className = "status-value ok";
+                } else {
+                    document.getElementById('webgpu-status').textContent = "Not Available";
+                    document.getElementById('webgpu-status').className = "status-value error";
+                    log("WebGPU not supported in this browser environment", "warn");
+                }
+
+                log("Initializing WebMCP Bridge...");
+                bridge = new window.WebMCPBridge(null, { allowMock: true });
+                await bridge.initialize();
+
+                document.getElementById('bridge-status').textContent = "Initialized";
+                document.getElementById('bridge-status').className = "status-value ok";
+
+                log("Bridge initialized successfully", "info");
+
+                // Enable first button
+                document.querySelector('button').disabled = false;
+
+            } catch (e) {
+                document.getElementById('bridge-status').textContent = "Error";
+                document.getElementById('bridge-status').className = "status-value error";
+                log(`Failed to initialize bridge: ${e.message}`, "error");
+            }
+        }
+
+        async function testToolRegistration() {
+            log("Verifying Hypervisor tools...", "info");
+
+            const expectedTools = [
+                'hypervisor_boot',
+                'hypervisor_input',
+                'hypervisor_frame',
+                'hypervisor_read_text',
+                'hypervisor_find_element',
+                'hypervisor_set_page_table',
+                'hypervisor_map_page',
+                'hypervisor_status'
+            ];
+
+            const registered = window.mockTools || {}; // In real WebMCP capturing might be harder
+            // But bridge should expose registered tools
+            // The bridge implementation populates this.#registeredTools array 
+            // but it's private.
+            // We can check if `navigator.modelContext.toolHandlers` has them.
+
+            const handlers = navigator.modelContext.toolHandlers || {};
+            let missing = [];
+            let found = 0;
+
+            for (const name of expectedTools) {
+                if (handlers[name] || (window.mockTools && window.mockTools[name])) {
+                    found++;
+                    log(`✅ Tool found: ${name}`, "info");
+                } else {
+                    missing.push(name);
+                    log(`❌ Tool missing: ${name}`, "error");
+                }
+            }
+
+            if (missing.length === 0) {
+                document.getElementById('tools-status').textContent = `All ${found} Found`;
+                document.getElementById('tools-status').className = "status-value ok";
+                log("All hypervisor tools registered successfully!", "info");
+
+                // Enable other buttons
+                document.querySelectorAll('button').forEach(b => b.disabled = false);
+            } else {
+                document.getElementById('tools-status').textContent = `${missing.length} Missing`;
+                document.getElementById('tools-status').className = "status-value error";
+            }
+        }
+
+        async function testHypervisorBoot() {
+            log("Testing hypervisor_boot...", "info");
+
+            const handler = navigator.modelContext.toolHandlers['hypervisor_boot'] || window.mockTools['hypervisor_boot'].handler;
+
+            // Mock GPUExecutionSystem if missing (e.g. no WebGPU)
+            if (!window.GPUExecutionSystem) {
+                log("Mocking GPUExecutionSystem for test...", "warn");
+                window.GPUExecutionSystem = class MockGPU {
+                    constructor() { this.kernels = new Map(); }
+                    async initialize() { }
+                    async deploy(url, id) {
+                        log(`[MockGPU] Deployed ${url} as ${id}`);
+                        this.kernels.set(id, { stateBuffer: {} });
+                    }
+                    async mountFile(url, path) { log(`[MockGPU] Mounted ${url} to ${path}`); }
+                    async tick() { }
+                };
+            }
+
+            try {
+                const result = await handler({
+                    kernel_url: 'ubuntu.rts.png',
+                    memory_mb: 64
+                });
+
+                log(`Boot Result: ${JSON.stringify(result)}`, result.success ? "info" : "error");
+            } catch (e) {
+                log(`Boot Exception: ${e.message}`, "error");
+            }
+        }
+
+        async function testHypervisorStatus() {
+            log("Testing hypervisor_status...", "info");
+            const handler = navigator.modelContext.toolHandlers['hypervisor_status'] || window.mockTools['hypervisor_status'].handler;
+
+            try {
+                const result = await handler({});
+                log(`Status Result: ${JSON.stringify(result)}`, "info");
+            } catch (e) {
+                log(`Status Exception: ${e.message}`, "error");
+            }
+        }
+
+        async function testHypervisorInput() {
+            log("Testing hypervisor_input...", "info");
+            const handler = navigator.modelContext.toolHandlers['hypervisor_input'] || window.mockTools['hypervisor_input'].handler;
+
+            try {
+                const result = await handler({
+                    type: 'text',
+                    data: { text: 'ls -la' }
+                });
+                log(`Input Result: ${JSON.stringify(result)}`, result.success ? "info" : "error");
+            } catch (e) {
+                log(`Input Exception: ${e.message}`, "error");
+            }
+        }
+
+        async function testHypervisorFrame() {
+            log("Testing hypervisor_frame (Mock frame source)...", "info");
+            const handler = navigator.modelContext.toolHandlers['hypervisor_frame'] || window.mockTools['hypervisor_frame'].handler;
+
+            // Mock captureFrame if needed
+            if (window.hypervisorSystem && !window.hypervisorSystem.captureFrame) {
+                window.hypervisorSystem.captureFrame = async () => "base64_mock_image_data";
+            }
+
+            try {
+                const result = await handler({ format: 'raw' });
+                log(`Frame Result: ${JSON.stringify(result).substring(0, 100)}...`, result.success ? "info" : "error");
+            } catch (e) {
+                log(`Frame Exception: ${e.message}`, "error");
+            }
+        }
+
+        async function runAllTests() {
+            await testToolRegistration();
+            await testHypervisorBoot();
+            await testHypervisorStatus();
+            await testHypervisorInput();
+            await testHypervisorFrame();
+        }
+
+        // Start
+        window.onload = init;
+    </script>
+    <script type="module">
+        import { runLinuxGuiDemo } from './demo_linux_gui_install.js';
+
+        window.startDemo = async () => {
+            const handlers = {};
+            // We need to unwrap mockTools which is {name: tool} map
+            // And modelContext.toolHandlers is {name: func}
+            const raw = window.navigator.modelContext?.toolHandlers || {};
+
+            // If empty, try mockTools
+            if (Object.keys(raw).length === 0 && window.mockTools) {
+                for (let key in window.mockTools) handlers[key] = window.mockTools[key].handler;
+            } else {
+                Object.assign(handlers, raw);
+            }
+
+            console.log("Starting Demo with tools:", Object.keys(handlers));
+            // Pass the page's 'log' function
+            await runLinuxGuiDemo(handlers, window.log);
+        };
+    </script>
+</body>
+
+</html>

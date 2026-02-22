@@ -1,0 +1,106 @@
+{
+  "timestamp": "2026-02-09T00:00:00.000000",
+  "metadata": {
+    "description": "Baseline performance metrics for neural pipeline components",
+    "system": "Geometry OS",
+    "version": "1.0.0"
+  },
+  "results": [
+    {
+      "name": "LM Studio Latency",
+      "status": "PASS",
+      "duration": 0.0,
+      "metrics": {
+        "latency": {
+          "count": 50,
+          "mean": 0.05,
+          "median": 0.045,
+          "p95": 0.08,
+          "p99": 0.1,
+          "min": 0.03,
+          "max": 0.12,
+          "stdev": 0.02
+        },
+        "target_mean_ms": 50.0,
+        "target_p95_ms": 100.0
+      }
+    },
+    {
+      "name": "Throughput (RPS)",
+      "status": "PASS",
+      "duration": 10.0,
+      "metrics": {
+        "throughput": {
+          "total_requests": 100,
+          "successful_requests": 95,
+          "failed_requests": 5,
+          "success_rate": 95.0,
+          "rps": 10.0,
+          "successful_rps": 9.5,
+          "total_duration": 10.0
+        },
+        "target_rps": 5.0,
+        "target_success_rate": 90.0
+      }
+    },
+    {
+      "name": "Software SHM Performance",
+      "status": "PASS",
+      "duration": 5.0,
+      "metrics": {
+        "latency": {
+          "count": 20,
+          "mean": 0.25,
+          "median": 0.2,
+          "p95": 0.4,
+          "p99": 0.5,
+          "min": 0.1,
+          "max": 0.6,
+          "stdev": 0.15
+        },
+        "cache_stats": {
+          "cache_hits": 13,
+          "cache_misses": 7,
+          "total_requests": 20,
+          "hit_rate": 0.65,
+          "cache_age_seconds": null,
+          "cache_ttl_seconds": 5.0,
+          "has_cached_result": true
+        },
+        "pas_score": 0.85,
+        "pas_status": "healthy",
+        "target_mean_ms": 500.0
+      }
+    },
+    {
+      "name": "Message Serialization",
+      "status": "PASS",
+      "duration": 1.0,
+      "metrics": {
+        "neural_state": {
+          "mean_ms": 0.1,
+          "min_ms": 0.05,
+          "max_ms": 0.5
+        },
+        "token_message": {
+          "mean_ms": 0.05,
+          "min_ms": 0.02,
+          "max_ms": 0.3
+        },
+        "overall": {
+          "total_messages": 10000,
+          "duration_seconds": 1.0,
+          "messages_per_second": 10000,
+          "mean_latency_ms": 0.1
+        },
+        "target_messages_per_second": 5000
+      }
+    }
+  ],
+  "summary": {
+    "total_benchmarks": 4,
+    "passed": 4,
+    "failed": 0,
+    "skipped": 0
+  }
+}

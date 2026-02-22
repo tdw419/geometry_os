@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BuilderPanel Cartridge Assembly Test</title>
+    <link rel="stylesheet" href="BuilderPanel.css">
+    <style>
+        body {
+            background: #0a0a0f;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+        }
+        #test-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: #1a1a2e;
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .test-section h2 {
+            color: #00ff88;
+            margin-top: 0;
+        }
+        .test-result {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .test-result.pass {
+            background: rgba(0, 255, 136, 0.1);
+            border-left: 3px solid #00ff88;
+            color: #88ffaa;
+        }
+        .test-result.fail {
+            background: rgba(255, 68, 68, 0.1);
+            border-left: 3px solid #ff4444;
+            color: #ff8888;
+        }
+        button {
+            background: #1a1a2e;
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+        button:hover {
+            background: #00ff88;
+            color: #0a0a0f;
+        }
+    </style>
+</head>
+<body>
+    <div id="test-container">
+        <h1>BuilderPanel Cartridge Assembly Test</h1>
+
+        <div class="test-section">
+            <h2>Test 1: assembleCartridge Method Exists</h2>
+            <button onclick="testAssembleMethod()">Test</button>
+            <div id="test1-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 2: Place Tiles and Assemble</h2>
+            <button onclick="testPlaceAndAssemble()">Place 3 Tiles and Assemble</button>
+            <div id="test2-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 3: Get Default Deploy Location</h2>
+            <button onclick="testDefaultLocation()">Test Location Calculation</button>
+            <div id="test3-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 4: Cartridge Rack UI</h2>
+            <button onclick="testCartridgeRack()">Test Rack Display</button>
+            <div id="test4-result"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { BuilderPanel } from './BuilderPanel.js';
+
+        window.testPanel = new BuilderPanel();
+        window.testPanel.show();
+
+        function showResult(id, passed, message) {
+            const el = document.getElementById(id);
+            el.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            el.textContent = `${passed ? 'PASS' : 'FAIL'}: ${message}`;
+        }
+
+        window.testAssembleMethod = function() {
+            const exists = typeof window.testPanel.assembleCartridge === 'function';
+            showResult('test1-result', exists,
+                exists ? 'assembleCartridge method exists' : 'assembleCartridge method not found');
+        };
+
+        window.testPlaceAndAssemble = async function() {
+            try {
+                // Place some tiles
+                window.testPanel.placeTile('system', 10, 10);
+                window.testPanel.placeTile('data', 11, 10);
+                window.testPanel.placeTile('code', 10, 11);
+
+                const state = window.testPanel.getState();
+                if (state.tile_count !== 3) {
+                    showResult('test2-result', false, `Expected 3 tiles, got ${state.tile_count}`);
+                    return;
+                }
+
+                // Try to assemble (will use mock since WebMCP not available)
+                const result = await window.testPanel.assembleCartridge('test_cart', {
+                    description: 'Test cartridge'
+                });
+
+                showResult('test2-result', result.success,
+                    result.success
+                        ? `Assembled cartridge with ${result.cartridge?.size_bytes || 0} bytes`
+                        : `Assembly failed: ${result.error || 'Unknown error'}`);
+            } catch (e) {
+                showResult('test2-result', false, `Exception: ${e.message}`);
+            }
+        };
+
+        window.testDefaultLocation = function() {
+            // Clear first
+            window.testPanel.clear();
+
+            // Place tiles at specific locations
+            window.testPanel.placeTile('system', 0, 0);
+            window.testPanel.placeTile('data', 10, 0);
+            window.testPanel.placeTile('code', 5, 10);
+
+            const state = window.testPanel.getState();
+            const expectedX = Math.round((0 + 10 + 5) / 3);  // 5
+            const expectedY = Math.round((0 + 0 + 10) / 3);  // 3
+
+            showResult('test3-result', state.tile_count === 3,
+                `Placed ${state.tile_count} tiles. Expected center: (${expectedX}, ${expectedY})`);
+        };
+
+        window.testCartridgeRack = function() {
+            const rack = document.getElementById('cartridge-rack');
+            const exists = rack !== null;
+
+            if (exists) {
+                // Add a test cartridge
+                window.testPanel.#addCartridgeToRack('test_rack_item', {
+                    size_bytes: 2048,
+                    data: btoa('test')
+                });
+
+                const hasItem = rack.children.length > 0;
+                showResult('test4-result', hasItem,
+                    hasItem ? `Cartridge rack has ${rack.children.length} items` : 'Cartridge rack is empty');
+            } else {
+                showResult('test4-result', false, 'Cartridge rack element not found');
+            }
+        };
+
+        // Initial check
+        console.log('Test page loaded. BuilderPanel available:', window.testPanel);
+    </script>
+</body>
+</html>

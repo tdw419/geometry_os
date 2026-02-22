@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 6: InfiniteMap Integration Test</title>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #111;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+        }
+
+        #app-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        #test-results {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00AAFF;
+            border-radius: 8px;
+            padding: 15px;
+            color: #00FF00;
+            font-size: 12px;
+            max-width: 400px;
+            z-index: 10000;
+        }
+
+        .test-pass {
+            color: #00FF00;
+        }
+
+        .test-fail {
+            color: #FF0000;
+        }
+
+        .test-info {
+            color: #00AAFF;
+        }
+
+        #fps-counter {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00FF00;
+            border-radius: 8px;
+            padding: 10px;
+            color: #00FF00;
+            font-size: 14px;
+            z-index: 10000;
+        }
+
+        #loading-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00FFFF;
+            font-size: 24px;
+            pointer-events: none;
+            text-align: center;
+        }
+    </style>
+    <!-- PixiJS -->
+    <script src="https://pixijs.download/v8.1.0/pixi.min.js"></script>
+
+    <!-- Geometry OS Modules -->
+    <script src="spatial_core.js"></script>
+    <script src="sprite_pool.js"></script>
+    <script src="chunk_manager.js"></script>
+    <script src="viewport_manager.js"></script>
+    <script src="lod_system.js"></script>
+    <script src="infinite_map_v2.js"></script>
+    <script src="infinite_map.js"></script>
+    <script src="brick_loader.js"></script>
+    <script src="pixel_cpu.js"></script>
+    <script src="pixel_cpu_integration.js"></script>
+    <script src="pixi_adapter.js"></script>
+    <script src="visual_boot_loader.js"></script>
+    <script src="llm_chat_panel.js"></script>
+    <script src="application.js"></script>
+</head>
+
+<body>
+    <div id="app-container"></div>
+    <div id="fps-counter">
+        FPS: <span id="fps-value">0</span><br>
+        Frame Time: <span id="frame-time">0.00</span>ms
+    </div>
+    <div id="test-results">
+        <h3>Phase 6 Integration Tests</h3>
+        <div id="test-output"></div>
+    </div>
+    <div id="loading-overlay">
+        LOADING INTEGRATION TEST...<br>
+        <span style="font-size: 14px; opacity: 0.7">Phase 6: InfiniteMap Integration</span>
+    </div>
+
+    <script>
+        // Test results tracking
+        const testResults = [];
+
+        function addTestResult(name, passed, message) {
+            testResults.push({ name, passed, message });
+            const output = document.getElementById('test-output');
+            const div = document.createElement('div');
+            div.className = passed ? 'test-pass' : 'test-fail';
+            div.innerHTML = `${passed ? '✓' : '✗'} ${name}: ${message}`;
+            output.appendChild(div);
+        }
+
+        function addTestInfo(message) {
+            const output = document.getElementById('test-output');
+            const div = document.createElement('div');
+            div.className = 'test-info';
+            div.innerHTML = `ℹ ${message}`;
+            output.appendChild(div);
+        }
+
+        // FPS tracking
+        let lastTime = performance.now();
+        let frameCount = 0;
+        let fps = 0;
+        let frameTime = 0;
+
+        function updateFPS() {
+            const now = performance.now();
+            frameCount++;
+
+            if (now - lastTime >= 1000) {
+                fps = frameCount;
+                frameTime = 1000 / frameCount;
+                document.getElementById('fps-value').textContent = fps;
+                document.getElementById('frame-time').textContent = frameTime.toFixed(2);
+                frameCount = 0;
+                lastTime = now;
+            }
+
+            requestAnimationFrame(updateFPS);
+        }
+
+        // Run integration tests
+        async function runTests() {
+            addTestInfo('Starting Phase 6 Integration Tests...');
+
+            // Test 1: Check if InfiniteMap is available
+            if (typeof InfiniteMap !== 'undefined') {
+                addTestResult('InfiniteMap class loaded', true, 'InfiniteMap is available');
+            } else {
+                addTestResult('InfiniteMap class loaded', false, 'InfiniteMap is not available');
+                return;
+            }
+
+            // Test 2: Check if PixelCPUIntegration is available
+            if (typeof PixelCPUIntegration !== 'undefined') {
+                addTestResult('PixelCPUIntegration class loaded', true, 'PixelCPUIntegration is available');
+            } else {
+                addTestResult('PixelCPUIntegration class loaded', false, 'PixelCPUIntegration is not available');
+                return;
+            }
+
+            // Test 3: Initialize application
+            try {
+                const app = new GeometryOSApplication();
+                await app.initialize('app-container');
+                addTestResult('Application initialized', true, 'GeometryOSApplication initialized successfully');
+
+                // Test 4: Check if InfiniteMap was created
+                if (app.infiniteMap) {
+                    addTestResult('InfiniteMap instance created', true, 'InfiniteMap instance exists');
+                } else {
+                    addTestResult('InfiniteMap instance created', false, 'InfiniteMap instance does not exist');
+                    return;
+                }
+
+                // Test 5: Check if PixelCPU was initialized
+                if (app.infiniteMap.pixelCPU) {
+                    addTestResult('PixelCPU initialized', true, 'PixelCPUIntegration instance exists');
+                } else {
+                    addTestResult('PixelCPU initialized', false, 'PixelCPUIntegration instance does not exist');
+                    return;
+                }
+
+                // Test 6: Check if ticker is available
+                if (typeof app.infiniteMap.startTicker === 'function') {
+                    addTestResult('Ticker methods available', true, 'startTicker method exists');
+                } else {
+                    addTestResult('Ticker methods available', false, 'startTicker method does not exist');
+                    return;
+                }
+
+                // Test 7: Check if loadBrick method is available
+                if (typeof app.infiniteMap.loadBrick === 'function') {
+                    addTestResult('loadBrick method available', true, 'loadBrick method exists');
+                } else {
+                    addTestResult('loadBrick method available', false, 'loadBrick method does not exist');
+                    return;
+                }
+
+                // Test 8: Check if CPU control methods are available
+                const controlMethods = ['pauseCPU', 'resumeCPU', 'resetCPU', 'getCPUState'];
+                let allMethodsAvailable = true;
+                for (const method of controlMethods) {
+                    if (typeof app.infiniteMap[method] !== 'function') {
+                        allMethodsAvailable = false;
+                        addTestResult(`CPU control method ${method}`, false, 'Method does not exist');
+                    }
+                }
+                if (allMethodsAvailable) {
+                    addTestResult('CPU control methods available', true, 'All control methods exist');
+                }
+
+                // Test 9: Check if CPU controls were created
+                if (app.infiniteMap.cpuControls) {
+                    addTestResult('CPU controls UI created', true, 'CPU controls panel exists');
+                } else {
+                    addTestResult('CPU controls UI created', false, 'CPU controls panel does not exist');
+                    return;
+                }
+
+                // Test 10: Test CPU state retrieval
+                try {
+                    const cpuState = app.infiniteMap.getCPUState();
+                    if (cpuState) {
+                        addTestResult('CPU state retrieval', true, 'CPU state retrieved successfully');
+                    } else {
+                        addTestResult('CPU state retrieval', false, 'CPU state is null');
+                    }
+                } catch (error) {
+                    addTestResult('CPU state retrieval', false, error.message);
+                }
+
+                // Test 11: Test pause/resume toggle
+                try {
+                    app.infiniteMap.toggleCPUPause();
+                    const state = app.infiniteMap.getCPUState();
+                    if (state && state.paused) {
+                        addTestResult('Pause toggle', true, 'CPU pause toggle works');
+                    } else {
+                        addTestResult('Pause toggle', false, 'CPU pause toggle failed');
+                    }
+                } catch (error) {
+                    addTestResult('Pause toggle', false, error.message);
+                }
+
+                // Test 12: Test reset
+                try {
+                    app.infiniteMap.resetCPU();
+                    const state = app.infiniteMap.getCPUState();
+                    if (state && !state.running) {
+                        addTestResult('CPU reset', true, 'CPU reset works');
+                    } else {
+                        addTestResult('CPU reset', false, 'CPU reset failed');
+                    }
+                } catch (error) {
+                    addTestResult('CPU reset', false, error.message);
+                }
+
+                // Test 13: Performance check
+                addTestInfo('Monitoring performance for 5 seconds...');
+                setTimeout(() => {
+                    const perf = app.infiniteMap.pixelCPU.getPerformanceStats();
+                    if (perf.lastExecutionTime < 5) {
+                        addTestResult('CPU execution performance', true,
+                            `Execution time: ${perf.lastExecutionTime.toFixed(2)}ms (< 5ms)`);
+                    } else {
+                        addTestResult('CPU execution performance', false,
+                            `Execution time: ${perf.lastExecutionTime.toFixed(2)}ms (>= 5ms)`);
+                    }
+                }, 5000);
+
+                // Test 14: FPS check
+                addTestInfo('Monitoring FPS for 5 seconds...');
+                setTimeout(() => {
+                    if (fps >= 55) {
+                        addTestResult('60 FPS performance', true, `Current FPS: ${fps} (>= 55)`);
+                    } else {
+                        addTestResult('60 FPS performance', false, `Current FPS: ${fps} (< 55)`);
+                    }
+                }, 5000);
+
+                // Summary
+                setTimeout(() => {
+                    const passed = testResults.filter(r => r.passed).length;
+                    const total = testResults.length;
+                    addTestInfo(`\n=== Test Summary ===`);
+                    addTestInfo(`Passed: ${passed}/${total}`);
+                    if (passed === total) {
+                        addTestInfo('✓ All tests passed!');
+                    } else {
+                        addTestInfo('✗ Some tests failed');
+                    }
+                }, 6000);
+
+            } catch (error) {
+                addTestResult('Application initialization', false, error.message);
+            }
+        }
+
+        // Initialize
+        window.onload = async () => {
+            // Start FPS counter
+            updateFPS();
+
+            // Initialize application
+            const app = new GeometryOSApplication();
+            await app.initialize('app-container');
+
+            // Hide loading overlay
+            const loader = document.getElementById('loading-overlay');
+            loader.style.opacity = 0;
+            setTimeout(() => loader.remove(), 1000);
+
+            // Run tests
+            setTimeout(() => {
+                runTests();
+            }, 1000);
+        };
+    </script>
+</body>
+
+</html>

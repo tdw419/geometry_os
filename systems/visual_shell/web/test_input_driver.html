@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input Driver Test Page</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { color: #4CAF50; }
+        .section {
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        button {
+            background: #4CAF50;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #45a049; }
+        button:disabled { background: #666; cursor: not-allowed; }
+        .output {
+            background: #0f0f23;
+            border: 1px solid #0f3460;
+            padding: 10px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        input, select {
+            background: #0f3460;
+            color: #fff;
+            border: 1px solid #1a1a2e;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 5px;
+        }
+        .canvas-container {
+            border: 2px solid #0f3460;
+            display: inline-block;
+        }
+        #testCanvas {
+            background: #000;
+            cursor: crosshair;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Input Driver Test Page</h1>
+
+        <div class="section">
+            <h2>1. Hypervisor Status</h2>
+            <button onclick="checkHypervisor()">Check Hypervisor</button>
+            <div id="statusOutput" class="output">Click to check status...</div>
+        </div>
+
+        <div class="section">
+            <h2>2. Keyboard Input Test</h2>
+            <input type="text" id="keyInput" placeholder="Key name (e.g., a, Enter, ArrowUp)" value="a" style="width: 200px;">
+            <select id="keyAction">
+                <option value="press">Press & Release</option>
+                <option value="down">Press Only</option>
+                <option value="up">Release Only</option>
+            </select>
+            <button onclick="sendKey()">Send Key</button>
+            <div id="keyOutput" class="output">Ready...</div>
+        </div>
+
+        <div class="section">
+            <h2>3. Text Typing Test</h2>
+            <input type="text" id="textInput" placeholder="Text to type" value="Hello World" style="width: 300px;">
+            <button onclick="typeText()">Type Text</button>
+            <div id="textOutput" class="output">Ready...</div>
+        </div>
+
+        <div class="section">
+            <h2>4. Mouse Input Test</h2>
+            <div class="canvas-container">
+                <canvas id="testCanvas" width="400" height="300"></canvas>
+            </div>
+            <br>
+            <button onclick="sendMouseClick()">Click Center</button>
+            <button onclick="sendMouseMove()">Move to Corner</button>
+            <select id="mouseButton">
+                <option value="left">Left Button</option>
+                <option value="right">Right Button</option>
+                <option value="middle">Middle Button</option>
+            </select>
+            <div id="mouseOutput" class="output">Click on canvas or use buttons...</div>
+        </div>
+
+        <div class="section">
+            <h2>5. MMIO Read Test</h2>
+            <button onclick="readMMIO()">Read MMIO Status</button>
+            <div id="mmioOutput" class="output">Click to read MMIO region...</div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('testCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Draw canvas with crosshair
+        function drawCanvas() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Grid
+            ctx.strokeStyle = '#1a1a2e';
+            for (let x = 0; x < canvas.width; x += 50) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Center crosshair
+            ctx.strokeStyle = '#4CAF50';
+            ctx.beginPath();
+            ctx.moveTo(canvas.width/2, 0);
+            ctx.lineTo(canvas.width/2, canvas.height);
+            ctx.moveTo(0, canvas.height/2);
+            ctx.lineTo(canvas.width, canvas.height/2);
+            ctx.stroke();
+        }
+
+        drawCanvas();
+
+        // Track mouse position on canvas
+        let lastMousePos = { x: 0, y: 0 };
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            lastMousePos.x = Math.floor(e.clientX - rect.left);
+            lastMousePos.y = Math.floor(e.clientY - rect.top);
+        });
+
+        canvas.addEventListener('click', async () => {
+            await sendMouseInput(lastMousePos.x, lastMousePos.y, 'click');
+        });
+
+        // Hypervisor status
+        async function checkHypervisor() {
+            const output = document.getElementById('statusOutput');
+
+            if (!window.hypervisorSystem) {
+                output.textContent = 'Hypervisor not running\n\nStart a hypervisor session first.';
+                return;
+            }
+
+            const state = await window.hypervisorSystem.readState('main_cpu');
+
+            if (state) {
+                output.textContent = 'Hypervisor Running\n\n' +
+                    'PC: 0x' + state.pc.toString(16).padStart(8, '0') + '\n' +
+                    'Halted: ' + state.halted + '\n' +
+                    'Mode: ' + (state.mode === 0 ? 'User' : 'Supervisor') + '\n' +
+                    'SATP: 0x' + (state.satp || 0).toString(16).padStart(8, '0');
+            } else {
+                output.textContent = 'Hypervisor exists but no kernel loaded';
+            }
+        }
+
+        // Keyboard input
+        async function sendKey() {
+            const output = document.getElementById('keyOutput');
+            const key = document.getElementById('keyInput').value;
+            const action = document.getElementById('keyAction').value;
+
+            if (!window.hypervisorSystem) {
+                output.textContent = 'Hypervisor not running';
+                return;
+            }
+
+            try {
+                const pressed = action !== 'up';
+
+                await window.hypervisorSystem.injectInput('main_cpu', 'keyboard', {
+                    key: key,
+                    pressed: pressed
+                });
+
+                if (action === 'press') {
+                    await new Promise(r => setTimeout(r, 50));
+                    await window.hypervisorSystem.injectInput('main_cpu', 'keyboard', {
+                        key: key,
+                        pressed: false
+                    });
+                }
+
+                output.textContent = 'Key "' + key + '" ' + (action === 'press' ? 'pressed & released' : (pressed ? 'pressed' : 'released'));
+
+            } catch (error) {
+                output.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        // Text typing
+        async function typeText() {
+            const output = document.getElementById('textOutput');
+            const text = document.getElementById('textInput').value;
+
+            if (!window.hypervisorSystem) {
+                output.textContent = 'Hypervisor not running';
+                return;
+            }
+
+            try {
+                output.textContent = 'Typing: "' + text + '"...\n';
+
+                for (const char of text) {
+                    // Press
+                    await window.hypervisorSystem.injectInput('main_cpu', 'keyboard', {
+                        key: char,
+                        pressed: true
+                    });
+                    await new Promise(r => setTimeout(r, 10));
+
+                    // Release
+                    await window.hypervisorSystem.injectInput('main_cpu', 'keyboard', {
+                        key: char,
+                        pressed: false
+                    });
+                    await new Promise(r => setTimeout(r, 50));
+
+                    output.textContent += char;
+                }
+
+                output.textContent += '\n\nDone!';
+
+            } catch (error) {
+                output.textContent += '\nError: ' + error.message;
+            }
+        }
+
+        // Mouse input
+        async function sendMouseClick() {
+            await sendMouseInput(canvas.width / 2, canvas.height / 2, 'click');
+        }
+
+        async function sendMouseMove() {
+            await sendMouseInput(50, 50, 'move');
+        }
+
+        async function sendMouseInput(x, y, action) {
+            const output = document.getElementById('mouseOutput');
+            const button = document.getElementById('mouseButton').value;
+
+            if (!window.hypervisorSystem) {
+                output.textContent = 'Hypervisor not running';
+                return;
+            }
+
+            try {
+                // Draw marker on canvas
+                ctx.fillStyle = '#ff0000';
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                await window.hypervisorSystem.injectInput('main_cpu', 'mouse', {
+                    x: x,
+                    y: y,
+                    pressed: action === 'click' || action === 'down',
+                    released: action === 'up'
+                });
+
+                if (action === 'click') {
+                    await new Promise(r => setTimeout(r, 50));
+                    await window.hypervisorSystem.injectInput('main_cpu', 'mouse', {
+                        x: x,
+                        y: y,
+                        pressed: false,
+                        released: true
+                    });
+                }
+
+                output.textContent = 'Mouse ' + action + ' at (' + x + ', ' + y + ')';
+
+            } catch (error) {
+                output.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        // MMIO read
+        async function readMMIO() {
+            const output = document.getElementById('mmioOutput');
+
+            if (!window.hypervisorSystem) {
+                output.textContent = 'Hypervisor not running';
+                return;
+            }
+
+            try {
+                // Read MMIO region at 0x02000000 (24 bytes = 6 uint32)
+                const mmioData = await window.hypervisorSystem.readMemory('main_cpu', 0x02000000, 24);
+
+                if (!mmioData) {
+                    output.textContent = 'Could not read MMIO region';
+                    return;
+                }
+
+                // Parse as uint32 values
+                const view = new DataView(mmioData.buffer, mmioData.byteOffset);
+                const status = view.getUint32(0, true);
+                const type = view.getUint32(4, true);
+                const key = view.getUint32(8, true);
+                const mouseX = view.getUint32(12, true);
+                const mouseY = view.getUint32(16, true);
+                const flags = view.getUint32(20, true);
+
+                output.textContent = 'MMIO Input Region @ 0x02000000:\n\n' +
+                    'Status:   0x' + status.toString(16).padStart(8, '0') + ' (pending: ' + ((status & 1) ? 'yes' : 'no') + ')\n' +
+                    'Type:     ' + (['none', 'keyboard', 'mouse', 'touch'][type] || 'unknown') + '\n' +
+                    'Key:      0x' + key.toString(16).padStart(2, '0') + '\n' +
+                    'Mouse X:  ' + mouseX + '\n' +
+                    'Mouse Y:  ' + mouseY + '\n' +
+                    'Flags:    0x' + flags.toString(16).padStart(2, '0') + ' (' + (flags & 1 ? 'pressed' : '') + ' ' + (flags & 2 ? 'released' : '') + ')';
+
+            } catch (error) {
+                output.textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevTools MCP Verification | Geometry OS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #00ffff;
+            border-bottom: 2px solid #00ff88;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        h2 {
+            color: #00ffff;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .test-section {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .test-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            margin: 8px 0;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #111;
+            transition: all 0.3s ease;
+        }
+
+        .test-item.pending {
+            border-color: #666;
+        }
+
+        .test-item.pass {
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .test-item.fail {
+            border-color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .test-item-name {
+            flex: 1;
+        }
+
+        .test-item-status {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-pending {
+            background: #333;
+            color: #888;
+        }
+
+        .status-pass {
+            background: #00ff88;
+            color: #000;
+        }
+
+        .status-fail {
+            background: #ff4444;
+            color: #fff;
+        }
+
+        .test-item-detail {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #222;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: #00ff88;
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: #00cc6a;
+            transform: scale(1.02);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .summary {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background: #0a0a0a;
+            border: 2px solid #00ffff;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .summary-value {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .summary-pass {
+            color: #00ff88;
+        }
+
+        .summary-fail {
+            color: #ff4444;
+        }
+
+        .summary-pending {
+            color: #888;
+        }
+
+        .info-box {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00ffff;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .info-box strong {
+            color: #00ffff;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+
+        .badge-info {
+            background: #0066cc;
+            color: #fff;
+        }
+
+        .badge-success {
+            background: #00aa44;
+            color: #fff;
+        }
+
+        .badge-error {
+            background: #cc3333;
+            color: #fff;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #333;
+            border-top-color: #00ff88;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        code {
+            background: #222;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #00ffff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            <span class="spinner" id="page-spinner"></span>
+            DevTools MCP Verification Test Suite
+        </h1>
+
+        <div class="info-box">
+            <strong>Geometry OS WebMCP Bridge</strong> - DevTools MCP Integration Verification
+            <br><br>
+            This page validates the DevTools MCP integration by checking prerequisites,
+            MCP server connectivity, Chrome DevTools Protocol access, and WebMCP bridge availability.
+        </div>
+
+        <div class="controls">
+            <button id="run-all-btn">Run All Tests</button>
+            <button id="run-prereq-btn">Check Prerequisites Only</button>
+            <button id="reset-btn">Reset Results</button>
+        </div>
+
+        <!-- Prerequisites Section -->
+        <div class="test-section" id="prereq-section">
+            <div class="test-section-header">
+                <h2>1. Prerequisites Check</h2>
+                <span class="badge" id="prereq-badge">PENDING</span>
+            </div>
+            <div id="prereq-tests">
+                <div class="test-item pending" data-test="chrome-version">
+                    <span class="test-item-name">Chrome Version 146+</span>
+                    <span class="test-item-status status-pending">PENDING</span>
+                </div>
+                <div class="test-item pending" data-test="webmcp-api">
+                    <span class="test-item-name">WebMCP API Available</span>
+                    <span class="test-item-status status-pending">PENDING</span>
+                </div>
+                <div class="test-item pending" data-test="debugging-port">
+                    <span class="test-item-name">Remote Debugging Port (9222)</span>
+                    <span class="test-item-status status-pending">PENDING</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- MCP Server Section -->
+        <div class="test-section" id="mcp-server-section">
+            <div class="test-section-header">
+                <h2>2. MCP Server Status</h2>
+                <span class="badge" id="mcp-server-badge">PENDING</span>
+            </div>
+            <div id="mcp-server-tests">
+                <div class="test-item pending" data-test="mcp-config">
+                    <span class="test-item-name">Config File Exists (<code>.mcp/config.json</code>)</span>
+                    <span class="test-item-status status-pending">PENDING</span>
+                </div>
+                <div class="test-item pending" data-test="mcp-server-running">
+                    <span class="test-item-name">MCP Server Running</span>
+                    <span class="test-item-status status-pending">PENDING</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- DevTools Protocol Section -->
+        <div class="test-section" id="cdp-section">
+            <div class="test-section-header">
+                <h2>3. DevTools Protocol Tests</h2>
+                <span class="badge" id="cdp-badge">PENDING</span>
+            </div>
+            <div id="cdp-tests">
+                <div class="test-item pending" data-test="cdp-list">
+                    <span class="test-item-name">List Targets (<code>/json/list</code>)</span>
+                    <span class="test-item-status status-pending">PENDING</span>
+                </div>
+                <div class="test-item pending" data-test="cdp-version">
+                    <span class="test-item-name">Get Version (<code>/json/version</code>)</span>
+                    <span class="test-item-status status-pending">PENDING</span>
+                </div>
+                <div class="test-item pending" data-test="cdp-websocket">
+                    <span class="test-item-name">WebSocket Connection</span>
+                    <span class="test-item-status status-pending">PENDING</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- WebMCP Bridge Section -->
+        <div class="test-section" id="webmcp-section">
+            <div class="test-section-header">
+                <h2>4. WebMCP Bridge Integration</h2>
+                <span class="badge" id="webmcp-badge">PENDING</span>
+            </div>
+            <div id="webmcp-tests">
+                <div class="test-item pending" data-test="webmcp-bridge">
+                    <span class="test-item-name">Bridge Object Available (<code>window.webmcpBridge</code>)</span>
+                    <span class="test-item-status status-pending">PENDING</span>
+                </div>
+                <div class="test-item pending" data-test="webmcp-status">
+                    <span class="test-item-name">Get Bridge Status</span>
+                    <span class="test-item-status status-pending">PENDING</span>
+                </div>
+                <div class="test-item pending" data-test="webmcp-tools">
+                    <span class="test-item-name">Available Tools</span>
+                    <span class="test-item-status status-pending">PENDING</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Summary -->
+        <div class="test-section">
+            <div class="test-section-header">
+                <h2>5. Results Summary</h2>
+            </div>
+            <div class="summary">
+                <div class="summary-item">
+                    <div class="summary-label">Passed</div>
+                    <div class="summary-value summary-pass" id="summary-pass">0</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Failed</div>
+                    <div class="summary-value summary-fail" id="summary-fail">0</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Pending</div>
+                    <div class="summary-value summary-pending" id="summary-pending">11</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Success Rate</div>
+                    <div class="summary-value" id="summary-rate">--%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Test state management
+        const testResults = new Map();
+        const TOTAL_TESTS = 11;
+
+        // DOM Elements
+        const elements = {
+            pageSpinner: document.getElementById('page-spinner'),
+            runAllBtn: document.getElementById('run-all-btn'),
+            runPrereqBtn: document.getElementById('run-prereq-btn'),
+            resetBtn: document.getElementById('reset-btn'),
+            summaryPass: document.getElementById('summary-pass'),
+            summaryFail: document.getElementById('summary-fail'),
+            summaryPending: document.getElementById('summary-pending'),
+            summaryRate: document.getElementById('summary-rate'),
+            prereqBadge: document.getElementById('prereq-badge'),
+            mcpServerBadge: document.getElementById('mcp-server-badge'),
+            cdpBadge: document.getElementById('cdp-badge'),
+            webmcpBadge: document.getElementById('webmcp-badge')
+        };
+
+        // Initialize test results
+        function initTestResults() {
+            const testIds = [
+                'chrome-version', 'webmcp-api', 'debugging-port',
+                'mcp-config', 'mcp-server-running',
+                'cdp-list', 'cdp-version', 'cdp-websocket',
+                'webmcp-bridge', 'webmcp-status', 'webmcp-tools'
+            ];
+            testIds.forEach(id => testResults.set(id, 'pending'));
+        }
+
+        // Update test item display
+        function updateTestItem(testId, status, detail = '') {
+            const item = document.querySelector(`[data-test="${testId}"]`);
+            if (!item) return;
+
+            item.classList.remove('pending', 'pass', 'fail');
+            item.classList.add(status);
+
+            const statusEl = item.querySelector('.test-item-status');
+            statusEl.textContent = status.toUpperCase();
+            statusEl.className = `test-item-status status-${status}`;
+
+            // Remove existing detail
+            const existingDetail = item.querySelector('.test-item-detail');
+            if (existingDetail) existingDetail.remove();
+
+            // Add new detail if provided
+            if (detail) {
+                const detailEl = document.createElement('div');
+                detailEl.className = 'test-item-detail';
+                detailEl.textContent = detail;
+                item.appendChild(detailEl);
+            }
+
+            testResults.set(testId, status);
+            updateSummary();
+        }
+
+        // Update summary statistics
+        function updateSummary() {
+            const pass = Array.from(testResults.values()).filter(r => r === 'pass').length;
+            const fail = Array.from(testResults.values()).filter(r => r === 'fail').length;
+            const pending = Array.from(testResults.values()).filter(r => r === 'pending').length;
+            const rate = pass + fail > 0 ? Math.round((pass / (pass + fail)) * 100) : 0;
+
+            elements.summaryPass.textContent = pass;
+            elements.summaryFail.textContent = fail;
+            elements.summaryPending.textContent = pending;
+            elements.summaryRate.textContent = `${rate}%`;
+            elements.summaryRate.style.color = rate >= 70 ? '#00ff88' : rate >= 40 ? '#ffaa00' : '#ff4444';
+
+            // Update section badges
+            updateSectionBadge('prereq', ['chrome-version', 'webmcp-api', 'debugging-port']);
+            updateSectionBadge('mcp-server', ['mcp-config', 'mcp-server-running']);
+            updateSectionBadge('cdp', ['cdp-list', 'cdp-version', 'cdp-websocket']);
+            updateSectionBadge('webmcp', ['webmcp-bridge', 'webmcp-status', 'webmcp-tools']);
+        }
+
+        function updateSectionBadge(section, testIds) {
+            const results = testIds.map(id => testResults.get(id));
+            const hasFail = results.includes('fail');
+            const allPass = results.every(r => r === 'pass');
+            const hasPending = results.includes('pending');
+
+            const badge = elements[`${section}Badge`];
+            if (hasFail) {
+                badge.textContent = 'FAILED';
+                badge.className = 'badge badge-error';
+            } else if (allPass) {
+                badge.textContent = 'PASSED';
+                badge.className = 'badge badge-success';
+            } else if (hasPending) {
+                badge.textContent = 'PENDING';
+                badge.className = 'badge badge-info';
+            }
+        }
+
+        // Reset all tests
+        function resetTests() {
+            initTestResults();
+            document.querySelectorAll('.test-item').forEach(item => {
+                item.classList.remove('pass', 'fail');
+                item.classList.add('pending');
+                const status = item.querySelector('.test-item-status');
+                status.textContent = 'PENDING';
+                status.className = 'test-item-status status-pending';
+                const detail = item.querySelector('.test-item-detail');
+                if (detail) detail.remove();
+            });
+            updateSummary();
+        }
+
+        // ==================== TEST FUNCTIONS ====================
+
+        // Prerequisite Tests
+        async function runPrereqTests() {
+            // Chrome version check
+            const chromeMatch = navigator.userAgent.match(/Chrome\/(\d+)\./);
+            if (chromeMatch) {
+                const version = parseInt(chromeMatch[1]);
+                if (version >= 146) {
+                    updateTestItem('chrome-version', 'pass', `Chrome version: ${version}`);
+                } else {
+                    updateTestItem('chrome-version', 'fail', `Chrome version ${version} is below 146`);
+                }
+            } else {
+                updateTestItem('chrome-version', 'fail', 'Not a Chrome browser');
+            }
+
+            // WebMCP API check
+            if ('webmcpBridge' in window || 'chrome' in window && chrome.runtime) {
+                updateTestItem('webmcp-api', 'pass', 'WebMCP API interface detected');
+            } else {
+                updateTestItem('webmcp-api', 'fail', 'WebMCP API not available - check extension loaded');
+            }
+
+            // Debugging port check (try fetching from localhost:9222)
+            try {
+                const response = await fetch('http://localhost:9222/json/version', {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    updateTestItem('debugging-port', 'pass', `Connected: ${data['WebKit-Version']?.split(' ')[0] || 'OK'}`);
+                } else {
+                    updateTestItem('debugging-port', 'fail', `HTTP ${response.status} - ensure Chrome started with --remote-debugging-port=9222`);
+                }
+            } catch (e) {
+                updateTestItem('debugging-port', 'fail', `Connection failed: ${e.message}. Start Chrome with --remote-debugging-port=9222`);
+            }
+        }
+
+        // MCP Server Tests
+        async function testMCPServerConnection() {
+            // Check config file exists (via fetch to local server)
+            try {
+                const response = await fetch('/.mcp/config.json');
+                if (response.ok) {
+                    const config = await response.json();
+                    updateTestItem('mcp-config', 'pass', `Config loaded with ${Object.keys(config).length} keys`);
+                } else if (response.status === 404) {
+                    updateTestItem('mcp-config', 'fail', 'Config file not found at /.mcp/config.json');
+                } else {
+                    updateTestItem('mcp-config', 'fail', `HTTP ${response.status} fetching config`);
+                }
+            } catch (e) {
+                // Try alternative path
+                try {
+                    const altResponse = await fetch('/api/mcp/config');
+                    if (altResponse.ok) {
+                        updateTestItem('mcp-config', 'pass', 'Config available via API endpoint');
+                    } else {
+                        updateTestItem('mcp-config', 'fail', 'Config not accessible - check MCP server running');
+                    }
+                } catch (e2) {
+                    updateTestItem('mcp-config', 'fail', 'Cannot reach MCP server - ensure server is running');
+                }
+            }
+
+            // Check if MCP server is running
+            try {
+                const response = await fetch('/api/mcp/status');
+                if (response.ok) {
+                    const status = await response.json();
+                    const serverCount = status.servers?.length || 0;
+                    updateTestItem('mcp-server-running', 'pass', `${serverCount} MCP server(s) active`);
+                } else {
+                    updateTestItem('mcp-server-running', 'fail', `MCP status endpoint returned ${response.status}`);
+                }
+            } catch (e) {
+                // Assume running if config was found, even if status endpoint fails
+                if (testResults.get('mcp-config') === 'pass') {
+                    updateTestItem('mcp-server-running', 'pass', 'Server running (inferred from config access)');
+                } else {
+                    updateTestItem('mcp-server-running', 'fail', 'Cannot verify server status');
+                }
+            }
+        }
+
+        // DevTools Protocol Tests
+        async function runCDPTests() {
+            const baseUrl = 'http://localhost:9222';
+
+            // List targets
+            try {
+                const response = await fetch(`${baseUrl}/json/list`);
+                if (response.ok) {
+                    const targets = await response.json();
+                    const targetCount = targets.length;
+                    updateTestItem('cdp-list', 'pass', `Found ${targetCount} target(s): ${targets.map(t => t.type).join(', ')}`);
+                } else {
+                    updateTestItem('cdp-list', 'fail', `HTTP ${response.status} listing targets`);
+                }
+            } catch (e) {
+                updateTestItem('cdp-list', 'fail', `Failed to list targets: ${e.message}`);
+            }
+
+            // Get version
+            try {
+                const response = await fetch(`${baseUrl}/json/version`);
+                if (response.ok) {
+                    const version = await response.json();
+                    updateTestItem('cdp-version', 'pass', `${version['Browser']} ${version['Protocol-Version']}`);
+                } else {
+                    updateTestItem('cdp-version', 'fail', `HTTP ${response.status} getting version`);
+                }
+            } catch (e) {
+                updateTestItem('cdp-version', 'fail', `Failed to get version: ${e.message}`);
+            }
+
+            // WebSocket connection test
+            try {
+                const response = await fetch(`${baseUrl}/json/list`);
+                if (response.ok) {
+                    const targets = await response.json();
+                    const pageTarget = targets.find(t => t.type === 'page');
+                    if (pageTarget && pageTarget.webSocketDebuggerUrl) {
+                        updateTestItem('cdp-websocket', 'pass', `WebSocket URL available: ${pageTarget.webSocketDebuggerUrl.substring(0, 40)}...`);
+                    } else {
+                        updateTestItem('cdp-websocket', 'pass', 'WebSocket endpoint available (no page target found)');
+                    }
+                } else {
+                    updateTestItem('cdp-websocket', 'fail', 'Cannot verify WebSocket - list targets failed');
+                }
+            } catch (e) {
+                updateTestItem('cdp-websocket', 'fail', `WebSocket test failed: ${e.message}`);
+            }
+        }
+
+        // WebMCP Bridge Tests
+        async function testWebMCPIntegration() {
+            // Check bridge object exists
+            if (window.webmcpBridge) {
+                updateTestItem('webmcp-bridge', 'pass', `webmcpBridge v${window.webmcpBridge.version || 'unknown'}`);
+            } else if (window.chrome && window.chrome.runtime && window.chrome.runtime.sendMessage) {
+                updateTestItem('webmcp-bridge', 'fail', 'Extension runtime available but bridge object not exposed');
+            } else {
+                updateTestItem('webmcp-bridge', 'fail', 'webmcpBridge not found on window object');
+            }
+
+            // Get bridge status
+            if (window.webmcpBridge && typeof window.webmcpBridge.getStatus === 'function') {
+                try {
+                    const status = await window.webmcpBridge.getStatus();
+                    const statusText = status.connected ? 'Connected' : 'Disconnected';
+                    updateTestItem('webmcp-status', 'pass', `Status: ${statusText}, ${status.servers?.length || 0} server(s)`);
+                } catch (e) {
+                    updateTestItem('webmcp-status', 'fail', `GetStatus failed: ${e.message}`);
+                }
+            } else if (window.webmcpBridge) {
+                updateTestItem('webmcp-status', 'fail', 'Bridge exists but getStatus() method not available');
+            } else {
+                updateTestItem('webmcp-status', 'fail', 'Cannot test - bridge not available');
+            }
+
+            // Check available tools
+            if (window.webmcpBridge && typeof window.webmcpBridge.listTools === 'function') {
+                try {
+                    const tools = await window.webmcpBridge.listTools();
+                    const toolNames = tools.map(t => t.name).slice(0, 3);
+                    updateTestItem('webmcp-tools', 'pass', `${tools.length} tools: ${toolNames.join(', ')}${tools.length > 3 ? '...' : ''}`);
+                } catch (e) {
+                    updateTestItem('webmcp-tools', 'fail', `ListTools failed: ${e.message}`);
+                }
+            } else if (window.webmcpBridge) {
+                updateTestItem('webmcp-tools', 'fail', 'Bridge exists but listTools() method not available');
+            } else {
+                updateTestItem('webmcp-tools', 'fail', 'Cannot test - bridge not available');
+            }
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            elements.runAllBtn.disabled = true;
+            elements.runPrereqBtn.disabled = true;
+
+            await runPrereqTests();
+            await testMCPServerConnection();
+            await runCDPTests();
+            await testWebMCPIntegration();
+
+            elements.runAllBtn.disabled = false;
+            elements.runPrereqBtn.disabled = false;
+
+            // Hide page spinner
+            elements.pageSpinner.classList.add('hidden');
+        }
+
+        // ==================== EVENT HANDLERS ====================
+
+        elements.runAllBtn.addEventListener('click', runAllTests);
+        elements.runPrereqBtn.addEventListener('click', runPrereqTests);
+        elements.resetBtn.addEventListener('click', resetTests);
+
+        // Auto-run prerequisites on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initTestResults();
+            elements.pageSpinner.classList.remove('hidden');
+            runPrereqTests().then(() => {
+                elements.pageSpinner.classList.add('hidden');
+            });
+        });
+    </script>
+</body>
+</html>

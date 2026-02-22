@@ -1,0 +1,34 @@
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp"],
+      "env": {
+        "CHROME_PATH": "/usr/bin/google-chrome",
+        "CHROME_REMOTE_DEBUGGING_PORT": "9222",
+        "CHROME_START_URL": "http://localhost:8000/systems/visual_shell/web/index.html"
+      }
+    }
+  },
+  "geometryOS": {
+    "description": "MCP configuration for Geometry OS Visual Shell debugging",
+    "webmcpTools": [
+      "navigate_map",
+      "get_os_state",
+      "execute_pixel_program",
+      "load_rts_cartridge",
+      "query_hilbert_address",
+      "trigger_evolution",
+      "send_llm_prompt",
+      "spawn_area_agent"
+    ],
+    "devtoolsCapabilities": [
+      "screenshot",
+      "console_logs",
+      "dom_inspection",
+      "network_monitoring",
+      "performance_metrics",
+      "gpu_state"
+    ]
+  }
+}

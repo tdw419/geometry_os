@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VisionCortex Test Page</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        h2 {
+            color: #64b5f6;
+            margin-top: 0;
+        }
+        .section {
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        canvas {
+            border: 2px solid #0f3460;
+            background: #000;
+        }
+        button {
+            background: #4CAF50;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .button-secondary {
+            background: #2196F3;
+        }
+        .button-secondary:hover {
+            background: #0b7dda;
+        }
+        .button-accent {
+            background: #ff9800;
+        }
+        .button-accent:hover {
+            background: #e68900;
+        }
+        input[type="text"],
+        input[type="number"] {
+            background: #0f0f23;
+            border: 1px solid #0f3460;
+            color: #eee;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 5px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        label {
+            color: #aaa;
+            margin-left: 5px;
+        }
+        .output {
+            background: #0f0f23;
+            border: 1px solid #0f3460;
+            padding: 10px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            border-radius: 4px;
+        }
+        .status {
+            color: #4CAF50;
+        }
+        .error {
+            color: #f44336;
+        }
+        .warning {
+            color: #ff9800;
+        }
+        .info {
+            color: #2196F3;
+        }
+        .highlight-row {
+            color: #64b5f6;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1> VisionCortex Test Page</h1>
+        <p style="color: #888;">Interactive testing for Tesseract.js OCR and semantic UI analysis</p>
+
+        <!-- Section 1: Test Canvas -->
+        <div class="section">
+            <h2>1. Test Canvas (Simulated Framebuffer)</h2>
+            <canvas id="testCanvas" width="640" height="400"></canvas>
+            <br><br>
+            <button onclick="drawTerminal()">Draw Terminal</button>
+            <button onclick="drawGUI()" class="button-secondary">Draw GUI</button>
+            <button onclick="drawPixelArt()" class="button-accent">Draw Pixel Art</button>
+            <button onclick="clearCanvas()">Clear</button>
+        </div>
+
+        <!-- Section 2: Initialize VisionCortex -->
+        <div class="section">
+            <h2>2. Initialize VisionCortex</h2>
+            <button id="initBtn" onclick="initVisionCortex()">Initialize Tesseract.js</button>
+            <div id="initStatus" class="output">Status: Not initialized</div>
+        </div>
+
+        <!-- Section 3: Test hypervisor_read_text -->
+        <div class="section">
+            <h2>3. Test hypervisor_read_text</h2>
+            <button id="readBtn" onclick="testReadText()" disabled>Read Text</button>
+            <label>Scale: <input type="number" id="scaleInput" value="1.0" step="0.5" min="0.5" max="4" style="width: 80px;"></label>
+            <div id="readOutput" class="output">Initialize VisionCortex first, then click to read text from canvas</div>
+        </div>
+
+        <!-- Section 4: Test hypervisor_find_element -->
+        <div class="section">
+            <h2>4. Test hypervisor_find_element</h2>
+            <input type="text" id="labelInput" placeholder="Enter label (e.g., OK, Cancel, Login)" value="OK">
+            <button id="findBtn" onclick="testFindElement()" disabled>Find Element</button>
+            <button id="clearHighlightBtn" onclick="clearHighlights()" disabled>Clear Highlights</button>
+            <div id="findOutput" class="output">Initialize VisionCortex first, then enter a label to find</div>
+        </div>
+
+        <!-- Section 5: Test hypervisor_frame -->
+        <div class="section">
+            <h2>5. Test hypervisor_frame (Semantic)</h2>
+            <button id="frameBtn" onclick="testSemanticFrame()" disabled>Get Semantic Frame</button>
+            <div id="frameOutput" class="output">Initialize VisionCortex first, then click to get semantic frame</div>
+        </div>
+    </div>
+
+    <!-- Load VisionCortex Module -->
+    <script src="VisionCortex.js"></script>
+
+    <!-- Test Implementation -->
+    <script>
+        // Global state
+        let visionCortex = null;
+        let canvasState = 'terminal'; // Track current draw mode
+        const canvas = document.getElementById('testCanvas');
+        const ctx = canvas.getContext('2d');
+        let originalImageData = null; // Store for clearing highlights
+
+        // ============================================
+        // DRAW MODES
+        // ============================================
+
+        /**
+         * Draw simulated terminal output
+         * Simulates a Linux terminal with green text on black
+         */
+        function drawTerminal() {
+            // Fill background
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Terminal font styling
+            ctx.font = '14px monospace';
+            ctx.fillStyle = '#00ff00';
+
+            const lines = [
+                'Alpine Linux 5.15.0',
+                'root@alpine:~# uname -a',
+                'Linux alpine 5.15.0-0-generic #1 SMP x86_64 GNU/Linux',
+                '',
+                'root@alpine:~# df -h',
+                'Filesystem      Size  Used Avail Use% Mounted on',
+                '/dev/sda1       9.8G  1.2G  8.1G  13% /',
+                'devtmpfs        4.0M     0  4.0M   0% /dev',
+                '',
+                'root@alpine:~# ls -la',
+                'total 24',
+                'drwxr-xr-x   5 root root 4096 Feb 13 10:30 .',
+                'drwxr-xr-x   1 root root 4096 Feb 13 00:00 ..',
+                '-rw-r--r--   1 root root  220 Feb 13 00:00 .bashrc',
+                '-rwxr-xr-x   1 root root  512 Feb 13 10:30 script.sh',
+                '',
+                'root@alpine:~# _'
+            ];
+
+            lines.forEach((line, i) => {
+                ctx.fillText(line, 10, 25 + i * 18);
+            });
+
+            // Store original image data for clearing highlights
+            saveCanvasState();
+            canvasState = 'terminal';
+        }
+
+        /**
+         * Draw simulated GUI with window, buttons, labels
+         * Tests element detection for GUI components
+         */
+        function drawGUI() {
+            // Background
+            ctx.fillStyle = '#2d2d2d';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Main window
+            const windowX = 100;
+            const windowY = 60;
+            const windowWidth = 440;
+            const windowHeight = 280;
+
+            // Window shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(windowX + 4, windowY + 4, windowWidth, windowHeight);
+
+            // Window background
+            ctx.fillStyle = '#3d3d3d';
+            ctx.fillRect(windowX, windowY, windowWidth, windowHeight);
+            ctx.strokeStyle = '#5d5d5d';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(windowX, windowY, windowWidth, windowHeight);
+
+            // Title bar
+            ctx.fillStyle = '#4d4d4d';
+            ctx.fillRect(windowX, windowY, windowWidth, 32);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 14px sans-serif';
+            ctx.fillText('Settings', windowX + 15, windowY + 21);
+
+            // Close button (X)
+            ctx.fillStyle = '#d32f2f';
+            ctx.fillRect(windowX + windowWidth - 32, windowY + 6, 22, 20);
+            ctx.fillStyle = '#fff';
+            ctx.font = '12px sans-serif';
+            ctx.fillText('X', windowX + windowWidth - 24, windowY + 20);
+
+            // Form labels
+            ctx.fillStyle = '#ccc';
+            ctx.font = '14px sans-serif';
+            ctx.fillText('Username:', windowX + 30, windowY + 70);
+            ctx.fillText('Password:', windowX + 30, windowY + 120);
+            ctx.fillText('Email:', windowX + 30, windowY + 170);
+
+            // Input fields
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(windowX + 130, windowY + 55, 280, 26);
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(windowX + 130, windowY + 55, 280, 26);
+
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(windowX + 130, windowY + 105, 280, 26);
+            ctx.strokeRect(windowX + 130, windowY + 105, 280, 26);
+
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(windowX + 130, windowY + 155, 280, 26);
+            ctx.strokeRect(windowX + 130, windowY + 155, 280, 26);
+
+            // Buttons at bottom
+            // OK button
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillRect(windowX + 180, windowY + 220, 80, 30);
+            ctx.fillStyle = '#fff';
+            ctx.font = '14px sans-serif';
+            ctx.fillText('OK', windowX + 208, windowY + 240);
+
+            // Cancel button
+            ctx.fillStyle = '#f44336';
+            ctx.fillRect(windowX + 280, windowY + 220, 80, 30);
+            ctx.fillStyle = '#fff';
+            ctx.fillText('Cancel', windowX + 295, windowY + 240);
+
+            // Login button (as alternative test)
+            ctx.fillStyle = '#2196F3';
+            ctx.fillRect(windowX + 80, windowY + 220, 80, 30);
+            ctx.fillStyle = '#fff';
+            ctx.fillText('Login', windowX + 95, windowY + 240);
+
+            // Store original image data
+            saveCanvasState();
+            canvasState = 'gui';
+        }
+
+        /**
+         * Draw pixel art with 8px font
+         * Tests scale parameter - use scale 2.0 for better OCR
+         */
+        function drawPixelArt() {
+            // Fill background
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 8px pixel font simulation
+            ctx.font = '8px monospace';
+            ctx.fillStyle = '#00ff00';
+
+            const text = 'PIXEL FONT TEST 8PX';
+            for (let i = 0; i < text.length; i++) {
+                ctx.fillText(text[i], 10 + i * 8, 50);
+            }
+
+            // Larger pixel text
+            ctx.font = '12px monospace';
+            ctx.fillStyle = '#ffff00';
+            ctx.fillText('SCALE 2.0 FOR BETTER OCR', 10, 80);
+
+            // Draw some pixel art boxes
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+            for (let y = 0; y < 6; y++) {
+                for (let x = 0; x < 16; x++) {
+                    ctx.fillStyle = colors[y];
+                    ctx.fillRect(10 + x * 12, 100 + y * 12, 10, 10);
+                }
+            }
+
+            // Labels
+            ctx.fillStyle = '#fff';
+            ctx.font = '14px monospace';
+            ctx.fillText('Red: OK Button', 220, 120);
+            ctx.fillText('Green: Cancel Button', 220, 150);
+            ctx.fillText('Blue: Submit Button', 220, 180);
+
+            // Store original image data
+            saveCanvasState();
+            canvasState = 'pixelart';
+        }
+
+        /**
+         * Clear canvas to black
+         */
+        function clearCanvas() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            saveCanvasState();
+            canvasState = 'empty';
+        }
+
+        /**
+         * Save current canvas state for clearing highlights
+         */
+        function saveCanvasState() {
+            originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        }
+
+        /**
+         * Restore canvas state (clear highlights)
+         */
+        function restoreCanvasState() {
+            if (originalImageData) {
+                ctx.putImageData(originalImageData, 0, 0);
+            }
+        }
+
+        /**
+         * Clear highlight rectangles drawn on canvas
+         */
+        function clearHighlights() {
+            restoreCanvasState();
+            document.getElementById('findOutput').innerHTML = '<span class="info">Highlights cleared</span>';
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+
+        /**
+         * Initialize VisionCortex and load Tesseract.js
+         */
+        async function initVisionCortex() {
+            const statusEl = document.getElementById('initStatus');
+            const initBtn = document.getElementById('initBtn');
+
+            statusEl.innerHTML = '<span class="status">Loading Tesseract.js WASM...</span>\n' +
+                '<span class="info">This may take 10-30 seconds on first load...</span>';
+            initBtn.disabled = true;
+
+            try {
+                // Create VisionCortex instance with lazyLoad disabled for explicit init
+                visionCortex = new VisionCortex({
+                    cacheTTL: 60000,
+                    cacheMaxSize: 100,
+                    defaultScale: 2.0,
+                    lazyLoad: false
+                });
+
+                // Initialize Tesseract
+                await visionCortex.initialize();
+
+                const now = new Date().toLocaleTimeString();
+                statusEl.innerHTML = `<span class="status"> VisionCortex initialized at ${now}</span>\n` +
+                    `<span class="info">Tesseract.js worker ready</span>\n` +
+                    `<span class="info">Ready for OCR operations</span>`;
+
+                // Enable test buttons
+                document.getElementById('readBtn').disabled = false;
+                document.getElementById('findBtn').disabled = false;
+                document.getElementById('frameBtn').disabled = false;
+                document.getElementById('clearHighlightBtn').disabled = false;
+
+            } catch (error) {
+                statusEl.innerHTML = `<span class="error"> Error: ${error.message}</span>\n` +
+                    `<span class="warning">Check browser console for details</span>`;
+                initBtn.disabled = false;
+                console.error('[VisionCortex] Initialization failed:', error);
+            }
+        }
+
+        // ============================================
+        // TEST FUNCTIONS
+        // ============================================
+
+        /**
+         * Test hypervisor_read_text - OCR recognition
+         */
+        async function testReadText() {
+            const outputEl = document.getElementById('readOutput');
+            const scale = parseFloat(document.getElementById('scaleInput').value) || 1.0;
+
+            outputEl.innerHTML = '<span class="status">Running OCR...</span>\n' +
+                `<span class="info">Scale: ${scale}x</span>`;
+
+            const startTime = performance.now();
+
+            try {
+                const result = await visionCortex.recognize(canvas, null, { scale });
+                const duration = performance.now() - startTime;
+
+                if (result.success) {
+                    const regionsPreview = result.regions.slice(0, 10).map((r, i) =>
+                        `  [${i}] "${r.text}" at (${r.bounds.x}, ${r.bounds.y}) ` +
+                        `conf: ${(r.confidence * 100).toFixed(1)}%`
+                    ).join('\n');
+
+                    const moreRegions = result.regions.length > 10 ?
+                        `\n  ... and ${result.regions.length - 10} more regions` : '';
+
+                    outputEl.innerHTML =
+                        `<span class="status"> OCR Complete (${duration.toFixed(0)}ms)</span>\n` +
+                        `<span class="info">From cache: ${result.fromCache ? 'Yes' : 'No'}</span>\n\n` +
+                        `<span class="highlight-row">Results:</span>\n` +
+                        `  Overall Confidence: ${(result.confidence * 100).toFixed(1)}%\n` +
+                        `  Total Regions: ${result.regions.length}\n` +
+                        `  Processing Time: ${result.processing_time_ms.toFixed(0)}ms\n\n` +
+                        `<span class="highlight-row">Text Content:</span>\n${result.text.trim()}\n\n` +
+                        `<span class="highlight-row">Regions (first 10):${moreRegions}</span>\n${regionsPreview}`;
+                } else {
+                    outputEl.innerHTML = `<span class="error"> OCR Failed</span>\n` +
+                        `Error: ${result.error}`;
+                }
+            } catch (error) {
+                outputEl.innerHTML = `<span class="error"> Exception: ${error.message}</span>`;
+                console.error('[testReadText]', error);
+            }
+        }
+
+        /**
+         * Test hypervisor_find_element - Find UI elements by label
+         */
+        async function testFindElement() {
+            const outputEl = document.getElementById('findOutput');
+            const label = document.getElementById('labelInput').value.trim();
+
+            if (!label) {
+                outputEl.innerHTML = `<span class="warning">Please enter a label to search for</span>`;
+                return;
+            }
+
+            // Clear previous highlights
+            restoreCanvasState();
+
+            outputEl.innerHTML = '<span class="status">Searching...</span>\n' +
+                `<span class="info">Label: "${label}"</span>`;
+
+            try {
+                const result = await visionCortex.findElement(label, 'any', canvas);
+
+                if (result.found && result.elements.length > 0) {
+                    // Draw highlights on canvas
+                    result.elements.forEach((el, i) => {
+                        const colors = ['#00ff00', '#ffff00', '#00ffff', '#ff00ff', '#ff8800'];
+                        const color = colors[i % colors.length];
+
+                        // Draw bounding box
+                        ctx.strokeStyle = color;
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(el.bounds.x, el.bounds.y, el.bounds.width, el.bounds.height);
+
+                        // Draw center point
+                        ctx.fillStyle = color;
+                        ctx.beginPath();
+                        ctx.arc(el.center.x, el.center.y, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+
+                    const elementsDetails = result.elements.map((el, i) =>
+                        `  [${i}] ${el.label}\n` +
+                        `      Type: ${el.type}\n` +
+                        `      Bounds: x=${el.bounds.x}, y=${el.bounds.y}, ` +
+                        `w=${el.bounds.width}, h=${el.bounds.height}\n` +
+                        `      Center: (${el.center.x}, ${el.center.y})\n` +
+                        `      Confidence: ${(el.confidence * 100).toFixed(1)}%`
+                    ).join('\n\n');
+
+                    outputEl.innerHTML =
+                        `<span class="status"> Found ${result.count} element(s)</span>\n\n` +
+                        `<span class="highlight-row">Elements:</span>\n${elementsDetails}\n\n` +
+                        `<span class="info">Highlights drawn on canvas</span>`;
+                } else {
+                    outputEl.innerHTML =
+                        `<span class="warning"> No elements matching "${label}"</span>\n\n` +
+                        (result.suggestion || `Try: OK, Cancel, Login, Username, Password`);
+                }
+            } catch (error) {
+                outputEl.innerHTML = `<span class="error"> Exception: ${error.message}</span>`;
+                console.error('[testFindElement]', error);
+            }
+        }
+
+        /**
+         * Test hypervisor_frame - Get semantic frame structure
+         */
+        async function testSemanticFrame() {
+            const outputEl = document.getElementById('frameOutput');
+
+            outputEl.innerHTML = '<span class="status">Getting semantic frame...</span>';
+
+            try {
+                const result = await visionCortex.getSemanticFrame(canvas);
+
+                if (result.success) {
+                    const windowDetails = result.windows.map(w =>
+                        `  - ${w.title}: (${w.bounds.x}, ${w.bounds.y}) ` +
+                        `${w.bounds.width}x${w.bounds.height}`
+                    ).join('\n');
+
+                    const buttonDetails = result.buttons.map(b =>
+                        `  - ${b.label}: (${b.bounds.x}, ${w.bounds.y})`
+                    ).join('\n');
+
+                    const fieldDetails = result.text_fields.map(f =>
+                        `  - ${f.label}: (${f.bounds.x}, ${f.bounds.y})`
+                    ).join('\n');
+
+                    outputEl.innerHTML =
+                        `<span class="status"> Semantic Frame (${result.processing_time_ms.toFixed(0)}ms)</span>\n` +
+                        `<span class="info">Timestamp: ${new Date(result.timestamp).toLocaleTimeString()}</span>\n\n` +
+                        `<span class="highlight-row">Screen:</span>\n` +
+                        `  Resolution: ${result.screen.width}x${result.screen.height}\n\n` +
+                        `<span class="highlight-row">Windows (${result.windows.length}):</span>\n${windowDetails || '  None detected'}\n\n` +
+                        `<span class="highlight-row">Buttons (${result.buttons.length}):</span>\n${buttonDetails || '  None detected'}\n\n` +
+                        `<span class="highlight-row">Text Fields (${result.text_fields.length}):</span>\n${fieldDetails || '  None detected'}\n\n` +
+                        `<span class="highlight-row">Full Text:</span>\n${result.text_content.trim()}\n\n` +
+                        `<span class="highlight-row">Full JSON:</span>\n${JSON.stringify(result, null, 2)}`;
+                } else {
+                    outputEl.innerHTML = `<span class="error"> Failed to get semantic frame</span>\n` +
+                        `Error: ${result.error}`;
+                }
+            } catch (error) {
+                outputEl.innerHTML = `<span class="error"> Exception: ${error.message}</span>`;
+                console.error('[testSemanticFrame]', error);
+            }
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+
+        // Draw initial terminal on page load
+        window.addEventListener('load', () => {
+            drawTerminal();
+        });
+    </script>
+</body>
+</html>

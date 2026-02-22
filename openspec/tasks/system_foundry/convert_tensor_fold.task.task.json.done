@@ -1,0 +1,8 @@
+{
+    "task_id": "convert-tensor-fold-source",
+    "type": "convert_binary",
+    "source": "tensor_fold.py",
+    "destination": "tensor_fold.brick",
+    "texture_size": 256,
+    "ai_model": "glm-4.7-flash"
+}

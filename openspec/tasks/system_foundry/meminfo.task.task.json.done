@@ -1,0 +1,8 @@
+{
+    "task_id": "convert-proc-meminfo",
+    "type": "convert_binary",
+    "source": "/proc/meminfo",
+    "destination": "meminfo.brick",
+    "texture_size": 256,
+    "ai_model": "glm-4.7-flash"
+}

@@ -1,0 +1,88 @@
+{
+  "app": "gedit",
+  "version": "3.38",
+  "toolkit": "gtk",
+  "shortcuts": [
+    {"keys": "Ctrl+N", "action": "New", "category": "file", "description": "Create new document"},
+    {"keys": "Ctrl+O", "action": "Open", "category": "file", "description": "Open file"},
+    {"keys": "Ctrl+S", "action": "Save", "category": "file", "description": "Save document"},
+    {"keys": "Ctrl+Shift+S", "action": "Save As", "category": "file", "description": "Save document as"},
+    {"keys": "Ctrl+Shift+L", "action": "Save All", "category": "file", "description": "Save all open documents"},
+    {"keys": "Ctrl+W", "action": "Close", "category": "file", "description": "Close current document"},
+    {"keys": "Ctrl+Q", "action": "Quit", "category": "file", "description": "Quit gedit"},
+    {"keys": "Ctrl+Z", "action": "Undo", "category": "edit", "description": "Undo last action"},
+    {"keys": "Ctrl+Y", "action": "Redo", "category": "edit", "description": "Redo last action"},
+    {"keys": "Ctrl+C", "action": "Copy", "category": "edit", "description": "Copy selection"},
+    {"keys": "Ctrl+X", "action": "Cut", "category": "edit", "description": "Cut selection"},
+    {"keys": "Ctrl+V", "action": "Paste", "category": "edit", "description": "Paste clipboard"},
+    {"keys": "Ctrl+Shift+V", "action": "Paste Special", "category": "edit", "description": "Paste with options"},
+    {"keys": "Ctrl+A", "action": "Select All", "category": "edit", "description": "Select all text"},
+    {"keys": "Ctrl+F", "action": "Find", "category": "search", "description": "Find text"},
+    {"keys": "Ctrl+G", "action": "Find Next", "category": "search", "description": "Find next match"},
+    {"keys": "Ctrl+Shift+G", "action": "Find Previous", "category": "search", "description": "Find previous match"},
+    {"keys": "Ctrl+H", "action": "Find and Replace", "category": "search", "description": "Find and replace text"},
+    {"keys": "Ctrl+K", "action": "Clear Highlight", "category": "search", "description": "Clear search highlight"},
+    {"keys": "Ctrl+D", "action": "Delete Line", "category": "edit", "description": "Delete current line"},
+    {"keys": "Ctrl+Shift+D", "action": "Duplicate Line", "category": "edit", "description": "Duplicate current line"},
+    {"keys": "Alt+Up", "action": "Move Line Up", "category": "edit", "description": "Move current line up"},
+    {"keys": "Alt+Down", "action": "Move Line Down", "category": "edit", "description": "Move current line down"},
+    {"keys": "Ctrl+Tab", "action": "Next Document", "category": "navigation", "description": "Switch to next tab"},
+    {"keys": "Ctrl+Shift+Tab", "action": "Previous Document", "category": "navigation", "description": "Switch to previous tab"},
+    {"keys": "Ctrl+Alt+Page Up", "action": "Previous Document", "category": "navigation", "description": "Switch to previous tab"},
+    {"keys": "Ctrl+Alt+Page Down", "action": "Next Document", "category": "navigation", "description": "Switch to next tab"},
+    {"keys": "Ctrl+J", "action": "Join Lines", "category": "edit", "description": "Join selected lines"},
+    {"keys": "Ctrl+T", "action": "New Tab", "category": "file", "description": "Open new tab"},
+    {"keys": "F11", "action": "Fullscreen", "category": "view", "description": "Toggle fullscreen"},
+    {"keys": "Ctrl+Space", "action": "Auto Complete", "category": "edit", "description": "Show completions"}
+  ],
+  "widgets": {
+    "editor": {
+      "type": "text_view",
+      "label": "Editor",
+      "description": "Main text editing area",
+      "is_interactive": true
+    },
+    "tab_bar": {
+      "type": "tab_list",
+      "label": "Documents",
+      "description": "Document tabs"
+    },
+    "side_panel": {
+      "type": "panel",
+      "label": "Side Panel",
+      "description": "File browser and other panels"
+    },
+    "bottom_panel": {
+      "type": "panel",
+      "label": "Bottom Panel",
+      "description": "Terminal, output, etc."
+    },
+    "search_bar": {
+      "type": "search_bar",
+      "label": "Search",
+      "description": "Search bar widget"
+    },
+    "status_bar": {
+      "type": "statusbar",
+      "label": "Status",
+      "description": "Status information bar"
+    }
+  },
+  "custom_actions": [
+    "spell_check",
+    "goto_line",
+    "toggle_line_numbers",
+    "toggle_right_margin",
+    "indent_selection",
+    "unindent_selection",
+    "comment_selection",
+    "uncomment_selection",
+    "format_selection",
+    "document_statistics"
+  ],
+  "metadata": {
+    "description": "GNOME Text Editor",
+    "category": "editor",
+    "url": "https://wiki.gnome.org/Apps/Gedit"
+  }
+}

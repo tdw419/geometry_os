@@ -1,0 +1,46 @@
+{
+  "format": "ShotcutCartridge-1.0",
+  "cartridge_type": "shotcut-vm",
+  "created": "2026-02-17T01:03:00.812414",
+  "source": {
+    "disk_path": "/home/jericho/zion/projects/geometry_os/geometry_os/apps/linux/ubuntu-24.04-desktop.qcow2",
+    "disk_size": 16676093952,
+    "disk_size_human": "15903.56 MB",
+    "sha256": "e738967da74f352280e8a96365b24ffc76395420eb298bc8cf8bd2e055eca762"
+  },
+  "thumbnail": {
+    "size": 512,
+    "encoding": "RGBA-Hilbert",
+    "channels": {
+      "R": "Entropy (information density)",
+      "G": "Average byte value",
+      "B": "Variance indicator",
+      "A": "Opaque (255)"
+    }
+  },
+  "vm_config": {
+    "memory": 4096,
+    "cpus": 4,
+    "vnc_port": 5900,
+    "ssh_port": 2222,
+    "boot_mode": "disk"
+  },
+  "bridge": {
+    "script": "shotcut_vm_bridge.py",
+    "port": 8768,
+    "commands": [
+      "boot",
+      "screenshot",
+      "input",
+      "type",
+      "click"
+    ]
+  },
+  "applications": {
+    "shotcut": {
+      "installed": true,
+      "version": "latest",
+      "description": "Video editor"
+    }
+  }
+}
