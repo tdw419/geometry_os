@@ -140,7 +140,7 @@ Focus: Control page, settings page, logs page with real UI templates.
   - **Commit**: `feat(wp): add control page template`
   - _Requirements: AC-1.1, AC-2.1, AC-3.1, AC-6.1_
 
-- [ ] 2.2 Create settings page template
+- [x] 2.2 Create settings page template
   - **Do**:
     1. Create `admin/page-settings.php` with form structure
     2. Add fields: polling_interval (1-60), grid_width (40-200), grid_height (10-60)
