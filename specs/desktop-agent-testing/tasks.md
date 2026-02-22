@@ -12,7 +12,7 @@ generated: auto
 
 Focus: Critical safety tests first, then core unit tests.
 
-- [ ] 1.1 SafetySanitizer Unit Tests (P0 Critical)
+- [x] 1.1 SafetySanitizer Unit Tests (P0 Critical)
   - **Do**: Create `tests/test_desktop_agent_sanitizer.py` with 25+ tests covering blocked keys, blocked commands, safe operations, case-insensitive blocking
   - **Files**: `tests/test_desktop_agent_sanitizer.py`, `systems/desktop_agent/safety/sanitizer.py`
   - **Done when**: All 25+ tests pass, covering all BLOCKED_KEYS, BLOCKED_COMBOS, BLOCKED_COMMANDS
