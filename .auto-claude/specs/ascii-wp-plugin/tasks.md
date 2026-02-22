@@ -250,7 +250,7 @@ Focus: Rate limiting, admin bar link, activation hooks, final verification.
   - **Commit**: `feat(wp): add admin bar quick link`
   - _Requirements: UI-9_
 
-- [ ] 3.3 Write activation/deactivation hooks
+- [x] 3.3 Write activation/deactivation hooks
   - **Do**:
     1. Create `activate()` static method for register_activation_hook
     2. Flush rewrite rules for directive CPT

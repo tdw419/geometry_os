@@ -379,17 +379,64 @@ class ASCII_Desktop_Control {
 
     /**
      * Plugin activation hook.
+     *
+     * - Flushes rewrite rules for directive CPT
+     * - Sets default option values if not exists
      */
     public static function activate(): void {
-        // Flush rewrite rules for CPT (will be added in later tasks)
+        // Register CPT first to ensure rewrite rules are set correctly
+        // Note: This requires the class to be instantiated temporarily
+        $instance = new self();
+
+        // Flush rewrite rules for directive CPT
         flush_rewrite_rules();
+
+        // Set default option values if not exists
+        $defaults = [
+            'ascii_polling_interval'   => 2,
+            'ascii_grid_width'         => 120,
+            'ascii_grid_height'        => 40,
+            'ascii_llm_endpoint'       => 'http://localhost:11434/api/generate',
+            'ascii_llm_model'          => 'llama3.2',
+            'ascii_log_retention_days' => 30,
+            'ascii_daemon_enabled'     => false,
+        ];
+
+        foreach ($defaults as $option_name => $default_value) {
+            if (get_option($option_name) === false) {
+                add_option($option_name, $default_value);
+            }
+        }
     }
 
     /**
      * Plugin deactivation hook.
+     *
+     * - Flushes rewrite rules
+     * - Clears plugin transients
      */
     public static function deactivate(): void {
+        // Flush rewrite rules
         flush_rewrite_rules();
+
+        // Clear plugin transients
+        self::clear_transients();
+    }
+
+    /**
+     * Clear all plugin transients.
+     */
+    private static function clear_transients(): void {
+        // Clear daemon status cache
+        delete_transient('ascii_daemon_status');
+
+        // Clear rate limit transients for all users (best effort)
+        // Note: We can't know all user IDs, so we clear the current user's rate limit
+        // Other rate limits will expire naturally after 1 second
+        $current_user_id = get_current_user_id();
+        if ($current_user_id) {
+            delete_transient('ascii_rate_limit_' . $current_user_id);
+        }
     }
 
     /**
