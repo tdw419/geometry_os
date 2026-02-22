@@ -73,7 +73,7 @@ setup_test_environment() {
 run_unit_tests() {
     log_info "Running unit tests..."
 
-    local test_cmd="python3 -m pytest test_*.py -v --tb=short --junitxml=${TEST_RESULTS_DIR}/unit_tests.xml"
+    local test_cmd="python3 -m pytest tests/ -v --tb=short --junitxml=${TEST_RESULTS_DIR}/unit_tests.xml"
 
     if [ "$COVERAGE_AVAILABLE" = true ]; then
         # Test if coverage actually works
@@ -98,7 +98,7 @@ run_unit_tests() {
 run_integration_tests() {
     log_info "Running integration tests..."
 
-    local test_cmd="python3 -m pytest test_integration.py -v --tb=short --junitxml=${TEST_RESULTS_DIR}/integration_tests.xml"
+    local test_cmd="python3 -m pytest tests/integration/ -v --tb=short --junitxml=${TEST_RESULTS_DIR}/integration_tests.xml"
 
     if [ "$COVERAGE_AVAILABLE" = true ]; then
         # Test if coverage actually works
