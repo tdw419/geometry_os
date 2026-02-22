@@ -167,7 +167,8 @@ class VisualDebugOverlay {
             meanScores: { E1_archaeology: 0, E2_manuscript: 0, E3_prophecy: 0 },
             verseCount: 0,
             lastUpdate: null,
-            error: null
+            error: null,
+            errorCode: null
         };
 
         // Canvas layers
@@ -813,8 +814,28 @@ class VisualDebugOverlay {
     handleTruthManifoldUpdate(data) {
         if (!data) return;
 
+        // Check for error payload from backend
+        if (data.error) {
+            this.truthManifoldState.connected = false;
+            this.truthManifoldState.error = data.error;
+            this.truthManifoldState.errorCode = data.error_code || 'UNKNOWN';
+            this.truthManifoldState.lastUpdate = Date.now();
+            this._scheduleRender();
+            return;
+        }
+
         // Extract payload from data.data or data
         const payload = data.data || data;
+
+        // Check for nested error in payload
+        if (payload.error) {
+            this.truthManifoldState.connected = false;
+            this.truthManifoldState.error = payload.error;
+            this.truthManifoldState.errorCode = payload.error_code || 'UNKNOWN';
+            this.truthManifoldState.lastUpdate = Date.now();
+            this._scheduleRender();
+            return;
+        }
 
         // Update truthManifoldState fields
         const systemMetrics = payload.system_metrics || {};
@@ -831,6 +852,7 @@ class VisualDebugOverlay {
         this.truthManifoldState.connected = true;
         this.truthManifoldState.lastUpdate = Date.now();
         this.truthManifoldState.error = null;
+        this.truthManifoldState.errorCode = null;
 
         this._scheduleRender();
     }
@@ -3353,7 +3375,7 @@ class VisualDebugOverlay {
      */
     _renderTruthManifoldSection(ctx, width, padding) {
         const state = this.truthManifoldState;
-        if (!state.enabled && !state.connected) return;
+        if (!state.enabled && !state.connected && !state.error) return;
 
         let y = this._getNextSectionY();
 
@@ -3379,6 +3401,29 @@ class VisualDebugOverlay {
         ctx.font = '10px monospace';
         ctx.fillText(state.connected ? 'Connected' : 'Disconnected', padding + 18, y + 8);
         y += 18;
+
+        // Error handling: Show graceful message when CTRM data unavailable
+        if (state.error) {
+            ctx.fillStyle = '#ffaa00';
+            ctx.font = '10px monospace';
+            ctx.fillText('⚠ No CTRM data available', padding, y);
+            y += 16;
+
+            ctx.fillStyle = '#888';
+            ctx.font = '9px monospace';
+            // Truncate long error messages
+            const errorMsg = state.error.length > 35 ? state.error.substring(0, 32) + '...' : state.error;
+            ctx.fillText(`Error: ${errorMsg}`, padding, y);
+            y += 14;
+
+            if (state.errorCode) {
+                ctx.fillStyle = '#666';
+                ctx.fillText(`Code: ${state.errorCode}`, padding, y);
+            }
+
+            this._lastSectionY = y + 20;
+            return;
+        }
 
         // Cronbach's alpha value with color-coded status
         const alpha = state.cronbachAlpha;

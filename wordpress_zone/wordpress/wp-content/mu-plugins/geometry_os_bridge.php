@@ -200,6 +200,13 @@ class GeometryOS_Bridge {
             'callback' => array($this, 'handle_emergency_reset'),
             'permission_callback' => array($this, 'verify_local_request'),
         ));
+
+        // Heartbeat status endpoint for scorecard
+        register_rest_route('geometry-os/v1', '/heartbeat-status', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_heartbeat_status'),
+            'permission_callback' => '__return_true',
+        ));
     }
 
     /**
@@ -554,6 +561,28 @@ class GeometryOS_Bridge {
 </div>
 <?php
         return ob_get_clean();
+    }
+
+    /**
+     * Get heartbeat status for scorecard
+     */
+    public function get_heartbeat_status($request) {
+        $metrics = get_option('geometry_os_health_metrics', array());
+        $last_update = get_option('geometry_os_health_last_update', 0);
+        $heartbeat_count = get_option('geometry_os_heartbeat_count', 0);
+        $start_time = get_option('geometry_os_start_time', time());
+
+        $seconds_ago = $last_update > 0 ? time() - $last_update : 0;
+        $status = empty($metrics) ? 'no_data' : ($seconds_ago < 120 ? 'active' : 'stale');
+
+        return new WP_REST_Response(array(
+            'status' => $status,
+            'last_update' => (int)$last_update,
+            'seconds_ago' => $seconds_ago,
+            'heartbeat_count' => (int)$heartbeat_count,
+            'uptime_seconds' => time() - (int)$start_time,
+            'metrics' => $metrics,
+        ), 200);
     }
 }
 
