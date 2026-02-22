@@ -161,8 +161,14 @@
             };
 
             // Get API URL from WordPress config or use default
-            const apiBase = (window.geometryOSConfig && window.geometryOSConfig.apiUrl) || '/wp-json/geometry-os/v1';
-            const endpoint = apiBase + '/health';
+            // Support both pretty permalinks (/wp-json/...) and query params (?rest_route=...)
+            let endpoint;
+            if (window.geometryOSConfig && window.geometryOSConfig.apiUrl) {
+                endpoint = window.geometryOSConfig.apiUrl + '/health';
+            } else {
+                // Use rest_route query param (works with PHP built-in server)
+                endpoint = '/?rest_route=/geometry-os/v1/health';
+            }
 
             fetch(endpoint, {
                 method: 'POST',

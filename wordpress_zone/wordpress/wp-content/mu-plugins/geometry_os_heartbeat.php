@@ -47,8 +47,10 @@ add_action('admin_enqueue_scripts', function($hook) {
     );
 
     // Pass configuration to JavaScript
+    // Use rest_route format for compatibility with PHP built-in server
+    $api_url = home_url('/?rest_route=/geometry-os/v1');
     wp_localize_script('geometry-os-heartbeat', 'geometryOSConfig', [
-        'apiUrl' => rest_url('geometry-os/v1'),
+        'apiUrl' => $api_url,
         'heartbeatInterval' => 60000, // 60 seconds
         'mapServer' => $map_server,
     ]);
