@@ -171,6 +171,12 @@ class LLMNarrativeClient:
             self._available = False
             self._last_check = time.time()
             return None
+        except requests.ConnectionError as e:
+            logger.debug("LM Studio connection failed: %s", e)
+            # Cache as unavailable to avoid repeated connection attempts
+            self._available = False
+            self._last_check = time.time()
+            return None
         except requests.RequestException as e:
             logger.debug("LM Studio request failed: %s", e)
             return None
