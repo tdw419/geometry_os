@@ -1,0 +1,31 @@
+{
+  "source": "plan",
+  "name": "llm-powered-expansion",
+  "basePath": "./specs/llm-powered-expansion",
+  "phase": "requirements",
+  "taskIndex": 0,
+  "totalTasks": 0,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": true,
+  "relatedSpecs": [
+    {
+      "name": "evolution-daemon-wordpress-gui",
+      "path": "./specs/evolution-daemon-wordpress-gui",
+      "relevance": "High"
+    },
+    {
+      "name": "pixel-llm-async-api",
+      "path": "./specs/pixel-llm-async-api",
+      "relevance": "Medium"
+    },
+    {
+      "name": "wordpress-git-coordination",
+      "path": "./specs/wordpress-git-coordination",
+      "relevance": "Medium"
+    }
+  ],
+  "awaitingApproval": true
+}
