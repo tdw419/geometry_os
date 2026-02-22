@@ -39,8 +39,39 @@
    ---
    ```
 3. Document the workflow with clear steps and troubleshooting guidance
-4. Run: `./wordpress_zone/manage_wp.sh sync-skills` to sync to WordPress
-5. Update this index table with the new skill entry
+4. Add a `## Self-Verification` section that describes how to verify the skill works correctly (see below)
+5. Run: `./wordpress_zone/manage_wp.sh sync-skills` to sync to WordPress
+6. Update this index table with the new skill entry
+
+### Self-Verification Section Requirement
+
+Every skill **MUST** include a `## Self-Verification` section that answers the question: *"How do I know this skill worked?"*
+
+The section should contain:
+- Specific commands or steps to validate the skill executed correctly
+- Expected output or behavior to confirm success
+- Any log files, state changes, or artifacts to check
+
+Example:
+```markdown
+## Self-Verification
+
+After running this skill, verify success by:
+
+1. Check the evolution daemon is running:
+   ```bash
+   ./systems/visual_shell/swarm/evolution/evolution_ctl.sh status
+   ```
+   Expected: Shows "RUNNING" with PID
+
+2. Verify improvements are being tracked:
+   ```bash
+   cat .geometry/evolution/evolution_log.jsonl | tail -5
+   ```
+   Expected: Recent JSON entries with "status": "applied"
+
+3. Check HUD overlay (Ctrl+Shift+V) shows Evolution metrics updating
+```
 
 ## Skill File Structure
 
