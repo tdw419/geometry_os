@@ -54,7 +54,7 @@ Focus: Validate LLM integration works end-to-end. Skip tests, accept hardcoded v
   - _Requirements: FR-5_
   - _Design: NarrativeBroadcaster Wiring section_
 
-- [ ] 1.5 Add CLI flags for LLM control
+- [x] 1.5 Add CLI flags for LLM control
   - **Do**:
     1. Add `--lm-studio` flag to enable LLM (default: off for backward compat)
     2. Add `--no-lm` flag to explicitly disable

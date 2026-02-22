@@ -1325,7 +1325,12 @@ class EvolutionDaemon:
     # GOSR RADIO - NARRATIVE BROADCASTING
     # =========================================================================
 
-    def enable_radio(self, station_id: str = "87.6") -> bool:
+    def enable_radio(
+        self,
+        station_id: str = "87.6",
+        use_llm: bool = False,
+        llm_config: Optional[Dict[str, Any]] = None
+    ) -> bool:
         """
         Enable GOSR Radio Broadcasting.
 
@@ -1333,6 +1338,7 @@ class EvolutionDaemon:
         - Creates a NarrativeBroadcaster instance
         - Broadcasts narrative segments based on OS telemetry
         - Uses the specified station personality
+        - Optionally uses LM Studio for AI-generated narratives
 
         Args:
             station_id: Radio station identifier (FM frequency)
@@ -1340,6 +1346,9 @@ class EvolutionDaemon:
                        "92.3" = Debug Metal
                        "95.1" = Silicon Noir
                        "99.9" = Neutral Chronicler
+            use_llm: Whether to use LM Studio for AI narratives (default: False)
+            llm_config: Optional LLM configuration dict with keys:
+                       - lm_studio_url: LM Studio API URL (default: http://localhost:1234/v1)
 
         Returns:
             True if radio enabled successfully, False otherwise
@@ -1355,10 +1364,13 @@ class EvolutionDaemon:
         self.radio_broadcaster = NarrativeBroadcaster(
             enabled=True,
             station_id=station_id,
-            broadcast_interval=30.0  # 30 seconds between broadcasts
+            broadcast_interval=30.0,  # 30 seconds between broadcasts
+            use_llm=use_llm,
+            llm_config=llm_config
         )
 
-        logger.info(f"📻 GOSR Radio enabled: Station {station_id} FM")
+        llm_status = " (LLM enabled)" if use_llm else ""
+        logger.info(f"📻 GOSR Radio enabled: Station {station_id} FM{llm_status}")
         return True
 
     def set_radio_station(self, station_id: str) -> bool:
@@ -1551,6 +1563,11 @@ async def main():
     parser.add_argument("--wordpress-url", default="http://localhost:8080", help="WordPress URL for ambient mode")
     parser.add_argument("--radio", action="store_true", help="Enable GOSR Radio Broadcasting")
     parser.add_argument("--station", default="87.6", help="Radio station ID (87.6=Jazz, 92.3=Metal, 95.1=Noir, 99.9=Chronicler)")
+    # LM Studio narrative control flags
+    lm_group = parser.add_mutually_exclusive_group()
+    lm_group.add_argument("--lm-studio", action="store_true", help="Enable LM Studio for AI-generated narratives (requires LM Studio running)")
+    lm_group.add_argument("--no-lm", action="store_true", help="Explicitly disable LM Studio (use templates only)")
+    parser.add_argument("--lm-url", default="http://localhost:1234/v1", help="LM Studio API URL (default: http://localhost:1234/v1)")
     args = parser.parse_args()
 
     daemon = EvolutionDaemon(api_key=args.api_key)
@@ -1566,7 +1583,12 @@ async def main():
 
     # Enable radio if requested
     if args.radio:
-        if daemon.enable_radio(station_id=args.station):
+        # Determine LLM usage: --lm-studio enables, --no-lm disables, default is off (backward compat)
+        use_llm = args.lm_studio and not args.no_lm
+        llm_config = None
+        if use_llm:
+            llm_config = {"lm_studio_url": args.lm_url}
+        if daemon.enable_radio(station_id=args.station, use_llm=use_llm, llm_config=llm_config):
             # Start radio broadcast loop
             daemon._radio_broadcast_task = asyncio.create_task(daemon._radio_broadcast_loop())
 
