@@ -495,6 +495,7 @@ class ASCII_Desktop_Control {
      * AJAX handler: Get ASCII view.
      *
      * Calls ASCII_View->get_view() and returns JSON response.
+     * Rate limited to 1 request per second per user.
      */
     public function ajax_get_view(): void {
         // Verify nonce
@@ -506,6 +507,30 @@ class ASCII_Desktop_Control {
                 'message' => __('Permission denied', 'ascii-desktop-control'),
             ], 403);
         }
+
+        // Rate limit check: 1 request per second per user
+        $user_id = get_current_user_id();
+        $rate_limit_key = 'ascii_rate_limit_' . $user_id;
+        $rate_limited = get_transient($rate_limit_key);
+
+        if ($rate_limited !== false) {
+            // Rate limit exceeded - send 429 status
+            header('X-RateLimit-Limit: 1');
+            header('X-RateLimit-Remaining: 0');
+            header('X-RateLimit-Reset: 1');
+            wp_send_json_error([
+                'message' => __('Rate limit exceeded. Please wait before requesting again.', 'ascii-desktop-control'),
+                'code'    => 'rate_limit_exceeded',
+            ], 429);
+        }
+
+        // Set rate limit transient (1 second TTL)
+        set_transient($rate_limit_key, time(), 1);
+
+        // Add rate limit headers to response
+        header('X-RateLimit-Limit: 1');
+        header('X-RateLimit-Remaining: 0');
+        header('X-RateLimit-Reset: 1');
 
         // Get optional width/height parameters
         $width = isset($_POST['width']) ? (int) $_POST['width'] : null;

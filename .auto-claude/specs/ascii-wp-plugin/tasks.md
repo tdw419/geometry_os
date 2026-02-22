@@ -226,7 +226,7 @@ Focus: Control page, settings page, logs page with real UI templates.
 
 Focus: Rate limiting, admin bar link, activation hooks, final verification.
 
-- [ ] 3.1 Add rate limiting for ASCII view endpoint
+- [x] 3.1 Add rate limiting for ASCII view endpoint
   - **Do**:
     1. Add rate limit check in `ajax_get_view()` handler
     2. Use transient with key `ascii_rate_limit_{user_id}` set to 1 second
