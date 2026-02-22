@@ -91,7 +91,7 @@ Focus: Get RtsWatcherAgent enhanced with core features, create control script.
   - **Commit**: `test(rts-watcher): add scanning tests`
   - _Requirements: AC-4.2_
 
-- [ ] 3.3 Unit tests for RtsWatcherAgent CLI
+- [x] 3.3 Unit tests for RtsWatcherAgent CLI
   - **Do**: Add tests for CLI argument parsing, main() entry point, --once mode.
   - **Files**: `tests/test_rts_watcher_agent.py`
   - **Done when**: Tests cover all CLI flags, help output, version flag
