@@ -39,7 +39,7 @@ Focus: Critical safety tests first, then core unit tests.
   - _Requirements: FR-8, FR-9, FR-10, FR-11, FR-12_
   - _Design: test_desktop_agent_backend.py section_
 
-- [ ] 1.4 TrackBoardClient Unit Tests
+- [x] 1.4 TrackBoardClient Unit Tests
   - **Do**: Create `tests/test_desktop_agent_track.py` with 15+ tests mocking TrackManager, WordPress unavailable fallback
   - **Files**: `tests/test_desktop_agent_track.py`, `systems/desktop_agent/safety/track_client.py`
   - **Done when**: All 15+ tests pass, fallback path tested
