@@ -12,12 +12,16 @@ Components:
 - SegmentPool: Content generation
 - PersonalityEngine: Station voices
 - FeedbackOrchestrator: Evolution integration
+- LLMNarrativeClient: LM Studio integration for AI content
+- WordPressPublisher: WordPress REST API publishing
 """
 
 from .broadcaster import NarrativeBroadcaster, BroadcastSegment
 from .topic_memory import TopicMemory, TopicEntry
 from .segment_pool import SegmentPool, SegmentType, SegmentConfig
 from .feedback_orchestrator import FeedbackOrchestrator, FeedbackSignal
+from .llm_client import LLMNarrativeClient, LLMConfig
+from .wordpress_publisher import WordPressPublisher, WordPressConfig
 
 __all__ = [
     'NarrativeBroadcaster',
@@ -29,6 +33,10 @@ __all__ = [
     'SegmentConfig',
     'FeedbackOrchestrator',
     'FeedbackSignal',
+    'LLMNarrativeClient',
+    'LLMConfig',
+    'WordPressPublisher',
+    'WordPressConfig',
 ]
 
-__version__ = '1.0.0'
+__version__ = '2.1.0'
