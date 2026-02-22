@@ -21,7 +21,7 @@ Focus: Build core components and verify browser UI works end-to-end.
   - _Requirements: FR-1_
   - _Design: CertificationTests.js_
 
-- [ ] 1.2 Create CertificationRunner.js orchestrator
+- [x] 1.2 Create CertificationRunner.js orchestrator
   - **Do**: Create `systems/visual_shell/web/CertificationRunner.js` with class having on(), emit(), runTest(), runLevel(), runAll(), respond(), getSummary() methods. Implement event-driven architecture with timeout handling.
   - **Files**: `systems/visual_shell/web/CertificationRunner.js`
   - **Done when**: File exists, exports `window.CertificationRunner`, console shows "[CertificationRunner] Class loaded"
