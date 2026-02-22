@@ -75,20 +75,26 @@ class RtsWatcherAgent:
         }
         logger.setLevel(level_map.get(level.upper(), logging.INFO))
 
-    def write_heartbeat(self) -> None:
+    def write_heartbeat(self, running: Optional[bool] = None) -> None:
         """
         Write heartbeat file for external monitoring.
 
         Writes JSON with: timestamp, pid, running, uptime_seconds, files_ingested.
+
+        Args:
+            running: Override running state (use for shutdown heartbeat)
         """
         uptime = 0.0
         if self._start_time:
             uptime = (datetime.utcnow() - self._start_time).total_seconds()
 
+        # Use provided running state, or fall back to _running flag
+        is_running = running if running is not None else self._running
+
         heartbeat_data = {
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "pid": os.getpid(),
-            "running": self._start_time is not None,
+            "running": is_running,
             "uptime_seconds": uptime,
             "files_ingested": self._files_ingested,
             "files_skipped": self._files_skipped,
@@ -260,6 +266,10 @@ class RtsWatcherAgent:
         if self._start_time is None:
             self._start_time = datetime.utcnow()
 
+        # Set running flag for heartbeat (used in --once mode)
+        if not self._running:
+            self._running = True
+
         logger.info(f"Starting scanning cycle (watch_dir={self.watch_dir})")
 
         # Scan and ingest
@@ -315,7 +325,7 @@ class RtsWatcherAgent:
                 time.sleep(1)
 
         logger.info("RtsWatcherAgent stopped")
-        self.write_heartbeat()
+        self.write_heartbeat(running=False)
 
 
 def main():

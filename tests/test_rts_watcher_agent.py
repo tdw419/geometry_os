@@ -49,6 +49,7 @@ class TestHeartbeatSupport:
         """Test that heartbeat contains all required fields."""
         agent_instance, heartbeat_path = agent
         agent_instance._start_time = datetime.utcnow()
+        agent_instance._running = True  # Set running flag for heartbeat
         agent_instance._files_ingested = 5
         agent_instance._files_skipped = 2
         agent_instance._errors = 1
