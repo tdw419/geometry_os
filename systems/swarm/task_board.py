@@ -173,10 +173,14 @@ class TaskBoard:
         for path in self.storage_path.glob("*.json"):
             if path.name == ".board.lock":
                 continue
-            with open(path, 'r') as f:
-                task = Task.from_json(f.read())
-                if task.status == TaskStatus.PENDING:
-                    tasks.append(task)
+            try:
+                with open(path, 'r') as f:
+                    task = Task.from_json(f.read())
+                    if task.status == TaskStatus.PENDING:
+                        tasks.append(task)
+            except (json.JSONDecodeError, KeyError, ValueError):
+                # Skip corrupted task files
+                continue
         return sorted(tasks, key=lambda t: t.priority)
 
     def get_by_type(self, task_type: TaskType) -> List[Task]:
@@ -185,10 +189,14 @@ class TaskBoard:
         for path in self.storage_path.glob("*.json"):
             if path.name == ".board.lock":
                 continue
-            with open(path, 'r') as f:
-                task = Task.from_json(f.read())
-                if task.task_type == task_type:
-                    tasks.append(task)
+            try:
+                with open(path, 'r') as f:
+                    task = Task.from_json(f.read())
+                    if task.task_type == task_type:
+                        tasks.append(task)
+            except (json.JSONDecodeError, KeyError, ValueError):
+                # Skip corrupted task files
+                continue
         return tasks
 
     def get_results_by_parent(self, parent_id: str) -> List[Dict[str, Any]]:
@@ -201,12 +209,16 @@ class TaskBoard:
         for path in self.storage_path.glob("*.json"):
             if path.name == ".board.lock":
                 continue
-            with open(path, 'r') as f:
-                task = Task.from_json(f.read())
-                if (task.payload.get("parent_id") == parent_id
-                    and task.status == TaskStatus.COMPLETED
-                    and task.result is not None):
-                    results.append(task.result)
+            try:
+                with open(path, 'r') as f:
+                    task = Task.from_json(f.read())
+                    if (task.payload.get("parent_id") == parent_id
+                        and task.status == TaskStatus.COMPLETED
+                        and task.result is not None):
+                        results.append(task.result)
+            except (json.JSONDecodeError, KeyError, ValueError):
+                # Skip corrupted task files
+                continue
         return results
 
     def list_all(self) -> List[Task]:
@@ -215,6 +227,10 @@ class TaskBoard:
         for path in self.storage_path.glob("*.json"):
             if path.name == ".board.lock":
                 continue
-            with open(path, 'r') as f:
-                tasks.append(Task.from_json(f.read()))
+            try:
+                with open(path, 'r') as f:
+                    tasks.append(Task.from_json(f.read()))
+            except (json.JSONDecodeError, KeyError, ValueError):
+                # Skip corrupted task files
+                continue
         return tasks
