@@ -48,7 +48,7 @@ Focus: Get RtsWatcherAgent enhanced with core features, create control script.
   - _Requirements: FR-7_
   - _Design: Component 2_
 
-- [ ] 1.5 POC Checkpoint
+- [x] 1.5 POC Checkpoint
   - **Do**: Verify RtsWatcherAgent works end-to-end with control script
   - **Done when**: Can start agent, check status, stop agent via control script
   - **Verify**: `cd systems/intelligence && ./rts_watcher_ctl.sh start && sleep 3 && ./rts_watcher_ctl.sh status && ./rts_watcher_ctl.sh stop`

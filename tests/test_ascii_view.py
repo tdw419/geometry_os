@@ -121,6 +121,10 @@ class TestGenerateAsciiView:
 
     def test_generate_ascii_view_includes_metadata_header(self):
         """generate_ascii_view should include window metadata in header."""
+        # Skip if no focused window available
+        if get_focused_window() is None:
+            pytest.skip("No focused window available")
+
         ascii_view, bindings = generate_ascii_view()
         assert isinstance(ascii_view, str), f"Expected str for ascii_view, got {type(ascii_view)}"
 
@@ -136,6 +140,10 @@ class TestGenerateAsciiView:
 
     def test_generate_ascii_view_includes_screenshot_on_black_box(self):
         """When window is black-box, should use screenshot mode."""
+        # Skip if no focused window available
+        if get_focused_window() is None:
+            pytest.skip("No focused window available")
+
         ascii_view, bindings = generate_ascii_view()
 
         # Check mode indicator in header
@@ -146,6 +154,10 @@ class TestGenerateAsciiView:
 
     def test_generate_ascii_view_produces_multiline_output(self):
         """generate_ascii_view should produce multi-line ASCII output."""
+        # Skip if no focused window available
+        if get_focused_window() is None:
+            pytest.skip("No focused window available")
+
         ascii_view, bindings = generate_ascii_view()
         lines = ascii_view.strip().split('\n')
 
