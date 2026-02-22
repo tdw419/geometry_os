@@ -12,7 +12,7 @@ generated: auto
 
 Focus: Validate Task data structure and TaskBoard storage. Core components first.
 
-- [ ] 1.1 Task data structure
+- [x] 1.1 Task data structure
   - **Do**: Create Task dataclass with status lifecycle, serialization
   - **Files**: `systems/swarm/task.py`, `tests/swarm/test_task.py`
   - **Done when**: 4 tests pass (create, fields, to_json, from_json)

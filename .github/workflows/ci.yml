@@ -109,7 +109,7 @@ jobs:
         safety check --json > safety_report.json || echo "Safety dependency scan completed"
 
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-results-${{ github.run_number }}
@@ -169,7 +169,7 @@ jobs:
         ./build_docs.sh
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: vectoros-build-${{ github.run_number }}
         path: |
