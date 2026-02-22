@@ -56,7 +56,7 @@ Focus: Validate LLM integration works end-to-end. Skip edge cases, accept hardco
   - _Requirements: FR-3, FR-7, FR-8_
   - _Design: SafetyConfig component_
 
-- [ ] 1.3 Integrate LLM service into ContentAnalyzer
+- [x] 1.3 Integrate LLM service into ContentAnalyzer
   - **Do**:
     1. Add `from typing import Optional` import to content_analyzer.py
     2. Add `from .llm_expansion_service import LLMExpansionService, LLMExpansionConfig` import
@@ -70,7 +70,7 @@ Focus: Validate LLM integration works end-to-end. Skip edge cases, accept hardco
   - _Requirements: FR-2_
   - _Design: ContentAnalyzer (Modified)_
 
-- [ ] 1.4 Add CLI flags for LLM mode
+- [x] 1.4 Add CLI flags for LLM mode
   - **Do**:
     1. Modify `bridge_service.py` to add `--llm` store_true argument
     2. Add `--llm-model` argument defaulting to "glm-4-plus"
@@ -145,7 +145,7 @@ Focus: Validate LLM integration works end-to-end. Skip edge cases, accept hardco
   - _Requirements: FR-7, AC-4.1, AC-4.2_
   - _Design: BridgeServiceConfig (Modified)_
 
-- [ ] 2.2 Write CLI flag tests
+- [x] 2.2 Write CLI flag tests
   - **Do**:
     1. Create `tests/test_bridge_cli.py`
     2. Write `test_cli_accepts_llm_flag()` verifying args.llm == True
