@@ -16,9 +16,11 @@ import time
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
 
-from .content_analyzer import ImprovementProposal
+from .content_analyzer import ImprovementProposal, WordPressContentAnalyzer
 from .evolution_agent import WordPressEvolutionAgent, EvolutionCycleResult
 from .action_executor import PlaywrightActionExecutor, ExecutionResult
+from .safety_config import SafetyConfig, ContentBackup
+from .llm_expansion_service import LLMExpansionConfig
 
 logger = logging.getLogger("wp_evolution_bridge")
 
@@ -31,6 +33,10 @@ class BridgeServiceConfig:
     cycle_interval: int = 60  # seconds between cycles
     auto_execute: bool = False  # Safety: require manual approval by default
     min_confidence: float = 0.5  # Minimum confidence to consider a proposal
+    llm_enabled: bool = False  # Feature flag for LLM expansion
+    llm_model: str = "glm-4-plus"  # LLM model to use
+    llm_temperature: float = 0.7  # LLM temperature for generation
+    safety_config: Optional[SafetyConfig] = None  # Safety configuration
 
 
 @dataclass
@@ -64,7 +70,36 @@ class WPEvolutionBridgeService:
         memory_provider: Optional[Any] = None
     ):
         self.config = config
-        self._agent = agent or WordPressEvolutionAgent(wp_url=config.wp_url)
+
+        # Create safety config if not provided
+        self._safety_config = config.safety_config or SafetyConfig(
+            require_backup=True,
+            min_confidence=config.min_confidence
+        )
+
+        # Create backup manager if backups required
+        self._backup_manager: Optional[ContentBackup] = None
+        if self._safety_config.require_backup:
+            self._backup_manager = ContentBackup(self._safety_config)
+
+        # Create content analyzer with LLM settings if enabled
+        llm_config = None
+        if config.llm_enabled:
+            llm_config = LLMExpansionConfig(
+                model=config.llm_model,
+                temperature=config.llm_temperature,
+                llm_enabled=True
+            )
+
+        analyzer = WordPressContentAnalyzer(
+            llm_enabled=config.llm_enabled,
+            llm_config=llm_config
+        )
+
+        self._agent = agent or WordPressEvolutionAgent(
+            wp_url=config.wp_url,
+            analyzer=analyzer
+        )
         self._executor = executor or PlaywrightActionExecutor(ws_uri=config.ws_uri)
         self._memory_provider = memory_provider
 
@@ -264,6 +299,27 @@ def create_cli_parser() -> argparse.ArgumentParser:
         help="Run a single cycle and exit"
     )
     parser.add_argument(
+        "--llm",
+        action="store_true",
+        help="Enable LLM-powered content expansion (requires ZAI_API_KEY)"
+    )
+    parser.add_argument(
+        "--llm-model",
+        default="glm-4-plus",
+        help="LLM model to use for content expansion"
+    )
+    parser.add_argument(
+        "--llm-temperature",
+        type=float,
+        default=0.7,
+        help="Temperature for LLM generation (0.0-1.0)"
+    )
+    parser.add_argument(
+        "--no-backup",
+        action="store_true",
+        help="Disable content backups before modifications (NOT RECOMMENDED)"
+    )
+    parser.add_argument(
         "--verbose", "-v",
         action="store_true",
         help="Enable verbose logging"
@@ -279,12 +335,22 @@ async def main_async(args: argparse.Namespace):
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
     )
 
+    # Create safety config from CLI args
+    safety_config = SafetyConfig(
+        require_backup=not args.no_backup,
+        min_confidence=args.min_confidence
+    )
+
     config = BridgeServiceConfig(
         wp_url=args.wp_url,
         ws_uri=args.ws_uri,
         cycle_interval=args.interval,
         auto_execute=args.auto_execute,
-        min_confidence=args.min_confidence
+        min_confidence=args.min_confidence,
+        llm_enabled=args.llm,
+        llm_model=args.llm_model,
+        llm_temperature=args.llm_temperature,
+        safety_config=safety_config
     )
 
     service = WPEvolutionBridgeService(config)

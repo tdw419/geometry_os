@@ -70,7 +70,7 @@ Focus: Validate LLM integration works end-to-end. Skip edge cases, accept hardco
   - _Requirements: FR-2_
   - _Design: ContentAnalyzer (Modified)_
 
-- [ ] 1.4 Add CLI flags for LLM mode
+- [x] 1.4 Add CLI flags for LLM mode
   - **Do**:
     1. Modify `bridge_service.py` to add `--llm` store_true argument
     2. Add `--llm-model` argument defaulting to "glm-4-plus"
