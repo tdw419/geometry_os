@@ -51,6 +51,7 @@ jobs:
           pytest \
           pytest-cov \
           pytest-xdist \
+          pytest-asyncio \
           black \
           flake8 \
           mypy \
@@ -61,7 +62,8 @@ jobs:
           pyyaml \
           requests \
           markdown \
-          websockets
+          websockets \
+          psutil
 
     - name: Cache build artifacts
       uses: actions/cache@v3

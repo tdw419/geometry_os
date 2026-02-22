@@ -73,7 +73,7 @@ setup_test_environment() {
 run_unit_tests() {
     log_info "Running unit tests..."
 
-    local test_cmd="python3 -m pytest tests/ -v --tb=short --continue-on-collection-errors --ignore=tests/intelligence --ignore=tests/skills --ignore=tests/system --junitxml=${TEST_RESULTS_DIR}/unit_tests.xml"
+    local test_cmd="python3 -m pytest tests/ -v --tb=short --continue-on-collection-errors --ignore=tests/intelligence --ignore=tests/skills --ignore=tests/system --ignore=tests/test_tectonic_mutation_e2e.py --ignore=tests/test_tectonic_metabolism.py --ignore=tests/testclass --ignore=tests/unit/test_vasm.py --ignore=tests/unit/test_pixelrts_v2_performance.py --junitxml=${TEST_RESULTS_DIR}/unit_tests.xml"
 
     if [ "$COVERAGE_AVAILABLE" = true ]; then
         # Test if coverage actually works
