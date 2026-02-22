@@ -1,0 +1,12 @@
+{
+  "name": "ascii-desktop-control-tests",
+  "version": "1.0.0",
+  "description": "Tests for ASCII Desktop Control WordPress plugin",
+  "scripts": {
+    "test": "node run-tests.js",
+    "test:watch": "nodemon run-tests.js"
+  },
+  "devDependencies": {
+    "jsdom": "^24.0.0"
+  }
+}

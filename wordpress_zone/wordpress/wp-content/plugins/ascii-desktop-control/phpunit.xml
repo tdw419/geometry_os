@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+    bootstrap="tests/php/bootstrap.php"
+    colors="true"
+    verbose="true"
+    testdox="true"
+>
+    <testsuites>
+        <testsuite name="ASCII Desktop Control Tests">
+            <directory suffix=".php">./tests/php</directory>
+        </testsuite>
+    </testsuites>
+
+    <coverage processUncoveredFiles="true">
+        <include>
+            <directory suffix=".php">./</directory>
+        </include>
+        <exclude>
+            <directory>./tests</directory>
+            <directory>./vendor</directory>
+            <directory>./assets</directory>
+        </exclude>
+    </coverage>
+
+    <php>
+        <const name="WP_TESTS_SKIP_INSTALL" value="1"/>
+    </php>
+</phpunit>
