@@ -64,7 +64,7 @@ Focus: Get RtsWatcherAgent enhanced with core features, create control script.
   - **Commit**: `refactor(rts-watcher): improve error handling`
   - _Design: Error Handling_
 
-- [ ] 2.2 Create agent_status.sh unified dashboard
+- [x] 2.2 Create agent_status.sh unified dashboard
   - **Do**: Create bash script that reads both heartbeat files, displays status for DirectiveAgent and RtsWatcherAgent with color coding.
   - **Files**: `systems/intelligence/agent_status.sh`
   - **Done when**: Script shows both agents with running/stopped status, uptime, metrics
