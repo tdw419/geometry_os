@@ -154,7 +154,7 @@ Focus: Control page, settings page, logs page with real UI templates.
   - **Commit**: `feat(wp): add settings page template`
   - _Requirements: AC-5.1 through AC-5.8_
 
-- [ ] 2.3 Create logs page template
+- [x] 2.3 Create logs page template
   - **Do**:
     1. Create `admin/page-logs.php` with table structure
     2. Add filter form (status dropdown, date range, search)
