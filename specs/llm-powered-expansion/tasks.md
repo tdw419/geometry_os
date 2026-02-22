@@ -193,7 +193,7 @@ Focus: Validate LLM integration works end-to-end. Skip edge cases, accept hardco
   - _Requirements: FR-7, AC-4.1, AC-4.4_
   - _Design: Test Strategy - Integration Tests_
 
-- [ ] 3.2 Write E2E integration tests
+- [x] 3.2 Write E2E integration tests
   - **Do**:
     1. Create `tests/test_llm_expansion_integration.py`
     2. Write `test_full_expansion_flow_with_llm()` end-to-end post->analysis->expansion->proposal
@@ -215,7 +215,7 @@ Focus: Validate LLM integration works end-to-end. Skip edge cases, accept hardco
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Run full Python test coverage
+- [x] 4.1 Run full Python test coverage
   - **Do**:
     1. Run pytest with coverage on all new modules
     2. Ensure coverage > 80% on new code

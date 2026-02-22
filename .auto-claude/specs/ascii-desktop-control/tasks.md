@@ -64,7 +64,7 @@
   - **Verify**: `python3 -m pytest tests/test_ascii_wp_integration.py -v`
   - **Commit**: `test(integration): add WordPress directive flow tests`
 
-- [ ] 4.2 Create systemd service file
+- [x] 4.2 Create systemd service file
   - **Do**: Create `systemd/geometryos-directive-daemon.service` and `scripts/install_daemon.sh`
   - **Files**: `systemd/geometryos-directive-daemon.service`, `scripts/install_daemon.sh`
   - **Done when**: Service file exists and install script is executable
@@ -73,7 +73,7 @@
 
 ## Phase 5: Documentation
 
-- [ ] 5.1 Create documentation
+- [x] 5.1 Create documentation
   - **Do**: Create `docs/ASCII_DESKTOP_CONTROL.md` with quickstart guide, architecture, configuration
   - **Files**: `docs/ASCII_DESKTOP_CONTROL.md`
   - **Done when**: Documentation exists and covers all features

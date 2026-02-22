@@ -147,6 +147,11 @@ switch ($action) {
         handle_get_truth_stats($args);
         break;
 
+    // TMS ANSMO Cycle API
+    case 'logAnsmoCycle':
+        handle_log_ansmo_cycle($args);
+        break;
+
     default:
         header('HTTP/1.1 400 Bad Request');
         echo json_encode(array('success' => false, 'error' => 'Invalid action/tool: ' . $action));
@@ -1143,5 +1148,318 @@ function handle_heartbeat_track($args) {
         'track_id' => $track_id,
         'heartbeat' => $now,
         'message' => 'Heartbeat updated successfully'
+    ));
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ * CTRM Truth Management System API Handlers
+ * ─────────────────────────────────────────────────────────────
+ */
+
+/**
+ * Handle bulk sync of truths from TMS
+ * POST /ai-publisher.php {"action":"syncTruths","truths":[...]}
+ *
+ * @param array $args Contains 'truths' array of truth objects
+ * @return JSON response with sync stats and results
+ */
+function handle_sync_truths($args) {
+    // Validate truths array presence
+    if (!isset($args['truths']) || !is_array($args['truths'])) {
+        header('HTTP/1.1 400 Bad Request');
+        echo json_encode(array(
+            'success' => false,
+            'error' => 'Missing or invalid truths array'
+        ));
+        return;
+    }
+
+    $truths = $args['truths'];
+    $total_requested = count($truths);
+
+    // Limit to 100 truths per request
+    if ($total_requested > 100) {
+        $truths = array_slice($truths, 0, 100);
+    }
+
+    $synced_count = 0;
+    $skipped_count = 0;
+    $results = array();
+
+    foreach ($truths as $truth) {
+        // Validate required fields for each truth
+        if (!isset($truth['truth_id'])) {
+            $skipped_count++;
+            $results[] = array(
+                'truth_id' => null,
+                'status' => 'skipped',
+                'error' => 'Missing truth_id'
+            );
+            continue;
+        }
+
+        $truth_id = sanitize_text_field($truth['truth_id']);
+
+        // Check for existing truth by truth_id meta
+        $existing = get_posts(array(
+            'post_type' => 'truth_entry',
+            'post_status' => 'any',
+            'posts_per_page' => 1,
+            'meta_query' => array(
+                array(
+                    'key' => 'truth_id',
+                    'value' => $truth_id,
+                    'compare' => '='
+                )
+            )
+        ));
+
+        // Extract truth fields with defaults
+        $title = isset($truth['claim']) ? wp_strip_all_tags($truth['claim']) : "Truth: $truth_id";
+        $content = isset($truth['reason']) ? $truth['reason'] : '';
+        $confidence = isset($truth['confidence']) ? floatval($truth['confidence']) : 0.5;
+        $agent = isset($truth['agent']) ? sanitize_text_field($truth['agent']) : '';
+        $subject = isset($truth['subject']) ? sanitize_text_field($truth['subject']) : '';
+        $evidence = isset($truth['evidence']) ? $truth['evidence'] : '';
+        $reasoning_path = isset($truth['reasoning_path']) ? $truth['reasoning_path'] : array();
+
+        // Calculate transparency_score per FR-1: min(1.0, len(reasoning_path)/10)
+        $transparency_score = min(1.0, count($reasoning_path) / 10);
+
+        $post_data = array(
+            'post_title'   => $title,
+            'post_content' => $content,
+            'post_status'  => 'publish',
+            'post_author'  => 1,
+            'post_type'    => 'truth_entry'
+        );
+
+        $post_id = null;
+        $action_taken = '';
+
+        if (!empty($existing)) {
+            // Update existing truth
+            $post_data['ID'] = $existing[0]->ID;
+            $post_id = wp_update_post($post_data);
+            $action_taken = 'updated';
+        } else {
+            // Create new truth
+            $post_id = wp_insert_post($post_data);
+            $action_taken = 'created';
+        }
+
+        if (is_wp_error($post_id)) {
+            $skipped_count++;
+            $results[] = array(
+                'truth_id' => $truth_id,
+                'status' => 'error',
+                'error' => $post_id->get_error_message()
+            );
+            continue;
+        }
+
+        // Update/create meta fields
+        update_post_meta($post_id, 'truth_id', $truth_id);
+        update_post_meta($post_id, 'confidence', $confidence);
+        update_post_meta($post_id, 'transparency_score', $transparency_score);
+        update_post_meta($post_id, 'agent', $agent);
+        update_post_meta($post_id, 'subject', $subject);
+        update_post_meta($post_id, 'evidence', $evidence);
+        update_post_meta($post_id, 'reasoning_path', $reasoning_path);
+
+        $synced_count++;
+        $results[] = array(
+            'truth_id' => $truth_id,
+            'post_id' => $post_id,
+            'status' => 'synced',
+            'action' => $action_taken,
+            'url' => get_permalink($post_id)
+        );
+    }
+
+    echo json_encode(array(
+        'success' => true,
+        'synced_count' => $synced_count,
+        'skipped_count' => $skipped_count,
+        'total_requested' => $total_requested,
+        'processed' => count($truths),
+        'results' => $results
+    ));
+}
+
+/**
+ * Handle getting aggregate truth statistics
+ * POST /ai-publisher.php {"action":"getTruthStats"}
+ *
+ * @return void Outputs JSON response with aggregate stats
+ */
+function handle_get_truth_stats() {
+    // Query all truth_entry posts
+    $args = array(
+        'post_type' => 'truth_entry',
+        'post_status' => 'publish',
+        'posts_per_page' => -1, // Get all
+        'orderby' => 'date',
+        'order' => 'DESC'
+    );
+
+    $query = new WP_Query($args);
+    $total_truths = $query->found_posts;
+
+    // Initialize aggregates
+    $confidence_sum = 0.0;
+    $transparency_sum = 0.0;
+    $count = 0;
+    $recent_truths = array();
+
+    if ($query->have_posts()) {
+        while ($query->have_posts()) {
+            $query->the_post();
+            $post_id = get_the_ID();
+
+            // Get meta values
+            $confidence = floatval(get_post_meta($post_id, 'confidence', true));
+            $transparency = floatval(get_post_meta($post_id, 'transparency_score', true));
+
+            $confidence_sum += $confidence;
+            $transparency_sum += $transparency;
+            $count++;
+
+            // Collect 5 most recent truths
+            if (count($recent_truths) < 5) {
+                $recent_truths[] = array(
+                    'id' => $post_id,
+                    'title' => get_the_title(),
+                    'confidence' => $confidence,
+                    'date' => get_the_date('c')
+                );
+            }
+        }
+        wp_reset_postdata();
+    }
+
+    // Calculate averages (handle division by zero)
+    $avg_confidence = $count > 0 ? $confidence_sum / $count : 0.0;
+    $avg_transparency = $count > 0 ? $transparency_sum / $count : 0.0;
+
+    // Calculate system_health = avg_confidence * 0.6 + avg_transparency * 0.4
+    $system_health = ($avg_confidence * 0.6) + ($avg_transparency * 0.4);
+
+    echo json_encode(array(
+        'success' => true,
+        'total_truths' => $total_truths,
+        'avg_confidence' => round($avg_confidence, 4),
+        'avg_transparency' => round($avg_transparency, 4),
+        'system_health' => round($system_health, 4),
+        'recent_truths' => $recent_truths
+    ));
+}
+
+/**
+ * Handle logging an ANSMO optimization cycle
+ * POST /ai-publisher.php {"action":"logAnsmoCycle","phase":"introspection",...}
+ *
+ * @param array $args {
+ *   @type string $phase            Required. introspection|synthesis|optimization
+ *   @type array  $input_state      Required. State before cycle
+ *   @type array  $output_state     Required. State after cycle
+ *   @type float  $improvement_delta Required. Change metric
+ *   @type string $cycle_id         Optional. UUID, auto-generated if missing
+ * }
+ * @return void Outputs JSON response
+ */
+function handle_log_ansmo_cycle($args) {
+    // Validate required fields
+    $missing = array();
+    if (!isset($args['phase']) || empty($args['phase'])) {
+        $missing[] = 'phase';
+    }
+    if (!isset($args['input_state'])) {
+        $missing[] = 'input_state';
+    }
+    if (!isset($args['output_state'])) {
+        $missing[] = 'output_state';
+    }
+    if (!isset($args['improvement_delta'])) {
+        $missing[] = 'improvement_delta';
+    }
+
+    if (!empty($missing)) {
+        header('HTTP/1.1 400 Bad Request');
+        echo json_encode(array(
+            'success' => false,
+            'error' => 'Missing required fields: ' . implode(', ', $missing)
+        ));
+        return;
+    }
+
+    $phase = sanitize_text_field($args['phase']);
+    $valid_phases = array('introspection', 'synthesis', 'optimization');
+
+    if (!in_array($phase, $valid_phases)) {
+        header('HTTP/1.1 400 Bad Request');
+        echo json_encode(array(
+            'success' => false,
+            'error' => 'Invalid phase. Must be: ' . implode(', ', $valid_phases)
+        ));
+        return;
+    }
+
+    $input_state = $args['input_state'];
+    $output_state = $args['output_state'];
+    $improvement_delta = floatval($args['improvement_delta']);
+
+    // Auto-generate cycle_id if not provided
+    $cycle_id = isset($args['cycle_id']) && !empty($args['cycle_id'])
+        ? sanitize_text_field($args['cycle_id'])
+        : wp_generate_uuid4();
+
+    // Build title and content
+    $title = "ANSMO Cycle: $phase ($cycle_id)";
+    $content = "<h3>ANSMO Optimization Cycle</h3>" .
+               "<p><b>Phase:</b> $phase</p>" .
+               "<p><b>Improvement Delta:</b> " . ($improvement_delta * 100) . "%</p>" .
+               "<h4>Input State</h4>" .
+               "<pre>" . esc_html(json_encode($input_state, JSON_PRETTY_PRINT)) . "</pre>" .
+               "<h4>Output State</h4>" .
+               "<pre>" . esc_html(json_encode($output_state, JSON_PRETTY_PRINT)) . "</pre>";
+
+    // Create ansmo_cycle post
+    $post_data = array(
+        'post_title'   => $title,
+        'post_content' => $content,
+        'post_status'  => 'publish',
+        'post_author'  => 1,
+        'post_type'    => 'ansmo_cycle'
+    );
+
+    $post_id = wp_insert_post($post_data);
+
+    if (is_wp_error($post_id)) {
+        header('HTTP/1.1 500 Internal Server Error');
+        echo json_encode(array(
+            'success' => false,
+            'error' => 'Failed to create ansmo_cycle post: ' . $post_id->get_error_message()
+        ));
+        return;
+    }
+
+    // Store meta fields
+    add_post_meta($post_id, 'cycle_id', $cycle_id);
+    add_post_meta($post_id, 'phase', $phase);
+    add_post_meta($post_id, 'improvement_delta', $improvement_delta);
+
+    // Notify Visual Bridge
+    notify_visual_bridge('ANSMO_CYCLE', $cycle_id, 'ansmo', array(
+        'phase' => $phase,
+        'improvement_delta' => $improvement_delta
+    ));
+
+    echo json_encode(array(
+        'success' => true,
+        'post_id' => $post_id,
+        'cycle_id' => $cycle_id,
+        'url' => get_permalink($post_id)
     ));
 }

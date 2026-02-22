@@ -2,6 +2,26 @@
 
 A unified AI-to-desktop control system that allows Claude Code and Gemini to control your Linux desktop via ASCII representations, with WordPress-based directive polling for remote task dispatch.
 
+## Quick Start
+
+```bash
+# 1. Install dependencies
+sudo apt install xdotool imagemagick
+pip install requests
+
+# 2. Test ASCII capture
+DISPLAY=:0 python3 .gemini/skills/ascii-desktop-control/scripts/get_ascii_view.py
+
+# 3. Test desktop action
+DISPLAY=:0 python3 .gemini/skills/ascii-desktop-control/scripts/desktop_action.py click "[100, 200]"
+
+# 4. Install daemon (optional)
+./scripts/install_daemon.sh
+
+# 5. View daemon logs
+journalctl --user -u geometryos-directive-daemon -f
+```
+
 ## How It Works
 
 ### The Core Idea

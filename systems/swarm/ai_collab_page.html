@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Install Geometry OS with AI</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .container { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 16px; padding: 40px; }
+        h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .subtitle { color: #aaa; margin-bottom: 40px; font-size: 1.1em; }
+        .step { background: rgba(0,0,0,0.3); border-radius: 12px; padding: 25px; margin: 20px 0; }
+        .step h3 { margin-top: 0; color: #4fc3f7; }
+        .step-number { display: inline-block; width: 30px; height: 30px; background: #4fc3f7; color: #000; border-radius: 50%; text-align: center; line-height: 30px; margin-right: 10px; font-weight: bold; }
+        .url-box { background: #000; padding: 20px; border-radius: 8px; margin: 15px 0; font-family: monospace; word-break: break-all; font-size: 14px; border: 2px solid #333; }
+        .prompt-box { background: #1e1e1e; padding: 20px; border-radius: 8px; margin: 15px 0; font-family: monospace; font-size: 14px; white-space: pre-wrap; border: 2px solid #333; max-height: 300px; overflow-y: auto; }
+        .copy-btn {
+            background: #4fc3f7; color: #000; border: none; padding: 10px 20px;
+            border-radius: 6px; cursor: pointer; font-weight: bold; margin: 5px;
+        }
+        .copy-btn:hover { background: #81d4fa; }
+        .ai-select { display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; }
+        .ai-btn {
+            padding: 15px 25px; border-radius: 8px; cursor: pointer;
+            border: 2px solid #333; background: rgba(0,0,0,0.3); color: #fff;
+            font-size: 16px; transition: all 0.3s;
+        }
+        .ai-btn:hover { border-color: #4fc3f7; }
+        .ai-btn.active { border-color: #4fc3f7; background: rgba(79, 195, 247, 0.2); }
+        .ai-btn img { height: 24px; vertical-align: middle; margin-right: 8px; }
+        .status { padding: 15px; border-radius: 8px; margin: 15px 0; display: none; }
+        .status.success { background: #2e7d32; display: block; }
+        .status.error { background: #c62828; display: block; }
+        .hidden { display: none; }
+        .highlight { color: #4fc3f7; }
+        .daemon-status { font-size: 14px; color: #888; margin-top: 30px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px; }
+        code { background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px; }
+        .flow-diagram { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 30px 0; flex-wrap: wrap; }
+        .flow-box { background: rgba(79, 195, 247, 0.2); padding: 15px 20px; border-radius: 8px; text-align: center; }
+        .flow-arrow { color: #4fc3f7; font-size: 24px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐝 Install Geometry OS</h1>
+        <p class="subtitle">Let AI install it for you - just copy and paste!</p>
+
+        <div class="flow-diagram">
+            <div class="flow-box">You<br><small>Get URL</small></div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-box">Your AI<br><small>Connects</small></div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-box">Our Daemon<br><small>Guides</small></div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-box">System<br><small>Installed!</small></div>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">1</span>Your Installation URL</h3>
+            <p>This URL connects your AI to our installation daemon:</p>
+            <div class="url-box" id="daemon-url">Loading...</div>
+            <button class="copy-btn" onclick="copyUrl()">📋 Copy URL</button>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">2</span>Choose Your AI Assistant</h3>
+            <div class="ai-select">
+                <button class="ai-btn active" onclick="selectAI('claude')">
+                    🤖 Claude
+                </button>
+                <button class="ai-btn" onclick="selectAI('gemini')">
+                    ✨ Gemini
+                </button>
+                <button class="ai-btn" onclick="selectAI('copilot')">
+                    💻 Copilot
+                </button>
+                <button class="ai-btn" onclick="selectAI('cursor')">
+                    🖱️ Cursor
+                </button>
+            </div>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">3</span>Copy This Prompt</h3>
+            <p>Paste this into your AI assistant:</p>
+            <div class="prompt-box" id="ai-prompt">Loading prompt...</div>
+            <button class="copy-btn" onclick="copyPrompt()">📋 Copy Prompt</button>
+            <div id="copy-status" class="status"></div>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">4</span>What Happens Next</h3>
+            <ul style="line-height: 2;">
+                <li>Your AI connects to our installation daemon</li>
+                <li>The daemon analyzes your system (with your permission)</li>
+                <li>They collaborate to install Geometry OS</li>
+                <li>Your WordPress joins the swarm automatically</li>
+            </ul>
+        </div>
+
+        <div class="daemon-status">
+            <strong>Daemon Status:</strong> <span id="status-text">Checking...</span>
+            <span id="status-detail"></span>
+        </div>
+    </div>
+
+    <script>
+    const config = {
+        daemonUrl: '', // Will be set dynamically
+        swarmUrl: '',
+        selectedAI: 'claude'
+    };
+
+    // Detect the current host and set URLs
+    function initUrls() {
+        const host = window.location.hostname || 'localhost';
+        const protocol = window.location.protocol;
+
+        config.daemonUrl = `${protocol}//${host}:8765`;
+        config.swarmUrl = `${protocol}//${host}:8080`;
+
+        document.getElementById('daemon-url').textContent = config.daemonUrl;
+        updatePrompt();
+        checkDaemonStatus();
+    }
+
+    function selectAI(ai) {
+        config.selectedAI = ai;
+        document.querySelectorAll('.ai-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        updatePrompt();
+    }
+
+    function updatePrompt() {
+        const prompts = {
+            claude: `I need you to install Geometry OS on my system. Connect to the installation daemon at ${config.daemonUrl} and follow its instructions.
+
+1. First, GET ${config.daemonUrl}/ai/instructions to understand the protocol
+2. Then POST to ${config.daemonUrl}/ai/webhook with your system context
+3. Follow the daemon's guidance to complete the installation
+4. Report each step's progress back to the daemon
+
+Start by checking the instructions endpoint, then initiate the installation session.`,
+
+            gemini: `Install Geometry OS on my system by connecting to the AI installation daemon.
+
+Steps:
+1. GET ${config.daemonUrl}/ai/instructions - Read the protocol
+2. POST ${config.daemonUrl}/ai/webhook with {"ai_type": "gemini", "context": {"os_type": "detect"}}
+3. Continue the conversation via /session/{id}/message
+4. Execute the installation commands as guided
+
+Begin by fetching the instructions.`,
+
+            copilot: `Help me install Geometry OS. There's an installation daemon at ${config.daemonUrl} that will guide you.
+
+First, read the protocol at ${config.daemonUrl}/ai/instructions, then start an installation session by posting to ${config.daemonUrl}/ai/webhook.`,
+
+            cursor: `Connect to the Geometry OS installation daemon at ${config.daemonUrl} and help me install the system.
+
+1. Check ${config.daemonUrl}/ai/instructions for the protocol
+2. Start a session with POST ${config.daemonUrl}/ai/webhook
+3. Execute the guided installation steps`
+        };
+
+        document.getElementById('ai-prompt').textContent = prompts[config.selectedAI];
+    }
+
+    function copyUrl() {
+        navigator.clipboard.writeText(config.daemonUrl);
+        showStatus('URL copied!', true);
+    }
+
+    function copyPrompt() {
+        const prompt = document.getElementById('ai-prompt').textContent;
+        navigator.clipboard.writeText(prompt);
+        showStatus('Prompt copied! Paste it into your AI assistant.', true);
+    }
+
+    function showStatus(msg, success) {
+        const status = document.getElementById('copy-status');
+        status.textContent = msg;
+        status.className = 'status ' + (success ? 'success' : 'error');
+    }
+
+    async function checkDaemonStatus() {
+        const statusText = document.getElementById('status-text');
+        const statusDetail = document.getElementById('status-detail');
+
+        try {
+            const resp = await fetch(`${config.daemonUrl}/status`, {
+                method: 'GET',
+                mode: 'cors'
+            });
+            const data = await resp.json();
+            statusText.innerHTML = `<span style="color: #4caf50;">✅ Online</span>`;
+            statusDetail.textContent = ` | ${data.sessions?.active || 0} active sessions`;
+        } catch (e) {
+            statusText.innerHTML = `<span style="color: #f44336;">❌ Offline</span>`;
+            statusDetail.textContent = ' | Start the daemon: python3 systems/swarm/install_daemon.py';
+        }
+    }
+
+    // Initialize on load
+    initUrls();
+
+    // Refresh status every 10 seconds
+    setInterval(checkDaemonStatus, 10000);
+    </script>
+</body>
+</html>
