@@ -1,0 +1,18 @@
+{
+  "source": "spec",
+  "name": "gosr-lm-studio",
+  "basePath": "specs/gosr-lm-studio",
+  "phase": "execution",
+  "taskIndex": 13,
+  "totalTasks": 17,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 14,
+  "maxGlobalIterations": 100,
+  "awaitingApproval": false,
+  "updated": "2026-02-21T19:00:00Z",
+  "recoveryMode": false,
+  "maxFixTasksPerOriginal": 3,
+  "maxFixTaskDepth": 3,
+  "fixTaskMap": {}
+}

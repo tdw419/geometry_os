@@ -24,6 +24,7 @@ from typing import Optional, Dict, Any, List
 from .segment_pool import SegmentPool, SegmentType
 from .topic_memory import TopicMemory
 from .personality_engine import PersonalityEngine
+from .llm_client import LLMNarrativeClient, LLMConfig
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +84,9 @@ class NarrativeBroadcaster:
         enabled: bool = True,
         station_id: str = "87.6",
         broadcast_interval: float = 30.0,
-        max_duplicate_retries: int = 3
+        max_duplicate_retries: int = 3,
+        use_llm: bool = False,
+        llm_config: Optional[LLMConfig] = None
     ):
         """
         Initialize the narrative broadcaster.
@@ -93,6 +96,8 @@ class NarrativeBroadcaster:
             station_id: Radio station identifier (FM frequency)
             broadcast_interval: Seconds between broadcasts
             max_duplicate_retries: Max retries when duplicate detected
+            use_llm: Whether to use LLM for narrative generation
+            llm_config: Optional LLM configuration (uses defaults if not provided)
         """
         self.enabled = enabled
         self.station_id = station_id
@@ -104,8 +109,17 @@ class NarrativeBroadcaster:
         self._last_broadcast_time = 0.0
         self._broadcast_history: List[BroadcastSegment] = []
 
+        # Initialize LLM client if requested
+        llm_client: Optional[LLMNarrativeClient] = None
+        if use_llm:
+            llm_client = LLMNarrativeClient(config=llm_config)
+            llm_available = llm_client.is_available()
+            logger.info(f"LLM narrative client initialized: available={llm_available}")
+        else:
+            logger.info("LLM narrative client disabled (use_llm=False)")
+
         # Initialize components
-        self._segment_pool = SegmentPool()
+        self._segment_pool = SegmentPool(llm_client=llm_client)
         self._topic_memory = TopicMemory()
         self._personality_engine = PersonalityEngine()
 
