@@ -18,7 +18,7 @@ Focus: Validate LLM integration works end-to-end. Skip tests, accept hardcoded v
   - _Requirements: FR-1, FR-2, FR-3, FR-4, FR-8_
   - _Design: LLMNarrativeClient component_
 
-- [ ] 1.2 Update __init__.py exports
+- [x] 1.2 Update __init__.py exports
   - **Do**:
     1. Add `from .llm_client import LLMNarrativeClient, LLMConfig` to `__init__.py`
     2. Add to `__all__` list
@@ -67,7 +67,7 @@ Focus: Validate LLM integration works end-to-end. Skip tests, accept hardcoded v
   - _Requirements: FR-6, AC-4.1 to AC-4.5_
   - _Design: CLI Flags section_
 
-- [ ] 1.6 [VERIFY] POC Checkpoint
+- [x] 1.6 [VERIFY] POC Checkpoint
   - **Do**: Run manual verification of end-to-end flow
     1. Start daemon with `--radio --lm-studio` (without LM Studio running)
     2. Verify broadcasts use templates (no crash)
@@ -92,7 +92,7 @@ Focus: Validate LLM integration works end-to-end. Skip tests, accept hardcoded v
   - _Requirements: AC-2.1 to AC-2.6_
   - _Design: Error Handling section_
 
-- [ ] 2.2 [VERIFY] Quality checkpoint: ruff + import test
+- [x] 2.2 [VERIFY] Quality checkpoint: ruff + import test
   - **Do**: Run lint and import verification
   - **Verify**: `ruff check systems/evolution_daemon/narrative_broadcaster/ && python3 -c "from systems.evolution_daemon.narrative_broadcaster import LLMNarrativeClient, LLMConfig, SegmentPool, NarrativeBroadcaster; print('All imports OK')"`
   - **Done when**: No lint errors, all imports work
@@ -142,7 +142,7 @@ Focus: Validate LLM integration works end-to-end. Skip tests, accept hardcoded v
   - **Commit**: `test(radio): add NarrativeBroadcaster LLM integration tests`
   - _Requirements: FR-5_
 
-- [ ] 3.4 [VERIFY] Full test suite passes
+- [x] 3.4 [VERIFY] Full test suite passes
   - **Do**: Run all narrative broadcaster tests
   - **Verify**: `pytest systems/evolution_daemon/tests/test_narrative_broadcaster.py -v`
   - **Done when**: All tests pass, no regressions
@@ -150,7 +150,7 @@ Focus: Validate LLM integration works end-to-end. Skip tests, accept hardcoded v
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Local quality check
+- [x] 4.1 Local quality check
   - **Do**: Run all quality checks locally
   - **Verify**:
     - Lint: `ruff check systems/evolution_daemon/narrative_broadcaster/`
@@ -158,7 +158,7 @@ Focus: Validate LLM integration works end-to-end. Skip tests, accept hardcoded v
   - **Done when**: All commands pass with no errors
   - **Commit**: `fix(radio): address lint/type issues` (if fixes needed)
 
-- [ ] 4.2 Create PR and verify CI
+- [x] 4.2 Create PR and verify CI
   - **Do**:
     1. Verify current branch is feature branch: `git branch --show-current`
     2. Push branch: `git push -u origin <branch-name>`
