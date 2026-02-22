@@ -49,6 +49,11 @@ class ASCII_Desktop_Control {
     private ?Directive_API $directive_api = null;
 
     /**
+     * Daemon_Status instance.
+     */
+    private ?Daemon_Status $daemon_status = null;
+
+    /**
      * Constructor. Initialize hooks.
      */
     public function __construct() {
@@ -65,6 +70,13 @@ class ASCII_Desktop_Control {
         add_action('init', [$this, 'register_directive_cpt']);
         add_action('add_meta_boxes_directive', [$this, 'add_directive_meta_boxes']);
         add_action('save_post_directive', [$this, 'save_directive_meta']);
+
+        // AJAX handlers
+        add_action('wp_ajax_ascii_get_view', [$this, 'ajax_get_view']);
+        add_action('wp_ajax_ascii_post_directive', [$this, 'ajax_post_directive']);
+        add_action('wp_ajax_ascii_get_directives', [$this, 'ajax_get_directives']);
+        add_action('wp_ajax_ascii_get_logs', [$this, 'ajax_get_logs']);
+        add_action('wp_ajax_ascii_daemon_status', [$this, 'ajax_daemon_status']);
     }
 
     /**
@@ -73,6 +85,7 @@ class ASCII_Desktop_Control {
     private function load_includes(): void {
         require_once $this->plugin_dir . 'includes/class-ascii-view.php';
         require_once $this->plugin_dir . 'includes/class-directive-api.php';
+        require_once $this->plugin_dir . 'includes/class-daemon-status.php';
     }
 
     /**
@@ -93,6 +106,16 @@ class ASCII_Desktop_Control {
             $this->directive_api = new Directive_API();
         }
         return $this->directive_api;
+    }
+
+    /**
+     * Get Daemon_Status instance.
+     */
+    public function get_daemon_status(): Daemon_Status {
+        if ($this->daemon_status === null) {
+            $this->daemon_status = new Daemon_Status();
+        }
+        return $this->daemon_status;
     }
 
     /**
@@ -427,6 +450,186 @@ class ASCII_Desktop_Control {
             $result = sanitize_textarea_field(wp_unslash($_POST['directive_result']));
             update_post_meta($post_id, 'directive_result', $result);
         }
+    }
+
+    // =========================================================================
+    // AJAX HANDLERS
+    // =========================================================================
+
+    /**
+     * AJAX handler: Get ASCII view.
+     *
+     * Calls ASCII_View->get_view() and returns JSON response.
+     */
+    public function ajax_get_view(): void {
+        // Verify nonce
+        check_ajax_referer('ascii_control_nonce', 'nonce');
+
+        // Check capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error([
+                'message' => __('Permission denied', 'ascii-desktop-control'),
+            ], 403);
+        }
+
+        // Get optional width/height parameters
+        $width = isset($_POST['width']) ? (int) $_POST['width'] : null;
+        $height = isset($_POST['height']) ? (int) $_POST['height'] : null;
+
+        // Get ASCII view
+        $ascii_view = $this->get_ascii_view();
+        $result = $ascii_view->get_view($width, $height);
+
+        if ($result['success']) {
+            wp_send_json_success([
+                'ascii'    => $result['ascii'],
+                'bindings' => $result['bindings'],
+                'mode'     => $result['mode'],
+                'timestamp' => $result['timestamp'],
+            ]);
+        } else {
+            wp_send_json_error([
+                'message' => $result['error'],
+            ]);
+        }
+    }
+
+    /**
+     * AJAX handler: Post a new directive.
+     *
+     * Calls Directive_API->create() and returns JSON response.
+     */
+    public function ajax_post_directive(): void {
+        // Verify nonce
+        check_ajax_referer('ascii_control_nonce', 'nonce');
+
+        // Check capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error([
+                'message' => __('Permission denied', 'ascii-desktop-control'),
+            ], 403);
+        }
+
+        // Get title and content from request
+        $title = isset($_POST['title']) ? sanitize_text_field(wp_unslash($_POST['title'])) : '';
+        $content = isset($_POST['content']) ? sanitize_textarea_field(wp_unslash($_POST['content'])) : '';
+
+        // Create directive
+        $directive_api = $this->get_directive_api();
+        $result = $directive_api->create($title, $content);
+
+        if ($result['success']) {
+            wp_send_json_success([
+                'post_id' => $result['post_id'],
+                'message' => $result['message'],
+            ]);
+        } else {
+            wp_send_json_error([
+                'message'     => $result['error'],
+                'is_duplicate' => $result['is_duplicate'] ?? false,
+            ]);
+        }
+    }
+
+    /**
+     * AJAX handler: Get recent directives.
+     *
+     * Calls Directive_API->get_recent() and returns JSON response.
+     */
+    public function ajax_get_directives(): void {
+        // Verify nonce
+        check_ajax_referer('ascii_control_nonce', 'nonce');
+
+        // Check capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error([
+                'message' => __('Permission denied', 'ascii-desktop-control'),
+            ], 403);
+        }
+
+        // Get optional limit parameter
+        $limit = isset($_POST['limit']) ? (int) $_POST['limit'] : 10;
+        $limit = max(1, min(100, $limit));
+
+        // Get directives
+        $directive_api = $this->get_directive_api();
+        $result = $directive_api->get_recent($limit);
+
+        wp_send_json_success([
+            'directives' => $result['directives'],
+            'total'      => $result['total'],
+            'count'      => $result['count'],
+        ]);
+    }
+
+    /**
+     * AJAX handler: Get directive logs with filtering.
+     *
+     * Calls Directive_API->get_logs() and returns JSON response.
+     */
+    public function ajax_get_logs(): void {
+        // Verify nonce
+        check_ajax_referer('ascii_control_nonce', 'nonce');
+
+        // Check capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error([
+                'message' => __('Permission denied', 'ascii-desktop-control'),
+            ], 403);
+        }
+
+        // Build filters from request
+        $filters = [
+            'status'    => isset($_POST['status']) ? sanitize_text_field(wp_unslash($_POST['status'])) : '',
+            'date_from' => isset($_POST['date_from']) ? sanitize_text_field(wp_unslash($_POST['date_from'])) : '',
+            'date_to'   => isset($_POST['date_to']) ? sanitize_text_field(wp_unslash($_POST['date_to'])) : '',
+            'search'    => isset($_POST['search']) ? sanitize_text_field(wp_unslash($_POST['search'])) : '',
+            'page'      => isset($_POST['page']) ? (int) $_POST['page'] : 1,
+            'per_page'  => isset($_POST['per_page']) ? (int) $_POST['per_page'] : 20,
+        ];
+
+        // Get logs
+        $directive_api = $this->get_directive_api();
+        $result = $directive_api->get_logs($filters);
+
+        wp_send_json_success([
+            'logs'        => $result['logs'],
+            'total'       => $result['total'],
+            'page'        => $result['page'],
+            'per_page'    => $result['per_page'],
+            'total_pages' => $result['total_pages'],
+        ]);
+    }
+
+    /**
+     * AJAX handler: Get daemon status.
+     *
+     * Calls Daemon_Status->get_status() and returns JSON response.
+     */
+    public function ajax_daemon_status(): void {
+        // Verify nonce
+        check_ajax_referer('ascii_control_nonce', 'nonce');
+
+        // Check capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error([
+                'message' => __('Permission denied', 'ascii-desktop-control'),
+            ], 403);
+        }
+
+        // Check for force refresh parameter
+        $force_check = isset($_POST['force']) && $_POST['force'] === 'true';
+
+        // Get daemon status
+        $daemon_status = $this->get_daemon_status();
+        $result = $daemon_status->get_status($force_check);
+
+        wp_send_json_success([
+            'running'      => $result['running'],
+            'last_check'   => $result['last_check'],
+            'pid'          => $result['pid'],
+            'process_name' => $result['process_name'],
+        ]);
     }
 }
 

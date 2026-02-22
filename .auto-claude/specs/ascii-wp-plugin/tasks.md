@@ -84,7 +84,7 @@ Focus: Plugin skeleton, CPT registration, shell exec wrappers. No UI polish yet.
   - **Commit**: `feat(wp): register plugin settings via Settings API`
   - _Requirements: FR-8, AC-5.7_
 
-- [ ] 1.8 Implement AJAX handlers in main class
+- [x] 1.8 Implement AJAX handlers in main class
   - **Do**:
     1. Add `wp_ajax_ascii_get_view` handler - calls ASCII_View->get_view()
     2. Add `wp_ajax_ascii_post_directive` handler - calls Directive_API->create()
