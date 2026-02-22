@@ -99,7 +99,7 @@ Focus: Get RtsWatcherAgent enhanced with core features, create control script.
   - **Commit**: `test(rts-watcher): add CLI tests`
   - _Requirements: AC-4.3_
 
-- [ ] 3.4 Integration tests for control scripts
+- [x] 3.4 Integration tests for control scripts
   - **Do**: Create test_control_scripts.py testing start/stop/status flow for both agents. Use subprocess to run scripts.
   - **Files**: `tests/test_control_scripts.py`
   - **Done when**: Tests verify control scripts can start/stop agents and report status
