@@ -28,7 +28,7 @@ Focus: Validate LLM integration works end-to-end. Skip tests, accept hardcoded v
   - **Commit**: `feat(radio): export LLMNarrativeClient from narrative_broadcaster`
   - _Requirements: FR-1_
 
-- [ ] 1.3 Integrate LLM client into SegmentPool
+- [x] 1.3 Integrate LLM client into SegmentPool
   - **Do**:
     1. Modify `SegmentPool.__init__()` to accept optional `llm_client` parameter
     2. Modify `generate_content()` to try LLM first, fallback to existing template logic
