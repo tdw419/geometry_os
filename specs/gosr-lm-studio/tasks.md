@@ -174,7 +174,7 @@ Focus: Validate LLM integration works end-to-end. Skip tests, accept hardcoded v
   - **Verify**: `gh pr checks`
   - **Done when**: All checks show passing status
 
-- [ ] 5.2 Address code review comments
+- [x] 5.2 Address code review comments
   - **Do**: Respond to review feedback, make changes
   - **Verify**: All comments resolved
   - **Done when**: Review approved
