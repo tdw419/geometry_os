@@ -91,7 +91,7 @@ Focus: Validate LLM integration works end-to-end. Skip edge cases, accept hardco
   - **Done when**: All imports succeed, no Python syntax errors
   - **Commit**: `chore(evolution): pass POC quality checkpoint` (only if fixes needed)
 
-- [ ] 1.6 Write unit tests for LLMExpansionService
+- [x] 1.6 Write unit tests for LLMExpansionService
   - **Do**:
     1. Create `tests/test_llm_expansion_service.py`
     2. Write `test_service_initializes_with_defaults()` verifying config.model == "glm-4-plus"
