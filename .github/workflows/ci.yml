@@ -59,7 +59,9 @@ jobs:
           matplotlib \
           numpy \
           pyyaml \
-          requests
+          requests \
+          markdown \
+          websockets
 
     - name: Cache build artifacts
       uses: actions/cache@v3
