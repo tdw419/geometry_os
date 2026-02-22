@@ -30,7 +30,7 @@ Focus: Build core components and verify browser UI works end-to-end.
   - _Requirements: FR-2, FR-3_
   - _Design: CertificationRunner.js_
 
-- [ ] 1.3 Create WordPress certification page
+- [x] 1.3 Create WordPress certification page
   - **Do**: Create `wordpress_zone/wordpress/wp-content/mu-plugins/geometry_os_certification_page.php` with admin menu, script enqueues, control panel UI, progress bar, live log, and interactive prompt modal.
   - **Files**: `wordpress_zone/wordpress/wp-content/mu-plugins/geometry_os_certification_page.php`
   - **Done when**: Page accessible at `tools.php?page=geoos-certify`, shows "Run Certifications" title
