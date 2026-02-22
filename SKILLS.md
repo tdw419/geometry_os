@@ -18,6 +18,11 @@
 | pixelrts-boot | Operations | Extract, verify, and boot PixelRTS containers via QEMU with hash verification. Use this skill when running Linux VMs from spatial containers. | `.gemini/skills/pixelrts-boot/SKILL.md` |
 | pixelrts-agent-build | Development | Create spatial WASM agents for the Infinite Map with proper ABI exports. Use this skill when building autonomous map agents. | `.gemini/skills/pixelrts-agent-build/SKILL.md` |
 | pixelrts-blueprint | Debugging | Generate and visualize blueprint metadata showing component boundaries. Use this skill when understanding complex binary structures. | `.gemini/skills/pixelrts-blueprint/SKILL.md` |
+| gguf-x-pack | Development | Pack GGUF models into self-contained executable containers with embedded runtime and security signing. | `.gemini/skills/gguf-x-pack/SKILL.md` |
+| genome-validate | Development | Validate, generate, mutate, and evolve genetic code using the Genome CLI for AI-driven code generation. | `.gemini/skills/genome-validate/SKILL.md` |
+| memory-system-setup | Operations | Set up PostgreSQL with pgvector for semantic memory storage and retrieval (the Geometry OS Hippocampus). | `.gemini/skills/memory-system-setup/SKILL.md` |
+| riscv-encode | Development | Encode RISC-V ELF binaries to PixelRTS format with Hilbert curve spatial mapping for GPU execution. | `.gemini/skills/riscv-encode/SKILL.md` |
+| directive-agent-control | Coordination | Control the Directive Agent that processes WordPress substrate map directives for Geometry OS. | `.gemini/skills/directive-agent-control/SKILL.md` |
 
 ## How to Use Skills
 
