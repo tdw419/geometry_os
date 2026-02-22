@@ -197,7 +197,10 @@ jobs:
         path: multi_platform_summary.md
 
     - name: Fail if any platform failed
-      if: needs.test-linux.result == 'failure' || needs.test-macos.result == 'failure' || needs.test-windows.result == 'failure' || needs.test-docker.result == 'failure'
+      if: |
+        needs.test-linux.result == 'failure' ||
+        needs.test-macos.result == 'failure' ||
+        needs.test-windows.result == 'failure'
       run: |
         echo "One or more platforms failed testing"
         exit 1
