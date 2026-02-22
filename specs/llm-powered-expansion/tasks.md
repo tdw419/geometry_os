@@ -105,7 +105,7 @@ Focus: Validate LLM integration works end-to-end. Skip edge cases, accept hardco
   - _Requirements: FR-1, FR-5, FR-6_
   - _Design: Test Strategy - Unit Tests_
 
-- [ ] 1.7 Write unit tests for SafetyConfig
+- [x] 1.7 Write unit tests for SafetyConfig
   - **Do**:
     1. Create `tests/test_safety_config.py`
     2. Write `test_safety_config_defaults_are_conservative()` verifying require_backup=True, min_confidence=0.7
