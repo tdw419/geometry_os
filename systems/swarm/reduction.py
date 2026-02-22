@@ -99,6 +99,21 @@ STRATEGIES = {
 }
 
 
+def get_strategy(name: str, **kwargs) -> ReductionStrategy:
+    """
+    Factory function to get a strategy instance by name.
+
+    Args:
+        name: Strategy name ("first", "best_score", "merge_all", "majority_vote")
+        **kwargs: Additional arguments for the strategy constructor
+
+    Returns:
+        Strategy instance (defaults to FirstResultStrategy if name not found)
+    """
+    strategy_class = STRATEGIES.get(name, FirstResultStrategy)
+    return strategy_class(**kwargs)
+
+
 def reduce_results(
     results: List[Dict[str, Any]],
     strategy: str = "first",
@@ -115,6 +130,5 @@ def reduce_results(
     Returns:
         Reduced result
     """
-    strategy_class = STRATEGIES.get(strategy, FirstResultStrategy)
-    instance = strategy_class(**strategy_kwargs)
+    instance = get_strategy(strategy, **strategy_kwargs)
     return instance.reduce(results)

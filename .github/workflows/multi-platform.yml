@@ -44,7 +44,7 @@ jobs:
         ./run_integration_tests.sh --only-unit
 
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-results-linux-${{ github.run_number }}
         path: test_results/
@@ -78,7 +78,7 @@ jobs:
         python3 -m pytest test_*.py -v --tb=short || echo "Some tests failed on macOS"
 
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-results-macos-${{ github.run_number }}
         path: test_results/
@@ -106,7 +106,7 @@ jobs:
         python -m pytest test_*.py -v --tb=short || echo "Some tests failed on Windows"
 
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-results-windows-${{ github.run_number }}
         path: test_results/
@@ -127,7 +127,7 @@ jobs:
         docker run --rm vectoros-test ./run_integration_tests.sh --only-unit
 
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-results-docker-${{ github.run_number }}
         path: test_results/
@@ -139,7 +139,7 @@ jobs:
 
     steps:
     - name: Download all test results
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: all-test-results/
 
@@ -173,7 +173,7 @@ jobs:
         fi
 
     - name: Upload summary
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: multi-platform-summary-${{ github.run_number }}
         path: multi_platform_summary.md

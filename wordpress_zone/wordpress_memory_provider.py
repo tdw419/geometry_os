@@ -15,14 +15,16 @@ from pathlib import Path
 
 class WordPressMemoryProvider:
     def __init__(
-        self, 
-        wp_url="http://localhost:8080", 
+        self,
+        wp_url="http://localhost:8080",
         socket_path="/tmp/vector_memory_daemon.sock",
-        map_size=16384 # Standard map size for coordinates
+        map_size=16384, # Standard map size for coordinates
+        tms_url="http://localhost:8000"
     ):
         self.wp_url = wp_url
         self.socket_path = socket_path
         self.map_size = map_size
+        self.tms_url = tms_url
         # WordPress Zone coordinates: (3000-3400, 1000-1400)
         self.x_min, self.x_max = 3000, 3400
         self.y_min, self.y_max = 1000, 1400
@@ -127,6 +129,108 @@ class WordPressMemoryProvider:
         except Exception as e:
             print(f"❌ Socket error: {e}")
         return False
+
+    def sync_to_tms(self, post_types=None) -> dict:
+        """Sync WordPress posts to TMS backend.
+
+        Args:
+            post_types: List of post types to sync. Defaults to ['truth_entry'].
+
+        Returns:
+            dict with synced, failed counts and any errors.
+        """
+        if post_types is None:
+            post_types = ['truth_entry']
+
+        result = {"synced": 0, "failed": 0, "errors": []}
+
+        # Fetch posts from WordPress
+        posts = self.get_posts_from_wp(post_types=post_types)
+
+        for post in posts:
+            try:
+                tms_result = self.send_to_tms(post)
+                if tms_result.get("success"):
+                    result["synced"] += 1
+                else:
+                    result["failed"] += 1
+                    result["errors"].append(tms_result.get("error", "Unknown error"))
+            except Exception as e:
+                result["failed"] += 1
+                result["errors"].append(str(e))
+
+        return result
+
+    def get_posts_from_wp(self, post_types=None, limit=100) -> list:
+        """Fetch posts from WordPress for TMS sync.
+
+        Args:
+            post_types: List of post types to fetch.
+            limit: Maximum posts to fetch per type.
+
+        Returns:
+            List of post dicts with id, title, content, meta.
+        """
+        if post_types is None:
+            post_types = ['truth_entry']
+
+        all_posts = []
+        for post_type in post_types:
+            try:
+                r = requests.post(
+                    f"{self.wp_url}/ai-publisher.php",
+                    json={"action": "list_posts", "limit": limit, "post_type": post_type}
+                )
+                r.raise_for_status()
+                posts = r.json().get("posts", [])
+                all_posts.extend(posts)
+            except Exception as e:
+                print(f"Failed to fetch {post_type} posts: {e}")
+
+        return all_posts
+
+    def send_to_tms(self, post: dict) -> dict:
+        """Send a single post to TMS /api/truths/add endpoint.
+
+        Args:
+            post: Post dict with title, content, and meta fields.
+
+        Returns:
+            dict with success status and truth_id or error.
+        """
+        try:
+            payload = {
+                "claim": post.get("title", ""),
+                "evidence": post.get("content", ""),
+                "confidence": post.get("meta", {}).get("confidence", 0.5),
+                "source": "wordpress_sync"
+            }
+            r = requests.post(
+                f"{self.tms_url}/api/truths/add",
+                json=payload,
+                timeout=5
+            )
+            r.raise_for_status()
+            return {"success": True, "truth_id": r.json().get("truth_id")}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def get_truth_stats(self) -> dict:
+        """Get truth statistics from WordPress.
+
+        Returns:
+            dict with total_truths, avg_confidence, avg_transparency, system_health.
+        """
+        try:
+            r = requests.post(
+                f"{self.wp_url}/ai-publisher.php",
+                json={"action": "getTruthStats"}
+            )
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
 
 if __name__ == "__main__":
     provider = WordPressMemoryProvider()

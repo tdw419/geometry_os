@@ -9,6 +9,7 @@ from systems.swarm.reduction import (
     BestScoreStrategy,
     MergeAllStrategy,
     MajorityVoteStrategy,
+    get_strategy,
     reduce_results
 )
 
@@ -74,6 +75,18 @@ class TestReductionStrategies:
         # First result
         reduced = reduce_results(results, strategy="first")
         assert reduced["id"] == 1
+
+    def test_get_strategy_by_name(self):
+        """get_strategy returns correct strategy type."""
+        assert isinstance(get_strategy("first"), FirstResultStrategy)
+        assert isinstance(get_strategy("best_score"), BestScoreStrategy)
+        assert isinstance(get_strategy("merge_all"), MergeAllStrategy)
+        assert isinstance(get_strategy("majority_vote"), MajorityVoteStrategy)
+
+    def test_get_strategy_unknown_defaults_to_first(self):
+        """get_strategy defaults to FirstResultStrategy for unknown names."""
+        strategy = get_strategy("unknown")
+        assert isinstance(strategy, FirstResultStrategy)
 
     def test_empty_results_returns_none(self):
         """Reducing empty results returns None."""

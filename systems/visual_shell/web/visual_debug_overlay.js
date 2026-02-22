@@ -3236,6 +3236,105 @@ class VisualDebugOverlay {
     }
 
     /**
+     * Handle CTRM Truth Manifold update event
+     * @param {Object} data - Truth manifold data with system_metrics, mean_scores, verse_count
+     */
+    handleTruthManifoldUpdate(data) {
+        // Skip processing if disabled
+        if (!this.truthManifoldState.enabled) return;
+        if (!data) return;
+
+        // Check for error payload from backend
+        if (data.error) {
+            this.truthManifoldState.connected = false;
+            this.truthManifoldState.error = data.error;
+            this.truthManifoldState.errorCode = data.error_code || 'UNKNOWN';
+            this.truthManifoldState.lastUpdate = Date.now();
+            this._scheduleRender();
+            return;
+        }
+
+        // Extract payload from data.data or data
+        const payload = data.data || data;
+
+        // Check for nested error in payload
+        if (payload.error) {
+            this.truthManifoldState.connected = false;
+            this.truthManifoldState.error = payload.error;
+            this.truthManifoldState.errorCode = payload.error_code || 'UNKNOWN';
+            this.truthManifoldState.lastUpdate = Date.now();
+            this._scheduleRender();
+            return;
+        }
+
+        // Update truthManifoldState fields
+        const systemMetrics = payload.system_metrics || {};
+        const meanScores = payload.mean_scores || {};
+
+        this.truthManifoldState.cronbachAlpha = systemMetrics.cronbach_alpha || 0;
+        this.truthManifoldState.elementalIndependence = systemMetrics.elemental_independence || false;
+        this.truthManifoldState.meanScores = {
+            E1_archaeology: meanScores.E1_archaeology || 0,
+            E2_manuscript: meanScores.E2_manuscript || 0,
+            E3_prophecy: meanScores.E3_prophecy || 0
+        };
+        this.truthManifoldState.verseCount = payload.verse_count || 0;
+        this.truthManifoldState.connected = true;
+        this.truthManifoldState.lastUpdate = Date.now();
+        this.truthManifoldState.error = null;
+        this.truthManifoldState.errorCode = null;
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Load Truth Manifold enabled state from localStorage
+     * @returns {boolean} Enabled state (defaults to false)
+     */
+    _loadTruthManifoldEnabled() {
+        if (typeof window === 'undefined' || !window.localStorage) return false;
+        try {
+            const stored = window.localStorage.getItem('truthManifold_enabled');
+            return stored === 'true';
+        } catch (e) {
+            console.warn('Failed to load truthManifold_enabled from localStorage:', e);
+            return false;
+        }
+    }
+
+    /**
+     * Load and apply persisted enabled state from localStorage.
+     * Called during initialization to restore toggle state across sessions.
+     */
+    _loadTruthManifoldEnabledState() {
+        this.truthManifoldState.enabled = this._loadTruthManifoldEnabled();
+    }
+
+    /**
+     * Save Truth Manifold enabled state to localStorage
+     * @param {boolean} enabled - Enable state
+     */
+    _saveTruthManifoldEnabled(enabled) {
+        if (typeof window === 'undefined' || !window.localStorage) return;
+        try {
+            window.localStorage.setItem('truthManifold_enabled', enabled ? 'true' : 'false');
+        } catch (e) {
+            console.warn('Failed to save truthManifold_enabled to localStorage:', e);
+        }
+    }
+
+    /**
+     * Toggle Truth Manifold HUD section visibility
+     * Persists state to localStorage for cross-session persistence.
+     */
+    toggleTruthManifold() {
+        this.truthManifoldState.enabled = !this.truthManifoldState.enabled;
+        this._saveTruthManifoldEnabled(this.truthManifoldState.enabled);
+        console.log(`◇ Truth Manifold: ${this.truthManifoldState.enabled ? 'ENABLED' : 'DISABLED'}`);
+        this._scheduleRender();
+    }
+
+    /**
      * Render Heat Map HUD section (Visual Hotspot Debugger)
      * Shows heat map status, hotspots, and color legend.
      */
