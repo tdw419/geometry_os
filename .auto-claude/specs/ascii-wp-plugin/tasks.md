@@ -291,7 +291,7 @@ Focus: Rate limiting, admin bar link, activation hooks, final verification.
   - **Done when**: All commands pass (syntax=0 errors, files=9, security>=5)
   - **Commit**: `fix(wp): address quality issues` (if fixes needed)
 
-- [ ] 4.2 Create PR and verify CI
+- [x] 4.2 Create PR and verify CI
   - **Do**:
     1. Verify current branch: `git branch --show-current`
     2. Stage files: `git add wordpress_zone/wordpress/wp-content/plugins/ascii-desktop-control/`
