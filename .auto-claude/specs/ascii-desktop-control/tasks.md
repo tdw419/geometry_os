@@ -9,7 +9,7 @@
   - **Verify**: `python3 .gemini/skills/ascii-desktop-control/scripts/get_ascii_view.py` outputs ASCII map
   - **Commit**: `feat(ascii): add ImageMagick screenshot fallback for black-box windows`
 
-- [ ] 1.2 Write tests for screenshot fallback
+- [x] 1.2 Write tests for screenshot fallback
   - **Do**: Create test_ascii_view.py with tests for capture_screenshot_ascii, detect_black_box_window, generate_ascii_view
   - **Files**: `tests/test_ascii_view.py`
   - **Done when**: Tests pass with pytest
