@@ -1,10 +1,10 @@
 # Tasks: skills-testing-phase2
 
-- [ ] **Task 1**: Implement Orphan Skill Detection
+- [x] **Task 1**: Implement Orphan Skill Detection
   - **Description**: Add test to `tests/skills/test_sync_skills.py` to ensure all directories in `.gemini/skills/` are registered in `SKILLS.md`.
   - **Acceptance Criteria**: Test fails if a new folder is added to `.gemini/skills/` without an entry in `SKILLS.md`.
 
-- [ ] **Task 2**: Implement Index-Metadata Sync Validation
+- [x] **Task 2**: Implement Index-Metadata Sync Validation
   - **Description**: Add test to `tests/skills/test_sync_skills.py` verifying that descriptions in `SKILLS.md` match the frontmatter in `SKILL.md` files.
   - **Acceptance Criteria**: Test fails if a skill's description is updated in its `SKILL.md` but not in the root `SKILLS.md`.
 

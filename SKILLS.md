@@ -9,9 +9,10 @@
 |-------|----------|---------|----------|
 | golden-path-boot-test | Verification | Verifies the full RISC-V GPU boot stack by booting Alpine Linux, executing 'uname -a', and capturing the output. Use this skill when you need to provide concrete, end-to-end proof that the shader, interrupts, and console I/O are working correctly in the browser. | `.gemini/skills/golden-path-boot-test/SKILL.md` |
 | parallel-swarm-production | Coordination | Productionizes agent coordination for real-world tasks within Geometry OS. Use this skill when transforming the multi-agent demo infrastructure into a functional system for tasks like distributed catalog scanning or tectonic optimization. | `.gemini/skills/parallel-swarm-production/SKILL.md` |
-| evolution-daemon-control | Operations | Control the Evolution Daemon - start, stop, monitor, and manage autonomous self-improvement cycles. Use this skill when managing the continuous evolution system. | `.gemini/skills/evolution-daemon-control/SKILL.md` |
-| visual-shell-debug | Debugging | Debug Visual Shell issues including WebSocket connections, tile rendering, and UI interactions. Use this skill when troubleshooting the visual interface. | `.gemini/skills/visual-shell-debug/SKILL.md` |
-| infinite-map-testing | Testing | Test Infinite Map functionality including Hilbert curve navigation, tile loading, and spatial queries. Use this skill when validating map behavior. | `.gemini/skills/infinite-map-testing/SKILL.md` |
+| evolution-daemon-control | Operations | Controls the Evolution Daemon for continuous autonomous improvement of Geometry OS. Use this skill when you need to start, stop, monitor, or troubleshoot the self-evolving system that improves code using Foveated Knowledge Gravity. | `.gemini/skills/evolution-daemon-control/SKILL.md` |
+| visual-shell-debug | Debugging | Diagnoses and troubleshoots the Visual Shell WebSocket bridge and browser HUD. Use this skill when you need to debug the connection between AI agents and the PixiJS visual interface, or when troubleshooting HUD display issues. | `.gemini/skills/visual-shell-debug/SKILL.md` |
+| infinite-map-testing | Testing | Provides testing workflows for the Infinite Map visual interface, including browser-based UI testing and integration verification. Use this skill when you need to verify tile loading, pan/zoom, HUD functionality, and Memory Beam features. | `.gemini/skills/infinite-map-testing/SKILL.md` |
+| ascii-desktop-control | Operations | Semantic control of Linux GUI via ASCII maps and spatial coordinates. Use this skill when automating desktop interactions through the Infinite Map. | `.gemini/skills/ascii-desktop-control/SKILL.md` |
 
 ## How to Use Skills
 
