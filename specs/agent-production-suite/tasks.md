@@ -83,7 +83,7 @@ Focus: Get RtsWatcherAgent enhanced with core features, create control script.
   - **Commit**: `test(rts-watcher): add heartbeat tests`
   - _Requirements: AC-4.1_
 
-- [ ] 3.2 Unit tests for RtsWatcherAgent scanning
+- [x] 3.2 Unit tests for RtsWatcherAgent scanning
   - **Do**: Add tests for scan_directory, ingest_file, process_one_cycle. Mock WordPress API calls.
   - **Files**: `tests/test_rts_watcher_agent.py`
   - **Done when**: Tests cover file discovery, meta parsing, API ingestion, error cases
