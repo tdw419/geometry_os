@@ -422,3 +422,145 @@ class TestCoreScriptCLI:
 
         result = run_cli_command(["python3", "-m", "py_compile", str(script_path)])
         assert result.succeeded, f"Syntax error in {script_path}: {result.stderr}"
+
+
+class TestGetAsciiViewOutputFormat:
+    """Tests for verifying get_ascii_view.py output format.
+
+    The script outputs:
+    1. --- ASCII MAP --- header
+    2. ASCII view text (with WINDOW metadata line)
+    3. --- BINDINGS --- header
+    4. JSON object with character-to-window bindings
+    """
+
+    @pytest.mark.skipif(
+        not check_dependency_exists("xdotool"),
+        reason="xdotool not installed - required for get_ascii_view execution"
+    )
+    @pytest.mark.skipif(
+        not check_dependency_exists("convert"),
+        reason="ImageMagick not installed - required for screenshot capture"
+    )
+    def test_get_ascii_view_output_has_ascii_map_section(self, skills_dir):
+        """Test that get_ascii_view.py output contains --- ASCII MAP --- header."""
+        script_path = skills_dir / "ascii-desktop-control" / "scripts" / "get_ascii_view.py"
+
+        result = run_cli_command(["python3", str(script_path)], timeout=15)
+
+        # Should contain the ASCII MAP section marker
+        assert "--- ASCII MAP ---" in result.stdout, \
+            f"Output should contain '--- ASCII MAP ---' header. Got: {result.stdout[:200]}"
+
+    @pytest.mark.skipif(
+        not check_dependency_exists("xdotool"),
+        reason="xdotool not installed - required for get_ascii_view execution"
+    )
+    @pytest.mark.skipif(
+        not check_dependency_exists("convert"),
+        reason="ImageMagick not installed - required for screenshot capture"
+    )
+    def test_get_ascii_view_output_has_bindings_section(self, skills_dir):
+        """Test that get_ascii_view.py output contains --- BINDINGS --- header."""
+        script_path = skills_dir / "ascii-desktop-control" / "scripts" / "get_ascii_view.py"
+
+        result = run_cli_command(["python3", str(script_path)], timeout=15)
+
+        # Should contain the BINDINGS section marker
+        assert "--- BINDINGS ---" in result.stdout, \
+            f"Output should contain '--- BINDINGS ---' header. Got: {result.stdout[:200]}"
+
+    @pytest.mark.skipif(
+        not check_dependency_exists("xdotool"),
+        reason="xdotool not installed - required for get_ascii_view execution"
+    )
+    @pytest.mark.skipif(
+        not check_dependency_exists("convert"),
+        reason="ImageMagick not installed - required for screenshot capture"
+    )
+    def test_get_ascii_view_output_has_window_metadata(self, skills_dir):
+        """Test that get_ascii_view.py output contains WINDOW metadata line."""
+        script_path = skills_dir / "ascii-desktop-control" / "scripts" / "get_ascii_view.py"
+
+        result = run_cli_command(["python3", str(script_path)], timeout=15)
+
+        # Skip if no active window (headless environment)
+        if "ERROR:" in result.stdout:
+            pytest.skip("Script returned an error (no active window)")
+
+        # Should contain WINDOW metadata (e.g., "WINDOW: 0x1234567 | SIZE: 1920x1080 | MODE: ...")
+        assert "WINDOW:" in result.stdout, \
+            f"Output should contain WINDOW metadata. Got: {result.stdout[:200]}"
+
+    @pytest.mark.skipif(
+        not check_dependency_exists("xdotool"),
+        reason="xdotool not installed - required for get_ascii_view execution"
+    )
+    @pytest.mark.skipif(
+        not check_dependency_exists("convert"),
+        reason="ImageMagick not installed - required for screenshot capture"
+    )
+    def test_get_ascii_view_output_has_valid_json_bindings(self, skills_dir):
+        """Test that get_ascii_view.py outputs valid JSON after BINDINGS header."""
+        import json
+
+        script_path = skills_dir / "ascii-desktop-control" / "scripts" / "get_ascii_view.py"
+
+        result = run_cli_command(["python3", str(script_path)], timeout=15)
+
+        if "ERROR:" in result.stdout:
+            pytest.skip("Script returned an error (no active window)")
+
+        # Extract JSON part after --- BINDINGS ---
+        if "--- BINDINGS ---" in result.stdout:
+            parts = result.stdout.split("--- BINDINGS ---")
+            if len(parts) >= 2:
+                json_part = parts[1].strip()
+                try:
+                    bindings = json.loads(json_part)
+                    # Bindings should be a dict (may be empty if no child windows)
+                    assert isinstance(bindings, dict), "Bindings should be a JSON object"
+                except json.JSONDecodeError as e:
+                    pytest.fail(f"Invalid JSON in bindings section: {e}\nJSON part: {json_part[:200]}")
+            else:
+                pytest.fail("Could not split output at --- BINDINGS ---")
+        else:
+            pytest.fail("Missing --- BINDINGS --- section in output")
+
+    @pytest.mark.skipif(
+        not check_dependency_exists("xdotool"),
+        reason="xdotool not installed - required for get_ascii_view execution"
+    )
+    @pytest.mark.skipif(
+        not check_dependency_exists("convert"),
+        reason="ImageMagick not installed - required for screenshot capture"
+    )
+    def test_get_ascii_view_output_mode_field(self, skills_dir):
+        """Test that get_ascii_view.py output contains valid MODE field."""
+        script_path = skills_dir / "ascii-desktop-control" / "scripts" / "get_ascii_view.py"
+
+        result = run_cli_command(["python3", str(script_path)], timeout=15)
+
+        if "ERROR:" in result.stdout:
+            pytest.skip("Script returned an error (no active window)")
+
+        # MODE should be either 'screenshot' or 'x11'
+        import re
+        mode_match = re.search(r"MODE:\s*(screenshot|x11)", result.stdout)
+        assert mode_match, \
+            f"Output should contain 'MODE: screenshot' or 'MODE: x11'. Got: {result.stdout[:200]}"
+
+    def test_get_ascii_view_output_format_structure(self, skills_dir):
+        """Test output format structure by analyzing the script's return types."""
+        script_path = skills_dir / "ascii-desktop-control" / "scripts" / "get_ascii_view.py"
+
+        # Read and verify the script structure
+        with open(script_path, 'r') as f:
+            content = f.read()
+
+        # Verify key functions exist
+        assert "def generate_ascii_view()" in content, "Script should have generate_ascii_view function"
+        assert "def capture_screenshot_ascii" in content, "Script should have capture_screenshot_ascii function"
+        assert "--- ASCII MAP ---" in content, "Script should output --- ASCII MAP --- header"
+        assert "--- BINDINGS ---" in content, "Script should output --- BINDINGS --- header"
+        assert "json.dumps" in content, "Script should output JSON for bindings"
