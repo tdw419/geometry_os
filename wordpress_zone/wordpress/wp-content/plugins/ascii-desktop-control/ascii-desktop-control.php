@@ -132,6 +132,25 @@ class ASCII_Desktop_Control {
             'dashicons-desktop',
             30
         );
+
+        // Logs submenu under ASCII Control toplevel
+        add_submenu_page(
+            'ascii-desktop-control',
+            __('Directive Logs', 'ascii-desktop-control'),
+            __('Logs', 'ascii-desktop-control'),
+            'manage_options',
+            'ascii-desktop-control-logs',
+            [$this, 'render_logs_page']
+        );
+
+        // Settings submenu under WordPress Settings menu
+        add_options_page(
+            __('ASCII Desktop Control Settings', 'ascii-desktop-control'),
+            __('ASCII Control', 'ascii-desktop-control'),
+            'manage_options',
+            'ascii-desktop-control-settings',
+            [$this, 'render_settings_page']
+        );
     }
 
     /**
@@ -271,6 +290,24 @@ class ASCII_Desktop_Control {
     public function render_control_page(): void {
         echo '<div class="wrap"><h1>ASCII Desktop Control</h1>';
         echo '<p>Control page will be implemented in Phase 2.</p>';
+        echo '</div>';
+    }
+
+    /**
+     * Render logs page (placeholder for now).
+     */
+    public function render_logs_page(): void {
+        echo '<div class="wrap"><h1>' . esc_html__('Directive Logs', 'ascii-desktop-control') . '</h1>';
+        echo '<p>' . esc_html__('Logs page will be implemented in Phase 2.', 'ascii-desktop-control') . '</p>';
+        echo '</div>';
+    }
+
+    /**
+     * Render settings page (placeholder for now).
+     */
+    public function render_settings_page(): void {
+        echo '<div class="wrap"><h1>' . esc_html__('ASCII Desktop Control Settings', 'ascii-desktop-control') . '</h1>';
+        echo '<p>' . esc_html__('Settings page will be implemented in Phase 2.', 'ascii-desktop-control') . '</p>';
         echo '</div>';
     }
 

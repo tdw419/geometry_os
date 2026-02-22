@@ -104,7 +104,7 @@ Focus: Plugin skeleton, CPT registration, shell exec wrappers. No UI polish yet.
   - **Done when**: All files pass syntax check
   - **Commit**: `chore(wp): pass quality checkpoint` (only if fixes needed)
 
-- [ ] 1.10 Add admin menu pages
+- [x] 1.10 Add admin menu pages
   - **Do**:
     1. Add `add_menu()` method with add_menu_page for "ASCII Control" (toplevel)
     2. Add submenu page for Settings (under Settings menu via add_options_page)
