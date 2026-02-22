@@ -1416,6 +1416,20 @@ function handle_sync_truths($args) {
  */
 function handle_get_truth_stats($args) {
     try {
+        // Check for force_refresh parameter to bypass cache
+        $force_refresh = isset($args['force_refresh']) && (bool)$args['force_refresh'];
+
+        // Try to get cached stats (5-minute TTL)
+        $cache_key = 'ctrm_truth_stats';
+        $cached_stats = get_transient($cache_key);
+
+        if ($cached_stats !== false && !$force_refresh) {
+            // Return cached stats
+            $cached_stats['cached'] = true;
+            echo json_encode($cached_stats);
+            return;
+        }
+
         // Query all truth_entry posts
         $query_args = array(
             'post_type' => 'truth_entry',
@@ -1477,14 +1491,21 @@ function handle_get_truth_stats($args) {
         // Calculate system_health = avg_confidence * 0.6 + avg_transparency * 0.4
         $system_health = ($avg_confidence * 0.6) + ($avg_transparency * 0.4);
 
-        echo json_encode(array(
+        // Build response array
+        $response = array(
             'success' => true,
             'total_truths' => $total_truths,
             'avg_confidence' => round($avg_confidence, 4),
             'avg_transparency' => round($avg_transparency, 4),
             'system_health' => round($system_health, 4),
-            'recent_truths' => $recent_truths
-        ));
+            'recent_truths' => $recent_truths,
+            'cached' => false
+        );
+
+        // Cache the stats for 5 minutes (300 seconds)
+        set_transient($cache_key, $response, 5 * MINUTE_IN_SECONDS);
+
+        echo json_encode($response);
     } catch (Exception $e) {
         header('HTTP/1.1 500 Internal Server Error');
         echo json_encode(array(

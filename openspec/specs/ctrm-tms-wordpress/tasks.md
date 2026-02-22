@@ -49,8 +49,9 @@
 - [x] Apply to all CTRM handlers
 
 ### Task 2.3: Optimize database queries
-- [ ] Add indexes for meta queries
-- [ ] Cache frequently accessed data
+- [x] Add WordPress transient caching for truth stats (5-minute TTL)
+- [x] Use direct meta queries with caching
+- [x] Cache getTruthStats results
 
 ## Phase 3: Testing (4 tasks)
 
