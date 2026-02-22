@@ -48,7 +48,7 @@
   - **Verify**: `python3 -c "from directive_daemon import call_llm; print('LLM function exists')"`
   - **Commit**: `feat(daemon): add LLM-powered execution`
 
-- [ ] 3.3 Write tests for directive daemon
+- [x] 3.3 Write tests for directive daemon
   - **Do**: Create test_directive_daemon.py with tests for intent parsing, action execution, LLM prompt building
   - **Files**: `tests/test_directive_daemon.py`
   - **Done when**: Tests pass with pytest
