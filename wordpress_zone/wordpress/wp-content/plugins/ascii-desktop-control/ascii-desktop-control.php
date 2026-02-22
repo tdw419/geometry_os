@@ -77,6 +77,9 @@ class ASCII_Desktop_Control {
         add_action('wp_ajax_ascii_get_directives', [$this, 'ajax_get_directives']);
         add_action('wp_ajax_ascii_get_logs', [$this, 'ajax_get_logs']);
         add_action('wp_ajax_ascii_daemon_status', [$this, 'ajax_daemon_status']);
+
+        // Admin bar quick link
+        add_action('admin_bar_menu', [$this, 'add_admin_bar_link'], 31);
     }
 
     /**
@@ -338,6 +341,39 @@ class ASCII_Desktop_Control {
         wp_localize_script('ascii-desktop-control', 'asciiControl', [
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('ascii_control_nonce'),
+        ]);
+    }
+
+    /**
+     * Add admin bar quick link with daemon status indicator.
+     *
+     * @param WP_Admin_Bar $admin_bar Admin bar instance.
+     */
+    public function add_admin_bar_link(\WP_Admin_Bar $admin_bar): void {
+        // Only show for users with manage_options capability
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
+        // Get daemon status for indicator
+        $daemon_status = $this->get_daemon_status();
+        $status = $daemon_status->get_status();
+
+        // Green dot for running, red dot for stopped
+        $indicator = $status['running']
+            ? '<span style="color: #46b450; margin-right: 4px;">&#9679;</span>'
+            : '<span style="color: #dc3232; margin-right: 4px;">&#9679;</span>';
+
+        // Add node after site name (priority 31 places it after site-name at 30)
+        $admin_bar->add_node(['id' => 'ascii-desktop-control',
+            'title'  => $indicator . __('ASCII Control', 'ascii-desktop-control'),
+            'href'   => admin_url('admin.php?page=ascii-desktop-control'),
+            'meta'   => [
+                'title' => $status['running']
+                    ? __('ASCII Control - Daemon Running', 'ascii-desktop-control')
+                    : __('ASCII Control - Daemon Stopped', 'ascii-desktop-control'),
+            ],
+            'parent' => false, // Top level, positioned after site name by priority
         ]);
     }
 

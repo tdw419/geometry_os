@@ -238,7 +238,7 @@ Focus: Rate limiting, admin bar link, activation hooks, final verification.
   - **Commit**: `feat(wp): add rate limiting for ASCII view endpoint`
   - _Requirements: NFR-12_
 
-- [ ] 3.2 Add admin bar quick link
+- [x] 3.2 Add admin bar quick link
   - **Do**:
     1. Add `add_admin_bar_link()` method hooked to `admin_bar_menu`
     2. Add "ASCII Control" node linking to main control page
