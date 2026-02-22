@@ -66,16 +66,19 @@ jobs:
           curl \
           wget
 
-    - name: Install Python packages
+    - name: Set up Python virtual environment
       run: |
-        python3 -m pip install --upgrade pip
-        pip3 install pytest pytest-cov matplotlib numpy pyyaml requests
+        python3 -m venv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install pytest pytest-cov matplotlib numpy pyyaml requests
 
     - name: Build and test
       run: |
+        source venv/bin/activate
         chmod +x build/*.sh
-        # Skip C++ builds on macOS for now (focus on Python components)
-        python3 -m pytest test_*.py -v --tb=short || echo "Some tests failed on macOS"
+        ./build/build_runner.sh || true
+        python3 -m pytest tests/ -v --tb=short || echo "Some tests failed on macOS"
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
