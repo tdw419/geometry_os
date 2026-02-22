@@ -228,7 +228,8 @@ class SyncManager:
 
         try:
             # Build sync endpoint URL
-            sync_url = f"{api_url.rstrip('/')}/geoos/v1/sync"
+            # api_url already contains /geoos/v1, so just append /sync
+            sync_url = f"{api_url.rstrip('/')}/sync"
 
             params = {
                 "since": int(since),
