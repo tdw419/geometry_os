@@ -12,6 +12,12 @@
 | evolution-daemon-control | Operations | Control the Evolution Daemon - start, stop, monitor, and manage autonomous self-improvement cycles. Use this skill when managing the continuous evolution system. | `.gemini/skills/evolution-daemon-control/SKILL.md` |
 | visual-shell-debug | Debugging | Debug Visual Shell issues including WebSocket connections, tile rendering, and UI interactions. Use this skill when troubleshooting the visual interface. | `.gemini/skills/visual-shell-debug/SKILL.md` |
 | infinite-map-testing | Testing | Test Infinite Map functionality including Hilbert curve navigation, tile loading, and spatial queries. Use this skill when validating map behavior. | `.gemini/skills/infinite-map-testing/SKILL.md` |
+| ascii-desktop-control | Operations | Semantic control of Linux GUI via ASCII maps and spatial coordinates. Use this skill when automating desktop interactions through the Infinite Map. | `.gemini/skills/ascii-desktop-control/SKILL.md` |
+| pixelrts-convert | Operations | Convert any binary file (ELF, WASM, GGUF, SafeTensors) to PixelRTS format with Hilbert curve spatial encoding. Use this skill when preparing binaries for spatial execution. | `.gemini/skills/pixelrts-convert/SKILL.md` |
+| pixelrts-analyze | Debugging | Visual analysis of PixelRTS containers including entropy mapping, pattern detection, and VLM-powered inspection. Use this skill when debugging or understanding container structure. | `.gemini/skills/pixelrts-analyze/SKILL.md` |
+| pixelrts-boot | Operations | Extract, verify, and boot PixelRTS containers via QEMU with hash verification. Use this skill when running Linux VMs from spatial containers. | `.gemini/skills/pixelrts-boot/SKILL.md` |
+| pixelrts-agent-build | Development | Create spatial WASM agents for the Infinite Map with proper ABI exports. Use this skill when building autonomous map agents. | `.gemini/skills/pixelrts-agent-build/SKILL.md` |
+| pixelrts-blueprint | Debugging | Generate and visualize blueprint metadata showing component boundaries. Use this skill when understanding complex binary structures. | `.gemini/skills/pixelrts-blueprint/SKILL.md` |
 
 ## How to Use Skills
 
@@ -27,6 +33,7 @@
 - **Operations**: Skills for controlling and monitoring running systems
 - **Debugging**: Skills for troubleshooting and diagnosing issues
 - **Testing**: Skills for validating specific subsystem behaviors
+- **Development**: Skills for building and creating new components
 
 ## Adding New Skills
 
