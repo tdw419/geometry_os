@@ -49,6 +49,9 @@ from systems.visual_shell.api.semantic_notification_bridge import (
     NotificationEvent,
 )
 
+# Import Truth Manifold Bridge (CTRM HUD integration)
+from systems.visual_shell.api.truth_manifold_bridge import TruthManifoldBridge
+
 # Import Evolution WebMCP Bridge (Ambient Narrative System)
 try:
     from systems.visual_shell.api.evolution_webmcp_bridge import (
@@ -88,6 +91,9 @@ class VisualBridge:
 
         # Semantic Notification Bridge (WordPress → Terminal)
         self.semantic_bridge = SemanticNotificationBridge()
+
+        # Truth Manifold Bridge (CTRM HUD integration)
+        self.truth_manifold_bridge = TruthManifoldBridge()
 
         # Ambient Narrative System (WordPress WebMCP)
         self.webmcp_bridge: Optional[EvolutionWebMCPBridge] = None
@@ -265,6 +271,9 @@ class VisualBridge:
         """Handle WebSocket client (Browser or AI Agent)"""
         self.clients.add(websocket)
         print(f"🔌 Connection established: {websocket.remote_address}")
+
+        # Broadcast CTRM truth manifold update to new client
+        await self.truth_manifold_bridge.broadcast_update(self)
         try:
             async for message in websocket:
                 try:
@@ -399,6 +408,11 @@ class VisualBridge:
                 # 8. Echo/Ping
                 elif msg_type == 'ping':
                     await websocket.send(json.dumps({'type': 'pong'}))
+
+                # 8b. CTRM Truth Manifold Refresh (HUD on-demand update)
+                elif msg_type == 'ctrm_refresh_request':
+                    print(f"📊 CTRM Refresh requested by client")
+                    await self.truth_manifold_bridge.broadcast_update(self)
 
                 # 9. Token Visualization Update (Neural City)
                 elif msg_type == 'token_visualization_update':

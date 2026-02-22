@@ -158,6 +158,18 @@ class VisualDebugOverlay {
             lastUpdate: null
         };
 
+        // Truth Manifold state (CTRM HUD Integration)
+        this.truthManifoldState = {
+            enabled: false,
+            connected: false,
+            cronbachAlpha: 0,
+            elementalIndependence: false,
+            meanScores: { E1_archaeology: 0, E2_manuscript: 0, E3_prophecy: 0 },
+            verseCount: 0,
+            lastUpdate: null,
+            error: null
+        };
+
         // Canvas layers
         this.hudCanvas = null;
         this.hudCtx = null;
@@ -428,6 +440,11 @@ class VisualDebugOverlay {
 
         window.addEventListener('heat_map_update', (e) => {
             this.handleHeatmapUpdate(e.detail);
+        });
+
+        // Listen for CTRM Truth Manifold updates
+        window.addEventListener('CTRM_TRUTH_UPDATE', (e) => {
+            this.handleTruthManifoldUpdate(e.detail);
         });
 
         // Drag and drop handlers for canvas
@@ -785,6 +802,35 @@ class VisualDebugOverlay {
                 strength: top.strength
             };
         }
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle CTRM Truth Manifold update event
+     * @param {Object} data - Truth manifold data with system_metrics, mean_scores, verse_count
+     */
+    handleTruthManifoldUpdate(data) {
+        if (!data) return;
+
+        // Extract payload from data.data or data
+        const payload = data.data || data;
+
+        // Update truthManifoldState fields
+        const systemMetrics = payload.system_metrics || {};
+        const meanScores = payload.mean_scores || {};
+
+        this.truthManifoldState.cronbachAlpha = systemMetrics.cronbach_alpha || 0;
+        this.truthManifoldState.elementalIndependence = systemMetrics.elemental_independence || false;
+        this.truthManifoldState.meanScores = {
+            E1_archaeology: meanScores.E1_archaeology || 0,
+            E2_manuscript: meanScores.E2_manuscript || 0,
+            E3_prophecy: meanScores.E3_prophecy || 0
+        };
+        this.truthManifoldState.verseCount = payload.verse_count || 0;
+        this.truthManifoldState.connected = true;
+        this.truthManifoldState.lastUpdate = Date.now();
+        this.truthManifoldState.error = null;
 
         this._scheduleRender();
     }
@@ -1503,6 +1549,11 @@ class VisualDebugOverlay {
         // GOSR Radio HUD (Phase 4: HUD Integration)
         if (this.radioState.enabled) {
             this._renderRadioSection(ctx, width, padding);
+        }
+
+        // Truth Manifold HUD (CTRM Statistics)
+        if (this.truthManifoldState.enabled || this.truthManifoldState.connected) {
+            this._renderTruthManifoldSection(ctx, width, padding);
         }
     }
 
@@ -3294,6 +3345,125 @@ class VisualDebugOverlay {
         const b = Math.round(c1.b + (c2.b - c1.b) * t);
 
         return `rgb(${r},${g},${b})`;
+    }
+
+    /**
+     * Render Truth Manifold HUD section
+     * Cyan-themed section showing CTRM statistics from Genesis analysis.
+     */
+    _renderTruthManifoldSection(ctx, width, padding) {
+        const state = this.truthManifoldState;
+        if (!state.enabled && !state.connected) return;
+
+        let y = this._getNextSectionY();
+
+        // Background for section - cyan theme
+        ctx.fillStyle = 'rgba(0, 30, 50, 0.9)';
+        ctx.fillRect(0, y, width, 180);
+
+        y += 20;
+
+        // Header with diamond icon
+        ctx.fillStyle = '#00ffff';
+        ctx.font = 'bold 12px monospace';
+        ctx.fillText('◇ TRUTH MANIFOLD', padding, y);
+        y += 18;
+
+        // Status indicator: connected/disconnected
+        ctx.fillStyle = state.connected ? '#00ff00' : '#ff4444';
+        ctx.beginPath();
+        ctx.arc(padding + 6, y + 4, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#aaa';
+        ctx.font = '10px monospace';
+        ctx.fillText(state.connected ? 'Connected' : 'Disconnected', padding + 18, y + 8);
+        y += 18;
+
+        // Cronbach's alpha value with color-coded status
+        const alpha = state.cronbachAlpha;
+        const alphaColor = alpha < 0.1 ? '#00ff00' : alpha < 0.3 ? '#ffaa00' : '#ff4444';
+        ctx.fillStyle = '#888';
+        ctx.fillText("Cronbach's α:", padding, y);
+        ctx.fillStyle = alphaColor;
+        ctx.fillText(alpha.toFixed(4), padding + 90, y);
+        y += 16;
+
+        // Elemental independence
+        ctx.fillStyle = '#888';
+        ctx.fillText('Elemental Indep.:', padding, y);
+        ctx.fillStyle = state.elementalIndependence ? '#00ff00' : '#ff4444';
+        ctx.fillText(state.elementalIndependence ? 'Yes' : 'No', padding + 110, y);
+        y += 20;
+
+        // Mean scores as progress bars
+        ctx.fillStyle = '#888';
+        ctx.font = '10px monospace';
+        ctx.fillText('Mean Scores:', padding, y);
+        y += 14;
+
+        const scores = state.meanScores;
+        const barWidth = 140;
+        const barHeight = 8;
+
+        // E1 Archaeology (Red)
+        ctx.fillStyle = '#888';
+        ctx.fillText('E1:', padding, y + 7);
+        ctx.fillStyle = '#333';
+        ctx.fillRect(padding + 25, y, barWidth, barHeight);
+        ctx.fillStyle = '#ff4444';
+        ctx.fillRect(padding + 25, y, barWidth * scores.E1_archaeology, barHeight);
+        ctx.fillStyle = '#aaa';
+        ctx.fillText(scores.E1_archaeology.toFixed(2), padding + 25 + barWidth + 8, y + 8);
+        y += 14;
+
+        // E2 Manuscript (Green)
+        ctx.fillStyle = '#888';
+        ctx.fillText('E2:', padding, y + 7);
+        ctx.fillStyle = '#333';
+        ctx.fillRect(padding + 25, y, barWidth, barHeight);
+        ctx.fillStyle = '#00ff00';
+        ctx.fillRect(padding + 25, y, barWidth * scores.E2_manuscript, barHeight);
+        ctx.fillStyle = '#aaa';
+        ctx.fillText(scores.E2_manuscript.toFixed(2), padding + 25 + barWidth + 8, y + 8);
+        y += 14;
+
+        // E3 Prophecy (Blue)
+        ctx.fillStyle = '#888';
+        ctx.fillText('E3:', padding, y + 7);
+        ctx.fillStyle = '#333';
+        ctx.fillRect(padding + 25, y, barWidth, barHeight);
+        ctx.fillStyle = '#4488ff';
+        ctx.fillRect(padding + 25, y, barWidth * scores.E3_prophecy, barHeight);
+        ctx.fillStyle = '#aaa';
+        ctx.fillText(scores.E3_prophecy.toFixed(2), padding + 25 + barWidth + 8, y + 8);
+        y += 18;
+
+        // Verse count
+        ctx.fillStyle = '#888';
+        ctx.fillText(`Verses: ${state.verseCount}`, padding, y);
+        y += 14;
+
+        // RGB legend
+        ctx.fillStyle = '#666';
+        ctx.font = '9px monospace';
+        ctx.fillText('RGB Legend:', padding, y);
+        ctx.fillStyle = '#ff4444';
+        ctx.fillText('R=E1', padding + 70, y);
+        ctx.fillStyle = '#00ff00';
+        ctx.fillText('G=E2', padding + 105, y);
+        ctx.fillStyle = '#4488ff';
+        ctx.fillText('B=E3', padding + 140, y);
+        y += 14;
+
+        // Last update timestamp
+        if (state.lastUpdate) {
+            const age = ((Date.now() - state.lastUpdate) / 1000).toFixed(1);
+            ctx.fillStyle = '#555';
+            ctx.fillText(`Updated: ${age}s ago`, padding, y);
+        }
+
+        this._lastSectionY = y + 20;
     }
 
     /**

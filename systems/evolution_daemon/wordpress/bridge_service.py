@@ -19,6 +19,7 @@ from typing import Optional, List, Dict, Any
 from .content_analyzer import ImprovementProposal
 from .evolution_agent import WordPressEvolutionAgent, EvolutionCycleResult
 from .action_executor import PlaywrightActionExecutor, ExecutionResult
+from .safety_config import SafetyConfig, ContentBackup, validate_proposal_safety
 
 logger = logging.getLogger("wp_evolution_bridge")
 
@@ -31,6 +32,11 @@ class BridgeServiceConfig:
     cycle_interval: int = 60  # seconds between cycles
     auto_execute: bool = False  # Safety: require manual approval by default
     min_confidence: float = 0.5  # Minimum confidence to consider a proposal
+    safety_config: Optional[SafetyConfig] = None
+    # LLM configuration
+    llm_enabled: bool = False  # Feature flag - disabled by default
+    llm_model: str = "glm-4-plus"
+    llm_temperature: float = 0.7
 
 
 @dataclass
@@ -67,6 +73,13 @@ class WPEvolutionBridgeService:
         self._agent = agent or WordPressEvolutionAgent(wp_url=config.wp_url)
         self._executor = executor or PlaywrightActionExecutor(ws_uri=config.ws_uri)
         self._memory_provider = memory_provider
+
+        # Create ContentBackup instance if safety config requires backups
+        self._safety_config = config.safety_config or SafetyConfig()
+        self._backup_manager: Optional[ContentBackup] = None
+        if self._safety_config.require_backup:
+            self._backup_manager = ContentBackup(self._safety_config)
+            logger.info("ContentBackup manager initialized for safe modifications")
 
         self._running = False
         self._task: Optional[asyncio.Task] = None
@@ -180,7 +193,53 @@ class WPEvolutionBridgeService:
         }
 
     async def _execute_proposal(self, proposal: ImprovementProposal) -> ExecutionResult:
-        """Execute a proposal via the ActionExecutor."""
+        """Execute a proposal via the ActionExecutor with safety validation."""
+        # Convert proposal to dict for safety validation
+        proposal_dict = {
+            "confidence": proposal.confidence,
+            "content": proposal.proposed_content,
+            "post_id": proposal.post_id,
+            "improvement_type": proposal.improvement_type
+        }
+
+        # Validate proposal safety
+        is_safe, reason = validate_proposal_safety(proposal_dict, self._safety_config)
+        logger.info(
+            f"Safety validation for post {proposal.post_id}: "
+            f"safe={is_safe}, reason={reason}"
+        )
+
+        if not is_safe:
+            logger.warning(f"Proposal rejected for post {proposal.post_id}: {reason}")
+            return ExecutionResult(
+                success=False,
+                post_id=proposal.post_id,
+                action=proposal.improvement_type,
+                error=f"Safety validation failed: {reason}"
+            )
+
+        # Create backup before execution if required
+        if self._backup_manager:
+            try:
+                backup_path = self._backup_manager.save(
+                    post_id=proposal.post_id,
+                    content=proposal.original_content,
+                    metadata={
+                        "improvement_type": proposal.improvement_type,
+                        "confidence": proposal.confidence
+                    }
+                )
+                logger.info(f"Backup created for post {proposal.post_id}: {backup_path}")
+            except Exception as e:
+                logger.error(f"Failed to create backup for post {proposal.post_id}: {e}")
+                return ExecutionResult(
+                    success=False,
+                    post_id=proposal.post_id,
+                    action=proposal.improvement_type,
+                    error=f"Backup creation failed: {e}"
+                )
+
+        # Execute the proposal
         result = await self._executor.execute_proposal(proposal)
 
         if result.success:
@@ -268,6 +327,28 @@ def create_cli_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Enable verbose logging"
     )
+    # LLM flags
+    parser.add_argument(
+        "--llm",
+        action="store_true",
+        help="Enable LLM-powered content expansion (default: False)"
+    )
+    parser.add_argument(
+        "--llm-model",
+        default="glm-4-plus",
+        help="LLM model to use for expansion"
+    )
+    parser.add_argument(
+        "--llm-temperature",
+        type=float,
+        default=0.7,
+        help="LLM temperature for content generation (0.0-1.0)"
+    )
+    parser.add_argument(
+        "--no-backup",
+        action="store_true",
+        help="Disable content backups before modification"
+    )
 
     return parser
 
@@ -284,7 +365,11 @@ async def main_async(args: argparse.Namespace):
         ws_uri=args.ws_uri,
         cycle_interval=args.interval,
         auto_execute=args.auto_execute,
-        min_confidence=args.min_confidence
+        min_confidence=args.min_confidence,
+        llm_enabled=args.llm,
+        llm_model=args.llm_model,
+        llm_temperature=args.llm_temperature,
+        safety_config=SafetyConfig(require_backup=not args.no_backup)
     )
 
     service = WPEvolutionBridgeService(config)
