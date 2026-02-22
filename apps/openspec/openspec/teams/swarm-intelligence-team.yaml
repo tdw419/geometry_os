@@ -1,0 +1,112 @@
+name: swarm-intelligence
+description: |
+  Agent team for implementing swarm intelligence system with TaskBoard,
+  SwarmAgent, and SwarmCoordinator using MapReduce pattern.
+
+selection_policy: best_fit
+scaling_policy: fixed
+failure_policy: failover
+max_retries: 3
+retry_delay: 5.0
+
+enable_event_bus: true
+enable_health_monitoring: true
+max_concurrent_tasks: 4
+
+agents:
+  - agent_id: orchestrator
+    name: Swarm Orchestrator
+    agent_type: orchestrator
+    capabilities:
+      - orchestration
+      - coordination
+      - tdd
+      - python
+      - testing
+    enabled: true
+    priority: 100
+    metadata:
+      role: Coordinate swarm intelligence implementation
+      focus: Ensure TDD approach, atomic commits, quality gates
+
+  - agent_id: core-implementer
+    name: Core Component Implementer
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - dataclasses
+      - file_io
+      - testing
+      - pytest
+    enabled: true
+    priority: 95
+    metadata:
+      role: Implement Task, TaskBoard, Reduction strategies
+      key_files:
+        - systems/swarm/task.py
+        - systems/swarm/task_board.py
+        - systems/swarm/reduction.py
+
+  - agent_id: agent-implementer
+    name: Agent/Coordinator Implementer
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - distributed_systems
+      - map_reduce
+      - testing
+    enabled: true
+    priority: 95
+    metadata:
+      role: Implement SwarmAgent and SwarmCoordinator
+      key_files:
+        - systems/swarm/swarm_agent.py
+        - systems/swarm/swarm_coordinator.py
+
+  - agent_id: test-engineer
+    name: Test Engineer
+    agent_type: specialist
+    capabilities:
+      - testing
+      - pytest
+      - integration_testing
+      - verification
+      - python
+    enabled: true
+    priority: 90
+    metadata:
+      role: Write and verify tests, ensure coverage
+      focus: TDD approach, comprehensive test coverage
+
+  - agent_id: doc-writer
+    name: Documentation Writer
+    agent_type: specialist
+    capabilities:
+      - documentation
+      - markdown
+      - technical_writing
+    enabled: true
+    priority: 85
+    metadata:
+      role: Create README and documentation
+      key_files:
+        - systems/swarm/README.md
+
+task_routing:
+  - pattern: "task|TaskBoard|reduction"
+    assign_to: core-implementer
+  - pattern: "agent|coordinator|SwarmAgent|Coordinator"
+    assign_to: agent-implementer
+  - pattern: "test|verify|integration"
+    assign_to: test-engineer
+  - pattern: "readme|documentation|docs"
+    assign_to: doc-writer
+  - pattern: "orchestrat|coordinate|plan"
+    assign_to: orchestrator
+
+reference_docs:
+  - docs/plans/2026-02-22-swarm-intelligence.md
+  - specs/swarm-intelligence/design.md
+  - specs/swarm-intelligence/requirements.md
