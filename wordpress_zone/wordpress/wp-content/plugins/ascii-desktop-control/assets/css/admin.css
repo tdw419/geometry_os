@@ -1,0 +1,761 @@
+/**
+ * ASCII Desktop Control - Admin Dark Theme Styles
+ *
+ * @package ASCII_Desktop_Control
+ * @since 1.0.0
+ */
+
+/* ==========================================================================
+   Base Dark Theme Variables & Reset
+   ========================================================================== */
+
+:root {
+    --ascii-bg-primary: #1e1e1e;
+    --ascii-bg-secondary: #252526;
+    --ascii-bg-tertiary: #2d2d30;
+    --ascii-text-primary: #d4d4d4;
+    --ascii-text-secondary: #9d9d9d;
+    --ascii-text-muted: #6d6d6d;
+    --ascii-border-color: #3c3c3c;
+    --ascii-accent-blue: #0078d4;
+    --ascii-accent-blue-hover: #1a8cff;
+    --ascii-status-pending: #ffc107;
+    --ascii-status-pending-bg: #3d3800;
+    --ascii-status-completed: #28a745;
+    --ascii-status-completed-bg: #1a4427;
+    --ascii-status-failed: #dc3545;
+    --ascii-status-failed-bg: #441a1f;
+    --ascii-status-processing: #6c757d;
+    --ascii-status-processing-bg: #2d2d30;
+    --ascii-toast-success: #28a745;
+    --ascii-toast-error: #dc3545;
+    --ascii-toast-warning: #ffc107;
+    --ascii-toast-info: #17a2b8;
+    --ascii-focus-ring: #0078d4;
+}
+
+/* ==========================================================================
+   Main Container Wrapper
+   ========================================================================== */
+
+.ascii-control-wrap {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.ascii-control-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    color: var(--ascii-text-primary);
+}
+
+.ascii-control-title .dashicons {
+    font-size: 30px;
+    width: 30px;
+    height: 30px;
+}
+
+/* ==========================================================================
+   Section Styles
+   ========================================================================== */
+
+.ascii-section {
+    background: var(--ascii-bg-secondary);
+    border: 1px solid var(--ascii-border-color);
+    border-radius: 6px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.ascii-section h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 0;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--ascii-border-color);
+    color: var(--ascii-text-primary);
+    font-size: 16px;
+}
+
+.ascii-section h2 .dashicons {
+    color: var(--ascii-accent-blue);
+}
+
+/* ==========================================================================
+   ASCII Grid - Dark Theme Monospace
+   ========================================================================== */
+
+.ascii-grid-container {
+    position: relative;
+    background: var(--ascii-bg-primary);
+    border: 1px solid var(--ascii-border-color);
+    border-radius: 4px;
+    padding: 15px;
+    overflow: auto;
+    min-height: 200px;
+    max-height: 500px;
+}
+
+.ascii-grid {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    line-height: 1.3;
+    color: var(--ascii-text-primary);
+    background: transparent;
+    margin: 0;
+    padding: 0;
+    white-space: pre;
+    overflow: visible;
+}
+
+.ascii-grid-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+}
+
+.ascii-grid-overlay .binding-marker {
+    position: absolute;
+    pointer-events: auto;
+    cursor: pointer;
+    border: 1px dashed rgba(0, 120, 212, 0.5);
+    background: rgba(0, 120, 212, 0.1);
+    border-radius: 2px;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.ascii-grid-overlay .binding-marker:hover {
+    background: rgba(0, 120, 212, 0.25);
+    border-color: var(--ascii-accent-blue);
+}
+
+/* ASCII View Controls */
+.ascii-view-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--ascii-border-color);
+}
+
+.ascii-poll-status {
+    color: var(--ascii-text-secondary);
+    font-size: 13px;
+}
+
+.ascii-last-update {
+    color: var(--ascii-text-muted);
+    font-size: 12px;
+    margin-left: auto;
+}
+
+/* ==========================================================================
+   Daemon Status Indicator
+   ========================================================================== */
+
+.daemon-status-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.daemon-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.daemon-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+.daemon-dot-unknown {
+    background: var(--ascii-status-processing);
+}
+
+.daemon-dot-running {
+    background: var(--ascii-status-completed);
+    box-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
+}
+
+.daemon-dot-stopped {
+    background: var(--ascii-status-failed);
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+.daemon-label {
+    color: var(--ascii-text-primary);
+    font-weight: 500;
+}
+
+.daemon-pid {
+    color: var(--ascii-text-secondary);
+    font-size: 12px;
+    font-family: monospace;
+}
+
+.daemon-refresh {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.daemon-refresh .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+.daemon-refresh.refreshing .dashicons {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ==========================================================================
+   Status Badges
+   ========================================================================== */
+
+.badge,
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-pending,
+.status-badge.pending {
+    background: var(--ascii-status-pending-bg);
+    color: var(--ascii-status-pending);
+    border: 1px solid var(--ascii-status-pending);
+}
+
+.badge-completed,
+.status-badge.completed {
+    background: var(--ascii-status-completed-bg);
+    color: var(--ascii-status-completed);
+    border: 1px solid var(--ascii-status-completed);
+}
+
+.badge-failed,
+.status-badge.failed {
+    background: var(--ascii-status-failed-bg);
+    color: var(--ascii-status-failed);
+    border: 1px solid var(--ascii-status-failed);
+}
+
+.badge-processing,
+.status-badge.processing {
+    background: var(--ascii-status-processing-bg);
+    color: var(--ascii-status-processing);
+    border: 1px solid var(--ascii-status-processing);
+}
+
+/* ==========================================================================
+   Directive Form
+   ========================================================================== */
+
+.directive-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.directive-form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.directive-form label {
+    color: var(--ascii-text-primary);
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.directive-form label .required {
+    color: var(--ascii-status-failed);
+    margin-left: 2px;
+}
+
+.directive-form input[type="text"],
+.directive-form textarea {
+    background: var(--ascii-bg-primary);
+    border: 1px solid var(--ascii-border-color);
+    border-radius: 4px;
+    color: var(--ascii-text-primary);
+    padding: 10px 12px;
+    font-size: 14px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.directive-form input[type="text"]::placeholder,
+.directive-form textarea::placeholder {
+    color: var(--ascii-text-muted);
+}
+
+.directive-form input[type="text"]:focus,
+.directive-form textarea:focus {
+    outline: none;
+    border-color: var(--ascii-focus-ring);
+    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.25);
+}
+
+.directive-form textarea {
+    resize: vertical;
+    min-height: 120px;
+    font-family: inherit;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.form-actions .button {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.form-actions .button .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+/* ==========================================================================
+   Main Grid Layout
+   ========================================================================== */
+
+.ascii-main-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+/* ==========================================================================
+   Directive Queue Table
+   ========================================================================== */
+
+.directive-queue-table {
+    background: var(--ascii-bg-secondary);
+}
+
+.directive-queue-table th {
+    color: var(--ascii-text-primary);
+    background: var(--ascii-bg-tertiary);
+}
+
+.directive-queue-table td {
+    color: var(--ascii-text-primary);
+}
+
+.directive-queue-table tbody tr:hover {
+    background: var(--ascii-bg-tertiary);
+}
+
+.queue-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.queue-controls select {
+    min-width: 80px;
+}
+
+.queue-label {
+    color: var(--ascii-text-secondary);
+    font-size: 13px;
+}
+
+.queue-placeholder {
+    text-align: center;
+    color: var(--ascii-text-muted);
+}
+
+.queue-placeholder .spinner {
+    float: none;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+/* ==========================================================================
+   Loading Spinner Overlay
+   ========================================================================== */
+
+.ascii-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100000;
+}
+
+.ascii-loading-overlay[style*="display: none"] {
+    display: none !important;
+}
+
+.ascii-loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    background: var(--ascii-bg-secondary);
+    padding: 30px 50px;
+    border-radius: 8px;
+    border: 1px solid var(--ascii-border-color);
+}
+
+.ascii-loading-spinner .spinner {
+    float: none;
+    transform: scale(1.5);
+}
+
+.ascii-loading-spinner .loading-text {
+    color: var(--ascii-text-primary);
+    font-size: 14px;
+}
+
+/* ==========================================================================
+   Toast Notifications
+   ========================================================================== */
+
+.ascii-toast-container {
+    position: fixed;
+    top: 40px;
+    right: 20px;
+    z-index: 100001;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 400px;
+}
+
+.ascii-toast {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 20px;
+    border-radius: 6px;
+    background: var(--ascii-bg-secondary);
+    border: 1px solid var(--ascii-border-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.ascii-toast.hiding {
+    animation: slideOut 0.3s ease-in forwards;
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+.ascii-toast .dashicons {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.ascii-toast .toast-message {
+    flex: 1;
+    color: var(--ascii-text-primary);
+    font-size: 14px;
+}
+
+.ascii-toast .toast-dismiss {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    color: var(--ascii-text-muted);
+    transition: color 0.2s ease;
+}
+
+.ascii-toast .toast-dismiss:hover {
+    color: var(--ascii-text-primary);
+}
+
+.ascii-toast .toast-dismiss .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+/* Toast Types */
+.ascii-toast-success {
+    border-left: 4px solid var(--ascii-toast-success);
+}
+
+.ascii-toast-success .dashicons {
+    color: var(--ascii-toast-success);
+}
+
+.ascii-toast-error {
+    border-left: 4px solid var(--ascii-toast-error);
+}
+
+.ascii-toast-error .dashicons {
+    color: var(--ascii-toast-error);
+}
+
+.ascii-toast-warning {
+    border-left: 4px solid var(--ascii-toast-warning);
+}
+
+.ascii-toast-warning .dashicons {
+    color: var(--ascii-toast-warning);
+}
+
+.ascii-toast-info {
+    border-left: 4px solid var(--ascii-toast-info);
+}
+
+.ascii-toast-info .dashicons {
+    color: var(--ascii-toast-info);
+}
+
+/* ==========================================================================
+   Button Overrides for Dark Theme
+   ========================================================================== */
+
+.ascii-control-wrap .button-primary {
+    background: var(--ascii-accent-blue);
+    border-color: var(--ascii-accent-blue);
+    color: #fff;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.ascii-control-wrap .button-primary:hover {
+    background: var(--ascii-accent-blue-hover);
+    border-color: var(--ascii-accent-blue-hover);
+}
+
+.ascii-control-wrap .button {
+    background: var(--ascii-bg-tertiary);
+    border-color: var(--ascii-border-color);
+    color: var(--ascii-text-primary);
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.ascii-control-wrap .button:hover {
+    background: var(--ascii-border-color);
+    border-color: var(--ascii-text-muted);
+}
+
+/* ==========================================================================
+   Focus States for Accessibility
+   ========================================================================== */
+
+.ascii-control-wrap a:focus,
+.ascii-control-wrap button:focus,
+.ascii-control-wrap input:focus,
+.ascii-control-wrap select:focus,
+.ascii-control-wrap textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.5);
+}
+
+.ascii-control-wrap .button:focus {
+    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.5);
+}
+
+/* Skip link for keyboard navigation */
+.ascii-control-wrap .screen-reader-shortcut:focus,
+.ascii-control-wrap .screen-reader-text:focus {
+    clip: auto;
+    height: auto;
+    width: auto;
+    padding: 15px 23px 14px;
+    background: var(--ascii-bg-secondary);
+    color: var(--ascii-text-primary);
+    border: 2px solid var(--ascii-focus-ring);
+    z-index: 100000;
+}
+
+/* ==========================================================================
+   Responsive Styles (1024px+)
+   ========================================================================== */
+
+@media screen and (min-width: 1024px) {
+    .ascii-main-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .ascii-view-section {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .directive-form-section {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .directive-queue-section {
+        grid-column: 1 / -1;
+    }
+}
+
+@media screen and (min-width: 1200px) {
+    .ascii-control-wrap {
+        padding: 0 20px;
+    }
+
+    .ascii-grid-container {
+        min-height: 300px;
+    }
+
+    .directive-form textarea {
+        min-height: 150px;
+    }
+}
+
+@media screen and (min-width: 1400px) {
+    .ascii-main-grid {
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 25px;
+    }
+
+    .ascii-section {
+        padding: 25px;
+    }
+}
+
+/* ==========================================================================
+   Mobile Adjustments
+   ========================================================================== */
+
+@media screen and (max-width: 782px) {
+    .ascii-control-wrap {
+        margin-left: -10px;
+        margin-right: -10px;
+    }
+
+    .ascii-section {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+
+    .daemon-status-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .ascii-view-controls {
+        flex-wrap: wrap;
+    }
+
+    .ascii-last-update {
+        width: 100%;
+        margin-left: 0;
+        margin-top: 10px;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .form-actions .button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .queue-controls {
+        flex-wrap: wrap;
+    }
+
+    .ascii-toast-container {
+        left: 10px;
+        right: 10px;
+        max-width: none;
+    }
+
+    .ascii-toast {
+        padding: 12px 15px;
+    }
+}
+
+/* ==========================================================================
+   Print Styles
+   ========================================================================== */
+
+@media print {
+    .ascii-loading-overlay,
+    .ascii-toast-container,
+    .daemon-refresh,
+    .ascii-view-controls,
+    .form-actions {
+        display: none !important;
+    }
+
+    .ascii-section {
+        break-inside: avoid;
+        border: 1px solid #ccc;
+        background: #fff;
+    }
+
+    .ascii-grid {
+        color: #000;
+    }
+}

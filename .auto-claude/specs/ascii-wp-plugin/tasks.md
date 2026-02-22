@@ -189,7 +189,7 @@ Focus: Control page, settings page, logs page with real UI templates.
   - **Commit**: `feat(wp): add JavaScript polling and UI logic`
   - _Requirements: AC-1.2, AC-2.5, AC-3.6, UI-4, UI-5_
 
-- [ ] 2.6 Create CSS dark theme styles
+- [x] 2.6 Create CSS dark theme styles
   - **Do**:
     1. Create `assets/css/admin.css` with dark theme
     2. Style ASCII grid: monospace font, #1e1e1e bg, #d4d4d4 text
