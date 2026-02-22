@@ -87,7 +87,7 @@ Focus: Critical safety tests first, then core unit tests.
   - _Requirements: NFR-1, NFR-3_
   - _Design: Fixtures section_
 
-- [ ] 4.2 Quality Gate Script
+- [x] 4.2 Quality Gate Script
   - **Do**: Create `scripts/run_desktop_agent_tests.sh` that runs all tests, generates coverage report, enforces 80% gate
   - **Files**: `scripts/run_desktop_agent_tests.sh`
   - **Done when**: Script runs all 6 test files, fails if coverage < 80% or any test fails
