@@ -72,7 +72,7 @@ Focus: Plugin skeleton, CPT registration, shell exec wrappers. No UI polish yet.
   - **Done when**: No syntax errors
   - **Commit**: `chore(wp): pass quality checkpoint` (only if fixes needed)
 
-- [ ] 1.7 Register settings via Settings API
+- [x] 1.7 Register settings via Settings API
   - **Do**:
     1. Add `register_settings()` method to main class
     2. Register settings: ascii_polling_interval, ascii_grid_width, ascii_grid_height, ascii_llm_endpoint, ascii_llm_model, ascii_log_retention_days, ascii_daemon_enabled

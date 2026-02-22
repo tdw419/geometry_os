@@ -115,7 +115,131 @@ class ASCII_Desktop_Control {
      * Admin init callback.
      */
     public function admin_init(): void {
-        // Settings registration will be added in later tasks
+        $this->register_settings();
+    }
+
+    /**
+     * Register plugin settings via WordPress Settings API.
+     */
+    public function register_settings(): void {
+        // Register setting group
+        register_setting('ascii_desktop_control_settings', 'ascii_polling_interval', [
+            'type' => 'integer',
+            'description' => __('Polling interval in seconds for ASCII view refresh', 'ascii-desktop-control'),
+            'sanitize_callback' => [$this, 'sanitize_polling_interval'],
+            'default' => 2,
+        ]);
+
+        register_setting('ascii_desktop_control_settings', 'ascii_grid_width', [
+            'type' => 'integer',
+            'description' => __('Width of ASCII grid in characters', 'ascii-desktop-control'),
+            'sanitize_callback' => [$this, 'sanitize_grid_width'],
+            'default' => 120,
+        ]);
+
+        register_setting('ascii_desktop_control_settings', 'ascii_grid_height', [
+            'type' => 'integer',
+            'description' => __('Height of ASCII grid in characters', 'ascii-desktop-control'),
+            'sanitize_callback' => [$this, 'sanitize_grid_height'],
+            'default' => 40,
+        ]);
+
+        register_setting('ascii_desktop_control_settings', 'ascii_llm_endpoint', [
+            'type' => 'string',
+            'description' => __('LLM API endpoint URL', 'ascii-desktop-control'),
+            'sanitize_callback' => [$this, 'sanitize_llm_endpoint'],
+            'default' => 'http://localhost:11434/api/generate',
+        ]);
+
+        register_setting('ascii_desktop_control_settings', 'ascii_llm_model', [
+            'type' => 'string',
+            'description' => __('LLM model name for directive processing', 'ascii-desktop-control'),
+            'sanitize_callback' => 'sanitize_text_field',
+            'default' => 'llama3.2',
+        ]);
+
+        register_setting('ascii_desktop_control_settings', 'ascii_log_retention_days', [
+            'type' => 'integer',
+            'description' => __('Number of days to retain directive logs', 'ascii-desktop-control'),
+            'sanitize_callback' => [$this, 'sanitize_log_retention_days'],
+            'default' => 30,
+        ]);
+
+        register_setting('ascii_desktop_control_settings', 'ascii_daemon_enabled', [
+            'type' => 'boolean',
+            'description' => __('Whether the daemon is enabled', 'ascii-desktop-control'),
+            'sanitize_callback' => [$this, 'sanitize_daemon_enabled'],
+            'default' => false,
+        ]);
+    }
+
+    /**
+     * Sanitize polling interval (1-60 seconds).
+     *
+     * @param mixed $value Input value.
+     * @return int Sanitized value.
+     */
+    public function sanitize_polling_interval($value): int {
+        $int_value = (int) $value;
+        return max(1, min(60, $int_value));
+    }
+
+    /**
+     * Sanitize grid width (40-200 characters).
+     *
+     * @param mixed $value Input value.
+     * @return int Sanitized value.
+     */
+    public function sanitize_grid_width($value): int {
+        $int_value = (int) $value;
+        return max(40, min(200, $int_value));
+    }
+
+    /**
+     * Sanitize grid height (10-60 characters).
+     *
+     * @param mixed $value Input value.
+     * @return int Sanitized value.
+     */
+    public function sanitize_grid_height($value): int {
+        $int_value = (int) $value;
+        return max(10, min(60, $int_value));
+    }
+
+    /**
+     * Sanitize LLM endpoint URL.
+     *
+     * @param mixed $value Input value.
+     * @return string Sanitized URL or empty string.
+     */
+    public function sanitize_llm_endpoint($value): string {
+        $url = esc_url_raw($value);
+        // Allow empty or valid HTTP/HTTPS URLs
+        if (empty($url) || preg_match('/^https?:\/\//', $url)) {
+            return $url;
+        }
+        return '';
+    }
+
+    /**
+     * Sanitize log retention days (1-365).
+     *
+     * @param mixed $value Input value.
+     * @return int Sanitized value.
+     */
+    public function sanitize_log_retention_days($value): int {
+        $int_value = (int) $value;
+        return max(1, min(365, $int_value));
+    }
+
+    /**
+     * Sanitize daemon enabled flag.
+     *
+     * @param mixed $value Input value.
+     * @return bool Sanitized boolean.
+     */
+    public function sanitize_daemon_enabled($value): bool {
+        return !empty($value);
     }
 
     /**
