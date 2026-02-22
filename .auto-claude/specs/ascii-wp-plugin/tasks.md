@@ -203,7 +203,7 @@ Focus: Control page, settings page, logs page with real UI templates.
   - **Commit**: `feat(wp): add dark theme CSS styles`
   - _Requirements: UI-1, UI-2, UI-3, UI-6, UI-8_
 
-- [ ] 2.7 Enqueue JS/CSS on plugin pages only
+- [x] 2.7 Enqueue JS/CSS on plugin pages only
   - **Do**:
     1. Add `enqueue_assets($hook)` method to main class
     2. Check if current page is plugin page (ascii-control, settings, logs)
