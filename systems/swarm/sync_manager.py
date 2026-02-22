@@ -336,6 +336,9 @@ class SyncManager:
             # Store posts
             stored = await self.store_posts(posts, source_node=node.node_id)
 
+            # Persist state
+            await self.save_state()
+
             # Update node state
             node.last_sync = time.time()
             node.sync_count += 1
