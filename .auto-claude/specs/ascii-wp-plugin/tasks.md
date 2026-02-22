@@ -42,7 +42,7 @@ Focus: Plugin skeleton, CPT registration, shell exec wrappers. No UI polish yet.
   - **Commit**: `feat(wp): add Directive_API with CPT CRUD`
   - _Requirements: FR-3, FR-5, FR-6, FR-7_
 
-- [ ] 1.4 Create Daemon_Status class with pgrep and caching
+- [x] 1.4 Create Daemon_Status class with pgrep and caching
   - **Do**:
     1. Create `includes/class-daemon-status.php`
     2. Implement `is_running()` with pgrep shell exec
