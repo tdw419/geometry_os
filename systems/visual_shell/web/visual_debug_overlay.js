@@ -442,6 +442,11 @@ class VisualDebugOverlay {
             this.handleHeatmapUpdate(e.detail);
         });
 
+        // Listen for CTRM Truth Manifold updates
+        window.addEventListener('CTRM_TRUTH_UPDATE', (e) => {
+            this.handleTruthManifoldUpdate(e.detail);
+        });
+
         // Drag and drop handlers for canvas
         if (this.hudCanvas) {
             this.hudCanvas.style.pointerEvents = 'auto';
@@ -797,6 +802,35 @@ class VisualDebugOverlay {
                 strength: top.strength
             };
         }
+
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle CTRM Truth Manifold update event
+     * @param {Object} data - Truth manifold data with system_metrics, mean_scores, verse_count
+     */
+    handleTruthManifoldUpdate(data) {
+        if (!data) return;
+
+        // Extract payload from data.data or data
+        const payload = data.data || data;
+
+        // Update truthManifoldState fields
+        const systemMetrics = payload.system_metrics || {};
+        const meanScores = payload.mean_scores || {};
+
+        this.truthManifoldState.cronbachAlpha = systemMetrics.cronbach_alpha || 0;
+        this.truthManifoldState.elementalIndependence = systemMetrics.elemental_independence || false;
+        this.truthManifoldState.meanScores = {
+            E1_archaeology: meanScores.E1_archaeology || 0,
+            E2_manuscript: meanScores.E2_manuscript || 0,
+            E3_prophecy: meanScores.E3_prophecy || 0
+        };
+        this.truthManifoldState.verseCount = payload.verse_count || 0;
+        this.truthManifoldState.connected = true;
+        this.truthManifoldState.lastUpdate = Date.now();
+        this.truthManifoldState.error = null;
 
         this._scheduleRender();
     }

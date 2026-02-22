@@ -64,7 +64,7 @@ Focus: Validate CTRM data flow from Python backend to HUD display. Skip tests, a
   - _Requirements: FR-4_
   - _Design: VisualDebugOverlay Extension_
 
-- [ ] 1.4 Add CTRM_TRUTH_UPDATE event listener and handler
+- [x] 1.4 Add CTRM_TRUTH_UPDATE event listener and handler
   - **Do**:
     1. Add event listener in `_bindEvents()` method:
        ```javascript

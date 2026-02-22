@@ -131,7 +131,7 @@ Focus: Validate LLM integration works end-to-end. Skip edge cases, accept hardco
 
 ## Phase 2: Refactoring
 
-- [ ] 2.1 Add SafetyConfig integration to BridgeService
+- [x] 2.1 Add SafetyConfig integration to BridgeService
   - **Do**:
     1. Modify `BridgeServiceConfig` to include `safety_config: Optional[SafetyConfig] = None`
     2. Modify `WPEvolutionBridgeService.__init__()` to create `ContentBackup` instance
