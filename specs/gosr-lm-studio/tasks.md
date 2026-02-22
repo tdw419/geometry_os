@@ -100,7 +100,7 @@ Focus: Validate LLM integration works end-to-end. Skip tests, accept hardcoded v
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Add unit tests for LLMNarrativeClient
+- [x] 3.1 Add unit tests for LLMNarrativeClient
   - **Do**:
     1. Create `TestLLMNarrativeClient` class in existing test file
     2. Add tests: initialization, is_available (mocked), generate_narrative (mocked)
