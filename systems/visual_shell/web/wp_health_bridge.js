@@ -7,10 +7,18 @@
  * Dependencies:
  *   - MetricsCollector.js (geometry-os-metrics)
  *   - SystemHealthDashboard.js (geometry-os-health-dashboard)
+ *
+ * WordPress Integration:
+ *   1. Copy MetricsCollector.js and wp_health_bridge.js to WordPress
+ *   2. Or load from Infinite Map server via geometry_os_heartbeat.php plugin
+ *   3. Heartbeat sends metrics to /wp-json/geometry-os/v1/health every 60s
  */
 
 (function() {
     'use strict';
+
+    // Namespace for Geometry OS
+    window.geometryOSApp = window.geometryOSApp || {};
 
     /**
      * Initialize the System Health Dashboard in WordPress Mission Control
@@ -84,7 +92,7 @@
         let score = 100;
 
         // Latency penalty (target: <100ms)
-        const latency = metrics.bridgeLatency || 0;
+        const latency = metrics.avgLatency || 0;
         if (latency > 200) score -= 20;
         else if (latency > 100) score -= 10;
 
@@ -94,7 +102,7 @@
         else if (drops > 0) score -= 5;
 
         // Reconnect penalty
-        const reconnects = metrics.reconnects || 0;
+        const reconnects = metrics.reconnectCount || 0;
         if (reconnects > 5) score -= 15;
         else if (reconnects > 0) score -= 5;
 
@@ -106,17 +114,34 @@
      * Sends metrics every 60 seconds
      */
     function startHealthHeartbeat() {
+        // Initialize MetricsCollector if not already created
+        if (!window.geometryOSMetrics && typeof MetricsCollector !== 'undefined') {
+            window.geometryOSMetrics = new MetricsCollector();
+            console.log('%c[System Health] MetricsCollector initialized', 'color: #00ffcc');
+        }
+
         // Check for MetricsCollector availability
-        if (typeof window.MetricsCollector === 'undefined') {
+        if (!window.geometryOSMetrics && typeof window.MetricsCollector === 'undefined') {
             console.warn('%c[System Health] MetricsCollector not available for heartbeat.', 'color: #ffcc00');
             return false;
         }
+
+        // Use existing instance or create new one
+        const metricsInstance = window.geometryOSMetrics ||
+            (typeof window.MetricsCollector !== 'undefined' ? new MetricsCollector() : null);
+
+        if (!metricsInstance) {
+            console.warn('%c[System Health] No metrics instance available.', 'color: #ffcc00');
+            return false;
+        }
+
+        window.geometryOSMetrics = metricsInstance;
 
         /**
          * Send heartbeat to WordPress REST API
          */
         function sendHeartbeat() {
-            const metrics = window.MetricsCollector.getAllMetrics();
+            const metrics = metricsInstance.getAllMetrics();
 
             if (!metrics) {
                 console.warn('%c[System Health] No metrics available for heartbeat.', 'color: #ffcc00');
@@ -126,15 +151,18 @@
             const healthScore = calculateHealthScore(metrics);
 
             const payload = {
-                latency_ms: metrics.bridgeLatency || 0,
-                swarm_count: metrics.activeSwarms || 0,
+                latency_ms: Math.round(metrics.avgLatency || 0),
+                swarm_count: metrics.tileCount || 0,
                 health_score: healthScore,
                 buffer_drops: metrics.bufferDrops || 0,
-                reconnects: metrics.reconnects || 0
+                reconnects: metrics.reconnectCount || 0,
+                sync_count: metrics.syncCount || 0,
+                timestamp: metrics.timestamp || Date.now()
             };
 
-            // Send to WordPress REST API
-            const endpoint = '/wp-json/geometry-os/v1/health';
+            // Get API URL from WordPress config or use default
+            const apiBase = (window.geometryOSConfig && window.geometryOSConfig.apiUrl) || '/wp-json/geometry-os/v1';
+            const endpoint = apiBase + '/health';
 
             fetch(endpoint, {
                 method: 'POST',
@@ -159,10 +187,27 @@
         // Send initial heartbeat
         sendHeartbeat();
 
-        // Set up 60-second interval
-        setInterval(sendHeartbeat, 60000);
+        // Set up 60-second interval (configurable via geometryOSConfig)
+        const interval = (window.geometryOSConfig && window.geometryOSConfig.heartbeatInterval) || 60000;
+        const intervalId = setInterval(sendHeartbeat, interval);
 
-        console.log('%c[System Health] Heartbeat started (60s interval)', 'color: #00ffcc');
+        // Store interval ID for potential cleanup
+        window.geometryOSApp.heartbeatIntervalId = intervalId;
+
+        console.log('%c[System Health] Heartbeat started (' + (interval/1000) + 's interval)', 'color: #00ffcc');
+
+        // Expose sendHeartbeat for manual triggering
+        window.geometryOSApp.wpHealthBridge = {
+            sendHeartbeat: sendHeartbeat,
+            stopHeartbeat: function() {
+                clearInterval(intervalId);
+                console.log('%c[System Health] Heartbeat stopped', 'color: #ffcc00');
+            },
+            getMetrics: function() {
+                return metricsInstance.getAllMetrics();
+            }
+        };
+
         return true;
     }
 

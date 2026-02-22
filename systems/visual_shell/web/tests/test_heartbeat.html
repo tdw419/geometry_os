@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heartbeat Test - Proactive Health Center</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { color: #00ffcc; margin-bottom: 10px; }
+        .subtitle { color: #666; margin-bottom: 20px; }
+        .status-box {
+            background: #0f0f1a;
+            border: 1px solid #00ffcc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .status-box h3 { color: #00ffcc; margin-bottom: 10px; }
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #333;
+        }
+        .metric-label { color: #888; }
+        .metric-value { color: #00ff00; font-weight: bold; }
+        .metric-value.warn { color: #ffcc00; }
+        .metric-value.fail { color: #ff4444; }
+        #log {
+            background: #0a0a15;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #16213e;
+            color: #00ffcc;
+            border: 1px solid #00ffcc;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        button:hover { background: #00ffcc; color: #1a1a2e; }
+        .heartbeat-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #333;
+            margin-right: 8px;
+            transition: background 0.3s;
+        }
+        .heartbeat-indicator.active { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><span class="heartbeat-indicator" id="pulse"></span>Heartbeat Test</h1>
+        <p class="subtitle">Proactive Health Center - 60-second heartbeat to WordPress</p>
+
+        <div class="controls">
+            <button onclick="startHeartbeat()">Start Heartbeat</button>
+            <button onclick="sendManualHeartbeat()">Send Manual Heartbeat</button>
+            <button onclick="simulateMetrics()">Simulate Metrics</button>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+
+        <div class="status-box">
+            <h3>Current Metrics</h3>
+            <div class="metric-row">
+                <span class="metric-label">Bridge Latency:</span>
+                <span class="metric-value" id="latency">0 ms</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Tile Count:</span>
+                <span class="metric-value" id="tiles">0</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Health Score:</span>
+                <span class="metric-value" id="score">100</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Buffer Drops:</span>
+                <span class="metric-value" id="drops">0</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Reconnects:</span>
+                <span class="metric-value" id="reconnects">0</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Heartbeat Count:</span>
+                <span class="metric-value" id="count">0</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Next Heartbeat:</span>
+                <span class="metric-value" id="next">--</span>
+            </div>
+        </div>
+
+        <div class="status-box">
+            <h3>Activity Log</h3>
+            <div id="log">Ready. Click "Start Heartbeat" to begin testing...</div>
+        </div>
+    </div>
+
+    <script src="../MetricsCollector.js"></script>
+    <script>
+        // Initialize metrics collector
+        const metrics = new MetricsCollector();
+
+        // State
+        let heartbeatInterval = null;
+        let heartbeatCount = 0;
+        let countdownInterval = null;
+        let nextHeartbeatSec = 0;
+
+        // Mock WordPress REST API endpoint
+        const WP_ENDPOINT = '/wp-json/geometry-os/v1/health';
+
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                info: '#00ffcc',
+                success: '#00ff00',
+                warn: '#ffcc00',
+                error: '#ff4444'
+            };
+            logEl.innerHTML += `<span style="color: ${colors[type]}">[${timestamp}]</span> ${message}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function calculateHealthScore(m) {
+            let score = 100;
+            const latency = m.avgLatency || 0;
+            if (latency > 200) score -= 20;
+            else if (latency > 100) score -= 10;
+            const drops = m.bufferDrops || 0;
+            if (drops > 10) score -= 15;
+            else if (drops > 0) score -= 5;
+            const reconnects = m.reconnectCount || 0;
+            if (reconnects > 5) score -= 15;
+            else if (reconnects > 0) score -= 5;
+            return Math.max(0, Math.min(100, score));
+        }
+
+        function updateDisplay(m) {
+            const score = calculateHealthScore(m);
+
+            document.getElementById('latency').textContent = `${Math.round(m.avgLatency || 0)} ms`;
+            document.getElementById('tiles').textContent = m.tileCount || 0;
+            document.getElementById('score').textContent = score;
+            document.getElementById('drops').textContent = m.bufferDrops || 0;
+            document.getElementById('reconnects').textContent = m.reconnectCount || 0;
+            document.getElementById('count').textContent = heartbeatCount;
+
+            // Color coding
+            const scoreEl = document.getElementById('score');
+            scoreEl.className = 'metric-value';
+            if (score < 50) scoreEl.classList.add('fail');
+            else if (score < 80) scoreEl.classList.add('warn');
+
+            const latencyEl = document.getElementById('latency');
+            latencyEl.className = 'metric-value';
+            if (m.avgLatency > 200) latencyEl.classList.add('fail');
+            else if (m.avgLatency > 100) latencyEl.classList.add('warn');
+        }
+
+        function updateCountdown() {
+            nextHeartbeatSec--;
+            if (nextHeartbeatSec <= 0) {
+                nextHeartbeatSec = 60;
+            }
+            document.getElementById('next').textContent = `${nextHeartbeatSec}s`;
+        }
+
+        async function sendHeartbeat() {
+            const m = metrics.getAllMetrics();
+            const score = calculateHealthScore(m);
+
+            const payload = {
+                latency_ms: Math.round(m.avgLatency || 0),
+                swarm_count: m.tileCount || 0,
+                health_score: score,
+                buffer_drops: m.bufferDrops || 0,
+                reconnects: m.reconnectCount || 0
+            };
+
+            log(`Sending heartbeat: ${JSON.stringify(payload)}`, 'info');
+
+            // Pulse indicator
+            const pulse = document.getElementById('pulse');
+            pulse.classList.add('active');
+            setTimeout(() => pulse.classList.remove('active'), 1000);
+
+            heartbeatCount++;
+            updateDisplay(m);
+
+            // Try to send to WordPress (will fail without WP running)
+            try {
+                const response = await fetch(WP_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                log(`Heartbeat ACK: ${JSON.stringify(data)}`, 'success');
+            } catch (err) {
+                log(`Heartbeat sent (mock mode - no WordPress): ${err.message}`, 'warn');
+                log(`Would POST to ${WP_ENDPOINT}: ${JSON.stringify(payload)}`, 'info');
+            }
+
+            nextHeartbeatSec = 60;
+        }
+
+        function startHeartbeat() {
+            if (heartbeatInterval) {
+                log('Heartbeat already running', 'warn');
+                return;
+            }
+
+            log('Starting 60-second heartbeat...', 'info');
+
+            // Send initial
+            sendHeartbeat();
+
+            // Set up interval
+            heartbeatInterval = setInterval(sendHeartbeat, 60000);
+
+            // Countdown
+            countdownInterval = setInterval(updateCountdown, 1000);
+
+            log('Heartbeat started. Watch the log for updates.', 'success');
+        }
+
+        function sendManualHeartbeat() {
+            log('Manual heartbeat triggered', 'info');
+            sendHeartbeat();
+        }
+
+        function simulateMetrics() {
+            // Simulate some activity
+            const latency = Math.random() * 150; // 0-150ms
+            metrics.recordLatency(latency);
+
+            if (Math.random() > 0.8) {
+                metrics.recordBufferDrop();
+                log('Simulated buffer drop', 'warn');
+            }
+
+            if (Math.random() > 0.9) {
+                metrics.recordReconnect();
+                log('Simulated reconnect', 'warn');
+            }
+
+            metrics.setTileCount(Math.floor(Math.random() * 10) + 1);
+            metrics.recordSync();
+
+            const m = metrics.getAllMetrics();
+            updateDisplay(m);
+            log(`Simulated metrics: latency=${Math.round(latency)}ms, tiles=${m.tileCount}`, 'info');
+        }
+
+        // Initial display
+        updateDisplay(metrics.getAllMetrics());
+
+        // Auto-simulate some initial metrics
+        for (let i = 0; i < 5; i++) {
+            metrics.recordLatency(Math.random() * 80 + 20);
+        }
+        metrics.setTileCount(5);
+        updateDisplay(metrics.getAllMetrics());
+
+        log('Initialized with simulated metrics', 'info');
+        log('Click "Start Heartbeat" to begin 60-second cycle', 'info');
+        log('', 'info');
+    </script>
+</body>
+</html>
