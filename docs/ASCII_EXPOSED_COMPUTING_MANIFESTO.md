@@ -1021,3 +1021,53 @@ ASCII Exposed Computing is not universal. Avoid it when:
 - **Compliance restrictions.** Some regulated environments prohibit "human-readable" state for security reasons. (Consider whether this is security theater.)
 
 The rule of thumb: If the state is meaningful to an operator or AI agent, expose it. If it's raw data that humans will never read directly, store it efficiently and expose metadata instead.
+
+---
+
+## Closing
+
+ASCII Exposed Computing is a return to first principles: the Unix philosophy that everything should be a file, the Twelve-Factor methodology that state should be explicit, and the modern reality that AI agents are first-class users of our systems.
+
+When state is text, understanding becomes trivial. When transitions are edits, debugging becomes archaeology. When both humans and AIs can read the same files, collaboration becomes natural rather than forced.
+
+The patterns and primitives in this manifesto are not a framework to install or a library to import. They are a philosophy to adopt. Start small. Expose one namespace. Write one fragment atomically. Subscribe to one hook. Let the benefits compound.
+
+The goal is not perfect ASCII purity. The goal is systems that speak fluently to both human and machine audiences, where `cat` is the only API you need, and where understanding is always a text file away.
+
+---
+
+## References
+
+This manifesto draws inspiration from foundational works in systems design:
+
+- **Plan 9 from Bell Labs** - The "everything is a file" philosophy, where all resources are represented as files in a hierarchical namespace. Rob Pike, Dave Presotto, et al., 1992.
+
+- **UNIX /proc filesystem** - Process information exposed as text files, enabling simple tools to inspect complex runtime state. Tom J. Killian, 1984.
+
+- **The Twelve-Factor App** - Methodology for building software-as-a-service apps, emphasizing explicit state management and environment parity. Adam Wiggins, 2011.
+
+- **Geometry OS ASCII Scene Graph** - A working implementation of these principles at `systems/visual_shell/ascii_scene/`, demonstrating fragments, hooks, atomic writes, and dual-format patterns in production code.
+
+- **The Art of Unix Programming** - Eric S. Raymond's exploration of Unix design philosophy, particularly the "Rule of Representation" favoring text over binary formats. 2003.
+
+---
+
+## Contributors
+
+This manifesto was developed within the Geometry OS project, synthesizing patterns observed across multiple subsystems including the Neural Event Bus, Swarm Intelligence framework, and Visual Shell ASCII scene.
+
+**Primary Authors:**
+- Geometry OS Core Team
+
+**Inspired By:**
+- The Plan 9 and UNIX communities
+- The Twelve-Factor App contributors
+- Early adopters of ASCII-exposed architectures
+
+---
+
+**Version:** 1.0
+**Date:** February 2026
+**License:** [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+
+*"In the beginning was the command line." — Neal Stephenson*

@@ -75,7 +75,7 @@ Focus: Create the complete manifesto document with all sections. Accept iterativ
   - _Requirements: FR-7, AC-7.1, AC-7.2, AC-7.3, AC-7.4_
   - _Design: Section 7_
 
-- [ ] 1.8 Add Closing and References section
+- [x] 1.8 Add Closing and References section
   - **Do**: Append Closing summary, References list (Plan 9, /proc, 12-factor, Geometry OS), Contributors, and version footer
   - **Files**: `docs/ASCII_EXPOSED_COMPUTING_MANIFESTO.md`
   - **Done when**: Document has complete closing with version info
