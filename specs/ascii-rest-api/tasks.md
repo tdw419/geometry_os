@@ -278,7 +278,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
 
 ## Phase 5: PR Lifecycle
 
-- [ ] 5.1 Create PR and verify CI
+- [x] 5.1 Create PR and verify CI
   - **Do**:
     1. Verify on feature branch: `git branch --show-current`
     2. Push branch: `git push -u origin feat/ascii-rest-api`
