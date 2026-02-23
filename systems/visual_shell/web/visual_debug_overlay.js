@@ -463,6 +463,11 @@ class VisualDebugOverlay {
             this.handleTruthManifoldUpdate(e.detail);
         });
 
+        // Listen for NEB Event updates (Neural Event Bus Dashboard)
+        window.addEventListener('NEB_EVENT_UPDATE', (e) => {
+            this.handleNebUpdate(e.detail);
+        });
+
         // Drag and drop handlers for canvas
         if (this.hudCanvas) {
             this.hudCanvas.style.pointerEvents = 'auto';
@@ -869,6 +874,22 @@ class VisualDebugOverlay {
         this.truthManifoldState.error = null;
         this.truthManifoldState.errorCode = null;
 
+        this._scheduleRender();
+    }
+
+    /**
+     * Handle NEB_EVENT_UPDATE for Neural Event Bus Dashboard
+     * @param {Object} data - NEB event data
+     * @param {Array} data.events - Array of recent events
+     * @param {Object} data.topicCounts - Count per topic prefix
+     * @param {number} data.totalCount - Total event count
+     */
+    handleNebUpdate(data) {
+        if (!this.nebDashboard.enabled) return;
+        this.nebDashboard.events = data.events || [];
+        this.nebDashboard.topicCounts = data.topicCounts || {};
+        this.nebDashboard.totalCount = data.totalCount || 0;
+        this.nebDashboard.lastUpdate = Date.now();
         this._scheduleRender();
     }
 

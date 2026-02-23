@@ -56,7 +56,7 @@ Focus: Bridge NEB events to HUD. Skip tests, accept hardcoded values.
   - _Requirements: FR-2, FR-6_
   - _Design: NEBDashboard State_
 
-- [ ] 1.4 Add NEB_EVENT_UPDATE event listener and handler
+- [x] 1.4 Add NEB_EVENT_UPDATE event listener and handler
   - **Do**:
     1. Add `window.addEventListener('NEB_EVENT_UPDATE', ...)` in `_bindEvents()`
     2. Implement `handleNebUpdate(data)` method
