@@ -148,7 +148,7 @@ Bidirectional human-AI collaboration via WordPress Directives.
 
 **Commit**: `feat(intelligence): add directive agent control script`
 
-**Status**: [ ] PENDING
+**Status**: [x] COMPLETE
 
 ---
 
@@ -189,7 +189,7 @@ Bidirectional human-AI collaboration via WordPress Directives.
 
 **Commit**: N/A (verification only)
 
-**Status**: [ ] PENDING
+**Status**: [x] PASS (77 tests, 11 skipped for WordPress)
 
 ---
 
@@ -210,4 +210,4 @@ Bidirectional human-AI collaboration via WordPress Directives.
 
 **Commit**: N/A (manual test)
 
-**Status**: [ ] PENDING
+**Status**: [x] SKIPPED (WordPress not running) - E2E tests cover mocked integration
