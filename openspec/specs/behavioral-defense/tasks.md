@@ -73,7 +73,7 @@ Focus: Validate behavioral monitoring works end-to-end. Skip tests, accept hardc
   - _Requirements: FR-4_
   - _Design: TierRouter Behavioral Integration_
 
-- [ ] 1.4 Create WordPressSentinel telemetry scanner
+- [x] 1.4 Create WordPressSentinel telemetry scanner
   - **Do**:
     1. Create `systems/evolution_daemon/safety/wordpress_sentinel.py`
     2. Implement `WordPressSentinel` class with `telemetry_path` constructor param (default: `wordpress_zone/telemetry`)
