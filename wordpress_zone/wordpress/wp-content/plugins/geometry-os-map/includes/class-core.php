@@ -107,64 +107,17 @@ class Geometry_OS_Map_Core {
     }
 
     /**
-     * Enqueue PixiJS and Geometry OS modules
+     * Enqueue any needed assets (minimal for iframe approach)
      *
      * @return void
      */
     public function enqueue_modules() {
-        $asset_base = $this->get_asset_base();
-
-        // PixiJS from CDN
-        wp_enqueue_script(
-            'pixi-v8',
-            'https://pixijs.download/v8.1.0/pixi.min.js',
-            [],
-            '8.1.0',
-            false // Load in head - required before modules
-        );
-
-        // Core modules in dependency order
-        $modules = [
-            // Libraries
-            'lib/typed-signals.js'        => ['pixi-v8'],
-            'lib/pixi-ui.min.js'          => ['lib/typed-signals.js'],
-
-            // Core spatial systems
-            'spatial_core.js'             => ['lib/pixi-ui.min.js'],
-            'sprite_pool.js'              => ['spatial_core.js'],
-            'chunk_manager.js'            => ['sprite_pool.js'],
-            'viewport_manager.js'         => ['chunk_manager.js'],
-            'lod_system.js'               => ['viewport_manager.js'],
-
-            // Map systems
-            'infinite_map_v2.js'          => ['lod_system.js'],
-            'infinite_map.js'             => ['infinite_map_v2.js'],
-            'brick_loader.js'             => ['infinite_map.js'],
-
-            // Rendering
-            'pixi_adapter.js'             => ['brick_loader.js'],
-            'visual_boot_loader.js'       => ['pixi_adapter.js'],
-
-            // Main application (loads last)
-            'application.js'              => ['visual_boot_loader.js'],
-        ];
-
-        $index = 0;
-        foreach ($modules as $path => $deps) {
-            $handle = "geometry-os-module-{$index}";
-            wp_enqueue_script(
-                $handle,
-                esc_url("{$asset_base}/{$path}"),
-                $deps,
-                '1.0.0',
-                false // Load in head for proper initialization order
-            );
-            $index++;
-        }
+        // Using iframe approach - no scripts needed in WordPress
+        // All assets are loaded by the visual shell at the iframe URL
     }
 
     /**
-     * Render the map container and initialization script
+     * Render the map container using iframe embedding
      *
      * @param array $atts Attributes for the map container
      *   - width: CSS width (default from settings)
@@ -177,6 +130,7 @@ class Geometry_OS_Map_Core {
         // Get defaults from settings
         $default_width = $this->get_setting('default_width');
         $default_height = $this->get_setting('default_height');
+        $asset_base = $this->get_asset_base();
 
         $atts = shortcode_atts([
             'width'      => $default_width,
@@ -189,6 +143,9 @@ class Geometry_OS_Map_Core {
         $is_fullscreen = filter_var($atts['fullscreen'], FILTER_VALIDATE_BOOLEAN);
         $mode_param = !empty($atts['mode']) ? '?mode=' . esc_attr($atts['mode']) : '';
 
+        // Build iframe URL
+        $iframe_url = esc_url($asset_base . '/' . $mode_param);
+
         // Build styles
         if ($is_fullscreen) {
             $styles = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: #111;';
@@ -199,67 +156,20 @@ class Geometry_OS_Map_Core {
         ob_start();
         ?>
         <div id="<?php echo esc_attr($container_id); ?>" class="geometry-os-map-container" style="<?php echo esc_attr($styles); ?>">
-            <div class="geo-map-loading" style="
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                height: 100%;
-                color: #00FFFF;
-                font-family: 'Courier New', monospace;
-                font-size: 18px;
-            ">
-                <span><?php echo esc_html('BOOTING GEOMETRY KERNEL...'); ?></span>
-            </div>
+            <iframe
+                src="<?php echo $iframe_url; ?>"
+                style="width: 100%; height: 100%; border: none; background: #111;"
+                allowfullscreen
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+            ></iframe>
         </div>
 
-        <script>
-        (function() {
-            var containerId = '<?php echo esc_js($container_id); ?>';
-            var modeParam = '<?php echo esc_js($mode_param); ?>';
-
-            // Wait for GeometryOSApplication to be available
-            function initMap() {
-                if (typeof GeometryOSApplication === 'undefined') {
-                    setTimeout(initMap, 100);
-                    return;
-                }
-
-                // Clear loading indicator
-                var container = document.getElementById(containerId);
-                if (container) {
-                    container.innerHTML = '';
-                }
-
-                // Initialize application
-                var app = new GeometryOSApplication();
-                window.geometryOSApp = app;
-
-                app.initialize(containerId).then(function() {
-                    console.log('Geometry OS Map initialized');
-
-                    // Dispatch event for other scripts to hook into
-                    window.dispatchEvent(new CustomEvent('geometryOSMapReady', {
-                        detail: { app: app, containerId: containerId }
-                    }));
-                }).catch(function(err) {
-                    console.error('Failed to initialize Geometry OS Map:', err);
-                    if (container) {
-                        container.innerHTML = '<div style="color: #ff4444; padding: 20px;">Failed to load map: ' + err.message + '<\/div>';
-                    }
-                });
-            }
-
-            // Start initialization when DOM is ready
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initMap);
-            } else {
-                initMap();
-            }
-        })();
-        </script>
-
         <style>
-        .geometry-os-map-container canvas {
+        .geometry-os-map-container {
+            position: relative;
+        }
+        .geometry-os-map-container iframe {
             display: block;
         }
         </style>
