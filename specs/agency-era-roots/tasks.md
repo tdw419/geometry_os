@@ -12,7 +12,7 @@ generated: auto
 
 Focus: Validate EpisodicMemory storage and retrieval works end-to-end. Skip tests, accept simple hash-based embeddings.
 
-- [ ] 1.1 Create Experience dataclass with embedding field
+- [x] 1.1 Create Experience dataclass with embedding field
   - **Do**: Create `systems/swarm/memory/experience.py` with Experience dataclass containing experience_id, agent_id, task_type, action, outcome, description, embedding, metadata, timestamp
   - **Files**: `systems/swarm/memory/experience.py`, `systems/swarm/memory/__init__.py`
   - **Done when**: Can instantiate Experience and access all fields
@@ -21,7 +21,7 @@ Focus: Validate EpisodicMemory storage and retrieval works end-to-end. Skip test
   - _Requirements: FR-1_
   - _Design: EpisodicMemory component_
 
-- [ ] 1.2 Implement ExperienceStore with JSON persistence
+- [x] 1.2 Implement ExperienceStore with JSON persistence
   - **Do**: Create `systems/swarm/memory/experience_store.py` with load(), save(), add(), get_all() methods. Store at `.geometry/episodic_memory.json`. Use file locking from TaskBoard pattern.
   - **Files**: `systems/swarm/memory/experience_store.py`
   - **Done when**: Can save and load experiences from JSON file
@@ -30,7 +30,7 @@ Focus: Validate EpisodicMemory storage and retrieval works end-to-end. Skip test
   - _Requirements: FR-2_
   - _Design: ExperienceStore component_
 
-- [ ] 1.3 Implement simple hash-based embedding generator
+- [x] 1.3 Implement simple hash-based embedding generator
   - **Do**: Add `generate_embedding(text: str) -> List[float]` function that creates deterministic 128-dim vectors from text using hashlib. Normalize to unit length.
   - **Files**: `systems/swarm/memory/experience_store.py` (add to same file)
   - **Done when**: Same text produces same embedding, different texts produce different embeddings
