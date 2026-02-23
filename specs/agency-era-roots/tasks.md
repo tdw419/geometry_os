@@ -86,7 +86,7 @@ Focus: Validate EpisodicMemory storage and retrieval works end-to-end. Skip test
 
 After POC validated, clean up code and integrate with GuildAgents.
 
-- [ ] 2.1 Add MemoryMixin to GuildAgent base
+- [x] 2.1 Add MemoryMixin to GuildAgent base
   - **Do**: Add optional memory attribute to GuildAgent. Add store_experience() and check_past_experiences() methods that delegate to memory if available.
   - **Files**: `systems/swarm/guilds/base.py`
   - **Done when**: GuildAgent can use memory without breaking existing agents
