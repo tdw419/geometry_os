@@ -11,8 +11,8 @@
 - [x] Formula: sum(confidence*approve) / sum(confidence)
 
 ## Task 3: Create Swarm Channel
-- Create `systems/swarm/swarm_channel.py`
-- Clipboard-based communication
+- [x] Create `systems/swarm/swarm_channel.py`
+- [x] Clipboard-based communication
 
 ## Task 4: Create Swarm Node
 - Create `systems/swarm/swarm_node.py`
