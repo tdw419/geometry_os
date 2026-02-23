@@ -126,3 +126,56 @@ class SwarmNEBBridge:
             )
 
         return vote
+
+    def evaluate_consensus(self, proposal_id: str) -> dict:
+        """
+        Evaluate consensus for a proposal and publish to NEBBus if available.
+
+        Collects votes from the clipboard, adds them to the proposal,
+        evaluates consensus, and publishes the result to the NEBBus.
+
+        Args:
+            proposal_id: ID of the proposal to evaluate
+
+        Returns:
+            Result dictionary with:
+                - weighted_approval: Ratio of weighted approval
+                - approved: True if approved, False if rejected
+                - vote_count: Number of votes
+        """
+        # Find the proposal from clipboard
+        proposals = self.node.check_for_proposals()
+        proposal = None
+        for p in proposals:
+            if p.id == proposal_id:
+                proposal = p
+                break
+
+        if proposal is None:
+            return {
+                "weighted_approval": 0.0,
+                "approved": False,
+                "vote_count": 0
+            }
+
+        # Collect votes and add to proposal
+        votes = self.node.collect_votes(proposal_id)
+        for vote in votes:
+            proposal.add_vote(vote)
+
+        # Evaluate consensus
+        result = self.node.evaluate_proposal(proposal)
+
+        # Publish to NEBBus if available
+        if self._event_bus is not None:
+            self._event_bus.publish(
+                f"swarm.consensus.{proposal_id}",
+                {
+                    "proposal_id": proposal_id,
+                    "weighted_approval": result["weighted_approval"],
+                    "approved": result["approved"],
+                    "vote_count": result["vote_count"]
+                }
+            )
+
+        return result

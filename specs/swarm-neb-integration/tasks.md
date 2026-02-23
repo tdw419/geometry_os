@@ -73,7 +73,7 @@ with tempfile.TemporaryDirectory() as d:
   - _Requirements: FR-1, FR-3_
   - _Design: Event topic: swarm.vote.{proposal_id}_
 
-- [ ] 1.4 Implement evaluate_consensus with NEB publishing
+- [x] 1.4 Implement evaluate_consensus with NEB publishing
   - **Do**:
     1. Add `evaluate_consensus()` method that:
        - Collects votes via SwarmNode.collect_votes()
