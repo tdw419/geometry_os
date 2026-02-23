@@ -23,3 +23,4 @@ require_once __DIR__ . '/class-test-directive-api.php';
 require_once __DIR__ . '/class-test-ascii-view.php';
 require_once __DIR__ . '/class-test-daemon-status.php';
 require_once __DIR__ . '/class-test-ajax-handlers.php';
+require_once __DIR__ . '/class-test-api-keys.php';

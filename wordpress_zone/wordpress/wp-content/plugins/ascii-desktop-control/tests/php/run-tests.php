@@ -32,6 +32,7 @@ $test_classes = [
     'Test_ASCII_View',
     'Test_Daemon_Status',
     'Test_AJAX_Handlers',
+    'Test_API_Keys',
 ];
 
 foreach ($test_classes as $class_name) {
