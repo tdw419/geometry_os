@@ -1,0 +1,13 @@
+{
+  "source": "plan",
+  "name": "swarm-neb-bridge-completion",
+  "basePath": "./specs/swarm-neb-bridge-completion",
+  "phase": "tasks",
+  "taskIndex": 0,
+  "totalTasks": 12,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": false
+}
