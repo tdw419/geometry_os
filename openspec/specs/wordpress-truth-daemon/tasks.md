@@ -12,7 +12,7 @@ generated: auto
 
 Focus: Validate the pipeline works end-to-end. Skip tests, accept hardcoded values.
 
-- [ ] 1.1 Create WordPressClient
+- [x] 1.1 Create WordPressClient
   - **Do**: Create `wordpress_zone/wp_client.py` with WordPressClient class. Methods: `__init__(base_url)`, `get_modified_posts(since, post_types, limit)`, `update_post_meta(post_id, meta_key, meta_value)`, `get_post_author_info(post_id)`, `_make_request(payload)`. Use requests library with 10s timeout.
   - **Files**: `wordpress_zone/wp_client.py`
   - **Done when**: Can instantiate client, call get_modified_posts() returns list (mock response OK)
@@ -21,7 +21,7 @@ Focus: Validate the pipeline works end-to-end. Skip tests, accept hardcoded valu
   - _Requirements: FR-1_
   - _Design: WordPressClient component_
 
-- [ ] 1.2 Create TruthExtractor
+- [x] 1.2 Create TruthExtractor
   - **Do**: Create `wordpress_zone/truth_extractor.py` with TruthExtractor class and ExtractedClaim dataclass. Methods: `__init__(model)`, `async extract_claims(content, source_title)`, `async _call_llm(prompt)`, `_parse_response(response, source_context)`. Import LMStudioIntegration from src/lm_studio/integration.py. Use EXTRACTION_PROMPT template with JSON output.
   - **Files**: `wordpress_zone/truth_extractor.py`
   - **Done when**: Can call extract_claims() and get list of ExtractedClaim objects
