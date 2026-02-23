@@ -123,12 +123,17 @@ $cache_ttl = $monitor->get_cache_ttl();
         <p class="description">
             <?php
             printf(
-                /* translators: %d: cache TTL in seconds */
-                esc_html_n(
-                    'Status refreshes automatically every %d second.',
-                    'Status refreshes automatically every %d seconds.',
-                    $cache_ttl,
-                    'geometry-os-daemons'
+                esc_html(
+                    sprintf(
+                        /* translators: %d: cache TTL in seconds */
+                        _n(
+                            'Status refreshes automatically every %d second.',
+                            'Status refreshes automatically every %d seconds.',
+                            $cache_ttl,
+                            'geometry-os-daemons'
+                        ),
+                        $cache_ttl
+                    )
                 ),
                 $cache_ttl
             );
