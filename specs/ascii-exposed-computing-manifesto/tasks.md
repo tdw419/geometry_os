@@ -96,7 +96,7 @@ After POC validated, clean up and refine.
   - **Commit**: `fix(manifesto): correct markdown syntax`
   - _Design: NFR-1, NFR-3_
 
-- [ ] 2.2 Verify code examples
+- [x] 2.2 Verify code examples
   - **Do**: Ensure all Python code examples are syntactically valid
   - **Files**: `docs/ASCII_EXPOSED_COMPUTING_MANIFESTO.md`
   - **Done when**: All fenced code blocks with `python` label parse

@@ -219,7 +219,7 @@ A **Fragment** is the atomic unit of exposed state. It represents one concept, i
 - Self-describing (schema marker at top)
 
 **Example:**
-```python
+```yaml
 # schema: agent-status/v1
 # Agent runtime state fragment
 # Location: agents/engineer_001/status.ascii
@@ -247,7 +247,7 @@ A **Schema** is an explicit type contract for a fragment. It defines what fields
 - Comments explain semantics, not syntax
 
 **Example:**
-```python
+```yaml
 # schema: task-definition/v2
 # Defines a unit of work for swarm agents
 #
@@ -271,7 +271,7 @@ created_at: 2026-02-23T14:00:00Z
 
 **Schema evolution:** When a schema changes, bump the version. Old fragments retain their version marker. Consumers handle version negotiation via simple string matching.
 
-```python
+```yaml
 # Fragment using old schema
 # schema: task-definition/v1
 task_id: T-00041
@@ -291,7 +291,7 @@ A **Hook** is a change notification mechanism. When state changes, hooks broadca
 - Support filtering by namespace/pattern
 
 **Example:**
-```python
+```text
 # Hook broadcast when agent status changes
 # Location: hooks/agents/status.log
 
@@ -381,7 +381,7 @@ The primitives define what; patterns define how. These five patterns solve commo
 **Solution:** Generate aggregated fragments by concatenating and summarizing atomic fragments. The aggregation is itself a fragment, not a special API.
 
 **Example:**
-```python
+```yaml
 # Atomic fragments (input)
 # agents/engineer_001/status.ascii
 status: working
@@ -497,7 +497,7 @@ def atomic_write(path: str | Path, content: str, sync: bool = True):
 **Solution:** Maintain an append-only log of changes. Each line is a diff, timestamped and namespaced. AIs can tail the log or query specific time ranges.
 
 **Example:**
-```python
+```text
 # hooks/changes.log
 # schema: change-stream/v1
 # Format: TIMESTAMP | NAMESPACE | OPERATION | DIFF
@@ -564,7 +564,7 @@ class ChangeStream:
 **Solution:** Use a dual format: human-readable by default, with a parallel `.json` variant for complex structures. Both are fragments; both are exposed.
 
 **Example:**
-```python
+```yaml
 # fragments/tasks/T-00042.ascii (human-primary)
 # schema: task-dual/v1
 # Human-readable summary
@@ -625,7 +625,7 @@ created: 2026-02-23T14:00:00Z
 **Solution:** Define base fragments that derived fragments extend. The base is a template; the derived adds specifics.
 
 **Example:**
-```python
+```yaml
 # fragments/_base/agent.ascii (template)
 # schema: agent-base/v1
 # DO NOT USE DIRECTLY - this is a template
