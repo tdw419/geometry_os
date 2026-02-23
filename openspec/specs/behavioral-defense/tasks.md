@@ -250,7 +250,7 @@ After POC validated, clean up code.
   - **Commit**: `test(safety): add unit tests for WordPressSentinel`
   - _Requirements: AC-4.1_
 
-- [ ] 3.5 Integration test: full behavioral defense flow
+- [x] 3.5 Integration test: full behavioral defense flow
   - **Do**:
     1. Create `systems/evolution_daemon/tests/test_behavioral_integration.py`
     2. Test: Sentinel scans telemetry -> creates events -> monitor detects anomaly -> tier demotion
