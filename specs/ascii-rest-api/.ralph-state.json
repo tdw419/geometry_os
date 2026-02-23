@@ -1,0 +1,13 @@
+{
+  "source": "spec",
+  "name": "ascii-rest-api",
+  "basePath": "./specs/ascii-rest-api",
+  "phase": "execution",
+  "taskIndex": 1,
+  "totalTasks": 22,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "awaitingApproval": false
+}
