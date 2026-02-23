@@ -12,7 +12,7 @@ generated: auto
 
 Focus: Get EngineerAgent generating code end-to-end. Skip tests initially.
 
-- [ ] 1.1 Extend TaskType enum with guild task types
+- [x] 1.1 Extend TaskType enum with guild task types
   - **Do**: Add 6 new task types to `systems/swarm/task.py`: CODE_GENERATION, CODE_TESTING, CODE_REVIEW, SECURITY_SCAN, ARCHITECTURE_DESIGN, SYSTEM_PLANNING
   - **Files**: `systems/swarm/task.py`
   - **Done when**: All 6 types visible in TaskType enum
