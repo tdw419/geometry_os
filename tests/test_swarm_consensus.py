@@ -261,3 +261,153 @@ class TestProposalVoteIntegration:
         assert summary["approve_count"] == 2
         assert summary["reject_count"] == 1
         assert summary["approve_ratio"] == 2/3
+
+
+class TestWeightedConfidenceCalculator:
+    """Tests for WeightedConfidenceCalculator - weighted voting strategy."""
+
+    def test_weighted_confidence_calculator(self):
+        """Test weighted confidence: approve=True wins with higher confidence."""
+        from systems.swarm.consensus import (
+            WeightedConfidenceCalculator, SwarmProposal, SwarmVote
+        )
+
+        calc = WeightedConfidenceCalculator()
+        proposal = SwarmProposal(
+            title="Test Proposal",
+            description="Testing weighted confidence",
+            proposer="node-alpha"
+        )
+
+        # 2 approve with high confidence (0.9, 0.8) = 1.7 weighted
+        # 1 reject with low confidence (0.3) = 0.3 weighted
+        # Weighted approval: (0.9 + 0.8) / (0.9 + 0.8 + 0.3) = 1.7 / 2.0 = 0.85
+        proposal.add_vote(SwarmVote(proposal.id, "n1", True, 0.9, "Approve"))
+        proposal.add_vote(SwarmVote(proposal.id, "n2", True, 0.8, "Approve"))
+        proposal.add_vote(SwarmVote(proposal.id, "n3", False, 0.3, "Reject"))
+
+        result = calc.calculate(proposal.votes)
+
+        assert result["weighted_approval"] == pytest.approx(0.85, rel=0.01)
+        assert result["approved"] is True  # 0.85 > 0.6 threshold
+        assert result["vote_count"] == 3
+
+    def test_weighted_confidence_rejection(self):
+        """Test weighted confidence: approve=False wins with higher confidence."""
+        from systems.swarm.consensus import (
+            WeightedConfidenceCalculator, SwarmProposal, SwarmVote
+        )
+
+        calc = WeightedConfidenceCalculator()
+        proposal = SwarmProposal(
+            title="Reject Proposal",
+            description="Testing rejection",
+            proposer="node-alpha"
+        )
+
+        # 1 approve with low confidence (0.2) = 0.2 weighted
+        # 2 reject with high confidence (0.9, 0.8) = 1.7 weighted
+        # Weighted approval: 0.2 / (0.2 + 0.9 + 0.8) = 0.2 / 1.9 = 0.105
+        proposal.add_vote(SwarmVote(proposal.id, "n1", True, 0.2, "Weak approve"))
+        proposal.add_vote(SwarmVote(proposal.id, "n2", False, 0.9, "Strong reject"))
+        proposal.add_vote(SwarmVote(proposal.id, "n3", False, 0.8, "Strong reject"))
+
+        result = calc.calculate(proposal.votes)
+
+        assert result["weighted_approval"] == pytest.approx(0.105, rel=0.01)
+        assert result["approved"] is False  # 0.105 < 0.6 threshold
+        assert result["vote_count"] == 3
+
+    def test_weighted_confidence_empty(self):
+        """Test weighted confidence with no votes."""
+        from systems.swarm.consensus import (
+            WeightedConfidenceCalculator, SwarmProposal
+        )
+
+        calc = WeightedConfidenceCalculator()
+        proposal = SwarmProposal(
+            title="Empty Proposal",
+            description="No votes",
+            proposer="node-alpha"
+        )
+
+        result = calc.calculate(proposal.votes)
+
+        assert result["weighted_approval"] == 0.0
+        assert result["approved"] is False  # No votes = not approved
+        assert result["vote_count"] == 0
+
+    def test_weighted_confidence_tie(self):
+        """Test weighted confidence with exact tie."""
+        from systems.swarm.consensus import (
+            WeightedConfidenceCalculator, SwarmProposal, SwarmVote
+        )
+
+        calc = WeightedConfidenceCalculator()
+        proposal = SwarmProposal(
+            title="Tie Proposal",
+            description="Testing tie",
+            proposer="node-alpha"
+        )
+
+        # Equal weighted approve and reject: 0.5 each
+        proposal.add_vote(SwarmVote(proposal.id, "n1", True, 0.5, "Approve"))
+        proposal.add_vote(SwarmVote(proposal.id, "n2", False, 0.5, "Reject"))
+
+        result = calc.calculate(proposal.votes)
+
+        assert result["weighted_approval"] == 0.5
+        assert result["approved"] is False  # 0.5 < 0.6 threshold
+        assert result["vote_count"] == 2
+
+    def test_weighted_confidence_custom_threshold(self):
+        """Test weighted confidence with custom threshold."""
+        from systems.swarm.consensus import (
+            WeightedConfidenceCalculator, SwarmProposal, SwarmVote
+        )
+
+        calc = WeightedConfidenceCalculator()
+        proposal = SwarmProposal(
+            title="Custom Threshold",
+            description="Testing custom threshold",
+            proposer="node-alpha"
+        )
+
+        # Weighted approval: 0.55 (below 0.6, above 0.5)
+        proposal.add_vote(SwarmVote(proposal.id, "n1", True, 0.55, "Approve"))
+        proposal.add_vote(SwarmVote(proposal.id, "n2", False, 0.45, "Reject"))
+
+        # Default threshold (0.6) should reject
+        result_default = calc.calculate(proposal.votes, threshold=0.6)
+        assert result_default["approved"] is False
+
+        # Lower threshold (0.5) should approve
+        result_lower = calc.calculate(proposal.votes, threshold=0.5)
+        assert result_lower["approved"] is True
+
+    def test_evaluate_proposal_updates_status(self):
+        """Test that evaluate_proposal updates proposal status."""
+        from systems.swarm.consensus import (
+            WeightedConfidenceCalculator, SwarmProposal, SwarmVote, ProposalStatus
+        )
+
+        calc = WeightedConfidenceCalculator()
+        proposal = SwarmProposal(
+            title="Status Update Test",
+            description="Testing status update",
+            proposer="node-alpha"
+        )
+
+        # Add votes that will approve
+        proposal.add_vote(SwarmVote(proposal.id, "n1", True, 0.9, "Approve"))
+        proposal.add_vote(SwarmVote(proposal.id, "n2", True, 0.8, "Approve"))
+
+        # Before evaluation, status should be ACTIVE (votes added)
+        assert proposal.status == ProposalStatus.ACTIVE
+
+        # Evaluate
+        result = calc.evaluate_proposal(proposal)
+
+        # After evaluation, status should be APPROVED
+        assert proposal.status == ProposalStatus.APPROVED
+        assert result["approved"] is True

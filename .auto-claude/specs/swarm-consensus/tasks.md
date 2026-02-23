@@ -7,8 +7,8 @@
 - [x] TDD approach
 
 ## Task 2: Create Weighted Confidence Strategy
-- Add WeightedConfidenceCalculator to consensus.py
-- Formula: sum(confidence*approve) / sum(confidence)
+- [x] Add WeightedConfidenceCalculator to consensus.py
+- [x] Formula: sum(confidence*approve) / sum(confidence)
 
 ## Task 3: Create Swarm Channel
 - Create `systems/swarm/swarm_channel.py`

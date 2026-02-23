@@ -176,3 +176,72 @@ class SwarmProposal:
             expires_at=data.get("expires_at"),
             metadata=data.get("metadata", {})
         )
+
+
+class WeightedConfidenceCalculator:
+    """
+    Calculates consensus using weighted confidence voting.
+
+    Each vote's weight is determined by the voter's confidence level.
+    The formula for weighted approval is:
+
+        weighted_approval = sum(confidence * approve) / sum(confidence)
+
+    Where approve is 1 for True and 0 for False.
+
+    A proposal is approved if weighted_approval >= threshold (default 0.6).
+    """
+
+    def calculate(self, votes: List[SwarmVote], threshold: float = 0.6) -> Dict[str, Any]:
+        """
+        Calculate weighted confidence from a list of votes.
+
+        Args:
+            votes: List of SwarmVote objects
+            threshold: Minimum weighted approval ratio to approve (default 0.6)
+
+        Returns:
+            Dictionary with:
+                - weighted_approval: Ratio of weighted approve to total confidence
+                - approved: True if weighted_approval >= threshold
+                - vote_count: Number of votes
+        """
+        if not votes:
+            return {
+                "weighted_approval": 0.0,
+                "approved": False,
+                "vote_count": 0
+            }
+
+        total_confidence = sum(v.confidence for v in votes)
+        weighted_approve = sum(v.confidence for v in votes if v.approve)
+
+        weighted_approval = weighted_approve / total_confidence if total_confidence > 0 else 0.0
+        approved = weighted_approval >= threshold
+
+        return {
+            "weighted_approval": weighted_approval,
+            "approved": approved,
+            "vote_count": len(votes)
+        }
+
+    def evaluate_proposal(self, proposal: SwarmProposal, threshold: float = 0.6) -> Dict[str, Any]:
+        """
+        Evaluate a proposal and update its status based on votes.
+
+        Args:
+            proposal: SwarmProposal to evaluate
+            threshold: Minimum weighted approval ratio to approve (default 0.6)
+
+        Returns:
+            Result dictionary from calculate()
+        """
+        result = self.calculate(proposal.votes, threshold)
+
+        # Update proposal status based on result
+        if result["approved"]:
+            proposal.status = ProposalStatus.APPROVED
+        else:
+            proposal.status = ProposalStatus.REJECTED
+
+        return result
