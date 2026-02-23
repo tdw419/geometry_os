@@ -17,6 +17,9 @@ define('GEOMETRY_OS_MAP_URL', plugin_dir_url(__FILE__));
 // Require class files
 require_once GEOMETRY_OS_MAP_PATH . 'includes/class-core.php';
 require_once GEOMETRY_OS_MAP_PATH . 'includes/class-shortcode.php';
+require_once GEOMETRY_OS_MAP_PATH . 'includes/class-settings.php';
+require_once GEOMETRY_OS_MAP_PATH . 'includes/class-block.php';
+require_once GEOMETRY_OS_MAP_PATH . 'includes/class-template.php';
 
 /**
  * Initialize plugin on plugins_loaded
@@ -26,6 +29,17 @@ require_once GEOMETRY_OS_MAP_PATH . 'includes/class-shortcode.php';
 function geometry_os_map_init() {
     // Initialize shortcode handler
     new Geometry_OS_Map_Shortcode();
+
+    // Initialize block handler
+    new Geometry_OS_Map_Block();
+
+    // Initialize template handler
+    new Geometry_OS_Map_Template();
+
+    // Initialize settings page (admin only)
+    if (is_admin()) {
+        new Geometry_OS_Map_Settings();
+    }
 }
 add_action('plugins_loaded', 'geometry_os_map_init');
 
