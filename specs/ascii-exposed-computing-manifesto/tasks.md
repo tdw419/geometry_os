@@ -129,7 +129,7 @@ After POC validated, clean up and refine.
   - **Done when**: Document meets FR-9 line count, all NFRs satisfied
   - **Commit**: `docs(manifesto): finalize v1.0 for release`
 
-- [ ] 4.2 Create PR and verify
+- [x] 4.2 Create PR and verify
   - **Do**: Push branch, create PR with gh CLI
   - **Verify**: `gh pr view` shows clean diff
   - **Done when**: PR ready for review
