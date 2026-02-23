@@ -77,7 +77,7 @@ After POC validated, clean up code.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Write PHP unit tests
+- [x] 3.1 Write PHP unit tests
   - **Do**: Create `tests/php/bootstrap.php` with mock WordPress functions, `tests/php/class-test-daemon-monitor.php` with tests for get_configured_daemons, caching, uptime formatting
   - **Files**: `wordpress_zone/wordpress/wp-content/plugins/geometry-os-daemons/tests/php/bootstrap.php`, `tests/php/class-test-daemon-monitor.php`, `tests/php/run-tests.php`
   - **Done when**: Tests pass with PHPUnit
