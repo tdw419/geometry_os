@@ -113,7 +113,7 @@ Focus: Bridge NEB events to HUD. Skip tests, accept hardcoded values.
 
 Minimal - scope is intentionally small.
 
-- [ ] 2.1 Add error handling to NEBBridge
+- [x] 2.1 Add error handling to NEBBridge
   - **Do**:
     1. Wrap NEBBus import in try/except
     2. Log warning if NEBBus unavailable

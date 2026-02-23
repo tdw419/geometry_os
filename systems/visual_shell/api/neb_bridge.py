@@ -7,11 +7,22 @@ Visual Debug Overlay at a throttled rate (10 Hz max).
 
 import time
 import asyncio
+import logging
 from typing import Dict, Any, List, Optional, Callable
 
-# Import NEBBus
-from systems.swarm.neb_bus import NEBBus
-from systems.swarm.neb_signal import NEBSignal
+# Configure logger
+logger = logging.getLogger(__name__)
+
+# Import NEBBus with graceful fallback
+try:
+    from systems.swarm.neb_bus import NEBBus
+    from systems.swarm.neb_signal import NEBSignal
+    NEB_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"NEBBus not available: {e}. NEB features disabled.")
+    NEBBus = None  # type: ignore
+    NEBSignal = None  # type: ignore
+    NEB_AVAILABLE = False
 
 
 class NEBBridge:
@@ -75,6 +86,11 @@ class NEBBridge:
         Returns:
             True if started successfully, False otherwise
         """
+        # Check if NEBBus is available
+        if not NEB_AVAILABLE:
+            logger.warning("NEBBridge cannot start: NEBBus not available")
+            return False
+
         try:
             # Create NEBBus instance
             self._bus = NEBBus(node_id=self.node_id)
@@ -90,11 +106,11 @@ class NEBBridge:
             # Start broadcast loop
             self._broadcast_task = asyncio.create_task(self._broadcast_loop())
 
-            print(f"NEBBridge started (sub_id={self._subscription_id})")
+            logger.info(f"NEBBridge started (sub_id={self._subscription_id})")
             return True
 
         except Exception as e:
-            print(f"NEBBridge failed to start: {e}")
+            logger.error(f"NEBBridge failed to start: {e}")
             return False
 
     async def stop(self) -> None:
@@ -114,9 +130,9 @@ class NEBBridge:
             self._subscription_id = None
 
         self._bus = None
-        print("NEBBridge stopped")
+        logger.info("NEBBridge stopped")
 
-    def _on_event(self, signal: NEBSignal) -> None:
+    def _on_event(self, signal: "NEBSignal") -> None:
         """
         Handle incoming NEB event.
 
@@ -125,25 +141,28 @@ class NEBBridge:
         Args:
             signal: NEBSignal from NEBBus
         """
-        # Build event summary
-        event_data = {
-            "topic": signal.topic,
-            "source_id": signal.source_id,
-            "timestamp": signal.timestamp,
-            "payload_preview": self._truncate_payload(signal.payload)
-        }
+        try:
+            # Build event summary
+            event_data = {
+                "topic": signal.topic,
+                "source_id": signal.source_id,
+                "timestamp": signal.timestamp,
+                "payload_preview": self._truncate_payload(signal.payload)
+            }
 
-        # Add to events buffer (limit to max_events)
-        self._events.append(event_data)
-        if len(self._events) > self.max_events:
-            self._events = self._events[-self.max_events:]
+            # Add to events buffer (limit to max_events)
+            self._events.append(event_data)
+            if len(self._events) > self.max_events:
+                self._events = self._events[-self.max_events:]
 
-        # Update topic counts (use first segment as prefix)
-        topic_prefix = signal.topic.split(".")[0] if "." in signal.topic else signal.topic
-        self._topic_counts[topic_prefix] = self._topic_counts.get(topic_prefix, 0) + 1
+            # Update topic counts (use first segment as prefix)
+            topic_prefix = signal.topic.split(".")[0] if "." in signal.topic else signal.topic
+            self._topic_counts[topic_prefix] = self._topic_counts.get(topic_prefix, 0) + 1
 
-        # Update total count
-        self._total_count += 1
+            # Update total count
+            self._total_count += 1
+        except Exception as e:
+            logger.error(f"NEBBridge event callback error: {e}")
 
     def _truncate_payload(self, payload: Any, max_len: int = 50) -> str:
         """Truncate payload for preview display."""
@@ -173,7 +192,7 @@ class NEBBridge:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                print(f"NEBBridge broadcast error: {e}")
+                logger.error(f"NEBBridge broadcast error: {e}")
                 await asyncio.sleep(1.0)  # Back off on error
 
     async def _broadcast_summary(self) -> None:
@@ -214,7 +233,7 @@ class NEBBridge:
         try:
             await self.visual_bridge._broadcast(payload)
         except Exception as e:
-            print(f"NEBBridge broadcast failed: {e}")
+            logger.error(f"NEBBridge broadcast failed: {e}")
 
         # Clear events buffer after broadcast (keep topic counts)
         self._events = []
