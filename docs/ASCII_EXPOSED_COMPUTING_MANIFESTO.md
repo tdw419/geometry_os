@@ -145,3 +145,59 @@ $ jq -f compare.jq logs/2024-02-20.jsonl logs/2024-02-21.jsonl
 ```
 
 When history is diff-able, debugging becomes archaeology. Without diff-ability, understanding change requires reconstructing the past from logs.
+
+---
+
+## The Dual-Audience Contract
+
+ASCII Exposed Computing serves two masters: humans who need to quickly scan and understand state, and AI agents who need to reliably parse and reason about it. Each audience has distinct needs. This contract defines the obligations to both.
+
+### Contract for Humans
+
+| Requirement | Why It Matters | Example |
+|-------------|----------------|---------|
+| **Alignment** | Columns are easier to scan | `status: running` not `status:running` |
+| **Comments** | Context aids understanding | `# Max retries before backoff` |
+| **Visual Hierarchy** | Important data stands out | Group related fields, use separators |
+| **Units** | Numbers need meaning | `timeout: 30s` not `timeout: 30` |
+| **Truncation** | Long values need limits | `log: [first 500 chars]...` |
+
+Humans read for comprehension. They need white space, visual cues, and semantic context. A human should be able to open any fragment and understand its purpose within 30 seconds.
+
+### Contract for AIs
+
+| Requirement | Why It Matters | Example |
+|-------------|----------------|---------|
+| **Consistent Delimiters** | Predictable parsing | Always use `:` or `=` consistently |
+| **Type Hints** | Schema inference | `count: int=5` or `name: str=agent_001` |
+| **Schema Markers** | Version detection | `# schema: task-status/v2` |
+| **Semantic Labels** | Meaning is explicit | `error_code: ETIMEDOUT` not `e: 110` |
+| **Idempotent Reads** | Same result, same parse | Reading twice yields identical tokens |
+
+AIs read for extraction. They need predictable syntax, explicit types, and stable schemas. An AI should be able to parse any fragment without external documentation.
+
+### Resolving the Tension
+
+The dual-audience requirement creates inherent tension. Some compromises:
+
+**Tension 1: Verbose vs. Compact**
+- Human need: Descriptive labels, comments, examples
+- AI need: Minimal tokens, consistent structure
+- Resolution: Use descriptive labels that serve both. `connection_timeout_seconds` is readable by humans and unambiguous for AIs.
+
+**Tension 2: Formatting vs. Parsability**
+- Human need: Alignment, indentation, blank lines
+- AI need: Regular syntax, no "decorative" elements
+- Resolution: Format for humans, but use comments for decorative elements. AIs can skip `#` lines.
+
+**Tension 3: Flexibility vs. Consistency**
+- Human need: Context-dependent formats
+- AI need: Same schema everywhere
+- Resolution: Define schema variants explicitly. `schema: tasks/v1-simple` vs `schema: tasks/v1-detailed`.
+
+**Tension 4: Aggregation vs. Atomicity**
+- Human need: Summary views, rolled-up metrics
+- AI need: Individual fragments for precise queries
+- Resolution: Provide both via the Aggregation pattern (Section 5). Raw fragments feed aggregated views.
+
+The contract succeeds when both audiences can work with the same file, neither feeling like a second-class citizen.

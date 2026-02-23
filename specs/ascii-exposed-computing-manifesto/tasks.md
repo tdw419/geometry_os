@@ -30,7 +30,7 @@ Focus: Create the complete manifesto document with all sections. Accept iterativ
   - _Requirements: FR-2, AC-2.1, AC-2.2, AC-2.3_
   - _Design: Section 2_
 
-- [ ] 1.3 Add Dual-Audience Contract section
+- [x] 1.3 Add Dual-Audience Contract section
   - **Do**: Append contract with Human requirements table, AI requirements table, and Tension resolution section
   - **Files**: `docs/ASCII_EXPOSED_COMPUTING_MANIFESTO.md`
   - **Done when**: Two tables present with 5+ rows each
