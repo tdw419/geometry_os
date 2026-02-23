@@ -86,7 +86,7 @@ Focus: Get EngineerAgent generating code end-to-end. Skip tests initially.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Unit tests for GuildAgent base
+- [x] 3.1 Unit tests for GuildAgent base
   - **Do**: Create test file testing _publish_result() called on complete, role attribute set
   - **Files**: `tests/swarm/test_guild_base.py`
   - **Done when**: pytest passes for GuildAgent tests
