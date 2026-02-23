@@ -8,7 +8,7 @@ Visual Debug Overlay at a throttled rate (10 Hz max).
 import time
 import asyncio
 import logging
-from typing import Dict, Any, List, Optional, Callable
+from typing import Dict, Any, List, Optional
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ class NEBBridge:
         Args:
             visual_bridge: VisualBridge instance for broadcasting
             node_id: Unique identifier for this bridge node
-            throttle_ms: Minimum time between broadcasts (default 100ms = 10 Hz)
+            throttle_ms: Min time between broadcasts (default 100ms = 10 Hz)
             max_events: Maximum events to include in summary (default 10)
         """
         self.visual_bridge = visual_bridge
@@ -156,8 +156,10 @@ class NEBBridge:
                 self._events = self._events[-self.max_events:]
 
             # Update topic counts (use first segment as prefix)
-            topic_prefix = signal.topic.split(".")[0] if "." in signal.topic else signal.topic
-            self._topic_counts[topic_prefix] = self._topic_counts.get(topic_prefix, 0) + 1
+            topic_prefix = (signal.topic.split(".")[0]
+                            if "." in signal.topic else signal.topic)
+            self._topic_counts[topic_prefix] = (
+                self._topic_counts.get(topic_prefix, 0) + 1)
 
             # Update total count
             self._total_count += 1
