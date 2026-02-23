@@ -39,11 +39,30 @@ class Daemon_Monitor {
     private const CACHE_KEY_ALL = 'geometry_os_all_daemons';
 
     /**
+     * Status when shell_exec is unavailable.
+     */
+    private const STATUS_UNAVAILABLE = 'unavailable';
+
+    /**
      * Configured daemons to monitor.
      *
      * @var array<string, array{id: string, name: string, description: string, process_name: string}>
      */
     private array $daemons;
+
+    /**
+     * Whether shell_exec is available.
+     *
+     * @var bool|null Cached availability status.
+     */
+    private ?bool $shell_exec_available = null;
+
+    /**
+     * Last error message.
+     *
+     * @var string|null
+     */
+    private ?string $last_error = null;
 
     /**
      * Constructor.
@@ -52,6 +71,7 @@ class Daemon_Monitor {
      */
     public function __construct() {
         $this->daemons = $this->get_configured_daemons();
+        $this->shell_exec_available = $this->check_shell_exec_available();
     }
 
     /**
@@ -137,9 +157,49 @@ class Daemon_Monitor {
             }
         }
 
+        // Check if shell_exec is available
+        if ( ! $this->shell_exec_available ) {
+            $config = $this->daemons[ $daemon_id ];
+            return [
+                'id'           => $config['id'],
+                'name'         => $config['name'],
+                'description'  => $config['description'],
+                'process_name' => $config['process_name'],
+                'status'       => self::STATUS_UNAVAILABLE,
+                'running'      => false,
+                'error'        => 'shell_exec is disabled on this server',
+                'pid'          => null,
+                'uptime'       => null,
+                'uptime_raw'   => 0,
+                'cpu'          => null,
+                'memory'       => null,
+                'last_check'   => current_time( 'mysql' ),
+            ];
+        }
+
         // Perform fresh status check
         $config = $this->daemons[ $daemon_id ];
-        $status = $this->check_daemon_process( $config );
+
+        try {
+            $status = $this->check_daemon_process( $config );
+        } catch ( \Exception $e ) {
+            $this->last_error = $e->getMessage();
+            $status = [
+                'id'           => $config['id'],
+                'name'         => $config['name'],
+                'description'  => $config['description'],
+                'process_name' => $config['process_name'],
+                'status'       => 'error',
+                'running'      => false,
+                'error'        => $e->getMessage(),
+                'pid'          => null,
+                'uptime'       => null,
+                'uptime_raw'   => 0,
+                'cpu'          => null,
+                'memory'       => null,
+                'last_check'   => current_time( 'mysql' ),
+            ];
+        }
 
         // Cache the result
         set_transient( $cache_key, $status, self::CACHE_TTL );
@@ -159,6 +219,7 @@ class Daemon_Monitor {
             'name'         => $config['name'],
             'description'  => $config['description'],
             'process_name' => $config['process_name'],
+            'status'       => 'stopped',
             'running'      => false,
             'pid'          => null,
             'uptime'       => null,
@@ -168,39 +229,59 @@ class Daemon_Monitor {
             'last_check'   => current_time( 'mysql' ),
         ];
 
-        // Use pgrep to find daemon process
-        $pgrep_command = sprintf(
-            'pgrep -f %s 2>/dev/null',
-            escapeshellarg( $config['process_name'] )
-        );
-
-        $pgrep_output = $this->safe_shell_exec( $pgrep_command );
-
-        if ( $pgrep_output === null || trim( $pgrep_output ) === '' ) {
+        // Check if shell_exec is available (should already be checked, but be safe)
+        if ( ! $this->shell_exec_available ) {
+            $status['status'] = self::STATUS_UNAVAILABLE;
+            $status['error']  = 'shell_exec is disabled on this server';
             return $status;
         }
 
-        // Process found - extract first PID
-        $pids = preg_split( '/\s+/', trim( $pgrep_output ) );
-        if ( empty( $pids ) || ! is_numeric( $pids[0] ) ) {
-            return $status;
-        }
+        try {
+            // Use pgrep to find daemon process
+            $pgrep_command = sprintf(
+                'pgrep -f %s 2>/dev/null',
+                escapeshellarg( $config['process_name'] )
+            );
 
-        $pid = (int) $pids[0];
-        $status['running'] = true;
-        $status['pid'] = $pid;
+            $pgrep_output = $this->safe_shell_exec( $pgrep_command );
 
-        // Get detailed process info using ps
-        // Format: pid, elapsed time (ELAPSED), cpu%, mem%
-        $ps_command = sprintf(
-            'ps -p %d -o pid=,etime=,%%cpu=,%%mem= 2>/dev/null',
-            $pid
-        );
+            if ( $pgrep_output === null || trim( $pgrep_output ) === '' ) {
+                // Process not running, but no error
+                return $status;
+            }
 
-        $ps_output = $this->safe_shell_exec( $ps_command );
+            // Process found - extract first PID
+            $pids = preg_split( '/\s+/', trim( $pgrep_output ) );
+            if ( empty( $pids ) || ! is_numeric( $pids[0] ) ) {
+                // Invalid output, treat as not running
+                return $status;
+            }
 
-        if ( $ps_output !== null && trim( $ps_output ) !== '' ) {
-            $this->parse_ps_output( $ps_output, $status );
+            $pid = (int) $pids[0];
+            $status['running'] = true;
+            $status['status']  = 'running';
+            $status['pid']     = $pid;
+
+            // Get detailed process info using ps
+            // Format: pid, elapsed time (ELAPSED), cpu%, mem%
+            $ps_command = sprintf(
+                'ps -p %d -o pid=,etime=,%%cpu=,%%mem= 2>/dev/null',
+                $pid
+            );
+
+            $ps_output = $this->safe_shell_exec( $ps_command );
+
+            if ( $ps_output !== null && trim( $ps_output ) !== '' ) {
+                $this->parse_ps_output( $ps_output, $status );
+            }
+        } catch ( \Exception $e ) {
+            $this->last_error = $e->getMessage();
+            $status['status'] = 'error';
+            $status['error']  = $e->getMessage();
+            // Log error if WordPress debug mode is enabled
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'Geometry OS Daemons: ' . $e->getMessage() );
+            }
         }
 
         return $status;
@@ -238,6 +319,7 @@ class Daemon_Monitor {
      *
      * @param string $command Command to execute.
      * @return string|null Command output or null on failure.
+     * @throws \RuntimeException If shell execution fails unexpectedly.
      */
     private function safe_shell_exec( string $command ): ?string {
         // Check if shell_exec is available
@@ -251,9 +333,24 @@ class Daemon_Monitor {
             return null;
         }
 
-        $result = @shell_exec( $command );
+        try {
+            $result = @shell_exec( $command );
+        } catch ( \Exception $e ) {
+            $this->last_error = 'Shell exec failed: ' . $e->getMessage();
+            return null;
+        }
 
-        return $result === false ? null : $result;
+        // Handle false return (command failed to execute)
+        if ( $result === false ) {
+            return null;
+        }
+
+        // Handle empty output
+        if ( $result === '' || trim( $result ) === '' ) {
+            return null;
+        }
+
+        return $result;
     }
 
     /**
@@ -432,11 +529,42 @@ class Daemon_Monitor {
      * @return bool True if shell_exec is available, false otherwise.
      */
     public function is_shell_exec_available(): bool {
+        return $this->shell_exec_available === true;
+    }
+
+    /**
+     * Internal check for shell_exec availability.
+     *
+     * @return bool True if shell_exec is available, false otherwise.
+     */
+    private function check_shell_exec_available(): bool {
         if ( ! function_exists( 'shell_exec' ) ) {
             return false;
         }
 
         $disabled = explode( ',', ini_get( 'disable_functions' ) );
-        return ! in_array( 'shell_exec', array_map( 'trim', $disabled ), true );
+        if ( in_array( 'shell_exec', array_map( 'trim', $disabled ), true ) ) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Get the last error message.
+     *
+     * @return string|null Last error message or null if no error.
+     */
+    public function get_last_error(): ?string {
+        return $this->last_error;
+    }
+
+    /**
+     * Clear the last error message.
+     *
+     * @return void
+     */
+    public function clear_last_error(): void {
+        $this->last_error = null;
     }
 }

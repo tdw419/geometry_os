@@ -284,22 +284,44 @@ class Geometry_OS_Daemons
      */
     public function ajax_get_daemon_status()
     {
-        // Verify nonce
-        check_ajax_referer('geometry_os_daemons_nonce', 'nonce');
-
-        // Check permissions
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Permission denied', 'geometry-os-daemons')]);
-        }
-
-        // Get specific daemon or all daemons
-        $daemon_id = isset($_POST['daemon_id']) ? sanitize_text_field($_POST['daemon_id']) : null;
-
         try {
+            // Verify nonce
+            check_ajax_referer('geometry_os_daemons_nonce', 'nonce');
+
+            // Check permissions
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error([
+                    'message' => __('Permission denied', 'geometry-os-daemons'),
+                    'code'    => 'permission_denied',
+                ]);
+                return;
+            }
+
+            // Get specific daemon or all daemons
+            $daemon_id = isset($_POST['daemon_id']) ? sanitize_text_field($_POST['daemon_id']) : null;
+
             $status = $this->get_daemon_status($daemon_id);
+
+            // Check for errors in status
+            if (is_wp_error($status)) {
+                wp_send_json_error([
+                    'message' => $status->get_error_message(),
+                    'code'    => $status->get_error_code(),
+                ]);
+                return;
+            }
+
             wp_send_json_success($status);
-        } catch (Exception $e) {
-            wp_send_json_error(['message' => $e->getMessage()]);
+
+        } catch (\Exception $e) {
+            // Log error for debugging
+            $this->log_error('ajax_get_daemon_status', $e->getMessage());
+
+            wp_send_json_error([
+                'message' => __('An error occurred while fetching daemon status', 'geometry-os-daemons'),
+                'code'    => 'internal_error',
+                'debug'   => (defined('WP_DEBUG') && WP_DEBUG) ? $e->getMessage() : null,
+            ]);
         }
     }
 
@@ -310,22 +332,46 @@ class Geometry_OS_Daemons
      */
     public function ajax_start_daemon()
     {
-        check_ajax_referer('geometry_os_daemons_nonce', 'nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Permission denied', 'geometry-os-daemons')]);
-        }
-
-        $daemon_id = isset($_POST['daemon_id']) ? sanitize_text_field($_POST['daemon_id']) : null;
-        if (!$daemon_id) {
-            wp_send_json_error(['message' => __('Daemon ID required', 'geometry-os-daemons')]);
-        }
-
         try {
+            check_ajax_referer('geometry_os_daemons_nonce', 'nonce');
+
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error([
+                    'message' => __('Permission denied', 'geometry-os-daemons'),
+                    'code'    => 'permission_denied',
+                ]);
+                return;
+            }
+
+            $daemon_id = isset($_POST['daemon_id']) ? sanitize_text_field($_POST['daemon_id']) : null;
+            if (!$daemon_id) {
+                wp_send_json_error([
+                    'message' => __('Daemon ID required', 'geometry-os-daemons'),
+                    'code'    => 'missing_daemon_id',
+                ]);
+                return;
+            }
+
             $result = $this->start_daemon($daemon_id);
+
+            if (is_wp_error($result)) {
+                wp_send_json_error([
+                    'message' => $result->get_error_message(),
+                    'code'    => $result->get_error_code(),
+                ]);
+                return;
+            }
+
             wp_send_json_success($result);
-        } catch (Exception $e) {
-            wp_send_json_error(['message' => $e->getMessage()]);
+
+        } catch (\Exception $e) {
+            $this->log_error('ajax_start_daemon', $e->getMessage());
+
+            wp_send_json_error([
+                'message' => __('An error occurred while starting daemon', 'geometry-os-daemons'),
+                'code'    => 'internal_error',
+                'debug'   => (defined('WP_DEBUG') && WP_DEBUG) ? $e->getMessage() : null,
+            ]);
         }
     }
 
@@ -336,22 +382,46 @@ class Geometry_OS_Daemons
      */
     public function ajax_stop_daemon()
     {
-        check_ajax_referer('geometry_os_daemons_nonce', 'nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Permission denied', 'geometry-os-daemons')]);
-        }
-
-        $daemon_id = isset($_POST['daemon_id']) ? sanitize_text_field($_POST['daemon_id']) : null;
-        if (!$daemon_id) {
-            wp_send_json_error(['message' => __('Daemon ID required', 'geometry-os-daemons')]);
-        }
-
         try {
+            check_ajax_referer('geometry_os_daemons_nonce', 'nonce');
+
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error([
+                    'message' => __('Permission denied', 'geometry-os-daemons'),
+                    'code'    => 'permission_denied',
+                ]);
+                return;
+            }
+
+            $daemon_id = isset($_POST['daemon_id']) ? sanitize_text_field($_POST['daemon_id']) : null;
+            if (!$daemon_id) {
+                wp_send_json_error([
+                    'message' => __('Daemon ID required', 'geometry-os-daemons'),
+                    'code'    => 'missing_daemon_id',
+                ]);
+                return;
+            }
+
             $result = $this->stop_daemon($daemon_id);
+
+            if (is_wp_error($result)) {
+                wp_send_json_error([
+                    'message' => $result->get_error_message(),
+                    'code'    => $result->get_error_code(),
+                ]);
+                return;
+            }
+
             wp_send_json_success($result);
-        } catch (Exception $e) {
-            wp_send_json_error(['message' => $e->getMessage()]);
+
+        } catch (\Exception $e) {
+            $this->log_error('ajax_stop_daemon', $e->getMessage());
+
+            wp_send_json_error([
+                'message' => __('An error occurred while stopping daemon', 'geometry-os-daemons'),
+                'code'    => 'internal_error',
+                'debug'   => (defined('WP_DEBUG') && WP_DEBUG) ? $e->getMessage() : null,
+            ]);
         }
     }
 
@@ -362,22 +432,46 @@ class Geometry_OS_Daemons
      */
     public function ajax_restart_daemon()
     {
-        check_ajax_referer('geometry_os_daemons_nonce', 'nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Permission denied', 'geometry-os-daemons')]);
-        }
-
-        $daemon_id = isset($_POST['daemon_id']) ? sanitize_text_field($_POST['daemon_id']) : null;
-        if (!$daemon_id) {
-            wp_send_json_error(['message' => __('Daemon ID required', 'geometry-os-daemons')]);
-        }
-
         try {
+            check_ajax_referer('geometry_os_daemons_nonce', 'nonce');
+
+            if (!current_user_can('manage_options')) {
+                wp_send_json_error([
+                    'message' => __('Permission denied', 'geometry-os-daemons'),
+                    'code'    => 'permission_denied',
+                ]);
+                return;
+            }
+
+            $daemon_id = isset($_POST['daemon_id']) ? sanitize_text_field($_POST['daemon_id']) : null;
+            if (!$daemon_id) {
+                wp_send_json_error([
+                    'message' => __('Daemon ID required', 'geometry-os-daemons'),
+                    'code'    => 'missing_daemon_id',
+                ]);
+                return;
+            }
+
             $result = $this->restart_daemon($daemon_id);
+
+            if (is_wp_error($result)) {
+                wp_send_json_error([
+                    'message' => $result->get_error_message(),
+                    'code'    => $result->get_error_code(),
+                ]);
+                return;
+            }
+
             wp_send_json_success($result);
-        } catch (Exception $e) {
-            wp_send_json_error(['message' => $e->getMessage()]);
+
+        } catch (\Exception $e) {
+            $this->log_error('ajax_restart_daemon', $e->getMessage());
+
+            wp_send_json_error([
+                'message' => __('An error occurred while restarting daemon', 'geometry-os-daemons'),
+                'code'    => 'internal_error',
+                'debug'   => (defined('WP_DEBUG') && WP_DEBUG) ? $e->getMessage() : null,
+            ]);
         }
     }
 
@@ -496,6 +590,24 @@ class Geometry_OS_Daemons
     public function get_plugin_url()
     {
         return $this->plugin_url;
+    }
+
+    /**
+     * Log error for debugging
+     *
+     * @param string $context Context where error occurred.
+     * @param string $message Error message.
+     * @return void
+     */
+    private function log_error($context, $message)
+    {
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log(sprintf(
+                'Geometry OS Daemons [%s]: %s',
+                $context,
+                $message
+            ));
+        }
     }
 }
 
