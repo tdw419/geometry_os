@@ -52,7 +52,7 @@ Focus: Core sense classes with basic functionality. Skip rate limiting, minimal 
   - **Commit**: `feat(senses): add WebSense.fetch`
   - _Requirements: FR-4_
 
-- [ ] 1.6 POC Checkpoint
+- [x] 1.6 POC Checkpoint
   - **Do**: Verify all senses work in isolation
   - **Done when**: Manual test reads file, writes file, fetches URL
   - **Verify**: Run quick integration test
