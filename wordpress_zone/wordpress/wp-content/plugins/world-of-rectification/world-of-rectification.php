@@ -40,6 +40,7 @@ class World_of_Rectification {
         require_once WOR_PATH . 'api/class-verify-api.php';
         require_once WOR_PATH . 'templates/quest-single.php';
         require_once WOR_PATH . 'templates/player-dashboard.php';
+        require_once WOR_PATH . 'data/seed-scenarios.php';
     }
 
     private function init_hooks(): void {
@@ -78,6 +79,24 @@ class World_of_Rectification {
             WOR_VERSION
         );
 
+        // Enqueue frontend JS
+        wp_enqueue_script(
+            'wor-game',
+            WOR_URL . 'assets/js/wor-game.js',
+            ['jquery'],
+            WOR_VERSION,
+            true
+        );
+
+        // Localize script with data
+        wp_localize_script('wor-game', 'worData', [
+            'restUrl' => rest_url('wor/v1'),
+            'nonce' => wp_create_nonce('wp_rest'),
+            'isLoggedIn' => is_user_logged_in(),
+            'userId' => get_current_user_id(),
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+        ]);
+
         // Add inline CSS variables for theming
         wp_add_inline_style('wor-frontend', '
             :root {
@@ -99,3 +118,18 @@ function WOR(): World_of_Rectification {
 }
 
 WOR();
+
+/**
+ * Activation hook - seed initial scenarios
+ */
+register_activation_hook(__FILE__, function() {
+    // Ensure post types are registered first
+    WOR_Quest();
+
+    // Seed scenarios
+    require_once WOR_PATH . 'data/seed-scenarios.php';
+    $created = WoR_SeedScenarios::run();
+
+    // Log activation
+    error_log("World of Rectification activated. Created $created scenarios.");
+});

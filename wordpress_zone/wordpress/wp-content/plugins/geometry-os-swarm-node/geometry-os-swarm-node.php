@@ -123,6 +123,13 @@ class GeometryOS_SwarmNode {
             'callback' => [$this, 'api_swarm_info'],
             'permission_callback' => '__return_true'
         ]);
+
+        // World of Rectification game sync endpoint
+        register_rest_route('geoos/v1', '/wor/sync', [
+            'methods' => 'GET',
+            'callback' => [$this, 'api_wor_sync'],
+            'permission_callback' => '__return_true'
+        ]);
     }
 
     /**
@@ -422,6 +429,133 @@ class GeometryOS_SwarmNode {
         ];
     }
 
+    /**
+     * GET /wp-json/geoos/v1/wor/sync - Sync World of Rectification game data
+     *
+     * Synchronizes quests, completions, and player stats across distributed game nodes.
+     *
+     * Query params:
+     * - since: Unix timestamp to fetch data modified after (default: 0)
+     * - limit: Maximum number of items per type (default: 100, max: 500)
+     */
+    public function api_wor_sync($request): array {
+        $since = intval($request->get_param('since') ?? 0);
+        $limit = min(intval($request->get_param('limit') ?? 100), 500);
+
+        // Sync quests
+        $quests = [];
+        if (post_type_exists('wor_quest')) {
+            $args = [
+                'post_type' => 'wor_quest',
+                'post_status' => 'publish',
+                'posts_per_page' => $limit,
+                'orderby' => 'modified',
+                'order' => 'DESC',
+            ];
+
+            if ($since > 0) {
+                $args['date_query'] = [
+                    [
+                        'column' => 'post_modified_gmt',
+                        'after' => gmdate('Y-m-d H:i:s', $since),
+                    ]
+                ];
+            }
+
+            $query = new WP_Query($args);
+
+            foreach ($query->posts as $post) {
+                $quest_data = [
+                    'id' => $post->ID,
+                    'title' => $post->post_title,
+                    'description' => $post->post_content,
+                    'slug' => $post->post_name,
+                    'modified_at' => $post->post_modified_gmt,
+                    'credits_reward' => intval(get_post_meta($post->ID, 'wor_credits_reward', true)),
+                    'difficulty' => get_post_meta($post->ID, 'wor_difficulty', true),
+                    'sefirah' => get_post_meta($post->ID, 'wor_sefirah', true),
+                ];
+
+                // Get taxonomy terms
+                $sefirah_terms = wp_get_post_terms($post->ID, 'wor_sefirah', ['fields' => 'slugs']);
+                if (!empty($sefirah_terms)) {
+                    $quest_data['sefirah_terms'] = $sefirah_terms;
+                }
+
+                $quests[] = $quest_data;
+            }
+        }
+
+        // Sync completions
+        $completions = [];
+        if (post_type_exists('wor_completion')) {
+            $args = [
+                'post_type' => 'wor_completion',
+                'post_status' => 'publish',
+                'posts_per_page' => $limit,
+                'orderby' => 'modified',
+                'order' => 'DESC',
+            ];
+
+            if ($since > 0) {
+                $args['date_query'] = [
+                    [
+                        'column' => 'post_modified_gmt',
+                        'after' => gmdate('Y-m-d H:i:s', $since),
+                    ]
+                ];
+            }
+
+            $query = new WP_Query($args);
+
+            foreach ($query->posts as $post) {
+                $completions[] = [
+                    'id' => $post->ID,
+                    'quest_id' => intval(get_post_meta($post->ID, 'wor_quest_id', true)),
+                    'mode' => get_post_meta($post->ID, 'wor_mode', true),
+                    'status' => get_post_meta($post->ID, 'wor_status', true),
+                    'ctrm_delta' => floatval(get_post_meta($post->ID, 'wor_ctrm_delta', true)),
+                    'credits_earned' => intval(get_post_meta($post->ID, 'wor_credits_earned', true)),
+                    'node_id' => get_post_meta($post->ID, 'wor_node_id', true) ?: $this->node_id,
+                    'modified_at' => $post->post_modified_gmt,
+                ];
+            }
+        }
+
+        // Global stats
+        $global_stats = [
+            'total_quests' => count($quests),
+            'total_completions' => count($completions),
+            'total_ctrm' => 0,
+            'verified_sparks' => 0,
+        ];
+
+        // Calculate aggregate stats from completions
+        foreach ($completions as $completion) {
+            $global_stats['total_ctrm'] += $completion['ctrm_delta'];
+            if ($completion['status'] === 'verified') {
+                $global_stats['verified_sparks']++;
+            }
+        }
+
+        // Get leaderboard if WOR_CTRM available
+        $leaderboard = [];
+        if (class_exists('WOR_CTRM')) {
+            $leaderboard = WOR_CTRM()->get_leaderboard(10);
+        }
+
+        return [
+            'node_id' => $this->node_id,
+            'quests' => $quests,
+            'completions' => $completions,
+            'global_stats' => $global_stats,
+            'leaderboard' => $leaderboard,
+            'sync_time' => time(),
+            'since' => $since,
+            'limit' => $limit,
+        ];
+    }
+
     // Task execution methods
     private function execute_content_intelligence(array $task): array {
         // Analyze and potentially improve content
@@ -712,6 +846,11 @@ class GeometryOS_SwarmNode {
                             <td><code>/wp-json/geoos/v1/sync</code></td>
                             <td>GET</td>
                             <td>Remote node sync</td>
+                        </tr>
+                        <tr>
+                            <td><code>/wp-json/geoos/v1/wor/sync</code></td>
+                            <td>GET</td>
+                            <td>World of Rectification game sync</td>
                         </tr>
                     </tbody>
                 </table>

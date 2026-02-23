@@ -166,6 +166,27 @@ switch ($action) {
         handle_get_post_author($args);
         break;
 
+    // World of Rectification Game API
+    case 'logGameDecision':
+        handle_log_game_decision($args);
+        break;
+
+    case 'getPlayerCTRM':
+        handle_get_player_ctrm($args);
+        break;
+
+    case 'syncGameNodes':
+        handle_sync_game_nodes($args);
+        break;
+
+    case 'verifySpark':
+        handle_verify_spark($args);
+        break;
+
+    case 'getGameStats':
+        handle_get_game_stats($args);
+        break;
+
     default:
         header('HTTP/1.1 400 Bad Request');
         echo json_encode(array('success' => false, 'error' => 'Invalid action/tool: ' . $action));
@@ -317,7 +338,34 @@ function handle_create_widget($data) {
 }
 
 function handle_list_tools() {
-    echo json_encode(array('success' => true, 'tools' => array('createPost', 'editPage', 'logEvolution')));
+    echo json_encode(array(
+        'success' => true,
+        'tools' => array(
+            // Publishing
+            'createPost', 'editPage', 'listPosts', 'getStats',
+            // Evolution
+            'logEvolution', 'updateArchitecture',
+            // Directives
+            'getDirectives', 'markDirectiveProcessed', 'postDirectiveResponse',
+            // Research
+            'importResearchDocument', 'searchResearch',
+            // Track Board
+            'claimTrack', 'releaseTrack', 'listTracks', 'heartbeatTrack',
+            // CTRM/TMS
+            'logTruth', 'syncTruths', 'getTruthStats', 'logAnsmoCycle',
+            // WordPress Truth Daemon
+            'getModifiedContent', 'updatePostMeta', 'getPostAuthor',
+            // World of Rectification
+            'logGameDecision', 'getPlayerCTRM', 'syncGameNodes', 'verifySpark', 'getGameStats',
+        ),
+        'categories' => array(
+            'wor' => array('logGameDecision', 'getPlayerCTRM', 'syncGameNodes', 'verifySpark', 'getGameStats'),
+            'ctrm' => array('logTruth', 'syncTruths', 'getTruthStats'),
+            'tms' => array('logAnsmoCycle'),
+            'evolution' => array('logEvolution', 'updateArchitecture'),
+            'tracks' => array('claimTrack', 'releaseTrack', 'listTracks', 'heartbeatTrack'),
+        )
+    ));
 }
 
 /**
@@ -1790,5 +1838,322 @@ function handle_get_post_author($args) {
             'success' => false,
             'error' => 'Exception in handle_get_post_author: ' . $e->getMessage()
         ));
+    }
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ * World of Rectification Game API Handlers
+ * ─────────────────────────────────────────────────────────────
+ */
+
+/**
+ * Handle logging a game decision to TMS
+ * POST /ai-publisher.php {"action":"logGameDecision","quest_id":1,"mode":"hard",...}
+ */
+function handle_log_game_decision($args) {
+    try {
+        // Validate required fields
+        if (!isset($args['quest_id'])) {
+            header('HTTP/1.1 400 Bad Request');
+            echo json_encode(array('success' => false, 'error' => 'Missing quest_id'));
+            return;
+        }
+
+        $quest_id = intval($args['quest_id']);
+        $mode = isset($args['mode']) ? sanitize_text_field($args['mode']) : 'easy';
+        $choice = isset($args['choice']) ? sanitize_textarea_field($args['choice']) : '';
+        $reasoning = isset($args['reasoning']) ? sanitize_textarea_field($args['reasoning']) : '';
+        $time_taken = isset($args['time_taken']) ? intval($args['time_taken']) : 0;
+        $user_id = isset($args['user_id']) ? intval($args['user_id']) : 1;
+
+        // Calculate CTRM score if WOR_CTRM is available
+        $ctrm_score = 0.0;
+        if (class_exists('WOR_CTRM')) {
+            $ctrm_score = WOR_CTRM()->record_decision($user_id, $quest_id, array(
+                'mode' => $mode,
+                'choices' => array($choice),
+                'reasoning' => $reasoning,
+                'time_taken' => $time_taken,
+            ));
+        } else {
+            // Fallback calculation
+            $base_score = 10.0;
+            $mode_multiplier = $mode === 'hard' ? 2.5 : 1.0;
+            $reasoning_bonus = min(5.0, str_word_count($reasoning) / 10);
+            $ctrm_score = ($base_score + $reasoning_bonus) * $mode_multiplier;
+        }
+
+        // Create TMS truth entry from decision
+        $post_data = array(
+            'post_title'   => "Game Decision: Quest $quest_id ($mode mode)",
+            'post_content' => json_encode(array(
+                'quest_id' => $quest_id,
+                'mode' => $mode,
+                'choice' => $choice,
+                'reasoning' => $reasoning,
+                'ctrm_score' => $ctrm_score,
+                'time_taken' => $time_taken,
+                'timestamp' => time(),
+            ), JSON_PRETTY_PRINT),
+            'post_status'  => 'publish',
+            'post_author'  => $user_id,
+            'post_type'    => 'post',
+        );
+
+        $post_id = wp_insert_post($post_data);
+
+        if (is_wp_error($post_id)) {
+            echo json_encode(array('success' => false, 'error' => $post_id->get_error_message()));
+            return;
+        }
+
+        // Add CTRM metadata
+        add_post_meta($post_id, 'wor_decision', 1);
+        add_post_meta($post_id, 'ctrm_score', $ctrm_score);
+        add_post_meta($post_id, 'decision_mode', $mode);
+        add_post_meta($post_id, 'quest_id', $quest_id);
+
+        // Notify Visual Bridge
+        notify_visual_bridge('WOR_DECISION', "decision-$post_id", 'WoR', array($mode));
+
+        echo json_encode(array(
+            'success' => true,
+            'post_id' => $post_id,
+            'ctrm_score' => round($ctrm_score, 2),
+            'tms_logged' => true,
+        ));
+    } catch (Exception $e) {
+        header('HTTP/1.1 500 Internal Server Error');
+        echo json_encode(array('success' => false, 'error' => 'Exception: ' . $e->getMessage()));
+    }
+}
+
+/**
+ * Handle getting player CTRM stats
+ * POST /ai-publisher.php {"action":"getPlayerCTRM","user_id":1}
+ */
+function handle_get_player_ctrm($args) {
+    try {
+        $user_id = isset($args['user_id']) ? intval($args['user_id']) : 1;
+
+        // Get CTRM stats if WOR_CTRM is available
+        if (class_exists('WOR_CTRM')) {
+            $ctrm_score = WOR_CTRM()->get_score($user_id);
+            $tms_level = WOR_CTRM()->get_tms_level($user_id);
+            $level_name = WOR_CTRM()->get_tms_level_name($tms_level);
+            $next_level = WOR_CTRM()->get_next_level_threshold($user_id);
+        } else {
+            // Fallback to user meta
+            $ctrm_score = floatval(get_user_meta($user_id, 'wor_ctrm_score', true));
+            $tms_level = intval(get_user_meta($user_id, 'wor_tms_level', true));
+            $level_name = 'Player';
+            $next_level = array('current_level' => $tms_level, 'next_level' => null, 'points_needed' => 0);
+        }
+
+        echo json_encode(array(
+            'success' => true,
+            'user_id' => $user_id,
+            'ctrm_total' => round($ctrm_score, 2),
+            'tms_level' => $tms_level,
+            'level_name' => $level_name,
+            'next_level' => $next_level,
+        ));
+    } catch (Exception $e) {
+        header('HTTP/1.1 500 Internal Server Error');
+        echo json_encode(array('success' => false, 'error' => 'Exception: ' . $e->getMessage()));
+    }
+}
+
+/**
+ * Handle syncing game data across nodes
+ * POST /ai-publisher.php {"action":"syncGameNodes","since":1234567890}
+ */
+function handle_sync_game_nodes($args) {
+    try {
+        $since = isset($args['since']) ? intval($args['since']) : 0;
+        $limit = isset($args['limit']) ? min(intval($args['limit']), 500) : 100;
+
+        global $wpdb;
+
+        // Sync quest completions
+        $completions = array();
+        if (post_type_exists('wor_completion')) {
+            $query = new WP_Query(array(
+                'post_type' => 'wor_completion',
+                'post_status' => 'publish',
+                'posts_per_page' => $limit,
+                'date_query' => $since > 0 ? array(
+                    array('column' => 'post_date_gmt', 'after' => date('Y-m-d H:i:s', $since))
+                ) : array(),
+            ));
+
+            while ($query->have_posts()) {
+                $query->the_post();
+                $post_id = get_the_ID();
+                $completions[] = array(
+                    'id' => $post_id,
+                    'quest_id' => get_post_meta($post_id, 'wor_quest_id', true),
+                    'mode' => get_post_meta($post_id, 'wor_mode', true),
+                    'ctrm_delta' => floatval(get_post_meta($post_id, 'wor_ctrm_delta', true)),
+                    'status' => get_post_meta($post_id, 'wor_status', true),
+                    'date' => get_the_date('c'),
+                );
+            }
+            wp_reset_postdata();
+        }
+
+        // Sync quests
+        $quests = array();
+        if (post_type_exists('wor_quest')) {
+            $query = new WP_Query(array(
+                'post_type' => 'wor_quest',
+                'post_status' => 'publish',
+                'posts_per_page' => $limit,
+            ));
+
+            while ($query->have_posts()) {
+                $query->the_post();
+                $post_id = get_the_ID();
+                $quests[] = array(
+                    'id' => $post_id,
+                    'title' => get_the_title(),
+                    'sefirah' => wp_get_post_terms($post_id, 'wor_sefirah', array('fields' => 'slugs')),
+                    'credits_reward' => intval(get_post_meta($post_id, 'wor_credits_reward', true)),
+                    'difficulty' => get_post_meta($post_id, 'wor_difficulty', true),
+                );
+            }
+            wp_reset_postdata();
+        }
+
+        // Global stats
+        $global_stats = array(
+            'total_completions' => count($completions),
+            'total_quests' => count($quests),
+            'sync_time' => time(),
+        );
+
+        echo json_encode(array(
+            'success' => true,
+            'completions' => $completions,
+            'quests' => $quests,
+            'global_stats' => $global_stats,
+            'sync_time' => time(),
+        ));
+    } catch (Exception $e) {
+        header('HTTP/1.1 500 Internal Server Error');
+        echo json_encode(array('success' => false, 'error' => 'Exception: ' . $e->getMessage()));
+    }
+}
+
+/**
+ * Handle verifying a spark (peer review)
+ * POST /ai-publisher.php {"action":"verifySpark","completion_id":123,"verified":true}
+ */
+function handle_verify_spark($args) {
+    try {
+        $completion_id = isset($args['completion_id']) ? intval($args['completion_id']) : 0;
+        $verified = isset($args['verified']) ? (bool)$args['verified'] : true;
+        $verifier_id = isset($args['verifier_id']) ? intval($args['verifier_id']) : 1;
+
+        if ($completion_id === 0) {
+            header('HTTP/1.1 400 Bad Request');
+            echo json_encode(array('success' => false, 'error' => 'Missing completion_id'));
+            return;
+        }
+
+        // Get completion post
+        $post = get_post($completion_id);
+        if (!$post || $post->post_type !== 'wor_completion') {
+            header('HTTP/1.1 404 Not Found');
+            echo json_encode(array('success' => false, 'error' => 'Completion not found'));
+            return;
+        }
+
+        // Update verification status
+        if ($verified) {
+            update_post_meta($completion_id, 'wor_status', 'verified');
+            update_post_meta($completion_id, 'wor_verified_by', $verifier_id);
+            update_post_meta($completion_id, 'wor_verified_at', current_time('mysql'));
+            update_post_meta($completion_id, 'wor_verification_method', 'peer_review');
+
+            // Award credits
+            $credits = 10;
+            $user_id = $post->post_author;
+            if (class_exists('WOR_Credits')) {
+                $quest_id = get_post_meta($completion_id, 'wor_quest_id', true);
+                WOR_Credits()->award_credits($user_id, $credits, 'spark_verified', $quest_id);
+            }
+            update_post_meta($completion_id, 'wor_spark_credits', $credits);
+
+            // Notify Visual Bridge
+            notify_visual_bridge('SPARK_VERIFIED', "spark-$completion_id", 'WoR', array('verified' => true));
+        } else {
+            update_post_meta($completion_id, 'wor_status', 'rejected');
+            update_post_meta($completion_id, 'wor_rejection_reason', 'Peer review rejected');
+        }
+
+        echo json_encode(array(
+            'success' => true,
+            'completion_id' => $completion_id,
+            'verified' => $verified,
+            'spark_credits' => $verified ? $credits : 0,
+        ));
+    } catch (Exception $e) {
+        header('HTTP/1.1 500 Internal Server Error');
+        echo json_encode(array('success' => false, 'error' => 'Exception: ' . $e->getMessage()));
+    }
+}
+
+/**
+ * Handle getting game statistics
+ * POST /ai-publisher.php {"action":"getGameStats"}
+ */
+function handle_get_game_stats($args) {
+    try {
+        global $wpdb;
+
+        // Count quests
+        $quest_count = 0;
+        if (post_type_exists('wor_quest')) {
+            $quest_count = wp_count_posts('wor_quest')->publish;
+        }
+
+        // Count completions
+        $completion_stats = array('total' => 0, 'verified' => 0, 'pending' => 0);
+        if (post_type_exists('wor_completion')) {
+            $posts = wp_count_posts('wor_completion');
+            $completion_stats['total'] = $posts->publish;
+
+            // Count by status
+            $query = new WP_Query(array(
+                'post_type' => 'wor_completion',
+                'post_status' => 'publish',
+                'posts_per_page' => -1,
+                'fields' => 'ids',
+            ));
+            foreach ($query->posts as $id) {
+                $status = get_post_meta($id, 'wor_status', true);
+                if ($status === 'verified') $completion_stats['verified']++;
+                elseif ($status === 'pending' || empty($status)) $completion_stats['pending']++;
+            }
+        }
+
+        // Get leaderboard if WOR_CTRM available
+        $leaderboard = array();
+        if (class_exists('WOR_CTRM')) {
+            $leaderboard = WOR_CTRM()->get_leaderboard(5);
+        }
+
+        echo json_encode(array(
+            'success' => true,
+            'quest_count' => $quest_count,
+            'completion_stats' => $completion_stats,
+            'leaderboard' => $leaderboard,
+            'timestamp' => time(),
+        ));
+    } catch (Exception $e) {
+        header('HTTP/1.1 500 Internal Server Error');
+        echo json_encode(array('success' => false, 'error' => 'Exception: ' . $e->getMessage()));
     }
 }
