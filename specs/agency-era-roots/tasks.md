@@ -114,7 +114,7 @@ After POC validated, clean up code and integrate with GuildAgents.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Unit tests for Experience and ExperienceStore
+- [x] 3.1 Unit tests for Experience and ExperienceStore
   - **Do**: Create `systems/swarm/memory/test_episodic_memory.py` with tests for Experience creation, Store save/load, embedding generation.
   - **Files**: `systems/swarm/memory/test_episodic_memory.py`
   - **Done when**: All tests pass, >80% coverage
