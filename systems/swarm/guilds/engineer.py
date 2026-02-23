@@ -4,6 +4,7 @@ EngineerAgent - Code generation specialist.
 Handles CODE_GENERATION and CODE_TESTING tasks.
 """
 
+import traceback
 from typing import Dict, Any, Optional, List, TYPE_CHECKING
 
 from systems.swarm.guilds.base import GuildAgent
@@ -103,19 +104,27 @@ if __name__ == "__main__":
         Returns:
             Result with generated code
         """
-        # POC: Use template code
-        # TODO: Integrate with actual LLM for code generation
-        description = task.description
-        language = task.payload.get("language", "python")
+        try:
+            # POC: Use template code
+            # TODO: Integrate with actual LLM for code generation
+            description = task.description
+            language = task.payload.get("language", "python")
 
-        code = self.CODE_TEMPLATE
+            code = self.CODE_TEMPLATE
 
-        return {
-            "code": code,
-            "language": language,
-            "description": description,
-            "generated_by": self.agent_id
-        }
+            return {
+                "code": code,
+                "language": language,
+                "description": description,
+                "generated_by": self.agent_id
+            }
+        except Exception as e:
+            return {
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "traceback": traceback.format_exc(),
+                "actionable_info": f"Code generation failed: {e}. Check task description and payload."
+            }
 
     def _handle_code_testing(self, task: Task) -> Dict[str, Any]:
         """
@@ -127,21 +136,29 @@ if __name__ == "__main__":
         Returns:
             Result with generated tests
         """
-        # POC: Return mock test structure
-        # TODO: Integrate with actual test generation
-        code = task.payload.get("code", "")
+        try:
+            # POC: Return mock test structure
+            # TODO: Integrate with actual test generation
+            code = task.payload.get("code", "")
 
-        return {
-            "tests": [
-                {
-                    "name": "test_main",
-                    "code": "def test_main():\\n    assert True",
-                    "description": "Basic smoke test"
-                }
-            ],
-            "target_code": code[:100] + "..." if len(code) > 100 else code,
-            "generated_by": self.agent_id
-        }
+            return {
+                "tests": [
+                    {
+                        "name": "test_main",
+                        "code": "def test_main():\\n    assert True",
+                        "description": "Basic smoke test"
+                    }
+                ],
+                "target_code": code[:100] + "..." if len(code) > 100 else code,
+                "generated_by": self.agent_id
+            }
+        except Exception as e:
+            return {
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "traceback": traceback.format_exc(),
+                "actionable_info": f"Test generation failed: {e}. Check task payload for valid code."
+            }
 
     def complete_task(self, task: Task, result: Dict[str, Any]) -> bool:
         """

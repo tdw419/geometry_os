@@ -68,7 +68,7 @@ Focus: Get EngineerAgent generating code end-to-end. Skip tests initially.
   - **Commit**: `feat(swarm): add ReviewerAgent with analysis handlers`
   - _Requirements: FR-5, FR-6, FR-7_
 
-- [ ] 2.2 Implement ArchitectAgent
+- [x] 2.2 Implement ArchitectAgent
   - **Do**: Create `architect.py` with ArchitectAgent extending GuildAgent. Implement handlers for ARCHITECTURE_DESIGN and SYSTEM_PLANNING. Return component specs.
   - **Files**: `systems/swarm/guilds/architect.py`
   - **Done when**: Agent handles both architecture task types

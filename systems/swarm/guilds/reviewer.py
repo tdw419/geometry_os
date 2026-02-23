@@ -4,6 +4,7 @@ ReviewerAgent - Code review and security analysis specialist.
 Handles CODE_REVIEW and SECURITY_SCAN tasks.
 """
 
+import traceback
 from typing import Dict, Any, Optional, List, TYPE_CHECKING
 
 from systems.swarm.guilds.base import GuildAgent
@@ -91,37 +92,45 @@ class ReviewerAgent(GuildAgent):
         Returns:
             Result with review findings
         """
-        # POC: Return mock review results
-        # TODO: Integrate with actual linters (pylint, black, etc.)
-        code = task.payload.get("code", "")
-        lines = code.count("\n") + 1 if code else 0
+        try:
+            # POC: Return mock review results
+            # TODO: Integrate with actual linters (pylint, black, etc.)
+            code = task.payload.get("code", "")
+            lines = code.count("\n") + 1 if code else 0
 
-        # Mock analysis
-        issues = []
-        if lines > 100:
-            issues.append({
-                "type": "complexity",
-                "message": "File exceeds 100 lines, consider splitting",
-                "severity": "warning"
-            })
+            # Mock analysis
+            issues = []
+            if lines > 100:
+                issues.append({
+                    "type": "complexity",
+                    "message": "File exceeds 100 lines, consider splitting",
+                    "severity": "warning"
+                })
 
-        if "TODO" in code:
-            issues.append({
-                "type": "todo",
-                "message": "Unresolved TODO comment found",
-                "severity": "info"
-            })
+            if "TODO" in code:
+                issues.append({
+                    "type": "todo",
+                    "message": "Unresolved TODO comment found",
+                    "severity": "info"
+                })
 
-        return {
-            "issues": issues,
-            "severity": "low" if not issues else "medium",
-            "lines_reviewed": lines,
-            "reviewed_by": self.agent_id,
-            "recommendations": [
-                "Consider adding docstrings to functions",
-                "Ensure consistent code formatting"
-            ]
-        }
+            return {
+                "issues": issues,
+                "severity": "low" if not issues else "medium",
+                "lines_reviewed": lines,
+                "reviewed_by": self.agent_id,
+                "recommendations": [
+                    "Consider adding docstrings to functions",
+                    "Ensure consistent code formatting"
+                ]
+            }
+        except Exception as e:
+            return {
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "traceback": traceback.format_exc(),
+                "actionable_info": f"Code review failed: {e}. Check task payload for valid code."
+            }
 
     def _handle_security_scan(self, task: Task) -> Dict[str, Any]:
         """
@@ -133,58 +142,66 @@ class ReviewerAgent(GuildAgent):
         Returns:
             Result with security findings
         """
-        # POC: Return mock security scan results
-        # TODO: Integrate with actual security scanners (bandit, etc.)
-        code = task.payload.get("code", "")
+        try:
+            # POC: Return mock security scan results
+            # TODO: Integrate with actual security scanners (bandit, etc.)
+            code = task.payload.get("code", "")
 
-        vulnerabilities = []
+            vulnerabilities = []
 
-        # Mock security checks
-        if "eval(" in code:
-            vulnerabilities.append({
-                "type": "code_injection",
-                "message": "Use of eval() detected - potential code injection risk",
-                "severity": "high",
-                "line": None
-            })
+            # Mock security checks
+            if "eval(" in code:
+                vulnerabilities.append({
+                    "type": "code_injection",
+                    "message": "Use of eval() detected - potential code injection risk",
+                    "severity": "high",
+                    "line": None
+                })
 
-        if "password" in code.lower() and "=" in code:
-            vulnerabilities.append({
-                "type": "hardcoded_secret",
-                "message": "Possible hardcoded password/secret detected",
-                "severity": "medium",
-                "line": None
-            })
+            if "password" in code.lower() and "=" in code:
+                vulnerabilities.append({
+                    "type": "hardcoded_secret",
+                    "message": "Possible hardcoded password/secret detected",
+                    "severity": "medium",
+                    "line": None
+                })
 
-        if "exec(" in code:
-            vulnerabilities.append({
-                "type": "code_execution",
-                "message": "Use of exec() detected - potential security risk",
-                "severity": "high",
-                "line": None
-            })
+            if "exec(" in code:
+                vulnerabilities.append({
+                    "type": "code_execution",
+                    "message": "Use of exec() detected - potential security risk",
+                    "severity": "high",
+                    "line": None
+                })
 
-        # Calculate risk level
-        if any(v["severity"] == "high" for v in vulnerabilities):
-            risk_level = "high"
-        elif any(v["severity"] == "medium" for v in vulnerabilities):
-            risk_level = "medium"
-        elif vulnerabilities:
-            risk_level = "low"
-        else:
-            risk_level = "none"
+            # Calculate risk level
+            if any(v["severity"] == "high" for v in vulnerabilities):
+                risk_level = "high"
+            elif any(v["severity"] == "medium" for v in vulnerabilities):
+                risk_level = "medium"
+            elif vulnerabilities:
+                risk_level = "low"
+            else:
+                risk_level = "none"
 
-        return {
-            "vulnerabilities": vulnerabilities,
-            "risk_level": risk_level,
-            "scanned_by": self.agent_id,
-            "recommendations": [
-                "Review all high-severity findings immediately",
-                "Consider using environment variables for secrets"
-            ] if vulnerabilities else [
-                "No security issues found"
-            ]
-        }
+            return {
+                "vulnerabilities": vulnerabilities,
+                "risk_level": risk_level,
+                "scanned_by": self.agent_id,
+                "recommendations": [
+                    "Review all high-severity findings immediately",
+                    "Consider using environment variables for secrets"
+                ] if vulnerabilities else [
+                    "No security issues found"
+                ]
+            }
+        except Exception as e:
+            return {
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "traceback": traceback.format_exc(),
+                "actionable_info": f"Security scan failed: {e}. Check task payload for valid code."
+            }
 
     def complete_task(self, task: Task, result: Dict[str, Any]) -> bool:
         """

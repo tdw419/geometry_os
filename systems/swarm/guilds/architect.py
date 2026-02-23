@@ -4,6 +4,7 @@ ArchitectAgent - System design and architecture specialist.
 Handles ARCHITECTURE_DESIGN and SYSTEM_PLANNING tasks.
 """
 
+import traceback
 from typing import Dict, Any, Optional, List, TYPE_CHECKING
 
 from systems.swarm.guilds.base import GuildAgent
@@ -98,61 +99,69 @@ class ArchitectAgent(GuildAgent):
         Returns:
             Result with architecture design
         """
-        # POC: Return mock architecture design
-        # TODO: Integrate with actual architecture analysis tools
-        description = task.description
-        requirements = task.payload.get("requirements", [])
+        try:
+            # POC: Return mock architecture design
+            # TODO: Integrate with actual architecture analysis tools
+            description = task.description
+            requirements = task.payload.get("requirements", [])
 
-        # Generate mock components based on description keywords
-        components = []
+            # Generate mock components based on description keywords
+            components = []
 
-        if "api" in description.lower():
-            components.append({
-                "name": "APIGateway",
-                "type": "service",
-                "description": "API gateway for request routing",
-                "dependencies": [],
-                "interfaces": ["REST", "WebSocket"]
-            })
+            if "api" in description.lower():
+                components.append({
+                    "name": "APIGateway",
+                    "type": "service",
+                    "description": "API gateway for request routing",
+                    "dependencies": [],
+                    "interfaces": ["REST", "WebSocket"]
+                })
 
-        if "database" in description.lower() or "storage" in description.lower():
-            components.append({
-                "name": "DataStore",
-                "type": "storage",
-                "description": "Persistent data storage layer",
-                "dependencies": [],
-                "interfaces": ["CRUD"]
-            })
+            if "database" in description.lower() or "storage" in description.lower():
+                components.append({
+                    "name": "DataStore",
+                    "type": "storage",
+                    "description": "Persistent data storage layer",
+                    "dependencies": [],
+                    "interfaces": ["CRUD"]
+                })
 
-        if "auth" in description.lower() or "user" in description.lower():
-            components.append({
-                "name": "AuthService",
-                "type": "service",
-                "description": "Authentication and authorization service",
-                "dependencies": ["DataStore"],
-                "interfaces": ["OAuth2", "JWT"]
-            })
+            if "auth" in description.lower() or "user" in description.lower():
+                components.append({
+                    "name": "AuthService",
+                    "type": "service",
+                    "description": "Authentication and authorization service",
+                    "dependencies": ["DataStore"],
+                    "interfaces": ["OAuth2", "JWT"]
+                })
 
-        # Default core component if nothing specific
-        if not components:
-            components.append({
-                "name": "CoreModule",
-                "type": "module",
-                "description": "Core system module",
-                "dependencies": [],
-                "interfaces": ["Internal"]
-            })
+            # Default core component if nothing specific
+            if not components:
+                components.append({
+                    "name": "CoreModule",
+                    "type": "module",
+                    "description": "Core system module",
+                    "dependencies": [],
+                    "interfaces": ["Internal"]
+                })
 
-        return {
-            "components": components,
-            "architecture_style": "microservices" if len(components) > 2 else "modular",
-            "requirements_addressed": len(requirements),
-            "designed_by": self.agent_id,
-            "recommendations": [
-                "Consider adding caching layer for performance",
-                "Implement circuit breakers for resilience"
-            ]
-        }
+            return {
+                "components": components,
+                "architecture_style": "microservices" if len(components) > 2 else "modular",
+                "requirements_addressed": len(requirements),
+                "designed_by": self.agent_id,
+                "recommendations": [
+                    "Consider adding caching layer for performance",
+                    "Implement circuit breakers for resilience"
+                ]
+            }
+        except Exception as e:
+            return {
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "traceback": traceback.format_exc(),
+                "actionable_info": f"Architecture design failed: {e}. Check task description and requirements."
+            }
 
     def _handle_system_planning(self, task: Task) -> Dict[str, Any]:
         """
@@ -164,52 +173,60 @@ class ArchitectAgent(GuildAgent):
         Returns:
             Result with implementation plan
         """
-        # POC: Return mock implementation plan
-        # TODO: Integrate with actual planning tools
-        description = task.description
-        timeline = task.payload.get("timeline_weeks", 4)
+        try:
+            # POC: Return mock implementation plan
+            # TODO: Integrate with actual planning tools
+            description = task.description
+            timeline = task.payload.get("timeline_weeks", 4)
 
-        # Generate mock phases
-        phases = [
-            {
-                "name": "Phase 1: Foundation",
-                "duration_weeks": max(1, timeline // 4),
-                "tasks": [
-                    "Set up development environment",
-                    "Define project structure",
-                    "Create base abstractions"
-                ]
-            },
-            {
-                "name": "Phase 2: Core Implementation",
-                "duration_weeks": max(1, timeline // 2),
-                "tasks": [
-                    "Implement core components",
-                    "Add unit tests",
-                    "Integration testing"
-                ]
-            },
-            {
-                "name": "Phase 3: Polish & Deploy",
-                "duration_weeks": max(1, timeline // 4),
-                "tasks": [
-                    "Performance optimization",
-                    "Documentation",
-                    "Production deployment"
+            # Generate mock phases
+            phases = [
+                {
+                    "name": "Phase 1: Foundation",
+                    "duration_weeks": max(1, timeline // 4),
+                    "tasks": [
+                        "Set up development environment",
+                        "Define project structure",
+                        "Create base abstractions"
+                    ]
+                },
+                {
+                    "name": "Phase 2: Core Implementation",
+                    "duration_weeks": max(1, timeline // 2),
+                    "tasks": [
+                        "Implement core components",
+                        "Add unit tests",
+                        "Integration testing"
+                    ]
+                },
+                {
+                    "name": "Phase 3: Polish & Deploy",
+                    "duration_weeks": max(1, timeline // 4),
+                    "tasks": [
+                        "Performance optimization",
+                        "Documentation",
+                        "Production deployment"
+                    ]
+                }
+            ]
+
+            return {
+                "phases": phases,
+                "total_duration_weeks": timeline,
+                "team_size_recommendation": max(2, len(phases)),
+                "planned_by": self.agent_id,
+                "milestones": [
+                    {"name": "MVP Ready", "week": timeline // 2},
+                    {"name": "Production Ready", "week": timeline}
                 ]
             }
-        ]
-
-        return {
-            "phases": phases,
-            "total_duration_weeks": timeline,
-            "team_size_recommendation": max(2, len(phases)),
-            "planned_by": self.agent_id,
-            "milestones": [
-                {"name": "MVP Ready", "week": timeline // 2},
-                {"name": "Production Ready", "week": timeline}
-            ]
-        }
+        except Exception as e:
+            return {
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "traceback": traceback.format_exc(),
+                "actionable_info": f"System planning failed: {e}. Check task description and timeline."
+            }
 
     def complete_task(self, task: Task, result: Dict[str, Any]) -> bool:
         """
