@@ -196,7 +196,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
   - _Requirements: FR-1, FR-2, FR-3, AC-2.1 - AC-2.6_
   - _Design: Test Strategy - Unit Tests_
 
-- [ ] 3.2 Write PHP unit tests for REST_API class
+- [x] 3.2 Write PHP unit tests for REST_API class
   - **Do**:
     1. Create `tests/php/class-test-rest-api.php`
     2. Write `test_missing_key_returns_401()` without any auth
