@@ -35,7 +35,8 @@ def is_visual_bridge_running() -> bool:
             f"{BRIDGE_HTTP_URL}/agent/status/health-check",
             timeout=2
         )
-        return True  # Any response means server is running
+        # Only consider running if we get a valid response (not 404)
+        return response.status_code != 404
     except requests.exceptions.ConnectionError:
         return False
     except requests.exceptions.Timeout:

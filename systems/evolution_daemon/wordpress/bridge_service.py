@@ -32,6 +32,7 @@ class BridgeServiceConfig:
     cycle_interval: int = 60  # seconds between cycles
     auto_execute: bool = False  # Safety: require manual approval by default
     min_confidence: float = 0.5  # Minimum confidence to consider a proposal
+    max_executions_per_cycle: int = 10  # Safety: limit executions per cycle
     safety_config: Optional[SafetyConfig] = None
     # LLM configuration
     llm_enabled: bool = False  # Feature flag - disabled by default
@@ -168,6 +169,10 @@ class WPEvolutionBridgeService:
         executed_count = 0
         if self.config.auto_execute and qualified_proposals:
             for proposal in qualified_proposals:
+                # Rate limiting: stop after max_executions_per_cycle
+                if executed_count >= self.config.max_executions_per_cycle:
+                    logger.info(f"Rate limit reached: {executed_count} executions this cycle")
+                    break
                 exec_result = await self._execute_proposal(proposal)
                 if exec_result.success:
                     executed_count += 1

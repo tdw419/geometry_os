@@ -122,7 +122,7 @@ class TestWPEvolutionE2E:
         mock_proposal = ImprovementProposal(
             post_id=123,
             improvement_type="expand",
-            suggested_content="Expanded content here...",
+            suggested_content="This is expanded content that meets the minimum length requirement for validation.",
             confidence=0.7,
             reason="Content needs expansion (10 words)",
         )
@@ -187,7 +187,7 @@ class TestWPEvolutionE2E:
         mock_proposal = ImprovementProposal(
             post_id=123,
             improvement_type="expand",
-            suggested_content="Expanded content...",
+            suggested_content="This is expanded content that meets the minimum length requirement for validation checks.",
             confidence=0.8,  # High confidence
             reason="Needs expansion",
         )
@@ -296,14 +296,14 @@ class TestWPEvolutionE2E:
         low_confidence_proposal = ImprovementProposal(
             post_id=123,
             improvement_type="expand",
-            suggested_content="Content...",
+            suggested_content="This is some low confidence content that needs to be expanded with more details and information.",
             confidence=0.5,  # Below min_confidence of 0.7
             reason="Needs expansion",
         )
         high_confidence_proposal = ImprovementProposal(
             post_id=456,
             improvement_type="enhance",
-            suggested_content="Enhanced content...",
+            suggested_content="This is enhanced content with improved readability and better structure for the readers.",
             confidence=0.9,  # Above min_confidence
             reason="Readability improvement",
         )
@@ -353,7 +353,7 @@ class TestWPEvolutionE2E:
         mock_proposal = ImprovementProposal(
             post_id=123,
             improvement_type="expand",
-            suggested_content="Content...",
+            suggested_content="This is test content that is long enough to pass the minimum content length validation check.",
             confidence=0.8,
             reason="Needs expansion",
         )
