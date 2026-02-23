@@ -12,7 +12,7 @@ generated: auto
 
 Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
 
-- [ ] 1.1 Create WordPress plugin structure
+- [x] 1.1 Create WordPress plugin structure
   - **Do**: Create plugin directory, main PHP file with GeometryOS_WebTerminal class, assets/css/terminal.css, assets/js/terminal.js. Follow ASCII_Desktop_Control pattern.
   - **Files**: `wordpress_zone/wordpress/wp-content/plugins/geometry-os-web-terminal/geometry-os-web-terminal.php`, `assets/css/terminal.css`, `assets/js/terminal.js`
   - **Done when**: Plugin appears in WordPress admin plugin list, "GO Terminal" menu item visible
