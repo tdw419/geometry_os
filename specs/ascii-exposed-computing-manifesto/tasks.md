@@ -88,7 +88,7 @@ Focus: Create the complete manifesto document with all sections. Accept iterativ
 
 After POC validated, clean up and refine.
 
-- [ ] 2.1 Validate markdown rendering
+- [x] 2.1 Validate markdown rendering
   - **Do**: Check document renders correctly in GitHub markdown, fix any syntax issues
   - **Files**: `docs/ASCII_EXPOSED_COMPUTING_MANIFESTO.md`
   - **Done when**: No markdown lint errors
