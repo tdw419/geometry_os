@@ -11,7 +11,7 @@
 - Create `tests/test_clipboard_server.py`
 - Endpoints: /clipboard, /clipboard/history, /clipboard/history/N, /clipboard/since/<id>
 
-## Task 3: Add CLI Tool for Testing
+## Task 3: Add CLI Tool for Testing [x]
 - Create `systems/clipboard/cli.py`
 - Commands: get, post, history, poll
 
