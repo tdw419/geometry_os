@@ -114,7 +114,7 @@ After POC validated, clean up and refine.
   - **Commit**: `test(manifesto): verify document structure`
   - _Requirements: All FRs_
 
-- [ ] 3.2 Cross-reference validation
+- [x] 3.2 Cross-reference validation
   - **Do**: Ensure internal references to sections work
   - **Files**: `docs/ASCII_EXPOSED_COMPUTING_MANIFESTO.md`
   - **Done when**: All `###` references resolve
