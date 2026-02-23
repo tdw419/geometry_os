@@ -57,7 +57,7 @@ Focus: Validate EpisodicMemory storage and retrieval works end-to-end. Skip test
   - _Requirements: FR-1, FR-3, FR-4_
   - _Design: EpisodicMemory component_
 
-- [ ] 1.6 Create RecursiveGrowth skeleton with NEBBus integration
+- [x] 1.6 Create RecursiveGrowth skeleton with NEBBus integration
   - **Do**: Create `systems/swarm/growth/recursive_growth.py` with RecursiveGrowth class that subscribes to `task.**` events. Track basic metrics (counts per outcome).
   - **Files**: `systems/swarm/growth/recursive_growth.py`, `systems/swarm/growth/__init__.py`
   - **Done when**: Class can subscribe to NEBBus and receive task events
