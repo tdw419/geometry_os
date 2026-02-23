@@ -340,13 +340,13 @@ class Daemon_Monitor {
             return null;
         }
 
-        // Handle false return (command failed to execute)
-        if ( $result === false ) {
+        // Handle null or false return (command failed to execute)
+        if ( $result === null || $result === false ) {
             return null;
         }
 
         // Handle empty output
-        if ( $result === '' || trim( $result ) === '' ) {
+        if ( $result === '' || trim( (string) $result ) === '' ) {
             return null;
         }
 
