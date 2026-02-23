@@ -76,7 +76,7 @@ Focus: Core sense classes with basic functionality. Skip rate limiting, minimal 
   - **Commit**: `feat(senses): add rate limiting`
   - _Requirements: FR-5_
 
-- [ ] 2.3 Add timeout handling to all operations
+- [x] 2.3 Add timeout handling to all operations
   - **Do**: Wrap all I/O with asyncio.timeout or threading timeout
   - **Files**: `systems/swarm/senses/filesystem.py`, `systems/swarm/senses/web.py`
   - **Done when**: Long operations timeout gracefully

@@ -2,6 +2,7 @@
 Filesystem sense for controlled file access.
 """
 
+import asyncio
 from pathlib import Path
 from typing import List, Optional
 
@@ -15,14 +16,16 @@ class FilesystemSense:
     Security: All paths are validated against the whitelist before operations.
     """
 
-    def __init__(self, allowed_paths: List[str]):
+    def __init__(self, allowed_paths: List[str], timeout: float = 30.0):
         """
         Initialize with list of allowed directory paths.
 
         Args:
             allowed_paths: List of directory paths that can be accessed
+            timeout: Timeout for async operations in seconds
         """
         self._allowed_paths = [Path(p).resolve() for p in allowed_paths]
+        self._timeout = timeout
 
     def _validate_path(self, path: str) -> SenseResult:
         """
@@ -76,6 +79,28 @@ class FilesystemSense:
         except Exception as e:
             return SenseResult(success=False, error=f"Failed to read file: {e}")
 
+    async def read_file_async(self, path: str) -> SenseResult:
+        """
+        Async read file contents from allowed path with timeout.
+
+        Args:
+            path: File path to read
+
+        Returns:
+            SenseResult with file contents as string on success
+        """
+        try:
+            async with asyncio.timeout(self._timeout):
+                # Run sync operation in thread pool
+                return await asyncio.get_event_loop().run_in_executor(
+                    None, self.read_file, path
+                )
+        except asyncio.TimeoutError:
+            return SenseResult(
+                success=False,
+                error=f"Read operation timed out after {self._timeout}s"
+            )
+
     def write_file(self, path: str, content: str) -> SenseResult:
         """
         Write content to file in allowed path.
@@ -104,6 +129,28 @@ class FilesystemSense:
             return SenseResult(success=True, data=bytes_written)
         except Exception as e:
             return SenseResult(success=False, error=f"Failed to write file: {e}")
+
+    async def write_file_async(self, path: str, content: str) -> SenseResult:
+        """
+        Async write content to file in allowed path with timeout.
+
+        Args:
+            path: File path to write
+            content: Content to write
+
+        Returns:
+            SenseResult with bytes written count on success
+        """
+        try:
+            async with asyncio.timeout(self._timeout):
+                return await asyncio.get_event_loop().run_in_executor(
+                    None, self.write_file, path, content
+                )
+        except asyncio.TimeoutError:
+            return SenseResult(
+                success=False,
+                error=f"Write operation timed out after {self._timeout}s"
+            )
 
     def list_dir(self, path: str) -> SenseResult:
         """
@@ -138,3 +185,24 @@ class FilesystemSense:
             return SenseResult(success=True, data=entries)
         except Exception as e:
             return SenseResult(success=False, error=f"Failed to list directory: {e}")
+
+    async def list_dir_async(self, path: str) -> SenseResult:
+        """
+        Async list directory contents from allowed path with timeout.
+
+        Args:
+            path: Directory path to list
+
+        Returns:
+            SenseResult with list of filenames on success
+        """
+        try:
+            async with asyncio.timeout(self._timeout):
+                return await asyncio.get_event_loop().run_in_executor(
+                    None, self.list_dir, path
+                )
+        except asyncio.TimeoutError:
+            return SenseResult(
+                success=False,
+                error=f"List operation timed out after {self._timeout}s"
+            )
