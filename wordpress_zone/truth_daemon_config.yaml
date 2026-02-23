@@ -1,0 +1,50 @@
+# WordPress Truth Daemon Configuration
+# See docs/plans/2026-02-22-wordpress-truth-daemon.md for details
+
+discovery:
+  poll_interval: 60  # seconds between polls
+  post_types:
+    - post
+    - page
+    - research_document
+  categories:
+    - documentation
+    - insights
+    - technical
+  batch_size: 5  # max posts per poll
+
+extraction:
+  llm_model: "microsoft/phi-4"
+  max_content_length: 4000
+  temperature: 0.3
+
+scoring:
+  # CTRM Triad Scoring Weights
+  author_reliability_weights:
+    admin: 0.9
+    editor: 0.8
+    author: 0.7
+    contributor: 0.6
+
+  source_type_weights:
+    post: 0.8
+    page: 0.85
+    research_document: 0.9
+    comment: 0.5
+    revision: 0.4
+
+  corroboration_boost_per_match: 0.05
+  max_corroboration_boost: 0.2
+
+verification:
+  interval: 3600  # 1 hour
+  max_tokens_per_cycle: 5000
+  min_confidence_to_verify: 0.6
+
+database:
+  path: "ctrm_llm_os.db"
+
+wordpress:
+  url: "http://localhost:8080"
+  api_endpoint: "/ai-publisher.php"
+  timeout: 10

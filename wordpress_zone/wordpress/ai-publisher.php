@@ -152,6 +152,20 @@ switch ($action) {
         handle_log_ansmo_cycle($args);
         break;
 
+    // WordPress Truth Daemon API
+    case 'getModifiedContent':
+        handle_get_modified_content($args);
+        break;
+
+    case 'updatePostMeta':
+        handle_update_post_meta($args);
+        break;
+
+    case 'getPostAuthor':
+    case 'getPostAuthorInfo':
+        handle_get_post_author($args);
+        break;
+
     default:
         header('HTTP/1.1 400 Bad Request');
         echo json_encode(array('success' => false, 'error' => 'Invalid action/tool: ' . $action));
@@ -1627,6 +1641,154 @@ function handle_log_ansmo_cycle($args) {
         echo json_encode(array(
             'success' => false,
             'error' => 'Exception in handle_log_ansmo_cycle: ' . $e->getMessage()
+        ));
+    }
+}
+
+/**
+ * Handle getModifiedContent - Query posts by modification date
+ * Used by WordPress Truth Daemon for content discovery
+ */
+function handle_get_modified_content($args) {
+    try {
+        $since = isset($args['since']) ? sanitize_text_field($args['since']) : '';
+        $post_types = isset($args['post_types']) ? $args['post_types'] : array('post', 'page');
+        $limit = isset($args['limit']) ? intval($args['limit']) : 50;
+
+        // Build query args
+        $query_args = array(
+            'post_type' => $post_types,
+            'post_status' => 'publish',
+            'posts_per_page' => $limit,
+            'orderby' => 'modified',
+            'order' => 'DESC'
+        );
+
+        // Add date filter if since provided
+        if (!empty($since)) {
+            $query_args['date_query'] = array(
+                array(
+                    'column' => 'post_modified_gmt',
+                    'after' => $since
+                )
+            );
+        }
+
+        $query = new WP_Query($query_args);
+        $posts = array();
+
+        while ($query->have_posts()) {
+            $query->the_post();
+            $posts[] = array(
+                'id' => get_the_ID(),
+                'title' => get_the_title(),
+                'content' => get_the_content(),
+                'excerpt' => get_the_excerpt(),
+                'modified' => get_post_modified_time('c', true),
+                'type' => get_post_type(),
+                'author_id' => get_the_author_meta('ID')
+            );
+        }
+        wp_reset_postdata();
+
+        echo json_encode(array(
+            'success' => true,
+            'posts' => $posts,
+            'count' => count($posts)
+        ));
+    } catch (Exception $e) {
+        header('HTTP/1.1 500 Internal Server Error');
+        echo json_encode(array(
+            'success' => false,
+            'error' => 'Exception in handle_get_modified_content: ' . $e->getMessage()
+        ));
+    }
+}
+
+/**
+ * Handle updatePostMeta - Update post metadata
+ * Used by WordPress Truth Daemon for CTRM score updates
+ */
+function handle_update_post_meta($args) {
+    try {
+        if (!isset($args['post_id'])) {
+            header('HTTP/1.1 400 Bad Request');
+            echo json_encode(array('success' => false, 'error' => 'Missing post_id'));
+            return;
+        }
+
+        $post_id = intval($args['post_id']);
+        $meta_key = sanitize_key($args['meta_key']);
+        $meta_value = $args['meta_value'];
+
+        // Check post exists
+        $post = get_post($post_id);
+        if (!$post) {
+            header('HTTP/1.1 404 Not Found');
+            echo json_encode(array('success' => false, 'error' => 'Post not found'));
+            return;
+        }
+
+        // Update meta
+        $result = update_post_meta($post_id, $meta_key, $meta_value);
+
+        echo json_encode(array(
+            'success' => true,
+            'post_id' => $post_id,
+            'meta_key' => $meta_key,
+            'updated' => $result !== false
+        ));
+    } catch (Exception $e) {
+        header('HTTP/1.1 500 Internal Server Error');
+        echo json_encode(array(
+            'success' => false,
+            'error' => 'Exception in handle_update_post_meta: ' . $e->getMessage()
+        ));
+    }
+}
+
+/**
+ * Handle getPostAuthor - Get author info for a post
+ * Used by WordPress Truth Daemon for scoring
+ */
+function handle_get_post_author($args) {
+    try {
+        if (!isset($args['post_id'])) {
+            header('HTTP/1.1 400 Bad Request');
+            echo json_encode(array('success' => false, 'error' => 'Missing post_id'));
+            return;
+        }
+
+        $post_id = intval($args['post_id']);
+        $post = get_post($post_id);
+
+        if (!$post) {
+            header('HTTP/1.1 404 Not Found');
+            echo json_encode(array('success' => false, 'error' => 'Post not found'));
+            return;
+        }
+
+        $author_id = $post->post_author;
+        $user = get_userdata($author_id);
+
+        $role = 'contributor';
+        if ($user && !empty($user->roles)) {
+            $role = $user->roles[0];
+        }
+
+        echo json_encode(array(
+            'success' => true,
+            'author_info' => array(
+                'id' => $author_id,
+                'role' => $role,
+                'post_count' => count_user_posts($author_id)
+            )
+        ));
+    } catch (Exception $e) {
+        header('HTTP/1.1 500 Internal Server Error');
+        echo json_encode(array(
+            'success' => false,
+            'error' => 'Exception in handle_get_post_author: ' . $e->getMessage()
         ));
     }
 }
