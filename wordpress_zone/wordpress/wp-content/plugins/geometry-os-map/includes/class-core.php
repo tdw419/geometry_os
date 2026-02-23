@@ -124,42 +124,34 @@ class Geometry_OS_Map_Core {
         );
 
         // Core modules in dependency order
+        // Each module depends on the previous one (chained dependencies)
         $modules = [
-            // Libraries
-            'lib/typed-signals.js'        => ['pixi-v8'],
-            'lib/pixi-ui.min.js'          => ['lib/typed-signals.js'],
-
-            // Core spatial systems
-            'spatial_core.js'             => ['lib/pixi-ui.min.js'],
-            'sprite_pool.js'              => ['spatial_core.js'],
-            'chunk_manager.js'            => ['sprite_pool.js'],
-            'viewport_manager.js'         => ['chunk_manager.js'],
-            'lod_system.js'               => ['viewport_manager.js'],
-
-            // Map systems
-            'infinite_map_v2.js'          => ['lod_system.js'],
-            'infinite_map.js'             => ['infinite_map_v2.js'],
-            'brick_loader.js'             => ['infinite_map.js'],
-
-            // Rendering
-            'pixi_adapter.js'             => ['brick_loader.js'],
-            'visual_boot_loader.js'       => ['pixi_adapter.js'],
-
-            // Main application (loads last)
-            'application.js'              => ['visual_boot_loader.js'],
+            'lib/typed-signals.js',
+            'lib/pixi-ui.min.js',
+            'spatial_core.js',
+            'sprite_pool.js',
+            'chunk_manager.js',
+            'viewport_manager.js',
+            'lod_system.js',
+            'infinite_map_v2.js',
+            'infinite_map.js',
+            'brick_loader.js',
+            'pixi_adapter.js',
+            'visual_boot_loader.js',
+            'application.js',
         ];
 
-        $index = 0;
-        foreach ($modules as $path => $deps) {
+        $prev_handle = 'pixi-v8';
+        foreach ($modules as $index => $path) {
             $handle = "geometry-os-module-{$index}";
             wp_enqueue_script(
                 $handle,
                 esc_url("{$asset_base}/{$path}"),
-                $deps,
+                [$prev_handle],
                 '1.0.0',
                 false // Load in head for proper initialization order
             );
-            $index++;
+            $prev_handle = $handle;
         }
     }
 
