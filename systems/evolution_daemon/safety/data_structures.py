@@ -15,10 +15,13 @@ V13 additions:
 - MetabolismState: Current system resource state for adaptive behavior
 """
 
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import List, Dict, Optional, Any
+import math
+import uuid
 
 
 class ThrottleLevel(str, Enum):
@@ -205,3 +208,80 @@ class MetabolismState:
 # Type aliases for clarity
 Tier = int  # 1, 2, or 3
 CommitSHA = str  # Git commit hash
+
+
+@dataclass
+class BehavioralEvent:
+    """
+    A single behavioral event from an agent.
+
+    Used to track and analyze agent activity patterns for anomaly detection.
+    """
+    event_id: str
+    agent_id: str
+    event_type: str  # e.g., "file_write", "network_request", "shell_exec"
+    entropy: float = 0.0  # Calculated entropy of event metadata
+    timestamp: str = field(
+        default_factory=lambda: datetime.now().isoformat()
+    )
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def calculate_entropy(self) -> float:
+        """
+        Calculate Shannon entropy of the event metadata.
+
+        Uses Counter for simpler testability compared to numpy approach.
+        Returns entropy value between 0.0 and 1.0 (normalized).
+        """
+        if not self.metadata:
+            return 0.0
+
+        # Flatten metadata values to string for counting
+        values_str = str(sorted(self.metadata.items()))
+        counter = Counter(values_str)
+        total = len(values_str)
+
+        if total == 0:
+            return 0.0
+
+        # Shannon entropy calculation
+        entropy = -sum(
+            (count / total) * math.log2(count / total)
+            for count in counter.values()
+        )
+
+        # Normalize to 0.0-1.0 range (max entropy for given alphabet)
+        max_entropy = math.log2(len(counter)) if len(counter) > 1 else 1.0
+        normalized = entropy / max_entropy if max_entropy > 0 else 0.0
+
+        self.entropy = min(1.0, max(0.0, normalized))
+        return self.entropy
+
+
+@dataclass
+class AgentBehavioralProfile:
+    """
+    Behavioral profile for an agent, tracking activity patterns.
+
+    Used by the BehavioralMonitor to detect anomalous agent behavior
+    that may indicate compromise or malfunction.
+    """
+    agent_id: str
+    file_ops_count: int = 0
+    network_ops_count: int = 0
+    entropy_score: float = 0.0  # Rolling entropy score (0.0 to 1.0)
+    last_activity: str = field(
+        default_factory=lambda: datetime.now().isoformat()
+    )
+    sliding_window_start: str = field(
+        default_factory=lambda: datetime.now().isoformat()
+    )
+
+    def is_anomalous(self) -> bool:
+        """
+        Check if the agent's behavior is anomalous.
+
+        Returns True if entropy_score exceeds the 0.7 threshold,
+        indicating potentially suspicious behavior patterns.
+        """
+        return self.entropy_score > 0.7
