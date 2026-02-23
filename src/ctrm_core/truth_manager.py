@@ -110,7 +110,7 @@ class CTRMTruthManager:
             token_cost=token_cost,
             importance_score=importance,
             metadata=metadata,
-            **{k: v for k, v in kwargs.items() if k not in ['confidence', 'metadata', 'embedding', 'id']}
+            **{k: v for k, v in kwargs.items() if k not in ['confidence', 'metadata', 'embedding', 'id', 'importance_score']}
         )
 
         # Store in database (synchronous call)
