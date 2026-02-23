@@ -105,7 +105,7 @@ with tempfile.TemporaryDirectory() as d:
   - _Requirements: FR-1, FR-4_
   - _Design: Event topic: swarm.consensus.{proposal_id}_
 
-- [ ] 1.5 [VERIFY] Quality checkpoint: POC end-to-end validation
+- [x] 1.5 [VERIFY] Quality checkpoint: POC end-to-end validation
   - **Do**: Run complete POC flow: create proposal, vote, evaluate consensus, verify NEB events
   - **Verify**: `cd /home/jericho/zion/projects/geometry_os/geometry_os && python -c "
 import tempfile
@@ -139,7 +139,7 @@ with tempfile.TemporaryDirectory() as d:
 
 Focus: Add subscription methods for real-time notifications.
 
-- [ ] 2.1 Implement subscribe_to_proposals method
+- [x] 2.1 Implement subscribe_to_proposals method
   - **Do**:
     1. Add `subscribe_to_proposals(callback)` method
     2. Subscribe to `swarm.proposal.*` wildcard pattern
@@ -163,7 +163,7 @@ with tempfile.TemporaryDirectory() as d:
   - **Commit**: `feat(swarm): add subscribe_to_proposals method`
   - _Requirements: FR-5 (real-time subscriptions)_
 
-- [ ] 2.2 Implement subscribe_to_votes method
+- [x] 2.2 Implement subscribe_to_votes method
   - **Do**:
     1. Add `subscribe_to_votes(callback)` method
     2. Subscribe to `swarm.vote.*` wildcard pattern
@@ -187,7 +187,7 @@ with tempfile.TemporaryDirectory() as d:
   - **Commit**: `feat(swarm): add subscribe_to_votes method`
   - _Requirements: FR-5_
 
-- [ ] 2.3 Implement subscribe_to_consensus method
+- [x] 2.3 Implement subscribe_to_consensus method
   - **Do**:
     1. Add `subscribe_to_consensus(callback)` method
     2. Subscribe to `swarm.consensus.*` wildcard pattern
@@ -214,7 +214,7 @@ with tempfile.TemporaryDirectory() as d:
   - **Commit**: `feat(swarm): add subscribe_to_consensus method`
   - _Requirements: FR-5_
 
-- [ ] 2.4 [VERIFY] Quality checkpoint: lint + typecheck
+- [x] 2.4 [VERIFY] Quality checkpoint: lint + typecheck
   - **Do**: Run quality commands on the new module
   - **Verify**: `cd /home/jericho/zion/projects/geometry_os/geometry_os && python -m py_compile systems/swarm/swarm_neb_bridge.py && echo "Syntax OK"`
   - **Done when**: No syntax errors
@@ -224,7 +224,7 @@ with tempfile.TemporaryDirectory() as d:
 
 Focus: Add unit and integration tests following existing patterns.
 
-- [ ] 3.1 Unit tests for SwarmNEBBridge
+- [x] 3.1 Unit tests for SwarmNEBBridge
   - **Do**:
     1. Create test file at `tests/swarm/test_swarm_neb_bridge.py`
     2. Test constructor with and without event_bus
@@ -238,7 +238,7 @@ Focus: Add unit and integration tests following existing patterns.
   - **Commit**: `test(swarm): add SwarmNEBBridge unit tests`
   - _Requirements: AC-1 (TDD approach)_
 
-- [ ] 3.2 Integration tests with SwarmNode
+- [x] 3.2 Integration tests with SwarmNode
   - **Do**:
     1. Add integration test class to test file
     2. Test complete flow: proposal -> vote -> consensus with NEB notifications
@@ -250,7 +250,7 @@ Focus: Add unit and integration tests following existing patterns.
   - **Commit**: `test(swarm): add SwarmNEBBridge integration tests`
   - _Requirements: AC-2 (end-to-end validation)_
 
-- [ ] 3.3 [VERIFY] Quality checkpoint: all swarm tests pass
+- [x] 3.3 [VERIFY] Quality checkpoint: all swarm tests pass
   - **Do**: Run complete swarm test suite
   - **Verify**: `cd /home/jericho/zion/projects/geometry_os/geometry_os && pytest tests/swarm/ -v`
   - **Done when**: All tests pass, no regressions
@@ -258,7 +258,7 @@ Focus: Add unit and integration tests following existing patterns.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Local quality check
+- [x] 4.1 Local quality check
   - **Do**: Run all quality checks locally
   - **Verify**: `cd /home/jericho/zion/projects/geometry_os/geometry_os && pytest tests/swarm/ -v --tb=short`
   - **Done when**: All tests pass
@@ -275,7 +275,7 @@ Focus: Add unit and integration tests following existing patterns.
 
 ## Phase 5: Module Exports
 
-- [ ] 5.1 Export SwarmNEBBridge from swarm module
+- [x] 5.1 Export SwarmNEBBridge from swarm module
   - **Do**:
     1. Check for `systems/swarm/__init__.py`
     2. Add SwarmNEBBridge to exports if __init__.py exists
