@@ -103,7 +103,7 @@ After POC validated, clean up code and integrate with GuildAgents.
   - _Requirements: FR-9_
   - _Design: Data Flow_
 
-- [ ] 2.3 Add memory events to NEBBus
+- [x] 2.3 Add memory events to NEBBus
   - **Do**: Publish `memory.experience.stored` event when experience saved. Publish `memory.pattern.detected` when pattern found.
   - **Files**: `systems/swarm/memory/episodic_memory.py`
   - **Done when**: Events published via NEBBus
