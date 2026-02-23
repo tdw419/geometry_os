@@ -1,0 +1,341 @@
+/**
+ * Geometry OS Daemons Dashboard Admin Styles
+ *
+ * Provides styling for the daemon monitoring dashboard with card grid layout,
+ * status indicators, and responsive adjustments.
+ *
+ * @package Geometry_OS_Daemons
+ * @since 1.0.0
+ */
+
+/* ==========================================================================
+   Dashboard Container
+   ========================================================================== */
+
+.geometry-os-daemons-wrap {
+    max-width: 1400px;
+    margin: 20px auto;
+}
+
+.geometry-os-daemons-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.geometry-os-daemons-title .dashicons {
+    font-size: 30px;
+    width: 30px;
+    height: 30px;
+    color: #2271b1;
+}
+
+/* ==========================================================================
+   Header Actions
+   ========================================================================== */
+
+.geometry-os-daemons-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px 20px;
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.geometry-os-daemons-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.geometry-os-daemons-actions .button {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.geometry-os-daemons-actions .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+/* Refresh button animation */
+.geometry-os-daemons-actions .dashicons-update.is-spinning {
+    animation: geometry-os-spin 1s linear infinite;
+}
+
+@keyframes geometry-os-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.geometry-os-daemons-last-updated {
+    color: #646970;
+    font-size: 13px;
+}
+
+#geometry-os-last-updated {
+    font-weight: 500;
+    color: #3c434a;
+}
+
+/* ==========================================================================
+   Daemons Grid Layout
+   ========================================================================== */
+
+.geometry-os-daemons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+/* ==========================================================================
+   Daemon Card
+   ========================================================================== */
+
+.geometry-os-daemon-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+    transition: box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out;
+    overflow: hidden;
+}
+
+.geometry-os-daemon-card:hover {
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Card Header */
+.geometry-os-daemon-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 20px;
+    border-bottom: 1px solid #dcdcde;
+    background: #f6f7f7;
+}
+
+.geometry-os-daemon-status-indicator {
+    font-size: 14px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.geometry-os-daemon-status-running {
+    color: #46b450;
+}
+
+.geometry-os-daemon-status-stopped {
+    color: #dc3232;
+}
+
+.geometry-os-daemon-card-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #1d2327;
+    word-break: break-word;
+}
+
+/* Card Body */
+.geometry-os-daemon-card-body {
+    padding: 15px 20px;
+}
+
+.geometry-os-daemon-description {
+    margin: 0 0 15px 0;
+    color: #646970;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Metrics Section */
+.geometry-os-daemon-metrics {
+    border-top: 1px solid #dcdcde;
+    padding-top: 12px;
+}
+
+.geometry-os-daemon-metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 13px;
+}
+
+.geometry-os-daemon-metric + .geometry-os-daemon-metric {
+    border-top: 1px solid #f0f0f1;
+}
+
+.geometry-os-daemon-metric-label {
+    color: #646970;
+    font-weight: 400;
+}
+
+.geometry-os-daemon-metric-value {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', Menlo, Consolas, monospace;
+    font-size: 12px;
+    color: #1d2327;
+    background: #f6f7f7;
+    padding: 2px 8px;
+    border-radius: 3px;
+}
+
+/* Status Value Colors */
+.geometry-os-daemon-metric-value.geometry-os-status-running {
+    color: #46b450;
+    background: #ecf7ed;
+    font-weight: 500;
+}
+
+.geometry-os-daemon-metric-value.geometry-os-status-stopped {
+    color: #dc3232;
+    background: #fcf0f1;
+    font-weight: 500;
+}
+
+.geometry-os-daemon-metric-value.geometry-os-process-name {
+    font-size: 11px;
+    color: #50575e;
+    background: transparent;
+    padding: 0;
+}
+
+/* Card Footer */
+.geometry-os-daemon-card-footer {
+    padding: 10px 20px;
+    background: #f6f7f7;
+    border-top: 1px solid #dcdcde;
+}
+
+.geometry-os-daemon-last-check {
+    font-size: 11px;
+    color: #a7aaad;
+    display: block;
+}
+
+/* ==========================================================================
+   Dashboard Footer
+   ========================================================================== */
+
+.geometry-os-daemons-footer {
+    padding: 15px 20px;
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.geometry-os-daemons-footer .description {
+    margin: 0;
+    text-align: center;
+    color: #646970;
+}
+
+/* ==========================================================================
+   Responsive Adjustments
+   ========================================================================== */
+
+/* Tablet breakpoint */
+@media screen and (max-width: 782px) {
+    .geometry-os-daemons-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .geometry-os-daemons-last-updated {
+        width: 100%;
+        text-align: left;
+    }
+
+    .geometry-os-daemons-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .geometry-os-daemon-card-header {
+        padding: 12px 15px;
+    }
+
+    .geometry-os-daemon-card-body {
+        padding: 12px 15px;
+    }
+
+    .geometry-os-daemon-card-footer {
+        padding: 8px 15px;
+    }
+}
+
+/* Mobile breakpoint */
+@media screen and (max-width: 480px) {
+    .geometry-os-daemons-wrap {
+        margin: 10px;
+    }
+
+    .geometry-os-daemons-title {
+        font-size: 20px;
+    }
+
+    .geometry-os-daemons-title .dashicons {
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+    }
+
+    .geometry-os-daemon-metric {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .geometry-os-daemon-metric-value {
+        align-self: flex-end;
+    }
+
+    .geometry-os-daemons-actions .button {
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+}
+
+/* ==========================================================================
+   Loading State
+   ========================================================================== */
+
+.geometry-os-daemons-grid.is-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.geometry-os-daemon-card.is-updating {
+    opacity: 0.7;
+    transition: opacity 0.2s ease-in-out;
+}
+
+/* ==========================================================================
+   Utility Classes
+   ========================================================================== */
+
+.geometry-os-text-success {
+    color: #46b450;
+}
+
+.geometry-os-text-error {
+    color: #dc3232;
+}
+
+.geometry-os-text-muted {
+    color: #646970;
+}
