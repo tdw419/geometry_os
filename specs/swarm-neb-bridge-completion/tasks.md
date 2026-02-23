@@ -10,7 +10,7 @@ generated: auto
 
 ## Phase 1: Make It Work (POC)
 
-- [ ] 1.1 Create test file with failing subscription tests
+- [x] 1.1 Create test file with failing subscription tests
   - **Do**: Create `tests/swarm/test_swarm_neb_bridge.py` with 4 test methods: test_subscribe_to_proposals, test_subscribe_to_votes, test_subscribe_to_consensus, test_unsubscribe_from_proposals
   - **Files**: `tests/swarm/test_swarm_neb_bridge.py`
   - **Done when**: Test file exists with all 4 test methods
@@ -18,14 +18,14 @@ generated: auto
   - **Commit**: (no commit yet - TDD red phase)
   - _Requirements: FR-1, FR-2, FR-3, FR-4_
 
-- [ ] 1.2 Verify tests fail (red phase)
+- [x] 1.2 Verify tests fail (red phase)
   - **Do**: Run pytest to confirm AttributeError for missing methods
   - **Files**: `tests/swarm/test_swarm_neb_bridge.py`
   - **Done when**: Tests fail with "AttributeError: 'SwarmNEBBridge' object has no attribute 'subscribe_to_proposals'"
   - **Verify**: `pytest tests/swarm/test_swarm_neb_bridge.py -v` exits with failure
   - **Commit**: (no commit - TDD red phase)
 
-- [ ] 1.3 Implement subscription methods
+- [x] 1.3 Implement subscription methods
   - **Do**: Add 4 methods to SwarmNEBBridge class: subscribe_to_proposals, subscribe_to_votes, subscribe_to_consensus, unsubscribe. Each subscription method checks event_bus and delegates to NEBBus.subscribe with wildcard pattern.
   - **Files**: `systems/swarm/swarm_neb_bridge.py`
   - **Done when**: All 4 methods implemented with RuntimeError for missing event_bus
@@ -34,14 +34,14 @@ generated: auto
   - _Requirements: FR-1, FR-2, FR-3, FR-4, FR-5_
   - _Design: Method Implementations_
 
-- [ ] 1.4 Verify tests pass (green phase)
+- [x] 1.4 Verify tests pass (green phase)
   - **Do**: Run pytest to confirm all subscription tests pass
   - **Files**: `tests/swarm/test_swarm_neb_bridge.py`, `systems/swarm/swarm_neb_bridge.py`
   - **Done when**: 4 tests pass
   - **Verify**: `pytest tests/swarm/test_swarm_neb_bridge.py -v` shows 4 passed
   - **Commit**: `feat(swarm): add subscription methods to SwarmNEBBridge`
 
-- [ ] 1.5 POC Checkpoint
+- [x] 1.5 POC Checkpoint
   - **Do**: Verify subscription flow works end-to-end
   - **Done when**: Can demonstrate bridge subscribing to proposal events and receiving notifications
   - **Verify**: `pytest tests/swarm/test_swarm_neb_bridge.py -v` all green
