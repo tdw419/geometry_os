@@ -36,8 +36,17 @@ Starting CLI Certification Runner${level ? ` (Level ${level})` : ' (All Levels)'
             // Take a screenshot for debugging
             await page.screenshot({ path: '/tmp/wp_login_before.png' });
 
-            await page.fill('#user_login', process.env.WP_USER || 'admin');
-            await page.fill('#user_pass', process.env.WP_PASS || 'password');
+            const username = process.env.WP_USER || 'admin';
+            const password = process.env.WP_PASS || 'password';
+            console.log("Filling credentials - user:", username, "pass length:", password.length);
+
+            await page.fill('#user_login', username);
+            await page.fill('#user_pass', password);
+
+            // Verify what was typed
+            const typedUser = await page.inputValue('#user_login');
+            const typedPass = await page.inputValue('#user_pass');
+            console.log("Typed - user:", typedUser, "pass length:", typedPass.length);
 
             console.log("Credentials filled, submitting...");
 
