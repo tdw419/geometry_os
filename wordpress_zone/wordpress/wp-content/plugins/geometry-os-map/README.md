@@ -2,6 +2,14 @@
 
 Embed the PixiJS Infinite Map in WordPress via shortcode, Gutenberg block, or page template.
 
+## Quick Links
+
+| Resource | URL |
+|----------|-----|
+| WordPress Admin | http://localhost:8080/wp-admin/ |
+| Plugin Settings | http://localhost:8080/wp-admin/options-general.php?page=geometry-os-map |
+| Visual Shell | http://localhost:8000/ |
+
 ## Installation
 
 1. Copy plugin to `wp-content/plugins/geometry-os-map/`
