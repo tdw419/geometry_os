@@ -12,7 +12,7 @@ generated: auto
 
 Focus: Get plugin loading and showing basic daemon status.
 
-- [ ] 1.1 Create main plugin file (geometry-os-daemons.php)
+- [x] 1.1 Create main plugin file (geometry-os-daemons.php)
   - **Do**: Create `wordpress_zone/wordpress/wp-content/plugins/geometry-os-daemons/geometry-os-daemons.php` with plugin header, main class, menu registration, and AJAX handler stub
   - **Files**: `wordpress_zone/wordpress/wp-content/plugins/geometry-os-daemons/geometry-os-daemons.php`
   - **Done when**: Plugin appears in WordPress admin plugins list
