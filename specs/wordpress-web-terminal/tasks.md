@@ -57,7 +57,7 @@ After POC validated, clean up code.
   - **Commit**: `refactor(terminal): improve session token security`
   - _Design: Security Considerations_
 
-- [ ] 2.2 Add error handling and status indicators
+- [x] 2.2 Add error handling and status indicators
   - **Do**: Add connection status dot (green/red), handle WebSocket errors with auto-reconnect, display error messages in terminal
   - **Files**: `assets/js/terminal.js`, `assets/css/terminal.css`
   - **Done when**: Status bar shows connected/disconnected, errors display in red

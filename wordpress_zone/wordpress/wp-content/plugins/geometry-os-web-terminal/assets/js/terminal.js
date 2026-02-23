@@ -30,6 +30,8 @@
         maxReconnectAttempts: 5,
         reconnectDelay: 1000,
         isConnected: false,
+        reconnectTimer: null,
+        lastError: null,
 
         /**
          * Initialize the terminal
@@ -144,6 +146,14 @@
                 this.socket.onopen = function() {
                     self.isConnected = true;
                     self.reconnectAttempts = 0;
+                    self.lastError = null;
+
+                    // Clear reconnect timer if exists
+                    if (self.reconnectTimer) {
+                        clearInterval(self.reconnectTimer);
+                        self.reconnectTimer = null;
+                    }
+
                     self.updateStatus('connected', 'Connected');
 
                     self.term.writeln('\x1b[32m  ✓ Connected to Visual Bridge\x1b[0m');
@@ -190,8 +200,9 @@
                 };
 
                 this.socket.onerror = function(error) {
-                    self.updateStatus('disconnected', 'Connection error');
-                    self.term.writeln('\x1b[31m  WebSocket error\x1b[0m');
+                    self.lastError = 'WebSocket connection failed';
+                    self.updateStatus('disconnected', 'Error: ' + self.lastError);
+                    self.term.writeln('\x1b[31m  ✗ WebSocket error: ' + (error.message || 'Connection refused') + '\x1b[0m');
                     console.error('GOTerminal: WebSocket error', error);
                 };
 
@@ -208,16 +219,35 @@
         attemptReconnect: function() {
             const self = this;
 
+            // Clear any existing reconnect timer
+            if (this.reconnectTimer) {
+                clearInterval(this.reconnectTimer);
+                this.reconnectTimer = null;
+            }
+
             if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-                this.term.writeln('\x1b[31m  Max reconnection attempts reached. Please refresh the page.\x1b[0m');
+                this.updateStatus('disconnected', 'Max retries reached');
+                this.term.writeln('\x1b[31m  ✗ Max reconnection attempts reached. Please refresh the page.\x1b[0m');
                 return;
             }
 
             this.reconnectAttempts++;
             const delay = this.reconnectDelay * this.reconnectAttempts;
+            let remaining = delay;
 
-            this.term.writeln('\x1b[33m  Reconnecting in ' + (delay / 1000) + 's (attempt ' + this.reconnectAttempts + '/' + this.maxReconnectAttempts + ')...\x1b[0m');
-            this.updateStatus('connecting', 'Reconnecting...');
+            this.term.writeln('\x1b[33m  ⟳ Reconnecting in ' + (delay / 1000) + 's (attempt ' + this.reconnectAttempts + '/' + this.maxReconnectAttempts + ')...\x1b[0m');
+            this.updateStatus('connecting', 'Reconnect in ' + (delay / 1000).toFixed(0) + 's...');
+
+            // Update countdown every second
+            this.reconnectTimer = setInterval(function() {
+                remaining -= 1000;
+                if (remaining > 0) {
+                    self.updateStatus('connecting', 'Reconnect in ' + (remaining / 1000).toFixed(0) + 's...');
+                } else {
+                    clearInterval(self.reconnectTimer);
+                    self.reconnectTimer = null;
+                }
+            }, 1000);
 
             setTimeout(function() {
                 self.connect();
@@ -237,6 +267,8 @@
 
             if (statusText) {
                 statusText.textContent = text;
+                // Set class for color
+                statusText.className = status;
             }
         },
 
@@ -244,11 +276,36 @@
          * Disconnect terminal
          */
         disconnect: function() {
+            // Clear reconnect timer
+            if (this.reconnectTimer) {
+                clearInterval(this.reconnectTimer);
+                this.reconnectTimer = null;
+            }
+
             if (this.socket) {
                 this.socket.close();
                 this.socket = null;
             }
             this.isConnected = false;
+            this.updateStatus('disconnected', 'Disconnected');
+        },
+
+        /**
+         * Display error message in terminal (red)
+         */
+        showError: function(message) {
+            this.term.writeln('\x1b[31m  ✗ ' + message + '\x1b[0m');
+        },
+
+        /**
+         * Get current connection status
+         */
+        getStatus: function() {
+            return {
+                connected: this.isConnected,
+                attempts: this.reconnectAttempts,
+                lastError: this.lastError
+            };
         }
     };
 
