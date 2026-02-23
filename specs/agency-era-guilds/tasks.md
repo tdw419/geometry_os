@@ -20,7 +20,7 @@ Focus: Get EngineerAgent generating code end-to-end. Skip tests initially.
   - **Commit**: `feat(swarm): add guild task types to TaskType enum`
   - _Requirements: FR-1, FR-5, FR-9_
 
-- [ ] 1.2 Create guilds module structure
+- [x] 1.2 Create guilds module structure
   - **Do**: Create `systems/swarm/guilds/` directory with `__init__.py` (empty exports for now)
   - **Files**: `systems/swarm/guilds/__init__.py`
   - **Done when**: Module imports without error
