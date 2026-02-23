@@ -36,7 +36,7 @@ Focus: Get EngineerAgent generating code end-to-end. Skip tests initially.
   - **Commit**: `feat(swarm): add GuildAgent abstract base class`
   - _Requirements: FR-12, FR-13_
 
-- [ ] 1.4 Implement EngineerAgent with write_code handler
+- [x] 1.4 Implement EngineerAgent with write_code handler
   - **Do**: Create `engineer.py` with EngineerAgent extending GuildAgent. Implement `_summarize()`, register handler for CODE_GENERATION that returns `{"code": "...", "language": "python"}`. Start with hardcoded template code.
   - **Files**: `systems/swarm/guilds/engineer.py`
   - **Done when**: Agent claims CODE_GENERATION tasks and returns code
