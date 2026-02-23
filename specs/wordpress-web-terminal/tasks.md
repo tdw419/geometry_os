@@ -91,7 +91,7 @@ After POC validated, clean up code.
   - **Done when**: No errors
   - **Commit**: `fix(terminal): address lint/type issues` (if needed)
 
-- [ ] 4.2 Add documentation and create PR
+- [x] 4.2 Add documentation and create PR
   - **Do**: Create README.md with installation, usage, architecture, troubleshooting. Create PR with description.
   - **Files**: `wordpress_zone/wordpress/wp-content/plugins/geometry-os-web-terminal/README.md`
   - **Verify**: README renders correctly, PR created with `gh pr create`
