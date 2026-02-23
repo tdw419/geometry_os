@@ -76,7 +76,7 @@ Focus: Get EngineerAgent generating code end-to-end. Skip tests initially.
   - **Commit**: `feat(swarm): add ArchitectAgent with design handlers`
   - _Requirements: FR-9, FR-10, FR-11_
 
-- [ ] 2.3 Add error handling to all agents
+- [x] 2.3 Add error handling to all agents
   - **Do**: Wrap handler execution in try/except, return error dicts with actionable info
   - **Files**: `systems/swarm/guilds/engineer.py`, `reviewer.py`, `architect.py`
   - **Done when**: Exceptions result in fail_task() with traceback in result
