@@ -39,7 +39,7 @@ Focus: Validate EpisodicMemory storage and retrieval works end-to-end. Skip test
   - _Requirements: FR-5_
   - _Design: EpisodicMemory embedding generation_
 
-- [ ] 1.4 Implement ExperienceRetriever with cosine similarity
+- [x] 1.4 Implement ExperienceRetriever with cosine similarity
   - **Do**: Create `systems/swarm/memory/experience_retriever.py` with find_similar(query_embedding, outcome_filter, k=5) method. Reuse cosine similarity logic from SubscriptionManager.
   - **Files**: `systems/swarm/memory/experience_retriever.py`
   - **Done when**: Can query similar experiences and get ranked results
