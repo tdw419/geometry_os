@@ -67,7 +67,7 @@ jobs:
           --health-retries=10
           --health-start-period=30s
         volumes:
-          - ${{ github.workspace }}/wordpress_zone/wordpress/wp-content:/var/www/html/wp-content:ro
+          - ${{ github.workspace }}/wordpress_zone/wordpress/wp-content/mu-plugins:/var/www/html/wp-content/mu-plugins:ro
 
     env:
       WP_URL: http://localhost:8080
