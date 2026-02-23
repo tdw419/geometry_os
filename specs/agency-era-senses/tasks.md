@@ -68,7 +68,7 @@ Focus: Core sense classes with basic functionality. Skip rate limiting, minimal 
   - **Commit**: `feat(senses): add FilesystemSense.list_dir`
   - _Requirements: FR-3_
 
-- [ ] 2.2 Add rate limiting to WebSense
+- [x] 2.2 Add rate limiting to WebSense
   - **Do**: Implement sliding window rate limiter
   - **Files**: `systems/swarm/senses/web.py`
   - **Done when**: Requests over limit return error
