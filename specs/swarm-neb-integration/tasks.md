@@ -48,7 +48,7 @@ with tempfile.TemporaryDirectory() as d:
   - _Requirements: FR-1, FR-2_
   - _Design: Event topic: swarm.proposal.{id}_
 
-- [ ] 1.3 Implement create_vote with NEB publishing
+- [x] 1.3 Implement create_vote with NEB publishing
   - **Do**:
     1. Add `create_vote()` method that delegates to SwarmNode.create_vote()
     2. If event_bus exists, publish to `swarm.vote.{proposal_id}` with payload: proposal_id, voter, approve, confidence

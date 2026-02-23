@@ -89,3 +89,40 @@ class SwarmNEBBridge:
             )
 
         return proposal
+
+    def create_vote(
+        self,
+        proposal_id: str,
+        approve: bool,
+        confidence: float,
+        reasoning: str = ""
+    ) -> SwarmVote:
+        """
+        Create a new vote and publish to NEBBus if available.
+
+        Delegates to SwarmNode.create_vote() and publishes an event
+        to the NEBBus for real-time notification.
+
+        Args:
+            proposal_id: ID of the proposal to vote on
+            approve: True to approve, False to reject
+            confidence: Confidence level (0.0 to 1.0)
+            reasoning: Optional explanation for the vote
+
+        Returns:
+            The created SwarmVote
+        """
+        vote = self.node.create_vote(proposal_id, approve, confidence, reasoning)
+
+        if self._event_bus is not None:
+            self._event_bus.publish(
+                f"swarm.vote.{proposal_id}",
+                {
+                    "proposal_id": proposal_id,
+                    "voter": vote.voter,
+                    "approve": approve,
+                    "confidence": confidence
+                }
+            )
+
+        return vote
