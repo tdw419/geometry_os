@@ -54,6 +54,16 @@ class ASCII_Desktop_Control {
     private ?Daemon_Status $daemon_status = null;
 
     /**
+     * API_Keys instance.
+     */
+    private ?API_Keys $api_keys = null;
+
+    /**
+     * REST_API instance.
+     */
+    private ?REST_API $rest_api = null;
+
+    /**
      * Constructor. Initialize hooks.
      */
     public function __construct() {
@@ -77,6 +87,11 @@ class ASCII_Desktop_Control {
         add_action('wp_ajax_ascii_get_directives', [$this, 'ajax_get_directives']);
         add_action('wp_ajax_ascii_get_logs', [$this, 'ajax_get_logs']);
         add_action('wp_ajax_ascii_daemon_status', [$this, 'ajax_daemon_status']);
+        add_action('wp_ajax_ascii_generate_api_key', [$this, 'ajax_generate_api_key']);
+        add_action('wp_ajax_ascii_revoke_api_key', [$this, 'ajax_revoke_api_key']);
+
+        // REST API initialization
+        add_action('rest_api_init', [$this, 'init_rest_api']);
 
         // Admin bar quick link
         add_action('admin_bar_menu', [$this, 'add_admin_bar_link'], 31);
@@ -89,6 +104,8 @@ class ASCII_Desktop_Control {
         require_once $this->plugin_dir . 'includes/class-ascii-view.php';
         require_once $this->plugin_dir . 'includes/class-directive-api.php';
         require_once $this->plugin_dir . 'includes/class-daemon-status.php';
+        require_once $this->plugin_dir . 'includes/class-api-keys.php';
+        require_once $this->plugin_dir . 'includes/class-rest-api.php';
     }
 
     /**
@@ -119,6 +136,39 @@ class ASCII_Desktop_Control {
             $this->daemon_status = new Daemon_Status();
         }
         return $this->daemon_status;
+    }
+
+    /**
+     * Get API_Keys instance.
+     */
+    public function get_api_keys(): API_Keys {
+        if ($this->api_keys === null) {
+            $this->api_keys = new API_Keys();
+        }
+        return $this->api_keys;
+    }
+
+    /**
+     * Get REST_API instance.
+     */
+    public function get_rest_api(): REST_API {
+        if ($this->rest_api === null) {
+            $this->rest_api = new REST_API(
+                $this->get_api_keys(),
+                $this->get_ascii_view(),
+                $this->get_daemon_status(),
+                $this->get_directive_api()
+            );
+        }
+        return $this->rest_api;
+    }
+
+    /**
+     * Initialize REST API.
+     */
+    public function init_rest_api(): void {
+        $rest_api = $this->get_rest_api();
+        $rest_api->register_routes();
     }
 
     /**
@@ -772,6 +822,92 @@ class ASCII_Desktop_Control {
             'last_check'   => $result['last_check'],
             'pid'          => $result['pid'],
             'process_name' => $result['process_name'],
+        ]);
+    }
+
+    /**
+     * AJAX handler: Generate a new API key.
+     *
+     * Generates, stores, and returns the plain-text key (one-time display).
+     */
+    public function ajax_generate_api_key(): void {
+        // Verify nonce
+        check_ajax_referer('ascii_generate_api_key', 'nonce');
+
+        // Check capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error([
+                'message' => __('Permission denied', 'ascii-desktop-control'),
+            ], 403);
+        }
+
+        // Get key name
+        $key_name = isset($_POST['key_name']) ? sanitize_text_field(wp_unslash($_POST['key_name'])) : '';
+
+        if (empty($key_name)) {
+            wp_send_json_error([
+                'message' => __('Key name is required', 'ascii-desktop-control'),
+            ], 400);
+        }
+
+        // Generate and store the key
+        $api_keys = $this->get_api_keys();
+        $plain_key = $api_keys->generate();
+        $key_hash = $api_keys->hash($plain_key);
+        $key_id = $api_keys->store($key_name, $key_hash);
+
+        if ($key_id === null) {
+            wp_send_json_error([
+                'message' => __('Failed to store API key', 'ascii-desktop-control'),
+            ], 500);
+        }
+
+        // Return the plain key for one-time display
+        wp_send_json_success([
+            'key'     => $plain_key,
+            'key_id'  => $key_id,
+            'name'    => $key_name,
+            'created' => current_time('mysql'),
+        ]);
+    }
+
+    /**
+     * AJAX handler: Revoke an API key.
+     *
+     * Deletes the key from storage.
+     */
+    public function ajax_revoke_api_key(): void {
+        // Verify nonce
+        check_ajax_referer('ascii_revoke_api_key', 'nonce');
+
+        // Check capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error([
+                'message' => __('Permission denied', 'ascii-desktop-control'),
+            ], 403);
+        }
+
+        // Get key ID
+        $key_id = isset($_POST['key_id']) ? sanitize_text_field(wp_unslash($_POST['key_id'])) : '';
+
+        if (empty($key_id)) {
+            wp_send_json_error([
+                'message' => __('Key ID is required', 'ascii-desktop-control'),
+            ], 400);
+        }
+
+        // Revoke the key
+        $api_keys = $this->get_api_keys();
+        $success = $api_keys->revoke($key_id);
+
+        if (!$success) {
+            wp_send_json_error([
+                'message' => __('Failed to revoke API key. Key not found.', 'ascii-desktop-control'),
+            ], 404);
+        }
+
+        wp_send_json_success([
+            'message' => __('API key revoked successfully', 'ascii-desktop-control'),
         ]);
     }
 }
