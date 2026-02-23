@@ -48,7 +48,7 @@ Focus: Validate EpisodicMemory storage and retrieval works end-to-end. Skip test
   - _Requirements: FR-3, FR-4_
   - _Design: ExperienceRetriever component_
 
-- [ ] 1.5 Create EpisodicMemory facade class
+- [x] 1.5 Create EpisodicMemory facade class
   - **Do**: Create `systems/swarm/memory/episodic_memory.py` that combines Store and Retriever. Add store_experience(), check_similar_failures(), find_similar_successes() methods.
   - **Files**: `systems/swarm/memory/episodic_memory.py`
   - **Done when**: Single class provides all memory operations
