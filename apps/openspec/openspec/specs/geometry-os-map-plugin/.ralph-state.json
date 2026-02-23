@@ -1,0 +1,10 @@
+{
+  "spec_name": "geometry-os-map-plugin",
+  "phase": "tasks",
+  "status": "ready_for_implementation",
+  "created_at": "2026-02-22T23:30:00Z",
+  "updated_at": "2026-02-22T23:30:00Z",
+  "current_task": 1,
+  "completed_tasks": [],
+  "notes": "Ready for implementation. All spec artifacts complete: research, requirements, design, tasks."
+}

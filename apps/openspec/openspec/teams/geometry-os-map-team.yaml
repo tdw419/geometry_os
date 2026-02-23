@@ -1,0 +1,131 @@
+name: geometry-os-map
+description: |
+  Agent team for implementing the Geometry OS Map WordPress plugin with
+  shortcode, Gutenberg block, admin settings, and page template.
+
+selection_policy: best_fit
+scaling_policy: fixed
+failure_policy: failover
+max_retries: 2
+retry_delay: 3.0
+
+enable_event_bus: true
+enable_health_monitoring: true
+max_concurrent_tasks: 3
+
+agents:
+  - agent_id: orchestrator
+    name: Plugin Orchestrator
+    agent_type: orchestrator
+    capabilities:
+      - orchestration
+      - coordination
+      - tdd
+      - php
+      - wordpress
+    enabled: true
+    priority: 100
+    metadata:
+      role: Coordinate plugin implementation
+      focus: Ensure modular architecture, proper WordPress patterns
+
+  - agent_id: core-implementer
+    name: Core Class Implementer
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - php
+      - wordpress
+      - class_design
+      - singleton_pattern
+    enabled: true
+    priority: 95
+    metadata:
+      role: Implement Core, Shortcode classes
+      key_files:
+        - wordpress_zone/wordpress/wp-content/plugins/geometry-os-map/includes/class-core.php
+        - wordpress_zone/wordpress/wp-content/plugins/geometry-os-map/includes/class-shortcode.php
+
+  - agent_id: block-implementer
+    name: Gutenberg Block Implementer
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - javascript
+      - wordpress
+      - gutenberg
+      - react
+    enabled: true
+    priority: 95
+    metadata:
+      role: Implement Gutenberg block and editor script
+      key_files:
+        - wordpress_zone/wordpress/wp-content/plugins/geometry-os-map/includes/class-block.php
+        - wordpress_zone/wordpress/wp-content/plugins/geometry-os-map/assets/js/block-editor.js
+
+  - agent_id: settings-implementer
+    name: Settings Page Implementer
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - php
+      - wordpress
+      - settings_api
+      - css
+    enabled: true
+    priority: 90
+    metadata:
+      role: Implement admin settings page
+      key_files:
+        - wordpress_zone/wordpress/wp-content/plugins/geometry-os-map/includes/class-settings.php
+        - wordpress_zone/wordpress/wp-content/plugins/geometry-os-map/assets/css/admin.css
+
+  - agent_id: template-implementer
+    name: Template Implementer
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - php
+      - wordpress
+      - templates
+    enabled: true
+    priority: 85
+    metadata:
+      role: Implement full-screen page template
+      key_files:
+        - wordpress_zone/wordpress/wp-content/plugins/geometry-os-map/includes/class-template.php
+        - wordpress_zone/wordpress/wp-content/plugins/geometry-os-map/templates/full-map-template.php
+
+  - agent_id: doc-writer
+    name: Documentation Writer
+    agent_type: specialist
+    capabilities:
+      - documentation
+      - markdown
+      - technical_writing
+    enabled: true
+    priority: 80
+    metadata:
+      role: Update README with full documentation
+      key_files:
+        - wordpress_zone/wordpress/wp-content/plugins/geometry-os-map/README.md
+
+task_routing:
+  - pattern: "core|shortcode|refactor"
+    assign_to: core-implementer
+  - pattern: "block|gutenberg|editor"
+    assign_to: block-implementer
+  - pattern: "settings|admin|options"
+    assign_to: settings-implementer
+  - pattern: "template|fullscreen|page"
+    assign_to: template-implementer
+  - pattern: "readme|documentation|docs"
+    assign_to: doc-writer
+  - pattern: "orchestrat|coordinate|plan"
+    assign_to: orchestrator
+
+reference_docs:
+  - docs/plans/2026-02-22-geometry-os-map-plugin.md
+  - apps/openspec/openspec/specs/geometry-os-map-plugin/design.md
+  - apps/openspec/openspec/specs/geometry-os-map-plugin/requirements.md
+  - apps/openspec/openspec/specs/geometry-os-map-plugin/tasks.md
