@@ -21,7 +21,7 @@ Focus: Create the complete manifesto document with all sections. Accept iterativ
   - _Requirements: FR-1_
   - _Design: Section 1_
 
-- [ ] 1.2 Add Core Principles section
+- [x] 1.2 Add Core Principles section
   - **Do**: Append 5 principles (State as Text, Transition as Edit, Dual-Audience, Grep-ability, Diff-ability) with Good/Bad examples
   - **Files**: `docs/ASCII_EXPOSED_COMPUTING_MANIFESTO.md`
   - **Done when**: `grep -c "### Principle" docs/ASCII_EXPOSED_COMPUTING_MANIFESTO.md` returns 5
