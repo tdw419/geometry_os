@@ -103,13 +103,13 @@ Focus: Validate behavioral monitoring works end-to-end. Skip tests, accept hardc
   - **Commit**: `feat(safety): export behavioral defense components`
   - _Requirements: FR-6_
 
-- [ ] 1.6 [VERIFY] Quality checkpoint: import check
+- [x] 1.6 [VERIFY] Quality checkpoint: import check
   - **Do**: Verify all imports work and no syntax errors
   - **Verify**: `python3 -c "from systems.evolution_daemon.safety import AgentBehavioralProfile, BehavioralEvent, BehavioralMonitor, WordPressSentinel, TierRouter; t = TierRouter(); print('OK')" && python3 -m py_compile systems/evolution_daemon/safety/behavioral_monitor.py systems/evolution_daemon/safety/wordpress_sentinel.py`
   - **Done when**: No import errors, no syntax errors
   - **Commit**: `chore(safety): pass quality checkpoint` (only if fixes needed)
 
-- [ ] 1.7 POC Checkpoint
+- [x] 1.7 POC Checkpoint
   - **Do**: Verify end-to-end behavioral monitoring flow works
   - **Done when**: Complete flow: record event -> detect anomaly -> tier demotion
   - **Verify**: `python3 -c "
