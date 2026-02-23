@@ -106,7 +106,7 @@ After POC validated, clean up and refine.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Document structure validation
+- [x] 3.1 Document structure validation
   - **Do**: Verify all 8 sections present and properly ordered
   - **Files**: `docs/ASCII_EXPOSED_COMPUTING_MANIFESTO.md`
   - **Done when**: Section headers match design spec
