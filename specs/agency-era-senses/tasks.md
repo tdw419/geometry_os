@@ -104,7 +104,7 @@ Focus: Core sense classes with basic functionality. Skip rate limiting, minimal 
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Update module exports
+- [x] 4.1 Update module exports
   - **Do**: Export all public classes from `__init__.py`
   - **Files**: `systems/swarm/senses/__init__.py`
   - **Done when**: All imports work from top-level
