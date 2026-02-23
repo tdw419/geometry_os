@@ -24,12 +24,19 @@ import sys
 import socket
 import time
 import uuid
+import pty
+import select
+import struct
+import fcntl
+import termios
+import hashlib
+import signal
 import websockets
 from websockets.server import serve
 import numpy as np
 import argparse
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 from aiohttp import web
 
 # Add project root to path for imports
@@ -112,6 +119,9 @@ class VisualBridge:
         self.http_port = 8769  # Different from WebSocket port
         self.app = web.Application()
 
+        # Terminal session tracking
+        self._terminal_sessions: Dict[str, dict] = {}
+
         # Register HTTP routes
         self._setup_http_routes()
 
@@ -119,6 +129,9 @@ class VisualBridge:
         """Setup HTTP routes for WordPress agent requests."""
         self.app.router.add_post('/agent/request', self._handle_agent_request_http)
         self.app.router.add_get('/agent/status/{task_id}', self._handle_agent_status_http)
+        # Terminal session management endpoints
+        self.app.router.add_post('/terminal/session', self._handle_terminal_session_create_http)
+        self.app.router.add_delete('/terminal/session/{session_id}', self._handle_terminal_session_delete_http)
 
     async def _handle_agent_request_http(self, request: web.Request) -> web.Response:
         """HTTP endpoint for agent requests from WordPress."""
@@ -144,6 +157,411 @@ class VisualBridge:
         status = self.get_task_status(task_id)
         status_code = 200 if status.get('status') != 'error' else 404
         return web.json_response(status, status=status_code)
+
+    # === Terminal Session HTTP Endpoints ===
+
+    async def _handle_terminal_session_create_http(self, request: web.Request) -> web.Response:
+        """HTTP endpoint to create a new terminal session.
+
+        Request body (JSON):
+            - user_id: WordPress user ID (required)
+            - rows: Terminal rows (default 24)
+            - cols: Terminal columns (default 80)
+            - shell: Shell to use (default /bin/bash)
+
+        Returns:
+            - session_id: Unique session identifier
+            - token: WebSocket connection token
+        """
+        try:
+            data = await request.json()
+            user_id = data.get('user_id')
+            rows = data.get('rows', 24)
+            cols = data.get('cols', 80)
+            shell = data.get('shell', '/bin/bash')
+
+            if not user_id:
+                return web.json_response(
+                    {'status': 'error', 'message': 'user_id is required'},
+                    status=400
+                )
+
+            # Generate session ID and token
+            session_id = str(uuid.uuid4())
+            token = hashlib.sha256(f"{session_id}:{user_id}:{time.time()}".encode()).hexdigest()[:32]
+
+            # Store session metadata (PTY will be spawned on WebSocket connect)
+            self._terminal_sessions[session_id] = {
+                'session_id': session_id,
+                'token': token,
+                'user_id': user_id,
+                'rows': rows,
+                'cols': cols,
+                'shell': shell,
+                'created_at': time.time(),
+                'pty_fd': None,
+                'pid': None,
+                'websocket': None,
+                'output_task': None
+            }
+
+            print(f"🖥️ Terminal session created: {session_id} (user={user_id})")
+
+            return web.json_response({
+                'status': 'ok',
+                'session_id': session_id,
+                'token': token
+            })
+        except json.JSONDecodeError:
+            return web.json_response(
+                {'status': 'error', 'message': 'Invalid JSON'},
+                status=400
+            )
+        except Exception as e:
+            return web.json_response(
+                {'status': 'error', 'message': str(e)},
+                status=500
+            )
+
+    async def _handle_terminal_session_delete_http(self, request: web.Request) -> web.Response:
+        """HTTP endpoint to delete a terminal session."""
+        session_id = request.match_info['session_id']
+
+        if session_id not in self._terminal_sessions:
+            return web.json_response(
+                {'status': 'error', 'message': f'Session not found: {session_id}'},
+                status=404
+            )
+
+        await self._cleanup_terminal_session(session_id)
+
+        return web.json_response({
+            'status': 'ok',
+            'message': f'Session {session_id} deleted'
+        })
+
+    # === Terminal PTY Methods ===
+
+    def _spawn_terminal_process(self, session_id: str) -> Tuple[int, int]:
+        """Spawn a PTY process for a terminal session.
+
+        Args:
+            session_id: The session identifier
+
+        Returns:
+            Tuple of (master_fd, pid)
+        """
+        session = self._terminal_sessions.get(session_id)
+        if not session:
+            raise ValueError(f"Session not found: {session_id}")
+
+        rows = session.get('rows', 24)
+        cols = session.get('cols', 80)
+        shell = session.get('shell', '/bin/bash')
+
+        # Create pseudo-terminal
+        master_fd, slave_fd = pty.openpty()
+
+        # Set terminal size
+        winsize = struct.pack('HHHH', rows, cols, 0, 0)
+        fcntl.ioctl(master_fd, termios.TIOCSWINSZ, winsize)
+
+        # Fork process
+        pid = os.fork()
+
+        if pid == 0:
+            # Child process
+            os.setsid()
+
+            # Set controlling terminal
+            fcntl.ioctl(slave_fd, termios.TIOCSCTTY, 0)
+
+            # Redirect stdio to slave PTY
+            os.dup2(slave_fd, 0)  # stdin
+            os.dup2(slave_fd, 1)  # stdout
+            os.dup2(slave_fd, 2)  # stderr
+
+            # Close master FD in child
+            os.close(master_fd)
+
+            # Set environment
+            env = os.environ.copy()
+            env['TERM'] = 'xterm-256color'
+            env['COLORTERM'] = 'truecolor'
+            env['COLUMNS'] = str(cols)
+            env['LINES'] = str(rows)
+
+            # Execute shell
+            os.execvpe(shell, [shell], env)
+        else:
+            # Parent process
+            os.close(slave_fd)
+
+            # Store PTY info in session
+            session['pty_fd'] = master_fd
+            session['pid'] = pid
+
+            # Set non-blocking mode on master FD
+            flags = fcntl.fcntl(master_fd, fcntl.F_GETFL)
+            fcntl.fcntl(master_fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+
+            print(f"🖥️ PTY spawned: session={session_id}, pid={pid}, fd={master_fd}")
+
+            return master_fd, pid
+
+    async def _read_pty_output(self, session_id: str) -> None:
+        """Continuously read PTY output and send to WebSocket.
+
+        Args:
+            session_id: The session identifier
+        """
+        session = self._terminal_sessions.get(session_id)
+        if not session:
+            return
+
+        master_fd = session.get('pty_fd')
+        websocket = session.get('websocket')
+
+        if master_fd is None or websocket is None:
+            return
+
+        try:
+            while session_id in self._terminal_sessions:
+                try:
+                    # Use select to check for data
+                    ready, _, _ = select.select([master_fd], [], [], 0.1)
+
+                    if ready:
+                        try:
+                            data = os.read(master_fd, 65536)
+                            if data:
+                                # Send output to WebSocket
+                                await websocket.send(json.dumps({
+                                    'type': 'output',
+                                    'session_id': session_id,
+                                    'data': data.decode('utf-8', errors='replace')
+                                }))
+                            else:
+                                # EOF - process exited
+                                break
+                        except OSError:
+                            # PTY closed
+                            break
+                        except BlockingIOError:
+                            continue
+                except (select.error, OSError):
+                    break
+
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            print(f"❌ PTY read error for {session_id}: {e}")
+        finally:
+            print(f"🖥️ PTY reader stopped: {session_id}")
+
+    async def _handle_terminal_input(self, session_id: str, data: str) -> None:
+        """Handle input from terminal WebSocket.
+
+        Args:
+            session_id: The session identifier
+            data: Input string to write to PTY
+        """
+        session = self._terminal_sessions.get(session_id)
+        if not session:
+            return
+
+        master_fd = session.get('pty_fd')
+        if master_fd is None:
+            return
+
+        try:
+            os.write(master_fd, data.encode('utf-8'))
+        except OSError as e:
+            print(f"❌ PTY write error for {session_id}: {e}")
+
+    async def _handle_terminal_resize(self, session_id: str, rows: int, cols: int) -> None:
+        """Handle terminal resize event.
+
+        Args:
+            session_id: The session identifier
+            rows: New number of rows
+            cols: New number of columns
+        """
+        session = self._terminal_sessions.get(session_id)
+        if not session:
+            return
+
+        master_fd = session.get('pty_fd')
+        if master_fd is None:
+            return
+
+        try:
+            winsize = struct.pack('HHHH', rows, cols, 0, 0)
+            fcntl.ioctl(master_fd, termios.TIOCSWINSZ, winsize)
+
+            # Update session metadata
+            session['rows'] = rows
+            session['cols'] = cols
+
+            print(f"🖥️ Terminal resized: {session_id} -> {cols}x{rows}")
+        except OSError as e:
+            print(f"❌ Terminal resize error for {session_id}: {e}")
+
+    async def _cleanup_terminal_session(self, session_id: str) -> None:
+        """Clean up terminal session resources.
+
+        Args:
+            session_id: The session identifier
+        """
+        session = self._terminal_sessions.get(session_id)
+        if not session:
+            return
+
+        # Cancel output reader task
+        output_task = session.get('output_task')
+        if output_task and not output_task.done():
+            output_task.cancel()
+            try:
+                await output_task
+            except asyncio.CancelledError:
+                pass
+
+        # Close PTY file descriptor
+        master_fd = session.get('pty_fd')
+        if master_fd is not None:
+            try:
+                os.close(master_fd)
+            except OSError:
+                pass
+
+        # Kill process if still running
+        pid = session.get('pid')
+        if pid is not None:
+            try:
+                os.kill(pid, signal.SIGTERM)
+                # Wait briefly then force kill if needed
+                try:
+                    os.waitpid(pid, os.WNOHANG)
+                except ChildProcessError:
+                    pass
+            except ProcessLookupError:
+                pass
+
+        # Remove from sessions dict
+        del self._terminal_sessions[session_id]
+
+        print(f"🖥️ Terminal session cleaned up: {session_id}")
+
+    async def _handle_terminal_websocket(self, websocket) -> None:
+        """Handle terminal WebSocket connection on /terminal path.
+
+        Expects query parameter 'token' to identify the session.
+
+        Protocol:
+            Client -> Server:
+                {"type": "input", "data": "command text"}
+                {"type": "resize", "rows": 24, "cols": 80}
+
+            Server -> Client:
+                {"type": "output", "session_id": "xxx", "data": "terminal output"}
+                {"type": "connected", "session_id": "xxx"}  # On successful connect
+                {"type": "error", "message": "error description"}  # On error
+        """
+        # Extract token from query string
+        path = getattr(websocket, 'path', '/terminal') or '/terminal'
+        token = None
+
+        if '?' in path:
+            query_string = path.split('?', 1)[1]
+            for param in query_string.split('&'):
+                if '=' in param:
+                    key, value = param.split('=', 1)
+                    if key == 'token':
+                        token = value
+                        break
+
+        if not token:
+            await websocket.send(json.dumps({
+                'type': 'error',
+                'message': 'Missing token parameter'
+            }))
+            await websocket.close()
+            return
+
+        # Find session by token
+        session_id = None
+        for sid, session in self._terminal_sessions.items():
+            if session.get('token') == token:
+                session_id = sid
+                break
+
+        if not session_id:
+            await websocket.send(json.dumps({
+                'type': 'error',
+                'message': 'Invalid or expired token'
+            }))
+            await websocket.close()
+            return
+
+        session = self._terminal_sessions[session_id]
+
+        # Check if session already has a websocket
+        if session.get('websocket') is not None:
+            await websocket.send(json.dumps({
+                'type': 'error',
+                'message': 'Session already connected'
+            }))
+            await websocket.close()
+            return
+
+        # Store websocket reference
+        session['websocket'] = websocket
+
+        print(f"🖥️ Terminal WebSocket connected: {session_id}")
+
+        try:
+            # Spawn PTY if not already spawned
+            if session.get('pty_fd') is None:
+                self._spawn_terminal_process(session_id)
+
+                # Send connected message
+                await websocket.send(json.dumps({
+                    'type': 'connected',
+                    'session_id': session_id
+                }))
+
+            # Start output reader task
+            output_task = asyncio.create_task(self._read_pty_output(session_id))
+            session['output_task'] = output_task
+
+            # Handle incoming messages
+            async for message in websocket:
+                try:
+                    data = json.loads(message)
+                except json.JSONDecodeError:
+                    continue
+
+                msg_type = data.get('type')
+
+                if msg_type == 'input':
+                    await self._handle_terminal_input(session_id, data.get('data', ''))
+
+                elif msg_type == 'resize':
+                    await self._handle_terminal_resize(
+                        session_id,
+                        data.get('rows', 24),
+                        data.get('cols', 80)
+                    )
+
+        except websockets.exceptions.ConnectionClosed:
+            pass
+        except Exception as e:
+            print(f"❌ Terminal WebSocket error for {session_id}: {e}")
+        finally:
+            # Clear websocket reference
+            if session_id in self._terminal_sessions:
+                self._terminal_sessions[session_id]['websocket'] = None
+            print(f"🖥️ Terminal WebSocket disconnected: {session_id}")
 
     def handle_agent_request(self, data: dict) -> dict:
         """
@@ -269,6 +687,13 @@ class VisualBridge:
 
     async def handle_client(self, websocket):
         """Handle WebSocket client (Browser or AI Agent)"""
+        # Check if this is a terminal connection
+        websocket_path = getattr(websocket, 'path', '/') or '/'
+        if websocket_path.startswith('/terminal'):
+            # Handle terminal WebSocket connection
+            await self._handle_terminal_websocket(websocket)
+            return
+
         self.clients.add(websocket)
         print(f"🔌 Connection established: {websocket.remote_address}")
 
@@ -283,8 +708,22 @@ class VisualBridge:
 
                 msg_type = data.get('type')
 
+                # === Terminal Message Handlers ===
+                if msg_type == 'input':
+                    await self._handle_terminal_input(
+                        data.get('session_id'),
+                        data.get('data', '')
+                    )
+
+                elif msg_type == 'resize':
+                    await self._handle_terminal_resize(
+                        data.get('session_id'),
+                        data.get('rows', 24),
+                        data.get('cols', 80)
+                    )
+
                 # 1. Semantic Memory Retrieval
-                if msg_type == 'recall_memories':
+                elif msg_type == 'recall_memories':
                     await self._handle_recall_memories(websocket, data)
 
                 # 2. Mirror Validation Results (from AI Agent)

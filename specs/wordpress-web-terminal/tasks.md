@@ -21,7 +21,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
   - _Requirements: FR-1, FR-9_
   - _Design: Component A, Component B_
 
-- [ ] 1.2 Extend Visual Bridge for terminal WebSocket
+- [x] 1.2 Extend Visual Bridge for terminal WebSocket
   - **Do**: Add terminal session tracking (`_terminal_sessions` dict), handle `input`/`resize` message types, add PTY spawn method using `pty.openpty()` + `os.fork()`, add HTTP endpoints for session creation/deletion
   - **Files**: `systems/visual_shell/api/visual_bridge.py`
   - **Done when**: Visual Bridge accepts `/terminal?token=xxx` connections, spawns PTY
