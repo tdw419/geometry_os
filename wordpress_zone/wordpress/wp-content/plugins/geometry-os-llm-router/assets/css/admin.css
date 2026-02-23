@@ -1,0 +1,572 @@
+/**
+ * Geometry OS LLM Router - Admin Styles
+ *
+ * @package Geometry_OS_LLM_Router
+ * @since 1.0.0
+ */
+
+/* ==========================================================================
+   Dashboard Container
+   ========================================================================== */
+
+.geometry-os-llm-router-wrap,
+.geometry-os-llm-analytics-wrap,
+.geometry-os-llm-settings-wrap {
+    max-width: 1400px;
+    margin: 20px auto;
+}
+
+.geometry-os-llm-router-title,
+.geometry-os-llm-analytics-title,
+.geometry-os-llm-settings-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.geometry-os-llm-router-title .dashicons,
+.geometry-os-llm-analytics-title .dashicons,
+.geometry-os-llm-settings-title .dashicons {
+    font-size: 30px;
+    width: 30px;
+    height: 30px;
+    color: #2271b1;
+}
+
+/* ==========================================================================
+   Header Actions
+   ========================================================================== */
+
+.geometry-os-llm-router-header,
+.geometry-os-llm-analytics-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px 20px;
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.geometry-os-llm-router-actions,
+.geometry-os-llm-analytics-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.geometry-os-llm-router-actions .dashicons,
+.geometry-os-llm-analytics-actions .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+.geometry-os-llm-router-actions .dashicons-update.is-spinning,
+.geometry-os-llm-analytics-actions .dashicons-update.is-spinning,
+.geometry-os-llm-router-actions .dashicons-update.geometry-os-spinning,
+.geometry-os-llm-analytics-actions .dashicons-update.geometry-os-spinning {
+    animation: geometry-os-spin 1s linear infinite;
+}
+
+@keyframes geometry-os-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.geometry-os-llm-router-last-updated {
+    color: #646970;
+    font-size: 13px;
+}
+
+#geometry-os-llm-last-updated {
+    font-weight: 500;
+    color: #3c434a;
+}
+
+/* ==========================================================================
+   Cards Grid
+   ========================================================================== */
+
+.geometry-os-llm-router-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.geometry-os-llm-card-wide {
+    grid-column: 1 / -1;
+}
+
+/* ==========================================================================
+   Card Styles
+   ========================================================================== */
+
+.geometry-os-llm-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+    transition: box-shadow 0.2s ease-in-out;
+    overflow: hidden;
+}
+
+.geometry-os-llm-card:hover {
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+.geometry-os-llm-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 20px;
+    border-bottom: 1px solid #dcdcde;
+    background: #f6f7f7;
+}
+
+.geometry-os-llm-card-header .dashicons {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: #646970;
+}
+
+.geometry-os-llm-card-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.geometry-os-llm-card-body {
+    padding: 15px 20px;
+}
+
+.geometry-os-llm-card-footer-link {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #f0f0f1;
+}
+
+.geometry-os-llm-card-footer-link a {
+    text-decoration: none;
+    color: #2271b1;
+}
+
+.geometry-os-llm-card-footer-link a:hover {
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   Status Indicators
+   ========================================================================== */
+
+.geometry-os-llm-status-indicator {
+    display: inline-flex;
+    align-items: center;
+}
+
+.geometry-os-llm-status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #dcdcde;
+    transition: background-color 0.3s ease;
+}
+
+.geometry-os-llm-status-online .geometry-os-llm-status-dot {
+    background: #46b450;
+    box-shadow: 0 0 0 3px rgba(70, 180, 80, 0.2);
+}
+
+.geometry-os-llm-status-offline .geometry-os-llm-status-dot {
+    background: #dc3232;
+    box-shadow: 0 0 0 3px rgba(220, 50, 50, 0.2);
+}
+
+.geometry-os-llm-status-local .geometry-os-llm-status-dot {
+    background: #dba617;
+    box-shadow: 0 0 0 3px rgba(219, 166, 23, 0.2);
+}
+
+/* ==========================================================================
+   Metrics
+   ========================================================================== */
+
+.geometry-os-llm-metrics {
+    border-top: 1px solid #dcdcde;
+    padding-top: 12px;
+}
+
+.geometry-os-llm-metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 13px;
+}
+
+.geometry-os-llm-metric + .geometry-os-llm-metric {
+    border-top: 1px solid #f0f0f1;
+}
+
+.geometry-os-llm-metric-label {
+    color: #646970;
+    font-weight: 400;
+}
+
+.geometry-os-llm-metric-value {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', Menlo, Consolas, monospace;
+    font-size: 12px;
+    color: #1d2327;
+    background: #f6f7f7;
+    padding: 2px 8px;
+    border-radius: 3px;
+}
+
+.geometry-os-llm-value-local {
+    color: #dba617;
+    background: #fff8e5;
+}
+
+/* ==========================================================================
+   Token Usage Display
+   ========================================================================== */
+
+.geometry-os-llm-token-usage {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+}
+
+.geometry-os-llm-token-period {
+    text-align: center;
+}
+
+.geometry-os-llm-token-label {
+    display: block;
+    font-size: 12px;
+    color: #646970;
+    margin-bottom: 5px;
+}
+
+.geometry-os-llm-token-value {
+    display: block;
+    font-size: 24px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.geometry-os-llm-token-gauge {
+    margin-top: 20px;
+}
+
+.geometry-os-llm-token-gauge-bar {
+    height: 12px;
+    background: #f0f0f1;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.geometry-os-llm-token-gauge-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2271b1, #46b450);
+    border-radius: 6px;
+    transition: width 0.5s ease-in-out;
+}
+
+.geometry-os-llm-token-gauge-label {
+    text-align: center;
+    font-size: 11px;
+    color: #646970;
+    margin-top: 5px;
+}
+
+/* ==========================================================================
+   Analytics Page
+   ========================================================================== */
+
+.geometry-os-llm-analytics-period-selector {
+    display: flex;
+    gap: 5px;
+}
+
+.geometry-os-llm-analytics-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Stats Grid */
+.geometry-os-llm-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.geometry-os-llm-stat-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.geometry-os-llm-stat-icon {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f6f7f7;
+    border-radius: 50%;
+}
+
+.geometry-os-llm-stat-icon .dashicons {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    color: #2271b1;
+}
+
+.geometry-os-llm-stat-label {
+    font-size: 12px;
+    color: #646970;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.geometry-os-llm-stat-value {
+    font-size: 24px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.geometry-os-fallback-low {
+    color: #46b450 !important;
+}
+
+.geometry-os-fallback-high {
+    color: #dc3232 !important;
+}
+
+/* Charts Grid */
+.geometry-os-llm-charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+}
+
+.geometry-os-llm-chart-container {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.geometry-os-llm-chart-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #dcdcde;
+    background: #f6f7f7;
+}
+
+.geometry-os-llm-chart-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.geometry-os-llm-chart-wrapper {
+    padding: 20px;
+    height: 300px;
+}
+
+/* Tables */
+.geometry-os-llm-table-container,
+.geometry-os-llm-fallback-section {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.geometry-os-llm-table-header,
+.geometry-os-llm-fallback-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #dcdcde;
+    background: #f6f7f7;
+}
+
+.geometry-os-llm-table-header h3,
+.geometry-os-llm-fallback-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.geometry-os-llm-table-header th {
+    font-weight: 600;
+}
+
+.geometry-os-llm-loading {
+    text-align: center;
+    color: #646970;
+    padding: 20px !important;
+}
+
+.geometry-os-llm-no-data {
+    text-align: center;
+    color: #646970;
+    font-style: italic;
+}
+
+/* ==========================================================================
+   Settings Page
+   ========================================================================== */
+
+.geometry-os-llm-settings-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.geometry-os-llm-settings-section {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+}
+
+.geometry-os-llm-settings-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 20px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.geometry-os-llm-settings-section-title .dashicons {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: #2271b1;
+}
+
+.geometry-os-llm-settings-notice {
+    background: #f6f7f7;
+    border-left: 4px solid #2271b1;
+    padding: 15px 20px;
+    border-radius: 0 4px 4px 0;
+}
+
+.geometry-os-llm-settings-notice p {
+    margin: 0;
+}
+
+.geometry-os-llm-settings-info {
+    margin-top: 30px;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+}
+
+.geometry-os-llm-settings-info h3 {
+    margin: 0 0 15px 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.geometry-os-llm-settings-info ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.geometry-os-llm-settings-info li {
+    padding: 5px 0;
+}
+
+.geometry-os-llm-settings-info a {
+    text-decoration: none;
+    color: #2271b1;
+}
+
+.geometry-os-llm-settings-info a:hover {
+    text-decoration: underline;
+}
+
+.geometry-os-llm-settings-info .dashicons {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    vertical-align: middle;
+    margin-left: 3px;
+}
+
+/* ==========================================================================
+   Footer
+   ========================================================================== */
+
+.geometry-os-llm-router-footer {
+    padding: 15px 20px;
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.geometry-os-llm-router-footer .description {
+    margin: 5px 0;
+    text-align: center;
+    color: #646970;
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+@media screen and (max-width: 782px) {
+    .geometry-os-llm-router-header,
+    .geometry-os-llm-analytics-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .geometry-os-llm-router-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .geometry-os-llm-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .geometry-os-llm-charts-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .geometry-os-llm-token-usage {
+        flex-direction: column;
+        gap: 15px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .geometry-os-llm-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .geometry-os-llm-chart-wrapper {
+        height: 250px;
+    }
+}
