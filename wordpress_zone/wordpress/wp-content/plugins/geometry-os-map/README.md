@@ -1,106 +1,116 @@
 # Geometry OS Map - WordPress Plugin
 
-Embeds the PixiJS Infinite Map in WordPress pages via shortcode.
+Embed the PixiJS Infinite Map in WordPress via shortcode, Gutenberg block, or page template.
 
-## Quick Start
+## Installation
 
-### 1. Start the Visual Shell Server
+1. Copy plugin to `wp-content/plugins/geometry-os-map/`
+2. Activate in WordPress Admin → Plugins
 
-```bash
-cd /home/jericho/zion/projects/geometry_os/geometry_os/systems/visual_shell/web
-./start.sh
-```
+## Requirements
 
-This starts the server at `http://localhost:8000`
+- WordPress 5.8+
+- PHP 7.4+
+- Visual Shell server running on configured asset URL
 
-### 2. Activate the Plugin
+## Usage
 
-1. Go to WordPress Admin → Plugins
-2. Activate "Geometry OS Map"
-
-### 3. Create a Page with the Map
-
-Create a new WordPress page and add the shortcode:
+### Method 1: Shortcode
 
 ```
 [geometry_os_map height="600px"]
 ```
 
-## Shortcode Options
+### Method 2: Gutenberg Block
 
-| Attribute | Default | Description |
-|-----------|---------|-------------|
-| `width` | `100%` | CSS width of the map container |
-| `height` | `600px` | CSS height of the map container |
-| `fullscreen` | `false` | If true, map covers entire viewport |
-| `mode` | ` ` | Application mode (`desktop` for desktop mode) |
+1. Edit a page with the block editor
+2. Add "Geometry OS Map" block
+3. Configure via sidebar controls
 
-## Examples
+### Method 3: Page Template
 
-### Standard Map (600px height)
-```
-[geometry_os_map]
-```
-
-### Full-width, taller map
-```
-[geometry_os_map width="100%" height="800px"]
-```
-
-### Fullscreen immersive map
-```
-[geometry_os_map fullscreen="true"]
-```
-
-### Desktop mode (wallpaper-style)
-```
-[geometry_os_map fullscreen="true" mode="desktop"]
-```
-
-## Programmatic Usage
-
-In PHP templates:
-
-```php
-<?php
-// Simple
-echo geometry_os_render_map();
-
-// With options
-echo geometry_os_render_map([
-    'height' => '100vh',
-    'mode' => 'desktop'
-]);
-?>
-```
+1. Create a new Page
+2. Set Template to "Geometry OS Map (Full Screen)"
+3. Publish
 
 ## Configuration
 
-### Change Asset Base URL
+### Admin Settings
 
-In your theme's `functions.php`:
+Go to **Settings → Geometry OS Map** to configure:
+
+- **Asset Base URL** - Where visual shell assets are served (default: http://localhost:8000)
+- **Default Width** - CSS width for new maps
+- **Default Height** - CSS height for new maps
+- **Default Theme** - dark/light/highContrast
+- **Show Tutorial** - Display tutorial button
+
+### Per-Instance Options
+
+| Option | Values | Description |
+|--------|--------|-------------|
+| `width` | CSS value | Container width (e.g., `100%`, `800px`) |
+| `height` | CSS value | Container height (e.g., `600px`, `80vh`) |
+| `fullscreen` | true/false | Full viewport overlay |
+| `mode` | desktop, (empty) | Application mode |
+| `theme` | dark/light/highContrast | Visual theme |
+
+### Shortcode Examples
+
+```
+[geometry_os_map]
+[geometry_os_map height="800px"]
+[geometry_os_map width="80%" height="500px"]
+[geometry_os_map fullscreen="true"]
+[geometry_os_map fullscreen="true" mode="desktop"]
+```
+
+### PHP Template Usage
 
 ```php
+<?php
+echo geometry_os_render_map(['height' => '800px']);
+?>
+```
+
+### Filter Override
+
+```php
+// In functions.php
 add_filter('geometry_os_asset_base_url', function($url) {
-    return 'https://your-server.com'; // For production
-    // return 'http://localhost:8000'; // For development
+    return 'https://your-cdn.com';
 });
 ```
 
-## REST API
+## Development
 
-### GET `/wp-json/geometry-os/v1/map-config`
+### Start Visual Shell
 
-Returns map configuration:
-
-```json
-{
-  "asset_base": "http://localhost:8000",
-  "version": "1.0.0"
-}
+```bash
+cd systems/visual_shell/web
+python3 -m http.server 8000
 ```
 
-## Events
+### File Structure
+
+```
+geometry-os-map/
+├── geometry-os-map.php          # Bootstrap
+├── includes/
+│   ├── class-core.php           # Shared functionality
+│   ├── class-shortcode.php      # Shortcode handler
+│   ├── class-block.php          # Gutenberg block
+│   ├── class-settings.php       # Admin settings
+│   └── class-template.php       # Page template
+├── assets/
+│   ├── js/block-editor.js       # Block editor UI
+│   └── css/admin.css            # Settings styles
+├── templates/
+│   └── full-map-template.php    # Full-screen template
+└── README.md
+```
+
+## JavaScript Events
 
 The plugin dispatches a custom event when the map is ready:
 
@@ -114,24 +124,26 @@ window.addEventListener('geometryOSMapReady', function(e) {
 });
 ```
 
-## Troubleshooting
+## REST API
 
-### Map doesn't load
+### GET `/wp-json/geometry-os/v1/map-config`
 
-1. Ensure the visual shell server is running: `./start.sh`
-2. Check browser console for CORS errors
-3. Verify the asset base URL is correct
+Returns map configuration:
 
-### Scripts not loading
-
-The plugin only loads scripts on pages containing the `[geometry_os_map]` shortcode. Make sure:
-- The shortcode is in the page content (not just in a template)
-- Or use `geometry_os_render_map()` in PHP
-
-## File Structure
-
+```json
+{
+  "asset_base": "http://localhost:8000",
+  "version": "1.1.0"
+}
 ```
-wp-content/plugins/geometry-os-map/
-├── geometry-os-map.php    # Main plugin file
-└── README.md              # This file
-```
+
+## Changelog
+
+### 1.1.0
+- Added Gutenberg block with visual editor controls
+- Added admin settings page
+- Added full-screen page template
+- Refactored to modular architecture
+
+### 1.0.0
+- Initial shortcode implementation
