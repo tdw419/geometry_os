@@ -84,7 +84,7 @@
         let score = 100;
 
         // Latency penalty (target: <100ms)
-        const latency = metrics.bridgeLatency || 0;
+        const latency = metrics.avgLatency || 0;
         if (latency > 200) score -= 20;
         else if (latency > 100) score -= 10;
 
@@ -107,7 +107,7 @@
      */
     function startHealthHeartbeat() {
         // Check for MetricsCollector availability
-        if (typeof window.MetricsCollector === 'undefined') {
+        if (!window.geometryOSMetrics) {
             console.warn('%c[System Health] MetricsCollector not available for heartbeat.', 'color: #ffcc00');
             return false;
         }
@@ -116,7 +116,7 @@
          * Send heartbeat to WordPress REST API
          */
         function sendHeartbeat() {
-            const metrics = window.MetricsCollector.getAllMetrics();
+            const metrics = window.geometryOSMetrics.getAllMetrics();
 
             if (!metrics) {
                 console.warn('%c[System Health] No metrics available for heartbeat.', 'color: #ffcc00');
@@ -126,8 +126,8 @@
             const healthScore = calculateHealthScore(metrics);
 
             const payload = {
-                latency_ms: metrics.bridgeLatency || 0,
-                swarm_count: metrics.activeSwarms || 0,
+                latency_ms: metrics.avgLatency || 0,
+                swarm_count: metrics.tileCount || 0,
                 health_score: healthScore,
                 buffer_drops: metrics.bufferDrops || 0,
                 reconnects: metrics.reconnects || 0

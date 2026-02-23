@@ -114,7 +114,7 @@ class GeometryOS_Bridge {
         }
 
         // Base URL for Geometry OS visual shell web assets
-        $base_url = 'http://localhost:8080';
+        $base_url = apply_filters('geometry_os_asset_base_url', 'http://localhost:8080');
 
         // Enqueue in order: metrics -> dashboard -> bridge
         wp_enqueue_script(
