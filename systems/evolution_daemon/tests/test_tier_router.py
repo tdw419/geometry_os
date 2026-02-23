@@ -3,7 +3,7 @@
 import pytest
 
 from systems.evolution_daemon.safety import (
-    TierRouter, EvolutionProposal, GuardianVerdict
+    TierRouter, EvolutionProposal, GuardianVerdict, BehavioralMonitor
 )
 
 
@@ -182,6 +182,204 @@ class TestTierRouter:
         assert stats[1] == 1
         assert stats[2] == 1
         assert stats[3] == 1
+
+
+# ==================== Behavioral Integration Tests ====================
+
+@pytest.fixture
+def behavioral_monitor():
+    """Create a BehavioralMonitor instance for testing"""
+    return BehavioralMonitor(anomaly_threshold=0.7)
+
+
+@pytest.fixture
+def tier_router_with_monitor(behavioral_monitor):
+    """Create a TierRouter instance with behavioral monitor"""
+    return TierRouter(behavioral_monitor=behavioral_monitor)
+
+
+class TestTierRouterBehavioralIntegration:
+    """Tests for TierRouter behavioral integration"""
+
+    def test_classify_with_behavior_no_monitor_returns_same_as_classify(
+        self, tier_router, minor_proposal, low_risk_verdict
+    ):
+        """Test classify_with_behavior without monitor returns same tier as classify"""
+        agent_id = "test-agent"
+        tier_with_behavior = tier_router.classify_with_behavior(
+            minor_proposal, low_risk_verdict, agent_id
+        )
+        tier_without = tier_router.classify(minor_proposal, low_risk_verdict)
+        assert tier_with_behavior == tier_without == 1
+
+    def test_classify_with_behavior_normal_agent_no_tier_change(
+        self, tier_router_with_monitor, minor_proposal, low_risk_verdict
+    ):
+        """Test classify_with_behavior with normal agent (no tier change)"""
+        agent_id = "normal-agent"
+        # Record some normal events (not enough to be anomalous)
+        for i in range(5):
+            tier_router_with_monitor._behavioral_monitor.record_event(
+                agent_id, "file_read", {"path": f"/safe/path/{i}"}
+            )
+
+        tier = tier_router_with_monitor.classify_with_behavior(
+            minor_proposal, low_risk_verdict, agent_id
+        )
+        # Normal behavior should return same tier as code classification
+        assert tier == 1
+
+    def test_classify_with_behavior_suspicious_agent_tier_elevation(
+        self, tier_router_with_monitor, minor_proposal, low_risk_verdict
+    ):
+        """Test classify_with_behavior with suspicious agent causes tier elevation"""
+        agent_id = "suspicious-agent"
+        # Record some events and then set entropy score to anomalous level
+        tier_router_with_monitor._behavioral_monitor.record_event(
+            agent_id, "file_read", {"path": "/etc/passwd"}
+        )
+
+        # Manually set entropy score to be anomalous (> 0.7)
+        profile = tier_router_with_monitor._behavioral_monitor.get_profile(agent_id)
+        profile.entropy_score = 0.8  # Above threshold
+
+        tier = tier_router_with_monitor.classify_with_behavior(
+            minor_proposal, low_risk_verdict, agent_id
+        )
+        # Suspicious agent should elevate to tier 3
+        assert tier == 3
+
+    def test_get_behavior_tier_no_monitor_returns_1(self, tier_router):
+        """Test _get_behavior_tier returns 1 when no monitor configured"""
+        tier = tier_router._get_behavior_tier("any-agent")
+        assert tier == 1
+
+    def test_get_behavior_tier_anomalous_returns_3(
+        self, tier_router_with_monitor
+    ):
+        """Test _get_behavior_tier returns 3 for anomalous agent"""
+        agent_id = "anomalous-agent"
+        # Record an event and set entropy to be anomalous
+        tier_router_with_monitor._behavioral_monitor.record_event(
+            agent_id, "file_read", {"path": "/etc/passwd"}
+        )
+        profile = tier_router_with_monitor._behavioral_monitor.get_profile(agent_id)
+        profile.entropy_score = 0.8  # Above threshold, triggers anomalous
+
+        tier = tier_router_with_monitor._get_behavior_tier(agent_id)
+        assert tier == 3
+
+    def test_get_behavior_tier_medium_suspicion_returns_2(
+        self, tier_router_with_monitor
+    ):
+        """Test _get_behavior_tier returns 2 for medium suspicion (entropy > 0.5, < 0.7)"""
+        agent_id = "medium-agent"
+        # Record events that will result in medium entropy (between 0.5 and 0.7)
+        # Need to manipulate the score to be in the medium range
+        monitor = tier_router_with_monitor._behavioral_monitor
+
+        # Record moderate number of events
+        for i in range(20):
+            monitor.record_event(agent_id, "file_read", {"path": f"/file_{i}"})
+
+        # Get the profile and manually set entropy to be in medium range
+        profile = monitor.get_profile(agent_id)
+        # The actual score depends on the calculation, so let's verify
+        # _get_behavior_tier returns 2 if entropy > 0.5 and agent not anomalous
+
+        # Create scenario where entropy is between 0.5 and 0.7
+        # This is tricky - let's mock the profile directly
+        monitor._profiles[agent_id].entropy_score = 0.6
+
+        tier = tier_router_with_monitor._get_behavior_tier(agent_id)
+        assert tier == 2, f"Expected tier 2 for entropy 0.6, got {tier}"
+
+    def test_get_behavior_tier_normal_returns_1(
+        self, tier_router_with_monitor
+    ):
+        """Test _get_behavior_tier returns 1 for normal agent"""
+        agent_id = "normal-agent"
+        # Record a few normal events
+        for i in range(3):
+            tier_router_with_monitor._behavioral_monitor.record_event(
+                agent_id, "file_read", {"path": f"/safe/path/{i}"}
+            )
+
+        tier = tier_router_with_monitor._get_behavior_tier(agent_id)
+        assert tier == 1
+
+    def test_max_code_and_behavior_tier_logic(
+        self, tier_router_with_monitor, minor_proposal, medium_proposal, low_risk_verdict
+    ):
+        """Test that max(code_tier, behavior_tier) logic is applied correctly"""
+        agent_id = "suspicious-agent"
+
+        # Make agent suspicious (tier 2 behavior)
+        monitor = tier_router_with_monitor._behavioral_monitor
+        monitor._profiles[agent_id] = monitor.get_profile(agent_id)
+        monitor._profiles[agent_id].entropy_score = 0.6  # Will give behavior tier 2
+
+        # Code tier 1 + behavior tier 2 = final tier 2
+        tier = tier_router_with_monitor.classify_with_behavior(
+            minor_proposal, low_risk_verdict, agent_id
+        )
+        assert tier == 2
+
+        # Code tier 2 + behavior tier 2 = final tier 2
+        tier = tier_router_with_monitor.classify_with_behavior(
+            medium_proposal, low_risk_verdict, agent_id
+        )
+        assert tier == 2
+
+    def test_behavior_tier_3_overrides_code_tier_1(
+        self, tier_router_with_monitor, minor_proposal, low_risk_verdict
+    ):
+        """Test behavior tier 3 overrides even tier 1 code classification"""
+        agent_id = "very-suspicious-agent"
+
+        # Make agent anomalous by setting high entropy score
+        tier_router_with_monitor._behavioral_monitor.record_event(
+            agent_id, "file_read", {"path": "/etc/passwd"}
+        )
+        profile = tier_router_with_monitor._behavioral_monitor.get_profile(agent_id)
+        profile.entropy_score = 0.8  # Above threshold
+
+        # Verify agent is anomalous
+        assert tier_router_with_monitor._behavioral_monitor.is_anomalous(agent_id)
+
+        # Code tier would be 1 (minor proposal), but behavior tier is 3
+        tier = tier_router_with_monitor.classify_with_behavior(
+            minor_proposal, low_risk_verdict, agent_id
+        )
+        assert tier == 3
+
+    def test_integration_with_existing_classify_method(
+        self, tier_router_with_monitor, minor_proposal, medium_proposal,
+        major_proposal, low_risk_verdict
+    ):
+        """Test that classify_with_behavior integrates properly with existing classify"""
+        agent_id = "test-agent"
+
+        # Test without behavioral concerns - should match classify()
+        tier_minor = tier_router_with_monitor.classify_with_behavior(
+            minor_proposal, low_risk_verdict, agent_id
+        )
+        tier_medium = tier_router_with_monitor.classify_with_behavior(
+            medium_proposal, low_risk_verdict, agent_id
+        )
+        tier_major = tier_router_with_monitor.classify_with_behavior(
+            major_proposal, low_risk_verdict, agent_id
+        )
+
+        assert tier_minor == 1
+        assert tier_medium == 2
+        assert tier_major == 3
+
+        # Verify classification history is updated
+        history = tier_router_with_monitor.get_classification_history()
+        assert "minor-001" in history
+        assert "medium-001" in history
+        assert "major-001" in history
 
 
 if __name__ == "__main__":

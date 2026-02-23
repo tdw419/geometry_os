@@ -202,7 +202,7 @@ After POC validated, clean up code.
   - **Commit**: `test(safety): add unit tests for behavioral data structures`
   - _Requirements: AC-1.1, AC-1.2_
 
-- [ ] 3.2 Unit tests for BehavioralMonitor
+- [x] 3.2 Unit tests for BehavioralMonitor
   - **Do**:
     1. Create `systems/evolution_daemon/tests/test_behavioral_monitor.py`
     2. Test initialization with default and custom thresholds
@@ -218,7 +218,7 @@ After POC validated, clean up code.
   - **Commit**: `test(safety): add unit tests for BehavioralMonitor`
   - _Requirements: AC-2.1, AC-2.2_
 
-- [ ] 3.3 Unit tests for TierRouter behavioral integration
+- [x] 3.3 Unit tests for TierRouter behavioral integration
   - **Do**:
     1. Create test fixtures for BehavioralMonitor in test_tier_router.py or new file
     2. Test classify_with_behavior without monitor returns same as classify
