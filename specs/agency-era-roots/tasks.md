@@ -130,7 +130,7 @@ After POC validated, clean up code and integrate with GuildAgents.
   - **Commit**: `test(memory): add similarity tests`
   - _Requirements: AC-2.1, AC-2.2, AC-3.1, AC-3.2_
 
-- [ ] 3.3 Unit tests for RecursiveGrowth and PatternAnalyzer
+- [x] 3.3 Unit tests for RecursiveGrowth and PatternAnalyzer
   - **Do**: Create `systems/swarm/growth/test_recursive_growth.py` with tests for metric calculation, pattern detection, event publishing.
   - **Files**: `systems/swarm/growth/test_recursive_growth.py`
   - **Done when**: Growth system tests pass
