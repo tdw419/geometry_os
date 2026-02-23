@@ -39,11 +39,11 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
   - _Requirements: FR-2, FR-5_
   - _Design: Component B_
 
-- [ ] 1.4 POC Checkpoint
+- [x] 1.4 POC Checkpoint
   - **Do**: Start Visual Bridge, activate plugin, access terminal in WordPress admin, verify bidirectional I/O
   - **Done when**: Can execute `echo "Hello from Geometry OS Web Terminal"` and see output
   - **Verify**: Manual test of core flow
-  - **Commit**: `feat(terminal): complete POC`
+  - **Commit**: `feat(terminal): complete POC checkpoint`
 
 ## Phase 2: Refactoring
 
