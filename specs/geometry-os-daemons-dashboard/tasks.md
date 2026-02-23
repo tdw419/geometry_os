@@ -57,7 +57,7 @@ Focus: Get plugin loading and showing basic daemon status.
   - _Requirements: FR-9, FR-10, FR-11_
   - _Design: JavaScript Auto-Refresh component_
 
-- [ ] 1.6 POC Checkpoint
+- [x] 1.6 POC Checkpoint
   - **Do**: Verify plugin loads, dashboard shows daemon status, auto-refresh works
   - **Done when**: Can navigate to Geometry OS > Daemons in WordPress admin, see all 3 daemons, see live data
   - **Verify**: Manual browser test of admin.php?page=geometry-os
