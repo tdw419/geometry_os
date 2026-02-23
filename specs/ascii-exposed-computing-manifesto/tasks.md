@@ -66,7 +66,7 @@ Focus: Create the complete manifesto document with all sections. Accept iterativ
   - _Requirements: FR-6, AC-6.1, AC-6.2, AC-6.3_
   - _Design: Section 6_
 
-- [ ] 1.7 Add Implementation Guidelines section
+- [x] 1.7 Add Implementation Guidelines section
   - **Do**: Append checklists for new/existing systems, directory structure template, performance table, and "When NOT to use" section
   - **Files**: `docs/ASCII_EXPOSED_COMPUTING_MANIFESTO.md`
   - **Done when**: Both checklists present, directory tree visible

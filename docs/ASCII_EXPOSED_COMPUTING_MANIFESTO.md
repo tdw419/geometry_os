@@ -914,3 +914,110 @@ capabilities:
 **Why it fails:** Mutable history destroys the audit trail. When you can't trust that past entries are accurate, you can't debug historical issues. Time-travel debugging becomes impossible. Compliance requirements (audit logs) are violated.
 
 **Rule:** Logs are append-only. Mistakes get correction entries, never deletion. This applies to all change streams, event logs, and history fragments.
+
+---
+
+## Implementation Guidelines
+
+Theory without practice is empty. This section provides concrete checklists for adopting ASCII Exposed Computing in real systems.
+
+### Starting a New System
+
+When building from scratch, bake these principles in from day one:
+
+1. **Define your namespaces first.** Before writing code, sketch the directory structure. What concerns exist? Agents? Tasks? System? Hooks? Each gets a namespace.
+
+2. **Choose your delimiter convention.** Pick `KEY: VALUE` or `KEY=VALUE` and stick to it. Document this choice in a `.ascii-convention` file at the root.
+
+3. **Implement atomic writes immediately.** Don't defer this. Create a utility function (`atomic_write()`) and use it for every fragment write from the first commit.
+
+4. **Start with schemas.** Even a one-line `# schema: my-fragment/v1` at the top of each file pays dividends. Version from day one.
+
+5. **Build the change stream early.** Hook broadcasting should be part of the core architecture, not a retrofit. Every state change should write to the change log.
+
+6. **Test with grep.** Before declaring a feature done, verify you can query its state with `grep`, `awk`, and `diff`. If you can't, the exposure is incomplete.
+
+### Adding to Existing Systems
+
+Retrofitting ASCII exposure into an existing codebase requires strategy:
+
+1. **Identify high-value state first.** What do operators query most often? What do debugging sessions spend time finding? Start there.
+
+2. **Create parallel fragments.** Don't replace existing state storage—augment it. Write fragments alongside existing persistence. Verify consistency before depending on them.
+
+3. **Use the Dual-Format pattern.** If your existing system has complex JSON structures, create `.ascii` summaries that reference the JSON. Gradual migration.
+
+4. **Add hooks incrementally.** Identify the most reactive state changes first. Expose those via change streams. Expand coverage over time.
+
+5. **Document the migration.** Keep a `MIGRATION.md` that tracks which state is exposed, which is pending, and conventions for contributors.
+
+### Directory Structure Template
+
+A canonical structure for ASCII Exposed systems:
+
+```
+project/
+├── .ascii-convention          # Delimiter choice, schema registry
+├── fragments/
+│   ├── _base/                 # Template fragments for inheritance
+│   │   └── agent.ascii
+│   ├── agents/                # Per-agent state
+│   │   ├── engineer_001/
+│   │   │   ├── status.ascii
+│   │   │   ├── capabilities.ascii
+│   │   │   └── metrics.ascii
+│   │   └── reviewer_001/
+│   │       └── ...
+│   ├── tasks/                 # Task queue and history
+│   │   ├── pending/
+│   │   │   └── T-00042.ascii
+│   │   ├── active/
+│   │   │   └── T-00041.ascii
+│   │   └── completed/
+│   │       └── T-00040.ascii
+│   ├── system/                # System-wide state
+│   │   ├── health.ascii
+│   │   ├── config.ascii
+│   │   └── metrics.ascii
+│   └── aggregates/            # Summary views (auto-generated)
+│       ├── agent_summary.ascii
+│       └── task_summary.ascii
+├── hooks/                     # Change streams
+│   ├── agents.log
+│   ├── tasks.log
+│   └── system.log
+└── archives/                  # Historical fragments
+    └── tasks/
+        └── 2026-02.archive.ascii
+```
+
+### Performance Considerations
+
+ASCII Exposed Computing trades some performance for observability. Know the costs:
+
+| Concern | Impact | Mitigation |
+|---------|--------|------------|
+| **Fragment size** | Large files slow grep/diff | Enforce 10KB limit; archive old entries |
+| **Fragment count** | Many files slow directory listing | Use namespaces; aggregate summaries |
+| **Write overhead** | Atomic writes cost extra I/O | Acceptable for state (not high-throughput logs) |
+| **Hook volume** | High-frequency changes flood logs | Debounce; batch by time window |
+| **Parsing cost** | Text parsing slower than binary | Acceptable for AI (already text-based); cache parsed results |
+| **Concurrent reads** | Multiple readers = multiple opens | Fragments are small; OS caching helps |
+
+**Performance philosophy:** If performance is critical, expose metadata via ASCII and store bulk data in binary formats with references. The goal is observability, not replacing all storage with text.
+
+### When NOT to Use
+
+ASCII Exposed Computing is not universal. Avoid it when:
+
+- **High-frequency data.** Sensor data at 1000Hz, video frames, audio streams—these should be binary with metadata exposed as ASCII.
+
+- **Encrypted state.** If the data must remain opaque even to privileged users, ASCII exposure defeats the purpose.
+
+- **Legacy constraints.** Retrofitting into systems with strict binary protocols may cost more than the benefits justify.
+
+- **Strict memory budgets.** Text representation is larger than binary. Embedded systems with kilobytes of RAM may not tolerate the overhead.
+
+- **Compliance restrictions.** Some regulated environments prohibit "human-readable" state for security reasons. (Consider whether this is security theater.)
+
+The rule of thumb: If the state is meaningful to an operator or AI agent, expose it. If it's raw data that humans will never read directly, store it efficiently and expose metadata instead.
