@@ -30,7 +30,7 @@ Focus: Bridge NEB events to HUD. Skip tests, accept hardcoded values.
   - _Requirements: FR-1_
   - _Design: NEBBridge Component_
 
-- [ ] 1.2 Integrate NEBBridge into VisualBridge.start()
+- [x] 1.2 Integrate NEBBridge into VisualBridge.start()
   - **Do**:
     1. Add import for NEBBridge in `visual_bridge.py`
     2. Add `self.neb_bridge = None` in `__init__`

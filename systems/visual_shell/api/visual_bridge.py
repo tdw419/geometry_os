@@ -59,6 +59,14 @@ from systems.visual_shell.api.semantic_notification_bridge import (
 # Import Truth Manifold Bridge (CTRM HUD integration)
 from systems.visual_shell.api.truth_manifold_bridge import TruthManifoldBridge
 
+# Import NEB Bridge (Neural Event Bus HUD integration)
+try:
+    from systems.visual_shell.api.neb_bridge import NEBBridge
+    HAS_NEB_BRIDGE = True
+except ImportError:
+    HAS_NEB_BRIDGE = False
+    NEBBridge = None
+
 # Import Evolution WebMCP Bridge (Ambient Narrative System)
 try:
     from systems.visual_shell.api.evolution_webmcp_bridge import (
@@ -106,6 +114,9 @@ class VisualBridge:
         self.webmcp_bridge: Optional[EvolutionWebMCPBridge] = None
         self._narrative_session_id: Optional[int] = None
         self._webmcp_enabled = True  # Can be disabled via CLI
+
+        # NEB Bridge (Neural Event Bus HUD)
+        self.neb_bridge: Optional[Any] = None
 
         # Current session state for narrative
         self._ambient_state = "MONITORING"
@@ -1544,6 +1555,9 @@ class VisualBridge:
             if self._webmcp_enabled:
                 await self._setup_webmcp_bridge()
 
+            # Initialize NEB Bridge (Neural Event Bus HUD)
+            await self._setup_neb_bridge()
+
             async with serve(self.handle_client, "0.0.0.0", self.ws_port):
                 await asyncio.Future()
         finally:
@@ -1625,6 +1639,30 @@ class VisualBridge:
         except Exception as e:
             print(f"⚠️  Failed to initialize WebMCP Bridge: {e}")
             self.webmcp_bridge = None
+
+    async def _setup_neb_bridge(self):
+        """Initialize the NEB Bridge for Neural Event Bus HUD integration."""
+        if not HAS_NEB_BRIDGE:
+            print("⚠️  NEB Bridge not available (neb_bridge not imported)")
+            return
+
+        try:
+            self.neb_bridge = NEBBridge(
+                visual_bridge=self,
+                node_id="visual-bridge-neb",
+                throttle_ms=100,  # 10 Hz max
+                max_events=10
+            )
+            started = await self.neb_bridge.start()
+            if started:
+                print("🔮 NEB Bridge initialized (10 Hz throttle)")
+            else:
+                print("⚠️  NEB Bridge failed to start")
+                self.neb_bridge = None
+
+        except Exception as e:
+            print(f"⚠️  Failed to initialize NEB Bridge: {e}")
+            self.neb_bridge = None
 
     # --- Heat Aggregator Methods (Visual Hotspot Debugger) ---
 
