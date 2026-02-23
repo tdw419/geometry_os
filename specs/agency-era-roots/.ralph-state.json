@@ -1,0 +1,11 @@
+{
+  "source": "plan",
+  "name": "agency-era-roots",
+  "basePath": "./specs/agency-era-roots",
+  "phase": "execution",
+  "taskIndex": 16,
+  "totalTasks": 16,
+  "taskIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": false
+}
