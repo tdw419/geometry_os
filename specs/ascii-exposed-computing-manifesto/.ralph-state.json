@@ -1,0 +1,13 @@
+{
+  "source": "plan",
+  "name": "ascii-exposed-computing-manifesto",
+  "basePath": "specs/ascii-exposed-computing-manifesto",
+  "phase": "execution",
+  "taskIndex": 1,
+  "totalTasks": 14,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": false
+}
