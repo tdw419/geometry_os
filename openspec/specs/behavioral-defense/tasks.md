@@ -89,7 +89,7 @@ Focus: Validate behavioral monitoring works end-to-end. Skip tests, accept hardc
   - _Requirements: FR-5_
   - _Design: WordPressSentinel Architecture_
 
-- [ ] 1.5 Export new components in __init__.py
+- [x] 1.5 Export new components in __init__.py
   - **Do**:
     1. Open `systems/evolution_daemon/safety/__init__.py`
     2. Add imports for `AgentBehavioralProfile`, `BehavioralEvent` from data_structures

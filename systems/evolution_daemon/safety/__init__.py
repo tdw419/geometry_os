@@ -85,6 +85,9 @@ from .data_structures import (
     HealthPrediction,
     MetabolismState,
     ThrottleLevel,
+    # V13.1 behavioral defense additions
+    AgentBehavioralProfile,
+    BehavioralEvent,
 )
 from .sandbox_manager import SandboxManager
 from .guardian_gate import GuardianGate
@@ -95,6 +98,9 @@ from .post_commit_monitor import PostCommitMonitor, EvolutionRecovery
 from .prognostics_store import PrognosticsStore
 from .prognostics_engine import PrognosticsEngine
 from .metabolism_monitor import MetabolismMonitor
+# V13.1 behavioral defense components
+from .behavioral_monitor import BehavioralMonitor
+from .wordpress_sentinel import WordPressSentinel
 
 __all__ = [
     # Data structures
@@ -108,6 +114,9 @@ __all__ = [
     "HealthPrediction",
     "MetabolismState",
     "ThrottleLevel",
+    # V13.1 behavioral defense data structures
+    "AgentBehavioralProfile",
+    "BehavioralEvent",
     # V11 Components
     "SandboxManager",
     "GuardianGate",
@@ -119,6 +128,9 @@ __all__ = [
     "PrognosticsStore",
     "PrognosticsEngine",
     "MetabolismMonitor",
+    # V13.1 behavioral defense components
+    "BehavioralMonitor",
+    "WordPressSentinel",
 ]
 
-__version__ = "13.0.0"
+__version__ = "13.1.0"
