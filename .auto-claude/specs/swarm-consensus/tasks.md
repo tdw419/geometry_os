@@ -15,8 +15,11 @@
 - [x] Clipboard-based communication
 
 ## Task 4: Create Swarm Node
-- Create `systems/swarm/swarm_node.py`
-- Node coordination logic
+- [x] Create `systems/swarm/swarm_node.py`
+- [x] Create `tests/test_swarm_node.py`
+- [x] Node coordination logic (create_proposal, create_vote, broadcast, collect, evaluate)
+- [x] TDD approach - 14 tests passing
+- [x] propose_and_vote convenience method
 
 ## Task 5: Integration Tests
 - Create `tests/test_swarm_integration.py`
