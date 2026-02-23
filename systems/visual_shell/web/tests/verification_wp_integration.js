@@ -129,15 +129,15 @@ class WPIntegrationVerifier {
     async test6_MetricsCollectorIntegration() {
         console.log("\n%cTest 6: Metrics Collector Integration", "color: #ffcc00; font-weight: bold;");
 
-        const hasCollector = !!window.geometryOS?.metrics;
+        const hasCollector = !!window.geometryOSMetrics;
         if (!hasCollector) {
-            this.logResult("Metrics", false, "window.geometryOS.metrics not found");
+            this.logResult("Metrics", false, "window.geometryOSMetrics not found");
             return;
         }
 
-        const t0 = window.geometryOS.metrics.startLatencyMeasure('test-6');
+        const t0 = window.geometryOSMetrics.startLatencyMeasure('test-6');
         await this.sleep(50);
-        const latency = window.geometryOS.metrics.endLatencyMeasure('test-6', t0);
+        const latency = window.geometryOSMetrics.endLatencyMeasure('test-6', t0);
 
         const success = latency >= 50 && latency < 200;
         this.logResult("Metrics", success, success ? `Latency measurement: ${latency.toFixed(1)}ms` : `Latency out of range: ${latency}`);
