@@ -49,7 +49,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
 
 After POC validated, clean up code.
 
-- [ ] 2.1 Extract session token generation
+- [x] 2.1 Extract session token generation
   - **Do**: Move token generation to dedicated method, add proper nonce verification, ensure 64-char hex output
   - **Files**: `geometry-os-web-terminal.php`
   - **Done when**: Token generation follows WordPress security patterns

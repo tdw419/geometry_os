@@ -183,17 +183,83 @@ class GeometryOS_WebTerminal {
     }
 
     /**
-     * Generate a session token.
+     * Generate a secure session token using WordPress patterns.
+     *
+     * Uses wp_generate_uuid4() combined with user ID and timestamp,
+     * then hashed with SHA-256 for a 64-character hex output.
+     * Token hash is stored in user meta for validation.
      *
      * @return string 64-character hex token.
      */
     private function generate_session_token(): string {
-        // Use WordPress nonce-like token generation
         $user_id = get_current_user_id();
-        $time = time();
-        $random = wp_generate_password(32, false);
+        $timestamp = time();
+        $uuid = wp_generate_uuid4();
 
-        return hash('sha256', $user_id . $time . $random . wp_salt('auth'));
+        // Combine entropy sources for uniqueness
+        $token_data = sprintf(
+            '%d:%d:%s:%s',
+            $user_id,
+            $timestamp,
+            $uuid,
+            wp_salt('auth')
+        );
+
+        // Generate 64-char hex token
+        $token = hash('sha256', $token_data);
+
+        // Store hash in user meta for validation
+        $this->store_token_hash($user_id, $token);
+
+        return $token;
+    }
+
+    /**
+     * Store token hash in user meta for validation.
+     *
+     * @param int    $user_id User ID.
+     * @param string $token   Session token.
+     */
+    private function store_token_hash(int $user_id, string $token): void {
+        $hash = hash('sha256', $token . wp_salt('secure_auth'));
+        update_user_meta($user_id, 'goterminal_session_hash', $hash);
+        update_user_meta($user_id, 'goterminal_session_time', time());
+    }
+
+    /**
+     * Validate a session token against stored hash.
+     *
+     * @param int    $user_id User ID.
+     * @param string $token   Session token to validate.
+     * @return bool True if valid, false otherwise.
+     */
+    public function validate_session_token(int $user_id, string $token): bool {
+        if (strlen($token) !== 64 || !ctype_xdigit($token)) {
+            return false;
+        }
+
+        $stored_hash = get_user_meta($user_id, 'goterminal_session_hash', true);
+        $session_time = (int) get_user_meta($user_id, 'goterminal_session_time', true);
+
+        // Sessions expire after 24 hours
+        if (time() - $session_time > DAY_IN_SECONDS) {
+            $this->clear_session($user_id);
+            return false;
+        }
+
+        $expected_hash = hash('sha256', $token . wp_salt('secure_auth'));
+
+        return hash_equals($expected_hash, $stored_hash);
+    }
+
+    /**
+     * Clear session data for a user.
+     *
+     * @param int $user_id User ID.
+     */
+    private function clear_session(int $user_id): void {
+        delete_user_meta($user_id, 'goterminal_session_hash');
+        delete_user_meta($user_id, 'goterminal_session_time');
     }
 
     /**
