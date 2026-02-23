@@ -3,7 +3,7 @@
   "name": "ascii-rest-api",
   "basePath": "./specs/ascii-rest-api",
   "phase": "execution",
-  "taskIndex": 13,
+  "taskIndex": 16,
   "totalTasks": 22,
   "taskIteration": 1,
   "maxTaskIterations": 5,

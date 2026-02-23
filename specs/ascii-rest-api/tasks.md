@@ -215,7 +215,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
   - _Requirements: FR-4 - FR-11, AC-1.1 - AC-7.4_
   - _Design: Test Strategy - Unit Tests_
 
-- [ ] 3.3 Create Python integration test script
+- [x] 3.3 Create Python integration test script
   - **Do**:
     1. Create `tests/python/test_rest_api.py`
     2. Add argparse for `--url` and `--key` CLI arguments
@@ -234,7 +234,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
   - _Requirements: FR-13, AC-8.1 - AC-8.5_
   - _Design: Test Strategy - Integration Tests_
 
-- [ ] 3.4 [VERIFY] Quality checkpoint: all tests pass
+- [x] 3.4 [VERIFY] Quality checkpoint: all tests pass
   - **Do**: Run all unit and integration tests
   - **Verify**: `cd wordpress_zone/wordpress/wp-content/plugins/ascii-desktop-control/tests/php && php run-tests.php`
   - **Done when**: All PHP tests pass
@@ -242,7 +242,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Run full PHP syntax validation
+- [x] 4.1 Run full PHP syntax validation
   - **Do**:
     1. Run php -l on all new PHP files
     2. Run php -l on all modified PHP files
