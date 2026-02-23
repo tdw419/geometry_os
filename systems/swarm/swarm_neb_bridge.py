@@ -11,13 +11,14 @@ Usage:
     proposal = bridge.create_proposal("Fix bug", "Description")
 """
 
-from typing import Optional, TYPE_CHECKING
+from typing import Callable, Optional, TYPE_CHECKING
 
 from systems.swarm.swarm_node import SwarmNode
 from systems.swarm.consensus import SwarmProposal, SwarmVote
 
 if TYPE_CHECKING:
     from systems.swarm.neb_bus import NEBBus
+    from systems.swarm.neb_signal import NEBSignal
 
 
 class SwarmNEBBridge:
@@ -179,3 +180,80 @@ class SwarmNEBBridge:
             )
 
         return result
+
+    def subscribe_to_proposals(
+        self,
+        callback: Callable[['NEBSignal'], None]
+    ) -> str:
+        """
+        Subscribe to proposal events.
+
+        Args:
+            callback: Function to call with NEBSignal when a proposal is created
+
+        Returns:
+            Subscription ID for later unsubscription
+
+        Raises:
+            RuntimeError: If no event_bus is configured
+        """
+        if self._event_bus is None:
+            raise RuntimeError("Cannot subscribe without event_bus")
+        return self._event_bus.subscribe("swarm.proposal.*", callback)
+
+    def subscribe_to_votes(
+        self,
+        callback: Callable[['NEBSignal'], None]
+    ) -> str:
+        """
+        Subscribe to vote events.
+
+        Args:
+            callback: Function to call with NEBSignal when a vote is cast
+
+        Returns:
+            Subscription ID for later unsubscription
+
+        Raises:
+            RuntimeError: If no event_bus is configured
+        """
+        if self._event_bus is None:
+            raise RuntimeError("Cannot subscribe without event_bus")
+        return self._event_bus.subscribe("swarm.vote.*", callback)
+
+    def subscribe_to_consensus(
+        self,
+        callback: Callable[['NEBSignal'], None]
+    ) -> str:
+        """
+        Subscribe to consensus result events.
+
+        Args:
+            callback: Function to call with NEBSignal when consensus is evaluated
+
+        Returns:
+            Subscription ID for later unsubscription
+
+        Raises:
+            RuntimeError: If no event_bus is configured
+        """
+        if self._event_bus is None:
+            raise RuntimeError("Cannot subscribe without event_bus")
+        return self._event_bus.subscribe("swarm.consensus.*", callback)
+
+    def unsubscribe(self, subscription_id: str) -> bool:
+        """
+        Remove a subscription.
+
+        Args:
+            subscription_id: ID returned from subscribe_to_* methods
+
+        Returns:
+            True if subscription was found and removed, False otherwise
+
+        Raises:
+            RuntimeError: If no event_bus is configured
+        """
+        if self._event_bus is None:
+            raise RuntimeError("Cannot unsubscribe without event_bus")
+        return self._event_bus.unsubscribe(subscription_id)
