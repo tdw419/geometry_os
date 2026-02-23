@@ -138,7 +138,7 @@ Minimal - scope is intentionally small.
   - **Commit**: `test(neb): add NEBBridge unit tests`
   - _Design: Test Strategy_
 
-- [ ] 3.2 [VERIFY] Quality checkpoint: lint && test
+- [x] 3.2 [VERIFY] Quality checkpoint: lint && test
   - **Do**: Run flake8 on new Python file, run related tests
   - **Verify**: `flake8 systems/visual_shell/api/neb_bridge.py && pytest tests/swarm/test_neb*.py -v`
   - **Done when**: No lint errors, NEB tests pass
