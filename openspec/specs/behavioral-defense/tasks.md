@@ -57,7 +57,7 @@ Focus: Validate behavioral monitoring works end-to-end. Skip tests, accept hardc
   - _Requirements: FR-3_
   - _Design: BehavioralMonitor Architecture_
 
-- [ ] 1.3 Add classify_with_behavior to TierRouter
+- [x] 1.3 Add classify_with_behavior to TierRouter
   - **Do**:
     1. Open `systems/evolution_daemon/safety/tier_router.py`
     2. Add `behavioral_monitor` optional parameter to `__init__`
