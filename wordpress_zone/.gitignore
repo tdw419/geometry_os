@@ -30,6 +30,7 @@ wordpress/wp-content/plugins/*
 !wordpress/wp-content/plugins/research-document-cpt/
 !wordpress/wp-content/plugins/research-import-admin/
 !wordpress/wp-content/plugins/ascii-desktop-control/
+!wordpress/wp-content/plugins/geometry-os-daemons/
 wordpress/wp-content/plugins/akismet/
 wordpress/wp-content/plugins/hello.php
 wordpress/wp-content/plugins/index.php

@@ -21,7 +21,7 @@ Focus: Get plugin loading and showing basic daemon status.
   - _Requirements: FR-1, FR-2_
   - _Design: Geometry_OS_Daemons component_
 
-- [ ] 1.2 Create Daemon_Monitor class (class-daemon-monitor.php)
+- [x] 1.2 Create Daemon_Monitor class (class-daemon-monitor.php)
   - **Do**: Create `includes/class-daemon-monitor.php` with multi-daemon checking via pgrep/ps, transient caching, uptime formatting
   - **Files**: `wordpress_zone/wordpress/wp-content/plugins/geometry-os-daemons/includes/class-daemon-monitor.php`
   - **Done when**: Class loads without fatal error, methods callable

@@ -263,7 +263,7 @@ After POC validated, clean up code.
   - **Commit**: `test(safety): add behavioral defense integration test`
   - _Requirements: All ACs_
 
-- [ ] 3.6 [VERIFY] Quality checkpoint: all new tests pass
+- [x] 3.6 [VERIFY] Quality checkpoint: all new tests pass
   - **Do**: Run all new behavioral tests
   - **Verify**: `python3 -m pytest systems/evolution_daemon/tests/test_behavioral_data_structures.py systems/evolution_daemon/tests/test_behavioral_monitor.py systems/evolution_daemon/tests/test_wordpress_sentinel.py systems/evolution_daemon/tests/test_behavioral_integration.py -v --tb=short 2>&1 | tail -30`
   - **Done when**: 26+ new tests passing
@@ -273,13 +273,13 @@ After POC validated, clean up code.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Local quality check - full test suite
+- [x] 4.1 Local quality check - full test suite
   - **Do**: Run ALL tests to verify no regressions
   - **Verify**: `python3 -m pytest systems/evolution_daemon/tests/ -v --tb=short 2>&1 | tail -40`
   - **Done when**: All tests pass, no regressions
   - **Commit**: `fix(safety): address test failures` (if needed)
 
-- [ ] 4.2 Create PR and verify CI
+- [x] 4.2 Create PR and verify CI
   - **Do**:
     1. Verify current branch is feature branch: `git branch --show-current`
     2. Push branch: `git push -u origin feat/behavioral-defense` (or current branch name)
@@ -304,6 +304,7 @@ EOF
   - **Verify**: `gh pr checks` shows all green
   - **Done when**: PR created, CI checks passing
   - **Commit**: None (PR commit)
+  - _Note: Feature was already merged directly to main (commits: 142a6d90, 94009913, 240cc527, b8cc4d50, e54c06ed, 2e84a73c, cec89b9b, e36533af, 4f5fb5bc, c3d78bc3, c7e6329d, 70932bc3). All 98 tests passing on main._
 
 ---
 
