@@ -140,7 +140,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
   - _Requirements: FR-12, AC-2.1 - AC-2.6_
   - _Design: Admin UI section_
 
-- [ ] 2.2 Add AJAX handlers for key generation and revocation
+- [x] 2.2 Add AJAX handlers for key generation and revocation
   - **Do**:
     1. Add `wp_ajax_ascii_generate_api_key` handler in main plugin class
     2. Add `wp_ajax_ascii_revoke_api_key` handler in main plugin class

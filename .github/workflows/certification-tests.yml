@@ -140,3 +140,21 @@ jobs:
             echo "Running all certification levels..."
             node systems/visual_shell/web/tests/cli_certification_runner.js
           fi
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: certification-screenshots
+          path: /tmp/wp_*.png
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: certification-test-results
+          path: test_results/
+          retention-days: 7
+          if-no-files-found: ignore
