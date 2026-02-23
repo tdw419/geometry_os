@@ -43,7 +43,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
   - _Requirements: FR-1, FR-2, FR-3, AC-2.1, AC-2.3_
   - _Design: API_Keys Class_
 
-- [ ] 1.2 Create REST_API class with route registration
+- [x] 1.2 Create REST_API class with route registration
   - **Do**:
     1. Create `includes/class-rest-api.php`
     2. Define `NAMESPACE` constant as `ascii/v1`
@@ -63,7 +63,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
   - _Requirements: FR-4, FR-5, FR-6, AC-1.1, AC-1.2_
   - _Design: REST_API Class_
 
-- [ ] 1.3 Implement authentication flow with timing-safe comparison
+- [x] 1.3 Implement authentication flow with timing-safe comparison
   - **Do**:
     1. In `REST_API.authenticate_request()`, extract API key from:
        - `X-API-Key` header via `$request->get_header('X-API-Key')`
@@ -78,7 +78,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
   - _Requirements: FR-3, FR-4, FR-5, FR-6, AC-1.1, AC-1.2, AC-1.3, AC-1.4_
   - _Design: Authentication Flow_
 
-- [ ] 1.4 Implement endpoint handlers delegating to existing classes
+- [x] 1.4 Implement endpoint handlers delegating to existing classes
   - **Do**:
     1. Implement `handle_get_view()` delegating to `ASCII_View.get_view()`
     2. Implement `handle_get_status()` delegating to `Daemon_Status.get_status()`
@@ -93,7 +93,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
   - _Requirements: FR-7, FR-8, FR-9, FR-10, FR-11, AC-3.1 - AC-7.4_
   - _Design: Endpoints section_
 
-- [ ] 1.5 Integrate new classes into main plugin file
+- [x] 1.5 Integrate new classes into main plugin file
   - **Do**:
     1. Add `require_once` for `class-api-keys.php` and `class-rest-api.php` in `load_includes()`
     2. Add `API_Keys` and `REST_API` instance properties
@@ -107,13 +107,13 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
   - _Requirements: FR-7 - FR-11_
   - _Design: File Structure_
 
-- [ ] 1.6 [VERIFY] Quality checkpoint: PHP syntax and basic functionality
+- [x] 1.6 [VERIFY] Quality checkpoint: PHP syntax and basic functionality
   - **Do**: Verify all new PHP files pass syntax check
   - **Verify**: `for f in wordpress_zone/wordpress/wp-content/plugins/ascii-desktop-control/includes/class-api-*.php; do php -l "$f"; done`
   - **Done when**: No syntax errors in any new file
   - **Commit**: `chore(api): pass POC quality checkpoint` (only if fixes needed)
 
-- [ ] 1.7 POC Checkpoint: End-to-end validation
+- [x] 1.7 POC Checkpoint: End-to-end validation
   - **Do**:
     1. Generate API key via PHP: `$api_keys->generate(); $api_keys->store('test', $hash);`
     2. Test GET /ascii/v1/view with valid key - expect 200 with JSON
