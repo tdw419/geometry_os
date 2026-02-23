@@ -24,7 +24,7 @@ Focus: Build core SwarmNEBBridge with proposal/vote/consensus publishing. Skip t
   - _Requirements: FR-1 (NEBBus integration)_
   - _Design: Two-layer architecture_
 
-- [ ] 1.2 Implement create_proposal with NEB publishing
+- [x] 1.2 Implement create_proposal with NEB publishing
   - **Do**:
     1. Add `create_proposal()` method that delegates to SwarmNode.create_proposal()
     2. If event_bus exists, publish to `swarm.proposal.{id}` with payload: proposal_id, title, description, proposer

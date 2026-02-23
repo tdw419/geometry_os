@@ -54,3 +54,38 @@ class SwarmNEBBridge:
             threshold=threshold
         )
         self._event_bus = event_bus
+
+    def create_proposal(
+        self,
+        title: str,
+        description: str,
+        metadata: Optional[dict] = None
+    ) -> SwarmProposal:
+        """
+        Create a new proposal and publish to NEBBus if available.
+
+        Delegates to SwarmNode.create_proposal() and publishes an event
+        to the NEBBus for real-time notification.
+
+        Args:
+            title: Short title of the proposal
+            description: Detailed description of the proposal
+            metadata: Optional additional metadata
+
+        Returns:
+            The created SwarmProposal
+        """
+        proposal = self.node.create_proposal(title, description, metadata)
+
+        if self._event_bus is not None:
+            self._event_bus.publish(
+                f"swarm.proposal.{proposal.id}",
+                {
+                    "proposal_id": proposal.id,
+                    "title": proposal.title,
+                    "description": proposal.description,
+                    "proposer": proposal.proposer
+                }
+            )
+
+        return proposal
