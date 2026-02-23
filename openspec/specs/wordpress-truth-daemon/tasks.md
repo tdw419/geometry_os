@@ -127,13 +127,14 @@ After POC validated, clean up code.
   - **Commit**: `test(wordpress): add WordPressTruthDaemon unit tests`
   - _Requirements: FR-4, FR-5_
 
-- [ ] 3.6 Integration tests
+- [x] 3.6 Integration tests
   - **Do**: Create `wordpress_zone/tests/test_truth_pipeline.py`. Test cases: `test_full_extraction_pipeline` (mock WordPress and LM Studio, verify end-to-end flow), `test_triad_scorer_integration` (verify score ranges for different scenarios).
-  - **Files**: `wordpress_zone/tests/test_truth_pipeline.py`
-  - **Done when**: `pytest tests/test_truth_pipeline.py -v` passes with 2 tests
-  - **Verify**: `cd wordpress_zone && python -m pytest tests/test_truth_pipeline.py -v`
-  - **Commit**: `test(wordpress): add integration tests for truth extraction pipeline`
+  - **Files**: `wordpress_zone/tests/test_truth_daemon_integration.py`
+  - **Done when**: `pytest tests/test_truth_daemon_integration.py -v` passes with 14 tests
+  - **Verify**: `cd wordpress_zone && python -m pytest tests/test_truth_daemon_integration.py -v`
+  - **Commit**: `test(wordpress): add integration tests for WordPress Truth Daemon`
   - _Requirements: All_
+  - **Note**: Created comprehensive integration tests with 14 tests covering full pipeline, scoring, database, verification, and E2E scenarios.
 
 ## Phase 4: Quality Gates
 
