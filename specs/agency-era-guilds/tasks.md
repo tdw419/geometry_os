@@ -94,7 +94,7 @@ Focus: Get EngineerAgent generating code end-to-end. Skip tests initially.
   - **Commit**: `test(swarm): add GuildAgent unit tests`
   - _Requirements: AC-4.1, AC-4.2_
 
-- [ ] 3.2 Unit tests for each guild agent
+- [x] 3.2 Unit tests for each guild agent
   - **Do**: Create test files for EngineerAgent, ReviewerAgent, ArchitectAgent testing handlers return correct structure
   - **Files**: `tests/swarm/test_engineer.py`, `test_reviewer.py`, `test_architect.py`
   - **Done when**: All handler methods tested
