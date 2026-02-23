@@ -234,7 +234,7 @@ After POC validated, clean up code.
   - **Commit**: `test(safety): add tests for TierRouter behavioral integration`
   - _Requirements: AC-3.1, AC-3.2_
 
-- [ ] 3.4 Unit tests for WordPressSentinel
+- [x] 3.4 Unit tests for WordPressSentinel
   - **Do**:
     1. Create `systems/evolution_daemon/tests/test_wordpress_sentinel.py`
     2. Test initialization with default and custom paths
