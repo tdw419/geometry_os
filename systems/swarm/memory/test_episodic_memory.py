@@ -271,6 +271,50 @@ class TestExperienceRetriever(unittest.TestCase):
         successes = retriever.find_similar_successes(query, k=5, min_similarity=0.0)
         self.assertTrue(all(r.experience.outcome == "success" for r in successes))
 
+    def test_similarity_ranking_accuracy(self):
+        """Test that results are accurately ranked by similarity."""
+        # Create experiences with known similarity relationships
+        base_text = "authentication module with JWT tokens"
+        similar_text = "auth module using JWT authentication"
+        different_text = "database migration for user schema"
+
+        experiences = [
+            Experience("id1", "a", "T", "a", "s", base_text, generate_embedding(base_text), {}, 0),
+            Experience("id2", "a", "T", "a", "s", similar_text, generate_embedding(similar_text), {}, 0),
+            Experience("id3", "a", "T", "a", "s", different_text, generate_embedding(different_text), {}, 0),
+        ]
+
+        retriever = ExperienceRetriever(experiences)
+        # Query with the base text - should find itself first
+        results = retriever.find_similar(generate_embedding(base_text), k=3, min_similarity=-1.0)
+
+        self.assertEqual(len(results), 3)
+        # First result should be the exact match (id1)
+        self.assertEqual(results[0].experience.experience_id, "id1")
+        self.assertAlmostEqual(results[0].similarity, 1.0, places=5)
+
+    def test_min_similarity_threshold(self):
+        """Test that min_similarity filters correctly."""
+        retriever = ExperienceRetriever(self.experiences)
+        query = generate_embedding("authentication")
+
+        # Get all results
+        all_results = retriever.find_similar(query, k=10, min_similarity=-1.0)
+
+        # Get only high similarity
+        high_results = retriever.find_similar(query, k=10, min_similarity=0.5)
+
+        # High similarity results should be subset of all
+        self.assertLessEqual(len(high_results), len(all_results))
+        for r in high_results:
+            self.assertGreaterEqual(r.similarity, 0.5)
+
+    def test_empty_retriever(self):
+        """Test retriever with no experiences."""
+        retriever = ExperienceRetriever([])
+        results = retriever.find_similar([0.1] * 128, k=5)
+        self.assertEqual(len(results), 0)
+
 
 class TestEpisodicMemory(unittest.TestCase):
     """Tests for EpisodicMemory facade."""

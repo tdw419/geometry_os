@@ -122,7 +122,7 @@ After POC validated, clean up code and integrate with GuildAgents.
   - **Commit**: `test(memory): add unit tests for Experience and Store`
   - _Requirements: AC-1.1, AC-1.2, AC-1.3_
 
-- [ ] 3.2 Unit tests for ExperienceRetriever and similarity
+- [x] 3.2 Unit tests for ExperienceRetriever and similarity
   - **Do**: Add tests for find_similar(), cosine similarity accuracy, outcome filtering.
   - **Files**: `systems/swarm/memory/test_episodic_memory.py`
   - **Done when**: Similarity tests verify correct ranking
