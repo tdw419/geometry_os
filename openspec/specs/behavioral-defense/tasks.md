@@ -155,7 +155,7 @@ After POC validated, clean up code.
   - **Commit**: `refactor(safety): add type hints and docstrings`
   - _Design: Code Quality Standards_
 
-- [ ] 2.2 Make thresholds configurable
+- [x] 2.2 Make thresholds configurable
   - **Do**:
     1. Change ANOMALY_THRESHOLD, SLIDING_WINDOW_SECONDS to constructor params with class constant defaults
     2. Add validation in constructor for threshold ranges

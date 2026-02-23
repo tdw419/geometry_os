@@ -61,8 +61,11 @@ class BehavioralMonitor:
         Initialize the behavioral monitor.
 
         Args:
-            anomaly_threshold: Threshold for anomaly detection (default: 0.7)
-            sliding_window_seconds: Time window for activity tracking (default: 300s)
+            anomaly_threshold: Threshold for anomaly detection (default: 0.7, range: 0.0-1.0)
+            sliding_window_seconds: Time window for activity tracking (default: 300s, min: 10)
+
+        Raises:
+            ValueError: If threshold values are out of valid range
         """
         self.anomaly_threshold = (
             anomaly_threshold if anomaly_threshold is not None
@@ -72,6 +75,16 @@ class BehavioralMonitor:
             sliding_window_seconds if sliding_window_seconds is not None
             else self.SLIDING_WINDOW_SECONDS
         )
+
+        # Validate threshold ranges
+        if not 0.0 <= self.anomaly_threshold <= 1.0:
+            raise ValueError(
+                f"anomaly_threshold must be between 0.0 and 1.0, got {self.anomaly_threshold}"
+            )
+        if self.sliding_window_seconds < 10:
+            raise ValueError(
+                f"sliding_window_seconds must be at least 10, got {self.sliding_window_seconds}"
+            )
 
         # In-memory storage for agent profiles (MVP - no persistence)
         self._profiles: Dict[str, AgentBehavioralProfile] = {}
