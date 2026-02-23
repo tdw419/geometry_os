@@ -15,7 +15,7 @@
 - Create `systems/clipboard/cli.py`
 - Commands: get, post, history, poll
 
-## Task 4: Integration Tests
+## Task 4: Integration Tests [x]
 - Create `tests/test_clipboard_integration.py`
 - Test round-trip and polling
 
