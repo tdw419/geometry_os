@@ -111,7 +111,7 @@ Focus: Core sense classes with basic functionality. Skip rate limiting, minimal 
   - **Verify**: `python -c "from systems.swarm.senses import FilesystemSense, WebSense, SenseResult"`
   - **Commit**: `chore(senses): update exports`
 
-- [ ] 4.2 Run quality checks
+- [x] 4.2 Run quality checks
   - **Do**: Run type check and all tests
   - **Verify**: `pytest systems/swarm/tests/ -v`
   - **Done when**: All tests pass
