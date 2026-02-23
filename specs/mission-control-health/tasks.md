@@ -77,7 +77,7 @@ BUG FIX spec - all components exist, need fixes for:
   - **Commit**: `refactor(health-bridge): add null check for geometryOSMetrics`
   - _Design: Error Handling section_
 
-- [ ] 2.2 V2 [VERIFY] Quality checkpoint: lint + check-types
+- [x] 2.2 V2 [VERIFY] Quality checkpoint: lint + check-types
   - **Do**: Run quality commands
   - **Verify**: `make lint && make format-check` exits 0
   - **Done when**: No lint or format errors
@@ -98,7 +98,7 @@ BUG FIX spec - all components exist, need fixes for:
   - _Requirements: AC-3.3_
   - _Design: Test Strategy section_
 
-- [ ] 3.2 Update test runner to include new tests
+- [x] 3.2 Update test runner to include new tests
   - **Do**:
     1. Add `<script src="test_wp_health_bridge.js"></script>` to runner HTML
     2. Add "Run Bridge Tests" button or integrate into "Run All"
@@ -107,13 +107,13 @@ BUG FIX spec - all components exist, need fixes for:
   - **Verify**: `grep "test_wp_health_bridge.js" systems/visual_shell/web/tests/test_mission_control_health_runner.html` shows script tag
   - **Commit**: `test(health-bridge): add wp_health_bridge tests to runner`
 
-- [ ] 3.3 V3 [VERIFY] Quality checkpoint: lint + tests
+- [x] 3.3 V3 [VERIFY] Quality checkpoint: lint + tests
   - **Do**: Run quality commands
   - **Verify**: `make lint && make check` exits 0
   - **Done when**: All tests pass, no lint errors
   - **Commit**: `chore(mission-control): pass quality checkpoint` (only if fixes needed)
 
-- [ ] 3.4 Integration test verification
+- [x] 3.4 Integration test verification
   - **Do**:
     1. Verify integration tests in verification_wp_integration.js reference correct keys
     2. Check that mock geometryOS uses window.geometryOSMetrics pattern
@@ -124,7 +124,7 @@ BUG FIX spec - all components exist, need fixes for:
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Local quality check
+- [x] 4.1 Local quality check
   - **Do**: Run ALL quality checks locally
   - **Verify**: All commands must pass:
     - Lint: `make lint`

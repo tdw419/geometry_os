@@ -87,6 +87,7 @@
     <script src="../SystemHealthDashboard.js"></script>
     <script src="test_metrics_collector.js"></script>
     <script src="test_system_health_dashboard.js"></script>
+    <script src="test_wp_health_bridge.js"></script>
     <script src="verification_wp_integration.js"></script>
     <script src="stress_test_wp_bridge.js"></script>
     <script src="resilience_test_wp_bridge.js"></script>
@@ -173,6 +174,15 @@
                 await tester.runAll();
             } else {
                 log('SystemHealthDashboardTester not loaded', 'warn');
+            }
+
+            log('');
+            if (typeof WpHealthBridgeTester !== 'undefined') {
+                log('--- WpHealthBridge Tests ---', 'info');
+                const tester = new WpHealthBridgeTester();
+                await tester.runAll();
+            } else {
+                log('WpHealthBridgeTester not loaded', 'warn');
             }
         }
 

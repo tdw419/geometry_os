@@ -7,8 +7,26 @@ Tracks agent activity patterns and calculates anomaly scores based on
 file operations, network operations, and entropy metrics.
 """
 
+"""
+Evolution Daemon V13 - Behavioral Monitor
+
+Real-time behavioral monitoring for agent anomaly detection.
+
+Tracks agent activity patterns and calculates anomaly scores based on
+file operations, network operations, and entropy metrics.
+
+Module Attributes:
+    BehavioralMonitor: Service class for monitoring agent behavior
+
+Example:
+    >>> monitor = BehavioralMonitor(anomaly_threshold=0.7)
+    >>> event = monitor.record_event("agent-001", "file_read", {"path": "/etc/passwd"})
+    >>> if monitor.is_anomalous("agent-001"):
+    ...     print("Agent behavior is suspicious!")
+"""
+
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from systems.evolution_daemon.safety.data_structures import (
     AgentBehavioralProfile,
@@ -43,8 +61,11 @@ class BehavioralMonitor:
         Initialize the behavioral monitor.
 
         Args:
-            anomaly_threshold: Threshold for anomaly detection (default: 0.7)
-            sliding_window_seconds: Time window for activity tracking (default: 300s)
+            anomaly_threshold: Threshold for anomaly detection (default: 0.7, range: 0.0-1.0)
+            sliding_window_seconds: Time window for activity tracking (default: 300s, min: 10)
+
+        Raises:
+            ValueError: If threshold values are out of valid range
         """
         self.anomaly_threshold = (
             anomaly_threshold if anomaly_threshold is not None
@@ -55,11 +76,21 @@ class BehavioralMonitor:
             else self.SLIDING_WINDOW_SECONDS
         )
 
+        # Validate threshold ranges
+        if not 0.0 <= self.anomaly_threshold <= 1.0:
+            raise ValueError(
+                f"anomaly_threshold must be between 0.0 and 1.0, got {self.anomaly_threshold}"
+            )
+        if self.sliding_window_seconds < 10:
+            raise ValueError(
+                f"sliding_window_seconds must be at least 10, got {self.sliding_window_seconds}"
+            )
+
         # In-memory storage for agent profiles (MVP - no persistence)
         self._profiles: Dict[str, AgentBehavioralProfile] = {}
 
         # Event history for sliding window calculations
-        self._event_history: Dict[str, list] = {}
+        self._event_history: Dict[str, List[BehavioralEvent]] = {}
 
     def record_event(
         self,

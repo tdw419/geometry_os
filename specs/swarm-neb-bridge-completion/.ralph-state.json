@@ -1,13 +1,13 @@
 {
   "source": "plan",
-  "name": "certbot-ci-integration",
-  "basePath": "./specs/certbot-ci-integration",
+  "name": "swarm-neb-bridge-completion",
+  "basePath": "./specs/swarm-neb-bridge-completion",
   "phase": "execution",
-  "taskIndex": 8,
+  "taskIndex": 0,
   "totalTasks": 12,
   "taskIteration": 1,
   "maxTaskIterations": 5,
   "globalIteration": 1,
   "maxGlobalIterations": 100,
-  "commitSpec": false
+  "commitSpec": true
 }

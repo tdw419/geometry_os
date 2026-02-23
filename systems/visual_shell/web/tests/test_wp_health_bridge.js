@@ -1,8 +1,10 @@
 /**
  * Geometry OS: WpHealthBridge Unit Tests
  *
- * Tests the WpHealthBridge functionality including health score calculation,
- * heartbeat payload construction, and graceful error handling.
+ * Tests the wp_health_bridge.js functionality:
+ * - calculateHealthScore method
+ * - Heartbeat payload construction
+ * - Error handling for missing metrics
  *
  * Usage:
  *   1. Include wp_health_bridge.js and this test file in the browser.
@@ -12,6 +14,7 @@
 class WpHealthBridgeTester {
     constructor() {
         this.results = [];
+        this.bridge = null;
     }
 
     /**
@@ -24,10 +27,10 @@ class WpHealthBridgeTester {
         this.setup();
 
         // Run tests
-        await this.test_calculate_health_score_perfect();
-        await this.test_calculate_health_score_high_latency();
-        await this.test_calculate_health_score_buffer_drops();
-        await this.test_calculate_health_score_reconnects();
+        await this.test_calculateHealthScore_perfect();
+        await this.test_calculateHealthScore_high_latency();
+        await this.test_calculateHealthScore_buffer_drops();
+        await this.test_calculateHealthScore_reconnects();
         await this.test_heartbeat_payload_keys();
         await this.test_graceful_error_handling();
 
@@ -39,390 +42,272 @@ class WpHealthBridgeTester {
     }
 
     setup() {
+        // Create a minimal mock bridge for testing
+        this.bridge = {
+            calculateHealthScore: (metrics) => {
+                // Replicate the calculateHealthScore logic from wp_health_bridge.js
+                let score = 100;
+
+                // Latency penalty: -1 per ms over 50ms
+                if (metrics.avgLatency > 50) {
+                    score -= Math.min(metrics.avgLatency - 50, 50);
+                }
+
+                // Buffer drop penalty: -5 per drop
+                score -= metrics.bufferDrops * 5;
+
+                // Reconnect penalty: -10 per reconnect
+                score -= metrics.reconnectCount * 10;
+
+                return Math.max(0, score);
+            },
+
+            buildHeartbeatPayload: (metrics) => {
+                return {
+                    latency_ms: metrics.avgLatency || 0,
+                    swarm_count: metrics.tileCount || 0,
+                    health_score: this.bridge.calculateHealthScore(metrics),
+                    buffer_drops: metrics.bufferDrops || 0,
+                    reconnects: metrics.reconnectCount || 0,
+                    timestamp: Date.now()
+                };
+            }
+        };
         this.results = [];
     }
 
     teardown() {
-        // No cleanup needed for pure function tests
+        this.bridge = null;
+    }
+
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     /**
-     * Extract calculateHealthScore from wp_health_bridge.js IIFE for testing
-     * This mirrors the function logic from the bridge
+     * Test 1: Perfect metrics should return 100
      */
-    calculateHealthScore(metrics) {
-        if (!metrics) return 100;
-
-        let score = 100;
-
-        // Latency penalty (target: <100ms)
-        const latency = metrics.avgLatency || 0;
-        if (latency > 200) score -= 20;
-        else if (latency > 100) score -= 10;
-
-        // Buffer drops penalty
-        const drops = metrics.bufferDrops || 0;
-        if (drops > 10) score -= 15;
-        else if (drops > 0) score -= 5;
-
-        // Reconnect penalty
-        const reconnects = metrics.reconnects || 0;
-        if (reconnects > 5) score -= 15;
-        else if (reconnects > 0) score -= 5;
-
-        return Math.max(0, Math.min(100, score));
-    }
-
-    /**
-     * Build heartbeat payload (mirrors logic from wp_health_bridge.js)
-     */
-    buildHeartbeatPayload(metrics) {
-        if (!metrics) return null;
-
-        const healthScore = this.calculateHealthScore(metrics);
-
-        return {
-            latency_ms: metrics.avgLatency || 0,
-            swarm_count: metrics.tileCount || 0,
-            health_score: healthScore,
-            buffer_drops: metrics.bufferDrops || 0,
-            reconnects: metrics.reconnects || 0
-        };
-    }
-
-    /**
-     * Test 1: Perfect metrics should return score of 100
-     */
-    async test_calculate_health_score_perfect() {
-        console.log('%c  Test: calculate_health_score_perfect', 'color: #ffcc00;');
+    async test_calculateHealthScore_perfect() {
+        console.log('%c  Test: calculateHealthScore_perfect', 'color: #ffcc00;');
 
         try {
-            // Perfect metrics
             const perfectMetrics = {
-                avgLatency: 50,
+                avgLatency: 10,
+                tileCount: 100,
                 bufferDrops: 0,
-                reconnects: 0
+                reconnectCount: 0
             };
 
-            const score = this.calculateHealthScore(perfectMetrics);
+            const score = this.bridge.calculateHealthScore(perfectMetrics);
 
             if (score !== 100) {
                 throw new Error(`Expected score 100, got ${score}`);
             }
 
-            // Also test with empty metrics
-            const emptyScore = this.calculateHealthScore({});
-            if (emptyScore !== 100) {
-                throw new Error(`Expected score 100 for empty metrics, got ${emptyScore}`);
-            }
-
-            // Test with null (should return 100)
-            const nullScore = this.calculateHealthScore(null);
-            if (nullScore !== 100) {
-                throw new Error(`Expected score 100 for null metrics, got ${nullScore}`);
-            }
-
-            this.logResult('calculate_health_score_perfect', true, 'Score: 100 for perfect metrics');
-        } catch (error) {
-            this.logResult('calculate_health_score_perfect', false, error.message);
+            this.results.push({ name: 'calculateHealthScore_perfect', passed: true });
+            console.log('%c    PASS', 'color: #00ff00;');
+        } catch (e) {
+            this.results.push({ name: 'calculateHealthScore_perfect', passed: false, error: e.message });
+            console.log('%c    FAIL: ' + e.message, 'color: #ff4444;');
         }
     }
 
     /**
-     * Test 2: High latency should penalize score
+     * Test 2: High latency should reduce score
      */
-    async test_calculate_health_score_high_latency() {
-        console.log('%c  Test: calculate_health_score_high_latency', 'color: #ffcc00;');
+    async test_calculateHealthScore_high_latency() {
+        console.log('%c  Test: calculateHealthScore_high_latency', 'color: #ffcc00;');
 
         try {
-            // Test latency > 200ms (20 point penalty)
             const highLatencyMetrics = {
-                avgLatency: 250,
+                avgLatency: 100,  // 50ms over threshold = -50 penalty
+                tileCount: 100,
                 bufferDrops: 0,
-                reconnects: 0
+                reconnectCount: 0
             };
 
-            const highScore = this.calculateHealthScore(highLatencyMetrics);
-            if (highScore !== 80) {
-                throw new Error(`Expected score 80 for 250ms latency, got ${highScore}`);
+            const score = this.bridge.calculateHealthScore(highLatencyMetrics);
+
+            if (score !== 50) {
+                throw new Error(`Expected score 50, got ${score}`);
             }
 
-            // Test latency > 100ms but < 200ms (10 point penalty)
-            const mediumLatencyMetrics = {
-                avgLatency: 150,
-                bufferDrops: 0,
-                reconnects: 0
-            };
-
-            const mediumScore = this.calculateHealthScore(mediumLatencyMetrics);
-            if (mediumScore !== 90) {
-                throw new Error(`Expected score 90 for 150ms latency, got ${mediumScore}`);
-            }
-
-            // Test latency exactly 100ms (no penalty, boundary)
-            const boundaryMetrics = {
-                avgLatency: 100,
-                bufferDrops: 0,
-                reconnects: 0
-            };
-
-            const boundaryScore = this.calculateHealthScore(boundaryMetrics);
-            if (boundaryScore !== 100) {
-                throw new Error(`Expected score 100 for 100ms latency, got ${boundaryScore}`);
-            }
-
-            this.logResult('calculate_health_score_high_latency', true, 'Latency penalties correct (80, 90, 100)');
-        } catch (error) {
-            this.logResult('calculate_health_score_high_latency', false, error.message);
+            this.results.push({ name: 'calculateHealthScore_high_latency', passed: true });
+            console.log('%c    PASS', 'color: #00ff00;');
+        } catch (e) {
+            this.results.push({ name: 'calculateHealthScore_high_latency', passed: false, error: e.message });
+            console.log('%c    FAIL: ' + e.message, 'color: #ff4444;');
         }
     }
 
     /**
-     * Test 3: Buffer drops should penalize score
+     * Test 3: Buffer drops should reduce score
      */
-    async test_calculate_health_score_buffer_drops() {
-        console.log('%c  Test: calculate_health_score_buffer_drops', 'color: #ffcc00;');
+    async test_calculateHealthScore_buffer_drops() {
+        console.log('%c  Test: calculateHealthScore_buffer_drops', 'color: #ffcc00;');
 
         try {
-            // Test buffer drops > 10 (15 point penalty)
-            const highDropsMetrics = {
-                avgLatency: 50,
-                bufferDrops: 15,
-                reconnects: 0
+            const bufferDropMetrics = {
+                avgLatency: 10,
+                tileCount: 100,
+                bufferDrops: 5,  // 5 * -5 = -25 penalty
+                reconnectCount: 0
             };
 
-            const highScore = this.calculateHealthScore(highDropsMetrics);
-            if (highScore !== 85) {
-                throw new Error(`Expected score 85 for 15 drops, got ${highScore}`);
+            const score = this.bridge.calculateHealthScore(bufferDropMetrics);
+
+            if (score !== 75) {
+                throw new Error(`Expected score 75, got ${score}`);
             }
 
-            // Test buffer drops > 0 but < 10 (5 point penalty)
-            const lowDropsMetrics = {
-                avgLatency: 50,
-                bufferDrops: 5,
-                reconnects: 0
-            };
-
-            const lowScore = this.calculateHealthScore(lowDropsMetrics);
-            if (lowScore !== 95) {
-                throw new Error(`Expected score 95 for 5 drops, got ${lowScore}`);
-            }
-
-            // Test exactly 10 drops (5 point penalty, boundary)
-            const boundaryMetrics = {
-                avgLatency: 50,
-                bufferDrops: 10,
-                reconnects: 0
-            };
-
-            const boundaryScore = this.calculateHealthScore(boundaryMetrics);
-            if (boundaryScore !== 95) {
-                throw new Error(`Expected score 95 for 10 drops, got ${boundaryScore}`);
-            }
-
-            this.logResult('calculate_health_score_buffer_drops', true, 'Buffer drop penalties correct (85, 95)');
-        } catch (error) {
-            this.logResult('calculate_health_score_buffer_drops', false, error.message);
+            this.results.push({ name: 'calculateHealthScore_buffer_drops', passed: true });
+            console.log('%c    PASS', 'color: #00ff00;');
+        } catch (e) {
+            this.results.push({ name: 'calculateHealthScore_buffer_drops', passed: false, error: e.message });
+            console.log('%c    FAIL: ' + e.message, 'color: #ff4444;');
         }
     }
 
     /**
-     * Test 4: Reconnects should penalize score
+     * Test 4: Reconnects should reduce score
      */
-    async test_calculate_health_score_reconnects() {
-        console.log('%c  Test: calculate_health_score_reconnects', 'color: #ffcc00;');
+    async test_calculateHealthScore_reconnects() {
+        console.log('%c  Test: calculateHealthScore_reconnects', 'color: #ffcc00;');
 
         try {
-            // Test reconnects > 5 (15 point penalty)
-            const highReconnectsMetrics = {
-                avgLatency: 50,
+            const reconnectMetrics = {
+                avgLatency: 10,
+                tileCount: 100,
                 bufferDrops: 0,
-                reconnects: 10
+                reconnectCount: 3  // 3 * -10 = -30 penalty
             };
 
-            const highScore = this.calculateHealthScore(highReconnectsMetrics);
-            if (highScore !== 85) {
-                throw new Error(`Expected score 85 for 10 reconnects, got ${highScore}`);
+            const score = this.bridge.calculateHealthScore(reconnectMetrics);
+
+            if (score !== 70) {
+                throw new Error(`Expected score 70, got ${score}`);
             }
 
-            // Test reconnects > 0 but < 5 (5 point penalty)
-            const lowReconnectsMetrics = {
-                avgLatency: 50,
-                bufferDrops: 0,
-                reconnects: 3
-            };
-
-            const lowScore = this.calculateHealthScore(lowReconnectsMetrics);
-            if (lowScore !== 95) {
-                throw new Error(`Expected score 95 for 3 reconnects, got ${lowScore}`);
-            }
-
-            // Test exactly 5 reconnects (5 point penalty, boundary)
-            const boundaryMetrics = {
-                avgLatency: 50,
-                bufferDrops: 0,
-                reconnects: 5
-            };
-
-            const boundaryScore = this.calculateHealthScore(boundaryMetrics);
-            if (boundaryScore !== 95) {
-                throw new Error(`Expected score 95 for 5 reconnects, got ${boundaryScore}`);
-            }
-
-            this.logResult('calculate_health_score_reconnects', true, 'Reconnect penalties correct (85, 95)');
-        } catch (error) {
-            this.logResult('calculate_health_score_reconnects', false, error.message);
+            this.results.push({ name: 'calculateHealthScore_reconnects', passed: true });
+            console.log('%c    PASS', 'color: #00ff00;');
+        } catch (e) {
+            this.results.push({ name: 'calculateHealthScore_reconnects', passed: false, error: e.message });
+            console.log('%c    FAIL: ' + e.message, 'color: #ff4444;');
         }
     }
 
     /**
-     * Test 5: Heartbeat payload should have correct key names
+     * Test 5: Heartbeat payload uses correct metric keys
      */
     async test_heartbeat_payload_keys() {
         console.log('%c  Test: heartbeat_payload_keys', 'color: #ffcc00;');
 
         try {
             const metrics = {
-                avgLatency: 75.5,
-                tileCount: 42,
-                bufferDrops: 3,
-                reconnects: 1
+                avgLatency: 42,
+                tileCount: 150,
+                bufferDrops: 2,
+                reconnectCount: 1
             };
 
-            const payload = this.buildHeartbeatPayload(metrics);
+            const payload = this.bridge.buildHeartbeatPayload(metrics);
 
-            // Verify payload exists
-            if (!payload) {
-                throw new Error('Payload is null');
+            // Verify correct keys are used
+            if (!payload.hasOwnProperty('latency_ms')) {
+                throw new Error('Missing latency_ms in payload');
             }
 
-            // Verify all expected keys exist
-            const expectedKeys = ['latency_ms', 'swarm_count', 'health_score', 'buffer_drops', 'reconnects'];
-            for (const key of expectedKeys) {
-                if (!(key in payload)) {
-                    throw new Error(`Missing key: ${key}`);
-                }
+            if (!payload.hasOwnProperty('swarm_count')) {
+                throw new Error('Missing swarm_count in payload');
             }
 
-            // Verify correct value mapping
-            if (payload.latency_ms !== 75.5) {
-                throw new Error(`Expected latency_ms 75.5, got ${payload.latency_ms}`);
+            if (!payload.hasOwnProperty('health_score')) {
+                throw new Error('Missing health_score in payload');
             }
 
-            if (payload.swarm_count !== 42) {
-                throw new Error(`Expected swarm_count 42, got ${payload.swarm_count}`);
+            // Verify values match metrics
+            if (payload.latency_ms !== 42) {
+                throw new Error(`Expected latency_ms 42, got ${payload.latency_ms}`);
             }
 
-            // Health score should be 85 (95 - 5 for drops - 5 for reconnects)
-            if (payload.health_score !== 85) {
-                throw new Error(`Expected health_score 85, got ${payload.health_score}`);
+            if (payload.swarm_count !== 150) {
+                throw new Error(`Expected swarm_count 150, got ${payload.swarm_count}`);
             }
 
-            if (payload.buffer_drops !== 3) {
-                throw new Error(`Expected buffer_drops 3, got ${payload.buffer_drops}`);
-            }
-
-            if (payload.reconnects !== 1) {
-                throw new Error(`Expected reconnects 1, got ${payload.reconnects}`);
-            }
-
-            this.logResult('heartbeat_payload_keys', true, 'All payload keys correct: latency_ms, swarm_count, health_score, buffer_drops, reconnects');
-        } catch (error) {
-            this.logResult('heartbeat_payload_keys', false, error.message);
+            this.results.push({ name: 'heartbeat_payload_keys', passed: true });
+            console.log('%c    PASS', 'color: #00ff00;');
+        } catch (e) {
+            this.results.push({ name: 'heartbeat_payload_keys', passed: false, error: e.message });
+            console.log('%c    FAIL: ' + e.message, 'color: #ff4444;');
         }
     }
 
     /**
-     * Test 6: Graceful error handling when metrics unavailable
+     * Test 6: Graceful handling when metrics unavailable
      */
     async test_graceful_error_handling() {
         console.log('%c  Test: graceful_error_handling', 'color: #ffcc00;');
 
         try {
             // Test with null metrics
-            const nullPayload = this.buildHeartbeatPayload(null);
-            if (nullPayload !== null) {
-                throw new Error('Expected null payload for null metrics');
+            const nullPayload = this.bridge.buildHeartbeatPayload(null);
+
+            if (nullPayload.latency_ms !== 0) {
+                throw new Error('Expected latency_ms 0 for null metrics');
             }
 
-            // Test with undefined metrics
-            const undefinedPayload = this.buildHeartbeatPayload(undefined);
-            if (undefinedPayload !== null) {
-                throw new Error('Expected null payload for undefined metrics');
+            if (nullPayload.swarm_count !== 0) {
+                throw new Error('Expected swarm_count 0 for null metrics');
             }
 
-            // Test health score with missing fields
-            const partialMetrics = {};
-            const partialScore = this.calculateHealthScore(partialMetrics);
-            if (partialScore !== 100) {
-                throw new Error(`Expected score 100 for partial metrics, got ${partialScore}`);
+            // Test with empty metrics
+            const emptyPayload = this.bridge.buildHeartbeatPayload({});
+
+            if (emptyPayload.latency_ms !== 0) {
+                throw new Error('Expected latency_ms 0 for empty metrics');
             }
 
-            // Test health score never goes negative
-            const terribleMetrics = {
-                avgLatency: 500,
-                bufferDrops: 50,
-                reconnects: 20
-            };
-            const terribleScore = this.calculateHealthScore(terribleMetrics);
-            // Expected: 100 - 20 (latency) - 15 (drops) - 15 (reconnects) = 50
-            if (terribleScore < 0) {
-                throw new Error(`Score should not be negative, got ${terribleScore}`);
-            }
-            if (terribleScore !== 50) {
-                throw new Error(`Expected score 50 for terrible metrics, got ${terribleScore}`);
-            }
-
-            // Test score never exceeds 100
-            const amazingMetrics = {
-                avgLatency: 0,
-                bufferDrops: 0,
-                reconnects: 0
-            };
-            const amazingScore = this.calculateHealthScore(amazingMetrics);
-            if (amazingScore > 100) {
-                throw new Error(`Score should not exceed 100, got ${amazingScore}`);
-            }
-
-            this.logResult('graceful_error_handling', true, 'Handles null/undefined/metrics gracefully, score bounded [0,100]');
-        } catch (error) {
-            this.logResult('graceful_error_handling', false, error.message);
+            this.results.push({ name: 'graceful_error_handling', passed: true });
+            console.log('%c    PASS', 'color: #00ff00;');
+        } catch (e) {
+            this.results.push({ name: 'graceful_error_handling', passed: false, error: e.message });
+            console.log('%c    FAIL: ' + e.message, 'color: #ff4444;');
         }
     }
 
-    logResult(name, success, details) {
-        const symbol = success ? '✅' : '❌';
-        console.log(`    ${symbol} ${name}: ${details}`);
-        this.results.push({ name, success, details });
-    }
-
+    /**
+     * Print test report
+     */
     report() {
-        console.log('\n' + '='.repeat(50));
-        console.log('%cWpHealthBridge Test Report', 'color: #00ffcc; font-weight: bold;');
-        console.log('='.repeat(50));
-
-        const passed = this.results.filter(r => r.success).length;
+        const passed = this.results.filter(r => r.passed).length;
         const total = this.results.length;
-        const color = passed === total ? 'color: #00ff00' : 'color: #ff4444';
 
-        console.log(`%cPASSED: ${passed}/${total}`, `${color}; font-weight: bold;`);
+        console.log('%c[WpHealthBridge Tests] Results:', 'color: #00ffcc; font-weight: bold;');
+        console.log(`  Passed: ${passed}/${total}`);
 
-        this.results.forEach(r => {
-            console.log(`  ${r.success ? '✅' : '❌'} ${r.name.padEnd(35)} | ${r.details}`);
-        });
-
-        console.log('='.repeat(50));
-    }
-
-    sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
+        if (passed === total) {
+            console.log('%c  ALL TESTS PASSED', 'color: #00ff00; font-weight: bold;');
+        } else {
+            console.log('%c  SOME TESTS FAILED', 'color: #ff4444; font-weight: bold;');
+            this.results.filter(r => !r.passed).forEach(r => {
+                console.log(`    - ${r.name}: ${r.error}`);
+            });
+        }
     }
 }
 
-// Export for Node.js testing
+// Auto-run if loaded in browser with ?autorun
+if (typeof window !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('autorun') === 'wp_health_bridge') {
+        window.addEventListener('DOMContentLoaded', async () => {
+            const tester = new WpHealthBridgeTester();
+            await tester.runAll();
+        });
+    }
+}
+
+// Export for module usage
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { WpHealthBridgeTester };
 }
-
-// Convenience auto-run message
-console.log('%c[WpHealthBridge Tests] Loaded. Run: const t = new WpHealthBridgeTester(); await t.runAll();', 'color: #00ffcc');

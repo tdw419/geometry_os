@@ -1,5 +1,7 @@
 # VectorOS v2 - Next Generation Neural Operating System
 
+[![Certification Tests](https://github.com/tdw419/geometry_os/actions/workflows/certification-tests.yml/badge.svg)](https://github.com/tdw419/geometry_os/actions/workflows/certification-tests.yml)
+
 ## Architecture Overview
 
 VectorOS v2 represents a complete architectural evolution from the Python-heavy v1 prototype.

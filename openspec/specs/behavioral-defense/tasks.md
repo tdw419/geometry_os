@@ -57,7 +57,7 @@ Focus: Validate behavioral monitoring works end-to-end. Skip tests, accept hardc
   - _Requirements: FR-3_
   - _Design: BehavioralMonitor Architecture_
 
-- [ ] 1.3 Add classify_with_behavior to TierRouter
+- [x] 1.3 Add classify_with_behavior to TierRouter
   - **Do**:
     1. Open `systems/evolution_daemon/safety/tier_router.py`
     2. Add `behavioral_monitor` optional parameter to `__init__`
@@ -73,7 +73,7 @@ Focus: Validate behavioral monitoring works end-to-end. Skip tests, accept hardc
   - _Requirements: FR-4_
   - _Design: TierRouter Behavioral Integration_
 
-- [ ] 1.4 Create WordPressSentinel telemetry scanner
+- [x] 1.4 Create WordPressSentinel telemetry scanner
   - **Do**:
     1. Create `systems/evolution_daemon/safety/wordpress_sentinel.py`
     2. Implement `WordPressSentinel` class with `telemetry_path` constructor param (default: `wordpress_zone/telemetry`)
@@ -89,7 +89,7 @@ Focus: Validate behavioral monitoring works end-to-end. Skip tests, accept hardc
   - _Requirements: FR-5_
   - _Design: WordPressSentinel Architecture_
 
-- [ ] 1.5 Export new components in __init__.py
+- [x] 1.5 Export new components in __init__.py
   - **Do**:
     1. Open `systems/evolution_daemon/safety/__init__.py`
     2. Add imports for `AgentBehavioralProfile`, `BehavioralEvent` from data_structures
@@ -103,13 +103,13 @@ Focus: Validate behavioral monitoring works end-to-end. Skip tests, accept hardc
   - **Commit**: `feat(safety): export behavioral defense components`
   - _Requirements: FR-6_
 
-- [ ] 1.6 [VERIFY] Quality checkpoint: import check
+- [x] 1.6 [VERIFY] Quality checkpoint: import check
   - **Do**: Verify all imports work and no syntax errors
   - **Verify**: `python3 -c "from systems.evolution_daemon.safety import AgentBehavioralProfile, BehavioralEvent, BehavioralMonitor, WordPressSentinel, TierRouter; t = TierRouter(); print('OK')" && python3 -m py_compile systems/evolution_daemon/safety/behavioral_monitor.py systems/evolution_daemon/safety/wordpress_sentinel.py`
   - **Done when**: No import errors, no syntax errors
   - **Commit**: `chore(safety): pass quality checkpoint` (only if fixes needed)
 
-- [ ] 1.7 POC Checkpoint
+- [x] 1.7 POC Checkpoint
   - **Do**: Verify end-to-end behavioral monitoring flow works
   - **Done when**: Complete flow: record event -> detect anomaly -> tier demotion
   - **Verify**: `python3 -c "
@@ -140,7 +140,7 @@ print('POC PASSED')
 
 After POC validated, clean up code.
 
-- [ ] 2.1 Add type hints and docstrings
+- [x] 2.1 Add type hints and docstrings
   - **Do**:
     1. Add complete type hints to all new methods
     2. Add docstrings with Args/Returns sections
@@ -155,7 +155,7 @@ After POC validated, clean up code.
   - **Commit**: `refactor(safety): add type hints and docstrings`
   - _Design: Code Quality Standards_
 
-- [ ] 2.2 Make thresholds configurable
+- [x] 2.2 Make thresholds configurable
   - **Do**:
     1. Change ANOMALY_THRESHOLD, SLIDING_WINDOW_SECONDS to constructor params with class constant defaults
     2. Add validation in constructor for threshold ranges

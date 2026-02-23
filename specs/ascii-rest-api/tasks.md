@@ -196,7 +196,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
   - _Requirements: FR-1, FR-2, FR-3, AC-2.1 - AC-2.6_
   - _Design: Test Strategy - Unit Tests_
 
-- [ ] 3.2 Write PHP unit tests for REST_API class
+- [x] 3.2 Write PHP unit tests for REST_API class
   - **Do**:
     1. Create `tests/php/class-test-rest-api.php`
     2. Write `test_missing_key_returns_401()` without any auth
@@ -215,7 +215,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
   - _Requirements: FR-4 - FR-11, AC-1.1 - AC-7.4_
   - _Design: Test Strategy - Unit Tests_
 
-- [ ] 3.3 Create Python integration test script
+- [x] 3.3 Create Python integration test script
   - **Do**:
     1. Create `tests/python/test_rest_api.py`
     2. Add argparse for `--url` and `--key` CLI arguments
@@ -234,7 +234,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
   - _Requirements: FR-13, AC-8.1 - AC-8.5_
   - _Design: Test Strategy - Integration Tests_
 
-- [ ] 3.4 [VERIFY] Quality checkpoint: all tests pass
+- [x] 3.4 [VERIFY] Quality checkpoint: all tests pass
   - **Do**: Run all unit and integration tests
   - **Verify**: `cd wordpress_zone/wordpress/wp-content/plugins/ascii-desktop-control/tests/php && php run-tests.php`
   - **Done when**: All PHP tests pass
@@ -242,7 +242,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Run full PHP syntax validation
+- [x] 4.1 Run full PHP syntax validation
   - **Do**:
     1. Run php -l on all new PHP files
     2. Run php -l on all modified PHP files
@@ -252,7 +252,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
   - **Done when**: No syntax errors in any PHP file
   - **Commit**: `chore(api): fix syntax issues` (only if fixes needed)
 
-- [ ] 4.2 Update README with API documentation
+- [x] 4.2 Update README with API documentation
   - **Do**:
     1. Document all 5 endpoints with request/response examples
     2. Document authentication methods (header + query param)
@@ -266,7 +266,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
   - _Requirements: NFR-6, NFR-7_
   - _Design: Documentation_
 
-- [ ] 4.3 Final verification: all tests pass
+- [x] 4.3 Final verification: all tests pass
   - **Do**:
     1. Run all PHP unit tests
     2. Run Python integration tests against local WordPress
@@ -278,7 +278,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
 
 ## Phase 5: PR Lifecycle
 
-- [ ] 5.1 Create PR and verify CI
+- [x] 5.1 Create PR and verify CI
   - **Do**:
     1. Verify on feature branch: `git branch --show-current`
     2. Push branch: `git push -u origin feat/ascii-rest-api`

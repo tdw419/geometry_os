@@ -7,12 +7,24 @@ This determines the level of post-commit monitoring required.
 Tier 1: Minor changes, auto-commit with basic monitoring
 Tier 2: Medium changes, auto-commit with visual monitoring
 Tier 3: Major changes, requires human review (PR)
+
+Module Attributes:
+    TierRouter: Router class for classifying evolution proposals
+
+Example:
+    >>> router = TierRouter()
+    >>> tier = router.classify(proposal, verdict)
+    >>> if tier == 3:
+    ...     print("Requires human review!")
 """
 
 import logging
-from typing import Dict
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from .data_structures import EvolutionProposal, GuardianVerdict
+
+if TYPE_CHECKING:
+    from .behavioral_monitor import BehavioralMonitor
 
 logger = logging.getLogger("evolution_daemon.tier_router")
 
@@ -51,8 +63,15 @@ class TierRouter:
     TIER_1_THRESHOLD = 10
     TIER_2_THRESHOLD = 25
 
-    def __init__(self):
+    def __init__(self, behavioral_monitor: Optional["BehavioralMonitor"] = None):
+        """
+        Initialize the tier router.
+
+        Args:
+            behavioral_monitor: Optional BehavioralMonitor for behavioral tier adjustment
+        """
         self._classification_history: Dict[str, int] = {}
+        self._behavioral_monitor = behavioral_monitor
 
     def calculate_score(
         self,
@@ -152,8 +171,87 @@ class TierRouter:
 
         return tier
 
+    def _get_behavior_tier(self, agent_id: str) -> int:
+        """
+        Determine tier based on agent behavioral analysis.
+
+        Args:
+            agent_id: Unique identifier for the agent
+
+        Returns:
+            Behavior tier (1, 2, or 3) based on anomaly detection
+        """
+        if self._behavioral_monitor is None:
+            return 1  # No monitor, assume normal behavior
+
+        # Check if agent is anomalous
+        if self._behavioral_monitor.is_anomalous(agent_id):
+            return 3  # Anomalous agents get highest restriction
+
+        # Check anomaly score for medium elevation
+        profile = self._behavioral_monitor.get_profile(agent_id)
+        if profile.entropy_score > 0.5:
+            return 2  # Suspicious but not anomalous
+
+        return 1  # Normal behavior
+
+    def classify_with_behavior(
+        self,
+        proposal: EvolutionProposal,
+        verdict: GuardianVerdict,
+        agent_id: str
+    ) -> int:
+        """
+        Classify a proposal considering both code risk and agent behavior.
+
+        Combines code-based tier with behavior-based tier, taking the
+        more restrictive (higher) tier.
+
+        Args:
+            proposal: The evolution proposal
+            verdict: Guardian's review verdict
+            agent_id: Unique identifier for the proposing agent
+
+        Returns:
+            Tier number (1, 2, or 3) - max of code_tier and behavior_tier
+        """
+        # Get code-based tier using existing logic
+        code_tier = self.classify(proposal, verdict)
+
+        # Get behavior-based tier
+        behavior_tier = self._get_behavior_tier(agent_id)
+
+        # Take the more restrictive (higher) tier
+        final_tier = max(code_tier, behavior_tier)
+
+        if behavior_tier > code_tier:
+            logger.info(
+                f"🔒 Tier elevated from {code_tier} to {final_tier} "
+                f"due to behavioral concerns (score: "
+                f"{self._behavioral_monitor.get_profile(agent_id).entropy_score:.2f})"
+            )
+
+        # Update classification history with final tier
+        self._classification_history[proposal.proposal_id] = final_tier
+
+        tier_names = {1: "Minor", 2: "Medium", 3: "Major"}
+        logger.info(
+            f"📊 Final Tier {final_tier} ({tier_names[final_tier]}) - "
+            f"Code: {code_tier}, Behavior: {behavior_tier}"
+        )
+
+        return final_tier
+
     def get_tier_description(self, tier: int) -> str:
-        """Get human-readable description of a tier"""
+        """
+        Get human-readable description of a tier.
+
+        Args:
+            tier: Tier number (1, 2, or 3)
+
+        Returns:
+            Human-readable description of the tier's requirements
+        """
         descriptions = {
             1: "Minor changes - Auto-commit with basic monitoring",
             2: "Medium changes - Auto-commit with visual monitoring",
@@ -161,8 +259,20 @@ class TierRouter:
         }
         return descriptions.get(tier, "Unknown tier")
 
-    def get_monitoring_requirements(self, tier: int) -> Dict:
-        """Get monitoring requirements for a tier"""
+    def get_monitoring_requirements(self, tier: int) -> Dict[str, Any]:
+        """
+        Get monitoring requirements for a tier.
+
+        Args:
+            tier: Tier number (1, 2, or 3)
+
+        Returns:
+            Dict with monitoring requirements:
+                - regression_tests: bool
+                - visual_monitoring: bool
+                - performance_check: bool
+                - human_review: bool
+        """
         requirements = {
             1: {
                 "regression_tests": True,
@@ -186,11 +296,21 @@ class TierRouter:
         return requirements.get(tier, requirements[1])
 
     def get_classification_history(self) -> Dict[str, int]:
-        """Get all classifications made"""
+        """
+        Get all classifications made.
+
+        Returns:
+            Dict mapping proposal_id to tier number
+        """
         return self._classification_history.copy()
 
     def get_tier_stats(self) -> Dict[int, int]:
-        """Get statistics on tier classifications"""
+        """
+        Get statistics on tier classifications.
+
+        Returns:
+            Dict with counts for each tier (1, 2, 3)
+        """
         stats = {1: 0, 2: 0, 3: 0}
         for tier in self._classification_history.values():
             stats[tier] = stats.get(tier, 0) + 1
