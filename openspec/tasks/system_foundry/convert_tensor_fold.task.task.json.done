@@ -4,5 +4,5 @@
     "source": "tensor_fold.py",
     "destination": "tensor_fold.brick",
     "texture_size": 256,
-    "ai_model": "glm-4.7-flash"
+    "ai_model": "qwen2.5-coder-7b-instruct"
 }
