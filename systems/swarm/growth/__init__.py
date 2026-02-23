@@ -6,12 +6,11 @@ from their experiences.
 """
 
 from systems.swarm.growth.recursive_growth import RecursiveGrowth, GrowthMetrics
-
-# Will be added in subsequent tasks
-# from systems.swarm.growth.pattern_analyzer import PatternAnalyzer
+from systems.swarm.growth.pattern_analyzer import PatternAnalyzer, PerformanceAnalysis
 
 __all__ = [
     "RecursiveGrowth",
     "GrowthMetrics",
-    # "PatternAnalyzer",
+    "PatternAnalyzer",
+    "PerformanceAnalysis",
 ]
