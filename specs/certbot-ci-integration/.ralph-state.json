@@ -3,7 +3,7 @@
   "name": "certbot-ci-integration",
   "basePath": "./specs/certbot-ci-integration",
   "phase": "execution",
-  "taskIndex": 4,
+  "taskIndex": 5,
   "totalTasks": 12,
   "taskIteration": 1,
   "maxTaskIterations": 5,

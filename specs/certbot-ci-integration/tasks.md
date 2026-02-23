@@ -48,7 +48,7 @@ Focus: Get certification tests running in CI with minimal infrastructure.
   - _Requirements: FR-8, AC-1.2, AC-2.2_
   - _Design: Component 1_
 
-- [ ] 1.5 Add artifact upload steps
+- [x] 1.5 Add artifact upload steps
   - **Do**: Add two `actions/upload-artifact@v4` steps: one for `/tmp/wp_*.png` screenshots, one for `test_results/` directory. Both with `if: always()` and 7-day retention.
   - **Files**: `.github/workflows/certification-tests.yml`
   - **Done when**: Artifacts uploaded on both success and failure
