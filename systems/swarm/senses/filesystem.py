@@ -104,3 +104,37 @@ class FilesystemSense:
             return SenseResult(success=True, data=bytes_written)
         except Exception as e:
             return SenseResult(success=False, error=f"Failed to write file: {e}")
+
+    def list_dir(self, path: str) -> SenseResult:
+        """
+        List directory contents from allowed path.
+
+        Args:
+            path: Directory path to list
+
+        Returns:
+            SenseResult with list of filenames on success
+        """
+        validation = self._validate_path(path)
+        if not validation.success:
+            return validation
+
+        target = validation.data
+
+        if not target.exists():
+            return SenseResult(success=False, error=f"Directory not found: {path}")
+
+        if not target.is_dir():
+            return SenseResult(success=False, error=f"Not a directory: {path}")
+
+        try:
+            entries = []
+            for entry in target.iterdir():
+                entries.append({
+                    "name": entry.name,
+                    "is_file": entry.is_file(),
+                    "is_dir": entry.is_dir(),
+                })
+            return SenseResult(success=True, data=entries)
+        except Exception as e:
+            return SenseResult(success=False, error=f"Failed to list directory: {e}")

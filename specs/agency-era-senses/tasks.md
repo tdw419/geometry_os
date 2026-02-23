@@ -60,7 +60,7 @@ Focus: Core sense classes with basic functionality. Skip rate limiting, minimal 
 
 ## Phase 2: Refactoring
 
-- [ ] 2.1 Add list_dir to FilesystemSense
+- [x] 2.1 Add list_dir to FilesystemSense
   - **Do**: Implement list_dir method for directory enumeration
   - **Files**: `systems/swarm/senses/filesystem.py`
   - **Done when**: Returns list of filenames in directory
