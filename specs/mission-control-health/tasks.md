@@ -85,7 +85,7 @@ BUG FIX spec - all components exist, need fixes for:
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Create unit tests for wp_health_bridge.js
+- [x] 3.1 Create unit tests for wp_health_bridge.js
   - **Do**:
     1. Create `WpHealthBridgeTester` class at `systems/visual_shell/web/tests/test_wp_health_bridge.js`
     2. Add tests for calculateHealthScore (perfect metrics, high latency penalty, buffer drops penalty, reconnects penalty)
