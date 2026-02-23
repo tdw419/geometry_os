@@ -293,6 +293,11 @@ class VisualDebugOverlay {
                 e.preventDefault();
                 this.toggleGhostOverlay();
             }
+            // Ctrl+Shift+N to toggle NEB Dashboard
+            if (e.ctrlKey && e.shiftKey && e.key === 'N') {
+                e.preventDefault();
+                this.toggleNEBDashboard();
+            }
         });
     }
 
@@ -307,6 +312,20 @@ class VisualDebugOverlay {
         }
 
         console.log(`👻 Ghost overlay: ${this.ghostState.enabled ? 'ENABLED' : 'DISABLED'}`);
+        this._scheduleRender();
+    }
+
+    /**
+     * Toggle NEB Dashboard display
+     * Triggered by Ctrl+Shift+N keyboard shortcut
+     */
+    toggleNEBDashboard() {
+        this.nebDashboard.enabled = !this.nebDashboard.enabled;
+
+        // Persist to localStorage
+        localStorage.setItem('nebDashboard_enabled', this.nebDashboard.enabled);
+
+        console.log(`📡 NEB Dashboard: ${this.nebDashboard.enabled ? 'ENABLED' : 'DISABLED'}`);
         this._scheduleRender();
     }
 

@@ -84,7 +84,7 @@ Focus: Bridge NEB events to HUD. Skip tests, accept hardcoded values.
   - _Requirements: FR-4_
   - _Design: Render Method_
 
-- [ ] 1.6 Add Ctrl+Shift+N keyboard toggle
+- [x] 1.6 Add Ctrl+Shift+N keyboard toggle
   - **Do**:
     1. Add handler in `_bindKeyboard()` for `e.key === 'N'` with Ctrl+Shift
     2. Implement `toggleNEBDashboard()` method
