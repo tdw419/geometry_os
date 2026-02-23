@@ -5,4 +5,16 @@ This module provides specialized agent types (GuildAgents) for
 code generation, review, and architecture tasks.
 """
 
-# Empty exports for now - will be populated as agents are implemented
+from systems.swarm.guilds.base import GuildAgent
+from systems.swarm.guilds.engineer import EngineerAgent
+from systems.swarm.guilds.reviewer import ReviewerAgent
+from systems.swarm.guilds.architect import ArchitectAgent
+from systems.swarm.guilds.factory import GuildFactory
+
+__all__ = [
+    "GuildAgent",
+    "EngineerAgent",
+    "ReviewerAgent",
+    "ArchitectAgent",
+    "GuildFactory",
+]

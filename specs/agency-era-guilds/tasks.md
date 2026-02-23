@@ -102,7 +102,7 @@ Focus: Get EngineerAgent generating code end-to-end. Skip tests initially.
   - **Commit**: `test(swarm): add guild agent handler tests`
   - _Requirements: AC-1.1, AC-2.1, AC-3.1_
 
-- [ ] 3.3 Integration test with TaskBoard and NEBBus
+- [x] 3.3 Integration test with TaskBoard and NEBBus
   - **Do**: Test full workflow: post task → agent claims → completes → NEB event published
   - **Files**: `tests/swarm/test_guild_integration.py`
   - **Done when**: Integration test passes

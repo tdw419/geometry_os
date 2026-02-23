@@ -7,6 +7,7 @@ Provides decentralized MapReduce-style coordination with:
 - SwarmCoordinator: MapReduce orchestration
 - NEBBus: Neural Event Bus for pub/sub coordination
 - SwarmNEBBridge: Bridge between SwarmNode consensus and NEBBus
+- Guild Agents: Specialized agents for code generation, review, architecture
 """
 
 from systems.swarm.task import Task, TaskType, TaskStatus
@@ -24,6 +25,9 @@ from systems.swarm.neb_visual_hud import NEBVisualHUD
 # SwarmNEBBridge export
 from systems.swarm.swarm_neb_bridge import SwarmNEBBridge
 
+# Guild exports
+from systems.swarm.guilds import GuildAgent, EngineerAgent, ReviewerAgent, ArchitectAgent, GuildFactory
+
 __all__ = [
     # Core
     "Task", "TaskType", "TaskStatus",
@@ -32,5 +36,7 @@ __all__ = [
     # NEB
     "NEBSignal", "NEBBus", "SubscriptionManager", "NEBVisualHUD",
     # Bridge
-    "SwarmNEBBridge"
+    "SwarmNEBBridge",
+    # Guilds
+    "GuildAgent", "EngineerAgent", "ReviewerAgent", "ArchitectAgent", "GuildFactory"
 ]
