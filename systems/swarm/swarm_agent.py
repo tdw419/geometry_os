@@ -13,6 +13,7 @@ from systems.swarm.task_board import TaskBoard
 if TYPE_CHECKING:
     from systems.swarm.neb_bus import NEBBus
     from systems.swarm.neb_signal import NEBSignal
+    from systems.swarm.memory import EpisodicMemory
 
 
 logger = logging.getLogger("SwarmAgent")
@@ -27,6 +28,7 @@ class SwarmAgent:
     - A task board to pull work from
     - Capabilities that determine what tasks they can handle
     - Optional handlers for specific task types
+    - Optional episodic memory for learning from experiences
     """
 
     def __init__(
@@ -35,7 +37,8 @@ class SwarmAgent:
         task_board: TaskBoard,
         capabilities: Optional[List[str]] = None,
         handlers: Optional[Dict[TaskType, Callable]] = None,
-        auto_claim: bool = False
+        auto_claim: bool = False,
+        memory: Optional['EpisodicMemory'] = None
     ):
         """
         Initialize swarm agent.
@@ -46,6 +49,7 @@ class SwarmAgent:
             capabilities: List of task types this agent can handle
             handlers: Optional mapping of task types to handler functions
             auto_claim: If True, automatically claim tasks when notified via NEB
+            memory: Optional EpisodicMemory for learning from experiences
         """
         self.agent_id = agent_id
         self.task_board = task_board
@@ -54,6 +58,12 @@ class SwarmAgent:
         self.current_task: Optional[Task] = None
         self.auto_claim = auto_claim
         self.recent_notifications: List['NEBSignal'] = []
+        self._memory = memory
+
+    @property
+    def memory(self) -> Optional['EpisodicMemory']:
+        """Get the agent's episodic memory (if configured)."""
+        return self._memory
 
     def _default_capabilities(self) -> List[str]:
         """Default capabilities - all task types."""
@@ -151,6 +161,10 @@ class SwarmAgent:
         """
         Perform one work cycle: claim, execute, complete.
 
+        If memory is configured:
+        - Before execution: Check for similar past failures
+        - After completion: Store the experience
+
         Returns:
             Completed task, or None if no work available
         """
@@ -158,13 +172,83 @@ class SwarmAgent:
         if task is None:
             return None
 
+        # Check memory for similar failures before execution
+        if self._memory is not None:
+            self._check_similar_failures(task)
+
         try:
             result = self.execute_task(task)
             self.complete_task(task, result)
+
+            # Store successful experience
+            if self._memory is not None:
+                self._store_experience(task, result, "success")
+
             return task
         except Exception as e:
             self.fail_task(task, str(e))
+
+            # Store failure experience
+            if self._memory is not None:
+                self._store_experience(task, {"error": str(e)}, "failure")
+
             raise
+
+    def _check_similar_failures(self, task: Task) -> None:
+        """
+        Check memory for similar past failures and log warnings.
+
+        Args:
+            task: Task about to be executed
+        """
+        if self._memory is None:
+            return
+
+        from systems.swarm.memory import generate_embedding
+
+        # Create query from task description
+        query_embedding = generate_embedding(task.description)
+        similar_failures = self._memory.check_similar_failures(query_embedding, k=3)
+
+        if similar_failures:
+            logger.warning(
+                f"Agent {self.agent_id}: Found {len(similar_failures)} similar past failures "
+                f"for task {task.task_id}"
+            )
+            for result in similar_failures:
+                logger.info(
+                    f"  - Similar failure: {result.experience.description[:50]}... "
+                    f"(similarity: {result.similarity:.2f})"
+                )
+
+    def _store_experience(
+        self,
+        task: Task,
+        result: Dict[str, Any],
+        outcome: str
+    ) -> None:
+        """
+        Store an experience in memory.
+
+        Args:
+            task: Task that was executed
+            result: Result of the task
+            outcome: "success" or "failure"
+        """
+        if self._memory is None:
+            return
+
+        description = f"{task.task_type.value}: {task.description}"
+        if outcome == "failure" and "error" in result:
+            description += f" - Error: {result['error']}"
+
+        self._memory.store_experience(
+            task_type=task.task_type.value,
+            action="execute",
+            outcome=outcome,
+            description=description,
+            metadata={"task_id": task.task_id, "result": result}
+        )
 
     def subscribe_to_events(self, bus: 'NEBBus') -> str:
         """
