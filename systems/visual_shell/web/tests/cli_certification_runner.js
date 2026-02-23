@@ -13,7 +13,7 @@ async function runCertification(level = null) {
     console.log(`
 Starting CLI Certification Runner${level ? ` (Level ${level})` : ' (All Levels)'}...`);
 
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch({ headless: process.env.HEADLESS !== 'false' });
     const context = await browser.newContext();
     const page = await context.newPage();
 
@@ -32,15 +32,53 @@ Starting CLI Certification Runner${level ? ` (Level ${level})` : ' (All Levels)'
         // Check if we need to login
         if (page.url().includes('wp-login.php')) {
             console.log("WordPress login detected.");
+
+            // Take a screenshot for debugging
+            await page.screenshot({ path: '/tmp/wp_login_before.png' });
+
             await page.fill('#user_login', process.env.WP_USER || 'admin');
             await page.fill('#user_pass', process.env.WP_PASS || 'password');
-            await page.click('#wp-submit');
-            await page.waitForNavigation({ waitUntil: 'networkidle' });
+
+            console.log("Credentials filled, submitting...");
+
+            // Click and wait for navigation
+            await Promise.all([
+                page.click('#wp-submit'),
+                page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 })
+            ]);
+
+            console.log("Navigation complete, current URL:", page.url());
+            await page.screenshot({ path: '/tmp/wp_login_after.png' });
+
+            // Check for login errors
+            const loginError = await page.$('#login_error');
+            if (loginError) {
+                const errorText = await loginError.textContent();
+                console.log("Login error detected:", errorText);
+            }
         }
 
         console.log("Waiting for Certification Infrastructure...");
-        await page.waitForFunction(() => typeof window.CertificationRunner !== 'undefined', { timeout: 10000 });
-        await page.waitForFunction(() => typeof window.CertificationTests !== 'undefined', { timeout: 10000 });
+        console.log("Current URL:", page.url());
+
+        // Wait for page to be ready
+        await page.waitForLoadState('domcontentloaded');
+
+        // Check if scripts loaded
+        const scriptsLoaded = await page.evaluate(() => {
+            return {
+                certificationRunner: typeof window.CertificationRunner !== 'undefined',
+                certificationTests: typeof window.CertificationTests !== 'undefined',
+                geoCertRunner: typeof window.GeometryOSCertRunner !== 'undefined'
+            };
+        });
+        console.log("Scripts loaded:", scriptsLoaded);
+
+        if (!scriptsLoaded.certificationRunner || !scriptsLoaded.certificationTests) {
+            console.log("Scripts not loaded, waiting...");
+            await page.waitForFunction(() => typeof window.CertificationRunner !== 'undefined', { timeout: 30000 });
+            await page.waitForFunction(() => typeof window.CertificationTests !== 'undefined', { timeout: 30000 });
+        }
 
         // Listen for console logs
         page.on('console', msg => {

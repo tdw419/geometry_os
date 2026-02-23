@@ -18,6 +18,10 @@
  * @package WordPress
  */
 
+// Fix site URL for CLI/testing
+define('WP_HOME', 'http://localhost:8080');
+define('WP_SITEURL', 'http://localhost:8080');
+
 // ** Database settings - You can get this info from your web host ** //
 /** The name of the database for WordPress */
 define( 'DB_NAME', 'wordpress' );
