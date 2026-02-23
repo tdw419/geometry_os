@@ -7,8 +7,26 @@ Tracks agent activity patterns and calculates anomaly scores based on
 file operations, network operations, and entropy metrics.
 """
 
+"""
+Evolution Daemon V13 - Behavioral Monitor
+
+Real-time behavioral monitoring for agent anomaly detection.
+
+Tracks agent activity patterns and calculates anomaly scores based on
+file operations, network operations, and entropy metrics.
+
+Module Attributes:
+    BehavioralMonitor: Service class for monitoring agent behavior
+
+Example:
+    >>> monitor = BehavioralMonitor(anomaly_threshold=0.7)
+    >>> event = monitor.record_event("agent-001", "file_read", {"path": "/etc/passwd"})
+    >>> if monitor.is_anomalous("agent-001"):
+    ...     print("Agent behavior is suspicious!")
+"""
+
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from systems.evolution_daemon.safety.data_structures import (
     AgentBehavioralProfile,
@@ -59,7 +77,7 @@ class BehavioralMonitor:
         self._profiles: Dict[str, AgentBehavioralProfile] = {}
 
         # Event history for sliding window calculations
-        self._event_history: Dict[str, list] = {}
+        self._event_history: Dict[str, List[BehavioralEvent]] = {}
 
     def record_event(
         self,

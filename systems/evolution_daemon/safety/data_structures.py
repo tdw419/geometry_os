@@ -13,6 +13,22 @@ V13 additions:
 - ThrottleLevel: Resource throttle levels for daemon adaptation
 - HealthPrediction: Predicted health state of an RTS file
 - MetabolismState: Current system resource state for adaptive behavior
+
+Behavioral Defense additions:
+- BehavioralEvent: A single behavioral event from an agent
+- AgentBehavioralProfile: Behavioral profile tracking activity patterns
+
+Example:
+    >>> from systems.evolution_daemon.safety.data_structures import (
+    ...     AgentBehavioralProfile, BehavioralEvent
+    ... )
+    >>> event = BehavioralEvent(
+    ...     event_id="evt-001",
+    ...     agent_id="agent-001",
+    ...     event_type="file_read",
+    ...     metadata={"path": "/etc/passwd"}
+    ... )
+    >>> event.calculate_entropy()
 """
 
 from collections import Counter

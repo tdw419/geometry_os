@@ -12,6 +12,15 @@ Features:
 - Incremental scanning via file position tracking
 - Graceful handling of missing files
 - Automatic event type detection from telemetry data
+
+Module Attributes:
+    WordPressSentinel: Scanner class for WordPress telemetry files
+
+Example:
+    >>> sentinel = WordPressSentinel("wordpress_zone/telemetry")
+    >>> events = sentinel.scan_telemetry(incremental=True)
+    >>> for event in events:
+    ...     print(f"Event: {event.event_type} from {event.agent_id}")
 """
 
 import json

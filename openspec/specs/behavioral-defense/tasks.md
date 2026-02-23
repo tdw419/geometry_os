@@ -140,7 +140,7 @@ print('POC PASSED')
 
 After POC validated, clean up code.
 
-- [ ] 2.1 Add type hints and docstrings
+- [x] 2.1 Add type hints and docstrings
   - **Do**:
     1. Add complete type hints to all new methods
     2. Add docstrings with Args/Returns sections
