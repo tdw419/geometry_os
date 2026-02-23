@@ -74,3 +74,33 @@ class TestSubscriptionManager:
         manager.match_and_deliver("test.topic", {"b": 2})
 
         assert len(received) == 1  # Only first delivery
+
+    def test_semantic_subscription_similarity(self):
+        """Semantic subscription matches based on embedding similarity."""
+        import numpy as np
+        manager = SubscriptionManager()
+        received = []
+
+        # Subscribe to "filesystem errors" semantically
+        manager.subscribe_semantic(
+            embedding=[0.9, 0.1, 0.0],  # "filesystem error" direction
+            callback=lambda s: received.append(s),
+            threshold=0.8
+        )
+
+        # Similar embedding (cosine sim > 0.8)
+        manager.match_and_deliver_semantic(
+            topic="disk.read.failure",
+            payload={"error": "IO error"},
+            embedding=[0.85, 0.15, 0.05]
+        )
+
+        # Dissimilar embedding (cosine sim < 0.8)
+        manager.match_and_deliver_semantic(
+            topic="build.success",
+            payload={"status": "ok"},
+            embedding=[0.1, 0.9, 0.0]
+        )
+
+        assert len(received) == 1
+        assert received[0]["error"] == "IO error"

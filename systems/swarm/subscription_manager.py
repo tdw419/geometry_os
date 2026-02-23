@@ -100,6 +100,91 @@ class SubscriptionManager:
 
         return False
 
+    def subscribe_semantic(
+        self,
+        embedding: List[float],
+        callback: Callable[[Dict[str, Any]], None],
+        threshold: float = 0.8,
+        pattern: str = None
+    ) -> str:
+        """
+        Subscribe to semantically similar embeddings.
+
+        Args:
+            embedding: Reference embedding vector
+            callback: Function to call on match
+            threshold: Cosine similarity threshold (0-1)
+            pattern: Optional topic pattern filter
+
+        Returns:
+            Subscription ID
+        """
+        import numpy as np
+        sub_id = str(uuid.uuid4())[:8]
+        self._subscriptions[sub_id] = Subscription(
+            subscription_id=sub_id,
+            pattern=pattern or "*",
+            callback=callback,
+            is_semantic=True,
+            similarity_threshold=threshold
+        )
+        # Store reference embedding
+        self._subscriptions[sub_id].reference_embedding = np.array(embedding)
+        return sub_id
+
+    def match_and_deliver_semantic(
+        self,
+        topic: str,
+        payload: Dict[str, Any],
+        embedding: List[float]
+    ) -> int:
+        """
+        Match and deliver based on semantic similarity.
+
+        Args:
+            topic: Event topic (also checked against pattern if set)
+            payload: Event payload
+            embedding: Event embedding vector
+
+        Returns:
+            Number of deliveries
+        """
+        import numpy as np
+        delivered = 0
+        event_vec = np.array(embedding)
+        event_norm = np.linalg.norm(event_vec)
+
+        if event_norm == 0:
+            return 0
+
+        for sub in self._subscriptions.values():
+            if not sub.is_semantic:
+                continue
+
+            # Check topic pattern if set
+            if sub.pattern != "*" and not self._match_pattern(sub.pattern, topic):
+                continue
+
+            # Compute cosine similarity
+            ref_vec = getattr(sub, 'reference_embedding', None)
+            if ref_vec is None:
+                continue
+
+            ref_norm = np.linalg.norm(ref_vec)
+            if ref_norm == 0:
+                continue
+
+            similarity = np.dot(event_vec, ref_vec) / (event_norm * ref_norm)
+
+            if similarity >= sub.similarity_threshold:
+                try:
+                    sub.callback(payload)
+                    delivered += 1
+                except Exception:
+                    pass
+
+        return delivered
+
     def list_subscriptions(self) -> List[Tuple[str, str]]:
         """List all active subscriptions as (id, pattern) tuples."""
         return [(s.subscription_id, s.pattern) for s in self._subscriptions.values()]
