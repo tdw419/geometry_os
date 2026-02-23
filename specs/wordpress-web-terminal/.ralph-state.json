@@ -1,0 +1,14 @@
+{
+  "source": "plan",
+  "name": "wordpress-web-terminal",
+  "basePath": "./specs/wordpress-web-terminal",
+  "phase": "complete",
+  "taskIndex": 10,
+  "totalTasks": 10,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": true,
+  "completedAt": "2026-02-22T23:45:00Z"
+}

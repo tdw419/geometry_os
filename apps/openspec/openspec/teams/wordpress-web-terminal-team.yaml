@@ -1,0 +1,78 @@
+# WordPress Web Terminal Team
+# xterm.js terminal in WordPress admin connected to Geometry OS
+
+team:
+  name: wordpress-web-terminal-team
+  description: Build web-based terminal for Geometry OS accessible through WordPress
+  goal: Create xterm.js terminal in WordPress admin that connects to shell sessions via WebSocket
+
+agents:
+  - id: implementer
+    type: ralph-specum:spec-executor
+    role: Implement web terminal system
+    tasks:
+      - Task 1: Create WordPress Plugin Structure
+      - Task 2: Extend Visual Bridge for Terminal WebSocket
+      - Task 3: Add Plugin Tests
+      - Task 4: Integration Test
+      - Task 5: Documentation
+      - Task 6: Final Verification
+
+workflow:
+  phases:
+    - name: implementation
+      agent: implementer
+      input: docs/plans/2026-02-22-wordpress-web-terminal.md
+      tasks:
+        - task_id: T1
+          name: "Create WordPress Plugin Structure"
+          files:
+            - wordpress_zone/wordpress/wp-content/plugins/geometry-os-web-terminal/geometry-os-web-terminal.php
+            - wordpress_zone/wordpress/wp-content/plugins/geometry-os-web-terminal/assets/css/terminal.css
+            - wordpress_zone/wordpress/wp-content/plugins/geometry-os-web-terminal/assets/js/terminal.js
+          tdd: false
+
+        - task_id: T2
+          name: "Extend Visual Bridge for Terminal WebSocket"
+          files:
+            - systems/visual_shell/api/visual_bridge.py
+          depends_on: T1
+
+        - task_id: T3
+          name: "Add Plugin Tests"
+          files:
+            - wordpress_zone/wordpress/wp-content/plugins/geometry-os-web-terminal/tests/test-plugin.php
+          depends_on: T1
+
+        - task_id: T4
+          name: "Integration Test"
+          files:
+            - systems/visual_shell/api/tests/test_terminal_bridge.py
+          depends_on: T2
+
+        - task_id: T5
+          name: "Documentation"
+          files:
+            - wordpress_zone/wordpress/wp-content/plugins/geometry-os-web-terminal/README.md
+          depends_on: T1
+
+        - task_id: T6
+          name: "Final Verification"
+          files: []
+          depends_on: T4
+
+spec:
+  path: ./specs/wordpress-web-terminal
+  status: ready
+
+lm_studio:
+  model: local-model
+  endpoint: http://localhost:1234/v1
+  use_for:
+    - content generation
+    - research tasks
+
+execution:
+  mode: sequential
+  commit_after_each_task: true
+  test_after_each_task: true

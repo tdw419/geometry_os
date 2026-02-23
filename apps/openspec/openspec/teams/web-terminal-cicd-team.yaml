@@ -1,0 +1,69 @@
+# Web Terminal CI/CD Team
+# GitHub Actions integration for terminal test suites
+
+team:
+  name: web-terminal-cicd-team
+  description: Integrate web terminal tests into GitHub Actions CI/CD
+  goal: Run WebSocket, E2E, LLM, and ASCII tests on every push/PR
+
+agents:
+  - id: implementer
+    type: ralph-specum:spec-executor
+    role: Implement CI/CD integration
+    tasks:
+      - Task 1: Create CI-Ready Test Runner Script
+      - Task 2: Create GitHub Actions Workflow
+      - Task 3: Add Mock Mode to LLM Tests
+      - Task 4: Add CI Badge to README
+      - Task 5: Create GitHub Secret Documentation
+      - Task 6: Final Verification
+
+workflow:
+  phases:
+    - name: implementation
+      agent: implementer
+      input: docs/plans/2026-02-23-web-terminal-cicd.md
+      tasks:
+        - task_id: T1
+          name: "Create CI Test Runner Script"
+          files:
+            - systems/visual_shell/api/tests/ci_terminal_tests.sh
+          tdd: false
+
+        - task_id: T2
+          name: "Create GitHub Actions Workflow"
+          files:
+            - .github/workflows/terminal-tests.yml
+          depends_on: T1
+
+        - task_id: T3
+          name: "Add Mock Mode to LLM Tests"
+          files:
+            - systems/visual_shell/api/tests/llm_terminal_verify.py
+          depends_on: T1
+
+        - task_id: T4
+          name: "Add CI Badge to README"
+          files:
+            - wordpress_zone/wordpress/wp-content/plugins/geometry-os-web-terminal/README.md
+          depends_on: T2
+
+        - task_id: T5
+          name: "Create GitHub Secret Documentation"
+          files:
+            - docs/ci-secrets.md
+          depends_on: T2
+
+        - task_id: T6
+          name: "Final Verification"
+          files: []
+          depends_on: T5
+
+spec:
+  path: ./specs/web-terminal-cicd
+  status: ready
+
+execution:
+  mode: sequential
+  commit_after_each_task: true
+  test_after_each_task: false
