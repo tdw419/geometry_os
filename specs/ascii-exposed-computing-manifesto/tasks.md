@@ -57,7 +57,7 @@ Focus: Create the complete manifesto document with all sections. Accept iterativ
   - _Requirements: FR-5, AC-5.1, AC-5.2, AC-5.3_
   - _Design: Section 5_
 
-- [ ] 1.6 Add Anti-Patterns section
+- [x] 1.6 Add Anti-Patterns section
   - **Do**: Append 6 anti-patterns (Binary in ASCII Clothing, Infinite Fragments, Timestamps Without Meaning, Fragment Coupling, Inconsistent Delimiters, Mutable History) with Bad/Good/Why format
   - **Files**: `docs/ASCII_EXPOSED_COMPUTING_MANIFESTO.md`
   - **Done when**: 6 anti-patterns with `### Anti-Pattern:` headers

@@ -681,3 +681,236 @@ def resolve_fragment(path: str) -> dict:
 ---
 
 **Pattern composition:** Real systems use multiple patterns together. A task fragment uses Dual-Format (ascii + json), is written Atomically, and changes are logged to a Change Stream. The aggregate view uses Scene Graph Aggregation. Common fields come from Fragment Inheritance.
+
+---
+
+## Anti-Patterns
+
+Knowing what to do is half the battle. Knowing what NOT to do is the other half. These six anti-patterns represent common mistakes that undermine ASCII Exposed systems.
+
+### Anti-Pattern: Binary in ASCII Clothing
+
+**The Trap:** Encoding binary data as base64 or hex inside ASCII fragments, thinking you've satisfied the text requirement.
+
+**Bad:**
+```
+# schema: model-weights/v1
+weights: AAAAABAAAAACAAAAAwAAAAQAAAAFAAAABgAAAAcAAAAIAAAACQAAAAoAAAA...
+encoding: base64
+size_bytes: 1048576
+```
+
+**Good:**
+```
+# schema: model-weights/v1
+# Model weights are binary - store them elsewhere
+weights_path: models/v1/weights.bin
+checksum: sha256:a1b2c3d4...
+size_bytes: 1048576
+format: numpy-float32
+
+# For human/AI consumption, expose metadata only
+layer_count: 12
+parameter_count: 1048576
+last_updated: 2026-02-23T14:00:00Z
+```
+
+**Why it fails:** Base64 is technically ASCII, but it's not *meaningful* ASCII. An AI cannot reason about `AAAAABAAA...` any more than it can reason about raw bytes. The point of text exposure is semantic accessibility, not character set compliance.
+
+**Rule:** If the content cannot be understood by reading it, it doesn't belong in an ASCII fragment. Store a reference instead.
+
+---
+
+### Anti-Pattern: Infinite Fragments
+
+**The Trap:** Letting fragments grow unboundedly, accumulating state until they become performance hazards.
+
+**Bad:**
+```
+# schema: task-history/v1
+# This fragment has accumulated 50,000 lines over 6 months
+# File size: 2.3 MB
+
+task_00001: completed at 2025-08-15T10:00:00Z
+task_00002: completed at 2025-08-15T11:23:00Z
+task_00003: completed at 2025-08-15T14:45:00Z
+... (49,997 more lines)
+```
+
+**Good:**
+```
+# schema: task-history-index/v1
+# Index fragment - always small, points to archives
+current_month: 2026-02
+archive_count: 6
+archives:
+  - 2026-02.archive.ascii (847 tasks)
+  - 2026-01.archive.ascii (912 tasks)
+  - 2025-12.archive.ascii (1023 tasks)
+  - 2025-11.archive.ascii (891 tasks)
+  - 2025-10.archive.ascii (756 tasks)
+  - 2025-09.archive.ascii (634 tasks)
+
+# Current month kept in separate fragment
+# See: fragments/tasks/history/2026-02.ascii
+```
+
+**Why it fails:** Unbounded fragments violate the "zero-cost perception" promise. Reading a 2 MB file is not free. Grep takes noticeable time. Diff becomes unusable. The fragment becomes a liability, not an asset.
+
+**Rule:** Every fragment should have a documented size bound. When exceeded, archive or split.
+
+---
+
+### Anti-Pattern: Timestamps Without Meaning
+
+**The Trap:** Recording timestamps as opaque numbers without timezone, format, or semantic context.
+
+**Bad:**
+```
+# schema: event-log/v1
+created: 1708617600
+updated: 1708704000
+last_seen: 1740326400
+```
+
+**Good:**
+```
+# schema: event-log/v1
+# All timestamps are UTC, ISO 8601 format
+created: 2024-02-22T16:00:00Z
+updated: 2024-02-23T16:00:00Z
+last_seen: 2025-02-23T14:00:00Z
+
+# Human-readable context
+created_ago: 1 year ago
+last_seen_ago: just now
+```
+
+**Why it fails:** Unix timestamps are unreadable by humans and require conversion to be meaningful. An AI can parse them, but loses semantic context. "1708617600" doesn't tell you if it's recent, old, or future. It doesn't tell you the timezone. It doesn't tell you the precision.
+
+**Rule:** Always use ISO 8601 with timezone (Z for UTC). Add human-readable context where helpful.
+
+---
+
+### Anti-Pattern: Fragment Coupling
+
+**The Trap:** Creating fragments that cannot be understood in isolation, requiring readers to fetch multiple files to make sense of one.
+
+**Bad:**
+```
+# fragments/agents/engineer_001/task.ascii
+# schema: agent-task-assignment/v1
+ref: T-00042  # What task? Must look up fragments/tasks/T-00042.ascii
+state: ref.state  # What state? Must parse referenced task
+```
+
+**Good:**
+```
+# fragments/agents/engineer_001/task.ascii
+# schema: agent-task-assignment/v1
+# Self-contained: includes task summary
+
+task_id: T-00042
+task_type: code
+task_summary: Implement authentication endpoint
+task_status: in_progress
+assigned_at: 2026-02-23T14:00:00Z
+
+# For full task details, see: fragments/tasks/T-00042.ascii
+```
+
+**Why it fails:** Fragment coupling violates the "independently readable" rule. If reading one fragment requires reading another, you've created implicit dependencies that are fragile and expensive. An AI agent working with coupled fragments must make multiple reads, defeating the zero-cost perception goal.
+
+**Rule:** Each fragment must be fully comprehensible alone. References are for "more details," not "basic understanding."
+
+---
+
+### Anti-Pattern: Inconsistent Delimiters
+
+**The Trap:** Using different delimiter characters (`:`, `=`, `->`, `|`) within the same system, or even the same fragment.
+
+**Bad:**
+```
+# schema: mixed-delimiters/v1
+agent_id = engineer_001
+role: engineer
+status -> working
+task | T-00042
+```
+
+**Good:**
+```
+# schema: consistent-delimiters/v1
+# Standard: KEY: VALUE for all fields
+
+agent_id: engineer_001
+role: engineer
+status: working
+task: T-00042
+
+# Nested values use indentation
+capabilities:
+  - code_generation
+  - test_writing
+```
+
+**Why it fails:** Inconsistent delimiters force parsers to guess. Humans get confused. AI parsing becomes brittle. The simplest parser—a regex—breaks. You're back to "need a custom parser," which defeats the entire philosophy.
+
+**Rule:** Pick ONE delimiter style for the entire system. Document it. Enforce it. Common choices:
+- `KEY: VALUE` (YAML-like, human-friendly)
+- `KEY=VALUE` (shell-like, grep-friendly)
+- `KEY VALUE` (space-delimited, awk-friendly)
+
+---
+
+### Anti-Pattern: Mutable History
+
+**The Trap:** Editing or deleting past entries in append-only logs, breaking the ability to reconstruct system state at any point in time.
+
+**Bad:**
+```
+# hooks/changes.log
+# Someone edited this file to "fix" an error...
+
+2026-02-23T14:30:00Z | agents/engineer_001 | UPDATE |
+  -status: idle
+  +status: working
+
+# DELETED: The "mistake" entry that was here
+# 2026-02-23T14:31:00Z | agents/engineer_001 | UPDATE |
+#   -status: working
+#   +status: error
+
+2026-02-23T14:32:00Z | agents/engineer_001 | UPDATE |
+  -status: working
+  +status: idle
+```
+
+**Good:**
+```
+# hooks/changes.log
+# Never delete - append corrections instead
+
+2026-02-23T14:30:00Z | agents/engineer_001 | UPDATE |
+  -status: idle
+  +status: working
+
+2026-02-23T14:31:00Z | agents/engineer_001 | UPDATE |
+  -status: working
+  +status: error
+
+# Correction entry
+2026-02-23T14:31:30Z | agents/engineer_001 | CORRECTION |
+  correction_for: 2026-02-23T14:31:00Z
+  reason: "False positive from health check"
+  -status: error
+  +status: working
+
+2026-02-23T14:32:00Z | agents/engineer_001 | UPDATE |
+  -status: working
+  +status: idle
+```
+
+**Why it fails:** Mutable history destroys the audit trail. When you can't trust that past entries are accurate, you can't debug historical issues. Time-travel debugging becomes impossible. Compliance requirements (audit logs) are violated.
+
+**Rule:** Logs are append-only. Mistakes get correction entries, never deletion. This applies to all change streams, event logs, and history fragments.
