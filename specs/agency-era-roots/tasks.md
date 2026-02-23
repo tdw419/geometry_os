@@ -75,7 +75,7 @@ Focus: Validate EpisodicMemory storage and retrieval works end-to-end. Skip test
   - _Requirements: FR-6_
   - _Design: PatternAnalyzer component_
 
-- [ ] 1.8 POC Checkpoint - End-to-end memory flow
+- [x] 1.8 POC Checkpoint - End-to-end memory flow
   - **Do**: Create script that demonstrates: store experience, query similar, analyze patterns
   - **Files**: `systems/swarm/memory/demo_poc.py`
   - **Done when**: Script runs without errors, shows memory working end-to-end
