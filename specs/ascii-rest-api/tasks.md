@@ -126,7 +126,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
 
 ## Phase 2: Refactoring
 
-- [ ] 2.1 Add Admin UI section for API key management
+- [x] 2.1 Add Admin UI section for API key management
   - **Do**:
     1. Modify `admin/page-settings.php` to add "API Keys" section after general settings
     2. Add table showing: Key Name, Created, Last Used, Revoke button
