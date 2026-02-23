@@ -98,7 +98,7 @@ Focus: Bridge NEB events to HUD. Skip tests, accept hardcoded values.
   - _Requirements: FR-5, FR-6_
   - _Design: Keyboard Toggle_
 
-- [ ] 1.7 POC Checkpoint - Manual E2E Verification
+- [x] 1.7 POC Checkpoint - Manual E2E Verification
   - **Do**:
     1. Start VisualBridge: `python systems/visual_shell/api/visual_bridge.py`
     2. Publish test NEB event from Python REPL
