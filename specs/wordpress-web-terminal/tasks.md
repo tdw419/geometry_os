@@ -75,7 +75,7 @@ After POC validated, clean up code.
   - **Commit**: `test(terminal): add WordPress plugin unit tests`
   - _Requirements: AC-3.1_
 
-- [ ] 3.2 Add Python integration tests
+- [x] 3.2 Add Python integration tests
   - **Do**: Create async test file with WebSocket connection tests, verify terminal spawn, input/output flow
   - **Files**: `systems/visual_shell/api/tests/test_terminal_bridge.py`
   - **Done when**: Tests pass when Visual Bridge running, skip gracefully when not
