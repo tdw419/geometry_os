@@ -12,7 +12,7 @@ generated: auto
 
 Focus: Create CI runner and workflow. Get tests running in CI.
 
-- [ ] 1.1 Create CI test runner script
+- [x] 1.1 Create CI test runner script
   - **Do**: Create `systems/visual_shell/api/tests/ci_terminal_tests.sh` with:
     - Bash script header with `set -e`
     - `run_suite()` function for pass/fail tracking
