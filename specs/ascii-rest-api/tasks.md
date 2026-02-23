@@ -178,7 +178,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Write PHP unit tests for API_Keys class
+- [x] 3.1 Write PHP unit tests for API_Keys class
   - **Do**:
     1. Create `tests/php/class-test-api-keys.php`
     2. Write `test_generate_returns_32_chars()` verifying length and alphanumeric
