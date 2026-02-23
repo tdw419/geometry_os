@@ -39,7 +39,7 @@ Focus: Create the complete manifesto document with all sections. Accept iterativ
   - _Requirements: FR-3, AC-3.1, AC-3.2, AC-3.3_
   - _Design: Section 3_
 
-- [ ] 1.4 Add Design Primitives section
+- [x] 1.4 Add Design Primitives section
   - **Do**: Append 4 primitives (Fragments, Schemas, Hooks, Namespaces) with definitions, rules, and code examples
   - **Files**: `docs/ASCII_EXPOSED_COMPUTING_MANIFESTO.md`
   - **Done when**: All 4 primitives documented with code blocks

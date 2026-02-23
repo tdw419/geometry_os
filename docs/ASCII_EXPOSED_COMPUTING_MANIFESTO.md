@@ -201,3 +201,169 @@ The dual-audience requirement creates inherent tension. Some compromises:
 - Resolution: Provide both via the Aggregation pattern (Section 5). Raw fragments feed aggregated views.
 
 The contract succeeds when both audiences can work with the same file, neither feeling like a second-class citizen.
+
+---
+
+## Design Primitives
+
+ASCII Exposed Computing rests on four atomic building blocks. These primitives provide the vocabulary for designing exposed systems.
+
+### Fragments
+
+A **Fragment** is the atomic unit of exposed state. It represents one concept, is independently readable, and costs nothing to perceive.
+
+**Rules:**
+- One concept per fragment
+- Independently readable (no context required)
+- Bounded size (typically <10KB)
+- Self-describing (schema marker at top)
+
+**Example:**
+```python
+# schema: agent-status/v1
+# Agent runtime state fragment
+# Location: agents/engineer_001/status.ascii
+
+agent_id: engineer_001
+role: engineer
+status: idle
+current_task: null
+last_heartbeat: 2026-02-23T14:32:00Z
+tasks_completed: 47
+```
+
+**Why fragments, not files?** A file is a storage mechanism. A fragment is a semantic unit. One file may contain many fragments; one fragment may span multiple files. The key is independence—each fragment must make sense alone.
+
+---
+
+### Schemas
+
+A **Schema** is an explicit type contract for a fragment. It defines what fields exist, their types, and their meaning.
+
+**Rules:**
+- Schema declaration at fragment top
+- Use simple, parseable types (int, str, bool, list, dict)
+- Version bumps for breaking changes
+- Comments explain semantics, not syntax
+
+**Example:**
+```python
+# schema: task-definition/v2
+# Defines a unit of work for swarm agents
+#
+# Fields:
+#   task_id: str - unique identifier (format: T-XXXXX)
+#   task_type: str - category (code, review, test, deploy)
+#   priority: int - urgency (1=critical, 5=low)
+#   payload: dict - task-specific data
+#   created_at: str - ISO 8601 timestamp
+
+task_id: T-00042
+task_type: code
+priority: 2
+payload:
+  spec: "Implement authentication endpoint"
+  files:
+    - src/auth/login.py
+    - tests/test_auth.py
+created_at: 2026-02-23T14:00:00Z
+```
+
+**Schema evolution:** When a schema changes, bump the version. Old fragments retain their version marker. Consumers handle version negotiation via simple string matching.
+
+```python
+# Fragment using old schema
+# schema: task-definition/v1
+task_id: T-00041
+type: code  # Renamed to task_type in v2
+```
+
+---
+
+### Hooks
+
+A **Hook** is a change notification mechanism. When state changes, hooks broadcast the delta to subscribers.
+
+**Rules:**
+- Minimal data in notifications (just diffs)
+- Enable reactive architectures
+- Decouple producers from consumers
+- Support filtering by namespace/pattern
+
+**Example:**
+```python
+# Hook broadcast when agent status changes
+# Location: hooks/agents/status.log
+
+2026-02-23T14:32:01Z | agent.engineer_001.status | IDLE -> WORKING | task=T-00042
+2026-02-23T14:45:22Z | agent.engineer_001.status | WORKING -> IDLE | task=T-00042
+2026-02-23T14:45:23Z | agent.reviewer_001.status | IDLE -> WORKING | task=T-00042
+```
+
+**Hook implementation pattern:**
+```python
+# From Geometry OS ascii_scene/hooks.py
+class HookBroadcaster:
+    """Broadcasts fragment changes to subscribers."""
+
+    def notify(self, fragment_path: str, change_type: str, diff: str):
+        event = f"{datetime.utcnow().isoformat()}Z | {fragment_path} | {change_type}\n{diff}"
+        self._append_to_log(event)
+        self._notify_subscribers(fragment_path, change_type)
+```
+
+Hooks enable reactivity without polling. An AI agent can subscribe to `hooks/tasks/*.log` and react instantly when new work appears.
+
+---
+
+### Namespaces
+
+A **Namespace** is an organizational boundary for fragments. It groups related state and enables hierarchical queries.
+
+**Rules:**
+- Directory structure = namespace hierarchy
+- Cross-cutting concerns get separate namespace
+- Namespaces can be nested arbitrarily
+- Grep patterns respect namespace boundaries
+
+**Example directory structure:**
+```
+fragments/
+├── agents/
+│   ├── engineer_001/
+│   │   ├── status.ascii
+│   │   └── capabilities.ascii
+│   └── reviewer_001/
+│       ├── status.ascii
+│       └── capabilities.ascii
+├── tasks/
+│   ├── pending/
+│   │   ├── T-00042.ascii
+│   │   └── T-00043.ascii
+│   └── completed/
+│       └── T-00041.ascii
+├── system/
+│   ├── health.ascii
+│   └── config.ascii
+└── hooks/
+    ├── agents.log
+    └── tasks.log
+```
+
+**Namespace queries:**
+```bash
+# Find all agent statuses
+grep "status=working" fragments/agents/*/status.ascii
+
+# Find pending tasks
+cat fragments/tasks/pending/*.ascii
+
+# System health check
+cat fragments/system/health.ascii
+```
+
+Namespaces provide the "grep boundary" — queries naturally scope to directories, preventing false positives from unrelated fragments.
+
+---
+
+**Primitive composition:** Real systems combine all four primitives. A fragment has a schema, lives in a namespace, and triggers hooks on change. Together, they form the atomic vocabulary of ASCII Exposed Computing.
