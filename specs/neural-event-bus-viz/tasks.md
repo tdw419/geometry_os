@@ -69,7 +69,7 @@ Focus: Bridge NEB events to HUD. Skip tests, accept hardcoded values.
   - _Requirements: FR-3_
   - _Design: Event Handler_
 
-- [ ] 1.5 Implement _renderNEBDashboard() method
+- [x] 1.5 Implement _renderNEBDashboard() method
   - **Do**:
     1. Add `_renderNEBDashboard(ctx, width, padding)` method
     2. Follow `_renderSwarmHealth` pattern for positioning/stacking
