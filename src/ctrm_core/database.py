@@ -63,6 +63,7 @@ class CTRMDatabase:
                 failure_count INTEGER DEFAULT 0,
                 token_cost INTEGER,
                 importance_score REAL,
+                importance_rank INTEGER DEFAULT 0,
                 category TEXT,
                 dependencies TEXT,
                 metadata TEXT,
@@ -75,6 +76,12 @@ class CTRMDatabase:
         self.conn.execute('''
             CREATE INDEX IF NOT EXISTS idx_ctrm_distance
             ON ctrm_truths(distance_from_center, confidence)
+        ''')
+
+        # Create index for importance ranking
+        self.conn.execute('''
+            CREATE INDEX IF NOT EXISTS idx_ctrm_importance_rank
+            ON ctrm_truths(importance_rank)
         ''')
 
         # Create ctrm_relationships table
@@ -268,6 +275,46 @@ class CTRMDatabase:
         ))
 
         self.conn.commit()
+
+    def recalculate_importance_ranks(self):
+        """
+        Recalculate importance_rank for all truths.
+        Rank 0 = closest to center (most important)
+        Lower distance_from_center = lower rank number = more important
+        """
+        self.conn.execute('''
+            UPDATE ctrm_truths SET importance_rank = (
+                SELECT COUNT(*) FROM ctrm_truths AS t2
+                WHERE t2.distance_from_center < ctrm_truths.distance_from_center
+            )
+        ''')
+        self.conn.commit()
+        return self.conn.execute('SELECT COUNT(*) FROM ctrm_truths').fetchone()[0]
+
+    def get_truths_by_rank(self, limit: int = 10, offset: int = 0) -> List[Dict[str, Any]]:
+        """Get truths ordered by importance rank (most important first)"""
+        cursor = self.conn.execute('''
+            SELECT * FROM ctrm_truths
+            ORDER BY importance_rank ASC
+            LIMIT ? OFFSET ?
+        ''', (limit, offset))
+
+        results = []
+        for row in cursor.fetchall():
+            embedding = list(np.frombuffer(row[2], dtype=np.float32)) if row[2] else None
+            results.append({
+                'id': row[0],
+                'statement': row[1],
+                'embedding': embedding,
+                'confidence': row[3],
+                'distance_from_center': row[4],
+                'importance_rank': row[14] if len(row) > 14 else 0,
+                'verification_count': row[5],
+                'failure_count': row[6],
+                'category': row[9],
+                'created_at': row[12]
+            })
+        return results
 
     def get_truth(self, truth_id: str) -> Optional[Dict[str, Any]]:
         """Get a truth by ID"""
