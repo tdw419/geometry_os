@@ -46,7 +46,7 @@ jobs:
           --health-timeout=5s
           --health-retries=5
 
-      # WordPress 6.4 service container
+      # WordPress 6.4 service container (no volume mounts to avoid checkout conflicts)
       wordpress:
         image: wordpress:6.4-php8.2-apache
         env:
@@ -66,8 +66,6 @@ jobs:
           --health-timeout=5s
           --health-retries=10
           --health-start-period=30s
-        volumes:
-          - ${{ github.workspace }}/wordpress_zone/wordpress/wp-content/mu-plugins:/var/www/html/wp-content/mu-plugins:ro
 
     env:
       WP_URL: http://localhost:8080
@@ -104,6 +102,20 @@ jobs:
           done
           echo "WordPress failed to start!"
           exit 1
+
+      - name: Copy mu-plugins to WordPress container
+        run: |
+          # Get the WordPress container ID
+          WP_CONTAINER=$(docker ps --filter "ancestor=wordpress:6.4-php8.2-apache" --format "{{.ID}}")
+          echo "WordPress container: $WP_CONTAINER"
+
+          # Create mu-plugins directory in container
+          docker exec $WP_CONTAINER mkdir -p /var/www/html/wp-content/mu-plugins
+
+          # Copy mu-plugins files
+          docker cp wordpress_zone/wordpress/wp-content/mu-plugins/. $WP_CONTAINER:/var/www/html/wp-content/mu-plugins/
+
+          echo "mu-plugins copied successfully!"
 
       - name: Setup certbot user
         env:
