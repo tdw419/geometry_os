@@ -4,5 +4,5 @@
     "source": "/bin/ls",
     "destination": "bin_ls.brick",
     "texture_size": 512,
-    "ai_model": "glm-4.7-flash"
+    "ai_model": "qwen2.5-coder-7b-instruct"
 }

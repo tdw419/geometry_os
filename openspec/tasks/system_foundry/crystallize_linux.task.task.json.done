@@ -9,5 +9,5 @@
     ],
     "max_files_per_path": 10,
     "texture_size": 256,
-    "ai_model": "glm-4.7-flash"
+    "ai_model": "qwen2.5-coder-7b-instruct"
 }
