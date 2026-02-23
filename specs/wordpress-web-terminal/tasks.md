@@ -30,7 +30,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
   - _Requirements: FR-2, FR-3, FR-5_
   - _Design: Component C_
 
-- [ ] 1.3 Connect xterm.js to Visual Bridge
+- [x] 1.3 Connect xterm.js to Visual Bridge
   - **Do**: In terminal.js, create WebSocket connection to `ws://localhost:8768/terminal?token=<token>`, send `input` messages on keypress, receive `output` messages and write to terminal, handle `resize` events
   - **Files**: `wordpress_zone/wordpress/wp-content/plugins/geometry-os-web-terminal/assets/js/terminal.js`
   - **Done when**: Terminal displays shell output, responds to keyboard input
