@@ -67,7 +67,7 @@ After POC validated, clean up code.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Add WordPress plugin unit tests
+- [x] 3.1 Add WordPress plugin unit tests
   - **Do**: Create test file with Test_GeometryOS_WebTerminal class, test plugin activation, session token generation, permission checks
   - **Files**: `wordpress_zone/wordpress/wp-content/plugins/geometry-os-web-terminal/tests/test-plugin.php`
   - **Done when**: Tests cover main plugin functionality
