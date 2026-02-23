@@ -146,7 +146,7 @@ Minimal - scope is intentionally small.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Local quality verification
+- [x] 4.1 Local quality verification
   - **Do**: Run all quality commands locally
   - **Verify**:
     - `flake8 systems/visual_shell/api/neb_bridge.py`
