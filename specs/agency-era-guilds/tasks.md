@@ -52,7 +52,7 @@ Focus: Get EngineerAgent generating code end-to-end. Skip tests initially.
   - **Commit**: `feat(swarm): add GuildFactory for agent creation`
   - _Requirements: FR-14_
 
-- [ ] 1.6 POC Checkpoint - Engineer end-to-end
+- [x] 1.6 POC Checkpoint - Engineer end-to-end
   - **Do**: Verify EngineerAgent claims task, generates code, completes task, publishes event
   - **Done when**: Manual test shows code in task.result and event in NEB history
   - **Verify**: Create task → run work_cycle() → check task.result["code"]
