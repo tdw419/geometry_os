@@ -60,19 +60,27 @@ class SubscriptionManager:
             return True
         return False
 
-    def match_and_deliver(self, topic: str, payload: Dict[str, Any]) -> int:
+    def match_and_deliver(
+        self,
+        topic: str,
+        payload: Dict[str, Any],
+        skip_semantic: bool = False
+    ) -> int:
         """
         Match topic against all subscriptions and deliver to matches.
 
         Args:
             topic: The event topic
             payload: The event payload
+            skip_semantic: If True, skip semantic subscriptions
 
         Returns:
             Number of subscribers that received the event
         """
         delivered = 0
         for sub in self._subscriptions.values():
+            if skip_semantic and sub.is_semantic:
+                continue
             if self._match_pattern(sub.pattern, topic):
                 try:
                     sub.callback(payload)
