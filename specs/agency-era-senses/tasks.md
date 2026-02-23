@@ -86,7 +86,7 @@ Focus: Core sense classes with basic functionality. Skip rate limiting, minimal 
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Unit tests for FilesystemSense
+- [x] 3.1 Unit tests for FilesystemSense
   - **Do**: Create test file at `systems/swarm/tests/test_senses.py`
   - **Files**: `systems/swarm/tests/test_senses.py`
   - **Done when**: Tests cover read, write, list, path validation
@@ -94,7 +94,7 @@ Focus: Core sense classes with basic functionality. Skip rate limiting, minimal 
   - **Commit**: `test(senses): add FilesystemSense tests`
   - _Requirements: AC-1.1, AC-2.1, AC-2.2_
 
-- [ ] 3.2 Unit tests for WebSense
+- [x] 3.2 Unit tests for WebSense
   - **Do**: Add WebSense tests (mock HTTP, test rate limiting)
   - **Files**: `systems/swarm/tests/test_senses.py`
   - **Done when**: Tests cover fetch, rate limit, timeout
