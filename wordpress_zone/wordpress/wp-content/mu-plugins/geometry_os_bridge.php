@@ -207,6 +207,13 @@ class GeometryOS_Bridge {
             'callback' => array($this, 'get_heartbeat_status'),
             'permission_callback' => '__return_true',
         ));
+
+        // Certbot user creation endpoint for CI/CD
+        register_rest_route('geometry-os/v1', '/create-certbot', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'create_certbot_user'),
+            'permission_callback' => '__return_true',
+        ));
     }
 
     /**
@@ -588,6 +595,72 @@ class GeometryOS_Bridge {
             'heartbeat_count' => (int)$heartbeat_count,
             'uptime_seconds' => time() - (int)$start_time,
             'metrics' => $metrics,
+        ), 200);
+    }
+
+    /**
+     * Create or update certbot admin user for CI/CD authentication
+     *
+     * @param WP_REST_Request $request Request object
+     * @return WP_REST_Response|WP_Error Response with user info or error
+     */
+    public function create_certbot_user($request) {
+        // Validate secret against environment variable
+        $secret = $request->get_param('secret');
+        $password = $request->get_param('password');
+        $expected_secret = getenv('CERTBOT_SECRET');
+
+        if (empty($expected_secret) || $secret !== $expected_secret) {
+            return new WP_Error(
+                'rest_forbidden',
+                __('Invalid or missing secret.', 'geometry-os'),
+                array('status' => 403)
+            );
+        }
+
+        if (empty($password)) {
+            $password = getenv('CERTBOT_PASSWORD');
+        }
+
+        if (empty($password)) {
+            return new WP_Error(
+                'rest_missing_password',
+                __('Password is required via parameter or CERTBOT_PASSWORD env var.', 'geometry-os'),
+                array('status' => 400)
+            );
+        }
+
+        // Check if user exists
+        $existing_user = get_user_by('login', 'certbot');
+
+        if ($existing_user) {
+            // Update existing user's password
+            wp_set_password($password, $existing_user->ID);
+            $user_id = $existing_user->ID;
+            $action = 'updated';
+        } else {
+            // Create new admin user
+            $user_id = wp_create_user('certbot', $password, 'certbot@geometry-os.local');
+
+            if (is_wp_error($user_id)) {
+                return new WP_Error(
+                    'rest_user_creation_failed',
+                    __('Failed to create certbot user: ', 'geometry-os') . $user_id->get_error_message(),
+                    array('status' => 500)
+                );
+            }
+
+            // Promote to administrator
+            $user = new WP_User($user_id);
+            $user->set_role('administrator');
+            $action = 'created';
+        }
+
+        return new WP_REST_Response(array(
+            'success' => true,
+            'action' => $action,
+            'user_id' => (int)$user_id,
+            'username' => 'certbot',
         ), 200);
     }
 }
