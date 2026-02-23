@@ -28,7 +28,7 @@ Focus: Core sense classes with basic functionality. Skip rate limiting, minimal 
   - **Commit**: `feat(senses): add SenseResult dataclass`
   - _Requirements: FR-6_
 
-- [ ] 1.3 Implement FilesystemSense.read_file
+- [x] 1.3 Implement FilesystemSense.read_file
   - **Do**: Create `systems/swarm/senses/filesystem.py` with FilesystemSense class, read_file method, path validation
   - **Files**: `systems/swarm/senses/filesystem.py`
   - **Done when**: Can read file from allowed path, error on disallowed

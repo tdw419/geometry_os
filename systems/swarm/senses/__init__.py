@@ -8,7 +8,9 @@ This module provides sense classes for agents to interact with external resource
 """
 
 from systems.swarm.senses.base import SenseResult
+from systems.swarm.senses.filesystem import FilesystemSense
 
 __all__ = [
     "SenseResult",
+    "FilesystemSense",
 ]
