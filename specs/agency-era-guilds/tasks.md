@@ -28,7 +28,7 @@ Focus: Get EngineerAgent generating code end-to-end. Skip tests initially.
   - **Commit**: `feat(swarm): create guilds module structure`
   - _Requirements: All_
 
-- [ ] 1.3 Implement GuildAgent abstract base
+- [x] 1.3 Implement GuildAgent abstract base
   - **Do**: Create `base.py` with GuildAgent class extending SwarmAgent. Add `role` attribute, `event_bus` param, `_publish_result()` method, abstract `_summarize()`
   - **Files**: `systems/swarm/guilds/base.py`
   - **Done when**: Class instantiates with stub _summarize
