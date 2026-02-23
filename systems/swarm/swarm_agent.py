@@ -5,10 +5,14 @@ Agents claim tasks, execute work, and post results.
 """
 
 import logging
-from typing import Optional, List, Dict, Any, Callable
+from typing import Optional, List, Dict, Any, Callable, TYPE_CHECKING
 
 from systems.swarm.task import Task, TaskType, TaskStatus
 from systems.swarm.task_board import TaskBoard
+
+if TYPE_CHECKING:
+    from systems.swarm.neb_bus import NEBBus
+    from systems.swarm.neb_signal import NEBSignal
 
 
 logger = logging.getLogger("SwarmAgent")
@@ -30,7 +34,8 @@ class SwarmAgent:
         agent_id: str,
         task_board: TaskBoard,
         capabilities: Optional[List[str]] = None,
-        handlers: Optional[Dict[TaskType, Callable]] = None
+        handlers: Optional[Dict[TaskType, Callable]] = None,
+        auto_claim: bool = False
     ):
         """
         Initialize swarm agent.
@@ -40,12 +45,15 @@ class SwarmAgent:
             task_board: TaskBoard to pull tasks from
             capabilities: List of task types this agent can handle
             handlers: Optional mapping of task types to handler functions
+            auto_claim: If True, automatically claim tasks when notified via NEB
         """
         self.agent_id = agent_id
         self.task_board = task_board
         self.capabilities = capabilities or self._default_capabilities()
         self.handlers = handlers or {}
         self.current_task: Optional[Task] = None
+        self.auto_claim = auto_claim
+        self.recent_notifications: List['NEBSignal'] = []
 
     def _default_capabilities(self) -> List[str]:
         """Default capabilities - all task types."""
@@ -157,3 +165,31 @@ class SwarmAgent:
         except Exception as e:
             self.fail_task(task, str(e))
             raise
+
+    def subscribe_to_events(self, bus: 'NEBBus') -> str:
+        """
+        Subscribe to task.available events from the Neural Event Bus.
+
+        When a task becomes available, the agent is notified and optionally
+        auto-claims it if auto_claim is True.
+
+        Note: The auto_claim is deferred to avoid lock contention when the
+        callback is invoked during TaskBoard.post() which already holds the
+        board lock.
+
+        Args:
+            bus: NEBBus to subscribe to
+
+        Returns:
+            Subscription ID
+        """
+        def on_task_available(signal: 'NEBSignal'):
+            self.recent_notifications.append(signal)
+            if self.auto_claim:
+                # Defer the claim to avoid lock contention
+                # The task is already persisted, so we can claim it after
+                # the current operation completes
+                import threading
+                threading.Timer(0.01, self.claim_next_task).start()
+
+        return bus.subscribe("task.available", on_task_available)
