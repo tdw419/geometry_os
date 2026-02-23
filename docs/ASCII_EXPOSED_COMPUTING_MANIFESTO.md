@@ -367,3 +367,317 @@ Namespaces provide the "grep boundary" — queries naturally scope to directorie
 ---
 
 **Primitive composition:** Real systems combine all four primitives. A fragment has a schema, lives in a namespace, and triggers hooks on change. Together, they form the atomic vocabulary of ASCII Exposed Computing.
+
+---
+
+## Patterns
+
+The primitives define what; patterns define how. These five patterns solve common problems in ASCII Exposed systems.
+
+### Pattern: Scene Graph Aggregation
+
+**Problem:** Individual fragments are atomic, but humans need summary views. How do you expose aggregate state without maintaining separate "dashboard" endpoints?
+
+**Solution:** Generate aggregated fragments by concatenating and summarizing atomic fragments. The aggregation is itself a fragment, not a special API.
+
+**Example:**
+```python
+# Atomic fragments (input)
+# agents/engineer_001/status.ascii
+status: working
+task: T-00042
+
+# agents/reviewer_001/status.ascii
+status: idle
+task: null
+
+# Aggregated fragment (output)
+# system/agent_summary.ascii
+# schema: agent-summary/v1
+# Generated: 2026-02-23T14:45:00Z
+#
+# This file is auto-generated. Do not edit.
+# Source: agents/*/status.ascii
+
+total_agents: 2
+working: 1
+idle: 1
+by_role:
+  engineer: 1
+  reviewer: 1
+active_tasks:
+  - T-00042 (engineer_001)
+```
+
+**Implementation:**
+```python
+# From Geometry OS ascii_scene/scene_graph.py
+class SceneGraphAggregator:
+    """Aggregates atomic fragments into summary views."""
+
+    def generate_summary(self, namespace: str, output_path: str):
+        fragments = self._collect_fragments(namespace)
+        summary = self._aggregate(fragments)
+        self._write_fragment(output_path, summary)
+        self.hooks.notify(output_path, "AGGREGATED", diff=summary)
+```
+
+**When to use:** Any time humans need a "dashboard" view. The aggregated fragment is both human-readable and AI-parseable, and can itself be queried.
+
+---
+
+### Pattern: Atomic File Writes
+
+**Problem:** Partial writes corrupt state. How do you ensure readers never see torn writes?
+
+**Solution:** Write to a temporary file, then atomically rename. Readers either see old state or new state—never intermediate state.
+
+**Example:**
+```python
+# Bad: Direct write
+with open("fragments/status.ascii", "w") as f:
+    f.write("status: ")      # CRASH HERE -> corrupted!
+    f.write("running\n")
+
+# Good: Atomic write
+import os
+import tempfile
+
+def atomic_write(path: str, content: str):
+    """Write atomically via temp file + rename."""
+    fd, tmp_path = tempfile.mkstemp(dir=os.path.dirname(path))
+    try:
+        with os.fdopen(fd, 'w') as f:
+            f.write(content)
+        os.rename(tmp_path, path)  # Atomic on POSIX
+    except:
+        os.unlink(tmp_path)
+        raise
+
+# Usage
+atomic_write("fragments/status.ascii", "status: running\n")
+```
+
+**Why it works:** `rename(2)` is atomic on POSIX systems. The old file is replaced instantly with the new file. Any reader opening the file at any moment gets a consistent view.
+
+**Implementation in Geometry OS:**
+```python
+# From systems/visual_shell/ascii_scene/atomic_io.py
+import os
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+
+def atomic_write(path: str | Path, content: str, sync: bool = True):
+    """Atomic write with optional fsync for durability."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    with NamedTemporaryFile(
+        mode='w',
+        dir=path.parent,
+        prefix=f".{path.name}.",
+        delete=False
+    ) as tmp:
+        tmp.write(content)
+        if sync:
+            tmp.flush()
+            os.fsync(tmp.fileno())
+
+    os.replace(tmp.name, path)  # Atomic on both Linux and macOS
+```
+
+**When to use:** Every time you write a fragment. This is not optional in ASCII Exposed systems.
+
+---
+
+### Pattern: Change Streams
+
+**Problem:** Polling is inefficient. How do AIs know when state changes without constant reads?
+
+**Solution:** Maintain an append-only log of changes. Each line is a diff, timestamped and namespaced. AIs can tail the log or query specific time ranges.
+
+**Example:**
+```python
+# hooks/changes.log
+# schema: change-stream/v1
+# Format: TIMESTAMP | NAMESPACE | OPERATION | DIFF
+
+2026-02-23T14:30:00Z | agents/engineer_001 | UPDATE |
+  -status: idle
+  +status: working
+  +task: T-00042
+
+2026-02-23T14:45:22Z | agents/engineer_001 | UPDATE |
+  -status: working
+  +status: idle
+  -task: T-00042
+
+2026-02-23T14:45:23Z | tasks/T-00042 | UPDATE |
+  -status: pending
+  +status: completed
+```
+
+**Querying the stream:**
+```bash
+# Find all changes in the last hour
+grep "2026-02-23T14:" hooks/changes.log
+
+# Find all task completions
+grep "+status: completed" hooks/changes.log
+
+# Find changes to a specific agent
+grep "agents/engineer_001" hooks/changes.log
+```
+
+**Implementation:**
+```python
+# From Geometry OS ascii_scene/change_stream.py
+from datetime import datetime
+from pathlib import Path
+
+class ChangeStream:
+    """Append-only log of fragment changes."""
+
+    def __init__(self, log_path: str):
+        self.log_path = Path(log_path)
+
+    def append(self, namespace: str, operation: str, diff: str):
+        timestamp = datetime.utcnow().isoformat() + "Z"
+        entry = f"{timestamp} | {namespace} | {operation} |\n"
+        for line in diff.strip().split("\n"):
+            entry += f"  {line}\n"
+
+        # Atomic append
+        with open(self.log_path, "a") as f:
+            f.write(entry)
+            f.flush()
+```
+
+**When to use:** Any system with reactive components. Change streams are the backbone of AI-driven automation.
+
+---
+
+### Pattern: Dual-Format Fragments
+
+**Problem:** Some data is inherently structured (nested objects, arrays). How do you maintain human readability while preserving structure?
+
+**Solution:** Use a dual format: human-readable by default, with a parallel `.json` variant for complex structures. Both are fragments; both are exposed.
+
+**Example:**
+```python
+# fragments/tasks/T-00042.ascii (human-primary)
+# schema: task-dual/v1
+# Human-readable summary
+
+task_id: T-00042
+type: code
+status: pending
+priority: 2
+summary: Implement authentication endpoint
+assignee: engineer_001
+created: 2026-02-23T14:00:00Z
+
+# For full payload, see: fragments/tasks/T-00042.json
+
+---
+# fragments/tasks/T-00042.json (machine-primary)
+{
+  "schema": "task-dual/v1",
+  "task_id": "T-00042",
+  "type": "code",
+  "status": "pending",
+  "priority": 2,
+  "summary": "Implement authentication endpoint",
+  "assignee": "engineer_001",
+  "created": "2026-02-23T14:00:00Z",
+  "payload": {
+    "spec": "Create POST /auth/login endpoint with JWT tokens",
+    "files": ["src/auth/login.py", "tests/test_auth.py"],
+    "requirements": [
+      "Validate email format",
+      "Rate limit: 5 attempts per minute",
+      "Return 401 on failure, 200 + token on success"
+    ],
+    "acceptance_criteria": [
+      "All tests pass",
+      "Code review approved",
+      "No security vulnerabilities"
+    ]
+  }
+}
+```
+
+**Rules for dual-format:**
+1. `.ascii` is always present and always human-readable
+2. `.json` is optional, present only when structure exceeds ASCII capacity
+3. `.ascii` references `.json` for "full details"
+4. Both files are fragments with the same ID but different schemas
+5. Updates must maintain consistency (use atomic writes for both)
+
+**When to use:** Tasks with complex payloads, configuration with nested objects, any state where the summary is simple but details are structured.
+
+---
+
+### Pattern: Fragment Inheritance
+
+**Problem:** Fragments share common fields. Duplicating them violates DRY and risks inconsistency.
+
+**Solution:** Define base fragments that derived fragments extend. The base is a template; the derived adds specifics.
+
+**Example:**
+```python
+# fragments/_base/agent.ascii (template)
+# schema: agent-base/v1
+# DO NOT USE DIRECTLY - this is a template
+#
+# Required fields for all agents:
+agent_id: null      # Override in derived
+role: null          # Override in derived
+status: offline     # Default value
+created: null       # Set at creation
+
+# fragments/agents/engineer_001/status.ascii (derived)
+# schema: agent-engineer/v1
+# extends: agent-base/v1
+
+agent_id: engineer_001
+role: engineer
+status: working
+created: 2026-02-20T10:00:00Z
+
+# Derived additions:
+current_task: T-00042
+capabilities:
+  - code_generation
+  - test_writing
+  - refactoring
+```
+
+**Implementation:**
+```python
+# Fragment resolution logic
+def resolve_fragment(path: str) -> dict:
+    """Resolve a fragment with inheritance."""
+    fragment = parse_fragment(path)
+
+    if "extends" in fragment:
+        base_path = find_schema(fragment["extends"])
+        base = parse_fragment(base_path)
+        # Merge: base provides defaults, derived overrides
+        return {**base, **fragment}
+
+    return fragment
+```
+
+**Inheritance rules:**
+1. Only single inheritance (one `extends` per fragment)
+2. Derived fields override base fields with same key
+3. List/dict fields merge (union for lists, update for dicts)
+4. The `extends` field references schema version, not file path
+5. Base fragments live in `_base/` or `templates/` namespace
+
+**When to use:** Standardizing agent types, task templates, configuration hierarchies.
+
+---
+
+**Pattern composition:** Real systems use multiple patterns together. A task fragment uses Dual-Format (ascii + json), is written Atomically, and changes are logged to a Change Stream. The aggregate view uses Scene Graph Aggregation. Common fields come from Fragment Inheritance.

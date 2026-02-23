@@ -48,7 +48,7 @@ Focus: Create the complete manifesto document with all sections. Accept iterativ
   - _Requirements: FR-4, AC-4.1, AC-4.2, AC-4.3, AC-4.4_
   - _Design: Section 4_
 
-- [ ] 1.5 Add Patterns section
+- [x] 1.5 Add Patterns section
   - **Do**: Append 5 patterns (Scene Graph Aggregation, Atomic File Writes, Change Streams, Dual-Format Fragments, Fragment Inheritance) with Problem/Solution/Code format
   - **Files**: `docs/ASCII_EXPOSED_COMPUTING_MANIFESTO.md`
   - **Done when**: 5 patterns with `### Pattern:` headers
