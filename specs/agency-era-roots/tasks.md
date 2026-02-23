@@ -140,7 +140,7 @@ After POC validated, clean up code and integrate with GuildAgents.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Run all swarm tests to verify no regressions
+- [x] 4.1 Run all swarm tests to verify no regressions
   - **Do**: Execute full swarm test suite
   - **Verify**: `python -m pytest systems/swarm/test_*.py -v --tb=short`
   - **Done when**: All 72+ tests pass
