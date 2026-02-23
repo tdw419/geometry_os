@@ -60,7 +60,7 @@ Focus: Get EngineerAgent generating code end-to-end. Skip tests initially.
 
 ## Phase 2: Refactoring
 
-- [ ] 2.1 Implement ReviewerAgent
+- [x] 2.1 Implement ReviewerAgent
   - **Do**: Create `reviewer.py` with ReviewerAgent extending GuildAgent. Implement handlers for CODE_REVIEW and SECURITY_SCAN. Return analysis results.
   - **Files**: `systems/swarm/guilds/reviewer.py`
   - **Done when**: Agent handles both review task types
