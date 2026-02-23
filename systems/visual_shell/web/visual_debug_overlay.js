@@ -171,6 +171,21 @@ class VisualDebugOverlay {
             errorCode: null
         };
 
+        // NEB Dashboard state (Neural Event Bus Visualization)
+        // nebDashboard displays real-time NEB event stream in HUD
+        this.nebDashboard = {
+            enabled: false,
+            events: [],
+            topicCounts: {},
+            totalCount: 0,
+            lastUpdate: null
+        };
+        // Restore nebDashboard enabled state from localStorage
+        const savedEnabled = localStorage.getItem('nebDashboard_enabled');
+        if (savedEnabled !== null) {
+            this.nebDashboard.enabled = savedEnabled === 'true';
+        }
+
         // Canvas layers
         this.hudCanvas = null;
         this.hudCtx = null;

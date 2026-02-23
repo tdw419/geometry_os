@@ -44,7 +44,7 @@ Focus: Bridge NEB events to HUD. Skip tests, accept hardcoded values.
   - _Requirements: FR-1_
   - _Design: Architecture diagram_
 
-- [ ] 1.3 Add nebDashboard state to visual_debug_overlay.js
+- [x] 1.3 Add nebDashboard state to visual_debug_overlay.js
   - **Do**:
     1. Add `nebDashboard` state object in constructor (after other state objects)
     2. Properties: `enabled`, `events[]`, `topicCounts{}`, `totalCount`, `lastUpdate`
