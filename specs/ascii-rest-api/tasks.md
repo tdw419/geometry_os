@@ -252,7 +252,7 @@ Focus: Validate REST API and API key authentication work end-to-end. Skip edge c
   - **Done when**: No syntax errors in any PHP file
   - **Commit**: `chore(api): fix syntax issues` (only if fixes needed)
 
-- [ ] 4.2 Update README with API documentation
+- [x] 4.2 Update README with API documentation
   - **Do**:
     1. Document all 5 endpoints with request/response examples
     2. Document authentication methods (header + query param)
