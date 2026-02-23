@@ -134,7 +134,9 @@ markers = [
     "unit: marks tests as unit tests",
     "gradient_clipping: marks tests for gradient clipping functionality",
     "gpu: marks tests that require GPU/CUDA",
+    "asyncio: mark test as async (pytest-asyncio)",
 ]
+asyncio_mode = "auto"
 
 [tool.coverage.run]
 source = ["vectoros"]
