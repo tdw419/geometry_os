@@ -30,7 +30,7 @@ Focus: Create CI runner and workflow. Get tests running in CI.
   - _Requirements: FR-1_
   - _Design: CI Test Runner Script_
 
-- [ ] 1.2 Create GitHub Actions workflow
+- [x] 1.2 Create GitHub Actions workflow
   - **Do**: Create `.github/workflows/terminal-tests.yml` with:
     - Triggers: push/PR to main/master on paths `systems/visual_shell/api/**` and `wordpress_zone/.../geometry-os-web-terminal/**`
     - Schedule: nightly at 03:00 UTC
