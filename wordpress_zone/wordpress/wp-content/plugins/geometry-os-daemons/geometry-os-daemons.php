@@ -86,6 +86,13 @@ class Geometry_OS_Daemons
     }
 
     /**
+     * Daemon monitor instance
+     *
+     * @var Daemon_Monitor|null
+     */
+    private $monitor = null;
+
+    /**
      * Load include files
      *
      * @since 1.0.0
@@ -94,6 +101,7 @@ class Geometry_OS_Daemons
     {
         // Load class files
         $includes = [
+            'class-daemon-monitor.php',
             'class-daemon-status.php',
             'class-daemon-api.php',
         ];
@@ -104,6 +112,19 @@ class Geometry_OS_Daemons
                 require_once $path;
             }
         }
+    }
+
+    /**
+     * Get daemon monitor instance
+     *
+     * @return Daemon_Monitor
+     */
+    public function get_daemon_monitor()
+    {
+        if ($this->monitor === null && class_exists('Daemon_Monitor')) {
+            $this->monitor = new Daemon_Monitor();
+        }
+        return $this->monitor;
     }
 
     /**
@@ -193,7 +214,7 @@ class Geometry_OS_Daemons
             wp_die(__('You do not have sufficient permissions to access this page.', 'geometry-os-daemons'));
         }
 
-        include $this->plugin_dir . 'views/daemons-dashboard.php';
+        include $this->plugin_dir . 'admin/page-daemons.php';
     }
 
     /**
