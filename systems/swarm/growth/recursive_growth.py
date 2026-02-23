@@ -5,7 +5,7 @@ Subscribes to task events and tracks metrics for growth analysis.
 """
 
 from typing import Dict, Any, Optional, TYPE_CHECKING
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 if TYPE_CHECKING:
     from systems.swarm.neb_bus import NEBBus

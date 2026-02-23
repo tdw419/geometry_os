@@ -70,7 +70,6 @@ class PatternAnalyzer:
         outcomes = Counter(exp.outcome for exp in experiences)
         total = len(experiences)
         successes = outcomes.get("success", 0)
-        failures = outcomes.get("failure", 0)
 
         success_rate = successes / total if total > 0 else 0.0
 

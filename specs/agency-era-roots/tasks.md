@@ -146,7 +146,7 @@ After POC validated, clean up code and integrate with GuildAgents.
   - **Done when**: All 72+ tests pass
   - **Commit**: `fix(memory): address test regressions` (if needed)
 
-- [ ] 4.2 Type checking and linting
+- [x] 4.2 Type checking and linting
   - **Do**: Run mypy and ruff on new modules
   - **Verify**: `mypy systems/swarm/memory/ systems/swarm/growth/ && ruff check systems/swarm/memory/ systems/swarm/growth/`
   - **Done when**: No errors
