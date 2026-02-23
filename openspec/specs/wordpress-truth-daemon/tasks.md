@@ -30,7 +30,7 @@ Focus: Validate the pipeline works end-to-end. Skip tests, accept hardcoded valu
   - _Requirements: FR-2_
   - _Design: TruthExtractor component_
 
-- [ ] 1.3 Create TriadScorer
+- [x] 1.3 Create TriadScorer
   - **Do**: Create `wordpress_zone/triad_scorer.py` with TriadScorer class and TriadScore dataclass. Method: `calculate_score(llm_confidence, author_role, source_type, corroboration_count)`. Implement formula: `confidence = (llm * 0.4) + (author * 0.3) + (source * 0.2) + (corroboration * 0.1)`, `distance = int(50 + (1 - confidence) * 40)`. Include DEFAULT_AUTHOR_WEIGHTS and DEFAULT_SOURCE_WEIGHTS.
   - **Files**: `wordpress_zone/triad_scorer.py`
   - **Done when**: calculate_score() returns TriadScore with confidence 0-1, distance 50-90
@@ -39,7 +39,7 @@ Focus: Validate the pipeline works end-to-end. Skip tests, accept hardcoded valu
   - _Requirements: FR-3_
   - _Design: TriadScorer component_
 
-- [ ] 1.4 Create VerificationScheduler
+- [x] 1.4 Create VerificationScheduler
   - **Do**: Create `wordpress_zone/verification_scheduler.py` with VerificationScheduler class. Methods: `__init__(db_path, interval_seconds=3600, max_tokens=5000)`, `async run_cycle()`, `async start()`, `stop()`. Import CTRMDatabase from src/ctrm_core/database.py and CTRMTruthManager from src/ctrm_core/truth_manager.py. Create MockEmbedder class for SimpleEmbedder. Call manager.verify_foundational_truths(max_tokens).
   - **Files**: `wordpress_zone/verification_scheduler.py`
   - **Done when**: run_cycle() returns dict with verified_truths count
@@ -48,7 +48,7 @@ Focus: Validate the pipeline works end-to-end. Skip tests, accept hardcoded valu
   - _Requirements: FR-6_
   - _Design: VerificationScheduler component_
 
-- [ ] 1.5 Create WordPressTruthDaemon
+- [x] 1.5 Create WordPressTruthDaemon
   - **Do**: Create `wordpress_zone/wordpress_truth_daemon.py` with DaemonConfig dataclass and WordPressTruthDaemon class. Methods: `__init__(config)`, `async run_discovery()`, `async _process_post(post)`, `async start()`, `stop()`. Wire all components: wp_client, extractor, scorer, truth_manager. Add signal handlers for SIGTERM/SIGINT. Add main() CLI entrypoint with argparse.
   - **Files**: `wordpress_zone/wordpress_truth_daemon.py`
   - **Done when**: Can instantiate daemon, run_discovery() returns int count
@@ -57,7 +57,7 @@ Focus: Validate the pipeline works end-to-end. Skip tests, accept hardcoded valu
   - _Requirements: FR-4, FR-5_
   - _Design: WordPressTruthDaemon component_
 
-- [ ] 1.6 POC Checkpoint
+- [x] 1.6 POC Checkpoint
   - **Do**: Verify full pipeline works. Start daemon briefly, check logs.
   - **Done when**: Daemon starts, attempts discovery cycle, logs output
   - **Verify**: `cd wordpress_zone && timeout 5 python wordpress_truth_daemon.py -v || true`
@@ -67,7 +67,7 @@ Focus: Validate the pipeline works end-to-end. Skip tests, accept hardcoded valu
 
 After POC validated, clean up code.
 
-- [ ] 2.1 Update ai-publisher.php
+- [x] 2.1 Update ai-publisher.php
   - **Do**: Add three new action handlers to `wordpress_zone/wordpress/ai-publisher.php`: `getModifiedContent` (query posts by modified date, return id/title/content/modified/type/author_id), `updatePostMeta` (update post meta with permission check), `getPostAuthor` (return id/role/post_count). Add `define('WP_TRUTH_DAEMON_MODE', true)` at top.
   - **Files**: `wordpress_zone/wordpress/ai-publisher.php`
   - **Done when**: All three actions respond to JSON requests
@@ -76,7 +76,7 @@ After POC validated, clean up code.
   - _Requirements: FR-1, FR-5_
   - _Design: WordPress API Updates_
 
-- [ ] 2.2 Add configuration file
+- [x] 2.2 Add configuration file
   - **Do**: Create `wordpress_zone/truth_daemon_config.yaml` with discovery (poll_interval, post_types, categories, batch_size), extraction (llm_model, max_content_length, temperature), scoring (author_reliability_weights, source_type_weights, corroboration_boost_per_match, max_corroboration_boost), verification (interval, max_tokens_per_cycle, min_confidence_to_verify), database (path), wordpress (url, api_endpoint, timeout).
   - **Files**: `wordpress_zone/truth_daemon_config.yaml`
   - **Done when**: YAML file parses correctly
@@ -87,7 +87,7 @@ After POC validated, clean up code.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Unit tests for WordPressClient
+- [x] 3.1 Unit tests for WordPressClient
   - **Do**: Create `wordpress_zone/tests/test_wp_client.py`. Test cases: `test_init_with_default_url`, `test_init_with_custom_url`, `test_get_modified_posts_returns_list`. Use unittest.mock.patch to mock _make_request.
   - **Files**: `wordpress_zone/tests/test_wp_client.py`
   - **Done when**: `pytest tests/test_wp_client.py -v` passes with 3 tests
@@ -103,7 +103,7 @@ After POC validated, clean up code.
   - **Commit**: `test(wordpress): add TruthExtractor unit tests`
   - _Requirements: AC-2.1, AC-2.4_
 
-- [ ] 3.3 Unit tests for TriadScorer
+- [x] 3.3 Unit tests for TriadScorer
   - **Do**: Create `wordpress_zone/tests/test_triad_scorer.py`. Test cases: `test_default_config`, `test_custom_config`, `test_calculate_score_basic`, `test_admin_role_boosts_confidence`, `test_high_confidence_closer_to_center`.
   - **Files**: `wordpress_zone/tests/test_triad_scorer.py`
   - **Done when**: `pytest tests/test_triad_scorer.py -v` passes with 5 tests
@@ -137,7 +137,7 @@ After POC validated, clean up code.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Create control script
+- [x] 4.1 Create control script
   - **Do**: Create `wordpress_zone/truth_daemon_ctl.sh` with start/stop/restart/status/tail/report commands. Use PID file for tracking. Create logs/ directory. Add report command with sqlite3 queries for stats.
   - **Files**: `wordpress_zone/truth_daemon_ctl.sh`
   - **Done when**: All commands work, script is executable
