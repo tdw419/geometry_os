@@ -1,5 +1,7 @@
 # Geometry OS Web Terminal
 
+![Terminal Tests](https://github.com/YOUR_USERNAME/geometry_os/actions/workflows/terminal-tests.yml/badge.svg)
+
 Browser-based terminal interface for Geometry OS with xterm.js integration.
 
 ## Description
