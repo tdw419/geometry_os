@@ -111,7 +111,7 @@ Focus: Get EngineerAgent generating code end-to-end. Skip tests initially.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Update module exports
+- [x] 4.1 Update module exports
   - **Do**: Add all guild classes to `systems/swarm/guilds/__init__.py` and reference in `systems/swarm/__init__.py`
   - **Files**: `systems/swarm/guilds/__init__.py`, `systems/swarm/__init__.py`
   - **Done when**: All classes importable from `systems.swarm`
