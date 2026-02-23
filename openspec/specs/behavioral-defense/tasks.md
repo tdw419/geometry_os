@@ -40,7 +40,7 @@ Focus: Validate behavioral monitoring works end-to-end. Skip tests, accept hardc
   - **Commit**: `feat(safety): add AgentBehavioralProfile and BehavioralEvent dataclasses`
   - _Requirements: FR-1, FR-2_
 
-- [ ] 1.2 Create BehavioralMonitor service
+- [x] 1.2 Create BehavioralMonitor service
   - **Do**:
     1. Create `systems/evolution_daemon/safety/behavioral_monitor.py`
     2. Implement `BehavioralMonitor` class with constructor accepting optional thresholds
