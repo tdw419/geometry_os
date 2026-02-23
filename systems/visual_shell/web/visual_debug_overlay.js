@@ -1564,6 +1564,11 @@ class VisualDebugOverlay {
             this._renderSwarmHealth(ctx, width, padding);
         }
 
+        // NEB Dashboard section (Neural Event Bus Visualization)
+        if (this.nebDashboard && this.nebDashboard.enabled) {
+            this._renderNEBDashboard(ctx, width, padding);
+        }
+
         // Task Graph section
         if (Object.keys(this.taskDag.tasks).length > 0 || this.taskDag.activeFlows.length > 0) {
             this._renderTaskGraphSection(ctx, width, padding);
@@ -1819,6 +1824,98 @@ class VisualDebugOverlay {
             
             y += 15;
         }
+    }
+
+    /**
+     * Render NEB Dashboard section (Neural Event Bus Visualization)
+     */
+    _renderNEBDashboard(ctx, width, padding) {
+        const events = this.nebDashboard.events || [];
+        const counts = this.nebDashboard.topicCounts || {};
+        const totalCount = this.nebDashboard.totalCount || 0;
+
+        // Position - stack with other bottom sections
+        const maxEvents = 10;
+        const sectionHeight = 60 + (Math.min(events.length, maxEvents) * 14);
+        let startY = this.hudCanvas.height - sectionHeight - 10;
+
+        // Adjust for other sections (Silicon Terminal, Swarm Health)
+        if (this.uartBuffer && this.uartBuffer.length > 0) startY -= 210;
+        if (this.swarmHealth && this.swarmHealth.agents && Object.keys(this.swarmHealth.agents).length > 0) {
+            const swarmHeight = 40 + (Object.keys(this.swarmHealth.agents).length * 15);
+            startY -= swarmHeight + 10;
+        }
+
+        let y = startY;
+
+        // Background
+        ctx.fillStyle = 'rgba(0, 30, 50, 0.95)';
+        ctx.fillRect(10, y, width - 20, sectionHeight);
+
+        // Border
+        ctx.strokeStyle = '#00ccff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(10, y, width - 20, sectionHeight);
+
+        y += 18;
+        ctx.fillStyle = '#00ccff';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText('⚡ NEB EVENT STREAM', padding, y);
+        y += 5;
+
+        // Divider
+        ctx.strokeStyle = '#00ccff44';
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+        ctx.stroke();
+        y += 15;
+
+        // Topic counts row (top 5 prefixes)
+        ctx.font = '10px monospace';
+        const topicPrefixes = Object.keys(counts).slice(0, 5);
+        if (topicPrefixes.length > 0) {
+            ctx.fillStyle = '#888';
+            ctx.fillText('Topics:', padding, y);
+            let x = padding + 50;
+            for (const prefix of topicPrefixes) {
+                ctx.fillStyle = '#00ccff';
+                const label = `${prefix.substring(0, 8)}:${counts[prefix]}`;
+                ctx.fillText(label, x, y);
+                x += label.length * 6 + 10;
+                if (x > width - padding - 40) break;
+            }
+            y += 15;
+        }
+
+        // Render last N events (time, truncated topic)
+        ctx.font = '10px monospace';
+        const visibleEvents = events.slice(-maxEvents);
+        for (const event of visibleEvents) {
+            const time = event.timestamp
+                ? new Date(event.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                : '--:--:--';
+
+            // Truncate topic for display
+            const maxTopicLen = 25;
+            const topic = event.topic && event.topic.length > maxTopicLen
+                ? event.topic.substring(0, maxTopicLen - 3) + '...'
+                : event.topic || 'unknown';
+
+            ctx.fillStyle = '#666';
+            ctx.fillText(time, padding, y);
+            ctx.fillStyle = '#00ffaa';
+            ctx.fillText(topic, padding + 70, y);
+            y += 14;
+        }
+
+        // Total count at bottom
+        ctx.fillStyle = '#666';
+        ctx.font = '9px monospace';
+        const lastUpdate = this.nebDashboard.lastUpdate
+            ? new Date(this.nebDashboard.lastUpdate).toLocaleTimeString()
+            : 'N/A';
+        ctx.fillText(`Total: ${totalCount} | Last: ${lastUpdate}`, padding, startY + sectionHeight - 8);
     }
 
     /**
