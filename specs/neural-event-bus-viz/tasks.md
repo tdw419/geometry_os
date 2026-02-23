@@ -126,7 +126,7 @@ Minimal - scope is intentionally small.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Unit tests for NEBBridge
+- [x] 3.1 Unit tests for NEBBridge
   - **Do**:
     1. Create `tests/visual_shell/test_neb_bridge.py`
     2. Test throttle logic (100ms debounce)
