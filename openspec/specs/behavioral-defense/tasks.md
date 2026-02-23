@@ -178,7 +178,7 @@ After POC validated, clean up code.
   - **Verify**: `python3 -c "from systems.evolution_daemon.safety import BehavioralMonitor, WordPressSentinel; m = BehavioralMonitor(); p = m.get_profile('nonexistent'); print('OK')"`
   - **Commit**: `refactor(safety): add error handling for edge cases`
 
-- [ ] 2.4 [VERIFY] Quality checkpoint: syntax + existing tests
+- [x] 2.4 [VERIFY] Quality checkpoint: syntax + existing tests
   - **Do**: Verify no regressions in existing tests
   - **Verify**: `python3 -m pytest systems/evolution_daemon/tests/test_tier_router.py systems/evolution_daemon/tests/test_metabolism_monitor.py -v --tb=short 2>&1 | tail -20`
   - **Done when**: All existing tests pass
@@ -188,7 +188,7 @@ After POC validated, clean up code.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Unit tests for AgentBehavioralProfile and BehavioralEvent
+- [x] 3.1 Unit tests for AgentBehavioralProfile and BehavioralEvent
   - **Do**:
     1. Create `systems/evolution_daemon/tests/test_behavioral_data_structures.py`
     2. Test AgentBehavioralProfile creation and field defaults
