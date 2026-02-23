@@ -75,3 +75,32 @@ class FilesystemSense:
             return SenseResult(success=True, data=content)
         except Exception as e:
             return SenseResult(success=False, error=f"Failed to read file: {e}")
+
+    def write_file(self, path: str, content: str) -> SenseResult:
+        """
+        Write content to file in allowed path.
+
+        Args:
+            path: File path to write
+            content: Content to write
+
+        Returns:
+            SenseResult with bytes written count on success
+        """
+        validation = self._validate_path(path)
+        if not validation.success:
+            return validation
+
+        target = validation.data
+
+        # Create parent directories if needed
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            return SenseResult(success=False, error=f"Failed to create directories: {e}")
+
+        try:
+            bytes_written = target.write_text(content, encoding="utf-8")
+            return SenseResult(success=True, data=bytes_written)
+        except Exception as e:
+            return SenseResult(success=False, error=f"Failed to write file: {e}")

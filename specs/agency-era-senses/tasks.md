@@ -36,7 +36,7 @@ Focus: Core sense classes with basic functionality. Skip rate limiting, minimal 
   - **Commit**: `feat(senses): add FilesystemSense.read_file`
   - _Requirements: FR-1, FR-8_
 
-- [ ] 1.4 Implement FilesystemSense.write_file
+- [x] 1.4 Implement FilesystemSense.write_file
   - **Do**: Add write_file method to FilesystemSense
   - **Files**: `systems/swarm/senses/filesystem.py`
   - **Done when**: Can write to allowed path, error on disallowed
