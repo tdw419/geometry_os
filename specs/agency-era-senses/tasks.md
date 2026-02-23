@@ -44,7 +44,7 @@ Focus: Core sense classes with basic functionality. Skip rate limiting, minimal 
   - **Commit**: `feat(senses): add FilesystemSense.write_file`
   - _Requirements: FR-2_
 
-- [ ] 1.5 Implement WebSense.fetch
+- [x] 1.5 Implement WebSense.fetch
   - **Do**: Create `systems/swarm/senses/web.py` with WebSense class, fetch method using httpx
   - **Files**: `systems/swarm/senses/web.py`
   - **Done when**: Can fetch URL and return SenseResult

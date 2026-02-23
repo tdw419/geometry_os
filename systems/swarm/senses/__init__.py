@@ -9,8 +9,10 @@ This module provides sense classes for agents to interact with external resource
 
 from systems.swarm.senses.base import SenseResult
 from systems.swarm.senses.filesystem import FilesystemSense
+from systems.swarm.senses.web import WebSense
 
 __all__ = [
     "SenseResult",
     "FilesystemSense",
+    "WebSense",
 ]
