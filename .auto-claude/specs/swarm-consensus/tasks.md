@@ -22,7 +22,11 @@
 - [x] propose_and_vote convenience method
 
 ## Task 5: Integration Tests
-- Create `tests/test_swarm_integration.py`
+- [x] Create `tests/test_swarm_consensus_integration.py`
+- [x] Mark with @pytest.mark.integration
+- [x] Test full consensus flow between two nodes
+- [x] Skip if clipboard server not running
+- [x] 9 tests passing
 
 ## Task 6: CLI Tool
 - Create `systems/swarm/swarm_cli.py`
