@@ -56,7 +56,7 @@ Focus: Create CI runner and workflow. Get tests running in CI.
 
 After POC validated, add mock mode support.
 
-- [ ] 2.1 Add mock mode to LLM verifier
+- [x] 2.1 Add mock mode to LLM verifier
   - **Do**: Modify `systems/visual_shell/api/tests/llm_terminal_verify.py`:
     - Add `import os` at top
     - Add `TERMINAL_TEST_MOCK_LLM = os.environ.get('TERMINAL_TEST_MOCK_LLM', '0') == '1'`
