@@ -12,7 +12,7 @@ generated: auto
 
 Focus: Core sense classes with basic functionality. Skip rate limiting, minimal error handling.
 
-- [ ] 1.1 Create senses module structure
+- [x] 1.1 Create senses module structure
   - **Do**: Create `systems/swarm/senses/__init__.py` with empty exports
   - **Files**: `systems/swarm/senses/__init__.py`
   - **Done when**: Module imports without error
@@ -20,7 +20,7 @@ Focus: Core sense classes with basic functionality. Skip rate limiting, minimal 
   - **Commit**: `feat(senses): create senses module`
   - _Requirements: FR-7_
 
-- [ ] 1.2 Implement SenseResult dataclass
+- [x] 1.2 Implement SenseResult dataclass
   - **Do**: Create `systems/swarm/senses/base.py` with SenseResult dataclass
   - **Files**: `systems/swarm/senses/base.py`
   - **Done when**: SenseResult(success=True, data="test") works
