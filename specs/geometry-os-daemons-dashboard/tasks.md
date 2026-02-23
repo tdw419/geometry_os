@@ -48,7 +48,7 @@ Focus: Get plugin loading and showing basic daemon status.
   - _Requirements: FR-4_
   - _Design: UI styling_
 
-- [ ] 1.5 Create JavaScript auto-refresh (daemon-monitor.js)
+- [x] 1.5 Create JavaScript auto-refresh (daemon-monitor.js)
   - **Do**: Create `assets/js/daemon-monitor.js` with 30s auto-refresh, manual refresh button, card DOM update logic
   - **Files**: `wordpress_zone/wordpress/wp-content/plugins/geometry-os-daemons/assets/js/daemon-monitor.js`
   - **Done when**: Dashboard auto-refreshes every 30 seconds, manual refresh works

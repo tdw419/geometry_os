@@ -65,7 +65,8 @@
 }
 
 /* Refresh button animation */
-.geometry-os-daemons-actions .dashicons-update.is-spinning {
+.geometry-os-daemons-actions .dashicons-update.is-spinning,
+.geometry-os-daemons-actions .dashicons-update.geometry-os-spinning {
     animation: geometry-os-spin 1s linear infinite;
 }
 
@@ -322,6 +323,20 @@
 .geometry-os-daemon-card.is-updating {
     opacity: 0.7;
     transition: opacity 0.2s ease-in-out;
+}
+
+/* Card updated flash effect */
+.geometry-os-daemon-card.geometry-os-daemon-updated {
+    animation: geometry-os-flash 0.5s ease-in-out;
+}
+
+@keyframes geometry-os-flash {
+    0%, 100% {
+        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+    }
+    50% {
+        box-shadow: 0 0 10px rgba(34, 113, 177, 0.5);
+    }
 }
 
 /* ==========================================================================

@@ -253,18 +253,19 @@ class Geometry_OS_Daemons
 
         // Enqueue scripts
         wp_enqueue_script(
-            'geometry-os-daemons-admin',
-            $this->plugin_url . 'assets/js/admin.js',
+            'geometry-os-daemons-monitor',
+            $this->plugin_url . 'assets/js/daemon-monitor.js',
             ['jquery'],
             self::VERSION,
             true
         );
 
         // Localize script with AJAX URL and nonce
-        wp_localize_script('geometry-os-daemons-admin', 'geometryOSDaemons', [
-            'ajaxUrl' => admin_url('admin-ajax.php'),
-            'nonce'   => wp_create_nonce('geometry_os_daemons_nonce'),
-            'i18n'    => [
+        wp_localize_script('geometry-os-daemons-monitor', 'geometryOSDaemons', [
+            'ajaxUrl'        => admin_url('admin-ajax.php'),
+            'nonce'          => wp_create_nonce('geometry_os_daemons_nonce'),
+            'refreshInterval' => 30000, // 30 seconds in milliseconds
+            'i18n'           => [
                 'starting'  => __('Starting...', 'geometry-os-daemons'),
                 'stopping'  => __('Stopping...', 'geometry-os-daemons'),
                 'restarting'=> __('Restarting...', 'geometry-os-daemons'),
