@@ -9,9 +9,12 @@ import json
 import os
 import fcntl
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, TYPE_CHECKING
 
 from systems.swarm.task import Task, TaskType, TaskStatus
+
+if TYPE_CHECKING:
+    from systems.swarm.neb_bus import NEBBus
 
 
 class TaskBoard:
@@ -22,16 +25,18 @@ class TaskBoard:
     Each task is stored as a separate JSON file for atomic operations.
     """
 
-    def __init__(self, storage_path: str):
+    def __init__(self, storage_path: str, event_bus: 'NEBBus' = None):
         """
         Initialize task board.
 
         Args:
             storage_path: Directory path for task storage
+            event_bus: Optional NEBBus for event publishing
         """
         self.storage_path = Path(storage_path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
         self._lock_path = self.storage_path / ".board.lock"
+        self._event_bus = event_bus
 
     def _acquire_lock(self):
         """Acquire exclusive lock for board operations."""
@@ -60,6 +65,13 @@ class TaskBoard:
             path = self._task_path(task.task_id)
             with open(path, 'w') as f:
                 f.write(task.to_json())
+            # Publish task.available event if event bus is configured
+            if self._event_bus:
+                self._event_bus.publish("task.available", {
+                    "task_id": task.task_id,
+                    "task_type": task.task_type.value,
+                    "description": task.description
+                })
         finally:
             self._release_lock(lock)
 
@@ -101,6 +113,12 @@ class TaskBoard:
             path = self._task_path(task_id)
             with open(path, 'w') as f:
                 f.write(task.to_json())
+            # Publish task.claimed event if event bus is configured
+            if self._event_bus:
+                self._event_bus.publish("task.claimed", {
+                    "task_id": task_id,
+                    "claimed_by": agent_id
+                })
             return True
         finally:
             self._release_lock(lock)
@@ -149,6 +167,12 @@ class TaskBoard:
             path = self._task_path(task_id)
             with open(path, 'w') as f:
                 f.write(task.to_json())
+            # Publish task.completed event if event bus is configured
+            if self._event_bus:
+                self._event_bus.publish("task.completed", {
+                    "task_id": task_id,
+                    "result": result
+                })
             return True
         finally:
             self._release_lock(lock)
