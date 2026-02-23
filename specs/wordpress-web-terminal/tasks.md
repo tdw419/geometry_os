@@ -85,7 +85,7 @@ After POC validated, clean up code.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Local quality check
+- [x] 4.1 Local quality check
   - **Do**: Run all quality checks locally (PHP lint, Python import, manual terminal test)
   - **Verify**: All commands pass, terminal works in browser
   - **Done when**: No errors
