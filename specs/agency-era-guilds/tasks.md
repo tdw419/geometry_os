@@ -44,7 +44,7 @@ Focus: Get EngineerAgent generating code end-to-end. Skip tests initially.
   - **Commit**: `feat(swarm): add EngineerAgent with code generation`
   - _Requirements: FR-1, FR-2_
 
-- [ ] 1.5 Implement GuildFactory
+- [x] 1.5 Implement GuildFactory
   - **Do**: Create `factory.py` with GuildFactory.create() method returning correct agent by role string
   - **Files**: `systems/swarm/guilds/factory.py`
   - **Done when**: Factory creates EngineerAgent for "engineer" role
