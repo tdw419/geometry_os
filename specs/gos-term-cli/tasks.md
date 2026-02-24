@@ -158,7 +158,7 @@ Focus: Validate CLI works end-to-end with WebSocket bridge. Skip full test cover
   - **Done when**: All checks pass
   - **Commit**: `chore(cli): pass local CI` (only if fixes needed)
 
-- [ ] 4.4 Create PR and verify CI
+- [x] 4.4 Create PR and verify CI
   - **Do**:
     1. Verify feature branch: `git branch --show-current`
     2. Push and create PR: `gh pr create --title "feat(cli): add gos-term CLI tool" --body "..."`
