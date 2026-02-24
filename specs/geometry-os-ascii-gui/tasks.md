@@ -157,7 +157,7 @@ print('Phase 1 POC OK')
 
 ## Phase 5: Quality Gates
 
-- [ ] 5.1 Local quality check
+- [x] 5.1 Local quality check
   - **Do**: Run all quality checks locally
   - **Verify**: `cd /home/jericho/zion/projects/geometry_os/geometry_os && python -m pytest tests/systems/visual_shell/ascii_gui/ -v --tb=short`
   - **Done when**: All tests pass
