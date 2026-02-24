@@ -138,7 +138,7 @@ Focus: Validate CLI works end-to-end with WebSocket bridge. Skip full test cover
   - **Commit**: `feat(cli): add shell wrapper script`
   - _Requirements: FR-5_
 
-- [ ] 4.2 Documentation
+- [x] 4.2 Documentation
   - **Do**:
     1. Create `systems/visual_shell/api/README_GOS_TERM.md`
     2. Add usage examples
