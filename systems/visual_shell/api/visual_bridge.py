@@ -92,6 +92,14 @@ class VisualBridge:
         self.ascii_scene_files: Dict[str, str] = {}  # filename -> content cache
         self._ascii_renderers_registered = False
 
+        # GUI state (mirrors ASCII Scene Graph pattern)
+        self.gui_scene_dir = Path(".geometry/gui/fragments")
+        self.gui_scene_files: Dict[str, str] = {}  # filename -> content cache
+        self._gui_renderers_registered = False
+        self._gui_command_processor: Optional[Any] = None
+        self._gui_broadcaster: Optional[Any] = None
+        self._gui_renderer: Optional[Any] = None
+
         # Spatial Tectonics (Phase 28)
         self.consensus_engine = None  # Initialized lazily
         self._tectonic_enabled = True
@@ -1497,6 +1505,137 @@ class VisualBridge:
                 print(f"⚠️ ASCII scene poller error: {e}")
                 await asyncio.sleep(5.0)  # Back off on error
 
+    def register_gui_renderers(self) -> None:
+        """
+        Register GUI renderers for ASCII GUI integration.
+
+        Creates GUIHookBroadcaster, GUIFragmentRenderer, and wires them together
+        to generate .ascii/.yaml files for AI perception.
+        """
+        if self._gui_renderers_registered:
+            return
+
+        try:
+            from systems.visual_shell.ascii_gui.hooks import GUIHookBroadcaster
+            from systems.visual_shell.ascii_gui.fragment_renderer import GUIFragmentRenderer
+
+            # Ensure GUI fragment directory exists
+            self.gui_scene_dir.mkdir(parents=True, exist_ok=True)
+
+            # Create broadcaster
+            self._gui_broadcaster = GUIHookBroadcaster()
+
+            # Create fragment renderer
+            self._gui_renderer = GUIFragmentRenderer(
+                output_dir=str(self.gui_scene_dir.parent),
+                auto_flush=True
+            )
+
+            # Wire renderer to broadcaster
+            self._gui_broadcaster.add_hook(self._gui_renderer)
+
+            print(f"🖼️ GUI Scene renderers registered (output: {self.gui_scene_dir})")
+            self._gui_renderers_registered = True
+
+        except ImportError as e:
+            print(f"⚠️ Could not register GUI renderers: {e}")
+
+    def _setup_gui_scene_watcher(self) -> None:
+        """
+        Setup file watcher for GUI scene directory.
+
+        This monitors .geometry/gui/fragments/ for changes and broadcasts
+        updates to connected clients.
+        """
+        # This is a simple polling-based watcher (same pattern as ASCII)
+        asyncio.create_task(self._gui_scene_poller())
+
+    async def _gui_scene_poller(self) -> None:
+        """Poll GUI scene directory for changes and broadcast updates."""
+        while True:
+            try:
+                await asyncio.sleep(0.5)  # Poll every 500ms (faster for UI responsiveness)
+
+                if not self.gui_scene_dir.exists():
+                    continue
+
+                # Glob all files (GUI includes both .yaml and .ascii)
+                for filepath in self.gui_scene_dir.glob("*"):
+                    if not filepath.is_file():
+                        continue
+                    filename = filepath.name
+                    try:
+                        content = filepath.read_text()
+                        if filename not in self.gui_scene_files or \
+                           self.gui_scene_files[filename] != content:
+                            self.gui_scene_files[filename] = content
+                            await self._broadcast({
+                                "type": "gui_scene_update",
+                                "filename": filename,
+                                "content": content,
+                                "timestamp": time.time()
+                            })
+                    except Exception:
+                        pass
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                print(f"⚠️ GUI scene poller error: {e}")
+                await asyncio.sleep(5.0)  # Back off on error
+
+    def _setup_gui_command_processor(self) -> None:
+        """
+        Setup the GUI command processor for AI-initiated commands.
+
+        Creates a GUICommandProcessor that watches the commands/pending/
+        directory and executes commands via _execute_gui_command callback.
+        """
+        try:
+            from systems.visual_shell.ascii_gui.command_processor import GUICommandProcessor
+
+            self._gui_command_processor = GUICommandProcessor(
+                executor=self._execute_gui_command,
+                gui_dir=str(self.gui_scene_dir.parent)  # .geometry/gui
+            )
+            print("🕹️ GUI Command processor initialized")
+
+        except ImportError as e:
+            print(f"⚠️ Could not setup GUI command processor: {e}")
+
+    async def _execute_gui_command(self, cmd) -> None:
+        """
+        Execute a GUI command from the AI.
+
+        This is the callback for GUICommandProcessor. It broadcasts
+        the command to clients and handles specific actions via the
+        GUI broadcaster.
+
+        Args:
+            cmd: Command object with action, target, position, etc.
+        """
+        # Broadcast command to all connected clients
+        await self._broadcast({
+            "type": "gui_command",
+            "command_id": cmd.command_id,
+            "action": cmd.action,
+            "target": cmd.target,
+            "position": list(cmd.position) if cmd.position else None,
+            "text": cmd.text,
+            "keys": cmd.keys,
+            "direction": cmd.direction,
+            "delta": list(cmd.delta) if cmd.delta else None,
+            "timestamp": time.time()
+        })
+
+        # Handle specific actions via broadcaster
+        if self._gui_broadcaster:
+            if cmd.action == "focus" and cmd.target:
+                # Focus notification - broadcaster will update fragments
+                print(f"🎯 GUI focus command: {cmd.target}")
+            elif cmd.action == "close" and cmd.target:
+                # Close notification - broadcaster will update fragments
+                print(f"❌ GUI close command: {cmd.target}")
+
     async def relay_token_pulse(self, token_event: dict):
         """
         Relay a token visualization event to Neural City clients.
@@ -1539,6 +1678,11 @@ class VisualBridge:
             # Register ASCII renderers and start watcher
             self.register_ascii_renderers()
             self._setup_ascii_scene_watcher()
+
+            # Register GUI renderers and start watcher
+            self.register_gui_renderers()
+            self._setup_gui_scene_watcher()
+            self._setup_gui_command_processor()
 
             # Initialize Spatial Tectonics (Phase 28)
             if self._tectonic_enabled:
