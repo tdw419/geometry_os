@@ -14,6 +14,8 @@ class CTPParser:
 
     VERSION_PATTERN = re.compile(r"^CTP/(\d+\.\d+)\s+(\S+)")
     HEADER_PATTERN = re.compile(r"^([^:]+):\s*(.*)$")
+    # Control chars not allowed (0x00-0x08, 0x0B-0x0C, 0x0E-0x1F) - allows \t(0x09), \n(0x0A), \r(0x0D)
+    CONTROL_CHAR_PATTERN = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
     PAYLOAD_START = "---CTP-PAYLOAD---"
     PAYLOAD_END = "---CTP-END---"
 
@@ -31,6 +33,11 @@ class CTPParser:
         """
         if not text or not text.strip():
             raise ParseError("Empty message")
+
+        # Validate ASCII-only content (no control chars except \n, \t, \r)
+        match = self.CONTROL_CHAR_PATTERN.search(text)
+        if match:
+            raise ParseError(f"Non-ASCII control character at position {match.start()}: 0x{ord(match.group()):02x}")
 
         lines = text.strip().split("\n")
         if not lines:

@@ -57,7 +57,7 @@ Focus: Implement core CTP components with TDD approach. Skip full integration, v
   - _Requirements: FR-5, NFR-2_
   - _Design: Component client.py_
 
-- [ ] 1.6 POC Checkpoint
+- [x] 1.6 POC Checkpoint
   - **Do**: Verify all core components work together - types, parser, trust, gateway, client
   - **Done when**: Can build CTP message, parse it, validate trust, translate to Telepathy
   - **Verify**: `pytest tests/swarm/ctp/test_types.py tests/swarm/ctp/test_parser.py tests/swarm/ctp/test_trust_manager.py tests/swarm/ctp/test_gateway.py tests/swarm/ctp/test_client.py -v`
@@ -76,7 +76,7 @@ After POC validated, add simulation runner for design validation.
   - _Requirements: FR-6, NFR-6_
   - _Design: Component simulation.py_
 
-- [ ] 2.2 Run simulation validation
+- [x] 2.2 Run simulation validation
   - **Do**: Execute CTPSimulationRunner.run_all() and verify all phases pass
   - **Done when**: overall_status == "PASS", overhead_percent < 20, coherence_score > 0.99
   - **Verify**: `python -c "from systems.swarm.ctp import CTPSimulationRunner; r = CTPSimulationRunner(); print(r.run_all())"`
@@ -92,7 +92,7 @@ After POC validated, add simulation runner for design validation.
   - **Commit**: `test(ctp): add integration tests for end-to-end flows`
   - _Requirements: FR-10, AC-1.1 through AC-6.4_
 
-- [ ] 3.2 Run full test suite
+- [x] 3.2 Run full test suite
   - **Do**: Execute all CTP tests
   - **Done when**: All 57+ tests pass
   - **Verify**: `pytest tests/swarm/ctp/ -v --tb=short`
@@ -108,7 +108,7 @@ After POC validated, add simulation runner for design validation.
   - **Commit**: `feat(ctp): export all CTP components`
   - _Design: Module exports_
 
-- [ ] 4.2 Final validation
+- [x] 4.2 Final validation
   - **Do**: Run simulation and full test suite, create final commit
   - **Done when**: Simulation passes, all tests pass
   - **Verify**: `pytest tests/swarm/ctp/ -v` and simulation run_all()
