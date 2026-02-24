@@ -59,6 +59,26 @@ from systems.visual_shell.api.semantic_notification_bridge import (
 # Import Truth Manifold Bridge (CTRM HUD integration)
 from systems.visual_shell.api.truth_manifold_bridge import TruthManifoldBridge
 
+# Import TerminalVatBridge for Window Particle System (Phase 3)
+try:
+    from systems.visual_shell.api.terminal_vat_bridge import (
+        TerminalVatBridge,
+        TerminalTileConfig
+    )
+    HAS_TERMINAL_VAT = True
+except ImportError:
+    HAS_TERMINAL_VAT = False
+    TerminalVatBridge = None
+    TerminalTileConfig = None
+
+# Import NEBBus with graceful fallback
+try:
+    from systems.swarm.neb_bus import NEBBus
+    HAS_NEB_BUS = True
+except ImportError:
+    HAS_NEB_BUS = False
+    NEBBus = None
+
 # Import NEB Bridge (Neural Event Bus HUD integration)
 try:
     from systems.visual_shell.api.neb_bridge import NEBBridge
@@ -92,6 +112,14 @@ class VisualBridge:
         self.ascii_scene_files: Dict[str, str] = {}  # filename -> content cache
         self._ascii_renderers_registered = False
 
+        # GUI state (mirrors ASCII Scene Graph pattern)
+        self.gui_scene_dir = Path(".geometry/gui/fragments")
+        self.gui_scene_files: Dict[str, str] = {}  # filename -> content cache
+        self._gui_renderers_registered = False
+        self._gui_command_processor: Optional[Any] = None
+        self._gui_broadcaster: Optional[Any] = None
+        self._gui_renderer: Optional[Any] = None
+
         # Spatial Tectonics (Phase 28)
         self.consensus_engine = None  # Initialized lazily
         self._tectonic_enabled = True
@@ -110,6 +138,9 @@ class VisualBridge:
         # Truth Manifold Bridge (CTRM HUD integration)
         self.truth_manifold_bridge = TruthManifoldBridge()
 
+        # Terminal VAT Bridge (Window Particle System)
+        self.terminal_vat: Optional[TerminalVatBridge] = None
+
         # Ambient Narrative System (WordPress WebMCP)
         self.webmcp_bridge: Optional[EvolutionWebMCPBridge] = None
         self._narrative_session_id: Optional[int] = None
@@ -117,6 +148,9 @@ class VisualBridge:
 
         # NEB Bridge (Neural Event Bus HUD)
         self.neb_bridge: Optional[Any] = None
+
+        # NEB Bus for publishing events
+        self.neb_bus: Optional[NEBBus] = None
 
         # Current session state for narrative
         self._ambient_state = "MONITORING"
@@ -127,7 +161,7 @@ class VisualBridge:
         self.task_counter = 0
 
         # HTTP server for REST endpoints (WordPress agent requests)
-        self.http_port = 8769  # Different from WebSocket port
+        self.http_port = 8770  # Different from WebSocket port and other bridges
         self.app = web.Application()
 
         # Terminal session tracking
@@ -143,6 +177,27 @@ class VisualBridge:
         # Terminal session management endpoints
         self.app.router.add_post('/terminal/session', self._handle_terminal_session_create_http)
         self.app.router.add_delete('/terminal/session/{session_id}', self._handle_terminal_session_delete_http)
+        self.app.router.add_post('/terminal/execute', self._handle_terminal_execute_http)
+
+    async def _handle_terminal_execute_http(self, request: web.Request) -> web.Response:
+        """HTTP endpoint to execute a command in a terminal session."""
+        try:
+            data = await request.json()
+            session_id = data.get('session_id')
+            command = data.get('command')
+
+            if not session_id or session_id not in self._terminal_sessions:
+                return web.json_response({'status': 'error', 'message': 'Invalid session_id'}, status=404)
+            
+            if not command:
+                return web.json_response({'status': 'error', 'message': 'command is required'}, status=400)
+
+            # Route input to PTY
+            await self._handle_terminal_input(session_id, command + "\n")
+            
+            return web.json_response({'status': 'ok', 'message': 'Command sent'})
+        except Exception as e:
+            return web.json_response({'status': 'error', 'message': str(e)}, status=500)
 
     async def _handle_agent_request_http(self, request: web.Request) -> web.Response:
         """HTTP endpoint for agent requests from WordPress."""
@@ -201,6 +256,19 @@ class VisualBridge:
             session_id = str(uuid.uuid4())
             token = hashlib.sha256(f"{session_id}:{user_id}:{time.time()}".encode()).hexdigest()[:32]
 
+            # Spawn VAT tile for Window Particle System
+            tile_id = None
+            position = None
+            if self.terminal_vat:
+                config = TerminalTileConfig(
+                    rows=rows,
+                    cols=cols,
+                    shell=shell,
+                    district="terminal-clones"
+                )
+                tile_id = self.terminal_vat.spawn_terminal(config)
+                position = self.terminal_vat.get_tile_position(tile_id)
+
             # Store session metadata (PTY will be spawned on WebSocket connect)
             self._terminal_sessions[session_id] = {
                 'session_id': session_id,
@@ -213,10 +281,23 @@ class VisualBridge:
                 'pty_fd': None,
                 'pid': None,
                 'websocket': None,
-                'output_task': None
+                'output_task': None,
+                'tile_id': tile_id  # Store VAT tile ID
             }
 
-            print(f"🖥️ Terminal session created: {session_id} (user={user_id})")
+            print(f"🖥️ Terminal session created: {session_id} (user={user_id}, tile={tile_id})")
+
+            # Publish to NEB
+            await self._publish_neb_event("terminal.session.created", {
+                "session_id": session_id,
+                "user_id": user_id,
+                "shell": shell,
+                "rows": rows,
+                "cols": cols,
+                "tile_id": tile_id,
+                "position": position,
+                "timestamp": time.time()
+            })
 
             return web.json_response({
                 'status': 'ok',
@@ -243,6 +324,13 @@ class VisualBridge:
                 {'status': 'error', 'message': f'Session not found: {session_id}'},
                 status=404
             )
+
+        # Publish to NEB before cleanup
+        await self._publish_neb_event("terminal.session.deleted", {
+            "session_id": session_id,
+            "tile_id": self._terminal_sessions[session_id].get('tile_id'),
+            "timestamp": time.time()
+        })
 
         await self._cleanup_terminal_session(session_id)
 
@@ -302,6 +390,9 @@ class VisualBridge:
             env['COLUMNS'] = str(cols)
             env['LINES'] = str(rows)
 
+            # Unset CLAUDECODE to allow Claude sessions in web terminal
+            env.pop('CLAUDECODE', None)
+
             # Execute shell
             os.execvpe(shell, [shell], env)
         else:
@@ -346,12 +437,20 @@ class VisualBridge:
                         try:
                             data = os.read(master_fd, 65536)
                             if data:
+                                decoded_data = data.decode('utf-8', errors='replace')
                                 # Send output to WebSocket
                                 await websocket.send(json.dumps({
                                     'type': 'output',
                                     'session_id': session_id,
-                                    'data': data.decode('utf-8', errors='replace')
+                                    'data': decoded_data
                                 }))
+
+                                # Publish to NEB
+                                await self._publish_neb_event("terminal.output", {
+                                    "session_id": session_id,
+                                    "data": decoded_data,
+                                    "timestamp": time.time()
+                                })
                             else:
                                 # EOF - process exited
                                 break
@@ -386,6 +485,13 @@ class VisualBridge:
             return
 
         try:
+            # Publish to NEB
+            await self._publish_neb_event("terminal.input", {
+                "session_id": session_id,
+                "data": data,
+                "timestamp": time.time()
+            })
+
             os.write(master_fd, data.encode('utf-8'))
         except OSError as e:
             print(f"❌ PTY write error for {session_id}: {e}")
@@ -459,9 +565,13 @@ class VisualBridge:
                 pass
 
         # Remove from sessions dict
+        tile_id = session.get('tile_id')
+        if tile_id is not None and self.terminal_vat:
+            self.terminal_vat.destroy_terminal(tile_id)
+
         del self._terminal_sessions[session_id]
 
-        print(f"🖥️ Terminal session cleaned up: {session_id}")
+        print(f"🖥️ Terminal session cleaned up: {session_id} (tile={tile_id})")
 
     async def _handle_terminal_websocket(self, websocket) -> None:
         """Handle terminal WebSocket connection on /terminal path.
@@ -529,6 +639,14 @@ class VisualBridge:
         session['websocket'] = websocket
 
         print(f"🖥️ Terminal WebSocket connected: {session_id}")
+
+        # Publish to NEB
+        await self._publish_neb_event("terminal.session.connected", {
+            "session_id": session_id,
+            "user_id": session.get('user_id'),
+            "tile_id": session.get('tile_id'),
+            "timestamp": time.time()
+        })
 
         try:
             # Spawn PTY if not already spawned
@@ -1555,8 +1673,21 @@ class VisualBridge:
             if self._webmcp_enabled:
                 await self._setup_webmcp_bridge()
 
+            # Initialize NEB Bus
+            await self._setup_neb_bus()
+
+            # Initialize Terminal VAT Bridge (Window Particle System)
+            await self._setup_terminal_vat()
+
             # Initialize NEB Bridge (Neural Event Bus HUD)
             await self._setup_neb_bridge()
+
+            # Start HTTP server
+            runner = web.AppRunner(self.app)
+            await runner.setup()
+            site = web.TCPSite(runner, '0.0.0.0', self.http_port)
+            await site.start()
+            print(f"🌐 HTTP server started on port {self.http_port}")
 
             async with serve(self.handle_client, "0.0.0.0", self.ws_port):
                 await asyncio.Future()
@@ -1663,6 +1794,55 @@ class VisualBridge:
         except Exception as e:
             print(f"⚠️  Failed to initialize NEB Bridge: {e}")
             self.neb_bridge = None
+
+    async def _setup_neb_bus(self):
+        """Initialize the Neural Event Bus for event publishing."""
+        if not HAS_NEB_BUS:
+            print("⚠️  NEB Bus not available (neb_bus not imported)")
+            return
+
+        try:
+            self.neb_bus = NEBBus(node_id="visual-bridge")
+            print("🚌 NEB Bus initialized")
+        except Exception as e:
+            print(f"⚠️  Failed to initialize NEB Bus: {e}")
+            self.neb_bus = None
+
+    async def _setup_terminal_vat(self):
+        """Initialize the Terminal VAT Bridge for Window Particle System."""
+        if not HAS_TERMINAL_VAT:
+            print("⚠️  Terminal VAT Bridge not available")
+            return
+
+        try:
+            # Note: We use offline_mode=True if Rust API server is not running
+            self.terminal_vat = TerminalVatBridge(offline_mode=True)
+            print("🪟 Terminal VAT Bridge initialized (Window Particle System)")
+        except Exception as e:
+            print(f"⚠️  Failed to initialize Terminal VAT Bridge: {e}")
+            self.terminal_vat = None
+
+    async def _publish_neb_event(self, topic: str, payload: dict):
+        """
+        Publish an event to the Neural Event Bus.
+
+        Args:
+            topic: Event topic (e.g., 'terminal.output')
+            payload: Event data dict
+        """
+        if self.neb_bus:
+            try:
+                self.neb_bus.publish(topic, payload)
+            except Exception as e:
+                print(f"⚠️  Failed to publish NEB event ({topic}): {e}")
+
+        # Also broadcast to connected WebSocket clients (like the browser)
+        if hasattr(self, 'clients') and self.clients:
+            event_data = {
+                'type': topic,
+                **payload
+            }
+            await self._broadcast(event_data)
 
     # --- Heat Aggregator Methods (Visual Hotspot Debugger) ---
 

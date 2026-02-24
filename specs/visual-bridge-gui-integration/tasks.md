@@ -12,7 +12,7 @@ generated: auto
 
 Focus: Wire up GUI integration following ASCII Scene Graph pattern. Skip comprehensive error handling initially.
 
-- [ ] 1.1 Add GUI State Variables to VisualBridge
+- [x] 1.1 Add GUI State Variables to VisualBridge
   - **Do**: Add `gui_scene_dir`, `gui_scene_files`, `_gui_renderers_registered`, `_gui_command_processor`, `_gui_broadcaster`, `_gui_renderer` to `__init__`
   - **Files**: `systems/visual_shell/api/visual_bridge.py` (after line 113)
   - **Done when**: Variables initialized, import check passes
