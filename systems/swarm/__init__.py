@@ -28,6 +28,17 @@ from systems.swarm.swarm_neb_bridge import SwarmNEBBridge
 # Guild exports
 from systems.swarm.guilds import GuildAgent, EngineerAgent, ReviewerAgent, ArchitectAgent, GuildFactory
 
+# Phase 2 integration exports
+from systems.swarm.guilds import (
+    SandboxExecutor,
+    ExecutionResult,
+)
+from systems.swarm.guilds.providers import LLMProvider, LLMProviderError
+from systems.swarm.guilds.providers.mock import MockProvider
+from systems.swarm.guilds.scanners import SecurityFinding, SecurityScanner
+from systems.swarm.guilds.scanners.bandit import BanditScanner
+from systems.swarm.guilds.linters import RuffChecker, StyleViolation
+
 __all__ = [
     # Core
     "Task", "TaskType", "TaskStatus",
@@ -38,5 +49,10 @@ __all__ = [
     # Bridge
     "SwarmNEBBridge",
     # Guilds
-    "GuildAgent", "EngineerAgent", "ReviewerAgent", "ArchitectAgent", "GuildFactory"
+    "GuildAgent", "EngineerAgent", "ReviewerAgent", "ArchitectAgent", "GuildFactory",
+    # Phase 2 integrations
+    "SandboxExecutor", "ExecutionResult",
+    "LLMProvider", "LLMProviderError", "MockProvider",
+    "SecurityFinding", "SecurityScanner", "BanditScanner",
+    "RuffChecker", "StyleViolation",
 ]
