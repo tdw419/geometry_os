@@ -40,12 +40,12 @@ class World_of_Rectification {
         require_once WOR_PATH . 'includes/class-transmission-session.php';
         require_once WOR_PATH . 'includes/class-mentor-data-pipeline.php';
         require_once WOR_PATH . 'includes/class-frontend.php';
+        require_once WOR_PATH . 'includes/class-scribe-shortcodes.php';
         require_once WOR_PATH . 'api/class-quest-api.php';
         require_once WOR_PATH . 'api/class-player-api.php';
         require_once WOR_PATH . 'api/class-verify-api.php';
         require_once WOR_PATH . 'api/class-scribe-api.php';
-        require_once WOR_PATH . 'templates/quest-single.php';
-        require_once WOR_PATH . 'templates/player-dashboard.php';
+        // Templates are loaded via template_include filter, not during init
         require_once WOR_PATH . 'data/seed-scenarios.php';
     }
 
@@ -63,6 +63,9 @@ class World_of_Rectification {
         // Initialize frontend with shortcodes
         $frontend = new WoR_Frontend();
         $frontend->init();
+
+        // Initialize Scribe shortcodes
+        WOR_Scribe_Shortcodes::get_instance();
 
         do_action('wor_init');
     }

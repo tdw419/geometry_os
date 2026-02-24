@@ -157,7 +157,8 @@ class GeometryOS_Bridge {
         }
 
         // Check for query var or page slug
-        if (function_exists('get_query_var')) {
+        global $wp_query;
+        if ($wp_query && function_exists('get_query_var')) {
             if (get_query_var('geometry_os_mission_control') === '1') {
                 return true;
             }
