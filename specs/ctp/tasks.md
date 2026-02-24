@@ -12,7 +12,7 @@ generated: auto
 
 Focus: Implement core CTP components with TDD approach. Skip full integration, validate types and parsing work.
 
-- [ ] 1.1 Create CTP types and constants
+- [x] 1.1 Create CTP types and constants
   - **Do**: Create `systems/swarm/ctp/__init__.py` and `systems/swarm/ctp/types.py` with CTPVersion, TrustLevel, IntentType, ContextHash, CTPSignal classes
   - **Files**: `systems/swarm/ctp/__init__.py`, `systems/swarm/ctp/types.py`
   - **Done when**: CTPVersion.VERSION == "CTP/1.0", TrustLevel enum works, CTPSignal.to_ascii() and from_ascii() roundtrip
