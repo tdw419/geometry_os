@@ -58,7 +58,7 @@ Focus: Validate P2P mentoring flow works end-to-end. Skip tests initially.
   - _Requirements: FR-8, FR-9, FR-10, FR-11, FR-13_
   - _Design: P1 Enhanced Features_
 
-- [ ] 1.3 Create TransmissionBoard with fcntl file locking
+- [x] 1.3 Create TransmissionBoard with fcntl file locking
   - **Do**:
     1. Create `systems/swarm/transmission/board.py`
     2. Copy fcntl locking pattern from TaskBoard
