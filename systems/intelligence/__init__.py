@@ -66,6 +66,20 @@ from .directive_agent import (
     Directive,
 )
 
+# RPE Stability Suite - Safe Recursive Prompt Evolution
+from .prompt_version_manager import (
+    PromptVersionManager,
+    PromptVersion,
+    RollbackResult,
+)
+from .prompt_validator import (
+    PromptValidator,
+    ValidationResult,
+)
+from .evolution_budget import (
+    EvolutionBudget,
+)
+
 __all__ = [
     # Core
     "ContextualMemoryDB",
@@ -106,4 +120,11 @@ __all__ = [
     "DirectiveScope",
     "DirectiveStatus",
     "Directive",
+    # RPE Stability Suite
+    "PromptVersionManager",
+    "PromptVersion",
+    "RollbackResult",
+    "PromptValidator",
+    "ValidationResult",
+    "EvolutionBudget",
 ]
