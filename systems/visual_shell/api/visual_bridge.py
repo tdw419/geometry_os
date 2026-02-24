@@ -1609,6 +1609,49 @@ class VisualBridge:
         except ImportError as e:
             print(f"⚠️ Could not register GUI renderers: {e}")
 
+    def _setup_gui_scene_watcher(self) -> None:
+        """
+        Setup file watcher for GUI scene directory.
+
+        This monitors .geometry/gui/fragments/ for changes and broadcasts
+        updates to connected clients.
+        """
+        # This is a simple polling-based watcher (same pattern as ASCII)
+        asyncio.create_task(self._gui_scene_poller())
+
+    async def _gui_scene_poller(self) -> None:
+        """Poll GUI scene directory for changes and broadcast updates."""
+        while True:
+            try:
+                await asyncio.sleep(0.5)  # Poll every 500ms (faster for UI responsiveness)
+
+                if not self.gui_scene_dir.exists():
+                    continue
+
+                # Glob all files (GUI includes both .yaml and .ascii)
+                for filepath in self.gui_scene_dir.glob("*"):
+                    if not filepath.is_file():
+                        continue
+                    filename = filepath.name
+                    try:
+                        content = filepath.read_text()
+                        if filename not in self.gui_scene_files or \
+                           self.gui_scene_files[filename] != content:
+                            self.gui_scene_files[filename] = content
+                            await self._broadcast({
+                                "type": "gui_scene_update",
+                                "filename": filename,
+                                "content": content,
+                                "timestamp": time.time()
+                            })
+                    except Exception:
+                        pass
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                print(f"⚠️ GUI scene poller error: {e}")
+                await asyncio.sleep(5.0)  # Back off on error
+
     def _setup_ascii_scene_watcher(self) -> None:
         """
         Setup file watcher for ASCII scene directory.

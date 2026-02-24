@@ -30,7 +30,7 @@ Focus: Wire up GUI integration following ASCII Scene Graph pattern. Skip compreh
   - _Requirements: FR-4_
   - _Design: GUI Scene Poller_
 
-- [ ] 1.3 Implement GUI Scene Watcher
+- [x] 1.3 Implement GUI Scene Watcher
   - **Do**: Add `_setup_gui_scene_watcher()` and `_gui_scene_poller()` methods following `_ascii_scene_poller()` pattern
   - **Files**: `systems/visual_shell/api/visual_bridge.py` (after line 1581)
   - **Done when**: Poller loops, detects file changes, broadcasts `gui_scene_update`
