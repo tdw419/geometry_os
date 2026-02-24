@@ -915,6 +915,62 @@ class VisualBridge:
                             "timestamp": time.time()
                         }))
 
+                # === GUI Scene Handlers ===
+
+                elif msg_type == 'gui_scene_request':
+                    # Client requests list of GUI scene files
+                    await self.broadcast_gui_scene_list()
+                    # Also send current cached content
+                    for filename, content in self.gui_scene_files.items():
+                        await websocket.send(json.dumps({
+                            "type": "gui_scene_update",
+                            "filename": filename,
+                            "content": content,
+                            "timestamp": time.time()
+                        }))
+
+                elif msg_type == 'gui_scene_update':
+                    # Client (PixiJS) sends GUI fragment update
+                    filename = data.get('filename')
+                    content = data.get('content', '')
+                    print(f"🖼️ GUI Scene Update: {filename} ({len(content)} bytes)")
+
+                    # Update cache
+                    self.gui_scene_files[filename] = content
+
+                    # Broadcast to all clients
+                    await self._broadcast({
+                        "type": "gui_scene_update",
+                        "filename": filename,
+                        "content": content,
+                        "timestamp": data.get('timestamp', time.time())
+                    })
+
+                elif msg_type == 'gui_event':
+                    # Client (PixiJS) sends GUI event (window_create, window_close, etc.)
+                    event_type = data.get('event_type', 'unknown')
+                    event_data = data.get('data', {})
+                    print(f"🖼️ GUI Event: {event_type}")
+
+                    # Route to GUI broadcaster if available
+                    if self._gui_broadcaster:
+                        if event_type == 'window_create':
+                            self._gui_broadcaster.on_window_create(event_data)
+                        elif event_type == 'window_close':
+                            self._gui_broadcaster.on_window_close(event_data)
+                        elif event_type == 'window_focus':
+                            self._gui_broadcaster.on_window_focus(event_data)
+                        elif event_type == 'component_update':
+                            self._gui_broadcaster.on_component_update(event_data)
+
+                    # Broadcast to all clients for synchronization
+                    await self._broadcast({
+                        "type": "GUI_EVENT",
+                        "event_type": event_type,
+                        "data": event_data,
+                        "timestamp": data.get('timestamp', time.time())
+                    })
+
                 # 12. Neural City Events (from NeuralCityHookBroadcaster)
                 elif msg_type == 'neural_city_event':
                     event_type = data.get('event_type')
@@ -1438,6 +1494,24 @@ class VisualBridge:
             })
         except Exception as e:
             print(f"❌ Failed to list ASCII files: {e}")
+
+    async def broadcast_gui_scene_list(self) -> None:
+        """Broadcast list of available GUI scene files."""
+        try:
+            if not self.gui_scene_dir.exists():
+                return
+
+            # Glob all files (includes .yaml and .ascii)
+            files = list(self.gui_scene_dir.glob("*"))
+            file_list = [f.name for f in files if f.is_file()]
+
+            await self._broadcast({
+                "type": "gui_scene_list",
+                "files": file_list,
+                "timestamp": time.time()
+            })
+        except Exception as e:
+            print(f"❌ Failed to list GUI scene files: {e}")
 
     def register_ascii_renderers(self) -> None:
         """

@@ -57,7 +57,7 @@ Focus: Wire up GUI integration following ASCII Scene Graph pattern. Skip compreh
   - _Requirements: FR-4, FR-5_
   - _Design: Architecture_
 
-- [ ] 1.6 Add WebSocket Message Handlers
+- [x] 1.6 Add WebSocket Message Handlers
   - **Do**: Add handlers for `gui_scene_request`, `gui_scene_update`, `gui_event` in `_handle_client_message` and add `broadcast_gui_scene_list()` method
   - **Files**: `systems/visual_shell/api/visual_bridge.py` (after line 1007)
   - **Done when**: WebSocket handles GUI messages, routes events to broadcaster
