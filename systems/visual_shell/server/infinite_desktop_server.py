@@ -1093,11 +1093,23 @@ class InfiniteDesktopServer:
         except Exception as e:
             logger.error(f"Memory restore error: {e}")
             return web.json_response({"error": str(e)}, status=500)
-    
+
     async def start_http_server(self):
         """Start HTTP server for REST API and static map assets."""
-        app = web.Application()
-        
+        # CORS middleware for cross-origin requests
+        @web.middleware
+        async def cors_middleware(request, handler):
+            if request.method == 'OPTIONS':
+                response = web.Response()
+            else:
+                response = await handler(request)
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+            return response
+
+        app = web.Application(middlewares=[cors_middleware])
+
         # Static Assets for Infinite Map
         builder_path = PROJECT_ROOT / "systems" / "builder"
         if builder_path.exists():

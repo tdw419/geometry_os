@@ -149,36 +149,57 @@ class GravityWellRenderer {
     }
 
     /**
-     * Connect to the WebSocket server for gravity data
+     * Load gravity data from static JSON file (same-origin, no CORS issues)
      */
-    _connectWebSocket() {
+    async _loadGravityData() {
         try {
-            this.ws = new WebSocket(`ws://localhost:${this.config.wsPort}/gravity`);
-
-            this.ws.onopen = () => {
-                console.log('🌌 Connected to gravity data stream');
-                this.reconnectAttempts = 0;
-                this.ws.send(JSON.stringify({ type: 'subscribe', channel: 'gravity' }));
-            };
-
-            this.ws.onmessage = this._onMessage;
-
-            this.ws.onclose = () => {
-                console.log('🌌 Disconnected from gravity data stream');
-                this._scheduleReconnect();
-            };
-
-            this.ws.onerror = (error) => {
-                console.warn('🌌 WebSocket error:', error);
-            };
-        } catch (error) {
-            console.warn('🌌 Failed to connect:', error);
-            this._scheduleReconnect();
+            const response = await fetch('gravity_data.json');
+            if (response.ok) {
+                const data = await response.json();
+                this._updateGravityData(data);
+                console.log('🌌 Gravity data loaded:', data.axion_core?.length || 0, 'core files');
+                return;
+            }
+        } catch (e) {
+            console.warn('🌌 Failed to load gravity_data.json:', e);
         }
+        // Fallback to mock data
+        this._loadMockData();
     }
 
     /**
-     * Schedule WebSocket reconnection
+     * Load mock data for development/fallback
+     */
+    _loadMockData() {
+        const mockData = {
+            axion_core: [
+                { file: 'NORTH_STAR.md', value: 1.0 },
+                { file: 'ARCHITECTURE.md', value: 1.0 },
+                { file: 'OPERATIONS.md', value: 0.95 },
+                { file: 'ROADMAP.md', value: 0.9 },
+                { file: 'AGENTS.md', value: 0.85 },
+            ],
+            high_value: [],
+            stale_husks: [
+                { file: 'systems/build/orchestrator.py', staleness: 1.0 },
+                { file: 'systems/build/job_queue.py', staleness: 1.0 },
+                { file: 'systems/build/worker.py', staleness: 1.0 },
+            ]
+        };
+        this._updateGravityData(mockData);
+        console.log('🌌 Using mock gravity data');
+    }
+
+    /**
+     * Connect to the WebSocket server for gravity data (legacy, unused)
+     */
+    _connectWebSocket() {
+        // WebSocket disabled - using static JSON file instead
+        this._loadGravityData();
+    }
+
+    /**
+     * Schedule WebSocket reconnection (legacy, unused)
      */
     _scheduleReconnect() {
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
