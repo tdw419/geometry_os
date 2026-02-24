@@ -58,8 +58,14 @@ class ValueEvaluator:
         - complexity: 0.15
         - staleness: 0.15
 
+    Axion Core Files:
+        Foundational documents (NORTH_STAR.md, ARCHITECTURE.md, OPERATIONS.md)
+        can be assigned fixed high scores to create "gravity wells" at the
+        center of the infinite map.
+
     Example:
         >>> evaluator = ValueEvaluator()
+        >>> evaluator.set_axion_core("NORTH_STAR.md", 1.0)
         >>> score = evaluator.evaluate(
         ...     file_path="core.py",
         ...     access_count=100,
@@ -70,6 +76,15 @@ class ValueEvaluator:
         ... )
         >>> print(f"Composite: {score.composite_score:.2f}")
     """
+
+    # Default Axion Core files - foundational documents with fixed high gravity
+    AXION_CORE_DEFAULTS = {
+        "NORTH_STAR.md": 1.0,
+        "ARCHITECTURE.md": 1.0,
+        "OPERATIONS.md": 0.95,
+        "ROADMAP.md": 0.90,
+        "AGENTS.md": 0.85,
+    }
 
     def __init__(
         self,
@@ -94,6 +109,49 @@ class ValueEvaluator:
         self.weight_improvement = weight_improvement
         self.weight_complexity = weight_complexity
         self.weight_staleness = weight_staleness
+
+        # Axion Core: Files with fixed high value (gravity wells)
+        self._axion_core: Dict[str, float] = dict(self.AXION_CORE_DEFAULTS)
+
+    def set_axion_core(self, file_path: str, value: float) -> None:
+        """
+        Set a file as Axion Core with fixed high value.
+
+        Axion Core files create "gravity wells" at the center of the map.
+        They represent foundational documents that should always have high priority.
+
+        Args:
+            file_path: Path to the file (relative to project root)
+            value: Fixed composite score (0-1), typically 1.0 for core docs
+        """
+        self._axion_core[file_path] = max(0.0, min(1.0, value))
+
+    def remove_axion_core(self, file_path: str) -> bool:
+        """
+        Remove a file from Axion Core status.
+
+        Args:
+            file_path: Path to the file
+
+        Returns:
+            True if file was in Axion Core, False otherwise
+        """
+        if file_path in self._axion_core:
+            del self._axion_core[file_path]
+            return True
+        return False
+
+    def is_axion_core(self, file_path: str) -> bool:
+        """Check if a file is in the Axion Core."""
+        return file_path in self._axion_core
+
+    def get_axion_core_value(self, file_path: str) -> Optional[float]:
+        """Get the fixed value for an Axion Core file, or None if not in core."""
+        return self._axion_core.get(file_path)
+
+    def list_axion_core(self) -> Dict[str, float]:
+        """Return all Axion Core files and their values."""
+        return dict(self._axion_core)
 
     def compute_access_score(self, file_path: str, access_count: int) -> float:
         """
@@ -179,6 +237,9 @@ class ValueEvaluator:
                     w_improvement*improvement + w_complexity*complexity +
                     w_staleness*staleness
 
+        Axion Core files bypass normal scoring and use fixed high values,
+        creating "gravity wells" at the center of the infinite map.
+
         Args:
             file_path: Path to the file being evaluated
             access_count: Number of times the file has been accessed
@@ -191,7 +252,21 @@ class ValueEvaluator:
         Returns:
             ValueScore containing all component scores and composite
         """
-        # Compute individual scores
+        # Check for Axion Core override (gravity well files)
+        if file_path in self._axion_core:
+            fixed_value = self._axion_core[file_path]
+            return ValueScore(
+                file_path=file_path,
+                access_score=fixed_value,
+                criticality_score=fixed_value,
+                improvement_score=0.0,  # No improvement needed for core docs
+                complexity_score=0.0,   # Core docs are simple by design
+                staleness_score=0.0,    # Core docs are timeless
+                composite_score=fixed_value,
+                metadata={"axion_core": True, **(metadata or {})},
+            )
+
+        # Compute individual scores for non-core files
         access_score = self.compute_access_score(file_path, access_count)
         criticality_score = self.compute_criticality_score(file_path, dependent_count)
         improvement_score = self.compute_improvement_score(coverage)
