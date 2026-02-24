@@ -13,6 +13,13 @@
       "api_url": "http://localhost:8081/index.php?rest_route=/geoos/v1",
       "secret": "local-test",
       "enabled": true
+    },
+    {
+      "node_id": "wp-windows-node",
+      "url": "http://192.168.1.206/wordpress",
+      "api_url": "http://192.168.1.206/wordpress/?rest_route=/geoos/v1",
+      "secret": "local-test",
+      "enabled": true
     }
   ]
 }

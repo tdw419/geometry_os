@@ -102,8 +102,20 @@ class WordPressTruthDaemon:
 
         total_truths = 0
 
+        # High-value filter: Skip procedural/conversational noise
+        procedural_keywords = ["Task:", "Execute:", "Assistant:", "Status Update:", "Log:", "Chat:"]
+
         for post in posts[:self.config.batch_size]:
             try:
+                title = post.get("title", "")
+                content = post.get("content", "")
+
+                # Skip posts with procedural keywords in title or content
+                if any(kw.lower() in title.lower() for kw in procedural_keywords) or \
+                   any(kw.lower() in content[:100].lower() for kw in procedural_keywords):
+                    logger.debug(f"Skipping procedural post {post.get('id')}: {title}")
+                    continue
+
                 truths = await self._process_post(post)
                 total_truths += len(truths)
             except Exception as e:

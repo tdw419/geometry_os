@@ -62,20 +62,28 @@ class TruthExtractor:
         lm_client: The LMStudioIntegration instance.
     """
 
-    EXTRACTION_PROMPT = """You are a Truth Extraction Engine. Analyze the following content and extract atomic factual claims.
+    EXTRACTION_PROMPT = """You are a High-Precision Truth Extraction Engine for Geometry OS. Analyze the following content and extract atomic factual claims that represent architectural decisions, domain knowledge, system behaviors, or key patterns.
+
+GOAL: Extract "Golden Truths" that define the project's essence.
+SKIP: Procedural logs, conversational filler, task status updates, temporal noise (e.g., "The assistant did X"), and low-value facts.
+
+EXAMPLES OF HIGH-VALUE CLAIMS:
+- "The CTRM confidence score is calculated as 0.4*LLM + 0.3*Author + 0.2*Source + 0.1*Corroboration."
+- "Hilbert Curve mapping in PixelRTS v2 preserves spatial locality for binary data."
+- "The Infinite Map compositor utilizes a Rust/Smithay backend with WGPU rendering."
 
 For each claim:
-1. Identify specific, verifiable statements of fact
+1. Identify specific, verifiable statements of fact (Architecture, Logic, or Behavioral Patterns)
 2. Assign a confidence score (0.0-1.0) based on:
-   - 0.9-1.0: Universal truths, mathematical facts, definitions
-   - 0.7-0.9: Well-documented historical events, scientific consensus
-   - 0.5-0.7: Claims with some supporting evidence
-   - 0.3-0.5: Speculative claims, opinions stated as fact
-   - 0.0-0.3: Unsubstantiated or contradictory claims
+   - 0.9-1.0: Mathematical facts, core definitions, established architectural constants
+   - 0.7-0.9: Well-documented system behaviors, stable design patterns
+   - 0.5-0.7: Documented implementation details
+   - 0.3-0.5: Emerging patterns or partially documented behaviors
+   - 0.0-0.3: Speculative or contradictory claims
 3. Classify by evidence type:
-   - E1 (Physical): Observable physical phenomena
-   - E2 (Textual): Document-based or textual evidence
-   - E3 (Logical): Logical deductions or mathematical proofs
+   - E1 (Physical/Measurable): System performance, hard-coded constants, measurable behaviors
+   - E2 (Textual/Documented): Claims directly supported by documentation or design specs
+   - E3 (Logical/Structural): Derived architectural implications or mathematical proofs
 
 CONTENT TITLE: {source_title}
 
@@ -93,7 +101,7 @@ Respond ONLY with valid JSON in this exact format:
   ]
 }}
 
-If no factual claims can be extracted, respond with:
+If no high-value factual claims can be extracted, respond with:
 {{"claims": []}}"""
 
     def __init__(self, model: str = "microsoft/phi-4"):

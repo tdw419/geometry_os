@@ -39,6 +39,7 @@ class World_of_Rectification {
         require_once WOR_PATH . 'includes/class-scribe-portal.php';
         require_once WOR_PATH . 'includes/class-transmission-session.php';
         require_once WOR_PATH . 'includes/class-mentor-data-pipeline.php';
+        require_once WOR_PATH . 'includes/class-frontend.php';
         require_once WOR_PATH . 'api/class-quest-api.php';
         require_once WOR_PATH . 'api/class-player-api.php';
         require_once WOR_PATH . 'api/class-verify-api.php';
@@ -58,6 +59,11 @@ class World_of_Rectification {
         WOR_Quest();
         WOR_Sefirah();
         WOR_Truth_Engine();
+
+        // Initialize frontend with shortcodes
+        $frontend = new WoR_Frontend();
+        $frontend->init();
+
         do_action('wor_init');
     }
 
