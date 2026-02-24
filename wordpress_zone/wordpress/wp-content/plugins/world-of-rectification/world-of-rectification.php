@@ -35,10 +35,15 @@ class World_of_Rectification {
         require_once WOR_PATH . 'includes/class-wor-credits.php';
         require_once WOR_PATH . 'includes/class-wor-ctrm.php';
         require_once WOR_PATH . 'includes/class-wor-truth-engine.php';
+        require_once WOR_PATH . 'includes/class-scribe-db.php';
+        require_once WOR_PATH . 'includes/class-scribe-portal.php';
+        require_once WOR_PATH . 'includes/class-transmission-session.php';
+        require_once WOR_PATH . 'includes/class-mentor-data-pipeline.php';
         require_once WOR_PATH . 'includes/class-frontend.php';
         require_once WOR_PATH . 'api/class-quest-api.php';
         require_once WOR_PATH . 'api/class-player-api.php';
         require_once WOR_PATH . 'api/class-verify-api.php';
+        require_once WOR_PATH . 'api/class-scribe-api.php';
         require_once WOR_PATH . 'templates/quest-single.php';
         require_once WOR_PATH . 'templates/player-dashboard.php';
         require_once WOR_PATH . 'data/seed-scenarios.php';
@@ -66,6 +71,7 @@ class World_of_Rectification {
         new WOR_Quest_API();
         new WOR_Player_API();
         new WOR_Verify_API();
+        new WOR_Scribe_API();
     }
 
     /**
@@ -126,7 +132,7 @@ function WOR(): World_of_Rectification {
 WOR();
 
 /**
- * Activation hook - seed initial scenarios
+ * Activation hook - seed initial scenarios and create scribe tables
  */
 register_activation_hook(__FILE__, function() {
     // Ensure post types are registered first
@@ -136,6 +142,62 @@ register_activation_hook(__FILE__, function() {
     require_once WOR_PATH . 'data/seed-scenarios.php';
     $created = WoR_SeedScenarios::run();
 
+    // Create Scribe Protocol database tables
+    require_once WOR_PATH . 'includes/class-scribe-db.php';
+    WOR_Scribe_DB::create_tables();
+
+    // Schedule cleanup cron
+    if (!wp_next_scheduled('wor_cleanup_stale_sessions')) {
+        wp_schedule_event(time(), 'hourly', 'wor_cleanup_stale_sessions');
+    }
+
     // Log activation
     error_log("World of Rectification activated. Created $created scenarios.");
+});
+
+/**
+ * Deactivation hook - clear scheduled crons
+ */
+register_deactivation_hook(__FILE__, function() {
+    wp_clear_scheduled_hook('wor_cleanup_stale_sessions');
+});
+
+/**
+ * Scheduled task: Classify message intent
+ */
+add_action('wor_classify_message_intent', function($message_id) {
+    require_once WOR_PATH . 'includes/class-mentor-data-pipeline.php';
+    $pipeline = new WOR_Mentor_Data_Pipeline();
+    $pipeline->process_message_intent($message_id);
+});
+
+/**
+ * Scheduled task: Queue transmission for training
+ */
+add_action('wor_queue_transmission_for_training', function($transmission_id) {
+    require_once WOR_PATH . 'includes/class-mentor-data-pipeline.php';
+    $pipeline = new WOR_Mentor_Data_Pipeline();
+    $pipeline->export_transmission($transmission_id);
+});
+
+/**
+ * Scheduled task: Cleanup stale sessions
+ */
+add_action('wor_cleanup_stale_sessions', function() {
+    global $wpdb;
+
+    // Mark abandoned sessions
+    $wpdb->query(
+        "UPDATE {$wpdb->prefix}wor_transmissions
+         SET status = 'abandoned', ended_at = NOW()
+         WHERE status = 'active'
+         AND started_at < DATE_SUB(NOW(), INTERVAL 30 MINUTE)"
+    );
+
+    // Clear stale queue entries
+    $queue = get_option('wor_sprout_queue', []);
+    $queue = array_filter($queue, function($item) {
+        return $item['requested_at'] > time() - 3600;
+    });
+    update_option('wor_sprout_queue', array_values($queue));
 });
