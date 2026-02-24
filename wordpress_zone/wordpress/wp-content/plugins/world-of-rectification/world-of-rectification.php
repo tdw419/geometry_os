@@ -44,6 +44,7 @@ class World_of_Rectification {
         require_once WOR_PATH . 'api/class-player-api.php';
         require_once WOR_PATH . 'api/class-verify-api.php';
         require_once WOR_PATH . 'api/class-scribe-api.php';
+        require_once WOR_PATH . 'includes/class-scribe-shortcodes.php';
         require_once WOR_PATH . 'templates/quest-single.php';
         require_once WOR_PATH . 'templates/player-dashboard.php';
         require_once WOR_PATH . 'data/seed-scenarios.php';
@@ -63,6 +64,9 @@ class World_of_Rectification {
         // Initialize frontend with shortcodes
         $frontend = new WoR_Frontend();
         $frontend->init();
+
+        // Initialize Scribe shortcodes
+        WOR_Scribe_Shortcodes::get_instance();
 
         do_action('wor_init');
     }
