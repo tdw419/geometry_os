@@ -21,7 +21,7 @@ Focus: Implement core CTP components with TDD approach. Skip full integration, v
   - _Requirements: FR-1_
   - _Design: Component types.py_
 
-- [ ] 1.2 Implement ASCII parser
+- [x] 1.2 Implement ASCII parser
   - **Do**: Create `systems/swarm/ctp/parser.py` with CTPParser class supporting parse() and parse_partial()
   - **Files**: `systems/swarm/ctp/parser.py`
   - **Done when**: Parser handles headers, payload, raises ParseError on malformed input, partial parse works on truncated messages
