@@ -180,4 +180,139 @@ class WOR_Scribe_Portal {
             $user_id
         ), ARRAY_A);
     }
+
+    /**
+     * Register a new Scribe
+     */
+    public function register_scribe(int $user_id, string $cohort, array $expertise = []): int|false {
+        global $wpdb;
+
+        // Check if already registered
+        $existing = $this->get_scribe_by_user($user_id);
+        if ($existing) {
+            return false;
+        }
+
+        $result = $wpdb->insert($this->table_scribes, [
+            'user_id' => $user_id,
+            'cohort' => $cohort,
+            'expertise_tags' => json_encode($expertise),
+            'onboarding_step' => 0,
+            'onboarding_completed' => 0,
+        ]);
+
+        if ($result === false) {
+            return false;
+        }
+
+        $scribe_id = $wpdb->insert_id;
+
+        // Send notification (fire and forget)
+        $this->send_onboarding_email($user_id, $cohort);
+
+        return $scribe_id;
+    }
+
+    /**
+     * Send onboarding welcome email
+     */
+    private function send_onboarding_email(int $user_id, string $cohort): void {
+        $user = get_user_by('id', $user_id);
+        if (!$user) {
+            return;
+        }
+
+        $subject = 'Welcome to WoR Scribes - ' . ucfirst($cohort) . ' Track';
+
+        $messages = [
+            'internal' => 'Welcome to the Scribe program! As an internal team member, you will learn the technical architecture and help build the Ghost Mentor training pipeline.',
+            'community' => 'Welcome to the Scribe program! As a community volunteer, you will help newcomers discover the joy of Tikkun Olam through gameplay.',
+            'domain_expert' => 'Welcome to the Scribe program! Your expertise will help create authentic, meaningful content for players.',
+        ];
+
+        $message = $messages[$cohort] ?? 'Welcome to the Scribe program!';
+
+        wp_mail($user->user_email, $subject, $message);
+    }
+
+    /**
+     * Complete an onboarding step
+     */
+    public function complete_step(int $scribe_id, int $step, array $response = []): array {
+        global $wpdb;
+
+        $scribe = $this->get_scribe($scribe_id);
+        if (!$scribe) {
+            return ['error' => 'Scribe not found'];
+        }
+
+        $flow = $this->onboarding_flows[$scribe['cohort']] ?? [];
+
+        if ($step < 0 || $step >= count($flow)) {
+            return ['error' => 'Invalid step'];
+        }
+
+        $step_config = $flow[$step];
+
+        // Handle quiz validation
+        if ($step_config['type'] === 'quiz') {
+            $quiz_result = $this->grade_quiz($step_config, $response);
+            if (!$quiz_result['passed']) {
+                return [
+                    'error' => 'Quiz not passed',
+                    'score' => $quiz_result['score'],
+                    'passing_score' => $step_config['passing_score']
+                ];
+            }
+        }
+
+        // Calculate next step
+        $new_step = $step + 1;
+        $completed = ($new_step >= count($flow));
+
+        // Update database
+        $wpdb->update(
+            $this->table_scribes,
+            [
+                'onboarding_step' => $new_step,
+                'onboarding_completed' => $completed ? 1 : 0,
+                'ghost_training_eligible' => $completed ? 1 : 0,
+            ],
+            ['id' => $scribe_id]
+        );
+
+        return [
+            'success' => true,
+            'next_step' => $new_step,
+            'completed' => $completed,
+            'next_content' => $completed ? null : ($flow[$new_step] ?? null),
+        ];
+    }
+
+    /**
+     * Grade a quiz submission
+     */
+    private function grade_quiz(array $quiz_config, array $response): array {
+        $questions = $quiz_config['questions'] ?? [];
+        $answers = $response['answers'] ?? [];
+        $passing_score = $quiz_config['passing_score'] ?? 70;
+
+        $correct = 0;
+        $total = count($questions);
+
+        foreach ($questions as $i => $q) {
+            if (isset($answers[$i]) && (int)$answers[$i] === (int)$q['correct']) {
+                $correct++;
+            }
+        }
+
+        $score = $total > 0 ? round(($correct / $total) * 100) : 0;
+
+        return [
+            'score' => $score,
+            'correct' => $correct,
+            'total' => $total,
+            'passed' => $score >= $passing_score,
+        ];
+    }
 }
