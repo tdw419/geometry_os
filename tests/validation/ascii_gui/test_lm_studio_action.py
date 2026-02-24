@@ -14,6 +14,7 @@ from pathlib import Path
 from datetime import datetime
 import yaml
 import uuid
+from systems.visual_shell.ascii_gui import Window, WindowType
 
 
 class TestLMStudioAction:
@@ -28,13 +29,14 @@ class TestLMStudioAction:
 
         # Setup: create windows, focus on Terminal
         for win in sample_windows:
-            await gui_renderer.on_window_create(
-                win.id, win.title, win.pos, win.size
-            )
-        await gui_renderer.on_window_focus("win-terminal")
+            await gui_renderer.on_window_create(win)
+
+        # Focus terminal window (need to pass Window object)
+        terminal_window = next(w for w in sample_windows if w.id == "win-terminal")
+        await gui_renderer.on_window_focus(terminal_window)
 
         # Read current state
-        windows_fragment = (gui_renderer.output_dir / "windows.yaml").read_text()
+        windows_fragment = (gui_renderer.output_dir / "fragments" / "windows.yaml").read_text()
 
         # Ask LLM to generate a command
         prompt = f"""You are controlling a GUI. Current state:
@@ -50,11 +52,11 @@ Output ONLY valid YAML in this exact format:
 command_id: <uuid>
 action: focus
 target: <window-id>
-timestamp: <ISO8601>
+timestamp: "<ISO8601>"
 source: ai-agent
 ```
 
-No other text, just the YAML."""
+No other text, just the YAML. Note: timestamp must be in quotes."""
 
         response = requests.post(
             "http://localhost:1234/v1/chat/completions",
@@ -107,14 +109,18 @@ No other text, just the YAML."""
         skip_if_no_lm_studio(lm_studio_available)
 
         # Setup
-        await gui_renderer.on_window_create("win-a", "Window A", (0, 0), (100, 100))
-        await gui_renderer.on_window_create("win-b", "Window B", (100, 0), (100, 100))
+        win_a = Window(id="win-a", title="Window A", type=WindowType.TERMINAL, pos=(0, 0), size=(100, 100))
+        win_b = Window(id="win-b", title="Window B", type=WindowType.TERMINAL, pos=(100, 0), size=(100, 100))
+        await gui_renderer.on_window_create(win_a)
+        await gui_renderer.on_window_create(win_b)
 
         # Simulate AI decision: close Window B
+        # Note: timestamp is quoted to ensure it's parsed as string
+        ts = datetime.now().isoformat()
         command_yaml = f"""command_id: {uuid.uuid4()}
 action: close
 target: win-b
-timestamp: {datetime.now().isoformat()}
+timestamp: "{ts}"
 source: ai-agent
 """
 

@@ -10,6 +10,7 @@ This test validates that a local LLM (via LM Studio) can:
 import pytest
 import requests
 from pathlib import Path
+from systems.visual_shell.ascii_gui import Window, WindowType
 
 
 class TestLMStudioPerception:
@@ -22,13 +23,14 @@ class TestLMStudioPerception:
 
         # Render sample windows
         for win in sample_windows:
-            await gui_renderer.on_window_create(
-                win.id, win.title, win.pos, win.size
-            )
-        await gui_renderer.on_window_focus("win-editor")
+            await gui_renderer.on_window_create(win)
+
+        # Focus the editor window (need to pass Window object)
+        editor_window = next(w for w in sample_windows if w.id == "win-editor")
+        await gui_renderer.on_window_focus(editor_window)
 
         # Read the generated fragment
-        windows_fragment = (gui_renderer.output_dir / "windows.yaml").read_text()
+        windows_fragment = (gui_renderer.output_dir / "fragments" / "windows.yaml").read_text()
 
         # Ask LM Studio about the windows
         prompt = f"""You are analyzing a GUI state file. Here is the current state:
@@ -78,11 +80,12 @@ Respond in JSON format:
         skip_if_no_lm_studio(lm_studio_available)
 
         # Create a window and focus it
-        await gui_renderer.on_window_create("win-001", "Dashboard", (0, 0), (1920, 1080))
-        await gui_renderer.on_window_focus("win-001")
+        win = Window(id="win-001", title="Dashboard", type=WindowType.TERMINAL, pos=(0, 0), size=(1920, 1080))
+        await gui_renderer.on_window_create(win)
+        await gui_renderer.on_window_focus(win)
 
         # Read focus fragment
-        focus_fragment = (gui_renderer.output_dir / "focus.ascii").read_text()
+        focus_fragment = (gui_renderer.output_dir / "fragments" / "focus.ascii").read_text()
 
         prompt = f"""Analyze this focus state:
 
@@ -113,10 +116,10 @@ What window is currently focused? Respond with just the window ID."""
         skip_if_no_lm_studio(lm_studio_available)
 
         # Set mouse state
-        await gui_renderer.on_mouse_move(512, 384)
+        await gui_renderer.on_mouse_move(512, 384, hovering=None)
 
         # Read mouse fragment
-        mouse_fragment = (gui_renderer.output_dir / "mouse.ascii").read_text()
+        mouse_fragment = (gui_renderer.output_dir / "fragments" / "mouse.ascii").read_text()
 
         prompt = f"""Analyze this mouse state:
 

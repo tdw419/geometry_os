@@ -15,6 +15,7 @@ from pathlib import Path
 from datetime import datetime
 import uuid
 import yaml
+from systems.visual_shell.ascii_gui import Window, WindowType
 
 
 class TestE2ELoop:
@@ -29,14 +30,14 @@ class TestE2ELoop:
 
         # Setup: create windows
         for win in sample_windows:
-            await gui_renderer.on_window_create(
-                win.id, win.title, win.pos, win.size
-            )
-        # Initially focus Terminal
-        await gui_renderer.on_window_focus("win-terminal")
+            await gui_renderer.on_window_create(win)
+
+        # Initially focus Terminal (need to pass Window object)
+        terminal_window = next(w for w in sample_windows if w.id == "win-terminal")
+        await gui_renderer.on_window_focus(terminal_window)
 
         # PHASE 1: AI reads state
-        windows_fragment = (gui_renderer.output_dir / "windows.yaml").read_text()
+        windows_fragment = (gui_renderer.output_dir / "fragments" / "windows.yaml").read_text()
 
         # PHASE 2: AI decides what to do
         decision_prompt = f"""You are an AI controlling a GUI. Current state:
@@ -81,10 +82,14 @@ reasoning: <brief explanation>
         decision = yaml.safe_load(decision_content[yaml_start:yaml_end].strip())
 
         # PHASE 3: AI writes command
-        command_yaml = f"""command_id: {uuid.uuid4()}
-action: {decision['action']}
-target: {decision['target']}
-timestamp: {datetime.now().isoformat()}
+        ts = datetime.now().isoformat()
+        cmd_id = str(uuid.uuid4())
+        action = decision.get("action", "focus")
+        target = decision.get("target", "win-editor")
+        command_yaml = f"""command_id: {cmd_id}
+action: {action}
+target: {target}
+timestamp: "{ts}"
 source: e2e-test
 """
 
@@ -95,12 +100,12 @@ source: e2e-test
         await gui_processor["processor"].process_pending()
 
         # PHASE 5: AI verifies state change
-        new_fragment = (gui_renderer.output_dir / "windows.yaml").read_text()
+        new_fragment = (gui_renderer.output_dir / "fragments" / "windows.yaml").read_text()
 
         verify_prompt = f"""Verify the action was executed.
 
 Original state showed: Terminal was focused
-Action taken: {decision['action']} on {decision['target']}
+Action taken: {action} on {target}
 
 New state:
 ```yaml
@@ -134,17 +139,19 @@ Did the state change as expected? Answer YES or NO with explanation."""
         skip_if_no_lm_studio(lm_studio_available)
 
         # Setup
-        await gui_renderer.on_window_create("w1", "Window 1", (0, 0), (100, 100))
-        await gui_renderer.on_window_create("w2", "Window 2", (100, 0), (100, 100))
-        await gui_renderer.on_window_create("w3", "Window 3", (200, 0), (100, 100))
+        await gui_renderer.on_window_create(Window(id="w1", title="Window 1", type=WindowType.TERMINAL, pos=(0, 0), size=(100, 100)))
+        await gui_renderer.on_window_create(Window(id="w2", title="Window 2", type=WindowType.TERMINAL, pos=(100, 0), size=(100, 100)))
+        await gui_renderer.on_window_create(Window(id="w3", title="Window 3", type=WindowType.TERMINAL, pos=(200, 0), size=(100, 100)))
 
         executed_count = 0
 
         # Step 1: Focus Window 2
-        cmd1 = f"""command_id: {uuid.uuid4()}
+        ts1 = datetime.now().isoformat()
+        cmd1_id = str(uuid.uuid4())
+        cmd1 = f"""command_id: {cmd1_id}
 action: focus
 target: w2
-timestamp: {datetime.now().isoformat()}
+timestamp: "{ts1}"
 source: e2e-test
 """
         (gui_processor["pending"] / "cmd1.yaml").write_text(cmd1)
@@ -152,10 +159,12 @@ source: e2e-test
         executed_count += 1
 
         # Step 2: Close Window 3
-        cmd2 = f"""command_id: {uuid.uuid4()}
+        ts2 = datetime.now().isoformat()
+        cmd2_id = str(uuid.uuid4())
+        cmd2 = f"""command_id: {cmd2_id}
 action: close
 target: w3
-timestamp: {datetime.now().isoformat()}
+timestamp: "{ts2}"
 source: e2e-test
 """
         (gui_processor["pending"] / "cmd2.yaml").write_text(cmd2)
@@ -166,7 +175,7 @@ source: e2e-test
         assert len(gui_processor["executed_commands"]) == executed_count
 
         # Verify state
-        windows_fragment = (gui_renderer.output_dir / "windows.yaml").read_text()
+        windows_fragment = (gui_renderer.output_dir / "fragments" / "windows.yaml").read_text()
 
         # Ask LLM to verify final state
         verify_prompt = f"""Verify this final state after these actions:

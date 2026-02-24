@@ -23,9 +23,10 @@ def temp_gui_dirs():
     """Create temporary GUI directories for testing."""
     with tempfile.TemporaryDirectory() as d:
         root = Path(d)
-        fragments = root / "fragments"
-        pending = root / "commands" / "pending"
-        completed = root / "commands" / "completed"
+        gui_dir = root / "gui"
+        fragments = gui_dir / "fragments"
+        pending = gui_dir / "commands" / "pending"
+        completed = gui_dir / "commands" / "completed"
 
         fragments.mkdir(parents=True)
         pending.mkdir(parents=True)
@@ -33,6 +34,7 @@ def temp_gui_dirs():
 
         yield {
             "root": root,
+            "gui_dir": gui_dir,
             "fragments": fragments,
             "pending": pending,
             "completed": completed,
@@ -42,7 +44,7 @@ def temp_gui_dirs():
 @pytest.fixture
 async def gui_renderer(temp_gui_dirs):
     """Create a GUI fragment renderer."""
-    renderer = GUIFragmentRenderer(output_dir=temp_gui_dirs["fragments"])
+    renderer = GUIFragmentRenderer(output_dir=str(temp_gui_dirs["gui_dir"]))
     yield renderer
 
 
@@ -55,9 +57,8 @@ async def gui_processor(temp_gui_dirs):
         executed_commands.append(cmd)
 
     processor = GUICommandProcessor(
-        pending_dir=temp_gui_dirs["pending"],
-        completed_dir=temp_gui_dirs["completed"],
         executor=mock_executor,
+        gui_dir=str(temp_gui_dirs["gui_dir"])
     )
 
     yield {
@@ -78,7 +79,7 @@ def sample_windows():
             type=WindowType.TERMINAL,
             pos=(100, 50),
             size=(640, 480),
-            z_index=2,
+            z=2,
             focused=False,
         ),
         Window(
@@ -87,16 +88,16 @@ def sample_windows():
             type=WindowType.EDITOR,
             pos=(750, 50),
             size=(800, 600),
-            z_index=1,
+            z=1,
             focused=True,
         ),
         Window(
             id="win-browser",
             title="Neural City",
-            type=WindowType.NEURAL_CITY,
+            type=WindowType.BROWSER,
             pos=(100, 550),
             size=(640, 400),
-            z_index=0,
+            z=0,
             focused=False,
         ),
     ]
