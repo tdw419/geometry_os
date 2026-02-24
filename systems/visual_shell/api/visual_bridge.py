@@ -151,6 +151,12 @@ class VisualBridge:
         # Terminal session management endpoints
         self.app.router.add_post('/terminal/session', self._handle_terminal_session_create_http)
         self.app.router.add_delete('/terminal/session/{session_id}', self._handle_terminal_session_delete_http)
+        # GUI ASCII endpoints for WebMCP/AI access
+        self.app.router.add_get('/gui/state', self._handle_gui_state_http)
+        self.app.router.add_post('/gui/command', self._handle_gui_command_http)
+        self.app.router.add_get('/gui/fragments', self._handle_gui_fragments_list_http)
+        # Health endpoint
+        self.app.router.add_get('/health', self._handle_health_http)
 
     async def _handle_agent_request_http(self, request: web.Request) -> web.Response:
         """HTTP endpoint for agent requests from WordPress."""
@@ -258,6 +264,101 @@ class VisualBridge:
             'status': 'ok',
             'message': f'Session {session_id} deleted'
         })
+
+    # === GUI REST Endpoints (WebMCP/AI Access) ===
+
+    async def _handle_health_http(self, request: web.Request) -> web.Response:
+        """Health check endpoint."""
+        return web.json_response({"status": "ok", "timestamp": time.time()})
+
+    async def _handle_gui_state_http(self, request: web.Request) -> web.Response:
+        """HTTP endpoint to get current GUI state."""
+        try:
+            # Read all fragments
+            state = {}
+            if self.gui_scene_dir.exists():
+                for filepath in self.gui_scene_dir.glob("*"):
+                    if filepath.is_file():
+                        state[filepath.name] = filepath.read_text()
+
+            return web.json_response({
+                "status": "ok",
+                "state": state,
+                "timestamp": time.time()
+            })
+        except Exception as e:
+            return web.json_response(
+                {"status": "error", "message": str(e)},
+                status=500
+            )
+
+    async def _handle_gui_command_http(self, request: web.Request) -> web.Response:
+        """HTTP endpoint to submit a GUI command."""
+        try:
+            data = await request.json()
+
+            command_id = data.get("command_id", str(uuid.uuid4()))
+            action = data.get("action")
+            target = data.get("target")
+            params = data.get("params", {})
+
+            if not action:
+                return web.json_response(
+                    {"status": "error", "message": "action is required"},
+                    status=400
+                )
+
+            # Write command to pending directory
+            pending_dir = Path(".geometry/gui/commands/pending")
+            pending_dir.mkdir(parents=True, exist_ok=True)
+
+            from datetime import datetime
+            command_content = f"""command_id: {command_id}
+action: {action}
+target: {target or ''}
+timestamp: {datetime.now().isoformat()}
+source: webmcp
+params:
+"""
+            for key, value in params.items():
+                command_content += f"  {key}: {value}\n"
+
+            cmd_path = pending_dir / f"{command_id}.yaml"
+            cmd_path.write_text(command_content)
+
+            return web.json_response({
+                "status": "ok",
+                "command_id": command_id,
+                "message": f"Command {action} queued for execution"
+            })
+        except json.JSONDecodeError:
+            return web.json_response(
+                {"status": "error", "message": "Invalid JSON"},
+                status=400
+            )
+        except Exception as e:
+            return web.json_response(
+                {"status": "error", "message": str(e)},
+                status=500
+            )
+
+    async def _handle_gui_fragments_list_http(self, request: web.Request) -> web.Response:
+        """HTTP endpoint to list available GUI fragments."""
+        try:
+            fragments = []
+            if self.gui_scene_dir.exists():
+                fragments = [f.name for f in self.gui_scene_dir.glob("*") if f.is_file()]
+
+            return web.json_response({
+                "status": "ok",
+                "fragments": fragments,
+                "count": len(fragments)
+            })
+        except Exception as e:
+            return web.json_response(
+                {"status": "error", "message": str(e)},
+                status=500
+            )
 
     # === Terminal PTY Methods ===
 
