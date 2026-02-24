@@ -44,7 +44,7 @@ Focus: Validate P2P mentoring flow works end-to-end. Skip tests initially.
   - _Requirements: FR-1, FR-2, FR-12_
   - _Design: P0 Core Infrastructure_
 
-- [ ] 1.2 Add VPSLocation, SephiroticNode, SocraticQuestion, ProsocialScore dataclasses
+- [x] 1.2 Add VPSLocation, SephiroticNode, SocraticQuestion, ProsocialScore dataclasses
   - **Do**:
     1. Add `VPSLocation` dataclass with Haversine distance calculation
     2. Add `SephiroticNode` dataclass with 10 canonical nodes factory
