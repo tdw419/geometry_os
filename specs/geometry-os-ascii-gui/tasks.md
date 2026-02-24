@@ -168,7 +168,7 @@ print('Phase 1 POC OK')
   - **Verify**: `cd /home/jericho/zion/projects/geometry_os/geometry_os && tree .geometry/gui/`
   - **Done when**: Directory structure matches design
 
-- [ ] 5.3 Verify fragments exist after example
+- [x] 5.3 Verify fragments exist after example
   - **Do**: Run example and verify fragment files
   - **Verify**: `cd /home/jericho/zion/projects/geometry_os/geometry_os && python systems/visual_shell/ascii_gui/example.py && ls -la .geometry/gui/fragments/`
   - **Done when**: windows.ascii, focus.ascii, mouse.ascii, keyboard.ascii exist
