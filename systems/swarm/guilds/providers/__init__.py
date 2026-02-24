@@ -2,5 +2,6 @@
 """LLM provider implementations for the Guilds system."""
 
 from systems.swarm.guilds.providers.base import LLMProvider, LLMProviderError
+from systems.swarm.guilds.providers.mock import MockProvider
 
-__all__ = ["LLMProvider", "LLMProviderError"]
+__all__ = ["LLMProvider", "LLMProviderError", "MockProvider"]

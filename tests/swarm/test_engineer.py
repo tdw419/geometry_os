@@ -72,8 +72,8 @@ class TestEngineerAgent:
 
         assert result["language"] == "python"
 
-    def test_handle_code_testing_returns_tests(self, engineer):
-        """Test that _handle_code_testing returns test structure."""
+    def test_handle_code_testing_returns_result(self, engineer):
+        """Test that _handle_code_testing returns test result structure."""
         task = Task(
             task_id=str(uuid.uuid4()),
             task_type=TaskType.CODE_TESTING,
@@ -83,24 +83,29 @@ class TestEngineerAgent:
 
         result = engineer._handle_code_testing(task)
 
-        assert "tests" in result
-        assert isinstance(result["tests"], list)
-        assert len(result["tests"]) > 0
-        assert "name" in result["tests"][0]
-        assert "code" in result["tests"][0]
+        # Without executor, should return error
+        assert "passed" in result
+        assert result["passed"] is False
+        assert "error" in result
 
     def test_summarize_code_result(self, engineer):
         """Test _summarize with code result."""
-        result = {"code": "line1\nline2\nline3", "language": "python"}
+        result = {"code": "line1\nline2\nline3", "language": "python", "success": True}
         summary = engineer._summarize(result)
         assert "3 lines" in summary
         assert "python" in summary
 
-    def test_summarize_tests_result(self, engineer):
-        """Test _summarize with tests result."""
-        result = {"tests": [{"name": "test1"}, {"name": "test2"}]}
+    def test_summarize_passed_tests(self, engineer):
+        """Test _summarize with passed tests result."""
+        result = {"passed": True, "success": True}
         summary = engineer._summarize(result)
-        assert "2 test" in summary
+        assert "passed" in summary.lower()
+
+    def test_summarize_failed_tests(self, engineer):
+        """Test _summarize with failed tests result."""
+        result = {"passed": False, "success": True}
+        summary = engineer._summarize(result)
+        assert "failed" in summary.lower()
 
     def test_summarize_error_result(self, engineer):
         """Test _summarize with error result."""
@@ -175,4 +180,77 @@ class TestEngineerAgentWorkCycle:
         assert completed is not None
         stored_task = task_board.get(task.task_id)
         assert stored_task.status.value == "COMPLETED"
-        assert "tests" in stored_task.result
+        assert "passed" in stored_task.result
+
+
+class TestEngineerAgentWithIntegrations:
+    """Test EngineerAgent with real integrations."""
+
+    @pytest.fixture
+    def mock_provider(self):
+        """Create mock LLM provider."""
+        from systems.swarm.guilds.providers.mock import MockProvider
+        return MockProvider(response="def add(a, b): return a + b")
+
+    @pytest.fixture
+    def executor(self):
+        """Create sandbox executor."""
+        from systems.swarm.guilds.executor import SandboxExecutor
+        return SandboxExecutor(timeout_seconds=5)
+
+    @pytest.fixture
+    def engineer_with_integrations(self, tmp_path, mock_provider, executor):
+        """Create EngineerAgent with integrations."""
+        from systems.swarm.guilds.engineer import EngineerAgent
+        from systems.swarm.task_board import TaskBoard
+        from systems.swarm.neb_bus import NEBBus
+
+        task_board = TaskBoard(str(tmp_path / "tasks"))
+        event_bus = NEBBus(node_id="test")
+
+        return EngineerAgent(
+            agent_id="test-engineer",
+            task_board=task_board,
+            event_bus=event_bus,
+            llm_provider=mock_provider,
+            executor=executor
+        )
+
+    @pytest.mark.asyncio
+    async def test_write_code_uses_llm_provider(self, engineer_with_integrations, tmp_path):
+        """write_code should use injected LLM provider."""
+        from systems.swarm.task import Task, TaskType
+        from systems.swarm.task_board import TaskBoard
+
+        task_board = TaskBoard(str(tmp_path / "tasks"))
+        task = Task(
+            task_id="test-1",
+            task_type=TaskType.CODE_GENERATION,
+            description="Add two numbers",
+            payload={"spec": "Add two numbers", "language": "python"}
+        )
+        task_board.post(task)
+        task_board.claim(task.task_id, "test-engineer")
+
+        result = await engineer_with_integrations.write_code(task)
+
+        assert result["success"] is True
+        assert "def add" in result["code"]
+
+    def test_test_code_uses_executor(self, engineer_with_integrations):
+        """test_code should use injected executor."""
+        from systems.swarm.task import Task, TaskType
+
+        task = Task(
+            task_id="test-2",
+            task_type=TaskType.CODE_TESTING,
+            description="Test add function",
+            payload={
+                "code": "def add(a, b): return a + b",
+                "tests": "assert add(1, 2) == 3"
+            }
+        )
+
+        result = engineer_with_integrations.test_code(task)
+
+        assert result["passed"] is True

@@ -5,7 +5,7 @@ Handles CODE_GENERATION and CODE_TESTING tasks.
 """
 
 import traceback
-from typing import Dict, Any, Optional, List, TYPE_CHECKING
+from typing import Dict, Any, Optional, TYPE_CHECKING
 
 from systems.swarm.guilds.base import GuildAgent
 from systems.swarm.task import Task, TaskType
@@ -20,11 +20,11 @@ class EngineerAgent(GuildAgent):
     Engineer agent for code generation and testing tasks.
 
     Capabilities:
-    - CODE_GENERATION: Generate code from specifications
-    - CODE_TESTING: Write tests for code
+    - CODE_GENERATION: Generate code from specifications using LLM
+    - CODE_TESTING: Execute tests in sandbox
     """
 
-    # Default code template for POC
+    # Default code template for fallback
     CODE_TEMPLATE = '''"""
 Generated code module.
 """
@@ -42,7 +42,9 @@ if __name__ == "__main__":
         agent_id: str,
         task_board: TaskBoard,
         event_bus: Optional['NEBBus'] = None,
-        auto_claim: bool = False
+        auto_claim: bool = False,
+        llm_provider=None,
+        executor=None,
     ):
         """
         Initialize engineer agent.
@@ -52,7 +54,12 @@ if __name__ == "__main__":
             task_board: TaskBoard to pull tasks from
             event_bus: Optional NEBBus for publishing result events
             auto_claim: If True, automatically claim tasks when notified
+            llm_provider: Optional LLM provider for code generation
+            executor: Optional SandboxExecutor for code testing
         """
+        self.llm = llm_provider
+        self.executor = executor
+
         capabilities = [
             TaskType.CODE_GENERATION.value,
             TaskType.CODE_TESTING.value
@@ -83,20 +90,92 @@ if __name__ == "__main__":
         Returns:
             Human-readable summary
         """
-        if "code" in result:
-            lines = result["code"].count("\n") + 1
-            lang = result.get("language", "unknown")
-            return f"Generated {lines} lines of {lang} code"
-        elif "tests" in result:
-            count = len(result["tests"])
-            return f"Generated {count} test cases"
+        if result.get("success"):
+            if "code" in result:
+                lines = result["code"].count("\n") + 1
+                lang = result.get("language", "unknown")
+                return f"Generated {lines} lines of {lang} code"
+            elif "passed" in result:
+                return "Tests passed" if result["passed"] else "Tests failed"
         elif "error" in result:
             return f"Error: {result['error']}"
         return "Task completed"
 
+    async def write_code(self, task: Task) -> Dict[str, Any]:
+        """
+        Generate code using LLM provider.
+
+        Args:
+            task: Task with code generation payload
+
+        Returns:
+            Result with generated code
+        """
+        spec = task.payload.get("spec", task.description)
+        language = task.payload.get("language", "python")
+
+        if self.llm is None:
+            return self._template_code(spec, language)
+
+        try:
+            prompt = f"""Generate {language} code for:
+{spec}
+
+Return only the code, no explanations."""
+
+            code = await self.llm.generate(prompt, temperature=0.3)
+            return {
+                "code": code,
+                "language": language,
+                "success": True,
+                "generated_by": self.agent_id
+            }
+
+        except Exception as e:
+            return {
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "success": False
+            }
+
+    def test_code(self, task: Task) -> Dict[str, Any]:
+        """
+        Execute tests in sandbox.
+
+        Args:
+            task: Task with code and tests payload
+
+        Returns:
+            Result with test execution status
+        """
+        code = task.payload.get("code", "")
+        tests = task.payload.get("tests", "")
+
+        if self.executor is None:
+            return {"passed": False, "error": "No executor configured"}
+
+        full_code = f"{code}\n\n{tests}"
+        result = self.executor.run_python(full_code)
+
+        return {
+            "passed": result.success,
+            "output": result.stdout or result.stderr,
+            "timed_out": result.timed_out,
+            "generated_by": self.agent_id
+        }
+
+    def _template_code(self, spec: str, language: str) -> Dict[str, Any]:
+        """Fallback template code generation."""
+        return {
+            "code": f"# TODO: Implement\n# {spec}\npass",
+            "language": language,
+            "success": True,
+            "generated_by": self.agent_id
+        }
+
     def _handle_code_generation(self, task: Task) -> Dict[str, Any]:
         """
-        Handle CODE_GENERATION task.
+        Handle CODE_GENERATION task (sync wrapper).
 
         Args:
             task: Task to process
@@ -105,25 +184,24 @@ if __name__ == "__main__":
             Result with generated code
         """
         try:
-            # POC: Use template code
-            # TODO: Integrate with actual LLM for code generation
-            description = task.description
-            language = task.payload.get("language", "python")
-
-            code = self.CODE_TEMPLATE
-
-            return {
-                "code": code,
-                "language": language,
-                "description": description,
-                "generated_by": self.agent_id
-            }
+            import asyncio
+            # Handle both async and sync contexts
+            try:
+                asyncio.get_running_loop()
+                # We're in an async context, create a task
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    future = pool.submit(asyncio.run, self.write_code(task))
+                    return future.result()
+            except RuntimeError:
+                # No running loop, we can use asyncio.run
+                return asyncio.run(self.write_code(task))
         except Exception as e:
             return {
                 "error": str(e),
                 "error_type": type(e).__name__,
                 "traceback": traceback.format_exc(),
-                "actionable_info": f"Code generation failed: {e}. Check task description and payload."
+                "actionable_info": f"Code generation failed: {e}"
             }
 
     def _handle_code_testing(self, task: Task) -> Dict[str, Any]:
@@ -134,30 +212,17 @@ if __name__ == "__main__":
             task: Task to process
 
         Returns:
-            Result with generated tests
+            Result with test execution status
         """
         try:
-            # POC: Return mock test structure
-            # TODO: Integrate with actual test generation
-            code = task.payload.get("code", "")
-
-            return {
-                "tests": [
-                    {
-                        "name": "test_main",
-                        "code": "def test_main():\\n    assert True",
-                        "description": "Basic smoke test"
-                    }
-                ],
-                "target_code": code[:100] + "..." if len(code) > 100 else code,
-                "generated_by": self.agent_id
-            }
+            return self.test_code(task)
         except Exception as e:
             return {
                 "error": str(e),
                 "error_type": type(e).__name__,
                 "traceback": traceback.format_exc(),
-                "actionable_info": f"Test generation failed: {e}. Check task payload for valid code."
+                "passed": False,
+                "actionable_info": f"Test execution failed: {e}"
             }
 
     def complete_task(self, task: Task, result: Dict[str, Any]) -> bool:
