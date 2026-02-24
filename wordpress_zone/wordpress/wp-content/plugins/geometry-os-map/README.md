@@ -155,3 +155,9 @@ Returns map configuration:
 
 ### 1.0.0
 - Initial shortcode implementation
+
+## Test Page
+
+A test page is available at: **http://localhost:8080/?page_id=17510**
+
+This page uses the `[geometry_os_map height="600px"]` shortcode to embed the visual shell via iframe.
