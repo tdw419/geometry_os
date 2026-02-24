@@ -1,0 +1,16 @@
+#!/bin/bash
+# gos-term - Geometry OS Web Terminal Client (shell wrapper)
+#
+# This wrapper script provides easy access to the gos-term CLI.
+# It forwards all arguments to the Python implementation.
+#
+# Usage:
+#   gos-term echo hello
+#   gos-term -i                    # Interactive mode
+#   gos-term --neb ls -la          # With NEB publishing
+#   gos-term -p 8769 pwd           # Custom port
+#
+# For full help, run: gos-term --help
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec python3 "${SCRIPT_DIR}/gos_term_cli.py" "$@"
