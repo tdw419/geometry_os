@@ -1,6 +1,6 @@
-# Geometry OS - Architecture
+# Geometry OS - Architecture (Game Engine Edition)
 
-> How the pieces connect. Read this to understand the system structure.
+> How the pieces connect to power "World of Rectification."
 
 ---
 
@@ -8,42 +8,40 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         GEOMETRY OS                                  │
+│                    WORLD OF RECTIFICATION ENGINE                     │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │  ┌──────────────────────────────────────────────────────────────┐   │
-│  │                    VISUAL SHELL (PixiJS)                      │   │
-│  │   Infinite Desktop │ Window Particles │ ASCII GUI │ Terminal  │   │
+│  │                    VISUAL SHELL (Game UI)                     │   │
+│  │   Infinite Map │ Window Particles │ ASCII GUI │ Game World     │   │
 │  └────────────────────────────┬─────────────────────────────────┘   │
 │                               │                                      │
 │                               ▼                                      │
 │  ┌──────────────────────────────────────────────────────────────┐   │
-│  │              NEURAL EVENT BUS (NEB)                           │   │
-│  │   Pub/Sub │ Subscriptions │ History │ Semantic Matching       │   │
+│  │              NEURAL EVENT BUS (Game Events)                   │   │
+│  │   Pub/Sub │ Game Signal History │ Semantic Matching           │   │
 │  └────────────────────────────┬─────────────────────────────────┘   │
 │                               │                                      │
 │          ┌────────────────────┼────────────────────┐                │
 │          ▼                    ▼                    ▼                │
 │  ┌──────────────┐   ┌──────────────┐   ┌──────────────────────┐    │
 │  │ SWARM AGENTS │   │ INTELLIGENCE │   │ EVOLUTION DAEMON     │    │
-│  │              │   │              │   │                      │    │
-│  │ • Engineer   │   │ • Contextual │   │ • Recursive Growth   │    │
-│  │ • Reviewer   │   │   Memory     │   │ • Mutation Emitter   │    │
-│  │ • Architect  │   │ • Goal       │   │ • Tectonic Engine    │    │
-│  │              │   │   Inference  │   │ • Consensus Voting   │    │
-│  │ + Senses     │   │ • Proactive  │   │                      │    │
-│  │ + Memory     │   │   Assistant  │   │                      │    │
+│  │ (Ghost Mentors)│ │ (TMS/CTRM)   │   │ (Mechanic Evolver)   │    │
+│  │ • Scribes     │   │ • Contextual │   │ • Recursive Growth   │    │
+│  │ • Sprouts     │   │   Memory     │   │ • Mutation Emitter   │    │
+│  │ • AI Mentors  │   │ • Goal       │   │ • Tectonic Engine    │    │
+│  │               │   │   Inference  │   │ • Consensus Voting   │    │
 │  └──────┬───────┘   └──────────────┘   └──────────────────────┘    │
 │         │                                                           │
 │         ▼                                                           │
 │  ┌──────────────────────────────────────────────────────────────┐   │
-│  │                    TASK BOARD                                 │   │
-│  │   Atomic claiming │ File locking │ Status tracking            │   │
+│  │                    TASK BOARD (Quest System)                  │   │
+│  │   Atomic Quest Claiming │ File Locking │ Status Tracking      │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 │                                                                      │
 │  ┌──────────────────────────────────────────────────────────────┐   │
-│  │                 PERSISTENCE LAYER                             │   │
-│  │   .geometry/ │ episodic_memory.json │ ASCII state files       │   │
+│  │                 PERSISTENCE LAYER (Game Save)                 │   │
+│  │   .geometry/ │ wor_state.json │ ASCII world fragments         │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 │                                                                      │
 └─────────────────────────────────────────────────────────────────────┘
@@ -51,131 +49,68 @@
 
 ---
 
-## Core Components
+## Game Engine Components
 
-### 1. Visual Shell (`systems/visual_shell/`)
+### 1. Visual Shell (`systems/visual_shell/`) - The Game UI
+**Purpose:** Renders the infinite game world and handle user interactions.
 
-**Purpose:** Primary interface - the infinite desktop where users and AI interact.
-
-**Key Subsystems:**
-
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| PixiJS Desktop | `web/` | Infinite canvas with window particles |
-| ASCII GUI | `ascii_gui/` | Text-based UI components |
-| Visual Bridge | `api/visual_bridge.py` | Python <-> JavaScript bridge |
-| Terminal Bridge | `api/terminal_websocket_bridge.py` | WebSocket terminal |
-| NEB Bridge | `api/neb_bridge.py` | Events to visual elements |
-
-**Data Flow:**
-```
-User Input -> PixiJS -> WebSocket -> visual_bridge.py -> NEB -> Agents
-```
+| Component | Game Role |
+|-----------|-----------|
+| PixiJS Desktop | The Game Map (Infinite 2D Plane) |
+| ASCII GUI | Quests, Inventory, Telemetry Overlays |
+| Visual Bridge | Game State Sync (Browser <-> Python) |
+| NEB Bridge | Real-time world updates |
 
 ---
 
-### 2. Neural Event Bus (`systems/swarm/neb_*.py`)
-
-**Purpose:** Real-time pub/sub coordination layer. The nervous system.
-
-**Key Classes:**
-
-| Class | File | Purpose |
-|-------|------|---------|
-| NEBSignal | `neb_signal.py` | Topic-based event with embeddings |
-| NEBBus | `neb_bus.py` | Pub/sub API with history |
-| SubscriptionManager | `subscription_manager.py` | Wildcard & semantic matching |
-| SwarmNEBBridge | `swarm_neb_bridge.py` | Consensus event notifications |
+### 2. Neural Event Bus (`systems/swarm/neb_*.py`) - The Event System
+**Purpose:** Coordinates game signals (Rectifications, Movements, Quest completions).
 
 **Topic Namespaces:**
 ```
-task.*             - Task lifecycle events
-swarm.proposal.*   - Consensus proposals
-swarm.vote.*       - Consensus votes
-swarm.consensus.*  - Final decisions
-memory.*           - Episodic memory events
-growth.*           - Pattern analysis events
-```
-
-**Usage:**
-```python
-from systems.swarm import NEBBus, NEBSignal
-
-bus = NEBBus(node_id="coordinator")
-bus.subscribe("task.**", handler)
-bus.publish("task.available", {"task_id": "t-001"})
+task.*             - Quest lifecycle (pending -> completed)
+swarm.proposal.*   - AI Mentor consensus on world state
+memory.*           - Global game history
+growth.*           - Evolutionary mechanics updates
 ```
 
 ---
 
-### 3. Swarm Agents (`systems/swarm/guilds/`)
+### 3. Swarm Agents (`systems/swarm/guilds/`) - The AI Inhabitants
+**Purpose:** Provides Ghost Mentors, Scribes, and autonomous game entities.
 
-**Purpose:** Autonomous agents that execute tasks, review code, design systems.
-
-**Guild Structure:**
-
-| Agent | Capabilities |
-|-------|--------------|
-| EngineerAgent | Code generation, testing, error handling |
-| ReviewerAgent | Static analysis, security, style checks |
-| ArchitectAgent | Component design, architecture planning |
-
-**Senses** (`systems/swarm/senses/`):
-- `FilesystemSense` - Sandboxed file access
-- `WebSense` - HTTP with rate limiting
-
-**Memory** (`systems/swarm/memory/`):
-- `EpisodicMemory` - Experience storage/retrieval
-- `ExperienceStore` - JSON persistence
+| Guild | Game Role |
+|-------|-----------|
+| ScribeAgent | Expert Mentors (Human or AI) |
+| SproutAgent | New Players (Training Data Generators) |
+| ReviewerAgent | Verification of "Rectification" acts |
 
 ---
 
-### 4. Task Board (`systems/swarm/task_board.py`)
+### 4. Task Board (`systems/swarm/task_board.py`) - The Quest System
+**Purpose:** Manages player and agent quests atomically.
 
-**Purpose:** Atomic task claiming with file locking. Prevents race conditions.
-
-**Features:**
-- `fcntl.flock` for cross-process safety
-- Stale claim recovery (>30 min)
-- JSON-based task storage
-- Status tracking (pending -> claimed -> completed)
+- **Claiming**: AI Mentors "claim" a player to guide.
+- **Locking**: Prevents multiple mentors from interfering with the same rectification.
 
 ---
 
-### 5. Evolution Daemon (`systems/evolution_daemon/`)
+### 5. Evolution Daemon (`systems/evolution_daemon/`) - Mechanic Evolver
+**Purpose:** Recursively improves game balance and features.
 
-**Purpose:** Continuous recursive self-improvement.
-
-**Loop:**
-```
-INTROSPECT -> PROPOSE -> VALIDATE -> CONSENSUS -> APPLY
-```
-
-**Components:**
-
-| Component | Purpose |
-|-----------|---------|
-| RecursiveOrchestrator | Main evolution loop |
-| MutationEmitter | Generates improvement proposals |
-| TectonicEngine | Applies accepted mutations |
-| EvolutionTracker | History and metrics |
-
-**Control:** `./evolution_ctl.sh start|stop|status|tail|report`
+- **Introspection**: Analyzes which world regions are "husk-heavy."
+- **Mutation**: Proposes new game mechanics to facilitate rectification.
 
 ---
 
-### 6. Intelligence System (`systems/intelligence/`)
+### 6. Intelligence System (`systems/intelligence/`) - TMS/CTRM
+**Purpose:** Truth Management and Cognitive Reasoning.
 
-**Purpose:** Proactive AI assistance and learning.
-
-**Components:**
-
-| Component | Purpose |
-|-----------|---------|
-| ContextualMemory | Context-aware memory retrieval |
-| GoalInferenceEngine | Infer user intent from actions |
-| SocraticDaemon | Question-driven assistance |
-| ProactiveAssistant | Anticipatory help |
+| Component | Game Role |
+|-----------|-----------|
+| CTRM Scorer | Measures the "quality" of player reasoning |
+| TMS | Validates the "truth" of the world state |
+| GoalInference | Predicts what the player is trying to rectify |
 
 ---
 
@@ -183,66 +118,11 @@ INTROSPECT -> PROPOSE -> VALIDATE -> CONSENSUS -> APPLY
 
 **Location:** `.geometry/`
 
-| File/Dir | Purpose |
-|----------|---------|
-| `episodic_memory.json` | Agent experience storage |
-| `gui/` | GUI fragments and commands |
-| `heat/` | Thermal/usage data |
-| `tectonic/` | Evolution proposals |
-
----
-
-## Key Abstractions
-
-### NEBSignal
-```python
-@dataclass
-class NEBSignal:
-    topic: str           # e.g., "task.available"
-    payload: dict        # Event data
-    embedding: list      # Semantic vector
-    timestamp: float     # When emitted
-    source: str          # Origin node
-```
-
-### Task
-```python
-@dataclass
-class Task:
-    id: str
-    type: TaskType
-    description: str
-    status: TaskStatus  # pending, claimed, completed
-    claimed_by: Optional[str]
-    result: Optional[dict]
-```
-
-### Experience
-```python
-@dataclass
-class Experience:
-    action: str
-    context: dict
-    outcome: dict
-    embedding: list      # For semantic retrieval
-```
-
----
-
-## Testing
-
-**Test Locations:**
-```
-systems/swarm/test_*.py              - 180 tests (NEB, Guilds, Senses, Memory)
-systems/visual_shell/api/tests/      - API integration tests
-systems/intelligence/tests/          - Intelligence tests
-systems/evolution_daemon/tests/      - Evolution tests
-```
-
-**Run All Tests:**
-```bash
-pytest systems/swarm/ -v
-```
+| File/Dir | Game Data |
+|----------|-----------|
+| `episodic_memory.json` | Player/Agent history |
+| `tectonic/` | Map layout history |
+| `wordpress_zone/` | Integration with "World of Rectification" Plugin |
 
 ---
 
@@ -250,11 +130,9 @@ pytest systems/swarm/ -v
 
 | Dependency | Purpose |
 |------------|---------|
-| PixiJS | WebGL rendering for Visual Shell |
-| FastAPI | REST API server |
-| WebSocket | Real-time communication |
-| Rust (vectorland) | High-performance vector ops |
-| Rust (infinite_map_rs) | Wayland compositor |
+| WordPress | Web portal for "World of Rectification" |
+| PixiJS | Game world rendering |
+| Rust | High-performance Tectonic/Vector calculations |
 
 ---
 
