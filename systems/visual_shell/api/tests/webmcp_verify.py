@@ -10,6 +10,7 @@ Run: python systems/visual_shell/api/tests/webmcp_verify.py
 
 import asyncio
 import json
+import os
 import aiohttp
 from dataclasses import dataclass
 from typing import Optional, List
@@ -32,7 +33,9 @@ class WebMCPTerminalVerifier:
     Tests the full request path: HTTP → WordPress → Plugin → Response
     """
 
-    def __init__(self, wp_url: str = "http://localhost/wordpress"):
+    def __init__(self, wp_url: str = None):
+        # Support WP_URL env var for flexible configuration
+        self.wp_url = wp_url or os.environ.get("WP_URL", "http://localhost:8080")
         self.wp_url = wp_url
         self.api_base = f"{wp_url}/wp-json/geometry-os/v1"
         self.results: List[WebMCPTestResult] = []
