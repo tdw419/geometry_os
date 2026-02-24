@@ -107,7 +107,7 @@ Focus: Validate CLI works end-to-end with WebSocket bridge. Skip full test cover
   - **Commit**: `test(cli): add argparse unit tests`
   - _Requirements: FR-1_
 
-- [ ] 3.2 Integration tests for command execution
+- [x] 3.2 Integration tests for command execution
   - **Do**:
     1. Add `TestRunCommand` class
     2. Add skip decorator for missing bridge
