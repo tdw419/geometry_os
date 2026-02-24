@@ -101,7 +101,7 @@ Focus: Validate P2P mentoring flow works end-to-end. Skip tests initially.
   - _Requirements: FR-5_
   - _Design: P0 SproutAgent_
 
-- [ ] 1.6 Create TransmissionNEBBridge for event topics
+- [x] 1.6 Create TransmissionNEBBridge for event topics
   - **Do**:
     1. Create `systems/swarm/transmission/neb_bridge.py`
     2. Implement subscribe_to_available(), subscribe_to_claimed(), subscribe_to_question()
