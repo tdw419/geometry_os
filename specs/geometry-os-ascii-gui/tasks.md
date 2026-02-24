@@ -123,7 +123,7 @@ print('Phase 1 POC OK')
 
 ## Phase 4: Integration
 
-- [ ] 4.1 Update module exports
+- [x] 4.1 Update module exports
   - **Do**:
     1. Update `systems/visual_shell/ascii_gui/__init__.py` with all exports
     2. Export GUIShellHook, GUIHookBroadcaster

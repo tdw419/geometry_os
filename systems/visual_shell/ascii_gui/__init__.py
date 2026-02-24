@@ -36,6 +36,12 @@ from .fragment_renderer import (
     atomic_write,
 )
 
+from .command_processor import (
+    GUICommandProcessor,
+    CommandValidationError,
+    CommandExecutionError,
+)
+
 __all__ = [
     # Hooks
     "GUIShellHook",
@@ -57,4 +63,8 @@ __all__ = [
     # Fragment Renderer
     "GUIFragmentRenderer",
     "atomic_write",
+    # Command Processor
+    "GUICommandProcessor",
+    "CommandValidationError",
+    "CommandExecutionError",
 ]
