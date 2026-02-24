@@ -12,7 +12,7 @@ generated: auto
 
 Focus: Build core infrastructure. Module structure, data models, hook system.
 
-- [ ] 1.1 Create module structure and directories
+- [x] 1.1 Create module structure and directories
   - **Do**:
     1. Create `systems/visual_shell/ascii_gui/__init__.py`
     2. Create `systems/visual_shell/ascii_gui/py.typed`
