@@ -141,7 +141,7 @@ print('Phase 1 POC OK')
   - **Verify**: `cd /home/jericho/zion/projects/geometry_os/geometry_os && python -m pytest tests/systems/visual_shell/ascii_gui/ -v`
   - **Commit**: `test(ascii-gui): verify all tests pass`
 
-- [ ] 4.3 Create integration example
+- [x] 4.3 Create integration example
   - **Do**:
     1. Create `systems/visual_shell/ascii_gui/example.py`
     2. Demonstrate hook broadcaster setup
