@@ -71,7 +71,7 @@ class World_of_Rectification {
         new WOR_Quest_API();
         new WOR_Player_API();
         new WOR_Verify_API();
-        new WOR_Scribe_API();
+        WOR_Scribe_API::get_instance();
     }
 
     /**

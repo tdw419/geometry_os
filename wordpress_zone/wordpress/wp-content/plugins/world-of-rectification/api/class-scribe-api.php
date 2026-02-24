@@ -11,7 +11,29 @@ if (!defined('ABSPATH')) {
 
 class WOR_Scribe_API {
 
-    public function __construct() {
+    /**
+     * Singleton instance.
+     *
+     * @var WOR_Scribe_API|null
+     */
+    private static $instance = null;
+
+    /**
+     * Get singleton instance.
+     *
+     * @return self
+     */
+    public static function get_instance(): self {
+        if (null === self::$instance) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    /**
+     * Private constructor.
+     */
+    private function __construct() {
         add_action('rest_api_init', [$this, 'register_routes']);
     }
 
@@ -245,4 +267,13 @@ class WOR_Scribe_API {
         $pipeline = new WOR_Mentor_Data_Pipeline();
         return rest_ensure_response($pipeline->get_training_stats());
     }
+}
+
+/**
+ * Helper function to get WOR_Scribe_API instance.
+ *
+ * @return WOR_Scribe_API
+ */
+function WOR_Scribe_API(): WOR_Scribe_API {
+    return WOR_Scribe_API::get_instance();
 }
