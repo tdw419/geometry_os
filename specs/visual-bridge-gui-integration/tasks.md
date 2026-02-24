@@ -66,7 +66,7 @@ Focus: Wire up GUI integration following ASCII Scene Graph pattern. Skip compreh
   - _Requirements: FR-7, FR-8_
   - _Design: WebSocket Message Handlers_
 
-- [ ] 1.7 POC Checkpoint
+- [x] 1.7 POC Checkpoint
   - **Do**: Manual test - start bridge, verify GUI poller runs, test WebSocket messages
   - **Done when**: Bridge starts without error, GUI directories created
   - **Verify**: `python systems/visual_shell/api/visual_bridge.py &` then check logs
@@ -74,7 +74,7 @@ Focus: Wire up GUI integration following ASCII Scene Graph pattern. Skip compreh
 
 ## Phase 2: Testing
 
-- [ ] 2.1 Write Integration Tests
+- [x] 2.1 Write Integration Tests
   - **Do**: Create test file with tests for GUI state variables, renderer registration, scene poller, command processor
   - **Files**: `tests/systems/visual_shell/api/test_visual_bridge_gui.py`
   - **Done when**: Tests cover main integration points
