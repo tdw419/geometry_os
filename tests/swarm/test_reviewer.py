@@ -43,8 +43,8 @@ class TestReviewerAgent:
         """Test that SECURITY_SCAN is in capabilities."""
         assert TaskType.SECURITY_SCAN.value in reviewer.capabilities
 
-    def test_handle_code_review_returns_issues(self, reviewer):
-        """Test that _handle_code_review returns review structure."""
+    def test_review_code_without_integrations(self, reviewer):
+        """Test that review_code works without scanner/checker."""
         task = Task(
             task_id=str(uuid.uuid4()),
             task_type=TaskType.CODE_REVIEW,
@@ -52,30 +52,17 @@ class TestReviewerAgent:
             payload={"code": "x = 1\ny = 2"}
         )
 
-        result = reviewer._handle_code_review(task)
+        result = reviewer.review_code(task)
 
-        assert "issues" in result
-        assert "severity" in result
-        assert "lines_reviewed" in result
-        assert "reviewed_by" in result
-        assert "recommendations" in result
+        assert "score" in result
+        assert "style_violations" in result
+        assert "security_findings" in result
+        assert "passed" in result
+        # Without integrations, should pass with 100
+        assert result["score"] == 100
 
-    def test_handle_code_review_detects_todo(self, reviewer):
-        """Test that code review detects TODO comments."""
-        task = Task(
-            task_id=str(uuid.uuid4()),
-            task_type=TaskType.CODE_REVIEW,
-            description="Review",
-            payload={"code": "# TODO: fix this\nx = 1"}
-        )
-
-        result = reviewer._handle_code_review(task)
-
-        todo_issues = [i for i in result["issues"] if i["type"] == "todo"]
-        assert len(todo_issues) == 1
-
-    def test_handle_security_scan_returns_vulnerabilities(self, reviewer):
-        """Test that _handle_security_scan returns scan structure."""
+    def test_security_scan_without_scanner(self, reviewer):
+        """Test that security_scan works without scanner."""
         task = Task(
             task_id=str(uuid.uuid4()),
             task_type=TaskType.SECURITY_SCAN,
@@ -83,88 +70,29 @@ class TestReviewerAgent:
             payload={"code": "x = 1"}
         )
 
-        result = reviewer._handle_security_scan(task)
+        result = reviewer.security_scan(task)
 
         assert "vulnerabilities" in result
-        assert "risk_level" in result
-        assert "scanned_by" in result
-        assert "recommendations" in result
+        assert "severity" in result
+        assert "secure" in result
+        assert result["secure"] is True
 
-    def test_handle_security_scan_detects_eval(self, reviewer):
-        """Test that security scan detects eval()."""
-        task = Task(
-            task_id=str(uuid.uuid4()),
-            task_type=TaskType.SECURITY_SCAN,
-            description="Scan",
-            payload={"code": "result = eval(user_input)"}
-        )
-
-        result = reviewer._handle_security_scan(task)
-
-        eval_vulns = [v for v in result["vulnerabilities"] if v["type"] == "code_injection"]
-        assert len(eval_vulns) == 1
-        assert result["risk_level"] == "high"
-
-    def test_handle_security_scan_detects_hardcoded_password(self, reviewer):
-        """Test that security scan detects hardcoded passwords."""
-        task = Task(
-            task_id=str(uuid.uuid4()),
-            task_type=TaskType.SECURITY_SCAN,
-            description="Scan",
-            payload={"code": 'password = "secret123"'}
-        )
-
-        result = reviewer._handle_security_scan(task)
-
-        secret_vulns = [v for v in result["vulnerabilities"] if v["type"] == "hardcoded_secret"]
-        assert len(secret_vulns) == 1
-
-    def test_summarize_issues_result(self, reviewer):
-        """Test _summarize with issues result."""
-        result = {"issues": [{"type": "todo"}], "severity": "medium"}
+    def test_summarize_score_result(self, reviewer):
+        """Test _summarize with score result."""
+        result = {"score": 85, "passed": True}
         summary = reviewer._summarize(result)
-        assert "1 issues" in summary
-        assert "medium" in summary
+        assert "85" in summary
+        assert "100" in summary
 
-    def test_summarize_vulnerabilities_result(self, reviewer):
-        """Test _summarize with vulnerabilities result."""
-        result = {"vulnerabilities": [{"type": "xss"}, {"type": "sql"}], "risk_level": "high"}
+    def test_summarize_security_result(self, reviewer):
+        """Test _summarize with security result."""
+        result = {"severity": "high", "secure": False}
         summary = reviewer._summarize(result)
-        assert "2 vulnerabilities" in summary
         assert "high" in summary
-
-    def test_complete_task_publishes_event(self, reviewer, task_board, event_bus):
-        """Test that complete_task publishes event to NEB via work cycle."""
-        # Post task to board
-        task = Task(
-            task_id=str(uuid.uuid4()),
-            task_type=TaskType.CODE_REVIEW,
-            description="Test",
-            payload={"code": "x = 1"}
-        )
-        task_board.post(task)
-
-        # Run work cycle which will claim, execute, and complete
-        completed = reviewer.work_cycle()
-
-        assert completed is not None
-        signals = event_bus.get_recent_signals()
-        assert len(signals) == 1
-        assert "guild.reviewer" in signals[0].topic
-
-
-class TestReviewerAgentWorkCycle:
-    """Tests for ReviewerAgent work cycle."""
-
-    @pytest.fixture
-    def task_board(self):
-        """Create a temporary task board."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            yield TaskBoard(storage_path=tmpdir)
 
     def test_work_cycle_claims_and_completes_code_review(self, task_board):
         """Test full work cycle for CODE_REVIEW task."""
-        reviewer = ReviewerAgent("reviewer-001", task_board)
+        reviewer = ReviewerAgent("reviewer-001", task_board, None)
 
         task = Task(
             task_id=str(uuid.uuid4()),
@@ -179,11 +107,11 @@ class TestReviewerAgentWorkCycle:
         assert completed is not None
         stored_task = task_board.get(task.task_id)
         assert stored_task.status.value == "COMPLETED"
-        assert "issues" in stored_task.result
+        assert "score" in stored_task.result
 
     def test_work_cycle_claims_and_completes_security_scan(self, task_board):
         """Test full work cycle for SECURITY_SCAN task."""
-        reviewer = ReviewerAgent("reviewer-001", task_board)
+        reviewer = ReviewerAgent("reviewer-001", task_board, None)
 
         task = Task(
             task_id=str(uuid.uuid4()),
@@ -199,3 +127,60 @@ class TestReviewerAgentWorkCycle:
         stored_task = task_board.get(task.task_id)
         assert stored_task.status.value == "COMPLETED"
         assert "vulnerabilities" in stored_task.result
+
+
+class TestReviewerAgentWithIntegrations:
+    """Test ReviewerAgent with real integrations."""
+
+    @pytest.fixture
+    def reviewer_with_integrations(self, tmp_path):
+        """Create ReviewerAgent with integrations."""
+        from systems.swarm.guilds.reviewer import ReviewerAgent
+        from systems.swarm.guilds.scanners.bandit import BanditScanner
+        from systems.swarm.guilds.linters.ruff import RuffChecker
+        from systems.swarm.task_board import TaskBoard
+        from systems.swarm.neb_bus import NEBBus
+
+        task_board = TaskBoard(str(tmp_path / "tasks"))
+        event_bus = NEBBus(node_id="test")
+        scanner = BanditScanner()
+        checker = RuffChecker()
+
+        return ReviewerAgent(
+            agent_id="test-reviewer",
+            task_board=task_board,
+            event_bus=event_bus,
+            scanner=scanner,
+            checker=checker
+        )
+
+    def test_review_code_uses_scanner(self, reviewer_with_integrations):
+        """review_code should use injected scanner."""
+        from systems.swarm.task import Task, TaskType
+
+        task = Task(
+            task_id="test-review-1",
+            task_type=TaskType.CODE_REVIEW,
+            description="Review code for security issues",
+            payload={"code": "eval('1+1')"}
+        )
+
+        result = reviewer_with_integrations.review_code(task)
+
+        assert result["score"] < 100
+        assert len(result["security_findings"]) > 0
+
+    def test_review_code_uses_checker(self, reviewer_with_integrations):
+        """review_code should use injected style checker."""
+        from systems.swarm.task import Task, TaskType
+
+        task = Task(
+            task_id="test-review-2",
+            task_type=TaskType.CODE_REVIEW,
+            description="Review code for style issues",
+            payload={"code": "import os\nimport sys\nx=1"}
+        )
+
+        result = reviewer_with_integrations.review_code(task)
+
+        assert len(result["style_violations"]) > 0
