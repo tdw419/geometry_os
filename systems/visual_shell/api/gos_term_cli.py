@@ -26,11 +26,15 @@ except ImportError:
 
 try:
     import websockets
+    from websockets.exceptions import ConnectionClosed
 except ImportError:
-    print("Installing websockets...", file=sys.stderr)
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "websockets"])
-    import websockets
+    print(
+        "Error: 'websockets' package is required.\n"
+        "Install it with: pip install websockets\n"
+        "Or run: python -m pip install websockets",
+        file=sys.stderr
+    )
+    sys.exit(1)
 
 # NEBBus is optional - may not be available in all environments
 try:
@@ -139,12 +143,26 @@ async def run_command_async(
                         except json.JSONDecodeError:
                             pass
             except asyncio.TimeoutError:
-                # Timeout reached, return what we have
-                pass
+                # Combine what output we have so far
+                partial_output = "".join(output_lines)
+                print(
+                    f"Error: Command timed out after {timeout} seconds.\n"
+                    "Try increasing the timeout with --timeout option.",
+                    file=sys.stderr
+                )
+                return partial_output.rstrip()
 
+    except ConnectionRefusedError:
+        print(
+            f"Error: Cannot connect to terminal bridge on port {port}.\n"
+            "Make sure the terminal bridge is running:\n"
+            f"  python3 systems/visual_shell/api/terminal_websocket_bridge.py --port {port}",
+            file=sys.stderr
+        )
+        raise SystemExit(1)
     except Exception as e:
         print(f"Error connecting to terminal bridge: {e}", file=sys.stderr)
-        sys.exit(1)
+        raise SystemExit(1)
 
     # Combine output and strip trailing whitespace/newlines
     full_output = "".join(output_lines)
@@ -307,7 +325,19 @@ async def interactive_session_async(port: int = 8769, cols: int = 120, rows: int
                 pass
 
     except ConnectionRefusedError:
-        print("\r\nError: Cannot connect to terminal bridge. Is it running?", file=sys.stderr)
+        print(
+            f"\r\nError: Cannot connect to terminal bridge on port {port}.\n"
+            "Make sure the terminal bridge is running:\n"
+            f"  python3 systems/visual_shell/api/terminal_websocket_bridge.py --port {port}",
+            file=sys.stderr
+        )
+        exit_code = 1
+    except asyncio.TimeoutError:
+        print(
+            f"\r\nError: Connection timed out.\n"
+            "The terminal bridge may be overloaded or unreachable.",
+            file=sys.stderr
+        )
         exit_code = 1
     except Exception as e:
         print(f"\r\nError: {e}", file=sys.stderr)

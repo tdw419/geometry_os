@@ -76,7 +76,7 @@ Focus: Validate CLI works end-to-end with WebSocket bridge. Skip full test cover
 
 ## Phase 2: Refactoring
 
-- [ ] 2.1 Error handling and messages
+- [x] 2.1 Error handling and messages
   - **Do**:
     1. Add clear error message for connection refused
     2. Add clear error message for timeout
