@@ -10,5 +10,17 @@ Components:
 
 __version__ = "0.1.0"
 
-# Will be populated as components are implemented
-__all__ = []
+from .hooks import (
+    GUIShellHook,
+    GUIHookBroadcaster,
+    NoOpGUIHook,
+    LoggingGUITHook,
+)
+
+__all__ = [
+    # Hooks
+    "GUIShellHook",
+    "GUIHookBroadcaster",
+    "NoOpGUIHook",
+    "LoggingGUITHook",
+]
