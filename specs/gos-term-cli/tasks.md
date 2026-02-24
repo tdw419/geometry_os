@@ -148,7 +148,7 @@ Focus: Validate CLI works end-to-end with WebSocket bridge. Skip full test cover
   - **Verify**: `grep -q "gos-term" systems/visual_shell/api/README_GOS_TERM.md`
   - **Commit**: `docs(cli): add gos-term documentation`
 
-- [ ] 4.3 Local quality check
+- [x] 4.3 Local quality check
   - **Do**: Run all quality checks
   - **Verify**:
     ```bash
