@@ -56,13 +56,13 @@ Focus: Validate CLI works end-to-end with WebSocket bridge. Skip full test cover
   - _Requirements: FR-4_
   - _Design: NEBPublisher_
 
-- [ ] 1.5 [VERIFY] Quality checkpoint
+- [x] 1.5 [VERIFY] Quality checkpoint
   - **Do**: Run Python syntax check
   - **Verify**: `python3 -m py_compile systems/visual_shell/api/gos_term_cli.py && echo "OK"`
   - **Done when**: No syntax errors
   - **Commit**: `chore(cli): pass quality checkpoint` (only if fixes needed)
 
-- [ ] 1.6 POC Checkpoint
+- [x] 1.6 POC Checkpoint
   - **Do**: Start terminal bridge, test full workflow
   - **Verify**:
     ```bash
