@@ -39,7 +39,7 @@ Focus: Implement core CTP components with TDD approach. Skip full integration, v
   - _Requirements: FR-3, US-4_
   - _Design: Component trust_manager.py_
 
-- [ ] 1.4 Implement CTP gateway core
+- [x] 1.4 Implement CTP gateway core
   - **Do**: Create `systems/swarm/ctp/gateway.py` with CTPGateway and CTPSession classes
   - **Files**: `systems/swarm/ctp/gateway.py`
   - **Done when**: Gateway translates CTP to Telepathy, handles HELLO handshake, validates trust, builds WELCOME/REJECT responses
