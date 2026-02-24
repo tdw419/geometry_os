@@ -88,7 +88,7 @@ Focus: Validate CLI works end-to-end with WebSocket bridge. Skip full test cover
   - _Requirements: NFR-2_
   - _Design: Error Handling_
 
-- [ ] 2.2 [VERIFY] Quality checkpoint
+- [x] 2.2 [VERIFY] Quality checkpoint
   - **Do**: Run Python syntax check
   - **Verify**: `python3 -m py_compile systems/visual_shell/api/gos_term_cli.py && echo "OK"`
   - **Done when**: No syntax errors
@@ -96,7 +96,7 @@ Focus: Validate CLI works end-to-end with WebSocket bridge. Skip full test cover
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Unit tests for argparse
+- [x] 3.1 Unit tests for argparse
   - **Do**:
     1. Create `systems/visual_shell/api/tests/test_gos_term_cli.py`
     2. Test `parse_args()` with various inputs
