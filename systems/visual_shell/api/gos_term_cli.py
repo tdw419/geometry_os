@@ -32,13 +32,55 @@ except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "websockets"])
     import websockets
 
+# NEBBus is optional - may not be available in all environments
+try:
+    from systems.swarm.neb_bus import NEBBus
+    HAS_NEB = True
+except ImportError:
+    HAS_NEB = False
+    NEBBus = None
+
+# Global NEB bus instance (lazy initialized)
+_neb_bus = None
+
+
+def _get_neb_bus():
+    """Get or create the global NEB bus instance."""
+    global _neb_bus
+    if _neb_bus is None and HAS_NEB:
+        _neb_bus = NEBBus(node_id="gos-term-cli")
+    return _neb_bus
+
+
+def _publish_to_neb(topic: str, payload: dict):
+    """
+    Publish an event to the NEB bus.
+
+    Args:
+        topic: Event topic (e.g., "gos.term.command")
+        payload: Event payload data
+
+    Note:
+        Silently succeeds if NEBBus is not available.
+    """
+    if not HAS_NEB:
+        return
+    try:
+        bus = _get_neb_bus()
+        if bus:
+            bus.publish(topic, payload)
+    except Exception:
+        # NEB publishing is best-effort, don't fail command execution
+        pass
+
 
 async def run_command_async(
     command: List[str],
     port: int = 8769,
     timeout: float = 10.0,
     cols: int = 120,
-    rows: int = 36
+    rows: int = 36,
+    neb: bool = False
 ) -> str:
     """
     Execute a command via WebSocket and return output.
@@ -49,6 +91,7 @@ async def run_command_async(
         timeout: Command timeout in seconds
         cols: Terminal columns
         rows: Terminal rows
+        neb: Publish command to NEB event bus
 
     Returns:
         Combined stdout/stderr output from command
@@ -56,6 +99,15 @@ async def run_command_async(
     uri = f"ws://localhost:{port}/terminal"
     output_lines = []
     command_str = " ".join(command) + "\n"
+
+    # Publish to NEB if requested
+    if neb:
+        _publish_to_neb("gos.term.command", {
+            "command": command,
+            "command_str": command_str.strip(),
+            "port": port,
+            "timeout": timeout
+        })
 
     try:
         async with websockets.connect(uri, ping_interval=None) as ws:
@@ -102,7 +154,8 @@ async def run_command_async(
 def run_command(
     command: List[str],
     port: int = 8769,
-    timeout: float = 10.0
+    timeout: float = 10.0,
+    neb: bool = False
 ) -> str:
     """
     Synchronous wrapper for run_command_async.
@@ -111,11 +164,12 @@ def run_command(
         command: Command and arguments to execute
         port: WebSocket port (default: 8769)
         timeout: Command timeout in seconds
+        neb: Publish command to NEB event bus
 
     Returns:
         Combined stdout/stderr output from command
     """
-    return asyncio.run(run_command_async(command, port, timeout))
+    return asyncio.run(run_command_async(command, port, timeout, neb=neb))
 
 
 async def interactive_session_async(port: int = 8769, cols: int = 120, rows: int = 36) -> int:
@@ -345,7 +399,8 @@ def main():
     output = run_command(
         command=args.command,
         port=args.port,
-        timeout=args.timeout
+        timeout=args.timeout,
+        neb=args.neb
     )
 
     # Print output to stdout

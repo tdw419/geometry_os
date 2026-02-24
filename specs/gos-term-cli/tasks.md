@@ -43,7 +43,7 @@ Focus: Validate CLI works end-to-end with WebSocket bridge. Skip full test cover
   - _Requirements: FR-3_
   - _Design: InteractiveSession_
 
-- [ ] 1.4 NEB integration
+- [x] 1.4 NEB integration
   - **Do**:
     1. Add `_publish_to_neb()` helper
     2. Import NEBBus with try/except (optional dependency)
