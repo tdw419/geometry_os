@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gravity Wells Test</title>
+    <style>
+        body { margin: 0; background: #111; color: #fff; font-family: monospace; }
+        #info { position: fixed; top: 10px; left: 10px; z-index: 100; background: rgba(0,0,0,0.8); padding: 10px; border: 1px solid #444; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h3>🌌 Gravity Wells Test</h3>
+        <div id="status">Loading...</div>
+        <div id="data"></div>
+    </div>
+    <script src="https://pixijs.download/v8.1.0/pixi.min.js"></script>
+    <script>
+        // Simple gravity visualization test
+        const GRAVITY_COLORS = {
+            axionCore: 0xFFD700,
+            staleHusk: 0x664422,
+            gravityField: 0x4444FF,
+        };
+
+        async function loadGravityData() {
+            try {
+                // Try WebSocket first
+                const ws = new WebSocket('ws://localhost:8765');
+                ws.onopen = () => {
+                    document.getElementById('status').textContent = 'Connected to WebSocket';
+                    ws.send(JSON.stringify({ type: 'REQUEST_GRAVITY_DATA' }));
+                };
+                ws.onmessage = (event) => {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'gravity_update') {
+                        document.getElementById('status').textContent = 'Data received via WebSocket';
+                        renderGravity(msg.data);
+                    }
+                };
+                ws.onerror = () => {
+                    document.getElementById('status').textContent = 'WebSocket failed (expected - using mock data)';
+                    renderGravity(getMockData());
+                };
+                ws.onclose = () => {
+                    if (!document.getElementById('status').textContent.includes('received')) {
+                        document.getElementById('status').textContent = 'Using mock data (WebSocket unavailable)';
+                        renderGravity(getMockData());
+                    }
+                };
+                // Timeout fallback - use mock data immediately for demo
+                setTimeout(() => {
+                    if (!document.getElementById('status').textContent.includes('received')) {
+                        document.getElementById('status').textContent = 'Using mock data for demo';
+                        renderGravity(getMockData());
+                    }
+                }, 2000);
+            } catch (e) {
+                document.getElementById('status').textContent = 'Error: ' + e.message;
+                renderGravity(getMockData());
+            }
+        }
+
+        function getMockData() {
+            return {
+                axion_core: [
+                    { file: 'NORTH_STAR.md', value: 1.0 },
+                    { file: 'ARCHITECTURE.md', value: 1.0 },
+                    { file: 'OPERATIONS.md', value: 0.95 },
+                    { file: 'ROADMAP.md', value: 0.9 },
+                    { file: 'AGENTS.md', value: 0.85 },
+                ],
+                stale_husks: [
+                    { file: 'systems/build/orchestrator.py', staleness: 1.0 },
+                    { file: 'systems/build/job_queue.py', staleness: 1.0 },
+                    { file: 'systems/build/worker.py', staleness: 1.0 },
+                    { file: 'systems/daemons/old_module.py', staleness: 0.9 },
+                    { file: 'legacy/deprecated_code.py', staleness: 0.8 },
+                ]
+            };
+        }
+
+        async function renderGravity(data) {
+            const app = new PIXI.Application();
+            await app.init({
+                width: window.innerWidth,
+                height: window.innerHeight,
+                backgroundColor: 0x111111,
+            });
+            document.body.appendChild(app.canvas);
+
+            const container = new PIXI.Container();
+            app.stage.addChild(container);
+
+            // Center the container
+            container.x = window.innerWidth / 2;
+            container.y = window.innerHeight / 2;
+
+            // Draw gravity field
+            const field = new PIXI.Graphics();
+            for (let i = 20; i > 0; i--) {
+                const radius = i * 15;
+                const alpha = 0.02 + (1 - i / 20) * 0.08;
+                field.circle(0, 0, radius);
+                field.fill({ color: GRAVITY_COLORS.gravityField, alpha });
+            }
+            container.addChild(field);
+
+            // Draw Axion Core (center)
+            const coreFiles = data.axion_core || [];
+            coreFiles.forEach((file, i) => {
+                const angle = (i / coreFiles.length) * Math.PI * 2;
+                const radius = 30;
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+
+                // Glow
+                const glow = new PIXI.Graphics();
+                glow.circle(x, y, 20);
+                glow.fill({ color: GRAVITY_COLORS.axionCore, alpha: 0.3 });
+                container.addChild(glow);
+
+                // Core
+                const core = new PIXI.Graphics();
+                core.circle(x, y, 12);
+                core.fill({ color: GRAVITY_COLORS.axionCore, alpha: 1 });
+                container.addChild(core);
+
+                // Label
+                const label = new PIXI.Text({
+                    text: file.file,
+                    style: { fontFamily: 'monospace', fontSize: 10, fill: GRAVITY_COLORS.axionCore }
+                });
+                label.anchor.set(0.5);
+                label.x = x;
+                label.y = y + 25;
+                container.addChild(label);
+            });
+
+            // Draw Stale Husks (periphery)
+            const husks = data.stale_husks || [];
+            husks.forEach((file, i) => {
+                const angle = (i / husks.length) * Math.PI * 2 + Math.random() * 0.5;
+                const radius = 250 + Math.random() * 150;
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+
+                const husk = new PIXI.Graphics();
+                husk.circle(x, y, 6);
+                husk.fill({ color: GRAVITY_COLORS.staleHusk, alpha: 0.6 });
+                container.addChild(husk);
+            });
+
+            // Update info
+            document.getElementById('data').innerHTML = `
+                <p>✦ Axion Core: ${coreFiles.length} files</p>
+                <p>🜚 Stale Husks: ${husks.length} files</p>
+            `;
+
+            // Animate
+            let time = 0;
+            app.ticker.add(() => {
+                time += 0.02;
+                field.alpha = 0.5 + Math.sin(time) * 0.1;
+                container.children.forEach((child, i) => {
+                    if (i > 0 && i <= coreFiles.length * 3) {
+                        const pulse = 1.0 + Math.sin(time * 2 + i) * 0.1;
+                        child.scale.set(pulse);
+                    }
+                });
+            });
+        }
+
+        loadGravityData();
+    </script>
+</body>
+</html>
