@@ -114,7 +114,7 @@ Focus: Validate P2P mentoring flow works end-to-end. Skip tests initially.
   - _Requirements: FR-7_
   - _Design: P0 TransmissionNEBBridge_
 
-- [ ] 1.7 Register scribe/sprout roles in GuildFactory
+- [x] 1.7 Register scribe/sprout roles in GuildFactory
   - **Do**:
     1. Modify `systems/swarm/guilds/factory.py`
     2. Import ScribeAgent, SproutAgent

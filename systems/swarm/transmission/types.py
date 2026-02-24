@@ -7,13 +7,19 @@ Core data structures for the P2P mentoring system:
 - BehaviorCategory: Prosocial behavior categories for scoring
 - TransmissionSession: A mentoring session between agents
 - CovenantOath: The 7-article covenant with violation tracking
+- VPSLocation: AR colocalization with Haversine distance
+- SephiroticNode: Diagnostic overlay (Tree of Life)
+- SocraticQuestion: Inquiry-based teaching prompts
+- ProsocialScore: Weighted behavior scoring
+- HapticPattern: Haptic feedback patterns (P2)
 """
 
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from enum import Enum
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, ClassVar
 import json
+import math
 import time
 import uuid
 
@@ -250,3 +256,318 @@ COVENANT_ARTICLES = {
     "article_6": "I will report any violations of this covenant.",
     "article_7": "I understand that zero-tolerance violations result in immediate removal.",
 }
+
+
+# =============================================================================
+# P1 Enhanced Features
+# =============================================================================
+
+
+@dataclass
+class VPSLocation:
+    """
+    AR colocalization data using VPS (Visual Positioning System).
+
+    Uses Haversine formula for distance calculation.
+    """
+    latitude: float
+    longitude: float
+    altitude: float = 0.0
+    heading: Optional[float] = None  # Degrees from north
+
+    # Earth radius in meters
+    EARTH_RADIUS_M: ClassVar[float] = 6371000.0
+
+    def distance_to(self, other: 'VPSLocation') -> float:
+        """
+        Calculate distance to another VPSLocation using Haversine formula.
+
+        Returns distance in meters.
+        """
+        lat1 = math.radians(self.latitude)
+        lat2 = math.radians(other.latitude)
+        delta_lat = math.radians(other.latitude - self.latitude)
+        delta_lon = math.radians(other.longitude - self.longitude)
+
+        a = (math.sin(delta_lat / 2) ** 2 +
+             math.cos(lat1) * math.cos(lat2) * math.sin(delta_lon / 2) ** 2)
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+        return self.EARTH_RADIUS_M * c
+
+    def is_colocalized(self, other: 'VPSLocation', threshold_meters: float = 50.0) -> bool:
+        """
+        Check if this location is within threshold distance of another.
+
+        Args:
+            other: Other VPSLocation to compare
+            threshold_meters: Maximum distance in meters (default 50m per VPS accuracy target)
+
+        Returns:
+            True if within threshold distance
+        """
+        return self.distance_to(other) <= threshold_meters
+
+    def to_json(self) -> str:
+        """Serialize to JSON string."""
+        return json.dumps(asdict(self))
+
+    @classmethod
+    def from_json(cls, json_str: str) -> 'VPSLocation':
+        """Deserialize from JSON string."""
+        data = json.loads(json_str)
+        return cls(**data)
+
+
+@dataclass
+class SephiroticNode:
+    """
+    Diagnostic overlay node from the Tree of Life.
+
+    Each node represents a game mechanic or skill area.
+    Intensity (0.0-1.0) indicates the node's current state.
+    """
+    name: str
+    meaning: str
+    intensity: float = 0.5
+    node_id: str = ""
+
+    # Canonical 10 nodes of the Tree of Life
+    CANONICAL_NODES: ClassVar[List[Dict[str, str]]] = [
+        {"id": "kether", "name": "Kether", "meaning": "Goal tracking"},
+        {"id": "chokmah", "name": "Chokmah", "meaning": "Theory"},
+        {"id": "binah", "name": "Binah", "meaning": "Practice"},
+        {"id": "chesed", "name": "Chesed", "meaning": "Support abilities"},
+        {"id": "gevurah", "name": "Gevurah", "meaning": "Combat"},
+        {"id": "tipheret", "name": "Tipheret", "meaning": "Main compass"},
+        {"id": "netzach", "name": "Netzach", "meaning": "Persistence"},
+        {"id": "hod", "name": "Hod", "meaning": "Communication"},
+        {"id": "yesod", "name": "Yesod", "meaning": "Resources"},
+        {"id": "malkuth", "name": "Malkuth", "meaning": "Movement"},
+    ]
+
+    def __post_init__(self):
+        """Ensure node_id is set."""
+        if not self.node_id:
+            self.node_id = self.name.lower()
+
+    def is_critical(self) -> bool:
+        """Check if node is in critical state (intensity < 0.3)."""
+        return self.intensity < 0.3
+
+    def is_healthy(self) -> bool:
+        """Check if node is healthy (intensity >= 0.7)."""
+        return self.intensity >= 0.7
+
+    @classmethod
+    def create_all(cls, default_intensity: float = 0.5) -> List['SephiroticNode']:
+        """Factory method to create all 10 canonical nodes."""
+        return [
+            cls(
+                name=node["name"],
+                meaning=node["meaning"],
+                intensity=default_intensity,
+                node_id=node["id"]
+            )
+            for node in cls.CANONICAL_NODES
+        ]
+
+    def to_json(self) -> str:
+        """Serialize to JSON string."""
+        return json.dumps(asdict(self))
+
+    @classmethod
+    def from_json(cls, json_str: str) -> 'SephiroticNode':
+        """Deserialize from JSON string."""
+        data = json.loads(json_str)
+        return cls(**data)
+
+
+class QuestionLevel(Enum):
+    """Socratic question difficulty levels."""
+    LEVEL_1 = 1  # Recall - basic facts
+    LEVEL_2 = 2  # Compare - relationships
+    LEVEL_3 = 3  # Wonder - deeper insights
+
+
+class QuestionCategory(Enum):
+    """Categories for Socratic questions."""
+    MECHANIC_INQUIRY = "mechanic_inquiry"      # Game mechanics
+    SPATIAL_AWARENESS = "spatial_awareness"    # Positioning
+    COMBAT_STRATEGY = "combat_strategy"        # Battle tactics
+    RESOURCE_MANAGEMENT = "resource_management"  # Economy
+    TEAMWORK = "teamwork"                      # Collaboration
+
+
+@dataclass
+class SocraticQuestion:
+    """
+    Inquiry-based teaching prompt for Socratic method.
+
+    Used by Scribes to guide Sprouts through learning.
+    """
+    question_text: str
+    level: QuestionLevel
+    category: QuestionCategory
+    question_id: str = ""
+    asked_by: Optional[str] = None  # Scribe agent ID
+    asked_at: Optional[float] = None
+    answer_text: Optional[str] = None
+    answered_at: Optional[float] = None
+
+    def __post_init__(self):
+        """Ensure question_id is set."""
+        if not self.question_id:
+            self.question_id = f"q-{uuid.uuid4().hex[:8]}"
+
+    def ask(self, scribe_id: str) -> None:
+        """Mark question as asked by a scribe."""
+        self.asked_by = scribe_id
+        self.asked_at = time.time()
+
+    def answer(self, answer: str) -> None:
+        """Record an answer to this question."""
+        self.answer_text = answer
+        self.answered_at = time.time()
+
+    def to_json(self) -> str:
+        """Serialize to JSON string."""
+        data = asdict(self)
+        data["level"] = self.level.value
+        data["category"] = self.category.value
+        return json.dumps(data)
+
+    @classmethod
+    def from_json(cls, json_str: str) -> 'SocraticQuestion':
+        """Deserialize from JSON string."""
+        data = json.loads(json_str)
+        data["level"] = QuestionLevel(data["level"])
+        data["category"] = QuestionCategory(data["category"])
+        return cls(**data)
+
+
+@dataclass
+class ProsocialScore:
+    """
+    Weighted behavior scoring for session text auditing.
+
+    Uses BehaviorCategory weights to calculate overall score.
+    Threshold of 0.7 determines prosocial behavior.
+    """
+    scores: Dict[BehaviorCategory, float]  # category -> score (0.0-1.0)
+    agent_id: str = ""
+    scored_at: float = field(default_factory=time.time)
+    session_id: Optional[str] = None
+
+    # Threshold for prosocial behavior
+    PROSOCIAL_THRESHOLD: ClassVar[float] = 0.7
+
+    def calculate_weighted_score(self) -> float:
+        """
+        Calculate weighted score using BEHAVIOR_WEIGHTS.
+
+        Returns:
+            Weighted score (can be negative if TOXIC is high)
+        """
+        total = 0.0
+        for category, score in self.scores.items():
+            weight = BEHAVIOR_WEIGHTS.get(category, 0.0)
+            total += score * weight
+        return total
+
+    def is_prosancial(self) -> bool:
+        """
+        Check if score meets prosocial threshold.
+
+        Returns:
+            True if weighted score >= 0.7
+        """
+        return self.calculate_weighted_score() >= self.PROSOCIAL_THRESHOLD
+
+    def get_dominant_category(self) -> Optional[BehaviorCategory]:
+        """
+        Get the category with highest score.
+
+        Returns:
+            BehaviorCategory with highest score, or None if no scores
+        """
+        if not self.scores:
+            return None
+        return max(self.scores.items(), key=lambda x: x[1])[0]
+
+    def to_json(self) -> str:
+        """Serialize to JSON string."""
+        data = asdict(self)
+        data["scores"] = {cat.value: score for cat, score in self.scores.items()}
+        data["weighted_score"] = self.calculate_weighted_score()
+        data["is_prosancial"] = self.is_prosancial()
+        return json.dumps(data)
+
+    @classmethod
+    def from_json(cls, json_str: str) -> 'ProsocialScore':
+        """Deserialize from JSON string."""
+        data = json.loads(json_str)
+        data["scores"] = {BehaviorCategory(k): v for k, v in data["scores"].items()}
+        # Remove computed fields
+        data.pop("weighted_score", None)
+        data.pop("is_prosancial", None)
+        return cls(**data)
+
+
+@dataclass
+class HapticPattern:
+    """
+    Haptic feedback pattern for AR guidance (P2 placeholder).
+
+    Predefined patterns with frequency and duration.
+    """
+    name: str
+    frequency_hz: int
+    duration_ms: int
+    pattern_id: str = ""
+    description: str = ""
+
+    # Predefined haptic patterns
+    HAPTIC_DEFINITIONS: ClassVar[Dict[str, Dict[str, Any]]] = {
+        "sacred_pulse": {"frequency": 170, "duration": 200, "desc": "Correct rhythm"},
+        "error_jolt": {"frequency": 250, "duration": 100, "desc": "Deviation detected"},
+        "guidance_tether": {"frequency": 125, "duration": 300, "desc": "Near target"},
+        "completion_hum": {"frequency": 200, "duration": 500, "desc": "Success"},
+    }
+
+    def __post_init__(self):
+        """Ensure pattern_id is set."""
+        if not self.pattern_id:
+            self.pattern_id = f"haptic-{uuid.uuid4().hex[:8]}"
+
+    @classmethod
+    def get_pattern(cls, name: str) -> Optional['HapticPattern']:
+        """
+        Get a predefined haptic pattern by name.
+
+        Args:
+            name: Pattern name (sacred_pulse, error_jolt, etc.)
+
+        Returns:
+            HapticPattern instance or None if not found
+        """
+        if name not in cls.HAPTIC_DEFINITIONS:
+            return None
+
+        defn = cls.HAPTIC_DEFINITIONS[name]
+        return cls(
+            name=name,
+            frequency_hz=defn["frequency"],
+            duration_ms=defn["duration"],
+            description=defn["desc"]
+        )
+
+    def to_json(self) -> str:
+        """Serialize to JSON string."""
+        return json.dumps(asdict(self))
+
+    @classmethod
+    def from_json(cls, json_str: str) -> 'HapticPattern':
+        """Deserialize from JSON string."""
+        data = json.loads(json_str)
+        return cls(**data)

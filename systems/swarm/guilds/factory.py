@@ -10,6 +10,8 @@ from typing import Optional, TYPE_CHECKING
 from systems.swarm.task_board import TaskBoard
 from systems.swarm.guilds.base import GuildAgent
 from systems.swarm.guilds.engineer import EngineerAgent
+from systems.swarm.transmission.scribe_agent import ScribeAgent
+from systems.swarm.transmission.sprout_agent import SproutAgent
 
 if TYPE_CHECKING:
     from systems.swarm.neb_bus import NEBBus
@@ -27,6 +29,8 @@ class GuildFactory:
     # Registry of role -> agent class
     _registry = {
         "engineer": EngineerAgent,
+        "scribe": ScribeAgent,
+        "sprout": SproutAgent,
     }
 
     @classmethod
