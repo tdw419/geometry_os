@@ -119,7 +119,7 @@ Focus: Validate CLI works end-to-end with WebSocket bridge. Skip full test cover
   - **Commit**: `test(cli): add command execution tests`
   - _Requirements: FR-2_
 
-- [ ] 3.3 [VERIFY] Quality checkpoint
+- [x] 3.3 [VERIFY] Quality checkpoint
   - **Do**: Run all tests
   - **Verify**: `python -m pytest systems/visual_shell/api/tests/test_gos_term_cli.py -v`
   - **Done when**: All tests pass
@@ -127,7 +127,7 @@ Focus: Validate CLI works end-to-end with WebSocket bridge. Skip full test cover
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Shell wrapper script
+- [x] 4.1 Shell wrapper script
   - **Do**:
     1. Create `systems/visual_shell/api/gos-term` bash script
     2. Make executable with `chmod +x`
