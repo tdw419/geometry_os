@@ -27,7 +27,7 @@ Focus: Build core infrastructure. Module structure, data models, hook system.
   - _Requirements: FR-1_
   - _Design: ASCII Control Surface_
 
-- [ ] 1.2 Implement data models
+- [x] 1.2 Implement data models
   - **Do**:
     1. Create `systems/visual_shell/ascii_gui/models.py`
     2. Define WindowType, PanelType enums
