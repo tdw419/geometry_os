@@ -52,30 +52,35 @@ class WOR_Scribe_Shortcodes {
      * @return string HTML output.
      */
     public function render_dashboard(array $atts = []): string {
-        // Check if user is logged in
-        if (!is_user_logged_in()) {
-            return $this->render_login_prompt();
+        try {
+            // Check if user is logged in
+            if (!is_user_logged_in()) {
+                return $this->render_login_prompt();
+            }
+
+            $user_id = get_current_user_id();
+
+            // Load Scribe Portal
+            require_once WOR_PATH . 'includes/class-scribe-portal.php';
+            $portal = new WOR_Scribe_Portal();
+            $scribe = $portal->get_scribe_by_user($user_id);
+
+            // Not registered as Scribe - show registration form
+            if (!$scribe) {
+                return $this->render_registration_form();
+            }
+
+            // Onboarding not complete - show progress
+            if (!$scribe['onboarding_completed']) {
+                return $this->render_onboarding_progress($scribe, $portal);
+            }
+
+            // Certified Scribe - show dashboard with queue and history
+            return $this->render_scribe_dashboard($scribe);
+        } catch (Exception $e) {
+            error_log('WOR Scribe Dashboard Error: ' . $e->getMessage());
+            return '<div class="wor-error">Unable to load Scribe Dashboard. Please try again later.</div>';
         }
-
-        $user_id = get_current_user_id();
-
-        // Load Scribe Portal
-        require_once WOR_PATH . 'includes/class-scribe-portal.php';
-        $portal = new WOR_Scribe_Portal();
-        $scribe = $portal->get_scribe_by_user($user_id);
-
-        // Not registered as Scribe - show registration form
-        if (!$scribe) {
-            return $this->render_registration_form();
-        }
-
-        // Onboarding not complete - show progress
-        if (!$scribe['onboarding_completed']) {
-            return $this->render_onboarding_progress($scribe, $portal);
-        }
-
-        // Certified Scribe - show dashboard with queue and history
-        return $this->render_scribe_dashboard($scribe);
     }
 
     /**
@@ -105,21 +110,30 @@ class WOR_Scribe_Shortcodes {
      * @return string HTML output.
      */
     private function render_registration_form(): string {
+        $error_message = '';
+
         // Handle form submission
         if (isset($_POST['wor_scribe_register']) && wp_verify_nonce($_POST['wor_scribe_nonce'], 'wor_scribe_register')) {
-            $cohort = sanitize_text_field($_POST['cohort'] ?? 'community');
-            $expertise = isset($_POST['expertise']) ? array_map('sanitize_text_field', $_POST['expertise']) : [];
+            try {
+                $cohort = sanitize_text_field($_POST['cohort'] ?? 'community');
+                $expertise = isset($_POST['expertise']) ? array_map('sanitize_text_field', $_POST['expertise']) : [];
 
-            require_once WOR_PATH . 'includes/class-scribe-portal.php';
-            $portal = new WOR_Scribe_Portal();
-            $result = $portal->register_scribe(get_current_user_id(), $cohort, $expertise);
+                require_once WOR_PATH . 'includes/class-scribe-portal.php';
+                $portal = new WOR_Scribe_Portal();
+                $result = $portal->register_scribe(get_current_user_id(), $cohort, $expertise);
 
-            if ($result) {
-                return '<div class="wor-scribe-dashboard wor-registration-success">
-                    <h2>Welcome, Scribe!</h2>
-                    <p>Your registration was successful. Please continue with onboarding.</p>
-                    <meta http-equiv="refresh" content="2;url=' . esc_attr(get_permalink()) . '">
-                </div>';
+                if ($result) {
+                    return '<div class="wor-scribe-dashboard wor-registration-success">
+                        <h2>Welcome, Scribe!</h2>
+                        <p>Your registration was successful. Please continue with onboarding.</p>
+                        <meta http-equiv="refresh" content="2;url=' . esc_attr(get_permalink()) . '">
+                    </div>';
+                } else {
+                    $error_message = 'Registration failed. You may already be registered.';
+                }
+            } catch (Exception $e) {
+                error_log('WOR Scribe Registration Error: ' . $e->getMessage());
+                $error_message = 'Registration failed. Please try again later.';
             }
         }
 
@@ -128,6 +142,10 @@ class WOR_Scribe_Shortcodes {
         <div class="wor-scribe-dashboard wor-registration-form">
             <h2>Become a Scribe</h2>
             <p>Scribes mentor newcomers (Sprouts) through their journey in World of Rectification. Your guidance helps train AI Ghost Mentors.</p>
+
+            <?php if ($error_message): ?>
+                <div class="wor-error-message"><?php echo esc_html($error_message); ?></div>
+            <?php endif; ?>
 
             <form method="post" class="wor-form">
                 <?php wp_nonce_field('wor_scribe_register', 'wor_scribe_nonce'); ?>
@@ -252,9 +270,14 @@ class WOR_Scribe_Shortcodes {
      * @return string HTML output.
      */
     private function render_scribe_dashboard(array $scribe): string {
-        require_once WOR_PATH . 'includes/class-transmission-session.php';
-        $session = new WOR_Transmission_Session();
-        $queue = $session->get_queue();
+        try {
+            require_once WOR_PATH . 'includes/class-transmission-session.php';
+            $session = new WOR_Transmission_Session();
+            $queue = $session->get_queue();
+        } catch (Exception $e) {
+            error_log('WOR Scribe Dashboard Queue Error: ' . $e->getMessage());
+            $queue = [];
+        }
 
         ob_start();
         ?>
@@ -311,13 +334,23 @@ class WOR_Scribe_Shortcodes {
      * @return string HTML output.
      */
     public function render_session_history(int $scribe_id): string {
-        global $wpdb;
-        $table = $wpdb->prefix . 'wor_transmissions';
+        try {
+            global $wpdb;
+            $table = $wpdb->prefix . 'wor_transmissions';
 
-        $sessions = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$table} WHERE scribe_id = %d ORDER BY started_at DESC LIMIT 10",
-            $scribe_id
-        ), ARRAY_A);
+            $sessions = $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM {$table} WHERE scribe_id = %d ORDER BY started_at DESC LIMIT 10",
+                $scribe_id
+            ), ARRAY_A);
+
+            if ($wpdb->last_error) {
+                error_log('WOR Session History DB Error: ' . $wpdb->last_error);
+                return '<p class="wor-error">Unable to load session history.</p>';
+            }
+        } catch (Exception $e) {
+            error_log('WOR Session History Error: ' . $e->getMessage());
+            return '<p class="wor-error">Unable to load session history.</p>';
+        }
 
         if (empty($sessions)) {
             return '<p class="wor-empty-history">No sessions yet. Accept a Sprout to begin!</p>';
