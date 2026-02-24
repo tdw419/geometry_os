@@ -1,0 +1,90 @@
+name: documentation-synthesis
+description: |
+  Agent team for creating foundational documentation: NORTH_STAR.md,
+  ARCHITECTURE.md, OPERATIONS.md, and memory reorganization.
+
+selection_policy: best_fit
+scaling_policy: fixed
+failure_policy: failover
+max_retries: 2
+retry_delay: 3.0
+
+enable_event_bus: true
+enable_health_monitoring: true
+max_concurrent_tasks: 3
+
+agents:
+  - agent_id: synthesis-lead
+    name: Documentation Synthesis Lead
+    agent_type: orchestrator
+    capabilities:
+      - documentation
+      - architecture_analysis
+      - codebase_exploration
+      - markdown
+      - coordination
+    enabled: true
+    priority: 100
+    metadata:
+      role: Lead documentation synthesis, ensure consistency across docs
+      focus: Vision clarity, architectural accuracy, operational precision
+
+  - agent_id: codebase-analyst
+    name: Codebase Analyst
+    agent_type: specialist
+    capabilities:
+      - codebase_exploration
+      - pattern_recognition
+      - architecture_analysis
+      - python
+      - javascript
+    enabled: true
+    priority: 95
+    metadata:
+      role: Analyze codebase structure, identify key components
+      focus: Accurate representation of system architecture
+
+  - agent_id: doc-writer
+    name: Technical Writer
+    agent_type: specialist
+    capabilities:
+      - documentation
+      - markdown
+      - technical_writing
+      - clarity
+    enabled: true
+    priority: 90
+    metadata:
+      role: Write clear, concise documentation
+      focus: Readable, scannable, actionable docs
+
+  - agent_id: memory-organizer
+    name: Memory Organizer
+    agent_type: specialist
+    capabilities:
+      - organization
+      - summarization
+      - knowledge_management
+    enabled: true
+    priority: 85
+    metadata:
+      role: Reorganize MEMORY.md into topic files
+      focus: Concise index, detailed topic files
+
+task_routing:
+  - pattern: "NORTH_STAR|vision|direction|goal"
+    assign_to: synthesis-lead
+  - pattern: "ARCHITECTURE|structure|component|system"
+    assign_to: codebase-analyst
+  - pattern: "OPERATIONS|protocol|workflow|convention"
+    assign_to: doc-writer
+  - pattern: "MEMORY|memory|knowledge|topic"
+    assign_to: memory-organizer
+  - pattern: "orchestrat|coordinate|lead"
+    assign_to: synthesis-lead
+
+reference_docs:
+  - docs/plans/2026-02-24-foundational-synthesis.md
+  - docs/ASCII_EXPOSED_COMPUTING_MANIFESTO.md
+  - AGENTS.md
+  - memory/MEMORY.md

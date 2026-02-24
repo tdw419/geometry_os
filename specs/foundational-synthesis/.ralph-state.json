@@ -1,0 +1,13 @@
+{
+  "source": "plan",
+  "name": "foundational-synthesis",
+  "phase": "tasks",
+  "taskIndex": 0,
+  "totalTasks": 6,
+  "globalIteration": 1,
+  "maxGlobalIterations": 10,
+  "createdAt": "2026-02-24T02:30:00Z",
+  "updatedAt": "2026-02-24T02:30:00Z",
+  "team": "documentation-synthesis-team",
+  "planReference": "docs/plans/2026-02-24-foundational-synthesis.md"
+}
