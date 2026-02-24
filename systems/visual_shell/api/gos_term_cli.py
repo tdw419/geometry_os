@@ -10,7 +10,19 @@ import argparse
 import asyncio
 import json
 import sys
+import os
+import signal
+import select
+import threading
 from typing import Optional, List
+
+# termios for raw terminal mode (Unix only)
+try:
+    import termios
+    import tty
+    HAS_TERMIOS = True
+except ImportError:
+    HAS_TERMIOS = False
 
 try:
     import websockets
@@ -106,6 +118,175 @@ def run_command(
     return asyncio.run(run_command_async(command, port, timeout))
 
 
+async def interactive_session_async(port: int = 8769, cols: int = 120, rows: int = 36) -> int:
+    """
+    Start an interactive terminal session via WebSocket.
+
+    Args:
+        port: WebSocket port (default: 8769)
+        cols: Terminal columns
+        rows: Terminal rows
+
+    Returns:
+        Exit code (0 for normal exit, 1 for error)
+    """
+    uri = f"ws://localhost:{port}/terminal"
+    original_term = None
+    exit_code = 0
+
+    # Save original terminal settings (Unix only)
+    if HAS_TERMIOS and sys.stdin.isatty():
+        original_term = termios.tcgetattr(sys.stdin.fileno())
+        tty.setraw(sys.stdin.fileno())
+
+    # Queue for stdin data (thread-safe)
+    stdin_queue = asyncio.Queue()
+    stop_reader = threading.Event()
+
+    def stdin_reader_thread():
+        """Read from stdin in a thread and put data in queue."""
+        stdin_fd = sys.stdin.fileno()
+        while not stop_reader.is_set():
+            try:
+                # Use select to check if data is available (with timeout)
+                ready, _, _ = select.select([stdin_fd], [], [], 0.1)
+                if ready:
+                    data = os.read(stdin_fd, 1024)
+                    if not data:
+                        # EOF
+                        break
+                    # Schedule queue put in event loop
+                    try:
+                        loop.call_soon_threadsafe(stdin_queue.put_nowait, data)
+                    except Exception:
+                        break
+            except (OSError, ValueError):
+                # stdin closed or invalid
+                break
+            except Exception:
+                break
+
+    try:
+        loop = asyncio.get_event_loop()
+        reader_thread = threading.Thread(target=stdin_reader_thread, daemon=True)
+        reader_thread.start()
+
+        async with websockets.connect(uri, ping_interval=None) as ws:
+            # Send resize message
+            await ws.send(json.dumps({
+                "type": "resize",
+                "cols": cols,
+                "rows": rows
+            }))
+
+            # Flag to signal shutdown
+            shutdown = asyncio.Event()
+            eof_seen = asyncio.Event()
+
+            async def stdin_to_ws():
+                """Read from queue and send to WebSocket."""
+                while not shutdown.is_set():
+                    try:
+                        # Get data with timeout to check shutdown
+                        try:
+                            data = await asyncio.wait_for(stdin_queue.get(), timeout=0.1)
+                            await ws.send(json.dumps({
+                                "type": "input",
+                                "data": data.decode('utf-8', errors='replace')
+                            }))
+                        except asyncio.TimeoutError:
+                            # Check if reader thread is dead (EOF)
+                            if not reader_thread.is_alive() and stdin_queue.empty():
+                                eof_seen.set()
+                                shutdown.set()
+                                break
+                            continue
+                    except asyncio.CancelledError:
+                        break
+                    except Exception:
+                        break
+
+            async def ws_to_stdout():
+                """Read from WebSocket and write to stdout."""
+                while not shutdown.is_set():
+                    try:
+                        message = await asyncio.wait_for(ws.recv(), timeout=0.1)
+                        data = json.loads(message)
+                        msg_type = data.get("type")
+
+                        if msg_type == "output":
+                            sys.stdout.write(data.get("data", ""))
+                            sys.stdout.flush()
+                        elif msg_type == "exit":
+                            shutdown.set()
+                            break
+                    except asyncio.TimeoutError:
+                        continue
+                    except asyncio.CancelledError:
+                        break
+                    except websockets.ConnectionClosed:
+                        shutdown.set()
+                        break
+                    except Exception:
+                        break
+
+            # Run both tasks concurrently
+            stdin_task = asyncio.create_task(stdin_to_ws())
+            stdout_task = asyncio.create_task(ws_to_stdout())
+
+            # Wait for shutdown signal
+            await shutdown.wait()
+
+            # Signal thread to stop
+            stop_reader.set()
+
+            # Cancel and cleanup tasks
+            stdin_task.cancel()
+            stdout_task.cancel()
+            try:
+                await stdin_task
+            except asyncio.CancelledError:
+                pass
+            try:
+                await stdout_task
+            except asyncio.CancelledError:
+                pass
+
+    except ConnectionRefusedError:
+        print("\r\nError: Cannot connect to terminal bridge. Is it running?", file=sys.stderr)
+        exit_code = 1
+    except Exception as e:
+        print(f"\r\nError: {e}", file=sys.stderr)
+        exit_code = 1
+    finally:
+        # Signal thread to stop
+        stop_reader.set()
+        # Restore original terminal settings
+        if original_term:
+            termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, original_term)
+
+    return exit_code
+
+
+def interactive_session(port: int = 8769) -> int:
+    """
+    Synchronous wrapper for interactive_session_async.
+
+    Args:
+        port: WebSocket port (default: 8769)
+
+    Returns:
+        Exit code
+    """
+    # Get terminal size
+    try:
+        cols, rows = os.get_terminal_size()
+    except OSError:
+        cols, rows = 120, 36
+
+    return asyncio.run(interactive_session_async(port, cols, rows))
+
+
 def parse_args():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
@@ -153,8 +334,8 @@ def main():
     args = parse_args()
 
     if args.interactive:
-        print("Interactive mode not yet implemented", file=sys.stderr)
-        sys.exit(1)
+        exit_code = interactive_session(port=args.port)
+        sys.exit(exit_code)
 
     if not args.command:
         print("Error: No command specified. Use -h for help.", file=sys.stderr)

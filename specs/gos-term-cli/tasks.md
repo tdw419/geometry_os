@@ -30,7 +30,7 @@ Focus: Validate CLI works end-to-end with WebSocket bridge. Skip full test cover
   - _Requirements: FR-2_
   - _Design: CommandExecutor_
 
-- [ ] 1.3 Interactive mode
+- [x] 1.3 Interactive mode
   - **Do**:
     1. Add `interactive_session()` with raw terminal mode
     2. Create stdin->ws and ws->stdout async tasks
