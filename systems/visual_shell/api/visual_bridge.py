@@ -1652,6 +1652,59 @@ class VisualBridge:
                 print(f"⚠️ GUI scene poller error: {e}")
                 await asyncio.sleep(5.0)  # Back off on error
 
+    def _setup_gui_command_processor(self) -> None:
+        """
+        Setup the GUI command processor for AI-initiated commands.
+
+        Creates a GUICommandProcessor that watches the commands/pending/
+        directory and executes commands via _execute_gui_command callback.
+        """
+        try:
+            from systems.visual_shell.ascii_gui.command_processor import GUICommandProcessor
+
+            self._gui_command_processor = GUICommandProcessor(
+                executor=self._execute_gui_command,
+                gui_dir=str(self.gui_scene_dir.parent)  # .geometry/gui
+            )
+            print("🕹️ GUI Command processor initialized")
+
+        except ImportError as e:
+            print(f"⚠️ Could not setup GUI command processor: {e}")
+
+    async def _execute_gui_command(self, cmd) -> None:
+        """
+        Execute a GUI command from the AI.
+
+        This is the callback for GUICommandProcessor. It broadcasts
+        the command to clients and handles specific actions via the
+        GUI broadcaster.
+
+        Args:
+            cmd: Command object with action, target, position, etc.
+        """
+        # Broadcast command to all connected clients
+        await self._broadcast({
+            "type": "gui_command",
+            "command_id": cmd.command_id,
+            "action": cmd.action,
+            "target": cmd.target,
+            "position": list(cmd.position) if cmd.position else None,
+            "text": cmd.text,
+            "keys": cmd.keys,
+            "direction": cmd.direction,
+            "delta": list(cmd.delta) if cmd.delta else None,
+            "timestamp": time.time()
+        })
+
+        # Handle specific actions via broadcaster
+        if self._gui_broadcaster:
+            if cmd.action == "focus" and cmd.target:
+                # Focus notification - broadcaster will update fragments
+                print(f"🎯 GUI focus command: {cmd.target}")
+            elif cmd.action == "close" and cmd.target:
+                # Close notification - broadcaster will update fragments
+                print(f"❌ GUI close command: {cmd.target}")
+
     def _setup_ascii_scene_watcher(self) -> None:
         """
         Setup file watcher for ASCII scene directory.
