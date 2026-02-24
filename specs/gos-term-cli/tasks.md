@@ -16,7 +16,7 @@ Focus: Validate CLI works end-to-end with WebSocket bridge. Skip full test cover
   - _Requirements: FR-1_
   - _Design: GosTermCLI_
 
-- [ ] 1.2 WebSocket command execution
+- [x] 1.2 WebSocket command execution
   - **Do**:
     1. Add `run_command_async()` with websockets connection
     2. Send resize + command input messages
