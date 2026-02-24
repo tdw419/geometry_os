@@ -4,7 +4,7 @@
 
 Focus: Validate CLI works end-to-end with WebSocket bridge. Skip full test coverage.
 
-- [ ] 1.1 CLI entry point with argparse
+- [x] 1.1 CLI entry point with argparse
   - **Do**:
     1. Create `systems/visual_shell/api/gos_term_cli.py`
     2. Implement `parse_args()` with: command (nargs=*), -i/--interactive, -p/--port, --neb, --timeout
