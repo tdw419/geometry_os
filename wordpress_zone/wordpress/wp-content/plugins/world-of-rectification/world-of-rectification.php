@@ -35,6 +35,7 @@ class World_of_Rectification {
         require_once WOR_PATH . 'includes/class-wor-credits.php';
         require_once WOR_PATH . 'includes/class-wor-ctrm.php';
         require_once WOR_PATH . 'includes/class-wor-truth-engine.php';
+        require_once WOR_PATH . 'includes/class-scribe-db.php';
         require_once WOR_PATH . 'api/class-quest-api.php';
         require_once WOR_PATH . 'api/class-player-api.php';
         require_once WOR_PATH . 'api/class-verify-api.php';
@@ -120,7 +121,7 @@ function WOR(): World_of_Rectification {
 WOR();
 
 /**
- * Activation hook - seed initial scenarios
+ * Activation hook - seed initial scenarios and create scribe tables
  */
 register_activation_hook(__FILE__, function() {
     // Ensure post types are registered first
@@ -129,6 +130,10 @@ register_activation_hook(__FILE__, function() {
     // Seed scenarios
     require_once WOR_PATH . 'data/seed-scenarios.php';
     $created = WoR_SeedScenarios::run();
+
+    // Create Scribe Protocol database tables
+    require_once WOR_PATH . 'includes/class-scribe-db.php';
+    WOR_Scribe_DB::create_tables();
 
     // Log activation
     error_log("World of Rectification activated. Created $created scenarios.");
