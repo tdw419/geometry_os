@@ -48,7 +48,7 @@ Focus: Implement core CTP components with TDD approach. Skip full integration, v
   - _Requirements: FR-4, FR-8, US-6_
   - _Design: Component gateway.py_
 
-- [ ] 1.5 Implement minimal client
+- [x] 1.5 Implement minimal client
   - **Do**: Create `systems/swarm/ctp/client.py` with CTPClient class
   - **Files**: `systems/swarm/ctp/client.py`
   - **Done when**: Client builds HELLO/QUERY messages, parses WELCOME/REJECT, async connect/query work
