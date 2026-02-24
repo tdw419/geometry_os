@@ -21,7 +21,7 @@ Focus: Wire up GUI integration following ASCII Scene Graph pattern. Skip compreh
   - _Requirements: FR-1_
   - _Design: GUI State Variables_
 
-- [ ] 1.2 Implement GUI Renderer Registration
+- [x] 1.2 Implement GUI Renderer Registration
   - **Do**: Add `register_gui_renderers()` method that creates `GUIHookBroadcaster`, `GUIFragmentRenderer`, wires them together
   - **Files**: `systems/visual_shell/api/visual_bridge.py` (after line 1547)
   - **Done when**: Method exists, creates directories, imports work

@@ -1574,6 +1574,41 @@ class VisualBridge:
         except ImportError as e:
             print(f"⚠️ Could not register ASCII renderers: {e}")
 
+    def register_gui_renderers(self) -> None:
+        """
+        Register GUI renderers for ASCII GUI integration.
+
+        Creates GUIHookBroadcaster, GUIFragmentRenderer, and wires them together
+        to generate .ascii/.yaml files for AI perception.
+        """
+        if self._gui_renderers_registered:
+            return
+
+        try:
+            from systems.visual_shell.ascii_gui.hooks import GUIHookBroadcaster
+            from systems.visual_shell.ascii_gui.fragment_renderer import GUIFragmentRenderer
+
+            # Ensure GUI fragment directory exists
+            self.gui_scene_dir.mkdir(parents=True, exist_ok=True)
+
+            # Create broadcaster
+            self._gui_broadcaster = GUIHookBroadcaster()
+
+            # Create fragment renderer
+            self._gui_renderer = GUIFragmentRenderer(
+                output_dir=str(self.gui_scene_dir.parent),
+                auto_flush=True
+            )
+
+            # Wire renderer to broadcaster
+            self._gui_broadcaster.add_hook(self._gui_renderer)
+
+            print(f"🖼️ GUI Scene renderers registered (output: {self.gui_scene_dir})")
+            self._gui_renderers_registered = True
+
+        except ImportError as e:
+            print(f"⚠️ Could not register GUI renderers: {e}")
+
     def _setup_ascii_scene_watcher(self) -> None:
         """
         Setup file watcher for ASCII scene directory.
