@@ -84,7 +84,7 @@ After POC validated, add simulation runner for design validation.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Add integration tests
+- [x] 3.1 Add integration tests
   - **Do**: Create `tests/swarm/ctp/test_integration.py` with end-to-end flow tests
   - **Files**: `tests/swarm/ctp/test_integration.py`
   - **Done when**: Tests cover full handshake, query flow, rate limiting, trust enforcement, ASCII roundtrip
