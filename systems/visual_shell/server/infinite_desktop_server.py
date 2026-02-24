@@ -513,6 +513,47 @@ class InfiniteDesktopServer:
                 disconnected.add(client)
         self.clients -= disconnected
 
+    def _load_gravity_data(self) -> Dict:
+        """
+        Load gravity data from the gravity report.
+
+        Returns gravity well data for the tectonic visualization:
+        - axion_core: Foundational documents with high gravity
+        - high_value: Files with good value scores
+        - stale_husks: Files needing rectification
+        """
+        gravity_report_path = PROJECT_ROOT / ".geometry" / "gravity_report.json"
+
+        if not gravity_report_path.exists():
+            logger.warning("🌌 Gravity report not found, returning empty data")
+            return {
+                "axion_core": [],
+                "high_value": [],
+                "stale_husks": [],
+                "generated_at": None
+            }
+
+        try:
+            with open(gravity_report_path, 'r') as f:
+                data = json.load(f)
+
+            # Limit stale husks to avoid overwhelming the frontend
+            if "stale_husks" in data:
+                data["stale_husks"] = data["stale_husks"][:100]
+
+            logger.debug(f"🌌 Loaded gravity data: {len(data.get('axion_core', []))} core, "
+                        f"{len(data.get('stale_husks', []))} husks")
+            return data
+
+        except Exception as e:
+            logger.error(f"🌌 Failed to load gravity data: {e}")
+            return {
+                "axion_core": [],
+                "high_value": [],
+                "stale_husks": [],
+                "error": str(e)
+            }
+
     async def handle_websocket(self, websocket):
         """Handle WebSocket client connection."""
         self.clients.add(websocket)
@@ -608,6 +649,21 @@ class InfiniteDesktopServer:
                             'type': 'JOB_STATUS',
                             'data': job_status
                         }))
+            elif msg_type == 'REQUEST_GRAVITY_DATA':
+                # Send gravity data for tectonic visualization
+                gravity_data = self._load_gravity_data()
+                await websocket.send(json.dumps({
+                    'type': 'gravity_update',
+                    'data': gravity_data
+                }))
+                logger.info("🌌 Gravity data sent to client")
+            elif msg_type == 'subscribe' and data.get('channel') == 'gravity':
+                # Subscribe to gravity updates
+                gravity_data = self._load_gravity_data()
+                await websocket.send(json.dumps({
+                    'type': 'gravity_update',
+                    'data': gravity_data
+                }))
             else:
                 logger.warning(f"⚠️ Unknown message type: {msg_type}")
         except json.JSONDecodeError:

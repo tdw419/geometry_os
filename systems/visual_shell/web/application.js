@@ -61,6 +61,9 @@ class GeometryOSApplication {
         // Visual Hotspot Debugger (Heat Map Overlay)
         this.heatmapOverlay = null;
 
+        // Gravity Well Renderer (Tectonic Visualization)
+        this.gravityWellRenderer = null;
+
         // World Persistence
         this.localArtifacts = [];
 
@@ -219,6 +222,18 @@ class GeometryOSApplication {
             this.heatmapOverlay = new HeatmapOverlay(this.app, this.viewport, this.worldContainer);
             this._setupHeatmapKeyboard();
             console.log("🔥 Heatmap Overlay initialized (Ctrl+Shift+M to toggle)");
+        }
+
+        // --- Gravity Well Renderer: Tectonic Visualization ---
+        if (typeof GravityWellRenderer !== 'undefined') {
+            this.gravityWellRenderer = new GravityWellRenderer(
+                this.app,
+                this.viewport,
+                this.worldContainer,
+                { wsPort: 8765 }
+            );
+            this._setupGravityKeyboard();
+            console.log("🌌 Gravity Well Renderer initialized (Ctrl+Shift+G to toggle)");
         }
 
         // 4b. Initialize Creative Layers
@@ -3049,6 +3064,29 @@ class GeometryOSApplication {
         });
 
         console.log('🔥 Heatmap keyboard shortcuts configured (Ctrl+Shift+M to toggle)');
+    }
+
+    /**
+     * Setup keyboard shortcuts for Gravity Well Renderer.
+     * Ctrl+Shift+G: Toggle gravity visualization
+     */
+    _setupGravityKeyboard() {
+        if (!this.gravityWellRenderer) return;
+
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Shift+G: Toggle Gravity Wells
+            if (e.ctrlKey && e.shiftKey && (e.key === 'G' || e.key === 'g')) {
+                e.preventDefault();
+                const visible = this.gravityWellRenderer.toggle();
+
+                // Dispatch event for HUD integration
+                window.dispatchEvent(new CustomEvent('GRAVITY_TOGGLED', {
+                    detail: { visible }
+                }));
+            }
+        });
+
+        console.log('🌌 Gravity keyboard shortcuts configured (Ctrl+Shift+G to toggle)');
     }
 
     /**
