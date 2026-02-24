@@ -100,7 +100,7 @@ After POC validated, add simulation runner for design validation.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Update module exports
+- [x] 4.1 Update module exports
   - **Do**: Update `systems/swarm/ctp/__init__.py` to export all public components
   - **Files**: `systems/swarm/ctp/__init__.py`
   - **Done when**: All components importable from `systems.swarm.ctp`
