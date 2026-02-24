@@ -72,7 +72,7 @@ Focus: Validate P2P mentoring flow works end-to-end. Skip tests initially.
   - _Requirements: FR-3_
   - _Design: P0 TransmissionBoard_
 
-- [ ] 1.4 Create ScribeAgent extending GuildAgent
+- [x] 1.4 Create ScribeAgent extending GuildAgent
   - **Do**:
     1. Create `systems/swarm/transmission/scribe_agent.py`
     2. Extend GuildAgent with role="scribe"
