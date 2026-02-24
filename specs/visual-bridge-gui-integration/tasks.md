@@ -93,7 +93,7 @@ Focus: Wire up GUI integration following ASCII Scene Graph pattern. Skip compreh
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Run All Tests
+- [x] 4.1 Run All Tests
   - **Do**: Run all Visual Bridge and ASCII GUI tests
   - **Verify**: `python -m pytest tests/systems/visual_shell/api/ tests/systems/visual_shell/ascii_gui/ -v --tb=short`
   - **Done when**: All tests pass (61 ASCII GUI + new integration tests)
