@@ -1,6 +1,16 @@
 # AGENTS.md
 This file provides guidance to agents when working with code in this repository.
 
+## Foundational Documents
+
+Before working on Geometry OS, read these in order:
+
+1. **[NORTH_STAR.md](NORTH_STAR.md)** - Vision and direction
+2. **[ARCHITECTURE.md](ARCHITECTURE.md)** - System structure
+3. **[OPERATIONS.md](OPERATIONS.md)** - Working protocol
+
+---
+
 ## Project: Infinite Map Compositor (Rust Wayland Compositor)
 
 **Purpose**: High-performance Wayland compositor with neural state visualization and infinite map rendering.
