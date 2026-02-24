@@ -97,3 +97,28 @@ class ReviewerAgent(GuildAgent):
         if "score" in result:
             return f"Review score: {result['score']}/100"
         return f"Security: {result.get('severity', 'unknown')}"
+
+    def complete_task(self, task: Task, result: Dict[str, Any]) -> bool:
+        """
+        Complete task and publish result event.
+
+        Args:
+            task: Task to complete
+            result: Result data
+
+        Returns:
+            True if successful
+        """
+        success = super().complete_task(task, result)
+
+        if success:
+            # Publish result event
+            topic = f"guild.reviewer.{task.task_type.value.lower()}"
+            self._publish_result(topic, {
+                "agent_id": self.agent_id,
+                "task_id": task.task_id,
+                "summary": self._summarize(result),
+                "result": result
+            })
+
+        return success

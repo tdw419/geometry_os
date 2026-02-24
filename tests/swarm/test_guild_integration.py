@@ -85,7 +85,8 @@ class TestFullIntegration:
         assert completed is not None
         stored_task = task_board.get(task.task_id)
         assert stored_task.status.value == "COMPLETED"
-        assert "issues" in stored_task.result
+        assert "style_violations" in stored_task.result
+        assert "security_findings" in stored_task.result
 
         # Check NEB event was published
         signals = event_bus.get_recent_signals()
