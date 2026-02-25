@@ -3334,19 +3334,58 @@ class GeometryOSApplication {
     }
 
     /**
-     * Setup Terminal Window keyboard shortcut
+     * Setup Terminal Window keyboard shortcuts
      * Ctrl+Shift+T: Open Terminal Window
+     * Ctrl+Shift+N: Create new terminal particle
+     * Ctrl+Shift+W: Close focused terminal
+     * Ctrl+Tab: Cycle through terminals
      */
     _setupTerminalKeyboard() {
         document.addEventListener('keydown', (e) => {
-            // Ctrl+Shift+T: Open Terminal
+            // Ctrl+Shift+T: Open Terminal (legacy)
             if (e.ctrlKey && e.shiftKey && (e.key === 'T' || e.key === 't')) {
                 e.preventDefault();
                 this.openTerminalWindow();
+                console.log('🖥️ Keyboard shortcut: Ctrl+Shift+T - Open terminal');
+            }
+
+            // Ctrl+Shift+N: Create new terminal particle
+            if (e.ctrlKey && e.shiftKey && (e.key === 'N' || e.key === 'n')) {
+                e.preventDefault();
+                this.openTerminalWindow();
+                console.log('🖥️ Keyboard shortcut: Ctrl+Shift+N - Create terminal particle');
+            }
+
+            // Ctrl+Shift+W: Close focused terminal
+            if (e.ctrlKey && e.shiftKey && (e.key === 'W' || e.key === 'w')) {
+                e.preventDefault();
+                if (this.particleManager) {
+                    const destroyed = this.particleManager.destroyFocused();
+                    console.log('🖥️ Keyboard shortcut: Ctrl+Shift+W - Destroy focused terminal:', destroyed);
+                }
+            }
+
+            // Ctrl+Tab: Cycle through terminals
+            if (e.ctrlKey && e.key === 'Tab') {
+                e.preventDefault();
+                if (this.particleManager) {
+                    const next = this.particleManager.cycleFocus();
+                    console.log('🖥️ Keyboard shortcut: Ctrl+Tab - Cycle focus to:', next?.particleId || 'none');
+                }
             }
         });
 
-        console.log('🖥️ Terminal keyboard shortcuts configured (Ctrl+Shift+T to open)');
+        console.log('🖥️ Terminal keyboard shortcuts configured (Ctrl+Shift+T/N, Ctrl+Shift+W, Ctrl+Tab)');
+    }
+
+    /**
+     * Cycle terminal focus (delegates to ParticleManager)
+     * @private
+     */
+    _cycleTerminalFocus() {
+        if (this.particleManager) {
+            this.particleManager.cycleFocus();
+        }
     }
 
     /**

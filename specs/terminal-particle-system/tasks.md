@@ -30,7 +30,7 @@ Focus: Validate particle system works end-to-end. Skip tests, accept hardcoded v
   - _Requirements: FR-2_
   - _Design: ParticleManager component_
 
-- [ ] 1.3 Integrate ParticleManager in application.js
+- [x] 1.3 Integrate ParticleManager in application.js
   - **Do**: In GeometryOSApplication constructor, add `this.particleManager = null`. In initialize(), create ParticleManager with worldContainer. Replace existing terminalWindows array logic with particleManager calls.
   - **Files**: `/home/jericho/zion/projects/geometry_os/geometry_os/systems/visual_shell/web/application.js`
   - **Done when**: createTerminalWindow() uses ParticleManager
@@ -39,11 +39,11 @@ Focus: Validate particle system works end-to-end. Skip tests, accept hardcoded v
   - _Requirements: FR-2_
   - _Design: Data Flow_
 
-- [ ] 1.4 Add keyboard shortcuts
+- [x] 1.4 Add keyboard shortcuts
   - **Do**: In application.js, add keydown listener. Ctrl+Shift+N calls createTerminalWindow(). Ctrl+Shift+W calls particleManager.destroyFocused(). Ctrl+Tab calls particleManager.cycleFocus().
   - **Files**: `/home/jericho/zion/projects/geometry_os/geometry_os/systems/visual_shell/web/application.js`
   - **Done when**: Shortcuts create/close/cycle terminals
-  -Verify**: Press Ctrl+Shift+N in browser, see new terminal
+  - **Verify**: Press Ctrl+Shift+N in browser, see new terminal
   - **Commit**: `feat(visual-shell): add terminal keyboard shortcuts`
   - _Requirements: FR-3_
   - _Design: Data Flow step 1_
