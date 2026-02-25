@@ -94,6 +94,72 @@ class ParticleManager {
     }
 
     /**
+     * Create a geometric terminal particle
+     * @param {Object} options - Particle options
+     * @returns {GeometricTerminalParticle} The created particle
+     */
+    createGeometricTerminalParticle(options = {}) {
+        // Generate ID if not provided
+        if (!options.particleId) {
+            options.particleId = `geo-term-${++this._particleCounter}-${Date.now()}`;
+        }
+
+        // Create the particle
+        const particle = new GeometricTerminalParticle({
+            ...options,
+            nebSocket: this._nebSocket,
+            nebEnabled: !!this._nebSocket,
+            app: options.app || window.pixiApp
+        });
+
+        // Add to tracking
+        this.particles.set(particle.particleId, particle);
+
+        // Add to particle layer
+        this.particleLayer.addChild(particle);
+
+        // Update spatial index
+        this._addToSpatialIndex(particle);
+
+        // Setup event listeners
+        this._setupParticleEvents(particle);
+
+        // Publish creation event
+        this._publishNebEvent('geometric-terminal.particle.created', {
+            particleId: particle.particleId,
+            particleType: particle.constructor.PARTICLE_TYPE || 'geometric-terminal',
+            position: particle.particlePosition
+        });
+
+        // Callback
+        if (this._onParticleCreated) {
+            this._onParticleCreated(particle);
+        }
+
+        // Focus the new particle
+        this.focusParticle(particle.particleId);
+
+        return particle;
+    }
+
+    /**
+     * Generic factory method to create particles by type
+     * @param {string} type - Particle type ('terminal', 'geometric-terminal')
+     * @param {Object} options - Particle options
+     * @returns {Object} The created particle
+     */
+    createParticle(type, options = {}) {
+        switch (type) {
+            case 'terminal':
+                return this.createTerminalParticle(options);
+            case 'geometric-terminal':
+                return this.createGeometricTerminalParticle(options);
+            default:
+                throw new Error(`[ParticleManager] Unknown particle type: ${type}`);
+        }
+    }
+
+    /**
      * Setup event listeners for a particle
      */
     _setupParticleEvents(particle) {
@@ -183,8 +249,8 @@ class ParticleManager {
 
     /**
      * Get particles by type
-     * @param {string} type - Particle type (e.g., 'terminal')
-     * @returns {Array<TerminalWindowParticle>}
+     * @param {string} type - Particle type (e.g., 'terminal', 'geometric-terminal')
+     * @returns {Array<Object>} Array of particles matching the type
      */
     getParticlesByType(type) {
         return this.getAllParticles().filter(p => {
