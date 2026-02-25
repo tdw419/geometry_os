@@ -86,7 +86,7 @@ After POC validated, clean up code.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Create example GeoASM scripts
+- [x] 4.1 Create example GeoASM scripts
   - **Do**: Create examples directory, add counter.geo (memory ops), fibonacci.geo (sequence), arithmetic.geo (math)
   - **Files**: `systems/intelligence/geometric_text/examples/counter.geo`, `fibonacci.geo`, `arithmetic.geo`
   - **Done when**: All 3 .geo files exist and parse without errors
@@ -94,7 +94,7 @@ After POC validated, clean up code.
   - **Commit**: `feat(geoasm): add example scripts`
   - _Requirements: AC-4.1, AC-4.2, AC-4.3_
 
-- [ ] 4.2 Compile examples and verify CI
+- [x] 4.2 Compile examples and verify CI
   - **Do**: Compile all .geo files to .rts.png, verify textures decode correctly, ensure all tests pass
   - **Files**: `systems/intelligence/geometric_text/examples/*.rts.png`, `*.json`
   - **Done when**: 3 .rts.png files created, verification shows correct encoding, pytest passes

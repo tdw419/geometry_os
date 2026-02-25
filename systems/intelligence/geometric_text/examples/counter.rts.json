@@ -1,0 +1,76 @@
+{
+  "metadata": {
+    "source_file": "counter.geo",
+    "texture_file": "counter.rts.png",
+    "texture_size": [
+      96,
+      16
+    ],
+    "instruction_count": 6,
+    "error_count": 0,
+    "glyph_size": 16,
+    "encoding": {
+      "R": "opcode",
+      "G": "operand_high_byte",
+      "B": "operand_low_byte",
+      "A": "morphological_intensity"
+    }
+  },
+  "instructions": [
+    {
+      "index": 0,
+      "opcode": 65,
+      "opcode_name": "i32.const",
+      "operand": 0,
+      "symbol": "$",
+      "line": 2,
+      "col": 1
+    },
+    {
+      "index": 1,
+      "opcode": 33,
+      "opcode_name": "local.set",
+      "operand": 0,
+      "symbol": ">",
+      "line": 3,
+      "col": 1
+    },
+    {
+      "index": 2,
+      "opcode": 32,
+      "opcode_name": "local.get",
+      "operand": 0,
+      "symbol": "<",
+      "line": 4,
+      "col": 1
+    },
+    {
+      "index": 3,
+      "opcode": 65,
+      "opcode_name": "i32.const",
+      "operand": 1,
+      "symbol": "$",
+      "line": 5,
+      "col": 1
+    },
+    {
+      "index": 4,
+      "opcode": 106,
+      "opcode_name": "i32.add",
+      "operand": 0,
+      "symbol": "+",
+      "line": 6,
+      "col": 1
+    },
+    {
+      "index": 5,
+      "opcode": 33,
+      "opcode_name": "local.set",
+      "operand": 0,
+      "symbol": ">",
+      "line": 7,
+      "col": 1
+    }
+  ],
+  "errors": []
+}
