@@ -12,7 +12,7 @@ generated: auto
 
 Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
 
-- [ ] 1.1 Create GeoASM opcode constants
+- [x] 1.1 Create GeoASM opcode constants
   - **Do**: Create `systems/intelligence/geometric_text/geoasm_opcodes.py` with SYMBOL_TO_OPCODE mapping for 12 symbols ($ + - * < > ! ? @ ~ . #) matching visual_cpu.wgsl opcodes
   - **Files**: `systems/intelligence/geometric_text/geoasm_opcodes.py`
   - **Done when**: `python3 -c "from systems.intelligence.geometric_text.geoasm_opcodes import SYMBOL_TO_OPCODE; print(SYMBOL_TO_OPCODE)"` outputs mapping dict
