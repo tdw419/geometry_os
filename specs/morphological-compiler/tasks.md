@@ -21,7 +21,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
   - _Requirements: FR-1_
   - _Design: Component 1_
 
-- [ ] 1.2 Create GeoASM parser
+- [x] 1.2 Create GeoASM parser
   - **Do**: Create `systems/intelligence/geometric_text/geoasm_parser.py` with GeoASMParser class, GeoASMInstruction dataclass (opcode, operand, char, line, col), parse() method that tokenizes symbols and operands
   - **Files**: `systems/intelligence/geometric_text/geoasm_parser.py`
   - **Done when**: `parser.parse("$ 5 $ 3 +")` returns 3 instructions with correct opcodes/operands
