@@ -5,6 +5,81 @@
 
 use crate::hilbert::{d2xy, xy2d};
 
+/// Memory region type for typology mapping.
+///
+/// Maps process memory regions to building types for 3D visualization.
+/// This creates a semantic layer where memory characteristics influence
+/// the visual appearance of the WorldView landscape.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum MemoryType {
+    /// Dynamic allocation region (malloc, new) -> Residential buildings
+    Heap,
+    /// Stack frames and local variables -> Industrial structures
+    Stack,
+    /// Read-only memory (code, constants) -> Monument/landmark
+    Rom,
+    /// Memory-mapped files and I/O -> Utility infrastructure
+    Mmap,
+    /// Unknown or unmapped region -> Unstructured terrain
+    Unknown,
+}
+
+/// Building typology for 3D visualization.
+///
+/// Each typology represents a distinct visual style for rendering
+/// geodetic features in the WorldView morphological layer.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum BuildingTypology {
+    /// Residential buildings - warm colors, varied heights
+    Residential,
+    /// Industrial structures - metallic, geometric
+    Industrial,
+    /// Monument/landmark - distinctive, prominent
+    Monument,
+    /// Utility infrastructure - functional, networked appearance
+    Utility,
+    /// Unstructured terrain - natural, undefined
+    Unstructured,
+}
+
+impl MemoryType {
+    /// Map memory type to building typology for 3D visualization.
+    ///
+    /// This mapping creates semantic meaning in the WorldView layer:
+    /// - Heap memory (dynamic, changing) becomes residential areas
+    /// - Stack memory (structured, procedural) becomes industrial zones
+    /// - ROM (static, permanent) becomes monuments
+    /// - Mmap (file-backed, shared) becomes utility infrastructure
+    pub fn building_typology(&self) -> BuildingTypology {
+        match self {
+            MemoryType::Heap => BuildingTypology::Residential,
+            MemoryType::Stack => BuildingTypology::Industrial,
+            MemoryType::Rom => BuildingTypology::Monument,
+            MemoryType::Mmap => BuildingTypology::Utility,
+            MemoryType::Unknown => BuildingTypology::Unstructured,
+        }
+    }
+}
+
+/// Geodetic feature with semantic metadata.
+///
+/// Combines geographic coordinates with memory type classification
+/// and thermal data for rich 3D visualization.
+#[derive(Debug, Clone)]
+pub struct GeodeticFeature {
+    /// WGS84 geodetic coordinates
+    pub coords: GeodeticCoords,
+    /// Hilbert curve index in the memory space
+    pub hilbert_index: u64,
+    /// Memory region type (Heap, Stack, Rom, Mmap, Unknown)
+    pub memory_type: MemoryType,
+    /// Building typology derived from memory type
+    pub typology: BuildingTypology,
+    /// Heat score (0.0 - 1.0) maps to thermal shader intensity
+    /// Higher values indicate "hotter" memory (more active usage)
+    pub heat_score: f64,
+}
+
 /// WGS84 Geodetic coordinates (latitude, longitude, altitude).
 ///
 /// This type represents a point on or above Earth's surface using the
@@ -233,6 +308,45 @@ impl HilbertGeodeticProjection {
         // Convert to Hilbert index
         xy2d(self.grid_size, x, y)
     }
+
+    /// Convert Hilbert index to a full geodetic feature with metadata.
+    ///
+    /// Creates a rich feature object suitable for 3D visualization in
+    /// the WorldView morphological layer.
+    ///
+    /// # Arguments
+    ///
+    /// * `hilbert_index` - Distance along the Hilbert curve
+    /// * `memory_type` - Classification of the memory region
+    /// * `heat_score` - Thermal intensity (0.0 - 1.0), clamped if out of range
+    ///
+    /// # Returns
+    ///
+    /// A `GeodeticFeature` with coordinates, type classification, and heat data.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use infinite_map_rs::geodetic::{HilbertGeodeticProjection, MemoryType};
+    /// let proj = HilbertGeodeticProjection::new(64);
+    /// let feature = proj.hilbert_to_feature(100, MemoryType::Heap, 0.5);
+    /// assert_eq!(feature.hilbert_index, 100);
+    /// assert!((feature.heat_score - 0.5).abs() < 0.01);
+    /// ```
+    pub fn hilbert_to_feature(
+        &self,
+        hilbert_index: u64,
+        memory_type: MemoryType,
+        heat_score: f64,
+    ) -> GeodeticFeature {
+        GeodeticFeature {
+            coords: self.hilbert_to_geodetic(hilbert_index),
+            hilbert_index,
+            memory_type,
+            typology: memory_type.building_typology(),
+            heat_score: heat_score.clamp(0.0, 1.0),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -392,5 +506,67 @@ mod tests {
     #[should_panic(expected = "Grid size must be power of 2")]
     fn test_projection_invalid_grid_size() {
         let _ = HilbertGeodeticProjection::new(100);
+    }
+
+    // ========================================
+    // MemoryType and BuildingTypology Tests
+    // ========================================
+
+    #[test]
+    fn test_memory_type_typology() {
+        assert_eq!(
+            MemoryType::Heap.building_typology(),
+            BuildingTypology::Residential
+        );
+        assert_eq!(
+            MemoryType::Stack.building_typology(),
+            BuildingTypology::Industrial
+        );
+        assert_eq!(
+            MemoryType::Rom.building_typology(),
+            BuildingTypology::Monument
+        );
+        assert_eq!(
+            MemoryType::Mmap.building_typology(),
+            BuildingTypology::Utility
+        );
+        assert_eq!(
+            MemoryType::Unknown.building_typology(),
+            BuildingTypology::Unstructured
+        );
+    }
+
+    #[test]
+    fn test_geodetic_coords_with_typology() {
+        let projection = HilbertGeodeticProjection::new(64);
+        let feature = projection.hilbert_to_feature(0, MemoryType::Heap, 0.75);
+
+        assert_eq!(feature.typology, BuildingTypology::Residential);
+        assert!((feature.heat_score - 0.75).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_geodetic_feature_heat_score_clamping() {
+        let projection = HilbertGeodeticProjection::new(64);
+
+        // Test upper clamp
+        let feature_high = projection.hilbert_to_feature(100, MemoryType::Stack, 1.5);
+        assert!((feature_high.heat_score - 1.0).abs() < 0.01);
+
+        // Test lower clamp
+        let feature_low = projection.hilbert_to_feature(100, MemoryType::Stack, -0.5);
+        assert!((feature_low.heat_score - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_geodetic_feature_coords_match() {
+        let projection = HilbertGeodeticProjection::new(64);
+        let idx = 500u64;
+
+        let coords = projection.hilbert_to_geodetic(idx);
+        let feature = projection.hilbert_to_feature(idx, MemoryType::Rom, 0.5);
+
+        assert_eq!(feature.coords, coords);
+        assert_eq!(feature.hilbert_index, idx);
     }
 }
