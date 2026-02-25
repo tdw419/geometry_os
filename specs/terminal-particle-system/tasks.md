@@ -75,7 +75,7 @@ After POC validated, clean up code.
   - _Requirements: FR-4_
   - _Design: NEB Integration_
 
-- [ ] 2.2 Add localStorage persistence
+- [x] 2.2 Add localStorage persistence
   - **Do**: In ParticleManager, add saveLayout() with 500ms debounce. Save to localStorage key 'terminal-particle-layout'. Add restoreLayout() called on init. Handle invalid data gracefully.
   - **Files**: `/home/jericho/zion/projects/geometry_os/geometry_os/systems/visual_shell/web/ParticleManager.js`
   - **Done when**: Layout persists across page reload

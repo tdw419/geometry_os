@@ -296,6 +296,12 @@ class GeometryOSApplication {
             console.log('🔴 ParticleManager initialized for terminal particles');
             // Connect to NEB for cross-terminal coordination
             this._connectNebBridge();
+            // Load saved particle layout from localStorage
+            this.loadParticleLayout();
+            // Setup auto-save on page unload
+            window.addEventListener('beforeunload', () => {
+                this.saveParticleLayout();
+            });
         } else {
             console.warn('ParticleManager class not loaded, terminal particles disabled');
         }
@@ -3630,6 +3636,55 @@ class GeometryOSApplication {
             default:
                 // Unknown topic - ignore or log
                 break;
+        }
+    }
+
+    // === Particle Layout Persistence ===
+
+    /**
+     * Save particle layout to localStorage.
+     * Uses ParticleManager.serialize() to capture all particle state.
+     */
+    saveParticleLayout() {
+        if (!this.particleManager) {
+            return;
+        }
+
+        try {
+            const data = this.particleManager.serialize();
+            localStorage.setItem('geometryOS_particleLayout', JSON.stringify(data));
+            console.log('💾 Particle layout saved:', data.particles.length, 'particles');
+        } catch (e) {
+            console.warn('Failed to save particle layout:', e);
+        }
+    }
+
+    /**
+     * Load particle layout from localStorage.
+     * Uses ParticleManager.deserialize() to restore particle state.
+     */
+    loadParticleLayout() {
+        if (!this.particleManager) {
+            return;
+        }
+
+        try {
+            const stored = localStorage.getItem('geometryOS_particleLayout');
+            if (!stored) {
+                console.log('💾 No saved particle layout found');
+                return;
+            }
+
+            const data = JSON.parse(stored);
+            if (!data || !data.particles || !Array.isArray(data.particles)) {
+                console.warn('💾 Invalid particle layout data, skipping restore');
+                return;
+            }
+
+            this.particleManager.deserialize(data);
+            console.log('💾 Particle layout restored:', data.particles.length, 'particles');
+        } catch (e) {
+            console.warn('Failed to load particle layout:', e);
         }
     }
 
