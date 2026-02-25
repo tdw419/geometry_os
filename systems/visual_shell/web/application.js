@@ -30,6 +30,7 @@ class GeometryOSApplication {
         this.visualBootLoader = null;
         this.infiniteMap = null; // Manifest-based infinite map with LLM chat
         this.windowManager = null; // Desktop Environment
+        this.particleManager = null; // Particle System (TerminalWindowParticle management)
 
         // System components
         this.cognitiveLayer = null; // Antigravity Prime
@@ -197,6 +198,12 @@ class GeometryOSApplication {
         this.worldContainer = new PIXI.Container();
         this.app.stage.addChild(this.worldContainer);
 
+        // 4b. Initialize Geometric Text System (Phase 3B)
+        if (typeof GeometricTextRenderer !== 'undefined') {
+            this.geometricText = new GeometricTextRenderer(this.app);
+            console.log("🔠 Geometric Text System initialized");
+        }
+
         // --- Phase 50: Advanced Visual Tools ---
         if (typeof VisualVerificationBridge !== 'undefined') {
             this.visualBridge = new VisualVerificationBridge();
@@ -279,6 +286,17 @@ class GeometryOSApplication {
             wordWrapWidth: 380,
         });
         demoWindow.setContent(demoText);
+
+        // 5.3 Initialize Particle Manager (Terminal Window Particles)
+        if (typeof ParticleManager !== 'undefined') {
+            this.particleManager = new ParticleManager(this.worldContainer, {
+                nebEnabled: true,
+                nebSocket: null
+            });
+            console.log('🔴 ParticleManager initialized for terminal particles');
+        } else {
+            console.warn('ParticleManager class not loaded, terminal particles disabled');
+        }
 
         // 11. Initialize In-Memory Virtual File System (VFS) for AI Agents
         this.vfs = {
@@ -898,6 +916,11 @@ class GeometryOSApplication {
         // Update Heatmap Overlay (Visual Hotspot Debugger)
         if (this.heatmapOverlay) {
             this.heatmapOverlay.tick(delta / 16.67); // Normalize to ~60fps
+        }
+
+        // Update Particle Manager (Terminal Window Particles)
+        if (this.particleManager) {
+            this.particleManager.update();
         }
 
         // Update Terminal Windows (sync overlay positions)
@@ -3330,7 +3353,28 @@ class GeometryOSApplication {
      * Open a Terminal Window on the map
      */
     openTerminalWindow(options = {}) {
-        // Check if TerminalWindow class exists
+        // Use ParticleManager if available
+        if (this.particleManager && typeof TerminalWindowParticle !== 'undefined') {
+            // Default options for particle
+            const defaults = {
+                x: 100 + this.particleManager.getParticleCount() * 30,
+                y: 100 + this.particleManager.getParticleCount() * 30,
+                width: 800,
+                height: 500,
+                title: 'Geometry OS Terminal',
+                wsUrl: 'ws://localhost:8769/terminal'
+            };
+
+            const config = { ...defaults, ...options };
+
+            // Create terminal particle via ParticleManager
+            const particle = this.particleManager.createTerminalParticle(config);
+
+            console.log('🖥️ Terminal particle opened:', particle.particleId);
+            return particle;
+        }
+
+        // Fallback to legacy TerminalWindow if ParticleManager not available
         if (typeof TerminalWindow === 'undefined') {
             console.error('TerminalWindow class not loaded');
             return null;
@@ -3371,13 +3415,23 @@ class GeometryOSApplication {
         // Focus the new window
         terminalWindow.focus();
 
-        console.log('🖥️ Terminal window opened');
+        console.log('🖥️ Terminal window opened (legacy mode)');
         return terminalWindow;
     }
 
     /**
      * Connect to the Memory Visual Bridge for semantic memory retrieval.
      */
+    /**
+     * Set NEB socket for ParticleManager (call when NEB connection is established)
+     */
+    setNebSocket(socket) {
+        if (this.particleManager) {
+            this.particleManager.setNebSocket(socket);
+            console.log('🔴 ParticleManager NEB socket connected');
+        }
+    }
+
     _connectMemoryBridge() {
         const port = 8768;
         try {
