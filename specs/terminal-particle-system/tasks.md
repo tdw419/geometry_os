@@ -21,7 +21,7 @@ Focus: Validate particle system works end-to-end. Skip tests, accept hardcoded v
   - _Requirements: FR-1_
   - _Design: TerminalWindowParticle component_
 
-- [ ] 1.2 Create ParticleManager.js
+- [x] 1.2 Create ParticleManager.js
   - **Do**: Create manager class with particles Map. Implement createParticle(options), destroyParticle(id), focusParticle(id), cycleFocus(). Track focusedParticleId. Add bringToFront logic.
   - **Files**: `/home/jericho/zion/projects/geometry_os/geometry_os/systems/visual_shell/web/ParticleManager.js`
   - **Done when**: Manager creates/destroys particles, cycles focus
