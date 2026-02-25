@@ -1877,6 +1877,13 @@ params:
             # Initialize NEB Bridge (Neural Event Bus HUD)
             await self._setup_neb_bridge()
 
+            # Start HTTP REST API server for WebMCP/GUI commands
+            runner = web.AppRunner(self.app)
+            await runner.setup()
+            site = web.TCPSite(runner, "0.0.0.0", self.http_port)
+            await site.start()
+            print(f"   HTTP API: http://localhost:{self.http_port}")
+
             async with serve(self.handle_client, "0.0.0.0", self.ws_port):
                 await asyncio.Future()
         finally:
