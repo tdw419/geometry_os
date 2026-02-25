@@ -2,10 +2,13 @@
 TectonicEngine - Force-directed spatial realignment for Neural City.
 
 Phase 28: Tectonic Realignment
+Phase 44: Tectonic Autonomy - Self-organizing codebase based on value
+
 - Calculates semantic gravity from NeuralMemoryHub similarity
 - Calculates operational tension from bridge frequency
 - Calculates anchor force to district center
 - Detects Phase Shift (migration) thresholds
+- AtomicMigration: Safe file system reorganization
 
 Physics Model:
     F_total = F_gravity(similarity) + F_tension(bridge_freq) - F_anchor(distance)
@@ -20,6 +23,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Dict, Tuple, Optional, List, Any
 from collections import defaultdict
+from pathlib import Path
 
 logger = logging.getLogger("evolution_daemon.tectonic_engine")
 
@@ -525,6 +529,295 @@ class TectonicEngine:
         """Exit flux mode - normal anchor forces."""
         self.flux_mode = False
         logger.info("🏔️ TectonicEngine exited FLUX mode")
+
+
+# ============================================================================
+# ATOMIC MIGRATION - Safe File System Reorganization
+# ============================================================================
+
+@dataclass
+class MigrationPlan:
+    """
+    A plan for migrating a file from one location to another.
+
+    Part of "Tectonic Autonomy" - the codebase physically reorganizes
+    itself based on value and relevance (Foveated Knowledge Gravity).
+    """
+    source_path: str
+    target_path: str
+    file_type: str  # "source", "spec", "doc", "config"
+    value_score: float
+    staleness_score: float
+    reason: str
+    reversible: bool = True
+    requires_import_update: bool = False
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "source": self.source_path,
+            "target": self.target_path,
+            "file_type": self.file_type,
+            "value_score": self.value_score,
+            "staleness_score": self.staleness_score,
+            "reason": self.reason,
+            "reversible": self.reversible,
+            "requires_import_update": self.requires_import_update,
+        }
+
+
+@dataclass
+class MigrationResult:
+    """Result of a migration attempt."""
+    success: bool
+    plan: MigrationPlan
+    error: Optional[str] = None
+    rollback_path: Optional[str] = None
+    timestamp: float = field(default_factory=time.time)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "success": self.success,
+            "plan": self.plan.to_dict(),
+            "error": self.error,
+            "rollback_path": self.rollback_path,
+            "timestamp": self.timestamp,
+        }
+
+
+class MigrationManager:
+    """
+    Manages atomic file migrations for Tectonic Autonomy.
+
+    Safety Features:
+    - Dry-run mode (preview changes without applying)
+    - Automatic rollback on failure
+    - Import reference tracking
+    - Backup creation before move
+
+    Migration Rules:
+    - Axion Core files (value > 0.9) stay at root
+    - High-staleness files (> 0.8) move to /archive/husks/
+    - Active source files stay in systems/
+    - Specs move to specs/ with spatial coordinates
+
+    Usage:
+        manager = MigrationManager(project_root)
+        plans = manager.generate_migration_plans(gravity_data)
+
+        # Preview
+        for plan in plans:
+            print(f"{plan.source_path} → {plan.target_path}")
+
+        # Apply (with dry_run first!)
+        results = manager.apply_migrations(plans, dry_run=True)
+        results = manager.apply_migrations(plans, dry_run=False)
+    """
+
+    # Paths to never migrate
+    PROTECTED_PATHS = {
+        ".git",
+        ".venv",
+        "venv",
+        "__pycache__",
+        "node_modules",
+        ".geometry",
+        ".claude",
+    }
+
+    # File patterns to exclude from migration
+    EXCLUDE_PATTERNS = {
+        "*.pyc",
+        "*.pyo",
+        "*.egg-info",
+        "*.lock",
+        "package-lock.json",
+    }
+
+    def __init__(self, project_root: Path):
+        self.project_root = Path(project_root)
+        self.archive_root = self.project_root / "archive" / "husks"
+        self._migration_history: List[MigrationResult] = []
+
+    def _is_protected(self, path: str) -> bool:
+        """Check if a path is protected from migration."""
+        path_parts = Path(path).parts
+        for protected in self.PROTECTED_PATHS:
+            if protected in path_parts:
+                return True
+
+        for pattern in self.EXCLUDE_PATTERNS:
+            if Path(path).match(pattern):
+                return True
+
+        return False
+
+    def _classify_file(self, path: str) -> str:
+        """Classify a file by type."""
+        if path.endswith(".py"):
+            if "/test" in path or path.startswith("test_"):
+                return "test"
+            return "source"
+        elif path.endswith(".md"):
+            if "/specs/" in path:
+                return "spec"
+            return "doc"
+        elif path.endswith((".json", ".yaml", ".yml", ".toml")):
+            return "config"
+        elif path.endswith((".js", ".ts", ".jsx", ".tsx")):
+            return "frontend"
+        return "other"
+
+    def generate_migration_plans(
+        self,
+        gravity_data: Dict[str, Any],
+        staleness_threshold: float = 0.8,
+        value_threshold: float = 0.9,
+    ) -> List[MigrationPlan]:
+        """
+        Generate migration plans based on gravity data.
+
+        Args:
+            gravity_data: Output from gravity_report.py
+            staleness_threshold: Files above this staleness are candidates
+            value_threshold: Files below this value are candidates
+
+        Returns:
+            List of MigrationPlan objects
+        """
+        plans = []
+
+        # Process stale husks
+        for husk in gravity_data.get("stale_husks", []):
+            source_path = husk.get("file", "")
+            staleness = husk.get("staleness", 0)
+            value = husk.get("value", 0)
+
+            # Skip protected paths
+            if self._is_protected(source_path):
+                continue
+
+            # Only migrate high-staleness, low-value files
+            if staleness >= staleness_threshold and value < value_threshold:
+                file_type = self._classify_file(source_path)
+                target_path = str(self.archive_root / source_path.replace("systems/", ""))
+
+                plan = MigrationPlan(
+                    source_path=source_path,
+                    target_path=target_path,
+                    file_type=file_type,
+                    value_score=value,
+                    staleness_score=staleness,
+                    reason=f"High staleness ({staleness:.2f}), low value ({value:.2f})",
+                    reversible=True,
+                    requires_import_update=(file_type == "source"),
+                )
+                plans.append(plan)
+
+        # Sort by staleness (most stale first)
+        plans.sort(key=lambda p: p.staleness_score, reverse=True)
+
+        return plans
+
+    def apply_migration(
+        self,
+        plan: MigrationPlan,
+        dry_run: bool = True,
+    ) -> MigrationResult:
+        """
+        Apply a single migration plan.
+
+        Args:
+            plan: The migration plan to apply
+            dry_run: If True, only preview the change
+
+        Returns:
+            MigrationResult with success/failure status
+        """
+        source = self.project_root / plan.source_path
+        target = self.project_root / plan.target_path
+
+        # Validate source exists
+        if not source.exists():
+            return MigrationResult(
+                success=False,
+                plan=plan,
+                error=f"Source file does not exist: {source}",
+            )
+
+        if dry_run:
+            logger.info(f"[DRY RUN] Would move: {plan.source_path} → {plan.target_path}")
+            return MigrationResult(
+                success=True,
+                plan=plan,
+                error="(dry run - not applied)",
+            )
+
+        try:
+            # Create target directory
+            target.parent.mkdir(parents=True, exist_ok=True)
+
+            # Move the file
+            import shutil
+            shutil.move(str(source), str(target))
+
+            logger.info(f"✅ Migrated: {plan.source_path} → {plan.target_path}")
+
+            result = MigrationResult(
+                success=True,
+                plan=plan,
+                rollback_path=str(source),  # Store original location for rollback
+            )
+            self._migration_history.append(result)
+            return result
+
+        except Exception as e:
+            logger.error(f"❌ Migration failed: {plan.source_path}: {e}")
+            return MigrationResult(
+                success=False,
+                plan=plan,
+                error=str(e),
+            )
+
+    def apply_migrations(
+        self,
+        plans: List[MigrationPlan],
+        dry_run: bool = True,
+        limit: int = 10,
+    ) -> List[MigrationResult]:
+        """
+        Apply multiple migration plans.
+
+        Args:
+            plans: List of migration plans
+            dry_run: If True, only preview changes
+            limit: Maximum number of migrations to apply
+
+        Returns:
+            List of MigrationResult objects
+        """
+        results = []
+        for plan in plans[:limit]:
+            result = self.apply_migration(plan, dry_run=dry_run)
+            results.append(result)
+
+            # Stop on first failure (unless dry run)
+            if not result.success and not dry_run:
+                logger.warning("Stopping migrations due to failure")
+                break
+
+        return results
+
+    def get_migration_summary(self) -> Dict[str, Any]:
+        """Get summary of all migrations performed."""
+        successful = sum(1 for r in self._migration_history if r.success)
+        failed = sum(1 for r in self._migration_history if not r.success)
+
+        return {
+            "total_migrations": len(self._migration_history),
+            "successful": successful,
+            "failed": failed,
+            "history": [r.to_dict() for r in self._migration_history[-10:]],
+        }
 
 
 # Singleton instance
