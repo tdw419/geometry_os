@@ -57,7 +57,7 @@ After POC validated, clean up code.
   - **Commit**: `refactor(geoasm): add disassembler and improve error reporting`
   - _Design: Component 2_
 
-- [ ] 2.2 Add verify_texture and compile_file methods
+- [x] 2.2 Add verify_texture and compile_file methods
   - **Do**: Add verify_texture() to decode pixels back to instructions, add compile_file() for CLI use with metadata JSON output
   - **Files**: `systems/intelligence/geometric_text/morphological_compiler.py`
   - **Done when**: verify_texture() returns decoded instruction list, compile_file() creates .rts.png and .json
