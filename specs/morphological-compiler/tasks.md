@@ -76,7 +76,7 @@ After POC validated, clean up code.
   - **Commit**: `test(geoasm): add parser unit tests`
   - _Requirements: AC-1.1, AC-1.2, AC-1.3, AC-1.4_
 
-- [ ] 3.2 Unit tests for morphological compiler
+- [x] 3.2 Unit tests for morphological compiler
   - **Do**: Create `systems/intelligence/geometric_text/tests/test_morphological_compiler.py` with tests for: empty compile, single/multiple instructions, RGBA encoding, operand encoding, roundtrip verify
   - **Files**: `systems/intelligence/geometric_text/tests/test_morphological_compiler.py`
   - **Done when**: `python3 -m pytest systems/intelligence/geometric_text/tests/test_morphological_compiler.py -v` passes all tests
