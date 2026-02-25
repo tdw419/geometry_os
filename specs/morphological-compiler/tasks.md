@@ -68,7 +68,7 @@ After POC validated, clean up code.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Unit tests for GeoASM parser
+- [x] 3.1 Unit tests for GeoASM parser
   - **Do**: Create `systems/intelligence/geometric_text/tests/test_geoasm_parser.py` with tests for: empty input, comments, single/multiple instructions, operands, errors
   - **Files**: `systems/intelligence/geometric_text/tests/test_geoasm_parser.py`
   - **Done when**: `python3 -m pytest systems/intelligence/geometric_text/tests/test_geoasm_parser.py -v` passes all tests
