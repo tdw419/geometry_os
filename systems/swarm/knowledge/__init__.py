@@ -5,6 +5,6 @@ Provides atomic knowledge units with bidirectional linking,
 inspired by Heaper PKM principles.
 """
 
-from .knowledge_block import BlockType
+from .knowledge_block import BlockType, KnowledgeBlock
 
-__all__ = ["BlockType"]
+__all__ = ["BlockType", "KnowledgeBlock"]

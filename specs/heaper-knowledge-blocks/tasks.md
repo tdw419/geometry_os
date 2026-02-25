@@ -16,7 +16,7 @@ Focus: Validate core data model, CRUD, linking, and bridge integration. TDD appr
   - _Requirements: FR-2_
   - _Design: BlockType Enum_
 
-- [ ] 1.2 Create KnowledgeBlock dataclass
+- [x] 1.2 Create KnowledgeBlock dataclass
   - **Do**:
     1. Write failing tests for KnowledgeBlock: to_dict, from_dict, compute_content_hash
     2. Implement KnowledgeBlock dataclass with all fields: block_id, block_type, content, tags, mentions, backlinks, embedding, metadata, created_at, updated_at
