@@ -66,7 +66,7 @@ Focus: Validate particle system works end-to-end. Skip tests, accept hardcoded v
 
 After POC validated, clean up code.
 
-- [ ] 2.1 Add NEB WebSocket integration
+- [x] 2.1 Add NEB WebSocket integration
   - **Do**: In ParticleManager constructor, accept nebSocket option. On particle events, publish to NEB via socket.send(JSON.stringify({topic, payload})). Topics: terminal.particle.created/moved/focused/destroyed.
   - **Files**: `/home/jericho/zion/projects/geometry_os/geometry_os/systems/visual_shell/web/ParticleManager.js`
   - **Done when**: Events published on particle actions

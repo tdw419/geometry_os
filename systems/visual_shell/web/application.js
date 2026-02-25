@@ -294,6 +294,8 @@ class GeometryOSApplication {
                 nebSocket: null
             });
             console.log('🔴 ParticleManager initialized for terminal particles');
+            // Connect to NEB for cross-terminal coordination
+            this._connectNebBridge();
         } else {
             console.warn('ParticleManager class not loaded, terminal particles disabled');
         }
@@ -3476,11 +3478,11 @@ class GeometryOSApplication {
         try {
             console.log('🔮 Connecting to Memory Bridge...');
             this.memoryBridgeSocket = new WebSocket(`ws://localhost:${port}`);
-            
+
             this.memoryBridgeSocket.onopen = () => {
                 console.log('🔮 Memory Bridge connected');
             };
-            
+
             this.memoryBridgeSocket.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
@@ -3509,7 +3511,7 @@ class GeometryOSApplication {
                         if (this.ambientNarrative) {
                             this.ambientNarrative.sessionId = data.session_id;
                             this.ambientNarrative.state = data.ambient_state || 'MONITORING';
-                            
+
                             // Update HUD if available
                             if (this.ambientNarrativeHUD) {
                                 this.ambientNarrativeHUD.updateState(this.ambientNarrative.state);
@@ -3522,11 +3524,11 @@ class GeometryOSApplication {
                     console.error('Failed to parse Memory Bridge message:', e);
                 }
             };
-            
+
             this.memoryBridgeSocket.onerror = (e) => {
                 // Connection error log is noisy, handled by onclose
             };
-            
+
             this.memoryBridgeSocket.onclose = () => {
                 console.log('🔮 Memory Bridge disconnected');
                 // Auto-reconnect after 5s
@@ -3536,6 +3538,98 @@ class GeometryOSApplication {
             };
         } catch (e) {
             console.error('Failed to connect to Memory Bridge:', e);
+        }
+    }
+
+    /**
+     * Connect to NEB (Neural Event Bus) for cross-terminal particle coordination.
+     * NEB runs on WebSocket port 8765 and handles particle events.
+     */
+    _connectNebBridge() {
+        const port = 8765;
+        try {
+            console.log('🔴 Connecting to NEB Bridge for particle coordination...');
+            this.nebBridgeSocket = new WebSocket(`ws://localhost:${port}`);
+
+            this.nebBridgeSocket.onopen = () => {
+                console.log('🔴 NEB Bridge connected - particle events enabled');
+                // Set the NEB socket on ParticleManager for event publishing
+                if (this.particleManager) {
+                    this.particleManager.setNebSocket(this.nebBridgeSocket);
+                }
+            };
+
+            this.nebBridgeSocket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    this._handleNebEvent(data);
+                } catch (e) {
+                    console.error('Failed to parse NEB message:', e);
+                }
+            };
+
+            this.nebBridgeSocket.onerror = (e) => {
+                // Connection error log is noisy, handled by onclose
+            };
+
+            this.nebBridgeSocket.onclose = () => {
+                console.log('🔴 NEB Bridge disconnected');
+                // Clear socket on ParticleManager
+                if (this.particleManager) {
+                    this.particleManager.setNebSocket(null);
+                }
+                // Auto-reconnect after 5s
+                if (!this.destroyed) {
+                    setTimeout(() => this._connectNebBridge(), 5000);
+                }
+            };
+        } catch (e) {
+            console.error('Failed to connect to NEB Bridge:', e);
+        }
+    }
+
+    /**
+     * Handle incoming NEB events for cross-terminal coordination.
+     * Routes events to appropriate handlers based on topic.
+     * @param {Object} data - The NEB event data with topic and payload
+     */
+    _handleNebEvent(data) {
+        const { topic, payload } = data;
+
+        if (!topic) return;
+
+        switch (topic) {
+            case 'terminal.particle.created':
+                console.log('🔴 NEB: Particle created:', payload.particleId);
+                // Could sync with other clients here
+                break;
+
+            case 'terminal.particle.moved':
+                // Handle particle position sync from other clients
+                if (this.particleManager && payload.particleId) {
+                    const particle = this.particleManager.getParticle(payload.particleId);
+                    if (particle && payload.position) {
+                        // Update position without triggering local NEB event
+                        particle.particlePosition = payload.position;
+                    }
+                }
+                break;
+
+            case 'terminal.particle.focused':
+                // Handle focus sync from other clients
+                if (this.particleManager && payload.particleId) {
+                    this.particleManager.focusParticle(payload.particleId);
+                }
+                break;
+
+            case 'terminal.particle.destroyed':
+                console.log('🔴 NEB: Particle destroyed:', payload.particleId);
+                // Could sync destruction with other clients here
+                break;
+
+            default:
+                // Unknown topic - ignore or log
+                break;
         }
     }
 
