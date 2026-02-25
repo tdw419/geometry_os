@@ -3381,9 +3381,16 @@ class GeometryOSApplication {
                     console.log('🖥️ Keyboard shortcut: Ctrl+Tab - Cycle focus to:', next?.particleId || 'none');
                 }
             }
+
+            // Ctrl+Shift+G: Create geometric terminal particle
+            if (e.ctrlKey && e.shiftKey && (e.key === 'G' || e.key === 'g')) {
+                e.preventDefault();
+                this.openGeometricTerminalWindow();
+                console.log('🖥️ Keyboard shortcut: Ctrl+Shift+G - Create geometric terminal');
+            }
         });
 
-        console.log('🖥️ Terminal keyboard shortcuts configured (Ctrl+Shift+T/N, Ctrl+Shift+W, Ctrl+Tab)');
+        console.log('🖥️ Terminal keyboard shortcuts configured (Ctrl+Shift+T/N, Ctrl+Shift+W, Ctrl+Tab, Ctrl+Shift+G)');
     }
 
     /**
@@ -3464,6 +3471,22 @@ class GeometryOSApplication {
 
         console.log('🖥️ Terminal window opened (legacy mode)');
         return terminalWindow;
+    }
+
+    /**
+     * Open a Geometric Terminal Window on the map
+     * @param {Object} options - Configuration options
+     * @returns {Object} The created geometric terminal particle
+     */
+    openGeometricTerminalWindow(options = {}) {
+        const defaults = {
+            x: 100 + (this.particleManager?.getParticlesByType('geometric-terminal')?.length || 0) * 50,
+            y: 100 + (this.particleManager?.getParticlesByType('geometric-terminal')?.length || 0) * 50,
+            cols: 80,
+            rows: 24
+        };
+        const config = { ...defaults, ...options };
+        return this.particleManager.createGeometricTerminalParticle(config);
     }
 
     /**
