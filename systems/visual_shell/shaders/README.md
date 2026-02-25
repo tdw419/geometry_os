@@ -118,7 +118,82 @@ const uniforms = new Float32Array([
 
 ---
 
+## CRT Shader (`crt.wgsl`)
+
+### Purpose
+Visualizes Phase Alignment Stability (PAS) - the synchronization status between the Rust kernel and the 3D viewport. Part of the WorldView Morphological Layer's diagnostic shader suite for detecting kernel-viewport desynchronization.
+
+### How It Works
+1. Reads source texture representing stable viewport frame
+2. Applies CRT-style visual effects proportional to PAS drift
+3. Lower PAS score = more distortion, scanlines, chromatic aberration
+4. Outputs nostalgic CRT monitor effect with stability feedback
+
+### Input
+- **Input Texture:** RGBA texture from viewport render
+- **Uniforms:**
+  - `time`: Animation time for jitter effects
+  - `pas_score`: Phase Alignment Stability (0.0 = completely unstable, 1.0 = stable)
+  - `scanline_intensity`: Base scanline effect strength (default: 0.3)
+  - `distortion_amount`: Maximum barrel distortion at PAS=0 (default: 0.2)
+  - `resolution`: Output resolution (x, y) for coordinate normalization
+
+### Output
+CRT-style visualization with stability indicators:
+| PAS Score | Visual Effect | Meaning |
+|-----------|---------------|---------|
+| 1.0 | Clean image, minimal effects | Kernel and viewport fully synchronized |
+| 0.7-0.9 | Light scanlines | Minor timing drift |
+| 0.5-0.7 | Visible scanlines + vignette | Moderate desync |
+| 0.3-0.5 | Strong distortion + chromatic aberration | Significant desync detected |
+| 0.0-0.3 | H-sync jitter + static noise | Critical desync - investigate immediately |
+
+### Visual Effects
+- **Barrel Distortion:** Curved image edges, increases with instability
+- **Scanlines:** Horizontal dark bands (CRT raster lines)
+- **Chromatic Aberration:** RGB channel separation (phosphor misalignment)
+- **Vignette:** Darker edges (CRT tube characteristic)
+- **H-Sync Jitter:** Horizontal position jumping (severe desync only)
+- **Static Noise:** Random brightness fluctuations (critical instability)
+
+### Use Cases
+- **Kernel-Viewport Synchronization:** Monitor real-time sync status
+- **Desynchronization Detection:** Spot timing drift between Rust kernel and 3D layer
+- **Performance Debugging:** Visual indicator when render pipeline is stressed
+- **System Health Monitoring:** Quick visual check for alignment stability
+
+### Integration
+```javascript
+// Example: Apply CRT shader for PAS visualization
+const crtShader = await loadShader('crt.wgsl');
+const pipeline = device.createComputePipeline({
+    layout: pipelineLayout,
+    compute: {
+        module: crtShader,
+        entryPoint: 'main',
+    },
+});
+
+// Configure uniforms based on PAS measurement
+const uniforms = new Float32Array([
+    performance.now() / 1000,  // time
+    currentPAS,                 // pas_score (from kernel sync monitor)
+    0.3,                        // scanline_intensity
+    0.2,                        // distortion_amount
+    canvas.width,               // resolution.x
+    canvas.height,              // resolution.y
+]);
+```
+
+### Technical Notes
+- Workgroup size: 8x8 for optimal GPU occupancy
+- Uses barrel distortion formula: `uv + center * dist^2 * amount`
+- Chromatic aberration offsets R/B channels by separation amount
+- H-sync jitter activates below PAS 0.3 (critical threshold)
+- Green phosphor tint (0.95, 1.0, 0.9) for authentic CRT aesthetic
+
+---
+
 ## Future Shaders (Planned)
 
-- **CRT Shader:** Retro scan-line effect for nostalgic system monitoring
 - **Sonar Shader:** Pulsing radar effect for process discovery
