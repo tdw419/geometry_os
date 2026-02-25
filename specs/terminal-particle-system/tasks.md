@@ -86,7 +86,7 @@ After POC validated, clean up code.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Write integration tests
+- [x] 3.1 Write integration tests
   - **Do**: Create test file with pytest. Test: particle serialization roundtrip, NEB event publishing, focus cycling, layout persistence mock. Follow pattern in test_terminal_neb_integration.py.
   - **Files**: `/home/jericho/zion/projects/geometry_os/geometry_os/systems/visual_shell/api/tests/test_terminal_particle_integration.py`
   - **Done when**: Tests pass, cover main flows
