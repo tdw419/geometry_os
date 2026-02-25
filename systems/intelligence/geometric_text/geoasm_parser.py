@@ -8,7 +8,7 @@ Supports 12 symbols mapped to WebAssembly-style opcodes.
 from dataclasses import dataclass
 from typing import List, Tuple
 
-from systems.intelligence.geometric_text.geoasm_opcodes import SYMBOL_TO_OPCODE
+from systems.intelligence.geometric_text.geoasm_opcodes import SYMBOL_TO_OPCODE, OPCODE_NAMES, get_opcode_name
 
 
 @dataclass
@@ -27,6 +27,10 @@ class ParseError:
     message: str     # Error description
     line: int        # 1-based line number
     col: int         # 1-based column number
+
+    def __str__(self) -> str:
+        """Return readable error message with location."""
+        return f"Parse error at line {self.line}, col {self.col}: {self.message}"
 
 
 class GeoASMParser:
@@ -167,3 +171,37 @@ class GeoASMParser:
         with open(path, 'r') as f:
             source = f.read()
         return self.parse(source)
+
+
+def disassemble(instructions: List[GeoASMInstruction]) -> str:
+    """
+    Convert a list of GeoASM instructions back to readable GeoASM text.
+
+    Args:
+        instructions: List of GeoASMInstruction objects
+
+    Returns:
+        Readable GeoASM source text with opcode name comments
+
+    Example:
+        >>> parser = GeoASMParser()
+        >>> instructions, _ = parser.parse("$ 5 $ 3 +")
+        >>> print(disassemble(instructions))
+        $ 5  ; i32.const
+        $ 3  ; i32.const
+        +    ; i32.add
+    """
+    lines = []
+    for instr in instructions:
+        # Get the opcode name for the comment
+        opcode_name = get_opcode_name(instr.opcode)
+
+        # Format: symbol [operand]  ; opcode_name
+        if instr.operand != 0:
+            line = f"{instr.char} {instr.operand}  ; {opcode_name}"
+        else:
+            line = f"{instr.char}    ; {opcode_name}"
+
+        lines.append(line)
+
+    return '\n'.join(lines)

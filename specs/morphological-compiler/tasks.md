@@ -49,7 +49,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
 
 After POC validated, clean up code.
 
-- [ ] 2.1 Add disassembler and error reporting
+- [x] 2.1 Add disassembler and error reporting
   - **Do**: Add disassemble() function to geoasm_parser.py, improve ParseError with detailed messages
   - **Files**: `systems/intelligence/geometric_text/geoasm_parser.py`
   - **Done when**: disassemble() outputs readable GeoASM text, errors include line/col
