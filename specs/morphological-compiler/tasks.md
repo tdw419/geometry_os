@@ -39,7 +39,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
   - _Requirements: FR-5, FR-6, FR-7, FR-8_
   - _Design: Component 3_
 
-- [ ] 1.4 POC Checkpoint
+- [x] 1.4 POC Checkpoint
   - **Do**: Verify end-to-end: parse "$ 5 $ 3 +" → compile → verify texture has 3 glyphs (48px wide)
   - **Done when**: Manual test shows 48x16 RGBA texture with correct encoding
   - **Verify**: `python3 -c "from systems.intelligence.geometric_text.morphological_compiler import MorphologicalCompiler; c=MorphologicalCompiler(); t=c.compile('\$ 5 \$ 3 +'); print(t.size)"`
