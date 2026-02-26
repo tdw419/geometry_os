@@ -24,7 +24,7 @@ export class GPUExecutionSystem {
         this.handleSyscall = null;
 
         // Constants for RISC-V Shader
-        this.RISCV_REGS = 32;
+        this.RISCV_REGS_PER_CORE = 64; // Expanded for Tectonic
         this.RISCV_PC_INDEX = 32;
         this.RISCV_RA_INDEX = 1; // x1 is return address register
         this.RISCV_A0_INDEX = 10; // x10 is first argument/return value register
@@ -33,6 +33,9 @@ export class GPUExecutionSystem {
         this.RISCV_SSCRATCH_INDEX = 36; // CSR_SSCRATCH
         this.RISCV_MODE_INDEX = 37; // Privilege mode
         this.RISCV_HALT_INDEX = 38; // Halt flag
+        this.RISCV_GUEST_BASE_INDEX = 46;
+        this.RISCV_GUEST_SIZE_INDEX = 47;
+        this.RISCV_GEOM_CACHE_INDEX = 48;
         this.MAGIC_TRAP_ADDR = 0xFFFFFFFE;
     }
 
@@ -130,7 +133,7 @@ export class GPUExecutionSystem {
         });
 
         // State Buffer (Registers + PC + CSRs)
-        // 46 registers * 4 bytes = 184 bytes. Align to 256.
+        // 64 registers * 4 bytes = 256 bytes. Align to 1024.
         const stateBuffer = this.device.createBuffer({
             size: 256 * 4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
@@ -448,7 +451,7 @@ export class GPUExecutionSystem {
         const kernel = this.kernels.get(id);
         if (!kernel) return null;
 
-        const stateSize = 46 * 4;
+        const stateSize = this.RISCV_REGS_PER_CORE * 4;
         const stagingBuffer = this.device.createBuffer({
             size: stateSize,
             usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
@@ -470,6 +473,11 @@ export class GPUExecutionSystem {
             stvec: states[35],        // Trap handler address
             sscratch: states[36],      // Scratch register for traps
             mode: states[37],         // Privilege mode (0=user, 1=supervisor)
+            // Tectonic Extensions
+            guestBase: states[46],
+            guestSize: states[47],
+            geomCache: states[48],
+            transFlags: states[49],
             // Trap CSRs
             sepc: states[40],         // Supervisor Exception Program Counter
             scause: states[41],       // Supervisor Cause Register
