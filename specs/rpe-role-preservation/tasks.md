@@ -158,7 +158,7 @@ After POC validated, clean up code structure.
   - _Requirements: FR-1, FR-6, AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-3.1, AC-3.2, AC-3.3_
   - _Design: Test Strategy_
 
-- [ ] 3.2 Create unit tests for PromptValidator role constraints
+- [x] 3.2 Create unit tests for PromptValidator role constraints
   - **Do**:
     1. Add test_validator_accepts_valid_prompt(): prompt with all required phrases passes
     2. Add test_validator_rejects_missing_phrase(): missing required phrase fails

@@ -1,17 +1,30 @@
 #!/usr/bin/env python3
 """
-Unit tests for RoleConstraint and GEOMETRY_OS_ARCHITECT.
+Unit tests for RoleConstraint, GEOMETRY_OS_ARCHITECT, and PromptValidator role constraints.
 
 Tests RoleConstraint dataclass including:
 - Creation with all fields
 - Empty name validation (ValueError)
 - Default values (min_role_mentions=1)
 - GEOMETRY_OS_ARCHITECT constant values
+
+Tests PromptValidator role constraint integration:
+- Valid prompts with all required phrases pass
+- Missing required phrases fail
+- Forbidden patterns fail
+- Forbidden roles fail
+- Multiple constraints checked
+- Case insensitive matching
+- Empty constraint lists handled
 """
 
 import unittest
 
-from systems.intelligence.prompt_validator import RoleConstraint, GEOMETRY_OS_ARCHITECT
+from systems.intelligence.prompt_validator import (
+    RoleConstraint,
+    GEOMETRY_OS_ARCHITECT,
+    PromptValidator,
+)
 
 
 class TestRoleConstraint(unittest.TestCase):
@@ -99,6 +112,118 @@ class TestGeometryOsArchitectConstant(unittest.TestCase):
     def test_geometry_os_architect_is_role_constraint(self):
         """GEOMETRY_OS_ARCHITECT should be a RoleConstraint instance."""
         self.assertIsInstance(GEOMETRY_OS_ARCHITECT, RoleConstraint)
+
+
+class TestPromptValidatorRoleConstraints(unittest.TestCase):
+    """Test cases for PromptValidator role constraint enforcement."""
+
+    def test_validator_accepts_valid_prompt(self):
+        """Prompt with all required phrases should pass validation."""
+        validator = PromptValidator(role_constraints=[GEOMETRY_OS_ARCHITECT])
+        prompt = "You are the Global Architect of Geometry OS. Build amazing systems."
+
+        result = validator.validate(prompt)
+
+        self.assertTrue(result.is_valid, "Valid prompt should pass")
+
+    def test_validator_rejects_missing_phrase(self):
+        """Prompt missing required phrase should fail validation."""
+        validator = PromptValidator(role_constraints=[GEOMETRY_OS_ARCHITECT])
+        prompt = "You are the Global Architect. Build cool stuff."  # Missing "Geometry OS"
+
+        result = validator.validate(prompt)
+
+        self.assertFalse(result.is_valid, "Missing phrase should fail")
+        error_messages = [i["message"] for i in result.get_errors()]
+        self.assertTrue(
+            any("Geometry OS" in msg for msg in error_messages),
+            "Should have error about missing 'Geometry OS'"
+        )
+
+    def test_validator_rejects_forbidden_pattern(self):
+        """Prompt matching forbidden pattern should fail validation."""
+        validator = PromptValidator(role_constraints=[GEOMETRY_OS_ARCHITECT])
+        prompt = "You are a helpful assistant for Geometry OS."
+
+        result = validator.validate(prompt)
+
+        self.assertFalse(result.is_valid, "Forbidden pattern should fail")
+        error_messages = [i["message"] for i in result.get_errors()]
+        self.assertTrue(
+            any("forbidden pattern" in msg.lower() for msg in error_messages),
+            "Should have forbidden pattern error"
+        )
+
+    def test_validator_rejects_forbidden_role(self):
+        """Prompt containing forbidden role word should fail validation."""
+        validator = PromptValidator(role_constraints=[GEOMETRY_OS_ARCHITECT])
+        prompt = "You are the Global Architect of Geometry OS. You are a chatbot."
+
+        result = validator.validate(prompt)
+
+        self.assertFalse(result.is_valid, "Forbidden role should fail")
+        error_messages = [i["message"] for i in result.get_errors()]
+        self.assertTrue(
+            any("chatbot" in msg.lower() for msg in error_messages),
+            "Should have forbidden role error for 'chatbot'"
+        )
+
+    def test_multiple_constraints(self):
+        """Validator should check all constraints."""
+        constraint1 = RoleConstraint(
+            role_name="Role A",
+            required_phrases=["alpha"],
+            forbidden_patterns=[],
+            forbidden_roles=[]
+        )
+        constraint2 = RoleConstraint(
+            role_name="Role B",
+            required_phrases=["beta"],
+            forbidden_patterns=[],
+            forbidden_roles=[]
+        )
+        validator = PromptValidator(role_constraints=[constraint1, constraint2])
+
+        # Missing both phrases
+        result = validator.validate("Gamma delta epsilon")
+
+        self.assertFalse(result.is_valid)
+        errors = result.get_errors()
+        constraint_names = [e.get("constraint") for e in errors]
+        self.assertIn("Role A", constraint_names)
+        self.assertIn("Role B", constraint_names)
+
+    def test_case_insensitive_matching(self):
+        """Matching should be case insensitive."""
+        validator = PromptValidator(role_constraints=[GEOMETRY_OS_ARCHITECT])
+
+        # Test lowercase forbidden role
+        result = validator.validate(
+            "You are the Global Architect of Geometry OS. You are an ASSISTANT."
+        )
+        self.assertFalse(result.is_valid, "Uppercase forbidden role should fail")
+
+        # Test mixed case required phrase
+        result2 = validator.validate(
+            "You are the global architect of geometry os. Build systems."
+        )
+        # This should pass required phrase check (case insensitive)
+        # Note: may still fail structural "Architect" warning but that's warning level
+        has_required_phrase_error = any(
+            "Missing required phrase" in i["message"]
+            for i in result2.get_errors()
+        )
+        self.assertFalse(has_required_phrase_error, "Case insensitive phrase check")
+
+    def test_empty_constraint_lists(self):
+        """Validator should work with empty constraint list."""
+        validator = PromptValidator(role_constraints=[])
+        prompt = "You are the Global Architect of Geometry OS. Build systems."
+
+        result = validator.validate(prompt)
+
+        # Should pass since no role constraints to check
+        self.assertTrue(result.is_valid, "Empty constraint list should work")
 
 
 if __name__ == "__main__":
