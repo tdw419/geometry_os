@@ -3,7 +3,6 @@
 Terminal Position Persistence API
 
 WebSocket server for syncing terminal window positions.
-Provides REST endpoints for position management and WebSocket for real-time sync.
 """
 
 import asyncio
@@ -30,7 +29,7 @@ class Position(BaseModel):
     height: Optional[float] = None
 
 
-# In-memory storage (replace with database for production)
+# In-memory storage
 positions_db: Dict[str, Position] = {}
 
 
@@ -60,15 +59,8 @@ async def save_positions(positions: Dict[str, Position]) -> dict:
 async def get_terminal(terminal_id: str) -> dict:
     """Get single terminal state"""
     if terminal_id not in positions_db:
-        raise HTTPException(status_code=404, detail="Terminal not found")
-
-    pos = positions_db[terminal_id]
-    return {
-        "x": pos.x,
-        "y": pos.y,
-        "width": pos.width,
-        "height": pos.height
-    }
+        return JSONResponse(content=positions_db[terminal_id].dict())
+    return JSONResponse(content={"error": "not found"}, status_code=404)
 
 
 @app.put("/api/terminals/{terminal_id}/position")
@@ -83,7 +75,8 @@ async def delete_terminal(terminal_id: str) -> dict:
     """Delete terminal position"""
     if terminal_id in positions_db:
         del positions_db[terminal_id]
-    return {"status": "ok"}
+        return {"status": "ok"}
+    return JSONResponse(content={"error": "not found"}, status_code=404)
 
 
 # WebSocket connection manager
@@ -91,13 +84,37 @@ class ConnectionManager:
     def __init__(self):
         self.active_connections: list = []
 
-    async def broadcast(self, message: dict):
-        """Broadcast message to all connected clients"""
-        for connection in self.active_connections:
-            try:
-                await connection.send_json(message)
-            except Exception:
-                pass
+    async def connect(self, websocket: WebSocket):
+        self.active_connections.append(websocket)
+        try:
+            while True:
+                data = await websocket.receive_text()
+                message = json.loads(data)
+
+                if message.get("type") == "load_positions":
+                    await websocket.send_json({
+                        "type": "positions",
+                        "positions": {tid: pos.dict() for tid, pos in positions_db.items()}
+                    })
+                elif message.get("type") == "save_positions":
+                    global positions_db
+                    positions_db = {
+                        tid: Position(**pos)
+                        for tid, pos in message.get("positions", {}).items()
+                    }
+                    await websocket.send_json({
+                        "type": "saved",
+                        "count": len(positions_db)
+                    })
+                    # Broadcast to other clients
+                    for conn in self.active_connections:
+                        if conn != websocket:
+                            await conn.send_json({
+                                "type": "positions_updated",
+                                "positions": {tid: pos.dict() for tid, pos in positions_db.items()}
+                            })
+        except WebSocketDisconnect:
+            self.active_connections.remove(websocket)
 
 
 connection_manager = ConnectionManager()
@@ -105,99 +122,9 @@ connection_manager = ConnectionManager()
 
 @app.websocket("/ws/terminals")
 async def websocket_endpoint(websocket: WebSocket):
-    """
-    WebSocket endpoint for real-time terminal position sync.
-
-    Message types:
-    - load_positions: Request all positions
-    - save_positions: Save positions to server
-    - position_update: Single position update
-    """
-    await websocket.accept()
-    connection_manager.active_connections.append(websocket)
-
-    try:
-        while True:
-            data = await websocket.receive_text()
-
-            try:
-                message = json.loads(data)
-                msg_type = message.get("type")
-
-                if msg_type == "load_positions":
-                    # Send all positions
-                    await websocket.send_json({
-                        "type": "positions",
-                        "positions": {
-                            tid: {"x": pos.x, "y": pos.y, "width": pos.width, "height": pos.height}
-                            for tid, pos in positions_db.items()
-                        }
-                    })
-
-                elif msg_type == "save_positions":
-                    # Save all positions
-                    global positions_db
-                    positions = message.get("positions", {})
-                    positions_db = {
-                        tid: Position(**pos)
-                        for tid, pos in positions.items()
-                    }
-
-                    # Confirm save
-                    await websocket.send_json({
-                        "type": "saved",
-                        "count": len(positions_db)
-                    })
-
-                    # Broadcast to other clients
-                    await connection_manager.broadcast({
-                        "type": "positions_updated",
-                        "source": "remote"
-                    })
-
-                elif msg_type == "position_update":
-                    # Single position update
-                    terminal_id = message.get("terminal_id")
-                    position_data = message.get("position", {})
-
-                    if terminal_id:
-                        positions_db[terminal_id] = Position(**position_data)
-
-                        # Broadcast to other clients
-                        await connection_manager.broadcast({
-                            "type": "position_update",
-                            "terminal_id": terminal_id,
-                            "position": position_data
-                        })
-
-            except json.JSONDecodeError:
-                await websocket.send_json({
-                    "type": "error",
-                    "message": "Invalid JSON"
-                })
-            except Exception as e:
-                await websocket.send_json({
-                    "type": "error",
-                    "message": str(e)
-                })
-
-    except WebSocketDisconnect:
-        pass
-    finally:
-        if websocket in connection_manager.active_connections:
-            connection_manager.active_connections.remove(websocket)
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Log startup"""
-    print("[TerminalPositionsAPI] Server started on port 8765")
+    await connection_manager.connect(websocket)
 
 
 if __name__ == "__main__":
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8765,
-        log_level="info"
-    )
+    print("Starting Terminal Positions API server on http://0.0.0.0:8765")
+    uvicorn.run(app, host="0.0.0.0", port=8765)

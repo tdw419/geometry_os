@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Terminal Manager Test - Infinite Map Integration</title>
+    <style>
+        body {
+            margin: 0;
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+        }
+        #controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: #1a1a1a;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        button {
+            background: #252535;
+            color: #00ff88;
+            border: 1px solid #00ff88;
+            padding: 8px 16px;
+            margin: 2px;
+            cursor: pointer;
+        }
+        button:hover { background: #00ff88; color: #0a0a0a; }
+        #info {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: #1a1a1a;
+            padding: 10px;
+            border: 1px solid #333;
+            font-size: 12px;
+        }
+        #canvas { width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button onclick="createTerminal()">New Terminal (Ctrl+T)</button>
+        <button onclick="closeFocused()">Close (Ctrl+W)</button>
+        <button onclick="toggleMinimize()">Minimize (Ctrl+M)</button>
+        <button onclick="focusNext()">Next (Tab)</button>
+        <button onclick="saveLayout()">Save Layout</button>
+        <button onclick="loadLayout()">Load Layout</button>
+    </div>
+    <div id="info">
+        Terminals: <span id="count">0</span> |
+        Focused: <span id="focused">none</span> |
+        Server: <span id="server">disconnected</span>
+    </div>
+    <div id="canvas"></div>
+
+    <script src="https://pixijs.download/v7/pixi.min.js"></script>
+    <script type="module">
+        import { TerminalManager } from './TerminalManager.js';
+
+        let app, manager;
+
+        async function init() {
+            app = new PIXI.Application({
+                width: window.innerWidth,
+                height: window.innerHeight,
+                backgroundColor: 0x0a0a0a,
+                antialias: true
+            });
+            document.getElementById('canvas').appendChild(app.view);
+
+            // Create viewport-like container
+            const viewport = {
+                worldContainer: app.stage
+            };
+
+            manager = new TerminalManager(app, viewport, {
+                serverUrl: 'ws://localhost:8765',
+                autoConnect: true
+            });
+
+            // Update info
+            setInterval(updateInfo, 500);
+
+            console.log('Terminal Manager initialized');
+        }
+
+        function createTerminal() {
+            manager.createTerminal({ cols: 60, rows: 20 });
+        }
+
+        function closeFocused() {
+            if (manager.focusedWindowId) {
+                manager.destroyTerminal(manager.focusedWindowId);
+            }
+        }
+
+        function toggleMinimize() {
+            const win = manager.windows.get(manager.focusedWindowId);
+            if (win) win.toggleMinimize();
+        }
+
+        function focusNext() {
+            manager._focusNext(1);
+        }
+
+        function saveLayout() {
+            manager.savePositions();
+            alert('Layout saved!');
+        }
+
+        function loadLayout() {
+            manager.loadPositions();
+        }
+
+        function updateInfo() {
+            document.getElementById('count').textContent = manager.windows.size;
+            document.getElementById('focused').textContent = manager.focusedWindowId || 'none';
+            document.getElementById('server').textContent = manager.connected ? 'connected' : 'disconnected';
+        }
+
+        init();
+    </script>
+</body>
+</html>
