@@ -173,7 +173,7 @@ Add unit and integration tests for the morphological loader.
   - _Requirements: FR-9_
   - _Design: Test Strategy: Unit Tests_
 
-- [ ] 3.2 Create integration test for full pipeline
+- [x] 3.2 Create integration test for full pipeline
   - **Do**:
     1. Add `testMorphologicalPipeline()` to test file
     2. Load hello_morph.rts.png using real loader
