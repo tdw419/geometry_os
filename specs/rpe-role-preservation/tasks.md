@@ -144,7 +144,7 @@ After POC validated, clean up code structure.
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Create unit tests for RoleConstraint
+- [x] 3.1 Create unit tests for RoleConstraint
   - **Do**:
     1. Create `tests/intelligence/test_role_constraint.py`
     2. Add test_role_constraint_creation(): instantiate with all fields
