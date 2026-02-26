@@ -7,9 +7,12 @@ Validates prompts for injection attacks and role identity preservation.
 Part of the RPE (Recursive Prompt Evolution) Stability Suite.
 """
 
+import logging
 import re
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -141,9 +144,12 @@ class PromptValidator:
             for pattern in constraint.forbidden_patterns:
                 try:
                     patterns.append(re.compile(pattern, re.IGNORECASE))
-                except re.error:
-                    # Skip invalid patterns gracefully
-                    pass
+                except re.error as e:
+                    # Skip invalid patterns gracefully, log warning
+                    logger.warning(
+                        "Invalid regex pattern for role '%s': '%s' - %s",
+                        constraint.role_name, pattern, e
+                    )
             self._compiled_patterns[constraint.role_name] = patterns
 
     def validate(self, prompt: str) -> ValidationResult:
