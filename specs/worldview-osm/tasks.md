@@ -39,7 +39,7 @@ Focus: Create functional OSM WorldView with all core features. Skip tests, use m
   - _Requirements: FR-5, FR-6, FR-7_
   - _Design: Component B_
 
-- [ ] 1.4 Connect WorldViewOrchestrator
+- [x] 1.4 Connect WorldViewOrchestrator
   - **Do**: Import WorldViewOrchestrator, create mock GPU system, register three kernels (ALPINE-X86-SF, UBUNTU-ARM-LDN, GOS-CORE-TYO), start 10Hz sync loop
   - **Files**: `systems/visual_shell/web/demo_worldview_osm.html`
   - **Done when**: Three markers appear on map at San Francisco, London, Tokyo coordinates with pulsing

@@ -358,5 +358,84 @@
     console.log('   - window.addTectonicNode(node) - Add marker');
     console.log('   - window.updateTectonicNode(id, load) - Update pulse');
   </script>
+
+  <!-- WorldView Orchestrator Integration -->
+  <script type="module">
+    import { WorldViewOrchestrator } from './WorldViewOrchestrator.js';
+
+    // Mock GPU System for POC - simulates GPUExecutionSystem interface
+    const mockGPUSystem = {
+      // Simulate reading kernel state
+      async readState(kernelId) {
+        // Simulate varying load based on kernel
+        const baseLoad = {
+          'linux_alpine_sf': 0.65,
+          'linux_ubuntu_lon': 0.45,
+          'hypervisor_core_tok': 0.85
+        };
+        const load = baseLoad[kernelId] || 0.5;
+        // Add some randomness to simulate activity
+        const jitter = (Math.random() - 0.5) * 0.2;
+        return {
+          halted: false,
+          load: Math.max(0, Math.min(1, load + jitter)),
+          cycles: Math.floor(Math.random() * 1000000)
+        };
+      },
+
+      // Simulate reading memory buffer
+      async readMemory(kernelId, offset, length) {
+        // Generate mock memory data as Uint32Array
+        const buffer = new Uint32Array(length / 4);
+        // Fill with pseudo-random data based on kernel ID
+        const seed = kernelId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+        for (let i = 0; i < buffer.length; i++) {
+          buffer[i] = (seed * (i + 1) * 2654435761) >>> 0; // Simple PRNG
+        }
+        return buffer;
+      }
+    };
+
+    // Initialize orchestrator with mock GPU system
+    const orchestrator = new WorldViewOrchestrator(mockGPUSystem, map);
+    window.orchestrator = orchestrator;
+
+    // Register three Tectonic kernels at specific geographic locations
+    // ALPINE-X86-SF: San Francisco (Silicon Valley)
+    orchestrator.registerKernel('linux_alpine_sf', {
+      name: 'ALPINE-X86-SF',
+      lat: 37.7749,
+      lon: -122.4194,
+      region: 'US-WEST'
+    });
+
+    // UBUNTU-ARM-LDN: London (Europe)
+    orchestrator.registerKernel('linux_ubuntu_lon', {
+      name: 'UBUNTU-ARM-LDN',
+      lat: 51.5074,
+      lon: -0.1278,
+      region: 'EU-WEST'
+    });
+
+    // GOS-CORE-TYO: Tokyo (Asia-Pacific)
+    orchestrator.registerKernel('hypervisor_core_tok', {
+      name: 'GOS-CORE-TYO',
+      lat: 35.6762,
+      lon: 139.6503,
+      region: 'AP-EAST'
+    });
+
+    // Start 10Hz sync loop (100ms interval)
+    setInterval(() => {
+      orchestrator.sync();
+    }, 100);
+
+    console.log('🔌 WorldViewOrchestrator connected');
+    console.log('📍 Registered 3 Tectonic Kernels:');
+    console.log('   - ALPINE-X86-SF (San Francisco)');
+    console.log('   - UBUNTU-ARM-LDN (London)');
+    console.log('   - GOS-CORE-TYO (Tokyo)');
+    console.log('⚡ Sync loop running at 10Hz');
+  </script>
 </body>
 </html>
