@@ -1,0 +1,13 @@
+{
+  "source": "plan",
+  "name": "the-motherboard",
+  "basePath": "./specs/the-motherboard",
+  "phase": "execution",
+  "taskIndex": 0,
+  "totalTasks": 14,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": false
+}
