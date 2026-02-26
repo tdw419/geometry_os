@@ -30,7 +30,7 @@ Focus: Verify existing MMU components and fix critical security gap.
   - _Requirements: FR-6_
   - _Design: Component B_
 
-- [ ] 1.3 Verify guest bounds checking in translate_address
+- [x] 1.3 Verify guest bounds checking in translate_address
   - **Do**: Check lines 289-294 for GUEST_BASE/SIZE bounds check after Sv32 translation
   - **Files**: `systems/visual_shell/web/shaders/visual_cpu_riscv.wgsl`
   - **Done when**: Bounds check code present with CSR_GUEST_BASE and CSR_GUEST_SIZE
