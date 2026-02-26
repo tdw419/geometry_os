@@ -381,6 +381,7 @@ class GlyphExecutor {
     /**
      * Read results from GPU buffer
      * Checks halt flag and extracts execution state
+     * Detects fraud when halt flag is set
      * @param {Array} activeGlyphs - Glyphs to read results for
      * @returns {Promise<Array>} Results per glyph
      */
@@ -399,20 +400,24 @@ class GlyphExecutor {
 
             // Simulated: check halt flag at offset +38
             // In real implementation, read from buffer
-            const haltFlag = false; // POC: never halt
+            // POC: Simulate fraud detection - 5% chance of halt for testing
+            const fraudDetected = Math.random() < 0.05;
+            const haltFlag = fraudDetected; // POC: random fraud for testing
             const cycles = glyph.executionCount;
 
             results.push({
                 coreId: glyph.coreId,
                 halted: haltFlag,
+                fraud: fraudDetected,
                 cycles,
                 pc: glyph.pc
             });
 
-            // Update glyph's lastResult
+            // Update glyph's lastResult with fraud flag
             glyph.lastResult = {
                 cycles,
-                halted: haltFlag
+                halted: haltFlag,
+                fraud: fraudDetected
             };
         }
 
@@ -422,31 +427,52 @@ class GlyphExecutor {
 
     /**
      * Update visual feedback for glyphs
-     * Updates glowIntensity based on active state
+     * Updates glowIntensity based on active state with smooth interpolation
+     * Active glyphs: alpha 0.7-1.0, pulsing scale effect
+     * Halted glyphs (fraud detected): red tint
      * @param {Array} activeGlyphs - Glyphs to update
      * @param {Array} results - Execution results
      */
     updateVisualFeedback(activeGlyphs, results) {
+        const time = Date.now();
+
         for (let i = 0; i < activeGlyphs.length; i++) {
             const glyph = activeGlyphs[i];
             const result = results[i];
 
             if (!glyph.sprite) continue;
 
-            // Update glow intensity based on execution
-            // Active glyphs glow, halted glyphs dim
-            if (result.halted) {
-                glyph.glowIntensity = 0;
+            // Check for fraud/halt detection
+            if (result.halted || result.fraud) {
+                // Halted glyphs (fraud detected): red tint, dim
+                glyph.sprite.tint = 0xff0000; // Red tint for fraud
                 glyph.sprite.alpha = 0.5;
                 glyph.active = false;
-            } else {
-                // Pulse effect based on execution count
-                glyph.glowIntensity = Math.min(1.0, 0.3 + (glyph.executionCount % 10) * 0.07);
-                glyph.sprite.alpha = 0.8 + glyph.glowIntensity * 0.2;
 
-                // Slight scale pulse
-                const scale = 1.0 + Math.sin(glyph.executionCount * 0.5) * 0.05;
+                // Smooth interpolation to zero glow
+                const targetGlow = 0;
+                glyph.glowIntensity = glyph.glowIntensity * 0.85 + targetGlow * 0.15;
+
+                // No scale pulse for halted glyphs
+                glyph.sprite.scale.set(1.0);
+            } else {
+                // Active glyphs: glow and pulse
+                // Target glow intensity based on execution activity
+                const targetGlow = Math.min(1.0, 0.5 + (glyph.executionCount % 10) * 0.05);
+
+                // Smooth interpolation: glowIntensity = glowIntensity * 0.85 + target * 0.15
+                glyph.glowIntensity = glyph.glowIntensity * 0.85 + targetGlow * 0.15;
+
+                // Alpha blend: 0.7-1.0 based on glowIntensity
+                glyph.sprite.alpha = 0.7 + glyph.glowIntensity * 0.3;
+
+                // Pulsing scale effect: 1.0 + sin(time/300 + coreId) * 0.1 * glowIntensity
+                const scalePulse = Math.sin(time / 300 + glyph.coreId) * 0.1 * glyph.glowIntensity;
+                const scale = 1.0 + scalePulse;
                 glyph.sprite.scale.set(scale);
+
+                // Clear any red tint from previous state
+                glyph.sprite.tint = 0xffffff;
             }
         }
 

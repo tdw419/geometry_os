@@ -83,7 +83,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
 
 ## Phase 2: Refactoring
 
-- [ ] 2.1 Add visual glow effect
+- [x] 2.1 Add visual glow effect
   - **Do**: Enhance `updateVisualFeedback()` with alpha blend, scale pulse for active glyphs
   - **Files**: Modify: `systems/visual_shell/web/GlyphExecutor.js`
   - **Done when**: Active glyphs have subtle glow/pulse, halted glyphs show red tint
