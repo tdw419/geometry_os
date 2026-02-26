@@ -46,7 +46,7 @@ Focus: Validate morphological decoding and GPU execution end-to-end. Skip tests,
   - _Requirements: FR-2, FR-7_
   - _Design: GPUExecutionSystem.deployWithInstructions()_
 
-- [ ] 1.3 Add loadKernelFromMorphologicalRTS() to hypervisor
+- [x] 1.3 Add loadKernelFromMorphologicalRTS() to hypervisor
   - **Do**:
     1. Import RISCVOrphologicalLoader in `wgpu_linux_hypervisor.js`
     2. Add `loadKernelFromMorphologicalRTS(url)` async method
