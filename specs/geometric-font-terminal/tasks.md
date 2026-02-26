@@ -56,7 +56,7 @@ Focus: Enhance geo_term.html with state panel and glyph visualization. Validate 
 
 ## Phase 2: Refactoring
 
-- [ ] 2.1 Extract Terminal Class from HTML
+- [x] 2.1 Extract Terminal Class from HTML
   - **Do**: Create GeometricTerminal.js class encapsulating UI state, PixiJS setup, and execution logic. Keep geo_term.html as thin entry point.
   - **Files**: `systems/visual_shell/web/GeometricTerminal.js`, `systems/visual_shell/web/geo_term.html`
   - **Done when**: GeometricTerminal class manages all terminal logic, HTML only imports and initializes
