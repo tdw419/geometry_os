@@ -120,7 +120,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Add documentation
+- [x] 4.1 Add documentation
   - **Do**: Create `docs/motherboard.md` with overview, quick start, API reference, visual feedback guide
   - **Files**: Create: `docs/motherboard.md`
   - **Done when**: Documentation covers all public APIs
