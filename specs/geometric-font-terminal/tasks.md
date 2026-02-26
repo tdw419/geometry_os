@@ -76,7 +76,7 @@ Focus: Enhance geo_term.html with state panel and glyph visualization. Validate 
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Manual Browser Verification
+- [x] 4.1 Manual Browser Verification
   - **Do**: Open geo_term.html in Chrome, verify all opcodes work
   - **Verify**: Test each opcode: `+ 10`, `- 5`, `!`, `#`, `? 0`, `= 0`, `> 0`
   - **Done when**: All 8 opcodes produce expected results
