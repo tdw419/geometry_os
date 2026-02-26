@@ -131,11 +131,55 @@ class GlyphExecutor {
     /**
      * Load the glyph atlas texture
      * @param {string} atlasPath - Path to atlas PNG file
+     * @returns {GPUTexture|null} The loaded atlas texture or null on failure
      */
     async loadAtlas(atlasPath) {
         console.log('GlyphExecutor.loadAtlas() called with path:', atlasPath);
-        // Placeholder - will be implemented in Task 1.3
-        return null;
+
+        if (!this.device) {
+            console.error('Cannot load atlas: WebGPU device not initialized');
+            return null;
+        }
+
+        try {
+            // Fetch the atlas image
+            const response = await fetch(atlasPath);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch atlas: ${response.status} ${response.statusText}`);
+            }
+
+            const blob = await response.blob();
+
+            // Create ImageBitmap for efficient GPU upload
+            const imageBitmap = await createImageBitmap(blob);
+
+            // Store dimensions
+            this.atlasWidth = imageBitmap.width;
+            this.atlasHeight = imageBitmap.height;
+
+            // Create GPU texture
+            this.atlasTexture = this.device.createTexture({
+                size: [this.atlasWidth, this.atlasHeight, 1],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.TEXTURE_BINDING |
+                       GPUTextureUsage.COPY_DST |
+                       GPUTextureUsage.RENDER_ATTACHMENT,
+            });
+
+            // Copy image data to GPU texture
+            this.device.queue.copyExternalImageToTexture(
+                { source: imageBitmap },
+                { texture: this.atlasTexture },
+                [this.atlasWidth, this.atlasHeight, 1]
+            );
+
+            console.log(`Atlas loaded: ${this.atlasWidth}x${this.atlasHeight}`);
+
+            return this.atlasTexture;
+        } catch (error) {
+            console.error('Failed to load atlas:', error);
+            return null;
+        }
     }
 
     /**

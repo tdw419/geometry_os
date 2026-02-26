@@ -30,7 +30,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
   - _Requirements: FR-1, FR-12_
   - _Design: WebGPU Bind Group Layout_
 
-- [ ] 1.3 Implement atlas texture loading
+- [x] 1.3 Implement atlas texture loading
   - **Do**: Add `loadAtlas(atlasPath)` method that fetches image, creates GPUTexture, copies via copyExternalImageToTexture
   - **Files**: Modify: `systems/visual_shell/web/GlyphExecutor.js`
   - **Done when**: Atlas loads from `/assets/universal_font.rts.png`, texture dimensions logged
