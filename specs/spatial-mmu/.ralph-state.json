@@ -1,6 +1,6 @@
 {
   "spec": "spatial-mmu",
-  "phase": "tasks",
+  "phase": "execution",
   "taskIndex": 0,
   "totalTasks": 6,
   "createdAt": "2026-02-25T20:10:00Z",
