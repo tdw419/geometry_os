@@ -21,7 +21,7 @@ Focus: Verify existing MMU components and fix critical security gap.
   - _Requirements: FR-1, FR-2, FR-3, FR-4, FR-5_
   - _Design: Component A_
 
-- [ ] 1.2 Verify Morton encoding functions exist
+- [x] 1.2 Verify Morton encoding functions exist
   - **Do**: Check phys_to_morton function at lines 213-228, verify bit manipulation logic
   - **Files**: `systems/visual_shell/web/shaders/visual_cpu_riscv.wgsl`
   - **Done when**: `grep "phys_to_morton" systems/visual_shell/web/shaders/visual_cpu_riscv.wgsl` returns function definition
