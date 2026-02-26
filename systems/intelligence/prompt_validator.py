@@ -33,7 +33,7 @@ class RoleConstraint:
     forbidden_roles: List[str] = field(default_factory=list)
     min_role_mentions: int = 1
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate constraint configuration."""
         if not self.role_name or not self.role_name.strip():
             raise ValueError("role_name cannot be empty")
@@ -264,7 +264,7 @@ class PromptValidator:
         return result, fixed
 
 
-def main():
+def main() -> None:
     """Demo of PromptValidator with role constraints."""
     print("🛡️ Prompt Validator Demo")
     print("=" * 40)

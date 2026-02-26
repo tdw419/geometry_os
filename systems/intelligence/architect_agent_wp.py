@@ -14,7 +14,6 @@ import os
 import sys
 import json
 import requests
-import datetime
 from pathlib import Path
 from collections import Counter
 
@@ -37,7 +36,7 @@ class ArchitectAgent:
         
         # Level 1 scan: Core Modules
         if not self.systems_root.exists():
-            print(f"⚠️ systems/ root not found!")
+            print("⚠️ systems/ root not found!")
             return []
 
         for module_dir in self.systems_root.iterdir():
@@ -85,7 +84,8 @@ class ArchitectAgent:
 
     def _detect_primary_language(self, all_files):
         extensions = [f.suffix for f in all_files if f.is_file()]
-        if not extensions: return "unknown"
+        if not extensions:
+            return "unknown"
         return Counter(extensions).most_common(1)[0][0].replace('.', '').upper()
 
     def _find_entry_points(self, path: Path):
@@ -103,7 +103,7 @@ class ArchitectAgent:
                 with open(readme_path, 'r') as f:
                     content = f.read(200).replace('\n', ' ').strip()
                     return f"{content}..."
-            except:
+            except Exception:
                 pass
         
         # Fallback to smart naming

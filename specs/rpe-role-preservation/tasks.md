@@ -182,7 +182,7 @@ After POC validated, clean up code structure.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Local quality check: lint + typecheck + tests
+- [x] 4.1 Local quality check: lint + typecheck + tests
   - **Do**: Run all quality checks locally
   - **Verify**: `python -m ruff check systems/intelligence/ && python -m mypy systems/intelligence/ --ignore-missing-imports && python -m pytest tests/intelligence/ -v`
   - **Done when**: All commands pass with no errors
