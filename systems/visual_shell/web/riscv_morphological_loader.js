@@ -28,31 +28,63 @@ export class RISCVOrphologicalLoader {
         console.log(`[RISCVOrphologicalLoader] Loading: ${url}`);
 
         // 1. Fetch the .rts.png texture
-        const textureResponse = await fetch(url);
+        let textureResponse;
+        try {
+            textureResponse = await fetch(url);
+        } catch (error) {
+            throw new Error(`[RISCVOrphologicalLoader] Failed to fetch texture: ${url} - ${error.message}`);
+        }
         if (!textureResponse.ok) {
-            throw new Error(`Failed to fetch texture: ${url}`);
+            throw new Error(`[RISCVOrphologicalLoader] Failed to fetch texture: ${url} (status ${textureResponse.status})`);
         }
 
-        const blob = await textureResponse.blob();
-        const imageBitmap = await createImageBitmap(blob);
+        let blob;
+        try {
+            blob = await textureResponse.blob();
+        } catch (error) {
+            throw new Error(`[RISCVOrphologicalLoader] Failed to read texture blob: ${error.message}`);
+        }
+
+        let imageBitmap;
+        try {
+            imageBitmap = await createImageBitmap(blob);
+        } catch (error) {
+            throw new Error(`[RISCVOrphologicalLoader] Failed to decode texture image: ${error.message}`);
+        }
 
         // 2. Fetch the .meta.json metadata
         const metaUrl = url + '.meta.json';
-        const metaResponse = await fetch(metaUrl);
+        let metaResponse;
+        try {
+            metaResponse = await fetch(metaUrl);
+        } catch (error) {
+            throw new Error(`[RISCVOrphologicalLoader] Failed to fetch metadata: ${metaUrl} - ${error.message}`);
+        }
         if (!metaResponse.ok) {
-            throw new Error(`Failed to fetch metadata: ${metaUrl}`);
+            throw new Error(`[RISCVOrphologicalLoader] Failed to fetch metadata: ${metaUrl} (status ${metaResponse.status})`);
         }
 
-        const metadata = await metaResponse.json();
+        let metadata;
+        try {
+            metadata = await metaResponse.json();
+        } catch (error) {
+            throw new Error(`[RISCVOrphologicalLoader] Failed to parse metadata JSON: ${error.message}`);
+        }
 
         // 3. Validate metadata type
         if (metadata.type !== 'riscv-morphological') {
-            throw new Error(`Invalid texture type: expected 'riscv-morphological', got '${metadata.type}'`);
+            throw new Error(`[RISCVOrphologicalLoader] Invalid texture type: expected 'riscv-morphological', got '${metadata.type}'`);
         }
 
         // 4. Validate dictionary
         if (!metadata.dictionary || !metadata.dictionary.instructions) {
-            throw new Error('Empty or missing dictionary in metadata');
+            throw new Error(`[RISCVOrphologicalLoader] Empty or missing dictionary in metadata`);
+        }
+        if (!Array.isArray(metadata.dictionary.instructions)) {
+            throw new Error(`[RISCVOrphologicalLoader] Dictionary instructions must be an array`);
+        }
+        if (metadata.dictionary.instructions.length === 0) {
+            throw new Error(`[RISCVOrphologicalLoader] Dictionary instructions array is empty`);
         }
 
         const dictionary = metadata.dictionary.instructions;
@@ -61,6 +93,9 @@ export class RISCVOrphologicalLoader {
         // 5. Extract pixels from ImageBitmap via Canvas
         const canvas = new OffscreenCanvas(imageBitmap.width, imageBitmap.height);
         const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            throw new Error(`[RISCVOrphologicalLoader] Failed to get 2D canvas context`);
+        }
         ctx.drawImage(imageBitmap, 0, 0);
 
         const imageData = ctx.getImageData(0, 0, imageBitmap.width, imageBitmap.height);
@@ -68,7 +103,12 @@ export class RISCVOrphologicalLoader {
 
         const pixelCount = imageBitmap.width * imageBitmap.height;
 
-        // 6. Decode pixels to instructions
+        // 6. Validate instruction count matches pixel count
+        if (metadata.instructionCount !== undefined && metadata.instructionCount !== pixelCount) {
+            throw new Error(`[RISCVOrphologicalLoader] Instruction count mismatch: metadata says ${metadata.instructionCount}, but texture has ${pixelCount} pixels`);
+        }
+
+        // 7. Decode pixels to instructions
         const result = this._decodePixels(pixels, dictionary, pixelCount);
 
         console.log(`[RISCVOrphologicalLoader] Decoded ${result.instructions.length} instructions from ${pixelCount} pixels`);
