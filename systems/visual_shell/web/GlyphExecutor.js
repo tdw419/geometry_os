@@ -36,6 +36,8 @@ class GlyphExecutor {
         this.autoExecutionInterval = null;
         this.executing = false;
         this.lastResult = null;
+        this.ticker = null;
+        this.frameCount = 0;
 
         console.log('GlyphExecutor created with options:', this.options);
     }
@@ -485,7 +487,19 @@ class GlyphExecutor {
      */
     startAutoExecution(fps = 30) {
         console.log('GlyphExecutor.startAutoExecution() called with fps:', fps);
-        // Placeholder - will be implemented in Phase 2
+
+        if (this.ticker !== null) {
+            console.warn('Auto-execution already running');
+            return;
+        }
+
+        const intervalMs = 1000 / fps;
+        this.ticker = setInterval(() => {
+            this.frameCount++;
+            this.execute();
+        }, intervalMs);
+
+        console.log(`Auto-execution started at ${fps} FPS (interval: ${intervalMs}ms)`);
     }
 
     /**
@@ -493,16 +507,41 @@ class GlyphExecutor {
      */
     stopAutoExecution() {
         console.log('GlyphExecutor.stopAutoExecution() called');
-        // Placeholder - will be implemented in Phase 2
+
+        if (this.ticker === null) {
+            console.warn('Auto-execution not running');
+            return;
+        }
+
+        clearInterval(this.ticker);
+        this.ticker = null;
+
+        console.log('Auto-execution stopped');
     }
 
     /**
      * Toggle auto-execution mode
      * @param {number} fps - Frames per second for execution
+     * @returns {boolean} New auto-execution state (true = running, false = stopped)
      */
     toggleAutoExecution(fps = 30) {
         console.log('GlyphExecutor.toggleAutoExecution() called');
-        // Placeholder - will be implemented in Phase 2
+
+        if (this.ticker === null) {
+            this.startAutoExecution(fps);
+            return true;
+        } else {
+            this.stopAutoExecution();
+            return false;
+        }
+    }
+
+    /**
+     * Check if auto-execution is running
+     * @returns {boolean} True if auto-execution is active
+     */
+    isAutoExecuting() {
+        return this.ticker !== null;
     }
 }
 

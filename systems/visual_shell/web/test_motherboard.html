@@ -215,6 +215,7 @@
         <h3>The Motherboard</h3>
         <div>
             <button id="btn-execute">Execute</button>
+            <button id="btn-auto">Auto Run</button>
             <button id="btn-clear">Clear</button>
         </div>
         <div id="status">
@@ -308,6 +309,7 @@
 
             // Button handlers
             document.getElementById('btn-execute').addEventListener('click', executeGlyphs);
+            document.getElementById('btn-auto').addEventListener('click', toggleAutoExecution);
             document.getElementById('btn-clear').addEventListener('click', clearGlyphs);
 
             // Glyph palette
@@ -406,6 +408,12 @@
                 return;
             }
 
+            // Stop auto-execution if running
+            if (infiniteMap.glyphExecutor.isAutoExecuting()) {
+                infiniteMap.glyphExecutor.stopAutoExecution();
+                updateAutoButton(false);
+            }
+
             // Unregister all glyphs
             for (const glyph of placedGlyphs) {
                 if (glyph.sprite && glyph.sprite.parent) {
@@ -417,6 +425,26 @@
             placedGlyphs = [];
             updateGlyphCount();
             updateStatus('Cleared all glyphs');
+        }
+
+        // Toggle auto-execution mode
+        function toggleAutoExecution() {
+            if (!infiniteMap || !infiniteMap.glyphExecutor) {
+                console.warn('GlyphExecutor not available');
+                return;
+            }
+
+            const isRunning = infiniteMap.glyphExecutor.toggleAutoExecution(30);
+            updateAutoButton(isRunning);
+            updateStatus(isRunning ? 'Auto-execution started (30 FPS)' : 'Auto-execution stopped');
+        }
+
+        // Update Auto button text based on state
+        function updateAutoButton(isRunning) {
+            const btn = document.getElementById('btn-auto');
+            btn.textContent = isRunning ? 'Stop' : 'Auto Run';
+            btn.style.borderColor = isRunning ? '#ff4444' : '#00ff88';
+            btn.style.color = isRunning ? '#ff4444' : '#00ff88';
         }
 
         // Update glyph count display
