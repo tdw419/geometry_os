@@ -57,7 +57,7 @@ Focus: Create functional OSM WorldView with all core features. Skip tests, use m
   - _Requirements: FR-8, FR-9_
   - _Design: Component C_
 
-- [ ] 1.6 Add offline tile cache support
+- [x] 1.6 Add offline tile cache support
   - **Do**: Create Python tile cache script, add local/online tile fallback logic in HTML, test tile download
   - **Files**: `systems/visual_shell/web/osm_tile_cache.py`, `systems/visual_shell/web/demo_worldview_osm.html`
   - **Done when**: Script downloads tiles, map checks for local tiles first

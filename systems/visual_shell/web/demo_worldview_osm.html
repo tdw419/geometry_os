@@ -291,12 +291,60 @@
     // Expose map globally for WorldViewOrchestrator integration
     window.worldViewMap = map;
 
-    // Add OSM tile layer
-    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // --- OFFLINE TILE CACHE SUPPORT ---
+    // Custom tile layer that checks for local tiles first, falls back to online OSM
+
+    const LocalTileLayer = L.TileLayer.extend({
+      getTileUrl: function(coords) {
+        // Try local tile first
+        const localUrl = `tiles/${coords.z}/${coords.x}/${coords.y}.png`;
+        const onlineUrl = `https://tile.openstreetmap.org/${coords.z}/${coords.x}/${coords.y}.png`;
+
+        // For browser file:// access, we need to check if local tile exists
+        // This uses a synchronous approach with error fallback
+        return localUrl;
+      },
+
+      createTile: function(coords, done) {
+        const tile = document.createElement('img');
+        const localUrl = `tiles/${coords.z}/${coords.x}/${coords.y}.png`;
+        const onlineUrl = `https://tile.openstreetmap.org/${coords.z}/${coords.x}/${coords.y}.png`;
+
+        // Try local tile first
+        tile.onload = () => {
+          done(null, tile);
+        };
+
+        tile.onerror = () => {
+          // Local tile failed, try online
+          if (tile.src === localUrl || tile.src.endsWith(localUrl)) {
+            console.log(`[Tile Cache] Local miss for ${coords.z}/${coords.x}/${coords.y}, using online`);
+            tile.src = onlineUrl;
+          } else {
+            // Online also failed
+            done(new Error('Tile load failed'), tile);
+          }
+        };
+
+        tile.src = localUrl;
+        return tile;
+      }
+    });
+
+    // Create tile layer with local-first fallback
+    const tileLayer = new LocalTileLayer('', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors'
     });
-    osmLayer.addTo(map);
+
+    tileLayer.on('loading', () => {
+      console.log('[Tile Cache] Checking local tile cache...');
+    });
+
+    tileLayer.addTo(map);
+
+    // Log tile source status
+    console.log('[Tile Cache] Using local-first tile loading with online fallback');
 
     // Coordinate tracking
     map.on('mousemove', (e) => {
