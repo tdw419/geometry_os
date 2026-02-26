@@ -187,7 +187,7 @@ Add unit and integration tests for the morphological loader.
   - **Commit**: `test(loader): add integration tests for full pipeline`
   - _Design: Test Strategy: Integration Tests_
 
-- [ ] 3.3 Create HTML test runner for loader tests
+- [x] 3.3 Create HTML test runner for loader tests
   - **Do**:
     1. Create `systems/visual_shell/web/test_morphological_loader.html`
     2. Import all test functions from test_morphological_loader.js
