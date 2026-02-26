@@ -39,7 +39,7 @@ Focus: Verify existing MMU components and fix critical security gap.
   - _Requirements: FR-7_
   - _Design: Component C_
 
-- [ ] 1.4 Add MMU translation to instruction fetch (SECURITY CRITICAL)
+- [x] 1.4 Add MMU translation to instruction fetch (SECURITY CRITICAL)
   - **Do**: Modify instruction fetch at line 360 to go through translate_address with ACCESS_EXEC
   - **Files**: `systems/visual_shell/web/shaders/visual_cpu_riscv.wgsl`
   - **Code Change**:

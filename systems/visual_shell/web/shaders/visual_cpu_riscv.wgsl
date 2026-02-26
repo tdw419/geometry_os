@@ -16,7 +16,7 @@
 @group(0) @binding(2) var<storage, read_write> cpu_states: array<u32>;
 
 // --- CONSTANTS ---
-const REGS_PER_CORE: u32 = 46u; // 32 regs + PC + Halt + CSRs (6) + Trap CSRs (6)
+const REGS_PER_CORE: u32 = 64u; // Expanded to 64 for power-of-2 alignment and Tectonic metadata
 
 // --- CSR INDICES (in cpu_states array) ---
 const CSR_SATP: u32 = 34u;      // Page table base + mode
@@ -33,6 +33,12 @@ const CSR_STVAL: u32 = 42u;     // Trap value (faulting address)
 const CSR_SSTATUS: u32 = 43u;   // Status register (SIE, SPIE, SPP)
 const CSR_SIE: u32 = 44u;       // Supervisor interrupt enable
 const CSR_SIP: u32 = 45u;       // Supervisor interrupt pending
+
+// --- TECTONIC EXTENSIONS (Indices 46-49) ---
+const CSR_GUEST_BASE: u32 = 46u;      // Physical pixel offset on Infinite Map
+const CSR_GUEST_SIZE: u32 = 47u;      // Dimensions of the guest plate
+const CSR_GEOM_CACHE_BASE: u32 = 48u; // Address for Tier 2 JIT
+const CSR_TRANS_FLAGS: u32 = 49u;     // Metadata for the Transpiler (Tier status)
 
 // SSTATUS bit positions (per RISC-V Privileged Spec v1.12)
 const SSTATUS_SIE: u32 = 2u;    // Bit 1: Supervisor Interrupt Enable
@@ -111,6 +117,11 @@ const CAUSE_ECALL_S: u32 = 11u;
 const CAUSE_INST_PAGE_FAULT: u32 = 12u;
 const CAUSE_LOAD_PAGE_FAULT: u32 = 13u;
 const CAUSE_STORE_PAGE_FAULT: u32 = 15u;
+
+// Access types for MMU
+const ACCESS_READ: u32 = 0u;
+const ACCESS_WRITE: u32 = 1u;
+const ACCESS_EXEC: u32 = 2u;
 
 // Interrupt codes (SCAUSE with interrupt bit set)
 const CAUSE_S_TIMER_INT: u32 = 0x80000005u; // Supervisor Timer Interrupt (bit 31 set)
@@ -196,43 +207,93 @@ fn take_timer_interrupt(base_idx: u32, pc: u32) -> u32 {
     return trap_enter(base_idx, CAUSE_S_TIMER_INT, 0u, pc);
 }
 
+// --- TECTONIC SPATIAL MAPPING ---
+// Maps 1D physical address to 2D Morton-order (Z-curve) index
+// This preserves locality for the texture cache in the spatial substrate.
+fn phys_to_morton(paddr: u32) -> u32 {
+    var x = paddr & 0x0000FFFFu;
+    var y = (paddr >> 16u) & 0x0000FFFFu;
+
+    x = (x | (x << 8u)) & 0x00FF00FFu;
+    x = (x | (x << 4u)) & 0x0F0F0F0Fu;
+    x = (x | (x << 2u)) & 0x33333333u;
+    x = (x | (x << 1u)) & 0x55555555u;
+
+    y = (y | (y << 8u)) & 0x00FF00FFu;
+    y = (y | (y << 4u)) & 0x0F0F0F0Fu;
+    y = (y | (y << 2u)) & 0x33333333u;
+    y = (y | (y << 1u)) & 0x55555555u;
+
+    return x | (y << 1u);
+}
+
 // --- MMU: Sv32 PAGE TABLE WALKER ---
-fn translate_address(vaddr: u32, is_write: u32, base_idx: u32) -> u32 {
+fn translate_address(vaddr: u32, access_type: u32, base_idx: u32) -> u32 {
     let satp = cpu_states[base_idx + CSR_SATP];
     let satp_mode = (satp >> 31u) & 1u;
-    if (satp_mode == 0u) { return vaddr; }
+    
+    var paddr: u32 = 0u;
 
-    let vpn1 = (vaddr >> 22u) & 0x3FFu;   
-    let vpn0 = (vaddr >> 12u) & 0x3FFu;   
-    let offset = vaddr & 0xFFFu;            
+    if (satp_mode == 0u) { 
+        paddr = vaddr; 
+    } else {
+        let vpn1 = (vaddr >> 22u) & 0x3FFu;   
+        let vpn0 = (vaddr >> 12u) & 0x3FFu;   
+        let offset = vaddr & 0xFFFu;            
 
-    let ppn_root = satp & 0x3FFFFFu;
-    let pte1_addr = (ppn_root * 4096u) + (vpn1 * 4u);
-    if (pte1_addr >= 134217728u) { return 0xFFFFFFFFu; }
+        let ppn_root = satp & 0x3FFFFFu;
+        let pte1_addr = (ppn_root * 4096u) + (vpn1 * 4u);
+        if (pte1_addr >= 134217728u) { return 0xFFFFFFFFu; }
 
-    let pte1 = system_memory[pte1_addr / 4u];
-    let pte1_v = pte1 & 1u;
-    if (pte1_v == 0u) { return 0xFFFFFFFFu; }
+        var pte1 = system_memory[pte1_addr / 4u];
+        let pte1_v = pte1 & 1u;
+        if (pte1_v == 0u) { return 0xFFFFFFFFu; }
 
-    let pte1_xwr = (pte1 >> 1u) & 0x7u;
-    if (pte1_xwr != 0u) {
-        let ppn1 = (pte1 >> 10u) & 0xFFFFFu;
-        return (ppn1 << 22u) | (vpn0 << 12u) | offset;
+        let pte1_xwr = (pte1 >> 1u) & 0x7u;
+        if (pte1_xwr != 0u) {
+            // Leaf PTE at level 1 (MegaPage)
+            let ppn1 = (pte1 >> 10u) & 0xFFFFFu;
+            paddr = (ppn1 << 22u) | (vpn0 << 12u) | offset;
+            
+            // Set A/D bits
+            pte1 = pte1 | 0x40u; // A=1
+            if (access_type == ACCESS_WRITE) { pte1 = pte1 | 0x80u; } // D=1
+            system_memory[pte1_addr / 4u] = pte1;
+        } else {
+            let ppn1_from_pte1 = (pte1 >> 10u) & 0x3FFFFFu;
+            let pte0_addr = (ppn1_from_pte1 * 4096u) + (vpn0 * 4u);
+            if (pte0_addr >= 134217728u) { return 0xFFFFFFFFu; }
+
+            var pte0 = system_memory[pte0_addr / 4u];
+            if ((pte0 & 1u) == 0u) { return 0xFFFFFFFFu; } // V=0
+
+            // Check permissions
+            let pte_r = (pte0 >> 1u) & 1u;
+            let pte_w = (pte0 >> 2u) & 1u;
+            let pte_x = (pte0 >> 3u) & 1u;
+            
+            if (access_type == ACCESS_READ && pte_r == 0u) { return 0xFFFFFFFFu; }
+            if (access_type == ACCESS_WRITE && pte_w == 0u) { return 0xFFFFFFFFu; }
+            if (access_type == ACCESS_EXEC && pte_x == 0u) { return 0xFFFFFFFFu; }
+
+            let ppn0 = (pte0 >> 10u) & 0xFFFFFu;
+            paddr = (ppn0 << 12u) | offset;
+            
+            // Set A/D bits
+            pte0 = pte0 | 0x40u; // A=1
+            if (access_type == ACCESS_WRITE) { pte0 = pte0 | 0x80u; } // D=1
+            system_memory[pte0_addr / 4u] = pte0;
+        }
     }
 
-    let ppn1_from_pte1 = (pte1 >> 10u) & 0x3FFFFFu;
-    let pte0_addr = (ppn1_from_pte1 * 4096u) + (vpn0 * 4u);
-    if (pte0_addr >= 134217728u) { return 0xFFFFFFFFu; }
+    // Tectonic Bounds Check
+    let g_base = cpu_states[base_idx + CSR_GUEST_BASE];
+    let g_size = cpu_states[base_idx + CSR_GUEST_SIZE];
+    if (g_size > 0u) { // Only check if size is set
+        if (paddr < g_base || paddr >= (g_base + g_size)) { return 0xFFFFFFFFu; }
+    }
 
-    let pte0 = system_memory[pte0_addr / 4u];
-    let pte0_v = pte0 & 1u;
-    if (pte0_v == 0u) { return 0xFFFFFFFFu; }
-
-    let pte0_w = (pte0 >> 2u) & 1u;
-    if (is_write == 1u && pte0_w == 0u) { return 0xFFFFFFFFu; }
-
-    let ppn0 = (pte0 >> 10u) & 0xFFFFFu;
-    return (ppn0 << 12u) | offset;
+    return paddr;
 }
 
 // --- MMIO INPUT POLLING ---
@@ -296,7 +357,15 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
             break; 
         }
 
-        let inst = expanded_code[pc];
+        // SECURITY: Translate PC through MMU before fetch
+        let pc_paddr = translate_address(pc * 4u, ACCESS_EXEC, base_idx);
+        if (pc_paddr == 0xFFFFFFFFu) {
+            // Instruction fetch fault - trap to handler
+            pc = trap_enter(base_idx, CAUSE_INST_PAGE_FAULT, pc * 4u, pc);
+            trap_triggered = true;
+            break;
+        }
+        let inst = expanded_code[pc_paddr / 4u];
         let opcode = get_opcode(inst);
         let rd = get_rd(inst);
         let funct3 = get_funct3(inst);
@@ -359,7 +428,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                      let offset = i32(inst) >> 20u;
                      let val1 = i32(cpu_states[base_idx + rs1]);
                      let vaddr = u32(val1 + offset);
-                     let paddr = translate_address(vaddr, 0u, base_idx);
+                     let paddr = translate_address(vaddr, ACCESS_READ, base_idx);
                      if (paddr == 0xFFFFFFFFu) { pc = trap_enter(base_idx, CAUSE_LOAD_PAGE_FAULT, vaddr, pc); trap_triggered = true; }
                      else if (paddr < 134217728u) { if (rd != 0u) { cpu_states[base_idx + rd] = system_memory[paddr / 4u]; } }
                 }
@@ -371,7 +440,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                      let val1 = i32(cpu_states[base_idx + rs1]);
                      let val2 = i32(cpu_states[base_idx + rs2]);
                      let vaddr = u32(val1 + offset_s);
-                     let paddr = translate_address(vaddr, 1u, base_idx);
+                     let paddr = translate_address(vaddr, ACCESS_WRITE, base_idx);
                      if (paddr == 0xFFFFFFFFu) { pc = trap_enter(base_idx, CAUSE_STORE_PAGE_FAULT, vaddr, pc); trap_triggered = true; }
                      else if (paddr < 134217728u) {
                          system_memory[paddr / 4u] = val2;
