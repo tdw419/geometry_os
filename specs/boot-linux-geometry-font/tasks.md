@@ -200,7 +200,7 @@ Add unit and integration tests for the morphological loader.
   - **Commit**: `test(loader): add HTML test runner for morphological loader`
   - _Requirements: FR-9_
 
-- [ ] 3.4 [VERIFY] Quality checkpoint: unit tests pass
+- [x] 3.4 [VERIFY] Quality checkpoint: unit tests pass
   - **Do**:
     1. Serve files: `cd systems/visual_shell/web && python3 -m http.server 8081 &`
     2. Fetch test page: `curl -s http://localhost:8081/test_morphological_loader.html | grep -c "PASS"`
