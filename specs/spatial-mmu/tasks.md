@@ -61,7 +61,7 @@ Focus: Verify existing MMU components and fix critical security gap.
   - _Requirements: FR-8, AC-2.1, AC-2.2, AC-2.3_
   - _Design: Component A_
 
-- [ ] 1.5 Verify dirty/access bit tracking in translate_address
+- [x] 1.5 Verify dirty/access bit tracking in translate_address
   - **Do**: Check A bit (0x40) and D bit (0x80) are set in both megapage and leaf PTE paths
   - **Files**: `systems/visual_shell/web/shaders/visual_cpu_riscv.wgsl`
   - **Done when**: Both paths update PTE with A/D bits before returning
