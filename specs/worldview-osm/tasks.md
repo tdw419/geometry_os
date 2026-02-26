@@ -48,7 +48,7 @@ Focus: Create functional OSM WorldView with all core features. Skip tests, use m
   - _Requirements: FR-10_
   - _Design: Component B, Component D_
 
-- [ ] 1.5 Add Memory Tapestry overlay
+- [x] 1.5 Add Memory Tapestry overlay
   - **Do**: Add tapestry HTML container, CSS styling, canvas rendering logic, implement `window.showMemoryTapestry()` to render memory buffer as pixels
   - **Files**: `systems/visual_shell/web/demo_worldview_osm.html`
   - **Done when**: Clicking a marker opens full-screen tapestry overlay with colorful memory visualization

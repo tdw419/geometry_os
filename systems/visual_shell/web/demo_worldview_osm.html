@@ -192,6 +192,59 @@
       padding: 2px 6px;
       border: 1px solid #004400;
     }
+
+    /* Memory Tapestry Overlay */
+    #tapestry-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 2000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #tapestry-canvas {
+      border: 2px solid #00FF00;
+      box-shadow: 0 0 30px #00FF00, inset 0 0 20px #002200;
+      max-width: 90vmin;
+      max-height: 80vmin;
+    }
+
+    #tapestry-title {
+      position: absolute;
+      top: 30px;
+      left: 40px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #00FF00;
+      text-shadow: 0 0 10px #00FF00;
+      font-family: 'Courier New', monospace;
+    }
+
+    #tapestry-close {
+      position: absolute;
+      top: 30px;
+      right: 40px;
+      font-size: 18px;
+      color: #00FF00;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      padding: 10px 20px;
+      border: 1px solid #00FF00;
+      background: rgba(0, 20, 0, 0.8);
+      transition: all 0.2s;
+    }
+
+    #tapestry-close:hover {
+      background: #00FF00;
+      color: #000;
+      box-shadow: 0 0 15px #00FF00;
+    }
   </style>
 </head>
 <body>
@@ -218,6 +271,13 @@
     <div class="status" style="font-size: 10px; margin-top: 10px; color: #006600;">
       &copy; OpenStreetMap contributors
     </div>
+  </div>
+
+  <!-- Memory Tapestry Overlay -->
+  <div id="tapestry-overlay">
+    <div id="tapestry-title">MEMORY TAPESTRY</div>
+    <canvas id="tapestry-canvas" width="512" height="512"></canvas>
+    <div id="tapestry-close">[ CLOSE ]</div>
   </div>
 
   <script>
@@ -349,8 +409,56 @@
       document.getElementById('kernel-list').innerHTML = nodeList.join('');
     }
 
-    // Placeholder for Memory Tapestry (to be added in next task)
-    window.showMemoryTapestry = null;
+    // --- MEMORY TAPESTRY OVERLAY ---
+    const tapestryOverlay = document.getElementById('tapestry-overlay');
+    const tapestryCanvas = document.getElementById('tapestry-canvas');
+    const tapestryTitle = document.getElementById('tapestry-title');
+    const tapestryClose = document.getElementById('tapestry-close');
+    const tapestryCtx = tapestryCanvas.getContext('2d');
+
+    // Close button handler
+    tapestryClose.addEventListener('click', () => {
+      tapestryOverlay.style.display = 'none';
+      document.getElementById('map').style.display = 'block';
+      console.log('🔒 Memory Tapestry closed');
+    });
+
+    // Show Memory Tapestry - renders 512x512 from Uint32Array buffer
+    window.showMemoryTapestry = (id, buffer) => {
+      const nodeData = tectonicMarkers.get(id);
+      const nodeName = nodeData ? nodeData.name : id;
+      tapestryTitle.textContent = `MEMORY TAPESTRY: ${nodeName}`;
+
+      const size = 512;
+      const imgData = tapestryCtx.createImageData(size, size);
+
+      // Convert Uint32Array buffer to RGBA pixels
+      const view = new Uint32Array(buffer.buffer || buffer);
+      for (let i = 0; i < view.length && i < size * size; i++) {
+        const val = view[i];
+        const r = (val & 0xFF);
+        const g = (val >> 8) & 0xFF;
+        const b = (val >> 16) & 0xFF;
+
+        // Linear-to-2D mapping (simplified for POC)
+        const x = i % size;
+        const y = Math.floor(i / size);
+        const idx = (y * size + x) * 4;
+
+        imgData.data[idx] = r || 0;
+        imgData.data[idx + 1] = g || 128; // Green tint for Geometry OS aesthetic
+        imgData.data[idx + 2] = b || 0;
+        imgData.data[idx + 3] = 255;
+      }
+
+      tapestryCtx.putImageData(imgData, 0, 0);
+
+      // Hide map, show tapestry
+      document.getElementById('map').style.display = 'none';
+      tapestryOverlay.style.display = 'flex';
+
+      console.log(`🧵 Memory Tapestry opened for: ${nodeName}`);
+    };
 
     console.log('🌍 Tectonic WorldView [OSM] Bridge Online');
     console.log('📍 Centered on Texas State Capitol (30.2747, -97.7403)');
