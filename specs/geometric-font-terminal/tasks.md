@@ -39,7 +39,7 @@ Focus: Enhance geo_term.html with state panel and glyph visualization. Validate 
   - _Requirements: FR-3, FR-4_
   - _Design: Data Flow steps 7-9_
 
-- [ ] 1.4 Display PRINT Output in History
+- [x] 1.4 Display PRINT Output in History
   - **Do**: After execution, check outputPtr. If > 0, call readOutput() and display values in history with "OUT:" prefix.
   - **Files**: `systems/visual_shell/web/geo_term.html`
   - **Done when**: `+ 10 ! #` shows "OUT: 10" in history

@@ -320,7 +320,11 @@ READY FOR SUBSTRATE INSTRUCTIONS...
                 updateStatePanel(state, state.outputPtr > 0 ? output : []);
 
                 if (state.outputPtr > 0) {
-                    log(`OUT: ${output[0]}`);
+                    // Display all PRINT output values in history
+                    const outputValues = Array.from(output.slice(0, state.outputPtr));
+                    outputValues.forEach(val => {
+                        log(`OUT: ${val}`);
+                    });
                 } else {
                     log(`ACC: ${state.accumulator}`);
                 }
