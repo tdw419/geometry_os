@@ -12,7 +12,7 @@ generated: auto
 
 Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
 
-- [ ] 1.1 Create GlyphExecutor skeleton
+- [x] 1.1 Create GlyphExecutor skeleton
   - **Do**: Create `systems/visual_shell/web/GlyphExecutor.js` with class skeleton, constructor, async init(), placeholder methods
   - **Files**: Create: `systems/visual_shell/web/GlyphExecutor.js`
   - **Done when**: File exists, class exports correctly, console shows creation log
