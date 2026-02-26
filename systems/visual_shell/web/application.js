@@ -30,7 +30,6 @@ class GeometryOSApplication {
         this.visualBootLoader = null;
         this.infiniteMap = null; // Manifest-based infinite map with LLM chat
         this.windowManager = null; // Desktop Environment
-        this.particleManager = null; // Particle System (TerminalWindowParticle management)
 
         // System components
         this.cognitiveLayer = null; // Antigravity Prime
@@ -198,12 +197,6 @@ class GeometryOSApplication {
         this.worldContainer = new PIXI.Container();
         this.app.stage.addChild(this.worldContainer);
 
-        // 4b. Initialize Geometric Text System (Phase 3B)
-        if (typeof GeometricTextRenderer !== 'undefined') {
-            this.geometricText = new GeometricTextRenderer(this.app);
-            console.log("🔠 Geometric Text System initialized");
-        }
-
         // --- Phase 50: Advanced Visual Tools ---
         if (typeof VisualVerificationBridge !== 'undefined') {
             this.visualBridge = new VisualVerificationBridge();
@@ -286,25 +279,6 @@ class GeometryOSApplication {
             wordWrapWidth: 380,
         });
         demoWindow.setContent(demoText);
-
-        // 5.3 Initialize Particle Manager (Terminal Window Particles)
-        if (typeof ParticleManager !== 'undefined') {
-            this.particleManager = new ParticleManager(this.worldContainer, {
-                nebEnabled: true,
-                nebSocket: null
-            });
-            console.log('🔴 ParticleManager initialized for terminal particles');
-            // Connect to NEB for cross-terminal coordination
-            this._connectNebBridge();
-            // Load saved particle layout from localStorage
-            this.loadParticleLayout();
-            // Setup auto-save on page unload
-            window.addEventListener('beforeunload', () => {
-                this.saveParticleLayout();
-            });
-        } else {
-            console.warn('ParticleManager class not loaded, terminal particles disabled');
-        }
 
         // 11. Initialize In-Memory Virtual File System (VFS) for AI Agents
         this.vfs = {
@@ -924,11 +898,6 @@ class GeometryOSApplication {
         // Update Heatmap Overlay (Visual Hotspot Debugger)
         if (this.heatmapOverlay) {
             this.heatmapOverlay.tick(delta / 16.67); // Normalize to ~60fps
-        }
-
-        // Update Particle Manager (Terminal Window Particles)
-        if (this.particleManager) {
-            this.particleManager.update();
         }
 
         // Update Terminal Windows (sync overlay positions)
@@ -3342,93 +3311,26 @@ class GeometryOSApplication {
     }
 
     /**
-     * Setup Terminal Window keyboard shortcuts
+     * Setup Terminal Window keyboard shortcut
      * Ctrl+Shift+T: Open Terminal Window
-     * Ctrl+Shift+N: Create new terminal particle
-     * Ctrl+Shift+W: Close focused terminal
-     * Ctrl+Tab: Cycle through terminals
      */
     _setupTerminalKeyboard() {
         document.addEventListener('keydown', (e) => {
-            // Ctrl+Shift+T: Open Terminal (legacy)
+            // Ctrl+Shift+T: Open Terminal
             if (e.ctrlKey && e.shiftKey && (e.key === 'T' || e.key === 't')) {
                 e.preventDefault();
                 this.openTerminalWindow();
-                console.log('🖥️ Keyboard shortcut: Ctrl+Shift+T - Open terminal');
-            }
-
-            // Ctrl+Shift+N: Create new terminal particle
-            if (e.ctrlKey && e.shiftKey && (e.key === 'N' || e.key === 'n')) {
-                e.preventDefault();
-                this.openTerminalWindow();
-                console.log('🖥️ Keyboard shortcut: Ctrl+Shift+N - Create terminal particle');
-            }
-
-            // Ctrl+Shift+W: Close focused terminal
-            if (e.ctrlKey && e.shiftKey && (e.key === 'W' || e.key === 'w')) {
-                e.preventDefault();
-                if (this.particleManager) {
-                    const destroyed = this.particleManager.destroyFocused();
-                    console.log('🖥️ Keyboard shortcut: Ctrl+Shift+W - Destroy focused terminal:', destroyed);
-                }
-            }
-
-            // Ctrl+Tab: Cycle through terminals
-            if (e.ctrlKey && e.key === 'Tab') {
-                e.preventDefault();
-                if (this.particleManager) {
-                    const next = this.particleManager.cycleFocus();
-                    console.log('🖥️ Keyboard shortcut: Ctrl+Tab - Cycle focus to:', next?.particleId || 'none');
-                }
-            }
-
-            // Ctrl+Shift+G: Create geometric terminal particle
-            if (e.ctrlKey && e.shiftKey && (e.key === 'G' || e.key === 'g')) {
-                e.preventDefault();
-                this.openGeometricTerminalWindow();
-                console.log('🖥️ Keyboard shortcut: Ctrl+Shift+G - Create geometric terminal');
             }
         });
 
-        console.log('🖥️ Terminal keyboard shortcuts configured (Ctrl+Shift+T/N, Ctrl+Shift+W, Ctrl+Tab, Ctrl+Shift+G)');
-    }
-
-    /**
-     * Cycle terminal focus (delegates to ParticleManager)
-     * @private
-     */
-    _cycleTerminalFocus() {
-        if (this.particleManager) {
-            this.particleManager.cycleFocus();
-        }
+        console.log('🖥️ Terminal keyboard shortcuts configured (Ctrl+Shift+T to open)');
     }
 
     /**
      * Open a Terminal Window on the map
      */
     openTerminalWindow(options = {}) {
-        // Use ParticleManager if available
-        if (this.particleManager && typeof TerminalWindowParticle !== 'undefined') {
-            // Default options for particle
-            const defaults = {
-                x: 100 + this.particleManager.getParticleCount() * 30,
-                y: 100 + this.particleManager.getParticleCount() * 30,
-                width: 800,
-                height: 500,
-                title: 'Geometry OS Terminal',
-                wsUrl: 'ws://localhost:8769/terminal'
-            };
-
-            const config = { ...defaults, ...options };
-
-            // Create terminal particle via ParticleManager
-            const particle = this.particleManager.createTerminalParticle(config);
-
-            console.log('🖥️ Terminal particle opened:', particle.particleId);
-            return particle;
-        }
-
-        // Fallback to legacy TerminalWindow if ParticleManager not available
+        // Check if TerminalWindow class exists
         if (typeof TerminalWindow === 'undefined') {
             console.error('TerminalWindow class not loaded');
             return null;
@@ -3469,49 +3371,23 @@ class GeometryOSApplication {
         // Focus the new window
         terminalWindow.focus();
 
-        console.log('🖥️ Terminal window opened (legacy mode)');
+        console.log('🖥️ Terminal window opened');
         return terminalWindow;
-    }
-
-    /**
-     * Open a Geometric Terminal Window on the map
-     * @param {Object} options - Configuration options
-     * @returns {Object} The created geometric terminal particle
-     */
-    openGeometricTerminalWindow(options = {}) {
-        const defaults = {
-            x: 100 + (this.particleManager?.getParticlesByType('geometric-terminal')?.length || 0) * 50,
-            y: 100 + (this.particleManager?.getParticlesByType('geometric-terminal')?.length || 0) * 50,
-            cols: 80,
-            rows: 24
-        };
-        const config = { ...defaults, ...options };
-        return this.particleManager.createGeometricTerminalParticle(config);
     }
 
     /**
      * Connect to the Memory Visual Bridge for semantic memory retrieval.
      */
-    /**
-     * Set NEB socket for ParticleManager (call when NEB connection is established)
-     */
-    setNebSocket(socket) {
-        if (this.particleManager) {
-            this.particleManager.setNebSocket(socket);
-            console.log('🔴 ParticleManager NEB socket connected');
-        }
-    }
-
     _connectMemoryBridge() {
         const port = 8768;
         try {
             console.log('🔮 Connecting to Memory Bridge...');
             this.memoryBridgeSocket = new WebSocket(`ws://localhost:${port}`);
-
+            
             this.memoryBridgeSocket.onopen = () => {
                 console.log('🔮 Memory Bridge connected');
             };
-
+            
             this.memoryBridgeSocket.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
@@ -3540,7 +3416,7 @@ class GeometryOSApplication {
                         if (this.ambientNarrative) {
                             this.ambientNarrative.sessionId = data.session_id;
                             this.ambientNarrative.state = data.ambient_state || 'MONITORING';
-
+                            
                             // Update HUD if available
                             if (this.ambientNarrativeHUD) {
                                 this.ambientNarrativeHUD.updateState(this.ambientNarrative.state);
@@ -3553,11 +3429,11 @@ class GeometryOSApplication {
                     console.error('Failed to parse Memory Bridge message:', e);
                 }
             };
-
+            
             this.memoryBridgeSocket.onerror = (e) => {
                 // Connection error log is noisy, handled by onclose
             };
-
+            
             this.memoryBridgeSocket.onclose = () => {
                 console.log('🔮 Memory Bridge disconnected');
                 // Auto-reconnect after 5s
@@ -3567,147 +3443,6 @@ class GeometryOSApplication {
             };
         } catch (e) {
             console.error('Failed to connect to Memory Bridge:', e);
-        }
-    }
-
-    /**
-     * Connect to NEB (Neural Event Bus) for cross-terminal particle coordination.
-     * NEB runs on WebSocket port 8765 and handles particle events.
-     */
-    _connectNebBridge() {
-        const port = 8765;
-        try {
-            console.log('🔴 Connecting to NEB Bridge for particle coordination...');
-            this.nebBridgeSocket = new WebSocket(`ws://localhost:${port}`);
-
-            this.nebBridgeSocket.onopen = () => {
-                console.log('🔴 NEB Bridge connected - particle events enabled');
-                // Set the NEB socket on ParticleManager for event publishing
-                if (this.particleManager) {
-                    this.particleManager.setNebSocket(this.nebBridgeSocket);
-                }
-            };
-
-            this.nebBridgeSocket.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    this._handleNebEvent(data);
-                } catch (e) {
-                    console.error('Failed to parse NEB message:', e);
-                }
-            };
-
-            this.nebBridgeSocket.onerror = (e) => {
-                // Connection error log is noisy, handled by onclose
-            };
-
-            this.nebBridgeSocket.onclose = () => {
-                console.log('🔴 NEB Bridge disconnected');
-                // Clear socket on ParticleManager
-                if (this.particleManager) {
-                    this.particleManager.setNebSocket(null);
-                }
-                // Auto-reconnect after 5s
-                if (!this.destroyed) {
-                    setTimeout(() => this._connectNebBridge(), 5000);
-                }
-            };
-        } catch (e) {
-            console.error('Failed to connect to NEB Bridge:', e);
-        }
-    }
-
-    /**
-     * Handle incoming NEB events for cross-terminal coordination.
-     * Routes events to appropriate handlers based on topic.
-     * @param {Object} data - The NEB event data with topic and payload
-     */
-    _handleNebEvent(data) {
-        const { topic, payload } = data;
-
-        if (!topic) return;
-
-        switch (topic) {
-            case 'terminal.particle.created':
-                console.log('🔴 NEB: Particle created:', payload.particleId);
-                // Could sync with other clients here
-                break;
-
-            case 'terminal.particle.moved':
-                // Handle particle position sync from other clients
-                if (this.particleManager && payload.particleId) {
-                    const particle = this.particleManager.getParticle(payload.particleId);
-                    if (particle && payload.position) {
-                        // Update position without triggering local NEB event
-                        particle.particlePosition = payload.position;
-                    }
-                }
-                break;
-
-            case 'terminal.particle.focused':
-                // Handle focus sync from other clients
-                if (this.particleManager && payload.particleId) {
-                    this.particleManager.focusParticle(payload.particleId);
-                }
-                break;
-
-            case 'terminal.particle.destroyed':
-                console.log('🔴 NEB: Particle destroyed:', payload.particleId);
-                // Could sync destruction with other clients here
-                break;
-
-            default:
-                // Unknown topic - ignore or log
-                break;
-        }
-    }
-
-    // === Particle Layout Persistence ===
-
-    /**
-     * Save particle layout to localStorage.
-     * Uses ParticleManager.serialize() to capture all particle state.
-     */
-    saveParticleLayout() {
-        if (!this.particleManager) {
-            return;
-        }
-
-        try {
-            const data = this.particleManager.serialize();
-            localStorage.setItem('geometryOS_particleLayout', JSON.stringify(data));
-            console.log('💾 Particle layout saved:', data.particles.length, 'particles');
-        } catch (e) {
-            console.warn('Failed to save particle layout:', e);
-        }
-    }
-
-    /**
-     * Load particle layout from localStorage.
-     * Uses ParticleManager.deserialize() to restore particle state.
-     */
-    loadParticleLayout() {
-        if (!this.particleManager) {
-            return;
-        }
-
-        try {
-            const stored = localStorage.getItem('geometryOS_particleLayout');
-            if (!stored) {
-                console.log('💾 No saved particle layout found');
-                return;
-            }
-
-            const data = JSON.parse(stored);
-            if (!data || !data.particles || !Array.isArray(data.particles)) {
-                console.warn('💾 Invalid particle layout data, skipping restore');
-                return;
-            }
-
-            this.particleManager.deserialize(data);
-            console.log('💾 Particle layout restored:', data.particles.length, 'particles');
-        } catch (e) {
-            console.warn('Failed to load particle layout:', e);
         }
     }
 
