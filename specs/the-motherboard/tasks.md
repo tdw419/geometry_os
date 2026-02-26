@@ -66,7 +66,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
   - _Requirements: FR-10, FR-11_
   - _Design: InfiniteMap Extension_
 
-- [ ] 1.7 Create test page
+- [x] 1.7 Create test page
   - **Do**: Create `test_motherboard.html` with PixiJS app, control panel (Execute, Clear buttons), glyph palette, map click handler
   - **Files**: Create: `systems/visual_shell/web/test_motherboard.html`
   - **Done when**: Page loads, clicking map places glyphs, Execute button triggers execution

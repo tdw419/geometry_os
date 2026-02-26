@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Motherboard - Glyph Execution Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            background-color: #0a0a0f;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            color: #e0e0e0;
+        }
+
+        #app {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Control Panel - Top Left */
+        #controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(10, 10, 15, 0.95);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 16px;
+            z-index: 1000;
+            min-width: 200px;
+        }
+
+        #controls h3 {
+            color: #00ff88;
+            margin-bottom: 12px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #controls button {
+            background: transparent;
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 8px 16px;
+            margin: 4px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+
+        #controls button:hover {
+            background: #00ff88;
+            color: #0a0a0f;
+        }
+
+        #controls button:active {
+            transform: scale(0.95);
+        }
+
+        #status {
+            margin-top: 12px;
+            padding: 8px;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 4px;
+            font-size: 11px;
+            color: #00ff88;
+        }
+
+        .status-label {
+            color: #888;
+            margin-right: 8px;
+        }
+
+        /* Glyph Palette - Bottom Left */
+        #glyph-palette {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(10, 10, 15, 0.95);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 16px;
+            z-index: 1000;
+        }
+
+        #glyph-palette h4 {
+            color: #00ff88;
+            margin-bottom: 12px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .glyph-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .glyph-btn {
+            width: 48px;
+            height: 48px;
+            background: transparent;
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            font-size: 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .glyph-btn:hover {
+            background: rgba(0, 255, 136, 0.2);
+        }
+
+        .glyph-btn.selected {
+            background: #00ff88;
+            color: #0a0a0f;
+        }
+
+        /* Help Text */
+        #help {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(10, 10, 15, 0.9);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 11px;
+            color: #888;
+            z-index: 1000;
+        }
+
+        #help kbd {
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-family: inherit;
+            color: #00ff88;
+        }
+
+        /* Loading Overlay */
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+
+        #loading.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #loading-text {
+            color: #00ff88;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        #loading-text span {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+        }
+    </style>
+    <!-- PixiJS v8 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/8.0.0/pixi.min.js"></script>
+
+    <!-- Geometry OS Modules -->
+    <script src="spatial_core.js"></script>
+    <script src="sprite_pool.js"></script>
+    <script src="chunk_manager.js"></script>
+    <script src="viewport_manager.js"></script>
+    <script src="lod_system.js"></script>
+    <script src="infinite_map_v2.js"></script>
+    <script src="infinite_map.js"></script>
+    <script src="GlyphExecutor.js"></script>
+</head>
+<body>
+    <div id="loading">
+        <div id="loading-text">
+            INITIALIZING MOTHERBOARD...
+            <span>WebGPU + Glyph Execution System</span>
+        </div>
+    </div>
+
+    <div id="app"></div>
+
+    <div id="controls">
+        <h3>The Motherboard</h3>
+        <div>
+            <button id="btn-execute">Execute</button>
+            <button id="btn-clear">Clear</button>
+        </div>
+        <div id="status">
+            <div><span class="status-label">Glyphs:</span><span id="glyph-count">0</span></div>
+            <div><span class="status-label">Cycles:</span><span id="cycle-count">0</span></div>
+            <div><span class="status-label">Last:</span><span id="last-action">Ready</span></div>
+        </div>
+    </div>
+
+    <div id="glyph-palette">
+        <h4>Glyph Palette</h4>
+        <div class="glyph-grid">
+            <button class="glyph-btn selected" data-glyph="65" title="A - Accumulator">A</button>
+            <button class="glyph-btn" data-glyph="43" title="+ - Add">+</button>
+            <button class="glyph-btn" data-glyph="76" title="L - Load">L</button>
+            <button class="glyph-btn" data-glyph="83" title="S - Store">S</button>
+            <button class="glyph-btn" data-glyph="74" title="J - Jump">J</button>
+            <button class="glyph-btn" data-glyph="8721" title="Sum - Accumulate">∑</button>
+        </div>
+    </div>
+
+    <div id="help">
+        <div><kbd>Click</kbd> Place glyph</div>
+        <div><kbd>Ctrl+Enter</kbd> Execute</div>
+        <div><kbd>1-6</kbd> Select glyph</div>
+    </div>
+
+    <script>
+        // State
+        let app = null;
+        let infiniteMap = null;
+        let selectedGlyph = 65; // Default: 'A'
+        let placedGlyphs = [];
+
+        // DOM elements
+        const glyphCountEl = document.getElementById('glyph-count');
+        const cycleCountEl = document.getElementById('cycle-count');
+        const lastActionEl = document.getElementById('last-action');
+        const loadingEl = document.getElementById('loading');
+
+        // Initialize PixiJS application
+        async function initApp() {
+            console.log('Initializing Motherboard test page...');
+
+            // Create PixiJS app
+            app = new PIXI.Application();
+            await app.init({
+                background: '#0a0a0f',
+                resizeTo: window,
+                antialias: true,
+            });
+
+            document.getElementById('app').appendChild(app.canvas);
+
+            // Create world container for the map
+            const worldContainer = new PIXI.Container();
+            app.stage.addChild(worldContainer);
+
+            // Create InfiniteMap with GlyphExecutor
+            if (typeof InfiniteMap !== 'undefined') {
+                infiniteMap = new InfiniteMap(worldContainer, {
+                    gridSize: 100,
+                    tileScale: 1.0,
+                });
+
+                console.log('InfiniteMap created');
+            } else {
+                console.error('InfiniteMap not loaded!');
+                return;
+            }
+
+            // Setup interaction
+            setupInteraction();
+
+            // Hide loading
+            loadingEl.classList.add('hidden');
+
+            console.log('Motherboard ready!');
+            updateStatus('Ready');
+        }
+
+        // Setup click and keyboard interaction
+        function setupInteraction() {
+            // Click handler for placing glyphs
+            app.stage.eventMode = 'static';
+            app.stage.hitArea = app.screen;
+            app.stage.on('pointerdown', onMapClick);
+
+            // Keyboard shortcuts
+            window.addEventListener('keydown', onKeyDown);
+
+            // Button handlers
+            document.getElementById('btn-execute').addEventListener('click', executeGlyphs);
+            document.getElementById('btn-clear').addEventListener('click', clearGlyphs);
+
+            // Glyph palette
+            document.querySelectorAll('.glyph-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.glyph-btn').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    selectedGlyph = parseInt(btn.dataset.glyph);
+                    console.log('Selected glyph:', selectedGlyph);
+                });
+            });
+
+            // Number keys for glyph selection
+            const glyphCodes = [65, 43, 76, 83, 74, 8721];
+            glyphCodes.forEach((code, index) => {
+                // Handled in onKeyDown
+            });
+        }
+
+        // Handle map clicks
+        function onMapClick(event) {
+            if (!infiniteMap) return;
+
+            // Get world coordinates
+            const worldPos = event.global;
+            const mapX = Math.floor(worldPos.x / 16); // 16px per glyph
+            const mapY = Math.floor(worldPos.y / 16);
+
+            console.log(`Click at (${worldPos.x}, ${worldPos.y}) -> map (${mapX}, ${mapY})`);
+
+            // Place the glyph
+            if (infiniteMap.placeExecutableGlyph) {
+                const sprite = infiniteMap.placeExecutableGlyph(mapX, mapY, selectedGlyph);
+                if (sprite) {
+                    placedGlyphs.push({ x: mapX, y: mapY, sprite });
+                    updateGlyphCount();
+                    updateStatus(`Placed ${String.fromCharCode(selectedGlyph)} at (${mapX}, ${mapY})`);
+                }
+            } else {
+                console.warn('placeExecutableGlyph not available');
+            }
+        }
+
+        // Handle keyboard shortcuts
+        function onKeyDown(event) {
+            // Ctrl+Enter: Execute glyphs
+            if (event.key === 'Enter' && event.ctrlKey) {
+                event.preventDefault();
+                executeGlyphs();
+                return;
+            }
+
+            // Number keys 1-6: Select glyph
+            const num = parseInt(event.key);
+            if (num >= 1 && num <= 6) {
+                const glyphCodes = [65, 43, 76, 83, 74, 8721];
+                selectedGlyph = glyphCodes[num - 1];
+
+                // Update UI
+                document.querySelectorAll('.glyph-btn').forEach((btn, idx) => {
+                    btn.classList.toggle('selected', idx === num - 1);
+                });
+
+                console.log('Selected glyph via keyboard:', selectedGlyph);
+            }
+        }
+
+        // Execute all glyphs
+        async function executeGlyphs() {
+            if (!infiniteMap || !infiniteMap.executeGlyphs) {
+                console.warn('executeGlyphs not available');
+                return;
+            }
+
+            updateStatus('Executing...');
+
+            try {
+                const result = await infiniteMap.executeGlyphs();
+                console.log('Execution result:', result);
+
+                if (result && result.executed !== undefined) {
+                    cycleCountEl.textContent = infiniteMap.glyphExecutor ?
+                        infiniteMap.glyphExecutor.executionCount : result.executed;
+                    updateStatus(`Executed ${result.executed} glyphs`);
+                }
+            } catch (error) {
+                console.error('Execution error:', error);
+                updateStatus('Execution failed: ' + error.message);
+            }
+        }
+
+        // Clear all glyphs
+        function clearGlyphs() {
+            if (!infiniteMap || !infiniteMap.glyphExecutor) {
+                console.warn('GlyphExecutor not available');
+                return;
+            }
+
+            // Unregister all glyphs
+            for (const glyph of placedGlyphs) {
+                if (glyph.sprite && glyph.sprite.parent) {
+                    glyph.sprite.parent.removeChild(glyph.sprite);
+                }
+                infiniteMap.glyphExecutor.unregisterGlyph(glyph.x, glyph.y);
+            }
+
+            placedGlyphs = [];
+            updateGlyphCount();
+            updateStatus('Cleared all glyphs');
+        }
+
+        // Update glyph count display
+        function updateGlyphCount() {
+            glyphCountEl.textContent = placedGlyphs.length;
+        }
+
+        // Update status display
+        function updateStatus(message) {
+            lastActionEl.textContent = message;
+        }
+
+        // Initialize on load
+        window.addEventListener('load', initApp);
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (app) {
+                app.renderer.resize(window.innerWidth, window.innerHeight);
+            }
+        });
+    </script>
+</body>
+</html>
