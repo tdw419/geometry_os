@@ -82,7 +82,7 @@ Focus: Enhance geo_term.html with state panel and glyph visualization. Validate 
   - **Done when**: All 8 opcodes produce expected results
   - **Commit**: `fix(geo-term): address any issues found` (if needed)
 
-- [ ] 4.2 WebGPU Compatibility Check
+- [x] 4.2 WebGPU Compatibility Check
   - **Do**: Add graceful error message when WebGPU unavailable
   - **Files**: `systems/visual_shell/web/geo_term.html`
   - **Done when**: Non-WebGPU browsers show "WebGPU required" message
