@@ -75,6 +75,8 @@ from .prompt_version_manager import (
 from .prompt_validator import (
     PromptValidator,
     ValidationResult,
+    RoleConstraint,
+    GEOMETRY_OS_ARCHITECT,
 )
 from .evolution_budget import (
     EvolutionBudget,
@@ -126,5 +128,7 @@ __all__ = [
     "RollbackResult",
     "PromptValidator",
     "ValidationResult",
+    "RoleConstraint",
+    "GEOMETRY_OS_ARCHITECT",
     "EvolutionBudget",
 ]
