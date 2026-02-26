@@ -130,7 +130,7 @@ After POC validated, clean up code structure and add proper error handling.
   - **Commit**: `refactor(loader): add comprehensive error handling`
   - _Design: Error Handling section_
 
-- [ ] 2.2 Extract pixel decoding to separate method
+- [x] 2.2 Extract pixel decoding to separate method
   - **Do**:
     1. Create `_decodePixels(imageData, dictionary)` private method
     2. Move pixel iteration loop to this method
