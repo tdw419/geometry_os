@@ -75,7 +75,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
   - _Requirements: US-1, US-2_
   - _Design: Test harness in plan_
 
-- [ ] 1.8 POC Checkpoint
+- [x] 1.8 POC Checkpoint
   - **Do**: Verify end-to-end flow works: place glyph -> execute -> see visual change
   - **Done when**: Full cycle demonstrable in test page
   - **Verify**: Manual test: place 'A' glyph, press Ctrl+Enter, see glow effect
