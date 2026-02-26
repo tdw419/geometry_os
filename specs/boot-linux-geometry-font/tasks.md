@@ -266,7 +266,7 @@ Continuous PR validation until completion criteria met.
   - **Commit**: (as needed per failure)
   - **Note**: CI failures analyzed - all are pre-existing infrastructure issues (E2E missing package-lock.json, security-scan trivy not pip-installable, Python test failures unrelated to JS changes). All relevant tests pass (validate, WGSL, platform tests). Cannot fix repo-level infrastructure within this spec's scope.
 
-- [ ] 5.2 Final verification: E2E boot test
+- [x] 5.2 Final verification: E2E boot test
   - **Do**:
     1. Checkout PR branch
     2. Serve files: `cd systems/visual_shell/web && python3 -m http.server 8080`
