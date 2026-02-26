@@ -12,7 +12,7 @@ generated: auto
 
 Focus: Enhance geo_term.html with state panel and glyph visualization. Validate end-to-end execution.
 
-- [ ] 1.1 Add State Panel to Terminal UI
+- [x] 1.1 Add State Panel to Terminal UI
   - **Do**: Modify geo_term.html to add side panel showing PC, accumulator, halted status, output buffer. Add CSS for layout.
   - **Files**: `systems/visual_shell/web/geo_term.html`
   - **Done when**: State panel visible with PC, ACC, HALT, OUTPUT fields

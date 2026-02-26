@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Geometry OS - Geometric Terminal</title>
+    <script src="https://pixijs.download/v8.1.0/pixi.min.js"></script>
+    <style>
+        body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; }
+        #main-container { display: flex; width: 100vw; height: 100vh; }
+        #terminal { flex: 1; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
+        #history { flex-grow: 1; overflow-y: auto; white-space: pre-wrap; margin-bottom: 10px; }
+        #prompt-line { display: flex; }
+        #cursor { width: 10px; height: 20px; background: #0f0; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        input { background: transparent; border: none; color: #0f0; font-family: inherit; font-size: 18px; outline: none; flex-grow: 1; }
+
+        /* State Panel Styles */
+        #state-panel {
+            width: 250px;
+            background: #0a0a0a;
+            border-left: 2px solid #0f0;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+        #state-panel h2 {
+            margin: 0 0 20px 0;
+            font-size: 14px;
+            color: #0f0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 1px solid #0f0;
+            padding-bottom: 10px;
+        }
+        .state-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        .state-label {
+            color: #888;
+        }
+        .state-value {
+            color: #0f0;
+            font-weight: bold;
+            font-family: monospace;
+        }
+        #output-buffer {
+            margin-top: 20px;
+            flex-grow: 1;
+        }
+        #output-buffer h3 {
+            margin: 0 0 10px 0;
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        #output-list {
+            background: #050505;
+            border: 1px solid #333;
+            height: 150px;
+            overflow-y: auto;
+            padding: 10px;
+            font-size: 12px;
+        }
+        #output-list:empty::before {
+            content: '(no output)';
+            color: #444;
+        }
+        .output-item {
+            color: #0f0;
+            margin-bottom: 4px;
+        }
+        #halted-indicator {
+            margin-top: auto;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #333;
+            font-size: 12px;
+        }
+        #halted-indicator.running { color: #0f0; border-color: #0f0; }
+        #halted-indicator.halted { color: #f00; border-color: #f00; }
+    </style>
+</head>
+<body>
+    <div id="main-container">
+        <div id="terminal">
+            <div id="history">GEOMETRY OS - GEOMETRIC TERMINAL v1.0
+READY FOR SUBSTRATE INSTRUCTIONS...
+</div>
+            <div id="prompt-line">
+                <span>$ </span>
+                <input type="text" id="command-input" autofocus>
+            </div>
+        </div>
+        <div id="state-panel">
+            <h2>Execution State</h2>
+            <div class="state-row">
+                <span class="state-label">PC</span>
+                <span class="state-value" id="state-pc">0</span>
+            </div>
+            <div class="state-row">
+                <span class="state-label">ACC</span>
+                <span class="state-value" id="state-acc">0</span>
+            </div>
+            <div class="state-row">
+                <span class="state-label">CYCLE</span>
+                <span class="state-value" id="state-cycle">0</span>
+            </div>
+            <div id="halted-indicator" class="running">RUNNING</div>
+            <div id="output-buffer">
+                <h3>Output Buffer</h3>
+                <div id="output-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { GeometryFont } from './GeometryFont.js';
+        import { FontExecutionSystem } from './FontExecutionSystem.js';
+
+        const app = new PIXI.Application();
+        await app.init({ width: 1, height: 1, backgroundColor: 0x000000 }); // Invisible app for GPU access
+
+        const font = new GeometryFont(app);
+        await font.load();
+
+        const gpu = new FontExecutionSystem(app.renderer.gpu.device);
+        await gpu.initialize();
+
+        const history = document.getElementById('history');
+        const input = document.getElementById('command-input');
+
+        function log(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.textContent = msg;
+            if (type === 'command') div.style.color = '#fff';
+            if (type === 'error') div.style.color = '#f00';
+            history.appendChild(div);
+            history.scrollTop = history.scrollHeight;
+        }
+
+        // State panel update function
+        function updateStatePanel(state, output) {
+            document.getElementById('state-pc').textContent = state.pc;
+            document.getElementById('state-acc').textContent = state.accumulator;
+            document.getElementById('state-cycle').textContent = state.cycle || 0;
+
+            const haltedIndicator = document.getElementById('halted-indicator');
+            if (state.halted) {
+                haltedIndicator.textContent = 'HALTED';
+                haltedIndicator.className = 'halted';
+            } else {
+                haltedIndicator.textContent = 'RUNNING';
+                haltedIndicator.className = 'running';
+            }
+
+            const outputList = document.getElementById('output-list');
+            outputList.innerHTML = '';
+            if (output && output.length > 0) {
+                output.forEach(val => {
+                    const item = document.createElement('div');
+                    item.className = 'output-item';
+                    item.textContent = val;
+                    outputList.appendChild(item);
+                });
+            }
+        }
+
+        // Reset state panel for new execution
+        function resetStatePanel() {
+            document.getElementById('state-pc').textContent = '0';
+            document.getElementById('state-acc').textContent = '0';
+            document.getElementById('state-cycle').textContent = '0';
+            document.getElementById('halted-indicator').textContent = 'RUNNING';
+            document.getElementById('halted-indicator').className = 'running';
+        }
+
+        input.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter') {
+                const cmd = input.value;
+                input.value = '';
+                log(`$ ${cmd}`, 'command');
+
+                if (cmd.trim() === '') return;
+
+                // 1. Compile Command to Morphological Sequence
+                const program = font.compile(cmd + '
+#'); // Auto-append halt
+                
+                // 2. Prepare Texture
+                const size = 128; // Small texture for terminal commands
+                const data = new Uint32Array(size * size * 4);
+                program.forEach((inst, i) => {
+                    const idx = i * 4;
+                    data[idx] = 255;
+                    data[idx+1] = inst.opcode;
+                    data[idx+2] = inst.operand;
+                    data[idx+3] = inst.executable ? 255 : 0;
+                });
+
+                const device = app.renderer.gpu.device;
+                const programTexture = device.createTexture({
+                    size: [size, size],
+                    format: 'rgba8uint',
+                    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+                });
+
+                device.queue.writeTexture(
+                    { texture: programTexture },
+                    data,
+                    { bytesPerRow: size * 4 * 4 },
+                    { width: size, height: size }
+                );
+
+                gpu.setProgramTexture(programTexture);
+                
+                // 3. Reset GPU State
+                device.queue.writeBuffer(gpu.stateBuffer, 0, new Int32Array([0, 0, 0, 0]));
+                
+                // 4. Run on GPU
+                await gpu.run();
+                
+                // 5. Read back result and update state panel
+                setTimeout(async () => {
+                    const state = await gpu.readState();
+                    const output = await gpu.readOutput(10);
+
+                    // Update state panel
+                    updateStatePanel(state, state.outputPtr > 0 ? output : []);
+
+                    if (state.outputPtr > 0) {
+                        log(`OUT: ${output[0]}`);
+                    } else {
+                        log(`ACC: ${state.accumulator}`);
+                    }
+                }, 50);
+            }
+        });
+    </script>
+</body>
+</html>
