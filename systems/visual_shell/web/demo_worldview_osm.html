@@ -137,6 +137,61 @@
     .leaflet-control-attribution {
       display: none;
     }
+
+    /* Tectonic Node Marker Styles */
+    .tectonic-marker {
+      background: transparent;
+      border: none;
+    }
+
+    .tectonic-marker-inner {
+      width: 12px;
+      height: 12px;
+      background: #00FF00;
+      border-radius: 2px;
+      box-shadow: 0 0 10px #00FF00, 0 0 20px #00AA00;
+    }
+
+    .tectonic-marker-pulse {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 24px;
+      height: 24px;
+      margin-left: -12px;
+      margin-top: -12px;
+      border: 2px solid #00FF00;
+      border-radius: 50%;
+      animation: pulse 2s ease-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(2.5);
+        opacity: 0;
+      }
+    }
+
+    .tectonic-label {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      font-weight: bold;
+      color: #00FF00;
+      text-shadow: 0 0 5px #00FF00, 0 0 10px #00AA00;
+      background: rgba(0, 10, 0, 0.8);
+      padding: 2px 6px;
+      border: 1px solid #004400;
+    }
   </style>
 </head>
 <body>
@@ -194,13 +249,114 @@
       document.getElementById('coord-lon').textContent = '--';
     });
 
-    // Placeholder for Tectonic Node functions (to be added in next task)
-    window.addTectonicNode = null;
-    window.updateTectonicNode = null;
+    // --- TECTONIC NODE MARKER SYSTEM ---
+    const tectonicMarkers = new Map();
+
+    // Create Tectonic Node marker with pulse animation
+    window.addTectonicNode = (node) => {
+      // Create custom divIcon for the marker
+      const iconHtml = `
+        <div class="tectonic-marker">
+          <div class="tectonic-marker-pulse" id="pulse-${node.id}"></div>
+          <div class="tectonic-marker-inner"></div>
+          <div class="tectonic-label">${node.name}</div>
+        </div>
+      `;
+
+      const tectonicIcon = L.divIcon({
+        html: iconHtml,
+        className: 'tectonic-marker-container',
+        iconSize: [12, 12],
+        iconAnchor: [6, 6]
+      });
+
+      // Create marker and add to map
+      const marker = L.marker([node.lat, node.lon], {
+        icon: tectonicIcon,
+        title: node.name
+      }).addTo(map);
+
+      // Click handler triggers orchestrator zoom
+      marker.on('click', () => {
+        if (window.orchestrator) {
+          window.orchestrator.zoomInto(node.id);
+        }
+        console.log(`📍 Clicked Tectonic Node: ${node.name} (${node.id})`);
+      });
+
+      // Store marker reference with node data
+      tectonicMarkers.set(node.id, {
+        ...node,
+        marker,
+        load: node.load || 0
+      });
+
+      // Update HUD
+      updateHUD();
+
+      console.log(`✅ Added Tectonic Node: ${node.name} at (${node.lat}, ${node.lon})`);
+    };
+
+    // Update Tectonic Node pulse speed based on load
+    window.updateTectonicNode = (id, load) => {
+      const nodeData = tectonicMarkers.get(id);
+      if (!nodeData) {
+        console.warn(`⚠️ Tectonic Node not found: ${id}`);
+        return;
+      }
+
+      nodeData.load = load;
+
+      // Adjust pulse animation duration based on load (higher load = faster pulse)
+      const pulseEl = document.getElementById(`pulse-${id}`);
+      if (pulseEl) {
+        // Load 0.0 = 2s, Load 1.0 = 0.3s
+        const duration = Math.max(0.3, 2 - (load * 1.7));
+        pulseEl.style.animationDuration = `${duration}s`;
+      }
+
+      // Update HUD to reflect new load
+      updateHUD();
+    };
+
+    // Update HUD with kernel count and load display
+    function updateHUD() {
+      // Update kernel count
+      document.getElementById('kernel-count').textContent = tectonicMarkers.size;
+
+      // Calculate total load
+      let totalLoad = 0;
+      const nodeList = [];
+
+      tectonicMarkers.forEach((node, id) => {
+        totalLoad += node.load || 0;
+        const loadPercent = ((node.load || 0) * 100).toFixed(0);
+        const loadClass = (node.load || 0) > 0.7 ? 'pulse-high' : 'pulse-low';
+        nodeList.push(`
+          <div class="node-item">
+            ${node.name}: <span class="${loadClass}">${loadPercent}% LOAD</span>
+          </div>
+        `);
+      });
+
+      // Update total load display
+      const avgLoad = tectonicMarkers.size > 0
+        ? (totalLoad / tectonicMarkers.size * 100).toFixed(1)
+        : '0.0';
+      document.getElementById('total-load').textContent = `${avgLoad}%`;
+
+      // Update kernel list
+      document.getElementById('kernel-list').innerHTML = nodeList.join('');
+    }
+
+    // Placeholder for Memory Tapestry (to be added in next task)
     window.showMemoryTapestry = null;
 
     console.log('🌍 Tectonic WorldView [OSM] Bridge Online');
     console.log('📍 Centered on Texas State Capitol (30.2747, -97.7403)');
+    console.log('✅ Tectonic Node marker system initialized');
+    console.log('   - window.addTectonicNode(node) - Add marker');
+    console.log('   - window.updateTectonicNode(id, load) - Update pulse');
   </script>
 </body>
 </html>

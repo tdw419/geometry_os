@@ -30,7 +30,7 @@ Focus: Create functional OSM WorldView with all core features. Skip tests, use m
   - _Requirements: FR-1, FR-4_
   - _Design: Component A_
 
-- [ ] 1.3 Create Tectonic Node marker system
+- [x] 1.3 Create Tectonic Node marker system
   - **Do**: Add `window.addTectonicNode()` and `window.updateTectonicNode()` functions, create Leaflet divIcon markers with pulse animation, implement HUD update logic
   - **Files**: `systems/visual_shell/web/demo_worldview_osm.html`
   - **Done when**: Marker functions available globally, pulse animation runs based on load value
