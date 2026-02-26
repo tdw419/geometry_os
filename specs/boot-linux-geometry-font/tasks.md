@@ -78,7 +78,7 @@ Focus: Validate morphological decoding and GPU execution end-to-end. Skip tests,
   - **Commit**: `test(assets): add hello_morph.rts.png encoded test binary`
   - _Requirements: FR-10_
 
-- [ ] 1.5 Create manual test HTML page
+- [x] 1.5 Create manual test HTML page
   - **Do**:
     1. Create `systems/visual_shell/web/test_morphological_boot.html`
     2. Add Load/Start/Stop buttons
