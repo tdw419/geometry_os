@@ -273,8 +273,7 @@ READY FOR SUBSTRATE INSTRUCTIONS...
                 if (cmd.trim() === '') return;
 
                 // 1. Compile Command to Morphological Sequence
-                const program = font.compile(cmd + '
-#'); // Auto-append halt
+                const program = font.compile(cmd + '\n#'); // Auto-append halt
                 
                 // 2. Prepare Texture
                 const size = 128; // Small texture for terminal commands

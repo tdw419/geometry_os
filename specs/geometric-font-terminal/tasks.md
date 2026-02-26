@@ -48,7 +48,7 @@ Focus: Enhance geo_term.html with state panel and glyph visualization. Validate 
   - _Requirements: FR-5, FR-6_
   - _Design: Output Panel_
 
-- [ ] 1.5 POC Checkpoint
+- [x] 1.5 POC Checkpoint
   - **Do**: Verify complete flow: type command, see glyphs, execute on GPU, see state update, see output
   - **Done when**: Can run `+ 10 + 20 ! #` and see ACC=30, OUT: 30
   - **Verify**: Manual test in browser
