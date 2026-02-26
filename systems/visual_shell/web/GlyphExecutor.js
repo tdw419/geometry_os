@@ -34,6 +34,8 @@ class GlyphExecutor {
         // Execution state
         this.executionCount = 0;
         this.autoExecutionInterval = null;
+        this.executing = false;
+        this.lastResult = null;
 
         console.log('GlyphExecutor created with options:', this.options);
     }
@@ -262,12 +264,193 @@ class GlyphExecutor {
 
     /**
      * Execute all registered glyphs
-     * Simulates compute dispatch for POC
+     * Full execution loop: sync -> dispatch -> read -> update
+     * @returns {Promise<object>} Execution results
      */
-    execute() {
+    async execute() {
         console.log('GlyphExecutor.execute() called');
-        // Placeholder - will be implemented in Task 1.5
-        this.executionCount++;
+
+        // Prevent re-entry
+        if (this.executing) {
+            console.warn('Execute already in progress, skipping');
+            return { skipped: true };
+        }
+        this.executing = true;
+
+        try {
+            const activeGlyphs = this.getActiveGlyphs().filter(g => g.active);
+            const glyphCount = activeGlyphs.length;
+
+            if (glyphCount === 0) {
+                console.log('No active glyphs to execute');
+                this.executing = false;
+                return { executed: 0 };
+            }
+
+            // Step 1: Sync CPU states to GPU buffer
+            this.syncCPUIStates(activeGlyphs);
+
+            // Step 2: Dispatch compute (simulated for POC)
+            await this.dispatchCompute(activeGlyphs);
+
+            // Step 3: Read results from GPU buffer
+            const results = await this.readResults(activeGlyphs);
+
+            // Step 4: Update visual feedback
+            this.updateVisualFeedback(activeGlyphs, results);
+
+            // Update execution count and last result
+            this.executionCount++;
+            this.lastResult = {
+                executed: glyphCount,
+                timestamp: Date.now(),
+                results
+            };
+
+            console.log(`Executed ${glyphCount} glyphs`);
+
+            return this.lastResult;
+        } finally {
+            this.executing = false;
+        }
+    }
+
+    /**
+     * Sync CPU states to GPU buffer
+     * Creates Uint32Array, sets PC for each active glyph
+     */
+    syncCPUIStates(activeGlyphs) {
+        const { maxCores, regsPerCore } = this.options;
+        const glyphsPerRow = this.atlasWidth ? Math.floor(this.atlasWidth / 16) : 64;
+
+        // Create CPU states array
+        const cpuStates = new Uint32Array(maxCores * regsPerCore);
+
+        for (const glyph of activeGlyphs) {
+            const baseIdx = glyph.coreId * regsPerCore;
+
+            // Set PC at offset +32 (from shader spec)
+            cpuStates[baseIdx + 32] = glyph.pc;
+
+            // Set atlas position for decode
+            cpuStates[baseIdx + 0] = glyph.atlasX;
+            cpuStates[baseIdx + 1] = glyph.atlasY;
+
+            // Calculate glyph index in atlas
+            const glyphIdx = glyph.atlasY * glyphsPerRow + glyph.atlasX;
+            cpuStates[baseIdx + 2] = glyphIdx;
+
+            console.log(`syncCPUIStates: core ${glyph.coreId}, PC=${glyph.pc}, atlas=(${glyph.atlasX},${glyph.atlasY})`);
+        }
+
+        // Write to GPU buffer if available
+        if (this.device && this.cpuStatesBuffer) {
+            this.device.queue.writeBuffer(
+                this.cpuStatesBuffer,
+                0,
+                cpuStates.buffer,
+                0,
+                cpuStates.byteLength
+            );
+        }
+    }
+
+    /**
+     * Dispatch compute shader (simulated for POC)
+     * In full implementation, would dispatch visual_cpu_riscv_morph.wgsl
+     * @param {Array} activeGlyphs - Glyphs to execute
+     */
+    async dispatchCompute(activeGlyphs) {
+        // POC: Simulated compute - just increment execution count per glyph
+        // Full implementation would:
+        // 1. Create compute pipeline with visual_cpu_riscv_morph.wgsl
+        // 2. Create bind group with atlas texture, systemMemory, cpuStates
+        // 3. Dispatch workgroups (1 per glyph, max 64)
+        // 4. Wait for completion
+
+        for (const glyph of activeGlyphs) {
+            glyph.executionCount++;
+        }
+
+        // Simulate async GPU work
+        await new Promise(resolve => setTimeout(resolve, 1));
+
+        console.log(`dispatchCompute: simulated execution for ${activeGlyphs.length} glyphs`);
+    }
+
+    /**
+     * Read results from GPU buffer
+     * Checks halt flag and extracts execution state
+     * @param {Array} activeGlyphs - Glyphs to read results for
+     * @returns {Promise<Array>} Results per glyph
+     */
+    async readResults(activeGlyphs) {
+        const { maxCores, regsPerCore } = this.options;
+        const results = [];
+
+        // POC: Simulated readback
+        // Full implementation would:
+        // 1. Create staging buffer with MAP_READ | COPY_DST
+        // 2. Copy cpuStatesBuffer to staging
+        // 3. mapAsync(), read, unmap()
+
+        for (const glyph of activeGlyphs) {
+            const baseIdx = glyph.coreId * regsPerCore;
+
+            // Simulated: check halt flag at offset +38
+            // In real implementation, read from buffer
+            const haltFlag = false; // POC: never halt
+            const cycles = glyph.executionCount;
+
+            results.push({
+                coreId: glyph.coreId,
+                halted: haltFlag,
+                cycles,
+                pc: glyph.pc
+            });
+
+            // Update glyph's lastResult
+            glyph.lastResult = {
+                cycles,
+                halted: haltFlag
+            };
+        }
+
+        console.log(`readResults: ${results.length} glyph states read`);
+        return results;
+    }
+
+    /**
+     * Update visual feedback for glyphs
+     * Updates glowIntensity based on active state
+     * @param {Array} activeGlyphs - Glyphs to update
+     * @param {Array} results - Execution results
+     */
+    updateVisualFeedback(activeGlyphs, results) {
+        for (let i = 0; i < activeGlyphs.length; i++) {
+            const glyph = activeGlyphs[i];
+            const result = results[i];
+
+            if (!glyph.sprite) continue;
+
+            // Update glow intensity based on execution
+            // Active glyphs glow, halted glyphs dim
+            if (result.halted) {
+                glyph.glowIntensity = 0;
+                glyph.sprite.alpha = 0.5;
+                glyph.active = false;
+            } else {
+                // Pulse effect based on execution count
+                glyph.glowIntensity = Math.min(1.0, 0.3 + (glyph.executionCount % 10) * 0.07);
+                glyph.sprite.alpha = 0.8 + glyph.glowIntensity * 0.2;
+
+                // Slight scale pulse
+                const scale = 1.0 + Math.sin(glyph.executionCount * 0.5) * 0.05;
+                glyph.sprite.scale.set(scale);
+            }
+        }
+
+        console.log(`updateVisualFeedback: ${activeGlyphs.length} glyphs updated`);
     }
 
     /**
