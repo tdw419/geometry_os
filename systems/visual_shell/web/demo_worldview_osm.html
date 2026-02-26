@@ -173,6 +173,9 @@
       zoomControl: true
     });
 
+    // Expose map globally for WorldViewOrchestrator integration
+    window.worldViewMap = map;
+
     // Add OSM tile layer
     const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,

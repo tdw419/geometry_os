@@ -21,7 +21,7 @@ Focus: Create functional OSM WorldView with all core features. Skip tests, use m
   - _Requirements: FR-2, FR-3_
   - _Design: Component A_
 
-- [ ] 1.2 Initialize Leaflet map with OSM tiles
+- [x] 1.2 Initialize Leaflet map with OSM tiles
   - **Do**: Add Leaflet map initialization centered on Texas (30.2747, -97.7403), add OSM tile layer, implement coordinate tracking
   - **Files**: `systems/visual_shell/web/demo_worldview_osm.html`
   - **Done when**: Map displays OSM tiles with green filter applied, coordinates update on mouse move
