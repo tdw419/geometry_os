@@ -5,7 +5,113 @@
  * on the Infinite Map, bridging PixiJS visual layer to WebGPU compute.
  *
  * Run in browser console: runGlyphExecutorTests()
+ * Run in Node.js: node systems/visual_shell/web/tests/test_glyph_executor.js
  */
+
+// ========================================
+// GlyphExecutor Import for Node.js
+// ========================================
+
+// Import GlyphExecutor for Node.js environment
+let GlyphExecutor;
+if (typeof module !== 'undefined' && module.exports) {
+    // In Node.js, require the GlyphExecutor module
+    GlyphExecutor = require('../GlyphExecutor.js').GlyphExecutor;
+}
+
+// ========================================
+// WebGPU Mock for Node.js Testing
+// ========================================
+
+/**
+ * Mock GPUBufferUsage flags
+ * Matches WebGPU spec: https://www.w3.org/TR/webgpu/#buffer-usage
+ */
+const mockGPUBufferUsage = {
+    MAP_READ: 0x0001,
+    MAP_WRITE: 0x0002,
+    COPY_SRC: 0x0004,
+    COPY_DST: 0x0008,
+    INDEX: 0x0010,
+    VERTEX: 0x0020,
+    UNIFORM: 0x0040,
+    STORAGE: 0x0080,
+    INDIRECT: 0x0100,
+    QUERY_RESOLVE: 0x0200,
+};
+
+/**
+ * Mock GPUTextureUsage flags
+ * Matches WebGPU spec: https://www.w3.org/TR/webgpu/#texture-usage
+ */
+const mockGPUTextureUsage = {
+    COPY_SRC: 0x01,
+    COPY_DST: 0x02,
+    TEXTURE_BINDING: 0x04,
+    STORAGE_BINDING: 0x08,
+    RENDER_ATTACHMENT: 0x10,
+};
+
+/**
+ * Mock GPU object for non-browser environments
+ * Provides stubs for WebGPU API to allow tests to run without real GPU
+ */
+const mockGPU = {
+    requestAdapter: async () => ({
+        requestDevice: async () => ({
+            createBuffer: (desc) => ({ size: desc.size, mapAsync: async () => {} }),
+            createTexture: (desc) => ({ ...desc }),
+            queue: {
+                writeBuffer: () => {},
+                copyExternalImageToTexture: () => {},
+                submit: () => {},
+            },
+            createCommandEncoder: () => ({
+                copyBufferToBuffer: () => {},
+                finish: () => ({}),
+            }),
+        }),
+    }),
+};
+
+/**
+ * Setup mock WebGPU environment for Node.js
+ * Must be called before tests that require WebGPU
+ */
+function setupWebGPUMock() {
+    // Setup navigator.gpu
+    if (typeof navigator === 'undefined') {
+        global.navigator = { gpu: mockGPU };
+    } else if (!navigator.gpu) {
+        navigator.gpu = mockGPU;
+    }
+
+    // Setup GPUBufferUsage global
+    if (typeof GPUBufferUsage === 'undefined') {
+        global.GPUBufferUsage = mockGPUBufferUsage;
+    }
+
+    // Setup GPUTextureUsage global
+    if (typeof GPUTextureUsage === 'undefined') {
+        global.GPUTextureUsage = mockGPUTextureUsage;
+    }
+}
+
+/**
+ * Teardown mock WebGPU environment
+ * Cleans up after tests
+ */
+function teardownWebGPUMock() {
+    if (typeof global.navigator !== 'undefined') {
+        delete global.navigator.gpu;
+    }
+    if (typeof global.GPUBufferUsage !== 'undefined') {
+        delete global.GPUBufferUsage;
+    }
+    if (typeof global.GPUTextureUsage !== 'undefined') {
+        delete global.GPUTextureUsage;
+    }
+}
 
 /**
  * Test 1: Constructor
@@ -356,9 +462,121 @@ function testAutoExecutionState() {
 }
 
 /**
+ * Test 11: init() with WebGPU mock
+ * Verify init() completes successfully with mock GPU
+ */
+async function testInitWithMock() {
+    setupWebGPUMock();
+
+    const executor = new GlyphExecutor();
+    await executor.init();
+
+    // Verify device was acquired
+    console.assert(
+        executor.device !== null,
+        'Expected device to be set after init()'
+    );
+
+    // Verify adapter was acquired
+    console.assert(
+        executor.adapter !== null,
+        'Expected adapter to be set after init()'
+    );
+
+    // Verify buffers were created
+    console.assert(
+        executor.systemMemoryBuffer !== null,
+        'Expected systemMemoryBuffer to be created'
+    );
+
+    console.assert(
+        executor.cpuStatesBuffer !== null,
+        'Expected cpuStatesBuffer to be created'
+    );
+
+    // Verify buffer sizes
+    console.assert(
+        executor.systemMemoryBuffer.size === 1048576,
+        `Expected systemMemoryBuffer size 1048576, got ${executor.systemMemoryBuffer.size}`
+    );
+
+    // cpuStatesSize = maxCores * regsPerCore * 4 = 64 * 46 * 4 = 11776
+    console.assert(
+        executor.cpuStatesBuffer.size === 11776,
+        `Expected cpuStatesBuffer size 11776, got ${executor.cpuStatesBuffer.size}`
+    );
+
+    console.log('✅ testInitWithMock passed');
+
+    teardownWebGPUMock();
+}
+
+/**
+ * Test 12: loadAtlas() with mock
+ * Verify loadAtlas() handles mocked fetch gracefully
+ */
+async function testLoadAtlasWithMock() {
+    setupWebGPUMock();
+
+    const executor = new GlyphExecutor();
+    await executor.init();
+
+    // Store original fetch to restore later
+    const originalFetch = global.fetch;
+
+    // Mock fetch for Node.js - must return valid response with blob
+    global.fetch = async (url) => {
+        return {
+            ok: true,
+            status: 200,
+            statusText: 'OK',
+            blob: async () => new Blob(['mock image data'], { type: 'image/png' }),
+        };
+    };
+
+    // Mock createImageBitmap for Node.js
+    const originalCreateImageBitmap = global.createImageBitmap;
+    global.createImageBitmap = async (blob) => ({
+        width: 256,
+        height: 256,
+    });
+
+    // Load atlas with mock
+    const texture = await executor.loadAtlas('file:///assets/test_atlas.png');
+
+    // Verify texture was created
+    console.assert(
+        texture !== null,
+        'Expected atlas texture to be created'
+    );
+
+    // Verify dimensions stored
+    console.assert(
+        executor.atlasWidth === 256,
+        `Expected atlasWidth=256, got ${executor.atlasWidth}`
+    );
+
+    console.assert(
+        executor.atlasHeight === 256,
+        `Expected atlasHeight=256, got ${executor.atlasHeight}`
+    );
+
+    console.log('✅ testLoadAtlasWithMock passed');
+
+    // Cleanup - restore original functions
+    global.fetch = originalFetch;
+    if (originalCreateImageBitmap !== undefined) {
+        global.createImageBitmap = originalCreateImageBitmap;
+    } else {
+        delete global.createImageBitmap;
+    }
+    teardownWebGPUMock();
+}
+
+/**
  * Main test runner
  */
-function runGlyphExecutorTests() {
+async function runGlyphExecutorTests() {
     console.log('🧪 Running GlyphExecutor tests...');
     console.log('=====================================');
 
@@ -378,9 +596,26 @@ function runGlyphExecutorTests() {
         testAutoExecutionState
     ];
 
+    // Run synchronous tests
     for (const test of tests) {
         try {
             test();
+            passed++;
+        } catch (error) {
+            console.error(`❌ ${test.name} FAILED:`, error);
+            failed++;
+        }
+    }
+
+    // Run async tests
+    const asyncTests = [
+        testInitWithMock,
+        testLoadAtlasWithMock
+    ];
+
+    for (const test of asyncTests) {
+        try {
+            await test();
             passed++;
         } catch (error) {
             console.error(`❌ ${test.name} FAILED:`, error);
@@ -413,14 +648,22 @@ if (typeof window !== 'undefined') {
         testActiveGlyphs,
         testReRegistration,
         testCoreIdWraparound,
-        testAutoExecutionState
+        testAutoExecutionState,
+        testInitWithMock,
+        testLoadAtlasWithMock
     };
+    window.mockGPU = mockGPU;
+    window.setupWebGPUMock = setupWebGPUMock;
+    window.teardownWebGPUMock = teardownWebGPUMock;
 }
 
 // Export for Node.js compatibility
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         runGlyphExecutorTests,
+        mockGPU,
+        setupWebGPUMock,
+        teardownWebGPUMock,
         testConstructor,
         testConstructorCustomOptions,
         testRegistration,
@@ -430,6 +673,16 @@ if (typeof module !== 'undefined' && module.exports) {
         testActiveGlyphs,
         testReRegistration,
         testCoreIdWraparound,
-        testAutoExecutionState
+        testAutoExecutionState,
+        testInitWithMock,
+        testLoadAtlasWithMock
     };
+}
+
+// Auto-run tests when executed directly in Node.js
+if (typeof window === 'undefined' && typeof module !== 'undefined' && require.main === module) {
+    (async () => {
+        const success = await runGlyphExecutorTests();
+        process.exit(success ? 0 : 1);
+    })();
 }

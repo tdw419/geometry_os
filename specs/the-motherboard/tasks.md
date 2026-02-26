@@ -111,7 +111,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
   - **Commit**: `test(motherboard): add GlyphExecutor unit tests`
   - _Requirements: AC-1.2, AC-1.4_
 
-- [ ] 3.2 Add WebGPU mock for testing
+- [x] 3.2 Add WebGPU mock for testing
   - **Do**: Add mockGPU object in test file for non-browser testing
   - **Files**: Modify: `systems/visual_shell/web/tests/test_glyph_executor.js`
   - **Done when**: Tests can run without real WebGPU
