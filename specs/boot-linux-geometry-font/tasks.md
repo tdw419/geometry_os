@@ -278,7 +278,7 @@ Continuous PR validation until completion criteria met.
   - **Done when**: Boot test shows expected output
   - **Commit**: None
 
-- [ ] 5.3 AC checklist verification
+- [x] 5.3 AC checklist verification
   - **Do**:
     1. Verify AC-1.1: `grep "loadKernelFromMorphologicalRTS" systems/visual_shell/web/wgpu_linux_hypervisor.js`
     2. Verify AC-1.2: `grep ".meta.json" systems/visual_shell/web/riscv_morphological_loader.js`
