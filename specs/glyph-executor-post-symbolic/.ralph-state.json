@@ -1,0 +1,15 @@
+{
+  "source": "spec",
+  "name": "glyph-executor-post-symbolic",
+  "basePath": "specs/glyph-executor-post-symbolic",
+  "phase": "execution",
+  "taskIndex": 7,
+  "totalTasks": 12,
+  "taskIteration": 1,
+  "maxTaskIterations": 5,
+  "globalIteration": 1,
+  "maxGlobalIterations": 100,
+  "commitSpec": false,
+  "completedTasks": [1, 2, 3, 4, 5, 6],
+  "notes": "Phase 1-2 complete (shader + executor). Phase 4.1 complete (test page). Ready for E2E testing."
+}

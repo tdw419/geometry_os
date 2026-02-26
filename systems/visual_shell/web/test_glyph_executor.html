@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GlyphExecutor Test - Post-Symbolic Execution</title>
+    <style>
+        body {
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            border-bottom: 2px solid #00ff88;
+            padding-bottom: 10px;
+        }
+        #controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            background: #1a1a1a;
+            color: #00ff88;
+            border: 1px solid #00ff88;
+            padding: 12px 24px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #status {
+            margin: 10px 0;
+            padding: 10px;
+            background: #1a1a1a;
+            border-left: 4px solid #00ff88;
+        }
+        #status.loading {
+            border-left-color: #ffaa00;
+        }
+        #status.running {
+            border-left-color: #00ff00;
+        }
+        #status.stopped {
+            border-left-color: #ff4444;
+        }
+        #status.error {
+            border-left-color: #ff0000;
+            color: #ff4444;
+        }
+        #console-output {
+            background: #0f0f0f;
+            border: 1px solid #333;
+            padding: 15px;
+            min-height: 300px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-size: 13px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        #browser-console {
+            background: #0f0f0f;
+            border: 1px solid #333;
+            padding: 15px;
+            margin-top: 20px;
+            min-height: 150px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+            color: #888;
+        }
+        .log-info { color: #888; }
+        .log-success { color: #00ff88; }
+        .log-error { color: #ff4444; }
+        .log-warn { color: #ffaa00; }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            color: #888;
+        }
+        #asset-url {
+            width: 100%;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #00ff88;
+            padding: 8px;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        .info-box {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .info-box h3 {
+            margin-top: 0;
+            color: #00ff88;
+        }
+    </style>
+</head>
+<body>
+    <h1>GlyphExecutor Test</h1>
+    <p>Test page for post-symbolic execution: GPU-side holographic decoding of morphological glyph textures.</p>
+
+    <div class="info-box">
+        <h3>Post-Symbolic Execution</h3>
+        <p>
+            Unlike traditional execution where CPU decodes textures to Uint32Array,
+            <strong>post-symbolic execution</strong> keeps the texture as the source of truth.
+            The GPU decodes instructions on-demand via holographic fetch operations.
+        </p>
+        <p>
+            <strong>Zero-Symbol Execution:</strong> No CPU pre-decode step required.
+        </p>
+    </div>
+
+    <div>
+        <label for="asset-url">Morphological RTS Asset URL:</label>
+        <input type="text" id="asset-url" value="assets/hello_morph.rts.png" />
+    </div>
+
+    <div id="controls">
+        <button onclick="initExecutor()">Init WebGPU</button>
+        <button onclick="loadKernel()" id="load-btn" disabled>Load Holographic</button>
+        <button onclick="startExecution()" id="start-btn" disabled>Start</button>
+        <button onclick="stopExecution()" id="stop-btn" disabled>Stop</button>
+        <button onclick="readState()" id="state-btn" disabled>Read State</button>
+    </div>
+
+    <div id="status">Status: Not initialized</div>
+
+    <h2>UART Output</h2>
+    <div id="console-output">(no output yet)</div>
+
+    <h2>CPU State</h2>
+    <div id="cpu-state" style="background: #0f0f0f; border: 1px solid #333; padding: 15px; font-family: monospace; font-size: 12px;">
+        (click "Read State" to view)
+    </div>
+
+    <h2>Browser Console</h2>
+    <div id="browser-console"></div>
+
+    <script type="module">
+        import { GlyphExecutor } from './GlyphExecutor.js';
+
+        let executor = null;
+        let outputBuffer = '';
+
+        function log(msg, type = 'info') {
+            const consoleEl = document.getElementById('browser-console');
+            const timestamp = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            line.className = `log-${type}`;
+            line.textContent = `[${timestamp}] ${msg}`;
+            consoleEl.appendChild(line);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function updateStatus(status, state = '') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = 'Status: ' + status;
+            statusEl.className = state;
+        }
+
+        function clearConsole() {
+            document.getElementById('console-output').textContent = '';
+            outputBuffer = '';
+        }
+
+        function appendOutput(text) {
+            const outputEl = document.getElementById('console-output');
+            if (outputEl.textContent === '(no output yet)') {
+                outputEl.textContent = '';
+            }
+            outputEl.textContent += text;
+            outputEl.scrollTop = outputEl.scrollHeight;
+            outputBuffer += text;
+        }
+
+        window.initExecutor = async function() {
+            try {
+                log('Initializing WebGPU...', 'info');
+                updateStatus('Initializing...', 'loading');
+
+                // Check for WebGPU support
+                if (!navigator.gpu) {
+                    throw new Error('WebGPU not supported. Please use Chrome 113+ or Firefox 118+.');
+                }
+
+                const adapter = await navigator.gpu.requestAdapter();
+                if (!adapter) {
+                    throw new Error('Failed to get GPU adapter.');
+                }
+
+                const device = await adapter.requestDevice();
+
+                executor = new GlyphExecutor(device);
+                await executor.initialize();
+
+                log('WebGPU initialized successfully', 'success');
+                updateStatus('Ready', '');
+                document.getElementById('load-btn').disabled = false;
+
+            } catch (err) {
+                log(`Failed to initialize: ${err.message}`, 'error');
+                updateStatus(`Error: ${err.message}`, 'error');
+                console.error(err);
+            }
+        };
+
+        window.loadKernel = async function() {
+            if (!executor) {
+                log('Initialize executor first!', 'error');
+                return;
+            }
+
+            try {
+                const url = document.getElementById('asset-url').value;
+                log(`Loading holographic kernel from: ${url}`, 'info');
+                updateStatus('Loading kernel...', 'loading');
+                clearConsole();
+
+                await executor.deploy(url, 'test-kernel');
+
+                log('Holographic kernel loaded successfully', 'success');
+                updateStatus('Kernel loaded', '');
+                document.getElementById('start-btn').disabled = false;
+                document.getElementById('state-btn').disabled = false;
+
+            } catch (err) {
+                log(`Failed to load kernel: ${err.message}`, 'error');
+                updateStatus(`Error: ${err.message}`, 'error');
+                console.error(err);
+            }
+        };
+
+        window.startExecution = async function() {
+            if (!executor) {
+                log('Load kernel first!', 'error');
+                return;
+            }
+
+            try {
+                log('Starting continuous execution...', 'info');
+                updateStatus('Running', 'running');
+
+                // Wire up console output handler
+                executor.startContinuous('test-kernel', 100000, (text) => {
+                    appendOutput(text);
+                });
+
+                log('Execution started', 'success');
+                document.getElementById('start-btn').disabled = true;
+                document.getElementById('stop-btn').disabled = false;
+
+            } catch (err) {
+                log(`Failed to start: ${err.message}`, 'error');
+                updateStatus(`Error: ${err.message}`, 'error');
+                console.error(err);
+            }
+        };
+
+        window.stopExecution = function() {
+            if (!executor) return;
+
+            try {
+                executor.stop('test-kernel');
+                log('Execution stopped', 'info');
+                updateStatus('Stopped', 'stopped');
+                document.getElementById('start-btn').disabled = false;
+                document.getElementById('stop-btn').disabled = true;
+
+            } catch (err) {
+                log(`Failed to stop: ${err.message}`, 'error');
+                console.error(err);
+            }
+        };
+
+        window.readState = async function() {
+            if (!executor) {
+                log('Initialize executor first!', 'error');
+                return;
+            }
+
+            try {
+                const state = await executor.readState('test-kernel');
+
+                const stateEl = document.getElementById('cpu-state');
+                let stateStr = '';
+
+                // Display registers x0-x31
+                stateStr += 'Registers:\n';
+                for (let i = 0; i < 32; i++) {
+                    const val = state[i];
+                    if (val !== 0 || i < 8) {  // Show zero registers for first 8
+                        stateStr += `  x${i.toString().padStart(2, '0')}: 0x${val.toString(16).padStart(8, '0')}\n`;
+                    }
+                }
+
+                // Display CSRs
+                stateStr += '\nCSRs:\n';
+                stateStr += `  PC: 0x${state[32].toString(16).padStart(8, '0')}\n`;
+                stateStr += `  Halted: ${state[38]}\n`;
+                stateStr += `  Cycles: ${state[39]}\n`;
+
+                stateEl.textContent = stateStr;
+                log('State read successfully', 'success');
+
+            } catch (err) {
+                log(`Failed to read state: ${err.message}`, 'error');
+                console.error(err);
+            }
+        };
+
+        // Initial log
+        log('Test page loaded. Click "Init WebGPU" to begin.', 'info');
+    </script>
+</body>
+</html>

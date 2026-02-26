@@ -37,6 +37,54 @@ OPCODE_MAP = {
     0x73: '!', # SYSTEM
 }
 
+def calculate_symmetry_mask(glyph_pixels: List[int]) -> int:
+    """
+    Calculate symmetry mask for a 16x16 glyph tile.
+
+    Returns a byte encoding:
+    - Bit 7 (0x80): Full resonance
+    - Bit 6 (0x40): Horizontal symmetry
+    - Bit 5 (0x20): Vertical symmetry
+    - Bit 4 (0x10): Rotational symmetry (180 degree)
+    - Bits 0-3: Geometric integrity score (0-15)
+
+    Args:
+        glyph_pixels: List of 256 pixel values (16x16 tile)
+
+    Returns:
+        Symmetry mask byte
+    """
+    if len(glyph_pixels) != 256:
+        return 0x00  # Invalid size
+
+    # Convert to 16x16 grid
+    grid = [glyph_pixels[i*16:(i+1)*16] for i in range(16)]
+
+    # Check horizontal symmetry (top == bottom flipped)
+    h_sym = all(grid[y] == grid[15-y] for y in range(8))
+
+    # Check vertical symmetry (left == right flipped)
+    v_sym = all(grid[y][x] == grid[y][15-x] for y in range(16) for x in range(8))
+
+    # Check rotational symmetry (180 degree)
+    r_sym = all(grid[y][x] == grid[15-y][15-x] for y in range(8) for x in range(16))
+
+    mask = 0x80  # Full resonance by default
+    if h_sym:
+        mask |= 0x40
+    if v_sym:
+        mask |= 0x20
+    if r_sym:
+        mask |= 0x10
+
+    # Geometric integrity score based on unique pixels
+    unique_pixels = len(set(glyph_pixels))
+    integrity = min(15, unique_pixels // 17)  # 0-15 scale
+    mask |= integrity
+
+    return mask
+
+
 def get_instruction_category_char(instr_u32: int) -> str:
     """Map a 32-bit RISC-V instruction to a semantic character."""
     opcode = instr_u32 & 0x7F
@@ -61,12 +109,33 @@ def get_instruction_category_char(instr_u32: int) -> str:
     return char
 
 class RISCVMorphologicalEncoder:
-    def __init__(self, use_unique_tokens=True):
+    def __init__(self, use_unique_tokens=True, tile_mode=False):
         self.use_unique_tokens = use_unique_tokens
+        self.tile_mode = tile_mode  # Enable 16x16 glyph clusters with symmetry
         self.dictionary: Dict[int, int] = {} # TokenID -> RISC-V u32
         self.reverse_dict: Dict[int, int] = {} # RISC-V u32 -> TokenID
         self.next_token_id = 1
-        
+
+    def encode_pixel(self, token_id: int, char: str, symmetry_mask: int = 0xFF) -> Tuple[int, int, int, int]:
+        """
+        Encode a single instruction as a pixel.
+
+        Returns: (R, G, B, A) tuple where:
+        - R: Charset index (visual glyph category)
+        - G: TokenID high byte
+        - B: TokenID low byte
+        - A: Symmetry mask (0xFF = fully executable, 0x00 = NOP)
+        """
+        r = CHARSET.find(char)
+        if r == -1:
+            r = 0
+
+        g = (token_id >> 8) & 0xFF
+        b = token_id & 0xFF
+        a = symmetry_mask
+
+        return (r, g, b, a)
+
     def encode_instruction(self, instr_u32: int) -> Tuple[int, str]:
         """Returns (TokenID, Char)."""
         char = get_instruction_category_char(instr_u32)
@@ -105,24 +174,26 @@ class RISCVMorphologicalEncoder:
             chars.append(char)
             
         # Create pixel data
-        # We store TokenID in RGB. 
-        # If we want the output to BE the morphological font, 
+        # We store TokenID in RGB.
+        # If we want the output to BE the morphological font,
         # we actually need to store the CHARSET index in the R channel
         # so the JS side can use the MorphologicalSynthesizer.
         pixel_data = bytearray()
         for i in range(len(tokens)):
             token_id = tokens[i]
             char = chars[i]
-            char_idx = CHARSET.find(char)
-            if char_idx == -1: char_idx = 0
-            
-            # R = Char Index (for visual morphological rendering)
-            # G, B = TokenID high/low (for execution lookup)
-            r = char_idx
-            g = (token_id >> 8) & 0xFF
-            b = token_id & 0xFF
-            a = 0xFF # Executable mask
-            
+
+            # Use encode_pixel for consistent encoding
+            # In tile mode, calculate symmetry mask for 16x16 clusters
+            if self.tile_mode:
+                # For tile mode, each instruction becomes a 16x16 tile
+                # Symmetry mask based on instruction type
+                # Full resonance for now (can be refined later)
+                symmetry_mask = 0xFF
+            else:
+                symmetry_mask = 0xFF  # Always fully executable in standard mode
+
+            r, g, b, a = self.encode_pixel(token_id, char, symmetry_mask)
             pixel_data.extend([r, g, b, a])
             
         # Use PixelRTSEncoder for Hilbert layout

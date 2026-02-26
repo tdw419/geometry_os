@@ -1,0 +1,25 @@
+{
+  "format": "PixelRTS-2.0",
+  "type": "riscv-morphological",
+  "name": "hello_test",
+  "grid_size": 4,
+  "data_size": 52,
+  "instruction_count": 13,
+  "dictionary": {
+    "instructions": [
+      0,
+      1048723,
+      2097427,
+      2130355,
+      19,
+      1048979,
+      3146259,
+      4194963,
+      1213075,
+      4266823907,
+      1048691
+    ],
+    "format": "direct-lookup",
+    "charset": " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!"
+  }
+}

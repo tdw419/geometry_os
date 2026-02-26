@@ -1,0 +1,327 @@
+# GlyphExecutor Post-Symbolic Execution Team
+# Implements GPU-side holographic decoding for zero-symbol execution
+
+team:
+  name: glyph-executor-team
+  description: |
+    Implements the GlyphExecutor "visual motherboard" and post-symbolic execution
+    substrate. The GPU decodes instructions directly from morphological glyph textures
+    via dot-product operations, eliminating CPU pre-decode to Uint32Array.
+
+    Key innovation: Zero-symbol execution - the texture IS the instruction stream.
+
+  project_root: /home/jericho/zion/projects/geometry_os/geometry_os
+
+  agents:
+    - name: shader-architect
+      role: Designs and implements the post-symbolic WGSL compute shader
+      focus:
+        - Holographic fetch via texture sampling
+        - TokenID extraction from G/B channels
+        - Dictionary lookup for RISC-V u32
+        - Full instruction decode/execute logic
+      files:
+        - systems/visual_shell/web/shaders/visual_cpu_riscv_post_symbolic.wgsl
+      capabilities:
+        - wgsl
+        - webgpu
+        - risc-v
+        - compute-shaders
+
+    - name: gpu-engineer
+      role: Implements GlyphExecutor.js - the visual motherboard
+      focus:
+        - Texture atlas binding and management
+        - Dictionary buffer synchronization
+        - Compute pipeline dispatch
+        - State read/write operations
+        - Continuous execution loop
+      files:
+        - systems/visual_shell/web/GlyphExecutor.js
+      capabilities:
+        - javascript
+        - webgpu
+        - es6-modules
+        - async-programming
+
+    - name: encoder-engineer
+      role: Updates morphological encoder for 16x16 glyph clusters
+      focus:
+        - Symmetry mask calculation (horizontal/vertical/rotational)
+        - Alpha channel encoding for resonance metadata
+        - Tile mode support for holographic execution
+      files:
+        - riscv_morphological_encoder.py
+      capabilities:
+        - python
+        - image-processing
+        - risc-v-encoding
+
+    - name: integration-engineer
+      role: Creates test pages and validates E2E flow
+      focus:
+        - HTML test runner for GlyphExecutor
+        - Holographic asset generation
+        - UART output handling
+        - Resonance validation
+      files:
+        - systems/visual_shell/web/test_glyph_executor.html
+        - systems/visual_shell/web/assets/hello_holographic.rts.png
+        - systems/visual_shell/web/assets/hello_holographic.rts.png.meta.json
+      capabilities:
+        - html
+        - javascript
+        - testing
+        - webgpu-integration
+
+    - name: test-engineer
+      role: Ensures quality gates and syntax verification
+      focus:
+        - Node --check syntax validation
+        - Python py_compile validation
+        - Browser console error detection
+        - PR creation and CI verification
+      files:
+        - (all modified files)
+      capabilities:
+        - testing
+        - verification
+        - ci-cd
+        - quality-gates
+
+  tasks:
+    # Phase 1: Post-Symbolic Shader Foundation
+    - id: phase-1.1
+      title: Create post-symbolic shader skeleton with holographic fetch
+      assignee: shader-architect
+      dependencies: []
+      description: |
+        Create visual_cpu_riscv_post_symbolic.wgsl with:
+        - Glyph atlas texture binding (binding 0)
+        - Atlas dictionary storage buffer (binding 1)
+        - sample_token_id(pc) function using textureLoad
+        - holographic_fetch(pc) function for instruction decode
+        - Basic main() entry point with PC increment
+      acceptance_criteria:
+        - Shader file exists
+        - No WebGPU compilation errors
+        - Holographic fetch returns u32 instruction
+      verify: |
+        Load shader in browser, check for WebGPU errors
+
+    - id: phase-1.2
+      title: Complete instruction execution in post-symbolic shader
+      assignee: shader-architect
+      dependencies: [phase-1.1]
+      description: |
+        Copy full instruction decode/execute logic from visual_cpu_riscv.wgsl:
+        - All opcode handlers (LUI, AUIPC, JAL, JALR, BRANCH, LOAD, STORE, OP-IMM, OP, SYSTEM)
+        - CSR handling functions
+        - Memory access helpers
+        - Syscall bridge
+        Replace all expanded_code[pc/4] references with holographic_fetch(pc)
+      acceptance_criteria:
+        - All RISC-V opcodes handled
+        - Shader compiles without errors
+        - Memory and CSR operations work
+      verify: |
+        Compare instruction coverage with standard shader
+
+    # Phase 2: GlyphExecutor.js Motherboard
+    - id: phase-2.1
+      title: Create GlyphExecutor class skeleton
+      assignee: gpu-engineer
+      dependencies: []
+      description: |
+        Create GlyphExecutor.js with:
+        - Constructor with device, pipeline state, texture atlas
+        - initialize() method loading post-symbolic shader
+        - Bind group layout (4 bindings: texture, dictionary, memory, state)
+        - Compute pipeline creation
+        - _loadShader() helper
+      acceptance_criteria:
+        - Class exports correctly
+        - No syntax errors (node --check)
+        - initialize() creates pipeline
+      verify: |
+        node --check systems/visual_shell/web/GlyphExecutor.js
+
+    - id: phase-2.2
+      title: Add deploy() and execute() methods to GlyphExecutor
+      assignee: gpu-engineer
+      dependencies: [phase-2.1]
+      description: |
+        Add to GlyphExecutor.js:
+        - deploy(textureUrl, kernelId) - load texture, create buffers, bind group
+        - _loadMorphologicalTexture() - fetch .rts.png and .meta.json
+        - _updateDictionary() - sync dictionary buffer to GPU
+        - execute(kernelId, cycles) - dispatch compute pass
+        - readState(kernelId) - map and read CPU state buffer
+      acceptance_criteria:
+        - deploy() creates valid bind group
+        - execute() dispatches without errors
+        - readState() returns Uint32Array
+      verify: |
+        Test in browser with WebGPU device
+
+    - id: phase-2.3
+      title: Add resonance validation and continuous execution
+      assignee: gpu-engineer
+      dependencies: [phase-2.2]
+      description: |
+        Add to GlyphExecutor.js:
+        - validateResonance(tileX, tileY) - check symmetry mask
+        - _sampleTile() - read pixel from atlas
+        - _checkGeometricIntegrity() - dot-product validation
+        - startContinuous(kernelId, cyclesPerFrame, onOutput) - animation loop
+        - stop(kernelId) - halt execution
+        - _checkUARTOutput() - read memory at UART region
+      acceptance_criteria:
+        - Continuous execution runs without blocking
+        - UART output callback receives data
+        - Stop cleanly halts execution
+      verify: |
+        Run test page, verify continuous execution
+
+    # Phase 3: Updated Morphological Encoder
+    - id: phase-3.1
+      title: Add symmetry mask calculation to encoder
+      assignee: encoder-engineer
+      dependencies: []
+      description: |
+        Add to riscv_morphological_encoder.py:
+        - calculate_symmetry_mask(glyph_pixels) function
+        - Check horizontal, vertical, rotational symmetry
+        - Return byte with bits: 0x80=full, 0x40=h_sym, 0x20=v_sym, 0x10=r_sym
+        - Include geometric integrity score (0-15)
+      acceptance_criteria:
+        - Function returns valid mask byte
+        - Symmetry detection works for test patterns
+      verify: |
+        python3 -c "from riscv_morphological_encoder import calculate_symmetry_mask; print(hex(calculate_symmetry_mask([0]*256)))"
+
+    - id: phase-3.2
+      title: Update pixel encoding with symmetry metadata
+      assignee: encoder-engineer
+      dependencies: [phase-3.1]
+      description: |
+        Update riscv_morphological_encoder.py:
+        - Add tile_mode option to __init__
+        - encode_pixel() returns (R, G, B, A) with A=symmetry_mask
+        - Default A=0xFF for fully executable
+        - A=0x00 for NOP padding
+      acceptance_criteria:
+        - Pixel encoding includes symmetry in alpha
+        - Backwards compatible with existing textures
+      verify: |
+        python3 -m py_compile riscv_morphological_encoder.py
+
+    - id: phase-3.3
+      title: Generate holographic test asset
+      assignee: encoder-engineer
+      dependencies: [phase-3.2]
+      description: |
+        Run encoder with tile mode:
+        python3 riscv_morphological_encoder.py --tile-mode \
+          systems/infinite_map_rs/tests/hello_syscall.bin \
+          systems/visual_shell/web/assets/hello_holographic.rts.png
+      acceptance_criteria:
+        - .rts.png file exists
+        - .meta.json has type "riscv-morphological"
+        - Dictionary instructions array present
+      verify: |
+        file systems/visual_shell/web/assets/hello_holographic.rts.png
+        jq '.type' systems/visual_shell/web/assets/hello_holographic.rts.png.meta.json
+
+    # Phase 4: Integration Test
+    - id: phase-4.1
+      title: Create GlyphExecutor test HTML page
+      assignee: integration-engineer
+      dependencies: [phase-2.3, phase-3.3]
+      description: |
+        Create test_glyph_executor.html with:
+        - Init WebGPU button
+        - Load Holographic button
+        - Start/Stop continuous execution buttons
+        - UART output div
+        - Status indicator
+        - Import GlyphExecutor.js module
+        - Wire up button handlers
+      acceptance_criteria:
+        - Page loads without JS errors
+        - All buttons wired correctly
+        - Status updates on actions
+      verify: |
+        Open in browser, check console for errors
+
+    - id: phase-4.2
+      title: End-to-end verification
+      assignee: integration-engineer
+      dependencies: [phase-4.1]
+      description: |
+        Manual browser test:
+        1. Start python3 -m http.server 8080
+        2. Open test_glyph_executor.html
+        3. Click Init WebGPU
+        4. Click Load Holographic
+        5. Click Start
+        6. Verify UART output appears (e.g., "Hello")
+      acceptance_criteria:
+        - All steps complete without errors
+        - UART output shows expected text
+        - Stop button halts execution
+      verify: |
+        Manual verification - document in .progress.md
+
+    # Phase 5: Quality Gates
+    - id: phase-5.1
+      title: Syntax verification
+      assignee: test-engineer
+      dependencies: [phase-4.2]
+      description: |
+        Run all syntax checks:
+        - node --check systems/visual_shell/web/GlyphExecutor.js
+        - node --check systems/visual_shell/web/shaders/visual_cpu_riscv_post_symbolic.wgsl (if applicable)
+        - python3 -m py_compile riscv_morphological_encoder.py
+      acceptance_criteria:
+        - All checks pass (exit code 0)
+        - No errors reported
+      verify: |
+        Run each command, verify exit 0
+
+    - id: phase-5.2
+      title: Create pull request
+      assignee: test-engineer
+      dependencies: [phase-5.1]
+      description: |
+        Create PR:
+        1. git checkout -b feat/glyph-executor-post-symbolic
+        2. git add all modified files
+        3. git commit with feature message
+        4. git push -u origin feat/glyph-executor-post-symbolic
+        5. gh pr create with summary
+      acceptance_criteria:
+        - PR created successfully
+        - PR URL returned
+        - All files included in PR
+      verify: |
+        gh pr view --json url
+
+  success_criteria:
+    - Post-symbolic shader compiles without WebGPU errors
+    - GlyphExecutor.js passes syntax check
+    - Holographic asset generated with symmetry metadata
+    - E2E test shows UART output in browser
+    - PR created and ready for review
+
+  reference_docs:
+    - docs/plans/2026-02-26-glyph-executor-post-symbolic.md
+    - systems/visual_shell/web/shaders/visual_cpu_riscv.wgsl
+    - systems/visual_shell/web/gpu_execution_system.js
+    - riscv_morphological_encoder.py
+
+  execution_config:
+    max_parallel_tasks: 2
+    task_timeout_minutes: 30
+    retry_on_failure: true
+    max_retries: 2

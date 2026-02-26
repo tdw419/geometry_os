@@ -48,7 +48,7 @@ Focus: Connect shader to executor, validate GPU compute works end-to-end.
   - _Requirements: FR-1, FR-2, FR-3_
   - _Design: Architecture_
 
-- [ ] 1.5 Replace simulated dispatch with real GPU compute
+- [x] 1.5 Replace simulated dispatch with real GPU compute
   - **Do**: Replace dispatchCompute() simulation with real WebGPU: create command encoder, begin compute pass, set pipeline/bind group, dispatch workgroups, submit queue, await onSubmittedWorkDone().
   - **Files**: `systems/visual_shell/web/GlyphExecutor.js:393-409`
   - **Done when**: GPU dispatch executes shader, fallback on error
@@ -57,7 +57,7 @@ Focus: Connect shader to executor, validate GPU compute works end-to-end.
   - _Requirements: FR-4_
   - _Design: Data Flow_
 
-- [ ] 1.6 Implement real GPU buffer readback
+- [x] 1.6 Implement real GPU buffer readback
   - **Do**: Replace readResults() simulation with real readback: create staging buffer (MAP_READ | COPY_DST), copy cpuStates to staging, mapAsync, read Uint32Array, unmap/destroy.
   - **Files**: `systems/visual_shell/web/GlyphExecutor.js:418-456`
   - **Done when**: GPU states readable after dispatch
@@ -66,7 +66,7 @@ Focus: Connect shader to executor, validate GPU compute works end-to-end.
   - _Requirements: FR-5_
   - _Design: Readback Pattern_
 
-- [ ] 1.7 Add cycle counter in shader
+- [x] 1.7 Add cycle counter in shader
   - **Do**: Add `cpu_states[base_idx + 39u] = cpu_states[base_idx + 39u] + 1u;` after PC update in main().
   - **Files**: `systems/visual_shell/web/shaders/visual_cpu_riscv_morph.wgsl:189`
   - **Done when**: Cycle counter increments each execution
