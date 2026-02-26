@@ -308,21 +308,22 @@ READY FOR SUBSTRATE INSTRUCTIONS...
                 
                 // 4. Run on GPU
                 await gpu.run();
-                
+
                 // 5. Read back result and update state panel
-                setTimeout(async () => {
-                    const state = await gpu.readState();
-                    const output = await gpu.readOutput(10);
+                // Small delay to ensure GPU queue is processed
+                await new Promise(resolve => setTimeout(resolve, 10));
 
-                    // Update state panel
-                    updateStatePanel(state, state.outputPtr > 0 ? output : []);
+                const state = await gpu.readState();
+                const output = await gpu.readOutput(10);
 
-                    if (state.outputPtr > 0) {
-                        log(`OUT: ${output[0]}`);
-                    } else {
-                        log(`ACC: ${state.accumulator}`);
-                    }
-                }, 50);
+                // Update state panel
+                updateStatePanel(state, state.outputPtr > 0 ? output : []);
+
+                if (state.outputPtr > 0) {
+                    log(`OUT: ${output[0]}`);
+                } else {
+                    log(`ACC: ${state.accumulator}`);
+                }
             }
         });
     </script>

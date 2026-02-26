@@ -30,7 +30,7 @@ Focus: Enhance geo_term.html with state panel and glyph visualization. Validate 
   - _Requirements: FR-2, FR-7_
   - _Design: Rendering Layer_
 
-- [ ] 1.3 Connect State Panel to Execution Results
+- [x] 1.3 Connect State Panel to Execution Results
   - **Do**: After gpu.run(), call readState() and update state panel with PC, accumulator, halted values. Handle async timing.
   - **Files**: `systems/visual_shell/web/geo_term.html`
   - **Done when**: State panel updates after each command execution
