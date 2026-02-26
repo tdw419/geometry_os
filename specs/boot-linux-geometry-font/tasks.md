@@ -96,7 +96,7 @@ Focus: Validate morphological decoding and GPU execution end-to-end. Skip tests,
   - _Requirements: FR-8_
   - _Design: Test Strategy: E2E Tests_
 
-- [ ] 1.6 POC Checkpoint: End-to-end boot verification
+- [x] 1.6 POC Checkpoint: End-to-end boot verification
   - **Do**:
     1. Serve files with `python3 -m http.server 8080` in systems/visual_shell/web/
     2. Open test_morphological_boot.html in Chrome
