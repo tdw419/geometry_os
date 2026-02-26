@@ -1777,6 +1777,27 @@ params:
         except ImportError as e:
             print(f"⚠️ Could not setup GUI command processor: {e}")
 
+    async def _gui_command_loop(self) -> None:
+        """
+        Periodically process pending GUI commands.
+
+        This loop watches .geometry/gui/commands/pending/ and processes
+        any command files found, broadcasting them to connected clients.
+        """
+        print("🔄 GUI Command loop started")
+        while True:
+            try:
+                await asyncio.sleep(0.5)  # Check every 500ms
+
+                if self._gui_command_processor:
+                    await self._gui_command_processor.process_pending()
+
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                print(f"⚠️ GUI command loop error: {e}")
+                await asyncio.sleep(5.0)
+
     async def _execute_gui_command(self, cmd) -> None:
         """
         Execute a GUI command from the AI.
@@ -1859,6 +1880,9 @@ params:
             self._setup_gui_scene_watcher()
             self._setup_gui_command_processor()
 
+            # Start GUI command processing loop
+            asyncio.create_task(self._gui_command_loop())
+
             # Initialize Spatial Tectonics (Phase 28)
             if self._tectonic_enabled:
                 await self._setup_spatial_tectonics()
@@ -1876,6 +1900,13 @@ params:
 
             # Initialize NEB Bridge (Neural Event Bus HUD)
             await self._setup_neb_bridge()
+
+            # Start HTTP REST API server for WebMCP/GUI commands
+            runner = web.AppRunner(self.app)
+            await runner.setup()
+            site = web.TCPSite(runner, "0.0.0.0", self.http_port)
+            await site.start()
+            print(f"   HTTP API: http://localhost:{self.http_port}")
 
             async with serve(self.handle_client, "0.0.0.0", self.ws_port):
                 await asyncio.Future()

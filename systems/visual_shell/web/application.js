@@ -30,6 +30,7 @@ class GeometryOSApplication {
         this.visualBootLoader = null;
         this.infiniteMap = null; // Manifest-based infinite map with LLM chat
         this.windowManager = null; // Desktop Environment
+        this.particleManager = null; // Particle System (TerminalWindowParticle management)
 
         // System components
         this.cognitiveLayer = null; // Antigravity Prime
@@ -164,6 +165,12 @@ class GeometryOSApplication {
             if (this.neuralCity) {
                 this.neuralCity.resize(window.innerWidth, window.innerHeight);
             }
+            // Update terminal window overlay positions
+            if (this.terminalWindows) {
+                for (const terminal of this.terminalWindows) {
+                    terminal.onCanvasResize();
+                }
+            }
         });
 
         // 2. Initialize Accessibility Manager (Phase 2.3)
@@ -190,6 +197,12 @@ class GeometryOSApplication {
         // 4. Create Scene Graph
         this.worldContainer = new PIXI.Container();
         this.app.stage.addChild(this.worldContainer);
+
+        // 4b. Initialize Geometric Text System (Phase 3B)
+        if (typeof GeometricTextRenderer !== 'undefined') {
+            this.geometricText = new GeometricTextRenderer(this.app);
+            console.log("🔠 Geometric Text System initialized");
+        }
 
         // --- Phase 50: Advanced Visual Tools ---
         if (typeof VisualVerificationBridge !== 'undefined') {
@@ -233,6 +246,7 @@ class GeometryOSApplication {
                 { wsPort: 8765 }
             );
             this._setupGravityKeyboard();
+            this._setupTerminalKeyboard();
             console.log("🌌 Gravity Well Renderer initialized (Ctrl+Shift+G to toggle)");
         }
 
@@ -272,6 +286,25 @@ class GeometryOSApplication {
             wordWrapWidth: 380,
         });
         demoWindow.setContent(demoText);
+
+        // 5.3 Initialize Particle Manager (Terminal Window Particles)
+        if (typeof ParticleManager !== 'undefined') {
+            this.particleManager = new ParticleManager(this.worldContainer, {
+                nebEnabled: true,
+                nebSocket: null
+            });
+            console.log('🔴 ParticleManager initialized for terminal particles');
+            // Connect to NEB for cross-terminal coordination
+            this._connectNebBridge();
+            // Load saved particle layout from localStorage
+            this.loadParticleLayout();
+            // Setup auto-save on page unload
+            window.addEventListener('beforeunload', () => {
+                this.saveParticleLayout();
+            });
+        } else {
+            console.warn('ParticleManager class not loaded, terminal particles disabled');
+        }
 
         // 11. Initialize In-Memory Virtual File System (VFS) for AI Agents
         this.vfs = {
@@ -892,6 +925,18 @@ class GeometryOSApplication {
         if (this.heatmapOverlay) {
             this.heatmapOverlay.tick(delta / 16.67); // Normalize to ~60fps
         }
+
+        // Update Particle Manager (Terminal Window Particles)
+        if (this.particleManager) {
+            this.particleManager.update();
+        }
+
+        // Update Terminal Windows (sync overlay positions)
+        if (this.terminalWindows) {
+            for (const terminal of this.terminalWindows) {
+                terminal.update();
+            }
+        }
     }
 
 
@@ -1211,6 +1256,8 @@ class GeometryOSApplication {
                 console.log("✅ Area Agent WebSocket connection established.");
                 // Create goal panel
                 this.createGoalPanel();
+                // Initialize VCC back-pressure listener
+                this.initializeVCCBackPressure();
             };
 
             this.areaAgentSocket.onmessage = (event) => {
@@ -1275,6 +1322,17 @@ class GeometryOSApplication {
                         case 'vfs_modification_history':
                             this.handleModificationHistory(message);
                             break;
+                        // VCC (Visual Consistency Contract) epoch sync
+                        case 'vcc_epoch':
+                            this.handleVCCEpoch(message);
+                            break;
+                        // ASCII GUI handlers - AI control of visual shell
+                        case 'gui_command':
+                            this.executeGUICommand(message);
+                            break;
+                        case 'gui_scene_update':
+                            this.handleGUISceneUpdate(message);
+                            break;
                     }
                 } catch (e) {
                     console.error("Error parsing agent message:", e);
@@ -1296,6 +1354,200 @@ class GeometryOSApplication {
         } catch (e) {
             console.error("Could not create WebSocket for Area Agent:", e);
         }
+    }
+
+    /**
+     * VCC (Visual Consistency Contract) Epoch Handler
+     * Dispatches INFRASTRUCTURE_STATE_CHANGE DOM events for vcc_manager.js
+     */
+    handleVCCEpoch(message) {
+        const { epoch, state, timestamp } = message;
+
+        // Dispatch DOM event that vcc_manager.js listens for
+        window.dispatchEvent(new CustomEvent('INFRASTRUCTURE_STATE_CHANGE', {
+            detail: { epoch, state, timestamp: timestamp || Date.now() }
+        }));
+
+        // Optionally log for debugging
+        if (window.vcc?.config?.debug) {
+            console.log(`[VCC] Epoch ${epoch} received from server`);
+        }
+    }
+
+    /**
+     * Execute a GUI command from AI agent.
+     * Commands come from .geometry/gui/commands/pending/ via Visual Bridge.
+     */
+    executeGUICommand(message) {
+        const { action, target, position, text, keys, direction } = message;
+
+        console.log(`🕹️ GUI Command: ${action} on ${target}`);
+
+        switch (action) {
+            case 'focus':
+                this.focusWindow(target);
+                break;
+            case 'close':
+                this.closeWindow(target);
+                break;
+            case 'move':
+                if (position && this.windows) {
+                    const win = this.windows.find(w => w.id === target);
+                    if (win) {
+                        win.x = position[0];
+                        win.y = position[1];
+                        this.renderWindows?.();
+                    }
+                }
+                break;
+            case 'click':
+                // Simulate click at position or on target
+                if (position) {
+                    this.simulateClick(position[0], position[1]);
+                }
+                break;
+            case 'type':
+                // Send text to focused window
+                if (text && this.focusedWindow) {
+                    this.sendTextToWindow(this.focusedWindow, text);
+                }
+                break;
+            case 'keypress':
+                if (keys && this.focusedWindow) {
+                    this.sendKeysToWindow(this.focusedWindow, keys);
+                }
+                break;
+            case 'scroll':
+                if (direction && this.focusedWindow) {
+                    this.scrollWindow(this.focusedWindow, direction);
+                }
+                break;
+            default:
+                console.log(`Unknown GUI command: ${action}`);
+        }
+
+        // Show notification
+        this.showNotification(`🤖 AI: ${action} ${target || ''}`, 'info');
+    }
+
+    /**
+     * Handle GUI scene update from ASCII fragments.
+     * Called when .geometry/gui/fragments/ files change.
+     */
+    handleGUISceneUpdate(message) {
+        const { filename, content } = message;
+
+        // Dispatch event for any listeners
+        window.dispatchEvent(new CustomEvent('GUI_SCENE_UPDATE', {
+            detail: { filename, content, timestamp: Date.now() }
+        }));
+
+        // Parse and apply updates
+        if (filename === 'windows.yaml') {
+            this.applyWindowsYAML(content);
+        }
+    }
+
+    /**
+     * Apply windows.yaml state to frontend windows.
+     */
+    applyWindowsYAML(yamlContent) {
+        try {
+            // Simple YAML parsing for windows list
+            // (Full YAML parser would be better, but this handles basic cases)
+            const lines = yamlContent.split('\n');
+            let currentWindow = null;
+            const windows = [];
+
+            for (const line of lines) {
+                if (line.startsWith('- id:')) {
+                    if (currentWindow) windows.push(currentWindow);
+                    currentWindow = { id: line.split(':')[1].trim() };
+                } else if (currentWindow) {
+                    if (line.includes('title:')) {
+                        currentWindow.title = line.split('title:')[1].trim();
+                    } else if (line.includes('focused:') && line.includes('true')) {
+                        currentWindow.focused = true;
+                    }
+                }
+            }
+            if (currentWindow) windows.push(currentWindow);
+
+            // Focus the focused window if any
+            const focused = windows.find(w => w.focused);
+            if (focused) {
+                this.focusWindow(focused.id);
+            }
+
+            console.log(`🖼️ Applied windows.yaml: ${windows.length} windows`);
+        } catch (e) {
+            console.error('Failed to parse windows.yaml:', e);
+        }
+    }
+
+    /**
+     * Focus a window by ID.
+     */
+    focusWindow(windowId) {
+        if (this.windowManager?.focusWindow) {
+            this.windowManager.focusWindow(windowId);
+        } else if (this.windows) {
+            this.windows.forEach(w => w.focused = w.id === windowId);
+            this.focusedWindow = windowId;
+            this.renderWindows?.();
+        }
+    }
+
+    /**
+     * Close a window by ID.
+     */
+    closeWindow(windowId) {
+        if (this.windowManager?.closeWindow) {
+            this.windowManager.closeWindow(windowId);
+        } else if (this.windows) {
+            this.windows = this.windows.filter(w => w.id !== windowId);
+            this.renderWindows?.();
+        }
+    }
+
+    /**
+     * Simulate a click at coordinates.
+     */
+    simulateClick(x, y) {
+        const event = new MouseEvent('click', {
+            bubbles: true,
+            cancelable: true,
+            clientX: x,
+            clientY: y
+        });
+        document.elementFromPoint(x, y)?.dispatchEvent(event);
+    }
+
+    /**
+     * Initialize VCC back-pressure listener
+     * Sends VCC_BACK_PRESSURE to server when UI is overwhelmed
+     */
+    initializeVCCBackPressure() {
+        window.addEventListener('VCC_BACK_PRESSURE', (e) => {
+            const { epoch, reason } = e.detail;
+            if (this.areaAgentSocket && this.areaAgentSocket.readyState === WebSocket.OPEN) {
+                this.areaAgentSocket.send(JSON.stringify({
+                    type: 'VCC_BACK_PRESSURE',
+                    epoch,
+                    reason
+                }));
+            }
+        });
+
+        window.addEventListener('VCC_READY_FOR_EPOCH', (e) => {
+            const { lastCommittedEpoch } = e.detail;
+            if (this.areaAgentSocket && this.areaAgentSocket.readyState === WebSocket.OPEN) {
+                this.areaAgentSocket.send(JSON.stringify({
+                    type: 'VCC_READY',
+                    epoch: lastCommittedEpoch
+                }));
+            }
+        });
     }
 
     handleAgentStateUpdate(state) {
@@ -3090,18 +3342,176 @@ class GeometryOSApplication {
     }
 
     /**
+     * Setup Terminal Window keyboard shortcuts
+     * Ctrl+Shift+T: Open Terminal Window
+     * Ctrl+Shift+N: Create new terminal particle
+     * Ctrl+Shift+W: Close focused terminal
+     * Ctrl+Tab: Cycle through terminals
+     */
+    _setupTerminalKeyboard() {
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Shift+T: Open Terminal (legacy)
+            if (e.ctrlKey && e.shiftKey && (e.key === 'T' || e.key === 't')) {
+                e.preventDefault();
+                this.openTerminalWindow();
+                console.log('🖥️ Keyboard shortcut: Ctrl+Shift+T - Open terminal');
+            }
+
+            // Ctrl+Shift+N: Create new terminal particle
+            if (e.ctrlKey && e.shiftKey && (e.key === 'N' || e.key === 'n')) {
+                e.preventDefault();
+                this.openTerminalWindow();
+                console.log('🖥️ Keyboard shortcut: Ctrl+Shift+N - Create terminal particle');
+            }
+
+            // Ctrl+Shift+W: Close focused terminal
+            if (e.ctrlKey && e.shiftKey && (e.key === 'W' || e.key === 'w')) {
+                e.preventDefault();
+                if (this.particleManager) {
+                    const destroyed = this.particleManager.destroyFocused();
+                    console.log('🖥️ Keyboard shortcut: Ctrl+Shift+W - Destroy focused terminal:', destroyed);
+                }
+            }
+
+            // Ctrl+Tab: Cycle through terminals
+            if (e.ctrlKey && e.key === 'Tab') {
+                e.preventDefault();
+                if (this.particleManager) {
+                    const next = this.particleManager.cycleFocus();
+                    console.log('🖥️ Keyboard shortcut: Ctrl+Tab - Cycle focus to:', next?.particleId || 'none');
+                }
+            }
+
+            // Ctrl+Shift+G: Create geometric terminal particle
+            if (e.ctrlKey && e.shiftKey && (e.key === 'G' || e.key === 'g')) {
+                e.preventDefault();
+                this.openGeometricTerminalWindow();
+                console.log('🖥️ Keyboard shortcut: Ctrl+Shift+G - Create geometric terminal');
+            }
+        });
+
+        console.log('🖥️ Terminal keyboard shortcuts configured (Ctrl+Shift+T/N, Ctrl+Shift+W, Ctrl+Tab, Ctrl+Shift+G)');
+    }
+
+    /**
+     * Cycle terminal focus (delegates to ParticleManager)
+     * @private
+     */
+    _cycleTerminalFocus() {
+        if (this.particleManager) {
+            this.particleManager.cycleFocus();
+        }
+    }
+
+    /**
+     * Open a Terminal Window on the map
+     */
+    openTerminalWindow(options = {}) {
+        // Use ParticleManager if available
+        if (this.particleManager && typeof TerminalWindowParticle !== 'undefined') {
+            // Default options for particle
+            const defaults = {
+                x: 100 + this.particleManager.getParticleCount() * 30,
+                y: 100 + this.particleManager.getParticleCount() * 30,
+                width: 800,
+                height: 500,
+                title: 'Geometry OS Terminal',
+                wsUrl: 'ws://localhost:8769/terminal'
+            };
+
+            const config = { ...defaults, ...options };
+
+            // Create terminal particle via ParticleManager
+            const particle = this.particleManager.createTerminalParticle(config);
+
+            console.log('🖥️ Terminal particle opened:', particle.particleId);
+            return particle;
+        }
+
+        // Fallback to legacy TerminalWindow if ParticleManager not available
+        if (typeof TerminalWindow === 'undefined') {
+            console.error('TerminalWindow class not loaded');
+            return null;
+        }
+
+        // Default options
+        const defaults = {
+            x: 100 + (this.terminalWindows?.length || 0) * 30,
+            y: 100 + (this.terminalWindows?.length || 0) * 30,
+            width: 800,
+            height: 500,
+            title: 'Geometry OS Terminal',
+            wsUrl: 'ws://localhost:8769/terminal'
+        };
+
+        const config = { ...defaults, ...options };
+
+        // Create terminal window
+        const terminalWindow = new TerminalWindow(config);
+
+        // Track terminal windows
+        if (!this.terminalWindows) {
+            this.terminalWindows = [];
+        }
+        this.terminalWindows.push(terminalWindow);
+
+        // Handle window close
+        terminalWindow.on('closed', () => {
+            const index = this.terminalWindows.indexOf(terminalWindow);
+            if (index > -1) {
+                this.terminalWindows.splice(index, 1);
+            }
+        });
+
+        // Add to stage
+        this.worldContainer.addChild(terminalWindow);
+
+        // Focus the new window
+        terminalWindow.focus();
+
+        console.log('🖥️ Terminal window opened (legacy mode)');
+        return terminalWindow;
+    }
+
+    /**
+     * Open a Geometric Terminal Window on the map
+     * @param {Object} options - Configuration options
+     * @returns {Object} The created geometric terminal particle
+     */
+    openGeometricTerminalWindow(options = {}) {
+        const defaults = {
+            x: 100 + (this.particleManager?.getParticlesByType('geometric-terminal')?.length || 0) * 50,
+            y: 100 + (this.particleManager?.getParticlesByType('geometric-terminal')?.length || 0) * 50,
+            cols: 80,
+            rows: 24
+        };
+        const config = { ...defaults, ...options };
+        return this.particleManager.createGeometricTerminalParticle(config);
+    }
+
+    /**
      * Connect to the Memory Visual Bridge for semantic memory retrieval.
      */
+    /**
+     * Set NEB socket for ParticleManager (call when NEB connection is established)
+     */
+    setNebSocket(socket) {
+        if (this.particleManager) {
+            this.particleManager.setNebSocket(socket);
+            console.log('🔴 ParticleManager NEB socket connected');
+        }
+    }
+
     _connectMemoryBridge() {
         const port = 8768;
         try {
             console.log('🔮 Connecting to Memory Bridge...');
             this.memoryBridgeSocket = new WebSocket(`ws://localhost:${port}`);
-            
+
             this.memoryBridgeSocket.onopen = () => {
                 console.log('🔮 Memory Bridge connected');
             };
-            
+
             this.memoryBridgeSocket.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
@@ -3130,7 +3540,7 @@ class GeometryOSApplication {
                         if (this.ambientNarrative) {
                             this.ambientNarrative.sessionId = data.session_id;
                             this.ambientNarrative.state = data.ambient_state || 'MONITORING';
-                            
+
                             // Update HUD if available
                             if (this.ambientNarrativeHUD) {
                                 this.ambientNarrativeHUD.updateState(this.ambientNarrative.state);
@@ -3143,11 +3553,11 @@ class GeometryOSApplication {
                     console.error('Failed to parse Memory Bridge message:', e);
                 }
             };
-            
+
             this.memoryBridgeSocket.onerror = (e) => {
                 // Connection error log is noisy, handled by onclose
             };
-            
+
             this.memoryBridgeSocket.onclose = () => {
                 console.log('🔮 Memory Bridge disconnected');
                 // Auto-reconnect after 5s
@@ -3157,6 +3567,147 @@ class GeometryOSApplication {
             };
         } catch (e) {
             console.error('Failed to connect to Memory Bridge:', e);
+        }
+    }
+
+    /**
+     * Connect to NEB (Neural Event Bus) for cross-terminal particle coordination.
+     * NEB runs on WebSocket port 8765 and handles particle events.
+     */
+    _connectNebBridge() {
+        const port = 8765;
+        try {
+            console.log('🔴 Connecting to NEB Bridge for particle coordination...');
+            this.nebBridgeSocket = new WebSocket(`ws://localhost:${port}`);
+
+            this.nebBridgeSocket.onopen = () => {
+                console.log('🔴 NEB Bridge connected - particle events enabled');
+                // Set the NEB socket on ParticleManager for event publishing
+                if (this.particleManager) {
+                    this.particleManager.setNebSocket(this.nebBridgeSocket);
+                }
+            };
+
+            this.nebBridgeSocket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    this._handleNebEvent(data);
+                } catch (e) {
+                    console.error('Failed to parse NEB message:', e);
+                }
+            };
+
+            this.nebBridgeSocket.onerror = (e) => {
+                // Connection error log is noisy, handled by onclose
+            };
+
+            this.nebBridgeSocket.onclose = () => {
+                console.log('🔴 NEB Bridge disconnected');
+                // Clear socket on ParticleManager
+                if (this.particleManager) {
+                    this.particleManager.setNebSocket(null);
+                }
+                // Auto-reconnect after 5s
+                if (!this.destroyed) {
+                    setTimeout(() => this._connectNebBridge(), 5000);
+                }
+            };
+        } catch (e) {
+            console.error('Failed to connect to NEB Bridge:', e);
+        }
+    }
+
+    /**
+     * Handle incoming NEB events for cross-terminal coordination.
+     * Routes events to appropriate handlers based on topic.
+     * @param {Object} data - The NEB event data with topic and payload
+     */
+    _handleNebEvent(data) {
+        const { topic, payload } = data;
+
+        if (!topic) return;
+
+        switch (topic) {
+            case 'terminal.particle.created':
+                console.log('🔴 NEB: Particle created:', payload.particleId);
+                // Could sync with other clients here
+                break;
+
+            case 'terminal.particle.moved':
+                // Handle particle position sync from other clients
+                if (this.particleManager && payload.particleId) {
+                    const particle = this.particleManager.getParticle(payload.particleId);
+                    if (particle && payload.position) {
+                        // Update position without triggering local NEB event
+                        particle.particlePosition = payload.position;
+                    }
+                }
+                break;
+
+            case 'terminal.particle.focused':
+                // Handle focus sync from other clients
+                if (this.particleManager && payload.particleId) {
+                    this.particleManager.focusParticle(payload.particleId);
+                }
+                break;
+
+            case 'terminal.particle.destroyed':
+                console.log('🔴 NEB: Particle destroyed:', payload.particleId);
+                // Could sync destruction with other clients here
+                break;
+
+            default:
+                // Unknown topic - ignore or log
+                break;
+        }
+    }
+
+    // === Particle Layout Persistence ===
+
+    /**
+     * Save particle layout to localStorage.
+     * Uses ParticleManager.serialize() to capture all particle state.
+     */
+    saveParticleLayout() {
+        if (!this.particleManager) {
+            return;
+        }
+
+        try {
+            const data = this.particleManager.serialize();
+            localStorage.setItem('geometryOS_particleLayout', JSON.stringify(data));
+            console.log('💾 Particle layout saved:', data.particles.length, 'particles');
+        } catch (e) {
+            console.warn('Failed to save particle layout:', e);
+        }
+    }
+
+    /**
+     * Load particle layout from localStorage.
+     * Uses ParticleManager.deserialize() to restore particle state.
+     */
+    loadParticleLayout() {
+        if (!this.particleManager) {
+            return;
+        }
+
+        try {
+            const stored = localStorage.getItem('geometryOS_particleLayout');
+            if (!stored) {
+                console.log('💾 No saved particle layout found');
+                return;
+            }
+
+            const data = JSON.parse(stored);
+            if (!data || !data.particles || !Array.isArray(data.particles)) {
+                console.warn('💾 Invalid particle layout data, skipping restore');
+                return;
+            }
+
+            this.particleManager.deserialize(data);
+            console.log('💾 Particle layout restored:', data.particles.length, 'particles');
+        } catch (e) {
+            console.warn('Failed to load particle layout:', e);
         }
     }
 

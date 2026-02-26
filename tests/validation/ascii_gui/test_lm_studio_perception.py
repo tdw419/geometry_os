@@ -50,7 +50,7 @@ Respond in JSON format:
         response = requests.post(
             "http://localhost:1234/v1/chat/completions",
             json={
-                "model": "local-model",
+                "model": "vectoros",  # Use actual loaded model
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": 0.1,
                 "max_tokens": 200,
@@ -96,7 +96,7 @@ What window is currently focused? Respond with just the window ID."""
         response = requests.post(
             "http://localhost:1234/v1/chat/completions",
             json={
-                "model": "local-model",
+                "model": "vectoros",  # Use actual loaded model
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": 0.1,
                 "max_tokens": 50,
@@ -130,7 +130,7 @@ What is the mouse position? Respond in format: (x, y)"""
         response = requests.post(
             "http://localhost:1234/v1/chat/completions",
             json={
-                "model": "local-model",
+                "model": "vectoros",  # Use actual loaded model
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": 0.1,
                 "max_tokens": 50,

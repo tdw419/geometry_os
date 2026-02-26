@@ -10,6 +10,7 @@ import { CanvasRenderer } from './display/canvas_renderer.js';
 import { WGPUInputHandler } from './wgpu_input_handler.js';
 import { DTBGenerator } from './dtb_generator.js';
 import { SBIHandler } from './sbi_handler.js';
+import { RISCVOrphologicalLoader } from './riscv_morphological_loader.js';
 
 export class WGPULinuxHypervisor {
     constructor(options = {}) {
@@ -195,6 +196,48 @@ export class WGPULinuxHypervisor {
         this.cachedState = await this.gpuSystem.readState(this.kernelId);
 
         console.log(`✅ RTS kernel loaded into GPU heap: ${kernelInfo.size} bytes`);
+    }
+
+    /**
+     * Load kernel from morphological .rts.png texture
+     * Decodes glyph pixels into RISC-V instructions via dictionary lookup
+     * @param {string} url - URL to the .rts.png file
+     */
+    async loadKernelFromMorphologicalRTS(url) {
+        console.log('[Hypervisor] Loading morphological RTS kernel...');
+
+        // 1. Create loader and decode texture
+        const loader = new RISCVOrphologicalLoader();
+        const result = await loader.load(url);
+
+        console.log(`[Hypervisor] Decoded ${result.instructions.length} instructions from morphological texture`);
+
+        // 2. Deploy to GPU with pre-expanded instructions
+        await this.gpuSystem.deployWithInstructions(result.instructions, this.kernelId);
+
+        // 3. Setup Device Tree Blob
+        await this.setupDTB();
+
+        // 4. Setup syscall bridge for output handling
+        this._setupSyscallBridge();
+
+        // 5. Initialize input handler if display exists
+        if (this.display && this.display.canvas) {
+            const kernel = this.gpuSystem.kernels.get(this.kernelId);
+            if (kernel) {
+                this.inputHandler = new WGPUInputHandler(
+                    this.display.canvas,
+                    this.device,
+                    kernel.memoryBuffer,
+                    this.kernelId
+                );
+            }
+        }
+
+        // 6. Cache initial state
+        this.cachedState = await this.gpuSystem.readState(this.kernelId);
+
+        console.log(`✅ Morphological kernel deployed: ${result.instructions.length} instructions`);
     }
 
     /**

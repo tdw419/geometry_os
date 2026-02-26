@@ -8,6 +8,7 @@ pub mod cortex;
 pub mod damage_tracker;
 pub mod entities;
 pub mod font_bitmap;
+pub mod geodetic;
 pub mod glyph_atlas;
 pub mod gpu;
 pub mod hilbert;
@@ -36,6 +37,11 @@ pub mod tests;
 
 // WebSocket broadcast module with backpressure
 pub mod broadcast;
+
+// WorldView Morphological Layer: Geodetic coordinate types
+pub use geodetic::{
+    BuildingTypology, GeodeticCoords, GeodeticFeature, HilbertGeodeticProjection, MemoryType,
+};
 
 // Phase 35.9: Cartridge registry for evolution zone
 pub mod cartridge_registry;
