@@ -213,7 +213,7 @@ Add unit and integration tests for the morphological loader.
 
 Final verification and PR preparation.
 
-- [ ] 4.1 Local quality check
+- [x] 4.1 Local quality check
   - **Do**:
     1. Run `node --check` on all modified JS files
     2. Verify no console errors in browser test page
