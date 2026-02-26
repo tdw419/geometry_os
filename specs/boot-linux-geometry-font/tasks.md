@@ -29,7 +29,7 @@ Focus: Validate morphological decoding and GPU execution end-to-end. Skip tests,
   - _Requirements: FR-1, FR-4, FR-5, FR-6_
   - _Design: RISCVOrphologicalLoader component_
 
-- [ ] 1.2 Add deployWithInstructions() to GPUExecutionSystem
+- [x] 1.2 Add deployWithInstructions() to GPUExecutionSystem
   - **Do**:
     1. Add `deployWithInstructions(instructions, kernelId)` method to `gpu_execution_system.js`
     2. Accept pre-expanded `Uint32Array` of RISC-V instructions

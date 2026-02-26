@@ -164,6 +164,62 @@ export class GPUExecutionSystem {
     }
 
     /**
+     * Deploy a kernel with pre-expanded RISC-V instructions
+     * Used by morphological loader which decodes textures CPU-side
+     * @param {Uint32Array} instructions - Pre-expanded RISC-V instruction words
+     * @param {string} kernelId - Unique ID for this execution instance
+     */
+    async deployWithInstructions(instructions, kernelId) {
+        if (!this.initialized) await this.initialize();
+
+        console.log(`[GPUExecutionSystem] Deploying kernel ${kernelId} with ${instructions.length} pre-expanded instructions...`);
+
+        // 1. Create Code Buffer with STORAGE | COPY_DST flags
+        const codeBuffer = this.device.createBuffer({
+            size: Math.max(instructions.byteLength, 4096), // Min size 4KB
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+            mappedAtCreation: true
+        });
+        new Uint32Array(codeBuffer.getMappedRange()).set(instructions);
+        codeBuffer.unmap();
+
+        // 2. Create Memory Buffer (128MB Shared Heap)
+        const memoryBuffer = this.device.createBuffer({
+            size: this.MEMORY_SIZE,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
+        });
+
+        // 3. Create State Buffer (Registers + PC + CSRs) - 256*4 bytes
+        const stateBuffer = this.device.createBuffer({
+            size: 256 * 4,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+        });
+
+        // 4. Create Bind Group with bindings 0/1/2
+        const bindGroup = this.device.createBindGroup({
+            layout: this.bindGroupLayout,
+            entries: [
+                { binding: 0, resource: { buffer: codeBuffer } },
+                { binding: 1, resource: { buffer: memoryBuffer } },
+                { binding: 2, resource: { buffer: stateBuffer } }
+            ]
+        });
+
+        // 5. Register Kernel in this.kernels map
+        this.kernels.set(kernelId, {
+            codeBuffer,
+            memoryBuffer,
+            stateBuffer,
+            bindGroup,
+            pc: 0,
+            cycleCount: 0
+        });
+
+        console.log(`[GPUExecutionSystem] Kernel ${kernelId} deployed successfully`);
+        return true;
+    }
+
+    /**
      * Execute cycles on the GPU
      * @param {string} kernelId
      * @param {number} cycles
