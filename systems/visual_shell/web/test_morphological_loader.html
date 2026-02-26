@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Morphological Loader Tests</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        h1 { margin-bottom: 10px; }
+        #summary { font-size: 1.2em; margin: 15px 0; padding: 10px; background: #f0f0f0; }
+        .pass { color: green; }
+        .fail { color: red; }
+        .skip { color: orange; }
+        .result { margin: 5px 0; padding: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Morphological Loader Tests</h1>
+    <div id="summary">Running tests...</div>
+    <div id="results"></div>
+
+    <script type="module">
+        import {
+            testDecodeTokenID,
+            testLookupInstructionValid,
+            testLookupInstructionInvalid,
+            testLookupInstructionNonExecutable,
+            testRejectInvalidMetadata,
+            testMorphologicalPipeline,
+            testDeployWithInstructions
+        } from './tests/test_morphological_loader.js';
+
+        async function runTests() {
+            const results = document.getElementById('results');
+            const summary = document.getElementById('summary');
+            let passCount = 0;
+            let failCount = 0;
+            let skipCount = 0;
+
+            const tests = [
+                { name: 'testDecodeTokenID', fn: testDecodeTokenID },
+                { name: 'testLookupInstructionValid', fn: testLookupInstructionValid },
+                { name: 'testLookupInstructionInvalid', fn: testLookupInstructionInvalid },
+                { name: 'testLookupInstructionNonExecutable', fn: testLookupInstructionNonExecutable },
+                { name: 'testRejectInvalidMetadata', fn: testRejectInvalidMetadata },
+                { name: 'testMorphologicalPipeline', fn: testMorphologicalPipeline },
+                { name: 'testDeployWithInstructions', fn: testDeployWithInstructions }
+            ];
+
+            for (const test of tests) {
+                try {
+                    const result = await test.fn();
+                    if (result === true) {
+                        results.innerHTML += `<div class="result pass">✅ PASS: ${test.name}</div>`;
+                        passCount++;
+                    } else {
+                        results.innerHTML += `<div class="result skip">⚠️ SKIP: ${test.name}</div>`;
+                        skipCount++;
+                    }
+                } catch (e) {
+                    results.innerHTML += `<div class="result fail">❌ FAIL: ${test.name}<br><pre>${e.message}</pre></div>`;
+                    failCount++;
+                }
+            }
+
+            const total = passCount + failCount + skipCount;
+            summary.innerHTML = `<span class="pass">${passCount} passed</span>, <span class="fail">${failCount} failed</span>, <span class="skip">${skipCount} skipped</span> (of ${total} total)`;
+
+            if (failCount === 0) {
+                summary.style.background = '#d4edda';
+            } else {
+                summary.style.background = '#f8d7da';
+            }
+        }
+
+        runTests();
+    </script>
+</body>
+</html>

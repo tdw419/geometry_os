@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Geometry OS - Tectonic WorldView [OSM]</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""/>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""></script>
+
+  <style>
+    /* Base reset */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #000;
+      overflow: hidden;
+      font-family: 'Courier New', monospace;
+    }
+
+    /* Green phosphor filter for map tiles */
+    .leaflet-tile-pane {
+      filter:
+        sepia(100%)
+        hue-rotate(70deg)
+        saturate(300%)
+        brightness(0.7)
+        contrast(1.2);
+    }
+
+    /* Scanlines overlay */
+    .scanlines {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1000;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.1) 0px,
+        rgba(0, 0, 0, 0.1) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+    }
+
+    /* Vignette effect */
+    .vignette {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 999;
+      box-shadow: inset 0 0 200px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Map container */
+    #map {
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* HUD Overlay */
+    #ui-overlay {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 1001;
+      background: rgba(0, 15, 0, 0.9);
+      border: 1px solid #00FF00;
+      padding: 20px;
+      color: #00FF00;
+      pointer-events: none;
+      box-shadow: 0 0 20px #004400;
+      min-width: 280px;
+    }
+
+    .hud-title {
+      font-size: 22px;
+      font-weight: bold;
+      border-bottom: 2px solid #00FF00;
+      margin-bottom: 10px;
+      text-shadow: 0 0 10px #00FF00;
+    }
+
+    .status {
+      font-size: 14px;
+      margin: 5px 0;
+      color: #00FF00;
+    }
+
+    .substrate-label {
+      font-size: 12px;
+      color: #00AA00;
+      margin-bottom: 10px;
+      letter-spacing: 2px;
+    }
+
+    .node-item {
+      font-size: 12px;
+      color: #00AA00;
+      margin-left: 10px;
+      border-left: 1px solid #004400;
+      padding-left: 10px;
+    }
+
+    .pulse-high {
+      color: #00FF00;
+      font-weight: bold;
+    }
+
+    .pulse-low {
+      color: #004400;
+    }
+
+    /* Coordinate display */
+    .coords {
+      font-size: 11px;
+      color: #008800;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #003300;
+    }
+
+    /* Hide default Leaflet attribution in corner (keep in HUD) */
+    .leaflet-control-attribution {
+      display: none;
+    }
+
+    /* Tectonic Node Marker Styles */
+    .tectonic-marker {
+      background: transparent;
+      border: none;
+    }
+
+    .tectonic-marker-inner {
+      width: 12px;
+      height: 12px;
+      background: #00FF00;
+      border-radius: 2px;
+      box-shadow: 0 0 10px #00FF00, 0 0 20px #00AA00;
+    }
+
+    .tectonic-marker-pulse {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 24px;
+      height: 24px;
+      margin-left: -12px;
+      margin-top: -12px;
+      border: 2px solid #00FF00;
+      border-radius: 50%;
+      animation: pulse 2s ease-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(2.5);
+        opacity: 0;
+      }
+    }
+
+    .tectonic-label {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      font-weight: bold;
+      color: #00FF00;
+      text-shadow: 0 0 5px #00FF00, 0 0 10px #00AA00;
+      background: rgba(0, 10, 0, 0.8);
+      padding: 2px 6px;
+      border: 1px solid #004400;
+    }
+
+    /* Memory Tapestry Overlay */
+    #tapestry-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 2000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #tapestry-canvas {
+      border: 2px solid #00FF00;
+      box-shadow: 0 0 30px #00FF00, inset 0 0 20px #002200;
+      max-width: 90vmin;
+      max-height: 80vmin;
+    }
+
+    #tapestry-title {
+      position: absolute;
+      top: 30px;
+      left: 40px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #00FF00;
+      text-shadow: 0 0 10px #00FF00;
+      font-family: 'Courier New', monospace;
+    }
+
+    #tapestry-close {
+      position: absolute;
+      top: 30px;
+      right: 40px;
+      font-size: 18px;
+      color: #00FF00;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      padding: 10px 20px;
+      border: 1px solid #00FF00;
+      background: rgba(0, 20, 0, 0.8);
+      transition: all 0.2s;
+    }
+
+    #tapestry-close:hover {
+      background: #00FF00;
+      color: #000;
+      box-shadow: 0 0 15px #00FF00;
+    }
+  </style>
+</head>
+<body>
+  <!-- Scanlines overlay -->
+  <div class="scanlines"></div>
+
+  <!-- Vignette overlay -->
+  <div class="vignette"></div>
+
+  <!-- Map container -->
+  <div id="map"></div>
+
+  <!-- HUD Overlay -->
+  <div id="ui-overlay">
+    <div class="hud-title">TECTONIC WORLDVIEW [OSM]</div>
+    <div class="substrate-label">OPENSTREETMAP</div>
+    <div class="status">ACTIVE KERNELS: <span id="kernel-count">0</span></div>
+    <div class="status">TOTAL LOAD: <span id="total-load">0.0%</span></div>
+    <div id="kernel-list"></div>
+    <div class="coords">
+      LAT: <span id="coord-lat">--</span> |
+      LON: <span id="coord-lon">--</span>
+    </div>
+    <div class="status" style="font-size: 10px; margin-top: 10px; color: #006600;">
+      &copy; OpenStreetMap contributors
+    </div>
+  </div>
+
+  <!-- Memory Tapestry Overlay -->
+  <div id="tapestry-overlay">
+    <div id="tapestry-title">MEMORY TAPESTRY</div>
+    <canvas id="tapestry-canvas" width="512" height="512"></canvas>
+    <div id="tapestry-close">[ CLOSE ]</div>
+  </div>
+
+  <script>
+    // Initialize Leaflet map centered on Texas State Capitol
+    const map = L.map('map', {
+      center: [30.2747, -97.7403],
+      zoom: 3,
+      zoomControl: true
+    });
+
+    // Expose map globally for WorldViewOrchestrator integration
+    window.worldViewMap = map;
+
+    // --- OFFLINE TILE CACHE SUPPORT ---
+    // Custom tile layer that checks for local tiles first, falls back to online OSM
+
+    const LocalTileLayer = L.TileLayer.extend({
+      getTileUrl: function(coords) {
+        // Try local tile first
+        const localUrl = `tiles/${coords.z}/${coords.x}/${coords.y}.png`;
+        const onlineUrl = `https://tile.openstreetmap.org/${coords.z}/${coords.x}/${coords.y}.png`;
+
+        // For browser file:// access, we need to check if local tile exists
+        // This uses a synchronous approach with error fallback
+        return localUrl;
+      },
+
+      createTile: function(coords, done) {
+        const tile = document.createElement('img');
+        const localUrl = `tiles/${coords.z}/${coords.x}/${coords.y}.png`;
+        const onlineUrl = `https://tile.openstreetmap.org/${coords.z}/${coords.x}/${coords.y}.png`;
+
+        // Try local tile first
+        tile.onload = () => {
+          done(null, tile);
+        };
+
+        tile.onerror = () => {
+          // Local tile failed, try online
+          if (tile.src === localUrl || tile.src.endsWith(localUrl)) {
+            console.log(`[Tile Cache] Local miss for ${coords.z}/${coords.x}/${coords.y}, using online`);
+            tile.src = onlineUrl;
+          } else {
+            // Online also failed
+            done(new Error('Tile load failed'), tile);
+          }
+        };
+
+        tile.src = localUrl;
+        return tile;
+      }
+    });
+
+    // Create tile layer with local-first fallback
+    const tileLayer = new LocalTileLayer('', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    });
+
+    tileLayer.on('loading', () => {
+      console.log('[Tile Cache] Checking local tile cache...');
+    });
+
+    tileLayer.addTo(map);
+
+    // Log tile source status
+    console.log('[Tile Cache] Using local-first tile loading with online fallback');
+
+    // Coordinate tracking
+    map.on('mousemove', (e) => {
+      document.getElementById('coord-lat').textContent = e.latlng.lat.toFixed(4);
+      document.getElementById('coord-lon').textContent = e.latlng.lng.toFixed(4);
+    });
+
+    map.on('mouseout', () => {
+      document.getElementById('coord-lat').textContent = '--';
+      document.getElementById('coord-lon').textContent = '--';
+    });
+
+    // --- TECTONIC NODE MARKER SYSTEM ---
+    const tectonicMarkers = new Map();
+
+    // Create Tectonic Node marker with pulse animation
+    window.addTectonicNode = (node) => {
+      // Create custom divIcon for the marker
+      const iconHtml = `
+        <div class="tectonic-marker">
+          <div class="tectonic-marker-pulse" id="pulse-${node.id}"></div>
+          <div class="tectonic-marker-inner"></div>
+          <div class="tectonic-label">${node.name}</div>
+        </div>
+      `;
+
+      const tectonicIcon = L.divIcon({
+        html: iconHtml,
+        className: 'tectonic-marker-container',
+        iconSize: [12, 12],
+        iconAnchor: [6, 6]
+      });
+
+      // Create marker and add to map
+      const marker = L.marker([node.lat, node.lon], {
+        icon: tectonicIcon,
+        title: node.name
+      }).addTo(map);
+
+      // Click handler triggers orchestrator zoom
+      marker.on('click', () => {
+        if (window.orchestrator) {
+          window.orchestrator.zoomInto(node.id);
+        }
+        console.log(`📍 Clicked Tectonic Node: ${node.name} (${node.id})`);
+      });
+
+      // Store marker reference with node data
+      tectonicMarkers.set(node.id, {
+        ...node,
+        marker,
+        load: node.load || 0
+      });
+
+      // Update HUD
+      updateHUD();
+
+      console.log(`✅ Added Tectonic Node: ${node.name} at (${node.lat}, ${node.lon})`);
+    };
+
+    // Update Tectonic Node pulse speed based on load
+    window.updateTectonicNode = (id, load) => {
+      const nodeData = tectonicMarkers.get(id);
+      if (!nodeData) {
+        console.warn(`⚠️ Tectonic Node not found: ${id}`);
+        return;
+      }
+
+      nodeData.load = load;
+
+      // Adjust pulse animation duration based on load (higher load = faster pulse)
+      const pulseEl = document.getElementById(`pulse-${id}`);
+      if (pulseEl) {
+        // Load 0.0 = 2s, Load 1.0 = 0.3s
+        const duration = Math.max(0.3, 2 - (load * 1.7));
+        pulseEl.style.animationDuration = `${duration}s`;
+      }
+
+      // Update HUD to reflect new load
+      updateHUD();
+    };
+
+    // Update HUD with kernel count and load display
+    function updateHUD() {
+      // Update kernel count
+      document.getElementById('kernel-count').textContent = tectonicMarkers.size;
+
+      // Calculate total load
+      let totalLoad = 0;
+      const nodeList = [];
+
+      tectonicMarkers.forEach((node, id) => {
+        totalLoad += node.load || 0;
+        const loadPercent = ((node.load || 0) * 100).toFixed(0);
+        const loadClass = (node.load || 0) > 0.7 ? 'pulse-high' : 'pulse-low';
+        nodeList.push(`
+          <div class="node-item">
+            ${node.name}: <span class="${loadClass}">${loadPercent}% LOAD</span>
+          </div>
+        `);
+      });
+
+      // Update total load display
+      const avgLoad = tectonicMarkers.size > 0
+        ? (totalLoad / tectonicMarkers.size * 100).toFixed(1)
+        : '0.0';
+      document.getElementById('total-load').textContent = `${avgLoad}%`;
+
+      // Update kernel list
+      document.getElementById('kernel-list').innerHTML = nodeList.join('');
+    }
+
+    // --- MEMORY TAPESTRY OVERLAY ---
+    const tapestryOverlay = document.getElementById('tapestry-overlay');
+    const tapestryCanvas = document.getElementById('tapestry-canvas');
+    const tapestryTitle = document.getElementById('tapestry-title');
+    const tapestryClose = document.getElementById('tapestry-close');
+    const tapestryCtx = tapestryCanvas.getContext('2d');
+
+    // Close button handler
+    tapestryClose.addEventListener('click', () => {
+      tapestryOverlay.style.display = 'none';
+      document.getElementById('map').style.display = 'block';
+      console.log('🔒 Memory Tapestry closed');
+    });
+
+    // Show Memory Tapestry - renders 512x512 from Uint32Array buffer
+    window.showMemoryTapestry = (id, buffer) => {
+      const nodeData = tectonicMarkers.get(id);
+      const nodeName = nodeData ? nodeData.name : id;
+      tapestryTitle.textContent = `MEMORY TAPESTRY: ${nodeName}`;
+
+      const size = 512;
+      const imgData = tapestryCtx.createImageData(size, size);
+
+      // Convert Uint32Array buffer to RGBA pixels
+      const view = new Uint32Array(buffer.buffer || buffer);
+      for (let i = 0; i < view.length && i < size * size; i++) {
+        const val = view[i];
+        const r = (val & 0xFF);
+        const g = (val >> 8) & 0xFF;
+        const b = (val >> 16) & 0xFF;
+
+        // Linear-to-2D mapping (simplified for POC)
+        const x = i % size;
+        const y = Math.floor(i / size);
+        const idx = (y * size + x) * 4;
+
+        imgData.data[idx] = r || 0;
+        imgData.data[idx + 1] = g || 128; // Green tint for Geometry OS aesthetic
+        imgData.data[idx + 2] = b || 0;
+        imgData.data[idx + 3] = 255;
+      }
+
+      tapestryCtx.putImageData(imgData, 0, 0);
+
+      // Hide map, show tapestry
+      document.getElementById('map').style.display = 'none';
+      tapestryOverlay.style.display = 'flex';
+
+      console.log(`🧵 Memory Tapestry opened for: ${nodeName}`);
+    };
+
+    console.log('🌍 Tectonic WorldView [OSM] Bridge Online');
+    console.log('📍 Centered on Texas State Capitol (30.2747, -97.7403)');
+    console.log('✅ Tectonic Node marker system initialized');
+    console.log('   - window.addTectonicNode(node) - Add marker');
+    console.log('   - window.updateTectonicNode(id, load) - Update pulse');
+  </script>
+
+  <!-- WorldView Orchestrator Integration -->
+  <script type="module">
+    import { WorldViewOrchestrator } from './WorldViewOrchestrator.js';
+
+    // Mock GPU System for POC - simulates GPUExecutionSystem interface
+    const mockGPUSystem = {
+      // Simulate reading kernel state
+      async readState(kernelId) {
+        // Simulate varying load based on kernel
+        const baseLoad = {
+          'linux_alpine_sf': 0.65,
+          'linux_ubuntu_lon': 0.45,
+          'hypervisor_core_tok': 0.85
+        };
+        const load = baseLoad[kernelId] || 0.5;
+        // Add some randomness to simulate activity
+        const jitter = (Math.random() - 0.5) * 0.2;
+        return {
+          halted: false,
+          load: Math.max(0, Math.min(1, load + jitter)),
+          cycles: Math.floor(Math.random() * 1000000)
+        };
+      },
+
+      // Simulate reading memory buffer
+      async readMemory(kernelId, offset, length) {
+        // Generate mock memory data as Uint32Array
+        const buffer = new Uint32Array(length / 4);
+        // Fill with pseudo-random data based on kernel ID
+        const seed = kernelId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+        for (let i = 0; i < buffer.length; i++) {
+          buffer[i] = (seed * (i + 1) * 2654435761) >>> 0; // Simple PRNG
+        }
+        return buffer;
+      }
+    };
+
+    // Initialize orchestrator with mock GPU system
+    const orchestrator = new WorldViewOrchestrator(mockGPUSystem, map);
+    window.orchestrator = orchestrator;
+
+    // Register three Tectonic kernels at specific geographic locations
+    // ALPINE-X86-SF: San Francisco (Silicon Valley)
+    orchestrator.registerKernel('linux_alpine_sf', {
+      name: 'ALPINE-X86-SF',
+      lat: 37.7749,
+      lon: -122.4194,
+      region: 'US-WEST'
+    });
+
+    // UBUNTU-ARM-LDN: London (Europe)
+    orchestrator.registerKernel('linux_ubuntu_lon', {
+      name: 'UBUNTU-ARM-LDN',
+      lat: 51.5074,
+      lon: -0.1278,
+      region: 'EU-WEST'
+    });
+
+    // GOS-CORE-TYO: Tokyo (Asia-Pacific)
+    orchestrator.registerKernel('hypervisor_core_tok', {
+      name: 'GOS-CORE-TYO',
+      lat: 35.6762,
+      lon: 139.6503,
+      region: 'AP-EAST'
+    });
+
+    // Start 10Hz sync loop (100ms interval)
+    setInterval(() => {
+      orchestrator.sync();
+    }, 100);
+
+    console.log('🔌 WorldViewOrchestrator connected');
+    console.log('📍 Registered 3 Tectonic Kernels:');
+    console.log('   - ALPINE-X86-SF (San Francisco)');
+    console.log('   - UBUNTU-ARM-LDN (London)');
+    console.log('   - GOS-CORE-TYO (Tokyo)');
+    console.log('⚡ Sync loop running at 10Hz');
+  </script>
+</body>
+</html>

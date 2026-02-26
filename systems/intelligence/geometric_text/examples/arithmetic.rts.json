@@ -1,0 +1,103 @@
+{
+  "metadata": {
+    "source_file": "arithmetic.geo",
+    "texture_file": "arithmetic.rts.png",
+    "texture_size": [
+      144,
+      16
+    ],
+    "instruction_count": 9,
+    "error_count": 0,
+    "glyph_size": 16,
+    "encoding": {
+      "R": "opcode",
+      "G": "operand_high_byte",
+      "B": "operand_low_byte",
+      "A": "morphological_intensity"
+    }
+  },
+  "instructions": [
+    {
+      "index": 0,
+      "opcode": 65,
+      "opcode_name": "i32.const",
+      "operand": 5,
+      "symbol": "$",
+      "line": 2,
+      "col": 1
+    },
+    {
+      "index": 1,
+      "opcode": 65,
+      "opcode_name": "i32.const",
+      "operand": 3,
+      "symbol": "$",
+      "line": 2,
+      "col": 5
+    },
+    {
+      "index": 2,
+      "opcode": 106,
+      "opcode_name": "i32.add",
+      "operand": 0,
+      "symbol": "+",
+      "line": 2,
+      "col": 9
+    },
+    {
+      "index": 3,
+      "opcode": 65,
+      "opcode_name": "i32.const",
+      "operand": 10,
+      "symbol": "$",
+      "line": 3,
+      "col": 1
+    },
+    {
+      "index": 4,
+      "opcode": 65,
+      "opcode_name": "i32.const",
+      "operand": 4,
+      "symbol": "$",
+      "line": 3,
+      "col": 6
+    },
+    {
+      "index": 5,
+      "opcode": 107,
+      "opcode_name": "i32.sub",
+      "operand": 0,
+      "symbol": "-",
+      "line": 3,
+      "col": 10
+    },
+    {
+      "index": 6,
+      "opcode": 65,
+      "opcode_name": "i32.const",
+      "operand": 7,
+      "symbol": "$",
+      "line": 4,
+      "col": 1
+    },
+    {
+      "index": 7,
+      "opcode": 65,
+      "opcode_name": "i32.const",
+      "operand": 6,
+      "symbol": "$",
+      "line": 4,
+      "col": 5
+    },
+    {
+      "index": 8,
+      "opcode": 108,
+      "opcode_name": "i32.mul",
+      "operand": 0,
+      "symbol": "*",
+      "line": 4,
+      "col": 9
+    }
+  ],
+  "errors": []
+}

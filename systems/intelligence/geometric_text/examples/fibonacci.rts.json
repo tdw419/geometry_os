@@ -1,0 +1,112 @@
+{
+  "metadata": {
+    "source_file": "fibonacci.geo",
+    "texture_file": "fibonacci.rts.png",
+    "texture_size": [
+      160,
+      16
+    ],
+    "instruction_count": 10,
+    "error_count": 0,
+    "glyph_size": 16,
+    "encoding": {
+      "R": "opcode",
+      "G": "operand_high_byte",
+      "B": "operand_low_byte",
+      "A": "morphological_intensity"
+    }
+  },
+  "instructions": [
+    {
+      "index": 0,
+      "opcode": 65,
+      "opcode_name": "i32.const",
+      "operand": 0,
+      "symbol": "$",
+      "line": 3,
+      "col": 1
+    },
+    {
+      "index": 1,
+      "opcode": 33,
+      "opcode_name": "local.set",
+      "operand": 0,
+      "symbol": ">",
+      "line": 4,
+      "col": 1
+    },
+    {
+      "index": 2,
+      "opcode": 65,
+      "opcode_name": "i32.const",
+      "operand": 1,
+      "symbol": "$",
+      "line": 5,
+      "col": 1
+    },
+    {
+      "index": 3,
+      "opcode": 33,
+      "opcode_name": "local.set",
+      "operand": 1,
+      "symbol": ">",
+      "line": 6,
+      "col": 1
+    },
+    {
+      "index": 4,
+      "opcode": 32,
+      "opcode_name": "local.get",
+      "operand": 0,
+      "symbol": "<",
+      "line": 7,
+      "col": 1
+    },
+    {
+      "index": 5,
+      "opcode": 32,
+      "opcode_name": "local.get",
+      "operand": 1,
+      "symbol": "<",
+      "line": 8,
+      "col": 1
+    },
+    {
+      "index": 6,
+      "opcode": 106,
+      "opcode_name": "i32.add",
+      "operand": 0,
+      "symbol": "+",
+      "line": 9,
+      "col": 1
+    },
+    {
+      "index": 7,
+      "opcode": 32,
+      "opcode_name": "local.get",
+      "operand": 1,
+      "symbol": "<",
+      "line": 10,
+      "col": 1
+    },
+    {
+      "index": 8,
+      "opcode": 33,
+      "opcode_name": "local.set",
+      "operand": 0,
+      "symbol": ">",
+      "line": 11,
+      "col": 1
+    },
+    {
+      "index": 9,
+      "opcode": 33,
+      "opcode_name": "local.set",
+      "operand": 1,
+      "symbol": ">",
+      "line": 12,
+      "col": 1
+    }
+  ],
+  "errors": []
+}
