@@ -319,6 +319,99 @@ export class FontExecutionTerminal {
         this.font = null;
         this.gpu = null;
     }
+
+    /**
+     * Run self-tests in browser console
+     * Tests: ADD only, ADD+PRINT, ADD+SUB+PRINT
+     * @returns {Promise<{passed: number, failed: number, results: Array}>}
+     */
+    async test() {
+        console.log('[FontExecutionTerminal] Running self-tests...');
+        const results = [];
+        let passed = 0;
+        let failed = 0;
+
+        // Helper to run a program and get result
+        const runProgram = async (code) => {
+            const program = this.font.compile(code);
+            const size = this.options.programTextureSize;
+            const data = new Uint32Array(size * size * 4);
+            program.forEach((inst, i) => {
+                const idx = i * 4;
+                data[idx] = 255;
+                data[idx + 1] = inst.opcode;
+                data[idx + 2] = inst.operand;
+                data[idx + 3] = inst.executable ? 255 : 0;
+            });
+
+            const device = this.app.renderer.gpu.device;
+            const programTexture = device.createTexture({
+                size: [size, size],
+                format: 'rgba8uint',
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+            });
+
+            device.queue.writeTexture(
+                { texture: programTexture },
+                data,
+                { bytesPerRow: size * 4 * 4 },
+                { width: size, height: size }
+            );
+
+            this.gpu.setProgramTexture(programTexture);
+            device.queue.writeBuffer(this.gpu.stateBuffer, 0, new Int32Array([0, 0, 0, 0]));
+            await this.gpu.run();
+            await new Promise(resolve => setTimeout(resolve, 10));
+
+            return await this.gpu.readState();
+        };
+
+        // Test 1: ADD only - should accumulate values
+        try {
+            const state = await runProgram('+ 5\n+ 3\n#');
+            const expected = 8; // 5 + 3 = 8
+            const success = state.accumulator === expected;
+            results.push({ name: 'ADD only', success, expected, actual: state.accumulator });
+            if (success) { passed++; console.log('  [PASS] Test 1: ADD only (acc=8)'); }
+            else { failed++; console.log(`  [FAIL] Test 1: ADD only - expected ${expected}, got ${state.accumulator}`); }
+        } catch (e) {
+            failed++;
+            results.push({ name: 'ADD only', success: false, error: e.message });
+            console.log(`  [FAIL] Test 1: ADD only - error: ${e.message}`);
+        }
+
+        // Test 2: ADD+PRINT - should output value
+        try {
+            const state = await runProgram('+ 42\n!\n#');
+            const output = await this.gpu.readOutput(10);
+            const success = state.outputPtr >= 1 && output[0] === 42;
+            results.push({ name: 'ADD+PRINT', success, expected: 42, actual: output[0] });
+            if (success) { passed++; console.log('  [PASS] Test 2: ADD+PRINT (output=42)'); }
+            else { failed++; console.log(`  [FAIL] Test 2: ADD+PRINT - expected output 42, got ${output[0]}, outputPtr=${state.outputPtr}`); }
+        } catch (e) {
+            failed++;
+            results.push({ name: 'ADD+PRINT', success: false, error: e.message });
+            console.log(`  [FAIL] Test 2: ADD+PRINT - error: ${e.message}`);
+        }
+
+        // Test 3: ADD+SUB+PRINT - should compute and output
+        try {
+            const state = await runProgram('+ 10\n+ 5\n- 3\n!\n#');
+            const output = await this.gpu.readOutput(10);
+            const expected = 12; // 10 + 5 - 3 = 12
+            const success = state.outputPtr >= 1 && output[0] === expected;
+            results.push({ name: 'ADD+SUB+PRINT', success, expected, actual: output[0] });
+            if (success) { passed++; console.log('  [PASS] Test 3: ADD+SUB+PRINT (output=12)'); }
+            else { failed++; console.log(`  [FAIL] Test 3: ADD+SUB+PRINT - expected ${expected}, got ${output[0]}`); }
+        } catch (e) {
+            failed++;
+            results.push({ name: 'ADD+SUB+PRINT', success: false, error: e.message });
+            console.log(`  [FAIL] Test 3: ADD+SUB+PRINT - error: ${e.message}`);
+        }
+
+        console.log(`[FontExecutionTerminal] Tests complete: ${passed}/${passed + failed} passed`);
+        return { passed, failed, results };
+    }
 }
 
 // Export for browser

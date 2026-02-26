@@ -66,9 +66,9 @@ Focus: Enhance geo_term.html with state panel and glyph visualization. Validate 
 
 ## Phase 3: Testing
 
-- [ ] 3.1 Add Browser Console Tests
+- [x] 3.1 Add Browser Console Tests
   - **Do**: Add self-test function that runs sample programs and verifies output. Call from browser console with `terminal.test()`.
-  - **Files**: `systems/visual_shell/web/GeometricTerminal.js`
+  - **Files**: `systems/visual_shell/web/FontExecutionTerminal.js`
   - **Done when**: `terminal.test()` runs 3 test cases: ADD only, ADD+PRINT, ADD+SUB+PRINT
   - **Verify**: Run `terminal.test()` in console, see "PASS" for all tests
   - **Commit**: `test(geo-term): add browser console tests`
