@@ -57,7 +57,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
   - _Requirements: FR-4_
   - _Design: Data Flow steps 2-5_
 
-- [ ] 1.6 Integrate GlyphExecutor with InfiniteMap
+- [x] 1.6 Integrate GlyphExecutor with InfiniteMap
   - **Do**: Add GlyphExecutor initialization in InfiniteMap constructor, add `placeExecutableGlyph()`, `executeGlyphs()`, `createGlyphSprite()` methods, add Ctrl+Enter keyboard shortcut
   - **Files**: Modify: `systems/visual_shell/web/infinite_map.js`
   - **Done when**: `map.placeExecutableGlyph(10, 10, 65)` creates sprite and registers it

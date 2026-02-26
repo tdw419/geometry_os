@@ -98,6 +98,28 @@ class InfiniteMap {
             console.log('🐍 Python Transmutation Loader initialized');
         }
 
+        // The Motherboard: Initialize GlyphExecutor
+        this.glyphExecutor = null;
+        this.glyphAtlasLoaded = false;
+        if (typeof GlyphExecutor !== 'undefined') {
+            this.glyphExecutor = new GlyphExecutor({
+                maxCores: 64,
+                glyphSize: 16,
+                atlasPath: '/assets/universal_font.rts.png'
+            });
+            // Async init - don't block constructor
+            this.glyphExecutor.init().then(() => {
+                console.log('GlyphExecutor integrated with InfiniteMap');
+                // Load atlas texture for visual sprites
+                return this.glyphExecutor.loadAtlas(this.glyphExecutor.options.atlasPath);
+            }).then(() => {
+                this.glyphAtlasLoaded = true;
+                console.log('🔠 Glyph atlas loaded for sprite creation');
+            }).catch(err => {
+                console.warn('⚠️ GlyphExecutor initialization failed:', err);
+            });
+        }
+
         // Setup keyboard shortcuts
         this.setupKeyboardShortcuts();
 
@@ -1274,6 +1296,142 @@ class InfiniteMap {
         return null;
     }
 
+    // The Motherboard: Place an executable glyph at map coordinates
+    /**
+     * Place an executable glyph on the map
+     * @param {number} mapX - X coordinate on the map (in grid units)
+     * @param {number} mapY - Y coordinate on the map (in grid units)
+     * @param {number} glyphCode - ASCII/glyph code (0-255)
+     * @returns {object|null} The created sprite or null on failure
+     */
+    placeExecutableGlyph(mapX, mapY, glyphCode) {
+        if (!this.glyphExecutor) {
+            console.warn('⚠️ GlyphExecutor not initialized');
+            return null;
+        }
+
+        // Create sprite for the glyph
+        const sprite = this.createGlyphSprite(glyphCode, mapX, mapY);
+        if (!sprite) {
+            console.warn(`⚠️ Failed to create sprite for glyph ${glyphCode}`);
+            return null;
+        }
+
+        // Calculate atlas position (16x16 glyphs in atlas)
+        const glyphSize = this.glyphExecutor.options.glyphSize;
+        const glyphsPerRow = this.glyphExecutor.atlasWidth ? Math.floor(this.glyphExecutor.atlasWidth / glyphSize) : 16;
+        const atlasX = glyphCode % glyphsPerRow;
+        const atlasY = Math.floor(glyphCode / glyphsPerRow);
+
+        // Register with executor
+        const coreId = this.glyphExecutor.registerGlyph(mapX, mapY, sprite, atlasX, atlasY);
+
+        console.log(`🔠 Placed executable glyph ${glyphCode} ('${String.fromCharCode(glyphCode)}') at (${mapX},${mapY}), core ${coreId}`);
+
+        return sprite;
+    }
+
+    // The Motherboard: Execute all registered glyphs
+    /**
+     * Execute all registered glyphs
+     * @returns {Promise<object>} Execution results
+     */
+    async executeGlyphs() {
+        if (!this.glyphExecutor) {
+            console.warn('⚠️ GlyphExecutor not initialized');
+            return { executed: 0, error: 'GlyphExecutor not initialized' };
+        }
+
+        console.log('⚡ Executing glyphs...');
+        const result = await this.glyphExecutor.execute();
+
+        if (result && result.executed > 0) {
+            console.log(`✅ Executed ${result.executed} glyphs`);
+        } else if (result && result.skipped) {
+            console.log('⏭️ Execution skipped (already in progress)');
+        } else {
+            console.log('ℹ️ No glyphs to execute');
+        }
+
+        return result;
+    }
+
+    // The Motherboard: Create a PixiJS sprite for a glyph
+    /**
+     * Create a sprite for a glyph from the atlas
+     * @param {number} glyphCode - ASCII/glyph code (0-255)
+     * @param {number} mapX - X coordinate on the map
+     * @param {number} mapY - Y coordinate on the map
+     * @returns {PIXI.Sprite|null} The created sprite or null on failure
+     */
+    createGlyphSprite(glyphCode, mapX, mapY) {
+        if (!this.glyphAtlasLoaded || !this.glyphExecutor || !this.glyphExecutor.atlasTexture) {
+            console.warn('⚠️ Glyph atlas not loaded, cannot create sprite');
+            return null;
+        }
+
+        const glyphSize = this.glyphExecutor.options.glyphSize;
+        const glyphsPerRow = Math.floor(this.glyphExecutor.atlasWidth / glyphSize);
+
+        // Calculate position in atlas
+        const atlasCol = glyphCode % glyphsPerRow;
+        const atlasRow = Math.floor(glyphCode / glyphsPerRow);
+
+        // Create a canvas to extract the glyph region
+        // Note: PixiJS v8 uses different texture frame approach
+        // For now, create sprite from full atlas and adjust
+        const canvas = document.createElement('canvas');
+        canvas.width = glyphSize;
+        canvas.height = glyphSize;
+        const ctx = canvas.getContext('2d');
+
+        // Draw the glyph region from atlas
+        // Since atlasTexture is a GPUTexture, we need to render it
+        // For simplicity, create a placeholder sprite and set frame
+
+        // Use PixiJS texture from canvas as fallback
+        const texture = PIXI.Texture.from(canvas);
+
+        // Fill with a distinctive color for POC visibility
+        ctx.fillStyle = `hsl(${(glyphCode / 255) * 360}, 70%, 50%)`;
+        ctx.fillRect(0, 0, glyphSize, glyphSize);
+
+        // Draw the character
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String.fromCharCode(glyphCode), glyphSize / 2, glyphSize / 2);
+
+        // Update texture
+        texture.update();
+
+        // Create sprite
+        const sprite = new PIXI.Sprite(texture);
+
+        // Position on map
+        sprite.x = mapX * this.config.gridSize;
+        sprite.y = mapY * this.config.gridSize;
+        sprite.width = glyphSize;
+        sprite.height = glyphSize;
+        sprite.zIndex = 50; // Above map tiles
+        sprite.alpha = 1.0;
+
+        // Make interactive
+        sprite.eventMode = 'static';
+        sprite.cursor = 'pointer';
+
+        // Add click handler to show glyph info
+        sprite.on('pointerdown', () => {
+            console.log(`🔠 Glyph ${glyphCode} ('${String.fromCharCode(glyphCode)}') at (${mapX},${mapY})`);
+        });
+
+        // Add to world
+        this.world.addChild(sprite);
+
+        return sprite;
+    }
+
     // Phase 6: Setup keyboard shortcuts
     setupKeyboardShortcuts() {
         window.addEventListener('keydown', (event) => {
@@ -1295,12 +1453,19 @@ class InfiniteMap {
                     event.preventDefault();
                     this.openBrickFileDialog();
                     break;
+                case 'Enter':
+                    // Ctrl+Enter: Execute glyphs
+                    if (event.ctrlKey) {
+                        event.preventDefault();
+                        this.executeGlyphs();
+                    }
+                    break;
                 default:
                     break;
             }
         });
 
-        console.log('⌨️  Keyboard shortcuts enabled: Space (pause/resume), R (reset), L (load brick), H (toggle heatmap), M (cycle heatmap mode)');
+        console.log('⌨️  Keyboard shortcuts enabled: Space (pause/resume), R (reset), L (load brick), Ctrl+Enter (execute glyphs), H (toggle heatmap), M (cycle heatmap mode)');
     }
 
     // Phase 6: Toggle CPU pause/resume
