@@ -61,7 +61,7 @@ No other text, just the YAML. Note: timestamp must be in quotes."""
         response = requests.post(
             "http://localhost:1234/v1/chat/completions",
             json={
-                "model": "local-model",
+                "model": "vectoros",  # Use actual loaded model
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": 0.1,
                 "max_tokens": 200,

@@ -164,6 +164,12 @@ class GeometryOSApplication {
             if (this.neuralCity) {
                 this.neuralCity.resize(window.innerWidth, window.innerHeight);
             }
+            // Update terminal window overlay positions
+            if (this.terminalWindows) {
+                for (const terminal of this.terminalWindows) {
+                    terminal.onCanvasResize();
+                }
+            }
         });
 
         // 2. Initialize Accessibility Manager (Phase 2.3)
@@ -233,6 +239,7 @@ class GeometryOSApplication {
                 { wsPort: 8765 }
             );
             this._setupGravityKeyboard();
+            this._setupTerminalKeyboard();
             console.log("🌌 Gravity Well Renderer initialized (Ctrl+Shift+G to toggle)");
         }
 
@@ -892,6 +899,13 @@ class GeometryOSApplication {
         if (this.heatmapOverlay) {
             this.heatmapOverlay.tick(delta / 16.67); // Normalize to ~60fps
         }
+
+        // Update Terminal Windows (sync overlay positions)
+        if (this.terminalWindows) {
+            for (const terminal of this.terminalWindows) {
+                terminal.update();
+            }
+        }
     }
 
 
@@ -1211,6 +1225,8 @@ class GeometryOSApplication {
                 console.log("✅ Area Agent WebSocket connection established.");
                 // Create goal panel
                 this.createGoalPanel();
+                // Initialize VCC back-pressure listener
+                this.initializeVCCBackPressure();
             };
 
             this.areaAgentSocket.onmessage = (event) => {
@@ -1275,6 +1291,17 @@ class GeometryOSApplication {
                         case 'vfs_modification_history':
                             this.handleModificationHistory(message);
                             break;
+                        // VCC (Visual Consistency Contract) epoch sync
+                        case 'vcc_epoch':
+                            this.handleVCCEpoch(message);
+                            break;
+                        // ASCII GUI handlers - AI control of visual shell
+                        case 'gui_command':
+                            this.executeGUICommand(message);
+                            break;
+                        case 'gui_scene_update':
+                            this.handleGUISceneUpdate(message);
+                            break;
                     }
                 } catch (e) {
                     console.error("Error parsing agent message:", e);
@@ -1296,6 +1323,200 @@ class GeometryOSApplication {
         } catch (e) {
             console.error("Could not create WebSocket for Area Agent:", e);
         }
+    }
+
+    /**
+     * VCC (Visual Consistency Contract) Epoch Handler
+     * Dispatches INFRASTRUCTURE_STATE_CHANGE DOM events for vcc_manager.js
+     */
+    handleVCCEpoch(message) {
+        const { epoch, state, timestamp } = message;
+
+        // Dispatch DOM event that vcc_manager.js listens for
+        window.dispatchEvent(new CustomEvent('INFRASTRUCTURE_STATE_CHANGE', {
+            detail: { epoch, state, timestamp: timestamp || Date.now() }
+        }));
+
+        // Optionally log for debugging
+        if (window.vcc?.config?.debug) {
+            console.log(`[VCC] Epoch ${epoch} received from server`);
+        }
+    }
+
+    /**
+     * Execute a GUI command from AI agent.
+     * Commands come from .geometry/gui/commands/pending/ via Visual Bridge.
+     */
+    executeGUICommand(message) {
+        const { action, target, position, text, keys, direction } = message;
+
+        console.log(`🕹️ GUI Command: ${action} on ${target}`);
+
+        switch (action) {
+            case 'focus':
+                this.focusWindow(target);
+                break;
+            case 'close':
+                this.closeWindow(target);
+                break;
+            case 'move':
+                if (position && this.windows) {
+                    const win = this.windows.find(w => w.id === target);
+                    if (win) {
+                        win.x = position[0];
+                        win.y = position[1];
+                        this.renderWindows?.();
+                    }
+                }
+                break;
+            case 'click':
+                // Simulate click at position or on target
+                if (position) {
+                    this.simulateClick(position[0], position[1]);
+                }
+                break;
+            case 'type':
+                // Send text to focused window
+                if (text && this.focusedWindow) {
+                    this.sendTextToWindow(this.focusedWindow, text);
+                }
+                break;
+            case 'keypress':
+                if (keys && this.focusedWindow) {
+                    this.sendKeysToWindow(this.focusedWindow, keys);
+                }
+                break;
+            case 'scroll':
+                if (direction && this.focusedWindow) {
+                    this.scrollWindow(this.focusedWindow, direction);
+                }
+                break;
+            default:
+                console.log(`Unknown GUI command: ${action}`);
+        }
+
+        // Show notification
+        this.showNotification(`🤖 AI: ${action} ${target || ''}`, 'info');
+    }
+
+    /**
+     * Handle GUI scene update from ASCII fragments.
+     * Called when .geometry/gui/fragments/ files change.
+     */
+    handleGUISceneUpdate(message) {
+        const { filename, content } = message;
+
+        // Dispatch event for any listeners
+        window.dispatchEvent(new CustomEvent('GUI_SCENE_UPDATE', {
+            detail: { filename, content, timestamp: Date.now() }
+        }));
+
+        // Parse and apply updates
+        if (filename === 'windows.yaml') {
+            this.applyWindowsYAML(content);
+        }
+    }
+
+    /**
+     * Apply windows.yaml state to frontend windows.
+     */
+    applyWindowsYAML(yamlContent) {
+        try {
+            // Simple YAML parsing for windows list
+            // (Full YAML parser would be better, but this handles basic cases)
+            const lines = yamlContent.split('\n');
+            let currentWindow = null;
+            const windows = [];
+
+            for (const line of lines) {
+                if (line.startsWith('- id:')) {
+                    if (currentWindow) windows.push(currentWindow);
+                    currentWindow = { id: line.split(':')[1].trim() };
+                } else if (currentWindow) {
+                    if (line.includes('title:')) {
+                        currentWindow.title = line.split('title:')[1].trim();
+                    } else if (line.includes('focused:') && line.includes('true')) {
+                        currentWindow.focused = true;
+                    }
+                }
+            }
+            if (currentWindow) windows.push(currentWindow);
+
+            // Focus the focused window if any
+            const focused = windows.find(w => w.focused);
+            if (focused) {
+                this.focusWindow(focused.id);
+            }
+
+            console.log(`🖼️ Applied windows.yaml: ${windows.length} windows`);
+        } catch (e) {
+            console.error('Failed to parse windows.yaml:', e);
+        }
+    }
+
+    /**
+     * Focus a window by ID.
+     */
+    focusWindow(windowId) {
+        if (this.windowManager?.focusWindow) {
+            this.windowManager.focusWindow(windowId);
+        } else if (this.windows) {
+            this.windows.forEach(w => w.focused = w.id === windowId);
+            this.focusedWindow = windowId;
+            this.renderWindows?.();
+        }
+    }
+
+    /**
+     * Close a window by ID.
+     */
+    closeWindow(windowId) {
+        if (this.windowManager?.closeWindow) {
+            this.windowManager.closeWindow(windowId);
+        } else if (this.windows) {
+            this.windows = this.windows.filter(w => w.id !== windowId);
+            this.renderWindows?.();
+        }
+    }
+
+    /**
+     * Simulate a click at coordinates.
+     */
+    simulateClick(x, y) {
+        const event = new MouseEvent('click', {
+            bubbles: true,
+            cancelable: true,
+            clientX: x,
+            clientY: y
+        });
+        document.elementFromPoint(x, y)?.dispatchEvent(event);
+    }
+
+    /**
+     * Initialize VCC back-pressure listener
+     * Sends VCC_BACK_PRESSURE to server when UI is overwhelmed
+     */
+    initializeVCCBackPressure() {
+        window.addEventListener('VCC_BACK_PRESSURE', (e) => {
+            const { epoch, reason } = e.detail;
+            if (this.areaAgentSocket && this.areaAgentSocket.readyState === WebSocket.OPEN) {
+                this.areaAgentSocket.send(JSON.stringify({
+                    type: 'VCC_BACK_PRESSURE',
+                    epoch,
+                    reason
+                }));
+            }
+        });
+
+        window.addEventListener('VCC_READY_FOR_EPOCH', (e) => {
+            const { lastCommittedEpoch } = e.detail;
+            if (this.areaAgentSocket && this.areaAgentSocket.readyState === WebSocket.OPEN) {
+                this.areaAgentSocket.send(JSON.stringify({
+                    type: 'VCC_READY',
+                    epoch: lastCommittedEpoch
+                }));
+            }
+        });
     }
 
     handleAgentStateUpdate(state) {
@@ -3087,6 +3308,71 @@ class GeometryOSApplication {
         });
 
         console.log('🌌 Gravity keyboard shortcuts configured (Ctrl+Shift+G to toggle)');
+    }
+
+    /**
+     * Setup Terminal Window keyboard shortcut
+     * Ctrl+Shift+T: Open Terminal Window
+     */
+    _setupTerminalKeyboard() {
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Shift+T: Open Terminal
+            if (e.ctrlKey && e.shiftKey && (e.key === 'T' || e.key === 't')) {
+                e.preventDefault();
+                this.openTerminalWindow();
+            }
+        });
+
+        console.log('🖥️ Terminal keyboard shortcuts configured (Ctrl+Shift+T to open)');
+    }
+
+    /**
+     * Open a Terminal Window on the map
+     */
+    openTerminalWindow(options = {}) {
+        // Check if TerminalWindow class exists
+        if (typeof TerminalWindow === 'undefined') {
+            console.error('TerminalWindow class not loaded');
+            return null;
+        }
+
+        // Default options
+        const defaults = {
+            x: 100 + (this.terminalWindows?.length || 0) * 30,
+            y: 100 + (this.terminalWindows?.length || 0) * 30,
+            width: 800,
+            height: 500,
+            title: 'Geometry OS Terminal',
+            wsUrl: 'ws://localhost:8769/terminal'
+        };
+
+        const config = { ...defaults, ...options };
+
+        // Create terminal window
+        const terminalWindow = new TerminalWindow(config);
+
+        // Track terminal windows
+        if (!this.terminalWindows) {
+            this.terminalWindows = [];
+        }
+        this.terminalWindows.push(terminalWindow);
+
+        // Handle window close
+        terminalWindow.on('closed', () => {
+            const index = this.terminalWindows.indexOf(terminalWindow);
+            if (index > -1) {
+                this.terminalWindows.splice(index, 1);
+            }
+        });
+
+        // Add to stage
+        this.worldContainer.addChild(terminalWindow);
+
+        // Focus the new window
+        terminalWindow.focus();
+
+        console.log('🖥️ Terminal window opened');
+        return terminalWindow;
     }
 
     /**

@@ -83,7 +83,7 @@ def test_register_pixelrts_v2_cartridge(tmp_path):
         json.dump(metadata, f, indent=2)
 
     # Register in RTS registry
-    from geometry_os.systems.pixel_compiler.rts_registry_manager import RTSRegistryManager
+    from rts_registry_manager import RTSRegistryManager
 
     # Create temporary registry
     registry_path = tmp_path / "registry.json"
@@ -111,7 +111,7 @@ def test_register_legacy_rts_cartridge(tmp_path):
     test_data = b"Legacy RTS test data"
     rts_file.write_bytes(test_data)
 
-    from geometry_os.systems.pixel_compiler.rts_registry_manager import RTSRegistryManager
+    from rts_registry_manager import RTSRegistryManager
 
     # Create temporary registry
     registry_path = tmp_path / "registry.json"
@@ -132,7 +132,7 @@ def test_register_legacy_rts_cartridge(tmp_path):
 
 def test_list_cartridges_with_pixelrts_v2(tmp_path):
     """Test listing cartridges with PixelRTS v2 format information."""
-    from geometry_os.systems.pixel_compiler.pixelrts_v2_core import PixelRTSMetadata, calculate_grid_size
+    from pixelrts_v2_core import PixelRTSMetadata, calculate_grid_size
     from PIL import Image
     from PIL import PngImagePlugin
     import numpy as np
@@ -156,7 +156,7 @@ def test_list_cartridges_with_pixelrts_v2(tmp_path):
     png_file = tmp_path / "test.rts.png"
     img.save(png_file, pnginfo=pnginfo)
 
-    from geometry_os.systems.pixel_compiler.rts_registry_manager import RTSRegistryManager
+    from rts_registry_manager import RTSRegistryManager
 
     registry_path = tmp_path / "registry.json"
     manager = RTSRegistryManager(registry_path=str(registry_path))
@@ -174,7 +174,7 @@ def test_list_cartridges_with_pixelrts_v2(tmp_path):
 
 def test_find_cartridge_by_type(tmp_path):
     """Test finding cartridges by type with PixelRTS v2 support."""
-    from geometry_os.systems.pixel_compiler.pixelrts_v2_core import PixelRTSMetadata, calculate_grid_size
+    from pixelrts_v2_core import PixelRTSMetadata, calculate_grid_size
     from PIL import Image
     from PIL import PngImagePlugin
     import numpy as np
@@ -199,7 +199,7 @@ def test_find_cartridge_by_type(tmp_path):
         png_file = tmp_path / f"test_{i}.rts.png"
         img.save(png_file, pnginfo=pnginfo)
 
-        from geometry_os.systems.pixel_compiler.rts_registry_manager import RTSRegistryManager
+        from rts_registry_manager import RTSRegistryManager
 
         registry_path = tmp_path / "registry.json"
         manager = RTSRegistryManager(registry_path=str(registry_path))
@@ -208,7 +208,7 @@ def test_find_cartridge_by_type(tmp_path):
         manager.register(str(png_file), metadata={"type": cart_type, "name": f"test-{cart_type}"})
 
     # Find by type
-    from geometry_os.systems.pixel_compiler.rts_registry_manager import RTSRegistryManager
+    from rts_registry_manager import RTSRegistryManager
 
     manager = RTSRegistryManager(registry_path=str(registry_path))
     kernel_cartridges = manager.list(cartridge_type="kernel")
@@ -219,7 +219,7 @@ def test_find_cartridge_by_type(tmp_path):
 
 def test_verify_pixelrts_v2_cartridge(tmp_path):
     """Test verifying a PixelRTS v2 cartridge checksum."""
-    from geometry_os.systems.pixel_compiler.pixelrts_v2_core import PixelRTSMetadata, calculate_grid_size
+    from pixelrts_v2_core import PixelRTSMetadata, calculate_grid_size
     from PIL import Image
     from PIL import PngImagePlugin
     import numpy as np
@@ -243,7 +243,7 @@ def test_verify_pixelrts_v2_cartridge(tmp_path):
     png_file = tmp_path / "test.rts.png"
     img.save(png_file, pnginfo=pnginfo)
 
-    from geometry_os.systems.pixel_compiler.rts_registry_manager import RTSRegistryManager
+    from rts_registry_manager import RTSRegistryManager
 
     registry_path = tmp_path / "registry.json"
     manager = RTSRegistryManager(registry_path=str(registry_path))
@@ -259,7 +259,7 @@ def test_verify_pixelrts_v2_cartridge(tmp_path):
 
 def test_unregister_pixelrts_v2_cartridge(tmp_path):
     """Test unregistering a PixelRTS v2 cartridge."""
-    from geometry_os.systems.pixel_compiler.pixelrts_v2_core import PixelRTSMetadata, calculate_grid_size
+    from pixelrts_v2_core import PixelRTSMetadata, calculate_grid_size
     from PIL import Image
     from PIL import PngImagePlugin
     import numpy as np
@@ -283,7 +283,7 @@ def test_unregister_pixelrts_v2_cartridge(tmp_path):
     png_file = tmp_path / "test.rts.png"
     img.save(png_file, pnginfo=pnginfo)
 
-    from geometry_os.systems.pixel_compiler.rts_registry_manager import RTSRegistryManager
+    from rts_registry_manager import RTSRegistryManager
 
     registry_path = tmp_path / "registry.json"
     manager = RTSRegistryManager(registry_path=str(registry_path))
@@ -305,7 +305,7 @@ def test_unregister_pixelrts_v2_cartridge(tmp_path):
 
 def test_update_existing_cartridge(tmp_path):
     """Test updating an existing cartridge registration."""
-    from geometry_os.systems.pixel_compiler.pixelrts_v2_core import PixelRTSMetadata, calculate_grid_size
+    from pixelrts_v2_core import PixelRTSMetadata, calculate_grid_size
     from PIL import Image
     from PIL import PngImagePlugin
     import numpy as np
@@ -329,7 +329,7 @@ def test_update_existing_cartridge(tmp_path):
     png_file = tmp_path / "test.rts.png"
     img.save(png_file, pnginfo=pnginfo)
 
-    from geometry_os.systems.pixel_compiler.rts_registry_manager import RTSRegistryManager
+    from rts_registry_manager import RTSRegistryManager
 
     registry_path = tmp_path / "registry.json"
     manager = RTSRegistryManager(registry_path=str(registry_path))

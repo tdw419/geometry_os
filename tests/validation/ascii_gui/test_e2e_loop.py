@@ -63,7 +63,7 @@ reasoning: <brief explanation>
         decision_response = requests.post(
             "http://localhost:1234/v1/chat/completions",
             json={
-                "model": "local-model",
+                "model": "vectoros",  # Use actual loaded model
                 "messages": [{"role": "user", "content": decision_prompt}],
                 "temperature": 0.3,
                 "max_tokens": 200,
@@ -117,7 +117,7 @@ Did the state change as expected? Answer YES or NO with explanation."""
         verify_response = requests.post(
             "http://localhost:1234/v1/chat/completions",
             json={
-                "model": "local-model",
+                "model": "vectoros",  # Use actual loaded model
                 "messages": [{"role": "user", "content": verify_prompt}],
                 "temperature": 0.1,
                 "max_tokens": 100,
@@ -192,7 +192,7 @@ How many windows should exist? Which should be focused?"""
         response = requests.post(
             "http://localhost:1234/v1/chat/completions",
             json={
-                "model": "local-model",
+                "model": "vectoros",  # Use actual loaded model
                 "messages": [{"role": "user", "content": verify_prompt}],
                 "temperature": 0.1,
                 "max_tokens": 100,
