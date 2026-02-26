@@ -138,6 +138,7 @@
         <button onclick="loadKernel()" id="load-btn" disabled>Load Holographic</button>
         <button onclick="startExecution()" id="start-btn" disabled>Start</button>
         <button onclick="stopExecution()" id="stop-btn" disabled>Stop</button>
+        <button onclick="toggleAutoRun()" id="auto-btn" disabled>Auto Run</button>
         <button onclick="readState()" id="state-btn" disabled>Read State</button>
     </div>
 
@@ -322,6 +323,34 @@
 
             } catch (err) {
                 log(`Failed to read state: ${err.message}`, 'error');
+                console.error(err);
+            }
+        };
+
+        window.toggleAutoRun = function() {
+            if (!executor) {
+                log('Initialize executor first!', 'error');
+                return;
+            }
+
+            try {
+                const isRunning = executor.toggleAutoExecution(30, 'test-kernel');
+                const btn = document.getElementById('auto-btn');
+
+                if (isRunning) {
+                    btn.textContent = 'Stop Auto';
+                    btn.style.background = '#ff4444';
+                    updateStatus('Auto-Running', 'running');
+                    log('Auto-execution started at 30 FPS', 'success');
+                } else {
+                    btn.textContent = 'Auto Run';
+                    btn.style.background = '';
+                    updateStatus('Auto-Stopped', 'stopped');
+                    log('Auto-execution stopped', 'info');
+                }
+
+            } catch (err) {
+                log(`Failed to toggle auto-run: ${err.message}`, 'error');
                 console.error(err);
             }
         };

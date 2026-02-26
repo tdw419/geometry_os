@@ -45,6 +45,125 @@ export class GlyphExecutor {
 
         // Syscall hook for UART output
         this.onConsoleOutput = null;
+
+        // Glyph Registry - maps spatial positions to execution state
+        this.glyphRegistry = new Map(); // "x,y" -> { coreId, sprite, atlasX, atlasY, state }
+        this.nextCoreId = 1;
+
+        // Auto-execution state
+        this.autoExecutionInterval = null;
+        this.autoExecutionFps = 60;
+        this.frameCount = 0;
+        this.autoExecutionEnabled = false;
+    }
+
+    /**
+     * Register a glyph for execution tracking
+     * @param {number} x - Screen X position
+     * @param {number} y - Screen Y position
+     * @param {PIXI.Sprite} sprite - Visual sprite for this glyph
+     * @param {number} atlasX - X position in glyph atlas
+     * @param {number} atlasY - Y position in glyph atlas
+     * @returns {number} Assigned core ID
+     */
+    registerGlyph(x, y, sprite, atlasX, atlasY) {
+        const key = `${x},${y}`;
+        const coreId = this.nextCoreId++;
+
+        this.glyphRegistry.set(key, {
+            coreId,
+            sprite,
+            atlasX,
+            atlasY,
+            state: 'idle', // idle | running | halted | error
+            pc: 0,
+            cycleCount: 0,
+            lastOutput: null
+        });
+
+        console.log(`[GlyphExecutor] Registered glyph at (${x},${y}) with coreId=${coreId}`);
+        return coreId;
+    }
+
+    /**
+     * Unregister a glyph from execution tracking
+     * @param {number} x - Screen X position
+     * @param {number} y - Screen Y position
+     * @returns {boolean} True if glyph was removed
+     */
+    unregisterGlyph(x, y) {
+        const key = `${x},${y}`;
+        const removed = this.glyphRegistry.delete(key);
+
+        if (removed) {
+            console.log(`[GlyphExecutor] Unregistered glyph at (${x},${y})`);
+        }
+        return removed;
+    }
+
+    /**
+     * Get execution state for a glyph
+     * @param {number} x - Screen X position
+     * @param {number} y - Screen Y position
+     * @returns {Object|null} State object or null if not found
+     */
+    getExecutionState(x, y) {
+        const key = `${x},${y}`;
+        return this.glyphRegistry.get(key) || null;
+    }
+
+    /**
+     * Get all active glyphs in the registry
+     * @returns {Array} Array of {x, y, ...entry} objects
+     */
+    getActiveGlyphs() {
+        const active = [];
+
+        for (const [key, entry] of this.glyphRegistry) {
+            const [x, y] = key.split(',').map(Number);
+            active.push({
+                x,
+                y,
+                ...entry
+            });
+        }
+
+        return active;
+    }
+
+    /**
+     * Update execution state for a glyph
+     * @param {number} x - Screen X position
+     * @param {number} y - Screen Y position
+     * @param {Object} stateUpdate - Partial state to merge
+     * @returns {boolean} True if update succeeded
+     */
+    updateGlyphState(x, y, stateUpdate) {
+        const key = `${x},${y}`;
+        const entry = this.glyphRegistry.get(key);
+
+        if (!entry) return false;
+
+        Object.assign(entry, stateUpdate);
+
+        // Update sprite visual state based on execution state
+        if (entry.sprite) {
+            switch (entry.state) {
+                case 'running':
+                    entry.sprite.tint = 0x00FF88; // Green glow
+                    break;
+                case 'halted':
+                    entry.sprite.tint = 0xFFAA00; // Orange
+                    break;
+                case 'error':
+                    entry.sprite.tint = 0xFF4444; // Red
+                    break;
+                default:
+                    entry.sprite.tint = 0xFFFFFF; // White (idle)
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -404,5 +523,247 @@ export class GlyphExecutor {
         // For POC, we'd need a memory read mechanism
         // This is a placeholder for the full implementation
         return null;
+    }
+
+    /**
+     * Update visual feedback for all registered glyphs
+     * Called each frame during continuous execution
+     */
+    updateVisualFeedback() {
+        const now = Date.now();
+
+        for (const [key, entry] of this.glyphRegistry) {
+            if (!entry.sprite) continue;
+
+            const sprite = entry.sprite;
+            const timeSinceExecution = now - (entry.lastExecutionTime || 0);
+
+            // Calculate glow intensity based on execution state
+            let glowIntensity = 0;
+            let baseColor = 0xFFFFFF;
+            let alpha = 0.9;
+
+            switch (entry.state) {
+                case 'running':
+                    // Bright green glow, full intensity
+                    glowIntensity = 1.0;
+                    baseColor = 0x00FF88;
+                    alpha = 1.0;
+
+                    // Pulsing effect while running
+                    const pulse = Math.sin(now / 100) * 0.3 + 0.7;
+                    sprite.scale.set(pulse);
+                    break;
+
+                case 'halted':
+                    // Orange/amber for halted (intentional stop)
+                    glowIntensity = 0.6;
+                    baseColor = 0xFFAA00;
+                    alpha = 0.85;
+                    sprite.scale.set(1.0);
+                    break;
+
+                case 'error':
+                    // Red for errors and fraud detection
+                    glowIntensity = 0.8;
+                    baseColor = 0xFF4444;
+                    alpha = 0.9;
+
+                    // Vibration effect for errors
+                    sprite.rotation = Math.sin(now / 50) * 0.05;
+                    break;
+
+                case 'fraud':
+                    // Deep red pulsing for fraud/invalid resonance
+                    glowIntensity = 1.0;
+                    baseColor = 0xFF0000;
+                    alpha = 1.0;
+
+                    // Aggressive pulsing
+                    const fraudPulse = Math.sin(now / 80) * 0.4 + 0.6;
+                    sprite.scale.set(fraudPulse);
+                    sprite.rotation = Math.sin(now / 30) * 0.1;
+                    break;
+
+                default: // idle
+                    // Dim white for idle glyphs
+                    glowIntensity = 0.3;
+                    baseColor = 0xFFFFFF;
+                    alpha = 0.7;
+                    sprite.scale.set(1.0);
+                    sprite.rotation = 0;
+            }
+
+            // Apply pulsing decay for recently executed glyphs
+            if (entry.state !== 'running' && timeSinceExecution < 500) {
+                // Recent execution glow (decays over 500ms)
+                const decayPulse = 1 - (timeSinceExecution / 500);
+                glowIntensity = Math.max(glowIntensity, decayPulse * 0.5);
+
+                // Brief green flash
+                if (decayPulse > 0.7) {
+                    baseColor = this._blendColors(baseColor, 0x00FF88, decayPulse);
+                }
+            }
+
+            // Apply to sprite
+            sprite.tint = baseColor;
+            sprite.alpha = alpha * (0.7 + glowIntensity * 0.3);
+
+            // Apply shader uniforms if available
+            if (sprite.shader && sprite.shader.resources && sprite.shader.resources.uniforms) {
+                const uniforms = sprite.shader.resources.uniforms;
+                uniforms.glowIntensity = glowIntensity;
+                uniforms.time = now / 1000;
+            }
+        }
+    }
+
+    /**
+     * Blend two hex colors
+     * @private
+     */
+    _blendColors(color1, color2, amount) {
+        const r1 = (color1 >> 16) & 0xFF;
+        const g1 = (color1 >> 8) & 0xFF;
+        const b1 = color1 & 0xFF;
+
+        const r2 = (color2 >> 16) & 0xFF;
+        const g2 = (color2 >> 8) & 0xFF;
+        const b2 = color2 & 0xFF;
+
+        const r = Math.round(r1 + (r2 - r1) * amount);
+        const g = Math.round(g1 + (g2 - g1) * amount);
+        const b = Math.round(b1 + (b2 - b1) * amount);
+
+        return (r << 16) | (g << 8) | b;
+    }
+
+    /**
+     * Mark a glyph as recently executed (triggers glow decay)
+     * @param {number} x - Screen X position
+     * @param {number} y - Screen Y position
+     */
+    markExecuted(x, y) {
+        const entry = this.glyphRegistry.get(`${x},${y}`);
+        if (entry) {
+            entry.lastExecutionTime = Date.now();
+        }
+    }
+
+    /**
+     * Mark a glyph as fraud/invalid resonance
+     * @param {number} x - Screen X position
+     * @param {number} y - Screen Y position
+     * @param {string} reason - Fraud detection reason
+     */
+    markFraud(x, y, reason) {
+        const entry = this.glyphRegistry.get(`${x},${y}`);
+        if (entry) {
+            entry.state = 'fraud';
+                entry.fraudReason = reason;
+                console.warn(`[GlyphExecutor] Fraud detected at (${x},${y}): ${reason}`);
+        }
+    }
+
+    /**
+     * Start auto-execution mode
+     * Runs all registered glyphs at specified FPS
+     * @param {number} fps - Target frames per second (default: 30)
+     * @param {string} kernelId - Kernel to execute
+     */
+    startAutoExecution(fps = 30, kernelId = null) {
+        if (this.autoExecutionEnabled) {
+            console.warn('[GlyphExecutor] Auto-execution already running');
+            return;
+        }
+
+        this.autoExecutionEnabled = true;
+        const frameInterval = 1000 / fps;
+
+        console.log(`[GlyphExecutor] Starting auto-execution at ${fps} FPS`);
+
+        this._autoExecutionInterval = setInterval(() => {
+            this.frameCount++;
+
+            // Execute all registered glyphs
+            for (const [key, entry] of this.glyphRegistry) {
+                if (entry.state === 'running' || entry.state === 'idle') {
+                    // Mark as executed for visual feedback
+                    const [x, y] = key.split(',').map(Number);
+                    this.markExecuted(x, y);
+
+                    // Update visual state
+                    this.updateGlyphState(x, y, { state: 'running' });
+                }
+            }
+
+            // Execute the kernel if specified
+            if (kernelId && this.kernels.has(kernelId)) {
+                this.execute(kernelId, 1000); // Execute 1000 cycles per frame
+            }
+
+            // Update visual feedback
+            this.updateVisualFeedback();
+
+        }, frameInterval);
+    }
+
+    /**
+     * Stop auto-execution mode
+     */
+    stopAutoExecution() {
+        if (!this.autoExecutionEnabled) {
+            return;
+        }
+
+        if (this._autoExecutionInterval) {
+            clearInterval(this._autoExecutionInterval);
+            this._autoExecutionInterval = null;
+        }
+
+        this.autoExecutionEnabled = false;
+
+        // Mark all running glyphs as halted
+        for (const [key, entry] of this.glyphRegistry) {
+            if (entry.state === 'running') {
+                const [x, y] = key.split(',').map(Number);
+                this.updateGlyphState(x, y, { state: 'halted' });
+            }
+        }
+
+        console.log('[GlyphExecutor] Stopped auto-execution');
+    }
+
+    /**
+     * Toggle auto-execution mode
+     * @param {number} fps - Target FPS (default: 30)
+     * @param {string} kernelId - Kernel to execute
+     * @returns {boolean} New state (true = running)
+     */
+    toggleAutoExecution(fps = 30, kernelId = null) {
+        if (this.autoExecutionEnabled) {
+            this.stopAutoExecution();
+            return false;
+        } else {
+            this.startAutoExecution(fps, kernelId);
+            return true;
+        }
+    }
+
+    /**
+     * Check if auto-execution is enabled
+     * @returns {boolean}
+     */
+    isAutoExecutionEnabled() {
+        return this.autoExecutionEnabled;
+    }
+
+    /**
+     * Get current frame count
+     * @returns {number}
+     */
+    getFrameCount() {
+        return this.frameCount;
     }
 }
