@@ -21,7 +21,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
   - _Requirements: FR-1_
   - _Design: GlyphExecutor component_
 
-- [ ] 1.2 Implement WebGPU initialization
+- [x] 1.2 Implement WebGPU initialization
   - **Do**: Add `initWebGPU()` method with adapter/device acquisition, add `createBuffers()` for systemMemory and cpuStates buffers
   - **Files**: Modify: `systems/visual_shell/web/GlyphExecutor.js`
   - **Done when**: WebGPU device acquired, buffers created with correct sizes

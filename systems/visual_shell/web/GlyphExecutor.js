@@ -44,25 +44,88 @@ class GlyphExecutor {
      */
     async init() {
         console.log('GlyphExecutor.init() called');
-        // Placeholder - will be implemented in Task 1.2
+
+        // Initialize WebGPU
+        const device = await this.initWebGPU();
+        if (!device) {
+            console.warn('GlyphExecutor initialized without WebGPU - execution disabled');
+            return this;
+        }
+
+        // Create GPU buffers
+        this.createBuffers();
+
+        console.log('GlyphExecutor initialization complete');
         return this;
     }
 
     /**
      * Initialize WebGPU adapter and device
+     * @returns {GPUDevice|null} WebGPU device or null if unavailable
      */
     async initWebGPU() {
         console.log('GlyphExecutor.initWebGPU() called');
-        // Placeholder - will be implemented in Task 1.2
-        return null;
+
+        // Check WebGPU availability
+        if (!navigator.gpu) {
+            console.warn('WebGPU not supported in this browser');
+            return null;
+        }
+
+        try {
+            // Request adapter
+            this.adapter = await navigator.gpu.requestAdapter();
+            if (!this.adapter) {
+                console.warn('Failed to get WebGPU adapter');
+                return null;
+            }
+
+            // Request device
+            this.device = await this.adapter.requestDevice();
+            console.log('WebGPU device acquired');
+
+            return this.device;
+        } catch (error) {
+            console.error('WebGPU initialization failed:', error);
+            return null;
+        }
     }
 
     /**
      * Create GPU buffers for system memory and CPU states
+     * - systemMemory: 1MB storage buffer for program data/heap
+     * - cpuStates: maxCores * 46 * 4 bytes (46 u32 registers per core)
      */
     createBuffers() {
         console.log('GlyphExecutor.createBuffers() called');
-        // Placeholder - will be implemented in Task 1.2
+
+        if (!this.device) {
+            console.error('Cannot create buffers: WebGPU device not initialized');
+            return;
+        }
+
+        const { maxCores, regsPerCore } = this.options;
+
+        // System Memory: 1MB storage buffer
+        const systemMemorySize = 1 * 1024 * 1024; // 1MB
+        this.systemMemoryBuffer = this.device.createBuffer({
+            size: systemMemorySize,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_READ | GPUBufferUsage.COPY_WRITE,
+        });
+
+        // CPU States: maxCores * 46 regs * 4 bytes per u32
+        const cpuStatesSize = maxCores * regsPerCore * 4;
+        this.cpuStatesBuffer = this.device.createBuffer({
+            size: cpuStatesSize,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_READ | GPUBufferUsage.COPY_WRITE,
+        });
+
+        console.log('Buffers created', {
+            systemMemorySize,
+            cpuStatesSize,
+            maxCores,
+            regsPerCore
+        });
     }
 
     /**
