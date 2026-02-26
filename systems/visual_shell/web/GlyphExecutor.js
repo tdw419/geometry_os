@@ -192,9 +192,36 @@ class GlyphExecutor {
      * @returns {number} Assigned core ID
      */
     registerGlyph(x, y, sprite, atlasX, atlasY) {
-        console.log('GlyphExecutor.registerGlyph() called at:', x, y);
-        // Placeholder - will be implemented in Task 1.3
-        return 0;
+        const key = `${x},${y}`;
+
+        // Check if already registered
+        if (this.registry.has(key)) {
+            console.warn(`Glyph already registered at (${x},${y})`);
+            return this.registry.get(key).coreId;
+        }
+
+        // Assign core ID using round-robin modulo
+        const coreId = this.registry.size % this.options.maxCores;
+
+        // Create GlyphEntry
+        const entry = {
+            sprite,
+            atlasX,
+            atlasY,
+            coreId,
+            pc: 0,
+            active: true,
+            lastResult: null,
+            executionCount: 0,
+            glowIntensity: 0
+        };
+
+        // Add to registry
+        this.registry.set(key, entry);
+
+        console.log(`Glyph registered at (${x},${y}), core ${coreId}`);
+
+        return coreId;
     }
 
     /**
@@ -203,8 +230,15 @@ class GlyphExecutor {
      * @param {number} y - Y coordinate
      */
     unregisterGlyph(x, y) {
-        console.log('GlyphExecutor.unregisterGlyph() called at:', x, y);
-        // Placeholder - will be implemented in Task 1.3
+        const key = `${x},${y}`;
+
+        if (this.registry.has(key)) {
+            const entry = this.registry.get(key);
+            this.registry.delete(key);
+            console.log(`Glyph unregistered at (${x},${y}), was core ${entry.coreId}`);
+        } else {
+            console.warn(`No glyph registered at (${x},${y}) to unregister`);
+        }
     }
 
     /**
@@ -214,9 +248,8 @@ class GlyphExecutor {
      * @returns {object|null} Execution state or null if not registered
      */
     getExecutionState(x, y) {
-        console.log('GlyphExecutor.getExecutionState() called at:', x, y);
-        // Placeholder - will be implemented in Task 1.3
-        return null;
+        const key = `${x},${y}`;
+        return this.registry.get(key) || null;
     }
 
     /**
@@ -224,9 +257,7 @@ class GlyphExecutor {
      * @returns {Array} Array of GlyphEntry objects
      */
     getActiveGlyphs() {
-        console.log('GlyphExecutor.getActiveGlyphs() called');
-        // Placeholder - will be implemented in Task 1.3
-        return [];
+        return Array.from(this.registry.values());
     }
 
     /**

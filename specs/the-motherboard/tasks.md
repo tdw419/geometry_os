@@ -39,7 +39,7 @@ Focus: Validate the idea works end-to-end. Skip tests, accept hardcoded values.
   - _Requirements: FR-12_
   - _Design: GlyphExecutor.atlasTexture_
 
-- [ ] 1.4 Implement glyph registration
+- [x] 1.4 Implement glyph registration
   - **Do**: Add `registerGlyph(x, y, sprite, atlasX, atlasY)`, `unregisterGlyph(x, y)`, `getExecutionState(x, y)`, `getActiveGlyphs()` methods
   - **Files**: Modify: `systems/visual_shell/web/GlyphExecutor.js`
   - **Done when**: Glyphs can be registered, registry Map populated, coreId assigned
