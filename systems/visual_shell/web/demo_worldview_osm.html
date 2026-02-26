@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Geometry OS - Tectonic WorldView [OSM]</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""/>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""></script>
+
+  <style>
+    /* Base reset */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #000;
+      overflow: hidden;
+      font-family: 'Courier New', monospace;
+    }
+
+    /* Green phosphor filter for map tiles */
+    .leaflet-tile-pane {
+      filter:
+        sepia(100%)
+        hue-rotate(70deg)
+        saturate(300%)
+        brightness(0.7)
+        contrast(1.2);
+    }
+
+    /* Scanlines overlay */
+    .scanlines {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1000;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.1) 0px,
+        rgba(0, 0, 0, 0.1) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+    }
+
+    /* Vignette effect */
+    .vignette {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 999;
+      box-shadow: inset 0 0 200px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Map container */
+    #map {
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* HUD Overlay */
+    #ui-overlay {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 1001;
+      background: rgba(0, 15, 0, 0.9);
+      border: 1px solid #00FF00;
+      padding: 20px;
+      color: #00FF00;
+      pointer-events: none;
+      box-shadow: 0 0 20px #004400;
+      min-width: 280px;
+    }
+
+    .hud-title {
+      font-size: 22px;
+      font-weight: bold;
+      border-bottom: 2px solid #00FF00;
+      margin-bottom: 10px;
+      text-shadow: 0 0 10px #00FF00;
+    }
+
+    .status {
+      font-size: 14px;
+      margin: 5px 0;
+      color: #00FF00;
+    }
+
+    .substrate-label {
+      font-size: 12px;
+      color: #00AA00;
+      margin-bottom: 10px;
+      letter-spacing: 2px;
+    }
+
+    .node-item {
+      font-size: 12px;
+      color: #00AA00;
+      margin-left: 10px;
+      border-left: 1px solid #004400;
+      padding-left: 10px;
+    }
+
+    .pulse-high {
+      color: #00FF00;
+      font-weight: bold;
+    }
+
+    .pulse-low {
+      color: #004400;
+    }
+
+    /* Coordinate display */
+    .coords {
+      font-size: 11px;
+      color: #008800;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #003300;
+    }
+
+    /* Hide default Leaflet attribution in corner (keep in HUD) */
+    .leaflet-control-attribution {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Scanlines overlay -->
+  <div class="scanlines"></div>
+
+  <!-- Vignette overlay -->
+  <div class="vignette"></div>
+
+  <!-- Map container -->
+  <div id="map"></div>
+
+  <!-- HUD Overlay -->
+  <div id="ui-overlay">
+    <div class="hud-title">TECTONIC WORLDVIEW [OSM]</div>
+    <div class="substrate-label">OPENSTREETMAP</div>
+    <div class="status">ACTIVE KERNELS: <span id="kernel-count">0</span></div>
+    <div class="status">TOTAL LOAD: <span id="total-load">0.0%</span></div>
+    <div id="kernel-list"></div>
+    <div class="coords">
+      LAT: <span id="coord-lat">--</span> |
+      LON: <span id="coord-lon">--</span>
+    </div>
+    <div class="status" style="font-size: 10px; margin-top: 10px; color: #006600;">
+      &copy; OpenStreetMap contributors
+    </div>
+  </div>
+
+  <script>
+    // Initialize Leaflet map centered on Texas State Capitol
+    const map = L.map('map', {
+      center: [30.2747, -97.7403],
+      zoom: 3,
+      zoomControl: true
+    });
+
+    // Add OSM tile layer
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    });
+    osmLayer.addTo(map);
+
+    // Coordinate tracking
+    map.on('mousemove', (e) => {
+      document.getElementById('coord-lat').textContent = e.latlng.lat.toFixed(4);
+      document.getElementById('coord-lon').textContent = e.latlng.lng.toFixed(4);
+    });
+
+    map.on('mouseout', () => {
+      document.getElementById('coord-lat').textContent = '--';
+      document.getElementById('coord-lon').textContent = '--';
+    });
+
+    // Placeholder for Tectonic Node functions (to be added in next task)
+    window.addTectonicNode = null;
+    window.updateTectonicNode = null;
+    window.showMemoryTapestry = null;
+
+    console.log('🌍 Tectonic WorldView [OSM] Bridge Online');
+    console.log('📍 Centered on Texas State Capitol (30.2747, -97.7403)');
+  </script>
+</body>
+</html>

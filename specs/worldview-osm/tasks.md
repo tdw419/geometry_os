@@ -12,7 +12,7 @@ generated: auto
 
 Focus: Create functional OSM WorldView with all core features. Skip tests, use mock data.
 
-- [ ] 1.1 Create base OSM WorldView HTML
+- [x] 1.1 Create base OSM WorldView HTML
   - **Do**: Create `systems/visual_shell/web/demo_worldview_osm.html` with Leaflet CDN, CSS for green phosphor filter, scanlines, vignette, and HUD overlay
   - **Files**: `systems/visual_shell/web/demo_worldview_osm.html`
   - **Done when**: HTML opens in browser showing dark screen with HUD, scanlines, vignette visible
