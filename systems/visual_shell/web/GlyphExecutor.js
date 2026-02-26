@@ -15,7 +15,8 @@ class GlyphExecutor {
             maxCores: 64,
             glyphSize: 16,
             regsPerCore: 46,
-            atlasPath: '/assets/universal_font.rts.png',
+            atlasMode: 'standard', // 'standard', 'native', or 'stealth'
+            atlasPath: '/assets/polymorphic_atlas.png',
             ...options
         };
 
@@ -39,27 +40,64 @@ class GlyphExecutor {
         this.ticker = null;
         this.frameCount = 0;
 
+        // Shader and pipeline state
+        this.shaderSource = null;
+        this.computePipeline = null;
+        this.bindGroup = null;
+        this.bindGroupLayout = null;
+
         console.log('GlyphExecutor created with options:', this.options);
     }
 
     /**
      * Async initialization - must be called after constructor
      * WebGPU requires async initialization
+     * Full pipeline: initWebGPU -> createBuffers -> loadShader -> createComputePipeline -> loadAtlas -> createBindGroup
+     * @param {string} shaderPath - Path to WGSL shader file (default: '/shaders/visual_cpu_riscv_morph.wgsl')
+     * @returns {GlyphExecutor} this for chaining
      */
-    async init() {
-        console.log('GlyphExecutor.init() called');
+    async init(shaderPath = '/shaders/visual_cpu_riscv_morph.wgsl') {
+        console.log('GlyphExecutor.init() called with shaderPath:', shaderPath);
 
-        // Initialize WebGPU
+        // Step 1: Initialize WebGPU
         const device = await this.initWebGPU();
         if (!device) {
-            console.warn('GlyphExecutor initialized without WebGPU - execution disabled');
+            console.warn('GlyphExecutor initialized without WebGPU - falling back to simulation mode');
             return this;
         }
 
-        // Create GPU buffers
+        // Step 2: Create GPU buffers
         this.createBuffers();
 
-        console.log('GlyphExecutor initialization complete');
+        // Step 3: Load shader source
+        const shaderSource = await this.loadShader(shaderPath);
+        if (!shaderSource) {
+            console.warn('GlyphExecutor: Shader load failed - falling back to simulation mode');
+            return this;
+        }
+
+        // Step 4: Create compute pipeline
+        const pipeline = await this.createComputePipeline();
+        if (!pipeline) {
+            console.warn('GlyphExecutor: Pipeline creation failed - falling back to simulation mode');
+            return this;
+        }
+
+        // Step 5: Load atlas texture
+        const atlas = await this.loadAtlas(this.options.atlasPath);
+        if (!atlas) {
+            console.warn('GlyphExecutor: Atlas load failed - falling back to simulation mode');
+            return this;
+        }
+
+        // Step 6: Create bind group (connects atlas + buffers to pipeline)
+        const bindGroup = this.createBindGroup();
+        if (!bindGroup) {
+            console.warn('GlyphExecutor: Bind group creation failed - falling back to simulation mode');
+            return this;
+        }
+
+        console.log('GlyphExecutor initialization complete - GPU pipeline ready');
         return this;
     }
 
@@ -91,6 +129,187 @@ class GlyphExecutor {
             return this.device;
         } catch (error) {
             console.error('WebGPU initialization failed:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Load a WGSL shader file
+     * @param {string} path - Path to WGSL shader file
+     * @returns {string|null} Shader source text or null on failure
+     */
+    async loadShader(path) {
+        console.log('GlyphExecutor.loadShader() called with path:', path);
+
+        try {
+            const response = await fetch(path);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch shader: ${response.status} ${response.statusText}`);
+            }
+
+            this.shaderSource = await response.text();
+            console.log(`Shader loaded: ${this.shaderSource.length} bytes`);
+
+            return this.shaderSource;
+        } catch (error) {
+            console.error('Failed to load shader:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Create compute pipeline from loaded shader
+     * Creates: shader module, bind group layout (3 entries), pipeline layout, compute pipeline
+     * @returns {GPUComputePipeline|null} The compute pipeline or null on failure
+     */
+    async createComputePipeline() {
+        console.log('GlyphExecutor.createComputePipeline() called');
+
+        if (!this.device) {
+            console.error('Cannot create pipeline: WebGPU device not initialized');
+            return null;
+        }
+
+        if (!this.shaderSource) {
+            console.error('Cannot create pipeline: shader not loaded');
+            return null;
+        }
+
+        try {
+            // Step 1: Create shader module
+            const shaderModule = this.device.createShaderModule({
+                label: 'visual_cpu_riscv_morph',
+                code: this.shaderSource
+            });
+            console.log('Shader module created');
+
+            // Step 2: Create bind group layout with 3 entries
+            // binding 0: texture_2d<f32> (atlas texture)
+            // binding 1: storage buffer (system_memory)
+            // binding 2: storage buffer (cpu_states)
+            this.bindGroupLayout = this.device.createBindGroupLayout({
+                label: 'glyph_executor_bind_group_layout',
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.COMPUTE,
+                        texture: {
+                            sampleType: 'float',
+                            viewDimension: '2d',
+                            multisampled: false
+                        }
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: {
+                            type: 'storage'
+                        }
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: {
+                            type: 'storage'
+                        }
+                    }
+                ]
+            });
+            console.log('Bind group layout created with 3 entries');
+
+            // Step 3: Create pipeline layout
+            const pipelineLayout = this.device.createPipelineLayout({
+                label: 'glyph_executor_pipeline_layout',
+                bindGroupLayouts: [this.bindGroupLayout]
+            });
+            console.log('Pipeline layout created');
+
+            // Step 4: Create compute pipeline
+            this.computePipeline = this.device.createComputePipeline({
+                label: 'glyph_executor_compute_pipeline',
+                layout: pipelineLayout,
+                compute: {
+                    module: shaderModule,
+                    entryPoint: 'main'
+                }
+            });
+            console.log('Compute pipeline created');
+
+            return this.computePipeline;
+        } catch (error) {
+            console.error('Failed to create compute pipeline:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Create bind group connecting atlas texture and buffers to pipeline
+     * Requires: device, bindGroupLayout, atlasTexture, systemMemoryBuffer, cpuStatesBuffer
+     * @returns {GPUBindGroup|null} The bind group or null on failure
+     */
+    createBindGroup() {
+        console.log('GlyphExecutor.createBindGroup() called');
+
+        if (!this.device) {
+            console.error('Cannot create bind group: WebGPU device not initialized');
+            return null;
+        }
+
+        if (!this.bindGroupLayout) {
+            console.error('Cannot create bind group: bindGroupLayout not created (call createComputePipeline first)');
+            return null;
+        }
+
+        if (!this.atlasTexture) {
+            console.error('Cannot create bind group: atlas texture not loaded (call loadAtlas first)');
+            return null;
+        }
+
+        if (!this.systemMemoryBuffer || !this.cpuStatesBuffer) {
+            console.error('Cannot create bind group: buffers not created (call createBuffers first)');
+            return null;
+        }
+
+        try {
+            // Create texture view from atlas texture
+            const atlasTextureView = this.atlasTexture.createView({
+                label: 'atlas_texture_view',
+                format: 'rgba8unorm',
+                dimension: '2d'
+            });
+            console.log('Atlas texture view created');
+
+            // Create bind group with 3 entries matching bindGroupLayout
+            // binding 0: texture_2d<f32> (atlas texture view)
+            // binding 1: storage buffer (system_memory)
+            // binding 2: storage buffer (cpu_states)
+            this.bindGroup = this.device.createBindGroup({
+                label: 'glyph_executor_bind_group',
+                layout: this.bindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: atlasTextureView
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: this.systemMemoryBuffer
+                        }
+                    },
+                    {
+                        binding: 2,
+                        resource: {
+                            buffer: this.cpuStatesBuffer
+                        }
+                    }
+                ]
+            });
+            console.log('Bind group created with 3 entries (atlas + systemMemory + cpuStates)');
+
+            return this.bindGroup;
+        } catch (error) {
+            console.error('Failed to create bind group:', error);
             return null;
         }
     }
@@ -130,6 +349,27 @@ class GlyphExecutor {
             maxCores,
             regsPerCore
         });
+    }
+
+    /**
+     * Set the morphological mode (Standard, Native, or Stealth)
+     * @param {string} mode - 'standard', 'native', or 'stealth'
+     */
+    async setMorphologicalMode(mode) {
+        if (!['standard', 'native', 'stealth'].includes(mode)) {
+            console.warn(`Invalid morphological mode: ${mode}`);
+            return;
+        }
+
+        console.log(`GlyphExecutor: Shifting to ${mode} mode`);
+        this.options.atlasMode = mode;
+        
+        // Instant switch: No texture reload needed (Option B)
+        
+        // Notify any listeners (like InfiniteMap) if needed
+        if (this.onMorphologicalShift) {
+            this.onMorphologicalShift(mode);
+        }
     }
 
     /**
@@ -331,15 +571,21 @@ class GlyphExecutor {
         for (const glyph of activeGlyphs) {
             const baseIdx = glyph.coreId * regsPerCore;
 
+            // Apply morphological offset (Standard: 0, Native: 32 glyphs, Stealth: 64 glyphs)
+            // Stored in metadata as offsets 0, 512, 1024 (pixels)
+            const modeOffsetPixels = this.options.atlasMode === 'stealth' ? 1024 : 
+                                    (this.options.atlasMode === 'native' ? 512 : 0);
+            const modeOffsetGlyphs = modeOffsetPixels / 16;
+            
             // Set PC at offset +32 (from shader spec)
             cpuStates[baseIdx + 32] = glyph.pc;
 
             // Set atlas position for decode
             cpuStates[baseIdx + 0] = glyph.atlasX;
-            cpuStates[baseIdx + 1] = glyph.atlasY;
+            cpuStates[baseIdx + 1] = glyph.atlasY + modeOffsetGlyphs;
 
             // Calculate glyph index in atlas
-            const glyphIdx = glyph.atlasY * glyphsPerRow + glyph.atlasX;
+            const glyphIdx = (glyph.atlasY + modeOffsetGlyphs) * glyphsPerRow + glyph.atlasX;
             cpuStates[baseIdx + 2] = glyphIdx;
 
             console.log(`syncCPUIStates: core ${glyph.coreId}, PC=${glyph.pc}, atlas=(${glyph.atlasX},${glyph.atlasY})`);
