@@ -63,7 +63,7 @@ Focus: Validate morphological decoding and GPU execution end-to-end. Skip tests,
   - _Requirements: FR-3_
   - _Design: WGPULinuxHypervisor.loadKernelFromMorphologicalRTS()_
 
-- [ ] 1.4 Generate test assets with encoder
+- [x] 1.4 Generate test assets with encoder
   - **Do**:
     1. Run encoder on hello_syscall.bin to generate .rts.png and .meta.json
     2. Create output directory `systems/visual_shell/web/assets/` if needed
