@@ -157,7 +157,7 @@ After POC validated, clean up code structure and add proper error handling.
 
 Add unit and integration tests for the morphological loader.
 
-- [ ] 3.1 Create unit tests for RISCVOrphologicalLoader
+- [x] 3.1 Create unit tests for RISCVOrphologicalLoader
   - **Do**:
     1. Create `systems/visual_shell/web/tests/test_morphological_loader.js`
     2. Test: `testDecodeTokenID()` - verify (G << 8 | B) extraction
