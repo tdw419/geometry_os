@@ -21,7 +21,7 @@ Focus: Enhance geo_term.html with state panel and glyph visualization. Validate 
   - _Requirements: FR-4_
   - _Design: Terminal UI component_
 
-- [ ] 1.2 Add PixiJS Glyph Visualization Canvas
+- [x] 1.2 Add PixiJS Glyph Visualization Canvas
   - **Do**: Add PixiJS canvas for rendering typed code as geometric glyphs. Use GeometryFont.createText() to render current input.
   - **Files**: `systems/visual_shell/web/geo_term.html`
   - **Done when**: Typed characters appear as geometric glyphs in canvas

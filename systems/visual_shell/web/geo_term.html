@@ -14,6 +14,26 @@
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         input { background: transparent; border: none; color: #0f0; font-family: inherit; font-size: 18px; outline: none; flex-grow: 1; }
 
+        /* Glyph Visualization Canvas */
+        #glyph-canvas-container {
+            width: 300px;
+            background: #050505;
+            border-left: 2px solid #0f0;
+            display: flex;
+            flex-direction: column;
+        }
+        #glyph-canvas-header {
+            padding: 10px 15px;
+            font-size: 12px;
+            color: #0f0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 1px solid #0f0;
+        }
+        #glyph-canvas {
+            flex-grow: 1;
+        }
+
         /* State Panel Styles */
         #state-panel {
             width: 250px;
@@ -96,6 +116,10 @@ READY FOR SUBSTRATE INSTRUCTIONS...
                 <input type="text" id="command-input" autofocus>
             </div>
         </div>
+        <div id="glyph-canvas-container">
+            <div id="glyph-canvas-header">Glyph View</div>
+            <div id="glyph-canvas"></div>
+        </div>
         <div id="state-panel">
             <h2>Execution State</h2>
             <div class="state-row">
@@ -130,6 +154,57 @@ READY FOR SUBSTRATE INSTRUCTIONS...
 
         const gpu = new FontExecutionSystem(app.renderer.gpu.device);
         await gpu.initialize();
+
+        // Glyph Visualization Canvas
+        const glyphApp = new PIXI.Application();
+        const glyphContainer = document.getElementById('glyph-canvas');
+        const containerWidth = 300;
+        const containerHeight = glyphContainer.offsetHeight || 500;
+        await glyphApp.init({
+            width: containerWidth,
+            height: containerHeight,
+            backgroundColor: 0x050505,
+            antialias: true,
+            resolution: window.devicePixelRatio || 1,
+            autoDensity: true
+        });
+        glyphContainer.appendChild(glyphApp.canvas);
+
+        // Current glyph display container
+        const glyphDisplayContainer = new PIXI.Container();
+        glyphDisplayContainer.x = 20;
+        glyphDisplayContainer.y = 20;
+        glyphApp.stage.addChild(glyphDisplayContainer);
+
+        // Track current text for glyph display
+        let currentGlyphText = '';
+
+        function updateGlyphDisplay(text) {
+            // Clear previous glyphs
+            glyphDisplayContainer.removeChildren();
+
+            if (!text) return;
+
+            // Create new glyph text
+            const glyphText = font.createText(text, { spacing: 2, scale: 2, tint: 0x00FF00 });
+            glyphDisplayContainer.addChild(glyphText);
+
+            // Word wrap logic - move to next line if too wide
+            const maxWidth = containerWidth - 40;
+            let currentX = 0;
+            let currentY = 0;
+            const lineHeight = font.glyphSize * 2 + 8;
+
+            glyphText.children.forEach(sprite => {
+                if (currentX + sprite.width > maxWidth) {
+                    currentX = 0;
+                    currentY += lineHeight;
+                }
+                sprite.x = currentX;
+                sprite.y = currentY;
+                currentX += sprite.width + 4;
+            });
+        }
 
         const history = document.getElementById('history');
         const input = document.getElementById('command-input');
@@ -179,11 +254,21 @@ READY FOR SUBSTRATE INSTRUCTIONS...
             document.getElementById('halted-indicator').className = 'running';
         }
 
+        // Real-time glyph visualization as user types
+        input.addEventListener('input', (e) => {
+            currentGlyphText = input.value;
+            updateGlyphDisplay(currentGlyphText);
+        });
+
         input.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter') {
                 const cmd = input.value;
                 input.value = '';
                 log(`$ ${cmd}`, 'command');
+
+                // Clear glyph display after command execution
+                currentGlyphText = '';
+                glyphDisplayContainer.removeChildren();
 
                 if (cmd.trim() === '') return;
 
