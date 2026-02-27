@@ -157,9 +157,18 @@ class CatalogBridge {
      * await bridge.updateLayout('ubuntu-22.04', { gridX: 3, gridY: 2 });
      */
     async updateLayout(entryId, position) {
-        const data = await this._fetch(`/api/v1/catalog/${encodeURIComponent(entryId)}/layout`, {
+        // Transform gridX/gridY to server's expected format: {entry_id, new_position: {x, y}}
+        const body = {
+            entry_id: entryId,
+            new_position: {
+                x: position.gridX,
+                y: position.gridY
+            }
+        };
+
+        const data = await this._fetch('/api/v1/catalog/layout', {
             method: 'POST',
-            body: JSON.stringify(position)
+            body: JSON.stringify(body)
         });
 
         return data;
