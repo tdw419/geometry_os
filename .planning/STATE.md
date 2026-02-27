@@ -10,11 +10,12 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 ## Current Position
 
 **Milestone:** v1.1 Visual Shell Integration
-**Phase:** Not started
-**Status:** Roadmap defined, ready for planning
-**Last activity:** 2026-02-27 - Roadmap created
+**Phase:** 05-desktop-object-integration
+**Plan:** 03 complete (4/4 tasks)
+**Status:** API wiring gaps fixed
+**Last activity:** 2026-02-27 - Completed 05-03 API Wiring Gap Closure
 
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (2 phases, 8 requirements)
+Progress: [██░░░░░░░░░░░░░░░░░░] 10% (1 plan complete, 7 remaining)
 
 ## Accumulated Context
 
@@ -23,14 +24,17 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (2 p
 - PixiJS v7 for desktop rendering (no upgrade to v8)
 - Phase 5: Desktop objects + layout persistence
 - Phase 6: Boot progress + status visualization
+- **05-03:** API wiring uses {entry_id, new_position: {x, y}} for layout updates
+- **05-03:** Client maps server position.{x,y} to layout.{gridX,gridY}
+- **05-03:** Boot options use {memory, cpus, cmdline} format
 
 ### Blockers
 - None currently
 
 ## Session Continuity
 
-Last session: 2026-02-27
-Status: Roadmap complete, ready for Phase 5 planning
+Last session: 2026-02-27 18:20 UTC
+Status: Plan 05-03 complete - API wiring gaps fixed
 
 **Next Steps:**
-Run `/gsd:discuss-phase 5` to gather context before planning
+Continue with remaining Phase 05 plans or proceed to Phase 06
