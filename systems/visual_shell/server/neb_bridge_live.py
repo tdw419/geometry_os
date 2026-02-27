@@ -140,9 +140,11 @@ class NEBBridgeLive:
     def _spawn_agents(self):
         """Spawn live guild agents."""
         agent_configs = [
+            ("architect", "agent-arc-001"),
             ("engineer", "agent-eng-001"),
             ("engineer", "agent-eng-002"),
-            # Add more as needed
+            ("reviewer", "agent-rev-001"),
+            ("executor", "agent-exec-001"),
         ]
 
         for role, agent_id in agent_configs:

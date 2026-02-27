@@ -10,6 +10,9 @@ from typing import Optional, TYPE_CHECKING
 from systems.swarm.task_board import TaskBoard
 from systems.swarm.guilds.base import GuildAgent
 from systems.swarm.guilds.engineer import EngineerAgent
+from systems.swarm.guilds.reviewer import ReviewerAgent
+from systems.swarm.guilds.architect import ArchitectAgent
+from systems.swarm.guilds.executor import ExecutorAgent
 
 if TYPE_CHECKING:
     from systems.swarm.neb_bus import NEBBus
@@ -22,11 +25,20 @@ class GuildFactory:
     Usage:
         agent = GuildFactory.create("engineer", "agent-001", task_board)
         agent = GuildFactory.create("engineer", "agent-001", task_board, event_bus=bus)
+
+    Available roles:
+        - engineer: Code generation and implementation
+        - reviewer: Code review and security scanning
+        - architect: System design and architecture
+        - executor: Sandboxed code execution
     """
 
     # Registry of role -> agent class
     _registry = {
         "engineer": EngineerAgent,
+        "reviewer": ReviewerAgent,
+        "architect": ArchitectAgent,
+        "executor": ExecutorAgent,
     }
 
     @classmethod
@@ -42,7 +54,7 @@ class GuildFactory:
         Create a guild agent by role.
 
         Args:
-            role: Role identifier (e.g., "engineer", "reviewer", "architect")
+            role: Role identifier (e.g., "engineer", "reviewer", "architect", "executor")
             agent_id: Unique identifier for the agent
             task_board: TaskBoard for task management
             event_bus: Optional NEBBus for event publishing
