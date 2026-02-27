@@ -94,6 +94,7 @@
             Pattern:
             <select id="pattern">
                 <option value="random">Random</option>
+                <option value="hilbert">Hilbert Curve</option>
                 <option value="clustered">Clustered</option>
                 <option value="scanlines">Scanlines</option>
                 <option value="glitch">Full Glitch</option>
@@ -218,6 +219,13 @@
             const pixelsToRemove = Math.floor(imageData.data.length / 4 * intensity);
 
             switch (pattern) {
+                case 'hilbert':
+                    processed = interference.applyHilbertInterference(imageData, {
+                        removalPercent: intensity,
+                        ghostAlpha: alpha,
+                        segmentLength: 16
+                    });
+                    break;
                 case 'clustered':
                     processed = interference.applyClustered(imageData, {
                         removalPercent: intensity,

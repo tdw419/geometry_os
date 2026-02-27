@@ -274,16 +274,139 @@ export class HolographicInterference {
     }
 
     /**
+     * Hilbert curve: convert (x,y) to Hilbert index.
+     * Used for spatially-coherent interference patterns.
+     */
+    _xyToHilbert(x, y, size) {
+        let d = 0;
+        let s = size >>> 1;
+        let rx, ry, t;
+
+        while (s > 0) {
+            rx = (x & s) > 0 ? 1 : 0;
+            ry = (y & s) > 0 ? 1 : 0;
+            d += s * s * ((3 * rx) ^ ry);
+            t = this._hilbertRot(s, x, y, rx, ry);
+            x = t.x;
+            y = t.y;
+            s >>>= 1;
+        }
+        return d;
+    }
+
+    /**
+     * Hilbert curve: convert Hilbert index to (x,y).
+     */
+    _hilbertToXY(index, size) {
+        let x = 0, y = 0;
+        let s = 1;
+        let rx, ry, t;
+
+        while (s < size) {
+            rx = 1 & (index >>> 1);
+            ry = 1 & (index ^ rx);
+            t = this._hilbertRot(s, x, y, rx, ry);
+            x = t.x;
+            y = t.y;
+            x += s * rx;
+            y += s * ry;
+            index >>>= 2;
+            s <<= 1;
+        }
+        return { x, y };
+    }
+
+    /**
+     * Hilbert rotation helper.
+     */
+    _hilbertRot(size, x, y, rx, ry) {
+        if (ry === 0) {
+            if (rx === 1) {
+                x = size - 1 - x;
+                y = size - 1 - y;
+            }
+            return { x: y, y: x };
+        }
+        return { x, y };
+    }
+
+    /**
+     * Apply Hilbert-curve-aligned interference.
+     * Interference clusters follow the Hilbert curve for spatial coherence.
+     * This preserves more data integrity than random interference.
+     */
+    applyHilbertInterference(imageData, options = {}) {
+        const removal = options.removalPercent ?? this.removalPercent;
+        const alpha = options.ghostAlpha ?? this.ghostAlpha;
+        const seed = options.seed ?? this.seed;
+        const segmentLength = options.segmentLength || 16; // Hilbert run length
+
+        const width = imageData.width;
+        const height = imageData.height;
+        const size = Math.max(width, height);
+        const data = imageData.data;
+
+        const random = this._createRandom(seed);
+        const totalPixels = width * height;
+        const pixelsToRemove = Math.floor(totalPixels * removal);
+
+        // Calculate Hilbert curve segments to affect
+        const totalHilbertPoints = size * size;
+        const numSegments = Math.ceil(pixelsToRemove / segmentLength);
+        const affectedIndices = new Set();
+
+        // Select random Hilbert curve segments
+        for (let i = 0; i < numSegments; i++) {
+            const startIdx = Math.floor(random() * totalHilbertPoints);
+
+            // Affect a run along the Hilbert curve
+            for (let j = 0; j < segmentLength; j++) {
+                const hilbertIdx = (startIdx + j) % totalHilbertPoints;
+                const pos = this._hilbertToXY(hilbertIdx, size);
+
+                // Only if within image bounds
+                if (pos.x < width && pos.y < height) {
+                    const pixelIdx = pos.y * width + pos.x;
+                    affectedIndices.add(pixelIdx);
+                }
+            }
+        }
+
+        // Apply ghost effect to Hilbert-aligned pixels
+        for (const pixelIdx of affectedIndices) {
+            const idx = pixelIdx * 4;
+
+            // Distance along segment affects intensity (falloff)
+            const effectAlpha = alpha * (0.5 + 0.5 * random());
+
+            if (this.preserveData) {
+                data[idx + 3] = Math.floor(255 * effectAlpha);
+                // Cyan interference tint
+                data[idx] = Math.min(255, data[idx] + 20);
+                data[idx + 1] = Math.min(255, data[idx + 1] + 40);
+            } else {
+                data[idx] = this.noiseColor[0];
+                data[idx + 1] = this.noiseColor[1];
+                data[idx + 2] = this.noiseColor[2];
+                data[idx + 3] = Math.floor(255 * effectAlpha);
+            }
+        }
+
+        return imageData;
+    }
+
+    /**
      * Create interference pattern for holographic display.
      * Combines multiple effect types.
      */
     createHolographicGlitch(imageData, options = {}) {
         const intensity = options.intensity || 0.5;
 
-        // Layer 1: Base random removal
-        this.apply(imageData, {
-            removalPercent: 0.05 * intensity,
-            ghostAlpha: 0.4
+        // Layer 1: Hilbert-aligned interference (preserves more data)
+        this.applyHilbertInterference(imageData, {
+            removalPercent: 0.04 * intensity,
+            ghostAlpha: 0.35,
+            segmentLength: 12
         });
 
         // Layer 2: Clustered interference zones
