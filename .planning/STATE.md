@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file — from anywhere.
-**Current focus:** Phase 7 - Cache Infrastructure (Complete + Gap Closure)
+**Current focus:** Phase 8 - Remote Client
 
 ## Current Position
 
 **Milestone:** v1.2 Network Boot
-**Phase:** 7 of 11 (Cache Infrastructure) - COMPLETE
-**Plan:** 5 of 5 in current phase (gap closure complete)
-**Status:** Phase complete
-**Last activity:** 2026-02-27 — Completed 07-05-PLAN.md (Cache Verification Status UI)
+**Phase:** 8 of 11 (Remote Client)
+**Plan:** 0 of 2 in current phase
+**Status:** Ready to plan
+**Last activity:** 2026-02-27 — Phase 7 complete (5/5 plans)
 
-Progress: [█░░░░░░░░░] 10%
+Progress: [██░░░░░░░░] 15%
 
 ## Performance Metrics
 
