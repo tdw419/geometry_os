@@ -542,11 +542,19 @@ class RTSDesktopObject extends PIXI.Container {
         const color = RTSDesktopObject.STATUS_COLORS[status] || RTSDesktopObject.STATUS_COLORS.unknown;
         this._drawStatusCircle(color);
 
-        // Start pulse animation for booting status
+        // Handle status-specific behavior
         if (status === 'booting') {
             this._startPulse();
+            this.startBootProgress();  // Start progress animation
+        } else if (status === 'running') {
+            this._stopPulse();
+            this.completeBootProgress();  // Complete and hide progress
+        } else if (status === 'error') {
+            this._stopPulse();
+            // Progress bar shows error state via failBootProgress()
         } else {
             this._stopPulse();
+            this.hideProgress();  // Hide progress for other states
         }
     }
 
