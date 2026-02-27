@@ -138,6 +138,12 @@ class GeometricTerminal {
         this.glyphShader = null;
         this._initShader();
 
+        // Phase 5: Morphological Font System
+        this.useMorphFont = options.useMorphFont !== undefined ? options.useMorphFont : true;
+        this.morphFont = null;
+        this.semanticClassifier = null;
+        this._initMorphologicalFont();
+
         // Command history
         this.commandHistory = [];
         this.historyIndex = -1;
@@ -359,6 +365,49 @@ class GeometricTerminal {
         }
     }
 
+    /**
+     * Initialize morphological font system for glyph synthesis.
+     */
+    async _initMorphologicalFont() {
+        if (!this.useMorphFont) return;
+
+        try {
+            // Check if MorphologicalFont is available
+            if (typeof MorphologicalFont === 'undefined') {
+                console.warn('[GeometricTerminal] MorphologicalFont not loaded, using fallback');
+                this.useMorphFont = false;
+                return;
+            }
+
+            // Initialize morphological font
+            this.morphFont = new MorphologicalFont({ size: this.cellSize });
+            await this.morphFont.init();
+
+            // Initialize semantic classifier if available
+            if (typeof SemanticClassifier !== 'undefined') {
+                this.semanticClassifier = new SemanticClassifier();
+                if (typeof PatternLibrary !== 'undefined') {
+                    this.semanticClassifier.setPatternLibrary(PatternLibrary);
+                }
+            }
+
+            console.log('[GeometricTerminal] Morphological Font Layer initialized');
+        } catch (e) {
+            console.error('[GeometricTerminal] Failed to initialize morphological font:', e);
+            this.useMorphFont = false;
+        }
+    }
+
+    /**
+     * Classify a token into semantic category for glyph synthesis.
+     */
+    _classifyToken(token, context = {}) {
+        if (!this.semanticClassifier) {
+            return { category: 'default' };
+        }
+        return this.semanticClassifier.classify(token, context);
+    }
+
     async _writeChar(char) {
         if (this.cursorX >= this.cols) {
             this._newline();
@@ -400,25 +449,96 @@ class GeometricTerminal {
     }
 
     async _getTexture(char) {
-        if (this.textureCache.has(char)) {
-            return this.textureCache.get(char);
+        // Build cache key with semantic context
+        const category = this._getCurrentCategory();
+        const cacheKey = `${char}:${category}`;
+
+        if (this.textureCache.has(cacheKey)) {
+            return this.textureCache.get(cacheKey);
         }
 
-        if (!this.bridge) {
-            return null;
-        }
+        // Try morphological font first (client-side synthesis)
+        if (this.useMorphFont && this.morphFont) {
+            try {
+                const glyphCanvas = await this.morphFont.getGlyphTexture(char, {
+                    category: category,
+                    bold: this.currentBold,
+                    error: this.currentError || false
+                });
 
-        try {
-            const textures = await this.bridge.createTextTextures(char);
-            if (textures && textures.length > 0) {
-                this.textureCache.set(char, textures[0]);
-                return textures[0];
+                if (glyphCanvas) {
+                    const texture = PIXI.Texture.from(glyphCanvas);
+                    this.textureCache.set(cacheKey, texture);
+                    return texture;
+                }
+            } catch (e) {
+                console.warn('[GeometricTerminal] Morphological font failed, using fallback:', e);
             }
-        } catch (e) {
-            console.error('[GeometricTerminal] Failed to get texture:', e);
+        }
+
+        // Fallback to bridge (server-side rendering)
+        if (this.bridge) {
+            try {
+                const textures = await this.bridge.createTextTextures(char);
+                if (textures && textures.length > 0) {
+                    this.textureCache.set(cacheKey, textures[0]);
+                    return textures[0];
+                }
+            } catch (e) {
+                console.error('[GeometricTerminal] Failed to get texture:', e);
+            }
         }
 
         return null;
+    }
+
+    /**
+     * Get current semantic category based on terminal state.
+     */
+    _getCurrentCategory() {
+        // Check if current line contains keywords
+        const line = this._getCurrentLine();
+        if (!line) return 'default';
+
+        // Simple keyword detection
+        const tokens = line.trim().split(/\s+/);
+        const lastToken = tokens[tokens.length - 1];
+
+        if (this.semanticClassifier) {
+            const result = this.semanticClassifier.classify(lastToken);
+            return result.category;
+        }
+
+        // Fallback keyword detection
+        const keywordCategories = {
+            control: ['if', 'else', 'for', 'while', 'switch', 'case', 'try', 'catch'],
+            function: ['def', 'function', 'class', 'fn', 'func', 'lambda'],
+            return: ['return', 'yield', 'break', 'continue', 'exit'],
+            data: ['const', 'let', 'var', 'int', 'string', 'bool', 'float'],
+            operator: ['+', '-', '*', '/', '=', '==', '!=', '<', '>', '&&', '||']
+        };
+
+        for (const [category, keywords] of Object.entries(keywordCategories)) {
+            if (keywords.includes(lastToken)) {
+                return category;
+            }
+        }
+
+        return 'default';
+    }
+
+    /**
+     * Get the current line being edited.
+     */
+    _getCurrentLine() {
+        let line = '';
+        for (let x = 0; x < this.cursorX; x++) {
+            const cell = this.grid[this.cursorY]?.[x];
+            if (cell && cell.char !== ' ') {
+                line += cell.char;
+            }
+        }
+        return line;
     }
 
     _newline() {
