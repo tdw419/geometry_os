@@ -30,6 +30,17 @@ class RTSDesktopObject extends PIXI.Container {
     };
 
     /**
+     * Cache verification status colors for the cache indicator
+     * @static
+     */
+    static CACHE_STATUS_COLORS = {
+        verified: 0x00ff00,  // Green - hash verified successfully
+        failed: 0xff0000,    // Red - hash verification failed
+        pending: 0xffa500,   // Orange - verification in progress
+        uncached: 0x666666   // Gray - not in cache
+    };
+
+    /**
      * Boot stages with labels and timing percentages
      * @static
      */
@@ -127,6 +138,7 @@ class RTSDesktopObject extends PIXI.Container {
         this.options = options;
         this._highlighted = false;
         this._status = entry.status || 'unknown';
+        this._cacheStatus = 'uncached';  // Cache verification status
 
         // Drag state
         this.dragging = false;
@@ -165,6 +177,7 @@ class RTSDesktopObject extends PIXI.Container {
         this._createThumbnail(entry.thumbnail);
         this._createNameLabel(entry.name || entry.id);
         this._createStatusIndicator();
+        this._createCacheStatusIndicator();
         this._createProgressBar();
         this._createErrorOverlay();
         this._createBorder();
@@ -316,6 +329,66 @@ class RTSDesktopObject extends PIXI.Container {
         // Add subtle border
         this.statusIndicator.circle(radius, radius, radius);
         this.statusIndicator.stroke({ color: 0x000000, width: 1 });
+    }
+
+    /**
+     * Create the cache status indicator circle
+     * Positioned below the main status indicator
+     * @private
+     */
+    _createCacheStatusIndicator() {
+        const { OBJECT_WIDTH, PADDING, STATUS_INDICATOR_SIZE } = RTSDesktopObject.DIMENSIONS;
+
+        this.cacheStatusIndicator = new PIXI.Graphics();
+        this.cacheStatusIndicator.x = OBJECT_WIDTH - PADDING - STATUS_INDICATOR_SIZE - 2;
+        this.cacheStatusIndicator.y = PADDING + 6 + STATUS_INDICATOR_SIZE + 4;  // Below main status
+
+        // Draw initial circle (uncached by default)
+        this._drawCacheStatusCircle(RTSDesktopObject.CACHE_STATUS_COLORS.uncached);
+
+        // Hidden by default - shown only when container is cached
+        this.cacheStatusIndicator.visible = false;
+
+        this.addChild(this.cacheStatusIndicator);
+    }
+
+    /**
+     * Draw the cache status indicator circle
+     * @private
+     * @param {number} color - Fill color
+     */
+    _drawCacheStatusCircle(color) {
+        const { STATUS_INDICATOR_SIZE } = RTSDesktopObject.DIMENSIONS;
+        const radius = (STATUS_INDICATOR_SIZE - 2) / 2;  // Slightly smaller than main status
+
+        this.cacheStatusIndicator.clear();
+        this.cacheStatusIndicator.circle(radius, radius, radius);
+        this.cacheStatusIndicator.fill({ color: color, alpha: 1 });
+
+        // Add subtle border
+        this.cacheStatusIndicator.circle(radius, radius, radius);
+        this.cacheStatusIndicator.stroke({ color: 0x000000, width: 1 });
+    }
+
+    /**
+     * Set the cache verification status
+     * @param {string} status - Cache status (verified, failed, pending, uncached)
+     */
+    setCacheStatus(status) {
+        this._cacheStatus = status;
+        const color = RTSDesktopObject.CACHE_STATUS_COLORS[status] || RTSDesktopObject.CACHE_STATUS_COLORS.uncached;
+        this._drawCacheStatusCircle(color);
+
+        // Show indicator only for cached containers (not 'uncached')
+        this.cacheStatusIndicator.visible = (status !== 'uncached');
+    }
+
+    /**
+     * Get the current cache verification status
+     * @returns {string} Cache status
+     */
+    getCacheStatus() {
+        return this._cacheStatus;
     }
 
     /**
@@ -1101,6 +1174,24 @@ class RTSDesktopObject extends PIXI.Container {
         } else if (entry.position) {
             // Fallback: handle server's position.{x,y} format
             this.setGridPosition(entry.position.x || 0, entry.position.y || 0);
+        }
+
+        // Update cache verification status from CatalogCacheManager
+        this._updateCacheStatus(entry.id);
+    }
+
+    /**
+     * Update cache status from the CatalogCacheManager
+     * @private
+     * @param {string} entryId - Entry ID to check
+     */
+    _updateCacheStatus(entryId) {
+        // Check if CatalogBridge and cache are available
+        if (window.catalogBridge?.cache?.getVerificationStatus) {
+            const cacheStatus = window.catalogBridge.cache.getVerificationStatus(entryId);
+            if (cacheStatus) {
+                this.setCacheStatus(cacheStatus);
+            }
         }
     }
 
