@@ -13,9 +13,19 @@ If everything else fails, users must be able to:
 2. See what OS they're about to boot (visual preview)
 3. Trust the container (vision-based verification)
 
+## Current Milestone: v1.1 Visual Shell Integration
+
+**Goal:** Connect PixelRTS catalog to the PixiJS infinite desktop for spatial OS management
+
+**Target features:**
+- Display .rts.png files as interactive desktop objects
+- Drag-and-drop positioning on infinite canvas
+- One-click boot from visual shell
+- Real-time boot progress visualization
+
 ## Requirements
 
-### Validated
+### Validated (v1.0)
 
 ✓ **PixelRTS v2 encoding/decoding** — existing
   - `systems/pixel_compiler/pixelrts_v2_core.py` - PNG ↔ binary conversion
@@ -32,24 +42,43 @@ If everything else fails, users must be able to:
   - Serial console output
   - Disk image support (qcow2)
 
-### Active
+✓ **Vision Analysis Pipeline** — v1.0 shipped
+  - `pixelrts analyze <file.png>` - Vision analysis and verification
+  - Kernel version, distro, architecture detection
+  - Tamper detection via entropy analysis
 
-- [ ] **VISION-01**: Vision model can identify kernel version, OS distro, and architecture from PNG visual patterns
-- [ ] **VISION-02**: Vision model can detect tampering or corruption in OS containers
-- [ ] **DIRECT-01**: Boot .rts.png files without manual extraction (one-command boot)
-- [ ] **DIRECT-02**: FUSE filesystem presents PNG as kernel/initrd for boot
-- [ ] **INSTALL-01**: Install OS from .rts.png to disk with visual progress feedback
-- [ ] **CATALOG-01**: Visual manager displaying OS containers as thumbnails
-- [ ] **CATALOG-02**: One-click boot from visual catalog
-- [ ] **NETWORK-01**: Boot PixelRTS containers over network (PXE/NBD)
-- [ ] **NETWORK-02**: Delta-based OS updates (download only changed bytes)
+✓ **FUSE Bridge for Direct Boot** — v1.0 shipped
+  - `pixelrts boot <file.png>` - Boot without extraction
+  - FUSE filesystem presents PNG as kernel/initrd
+  - <10% overhead with KVM acceleration
+
+✓ **Visual Installer Engine** — v1.0 shipped
+  - `pixelrts install <file.png> <target>` - Install to disk
+  - Visual progress feedback
+  - Hash verification before write
+
+✓ **Visual Catalog Manager** — v1.0 shipped
+  - `pixelrts catalog` - Launch visual gallery
+  - Thumbnail generation with metadata
+  - Drag-and-drop layout persistence
+
+### Active (v1.1)
+
+- [ ] **SHELL-01**: .rts.png files appear as interactive objects on visual shell desktop
+- [ ] **SHELL-02**: Users can drag-and-drop OS containers to arrange on infinite canvas
+- [ ] **SHELL-03**: One-click boot from visual shell triggers QEMU with visual feedback
+- [ ] **SHELL-04**: Boot progress displayed as visual animation on the desktop object
+
+### Future
+
+- **NETWORK-01**: Boot PixelRTS containers over network (PXE/NBD)
+- **NETWORK-02**: Delta-based OS updates (download only changed bytes)
 
 ### Out of Scope
 
 - **Cloud provider integration** — Focus on local/boot scenarios first
-- **Mobile apps** — Web/desktop interface only for v1
+- **Mobile apps** — Web/desktop interface only
 - **Container formats beyond PNG** — PixelRTS v2 is fixed
-- **Non-x86 architectures** — x86_64 only for v1 (RISC-V can come later)
 - **Full OS installation from scratch** — Building on existing Alpine/Ubuntu bases
 
 ## Context
@@ -58,34 +87,31 @@ If everything else fails, users must be able to:
 - Geometry OS is a large project with PixelRTS v2 as a component
 - Primary languages: Python 3.12+, TypeScript/JavaScript, Rust, WGSL
 - Located in `systems/pixel_compiler/` for PixelRTS components
+- `systems/visual_shell/` for PixiJS desktop environment
 - Uses QEMU for virtualization testing
 
 **Current State:**
-- PixelRTS v2 encoding/decoding works
-- Can extract kernel/initrd from PNG containers
-- Can boot extracted binaries with QEMU
-- BUT: No advantage over ISO booting today (extraction adds complexity)
+- v1.0 shipped: analyze, boot, install, catalog CLI commands
+- Visual shell has WindowManager, DesktopWindow classes
+- Catalog server provides REST API with thumbnails
+- Both systems exist but are not connected
 
 **The Problem We're Solving:**
-PixelRTS is technically impressive but practically useless. We need to deliver on the promise:
-- Vision-based OS analysis (the unique advantage)
-- Direct PNG boot (remove extraction friction)
-- Visual OS management (spatial software catalog)
-- Full ecosystem (install, update, multi-boot)
+The catalog is a separate web UI. Users should manage OS containers directly on the infinite desktop where they work, not in a separate browser tab.
 
 **Key Files:**
-- `systems/pixel_compiler/pixelrts_v2_core.py` - Core encoding/decoding
-- `systems/pixel_compiler/pixelrts_v2_extractor.py` - CLI extraction
-- `systems/pixel_compiler/pixelrts_vision_analyzer.py` - Vision analysis foundation
-- `alpine.rts.png` - Example Alpine Linux container
-- `kernel`, `initrd` - Extracted boot binaries
+- `systems/pixel_compiler/catalog/` - Catalog components (shipped v1.0)
+- `systems/visual_shell/web/WindowManager.js` - Desktop window management
+- `systems/visual_shell/web/DesktopWindow.js` - Window instances
+- `systems/visual_shell/web/display/pixi_renderer.js` - PixiJS rendering
 
 ## Constraints
 
-- **Python 3.12+** - Primary implementation language
-- **QEMU** - Virtualization platform for testing
+- **Python 3.12+** - Primary backend language
+- **TypeScript/JavaScript** - Visual shell frontend
+- **PixiJS** - Desktop rendering engine
+- **QEMU** - Virtualization platform
 - **Existing PixelRTS v2 format** - Must maintain backward compatibility
-- **Vision model access** - Need Claude/VLM API for image analysis
 - **Performance** - Boot overhead <10% vs traditional ISO boot
 
 ## Key Decisions
@@ -93,9 +119,10 @@ PixelRTS is technically impressive but practically useless. We need to deliver o
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Use existing PixelRTS v2 format | Leverage invested work, maintain compatibility | ✓ Good |
-| FUSE filesystem for direct boot | Clean integration with existing tools | — Pending |
-| Vision model for verification | Unique advantage of visual format | — Pending |
-| Phase 1: Vision analysis | Demonstrates the core differentiator first | — Pending |
+| FUSE filesystem for direct boot | Clean integration with existing tools | ✓ Shipped v1.0 |
+| Vision model for verification | Unique advantage of visual format | ✓ Shipped v1.0 |
+| PixiJS for visual shell | Mature 2D WebGL renderer | ✓ Existing |
+| WebSocket for boot progress | Real-time updates without polling | — Pending |
 
 ---
-*Last updated: 2026-02-11 after initialization*
+*Last updated: 2026-02-27 for milestone v1.1*
