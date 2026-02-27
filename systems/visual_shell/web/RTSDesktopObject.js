@@ -122,6 +122,7 @@ class RTSDesktopObject extends PIXI.Container {
         this._createThumbnail(entry.thumbnail);
         this._createNameLabel(entry.name || entry.id);
         this._createStatusIndicator();
+        this._createProgressBar();
         this._createBorder();
 
         // Set up event handlers
@@ -271,6 +272,65 @@ class RTSDesktopObject extends PIXI.Container {
         // Add subtle border
         this.statusIndicator.circle(radius, radius, radius);
         this.statusIndicator.stroke({ color: 0x000000, width: 1 });
+    }
+
+    /**
+     * Create the progress bar overlay
+     * @private
+     */
+    _createProgressBar() {
+        const { THUMBNAIL_SIZE, OBJECT_WIDTH, PADDING } = RTSDesktopObject.DIMENSIONS;
+        const { BAR_HEIGHT, BAR_PADDING, BACKGROUND_COLOR, TEXT_COLOR } = RTSDesktopObject.PROGRESS;
+
+        // Progress bar container (hidden by default)
+        this.progressContainer = new PIXI.Container();
+        this.progressContainer.visible = false;
+        this.progressContainer.x = (OBJECT_WIDTH - THUMBNAIL_SIZE) / 2;
+        this.progressContainer.y = PADDING + 4 + THUMBNAIL_SIZE - BAR_HEIGHT - BAR_PADDING;
+        this.addChild(this.progressContainer);
+
+        // Background bar
+        this.progressBackground = new PIXI.Graphics();
+        this.progressBackground.rect(0, 0, THUMBNAIL_SIZE, BAR_HEIGHT);
+        this.progressBackground.fill({ color: BACKGROUND_COLOR, alpha: 0.8 });
+        this.progressContainer.addChild(this.progressBackground);
+
+        // Fill bar (width updated based on progress)
+        this.progressFill = new PIXI.Graphics();
+        this.progressContainer.addChild(this.progressFill);
+
+        // Stage label text
+        this.progressLabel = new PIXI.Text({
+            text: '',
+            style: {
+                fontFamily: 'Courier New, monospace',
+                fontSize: 9,
+                fill: TEXT_COLOR,
+                align: 'center'
+            }
+        });
+        this.progressLabel.x = THUMBNAIL_SIZE / 2;
+        this.progressLabel.y = -14;  // Above the bar
+        this.progressLabel.anchor.set(0.5, 0);
+        this.progressContainer.addChild(this.progressLabel);
+    }
+
+    /**
+     * Update progress bar fill
+     * @private
+     * @param {number} percent - Progress percentage (0-100)
+     */
+    _drawProgressFill(percent) {
+        const { THUMBNAIL_SIZE } = RTSDesktopObject.DIMENSIONS;
+        const { BAR_HEIGHT, FILL_COLOR } = RTSDesktopObject.PROGRESS;
+
+        const fillWidth = Math.max(0, Math.min(THUMBNAIL_SIZE, (percent / 100) * THUMBNAIL_SIZE));
+
+        this.progressFill.clear();
+        if (fillWidth > 0) {
+            this.progressFill.rect(0, 0, fillWidth, BAR_HEIGHT);
+            this.progressFill.fill({ color: FILL_COLOR, alpha: 0.9 });
+        }
     }
 
     /**
