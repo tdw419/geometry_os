@@ -455,6 +455,9 @@
         let history = [];
         let historyChart = null;
 
+        // API base URL (adjust for your server)
+        const API_BASE = window.location.origin;
+
         // Category configurations
         const categories = [
             { id: 'pattern_recognition', name: 'Pattern Recognition', icon: '◈', color: '#44ffff', baseline: 45 },
@@ -468,7 +471,7 @@
         function initChart() {
             const canvas = document.getElementById('history-chart');
             const ctx = canvas.getContext('2d');
-            
+
             // Set canvas size
             canvas.width = canvas.offsetWidth * 2;
             canvas.height = canvas.offsetHeight * 2;
@@ -577,7 +580,7 @@
             ctx.fillText('LLM Baseline (500)', width - 100, baselineY - 5);
         }
 
-        // Simulate benchmark run
+        // Run benchmark via API
         async function runBenchmark() {
             const btn = document.getElementById('run-btn');
             btn.disabled = true;
@@ -586,66 +589,149 @@
             const iterations = parseInt(document.getElementById('iterations').value);
             const difficulty = document.getElementById('difficulty').value;
 
+            try {
+                // Update progress for each category
+                for (const cat of categories) {
+                    updateProgressCategory(cat.name + '...');
+                    await sleep(200);
+                }
+
+                // Call the API
+                updateProgressCategory('Computing scores...');
+                const response = await fetch(`${API_BASE}/api/benchmark/run?iterations=${iterations}`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const results = await response.json();
+
+                if (results.error) {
+                    throw new Error(results.error);
+                }
+
+                // Update displays with real results
+                currentResults = results;
+
+                // Update category displays
+                for (const cat of categories) {
+                    const score = results.category_scores[cat.id] || 0;
+                    const vsLLM = ((score - cat.baseline) / cat.baseline) * 100;
+                    updateCategoryDisplay(cat, score, vsLLM);
+                }
+
+                // Update main display
+                updateMainDisplay(results);
+
+                // Add to history
+                history.push({
+                    total_giq: results.total_giq,
+                    percentile: results.percentile,
+                    timestamp: results.generated_at || new Date().toISOString()
+                });
+                if (history.length > 20) history.shift();
+
+                drawHistoryChart();
+                updateHistoryList();
+                updateMetrics(results);
+
+            } catch (error) {
+                console.error('Benchmark failed:', error);
+                // Fallback to simulation if API unavailable
+                updateProgressCategory('API unavailable, simulating...');
+                await runBenchmarkSimulation();
+            }
+
+            showProgress(false);
+            btn.disabled = false;
+        }
+
+        // Fallback simulation (same as before)
+        async function runBenchmarkSimulation() {
             const results = {
                 total_giq: 0,
                 category_scores: {},
                 test_results: [],
                 baseline_comparison: {},
                 percentile: 0,
-                timestamp: new Date().toISOString()
+                generated_at: new Date().toISOString()
             };
 
-            // Run each category
             for (const cat of categories) {
-                updateProgressCategory(cat.name + '...');
-                await sleep(500 + Math.random() * 500);
-
-                // Simulate score based on difficulty
                 const baseScore = cat.baseline * (1 + Math.random() * 0.5);
-                const difficultyMultiplier = difficulty === 'easy' ? 1.2 : difficulty === 'hard' ? 0.8 : 1;
-                const score = baseScore * difficultyMultiplier * (0.9 + Math.random() * 0.2);
+                const score = baseScore * (0.9 + Math.random() * 0.2);
 
                 results.category_scores[cat.id] = score;
                 results.baseline_comparison[cat.id] = ((score - cat.baseline) / cat.baseline) * 100;
                 results.total_giq += score * 2;
 
-                // Update UI in real-time
                 updateCategoryDisplay(cat, score, results.baseline_comparison[cat.id]);
+                await sleep(100);
             }
 
-            // Calculate percentile
             results.percentile = calculatePercentile(results.total_giq);
-
-            // Finalize
             currentResults = results;
-            history.push(results);
+
+            history.push({
+                total_giq: results.total_giq,
+                percentile: results.percentile,
+                timestamp: results.generated_at
+            });
             if (history.length > 20) history.shift();
 
-            // Update main display
             updateMainDisplay(results);
             drawHistoryChart();
             updateHistoryList();
-            updateMetrics();
-
-            showProgress(false);
-            btn.disabled = false;
+            updateMetrics(results);
         }
 
         async function runQuickBenchmark() {
-            // Run just one random category
+            // Run just one random category via API
             const cat = categories[Math.floor(Math.random() * categories.length)];
-            
+
             showProgress(true);
             updateProgressCategory(cat.name + ' (quick)...');
-            await sleep(300);
 
-            const score = cat.baseline * (1 + Math.random() * 0.3);
+            try {
+                const response = await fetch(`${API_BASE}/api/benchmark/run?categories=${cat.id}&iterations=1`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    const results = await response.json();
+                    if (!results.error && results.category_scores) {
+                        const score = results.category_scores[cat.id] || 0;
+                        const vsLLM = ((score - cat.baseline) / cat.baseline) * 100;
+                        updateCategoryDisplay(cat, score, vsLLM);
+                    }
+                }
+            } catch (e) {
+                // Fallback simulation
+                const score = cat.baseline * (1 + Math.random() * 0.3);
+                const vsLLM = ((score - cat.baseline) / cat.baseline) * 100;
+                updateCategoryDisplay(cat, score, vsLLM);
+            }
 
             showProgress(false);
+        }
 
-            // Update just this category
-            const vsLLM = ((score - cat.baseline) / cat.baseline) * 100;
-            updateCategoryDisplay(cat, score, vsLLM);
+        // Load history from API
+        async function loadHistory() {
+            try {
+                const response = await fetch(`${API_BASE}/api/benchmark/history`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.history) {
+                        history = data.history;
+                        drawHistoryChart();
+                        updateHistoryList();
+                    }
+                }
+            } catch (e) {
+                console.log('Could not load history from API');
+            }
         }
 
         function updateCategoryDisplay(cat, score, vsLLM) {
@@ -671,7 +757,7 @@
 
         function updateMainDisplay(results) {
             document.getElementById('giq-total').textContent = Math.round(results.total_giq);
-            document.getElementById('giq-percentile').textContent = 
+            document.getElementById('giq-percentile').textContent =
                 `Percentile: ${results.percentile.toFixed(1)}% (Top ${(100 - results.percentile).toFixed(1)}%)`;
         }
 
@@ -692,22 +778,26 @@
                 const item = document.createElement('div');
                 item.className = 'history-item';
                 item.innerHTML = `
-                    <span>${new Date(run.timestamp).toLocaleTimeString()}</span>
+                    <span>${new Date(run.timestamp || run.generated_at).toLocaleTimeString()}</span>
                     <span style="color:#00ff88;font-weight:bold">${Math.round(run.total_giq)}</span>
                 `;
                 list.appendChild(item);
             });
         }
 
-        function updateMetrics() {
-            document.getElementById('metric-tests').textContent = history.length * 5;
-            
-            if (history.length > 0) {
-                const avgLatency = Math.round(50 + Math.random() * 100);
-                const avgAccuracy = Math.round(70 + Math.random() * 25);
-                
-                document.getElementById('metric-latency').textContent = avgLatency + 'ms';
-                document.getElementById('metric-accuracy').textContent = avgAccuracy + '%';
+        function updateMetrics(results) {
+            if (results && results.test_results) {
+                document.getElementById('metric-tests').textContent = results.test_results.length;
+
+                const avgLatency = results.test_results.reduce((sum, t) => sum + (t.latency_ms || 0), 0) / results.test_results.length;
+                const avgAccuracy = results.test_results.reduce((sum, t) => sum + ((t.accuracy || 0) * 100), 0) / results.test_results.length;
+
+                document.getElementById('metric-latency').textContent = Math.round(avgLatency) + 'ms';
+                document.getElementById('metric-accuracy').textContent = Math.round(avgAccuracy) + '%';
+            } else {
+                document.getElementById('metric-tests').textContent = history.length * 5;
+                document.getElementById('metric-latency').textContent = '--ms';
+                document.getElementById('metric-accuracy').textContent = '--%';
             }
         }
 
@@ -723,12 +813,28 @@
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
-        function exportJSON() {
+        async function exportJSON() {
             if (!currentResults) {
                 alert('Run benchmark first');
                 return;
             }
 
+            // Try API export first
+            try {
+                const response = await fetch(`${API_BASE}/api/benchmark/export?format=json`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `giq_report_${Date.now()}.json`;
+                    a.click();
+                    return;
+                }
+            } catch (e) {}
+
+            // Fallback to local export
             const blob = new Blob([JSON.stringify(currentResults, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -737,22 +843,40 @@
             a.click();
         }
 
-        function exportCSV() {
+        async function exportCSV() {
             if (history.length === 0) {
                 alert('No history to export');
                 return;
             }
 
+            // Try API export first
+            try {
+                const response = await fetch(`${API_BASE}/api/benchmark/export?format=csv`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.csv) {
+                        const blob = new Blob([data.csv], { type: 'text/csv' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `giq_history_${Date.now()}.csv`;
+                        a.click();
+                        return;
+                    }
+                }
+            } catch (e) {}
+
+            // Fallback to local export
             const headers = ['timestamp', 'total_giq', 'percentile', ...categories.map(c => c.id)];
             const rows = history.map(h => [
-                h.timestamp,
+                h.timestamp || h.generated_at,
                 h.total_giq,
                 h.percentile,
-                ...categories.map(c => h.category_scores[c.id] || 0)
+                ...categories.map(c => h.category_scores?.[c.id] || 0)
             ]);
 
             const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-            
+
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -762,8 +886,9 @@
         }
 
         // Initialize
-        window.onload = () => {
+        window.onload = async () => {
             initChart();
+            await loadHistory();
         };
 
         window.onresize = () => {

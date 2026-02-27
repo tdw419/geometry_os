@@ -77,7 +77,9 @@ async def test_page(page_name: str):
         "infinite_canvas_multiplayer": "test_infinite_canvas_multiplayer.html",
         "terminal_infinite_map": "test_terminal_infinite_map.html",
         "geometric_code_editor": "test_geometric_code_editor.html",
-        "morphological_sound": "test_morphological_sound.html"
+        "morphological_sound": "test_morphological_sound.html",
+        "agent_visualizer": "test_agent_visualizer.html",
+        "benchmark_dashboard": "test_benchmark_dashboard.html"
     }
 
     filename = page_map.get(page_name)
@@ -107,7 +109,7 @@ async def terminal_websocket(websocket: WebSocket):
     """Terminal WebSocket - bridges to shell subprocess."""
     await websocket.accept()
     session_id = f"term-{datetime.now().timestamp()}"
-    active_sessions[session_id] = {"websocket", "created_at": datetime.now()}
+    active_sessions[session_id] = {"websocket": websocket, "created_at": datetime.now()}
     
     try:
         while True:
@@ -282,18 +284,180 @@ async def neb_publish(topic: str, payload: Dict[str, Any]):
         "payload": payload,
         "timestamp": datetime.now().isoformat()
     }
-    
+
     # Store for subscribers
     if topic not in neb_subscribers:
         neb_subscribers[topic] = []
-    
+
     for ws in neb_subscribers.get(topic, []):
         try:
             await ws.send_json(event)
         except:
             pass
-    
+
     return {"success": True, "topic": topic}
+
+
+# ============================================
+# BENCHMARK API
+# ============================================
+
+# In-memory benchmark state
+benchmark_results: Dict[str, Any] = {}
+benchmark_history: List[Dict[str, Any]] = []
+benchmark_running = False
+
+
+@app.get("/api/benchmark/status")
+async def benchmark_status():
+    """Get benchmark system status."""
+    return {
+        "running": benchmark_running,
+        "last_run": benchmark_results.get("generated_at"),
+        "total_runs": len(benchmark_history),
+        "available_categories": [
+            "pattern_recognition",
+            "morphological_synthesis",
+            "spatial_reasoning",
+            "symbolic_translation",
+            "decomposition"
+        ]
+    }
+
+
+@app.get("/api/benchmark/results")
+async def get_benchmark_results():
+    """Get latest benchmark results."""
+    if not benchmark_results:
+        return {"error": "No benchmark results available. Run /api/benchmark/run first."}
+    return benchmark_results
+
+
+@app.get("/api/benchmark/history")
+async def get_benchmark_history():
+    """Get benchmark history."""
+    return {"history": benchmark_history, "count": len(benchmark_history)}
+
+
+@app.post("/api/benchmark/run")
+async def run_benchmark(categories: Optional[str] = None, iterations: int = 1):
+    """Run GIQ benchmark and return results."""
+    global benchmark_running, benchmark_results, benchmark_history
+
+    if benchmark_running:
+        return {"error": "Benchmark already running"}
+
+    benchmark_running = True
+
+    try:
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent.parent.parent / "benchmarking"))
+        from giq_benchmark import GIQBenchmark
+
+        output_dir = Path(__file__).parent.parent.parent / ".geometry" / "benchmarks"
+        benchmark = GIQBenchmark(output_dir=str(output_dir))
+
+        # Collect results
+        all_results = []
+
+        for i in range(iterations):
+            if categories:
+                # Run specific categories
+                cat_list = categories.split(",")
+                for cat in cat_list:
+                    if cat == "pattern_recognition":
+                        benchmark.test_pattern_recognition()
+                    elif cat == "morphological_synthesis":
+                        benchmark.test_morphological_synthesis()
+                    elif cat == "spatial_reasoning":
+                        benchmark.test_spatial_reasoning()
+                    elif cat == "symbolic_translation":
+                        benchmark.test_symbolic_translation()
+                    elif cat == "decomposition":
+                        benchmark.test_decomposition()
+            else:
+                # Run full benchmark
+                benchmark.run_full_benchmark()
+
+            # Get results
+            if benchmark.results:
+                all_results.extend([{
+                    "category": r.category,
+                    "test_name": r.test_name,
+                    "score": r.score,
+                    "latency_ms": r.latency_ms,
+                    "accuracy": r.accuracy,
+                    "complexity": r.complexity
+                } for r in benchmark.results])
+
+        # Calculate aggregate scores
+        category_scores = {}
+        for r in all_results:
+            cat = r["category"]
+            if cat not in category_scores:
+                category_scores[cat] = []
+            category_scores[cat].append(r["score"])
+
+        avg_category_scores = {
+            cat: sum(scores) / len(scores)
+            for cat, scores in category_scores.items()
+        }
+
+        total_giq = sum(avg_category_scores.values()) * 2
+
+        # Calculate percentile
+        import math
+        mean, std = 180, 45
+        z = (total_giq - mean) / std
+        percentile = 0.5 * (1 + math.erf(z / math.sqrt(2))) * 100
+
+        # Store results
+        benchmark_results = {
+            "total_giq": total_giq,
+            "percentile": percentile,
+            "category_scores": avg_category_scores,
+            "test_results": all_results,
+            "generated_at": datetime.now().isoformat(),
+            "iterations": iterations
+        }
+
+        # Add to history
+        benchmark_history.append({
+            "total_giq": total_giq,
+            "percentile": percentile,
+            "timestamp": datetime.now().isoformat()
+        })
+
+        # Keep only last 50 entries
+        if len(benchmark_history) > 50:
+            benchmark_history = benchmark_history[-50:]
+
+        return benchmark_results
+
+    except ImportError as e:
+        return {"error": f"Benchmark module not found: {e}"}
+    except Exception as e:
+        return {"error": f"Benchmark failed: {str(e)}"}
+    finally:
+        benchmark_running = False
+
+
+@app.post("/api/benchmark/export")
+async def export_benchmark(format: str = "json"):
+    """Export benchmark results."""
+    if not benchmark_results:
+        return {"error": "No results to export"}
+
+    if format == "json":
+        return benchmark_results
+    elif format == "csv":
+        # Generate CSV
+        lines = ["category,score,percentile,timestamp"]
+        for entry in benchmark_history:
+            lines.append(f"all,{entry['total_giq']},{entry['percentile']},{entry['timestamp']}")
+        return {"csv": "\n".join(lines), "format": "csv"}
+    else:
+        return {"error": f"Unknown format: {format}"}
 
 
 # ============================================

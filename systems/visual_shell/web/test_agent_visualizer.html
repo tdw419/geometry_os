@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Real Agent Visualizer - Geometry OS</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+        }
+        h1 { margin-bottom: 5px; font-size: 18px; }
+        .subtitle { color: #666; margin-bottom: 15px; font-size: 11px; }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 15px;
+            max-width: 1400px;
+        }
+
+        .main-panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: #252535;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .panel-title {
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff4444;
+        }
+
+        .status-indicator.connected { background: #00ff88; }
+        .status-indicator.connecting { background: #ffff44; animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 500px;
+            background: #0a0a0a;
+        }
+
+        .controls {
+            padding: 10px;
+            display: flex;
+            gap: 8px;
+            border-top: 1px solid #333;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #0f0f0f;
+            color: #00ff88;
+            border: 1px solid #333;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 10px;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button.danger {
+            border-color: #ff4444;
+            color: #ff4444;
+        }
+
+        button.danger:hover {
+            background: #ff4444;
+            color: #0a0a0a;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .section-title {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        .agent-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .agent-item {
+            background: #0a0a0a;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .agent-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .agent-name { flex: 1; }
+        .agent-status { font-size: 9px; color: #666; }
+
+        .agent-item.idle .agent-status { color: #888; }
+        .agent-item.active .agent-status { color: #00ff88; }
+        .agent-item.busy .agent-status { color: #ffaa00; }
+        .agent-item.error .agent-status { color: #ff4444; }
+
+        .event-log {
+            height: 150px;
+            overflow-y: auto;
+            background: #0a0a0a;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 9px;
+        }
+
+        .event-entry { margin-bottom: 3px; }
+        .event-info { color: #00ff88; }
+        .event-warn { color: #ffff44; }
+        .event-error { color: #ff4444; }
+        .event-agent { color: #44ffff; }
+        .event-task { color: #ff44ff; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .stat-item {
+            background: #0a0a0a;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            color: #00ff88;
+        }
+
+        .stat-label {
+            font-size: 8px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .task-item {
+            background: #0a0a0a;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .task-progress {
+            height: 3px;
+            background: #333;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .task-progress-bar {
+            height: 100%;
+            background: #00ff88;
+            transition: width 0.3s;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            font-size: 9px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-shape {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>◈ Real Agent Visualizer</h1>
+    <p class="subtitle">Live visualization of Geometry OS Swarm agents</p>
+
+    <div class="container">
+        <div class="main-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <div class="status-indicator" id="status-dot"></div>
+                    <span id="status-text">Disconnected</span>
+                </div>
+                <span style="font-size: 10px; color: #666;" id="agent-count">0 agents</span>
+            </div>
+
+            <div id="canvas-container"></div>
+
+            <div class="controls">
+                <button onclick="connect()" id="btn-connect">Connect</button>
+                <button onclick="disconnect()" id="btn-disconnect" disabled>Disconnect</button>
+                <button onclick="simulateActivity()">Simulate Activity</button>
+                <button onclick="spawnAgent()">Spawn Agent</button>
+                <button onclick="assignTask()">Assign Task</button>
+                <button onclick="clearConnections()">Clear Connections</button>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="section">
+                <div class="section-title">Legend</div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-shape" style="color: #00FFFF">⬡</div>
+                        <span>Architect</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-shape" style="color: #00FF88">■</div>
+                        <span>Engineer</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-shape" style="color: #FFAA00">◆</div>
+                        <span>Reviewer</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-shape" style="color: #FF44FF">●</div>
+                        <span>Executor</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Active Agents</div>
+                <div class="agent-list" id="agent-list">
+                    <div style="color: #666; font-size: 10px;">Connect to see agents...</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Statistics</div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-tasks">0</div>
+                        <div class="stat-label">Active Tasks</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-connections">0</div>
+                        <div class="stat-label">Connections</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-events">0</div>
+                        <div class="stat-label">Events/min</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-uptime">0s</div>
+                        <div class="stat-label">Uptime</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Event Log</div>
+                <div class="event-log" id="event-log"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="lib/pixi.min.js"></script>
+    <script src="AgentVisualizer.js"></script>
+    <script>
+        let visualizer = null;
+        let simulationInterval = null;
+        let startTime = null;
+        let eventCount = 0;
+
+        const WS_URL = 'ws://localhost:8080/ws/agents';
+        const NEB_URL = 'ws://localhost:8765';
+
+        function log(msg, type = 'info') {
+            const output = document.getElementById('event-log');
+            const entry = document.createElement('div');
+            entry.className = `event-entry event-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            output.appendChild(entry);
+            output.scrollTop = output.scrollHeight;
+            eventCount++;
+        }
+
+        function setStatus(status, connected = false) {
+            const dot = document.getElementById('status-dot');
+            const text = document.getElementById('status-text');
+
+            dot.className = 'status-indicator';
+            if (connected) {
+                dot.classList.add('connected');
+            } else if (status === 'Connecting...') {
+                dot.classList.add('connecting');
+            }
+
+            text.textContent = status;
+        }
+
+        async function init() {
+            log('Initializing agent visualizer...', 'info');
+
+            const container = document.getElementById('canvas-container');
+
+            // Initialize PIXI Application
+            const app = new PIXI.Application({
+                width: container.offsetWidth,
+                height: 500,
+                backgroundColor: 0x0a0a0a,
+                antialias: true,
+                resolution: window.devicePixelRatio || 1,
+                autoDensity: true
+            });
+            container.appendChild(app.view);
+
+            // Create visualizer
+            visualizer = new AgentVisualizer({
+                width: container.offsetWidth,
+                height: 500,
+                wsUrl: WS_URL,
+                nebUrl: NEB_URL,
+                onAgentUpdate: (event) => {
+                    handleAgentEvent(event);
+                },
+                onConnectionEvent: (event) => {
+                    log(`Connection: ${event.connection.from} → ${event.to}`, 'task');
+                    updateStats();
+                }
+            });
+
+            app.stage.addChild(visualizer.container);
+
+            // Animation loop
+            app.ticker.add((delta) => {
+                visualizer.update(delta);
+            });
+
+            // Handle resize
+            window.addEventListener('resize', () => {
+                app.renderer.resize(container.offsetWidth, 500);
+                visualizer.resize(container.offsetWidth, 500);
+            });
+
+            updateAgentList();
+            log('Ready - click Connect to join agent network', 'info');
+        }
+
+        function handleAgentEvent(event) {
+            if (event.type === 'agent_event') {
+                log(`Agent ${event.agent_id}: ${event.event}`, 'agent');
+            } else if (event.type === 'updated') {
+                updateAgentList();
+            } else if (event.type === 'selected') {
+                log(`Selected: ${event.agent.id} (${event.agent.status})`, 'info');
+            }
+            updateStats();
+        }
+
+        async function connect() {
+            if (visualizer.isConnected()) return;
+
+            setStatus('Connecting...', false);
+            log('Connecting to agent network...', 'info');
+
+            try {
+                await visualizer.connect();
+
+                setStatus('Connected', true);
+                document.getElementById('btn-connect').disabled = true;
+                document.getElementById('btn-disconnect').disabled = false;
+
+                startTime = Date.now();
+                log('Connected to live agent network!', 'info');
+                updateAgentList();
+
+            } catch (e) {
+                setStatus('Failed (using simulation)', false);
+                log(`Connection failed: ${e.message}. Using simulation mode.`, 'warn');
+
+                // Enable simulation mode
+                startSimulation();
+                document.getElementById('btn-connect').disabled = true;
+                document.getElementById('btn-disconnect').disabled = false;
+            }
+        }
+
+        function disconnect() {
+            visualizer.disconnect();
+            stopSimulation();
+
+            setStatus('Disconnected', false);
+            document.getElementById('btn-connect').disabled = false;
+            document.getElementById('btn-disconnect').disabled = true;
+            startTime = null;
+
+            log('Disconnected from agent network', 'info');
+            updateAgentList();
+        }
+
+        function startSimulation() {
+            if (simulationInterval) return;
+
+            log('Starting simulation mode...', 'warn');
+            simulationInterval = setInterval(() => {
+                visualizer.simulateActivity();
+                updateAgentList();
+                updateStats();
+            }, 2000);
+        }
+
+        function stopSimulation() {
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+                simulationInterval = null;
+            }
+        }
+
+        function simulateActivity() {
+            visualizer.simulateActivity();
+            updateAgentList();
+            updateStats();
+            log('Simulated activity burst', 'info');
+        }
+
+        function spawnAgent() {
+            const types = ['architect', 'engineer', 'reviewer', 'executor', 'scribe'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            const id = `${type}-${Date.now().toString(36)}`;
+
+            visualizer.updateAgent(id, {
+                type: type,
+                status: 'idle'
+            });
+
+            log(`Spawned agent: ${id}`, 'agent');
+            updateAgentList();
+        }
+
+        function assignTask() {
+            const agents = visualizer.getAgents();
+            const busyAgents = agents.filter(a => a.status !== 'busy');
+
+            if (busyAgents.length === 0) {
+                log('No available agents for task assignment', 'warn');
+                return;
+            }
+
+            const agent = busyAgents[Math.floor(Math.random() * busyAgents.length)];
+            const tasks = [
+                'Implement feature X',
+                'Review PR #42',
+                'Optimize database queries',
+                'Write unit tests',
+                'Update documentation'
+            ];
+            const task = tasks[Math.floor(Math.random() * tasks.length)];
+
+            visualizer.updateAgent(agent.id, {
+                status: 'busy',
+                task: task,
+                progress: 0
+            });
+
+            log(`Assigned "${task}" to ${agent.id}`, 'task');
+
+            // Simulate progress
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 20;
+                if (progress >= 100) {
+                    progress = 100;
+                    visualizer.updateAgent(agent.id, {
+                        status: 'idle',
+                        task: null,
+                        progress: 0
+                    });
+                    log(`Task completed by ${agent.id}`, 'info');
+                    clearInterval(progressInterval);
+                } else {
+                    visualizer.updateAgent(agent.id, { progress });
+                }
+                updateAgentList();
+            }, 500);
+
+            updateAgentList();
+        }
+
+        function clearConnections() {
+            visualizer.connections.length = 0;
+            log('Cleared all connections', 'info');
+            updateStats();
+        }
+
+        function updateAgentList() {
+            const list = document.getElementById('agent-list');
+            list.innerHTML = '';
+
+            const agents = visualizer.getAgents();
+
+            if (agents.length === 0) {
+                list.innerHTML = '<div style="color: #666; font-size: 10px;">No agents</div>';
+                return;
+            }
+
+            const typeColors = {
+                architect: '#00FFFF',
+                engineer: '#00FF88',
+                reviewer: '#FFAA00',
+                executor: '#FF44FF',
+                scribe: '#8888FF'
+            };
+
+            for (const agent of agents) {
+                const item = document.createElement('div');
+                item.className = `agent-item ${agent.status}`;
+
+                const color = typeColors[agent.type] || '#888';
+
+                item.innerHTML = `
+                    <div class="agent-dot" style="background: ${color}"></div>
+                    <span class="agent-name">${agent.id}</span>
+                    <span class="agent-status">${agent.status}</span>
+                `;
+
+                item.onclick = () => {
+                    log(`Agent details: ${JSON.stringify(agent, null, 2)}`, 'info');
+                };
+
+                list.appendChild(item);
+            }
+
+            document.getElementById('agent-count').textContent =
+                `${agents.length} agent${agents.length !== 1 ? 's' : ''}`;
+        }
+
+        function updateStats() {
+            const agents = visualizer.getAgents();
+            const busyAgents = agents.filter(a => a.status === 'busy');
+
+            document.getElementById('stat-tasks').textContent = busyAgents.length;
+            document.getElementById('stat-connections').textContent = visualizer.connections.length;
+            document.getElementById('stat-events').textContent = eventCount;
+
+            if (startTime) {
+                const uptime = Math.floor((Date.now() - startTime) / 1000);
+                const mins = Math.floor(uptime / 60);
+                const secs = uptime % 60;
+                document.getElementById('stat-uptime').textContent =
+                    mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+            }
+        }
+
+        // Update stats periodically
+        setInterval(updateStats, 1000);
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
