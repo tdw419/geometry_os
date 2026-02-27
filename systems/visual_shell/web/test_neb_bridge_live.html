@@ -269,6 +269,10 @@
                 <button onclick="subscribe('agent.*')">Subscribe All</button>
                 <button onclick="subscribe('agent.architect.*')">Architect Only</button>
                 <button onclick="getAgents()">Refresh Agents</button>
+                <select id="bridge-select" onchange="switchBridge(this.value)" style="background: #252535; color: #00ff88; border: 1px solid #444; padding: 6px; border-radius: 4px;">
+                    <option value="live" selected>Live Bridge (8769)</option>
+                    <option value="mock">Mock Bridge (8768)</option>
+                </select>
             </div>
         </div>
 
@@ -305,8 +309,14 @@
         let eventCount = 0;
         let agents = {};
 
-        const WS_URL = 'ws://localhost:8768/ws';
-        const API_URL = 'http://localhost:8768';
+        // Bridge configuration - switch between mock and live
+        const BRIDGES = {
+            mock: { ws: 'ws://localhost:8768/ws', api: 'http://localhost:8768' },
+            live: { ws: 'ws://localhost:8769/ws', api: 'http://localhost:8769' }
+        };
+        let currentBridge = 'live';  // Default to live
+        let WS_URL = BRIDGES[currentBridge].ws;
+        let API_URL = BRIDGES[currentBridge].api;
 
         function setStatus(status, connected = false) {
             const dot = document.getElementById('status-dot');
@@ -463,6 +473,19 @@
             document.getElementById('event-stream').innerHTML = '';
             eventCount = 0;
             document.getElementById('stat-events').textContent = '0';
+        }
+
+        function switchBridge(bridgeType) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                disconnect();
+            }
+            currentBridge = bridgeType;
+            WS_URL = BRIDGES[bridgeType].ws;
+            API_URL = BRIDGES[bridgeType].api;
+            agents = {};
+            renderAgents();
+            clearEvents();
+            addEvent('system.switch', { bridge: bridgeType, url: WS_URL });
         }
 
         function subscribe(pattern) {
