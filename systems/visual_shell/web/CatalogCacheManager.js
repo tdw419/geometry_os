@@ -134,6 +134,65 @@ class CatalogCacheManager {
     }
 
     // ========================================
+    // Hash Computation & Verification
+    // ========================================
+
+    /**
+     * Compute SHA256 hash of data using Web Crypto API
+     * @param {ArrayBuffer|Blob} data - The data to hash
+     * @returns {Promise<string|null>} Hex string (64 characters) or null on failure
+     *
+     * @example
+     * const hash = await cache.computeHash(arrayBuffer);
+     * // Returns: 'a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e'
+     */
+    async computeHash(data) {
+        try {
+            // Convert Blob to ArrayBuffer if needed
+            let buffer;
+            if (data instanceof Blob) {
+                buffer = await data.arrayBuffer();
+            } else if (data instanceof ArrayBuffer) {
+                buffer = data;
+            } else {
+                console.error('[CatalogCacheManager] computeHash: Invalid data type, expected ArrayBuffer or Blob');
+                return null;
+            }
+
+            // Compute SHA-256 hash using Web Crypto API
+            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+
+            // Convert to hex string
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+            return hashHex;
+        } catch (error) {
+            console.error('[CatalogCacheManager] computeHash error:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Verify data integrity by comparing computed hash with expected hash
+     * @param {ArrayBuffer|Blob} data - The data to verify
+     * @param {string} expectedHash - The expected SHA256 hash (hex string)
+     * @returns {Promise<boolean>} True if hashes match, false otherwise
+     */
+    async verifyHash(data, expectedHash) {
+        if (!expectedHash) {
+            return false;
+        }
+
+        const computedHash = await this.computeHash(data);
+        if (!computedHash) {
+            return false;
+        }
+
+        return computedHash === expectedHash;
+    }
+
+    // ========================================
     // CRUD Operations
     // ========================================
 
