@@ -1275,3 +1275,12 @@ class CatalogCacheManager extends EventEmitter {
             console.error('[CatalogCacheManager] configure error:', error);
         }
     }
+}
+
+// ES6 module export
+export { CatalogCacheManager };
+
+// Global window attachment for non-module usage
+if (typeof window !== 'undefined') {
+    window.CatalogCacheManager = CatalogCacheManager;
+}
