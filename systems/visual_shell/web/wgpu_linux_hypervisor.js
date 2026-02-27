@@ -241,6 +241,32 @@ export class WGPULinuxHypervisor {
     }
 
     /**
+     * Load kernel from resonance (holographic) .rts.png texture
+     * Enables direct GPU-side decoding without CPU expansion.
+     * @param {string} url - URL to the resonance .rts.png file
+     */
+    async loadKernelFromResonanceRTS(url) {
+        console.log('[Hypervisor] Loading resonance (holographic) RTS kernel...');
+
+        // 1. Initialize Resonance pipeline if needed
+        await this.gpuSystem.initializeResonance();
+
+        // 2. Deploy Resonance kernel
+        await this.gpuSystem.deployResonance(url, this.kernelId);
+
+        // 3. Setup Device Tree Blob
+        await this.setupDTB();
+
+        // 4. Setup syscall bridge
+        this._setupSyscallBridge();
+
+        // 5. Cache initial state
+        this.cachedState = await this.gpuSystem.readState(this.kernelId);
+
+        console.log(`✅ Resonance kernel deployed successfully`);
+    }
+
+    /**
      * Get DTB information for verification
      */
     async getDTBInfo() {

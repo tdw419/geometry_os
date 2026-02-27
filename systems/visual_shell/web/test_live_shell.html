@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Live Shell Test - GeometricTerminal</title>
+    <style>
+        body {
+            margin: 0;
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+        }
+        #controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: #1a1a1a;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        input[type="text"] {
+            background: #252535;
+            color: #00ff88;
+            border: 1px solid #444;
+            padding: 8px;
+            width: 200px;
+            font-family: inherit;
+        }
+        button {
+            background: #252535;
+            color: #00ff88;
+            border: 1px solid #00ff88;
+            padding: 8px 16px;
+            margin: 5px 2px;
+            cursor: pointer;
+        }
+        button:hover { background: #00ff88; color: #0a0a0a; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        #info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #1a1a1a;
+            padding: 15px;
+            border: 1px solid #333;
+            font-size: 12px;
+            border-radius: 8px;
+            min-width: 200px;
+        }
+        .status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .status.connected { background: #003300; color: #00ff00; }
+        .status.disconnected { background: #330000; color: #ff4444; }
+        .status.connecting { background: #332200; color: #ffaa00; }
+        #canvas { width: 100vw; height: 100vh; outline: none; }
+        #canvas:focus { border: 2px solid #00ff88; }
+        .label {
+            color: #888;
+            font-size: 11px;
+            margin-top: 10px;
+        }
+        #instructions {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: #1a1a1a;
+            padding: 10px;
+            border: 1px solid #333;
+            font-size: 11px;
+            border-radius: 8px;
+            max-width: 400px;
+        }
+        #instructions h4 { margin: 0 0 5px 0; color: #00ff88; }
+        #instructions ul { margin: 0; padding-left: 20px; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <div class="label">Shell Bridge Server</div>
+        <input type="text" id="server-url" value="ws://localhost:8767" />
+        <br>
+        <button onclick="startServer()">Start Server</button>
+        <button onclick="connectTerminal()">Connect Terminal</button>
+        <button onclick="disconnectTerminal()">Disconnect</button>
+        <button onclick="clearTerminal()">Clear</button>
+        <br>
+        <div class="label">Terminal Size</div>
+        <button onclick="resizeTerminal(80, 24)">80x24</button>
+        <button onclick="resizeTerminal(120, 36)">120x36</button>
+        <button onclick="resizeTerminal(160, 48)">160x48</button>
+    </div>
+    <div id="info">
+        <div>WebSocket: <span id="ws-status" class="status disconnected">disconnected</span></div>
+        <div>Shell: <span id="shell-status" class="status disconnected">disconnected</span></div>
+        <div>Terminal ID: <span id="term-id">-</span></div>
+        <div>Shell PID: <span id="shell-pid">-</span></div>
+        <div>Grid: <span id="grid-size">-</span></div>
+    </div>
+    <div id="instructions">
+        <h4>Live Shell Test</h4>
+        <ul>
+            <li>Click "Start Server" to launch shell_bridge.py</li>
+            <li>Click "Connect Terminal" to start live shell</li>
+            <li>Click the canvas and type to interact</li>
+            <li>Ctrl+C interrupts, Ctrl+D exits</li>
+        </ul>
+    </div>
+    <div id="canvas" tabindex="0"></div>
+
+    <script src="https://pixijs.download/v7/pixi.min.js"></script>
+    <script type="module">
+        import { GeometricTerminal } from './GeometricTerminal.js';
+        import { GeometricTextRenderer } from './geometric_text.js';
+
+        let app, terminal, bridge;
+
+        async function init() {
+            app = new PIXI.Application({
+                width: window.innerWidth,
+                height: window.innerHeight,
+                backgroundColor: 0x0a0a0a,
+                antialias: true
+            });
+            document.getElementById('canvas').appendChild(app.view);
+
+            // Create geometric text renderer
+            bridge = new GeometricTextRenderer(app, {
+                fontSize: 16,
+                color: 0x00ff88
+            });
+
+            // Create terminal
+            terminal = new GeometricTerminal(app, {
+                cols: 80,
+                rows: 24,
+                cellSize: 16,
+                spacing: 2,
+                x: 50,
+                y: 50,
+                bridge: bridge,
+                useSDF: true,
+                terminalId: `term-${Date.now()}`
+            });
+
+            // Connect bridge
+            terminal.setBridge(bridge);
+
+            // Update info
+            document.getElementById('term-id').textContent = terminal.terminalId;
+            document.getElementById('grid-size').textContent = `${terminal.cols}x${terminal.rows}`;
+
+            // Focus canvas for keyboard input
+            const canvas = document.getElementById('canvas');
+            canvas.focus();
+
+            // Keyboard handling
+            canvas.addEventListener('keydown', (e) => {
+                terminal.handleKeyDown(e);
+            });
+
+            // Status update interval
+            setInterval(updateStatus, 500);
+
+            // Welcome message
+            terminal.write('\x1b[1;32mGeometry OS - Geometric Terminal\x1b[0m\r\n');
+            terminal.write('\x1b[33mConnect to shell to start...\x1b[0m\r\n\r\n');
+
+            console.log('GeometricTerminal initialized');
+        }
+
+        window.startServer = function() {
+            // Show instructions since we can't spawn processes from browser
+            alert(
+                'Start the shell bridge server manually:\n\n' +
+                'python3 systems/visual_shell/server/shell_bridge.py\n\n' +
+                'Then click "Connect Terminal"'
+            );
+        };
+
+        window.connectTerminal = function() {
+            const serverUrl = document.getElementById('server-url').value;
+            terminal.connectToShell(serverUrl);
+            updateStatus();
+        };
+
+        window.disconnectTerminal = function() {
+            terminal.disconnectShell();
+            updateStatus();
+        };
+
+        window.clearTerminal = function() {
+            terminal.clear();
+        };
+
+        window.resizeTerminal = function(cols, rows) {
+            terminal.cols = cols;
+            terminal.rows = rows;
+            terminal._sendResize();
+            document.getElementById('grid-size').textContent = `${cols}x${rows}`;
+        };
+
+        function updateStatus() {
+            const wsStatus = document.getElementById('ws-status');
+            const shellStatus = document.getElementById('shell-status');
+
+            if (terminal.wsConnected) {
+                wsStatus.textContent = 'connected';
+                wsStatus.className = 'status connected';
+            } else if (terminal.ws) {
+                wsStatus.textContent = 'connecting';
+                wsStatus.className = 'status connecting';
+            } else {
+                wsStatus.textContent = 'disconnected';
+                wsStatus.className = 'status disconnected';
+            }
+
+            if (terminal.shellConnected) {
+                shellStatus.textContent = 'running';
+                shellStatus.className = 'status connected';
+            } else {
+                shellStatus.textContent = 'stopped';
+                shellStatus.className = 'status disconnected';
+            }
+
+            document.getElementById('grid-size').textContent = `${terminal.cols}x${terminal.rows}`;
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            app.renderer.resize(window.innerWidth, window.innerHeight);
+        });
+
+        init();
+    </script>
+</body>
+</html>

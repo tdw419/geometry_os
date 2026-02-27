@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Geometric Code Viewer Test</title>
+    <style>
+        body {
+            margin: 0;
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+        }
+        #controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: #1a1a1a;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        input[type="text"] {
+            background: #252535;
+            color: #00ff88;
+            border: 1px solid #444;
+            padding: 8px;
+            width: 300px;
+            font-family: inherit;
+        }
+        button {
+            background: #252535;
+            color: #00ff88;
+            border: 1px solid #00ff88;
+            padding: 8px 16px;
+            margin: 5px 2px;
+            cursor: pointer;
+        }
+        button:hover { background: #00ff88; color: #0a0a0a; }
+        #info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #1a1a1a;
+            padding: 15px;
+            border: 1px solid #333;
+            font-size: 12px;
+            border-radius: 8px;
+        }
+        #canvas { width: 100vw; height: 100vh; }
+        .label {
+            color: #888;
+            font-size: 11px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <div class="label">File Path (relative to repo root)</div>
+        <input type="text" id="file-path" value="systems/visual_shell/web/application.js" />
+        <br>
+        <button onclick="loadFile()">Load File</button>
+        <button onclick="loadDiff()">Load Git Diff</button>
+        <button onclick="showStatus()">Show Status</button>
+        <br>
+        <div class="label">Examples</div>
+        <button onclick="loadExample('systems/visual_shell/web/application.js')">application.js</button>
+        <button onclick="loadExample('systems/visual_shell/web/TerminalWindow.js')">TerminalWindow.js</button>
+        <button onclick="loadExample('systems/visual_shell/server/terminal_positions.py')">terminal_positions.py</button>
+    </div>
+    <div id="info">
+        <div>File: <span id="current-file">none</span></div>
+        <div>Lines: <span id="line-count">0</span></div>
+        <div>Modified: <span id="modified">unknown</span></div>
+        <div>Branch: <span id="branch">unknown</span></div>
+    </div>
+    <div id="canvas"></div>
+
+    <script src="https://pixijs.download/v7/pixi.min.js"></script>
+    <script type="module">
+        import { GeometricCodeViewer } from './GeometricCodeViewer.js';
+
+        let app, viewer;
+
+        async function init() {
+            app = new PIXI.Application({
+                width: window.innerWidth,
+                height: window.innerHeight,
+                backgroundColor: 0x0a0a0a,
+                antialias: true
+            });
+            document.getElementById('canvas').appendChild(app.view);
+
+            viewer = new GeometricCodeViewer(app, {
+                x: 50,
+                y: 50,
+                width: 900,
+                height: 600
+            });
+
+            app.stage.addChild(viewer.container);
+
+            console.log('Geometric Code Viewer initialized');
+        }
+
+        window.loadFile = async function() {
+            const path = document.getElementById('file-path').value;
+            await viewer.loadFile(path);
+            updateInfo();
+        };
+
+        window.loadDiff = async function() {
+            const path = document.getElementById('file-path').value;
+            await viewer.loadFile(path);
+            await viewer.loadGitDiff(path);
+            updateInfo();
+        };
+
+        window.showStatus = async function() {
+            const path = document.getElementById('file-path').value;
+            try {
+                const response = await fetch(`/api/git/status?path=${encodeURIComponent(path)}`);
+                const status = await response.json();
+
+                document.getElementById('modified').textContent = status.modified ? 'Yes' : 'No';
+                document.getElementById('branch').textContent = status.branch;
+            } catch (e) {
+                console.error('Status error:', e);
+            }
+        };
+
+        window.loadExample = async function(path) {
+            document.getElementById('file-path').value = path;
+            await viewer.loadFile(path);
+            updateInfo();
+        };
+
+        function updateInfo() {
+            document.getElementById('current-file').textContent = viewer.getFilePath() || 'none';
+            document.getElementById('line-count').textContent = viewer.lineCount || 0;
+            document.getElementById('modified').textContent = viewer.isModified() ? 'Yes' : 'No';
+        }
+
+        init();
+    </script>
+</body>
+</html>

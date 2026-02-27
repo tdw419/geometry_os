@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Morphological Font Benchmark - Geometry OS</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+        }
+        h1 { margin-bottom: 10px; font-size: 18px; }
+        .subtitle { color: #666; margin-bottom: 20px; font-size: 11px; }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 1400px;
+        }
+
+        .benchmark-panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .panel-title {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        canvas {
+            background: #0a0a0a;
+            border-radius: 4px;
+        }
+
+        #canvas2d-canvas, #webgpu-canvas {
+            width: 100%;
+            height: 300px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .stat-box {
+            background: #0a0a0a;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 18px;
+                color: #00ff88;
+            }
+
+        .stat-label {
+            font-size: 9px;
+            color: #666;
+            }
+
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #252535;
+            color: #00ff88;
+            border: 1px solid #00ff88;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: inherit;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .comparison-section {
+            grid-column: 1 / -1;
+            margin-top: 20px;
+        }
+
+        .bar-chart {
+            display: flex;
+            gap: 3px;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .bar-label {
+            width: 80px;
+            font-size: 10px;
+            color: #888;
+        }
+
+        .bar {
+            height: 20px;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .bar.canvas2d { background: #00ff88; }
+        .bar.webgpu { background: #44ffff; }
+
+        .results-table {
+            width: 100%;
+            margin-top: 15px;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+
+        .results-table th, .results-table td {
+            padding: 6px;
+            border: 1px solid #333;
+        }
+
+        .results-table th {
+            background: #252535;
+            color: #888;
+            text-align: left;
+        }
+
+        .results-table td {
+            color: #00ff88;
+            text-align: right;
+        }
+
+        .winner {
+            font-weight: bold;
+            background: #1a2520;
+        }
+
+        .log-output {
+            margin-top: 15px;
+            background: #0a0a0a;
+            padding: 10px;
+            border-radius: 4px;
+            height: 150px;
+            overflow-y: auto;
+            font-size: 10px;
+        }
+
+        .log-entry { margin-bottom: 3px; }
+        .log-info { color: #00ff88; }
+        .log-warn { color: #ffff44; }
+        .log-error { color: #ff4444; }
+    </style>
+</head>
+<body>
+    <h1>◈ Morphological Font Benchmark</h1>
+    <p class="subtitle">Canvas2D vs WebGPU Rendering Performance</p>
+
+    <div class="container">
+        <div class="benchmark-panel">
+            <div class="panel-title">Canvas2D Renderer</div>
+            <canvas id="canvas2d-canvas"></canvas>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-value" id="c2d-fps">0</div>
+                    <div class="stat-label">FPS</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="c2d-time">0ms</div>
+                    <div class="stat-label">Avg Render</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="c2d-cache">0</div>
+                    <div class="stat-label">Cache Size</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="c2d-hit">0%</div>
+                    <div class="stat-label">Hit Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="benchmark-panel">
+            <div class="panel-title">WebGPU Renderer</div>
+            <canvas id="webgpu-canvas"></canvas>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-value" id="gpu-fps">0</div>
+                    <div class="stat-label">FPS</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="gpu-time">0ms</div>
+                    <div class="stat-label">Avg Render</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="gpu-cache">0</div>
+                    <div class="stat-label">Cache Size</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="gpu-hit">0%</div>
+                    <div class="stat-label">Hit Rate</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button onclick="runBenchmark()">▶ Run Benchmark</button>
+        <button onclick="runStressTest()">🔥 Stress Test (1000x)</button>
+        <button onclick="clearResults()">⌫ Clear</button>
+    </div>
+
+    <div class="comparison-section">
+        <div class="panel-title">Performance Comparison</div>
+        <div class="bar-chart">
+            <div class="bar-label">FPS</div>
+            <div class="bar canvas2d" id="bar-fps-c2d" style="width: 0px"></div>
+            <div class="bar webgpu" id="bar-fps-gpu" style="width: 0px"></div>
+        </div>
+        <div class="bar-chart">
+            <div class="bar-label">Render Time</div>
+            <div class="bar canvas2d" id="bar-time-c2d" style="width: 0px"></div>
+            <div class="bar webgpu" id="bar-time-gpu" style="width: 0px"></div>
+        </div>
+        <div class="bar-chart">
+            <div class="bar-label">Cache Efficiency</div>
+            <div class="bar canvas2d" id="bar-cache-c2d" style="width: 0px"></div>
+            <div class="bar webgpu" id="bar-cache-gpu" style="width: 0px"></div>
+        </div>
+
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th>Test</th>
+                    <th>Canvas2D</th>
+                    <th>WebGPU</th>
+                    <th>Winner</th>
+                </tr>
+            </thead>
+            <tbody id="results-body">
+            </tbody>
+        </table>
+
+        <div class="log-output" id="log-output"></div>
+    </div>
+
+    <script src="morphological/PatternLibrary.js"></script>
+    <script src="morphological/SemanticClassifier.js"></script>
+    <script src="morphological/HilbertGlyphSynthesizer.js"></script>
+    <script src="morphological/MorphologicalFont.js"></script>
+    <script src="morphological/WebGPUSDFRenderer.js"></script>
+    <script>
+        // Test state
+        let c2dFont, null;
+        let gpuFont = null;
+        let c2dCtx = null;
+        let gpuRenderer = null;
+        let results = [];
+
+        const TEST_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567890!@#$%^&*()-_=+[]{}|<>?/\\\'"';
+        const SAMPLE_TEXT = `def fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)
+
+
+for i in range(10):
+    print(fibonacci(i))`;
+
+        function log(msg, type = 'info') {
+            const output = document.getElementById('log-output');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            output.appendChild(entry);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        async function init() {
+            log('Initializing benchmark...', 'info');
+
+            // Setup Canvas2D
+            const canvas2d = document.getElementById('canvas2d-canvas');
+            canvas2d.width = canvas2d.offsetWidth;
+            canvas2d.height = 300;
+            c2dCtx = canvas2d.getContext('2d');
+
+            // Initialize Canvas2D morphological font
+            c2dFont = new MorphologicalFont({ size: 16 });
+            await c2dFont.init();
+            log('Canvas2D MorphologicalFont initialized', 'info');
+
+            // Try WebGPU
+            if (navigator.gpu) {
+                try {
+                    gpuRenderer = new WebGPUSDFRenderer();
+                    const gpuAvailable = await gpuRenderer.init();
+
+                    if (gpuAvailable) {
+                        gpuFont = new MorphologicalFont({ size: 16, useWebGPU: true });
+                        await gpuFont.init();
+                        log('WebGPU renderer initialized', 'info');
+                    } else {
+                        log('WebGPU not available, using Canvas2D fallback', 'warn');
+                        gpuRenderer = null;
+                    }
+                } catch (e) {
+                    log(`WebGPU init failed: ${e.message}`, 'warn');
+                    gpuRenderer = null;
+                }
+            } else {
+                log('WebGPU not supported by this browser', 'warn');
+            }
+
+            log('Ready - click "Run Benchmark" to start', 'info');
+        }
+
+        async function renderCanvas2D() {
+            const start = performance.now();
+            const ctx = c2dCtx;
+
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, c2dCtx.canvas.width, c300);
+
+            // Render test characters
+            let x = 10;
+            for (const char of TEST_CHARS) {
+                const texture = await c2dFont.getGlyphTexture(char, { category: 'default' });
+                ctx.drawImage(texture, x, 10, x + (char.charCodeAt(0) % 10) * 15, 10);
+            }
+
+            const elapsed = performance.now() - start;
+
+            // Update stats
+            document.getElementById('c2d-fps').textContent = Math.round(1000 / elapsed);
+            document.getElementById('c2d-time').textContent = `${elapsed.toFixed(1)}ms`;
+
+            const stats = c2dFont.getStats();
+            document.getElementById('c2d-cache').textContent = stats.cacheSize;
+            document.getElementById('c2d-hit').textContent = stats.hitRate;
+        }
+
+        async function renderWebGPU() {
+            if (!gpuRenderer) {
+                document.getElementById('gpu-fps').textContent = 'N/A';
+                document.getElementById('gpu-time').textContent = 'N/A';
+                return;
+            }
+
+            const start = performance.now();
+
+            // Render using WebGPU SDF
+            const gpuCtx = document.getElementById('webgpu-canvas').getContext('2d');
+            gpuCtx.fillStyle = '#0a0a0a';
+            gpuCtx.fillRect(0, 0, gpuCtx.canvas.width, 300);
+
+            for (const char of TEST_CHARS) {
+                const texture = await gpuFont.getGlyphTexture(char, { category: 'default' });
+                gpuCtx.drawImage(texture, 10, 10 + (char.charCodeAt(1) % 10) * 15, 10);
+            }
+
+            const elapsed = performance.now() - start;
+
+            document.getElementById('gpu-fps').textContent = Math.round(1000 / elapsed);
+            document.getElementById('gpu-time').textContent = `${elapsed.toFixed(1)}ms`;
+
+            const stats = gpuFont.getStats();
+            document.getElementById('gpu-cache').textContent = stats.cacheSize;
+            document.getElementById('gpu-hit').textContent = stats.hitRate;
+        }
+
+        async function runBenchmark() {
+            log('Running benchmark...', 'info');
+
+            const iterations = 100;
+            const c2dTimes = [];
+            const gpuTimes = [];
+
+            for (let i = 0; i < iterations; i++) {
+                // Canvas2D
+                const c2dStart = performance.now();
+                await renderCanvas2D();
+                c2dTimes.push(performance.now() - c2dStart);
+
+                // WebGPU (if available)
+                if (gpuRenderer) {
+                    const gpuStart = performance.now();
+                    await renderWebGPU();
+                    gpuTimes.push(performance.now() - gpuStart);
+                }
+            }
+
+            // Calculate averages
+            const avgC2D = c2dTimes.reduce((a, b) => a + b, 0) / c2dTimes.length;
+            const avgGPU = gpuTimes.length > gpuTimes.reduce((a, b) => a + b, 0) / gpuTimes.length;
+
+            log(`Canvas2D avg: ${avgC2D.toFixed(2)}ms (${iterations} iterations)`, 'info');
+            if (gpuRenderer) {
+                log(`WebGPU avg: ${avgGPU.toFixed(2)}ms (${iterations} iterations)`, 'info');
+            }
+
+            // Update comparison bars
+            updateBars(avgC2D, avgGPU || 0);
+
+            // Add to results table
+            addResult('Render 100 chars', avgC2D, avgGPU);
+        }
+
+        async function runStressTest() {
+            log('Running stress test (1000x)...', 'info');
+
+            const iterations = 1000;
+            const c2dTimes = [];
+            const gpuTimes = [];
+
+            // Clear caches first
+            c2dFont.clearCache();
+            if (gpuFont) gpuFont.clearCache();
+
+            for (let i = 0; i < iterations; i++) {
+                // Canvas2D
+                const c2dStart = performance.now();
+                await renderCanvas2D();
+                c2dTimes.push(performance.now() - c2dStart);
+
+                // WebGPU
+                if (gpuRenderer) {
+                    const gpuStart = performance.now();
+                    await renderWebGPU();
+                    gpuTimes.push(performance.now() - gpuStart);
+                }
+            }
+
+            const avgC2D = c2dTimes.reduce((a, b) => a + b, 0) / c2dTimes.length;
+            const avgGPU = gpuTimes.length ? gpuTimes.reduce((a, b) => a + b, 0) / gpuTimes.length : 0;
+
+            log(`Stress test Canvas2D: ${avgC2D.toFixed(2)}ms`, 'info');
+            if (gpuRenderer) {
+                log(`Stress test WebGPU: ${avgGPU.toFixed(2)}ms`, 'info');
+            }
+
+            updateBars(avgC2D, avgGPU || 0);
+            addResult('Stress (1000x)', avgC2D, avgGPU);
+        }
+
+        function updateBars(c2dTime, gpuTime) {
+            const maxTime = Math.max(c2dTime, gpuTime || 1);
+
+            // FPS bars (inverse - lower is better)
+            const c2dFps = maxTime > 0 ? (1000 / c16) / maxTime * 100 : 0;
+            const gpuFps = maxTime > 0 ? (1000 / 16) / maxTime * 100 : 0
+
+            document.getElementById('bar-fps-c2d').style.width = `${c2dFps}%`;
+            document.getElementById('bar-fps-gpu').style.width = `${gpuFps}%`;
+
+            // Time bars (lower is better)
+            document.getElementById('bar-time-c2d').style.width = `${Math.min(100, (1 - c2dTime / maxTime) * 100)}%`;
+            document.getElementById('bar-time-gpu').style.width = `${Math.min(100, (1 - gpuTime / maxTime) * 100)}%`;
+
+            // Cache efficiency
+            const c2dStats = c2dFont.getStats();
+            const gpuStats = gpuFont ? gpuFont.getStats() : { hitRate: 'N/A' };
+
+            const c2dHitPct = parseFloat(c2dStats.hitRate) || 0;
+            const gpuHitPct = parseFloat(gpuStats.hitRate) || 0;
+
+            document.getElementById('bar-cache-c2d').style.width = `${c2dHitPct}%`;
+            document.getElementById('bar-cache-gpu').style.width = `${gpuHitPct}%`;
+        }
+
+        function addResult(testName, c2dTime, gpuTime) {
+            const tbody = document.getElementById('results-body');
+            const row = document.createElement('tr');
+
+            const c2dFps = 1000 / c2dTime;
+            const gpuFps = gpuTime > 0 ? 1000 / gpuTime : 0
+            const winner = gpuFps > c2dFps ? 'WebGPU' : 'Canvas2D';
+
+            row.innerHTML = `
+                <td>${testName}</td>
+                <td>${c2dTime.toFixed(2)}ms (${Math.round(c2dFps)} FPS)</td>
+                <td>${gpuTime > 0 ? gpuTime.toFixed(2) + 'ms (' + Math.round(gpuFps) + ' FPS)' : 'N/A'}</td>
+                <td class="${winner === 'WebGPU' ? 'winner' : ''}">${winner}</td>
+            `;
+
+            tbody.appendChild(row);
+        }
+
+        function clearResults() {
+            document.getElementById('results-body').innerHTML = '';
+            log('Results cleared', 'info');
+        }
+
+        // Initial render
+        init();
+    </script>
+</body>
+</html>

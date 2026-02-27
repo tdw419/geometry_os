@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Geometric Code Editor Test</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        #controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(26, 26, 26, 0.95);
+            padding: 12px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            max-width: 260px;
+        }
+        button {
+            background: #252535;
+            color: #00ff88;
+            border: 1px solid #00ff88;
+            padding: 6px 10px;
+            margin: 2px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+        }
+        button:hover { background: #00ff88; color: #0a0a0a; }
+        .section { margin-top: 10px; padding-top: 8px; border-top: 1px solid #333; }
+        .label { color: #888; font-size: 10px; margin-bottom: 4px; }
+        #info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(26, 26, 26, 0.95);
+            padding: 12px;
+            border: 1px solid #333;
+            font-size: 11px;
+            border-radius: 8px;
+            min-width: 180px;
+        }
+        .stat { margin: 3px 0; }
+        .stat-label { color: #666; }
+        .stat-value { color: #00ff88; }
+        .dirty { color: #ffaa00; }
+        .saved { color: #00ff00; }
+        #help {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(26, 26, 26, 0.95);
+            padding: 10px;
+            border: 1px solid #333;
+            font-size: 10px;
+            border-radius: 8px;
+        }
+        #help h4 { margin: 0 0 5px 0; color: #00ff88; }
+        #help ul { margin: 0; padding-left: 15px; columns: 2; }
+        #help li { margin: 2px 0; }
+        #canvas { width: 100vw; height: 100vh; outline: none; }
+        #canvas:focus { border: none; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <div class="label">File Operations</div>
+        <input type="text" id="file-path" value="systems/visual_shell/web/application.js" style="width:100%;padding:6px;background:#252535;color:#00ff88;border:1px solid #444;margin-bottom:5px;" />
+        <br>
+        <button onclick="loadFile()">Load</button>
+        <button onclick="saveFile()">Save</button>
+        <button onclick="newFile()">New</button>
+
+        <div class="section">
+            <div class="label">Edit</div>
+            <button onclick="editorUndo()">Undo</button>
+            <button onclick="editorRedo()">Redo</button>
+            <button onclick="editor.selectAll()">Select All</button>
+        </div>
+
+        <div class="section">
+            <div class="label">View</div>
+            <button onclick="toggleDiff()">Show Diff</button>
+            <button onclick="toggleGitStatus()">Git Status</button>
+        </div>
+
+        <div class="section">
+            <div class="label">Examples</div>
+            <button onclick="loadExample('systems/visual_shell/web/GeometricCodeEditor.js')">Editor.js</button>
+            <button onclick="loadExample('systems/visual_shell/web/NeuralEventBus.js')">EventBus.js</button>
+            <button onclick="loadExample('systems/visual_shell/web/TerminalManager.js')">TermManager.js</button>
+        </div>
+    </div>
+
+    <div id="info">
+        <div class="stat"><span class="stat-label">File:</span> <span id="current-file">none</span></div>
+        <div class="stat"><span class="stat-label">Lines:</span> <span id="line-count">0</span></div>
+        <div class="stat"><span class="stat-label">Status:</span> <span id="save-status">-</span></div>
+        <div class="stat"><span class="stat-label">Cursor:</span> <span id="cursor-pos">0:0</span></div>
+        <div class="stat"><span class="stat-label">History:</span> <span id="history-count">0</span></div>
+    </div>
+
+    <div id="help">
+        <h4>Keyboard Shortcuts</h4>
+        <ul>
+            <li>Ctrl+S: Save</li>
+            <li>Ctrl+C: Copy</li>
+            <li>Ctrl+V: Paste</li>
+            <li>Ctrl+X: Cut</li>
+            <li>Ctrl+Z: Undo</li>
+            <li>Ctrl+Y: Redo</li>
+            <li>Ctrl+A: Select All</li>
+            <li>Arrow keys: Navigate</li>
+            <li>Home/End: Line start/end</li>
+            <li>PageUp/Down: Scroll</li>
+            <li>Tab: Insert 4 spaces</li>
+        </ul>
+    </div>
+
+    <div id="canvas" tabindex="0"></div>
+
+    <script src="https://pixijs.download/v7/pixi.min.js"></script>
+    <script type="module">
+        import { GeometricCodeEditor } from './GeometricCodeEditor.js';
+        import { GeometricTextRenderer } from './geometric_text.js';
+
+        let app, editor, bridge;
+
+        async function init() {
+            app = new PIXI.Application({
+                width: window.innerWidth,
+                height: window.innerHeight,
+                backgroundColor: 0x0a0a0a,
+                antialias: true
+            });
+            document.getElementById('canvas').appendChild(app.view);
+
+            // Create geometric text renderer
+            bridge = new GeometricTextRenderer(app, {
+                fontSize: 16,
+                color: 0x00ff88
+            });
+
+            // Create editor
+            editor = new GeometricCodeEditor(app, {
+                x: 50,
+                y: 50,
+                width: 900,
+                height: 600,
+                cols: 100,
+                rows: 35,
+                bridge: bridge,
+                editable: true,
+                autoSaveEnabled: true
+            });
+
+            app.stage.addChild(editor.container);
+
+            // Focus canvas for keyboard input
+            const canvas = document.getElementById('canvas');
+            canvas.focus();
+
+            // Forward keyboard events to editor
+            canvas.addEventListener('keydown', (e) => {
+                editor._handleKeyDown(e);
+                updateInfo();
+            });
+
+            // Status update
+            setInterval(updateInfo, 200);
+
+            console.log('[CodeEditor] Initialized');
+        }
+
+        window.loadFile = async function() {
+            const path = document.getElementById('file-path').value;
+            try {
+                const response = await fetch(`/api/file/read?path=${encodeURIComponent(path)}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                editor.filePath = path;
+                editor.codeContent = data.content;
+                editor.lineCount = data.content.split('\n').length;
+                editor.cursorX = 0;
+                editor.cursorY = 0;
+                editor._renderCode();
+                editor.setTitle(path.split('/').pop());
+
+                document.getElementById('current-file').textContent = path.split('/').pop();
+                document.getElementById('line-count').textContent = editor.lineCount;
+                document.getElementById('save-status').textContent = 'loaded';
+                document.getElementById('save-status').className = 'stat-value saved';
+
+                console.log(`[CodeEditor] Loaded: ${path}`);
+            } catch (e) {
+                alert('Failed to load file: ' + e.message);
+            }
+        };
+
+        window.saveFile = async function() {
+            const success = await editor.save();
+            if (success) {
+                document.getElementById('save-status').textContent = 'saved';
+                document.getElementById('save-status').className = 'stat-value saved';
+            } else {
+                document.getElementById('save-status').textContent = 'error';
+                document.getElementById('save-status').className = 'stat-value dirty';
+            }
+        };
+
+        window.newFile = function() {
+            editor.filePath = 'untitled.js';
+            editor.codeContent = '// New file\n\n';
+            editor.lineCount = 2;
+            editor.cursorX = 0;
+            editor.cursorY = 0;
+            editor._renderCode();
+            editor.setTitle('untitled.js');
+            document.getElementById('current-file').textContent = 'untitled.js';
+            document.getElementById('line-count').textContent = 2;
+            document.getElementById('save-status').textContent = 'new';
+        };
+
+        window.editorUndo = function() {
+            editor.undo();
+            updateInfo();
+        };
+
+        window.editorRedo = function() {
+            editor.redo();
+            updateInfo();
+        };
+
+        window.toggleDiff = async function() {
+            if (editor.filePath) {
+                await editor.loadGitDiff(editor.filePath);
+            }
+        };
+
+        window.toggleGitStatus = async function() {
+            if (editor.filePath) {
+                try {
+                    const response = await fetch(`/api/git/status?path=${encodeURIComponent(editor.filePath)}`);
+                    const status = await response.json();
+                    alert(`File: ${editor.filePath}\nModified: ${status.modified ? 'Yes' : 'No'}\nBranch: ${status.branch}`);
+                } catch (e) {
+                    alert('Failed to get git status');
+                }
+            }
+        };
+
+        window.loadExample = function(path) {
+            document.getElementById('file-path').value = path;
+            loadFile();
+        };
+
+        function updateInfo() {
+            document.getElementById('line-count').textContent = editor.lineCount || 0;
+            document.getElementById('cursor-pos').textContent = `${editor.cursorY + 1}:${editor.cursorX + 1}`;
+            document.getElementById('history-count').textContent = `${editor.historyIndex + 1}/${editor.editHistory.length}`;
+
+            if (editor.hasUnsavedChanges) {
+                document.getElementById('save-status').textContent = 'modified';
+                document.getElementById('save-status').className = 'stat-value dirty';
+            }
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            app.renderer.resize(window.innerWidth, window.innerHeight);
+        });
+
+        init();
+    </script>
+</body>
+</html>

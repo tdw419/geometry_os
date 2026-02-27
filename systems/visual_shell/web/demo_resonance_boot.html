@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Holographic Resonance Boot - Geometry OS</title>
+    <style>
+        body { background: #050505; color: #00ffd5; font-family: 'Courier New', monospace; padding: 20px; }
+        h1 { border-bottom: 2px solid #00ffd5; }
+        #controls { margin: 20px 0; display: flex; gap: 10px; }
+        button { background: #111; color: #00ffd5; border: 1px solid #00ffd5; padding: 10px 20px; cursor: pointer; }
+        button:hover { background: #00ffd5; color: #000; }
+        #status { padding: 10px; background: #111; border-left: 4px solid #00ffd5; margin: 10px 0; }
+        #console-output { background: #000; border: 1px solid #222; padding: 15px; min-height: 200px; max-height: 400px; overflow-y: auto; white-space: pre-wrap; color: #00ffd5; font-size: 14px; }
+        .res-preview { width: 256px; height: 256px; border: 1px solid #333; margin-top: 10px; background-size: contain; image-rendering: pixelated; }
+    </style>
+</head>
+<body>
+    <h1>Holographic Resonance Boot</h1>
+    <p>Zero-Symbol Execution: GPU decodes instructions directly from geometric interference patterns.</p>
+
+    <div id="controls">
+        <button onclick="init()">1. Init GPU</button>
+        <button onclick="load()" id="load-btn" disabled>2. Load Resonance Texture</button>
+        <button onclick="start()" id="start-btn" disabled>3. Start Hart</button>
+    </div>
+
+    <div id="status">Status: Waiting for input...</div>
+    
+    <div id="texture-preview" class="res-preview"></div>
+
+    <h2>UART Physical Perception</h2>
+    <div id="console-output"></div>
+
+    <script type="module">
+        import { WGPULinuxHypervisor } from './wgpu_linux_hypervisor.js';
+
+        let hypervisor = null;
+        const textureUrl = 'assets/hello_resonance.rts.png';
+
+        window.init = async function() {
+            document.getElementById('status').textContent = 'Status: Initializing WebGPU...';
+            hypervisor = new WGPULinuxHypervisor();
+            await hypervisor.init();
+            document.getElementById('status').textContent = 'Status: Motherboard Ready.';
+            document.getElementById('load-btn').disabled = false;
+        };
+
+        window.load = async function() {
+            document.getElementById('status').textContent = 'Status: Binding Resonance Texture...';
+            
+            // Preview
+            document.getElementById('texture-preview').style.backgroundImage = `url(${textureUrl})`;
+            
+            await hypervisor.loadKernelFromResonanceRTS(textureUrl);
+            document.getElementById('status').textContent = 'Status: Resonance Synchronized. CPU Ready.';
+            document.getElementById('start-btn').disabled = false;
+        };
+
+        window.start = async function() {
+            document.getElementById('status').textContent = 'Status: Executing Post-Symbolic Loop...';
+            hypervisor.onConsoleOutput = (text) => {
+                const out = document.getElementById('console-output');
+                out.textContent += text;
+                out.scrollTop = out.scrollHeight;
+            };
+            hypervisor.start(5000); // Start slow for perception
+        };
+    </script>
+</body>
+</html>

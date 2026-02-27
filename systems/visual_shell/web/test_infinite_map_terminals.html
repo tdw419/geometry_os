@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Geometry OS - Infinite Map with Terminals</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #app-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #main-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* HUD Overlay */
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 12px;
+            z-index: 1000;
+            min-width: 200px;
+        }
+
+        #hud h3 {
+            color: #00ff88;
+            margin-bottom: 10px;
+            font-size: 14px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        .hud-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .hud-label { color: #888; }
+        .hud-value { color: #00ff88; }
+
+        /* Control Panel */
+        #controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 15px;
+            z-index: 1000;
+        }
+
+        #controls h3 {
+            color: #00ff88;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        button {
+            background: #252535;
+            color: #00ff88;
+            border: 1px solid #00ff88;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: inherit;
+            border-radius: 4px;
+            margin: 3px;
+            display: block;
+            width: 100%;
+            text-align: left;
+        }
+
+        button:hover {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        /* Minimap */
+        #minimap {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 200px;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            overflow: hidden;
+            z-index: 1000;
+        }
+
+        #minimap-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Instructions */
+        #instructions {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 11px;
+            color: #888;
+            z-index: 1000;
+        }
+
+        #instructions kbd {
+            background: #333;
+            padding: 2px 5px;
+            border-radius: 3px;
+            color: #fff;
+        }
+
+        /* Toast notifications */
+        #toast-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: rgba(0, 255, 136, 0.9);
+            color: #0a0a0a;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            animation: fadeInOut 2s ease-in-out;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-10px); }
+            20% { opacity: 1; transform: translateY(0); }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <canvas id="main-canvas"></canvas>
+
+        <!-- HUD -->
+        <div id="hud">
+            <h3>◈ Infinite Map</h3>
+            <div class="hud-row">
+                <span class="hud-label">Terminals:</span>
+                <span class="hud-value" id="terminal-count">0</span>
+            </div>
+            <div class="hud-row">
+                <span class="hud-label">Viewport:</span>
+                <span class="hud-value" id="viewport-pos">0, 0</span>
+            </div>
+            <div class="hud-row">
+                <span class="hud-label">Zoom:</span>
+                <span class="hud-value" id="zoom-level">1.0x</span>
+            </div>
+            <div class="hud-row">
+                <span class="hud-label">Focused:</span>
+                <span class="hud-value" id="focused-terminal">None</span>
+            </div>
+            <div class="hud-row">
+                <span class="hud-label">FPS:</span>
+                <span class="hud-value" id="fps">0</span>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div id="controls">
+            <h3>Terminal Controls</h3>
+            <button onclick="createTerminal()">+ New Terminal</button>
+            <button onclick="createMorphTerminal()">+ Morphological Terminal</button>
+            <button onclick="closeFocused()">x Close Focused</button>
+            <button onclick="cycleFocus()">↻ Cycle Focus</button>
+            <hr style="border-color: #333; margin: 10px 0;">
+            <button onclick="resetView()">⌂ Reset View</button>
+            <button onclick="saveLayout()">💾 Save Layout</button>
+            <button onclick="loadLayout()">📂 Load Layout</button>
+        </div>
+
+        <!-- Minimap -->
+        <div id="minimap">
+            <canvas id="minimap-canvas"></canvas>
+        </div>
+
+        <!-- Instructions -->
+        <div id="instructions">
+            <kbd>Drag</kbd> Pan canvas &nbsp;
+            <kbd>Scroll</kbd> Zoom &nbsp;
+            <kbd>Click</kbd> Focus terminal &nbsp;
+            <kbd>Tab</kbd> Cycle focus
+        </div>
+
+        <!-- Toast container -->
+        <div id="toast-container"></div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="lib/pixi.min.js"></script>
+    <script src="morphological/PatternLibrary.js"></script>
+    <script src="morphological/SemanticClassifier.js"></script>
+    <script src="morphological/HilbertGlyphSynthesizer.js"></script>
+    <script src="morphological/MorphologicalFont.js"></script>
+    <script src="TerminalWindowCompat.js"></script>
+    <script src="WindowParticle.js"></script>
+    <script src="TerminalWindowParticle.js"></script>
+    <script src="ParticleManager.js"></script>
+    <script>
+        // Global state
+        let app;
+        let worldContainer;
+        let particleManager;
+        let viewport = { x: 0, y: 0, scale: 1.0 };
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        let lastFrameTime = performance.now();
+        let frameCount = 0;
+
+        // Toast notification
+        function toast(message) {
+            const container = document.getElementById('toast-container');
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.textContent = message;
+            container.appendChild(t);
+            setTimeout(() => t.remove(), 2000);
+        }
+
+        // Initialize PIXI Application
+        async function init() {
+            console.log('[InfiniteMap] Initializing...');
+
+            // Create PIXI app
+            app = new PIXI.Application({
+                view: document.getElementById('main-canvas'),
+                width: window.innerWidth,
+                height: window.innerHeight,
+                backgroundColor: 0x0a0a0a,
+                resolution: window.devicePixelRatio || 1,
+                autoDensity: true
+            });
+
+            // World container (pan/zoom target)
+            worldContainer = new PIXI.Container();
+            worldContainer.sortableChildren = true;
+            app.stage.addChild(worldContainer);
+
+            // Draw grid
+            drawGrid();
+
+            // Create particle manager
+            particleManager = new ParticleManager(worldContainer, {
+                onParticleCreated: (p) => {
+                    updateHUD();
+                    toast(`Terminal created: ${p.particleId.slice(0, 15)}...`);
+                },
+                onParticleDestroyed: (p) => {
+                    updateHUD();
+                    toast('Terminal closed');
+                },
+                onParticleFocused: (p) => {
+                    updateHUD();
+                }
+            });
+
+            // Setup interaction
+            setupInteraction();
+
+            // Setup keyboard
+            setupKeyboard();
+
+            // Setup minimap
+            setupMinimap();
+
+            // Create initial terminals
+            await createTerminal();
+            await createTerminal();
+
+            // Position second terminal
+            const particles = particleManager.getAllParticles();
+            if (particles[1]) {
+                particles[1].setPosition(600, 200);
+            }
+
+            // Start render loop
+            app.ticker.add(update);
+
+            // Update HUD periodically
+            setInterval(updateHUD, 100);
+
+            console.log('[InfiniteMap] Ready');
+            toast('Infinite Map ready - drag to pan, scroll to zoom');
+        }
+
+        // Draw background grid
+        function drawGrid() {
+            const gridGraphics = new PIXI.Graphics();
+            gridGraphics.lineStyle(1, 0x1a1a1a, 0.5);
+
+            const gridSize = 100;
+            const extent = 5000;
+
+            for (let x = -extent; x <= extent; x += gridSize) {
+                gridGraphics.moveTo(x, -extent);
+                gridGraphics.lineTo(x, extent);
+            }
+
+            for (let y = -extent; y <= extent; y += gridSize) {
+                gridGraphics.moveTo(-extent, y);
+                gridGraphics.lineTo(extent, y);
+            }
+
+            // Origin marker
+            gridGraphics.lineStyle(2, 0x00ff88, 0.3);
+            gridGraphics.drawCircle(0, 0, 20);
+
+            worldContainer.addChildAt(gridGraphics, 0);
+        }
+
+        // Setup mouse/touch interaction
+        function setupInteraction() {
+            const canvas = app.view;
+
+            // Pan with drag
+            canvas.addEventListener('pointerdown', (e) => {
+                // Only pan if clicking on background (not a terminal)
+                if (e.target === canvas) {
+                    isDragging = true;
+                    dragStart = {
+                        x: e.clientX - viewport.x,
+                        y: e.clientY - viewport.y
+                    };
+                    canvas.style.cursor = 'grabbing';
+                }
+            });
+
+            canvas.addEventListener('pointermove', (e) => {
+                if (isDragging) {
+                    viewport.x = e.clientX - dragStart.x;
+                    viewport.y = e.clientY - dragStart.y;
+                    updateViewport();
+                }
+            });
+
+            canvas.addEventListener('pointerup', () => {
+                isDragging = false;
+                canvas.style.cursor = 'default';
+            });
+
+            canvas.addEventListener('pointerleave', () => {
+                isDragging = false;
+                canvas.style.cursor = 'default';
+            });
+
+            // Zoom with scroll
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+                const newScale = Math.max(0.1, Math.min(3.0, viewport.scale * zoomFactor));
+
+                // Zoom toward mouse position
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                const worldX = (mouseX - viewport.x) / viewport.scale;
+                const worldY = (mouseY - viewport.y) / viewport.scale;
+
+                viewport.scale = newScale;
+
+                viewport.x = mouseX - worldX * viewport.scale;
+                viewport.y = mouseY - worldY * viewport.scale;
+
+                updateViewport();
+            }, { passive: false });
+        }
+
+        // Setup keyboard shortcuts
+        function setupKeyboard() {
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    cycleFocus();
+                } else if (e.key === 'Escape') {
+                    // Deselect
+                    if (particleManager.focusedParticle) {
+                        particleManager.focusedParticle.blur();
+                        particleManager.focusedParticle = null;
+                        updateHUD();
+                    }
+                }
+            });
+        }
+
+        // Minimap
+        let minimapCtx;
+        function setupMinimap() {
+            const canvas = document.getElementById('minimap-canvas');
+            canvas.width = 200;
+            canvas.height = 150;
+            minimapCtx = canvas.getContext('2d');
+        }
+
+        function updateMinimap() {
+            if (!minimapCtx) return;
+
+            const ctx = minimapCtx;
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, 200, 150);
+
+            // Draw viewport rect
+            ctx.strokeStyle = '#00ff88';
+            ctx.lineWidth = 1;
+
+            const scale = 0.02;
+            const vx = (-viewport.x * scale) + 100;
+            const vy = (-viewport.y * scale) + 75;
+            const vw = (window.innerWidth / viewport.scale) * scale;
+            const vh = (window.innerHeight / viewport.scale) * scale;
+
+            ctx.strokeRect(vx - vw/2, vy - vh/2, vw, vh);
+
+            // Draw particles
+            ctx.fillStyle = '#44ffff';
+            particleManager.getAllParticles().forEach(p => {
+                const px = p.particlePosition.x * scale + 100;
+                const py = p.particlePosition.y * scale + 75;
+                ctx.fillRect(px - 3, py - 3, 6, 6);
+            });
+        }
+
+        // Update viewport transform
+        function updateViewport() {
+            worldContainer.position.set(viewport.x, viewport.y);
+            worldContainer.scale.set(viewport.scale);
+            updateHUD();
+            updateMinimap();
+        }
+
+        // Update HUD
+        function updateHUD() {
+            document.getElementById('terminal-count').textContent = particleManager.getParticleCount();
+            document.getElementById('viewport-pos').textContent =
+                `${Math.round(-viewport.x / viewport.scale)}, ${Math.round(-viewport.y / viewport.scale)}`;
+            document.getElementById('zoom-level').textContent = `${viewport.scale.toFixed(1)}x`;
+            document.getElementById('focused-terminal').textContent =
+                particleManager.focusedParticle?.particleId.slice(0, 12) || 'None';
+        }
+
+        // Create a terminal particle
+        async function createTerminal() {
+            // Find empty position
+            const particles = particleManager.getAllParticles();
+            const offsetX = 100 + (particles.length % 3) * 500;
+            const offsetY = 100 + Math.floor(particles.length / 3) * 400;
+
+            const particle = particleManager.createTerminalParticle({
+                x: offsetX - viewport.x / viewport.scale,
+                y: offsetY - viewport.y / viewport.scale,
+                width: 600,
+                height: 400,
+                title: `Terminal ${particles.length + 1}`
+            });
+
+            return particle;
+        }
+
+        // Create terminal with morphological font
+        async function createMorphTerminal() {
+            const particles = particleManager.getAllParticles();
+            const offsetX = 100 + (particles.length % 3) * 500;
+            const offsetY = 100 + Math.floor(particles.length / 3) * 400;
+
+            const particle = particleManager.createTerminalParticle({
+                x: offsetX - viewport.x / viewport.scale,
+                y: offsetY - viewport.y / viewport.scale,
+                width: 700,
+                height: 450,
+                title: `Morph Term ${particles.length + 1}`
+            });
+
+            // Enable morphological font on the terminal
+            const terminal = particle.terminalWindow;
+            if (terminal && terminal.setMorphFont) {
+                const morphFont = new MorphologicalFont({ size: 16 });
+                await morphFont.init();
+                terminal.setMorphFont(morphFont);
+            }
+
+            return particle;
+        }
+
+        // Close focused terminal
+        function closeFocused() {
+            if (particleManager.focusedParticle) {
+                particleManager.destroyFocused();
+            } else {
+                toast('No terminal focused');
+            }
+        }
+
+        // Cycle focus
+        function cycleFocus() {
+            const next = particleManager.cycleFocus();
+            if (next) {
+                toast(`Focused: ${next.particleId.slice(0, 15)}...`);
+            }
+        }
+
+        // Reset view
+        function resetView() {
+            viewport = { x: window.innerWidth / 2, y: window.innerHeight / 2, scale: 1.0 };
+            updateViewport();
+            toast('View reset');
+        }
+
+        // Save layout
+        function saveLayout() {
+            const data = particleManager.serialize();
+            localStorage.setItem('terminalLayout', JSON.stringify(data));
+            toast('Layout saved');
+        }
+
+        // Load layout
+        function loadLayout() {
+            const saved = localStorage.getItem('terminalLayout');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    particleManager.deserialize(data);
+                    toast('Layout restored');
+                } catch (e) {
+                    toast('Failed to load layout');
+                }
+            } else {
+                toast('No saved layout');
+            }
+        }
+
+        // Main update loop
+        function update() {
+            // Update particles
+            particleManager.update();
+
+            // FPS counter
+            frameCount++;
+            const now = performance.now();
+            if (now - lastFrameTime >= 1000) {
+                document.getElementById('fps').textContent = frameCount;
+                frameCount = 0;
+                lastFrameTime = now;
+            }
+
+            // Update minimap occasionally
+            if (frameCount % 30 === 0) {
+                updateMinimap();
+            }
+        }
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            app.renderer.resize(window.innerWidth, window.innerHeight);
+            updateMinimap();
+        });
+
+        // Initialize
+        init();
+    </script>
+</body>
+</html>

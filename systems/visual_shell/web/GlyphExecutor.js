@@ -1,556 +1,769 @@
 /**
- * Geometry OS: GlyphExecutor - The Motherboard
+ * Geometry OS: GlyphExecutor
  *
- * Executes Resonance Glyphs placed on the Infinite Map.
- * Bridges PixiJS visual layer to WebGPU compute execution.
+ * The "Visual Motherboard" of the post-symbolic execution substrate.
+ * Orchestrates:
+ * - Glyph Atlas texture binding
+ * - Dictionary buffer management
+ * - Compute pipeline dispatch
+ * - State synchronization with CPU
  *
- * Glyph size: 16x16 pixels
- * Max cores: 64 (matching shader workgroup size)
- * Registers per core: 46 (from visual_cpu_riscv_morph.wgsl)
+ * Phase 28: Zero-Symbol Holographic Execution
  */
 
-class GlyphExecutor {
-    constructor(options = {}) {
-        this.options = {
-            maxCores: 64,
-            glyphSize: 16,
-            regsPerCore: 46,
-            atlasPath: '/assets/universal_font.rts.png',
-            ...options
-        };
+export class GlyphExecutor {
+    /**
+     * @param {GPUDevice} device - WebGPU device
+     */
+    constructor(device) {
+        this.device = device;
 
-        // WebGPU state
-        this.device = null;
-        this.adapter = null;
+        // Pipeline state
+        this.pipeline = null;
+        this.bindGroupLayout = null;
+        this.initialized = false;
 
-        // GPU resources
-        this.atlasTexture = null;
-        this.systemMemoryBuffer = null;
-        this.cpuStatesBuffer = null;
+        // Texture atlas
+        this.glyphAtlas = null;
+        this.atlasWidth = 1024;   // pixels
+        this.atlasHeight = 1024;  // pixels
+        this.tileSize = 16;       // 16x16 glyph tiles
 
-        // Glyph registry: Map<"x,y" -> GlyphEntry>
-        this.registry = new Map();
+        // Dictionary
+        this.dictionaryBuffer = null;
+        this.dictionarySize = 0;
 
-        // Execution state
-        this.executionCount = 0;
+        // Memory (128MB)
+        this.MEMORY_SIZE = 128 * 1024 * 1024;
+        this.memoryBuffer = null;
+
+        // CPU state (256 * 4 bytes)
+        this.stateBuffer = null;
+
+        // Active kernels
+        this.kernels = new Map();
+
+        // Syscall hook for UART output
+        this.onConsoleOutput = null;
+
+        // Glyph Registry - maps spatial positions to execution state
+        this.glyphRegistry = new Map(); // "x,y" -> { coreId, sprite, atlasX, atlasY, state }
+        this.nextCoreId = 1;
+
+        // Auto-execution state
         this.autoExecutionInterval = null;
-        this.executing = false;
-        this.lastResult = null;
-        this.ticker = null;
+        this.autoExecutionFps = 60;
         this.frameCount = 0;
-
-        console.log('GlyphExecutor created with options:', this.options);
+        this.autoExecutionEnabled = false;
     }
 
     /**
-     * Async initialization - must be called after constructor
-     * WebGPU requires async initialization
-     */
-    async init() {
-        console.log('GlyphExecutor.init() called');
-
-        // Initialize WebGPU
-        const device = await this.initWebGPU();
-        if (!device) {
-            console.warn('GlyphExecutor initialized without WebGPU - execution disabled');
-            return this;
-        }
-
-        // Create GPU buffers
-        this.createBuffers();
-
-        console.log('GlyphExecutor initialization complete');
-        return this;
-    }
-
-    /**
-     * Initialize WebGPU adapter and device
-     * @returns {GPUDevice|null} WebGPU device or null if unavailable
-     */
-    async initWebGPU() {
-        console.log('GlyphExecutor.initWebGPU() called');
-
-        // Check WebGPU availability
-        if (!navigator.gpu) {
-            console.warn('WebGPU not supported in this browser');
-            return null;
-        }
-
-        try {
-            // Request adapter
-            this.adapter = await navigator.gpu.requestAdapter();
-            if (!this.adapter) {
-                console.warn('Failed to get WebGPU adapter');
-                return null;
-            }
-
-            // Request device
-            this.device = await this.adapter.requestDevice();
-            console.log('WebGPU device acquired');
-
-            return this.device;
-        } catch (error) {
-            console.error('WebGPU initialization failed:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Create GPU buffers for system memory and CPU states
-     * - systemMemory: 1MB storage buffer for program data/heap
-     * - cpuStates: maxCores * 46 * 4 bytes (46 u32 registers per core)
-     */
-    createBuffers() {
-        console.log('GlyphExecutor.createBuffers() called');
-
-        if (!this.device) {
-            console.error('Cannot create buffers: WebGPU device not initialized');
-            return;
-        }
-
-        const { maxCores, regsPerCore } = this.options;
-
-        // System Memory: 1MB storage buffer
-        const systemMemorySize = 1 * 1024 * 1024; // 1MB
-        this.systemMemoryBuffer = this.device.createBuffer({
-            size: systemMemorySize,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_READ | GPUBufferUsage.COPY_WRITE,
-        });
-
-        // CPU States: maxCores * 46 regs * 4 bytes per u32
-        const cpuStatesSize = maxCores * regsPerCore * 4;
-        this.cpuStatesBuffer = this.device.createBuffer({
-            size: cpuStatesSize,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_READ | GPUBufferUsage.COPY_WRITE,
-        });
-
-        console.log('Buffers created', {
-            systemMemorySize,
-            cpuStatesSize,
-            maxCores,
-            regsPerCore
-        });
-    }
-
-    /**
-     * Load the glyph atlas texture
-     * @param {string} atlasPath - Path to atlas PNG file
-     * @returns {GPUTexture|null} The loaded atlas texture or null on failure
-     */
-    async loadAtlas(atlasPath) {
-        console.log('GlyphExecutor.loadAtlas() called with path:', atlasPath);
-
-        if (!this.device) {
-            console.error('Cannot load atlas: WebGPU device not initialized');
-            return null;
-        }
-
-        try {
-            // Fetch the atlas image
-            const response = await fetch(atlasPath);
-            if (!response.ok) {
-                throw new Error(`Failed to fetch atlas: ${response.status} ${response.statusText}`);
-            }
-
-            const blob = await response.blob();
-
-            // Create ImageBitmap for efficient GPU upload
-            const imageBitmap = await createImageBitmap(blob);
-
-            // Store dimensions
-            this.atlasWidth = imageBitmap.width;
-            this.atlasHeight = imageBitmap.height;
-
-            // Create GPU texture
-            this.atlasTexture = this.device.createTexture({
-                size: [this.atlasWidth, this.atlasHeight, 1],
-                format: 'rgba8unorm',
-                usage: GPUTextureUsage.TEXTURE_BINDING |
-                       GPUTextureUsage.COPY_DST |
-                       GPUTextureUsage.RENDER_ATTACHMENT,
-            });
-
-            // Copy image data to GPU texture
-            this.device.queue.copyExternalImageToTexture(
-                { source: imageBitmap },
-                { texture: this.atlasTexture },
-                [this.atlasWidth, this.atlasHeight, 1]
-            );
-
-            console.log(`Atlas loaded: ${this.atlasWidth}x${this.atlasHeight}`);
-
-            return this.atlasTexture;
-        } catch (error) {
-            console.error('Failed to load atlas:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Register a glyph for execution
-     * @param {number} x - X coordinate on the map
-     * @param {number} y - Y coordinate on the map
-     * @param {object} sprite - PixiJS sprite reference
-     * @param {number} atlasX - X position in atlas (glyph column)
-     * @param {number} atlasY - Y position in atlas (glyph row)
+     * Register a glyph for execution tracking
+     * @param {number} x - Screen X position
+     * @param {number} y - Screen Y position
+     * @param {PIXI.Sprite} sprite - Visual sprite for this glyph
+     * @param {number} atlasX - X position in glyph atlas
+     * @param {number} atlasY - Y position in glyph atlas
      * @returns {number} Assigned core ID
      */
     registerGlyph(x, y, sprite, atlasX, atlasY) {
         const key = `${x},${y}`;
+        const coreId = this.nextCoreId++;
 
-        // Check if already registered
-        if (this.registry.has(key)) {
-            console.warn(`Glyph already registered at (${x},${y})`);
-            return this.registry.get(key).coreId;
-        }
-
-        // Assign core ID using round-robin modulo
-        const coreId = this.registry.size % this.options.maxCores;
-
-        // Create GlyphEntry
-        const entry = {
+        this.glyphRegistry.set(key, {
+            coreId,
             sprite,
             atlasX,
             atlasY,
-            coreId,
+            state: 'idle', // idle | running | halted | error
             pc: 0,
-            active: true,
-            lastResult: null,
-            executionCount: 0,
-            glowIntensity: 0
-        };
+            cycleCount: 0,
+            lastOutput: null
+        });
 
-        // Add to registry
-        this.registry.set(key, entry);
-
-        console.log(`Glyph registered at (${x},${y}), core ${coreId}`);
-
+        console.log(`[GlyphExecutor] Registered glyph at (${x},${y}) with coreId=${coreId}`);
         return coreId;
     }
 
     /**
-     * Unregister a glyph from execution
-     * @param {number} x - X coordinate
-     * @param {number} y - Y coordinate
+     * Unregister a glyph from execution tracking
+     * @param {number} x - Screen X position
+     * @param {number} y - Screen Y position
+     * @returns {boolean} True if glyph was removed
      */
     unregisterGlyph(x, y) {
         const key = `${x},${y}`;
+        const removed = this.glyphRegistry.delete(key);
 
-        if (this.registry.has(key)) {
-            const entry = this.registry.get(key);
-            this.registry.delete(key);
-            console.log(`Glyph unregistered at (${x},${y}), was core ${entry.coreId}`);
-        } else {
-            console.warn(`No glyph registered at (${x},${y}) to unregister`);
+        if (removed) {
+            console.log(`[GlyphExecutor] Unregistered glyph at (${x},${y})`);
         }
+        return removed;
     }
 
     /**
      * Get execution state for a glyph
-     * @param {number} x - X coordinate
-     * @param {number} y - Y coordinate
-     * @returns {object|null} Execution state or null if not registered
+     * @param {number} x - Screen X position
+     * @param {number} y - Screen Y position
+     * @returns {Object|null} State object or null if not found
      */
     getExecutionState(x, y) {
         const key = `${x},${y}`;
-        return this.registry.get(key) || null;
+        return this.glyphRegistry.get(key) || null;
     }
 
     /**
-     * Get all registered glyphs
-     * @returns {Array} Array of GlyphEntry objects
+     * Get all active glyphs in the registry
+     * @returns {Array} Array of {x, y, ...entry} objects
      */
     getActiveGlyphs() {
-        return Array.from(this.registry.values());
-    }
+        const active = [];
 
-    /**
-     * Execute all registered glyphs
-     * Full execution loop: sync -> dispatch -> read -> update
-     * @returns {Promise<object>} Execution results
-     */
-    async execute() {
-        console.log('GlyphExecutor.execute() called');
-
-        // Prevent re-entry
-        if (this.executing) {
-            console.warn('Execute already in progress, skipping');
-            return { skipped: true };
-        }
-        this.executing = true;
-
-        try {
-            const activeGlyphs = this.getActiveGlyphs().filter(g => g.active);
-            const glyphCount = activeGlyphs.length;
-
-            if (glyphCount === 0) {
-                console.log('No active glyphs to execute');
-                this.executing = false;
-                return { executed: 0 };
-            }
-
-            // Step 1: Sync CPU states to GPU buffer
-            this.syncCPUIStates(activeGlyphs);
-
-            // Step 2: Dispatch compute (simulated for POC)
-            await this.dispatchCompute(activeGlyphs);
-
-            // Step 3: Read results from GPU buffer
-            const results = await this.readResults(activeGlyphs);
-
-            // Step 4: Update visual feedback
-            this.updateVisualFeedback(activeGlyphs, results);
-
-            // Update execution count and last result
-            this.executionCount++;
-            this.lastResult = {
-                executed: glyphCount,
-                timestamp: Date.now(),
-                results
-            };
-
-            console.log(`Executed ${glyphCount} glyphs`);
-
-            return this.lastResult;
-        } finally {
-            this.executing = false;
-        }
-    }
-
-    /**
-     * Sync CPU states to GPU buffer
-     * Creates Uint32Array, sets PC for each active glyph
-     */
-    syncCPUIStates(activeGlyphs) {
-        const { maxCores, regsPerCore } = this.options;
-        const glyphsPerRow = this.atlasWidth ? Math.floor(this.atlasWidth / 16) : 64;
-
-        // Create CPU states array
-        const cpuStates = new Uint32Array(maxCores * regsPerCore);
-
-        for (const glyph of activeGlyphs) {
-            const baseIdx = glyph.coreId * regsPerCore;
-
-            // Set PC at offset +32 (from shader spec)
-            cpuStates[baseIdx + 32] = glyph.pc;
-
-            // Set atlas position for decode
-            cpuStates[baseIdx + 0] = glyph.atlasX;
-            cpuStates[baseIdx + 1] = glyph.atlasY;
-
-            // Calculate glyph index in atlas
-            const glyphIdx = glyph.atlasY * glyphsPerRow + glyph.atlasX;
-            cpuStates[baseIdx + 2] = glyphIdx;
-
-            console.log(`syncCPUIStates: core ${glyph.coreId}, PC=${glyph.pc}, atlas=(${glyph.atlasX},${glyph.atlasY})`);
-        }
-
-        // Write to GPU buffer if available
-        if (this.device && this.cpuStatesBuffer) {
-            this.device.queue.writeBuffer(
-                this.cpuStatesBuffer,
-                0,
-                cpuStates.buffer,
-                0,
-                cpuStates.byteLength
-            );
-        }
-    }
-
-    /**
-     * Dispatch compute shader (simulated for POC)
-     * In full implementation, would dispatch visual_cpu_riscv_morph.wgsl
-     * @param {Array} activeGlyphs - Glyphs to execute
-     */
-    async dispatchCompute(activeGlyphs) {
-        // POC: Simulated compute - just increment execution count per glyph
-        // Full implementation would:
-        // 1. Create compute pipeline with visual_cpu_riscv_morph.wgsl
-        // 2. Create bind group with atlas texture, systemMemory, cpuStates
-        // 3. Dispatch workgroups (1 per glyph, max 64)
-        // 4. Wait for completion
-
-        for (const glyph of activeGlyphs) {
-            glyph.executionCount++;
-        }
-
-        // Simulate async GPU work
-        await new Promise(resolve => setTimeout(resolve, 1));
-
-        console.log(`dispatchCompute: simulated execution for ${activeGlyphs.length} glyphs`);
-    }
-
-    /**
-     * Read results from GPU buffer
-     * Checks halt flag and extracts execution state
-     * Detects fraud when halt flag is set
-     * @param {Array} activeGlyphs - Glyphs to read results for
-     * @returns {Promise<Array>} Results per glyph
-     */
-    async readResults(activeGlyphs) {
-        const { maxCores, regsPerCore } = this.options;
-        const results = [];
-
-        // POC: Simulated readback
-        // Full implementation would:
-        // 1. Create staging buffer with MAP_READ | COPY_DST
-        // 2. Copy cpuStatesBuffer to staging
-        // 3. mapAsync(), read, unmap()
-
-        for (const glyph of activeGlyphs) {
-            const baseIdx = glyph.coreId * regsPerCore;
-
-            // Simulated: check halt flag at offset +38
-            // In real implementation, read from buffer
-            // POC: Simulate fraud detection - 5% chance of halt for testing
-            const fraudDetected = Math.random() < 0.05;
-            const haltFlag = fraudDetected; // POC: random fraud for testing
-            const cycles = glyph.executionCount;
-
-            results.push({
-                coreId: glyph.coreId,
-                halted: haltFlag,
-                fraud: fraudDetected,
-                cycles,
-                pc: glyph.pc
+        for (const [key, entry] of this.glyphRegistry) {
+            const [x, y] = key.split(',').map(Number);
+            active.push({
+                x,
+                y,
+                ...entry
             });
-
-            // Update glyph's lastResult with fraud flag
-            glyph.lastResult = {
-                cycles,
-                halted: haltFlag,
-                fraud: fraudDetected
-            };
         }
 
-        console.log(`readResults: ${results.length} glyph states read`);
-        return results;
+        return active;
     }
 
     /**
-     * Update visual feedback for glyphs
-     * Updates glowIntensity based on active state with smooth interpolation
-     * Active glyphs: alpha 0.7-1.0, pulsing scale effect
-     * Halted glyphs (fraud detected): red tint
-     * @param {Array} activeGlyphs - Glyphs to update
-     * @param {Array} results - Execution results
+     * Update execution state for a glyph
+     * @param {number} x - Screen X position
+     * @param {number} y - Screen Y position
+     * @param {Object} stateUpdate - Partial state to merge
+     * @returns {boolean} True if update succeeded
      */
-    updateVisualFeedback(activeGlyphs, results) {
-        const time = Date.now();
+    updateGlyphState(x, y, stateUpdate) {
+        const key = `${x},${y}`;
+        const entry = this.glyphRegistry.get(key);
 
-        for (let i = 0; i < activeGlyphs.length; i++) {
-            const glyph = activeGlyphs[i];
-            const result = results[i];
+        if (!entry) return false;
 
-            if (!glyph.sprite) continue;
+        Object.assign(entry, stateUpdate);
 
-            // Check for fraud/halt detection
-            if (result.halted || result.fraud) {
-                // Halted glyphs (fraud detected): red tint, dim
-                glyph.sprite.tint = 0xff0000; // Red tint for fraud
-                glyph.sprite.alpha = 0.5;
-                glyph.active = false;
-
-                // Smooth interpolation to zero glow
-                const targetGlow = 0;
-                glyph.glowIntensity = glyph.glowIntensity * 0.85 + targetGlow * 0.15;
-
-                // No scale pulse for halted glyphs
-                glyph.sprite.scale.set(1.0);
-            } else {
-                // Active glyphs: glow and pulse
-                // Target glow intensity based on execution activity
-                const targetGlow = Math.min(1.0, 0.5 + (glyph.executionCount % 10) * 0.05);
-
-                // Smooth interpolation: glowIntensity = glowIntensity * 0.85 + target * 0.15
-                glyph.glowIntensity = glyph.glowIntensity * 0.85 + targetGlow * 0.15;
-
-                // Alpha blend: 0.7-1.0 based on glowIntensity
-                glyph.sprite.alpha = 0.7 + glyph.glowIntensity * 0.3;
-
-                // Pulsing scale effect: 1.0 + sin(time/300 + coreId) * 0.1 * glowIntensity
-                const scalePulse = Math.sin(time / 300 + glyph.coreId) * 0.1 * glyph.glowIntensity;
-                const scale = 1.0 + scalePulse;
-                glyph.sprite.scale.set(scale);
-
-                // Clear any red tint from previous state
-                glyph.sprite.tint = 0xffffff;
+        // Update sprite visual state based on execution state
+        if (entry.sprite) {
+            switch (entry.state) {
+                case 'running':
+                    entry.sprite.tint = 0x00FF88; // Green glow
+                    break;
+                case 'halted':
+                    entry.sprite.tint = 0xFFAA00; // Orange
+                    break;
+                case 'error':
+                    entry.sprite.tint = 0xFF4444; // Red
+                    break;
+                default:
+                    entry.sprite.tint = 0xFFFFFF; // White (idle)
             }
         }
 
-        console.log(`updateVisualFeedback: ${activeGlyphs.length} glyphs updated`);
+        return true;
+    }
+
+    /**
+     * Initialize the executor (load shader, create pipeline)
+     */
+    async initialize() {
+        if (this.initialized) return;
+
+        console.log('[GlyphExecutor] Initializing post-symbolic substrate...');
+
+        // Load shader
+        const shaderCode = await this._loadShader('shaders/visual_cpu_riscv_post_symbolic.wgsl');
+        this.shaderModule = this.device.createShaderModule({
+            label: 'Post-Symbolic CPU (RISC-V)',
+            code: shaderCode
+        });
+
+        // Create bind group layout
+        // Binding 0: Glyph Atlas Texture
+        // Binding 1: Atlas Dictionary
+        // Binding 2: System Memory
+        // Binding 3: CPU State
+        this.bindGroupLayout = this.device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.COMPUTE,
+                    texture: { sampleType: 'float', viewDimension: '2d' }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: 'read-only-storage' }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: 'storage' }
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: 'storage' }
+                }
+            ]
+        });
+
+        // Create pipeline
+        this.pipeline = this.device.createComputePipeline({
+            layout: this.device.createPipelineLayout({
+                bindGroupLayouts: [this.bindGroupLayout]
+            }),
+            compute: {
+                module: this.shaderModule,
+                entryPoint: 'main'
+            }
+        });
+
+        this.initialized = true;
+        console.log('[GlyphExecutor] Initialized successfully');
+    }
+
+    /**
+     * Load shader source from URL
+     * @private
+     */
+    async _loadShader(url) {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to load shader: ${url}`);
+        }
+        return response.text();
+    }
+
+    /**
+     * Deploy a kernel from morphological texture
+     * @param {string} textureUrl - URL to .rts.png file
+     * @param {string} kernelId - Unique kernel identifier
+     */
+    async deploy(textureUrl, kernelId) {
+        if (!this.initialized) await this.initialize();
+
+        console.log(`[GlyphExecutor] Deploying kernel: ${kernelId}`);
+
+        // 1. Load texture and metadata
+        const { texture, dictionary } = await this._loadMorphologicalTexture(textureUrl);
+
+        // 2. Create/update dictionary buffer
+        this._updateDictionary(dictionary);
+
+        // 3. Create memory buffer
+        const memoryBuffer = this.device.createBuffer({
+            size: this.MEMORY_SIZE,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
+        });
+
+        // 4. Create state buffer
+        const stateBuffer = this.device.createBuffer({
+            size: 256 * 4,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+        });
+
+        // 5. Initialize state buffer (PC=0, halted=0)
+        const initialState = new Uint32Array(256);
+        initialState[32] = 0; // PC
+        initialState[38] = 0; // Halted flag
+        this.device.queue.writeBuffer(stateBuffer, 0, initialState);
+
+        // 6. Create bind group
+        const bindGroup = this.device.createBindGroup({
+            layout: this.bindGroupLayout,
+            entries: [
+                { binding: 0, resource: texture.createView() },
+                { binding: 1, resource: { buffer: this.dictionaryBuffer } },
+                { binding: 2, resource: { buffer: memoryBuffer } },
+                { binding: 3, resource: { buffer: stateBuffer } }
+            ]
+        });
+
+        // 7. Register kernel
+        this.kernels.set(kernelId, {
+            texture,
+            memoryBuffer,
+            stateBuffer,
+            bindGroup,
+            pc: 0,
+            cycleCount: 0,
+            halted: false,
+            running: false,
+            onOutput: null
+        });
+
+        console.log(`[GlyphExecutor] Kernel ${kernelId} deployed`);
+        return true;
+    }
+
+    /**
+     * Load morphological texture and its dictionary
+     * @private
+     */
+    async _loadMorphologicalTexture(url) {
+        // Fetch texture
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`[GlyphExecutor] Failed to fetch texture: ${url}`);
+        }
+        const blob = await response.blob();
+        const imageBitmap = await createImageBitmap(blob);
+
+        // Create GPU texture
+        const texture = this.device.createTexture({
+            size: [imageBitmap.width, imageBitmap.height],
+            format: 'rgba8unorm',
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+        });
+
+        this.device.queue.copyExternalImageToTexture(
+            { source: imageBitmap },
+            { texture },
+            [imageBitmap.width, imageBitmap.height]
+        );
+
+        // Fetch dictionary
+        const metaUrl = url + '.meta.json';
+        const metaResponse = await fetch(metaUrl);
+        if (!metaResponse.ok) {
+            throw new Error(`[GlyphExecutor] Failed to fetch metadata: ${metaUrl}`);
+        }
+        const metadata = await metaResponse.json();
+
+        // Convert dictionary to Uint32Array
+        const dictionary = new Uint32Array(metadata.dictionary.instructions);
+
+        this.glyphAtlas = texture;
+        this.atlasWidth = imageBitmap.width;
+        this.atlasHeight = imageBitmap.height;
+
+        console.log(`[GlyphExecutor] Loaded texture ${imageBitmap.width}x${imageBitmap.height}, ${dictionary.length} dictionary entries`);
+
+        return { texture, dictionary };
+    }
+
+    /**
+     * Update dictionary buffer
+     * @private
+     */
+    _updateDictionary(dictionary) {
+        const size = dictionary.byteLength;
+
+        if (this.dictionaryBuffer && this.dictionarySize < size) {
+            this.dictionaryBuffer.destroy();
+            this.dictionaryBuffer = null;
+        }
+
+        if (!this.dictionaryBuffer) {
+            this.dictionaryBuffer = this.device.createBuffer({
+                size: size,
+                usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            });
+        }
+
+        this.device.queue.writeBuffer(this.dictionaryBuffer, 0, dictionary);
+        this.dictionarySize = size;
+    }
+
+    /**
+     * Execute N cycles
+     * @param {string} kernelId - Kernel to execute
+     * @param {number} cycles - Number of cycles to run (default 100000)
+     */
+    execute(kernelId, cycles = 100000) {
+        const kernel = this.kernels.get(kernelId);
+        if (!kernel) {
+            throw new Error(`[GlyphExecutor] Kernel not found: ${kernelId}`);
+        }
+
+        const commandEncoder = this.device.createCommandEncoder();
+        const passEncoder = commandEncoder.beginComputePass();
+
+        passEncoder.setPipeline(this.pipeline);
+        passEncoder.setBindGroup(0, kernel.bindGroup);
+        passEncoder.dispatchWorkgroups(1);  // Single core for now
+
+        passEncoder.end();
+
+        this.device.queue.submit([commandEncoder.finish()]);
+        kernel.cycleCount += cycles;
+    }
+
+    /**
+     * Read CPU state
+     * @param {string} kernelId - Kernel to read
+     * @returns {Promise<Uint32Array>}
+     */
+    async readState(kernelId) {
+        const kernel = this.kernels.get(kernelId);
+        if (!kernel) {
+            throw new Error(`[GlyphExecutor] Kernel not found: ${kernelId}`);
+        }
+
+        await kernel.stateBuffer.mapAsync(GPUMapMode.READ);
+        const state = new Uint32Array(kernel.stateBuffer.getMappedRange().slice(0));
+        kernel.stateBuffer.unmap();
+
+        return state;
+    }
+
+    /**
+     * Validate holographic resonance for a glyph tile
+     * @param {number} tileX - Tile X coordinate in atlas
+     * @param {number} tileY - Tile Y coordinate in atlas
+     * @returns {Promise<boolean>}
+     */
+    async validateResonance(tileX, tileY) {
+        // Read the tile's symmetry metadata from alpha channel
+        const pixel = await this._sampleTile(tileX, tileY);
+
+        // A channel encodes symmetry mask:
+        // 0xFF = fully executable (resonance validated)
+        // 0x00 = NOP padding
+        // 0x7F = partial resonance (requires geometric integrity check)
+
+        const symmetryMask = pixel.a;
+
+        if (symmetryMask === 0xFF) {
+            return true;  // Full resonance
+        } else if (symmetryMask === 0x00) {
+            return false; // NOP - no resonance needed
+        } else {
+            // Partial resonance - perform dot-product validation
+            return await this._checkGeometricIntegrity(tileX, tileY, symmetryMask);
+        }
+    }
+
+    /**
+     * Sample a tile from the atlas
+     * @private
+     */
+    async _sampleTile(tileX, tileY) {
+        // For POC, return a placeholder with full resonance
+        return { r: 0, g: 0, b: 0, a: 0xFF };
+    }
+
+    /**
+     * Check geometric integrity using dot-product resonance
+     * @private
+     */
+    async _checkGeometricIntegrity(tileX, tileY, symmetryMask) {
+        // For POC, trust the encoder's symmetry metadata
+        return (symmetryMask & 0x80) !== 0;
+    }
+
+    /**
+     * Start continuous execution loop
+     * @param {string} kernelId - Kernel to execute
+     * @param {number} cyclesPerFrame - Cycles per animation frame (default 100000)
+     * @param {function} onOutput - Callback for UART output
+     */
+    startContinuous(kernelId, cyclesPerFrame = 100000, onOutput = null) {
+        const kernel = this.kernels.get(kernelId);
+        if (!kernel) {
+            throw new Error(`[GlyphExecutor] Kernel not found: ${kernelId}`);
+        }
+
+        if (kernel.running) {
+            console.warn(`[GlyphExecutor] Kernel ${kernelId} already running`);
+            return;
+        }
+
+        kernel.running = true;
+        kernel.onOutput = onOutput;
+
+        const executeFrame = () => {
+            if (!kernel.running || kernel.halted) {
+                return;
+            }
+
+            this.execute(kernelId, cyclesPerFrame);
+
+            // Check for UART output
+            if (onOutput) {
+                this._checkUARTOutput(kernelId).then(output => {
+                    if (output) {
+                        onOutput(output);
+                    }
+                });
+            }
+
+            requestAnimationFrame(executeFrame);
+        };
+
+        requestAnimationFrame(executeFrame);
+        console.log(`[GlyphExecutor] Started continuous execution for ${kernelId}`);
+    }
+
+    /**
+     * Stop continuous execution
+     * @param {string} kernelId - Kernel to stop
+     */
+    stop(kernelId) {
+        const kernel = this.kernels.get(kernelId);
+        if (kernel) {
+            kernel.running = false;
+            console.log(`[GlyphExecutor] Stopped kernel ${kernelId}`);
+        }
+    }
+
+    /**
+     * Check UART output buffer
+     * @private
+     */
+    async _checkUARTOutput(kernelId) {
+        const kernel = this.kernels.get(kernelId);
+        if (!kernel) return null;
+
+        // Read memory at UART FIFO region
+        // For POC, we'd need a memory read mechanism
+        // This is a placeholder for the full implementation
+        return null;
+    }
+
+    /**
+     * Update visual feedback for all registered glyphs
+     * Called each frame during continuous execution
+     */
+    updateVisualFeedback() {
+        const now = Date.now();
+
+        for (const [key, entry] of this.glyphRegistry) {
+            if (!entry.sprite) continue;
+
+            const sprite = entry.sprite;
+            const timeSinceExecution = now - (entry.lastExecutionTime || 0);
+
+            // Calculate glow intensity based on execution state
+            let glowIntensity = 0;
+            let baseColor = 0xFFFFFF;
+            let alpha = 0.9;
+
+            switch (entry.state) {
+                case 'running':
+                    // Bright green glow, full intensity
+                    glowIntensity = 1.0;
+                    baseColor = 0x00FF88;
+                    alpha = 1.0;
+
+                    // Pulsing effect while running
+                    const pulse = Math.sin(now / 100) * 0.3 + 0.7;
+                    sprite.scale.set(pulse);
+                    break;
+
+                case 'halted':
+                    // Orange/amber for halted (intentional stop)
+                    glowIntensity = 0.6;
+                    baseColor = 0xFFAA00;
+                    alpha = 0.85;
+                    sprite.scale.set(1.0);
+                    break;
+
+                case 'error':
+                    // Red for errors and fraud detection
+                    glowIntensity = 0.8;
+                    baseColor = 0xFF4444;
+                    alpha = 0.9;
+
+                    // Vibration effect for errors
+                    sprite.rotation = Math.sin(now / 50) * 0.05;
+                    break;
+
+                case 'fraud':
+                    // Deep red pulsing for fraud/invalid resonance
+                    glowIntensity = 1.0;
+                    baseColor = 0xFF0000;
+                    alpha = 1.0;
+
+                    // Aggressive pulsing
+                    const fraudPulse = Math.sin(now / 80) * 0.4 + 0.6;
+                    sprite.scale.set(fraudPulse);
+                    sprite.rotation = Math.sin(now / 30) * 0.1;
+                    break;
+
+                default: // idle
+                    // Dim white for idle glyphs
+                    glowIntensity = 0.3;
+                    baseColor = 0xFFFFFF;
+                    alpha = 0.7;
+                    sprite.scale.set(1.0);
+                    sprite.rotation = 0;
+            }
+
+            // Apply pulsing decay for recently executed glyphs
+            if (entry.state !== 'running' && timeSinceExecution < 500) {
+                // Recent execution glow (decays over 500ms)
+                const decayPulse = 1 - (timeSinceExecution / 500);
+                glowIntensity = Math.max(glowIntensity, decayPulse * 0.5);
+
+                // Brief green flash
+                if (decayPulse > 0.7) {
+                    baseColor = this._blendColors(baseColor, 0x00FF88, decayPulse);
+                }
+            }
+
+            // Apply to sprite
+            sprite.tint = baseColor;
+            sprite.alpha = alpha * (0.7 + glowIntensity * 0.3);
+
+            // Apply shader uniforms if available
+            if (sprite.shader && sprite.shader.resources && sprite.shader.resources.uniforms) {
+                const uniforms = sprite.shader.resources.uniforms;
+                uniforms.glowIntensity = glowIntensity;
+                uniforms.time = now / 1000;
+            }
+        }
+    }
+
+    /**
+     * Blend two hex colors
+     * @private
+     */
+    _blendColors(color1, color2, amount) {
+        const r1 = (color1 >> 16) & 0xFF;
+        const g1 = (color1 >> 8) & 0xFF;
+        const b1 = color1 & 0xFF;
+
+        const r2 = (color2 >> 16) & 0xFF;
+        const g2 = (color2 >> 8) & 0xFF;
+        const b2 = color2 & 0xFF;
+
+        const r = Math.round(r1 + (r2 - r1) * amount);
+        const g = Math.round(g1 + (g2 - g1) * amount);
+        const b = Math.round(b1 + (b2 - b1) * amount);
+
+        return (r << 16) | (g << 8) | b;
+    }
+
+    /**
+     * Mark a glyph as recently executed (triggers glow decay)
+     * @param {number} x - Screen X position
+     * @param {number} y - Screen Y position
+     */
+    markExecuted(x, y) {
+        const entry = this.glyphRegistry.get(`${x},${y}`);
+        if (entry) {
+            entry.lastExecutionTime = Date.now();
+        }
+    }
+
+    /**
+     * Mark a glyph as fraud/invalid resonance
+     * @param {number} x - Screen X position
+     * @param {number} y - Screen Y position
+     * @param {string} reason - Fraud detection reason
+     */
+    markFraud(x, y, reason) {
+        const entry = this.glyphRegistry.get(`${x},${y}`);
+        if (entry) {
+            entry.state = 'fraud';
+                entry.fraudReason = reason;
+                console.warn(`[GlyphExecutor] Fraud detected at (${x},${y}): ${reason}`);
+        }
     }
 
     /**
      * Start auto-execution mode
-     * @param {number} fps - Frames per second for execution
+     * Runs all registered glyphs at specified FPS
+     * @param {number} fps - Target frames per second (default: 30)
+     * @param {string} kernelId - Kernel to execute
      */
-    startAutoExecution(fps = 30) {
-        console.log('GlyphExecutor.startAutoExecution() called with fps:', fps);
-
-        if (this.ticker !== null) {
-            console.warn('Auto-execution already running');
+    startAutoExecution(fps = 30, kernelId = null) {
+        if (this.autoExecutionEnabled) {
+            console.warn('[GlyphExecutor] Auto-execution already running');
             return;
         }
 
-        const intervalMs = 1000 / fps;
-        this.ticker = setInterval(() => {
-            this.frameCount++;
-            this.execute();
-        }, intervalMs);
+        this.autoExecutionEnabled = true;
+        const frameInterval = 1000 / fps;
 
-        console.log(`Auto-execution started at ${fps} FPS (interval: ${intervalMs}ms)`);
+        console.log(`[GlyphExecutor] Starting auto-execution at ${fps} FPS`);
+
+        this._autoExecutionInterval = setInterval(() => {
+            this.frameCount++;
+
+            // Execute all registered glyphs
+            for (const [key, entry] of this.glyphRegistry) {
+                if (entry.state === 'running' || entry.state === 'idle') {
+                    // Mark as executed for visual feedback
+                    const [x, y] = key.split(',').map(Number);
+                    this.markExecuted(x, y);
+
+                    // Update visual state
+                    this.updateGlyphState(x, y, { state: 'running' });
+                }
+            }
+
+            // Execute the kernel if specified
+            if (kernelId && this.kernels.has(kernelId)) {
+                this.execute(kernelId, 1000); // Execute 1000 cycles per frame
+            }
+
+            // Update visual feedback
+            this.updateVisualFeedback();
+
+        }, frameInterval);
     }
 
     /**
      * Stop auto-execution mode
      */
     stopAutoExecution() {
-        console.log('GlyphExecutor.stopAutoExecution() called');
-
-        if (this.ticker === null) {
-            console.warn('Auto-execution not running');
+        if (!this.autoExecutionEnabled) {
             return;
         }
 
-        clearInterval(this.ticker);
-        this.ticker = null;
+        if (this._autoExecutionInterval) {
+            clearInterval(this._autoExecutionInterval);
+            this._autoExecutionInterval = null;
+        }
 
-        console.log('Auto-execution stopped');
+        this.autoExecutionEnabled = false;
+
+        // Mark all running glyphs as halted
+        for (const [key, entry] of this.glyphRegistry) {
+            if (entry.state === 'running') {
+                const [x, y] = key.split(',').map(Number);
+                this.updateGlyphState(x, y, { state: 'halted' });
+            }
+        }
+
+        console.log('[GlyphExecutor] Stopped auto-execution');
     }
 
     /**
      * Toggle auto-execution mode
-     * @param {number} fps - Frames per second for execution
-     * @returns {boolean} New auto-execution state (true = running, false = stopped)
+     * @param {number} fps - Target FPS (default: 30)
+     * @param {string} kernelId - Kernel to execute
+     * @returns {boolean} New state (true = running)
      */
-    toggleAutoExecution(fps = 30) {
-        console.log('GlyphExecutor.toggleAutoExecution() called');
-
-        if (this.ticker === null) {
-            this.startAutoExecution(fps);
-            return true;
-        } else {
+    toggleAutoExecution(fps = 30, kernelId = null) {
+        if (this.autoExecutionEnabled) {
             this.stopAutoExecution();
             return false;
+        } else {
+            this.startAutoExecution(fps, kernelId);
+            return true;
         }
     }
 
     /**
-     * Check if auto-execution is running
-     * @returns {boolean} True if auto-execution is active
+     * Check if auto-execution is enabled
+     * @returns {boolean}
      */
-    isAutoExecuting() {
-        return this.ticker !== null;
+    isAutoExecutionEnabled() {
+        return this.autoExecutionEnabled;
     }
-}
 
-// Export for Node.js compatibility
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { GlyphExecutor };
-}
-
-// Export for browser (window global)
-if (typeof window !== 'undefined') {
-    window.GlyphExecutor = GlyphExecutor;
+    /**
+     * Get current frame count
+     * @returns {number}
+     */
+    getFrameCount() {
+        return this.frameCount;
+    }
 }

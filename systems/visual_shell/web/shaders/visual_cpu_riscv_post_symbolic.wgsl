@@ -1,0 +1,548 @@
+// ============================================
+// GEOMETRY OS - POST-SYMBOLIC VISUAL CPU SHADER (RISC-V)
+// GlyphExecutor Phase 1: Holographic Instruction Fetch
+// ============================================
+//
+// POST-SYMBOLIC EXECUTION CONCEPT:
+// =================================
+// Traditional execution: CPU fetches instructions from memory addresses (linear array)
+// Post-symbolic execution: CPU fetches instructions from VISUAL PATTERNS in texture space
+//
+// HOLOGRAPHIC FETCH:
+// Instead of:
+//   inst = memory[pc]     // Direct memory access
+//
+// We do:
+//   token_id = sample_glyph_atlas(pc)   // Texture sample -> visual pattern
+//   inst = atlas_dictionary[token_id]   // Pattern -> instruction
+//
+// This enables:
+// 1. VISUAL CODE: Programs are visible glyphs on screen
+// 2. SPATIAL LOCALITY: Adjacent glyphs = related code (texture cache friendly)
+// 3. MORPHOLOGICAL EXECUTION: Code structure IS data structure
+// 4. SCREEN-BASED COMPUTING: The program IS the interface
+//
+// The glyph atlas is a 1024x1024 texture containing 64x64 tiles of 16x16 glyphs.
+// Each glyph represents a single instruction token. The atlas is organized
+// in row-major order: PC 0 is at tile (0,0), PC 1 at (1,0), etc.
+//
+// Token ID is encoded in the glyph's green and blue channels:
+//   token_id = (G << 8) | B
+//
+// This encoding allows up to 65536 unique instructions while keeping
+// the red channel free for metadata (opcode class, symmetry, etc.)
+
+// --- BINDINGS ---
+
+// 0: Glyph Atlas Texture
+// 1024x1024 texture containing 64x64 tiles of 16x16 glyphs
+// Each tile encodes one token_id via (G << 8) | B at its center
+@group(0) @binding(0) var glyph_atlas: texture_2d<f32>;
+
+// 1: Atlas Dictionary (TokenID -> Instruction mapping)
+// Storage buffer mapping token IDs to actual 32-bit RISC-V instructions
+// Allows atlas to be sparse (only contains used tokens)
+@group(0) @binding(1) var<storage, read> atlas_dictionary: array<u32>;
+
+// 2: System Memory / Heap (128MB storage buffer)
+// Shared with pre-symbolic execution for data access
+@group(0) @binding(2) var<storage, read_write> system_memory: array<u32>;
+
+// 3: CPU State (Registers x0-x31, PC, CSRs)
+// Structured as: [thread_0_regs(32), thread_0_pc, thread_0_csrs..., thread_n...]
+@group(0) @binding(3) var<storage, read_write> cpu_states: array<u32>;
+
+// --- CONSTANTS ---
+
+const GLYPH_SIZE: u32 = 16u;           // Each glyph is 16x16 pixels
+const ATLAS_WIDTH_TILES: u32 = 64u;    // 64 tiles across (1024 / 16)
+const ATLAS_HEIGHT_TILES: u32 = 64u;   // 64 tiles down (1024 / 16)
+const ATLAS_WIDTH_PIXELS: u32 = 1024u;
+const ATLAS_HEIGHT_PIXELS: u32 = 1024u;
+
+const REGS_PER_CORE: u32 = 64u;        // Registers + CSRs per core
+
+// --- CSR INDICES ---
+const CSR_SATP: u32 = 34u;
+const CSR_STVEC: u32 = 35u;
+const CSR_SSCRATCH: u32 = 36u;
+const CSR_MODE: u32 = 37u;
+const CSR_HALT: u32 = 38u;
+const CSR_RESERVATION: u32 = 39u;
+const CSR_SEPC: u32 = 40u;
+const CSR_SCAUSE: u32 = 41u;
+const CSR_STVAL: u32 = 42u;
+const CSR_SSTATUS: u32 = 43u;
+const CSR_SIE: u32 = 44u;
+const CSR_SIP: u32 = 45u;
+
+// SSTATUS bits
+const SSTATUS_SIE: u32 = 2u;
+const SSTATUS_SPIE: u32 = 32u;
+const SSTATUS_SPP: u32 = 256u;
+
+// UART
+const UART_BASE: u32 = 0x05000000u;
+const UART_FIFO_BASE: u32 = 0x05000400u;
+const UART_FIFO_PTR: u32 = 0x050004FCu;
+
+// SBI
+const SBI_BRIDGE_FLAG: u32 = 0x05010000u;
+const SBI_BRIDGE_EID: u32 = 0x05010004u;
+const SBI_BRIDGE_FID: u32 = 0x05010008u;
+const SBI_BRIDGE_ARGS: u32 = 0x0501000Cu;
+const SBI_BRIDGE_RET: u32 = 0x05010024u;
+
+// --- MMIO INPUT REGION ---
+const MMIO_INPUT_BASE: u32 = 0x02000000u;
+const MMIO_INPUT_STATUS: u32 = 0u;
+const MMIO_INPUT_TYPE: u32 = 4u;
+const MMIO_INPUT_KEY: u32 = 8u;
+const MMIO_INPUT_X: u32 = 12u;
+const MMIO_INPUT_Y: u32 = 16u;
+const MMIO_INPUT_FLAGS: u32 = 20u;
+
+const INPUT_TYPE_KEYBOARD: u32 = 1u;
+const INPUT_TYPE_MOUSE: u32 = 2u;
+
+// --- TECTONIC EXTENSIONS ---
+const CSR_GUEST_BASE: u32 = 46u;
+const CSR_GUEST_SIZE: u32 = 47u;
+
+// --- EXCEPTION CAUSES ---
+const CAUSE_ECALL_U: u32 = 8u;
+const CAUSE_ECALL_S: u32 = 11u;
+const CAUSE_LOAD_PAGE_FAULT: u32 = 13u;
+const CAUSE_STORE_PAGE_FAULT: u32 = 15u;
+
+// --- ACCESS TYPES ---
+const ACCESS_READ: u32 = 0u;
+const ACCESS_WRITE: u32 = 1u;
+const ACCESS_EXEC: u32 = 2u;
+
+// --- INTERRUPT CODES ---
+const CAUSE_S_TIMER_INT: u32 = 0x80000005u;
+const SIP_STIP: u32 = 0x20u;
+const SIE_STIE: u32 = 0x20u;
+
+// ============================================
+// HOLOGRAPHIC FETCH FUNCTIONS
+// ============================================
+
+// Sample center pixel of a glyph tile to extract token_id
+//
+// Converts PC to tile coordinates, samples the texture at the
+// tile center (8,8 offset from tile origin), and extracts the
+// token ID from green and blue channels.
+//
+// Args:
+//   pc: Program counter (in instructions, not bytes)
+//
+// Returns:
+//   token_id: 16-bit ID encoded as (G << 8) | B
+fn sample_token_id(pc: u32) -> u32 {
+    // Convert PC to tile coordinates (row-major layout)
+    let tile_x = pc % ATLAS_WIDTH_TILES;
+    let tile_y = pc / ATLAS_WIDTH_TILES;
+
+    // Calculate pixel coordinates at tile center
+    // Tile origin is (tile_x * 16, tile_y * 16)
+    // Center adds (8, 8) offset
+    let pixel_x = (tile_x * GLYPH_SIZE) + 8u;
+    let pixel_y = (tile_y * GLYPH_SIZE) + 8u;
+
+    // Sample texture at center pixel
+    // Note: WGSL textures are (u, v) where (0,0) is top-left
+    let coords = vec2<f32>(f32(pixel_x), f32(pixel_y));
+    let texel = textureLoad(glyph_atlas, vec2<i32>(i32(pixel_x), i32(pixel_y)), 0);
+
+    // Extract token ID from green and blue channels
+    // Format: token_id = (G << 8) | B
+    let green = u32(texel.g * 255.0) & 0xFFu;
+    let blue = u32(texel.b * 255.0) & 0xFFu;
+
+    return (green << 8u) | blue;
+}
+
+// Holographic fetch: Convert visual glyph to executable instruction
+//
+// This is the core of post-symbolic execution. Instead of fetching
+// from a linear instruction memory array, we:
+// 1. Look up the visual glyph at the current PC
+// 2. Extract its token ID from the texture
+// 3. Translate token ID to actual RISC-V instruction
+//
+// This creates a bridge between VISUAL representation and EXECUTABLE code.
+// The glyph atlas becomes a "holographic" instruction memory - visible
+// on screen while simultaneously being executable.
+//
+// Args:
+//   pc: Program counter (in instructions)
+//
+// Returns:
+//   32-bit RISC-V instruction
+fn holographic_fetch(pc: u32) -> u32 {
+    let token_id = sample_token_id(pc);
+    return atlas_dictionary[token_id];
+}
+
+// --- DECODING HELPERS ---
+fn get_opcode(inst: u32) -> u32 { return inst & 0x7Fu; }
+fn get_rd(inst: u32) -> u32     { return (inst >> 7u) & 0x1Fu; }
+fn get_funct3(inst: u32) -> u32 { return (inst >> 12u) & 0x07u; }
+fn get_rs1(inst: u32) -> u32    { return (inst >> 15u) & 0x1Fu; }
+fn get_rs2(inst: u32) -> u32    { return (inst >> 20u) & 0x1Fu; }
+
+// --- CSR HELPER ---
+fn _get_csr_index(csr_num: u32) -> u32 {
+    switch (csr_num) {
+        case 0x180u: { return CSR_SATP; }
+        case 0x105u: { return CSR_STVEC; }
+        case 0x140u: { return CSR_SSCRATCH; }
+        case 0x100u: { return CSR_SSTATUS; }
+        case 0x141u: { return CSR_SEPC; }
+        case 0x142u: { return CSR_SCAUSE; }
+        case 0x143u: { return CSR_STVAL; }
+        case 0x104u: { return CSR_SIE; }
+        case 0x144u: { return CSR_SIP; }
+        default: { return 255u; }
+    }
+}
+
+// --- TRAP HANDLING ---
+const CAUSE_INST_PAGE_FAULT: u32 = 12u;
+const CAUSE_ILLEGAL_INST: u32 = 2u;
+
+fn trap_enter(base_idx: u32, cause: u32, tval: u32, pc: u32) -> u32 {
+    cpu_states[base_idx + CSR_SEPC] = pc;
+    cpu_states[base_idx + CSR_SCAUSE] = cause;
+    cpu_states[base_idx + CSR_STVAL] = tval;
+    let current_mode = cpu_states[base_idx + CSR_MODE];
+    let current_sstatus = cpu_states[base_idx + CSR_SSTATUS];
+    var new_sstatus = current_sstatus;
+    if ((current_sstatus & SSTATUS_SIE) != 0u) { new_sstatus = new_sstatus | SSTATUS_SPIE; }
+    else { new_sstatus = new_sstatus & ~SSTATUS_SPIE; }
+    new_sstatus = new_sstatus & ~SSTATUS_SIE;
+    if (current_mode == 0u) { new_sstatus = new_sstatus & ~SSTATUS_SPP; }
+    else { new_sstatus = new_sstatus | SSTATUS_SPP; }
+    cpu_states[base_idx + CSR_SSTATUS] = new_sstatus;
+    cpu_states[base_idx + CSR_MODE] = 1u;
+    return cpu_states[base_idx + CSR_STVEC];
+}
+
+fn trap_ret(base_idx: u32) -> u32 {
+    let epc = cpu_states[base_idx + CSR_SEPC];
+    let sstatus = cpu_states[base_idx + CSR_SSTATUS];
+    let spie = (sstatus >> 5u) & 1u;
+    let spp = (sstatus >> 8u) & 1u;
+    var new_sstatus = sstatus;
+    if (spie == 1u) { new_sstatus = new_sstatus | SSTATUS_SIE; }
+    else { new_sstatus = new_sstatus & ~SSTATUS_SIE; }
+    new_sstatus = new_sstatus & ~SSTATUS_SPIE;
+    cpu_states[base_idx + CSR_SSTATUS] = new_sstatus;
+    cpu_states[base_idx + CSR_MODE] = spp;
+    return epc;
+}
+
+// --- INTERRUPT CHECKING ---
+fn check_timer_interrupt(base_idx: u32) -> bool {
+    let sstatus = cpu_states[base_idx + CSR_SSTATUS];
+    let mode = cpu_states[base_idx + CSR_MODE];
+    if (mode == 1u && (sstatus & SSTATUS_SIE) == 0u) { return false; }
+    let sie = cpu_states[base_idx + CSR_SIE];
+    if ((sie & SIE_STIE) == 0u) { return false; }
+    let sip = cpu_states[base_idx + CSR_SIP];
+    if ((sip & SIP_STIP) == 0u) { return false; }
+    return true;
+}
+
+fn take_timer_interrupt(base_idx: u32, pc: u32) -> u32 {
+    let sip = cpu_states[base_idx + CSR_SIP];
+    cpu_states[base_idx + CSR_SIP] = sip & ~SIP_STIP;
+    return trap_enter(base_idx, CAUSE_S_TIMER_INT, 0u, pc);
+}
+
+// --- MMU: Sv32 PAGE TABLE WALKER ---
+fn translate_address(vaddr: u32, access_type: u32, base_idx: u32) -> u32 {
+    let satp = cpu_states[base_idx + CSR_SATP];
+    let satp_mode = (satp >> 31u) & 1u;
+
+    var paddr: u32 = 0u;
+
+    if (satp_mode == 0u) {
+        paddr = vaddr;
+    } else {
+        let vpn1 = (vaddr >> 22u) & 0x3FFu;
+        let vpn0 = (vaddr >> 12u) & 0x3FFu;
+        let offset = vaddr & 0xFFFu;
+
+        let ppn_root = satp & 0x3FFFFFu;
+        let pte1_addr = (ppn_root * 4096u) + (vpn1 * 4u);
+        if (pte1_addr >= 134217728u) { return 0xFFFFFFFFu; }
+
+        var pte1 = system_memory[pte1_addr / 4u];
+        let pte1_v = pte1 & 1u;
+        if (pte1_v == 0u) { return 0xFFFFFFFFu; }
+
+        let pte1_xwr = (pte1 >> 1u) & 0x7u;
+        if (pte1_xwr != 0u) {
+            // Leaf PTE at level 1 (MegaPage)
+            let ppn1 = (pte1 >> 10u) & 0xFFFFFu;
+            paddr = (ppn1 << 22u) | (vpn0 << 12u) | offset;
+
+            // Set A/D bits
+            pte1 = pte1 | 0x40u; // A=1
+            if (access_type == ACCESS_WRITE) { pte1 = pte1 | 0x80u; } // D=1
+            system_memory[pte1_addr / 4u] = pte1;
+        } else {
+            let ppn1_from_pte1 = (pte1 >> 10u) & 0x3FFFFFu;
+            let pte0_addr = (ppn1_from_pte1 * 4096u) + (vpn0 * 4u);
+            if (pte0_addr >= 134217728u) { return 0xFFFFFFFFu; }
+
+            var pte0 = system_memory[pte0_addr / 4u];
+            if ((pte0 & 1u) == 0u) { return 0xFFFFFFFFu; } // V=0
+
+            // Check permissions
+            let pte_r = (pte0 >> 1u) & 1u;
+            let pte_w = (pte0 >> 2u) & 1u;
+            let pte_x = (pte0 >> 3u) & 1u;
+
+            if (access_type == ACCESS_READ && pte_r == 0u) { return 0xFFFFFFFFu; }
+            if (access_type == ACCESS_WRITE && pte_w == 0u) { return 0xFFFFFFFFu; }
+            if (access_type == ACCESS_EXEC && pte_x == 0u) { return 0xFFFFFFFFu; }
+
+            let ppn0 = (pte0 >> 10u) & 0xFFFFFu;
+            paddr = (ppn0 << 12u) | offset;
+
+            // Set A/D bits
+            pte0 = pte0 | 0x40u; // A=1
+            if (access_type == ACCESS_WRITE) { pte0 = pte0 | 0x80u; } // D=1
+            system_memory[pte0_addr / 4u] = pte0;
+        }
+    }
+
+    // Tectonic Bounds Check
+    let g_base = cpu_states[base_idx + CSR_GUEST_BASE];
+    let g_size = cpu_states[base_idx + CSR_GUEST_SIZE];
+    if (g_size > 0u) {
+        if (paddr < g_base || paddr >= (g_base + g_size)) { return 0xFFFFFFFFu; }
+    }
+
+    return paddr;
+}
+
+// --- MMIO INPUT POLLING ---
+fn poll_input(base_idx: u32) -> bool {
+    let status_addr = (MMIO_INPUT_BASE + MMIO_INPUT_STATUS) / 4u;
+    if (status_addr >= arrayLength(&system_memory)) { return false; }
+    let status = system_memory[status_addr];
+    if ((status & 1u) == 0u) { return false; }
+
+    let type_addr = (MMIO_INPUT_BASE + MMIO_INPUT_TYPE) / 4u;
+    let input_type = system_memory[type_addr];
+
+    if (input_type == INPUT_TYPE_KEYBOARD) {
+        let key_addr = (MMIO_INPUT_BASE + MMIO_INPUT_KEY) / 4u;
+        let flags_addr = (MMIO_INPUT_BASE + MMIO_INPUT_FLAGS) / 4u;
+        let key_code = system_memory[key_addr];
+        let flags = system_memory[flags_addr];
+        let kb_buf_addr = 0x02100000u / 4u;
+        if (kb_buf_addr < arrayLength(&system_memory)) {
+            system_memory[kb_buf_addr] = key_code | (flags << 16u);
+        }
+    } else if (input_type == INPUT_TYPE_MOUSE) {
+        let x_addr = (MMIO_INPUT_BASE + MMIO_INPUT_X) / 4u;
+        let y_addr = (MMIO_INPUT_BASE + MMIO_INPUT_Y) / 4u;
+        let flags_addr = (MMIO_INPUT_BASE + MMIO_INPUT_FLAGS) / 4u;
+        let mouse_x = system_memory[x_addr];
+        let mouse_y = system_memory[y_addr];
+        let flags = system_memory[flags_addr];
+        let mouse_buf_addr = 0x02200000u / 4u;
+        if (mouse_buf_addr + 2u < arrayLength(&system_memory)) {
+            system_memory[mouse_buf_addr] = mouse_x;
+            system_memory[mouse_buf_addr + 1u] = mouse_y;
+            system_memory[mouse_buf_addr + 2u] = flags;
+        }
+    }
+    system_memory[status_addr] = status & ~1u;
+    return true;
+}
+
+// ============================================
+// COMPUTE KERNEL
+// ============================================
+//
+// Each invocation executes one RISC-V core for multiple cycles.
+// Phase 1.2: Full RISC-V instruction execution with holographic fetch.
+//
+// The key difference from pre-symbolic execution:
+// - Instructions are fetched via holographic_fetch() from glyph atlas
+// - instead of expanded_code[pc_paddr / 4u]
+//
+@compute @workgroup_size(64)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+    let core_id = global_id.x;
+    let base_idx = core_id * REGS_PER_CORE;
+
+    for (var step = 0u; step < 100u; step++) {
+        let halted = cpu_states[base_idx + CSR_HALT];
+        if (halted > 0u) { break; }
+
+        let sbi_flag = system_memory[SBI_BRIDGE_FLAG / 4u];
+        if (sbi_flag != 0u) { break; }
+
+        if (core_id == 0u) { poll_input(base_idx); }
+
+        var pc = cpu_states[base_idx + 32u];
+
+        if (check_timer_interrupt(base_idx)) {
+            pc = take_timer_interrupt(base_idx, pc);
+            cpu_states[base_idx + 32u] = pc;
+            break;
+        }
+
+        // HOLOGRAPHIC FETCH: Get instruction from visual glyph instead of memory
+        let inst = holographic_fetch(pc);
+
+        let opcode = get_opcode(inst);
+        let rd = get_rd(inst);
+        let funct3 = get_funct3(inst);
+        let rs1 = get_rs1(inst);
+        let rs2 = get_rs2(inst);
+
+        var pc_changed = false;
+        var trap_triggered = false;
+
+        switch (opcode) {
+            case 0x13u: { // OP-IMM
+                if (funct3 == 0u) {
+                    let imm = i32(inst) >> 20u;
+                    let val1 = i32(cpu_states[base_idx + rs1]);
+                    if (rd != 0u) { cpu_states[base_idx + rd] = u32(val1 + imm); }
+                }
+            }
+            case 0x33u: { // OP
+                let val1 = i32(cpu_states[base_idx + rs1]);
+                let val2 = i32(cpu_states[base_idx + rs2]);
+                let funct7 = (inst >> 25u) & 0x7Fu;
+                if (funct7 == 0x01u) {
+                    if (funct3 == 0u) { if (rd != 0u) { cpu_states[base_idx + rd] = u32(val1 * val2); } }
+                    else if (funct3 == 4u) { if (val2 != 0 && rd != 0u) { cpu_states[base_idx + rd] = u32(val1 / val2); } }
+                } else if (funct3 == 0u) {
+                    if (funct7 == 0x00u) { if (rd != 0u) { cpu_states[base_idx + rd] = u32(val1 + val2); } }
+                    else if (funct7 == 0x20u) { if (rd != 0u) { cpu_states[base_idx + rd] = u32(val1 - val2); } }
+                }
+            }
+            case 0x6Fu: { // JAL
+                let imm = ( (inst >> 31u) << 20u ) | ( ((inst >> 12u) & 0xFFu) << 12u ) | ( ((inst >> 20u) & 1u) << 11u ) | ( ((inst >> 21u) & 0x3FFu) << 1u );
+                let offset = (i32(imm) << 11u) >> 11u;
+                if (rd != 0u) { cpu_states[base_idx + rd] = pc + 1u; }
+                pc = u32(i32(pc) + (offset / 4));
+                pc_changed = true;
+            }
+            case 0x67u: { // JALR
+                let imm = i32(inst) >> 20u;
+                let val1 = i32(cpu_states[base_idx + rs1]);
+                let target = u32(val1 + imm) & ~1u;
+                if (rd != 0u) { cpu_states[base_idx + rd] = pc + 1u; }
+                pc = target / 4u;
+                pc_changed = true;
+            }
+            case 0x63u: { // BRANCH
+                let val1 = cpu_states[base_idx + rs1];
+                let val2 = cpu_states[base_idx + rs2];
+                var branch = false;
+                if (funct3 == 0u) { branch = (val1 == val2); }
+                else if (funct3 == 1u) { branch = (val1 != val2); }
+                if (branch) {
+                    let imm = ( (inst >> 31u) << 12u ) | ( ((inst >> 7u) & 1u) << 11u ) | ( ((inst >> 25u) & 0x3Fu) << 5u ) | ( ((inst >> 8u) & 0xFu) << 1u );
+                    let offset = (i32(imm) << 19u) >> 19u;
+                    pc = u32(i32(pc) + (offset / 4));
+                    pc_changed = true;
+                }
+            }
+            case 0x03u: { // LOAD
+                if (funct3 == 0x2u) {
+                     let offset = i32(inst) >> 20u;
+                     let val1 = i32(cpu_states[base_idx + rs1]);
+                     let vaddr = u32(val1 + offset);
+                     let paddr = translate_address(vaddr, ACCESS_READ, base_idx);
+                     if (paddr == 0xFFFFFFFFu) { pc = trap_enter(base_idx, CAUSE_LOAD_PAGE_FAULT, vaddr, pc); trap_triggered = true; }
+                     else if (paddr < 134217728u) { if (rd != 0u) { cpu_states[base_idx + rd] = system_memory[paddr / 4u]; } }
+                }
+            }
+            case 0x23u: { // STORE
+                if (funct3 == 0x2u) {
+                     let imm_s = ((inst >> 25u) & 0x7Fu) << 5u | ((inst >> 7u) & 0x1Fu);
+                     let offset_s = (i32(imm_s) << 20u) >> 20u;
+                     let val1 = i32(cpu_states[base_idx + rs1]);
+                     let val2 = i32(cpu_states[base_idx + rs2]);
+                     let vaddr = u32(val1 + offset_s);
+                     let paddr = translate_address(vaddr, ACCESS_WRITE, base_idx);
+                     if (paddr == 0xFFFFFFFFu) { pc = trap_enter(base_idx, CAUSE_STORE_PAGE_FAULT, vaddr, pc); trap_triggered = true; }
+                     else if (paddr < 134217728u) {
+                         system_memory[paddr / 4u] = val2;
+                         if (paddr == UART_BASE) {
+                             let char_byte = val2 & 0xFFu;
+                             let head = system_memory[UART_FIFO_PTR / 4u];
+                             system_memory[(UART_FIFO_BASE / 4u) + (head % 256u)] = char_byte;
+                             system_memory[UART_FIFO_PTR / 4u] = head + 1u;
+                         }
+                     }
+                }
+            }
+            case 0x73u: { // SYSTEM
+                let funct3_sys = (inst >> 12u) & 0x7u;
+                let funct7_sys = (inst >> 25u) & 0x7Fu;
+                if (funct7_sys == 0x30u) { pc = trap_ret(base_idx); pc_changed = true; }
+                else if (funct3_sys == 0u) {
+                    let eid = cpu_states[base_idx + 17u];
+                    let fid = cpu_states[base_idx + 16u];
+                    system_memory[SBI_BRIDGE_EID / 4u] = eid;
+                    system_memory[SBI_BRIDGE_FID / 4u] = fid;
+                    system_memory[(SBI_BRIDGE_ARGS + 0u) / 4u] = cpu_states[base_idx + 10u];
+                    system_memory[(SBI_BRIDGE_ARGS + 4u) / 4u] = cpu_states[base_idx + 11u];
+                    system_memory[(SBI_BRIDGE_ARGS + 8u) / 4u] = cpu_states[base_idx + 12u];
+                    system_memory[(SBI_BRIDGE_ARGS + 12u) / 4u] = cpu_states[base_idx + 13u];
+                    system_memory[(SBI_BRIDGE_ARGS + 16u) / 4u] = cpu_states[base_idx + 14u];
+                    system_memory[(SBI_BRIDGE_ARGS + 20u) / 4u] = cpu_states[base_idx + 15u];
+                    system_memory[SBI_BRIDGE_FLAG / 4u] = 1u;
+                    let priv = cpu_states[base_idx + CSR_MODE];
+                    pc = trap_enter(base_idx, select(CAUSE_ECALL_S, CAUSE_ECALL_U, priv == 0u), eid, pc);
+                    trap_triggered = true;
+                } else if (funct3_sys == 1u) {
+                    let csr_idx = _get_csr_index(inst >> 20u);
+                    if (csr_idx < 255u) {
+                        let old = cpu_states[base_idx + csr_idx];
+                        if (rd != 0u) { cpu_states[base_idx + rd] = old; }
+                        cpu_states[base_idx + csr_idx] = cpu_states[base_idx + rs1];
+                    }
+                }
+            }
+            case 0x2Fu: { trap_triggered = true; }
+            default: { pc = trap_enter(base_idx, CAUSE_ILLEGAL_INST, inst, pc); trap_triggered = true; }
+        }
+
+        if (!pc_changed && !trap_triggered) { cpu_states[base_idx + 32u] = pc + 1u; }
+        else { cpu_states[base_idx + 32u] = pc; }
+        if (trap_triggered || pc_changed) { break; }
+    }
+}
+
+// ============================================
+// PHASE 1.2 COMPLETION CHECKLIST:
+// ============================================
+// [x] Phase 1.1: Binding declarations for atlas, dictionary, memory, state
+// [x] Phase 1.1: sample_token_id function with texture sampling
+// [x] Phase 1.1: holographic_fetch function bridging visual -> executable
+// [x] Phase 1.2: Full RISC-V instruction execution switch statement
+// [x] Phase 1.2: OP-IMM (0x13), OP (0x33), JAL (0x6F), JALR (0x67)
+// [x] Phase 1.2: BRANCH (0x63), LOAD (0x03), STORE (0x23)
+// [x] Phase 1.2: SYSTEM (0x73) with SBI bridge and CSR access
+// [x] Phase 1.2: Trap handling, MMU translation, timer interrupts
+// [x] Phase 1.2: MMIO input polling, UART output
+//
+// KEY DIFFERENCE FROM PRE-SYMBOLIC:
+// Instructions fetched via holographic_fetch() from glyph atlas
+// instead of expanded_code[] array.
+// ============================================

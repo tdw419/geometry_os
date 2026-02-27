@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Infinite Map Test - Window Particles</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        #controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(26, 26, 26, 0.95);
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            max-width: 280px;
+        }
+        button {
+            background: #252535;
+            color: #00ff88;
+            border: 1px solid #00ff88;
+            padding: 8px 12px;
+            margin: 3px 2px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+        }
+        button:hover { background: #00ff88; color: #0a0a0a; }
+        button.active { background: #00ff88; color: #0a0a0a; }
+        .section {
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid #333;
+        }
+        .label {
+            color: #888;
+            font-size: 10px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        #info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(26, 26, 26, 0.95);
+            padding: 12px;
+            border: 1px solid #333;
+            font-size: 11px;
+            border-radius: 8px;
+            min-width: 180px;
+        }
+        .stat { margin: 3px 0; }
+        .stat-label { color: #666; }
+        .stat-value { color: #00ff88; }
+        #minimap {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            width: 150px;
+            height: 100px;
+            background: rgba(26, 26, 26, 0.9);
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+        #help {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(26, 26, 26, 0.95);
+            padding: 10px;
+            border: 1px solid #333;
+            font-size: 10px;
+            border-radius: 8px;
+            max-width: 200px;
+        }
+        #help h4 { margin: 0 0 5px 0; color: #00ff88; }
+        #help ul { margin: 0; padding-left: 15px; }
+        #help li { margin: 2px 0; }
+        #canvas { width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <div class="label">Window Management</div>
+        <button onclick="createTerminal()">+ Terminal</button>
+        <button onclick="createCodeViewer()">+ Code Viewer</button>
+        <button onclick="closeFocused()">Close Focused</button>
+        <button onclick="toggleMinimize()">Minimize</button>
+
+        <div class="section">
+            <div class="label">Navigation</div>
+            <button onclick="zoomIn()">Zoom +</button>
+            <button onclick="zoomOut()">Zoom -</button>
+            <button onclick="resetView()">Reset View</button>
+            <button onclick="fitAll()">Fit All</button>
+        </div>
+
+        <div class="section">
+            <div class="label">Layout</div>
+            <button onclick="tileWindows()">Tile</button>
+            <button onclick="cascadeWindows()">Cascade</button>
+            <button onclick="saveLayout()">Save</button>
+            <button onclick="loadLayout()">Load</button>
+        </div>
+
+        <div class="section">
+            <div class="label">Neural Event Bus</div>
+            <button onclick="toggleEventLog()">Event Log</button>
+            <button onclick="clearEventLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <div id="info">
+        <div class="stat"><span class="stat-label">Particles:</span> <span id="particle-count">0</span></div>
+        <div class="stat"><span class="stat-label">Focused:</span> <span id="focused-id">none</span></div>
+        <div class="stat"><span class="stat-label">Zoom:</span> <span id="zoom-level">1.00x</span></div>
+        <div class="stat"><span class="stat-label">Position:</span> <span id="viewport-pos">0, 0</span></div>
+        <div class="stat"><span class="stat-label">Events:</span> <span id="event-count">0</span></div>
+    </div>
+
+    <div id="minimap">
+        <canvas id="minimap-canvas" width="150" height="100"></canvas>
+    </div>
+
+    <div id="help">
+        <h4>Keyboard Shortcuts</h4>
+        <ul>
+            <li>Ctrl+T: New terminal</li>
+            <li>Ctrl+W: Close window</li>
+            <li>Ctrl+M: Minimize</li>
+            <li>Tab: Next window</li>
+            <li>Arrow keys: Pan</li>
+            <li>Scroll: Zoom</li>
+            <li>Middle-drag: Pan</li>
+        </ul>
+    </div>
+
+    <div id="canvas"></div>
+    <div id="event-log" style="display:none; position:fixed; bottom:120px; right:10px; width:300px; height:200px; background:rgba(26,26,26,0.95); border:1px solid #333; border-radius:4px; overflow:auto; font-size:10px; padding:8px;"></div>
+
+    <script src="https://pixijs.download/v7/pixi.min.js"></script>
+    <script src="https://pixijs.download/v7/plugins/viewport.min.js"></script>
+    <script type="module">
+        import { TerminalManager } from './TerminalManager.js';
+        import { NeuralEventBus, getNeuralEventBus } from './NeuralEventBus.js';
+        import { WindowParticle, ParticleManager } from './WindowParticle.js';
+
+        let app, viewport, manager, eventBus;
+        let eventCount = 0;
+        let eventLogVisible = false;
+
+        async function init() {
+            // Initialize PixiJS
+            app = new PIXI.Application({
+                width: window.innerWidth,
+                height: window.innerHeight,
+                backgroundColor: 0x0a0a0a,
+                antialias: true
+            });
+            document.getElementById('canvas').appendChild(app.view);
+
+            // Initialize viewport for infinite canvas
+            viewport = new PIXI.Viewport({
+                screenWidth: window.innerWidth,
+                screenHeight: window.innerHeight,
+                worldWidth: 10000,
+                worldHeight: 10000,
+                interaction: app.renderer.plugins.interaction
+            });
+
+            // Enable viewport plugins
+            viewport
+                .drag({ wheel: false })
+                .pinch()
+                .wheel({ smooth: 10 })
+                .decelerate()
+                .clamp({ direction: 'all' });
+
+            app.stage.addChild(viewport);
+
+            // Create world container
+            viewport.worldContainer = new PIXI.Container();
+            viewport.addChild(viewport.worldContainer);
+
+            // Initialize Neural Event Bus
+            eventBus = getNeuralEventBus({ debug: true });
+
+            // Subscribe to all events for logging
+            eventBus.onAll((eventType, data) => {
+                eventCount++;
+                document.getElementById('event-count').textContent = eventCount;
+                if (eventLogVisible) {
+                    logEvent(eventType, data);
+                }
+            });
+
+            // Initialize TerminalManager with viewport
+            manager = new TerminalManager(app, viewport, {
+                serverUrl: 'ws://localhost:8765',
+                autoConnect: false,
+                eventBus
+            });
+
+            // Add grid background
+            drawGrid();
+
+            // Update info periodically
+            setInterval(updateInfo, 100);
+
+            // Create initial terminal
+            createTerminal();
+
+            console.log('[InfiniteMap] Initialized');
+        }
+
+        function drawGrid() {
+            const grid = new PIXI.Graphics();
+            grid.lineStyle(1, 0x222222, 0.5);
+
+            // Draw 100x100 grid
+            for (let x = -5000; x <= 5000; x += 100) {
+                grid.moveTo(x, -5000);
+                grid.lineTo(x, 5000);
+            }
+            for (let y = -5000; y <= 5000; y += 100) {
+                grid.moveTo(-5000, y);
+                grid.lineTo(5000, y);
+            }
+
+            // Origin marker
+            grid.lineStyle(2, 0x444444);
+            grid.drawCircle(0, 0, 10);
+
+            viewport.worldContainer.addChild(grid);
+        }
+
+        window.createTerminal = function() {
+            const result = manager.createTerminal({
+                cols: 60,
+                rows: 20,
+                x: 100 + Math.random() * 400,
+                y: 100 + Math.random() * 300
+            });
+        };
+
+        window.createCodeViewer = function() {
+            // Create a mock code viewer for testing
+            const container = new PIXI.Container();
+            const bg = new PIXI.Graphics();
+            bg.beginFill(0x0a0a0a);
+            bg.drawRoundedRect(0, 0, 600, 400, 8);
+            bg.endFill();
+            bg.lineStyle(2, 0x00ff88);
+            bg.drawRoundedRect(0, 0, 600, 400, 8);
+            container.addChild(bg);
+
+            const title = new PIXI.Text('Code Viewer: application.js', {
+                fontFamily: 'Courier New',
+                fontSize: 12,
+                fill: 0x00ff88
+            });
+            title.x = 10;
+            title.y = 10;
+            container.addChild(title);
+
+            const code = new PIXI.Text(
+                'import { App } from "./app.js";\n\n' +
+                'class Application {\n' +
+                '    constructor() {\n' +
+                '        this.particles = [];\n' +
+                '    }\n' +
+                '}\n',
+                { fontFamily: 'Courier New', fontSize: 11, fill: 0xCCCCCC }
+            );
+            code.x = 10;
+            code.y = 40;
+            container.addChild(code);
+
+            // Create particle for code viewer
+            const particle = new WindowParticle(container, {
+                id: `code-${Date.now()}`,
+                type: 'code-viewer',
+                x: 200 + Math.random() * 300,
+                y: 150 + Math.random() * 200,
+                width: 600,
+                height: 400
+            });
+
+            particle.register(eventBus);
+            manager.particles.set(particle.id, particle);
+            manager.container.addChild(particle.container);
+            manager.focusTerminal(particle.id);
+        };
+
+        window.closeFocused = function() {
+            if (manager.focusedWindowId) {
+                manager.destroyTerminal(manager.focusedWindowId);
+            }
+        };
+
+        window.toggleMinimize = function() {
+            const win = manager.windows.get(manager.focusedWindowId);
+            if (win) win.toggleMinimize();
+        };
+
+        window.zoomIn = function() {
+            viewport.setZoom(viewport.scale.x * 1.2);
+        };
+
+        window.zoomOut = function() {
+            viewport.setZoom(viewport.scale.x / 1.2);
+        };
+
+        window.resetView = function() {
+            viewport.setZoom(1);
+            viewport.moveCenter(0, 0);
+        };
+
+        window.fitAll = function() {
+            // Fit all windows in view
+            const particles = manager.particles;
+            if (particles.size === 0) return;
+
+            let minX = Infinity, minY = Infinity;
+            let maxX = -Infinity, maxY = -Infinity;
+
+            for (const particle of particles.values()) {
+                const bounds = particle.getBounds();
+                minX = Math.min(minX, bounds.x);
+                minY = Math.min(minY, bounds.y);
+                maxX = Math.max(maxX, bounds.right);
+                maxY = Math.max(maxY, bounds.bottom);
+            }
+
+            const width = maxX - minX + 100;
+            const height = maxY - minY + 100;
+            const centerX = minX + width / 2 - 50;
+            const centerY = minY + height / 2 - 50;
+
+            const scale = Math.min(
+                window.innerWidth / width,
+                window.innerHeight / height,
+                1.5
+            );
+
+            viewport.setZoom(scale);
+            viewport.moveCenter(centerX, centerY);
+        };
+
+        window.tileWindows = function() {
+            const particles = Array.from(manager.particles.values());
+            const cols = Math.ceil(Math.sqrt(particles.length));
+            const gap = 20;
+            let startX = -400;
+            let startY = -200;
+
+            particles.forEach((particle, i) => {
+                const col = i % cols;
+                const row = Math.floor(i / cols);
+                const x = startX + col * (particle.width + gap);
+                const y = startY + row * (particle.height + gap);
+                particle.setPosition(x, y);
+            });
+        };
+
+        window.cascadeWindows = function() {
+            const particles = Array.from(manager.particles.values());
+            const offset = 30;
+            let x = 100;
+            let y = 100;
+
+            particles.forEach((particle) => {
+                particle.setPosition(x, y);
+                x += offset;
+                y += offset;
+            });
+        };
+
+        window.saveLayout = function() {
+            const state = {};
+            for (const [id, particle] of manager.particles) {
+                state[id] = particle.serialize();
+            }
+            localStorage.setItem('infinite_map_layout', JSON.stringify(state));
+            alert('Layout saved!');
+        };
+
+        window.loadLayout = function() {
+            const saved = localStorage.getItem('infinite_map_layout');
+            if (!saved) {
+                alert('No saved layout found');
+                return;
+            }
+            const state = JSON.parse(saved);
+            for (const [id, data] of Object.entries(state)) {
+                const particle = manager.particles.get(id);
+                if (particle) {
+                    particle.restore(data);
+                }
+            }
+        };
+
+        window.toggleEventLog = function() {
+            eventLogVisible = !eventLogVisible;
+            document.getElementById('event-log').style.display = eventLogVisible ? 'block' : 'none';
+        };
+
+        window.clearEventLog = function() {
+            document.getElementById('event-log').innerHTML = '';
+            eventCount = 0;
+            document.getElementById('event-count').textContent = 0;
+        };
+
+        function logEvent(type, data) {
+            const log = document.getElementById('event-log');
+            const entry = document.createElement('div');
+            entry.style.borderBottom = '1px solid #333';
+            entry.style.padding = '3px';
+            entry.innerHTML = `<span style="color:#00ff88">${type}</span> ${JSON.stringify(data).substring(0, 60)}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function updateInfo() {
+            document.getElementById('particle-count').textContent = manager.particles.size;
+            document.getElementById('focused-id').textContent = manager.focusedWindowId || 'none';
+            document.getElementById('zoom-level').textContent = viewport.scale.x.toFixed(2) + 'x';
+            document.getElementById('viewport-pos').textContent =
+                `${Math.round(viewport.center.x)}, ${Math.round(viewport.center.y)}`;
+
+            // Update minimap
+            updateMinimap();
+        }
+
+        function updateMinimap() {
+            const canvas = document.getElementById('minimap-canvas');
+            const ctx = canvas.getContext('2d');
+            const scale = 0.015;
+
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, 150, 100);
+
+            // Draw particles
+            ctx.fillStyle = '#00ff88';
+            for (const particle of manager.particles.values()) {
+                const x = 75 + particle.x * scale;
+                const y = 50 + particle.y * scale;
+                ctx.fillRect(x - 2, y - 2, 4, 4);
+            }
+
+            // Draw viewport rectangle
+            ctx.strokeStyle = '#ffaa00';
+            ctx.lineWidth = 1;
+            const vx = 75 + (viewport.center.x - window.innerWidth / 2 / viewport.scale.x) * scale;
+            const vy = 50 + (viewport.center.y - window.innerHeight / 2 / viewport.scale.y) * scale;
+            const vw = window.innerWidth / viewport.scale.x * scale;
+            const vh = window.innerHeight / viewport.scale.y * scale;
+            ctx.strokeRect(vx, vy, vw, vh);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            app.renderer.resize(window.innerWidth, window.innerHeight);
+            viewport.resize(window.innerWidth, window.innerHeight);
+        });
+
+        init();
+    </script>
+</body>
+</html>
