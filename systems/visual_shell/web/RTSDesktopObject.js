@@ -54,6 +54,49 @@ class RTSDesktopObject extends PIXI.Container {
     };
 
     /**
+     * Error guidance messages for common failure modes
+     * Maps error patterns to actionable suggestions
+     * @static
+     */
+    static ERROR_GUIDANCE = {
+        timeout: {
+            pattern: /timeout|timed out|30 seconds/i,
+            guidance: 'Boot took too long. Try increasing memory or use a lighter kernel.',
+            action: 'Increase memory allocation or check kernel compatibility.'
+        },
+        memory: {
+            pattern: /memory|oom|out of memory|cannot allocate/i,
+            guidance: 'Insufficient memory for boot. Increase memory allocation.',
+            action: 'Increase memory to at least 2G for most distributions.'
+        },
+        kernel: {
+            pattern: /kernel|vmlinuz|bzImage|boot failed/i,
+            guidance: 'Kernel failed to load. Check kernel compatibility.',
+            action: 'Verify the kernel is compatible with this architecture.'
+        },
+        fuse: {
+            pattern: /fuse|mount|failed to mount/i,
+            guidance: 'FUSE mount failed. Check if FUSE is installed.',
+            action: 'Ensure fuse3 or fuse is installed: sudo apt install fuse3'
+        },
+        qemu: {
+            pattern: /qemu|kvm|accelerator|hv_error/i,
+            guidance: 'QEMU or KVM error. Check virtualization support.',
+            action: 'Enable virtualization in BIOS or install qemu-system-x86'
+        },
+        permission: {
+            pattern: /permission|denied|access|eacces/i,
+            guidance: 'Permission denied. Check file permissions.',
+            action: 'Ensure the .rts.png file is readable and executable.'
+        },
+        default: {
+            pattern: /.*/,
+            guidance: 'Boot failed. Check logs for details.',
+            action: 'Try different boot options or check system compatibility.'
+        }
+    };
+
+    /**
      * Dimensions for the object
      * @static
      */
