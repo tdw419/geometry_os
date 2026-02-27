@@ -281,6 +281,9 @@ class CatalogServer:
         # Store bridge for cleanup tracking
         self._active_boots[entry_id] = bridge
 
+        # Set status to booting
+        self.update_boot_status(entry_id, 'booting')
+
         # Run boot in thread
         result_holder = {"result": None, "error": None}
 
@@ -298,6 +301,7 @@ class CatalogServer:
 
         # Check result
         if result_holder["error"]:
+            self.update_boot_status(entry_id, 'error', error_message=result_holder["error"])
             return {
                 "success": False,
                 "entry_id": entry_id,
@@ -309,6 +313,7 @@ class CatalogServer:
 
         result = result_holder["result"]
         if result and result.success:
+            self.update_boot_status(entry_id, 'running', pid=result.pid, vnc_port=result.vnc_port)
             return {
                 "success": True,
                 "entry_id": entry_id,
@@ -318,13 +323,15 @@ class CatalogServer:
                 "error_message": None
             }
         else:
+            error_msg = result.error_message if result else "Boot failed"
+            self.update_boot_status(entry_id, 'error', error_message=error_msg)
             return {
                 "success": False,
                 "entry_id": entry_id,
                 "entry_name": entry.name,
                 "vnc_port": None,
                 "pid": None,
-                "error_message": result.error_message if result else "Boot failed"
+                "error_message": error_msg
             }
 
     def get_status(self, entry_id: str) -> Dict[str, Any]:
