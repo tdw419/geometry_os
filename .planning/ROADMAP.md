@@ -34,6 +34,10 @@
 
 **Requirements**: DESKTOP-01, DESKTOP-02, DESKTOP-03, DESKTOP-04, BOOT-04
 
+**Plans:**
+- [ ] 05-01-PLAN.md — Visual foundation (RTSDesktopObject, CatalogBridge, DesktopObjectManager)
+- [ ] 05-02-PLAN.md — Interaction (drag-and-drop, click-to-boot with status)
+
 **Success Criteria:**
 1. User opens visual shell and sees .rts.png files as draggable sprites
 2. User drags container to new position and position persists after refresh
@@ -69,7 +73,7 @@
 
 | Phase | Status | Plans | Goal |
 |-------|--------|-------|------|
-| 5 | Not Started | 0 | Desktop Object Integration |
+| 5 | Planning | 2 | Desktop Object Integration |
 | 6 | Not Started | 0 | Boot Progress Integration |
 
 **Total:** 2 phases, 8 requirements
