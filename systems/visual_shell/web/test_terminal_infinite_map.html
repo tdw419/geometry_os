@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Terminal Infinite Map - Geometry OS</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            overflow: hidden;
+        }
+        h1 { margin-bottom: 5px; font-size: 18px; }
+        .subtitle { color: #666; margin-bottom: 15px; font-size: 11px; }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 260px;
+            gap: 15px;
+            height: calc(100vh - 80px);
+        }
+
+        .main-panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .panel-header {
+            background: #252535;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .panel-title {
+            font-size: 12px;
+        }
+
+        .panel-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            background: #0f0f0f;
+            color: #00ff88;
+            border: 1px solid #333;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 10px;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: calc(100% - 45px);
+            background: #0a0a0a;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+        }
+
+        .section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .section-title {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        .window-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .window-item {
+            background: #0a0a0a;
+            padding: 8px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10px;
+            cursor: pointer;
+        }
+
+        .window-item:hover {
+            border: 1px solid #00ff88;
+        }
+
+        .window-item.focused {
+            border: 1px solid #00ff88;
+            background: #0f1a0f;
+        }
+
+        .window-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .window-id { color: #00ff88; }
+        .window-pos { color: #666; font-size: 9px; }
+
+        .viewport-info {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            font-size: 10px;
+        }
+
+        .viewport-item {
+            background: #0a0a0a;
+            padding: 6px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .viewport-value {
+            color: #00ff88;
+        }
+
+        .viewport-label {
+            color: #666;
+            font-size: 8px;
+        }
+
+        .instructions {
+            font-size: 9px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .instructions ul {
+            margin-left: 15px;
+            margin-top: 5px;
+        }
+
+        .instructions li {
+            margin-bottom: 3px;
+        }
+
+        .event-log {
+            height: 100px;
+            overflow-y: auto;
+            background: #0a0a0a;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 9px;
+        }
+
+        .event-item {
+            margin-bottom: 3px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .event-time { color: #444; }
+        .event-topic { color: #00ff88; }
+        .event-topic.created { color: #44ffff; }
+        .event-topic.moved { color: #ffff44; }
+        .event-topic.focused { color: #ff88ff; }
+        .event-topic.closed { color: #ff4444; }
+
+        .status-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #1a1a1a;
+            padding: 8px 15px;
+            border-top: 1px solid #333;
+            font-size: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    <h1>◈ Terminal Infinite Map</h1>
+    <p class="subtitle">GeometricTerminal as Window Particles on the infinite canvas</p>
+
+    <div class="container">
+        <div class="main-panel">
+            <div class="panel-header">
+                <div class="panel-title">Infinite Canvas</div>
+                <div class="panel-actions">
+                    <button onclick="addTerminal()">+ New Terminal</button>
+                    <button onclick="addTerminalAt(200, 150)">Add at (200,150)</button>
+                    <button onclick="clearAll()">Clear All</button>
+                    <button onclick="saveLayout()">Save Layout</button>
+                    <button onclick="loadLayout()">Load Layout</button>
+                </div>
+            </div>
+            <div id="canvas-container"></div>
+            <div class="status-bar">
+                <span id="window-count">0 windows</span>
+                <span id="viewport-pos">Viewport: (0, 0) @ 1.0x</span>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="section">
+                <div class="section-title">Canvas Controls</div>
+                <div class="viewport-info">
+                    <div class="viewport-item">
+                        <div class="viewport-value" id="vp-x">0</div>
+                        <div class="viewport-label">X</div>
+                    </div>
+                    <div class="viewport-item">
+                        <div class="viewport-value" id="vp-y">0</div>
+                        <div class="viewport-label">Y</div>
+                    </div>
+                    <div class="viewport-item">
+                        <div class="viewport-value" id="vp-zoom">1.0</div>
+                        <div class="viewport-label">Zoom</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Window Particles</div>
+                <div class="window-list" id="window-list">
+                    <div style="color: #666; font-size: 10px;">No windows yet...</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Instructions</div>
+                <div class="instructions">
+                    <ul>
+                        <li><b>Pan:</b> Drag on empty canvas</li>
+                        <li><b>Zoom:</b> Mouse wheel</li>
+                        <li><b>Move Window:</b> Drag title bar</li>
+                        <li><b>Resize Window:</b> Drag bottom-right corner</li>
+                        <li><b>Focus:</b> Click window</li>
+                        <li><b>Close:</b> Red button in title bar</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Event Log</div>
+                <div class="event-log" id="event-log"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="lib/pixi.min.js"></script>
+    <script type="module">
+        import { TerminalWindow } from './TerminalWindow.js';
+        import { NeuralEventBus } from './neb/NeuralEventBus.js';
+
+        let app = null;
+        let windows = [];
+        let windowIdCounter = 1;
+        let nebBus = null;
+        let viewport = { x: 0, y: 0, zoom: 1 };
+        let isPanning = false;
+        let panStart = { x: 0, y: 0 };
+
+        // Initialize
+        async function init() {
+            const container = document.getElementById('canvas-container');
+
+            // Create PIXI app
+            app = new PIXI.Application({
+                width: container.offsetWidth,
+                height: container.offsetHeight,
+                backgroundColor: 0x0a0a0a,
+                resolution: window.devicePixelRatio || 1,
+                autoDensity: true
+            });
+            container.appendChild(app.view);
+
+            // Create canvas layer for windows
+            app.windowLayer = new PIXI.Container();
+            app.stage.addChild(app.windowLayer);
+
+            // Create grid background
+            createGridBackground();
+
+            // Setup pan/zoom
+            setupPanZoom();
+
+            // Initialize NEB
+            try {
+                nebBus = new NeuralEventBus();
+                nebBus.subscribe('window.**', handleNEBEvent);
+                log('Neural Event Bus initialized', 'info');
+            } catch (e) {
+                log('NEB not available, running standalone', 'info');
+            }
+
+            // Add initial terminals
+            addTerminalAt(50, 50);
+            addTerminalAt(500, 100);
+
+            log('Infinite canvas initialized', 'info');
+
+            // Handle resize
+            window.addEventListener('resize', () => {
+                app.renderer.resize(container.offsetWidth, container.offsetHeight);
+                createGridBackground();
+            });
+        }
+
+        function createGridBackground() {
+            // Remove old grid
+            const oldGrid = app.stage.getChildByName('grid');
+            if (oldGrid) app.stage.removeChild(oldGrid);
+
+            const grid = new PIXI.Graphics();
+            grid.name = 'grid';
+
+            // Draw grid lines
+            const gridSize = 50;
+            const width = app.screen.width * 3;
+            const height = app.screen.height * 3;
+
+            grid.lineStyle(1, 0x1a1a1a, 0.5);
+
+            for (let x = -width; x < width; x += gridSize) {
+                grid.moveTo(x, -height);
+                grid.lineTo(x, height);
+            }
+
+            for (let y = -height; y < height; y += gridSize) {
+                grid.moveTo(-width, y);
+                grid.lineTo(width, y);
+            }
+
+            // Origin marker
+            grid.lineStyle(2, 0x00ff88, 0.3);
+            grid.moveTo(-20, 0);
+            grid.lineTo(20, 0);
+            grid.moveTo(0, -20);
+            grid.lineTo(0, 20);
+
+            app.stage.addChildAt(grid, 0);
+        }
+
+        function setupPanZoom() {
+            app.stage.eventMode = 'static';
+            app.stage.hitArea = app.screen;
+
+            app.stage.on('pointerdown', (e) => {
+                // Only pan if clicking on empty area
+                if (e.target === app.stage || e.target.name === 'grid') {
+                    isPanning = true;
+                    panStart = { x: e.data.global.x, y: e.data.global.y };
+                }
+            });
+
+            app.stage.on('pointermove', (e) => {
+                if (isPanning) {
+                    const dx = e.data.global.x - panStart.x;
+                    const dy = e.data.global.y - panStart.y;
+
+                    viewport.x += dx;
+                    viewport.y += dy;
+
+                    app.windowLayer.x = viewport.x;
+                    app.windowLayer.y = viewport.y;
+
+                    panStart = { x: e.data.global.x, y: e.data.global.y };
+                    updateViewportInfo();
+                }
+            });
+
+            app.stage.on('pointerup', () => {
+                isPanning = false;
+            });
+
+            app.view.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+                viewport.zoom = Math.max(0.25, Math.min(3, viewport.zoom * zoomFactor));
+                app.windowLayer.scale.set(viewport.zoom);
+                updateViewportInfo();
+            });
+        }
+
+        function handleNEBEvent(signal) {
+            const topic = signal.topic;
+            const payload = signal.payload;
+
+            if (topic === 'window.created') {
+                log(`NEB: Created ${payload.windowId}`, 'created');
+            } else if (topic === 'window.focus') {
+                log(`NEB: Focused ${payload.windowId}`, 'focused');
+            } else if (topic === 'window.moved') {
+                log(`NEB: Moved ${payload.windowId}`, 'moved');
+            } else if (topic === 'window.closed') {
+                log(`NEB: Closed ${payload.windowId}`, 'closed');
+            }
+        }
+
+        window.addTerminal = function() {
+            const x = 100 + Math.random() * 300;
+            const y = 100 + Math.random() * 200;
+            addTerminalAt(x, y);
+        };
+
+        window.addTerminalAt = function(x, y) {
+            const id = `term-${String(windowIdCounter++).padStart(3, '0')}`;
+
+            // Create mock terminal for demo
+            const mockTerminal = {
+                container: new PIXI.Container(),
+                width: 620,
+                height: 380,
+                resize: (w, h) => {
+                    mockTerminal.width = w;
+                    mockTerminal.height = h;
+                }
+            };
+
+            // Add some demo content
+            const content = new PIXI.Text(`$ ${id}\n\nWelcome to Geometry OS Terminal\n\nEvery character is a morphological glyph.\nThe screen IS the hard drive.\n\n$ `, {
+                fontFamily: 'Courier New',
+                fontSize: 13,
+                fill: 0x00ff88,
+                wordWrap: true,
+                wordWrapWidth: 600
+            });
+            content.x = 10;
+            content.y = 10;
+            mockTerminal.container.addChild(content);
+
+            const win = new TerminalWindow(mockTerminal, {
+                id,
+                x,
+                y,
+                nebBus,
+                onFocusRequest: (w) => focusWindow(w),
+                onPositionChange: (w) => updateWindowList(),
+                onResize: (w, h) => updateWindowList(),
+                onClose: (w) => removeWindow(w)
+            });
+
+            win.setTitle(`${id} - bash`);
+            app.windowLayer.addChild(win.container);
+            windows.push(win);
+
+            focusWindow(win);
+            updateWindowList();
+            log(`Created ${id} at (${Math.round(x)}, ${Math.round(y)})`, 'created');
+        };
+
+        function focusWindow(win) {
+            // Blur all others
+            for (const w of windows) {
+                if (w !== win) w.blur();
+            }
+            win.focus();
+            updateWindowList();
+        }
+
+        function removeWindow(win) {
+            const idx = windows.indexOf(win);
+            if (idx >= 0) {
+                windows.splice(idx, 1);
+                updateWindowList();
+                log(`Closed ${win.id}`, 'closed');
+            }
+        }
+
+        window.clearAll = function() {
+            for (const win of windows) {
+                app.windowLayer.removeChild(win.container);
+            }
+            windows = [];
+            updateWindowList();
+            log('Cleared all windows', 'info');
+        };
+
+        window.saveLayout = function() {
+            const layout = windows.map(w => w.getState());
+            localStorage.setItem('terminalLayout', JSON.stringify(layout));
+            log(`Saved ${layout.length} windows`, 'info');
+        };
+
+        window.loadLayout = function() {
+            const data = localStorage.getItem('terminalLayout');
+            if (!data) {
+                log('No saved layout found', 'info');
+                return;
+            }
+
+            clearAll();
+            const layout = JSON.parse(data);
+
+            for (const state of layout) {
+                addTerminalAt(state.position.x, state.position.y);
+                const win = windows[windows.length - 1];
+                win.restoreState(state);
+            }
+
+            log(`Loaded ${layout.length} windows`, 'info');
+        };
+
+        function updateWindowList() {
+            const list = document.getElementById('window-list');
+            list.innerHTML = '';
+
+            for (const win of windows) {
+                const item = document.createElement('div');
+                item.className = `window-item ${win.focused ? 'focused' : ''}`;
+                item.innerHTML = `
+                    <div class="window-info">
+                        <span class="window-id">${win.id}</span>
+                        <span class="window-pos">(${Math.round(win.x)}, ${Math.round(win.y)}) ${Math.round(win.width)}x${Math.round(win.height)}</span>
+                    </div>
+                `;
+                item.onclick = () => focusWindow(win);
+                list.appendChild(item);
+            }
+
+            document.getElementById('window-count').textContent = `${windows.length} window${windows.length !== 1 ? 's' : ''}`;
+        }
+
+        function updateViewportInfo() {
+            document.getElementById('vp-x').textContent = Math.round(-viewport.x / viewport.zoom);
+            document.getElementById('vp-y').textContent = Math.round(-viewport.y / viewport.zoom);
+            document.getElementById('vp-zoom').textContent = viewport.zoom.toFixed(2);
+            document.getElementById('viewport-pos').textContent = 
+                `Viewport: (${Math.round(-viewport.x / viewport.zoom)}, ${Math.round(-viewport.y / viewport.zoom)}) @ ${viewport.zoom.toFixed(1)}x`;
+        }
+
+        function log(message, type = 'info') {
+            const eventLog = document.getElementById('event-log');
+            const entry = document.createElement('div');
+            entry.className = 'event-item';
+
+            const time = new Date().toLocaleTimeString('en-US', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+
+            entry.innerHTML = `
+                <span class="event-time">${time}</span>
+                <span class="event-topic ${type}">${message}</span>
+            `;
+
+            eventLog.appendChild(entry);
+            eventLog.scrollTop = eventLog.scrollHeight;
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
