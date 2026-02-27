@@ -58,18 +58,56 @@ class CatalogCacheManager extends EventEmitter {
     static MAX_SIZE_KEY = 'gos-cache-max-size'; // localStorage key
 
     /**
+     * Cache age configuration (in milliseconds)
+     * @private
+     */
+    static DEFAULT_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
+    static DEFAULT_STALE_WHILE_REVALIDATE = 24 * 60 * 60 * 1000; // 1 day
+    static CONFIG_KEY = 'gos-cache-config'; // localStorage key for config
+
+    /**
      * Create a CatalogCacheManager instance
      * @param {Object} options - Configuration options
      * @param {string} options.dbName - Database name (default: 'gos-cache')
      * @param {number} options.dbVersion - Database version (default: 1)
      * @param {boolean} options.verifyOnRead - Verify hash on every read (default: false)
+     * @param {number} options.maxAge - Maximum cache age in ms (default: 7 days)
+     * @param {number} options.staleWhileRevalidate - Grace period for stale entries (default: 1 day)
      */
     constructor(options = {}) {
+        super(); // Call EventEmitter constructor
+
         this.dbName = options.dbName || CatalogCacheManager.DB_NAME;
         this.dbVersion = options.dbVersion || CatalogCacheManager.DB_VERSION;
         this.verifyOnRead = options.verifyOnRead || false;
         this.db = null;
         this._initPromise = null;
+
+        // Load or set cache age configuration
+        this._loadConfig(options);
+    }
+
+    /**
+     * Load configuration from localStorage or use defaults
+     * @private
+     * @param {Object} options - Constructor options to override stored config
+     */
+    _loadConfig(options = {}) {
+        try {
+            const stored = localStorage.getItem(CatalogCacheManager.CONFIG_KEY);
+            if (stored) {
+                const config = JSON.parse(stored);
+                this.maxAge = options.maxAge || config.maxAge || CatalogCacheManager.DEFAULT_MAX_AGE;
+                this.staleWhileRevalidate = options.staleWhileRevalidate || config.staleWhileRevalidate || CatalogCacheManager.DEFAULT_STALE_WHILE_REVALIDATE;
+            } else {
+                this.maxAge = options.maxAge || CatalogCacheManager.DEFAULT_MAX_AGE;
+                this.staleWhileRevalidate = options.staleWhileRevalidate || CatalogCacheManager.DEFAULT_STALE_WHILE_REVALIDATE;
+            }
+        } catch (error) {
+            console.warn('[CatalogCacheManager] Could not load config from localStorage:', error);
+            this.maxAge = options.maxAge || CatalogCacheManager.DEFAULT_MAX_AGE;
+            this.staleWhileRevalidate = options.staleWhileRevalidate || CatalogCacheManager.DEFAULT_STALE_WHILE_REVALIDATE;
+        }
     }
 
     /**
@@ -766,10 +804,97 @@ class CatalogCacheManager extends EventEmitter {
         }
     }
 
-// ES6 module export
-export { CatalogCacheManager };
+    // ========================================
+    // Stale Detection & Revalidation
+    // ========================================
 
-// Also attach to window for legacy/global usage
-if (typeof window !== 'undefined') {
-    window.CatalogCacheManager = CatalogCacheManager;
-}
+    /**
+     * Check if a cache entry is stale based on cachedAt timestamp
+     * An entry is stale if it exceeds the maxAge configuration
+     * @param {Object} entry - Cache entry object
+     * @returns {boolean} True if entry is stale
+     *
+     * @example
+     * const entry = await cache.get('ubuntu-22.04');
+     * if (cache.isStale(entry)) {
+     *   // Consider revalidation
+     * }
+     */
+    isStale(entry) {
+        if (!entry || !entry.cachedAt) {
+            return true; // Missing entry or timestamp is considered stale
+        }
+
+        const age = Date.now() - entry.cachedAt;
+        return age > this.maxAge;
+    }
+
+    /**
+     * Check if a cache entry needs revalidation with the server
+     * Returns true if entry is stale AND past the staleWhileRevalidate window
+     * Returns false if entry is fresh or within staleWhileRevalidate grace period
+     * @param {Object} entry - Cache entry object
+     * @returns {boolean} True if entry needs server revalidation
+     *
+     * @example
+     * const entry = await cache.get('ubuntu-22.04');
+     * if (cache.needsRevalidation(entry)) {
+     *   // Must fetch fresh data before use
+     * }
+     */
+    needsRevalidation(entry) {
+        if (!entry || !entry.cachedAt) {
+            return true; // Missing entry needs revalidation
+        }
+
+        const age = Date.now() - entry.cachedAt;
+        const revalidationThreshold = this.maxAge + this.staleWhileRevalidate;
+        return age > revalidationThreshold;
+    }
+
+    /**
+     * Get detailed staleness information for a cache entry
+     * @param {string} entryId - The entry ID to check
+     * @returns {Promise<Object|null>} Staleness info or null if entry not found
+     *
+     * @example
+     * const status = await cache.getStaleStatus('ubuntu-22.04');
+     * // Returns: { isStale: true, needsRevalidation: false, age: 650000000, maxAge: 604800000, remainingTTL: 43200000 }
+     */
+    async getStaleStatus(entryId) {
+        const store = await this._getStore('readonly');
+        if (!store) {
+            return null;
+        }
+
+        try {
+            const entry = await this._wrapRequest(store.get(entryId));
+
+            if (!entry) {
+                return null;
+            }
+
+            const now = Date.now();
+            const age = entry.cachedAt ? (now - entry.cachedAt) : Infinity;
+            const revalidationThreshold = this.maxAge + this.staleWhileRevalidate;
+
+            // Calculate remaining TTL (time until revalidation required)
+            let remainingTTL = revalidationThreshold - age;
+            if (remainingTTL < 0) {
+                remainingTTL = 0; // Already past threshold
+            }
+
+            return {
+                isStale: this.isStale(entry),
+                needsRevalidation: this.needsRevalidation(entry),
+                age: age,
+                maxAge: this.maxAge,
+                staleWhileRevalidate: this.staleWhileRevalidate,
+                remainingTTL: remainingTTL,
+                cachedAt: entry.cachedAt
+            };
+        } catch (error) {
+            console.error('[CatalogCacheManager] getStaleStatus error:', error);
+            return null;
+        }
+    }
