@@ -106,29 +106,32 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VISION-01 | Phase 1 | Pending |
-| VISION-02 | Phase 1 | Pending |
-| VISION-03 | Phase 1 | Pending |
-| VISION-04 | Phase 1 | Pending |
-| DIRECT-01 | Phase 2 | Pending |
-| DIRECT-02 | Phase 2 | Pending |
-| DIRECT-03 | Phase 2 | Pending |
-| DIRECT-04 | Phase 2 | Pending |
-| VERIFY-01 | Phase 1 | Pending |
-| VERIFY-02 | Phase 1 | Pending |
-| VERIFY-03 | Phase 1 | Pending |
-| UX-01 | Phase 2 | Pending |
-| UX-02 | Phase 1 | Pending |
-| UX-03 | Phase 2 | Pending |
-| INTEGRATION-01 | Phase 1 | Pending |
-| INTEGRATION-02 | Phase 2 | Pending |
-| INTEGRATION-03 | Phase 1 | Pending |
+| VISION-01 | Phase 1 | Complete |
+| VISION-02 | Phase 1 | Complete |
+| VISION-03 | Phase 1 | Complete |
+| VISION-04 | Phase 1 | Complete |
+| DIRECT-01 | Phase 2 | Complete |
+| DIRECT-02 | Phase 2 | Complete |
+| DIRECT-03 | Phase 2 | Complete |
+| DIRECT-04 | Phase 2 | Complete |
+| VERIFY-01 | Phase 1 | Complete |
+| VERIFY-02 | Phase 1 | Complete |
+| VERIFY-03 | Phase 1 | Complete |
+| UX-01 | Phase 2 | Complete |
+| UX-02 | Phase 1 | Complete |
+| UX-03 | Phase 2 | Complete |
+| INTEGRATION-01 | Phase 1 | Complete |
+| INTEGRATION-02 | Phase 2 | Complete |
+| INTEGRATION-03 | Phase 1 | Complete |
+| CATALOG-01 | Phase 4 | Complete |
+| CATALOG-02 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 17 total
-- Mapped to phases: 17
+- v1.x catalog requirements: 2
+- Mapped to phases: 19
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-02-11*
-*Last updated: 2026-02-11 after initial definition*
+*Last updated: 2026-02-27 after Phase 4 completion*

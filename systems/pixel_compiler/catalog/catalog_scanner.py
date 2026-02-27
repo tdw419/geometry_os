@@ -141,7 +141,14 @@ class CatalogScanner:
                                 grid_size = metadata.get("grid_size", grid_size)
                                 kernel_version = metadata.get("kernel_version", kernel_version)
                                 distro = metadata.get("distro", distro)
-                                architecture = metadata.get("architecture", architecture)
+                                # Ensure architecture is always a string
+                                arch_val = metadata.get("architecture", architecture)
+                                if isinstance(arch_val, str):
+                                    architecture = arch_val
+                                elif isinstance(arch_val, dict):
+                                    architecture = arch_val.get("architecture", "unknown")
+                                elif arch_val is not None:
+                                    architecture = str(arch_val)
                                 name = metadata.get("name", name)
                         except (json.JSONDecodeError, ValueError):
                             pass

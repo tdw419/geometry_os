@@ -114,7 +114,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 04-04 - CLI catalog command and unit tests
 - [x] 04-05 - Human verification of catalog flow
 
-**Completed**: 2026-02-17
+**Completed**: 2026-02-27 (verification)
 
 ---
 
