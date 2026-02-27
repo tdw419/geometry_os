@@ -294,7 +294,7 @@ class CatalogCacheManager extends EventEmitter {
             const entry = await this._wrapRequest(store.get(entryId));
 
             if (entry) {
-                // Update lastAccessed timestamp
+                // Update lastAccessed timestamp (even for stale entries)
                 entry.lastAccessed = Date.now();
                 await this._wrapRequest(store.put(entry));
 
@@ -304,6 +304,13 @@ class CatalogCacheManager extends EventEmitter {
                     if (computedHash && computedHash !== entry.hash) {
                         console.warn('[CatalogCacheManager] Hash mismatch on read for', entryId);
                         entry.verificationStatus = 'failed';
+
+                        // Emit verification-failed event
+                        this.emit('verification-failed', {
+                            entryId: entryId,
+                            expectedHash: entry.hash,
+                            computedHash: computedHash
+                        });
                     }
                 }
             }
@@ -353,6 +360,13 @@ class CatalogCacheManager extends EventEmitter {
                 if (!verified) {
                     console.warn('[CatalogCacheManager] Hash verification failed for', entryId,
                         '- stored:', storedHash, 'computed:', computedHash);
+
+                    // Emit verification-failed event
+                    this.emit('verification-failed', {
+                        entryId: entryId,
+                        expectedHash: storedHash,
+                        computedHash: computedHash
+                    });
                 }
             }
 
@@ -1080,4 +1094,184 @@ class CatalogCacheManager extends EventEmitter {
                 return { changed: false };
             }
         };
+    }
+
+    // ========================================
+    // Cache Management Utilities
+    // ========================================
+
+    /**
+     * Remove all stale entries that need revalidation
+     * @returns {Promise<number>} Count of deleted entries
+     *
+     * @example
+     * const deleted = await cache.evictAllStale();
+     * console.log('Removed', deleted, 'stale entries');
+     */
+    async evictAllStale() {
+        const store = await this._getStore('readwrite');
+        if (!store) {
+            return 0;
+        }
+
+        try {
+            const entries = await this._wrapRequest(store.getAll(), []);
+            let deletedCount = 0;
+            const deletedIds = [];
+            let freedBytes = 0;
+
+            for (const entry of entries) {
+                if (this.needsRevalidation(entry)) {
+                    const entrySize = entry.size || 0;
+                    await this._wrapRequest(store.delete(entry.id));
+                    deletedIds.push(entry.id);
+                    freedBytes += entrySize;
+                    deletedCount++;
+                }
+            }
+
+            if (deletedCount > 0) {
+                this.emit('cache-evicted', { entryIds: deletedIds, freedBytes: freedBytes });
+                console.log('[CatalogCacheManager] Evicted all stale entries:', deletedCount, 'freed:', freedBytes, 'bytes');
+            }
+
+            return deletedCount;
+        } catch (error) {
+            console.error('[CatalogCacheManager] evictAllStale error:', error);
+            return 0;
+        }
+    }
+
+    /**
+     * Get a comprehensive cache status report for UI display
+     * @returns {Promise<Object>} Cache report object
+     *
+     * @example
+     * const report = await cache.getCacheReport();
+     * // Returns: {
+     * //   entryCount: 5,
+     * //   totalSize: 524288000,
+     * //   maxSize: 524288000,
+     * //   percentUsed: 100,
+     * //   staleCount: 2,
+     * //   pendingRevalidationCount: 1,
+     * //   oldestEntry: Date,
+     * //   averageAge: 345600000
+     * // }
+     */
+    async getCacheReport() {
+        const store = await this._getStore('readonly');
+        if (!store) {
+            return {
+                entryCount: 0,
+                totalSize: 0,
+                maxSize: this.getMaxSize(),
+                percentUsed: 0,
+                staleCount: 0,
+                pendingRevalidationCount: 0,
+                oldestEntry: null,
+                averageAge: 0
+            };
+        }
+
+        try {
+            const entries = await this._wrapRequest(store.getAll(), []);
+            const now = Date.now();
+
+            const totalSize = entries.reduce((sum, entry) => sum + (entry.size || 0), 0);
+            const maxSize = this.getMaxSize();
+
+            // Count stale and pending revalidation
+            let staleCount = 0;
+            let pendingRevalidationCount = 0;
+            let totalAge = 0;
+            let oldestTimestamp = Infinity;
+
+            for (const entry of entries) {
+                if (this.isStale(entry)) {
+                    staleCount++;
+                }
+                if (this.needsRevalidation(entry)) {
+                    pendingRevalidationCount++;
+                }
+
+                if (entry.cachedAt) {
+                    totalAge += (now - entry.cachedAt);
+                    if (entry.cachedAt < oldestTimestamp) {
+                        oldestTimestamp = entry.cachedAt;
+                    }
+                }
+            }
+
+            const averageAge = entries.length > 0 ? Math.round(totalAge / entries.length) : 0;
+
+            return {
+                entryCount: entries.length,
+                totalSize: totalSize,
+                maxSize: maxSize,
+                percentUsed: maxSize > 0 ? Math.round((totalSize / maxSize) * 100) : 0,
+                staleCount: staleCount,
+                pendingRevalidationCount: pendingRevalidationCount,
+                oldestEntry: oldestTimestamp !== Infinity ? new Date(oldestTimestamp) : null,
+                averageAge: averageAge
+            };
+        } catch (error) {
+            console.error('[CatalogCacheManager] getCacheReport error:', error);
+            return {
+                entryCount: 0,
+                totalSize: 0,
+                maxSize: this.getMaxSize(),
+                percentUsed: 0,
+                staleCount: 0,
+                pendingRevalidationCount: 0,
+                oldestEntry: null,
+                averageAge: 0
+            };
+        }
+    }
+
+    /**
+     * Update cache configuration settings
+     * Persists settings to localStorage for session continuity
+     * @param {Object} options - Configuration options to update
+     * @param {number} options.maxSize - Maximum cache size in bytes
+     * @param {number} options.maxAge - Maximum cache age in milliseconds
+     * @param {number} options.staleWhileRevalidate - Grace period for stale entries in milliseconds
+     * @param {boolean} options.verifyOnRead - Verify hash on every read
+     *
+     * @example
+     * cache.configure({ maxSize: 1024 * 1024 * 1024, maxAge: 14 * 24 * 60 * 60 * 1000 });
+     */
+    configure(options = {}) {
+        try {
+            // Update instance properties
+            if (options.maxSize !== undefined) {
+                this.setMaxSize(options.maxSize);
+            }
+            if (options.maxAge !== undefined) {
+                this.maxAge = options.maxAge;
+            }
+            if (options.staleWhileRevalidate !== undefined) {
+                this.staleWhileRevalidate = options.staleWhileRevalidate;
+            }
+            if (options.verifyOnRead !== undefined) {
+                this.verifyOnRead = options.verifyOnRead;
+            }
+
+            // Persist to localStorage
+            const config = {
+                maxAge: this.maxAge,
+                staleWhileRevalidate: this.staleWhileRevalidate
+            };
+            localStorage.setItem(CatalogCacheManager.CONFIG_KEY, JSON.stringify(config));
+
+            console.log('[CatalogCacheManager] Configuration updated:', {
+                maxSize: this.getMaxSize(),
+                maxAge: this.maxAge,
+                staleWhileRevalidate: this.staleWhileRevalidate,
+                verifyOnRead: this.verifyOnRead
+            });
+        } catch (error) {
+            console.error('[CatalogCacheManager] configure error:', error);
+        }
     }
