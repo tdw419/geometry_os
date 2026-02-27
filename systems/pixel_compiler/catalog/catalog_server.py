@@ -90,6 +90,17 @@ class RefreshResponse(BaseModel):
     message: str
 
 
+class StatusResponse(BaseModel):
+    """Response model for entry status."""
+    entry_id: str
+    status: str  # 'stopped', 'booting', 'running', 'error'
+    pid: Optional[int]
+    started_at: Optional[str]
+    uptime_seconds: Optional[float]
+    vnc_port: Optional[int]
+    error_message: Optional[str]
+
+
 class ErrorResponse(BaseModel):
     """Error response model."""
     success: bool = False
@@ -503,6 +514,45 @@ async def boot_catalog_entry(entry_id: str, options: BootOptions = BootOptions()
     except Exception as e:
         logger.error(f"Boot error: {e}")
         raise HTTPException(status_code=500, detail=f"Boot failed: {e}")
+
+
+@app.get("/api/v1/catalog/{entry_id}/status", response_model=StatusResponse, tags=["Catalog"])
+async def get_entry_status(entry_id: str):
+    """
+    Get the current status of a catalog entry.
+
+    Returns status information including:
+    - status: 'stopped', 'booting', 'running', or 'error'
+    - pid: Process ID if running
+    - started_at: ISO timestamp when boot started
+    - uptime_seconds: Time since boot (calculated on each request)
+    - vnc_port: VNC port if running
+    - error_message: Error description if status is 'error'
+
+    Args:
+        entry_id: ID of entry to check
+
+    Returns:
+        StatusResponse with current entry status
+    """
+    server = get_catalog_server()
+
+    try:
+        status_info = server.get_status(entry_id)
+        return StatusResponse(
+            entry_id=entry_id,
+            status=status_info.get('status', 'stopped'),
+            pid=status_info.get('pid'),
+            started_at=status_info.get('started_at'),
+            uptime_seconds=status_info.get('uptime_seconds'),
+            vnc_port=status_info.get('vnc_port'),
+            error_message=status_info.get('error_message')
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Status check error: {e}")
+        raise HTTPException(status_code=500, detail=f"Status check failed: {e}")
 
 
 @app.post("/api/v1/catalog/layout", tags=["Catalog"])
