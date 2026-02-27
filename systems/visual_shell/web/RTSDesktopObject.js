@@ -1,0 +1,482 @@
+/**
+ * RTSDesktopObject - Visual representation of a .rts.png container on the desktop
+ *
+ * Displays container thumbnail, name, and status as an interactive sprite
+ * on the infinite canvas. Users can click to select, double-click to boot.
+ *
+ * Visual design:
+ * - Thumbnail: 128x128 pixels (scaled from 256x256 API thumbnail)
+ * - Name label: below thumbnail, max 2 lines, centered, white text
+ * - Status indicator: 12px circle in top-right
+ * - Background: dark semi-transparent (0x1a1a1a, 0.9 alpha)
+ * - Hover: cyan border (0x00ffff, 2px)
+ * - Total size: approximately 140x180 pixels
+ *
+ * @module RTSDesktopObject
+ */
+
+class RTSDesktopObject extends PIXI.Container {
+    /**
+     * Status colors for the indicator
+     * @static
+     */
+    static STATUS_COLORS = {
+        idle: 0x888888,      // Gray
+        booting: 0xffff00,   // Yellow
+        running: 0x00ff00,   // Green
+        error: 0xff0000,     // Red
+        stopped: 0x666666,   // Dark gray
+        unknown: 0x444444    // Darker gray
+    };
+
+    /**
+     * Dimensions for the object
+     * @static
+     */
+    static DIMENSIONS = {
+        THUMBNAIL_SIZE: 128,
+        OBJECT_WIDTH: 140,
+        OBJECT_HEIGHT: 180,
+        PADDING: 6,
+        STATUS_INDICATOR_SIZE: 12,
+        BORDER_WIDTH: 2
+    };
+
+    /**
+     * Create an RTSDesktopObject instance
+     * @param {Object} entry - Catalog entry data
+     * @param {string} entry.id - Unique entry ID
+     * @param {string} entry.name - Display name
+     * @param {string} entry.thumbnail - Base64 thumbnail data (optional)
+     * @param {string} entry.status - Current status (idle, booting, running, error)
+     * @param {Object} entry.layout - Layout position { gridX, gridY }
+     * @param {Object} options - Configuration options
+     */
+    constructor(entry, options = {}) {
+        super();
+
+        this.entryId = entry.id;
+        this.entryData = entry;
+        this.options = options;
+        this._highlighted = false;
+        this._status = entry.status || 'unknown';
+
+        // Set up interactivity
+        this.eventMode = 'static';
+        this.cursor = 'pointer';
+
+        // Calculate position from grid if layout exists
+        if (entry.layout) {
+            this.gridX = entry.layout.gridX || 0;
+            this.gridY = entry.layout.gridY || 0;
+        } else {
+            this.gridX = 0;
+            this.gridY = 0;
+        }
+
+        // Build the visual components
+        this._createBackground();
+        this._createThumbnail(entry.thumbnail);
+        this._createNameLabel(entry.name || entry.id);
+        this._createStatusIndicator();
+        this._createBorder();
+
+        // Set up event handlers
+        this._setupEventHandlers();
+
+        // Set initial status
+        this.setStatus(this._status);
+    }
+
+    /**
+     * Create the background graphics
+     * @private
+     */
+    _createBackground() {
+        const { OBJECT_WIDTH, OBJECT_HEIGHT } = RTSDesktopObject.DIMENSIONS;
+
+        this.background = new PIXI.Graphics();
+        this.background.rect(0, 0, OBJECT_WIDTH, OBJECT_HEIGHT);
+        this.background.fill({ color: 0x1a1a1a, alpha: 0.9 });
+        this.addChild(this.background);
+    }
+
+    /**
+     * Create the thumbnail sprite
+     * @private
+     * @param {string} thumbnailData - Base64 thumbnail data
+     */
+    _createThumbnail(thumbnailData) {
+        const { THUMBNAIL_SIZE, OBJECT_WIDTH, PADDING } = RTSDesktopObject.DIMENSIONS;
+
+        // Create thumbnail container
+        this.thumbnailContainer = new PIXI.Container();
+        this.thumbnailContainer.x = (OBJECT_WIDTH - THUMBNAIL_SIZE) / 2;
+        this.thumbnailContainer.y = PADDING + 4;
+        this.addChild(this.thumbnailContainer);
+
+        // Placeholder while loading
+        this.thumbnailPlaceholder = new PIXI.Graphics();
+        this.thumbnailPlaceholder.rect(0, 0, THUMBNAIL_SIZE, THUMBNAIL_SIZE);
+        this.thumbnailPlaceholder.fill({ color: 0x333333, alpha: 1 });
+        this.thumbnailPlaceholder.rect(1, 1, THUMBNAIL_SIZE - 2, THUMBNAIL_SIZE - 2);
+        this.thumbnailPlaceholder.stroke({ color: 0x555555, width: 1 });
+        this.thumbnailContainer.addChild(this.thumbnailPlaceholder);
+
+        // Load thumbnail if provided
+        if (thumbnailData) {
+            this._loadThumbnail(thumbnailData);
+        }
+    }
+
+    /**
+     * Load a thumbnail from base64 data
+     * @private
+     * @param {string} base64Data - Base64 encoded image data
+     */
+    _loadThumbnail(base64Data) {
+        const { THUMBNAIL_SIZE } = RTSDesktopObject.DIMENSIONS;
+
+        try {
+            // Handle both data URL and raw base64
+            const dataUrl = base64Data.startsWith('data:')
+                ? base64Data
+                : `data:image/png;base64,${base64Data}`;
+
+            const texture = PIXI.Texture.from(dataUrl);
+
+            if (this.thumbnailSprite) {
+                this.thumbnailSprite.destroy();
+            }
+
+            this.thumbnailSprite = new PIXI.Sprite(texture);
+            this.thumbnailSprite.width = THUMBNAIL_SIZE;
+            this.thumbnailSprite.height = THUMBNAIL_SIZE;
+
+            // Hide placeholder, show sprite
+            this.thumbnailPlaceholder.visible = false;
+            this.thumbnailContainer.addChild(this.thumbnailSprite);
+
+        } catch (error) {
+            console.warn(`[RTSDesktopObject] Failed to load thumbnail for ${this.entryId}:`, error);
+        }
+    }
+
+    /**
+     * Create the name label below the thumbnail
+     * @private
+     * @param {string} name - Display name
+     */
+    _createNameLabel(name) {
+        const { OBJECT_WIDTH, THUMBNAIL_SIZE, PADDING } = RTSDesktopObject.DIMENSIONS;
+
+        // Truncate long names
+        let displayName = name;
+        if (displayName.length > 18) {
+            displayName = displayName.substring(0, 15) + '...';
+        }
+
+        this.nameLabel = new PIXI.Text({
+            text: displayName,
+            style: {
+                fontFamily: 'Courier New, monospace',
+                fontSize: 11,
+                fill: 0xffffff,
+                align: 'center',
+                wordWrap: true,
+                wordWrapWidth: OBJECT_WIDTH - 8,
+                lineHeight: 14
+            }
+        });
+
+        this.nameLabel.x = OBJECT_WIDTH / 2;
+        this.nameLabel.y = PADDING + THUMBNAIL_SIZE + 8;
+        this.nameLabel.anchor.set(0.5, 0);
+        this.addChild(this.nameLabel);
+    }
+
+    /**
+     * Create the status indicator circle
+     * @private
+     */
+    _createStatusIndicator() {
+        const { OBJECT_WIDTH, PADDING, STATUS_INDICATOR_SIZE } = RTSDesktopObject.DIMENSIONS;
+
+        this.statusIndicator = new PIXI.Graphics();
+        this.statusIndicator.x = OBJECT_WIDTH - PADDING - STATUS_INDICATOR_SIZE - 2;
+        this.statusIndicator.y = PADDING + 6;
+
+        // Draw initial circle (will be updated by setStatus)
+        this._drawStatusCircle(RTSDesktopObject.STATUS_COLORS.unknown);
+
+        this.addChild(this.statusIndicator);
+    }
+
+    /**
+     * Draw the status indicator circle
+     * @private
+     * @param {number} color - Fill color
+     */
+    _drawStatusCircle(color) {
+        const { STATUS_INDICATOR_SIZE } = RTSDesktopObject.DIMENSIONS;
+        const radius = STATUS_INDICATOR_SIZE / 2;
+
+        this.statusIndicator.clear();
+        this.statusIndicator.circle(radius, radius, radius);
+        this.statusIndicator.fill({ color: color, alpha: 1 });
+
+        // Add subtle border
+        this.statusIndicator.circle(radius, radius, radius);
+        this.statusIndicator.stroke({ color: 0x000000, width: 1 });
+    }
+
+    /**
+     * Create the hover border
+     * @private
+     */
+    _createBorder() {
+        const { OBJECT_WIDTH, OBJECT_HEIGHT, BORDER_WIDTH } = RTSDesktopObject.DIMENSIONS;
+
+        this.border = new PIXI.Graphics();
+        this.border.rect(
+            -BORDER_WIDTH / 2,
+            -BORDER_WIDTH / 2,
+            OBJECT_WIDTH + BORDER_WIDTH,
+            OBJECT_HEIGHT + BORDER_WIDTH
+        );
+        this.border.stroke({ color: 0x00ffff, width: BORDER_WIDTH, alpha: 0 });
+        this.addChild(this.border);
+    }
+
+    /**
+     * Set up mouse/touch event handlers
+     * @private
+     */
+    _setupEventHandlers() {
+        this.on('pointerover', this._onPointerOver, this);
+        this.on('pointerout', this._onPointerOut, this);
+        this.on('pointerdown', this._onPointerDown, this);
+        this.on('pointerup', this._onPointerUp, this);
+        this.on('dblclick', this._onDoubleClick, this);
+    }
+
+    /**
+     * Handle pointer over (hover start)
+     * @private
+     */
+    _onPointerOver() {
+        if (!this._highlighted) {
+            this.border.alpha = 1;
+            this.border.clear();
+            this.border.rect(-1, -1, 142, 182);
+            this.border.stroke({ color: 0x00ffff, width: 2, alpha: 0.8 });
+        }
+        this.emit('hover', { target: this });
+    }
+
+    /**
+     * Handle pointer out (hover end)
+     * @private
+     */
+    _onPointerOut() {
+        if (!this._highlighted) {
+            this.border.clear();
+            this.border.rect(-1, -1, 142, 182);
+            this.border.stroke({ color: 0x00ffff, width: 2, alpha: 0 });
+        }
+        this.emit('hover-end', { target: this });
+    }
+
+    /**
+     * Handle pointer down (click start)
+     * @private
+     * @param {PIXI.FederatedPointerEvent} event
+     */
+    _onPointerDown(event) {
+        this._clickStart = Date.now();
+        this.emit('pointer-pressed', { target: this, event });
+    }
+
+    /**
+     * Handle pointer up (click end)
+     * @private
+     * @param {PIXI.FederatedPointerEvent} event
+     */
+    _onPointerUp(event) {
+        const clickDuration = Date.now() - (this._clickStart || 0);
+
+        // Only emit if it was a quick tap (not a drag)
+        if (clickDuration < 300) {
+            this.emit('clicked', { target: this, event });
+        }
+    }
+
+    /**
+     * Handle double click
+     * @private
+     * @param {PIXI.FederatedPointerEvent} event
+     */
+    _onDoubleClick(event) {
+        this.emit('double-clicked', { target: this, event });
+        this.emit('boot-requested', { entryId: this.entryId, target: this });
+    }
+
+    /**
+     * Set the highlighted state (selected)
+     * @param {boolean} highlighted - Whether to show highlight
+     */
+    setHighlighted(highlighted) {
+        this._highlighted = highlighted;
+
+        if (highlighted) {
+            this.border.clear();
+            this.border.rect(-1, -1, 142, 182);
+            this.border.stroke({ color: 0x00ffff, width: 3, alpha: 1 });
+        } else {
+            this.border.clear();
+            this.border.rect(-1, -1, 142, 182);
+            this.border.stroke({ color: 0x00ffff, width: 2, alpha: 0 });
+        }
+    }
+
+    /**
+     * Get the current highlighted state
+     * @returns {boolean}
+     */
+    isHighlighted() {
+        return this._highlighted;
+    }
+
+    /**
+     * Set the status of the object
+     * @param {string} status - Status value (idle, booting, running, error, stopped, unknown)
+     */
+    setStatus(status) {
+        this._status = status;
+        const color = RTSDesktopObject.STATUS_COLORS[status] || RTSDesktopObject.STATUS_COLORS.unknown;
+        this._drawStatusCircle(color);
+    }
+
+    /**
+     * Get the current status
+     * @returns {string}
+     */
+    getStatus() {
+        return this._status;
+    }
+
+    /**
+     * Update the thumbnail image
+     * @param {string} thumbnailData - Base64 encoded image data
+     */
+    updateThumbnail(thumbnailData) {
+        this._loadThumbnail(thumbnailData);
+    }
+
+    /**
+     * Update the display name
+     * @param {string} name - New display name
+     */
+    updateName(name) {
+        let displayName = name;
+        if (displayName.length > 18) {
+            displayName = displayName.substring(0, 15) + '...';
+        }
+        this.nameLabel.text = displayName;
+    }
+
+    /**
+     * Get the grid position
+     * @returns {Object} { gridX, gridY }
+     */
+    getGridPosition() {
+        return { gridX: this.gridX, gridY: this.gridY };
+    }
+
+    /**
+     * Set the grid position (does not update world position)
+     * @param {number} gridX
+     * @param {number} gridY
+     */
+    setGridPosition(gridX, gridY) {
+        this.gridX = gridX;
+        this.gridY = gridY;
+    }
+
+    /**
+     * Get the world position (calculated from grid)
+     * @returns {Object} { x, y }
+     */
+    getWorldPosition() {
+        // Grid-to-world conversion: World X = grid.x * 160, World Y = grid.y * 200
+        return {
+            x: this.gridX * 160,
+            y: this.gridY * 200
+        };
+    }
+
+    /**
+     * Serialize the object state for persistence
+     * @returns {Object} Serializable state
+     */
+    serialize() {
+        return {
+            entryId: this.entryId,
+            gridX: this.gridX,
+            gridY: this.gridY,
+            status: this._status,
+            highlighted: this._highlighted
+        };
+    }
+
+    /**
+     * Update entry data (refresh from catalog)
+     * @param {Object} entry - New entry data
+     */
+    updateEntry(entry) {
+        this.entryData = entry;
+
+        if (entry.thumbnail) {
+            this.updateThumbnail(entry.thumbnail);
+        }
+
+        if (entry.name) {
+            this.updateName(entry.name);
+        }
+
+        if (entry.status) {
+            this.setStatus(entry.status);
+        }
+
+        if (entry.layout) {
+            this.setGridPosition(entry.layout.gridX || 0, entry.layout.gridY || 0);
+        }
+    }
+
+    /**
+     * Clean up resources
+     */
+    destroy() {
+        // Remove event listeners
+        this.off('pointerover', this._onPointerOver, this);
+        this.off('pointerout', this._onPointerOut, this);
+        this.off('pointerdown', this._onPointerDown, this);
+        this.off('pointerup', this._onPointerUp, this);
+        this.off('dblclick', this._onDoubleClick, this);
+
+        // Destroy sprite texture if it exists
+        if (this.thumbnailSprite) {
+            this.thumbnailSprite.destroy();
+        }
+
+        super.destroy();
+    }
+}
+
+// ES6 module export
+export { RTSDesktopObject };
+
+// Also attach to window for legacy/global usage
+if (typeof window !== 'undefined') {
+    window.RTSDesktopObject = RTSDesktopObject;
+}
