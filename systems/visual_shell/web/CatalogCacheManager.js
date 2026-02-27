@@ -898,3 +898,186 @@ class CatalogCacheManager extends EventEmitter {
             return null;
         }
     }
+
+    // ========================================
+    // ETag-based Revalidation
+    // ========================================
+
+    /**
+     * Revalidate a cache entry with the server using ETag
+     * Implements conditional fetch pattern (If-None-Match header)
+     * @param {string} entryId - The entry ID to revalidate
+     * @param {Function} fetchCallback - Async function that performs conditional fetch
+     * @param {string} fetchCallback.etag - The stored ETag to send
+     * @returns {Promise<{revalidated: boolean, updated: boolean, entry?: Object}>} Result object
+     *
+     * fetchCallback signature: async (etag) => { data, metadata, changed: boolean }
+     * - If server returns 304 (not changed): return { changed: false }
+     * - If server returns new data: return { data: ArrayBuffer, metadata: {...}, changed: true }
+     *
+     * @example
+     * const result = await cache.revalidate('ubuntu-22.04', async (etag) => {
+     *   const response = await fetch(url, { headers: { 'If-None-Match': etag } });
+     *   if (response.status === 304) return { changed: false };
+     *   return { data: await response.arrayBuffer(), metadata: { etag: response.headers.get('ETag') }, changed: true };
+     * });
+     */
+    async revalidate(entryId, fetchCallback) {
+        const store = await this._getStore('readwrite');
+        if (!store) {
+            return { revalidated: false, updated: false };
+        }
+
+        try {
+            const entry = await this._wrapRequest(store.get(entryId));
+
+            if (!entry) {
+                console.warn('[CatalogCacheManager] Cannot revalidate: entry not found:', entryId);
+                return { revalidated: false, updated: false };
+            }
+
+            const etag = entry.metadata?.etag || entry.etag || null;
+
+            // Call the fetch callback with the stored ETag
+            const fetchResult = await fetchCallback(etag);
+
+            if (!fetchResult.changed) {
+                // Server returned 304 - not modified
+                // Update cachedAt timestamp to extend freshness
+                entry.cachedAt = Date.now();
+                entry.verificationStatus = 'verified';
+                await this._wrapRequest(store.put(entry));
+
+                this.emit('entry-revalidated', { entryId: entryId, updated: false });
+
+                console.log('[CatalogCacheManager] Entry revalidated (not modified):', entryId);
+
+                return {
+                    revalidated: true,
+                    updated: false,
+                    entry: entry
+                };
+            }
+
+            // Server returned new data - update cache
+            if (fetchResult.data) {
+                const setMetadata = {
+                    etag: fetchResult.metadata?.etag || etag,
+                    hash: fetchResult.metadata?.hash,
+                    size: fetchResult.metadata?.size,
+                    source: fetchResult.metadata?.source
+                };
+
+                const setResult = await this.set(entryId, fetchResult.data, setMetadata);
+
+                if (setResult.success) {
+                    this.emit('entry-revalidated', { entryId: entryId, updated: true });
+
+                    console.log('[CatalogCacheManager] Entry revalidated and updated:', entryId);
+
+                    // Get the updated entry
+                    const updatedEntry = await this._wrapRequest(store.get(entryId));
+
+                    return {
+                        revalidated: true,
+                        updated: true,
+                        entry: updatedEntry
+                    };
+                }
+            }
+
+            return { revalidated: false, updated: false };
+        } catch (error) {
+            console.error('[CatalogCacheManager] revalidate error:', error);
+            return { revalidated: false, updated: false };
+        }
+    }
+
+    /**
+     * Get entry with automatic revalidation based on staleness
+     * Implements stale-while-revalidate pattern
+     * @param {string} entryId - The entry ID to retrieve
+     * @param {Function} fetchCallback - Async function for conditional fetch (see revalidate)
+     * @returns {Promise<Object|null>} Entry data (stale or fresh) or null if not found
+     *
+     * @example
+     * const entry = await cache.getOrRevalidate('ubuntu-22.04', async (etag) => {
+     *   // ... conditional fetch logic
+     * });
+     */
+    async getOrRevalidate(entryId, fetchCallback) {
+        // First, get the entry (this also updates lastAccessed)
+        const entry = await this.get(entryId);
+
+        if (!entry) {
+            return null;
+        }
+
+        // Check if entry needs revalidation
+        if (this.needsRevalidation(entry)) {
+            // Entry is past grace period - must fetch fresh data
+            console.log('[CatalogCacheManager] Entry needs revalidation:', entryId);
+
+            const result = await this.revalidate(entryId, fetchCallback);
+
+            if (result.revalidated) {
+                return result.entry || entry;
+            }
+
+            // If revalidation failed, return stale entry anyway
+            console.warn('[CatalogCacheManager] Revalidation failed, returning stale entry:', entryId);
+            return entry;
+        }
+
+        // Entry is fresh or within staleWhileRevalidate window
+        // Return immediately (background revalidation is optional and handled by caller)
+        return entry;
+    }
+
+    /**
+     * Create a revalidation fetcher function for CatalogBridge integration
+     * Helper to create fetchCallback for use with revalidate() or getOrRevalidate()
+     * @param {Object} catalogBridge - CatalogBridge instance with fetchContainer method
+     * @param {string} entryId - The entry ID to fetch
+     * @returns {Function} Async fetchCallback function
+     *
+     * @example
+     * const fetcher = cache.createRevalidationFetcher(catalogBridge, 'ubuntu-22.04');
+     * const result = await cache.revalidate('ubuntu-22.04', fetcher);
+     */
+    createRevalidationFetcher(catalogBridge, entryId) {
+        return async (etag) => {
+            try {
+                // CatalogBridge should support conditional fetch with If-None-Match
+                // If it returns null/304, data is not modified
+                const result = await catalogBridge.fetchContainer(entryId, {
+                    headers: etag ? { 'If-None-Match': etag } : {}
+                });
+
+                // Check if not modified (304)
+                if (result && result.notModified) {
+                    return { changed: false };
+                }
+
+                // Check if we got new data
+                if (result && result.data) {
+                    return {
+                        data: result.data,
+                        metadata: {
+                            etag: result.etag || result.metadata?.etag,
+                            hash: result.hash || result.metadata?.hash,
+                            size: result.size || result.metadata?.size,
+                            source: result.source || result.metadata?.source
+                        },
+                        changed: true
+                    };
+                }
+
+                // Fallback: assume not modified if no data
+                return { changed: false };
+            } catch (error) {
+                console.error('[CatalogCacheManager] Revalidation fetcher error:', error);
+                return { changed: false };
+            }
+        };
+    }
