@@ -133,9 +133,16 @@ class CatalogBridge {
      * // Returns: { success: true, vmId: 'vm-123', status: 'booting' }
      */
     async bootEntry(entryId, options = {}) {
+        // Transform client options to server's expected format
+        const bootOptions = {
+            memory: options.memory || '2G',
+            cpus: options.cpus || 2,
+            cmdline: options.cmdline || null
+        };
+
         const data = await this._fetch(`/api/v1/catalog/${encodeURIComponent(entryId)}/boot`, {
             method: 'POST',
-            body: JSON.stringify(options)
+            body: JSON.stringify(bootOptions)
         });
 
         return data;
