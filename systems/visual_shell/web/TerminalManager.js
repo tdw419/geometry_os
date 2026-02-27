@@ -7,9 +7,13 @@
  * - Z-index ordering
  * - Keyboard shortcuts
  * - Server persistence
+ * - Neural Event Bus integration
+ * - Viewport pan/zoom navigation
  */
 
 import { TerminalWindow } from './TerminalWindow.js';
+import { WindowParticle, ParticleManager } from './WindowParticle.js';
+import { NeuralEventBus } from './NeuralEventBus.js';
 
 export class TerminalManager {
     constructor(app, viewport, options = {}) {
@@ -19,13 +23,29 @@ export class TerminalManager {
 
         // Window tracking
         this.windows = new Map();
+        this.particles = new Map(); // WindowParticle wrappers
         this.focusedWindowId = null;
         this.nextId = 1;
+
+        // Neural Event Bus
+        this.eventBus = options.eventBus || new NeuralEventBus({
+            debug: options.debug || false,
+            wsUrl: options.nebUrl || null
+        });
+
+        // Particle Manager
+        this.particleManager = new ParticleManager(this.eventBus);
 
         // Server sync
         this.serverUrl = options.serverUrl || 'ws://localhost:8765';
         this.ws = null;
         this.connected = false;
+
+        // Viewport navigation state
+        this.panSpeed = options.panSpeed || 20;
+        this.zoomSpeed = options.zoomSpeed || 0.1;
+        this.minZoom = options.minZoom || 0.25;
+        this.maxZoom = options.maxZoom || 3.0;
 
         // Debounced save
         this._saveTimeout = null;
@@ -33,6 +53,7 @@ export class TerminalManager {
         // Keyboard shortcuts
         this.shortcutsEnabled = true;
         this._initKeyboardShortcuts();
+        this._initViewportNavigation();
 
         // Auto-connect to server
         if (options.autoConnect !== false) {
@@ -113,7 +134,7 @@ export class TerminalManager {
             terminal.container.addChild(bg);
 
             // Add mock text
-            const text = new PIXI.Text('$ ' + this.id, {
+            const text = new PIXI.Text('$ ' + id, {
                 fontFamily: 'Courier New',
                 fontSize: 14,
                 fill: 0x00ff88
@@ -136,17 +157,37 @@ export class TerminalManager {
         window.onFocusRequest = (w) => this.focusTerminal(w.id);
         window.onPositionChange = (w) => this._onWindowPositionChange(w);
 
-        // Add to container
-        this.container.addChild(window.container);
+        // Wrap in WindowParticle for NEB integration
+        const particle = new WindowParticle(window.container, {
+            id,
+            type: 'terminal',
+            x: window.container.x,
+            y: window.container.y,
+            width: window.width || terminal.width,
+            height: window.height || terminal.height,
+            scale: 1.0,
+            zIndex: this.windows.size
+        });
+
+        // Register particle with event bus
+        particle.register(this.eventBus);
+        this.particleManager.add(particle);
+
+        // Add to container (use particle container)
+        this.container.addChild(particle.container);
 
         // Track
         this.windows.set(id, window);
+        this.particles.set(id, particle);
 
         // Focus new window
         this.focusTerminal(id);
 
+        // Emit creation event
+        this.eventBus.emit('terminal:created', { id, particle: particle.serialize() });
+
         console.log(`[TerminalManager] Created terminal: ${id}`);
-        return { id, terminal, window };
+        return { id, terminal, window, particle };
     }
 
     focusTerminal(id) {
@@ -179,7 +220,17 @@ export class TerminalManager {
 
     destroyTerminal(id) {
         const window = this.windows.get(id);
+        const particle = this.particles.get(id);
         if (!window) return;
+
+        // Emit destruction event before cleanup
+        this.eventBus.emit('terminal:destroyed', { id });
+
+        // Remove particle from manager (handles unregistration)
+        if (particle) {
+            this.particleManager.remove(id);
+            this.particles.delete(id);
+        }
 
         window.destroy();
         this.windows.delete(id);
@@ -195,15 +246,14 @@ export class TerminalManager {
     }
 
     _bringToFront(id) {
-        const window = this.windows.get(id);
-        if (!window) return;
+        const particle = this.particles.get(id);
+        if (!particle) return;
 
-        // Update z-indices
-        let maxZ = 0;
-        for (const [wid, w] of this.windows) {
-            if (w.container.zIndex > maxZ) maxZ = w.container.zIndex;
-        }
-        window.container.zIndex = maxZ + 1;
+        // Use particle manager to get top z-index
+        const topZ = this.particleManager.getTopZIndex();
+        particle.setZIndex(topZ + 1);
+
+        // Also sort the container
         this.container.sortChildren();
     }
 
@@ -238,6 +288,88 @@ export class TerminalManager {
                 this._focusNext(e.shiftKey ? -1 : 1);
             }
         });
+    }
+
+    /**
+     * Initialize viewport pan/zoom navigation.
+     */
+    _initViewportNavigation() {
+        if (!this.viewport) return;
+
+        // Mouse wheel zoom
+        this.viewport.on('wheel', (e) => {
+            const delta = -Math.sign(e.deltaY) * this.zoomSpeed;
+            const newZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.viewport.scale.x + delta));
+
+            // Zoom toward mouse position
+            const worldPos = this.viewport.toWorld(e.global);
+            this.viewport.setZoom(newZoom, true);
+            this.viewport.moveCenter(worldPos.x, worldPos.y);
+        });
+
+        // Middle mouse pan
+        this.viewport.on('pointerdown', (e) => {
+            if (e.button === 1) { // Middle mouse
+                this.viewport.drag({ wheel: false });
+            }
+        });
+
+        // Arrow key pan (when no window focused)
+        window.addEventListener('keydown', (e) => {
+            if (this.focusedWindowId) return; // Let terminal handle keys
+
+            const pan = this.panSpeed / this.viewport.scale.x;
+
+            switch (e.key) {
+                case 'ArrowLeft':
+                    this.viewport.moveCorner(this.viewport.x + pan, this.viewport.y);
+                    break;
+                case 'ArrowRight':
+                    this.viewport.moveCorner(this.viewport.x - pan, this.viewport.y);
+                    break;
+                case 'ArrowUp':
+                    this.viewport.moveCorner(this.viewport.x, this.viewport.y + pan);
+                    break;
+                case 'ArrowDown':
+                    this.viewport.moveCorner(this.viewport.x, this.viewport.y - pan);
+                    break;
+            }
+        });
+
+        console.log('[TerminalManager] Viewport navigation initialized');
+    }
+
+    /**
+     * Get current viewport bounds in world coordinates.
+     */
+    getViewportBounds() {
+        if (!this.viewport) return { x: 0, y: 0, width: 800, height: 600 };
+
+        const worldVisible = this.viewport.getVisibleBounds();
+        return {
+            x: worldVisible.x,
+            y: worldVisible.y,
+            width: worldVisible.width,
+            height: worldVisible.height
+        };
+    }
+
+    /**
+     * Pan viewport to show a specific window.
+     * @param {string} windowId
+     */
+    focusWindowInView(windowId) {
+        const particle = this.particles.get(windowId);
+        if (!particle || !this.viewport) return;
+
+        const bounds = particle.getBounds();
+        const viewBounds = this.getViewportBounds();
+
+        // Center the window in viewport
+        const targetX = bounds.x - viewBounds.width / 2 + bounds.width / 2;
+        const targetY = bounds.y - viewBounds.height / 2 + bounds.height / 2;
+
+        this.viewport.moveCenter(targetX, targetY);
     }
 
     _focusNext(direction = 1) {
