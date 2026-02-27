@@ -472,6 +472,63 @@ window.geometryOSApp.tileManager.config.spritePool.getStats();
 - Service Worker for offline support
 - IndexedDB for local caching
 
+## E2E Visual Shell Demo
+
+The E2E demo brings together all visual shell features into one unified experience.
+
+### Quick Start
+
+```bash
+# 1. Start all backend services
+./start_demo.sh start
+
+# 2. Start web server
+cd systems/visual_shell/web
+python3 -m http.server 8080
+
+# 3. Open demo in browser
+# http://localhost:8080/demo.html
+```
+
+### Backend Services
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| terminal_positions.py | 8765 | Terminal window position persistence |
+| git_diff.py | 8766 | Git diff/status/log/blame API |
+| shell_bridge.py | 8767 | PTY WebSocket for live shells |
+| file_api.py | 8768 | File read/write with backups |
+
+### Demo Features
+
+- **Live Shells**: Real terminal I/O through morphological glyphs
+- **Code Viewer**: Read-only code with syntax highlighting
+- **Code Editor**: Full editing with undo/redo, auto-save
+- **Infinite Canvas**: Pan/zoom navigation with minimap
+- **Window Particles**: NEB-registered draggable windows
+- **Command Palette**: Quick actions (Ctrl+P)
+
+### Managing Services
+
+```bash
+./start_demo.sh start    # Start all services
+./start_demo.sh status   # Check service status
+./start_demo.sh logs     # View logs
+./start_demo.sh stop     # Stop all services
+./start_demo.sh restart  # Restart all services
+```
+
+### Test Pages
+
+| Page | URL | Description |
+|------|-----|-------------|
+| E2E Demo | `/demo.html` | Full integrated demo |
+| Terminal Manager | `/test_terminal_manager.html` | Multi-terminal test |
+| Live Shell | `/test_live_shell.html` | Shell bridge test |
+| Code Viewer | `/test_code_viewer.html` | Code viewing test |
+| Code Editor | `/test_code_editor.html` | Code editing test |
+| Infinite Map | `/test_infinite_map.html` | Window particles test |
+
 ## License
 
 This project is part of the Geometry OS ecosystem.

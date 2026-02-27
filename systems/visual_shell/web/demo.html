@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Geometry OS - Visual Shell E2E Demo</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 32px;
+            background: linear-gradient(180deg, #1a1a1a, #0f0f0f);
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            z-index: 1000;
+        }
+        #header .logo {
+            font-weight: bold;
+            font-size: 14px;
+            color: #00ff88;
+            text-shadow: 0 0 10px #00ff88;
+        }
+        #header .spacer { flex: 1; }
+        #header .status {
+            font-size: 11px;
+            color: #666;
+            display: flex;
+            gap: 15px;
+        }
+        .status-item { display: flex; align-items: center; gap: 5px; }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #333;
+        }
+        .status-dot.connected { background: #00ff88; box-shadow: 0 0 5px #00ff88; }
+
+        #toolbar {
+            position: fixed;
+            top: 32px;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: #151515;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            z-index: 999;
+        }
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 0 10px;
+            border-right: 1px solid #333;
+        }
+        .toolbar-group:last-child { border-right: none; }
+        button {
+            background: #252535;
+            color: #00ff88;
+            border: 1px solid #444;
+            padding: 5px 12px;
+            font-size: 11px;
+            cursor: pointer;
+            font-family: inherit;
+            border-radius: 3px;
+        }
+        button:hover { background: #00ff88; color: #0a0a0a; border-color: #00ff88; }
+        button.active { background: #00ff88; color: #0a0a0a; }
+
+        #main {
+            position: fixed;
+            top: 72px;
+            left: 0;
+            right: 0;
+            bottom: 24px;
+        }
+        #canvas { width: 100%; height: 100%; outline: none; }
+
+        #minimap {
+            position: fixed;
+            bottom: 34px;
+            right: 10px;
+            width: 180px;
+            height: 120px;
+            background: rgba(26, 26, 26, 0.9);
+            border: 1px solid #333;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        #minimap-canvas { width: 100%; height: 100%; }
+
+        #statusbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 24px;
+            background: #151515;
+            border-top: 1px solid #333;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            font-size: 10px;
+            color: #666;
+            z-index: 1000;
+        }
+        #statusbar .left { display: flex; gap: 20px; }
+        #statusbar .spacer { flex: 1; }
+        #statusbar .right { display: flex; gap: 20px; }
+
+        #welcome {
+            position: fixed;
+            top: 72px;
+            left: 0;
+            right: 0;
+            bottom: 24px;
+            background: rgba(10, 10, 10, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 500;
+        }
+        #welcome.hidden { display: none; }
+        #welcome h1 {
+            font-size: 36px;
+            color: #00ff88;
+            text-shadow: 0 0 20px #00ff88;
+            margin-bottom: 10px;
+        }
+        #welcome p { color: #666; margin-bottom: 30px; }
+        #welcome .shortcuts {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            font-size: 12px;
+        }
+        #welcome .shortcut-item {
+            display: flex;
+            gap: 10px;
+            padding: 8px 15px;
+            background: #1a1a1a;
+            border-radius: 4px;
+        }
+        #welcome .key {
+            background: #252535;
+            padding: 2px 8px;
+            border-radius: 3px;
+            color: #00ff88;
+            font-size: 11px;
+        }
+
+        #command-palette {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1a1a1a;
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            width: 400px;
+            z-index: 2000;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        #command-palette input {
+            width: 100%;
+            padding: 12px 15px;
+            background: #0a0a0a;
+            border: none;
+            border-bottom: 1px solid #333;
+            color: #00ff88;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+        }
+        #command-palette ul {
+            list-style: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        #command-palette li {
+            padding: 10px 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #command-palette li:hover { background: #252535; }
+        #command-palette li .shortcut {
+            margin-left: auto;
+            color: #666;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <div class="logo">◈ GEOMETRY OS</div>
+        <div class="spacer"></div>
+        <div class="status">
+            <div class="status-item">
+                <span class="status-dot" id="shell-status"></span>
+                <span>Shell</span>
+            </div>
+            <div class="status-item">
+                <span class="status-dot" id="file-status"></span>
+                <span>File API</span>
+            </div>
+            <div class="status-item">
+                <span class="status-dot" id="git-status"></span>
+                <span>Git</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="toolbar">
+        <div class="toolbar-group">
+            <button onclick="createTerminal()" title="Ctrl+T">+ Terminal</button>
+            <button onclick="createCodeViewer()">+ Code</button>
+            <button onclick="createEditor()">+ Editor</button>
+        </div>
+        <div class="toolbar-group">
+            <button onclick="closeFocused()" title="Ctrl+W">Close</button>
+            <button onclick="toggleMinimize()">Minimize</button>
+        </div>
+        <div class="toolbar-group">
+            <button onclick="zoomIn()">Zoom +</button>
+            <button onclick="zoomOut()">Zoom -</button>
+            <button onclick="resetView()">Reset</button>
+            <button onclick="fitAll()">Fit</button>
+        </div>
+        <div class="toolbar-group">
+            <button onclick="tileWindows()">Tile</button>
+            <button onclick="cascadeWindows()">Cascade</button>
+            <button onclick="saveLayout()">Save</button>
+        </div>
+        <div class="toolbar-group">
+            <button onclick="toggleCommandPalette()" title="Ctrl+P">⌘ Commands</button>
+            <button onclick="toggleHelp()">? Help</button>
+        </div>
+    </div>
+
+    <div id="main">
+        <div id="canvas" tabindex="0"></div>
+    </div>
+
+    <div id="minimap">
+        <canvas id="minimap-canvas" width="180" height="120"></canvas>
+    </div>
+
+    <div id="statusbar">
+        <div class="left">
+            <span>Windows: <span id="window-count">0</span></span>
+            <span>Zoom: <span id="zoom-level">1.00x</span></span>
+            <span>Position: <span id="viewport-pos">0, 0</span></span>
+        </div>
+        <div class="spacer"></div>
+        <div class="right">
+            <span id="focused-window">No window focused</span>
+            <span>Events: <span id="event-count">0</span></span>
+        </div>
+    </div>
+
+    <div id="welcome">
+        <h1>◈ Geometry OS</h1>
+        <p>Visual Shell - The Screen is the Hard Drive</p>
+        <div class="shortcuts">
+            <div class="shortcut-item"><span class="key">Ctrl+T</span> New Terminal</div>
+            <div class="shortcut-item"><span class="key">Ctrl+W</span> Close Window</div>
+            <div class="shortcut-item"><span class="key">Ctrl+P</span> Command Palette</div>
+            <div class="shortcut-item"><span class="key">Tab</span> Next Window</div>
+            <div class="shortcut-item"><span class="key">Scroll</span> Zoom</div>
+            <div class="shortcut-item"><span class="key">Drag</span> Pan</div>
+        </div>
+        <button onclick="startDemo()" style="margin-top:30px;padding:12px 30px;font-size:14px;">Start Demo</button>
+    </div>
+
+    <div id="command-palette">
+        <input type="text" id="command-input" placeholder="Type a command..." />
+        <ul id="command-list"></ul>
+    </div>
+
+    <script src="https://pixijs.download/v7/pixi.min.js"></script>
+    <script src="https://pixijs.download/v7/plugins/viewport.min.js"></script>
+    <script type="module">
+        import { TerminalManager } from './TerminalManager.js';
+        import { NeuralEventBus, getNeuralEventBus } from './NeuralEventBus.js';
+        import { WindowParticle } from './WindowParticle.js';
+        import { GeometricCodeViewer } from './GeometricCodeViewer.js';
+        import { GeometricCodeEditor } from './GeometricCodeEditor.js';
+
+        let app, viewport, manager, eventBus;
+        let windowParticles = [];
+        let eventCount = 0;
+        let commandPaletteVisible = false;
+
+        const FILE_URL = 'http://localhost:8768';
+        const GIT_URL = 'http://localhost:8766';
+        const SHELL_URL = 'ws://localhost:8767';
+
+        async function init() {
+            // PixiJS Application
+            app = new PIXI.Application({
+                width: window.innerWidth,
+                height: window.innerHeight - 96,
+                backgroundColor: 0x0a0a0a,
+                antialias: true
+            });
+            document.getElementById('canvas').appendChild(app.view);
+
+            // Viewport for infinite canvas
+            viewport = new PIXI.Viewport({
+                screenWidth: window.innerWidth,
+                screenHeight: window.innerHeight - 96,
+                worldWidth: 10000,
+                worldHeight: 10000,
+                interaction: app.renderer.plugins.interaction
+            });
+
+            viewport
+                .drag({ wheel: false })
+                .pinch()
+                .wheel({ smooth: 10 })
+                .decelerate()
+                .clamp({ direction: 'all' });
+
+            app.stage.addChild(viewport);
+            viewport.worldContainer = new PIXI.Container();
+            viewport.addChild(viewport.worldContainer);
+
+            // Enable sortable children for z-index
+            viewport.worldContainer.sortableChildren = true;
+
+            // Neural Event Bus
+            eventBus = getNeuralEventBus({ debug: false });
+            eventBus.onAll((type, data) => {
+                eventCount++;
+                document.getElementById('event-count').textContent = eventCount;
+            });
+
+            // Terminal Manager
+            manager = new TerminalManager(app, viewport, {
+                eventBus,
+                autoConnect: false
+            });
+
+            // Draw background grid
+            drawGrid();
+
+            // Setup keyboard shortcuts
+            setupKeyboard();
+
+            // Check backend status
+            checkBackends();
+
+            // UI update loop
+            setInterval(updateUI, 100);
+
+            console.log('[E2E Demo] Initialized');
+        }
+
+        function drawGrid() {
+            const grid = new PIXI.Graphics();
+            grid.lineStyle(1, 0x222222, 0.3);
+
+            for (let x = -5000; x <= 5000; x += 100) {
+                grid.moveTo(x, -5000);
+                grid.lineTo(x, 5000);
+            }
+            for (let y = -5000; y <= 5000; y += 100) {
+                grid.moveTo(-5000, y);
+                grid.lineTo(5000, y);
+            }
+
+            // Origin marker
+            grid.lineStyle(2, 0x444444);
+            grid.drawCircle(0, 0, 15);
+            grid.moveTo(-20, 0);
+            grid.lineTo(20, 0);
+            grid.moveTo(0, -20);
+            grid.lineTo(0, 20);
+
+            viewport.worldContainer.addChildAt(grid, 0);
+        }
+
+        function setupKeyboard() {
+            const canvas = document.getElementById('canvas');
+            canvas.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'p') {
+                    e.preventDefault();
+                    toggleCommandPalette();
+                }
+                if (e.key === 'Escape') {
+                    hideCommandPalette();
+                    document.getElementById('welcome').classList.add('hidden');
+                }
+            });
+        }
+
+        async function checkBackends() {
+            // Check file API
+            try {
+                const r = await fetch(`${FILE_URL}/health`);
+                document.getElementById('file-status').classList.toggle('connected', r.ok);
+            } catch {
+                document.getElementById('file-status').classList.remove('connected');
+            }
+
+            // Check git API
+            try {
+                const r = await fetch(`${GIT_URL}/health`);
+                document.getElementById('git-status').classList.toggle('connected', r.ok);
+            } catch {
+                document.getElementById('git-status').classList.remove('connected');
+            }
+        }
+
+        // Global functions for buttons
+        window.startDemo = function() {
+            document.getElementById('welcome').classList.add('hidden');
+            createTerminal();
+        };
+
+        window.createTerminal = function() {
+            const result = manager.createTerminal({
+                cols: 80,
+                rows: 24,
+                x: 100 + Math.random() * 300,
+                y: 100 + Math.random() * 200
+            });
+            document.getElementById('shell-status').classList.add('connected');
+        };
+
+        window.createCodeViewer = function() {
+            const viewer = new GeometricCodeViewer(app, {
+                x: 150 + Math.random() * 200,
+                y: 120 + Math.random() * 150,
+                width: 800,
+                height: 500
+            });
+
+            // Load a file
+            viewer.loadFile('systems/visual_shell/web/application.js');
+
+            // Wrap in particle
+            const particle = new WindowParticle(viewer.container, {
+                id: `viewer-${Date.now()}`,
+                type: 'code-viewer',
+                x: viewer.container.x,
+                y: viewer.container.y,
+                width: 800,
+                height: 500
+            });
+            particle.register(eventBus);
+            viewport.worldContainer.addChild(particle.container);
+            windowParticles.push(particle);
+        };
+
+        window.createEditor = function() {
+            const editor = new GeometricCodeEditor(app, {
+                x: 200 + Math.random() * 200,
+                y: 150 + Math.random() * 150,
+                width: 850,
+                height: 550,
+                editable: true
+            });
+
+            // Load a file
+            editor.loadFile('systems/visual_shell/web/TerminalManager.js');
+
+            // Wrap in particle
+            const particle = new WindowParticle(editor.container, {
+                id: `editor-${Date.now()}`,
+                type: 'code-editor',
+                x: editor.container.x,
+                y: editor.container.y,
+                width: 850,
+                height: 550
+            });
+            particle.register(eventBus);
+            viewport.worldContainer.addChild(particle.container);
+            windowParticles.push(particle);
+        };
+
+        window.closeFocused = function() {
+            if (manager.focusedWindowId) {
+                manager.destroyTerminal(manager.focusedWindowId);
+            }
+        };
+
+        window.toggleMinimize = function() {
+            // Not implemented for this demo
+        };
+
+        window.zoomIn = () => viewport.setZoom(viewport.scale.x * 1.2);
+        window.zoomOut = () => viewport.setZoom(viewport.scale.x / 1.2);
+        window.resetView = () => { viewport.setZoom(1); viewport.moveCenter(0, 0); };
+
+        window.fitAll = function() {
+            const particles = [...manager.particles.values(), ...windowParticles];
+            if (particles.length === 0) return;
+
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            for (const p of particles) {
+                const b = p.getBounds();
+                minX = Math.min(minX, b.x);
+                minY = Math.min(minY, b.y);
+                maxX = Math.max(maxX, b.right);
+                maxY = Math.max(maxY, b.bottom);
+            }
+
+            const width = maxX - minX + 100;
+            const height = maxY - minY + 100;
+            const scale = Math.min(window.innerWidth / width, (window.innerHeight - 96) / height, 1.5);
+            viewport.setZoom(scale);
+            viewport.moveCenter(minX + width/2 - 50, minY + height/2 - 50);
+        };
+
+        window.tileWindows = function() {
+            const particles = [...manager.particles.values(), ...windowParticles];
+            const cols = Math.ceil(Math.sqrt(particles.length));
+            let x = -400, y = -200;
+            particles.forEach((p, i) => {
+                p.setPosition(x + (i % cols) * (p.width + 20), y + Math.floor(i / cols) * (p.height + 20));
+            });
+        };
+
+        window.cascadeWindows = function() {
+            const particles = [...manager.particles.values(), ...windowParticles];
+            let x = 100, y = 100;
+            particles.forEach(p => {
+                p.setPosition(x, y);
+                x += 30; y += 30;
+            });
+        };
+
+        window.saveLayout = function() {
+            manager.savePositions();
+            alert('Layout saved!');
+        };
+
+        window.toggleCommandPalette = function() {
+            commandPaletteVisible = !commandPaletteVisible;
+            document.getElementById('command-palette').style.display = commandPaletteVisible ? 'block' : 'none';
+            if (commandPaletteVisible) {
+                document.getElementById('command-input').focus();
+                populateCommands();
+            }
+        };
+
+        window.hideCommandPalette = function() {
+            commandPaletteVisible = false;
+            document.getElementById('command-palette').style.display = 'none';
+        };
+
+        window.toggleHelp = function() {
+            document.getElementById('welcome').classList.toggle('hidden');
+        };
+
+        function populateCommands() {
+            const commands = [
+                { name: 'New Terminal', action: createTerminal, shortcut: 'Ctrl+T' },
+                { name: 'New Code Viewer', action: createCodeViewer },
+                { name: 'New Code Editor', action: createEditor },
+                { name: 'Close Window', action: closeFocused, shortcut: 'Ctrl+W' },
+                { name: 'Zoom In', action: zoomIn },
+                { name: 'Zoom Out', action: zoomOut },
+                { name: 'Reset View', action: resetView },
+                { name: 'Fit All', action: fitAll },
+                { name: 'Tile Windows', action: tileWindows },
+                { name: 'Cascade Windows', action: cascadeWindows },
+                { name: 'Save Layout', action: saveLayout },
+            ];
+
+            const list = document.getElementById('command-list');
+            list.innerHTML = '';
+            commands.forEach(cmd => {
+                const li = document.createElement('li');
+                li.innerHTML = `${cmd.name}${cmd.shortcut ? `<span class="shortcut">${cmd.shortcut}</span>` : ''}`;
+                li.onclick = () => { cmd.action(); hideCommandPalette(); };
+                list.appendChild(li);
+            });
+        }
+
+        function updateUI() {
+            const totalWindows = manager.particles.size + windowParticles.length;
+            document.getElementById('window-count').textContent = totalWindows;
+            document.getElementById('zoom-level').textContent = viewport.scale.x.toFixed(2) + 'x';
+            document.getElementById('viewport-pos').textContent =
+                `${Math.round(viewport.center.x)}, ${Math.round(viewport.center.y)}`;
+            document.getElementById('focused-window').textContent =
+                manager.focusedWindowId || 'No window focused';
+
+            updateMinimap();
+        }
+
+        function updateMinimap() {
+            const canvas = document.getElementById('minimap-canvas');
+            const ctx = canvas.getContext('2d');
+            const scale = 0.018;
+
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, 180, 120);
+
+            // Grid lines
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < 180; i += 20) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, 120);
+                ctx.stroke();
+            }
+            for (let i = 0; i < 120; i += 20) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(180, i);
+                ctx.stroke();
+            }
+
+            // Draw particles
+            const particles = [...manager.particles.values(), ...windowParticles];
+            ctx.fillStyle = '#00ff88';
+            for (const particle of particles) {
+                const x = 90 + particle.x * scale;
+                const y = 60 + particle.y * scale;
+                ctx.fillRect(x - 3, y - 2, 6, 4);
+            }
+
+            // Viewport rectangle
+            ctx.strokeStyle = '#ffaa00';
+            ctx.lineWidth = 1;
+            const vx = 90 + (viewport.center.x - window.innerWidth/2/viewport.scale.x) * scale;
+            const vy = 60 + (viewport.center.y - (window.innerHeight-96)/2/viewport.scale.y) * scale;
+            const vw = window.innerWidth / viewport.scale.x * scale;
+            const vh = (window.innerHeight - 96) / viewport.scale.y * scale;
+            ctx.strokeRect(vx, vy, vw, vh);
+        }
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            app.renderer.resize(window.innerWidth, window.innerHeight - 96);
+            viewport.resize(window.innerWidth, window.innerHeight - 96);
+        });
+
+        init();
+    </script>
+</body>
+</html>
