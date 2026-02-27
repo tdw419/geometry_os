@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SDF Performance Benchmark - Geometry OS</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+        }
+        h1 { margin-bottom: 5px; font-size: 18px; }
+        .subtitle { color: #666; margin-bottom: 20px; font-size: 11px; }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 1400px;
+        }
+
+        .panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .panel-title {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        canvas {
+            background: #0a0a0a;
+            border-radius: 4px;
+        }
+
+        #original-canvas, #optimized-canvas {
+            width: 100%;
+            height: 200px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .stat-box {
+            background: #0a0a0a;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            color: #00ff88;
+        }
+
+        .stat-value.better { color: #44ff44; }
+        .stat-value.worse { color: #ff4444; }
+
+        .stat-label {
+            font-size: 9px;
+            color: #666;
+        }
+
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #252535;
+            color: #00ff88;
+            border: 1px solid #444;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: inherit;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .comparison-section {
+            grid-column: 1 / -1;
+        }
+
+        .bar-chart {
+            margin-bottom: 10px;
+        }
+
+        .bar-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .bar-label {
+            width: 120px;
+            font-size: 10px;
+            color: #888;
+        }
+
+        .bar-container {
+            flex: 1;
+            height: 20px;
+            background: #0a0a0a;
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .bar {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .bar.original { background: #888; }
+        .bar.optimized { background: #00ff88; }
+
+        .bar-value {
+            margin-left: 10px;
+            font-size: 10px;
+            width: 80px;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            margin-top: 15px;
+        }
+
+        .results-table th, .results-table td {
+            padding: 6px;
+            border: 1px solid #333;
+            text-align: left;
+        }
+
+        .results-table th {
+            background: #252535;
+            color: #888;
+        }
+
+        .results-table td {
+            color: #00ff88;
+        }
+
+        .winner {
+            background: #1a2520;
+            font-weight: bold;
+        }
+
+        .log-output {
+            margin-top: 15px;
+            background: #0a0a0a;
+            padding: 10px;
+            border-radius: 4px;
+            height: 120px;
+            overflow-y: auto;
+            font-size: 10px;
+        }
+
+        .log-entry { margin-bottom: 3px; }
+        .log-info { color: #00ff88; }
+        .log-warn { color: #ffff44; }
+        .log-success { color: #44ff44; }
+    </style>
+</head>
+<body>
+    <h1>◈ SDF Performance Benchmark</h1>
+    <p class="subtitle">Original vs Optimized morphological font rendering</p>
+
+    <div class="container">
+        <div class="panel">
+            <div class="panel-title">Original Implementation</div>
+            <canvas id="original-canvas"></canvas>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-value" id="orig-time">-</div>
+                    <div class="stat-label">Avg Time (ms)</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="orig-fps">-</div>
+                    <div class="stat-label">FPS</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="orig-cache">0</div>
+                    <div class="stat-label">Cache Size</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="orig-hit">-</div>
+                    <div class="stat-label">Hit Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">Optimized Implementation</div>
+            <canvas id="optimized-canvas"></canvas>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-value" id="opt-time">-</div>
+                    <div class="stat-label">Avg Time (ms)</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="opt-fps">-</div>
+                    <div class="stat-label">FPS</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="opt-cache">0</div>
+                    <div class="stat-label">Cache Size</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="opt-hit">-</div>
+                    <div class="stat-label">Hit Rate</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button onclick="runBenchmark()">▶ Run Benchmark</button>
+        <button onclick="runStressTest()">🔥 Stress Test (1000 chars)</button>
+        <button onclick="warmupCaches()">Warmup Caches</button>
+        <button onclick="clearCaches()">Clear Caches</button>
+    </div>
+
+    <div class="comparison-section panel">
+        <div class="panel-title">Performance Comparison</div>
+
+        <div class="bar-chart">
+            <div class="bar-row">
+                <div class="bar-label">Generation Time</div>
+                <div class="bar-container">
+                    <div class="bar original" id="bar-time-orig" style="width: 50%"></div>
+                    <div class="bar optimized" id="bar-time-opt" style="width: 50%"></div>
+                </div>
+                <div class="bar-value" id="bar-time-value">-</div>
+            </div>
+            <div class="bar-row">
+                <div class="bar-label">Throughput</div>
+                <div class="bar-container">
+                    <div class="bar original" id="bar-throughput-orig" style="width: 50%"></div>
+                    <div class="bar optimized" id="bar-throughput-opt" style="width: 50%"></div>
+                </div>
+                <div class="bar-value" id="bar-throughput-value">-</div>
+            </div>
+        </div>
+
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th>Test</th>
+                    <th>Original</th>
+                    <th>Optimized</th>
+                    <th>Speedup</th>
+                </tr>
+            </thead>
+            <tbody id="results-body">
+            </tbody>
+        </table>
+
+        <div class="log-output" id="log-output"></div>
+    </div>
+
+    <script src="morphological/PatternLibrary.js"></script>
+    <script src="morphological/SemanticClassifier.js"></script>
+    <script src="morphological/HilbertGlyphSynthesizer.js"></script>
+    <script src="morphological/MorphologicalFont.js"></script>
+    <script src="morphological/MorphologicalFontOptimized.js"></script>
+    <script>
+        let originalFont = null;
+        let optimizedFont = null;
+        let results = [];
+
+        const TEST_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
+
+        function log(msg, type = 'info') {
+            const output = document.getElementById('log-output');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            output.appendChild(entry);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        async function init() {
+            log('Initializing fonts...', 'info');
+
+            // Initialize original
+            originalFont = new MorphologicalFont({ size: 16 });
+            await originalFont.init();
+            log('Original font ready', 'info');
+
+            // Initialize optimized
+            optimizedFont = new MorphologicalFontOptimized({ size: 16, maxCacheSize: 512 });
+            await optimizedFont.init();
+            log('Optimized font ready', 'info');
+
+            log('Ready - click "Run Benchmark" to start', 'success');
+        }
+
+        async function runBenchmark() {
+            log('Running benchmark...', 'info');
+
+            const iterations = 100;
+            const origTimes = [];
+            const optTimes = [];
+
+            // Clear caches for fair comparison
+            originalFont.clearCache();
+            optimizedFont.clearCache();
+
+            for (let i = 0; i < iterations; i++) {
+                // Test original
+                const origStart = performance.now();
+                for (const char of TEST_CHARS) {
+                    await originalFont.getGlyphTexture(char, { category: 'default' });
+                }
+                origTimes.push(performance.now() - origStart);
+
+                // Test optimized
+                optimizedFont.clearCache(); // Reset for fair comparison
+                const optStart = performance.now();
+                for (const char of TEST_CHARS) {
+                    await optimizedFont.getGlyphTexture(char, { category: 'default' });
+                }
+                optTimes.push(performance.now() - optStart);
+            }
+
+            // Calculate averages
+            const avgOrig = origTimes.reduce((a, b) => a + b, 0) / origTimes.length;
+            const avgOpt = optTimes.reduce((a, b) => a + b, 0) / optTimes.length;
+
+            log(`Original avg: ${avgOrig.toFixed(2)}ms`, 'info');
+            log(`Optimized avg: ${avgOpt.toFixed(2)}ms`, 'info');
+
+            updateStats(avgOrig, avgOpt);
+            updateBars(avgOrig, avgOpt);
+            addResult('100 chars x 100 iterations', avgOrig, avgOpt);
+        }
+
+        async function runStressTest() {
+            log('Running stress test (1000 chars)...', 'info');
+
+            // Generate 1000 random characters
+            const chars = [];
+            for (let i = 0; i < 1000; i++) {
+                chars.push(String.fromCharCode(32 + Math.floor(Math.random() * 94)));
+            }
+
+            originalFont.clearCache();
+            optimizedFont.clearCache();
+
+            // Original
+            const origStart = performance.now();
+            for (const char of chars) {
+                await originalFont.getGlyphTexture(char, { category: 'default' });
+            }
+            const origTime = performance.now() - origStart;
+
+            // Optimized
+            optimizedFont.clearCache();
+            const optStart = performance.now();
+            for (const char of chars) {
+                await optimizedFont.getGlyphTexture(char, { category: 'default' });
+            }
+            const optTime = performance.now() - optStart;
+
+            log(`Stress Original: ${origTime.toFixed(2)}ms`, 'info');
+            log(`Stress Optimized: ${optTime.toFixed(2)}ms`, 'info');
+
+            updateStats(origTime / 1000, optTime / 1000);
+            updateBars(origTime, optTime);
+            addResult('Stress (1000 chars)', origTime, optTime);
+        }
+
+        async function warmupCaches() {
+            log('Warming up caches...', 'info');
+
+            await Promise.all([
+                originalFont.warmup ? originalFont.warmup(TEST_CHARS) : Promise.resolve(),
+                optimizedFont.warmup(TEST_CHARS)
+            ]);
+
+            log('Caches warmed up', 'success');
+            updateCacheStats();
+        }
+
+        function clearCaches() {
+            originalFont.clearCache();
+            optimizedFont.clearCache();
+            log('Caches cleared', 'info');
+            updateCacheStats();
+        }
+
+        function updateStats(origTime, optTime) {
+            document.getElementById('orig-time').textContent = origTime.toFixed(2);
+            document.getElementById('opt-time').textContent = optTime.toFixed(2);
+            document.getElementById('orig-fps').textContent = Math.round(1000 / origTime);
+            document.getElementById('opt-fps').textContent = Math.round(1000 / optTime);
+
+            // Color coding
+            const optTimeEl = document.getElementById('opt-time');
+            if (optTime < origTime) {
+                optTimeEl.classList.add('better');
+                optTimeEl.classList.remove('worse');
+            } else {
+                optTimeEl.classList.add('worse');
+                optTimeEl.classList.remove('better');
+            }
+
+            updateCacheStats();
+        }
+
+        function updateCacheStats() {
+            const origStats = originalFont.getStats();
+            const optStats = optimizedFont.getStats();
+
+            document.getElementById('orig-cache').textContent = origStats.cacheSize;
+            document.getElementById('opt-cache').textContent = optStats.cacheSize;
+            document.getElementById('orig-hit').textContent = origStats.hitRate;
+            document.getElementById('opt-hit').textContent = optStats.hitRate;
+        }
+
+        function updateBars(origTime, optTime) {
+            const maxTime = Math.max(origTime, optTime);
+            const origPct = (origTime / maxTime) * 50;
+            const optPct = (optTime / maxTime) * 50;
+
+            document.getElementById('bar-time-orig').style.width = `${origPct}%`;
+            document.getElementById('bar-time-opt').style.width = `${optPct}%`;
+
+            const speedup = origTime / optTime;
+            document.getElementById('bar-time-value').textContent =
+                speedup >= 1 ? `${speedup.toFixed(2)}x faster` : `${(1/speedup).toFixed(2)}x slower`;
+
+            // Throughput (inverse)
+            const maxThroughput = Math.max(1/origTime, 1/optTime);
+            document.getElementById('bar-throughput-orig').style.width = `${(1/origTime/maxThroughput) * 50}%`;
+            document.getElementById('bar-throughput-opt').style.width = `${(1/optTime/maxThroughput) * 50}%`;
+            document.getElementById('bar-throughput-value').textContent =
+                `${Math.round(1000/optTime)} vs ${Math.round(1000/origTime)} chars/s`;
+        }
+
+        function addResult(testName, origTime, optTime) {
+            const tbody = document.getElementById('results-body');
+            const row = document.createElement('tr');
+
+            const speedup = origTime / optTime;
+            const winner = speedup > 1 ? 'Optimized' : 'Original';
+
+            row.innerHTML = `
+                <td>${testName}</td>
+                <td>${origTime.toFixed(2)}ms</td>
+                <td class="${winner === 'Optimized' ? 'winner' : ''}">${optTime.toFixed(2)}ms</td>
+                <td class="${winner === 'Optimized' ? 'winner' : ''}">${speedup.toFixed(2)}x</td>
+            `;
+
+            tbody.appendChild(row);
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
