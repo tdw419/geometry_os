@@ -30,6 +30,30 @@ class RTSDesktopObject extends PIXI.Container {
     };
 
     /**
+     * Boot stages with labels and timing percentages
+     * @static
+     */
+    static BOOT_STAGES = {
+        STARTING: { label: 'Starting QEMU...', startPercent: 0, endPercent: 25 },
+        LOADING: { label: 'Loading kernel...', startPercent: 25, endPercent: 60 },
+        INITIALIZING: { label: 'Initializing...', startPercent: 60, endPercent: 90 },
+        READY: { label: 'Ready', startPercent: 90, endPercent: 100 }
+    };
+
+    /**
+     * Progress bar dimensions
+     * @static
+     */
+    static PROGRESS = {
+        BAR_HEIGHT: 4,
+        BAR_PADDING: 2,
+        BACKGROUND_COLOR: 0x333333,
+        FILL_COLOR: 0x00aaff,
+        TEXT_COLOR: 0xffffff,
+        TIMEOUT_MS: 30000  // 30 second boot timeout
+    };
+
+    /**
      * Dimensions for the object
      * @static
      */
@@ -69,6 +93,12 @@ class RTSDesktopObject extends PIXI.Container {
         // Pulse animation state
         this._pulseActive = false;
         this._pulseTime = 0;
+
+        // Progress tracking state
+        this._progressPercent = 0;
+        this._progressStage = null;
+        this._bootStartTime = null;
+        this._progressAnimationId = null;
 
         // Set up interactivity
         this.eventMode = 'static';
