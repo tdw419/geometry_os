@@ -13,19 +13,19 @@ If everything else fails, users must be able to:
 2. See what OS they're about to boot (visual preview)
 3. Trust the container (vision-based verification)
 
-## Current Milestone: v1.1 Visual Shell Integration
+## Current State
 
-**Goal:** Connect PixelRTS catalog to the PixiJS infinite desktop for spatial OS management
+**Shipped:** v1.1 Visual Shell Integration (2026-02-27)
 
-**Target features:**
-- Display .rts.png files as interactive desktop objects
-- Drag-and-drop positioning on infinite canvas
-- One-click boot from visual shell
-- Real-time boot progress visualization
+OS containers now live directly on the infinite desktop - boot by clicking, arrange by dragging. Users can:
+- See .rts.png files as interactive desktop objects
+- Drag-and-drop to arrange containers on infinite canvas
+- Boot with a single click and watch real-time progress
+- See status indicators and error guidance when boot fails
 
 ## Requirements
 
-### Validated (v1.0)
+### Validated
 
 ✓ **PixelRTS v2 encoding/decoding** — existing
   - `systems/pixel_compiler/pixelrts_v2_core.py` - PNG ↔ binary conversion
@@ -62,12 +62,17 @@ If everything else fails, users must be able to:
   - Thumbnail generation with metadata
   - Drag-and-drop layout persistence
 
-### Active (v1.1)
+✓ **Desktop Object Integration** — v1.1 shipped
+  - RTSDesktopObject.js - PIXI.Container sprites with thumbnails
+  - Drag-and-drop positioning on infinite canvas
+  - Click-to-boot with status indicators
+  - Position persistence via CatalogBridge
 
-- [ ] **SHELL-01**: .rts.png files appear as interactive objects on visual shell desktop
-- [ ] **SHELL-02**: Users can drag-and-drop OS containers to arrange on infinite canvas
-- [ ] **SHELL-03**: One-click boot from visual shell triggers QEMU with visual feedback
-- [ ] **SHELL-04**: Boot progress displayed as visual animation on the desktop object
+✓ **Boot Progress Visualization** — v1.1 shipped
+  - Progress bar overlay with time-based animation
+  - Status polling via /api/v1/catalog/{id}/status
+  - Error overlay with actionable guidance (ERROR_GUIDANCE)
+  - 30-second boot timeout with 4-stage progress
 
 ### Future
 
@@ -91,25 +96,22 @@ If everything else fails, users must be able to:
 - Uses QEMU for virtualization testing
 
 **Current State:**
-- v1.0 shipped: analyze, boot, install, catalog CLI commands
-- Visual shell has WindowManager, DesktopWindow classes
-- Catalog server provides REST API with thumbnails
-- Both systems exist but are not connected
-
-**The Problem We're Solving:**
-The catalog is a separate web UI. Users should manage OS containers directly on the infinite desktop where they work, not in a separate browser tab.
+- v1.1 shipped: Desktop objects with boot progress visualization
+- Visual shell connects to catalog server via REST API
+- PixiJS infinite desktop with drag-and-drop
+- Real-time boot status polling
 
 **Key Files:**
-- `systems/pixel_compiler/catalog/` - Catalog components (shipped v1.0)
-- `systems/visual_shell/web/WindowManager.js` - Desktop window management
-- `systems/visual_shell/web/DesktopWindow.js` - Window instances
-- `systems/visual_shell/web/display/pixi_renderer.js` - PixiJS rendering
+- `systems/visual_shell/web/RTSDesktopObject.js` - Desktop object component
+- `systems/visual_shell/web/CatalogBridge.js` - API client
+- `systems/visual_shell/web/DesktopObjectManager.js` - Lifecycle manager
+- `systems/pixel_compiler/catalog/catalog_server.py` - Backend API
 
 ## Constraints
 
 - **Python 3.12+** - Primary backend language
 - **TypeScript/JavaScript** - Visual shell frontend
-- **PixiJS** - Desktop rendering engine
+- **PixiJS v7** - Desktop rendering engine
 - **QEMU** - Virtualization platform
 - **Existing PixelRTS v2 format** - Must maintain backward compatibility
 - **Performance** - Boot overhead <10% vs traditional ISO boot
@@ -121,8 +123,9 @@ The catalog is a separate web UI. Users should manage OS containers directly on 
 | Use existing PixelRTS v2 format | Leverage invested work, maintain compatibility | ✓ Good |
 | FUSE filesystem for direct boot | Clean integration with existing tools | ✓ Shipped v1.0 |
 | Vision model for verification | Unique advantage of visual format | ✓ Shipped v1.0 |
-| PixiJS for visual shell | Mature 2D WebGL renderer | ✓ Existing |
-| WebSocket for boot progress | Real-time updates without polling | — Pending |
+| PixiJS v7 for visual shell | Mature 2D WebGL renderer | ✓ Shipped v1.1 |
+| REST polling for boot status | Simple, reliable, no WebSocket complexity | ✓ Shipped v1.1 |
+| Position mapping server→client | position.{x,y} → layout.{gridX,gridY} | ✓ Shipped v1.1 |
 
 ---
-*Last updated: 2026-02-27 for milestone v1.1*
+*Last updated: 2026-02-27 after v1.1 milestone completion*
