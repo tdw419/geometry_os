@@ -229,39 +229,72 @@ class CatalogCacheManager {
     }
 
     /**
-     * Store container in cache
+     * Store container in cache with hash verification
      * @param {string} entryId - The entry ID to store
      * @param {ArrayBuffer|Blob} data - The container data
-     * @param {Object} metadata - Metadata object with etag, hash, size
-     * @returns {Promise<boolean>} True on success, false on failure
+     * @param {Object} metadata - Metadata object with etag, hash, size, source
+     * @param {string} metadata.etag - ETag from server response (optional)
+     * @param {string} metadata.hash - Expected SHA256 hash for validation (optional)
+     * @param {number} metadata.size - Data size in bytes (optional, computed if not provided)
+     * @param {string} metadata.source - URL or server ID (optional)
+     * @returns {Promise<{success: boolean, hash: string|null, verified: boolean}>} Result object with verification status
      *
      * @example
-     * await cache.set('ubuntu-22.04', arrayBuffer, { etag: '"abc123"', hash: 'sha256:...', size: 1024000 });
+     * const result = await cache.set('ubuntu-22.04', arrayBuffer, { etag: '"abc123"', hash: 'a591...', size: 1024000 });
+     * // Returns: { success: true, hash: 'a591...', verified: true }
      */
     async set(entryId, data, metadata = {}) {
         const store = await this._getStore('readwrite');
         if (!store) {
-            return false;
+            return { success: false, hash: null, verified: false };
         }
 
         try {
+            // Compute hash of the data
+            const computedHash = await this.computeHash(data);
+
+            // Determine verification status
+            let verificationStatus = 'pending';
+            let verified = false;
+
+            if (metadata.hash && computedHash) {
+                // Compare with expected hash if provided
+                if (computedHash === metadata.hash) {
+                    verificationStatus = 'verified';
+                    verified = true;
+                } else {
+                    verificationStatus = 'failed';
+                    console.warn('[CatalogCacheManager] Hash verification failed for', entryId,
+                        '- expected:', metadata.hash, 'computed:', computedHash);
+                }
+            }
+
             const now = Date.now();
             const entry = {
                 id: entryId,
                 data: data,
-                metadata: metadata,
+                metadata: {
+                    etag: metadata.etag || null,
+                    size: metadata.size || (data.byteLength || data.size || 0),
+                    source: metadata.source || null
+                },
                 size: metadata.size || (data.byteLength || data.size || 0),
                 cachedAt: now,
                 lastAccessed: now,
-                etag: metadata.etag || null,
-                hash: metadata.hash || null
+                hash: computedHash,
+                verificationStatus: verificationStatus
             };
 
             await this._wrapRequest(store.put(entry));
-            return true;
+
+            return {
+                success: true,
+                hash: computedHash,
+                verified: verified
+            };
         } catch (error) {
             console.error('[CatalogCacheManager] Set error:', error);
-            return false;
+            return { success: false, hash: null, verified: false };
         }
     }
 
