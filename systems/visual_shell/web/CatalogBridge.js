@@ -19,6 +19,7 @@ class CatalogBridge {
         this.timeout = options.timeout || 5000;
         this.lastFetchTime = null;
         this.cachedCatalog = null;
+        this._activePolls = new Map(); // pollId -> { entryId, callback, interval }
     }
 
     /**
@@ -254,6 +255,102 @@ class CatalogBridge {
     clearCache() {
         this.cachedCatalog = null;
         this.lastFetchTime = null;
+    }
+
+    /**
+     * Get the current status of a catalog entry
+     * @param {string} entryId - The entry ID to check
+     * @returns {Promise<Object|null>} Status data or null on failure
+     *
+     * @example
+     * const status = await bridge.getStatus('ubuntu-22.04');
+     * // Returns: { status: 'running', pid: 12345, uptime_seconds: 3600, ... }
+     */
+    async getStatus(entryId) {
+        const data = await this._fetch(`/api/v1/catalog/${encodeURIComponent(entryId)}/status`);
+        return data;
+    }
+
+    /**
+     * Poll the status of an entry at regular intervals
+     * @param {string} entryId - The entry ID to poll
+     * @param {Function} callback - Called with each status update (status) => {}
+     * @param {Object} options - Polling options
+     * @param {number} options.interval - Polling interval in ms (default: 1000)
+     * @param {number} options.maxAttempts - Maximum polling attempts (default: 60)
+     * @returns {number} Poll ID for use with stopPolling()
+     *
+     * @example
+     * const pollId = bridge.pollStatus('ubuntu-22.04', (status) => {
+     *   console.log('Status:', status.status);
+     *   if (status.status === 'running') {
+     *     bridge.stopPolling(pollId);
+     *   }
+     * });
+     */
+    pollStatus(entryId, callback, options = {}) {
+        const interval = options.interval || 1000;
+        const maxAttempts = options.maxAttempts || 60;
+
+        let attempts = 0;
+        let pollId = null;
+
+        const poll = async () => {
+            attempts++;
+
+            const status = await this.getStatus(entryId);
+
+            if (status) {
+                callback(status);
+
+                // Stop polling if no longer booting
+                if (status.status !== 'booting') {
+                    this.stopPolling(pollId);
+                    return;
+                }
+            }
+
+            // Stop polling after max attempts
+            if (attempts >= maxAttempts) {
+                console.warn(`[CatalogBridge] Polling stopped after ${maxAttempts} attempts for ${entryId}`);
+                this.stopPolling(pollId);
+                return;
+            }
+
+            // Continue polling
+            pollId = setTimeout(poll, interval);
+            this._activePolls.set(pollId, { entryId, callback, interval });
+        };
+
+        // Start polling
+        pollId = setTimeout(poll, 0);
+        this._activePolls = this._activePolls || new Map();
+        this._activePolls.set(pollId, { entryId, callback, interval });
+
+        return pollId;
+    }
+
+    /**
+     * Stop a polling loop
+     * @param {number} pollId - The poll ID returned by pollStatus()
+     */
+    stopPolling(pollId) {
+        if (this._activePolls && this._activePolls.has(pollId)) {
+            clearTimeout(pollId);
+            this._activePolls.delete(pollId);
+        }
+    }
+
+    /**
+     * Stop all active polling loops
+     */
+    stopAllPolling() {
+        if (this._activePolls) {
+            for (const pollId of this._activePolls.keys()) {
+                clearTimeout(pollId);
+            }
+            this._activePolls.clear();
+        }
     }
 }
 
