@@ -4,23 +4,25 @@
 
 See: .planning/PROJECT.md (updated 2026-02-27)
 
-**Core value:** Booting an OS should be as visual and intuitive as opening an image file.
+**Core value:** OS containers live directly on the infinite desktop - boot by clicking, arrange by dragging.
 **Current focus:** Milestone v1.1 Visual Shell Integration
 
 ## Current Position
 
-**Milestone:** v1.1 Visual Shell Integration - Starting
-**Status:** Defining requirements
-**Last activity:** 2026-02-27 - Milestone v1.1 started
+**Milestone:** v1.1 Visual Shell Integration
+**Phase:** Not started
+**Status:** Roadmap defined, ready for planning
+**Last activity:** 2026-02-27 - Roadmap created
 
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (v1.1 starting)
+Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (2 phases, 8 requirements)
 
 ## Accumulated Context
 
 ### Key Decisions
 - v1.0 shipped: Vision analysis, FUSE boot, visual installer, catalog manager
-- PixiJS chosen for visual shell rendering
-- WebSocket proposed for real-time boot progress (pending)
+- PixiJS v7 for desktop rendering (no upgrade to v8)
+- Phase 5: Desktop objects + layout persistence
+- Phase 6: Boot progress + status visualization
 
 ### Blockers
 - None currently
@@ -28,7 +30,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (v1.
 ## Session Continuity
 
 Last session: 2026-02-27
-Status: v1.0 archived, v1.1 started
+Status: Roadmap complete, ready for Phase 5 planning
 
 **Next Steps:**
-Define requirements → Create roadmap → Start Phase 5
+Run `/gsd:discuss-phase 5` to gather context before planning
