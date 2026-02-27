@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Agent Task Flow - Geometry OS</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+        }
+        h1 { margin-bottom: 5px; font-size: 18px; }
+        .subtitle { color: #666; margin-bottom: 15px; font-size: 11px; }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 15px;
+            max-width: 1400px;
+        }
+
+        .main-panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: #252535;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .panel-title {
+            font-size: 12px;
+        }
+
+        .panel-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            background: #0f0f0f;
+            color: #00ff88;
+            border: 1px solid #333;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 10px;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #flow-container {
+            width: 100%;
+            height: 500px;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .section-title {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .status-item {
+            background: #0a0a0a;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .status-value {
+            font-size: 18px;
+        }
+
+        .status-label {
+            font-size: 8px;
+            color: #666;
+        }
+
+        .status-pending .status-value { color: #888; }
+        .status-assigned .status-value { color: #44ffff; }
+        .status-executing .status-value { color: #ffff44; }
+        .status-completed .status-value { color: #44ff44; }
+        .status-failed .status-value { color: #ff4444; }
+
+        .agent-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .agent-item {
+            background: #0a0a0a;
+            padding: 8px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10px;
+        }
+
+        .agent-name { color: #888; }
+        .agent-status { font-size: 9px; }
+        .agent-status.idle { color: #888; }
+        .agent-status.busy { color: #ffff44; }
+
+        .flow-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 9px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .legend-dot.pending { background: #888; }
+        .legend-dot.assigned { background: #44ffff; }
+        .legend-dot.executing { background: #ffff44; }
+        .legend-dot.reviewing { background: #ff44ff; }
+        .legend-dot.completed { background: #44ff44; }
+        .legend-dot.failed { background: #ff4444; }
+
+        .event-log {
+            height: 120px;
+            overflow-y: auto;
+            background: #0a0a0a;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 9px;
+        }
+
+        .event-item {
+            margin-bottom: 3px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .event-time { color: #444; }
+        .event-topic { color: #00ff88; }
+        .event-topic.created { color: #44ffff; }
+        .event-topic.assigned { color: #ffff44; }
+        .event-topic.started { color: #ff8844; }
+        .event-topic.completed { color: #44ff44; }
+        .event-topic.failed { color: #ff4444; }
+
+        .task-creator {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .task-creator input, .task-creator select {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            color: #00ff88;
+            padding: 6px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 10px;
+        }
+
+        .task-creator button {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>◈ Agent Task Flow</h1>
+    <p class="subtitle">Visualize task assignment → execution → review workflow</p>
+
+    <div class="container">
+        <div class="main-panel">
+            <div class="panel-header">
+                <div class="panel-title">Task Flow Visualization</div>
+                <div class="panel-actions">
+                    <button onclick="runDemo()">▶ Run Demo</button>
+                    <button onclick="createRandomTask()">+ Random Task</button>
+                    <button onclick="clearAll()">Clear All</button>
+                </div>
+            </div>
+            <div id="flow-container"></div>
+        </div>
+
+        <div class="sidebar">
+            <div class="section">
+                <div class="section-title">Task Statistics</div>
+                <div class="status-grid">
+                    <div class="status-item status-pending">
+                        <div class="status-value" id="stat-pending">0</div>
+                        <div class="status-label">Pending</div>
+                    </div>
+                    <div class="status-item status-assigned">
+                        <div class="status-value" id="stat-assigned">0</div>
+                        <div class="status-label">Assigned</div>
+                    </div>
+                    <div class="status-item status-executing">
+                        <div class="status-value" id="stat-executing">0</div>
+                        <div class="status-label">Executing</div>
+                    </div>
+                    <div class="status-item status-completed">
+                        <div class="status-value" id="stat-completed">0</div>
+                        <div class="status-label">Completed</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Agents</div>
+                <div class="agent-list" id="agent-list">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Create Task</div>
+                <div class="task-creator">
+                    <input type="text" id="task-title" placeholder="Task title...">
+                    <select id="task-type">
+                        <option value="CODE_GEN">Code Generation</option>
+                        <option value="CODE_REVIEW">Code Review</option>
+                        <option value="BUG_FIX">Bug Fix</option>
+                        <option value="ARCHITECTURE">Architecture</option>
+                    </select>
+                    <button onclick="createManualTask()">Create Task</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Flow Legend</div>
+                <div class="flow-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot pending"></div>
+                        <span>Pending (new task)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot assigned"></div>
+                        <span>Assigned (waiting)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot executing"></div>
+                        <span>Executing (in progress)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot completed"></div>
+                        <span>Completed (done)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot failed"></div>
+                        <span>Failed (error)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Event Log</div>
+                <div class="event-log" id="event-log">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="AgentTaskFlow.js"></script>
+    <script>
+        let taskFlow = null;
+        let taskIdCounter = 1;
+
+        async function init() {
+            const container = document.getElementById('flow-container');
+
+            taskFlow = new AgentTaskFlow({
+                container,
+                width: container.offsetWidth,
+                height: 500
+            });
+
+            await taskFlow.init();
+            updateAgentList();
+            updateStats();
+
+            // Update stats periodically
+            setInterval(updateStats, 500);
+
+            log('Agent Task Flow initialized', 'info');
+            log('Click "Run Demo" to see task flow simulation', 'info');
+        }
+
+        function runDemo() {
+            taskFlow.clear();
+            clearEventLog();
+            taskFlow.runDemo();
+            log('Demo started - watch tasks flow through agents', 'info');
+        }
+
+        function createRandomTask() {
+            const titles = [
+                'Implement auth module',
+                'Fix memory leak',
+                'Add unit tests',
+                'Refactor API layer',
+                'Update dependencies',
+                'Optimize database queries',
+                'Add error handling',
+                'Write documentation'
+            ];
+
+            const types = ['CODE_GEN', 'CODE_REVIEW', 'BUG_FIX', 'ARCHITECTURE'];
+
+            const title = titles[Math.floor(Math.random() * titles.length)];
+            const type = types[Math.floor(Math.random() * types.length)];
+
+            createTask(title, type);
+        }
+
+        function createManualTask() {
+            const title = document.getElementById('task-title').value || 'Untitled Task';
+            const type = document.getElementById('task-type').value;
+
+            createTask(title, type);
+            document.getElementById('task-title').value = '';
+        }
+
+        function createTask(title, type) {
+            const taskId = `task-${String(taskIdCounter++).padStart(3, '0')}`;
+            taskFlow.createTask(taskId, title, type);
+
+            log(`Created: ${taskId} - ${title}`, 'created');
+
+            // Auto-assign to random agent after delay
+            setTimeout(() => {
+                const agents = Array.from(taskFlow.agents.values());
+                const idleAgents = agents.filter(a => a.status === 'idle');
+                if (idleAgents.length > 0) {
+                    const agent = idleAgents[Math.floor(Math.random() * idleAgents.length)];
+                    taskFlow.assignTask(taskId, agent.id);
+                    log(`Assigned: ${taskId} → ${agent.id}`, 'assigned');
+
+                    // Start execution
+                    setTimeout(() => {
+                        taskFlow.startTask(taskId);
+                        log(`Started: ${taskId}`, 'started');
+
+                        // Complete after random time
+                        const duration = 2000 + Math.random() * 3000;
+                        setTimeout(() => {
+                            const success = Math.random() > 0.1;
+                            if (success) {
+                                taskFlow.completeTask(taskId, { duration });
+                                log(`Completed: ${taskId}`, 'completed');
+                            } else {
+                                taskFlow.failTask(taskId, 'Random failure');
+                                log(`Failed: ${taskId}`, 'failed');
+                            }
+                            updateAgentList();
+                        }, duration);
+                    }, 1000 + Math.random() * 1000);
+                }
+            }, 500 + Math.random() * 1000);
+        }
+
+        function clearAll() {
+            taskFlow.clear();
+            clearEventLog();
+            taskIdCounter = 1;
+            updateStats();
+            log('Cleared all tasks', 'info');
+        }
+
+        function updateStats() {
+            const stats = taskFlow.getStats();
+
+            document.getElementById('stat-pending').textContent = stats.pending;
+            document.getElementById('stat-assigned').textContent = stats.assigned;
+            document.getElementById('stat-executing').textContent = stats.executing;
+            document.getElementById('stat-completed').textContent = stats.completed;
+        }
+
+        function updateAgentList() {
+            const list = document.getElementById('agent-list');
+            list.innerHTML = '';
+
+            for (const agent of taskFlow.agents.values()) {
+                const item = document.createElement('div');
+                item.className = 'agent-item';
+
+                const typeIcon = {
+                    architect: '◈',
+                    engineer: '◆',
+                    reviewer: '◇',
+                    executor: '○'
+                }[agent.type] || '•';
+
+                item.innerHTML = `
+                    <span class="agent-name">${typeIcon} ${agent.id}</span>
+                    <span class="agent-status ${agent.status}">${agent.status}</span>
+                `;
+
+                list.appendChild(item);
+            }
+        }
+
+        function log(message, type = 'info') {
+            const eventLog = document.getElementById('event-log');
+            const entry = document.createElement('div');
+            entry.className = 'event-item';
+
+            const time = new Date().toLocaleTimeString('en-US', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+
+            entry.innerHTML = `
+                <span class="event-time">${time}</span>
+                <span class="event-topic ${type}">${message}</span>
+            `;
+
+            eventLog.appendChild(entry);
+            eventLog.scrollTop = eventLog.scrollHeight;
+        }
+
+        function clearEventLog() {
+            document.getElementById('event-log').innerHTML = '';
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
