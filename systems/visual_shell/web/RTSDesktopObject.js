@@ -845,6 +845,12 @@ class RTSDesktopObject extends PIXI.Container {
         // Stop pulse animation
         this._stopPulse();
 
+        // Cancel progress animation
+        if (this._progressAnimationId) {
+            cancelAnimationFrame(this._progressAnimationId);
+            this._progressAnimationId = null;
+        }
+
         // Remove event listeners
         this.off('pointerover', this._onPointerOver, this);
         this.off('pointerout', this._onPointerOut, this);
