@@ -39,6 +39,9 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
         // Object tracking
         this.objects = new Map(); // entryId -> RTSDesktopObject
 
+        // Status polling tracking
+        this._statusPollers = new Map(); // entryId -> pollId
+
         // Create dedicated layer for desktop objects
         this.objectLayer = new PIXI.Container();
         this.objectLayer.label = 'desktopObjectLayer';
@@ -352,8 +355,8 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
             const result = await this.bridge.bootEntry(entryId, options);
 
             if (result && result.success) {
-                obj.setStatus('running');
-                this.emit('object-booted', { object: obj, entryId, result });
+                // Start polling for status updates
+                this.startStatusPolling(entryId);
             } else {
                 obj.setStatus('error');
             }
@@ -363,6 +366,89 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
             obj.setStatus('error');
             console.error(`[DesktopObjectManager] Boot failed for ${entryId}:`, error);
             return null;
+        }
+    }
+
+    /**
+     * Start polling for status updates on an object
+     * @param {string} entryId - Entry ID to poll
+     * @param {number} interval - Polling interval in ms (default: 1000)
+     */
+    startStatusPolling(entryId, interval = 1000) {
+        // Stop any existing polling for this entry
+        this.stopStatusPolling(entryId);
+
+        const pollId = this.bridge.pollStatus(
+            entryId,
+            (status) => this._handleStatusUpdate(entryId, status),
+            { interval, maxAttempts: 120 }
+        );
+
+        this._statusPollers.set(entryId, pollId);
+        console.log(`[DesktopObjectManager] Started status polling for ${entryId}`);
+    }
+
+    /**
+     * Stop polling for status updates on an object
+     * @param {string} entryId - Entry ID to stop polling
+     */
+    stopStatusPolling(entryId) {
+        if (this._statusPollers.has(entryId)) {
+            const pollId = this._statusPollers.get(entryId);
+            this.bridge.stopPolling(pollId);
+            this._statusPollers.delete(entryId);
+            console.log(`[DesktopObjectManager] Stopped status polling for ${entryId}`);
+        }
+    }
+
+    /**
+     * Handle status update from polling
+     * @private
+     * @param {string} entryId - Entry ID that was updated
+     * @param {Object} status - Status data from server
+     */
+    _handleStatusUpdate(entryId, status) {
+        const obj = this.objects.get(entryId);
+
+        if (!obj) {
+            // Object was removed, stop polling
+            this.stopStatusPolling(entryId);
+            return;
+        }
+
+        // Update object status
+        obj.setStatus(status.status);
+
+        // Store status info on object
+        obj.statusInfo = {
+            pid: status.pid,
+            started_at: status.started_at,
+            uptime_seconds: status.uptime_seconds,
+            vnc_port: status.vnc_port,
+            error_message: status.error_message
+        };
+
+        // Handle transitions
+        if (status.status === 'running') {
+            console.log(`[DesktopObjectManager] Boot completed for ${entryId}, pid=${status.pid}`);
+            this.emit('object-booted', {
+                object: obj,
+                entryId,
+                result: {
+                    success: true,
+                    pid: status.pid,
+                    vnc_port: status.vnc_port
+                }
+            });
+            // Polling will stop automatically when status is not 'booting'
+        } else if (status.status === 'error') {
+            console.warn(`[DesktopObjectManager] Boot failed for ${entryId}: ${status.error_message}`);
+            this.emit('boot-error', {
+                object: obj,
+                entryId,
+                error: status.error_message
+            });
+            // Polling will stop automatically when status is not 'booting'
         }
     }
 
