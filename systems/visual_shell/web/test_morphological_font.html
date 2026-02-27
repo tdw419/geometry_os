@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Morphological Font Layer - Geometry OS</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+        }
+        h1 { margin-bottom: 20px; }
+        .subtitle { color: #666; margin-bottom: 30px; }
+
+        .section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .glyph-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 80px);
+            gap: 10px;
+        }
+
+        .glyph-cell {
+            background: #252535;
+            border-radius: 4px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .glyph-canvas {
+            width: 64px;
+            height: 64px;
+            background: #0a0a0a;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+
+        .glyph-label {
+            font-size: 10px;
+            color: #666;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            color: #00ff88;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        button {
+            background: #252535;
+            color: #00ff88;
+            border: 1px solid #00ff88;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        .category-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+        }
+
+        .legend-label {
+            font-size: 12px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <h1>◈ Morphological Font Layer</h1>
+    <p class="subtitle">Post-Symbolic Glyph Synthesis with Hilbert Patterns</p>
+
+    <div class="section">
+        <div class="section-title">Semantic Categories</div>
+        <div class="category-legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #44FFFF"></div>
+                <span class="legend-label">Control (branching)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FF44FF"></div>
+                <span class="legend-label">Function (enclosed)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FFFF44"></div>
+                <span class="legend-label">Return (arrow)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #44FF44"></div>
+                <span class="legend-label">Data (stable)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FF8844"></div>
+                <span class="legend-label">Operator (cross)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #8888FF"></div>
+                <span class="legend-label">Literal (spiral)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FFFFFF"></div>
+                <span class="legend-label">Default (hilbert)</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Glyph Gallery</div>
+        <div id="glyph-grid" class="glyph-grid"></div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Cache Statistics</div>
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" id="cache-size">0</div>
+                <div class="stat-label">Cached Glyphs</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="cache-hits">0</div>
+                <div class="stat-label">Cache Hits</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="hit-rate">0%</div>
+                <div class="stat-label">Hit Rate</div>
+            </div>
+        </div>
+        <div class="controls">
+            <button onclick="clearCache()">Clear Cache</button>
+            <button onclick="regenerateAll()">Regenerate All</button>
+        </div>
+    </div>
+
+    <script src="morphological/PatternLibrary.js"></script>
+    <script src="morphological/SemanticClassifier.js"></script>
+    <script src="morphological/HilbertGlyphSynthesizer.js"></script>
+    <script src="morphological/MorphologicalFont.js"></script>
+    <script>
+        let morphFont;
+
+        // Category colors for rendering
+        const CATEGORY_COLORS = {
+            control: '#44FFFF',
+            function: '#FF44FF',
+            return: '#FFFF44',
+            data: '#44FF44',
+            operator: '#FF8844',
+            literal: '#8888FF',
+            default: '#FFFFFF'
+        };
+
+        // Test tokens to render
+        const TEST_TOKENS = [
+            { char: 'if', category: 'control' },
+            { char: 'else', category: 'control' },
+            { char: 'for', category: 'control' },
+            { char: 'while', category: 'control' },
+            { char: 'def', category: 'function' },
+            { char: 'class', category: 'function' },
+            { char: 'return', category: 'return' },
+            { char: 'yield', category: 'return' },
+            { char: 'const', category: 'data' },
+            { char: 'let', category: 'data' },
+            { char: '+', category: 'operator' },
+            { char: '=', category: 'operator' },
+            { char: '42', category: 'literal' },
+            { char: 'A', category: 'default' },
+            { char: 'B', category: 'default' },
+            { char: 'C', category: 'default' }
+        ];
+
+        async function init() {
+            // Initialize morphological font
+            morphFont = new MorphologicalFont({ size: 16 });
+            await morphFont.init();
+
+            console.log('[Demo] MorphologicalFont initialized');
+
+            // Render glyph gallery
+            await renderGallery();
+            updateStats();
+        }
+
+        async function renderGallery() {
+            const grid = document.getElementById('glyph-grid');
+            grid.innerHTML = '';
+
+            for (const token of TEST_TOKENS) {
+                const cell = document.createElement('div');
+                cell.className = 'glyph-cell';
+
+                const canvas = document.createElement('canvas');
+                canvas.className = 'glyph-canvas';
+                canvas.width = 64;
+                canvas.height = 64;
+
+                const label = document.createElement('div');
+                label.className = 'glyph-label';
+                label.textContent = `"${token.char}" (${token.category})`;
+
+                cell.appendChild(canvas);
+                cell.appendChild(label);
+                grid.appendChild(cell);
+
+                // Get glyph texture
+                const glyphCanvas = await morphFont.getGlyphTexture(token.char, { category: token.category });
+
+                // Render scaled up (16x16 → 64x64)
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = false;
+                ctx.drawImage(glyphCanvas, 0, 0, 64, 64);
+
+                // Tint by category
+                ctx.globalCompositeOperation = 'source-atop';
+                ctx.fillStyle = CATEGORY_COLORS[token.category] || CATEGORY_COLORS.default;
+                ctx.fillRect(0, 0, 64, 64);
+                ctx.globalCompositeOperation = 'source-over';
+            }
+        }
+
+        function updateStats() {
+            const stats = morphFont.getStats();
+            document.getElementById('cache-size').textContent = stats.cacheSize;
+            document.getElementById('cache-hits').textContent = stats.cacheHits;
+            document.getElementById('hit-rate').textContent = stats.hitRate;
+        }
+
+        function clearCache() {
+            morphFont.clearCache();
+            updateStats();
+        }
+
+        async function regenerateAll() {
+            await renderGallery();
+            updateStats();
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
