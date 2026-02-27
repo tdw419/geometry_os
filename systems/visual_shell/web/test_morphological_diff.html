@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Morphological Diff Viewer - Geometry OS</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+        }
+        h1 { margin-bottom: 5px; font-size: 18px; }
+        .subtitle { color: #666; margin-bottom: 15px; font-size: 11px; }
+
+        .container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 15px;
+            max-width: 1400px;
+            height: calc(100vh - 100px);
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+        }
+
+        .section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .section-title {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        .diff-samples {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .sample-btn {
+            background: #0f0f0f;
+            color: #00ff88;
+            border: 1px solid #333;
+            padding: 8px 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 10px;
+            border-radius: 4px;
+            text-align: left;
+        }
+
+        .sample-btn:hover {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        .sample-btn.active {
+            border-color: #00ff88;
+        }
+
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-glyph {
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+        }
+
+        .legend-glyph.addition { background: #44ff44; }
+        .legend-glyph.deletion { background: #ff4444; }
+        .legend-glyph.modification { background: #ffff44; }
+        .legend-glyph.context { background: #888; }
+        .legend-glyph.header { background: #44ffff; }
+
+        .stats-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .stat-item {
+            background: #0a0a0a;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            color: #00ff88;
+        }
+
+        .stat-label {
+            font-size: 8px;
+            color: #666;
+        }
+
+        .custom-diff textarea {
+            width: 100%;
+            height: 100px;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #00ff88;
+            font-family: inherit;
+            font-size: 10px;
+            padding: 8px;
+            resize: vertical;
+        }
+
+        .custom-diff button {
+            margin-top: 8px;
+            width: 100%;
+            background: #252535;
+            color: #00ff88;
+            border: 1px solid #444;
+            padding: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            border-radius: 4px;
+        }
+
+        .custom-diff button:hover {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        .main-panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            background: #252535;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .panel-title {
+            font-size: 11px;
+        }
+
+        .panel-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .panel-actions button {
+            background: #0a0a0a;
+            color: #00ff88;
+            border: 1px solid #333;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 9px;
+            border-radius: 3px;
+        }
+
+        .panel-actions button:hover {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        #diff-canvas-container {
+            flex: 1;
+            overflow: auto;
+        }
+
+        #diff-canvas {
+            display: block;
+        }
+
+        .log-section {
+            background: #0a0a0a;
+            padding: 8px;
+            font-size: 9px;
+            max-height: 80px;
+            overflow-y: auto;
+            border-top: 1px solid #333;
+        }
+
+        .log-entry { margin-bottom: 2px; }
+        .log-info { color: #00ff88; }
+        .log-warn { color: #ffff44; }
+    </style>
+</head>
+<body>
+    <h1>◈ Morphological Diff Viewer</h1>
+    <p class="subtitle">Git diff visualization with geometric glyphs</p>
+
+    <div class="container">
+        <div class="sidebar">
+            <div class="section">
+                <div class="section-title">Sample Diffs</div>
+                <div class="diff-samples">
+                    <button class="sample-btn active" onclick="loadSample('simple')">
+                        Simple Addition
+                    </button>
+                    <button class="sample-btn" onclick="loadSample('refactor')">
+                        Refactor Change
+                    </button>
+                    <button class="sample-btn" onclick="loadSample('complex')">
+                        Complex Multi-hunk
+                    </button>
+                    <button class="sample-btn" onclick="loadSample('morphological')">
+                        Morphological Font
+                    </button>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Glyph Legend</div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-glyph addition"></div>
+                        <span>Addition (expanding pattern)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-glyph deletion"></div>
+                        <span>Deletion (contracting pattern)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-glyph modification"></div>
+                        <span>Modification (morphing)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-glyph context"></div>
+                        <span>Context (stable)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-glyph header"></div>
+                        <span>Header (info)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Statistics</div>
+                <div class="stats-display">
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-additions">0</div>
+                        <div class="stat-label">Additions</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-deletions">0</div>
+                        <div class="stat-label">Deletions</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-hunks">0</div>
+                        <div class="stat-label">Hunks</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-ratio">-</div>
+                        <div class="stat-label">+/- Ratio</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section custom-diff">
+                <div class="section-title">Custom Diff</div>
+                <textarea id="custom-diff-input" placeholder="Paste unified diff here..."></textarea>
+                <button onclick="loadCustomDiff()">Render Custom Diff</button>
+            </div>
+        </div>
+
+        <div class="main-panel">
+            <div class="panel-header">
+                <div class="panel-title" id="diff-title">Simple Addition</div>
+                <div class="panel-actions">
+                    <button onclick="exportPNG()">Export PNG</button>
+                    <button onclick="toggleWordWrap()">Word Wrap</button>
+                    <button onclick="toggleGlyphs()">Toggle Glyphs</button>
+                </div>
+            </div>
+            <div id="diff-canvas-container">
+                <canvas id="diff-canvas"></canvas>
+            </div>
+            <div class="log-section" id="log-output"></div>
+        </div>
+    </div>
+
+    <script src="morphological/PatternLibrary.js"></script>
+    <script src="morphological/SemanticClassifier.js"></script>
+    <script src="morphological/HilbertGlyphSynthesizer.js"></script>
+    <script src="morphological/MorphologicalFont.js"></script>
+    <script src="morphological/MorphologicalDiffViewer.js"></script>
+    <script>
+        let viewer = null;
+        let showGlyphs = true;
+
+        const SAMPLES = {
+            simple: `diff --git a/hello.py b/hello.py
+index 1234567..abcdefg 100644
+--- a/hello.py
++++ b/hello.py
+@@ -1,5 +1,6 @@
+ def hello():
+     """Say hello."""
+     print("Hello, World!")
++    print("Welcome to Geometry OS!")
+
+ hello()`,
+
+            refactor: `diff --git a/calculator.py b/calculator.py
+index 1234567..abcdefg 100644
+--- a/calculator.py
++++ b/calculator.py
+@@ -5,11 +5,15 @@ class Calculator:
+         self.value = value
+
+     def add(self, x):
+-        self.value += x
+-        return self
++        """Add x to current value."""
++        if x < 0:
++            raise ValueError("Cannot add negative")
++        self.value = self.value + x
++        return self.value
+
+     def multiply(self, x):
+-        self.value *= x
++        self.value = self.value * x
+         return self`,
+
+            complex: `diff --git a/app.py b/app.py
+index 1234567..abcdefg 100644
+--- a/app.py
++++ b/app.py
+@@ -10,8 +10,12 @@ from flask import Flask
+ app = Flask(__name__)
+
+ @app.route('/')
+-def index():
+-    return "Hello"
++def index(name=None):
++    """Main index route."""
++    if name:
++        return f"Hello, {name}!"
++    return render_template('index.html')
+
+ @app.route('/api/data')
+@@ -25,15 +29,22 @@ def get_data():
+     return jsonify(data)
+
+ @app.route('/api/process', methods=['POST'])
+-def process():
+-    data = request.json
+-    result = process_data(data)
+-    return jsonify(result)
++def process_request():
++    """Process incoming request data."""
++    try:
++        data = request.get_json()
++        if not data:
++            return jsonify({'error': 'No data'}), 400
++        result = process_data(data)
++        return jsonify({'success': True, 'result': result})
++    except Exception as e:
++        return jsonify({'error': str(e)}), 500
+
+ if __name__ == '__main__':
+-    app.run()
++    app.run(debug=True, port=5000)`,
+
+            morphological: `diff --git a/MorphologicalFont.js b/MorphologicalFont.js
+index 1234567..abcdefg 100644
+--- a/MorphologicalFont.js
++++ b/MorphologicalFont.js
+@@ -1,6 +1,8 @@
+ /**
+  * Geometry OS: Morphological Font
++ *
++ * Post-symbolic glyph synthesis using Hilbert patterns.
+  */
+
+ class MorphologicalFont {
+@@ -15,6 +17,7 @@ class MorphologicalFont {
+         this.cache = new Map();
+         this.cacheHits = 0;
+         this.cacheMisses = 0;
++        this.maxCacheSize = options.maxCacheSize || 512;
+
+         // Initialize components
+         this.classifier = options.classifier || null;
+@@ -45,8 +48,14 @@ class MorphologicalFont {
+     async getGlyphTexture(char, context = {}) {
+         const category = context.category || 'default';
+         const key = \`\${char}:\${category}\`;
++        this._touchKey(key);
+
+-        if (this.cache.has(key)) {
++        if (this.cache.has(key)) {
+             this.cacheHits++;
+             return this.cache.get(key);
+         }
+-`
+        };
+
+        function log(msg, type = 'info') {
+            const output = document.getElementById('log-output');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            output.appendChild(entry);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        async function init() {
+            log('Initializing Morphological Diff Viewer...', 'info');
+
+            const container = document.getElementById('diff-canvas-container');
+            viewer = new MorphologicalDiffViewer({
+                container: container,
+                fontSize: 13,
+                lineHeight: 18
+            });
+
+            await viewer.init();
+            log('Viewer initialized', 'info');
+
+            // Load default sample
+            loadSample('simple');
+        }
+
+        function loadSample(name) {
+            const diffText = SAMPLES[name];
+            if (!diffText) {
+                log(`Sample '${name}' not found`, 'warn');
+                return;
+            }
+
+            // Update UI
+            document.querySelectorAll('.sample-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('diff-title').textContent =
+                name.charAt(0).toUpperCase() + name.slice(1) + ' Diff';
+
+            // Parse and render
+            viewer.parseDiff(diffText);
+            viewer.render();
+
+            // Update stats
+            updateStats();
+
+            log(`Loaded ${name} sample`, 'info');
+        }
+
+        function loadCustomDiff() {
+            const textarea = document.getElementById('custom-diff-input');
+            const diffText = textarea.value.trim();
+
+            if (!diffText) {
+                log('Please paste a diff first', 'warn');
+                return;
+            }
+
+            document.querySelectorAll('.sample-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('diff-title').textContent = 'Custom Diff';
+
+            viewer.parseDiff(diffText);
+            viewer.render();
+            updateStats();
+
+            log('Loaded custom diff', 'info');
+        }
+
+        function updateStats() {
+            const stats = viewer.getStats();
+            if (!stats) return;
+
+            document.getElementById('stat-additions').textContent = stats.additions;
+            document.getElementById('stat-deletions').textContent = stats.deletions;
+            document.getElementById('stat-hunks').textContent = stats.hunks;
+
+            const total = stats.additions + stats.deletions;
+            if (total > 0) {
+                const ratio = (stats.additions / total * 100).toFixed(0) + '%';
+                document.getElementById('stat-ratio').textContent = ratio;
+            } else {
+                document.getElementById('stat-ratio').textContent = '-';
+            }
+        }
+
+        function exportPNG() {
+            const dataUrl = viewer.exportAsImage('png');
+            if (!dataUrl) {
+                log('No diff to export', 'warn');
+                return;
+            }
+
+            const link = document.createElement('a');
+            link.download = 'morphological-diff.png';
+            link.href = dataUrl;
+            link.click();
+
+            log('Exported as PNG', 'info');
+        }
+
+        function toggleWordWrap() {
+            log('Word wrap toggled (not yet implemented)', 'info');
+        }
+
+        function toggleGlyphs() {
+            showGlyphs = !showGlyphs;
+            viewer.render();
+            log(`Glyphs ${showGlyphs ? 'enabled' : 'disabled'}`, 'info');
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
