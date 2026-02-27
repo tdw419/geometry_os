@@ -84,7 +84,8 @@ async def test_page(page_name: str):
         "holographic_gpu_pipeline": "test_holographic_gpu_pipeline.html",
         "holographic_linux": "demo_holographic_linux.html",
         "holographic_kernel": "demo_holographic_kernel.html",
-        "holographic_interference": "demo_holographic_interference.html"
+        "holographic_interference": "demo_holographic_interference.html",
+        "gos_font_preview": "demo_gos_font_preview.html"
     }
 
     filename = page_map.get(page_name)

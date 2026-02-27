@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html><head><title>GOS Font Preview</title>
+<style>
+body{background:#0a0a14;color:#00ffcc;font-family:monospace;padding:20px}
+h1{text-align:center;text-shadow:0 0 10px #00ffcc}
+.container{display:flex;flex-wrap:wrap;gap:15px;justify-content:center}
+.panel{background:#111122;border:1px solid #00ffcc44;border-radius:8px;padding:12px}
+canvas{border:1px solid #333;background:#000;display:block;margin:5px auto}
+.controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:15px}
+.ctrl{background:#111122;padding:8px;border-radius:4px}
+.ctrl label{font-size:11px;color:#88aaaa;display:block}
+input[type="range"]{width:100px;accent-color:#00ffcc}
+select{background:#001a1a;color:#00ffcc;border:1px solid #00ffcc;padding:4px}
+button{background:#00ffcc;color:#000;border:none;padding:6px 12px;cursor:pointer;border-radius:4px}
+.char-grid{display:grid;grid-template-columns:repeat(16,1fr);gap:1px}
+.char-cell{width:18px;height:18px;display:flex;align-items:center;justify-content:center;background:#1a1a2e;font-size:11px;cursor:pointer}
+.char-cell:hover{background:#002a2a}
+.char-cell.selected{background:#00ffcc33;border:1px solid #00ffcc}
+.stats{font-size:10px;color:#667788;margin-top:5px}
+.checkboxes label{display:block;margin:5px 0;font-size:11px;cursor:pointer}
+.checkboxes input{accent-color:#00ffcc}
+</style></head>
+<body>
+<h1>Geometry OS Font Preview</h1>
+<p style="text-align:center;color:#667788;margin-bottom:15px;font-size:12px">Holographic Computing Substrate - Phase P.4</p>
+<div class="controls">
+<div class="ctrl"><label>Size: <span id="sizeVal">16</span>px</label><input type="range" id="fontSize" min="8" max="48" value="16"></div>
+<div class="ctrl"><label>Interference: <span id="intVal">10</span>%</label><input type="range" id="interference" min="0" max="50" value="10"></div>
+<div class="ctrl"><label>Pattern</label><select id="pattern"><option value="hilbert">Hilbert</option><option value="random">Random</option><option value="glitch">Glitch</option></select></div>
+<div class="ctrl"><button onclick="regenerate()">Refresh</button> <button onclick="exportPNG()">Export</button></div>
+</div>
+<div class="container">
+<div class="panel"><h3>ASCII (32-126)</h3><div class="char-grid" id="charGrid"></div></div>
+<div class="panel"><h3>Selected</h3><canvas id="charCanvas" width="96" height="96"></canvas><div class="stats" id="charStats">Click a character</div></div>
+<div class="panel"><h3>Text Preview</h3><input type="text" id="textInput" value="Hello GOS!" style="width:200px;background:#001a1a;color:#00ffcc;border:1px solid #333;padding:5px;margin-bottom:5px"><canvas id="textCanvas" width="320" height="32"></canvas></div>
+<div class="panel"><h3>Characteristics</h3><div class="checkboxes">
+<label><input type="checkbox" id="pins" checked> Terminal Pins</label>
+<label><input type="checkbox" id="traces" checked> Circuit Traces</label>
+<label><input type="checkbox" id="ghost" checked> Holographic Interference</label>
+<label><input type="checkbox" id="rgbdata"> RGB Data</label>
+</div></div>
+<div class="panel"><h3>Glyph Atlas</h3><canvas id="atlasCanvas" width="256" height="256"></canvas><div class="stats">16x16 grid with interference</div></div>
+<div class="panel"><h3>Interference Demo</h3><canvas id="interCanvas" width="256" height="128"></canvas><div class="stats" id="interStats">Ghost effect preview</div></div>
+</div>
+<script type="module">
+import{HolographicAgentEncoder}from'./HolographicAgentEncoder.js';
+import{HolographicInterference}from'./HolographicInterference.js';
+const enc=new HolographicAgentEncoder(),inter=new HolographicInterference({removalPercent:0.10,ghostAlpha:0.3});
+const charCtx=document.getElementById('charCanvas').getContext('2d');
+const textCtx=document.getElementById('textCanvas').getContext('2d');
+const atlasCtx=document.getElementById('atlasCanvas').getContext('2d');
+const interCtx=document.getElementById('interCanvas').getContext('2d');
+let sel='A';
+const F={' ':[0,0,0,0,0,0,0,0],'!':[0,16,16,16,16,0,16,0],'"':[0,36,36,36,0,0,0,0],'#':[0,36,36,126,36,126,36,36],'$':[0,16,124,18,60,80,62,16],'&':[0,56,68,56,82,68,58,0],"'":[0,16,16,16,0,0,0,0],'(':[0,8,16,32,32,16,8,0],')':[0,32,16,8,8,16,32,0],'*':[0,16,84,56,84,16,0,0],'+':[0,0,16,16,124,16,16,0],'-':[0,0,0,124,0,0,0,0],'.':[0,0,0,0,0,24,24,0],'/':[0,4,8,16,32,64,128,0],'0':[0,56,68,84,84,68,56,0],'1':[0,16,48,16,16,16,56,0],'2':[0,56,68,8,16,32,124,0],'3':[0,56,68,8,24,68,56,0],'4':[0,8,24,40,124,8,8,0],'5':[0,124,64,120,4,68,56,0],'6':[0,56,64,120,68,68,56,0],'7':[0,124,4,8,16,16,16,0],'8':[0,56,68,56,68,68,56,0],'9':[0,56,68,60,4,8,56,0],':':[0,0,24,24,0,24,24,0],';':[0,0,24,24,0,24,24,48],'<':[0,8,16,32,32,16,8,0],'=':[0,0,124,0,124,0,0,0],'>':[0,32,16,8,8,16,32,0],'?':[0,56,68,8,16,0,16,0],'@':[0,56,68,84,84,64,56,0],'A':[0,16,40,68,124,68,68,0],'B':[0,120,68,120,68,68,120,0],'C':[0,56,68,64,64,68,56,0],'D':[0,120,68,68,68,68,120,0],'E':[0,124,64,120,64,64,124,0],'F':[0,124,64,120,64,64,64,0],'G':[0,56,68,64,76,68,60,0],'H':[0,68,68,124,68,68,68,0],'I':[0,56,16,16,16,16,56,0],'J':[0,28,8,8,8,72,48,0],'K':[0,68,72,112,72,68,68,0],'L':[0,64,64,64,64,64,124,0],'M':[0,68,108,84,68,68,68,0],'N':[0,68,100,84,76,68,68,0],'O':[0,56,68,68,68,68,56,0],'P':[0,120,68,120,64,64,64,0],'Q':[0,56,68,68,84,72,52,0],'R':[0,120,68,120,72,68,68,0],'S':[0,56,68,32,16,68,56,0],'T':[0,124,16,16,16,16,16,0],'U':[0,68,68,68,68,68,56,0],'V':[0,68,68,68,40,40,16,0],'W':[0,68,68,68,84,108,68,0],'X':[0,68,40,16,40,68,68,0],'Y':[0,68,68,40,16,16,16,0],'Z':[0,124,8,16,32,64,124,0],'[':[0,56,32,32,32,32,56,0],'\\':[0,128,64,32,16,8,4,0],']':[0,56,8,8,8,8,56,0],'^':[0,16,40,68,0,0,0,0],'_':[0,0,0,0,0,0,0,124],'`':[0,32,16,8,0,0,0,0],'a':[0,0,0,56,4,60,68,0],'b':[0,64,64,120,68,68,120,0],'c':[0,0,0,56,68,64,56,0],'d':[0,4,4,60,68,68,60,0],'e':[0,0,0,56,68,120,64,56],'f':[0,24,32,120,32,32,32,0],'g':[0,0,0,60,68,68,60,4,56],'h':[0,64,64,120,68,68,68,0],'i':[0,16,0,48,16,16,56,0],'j':[0,8,0,24,8,8,8,48],'k':[0,64,64,68,112,72,68,0],'l':[0,48,16,16,16,16,56,0],'m':[0,0,0,104,84,84,68,0],'n':[0,0,0,120,68,68,68,0],'o':[0,0,0,56,68,68,56,0],'p':[0,0,0,120,68,68,120,64,64],'q':[0,0,0,60,68,68,60,4,4],'r':[0,0,0,88,96,64,64,0],'s':[0,0,0,60,64,56,4,120],'t':[0,32,32,120,32,32,24,0],'u':[0,0,0,68,68,68,60,0],'v':[0,0,0,68,68,40,16,0],'w':[0,0,0,68,84,84,40,0],'x':[0,0,0,68,40,16,40,68],'y':[0,0,0,68,68,68,60,4,56],'z':[0,0,0,124,8,16,32,124],'{':[0,12,16,8,16,16,12,0],'|':[0,16,16,16,16,16,16,0],'}':[0,48,8,16,8,8,48,0],'~':[0,0,32,84,8,0,0,0]};
+const getF=c=>F[c]||F['?'];
+function drawC(ctx,ch,x,y,sz){
+const bm=getF(ch),sc=sz/8;
+const pins=document.getElementById('pins').checked,traces=document.getElementById('traces').checked,rgb=document.getElementById('rgbdata').checked;
+ctx.fillStyle='#0a0a14';ctx.fillRect(x,y,sz,sz);
+let col=[0,255,200];
+if(rgb){const e=enc.encode32Bit(ch.charCodeAt(0)*0x01010101);const a=e.data.reduce((s,v,i)=>s+(i%4===0?v:0),0)/64;col=[128+a*0.5,200+a*0.2,180+a*0.3].map(Math.floor);}
+for(let r=0;r<8;r++){const row=bm[r];for(let c=0;c<8;c++){if(row&(1<<(7-c))){ctx.fillStyle=`rgb(${col[0]},${col[1]},${col[2]})`;ctx.fillRect(x+c*sc,y+r*sc,sc,sc);}}}
+if(pins){ctx.fillStyle='#00ffcc';const ps=Math.max(1,sz/16);ctx.beginPath();ctx.arc(x+ps,y+sz/2,ps,0,6.28);ctx.fill();ctx.beginPath();ctx.arc(x+sz-ps,y+sz/2,ps,0,6.28);ctx.fill();}
+if(traces){ctx.strokeStyle='rgba(0,255,200,0.15)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x+sz/2,0);ctx.lineTo(x+sz/2,y);ctx.moveTo(x+sz/2,y+sz);ctx.lineTo(x+sz/2,ctx.canvas.height);ctx.stroke();}}
+function buildG(){const g=document.getElementById('charGrid');g.innerHTML='';for(let i=32;i<=126;i++){const c=String.fromCharCode(i);const d=document.createElement('div');d.className='char-cell'+(c===sel?' selected':'');d.textContent=c;d.onclick=()=>{sel=c;buildG();upd()};g.appendChild(d);}}
+function upd(){
+const sz=+document.getElementById('fontSize').value;
+charCtx.fillStyle='#0a0a14';charCtx.fillRect(0,0,96,96);drawC(charCtx,sel,(96-sz*2)/2,(96-sz*2)/2,sz*2);document.getElementById('charStats').textContent=`'${sel}' ASCII ${sel.charCodeAt(0)}`;
+const txt=document.getElementById('textInput').value;textCtx.fillStyle='#0a0a14';textCtx.fillRect(0,0,320,32);let tx=4;for(const c of txt){if(tx+sz>316)break;drawC(textCtx,c,tx,4,sz);tx+=sz+2;}
+atlasCtx.fillStyle='#0a0a14';atlasCtx.fillRect(0,0,256,256);let idx=0;for(let r=0;r<16;r++){for(let c=0;c<16;c++){const cc=32+idx;if(cc<=126)drawC(atlasCtx,String.fromCharCode(cc),c*16,r*16,16);idx++;}}
+if(document.getElementById('ghost').checked){const i=+document.getElementById('interference').value/100;const p=document.getElementById('pattern').value;const img=atlasCtx.getImageData(0,0,256,256);let pr;if(p==='hilbert')pr=inter.applyHilbertInterference(img,{removalPercent:i});else if(p==='glitch')pr=inter.createHolographicGlitch(img,{intensity:i});else pr=inter.apply(img,{removalPercent:i});atlasCtx.putImageData(pr,0,0);}
+interCtx.fillStyle='#0a0a14';interCtx.fillRect(0,0,256,128);let dx=20;for(const c of"GOS FONT"){drawC(interCtx,c,dx,10,20);dx+=26;}dx=20;for(const c of"Aa1!@#"){drawC(interCtx,c,dx,45,16);dx+=22;}
+if(document.getElementById('ghost').checked){const i=+document.getElementById('interference').value/100;const p=document.getElementById('pattern').value;const img=interCtx.getImageData(0,0,256,128);let pr;if(p==='hilbert')pr=inter.applyHilbertInterference(img,{removalPercent:i});else if(p==='glitch')pr=inter.createHolographicGlitch(img,{intensity:i});else pr=inter.apply(img,{removalPercent:i});interCtx.putImageData(pr,0,0);}
+document.getElementById('interStats').textContent=`Pattern: ${document.getElementById('pattern').value} @ ${document.getElementById('interference').value}%`;}
+window.regenerate=upd;
+window.exportPNG=()=>{const a=document.createElement('a');a.download='gos_font_atlas.png';a.href=document.getElementById('atlasCanvas').toDataURL('image/png');a.click();};
+document.getElementById('fontSize').oninput=e=>{document.getElementById('sizeVal').textContent=e.target.value;upd();};
+document.getElementById('interference').oninput=e=>{document.getElementById('intVal').textContent=e.target.value;upd();};
+document.getElementById('pattern').onchange=upd;document.getElementById('textInput').oninput=upd;
+document.getElementById('pins').onchange=upd;document.getElementById('traces').onchange=upd;document.getElementById('ghost').onchange=upd;document.getElementById('rgbdata').onchange=upd;
+buildG();upd();
+</script></body></html>
