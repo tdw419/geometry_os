@@ -1,89 +1,55 @@
-# Requirements: PixelRTS Boot Improvement
+# Requirements: Visual Shell Integration
 
-**Defined:** 2026-02-11
-**Core Value:** Booting an OS should be as visual and intuitive as opening an image file.
+**Defined:** 2026-02-27
+**Core Value:** OS containers live directly on the infinite desktop - boot by clicking, arrange by dragging.
 
-## v1 Requirements
+## v1.1 Requirements
 
-Requirements for initial release. Each maps to a roadmap phase.
+Requirements for Visual Shell Integration milestone. Each maps to a roadmap phase.
 
-### Vision Analysis (VISION)
+### Desktop Objects (DESKTOP)
 
-- [ ] **VISION-01**: Vision model can identify kernel version from .rts.png visual patterns
-- [ ] **VISION-02**: Vision model can identify OS distribution (Alpine, Ubuntu, etc.) from PNG
-- [ ] **VISION-03**: Vision model can identify system architecture (x86_64, ARM64, etc.) from PNG
-- [ ] **VISION-04**: Vision model can detect tampering or corruption in OS containers via entropy analysis
+- [ ] **DESKTOP-01**: User can see .rts.png files displayed as interactive objects on the PixiJS desktop
+- [ ] **DESKTOP-02**: User can drag and drop container objects to arrange them on the infinite canvas
+- [ ] **DESKTOP-03**: User can boot a container with a single click (or double-click) on its desktop object
+- [ ] **DESKTOP-04**: User can see container metadata (distro, kernel version, architecture) on hover or selection
 
-### Direct Boot (DIRECT)
+### Boot Progress (BOOT)
 
-- [ ] **DIRECT-01**: User can boot .rts.png files with single command without manual extraction
-- [ ] **DIRECT-02**: FUSE filesystem presents .rts.png as /kernel and /initrd files
-- [ ] **DIRECT-03**: Boot process completes with <10% overhead compared to traditional ISO boot
-- [ ] **DIRECT-04**: FUSE mount properly cleans up after boot (no resource leaks)
-
-### Verification (VERIFY)
-
-- [ ] **VERIFY-01**: System verifies SHA256 hash of extracted kernel/initrd against metadata
-- [ ] **VERIFY-02**: Verification failure prevents boot and displays clear error message
-- [ ] **VERIFY-03**: Vision-based tamper detection provides additional security verification
-
-### User Experience (UX)
-
-- [ ] **UX-01**: Boot progress is displayed visually (text or graphical) during operations >1 second
-- [ ] **UX-02**: User can view OS metadata (kernel version, distro, architecture) before booting
-- [ ] **UX-03**: Error messages provide actionable guidance when boot fails
-
-### Integration (INTEGRATION)
-
-- [ ] **INTEGRATION-01**: Existing PixelRTS v2 encoder/decoder is used without modification
-- [ ] **INTEGRATION-02**: CLI tool `pixelrts boot <file.png>` works with existing .rts.png files
-- [ ] **INTEGRATION-03**: Vision analysis provider pattern supports multiple backends (Claude, LM Studio, local)
+- [ ] **BOOT-01**: User sees a progress indicator during QEMU boot launch (>1 second operations)
+- [ ] **BOOT-02**: User can see visual status of each container (running, stopped, error)
+- [ ] **BOOT-03**: User sees clear error messages when boot fails with actionable guidance
+- [ ] **BOOT-04**: User's container positions persist across sessions (layout saved and restored)
 
 ## v1.x Requirements
 
-Deferred to after MVP validation.
+Deferred to after v1.1 validation.
 
-### Enhanced Security (SECURITY)
+### Advanced Visualization (VISUAL)
 
-- **SECURITY-01**: Vision-based tamper detection produces actionable security report
-- **SECURITY-02**: Multi-factor verification (SHA256 + vision analysis + signature)
+- **VISUAL-01**: Thermographic boot visualization shows OS "loading" as pixels fill in
+- **VISUAL-02**: Entropy heatmap overlay for forensic analysis
+- **VISUAL-03**: Live texture swap from running QEMU instance
 
-### Visual Catalog (CATALOG)
+### Advanced Interaction (INTERACT)
 
-- **CATALOG-01**: System displays OS containers as visual thumbnails in gallery view
-- **CATALOG-02**: User can boot any OS from catalog with single click
-- **CATALOG-03**: Catalog supports spatial arrangement (drag to reorganize)
-
-### Platform Support (PLATFORM)
-
-- **PLATFORM-01**: System supports UEFI boot mode
-- **PLATFORM-02**: System supports legacy BIOS boot mode
-- **PLATFORM-03**: Boot mode is automatically detected or user-configurable
-
-### Updates (UPDATE)
-
-- **UPDATE-01**: System can download delta updates (only changed bytes/regions)
-- **UPDATE-02**: Update process shows visual diff of changes
-- **UPDATE-03**: User can review and approve updates before applying
+- **INTERACT-01**: Proximity-based boot mode (auto-boot when near)
+- **INTERACT-02**: Multi-container selection and batch operations
+- **INTERACT-03**: Context menu with boot/configure/delete options
 
 ## v2 Requirements
 
 Deferred until product-market fit is established.
 
-### Advanced Visual Features (VISUAL)
+### Network Integration (NETWORK)
 
-- **VISUAL-01**: Boot-time visualization shows OS "loading" as pixels fill in (thermographic effect)
-- **VISUAL-02**: Visual entropy heatmap overlay for forensic analysis
+- **NETWORK-01**: Container catalog sync across multiple machines
+- **NETWORK-02**: Remote boot from network catalog
 
-### Network (NETWORK)
+### Advanced Layout (LAYOUT)
 
-- **NETWORK-01**: System can boot PixelRTS containers over network (PXE/NBD)
-- **NETWORK-02**: Network boot supports multiple clients simultaneously
-
-### Multi-Boot (MULTI)
-
-- **MULTI-01**: Single PNG can store multiple bootable OS variants via metadata tags
-- **MULTI-02**: User can select which OS variant to boot from menu
+- **LAYOUT-01**: Spatial grouping and tagging
+- **LAYOUT-02**: Auto-arrange by metadata (distro, kernel version)
 
 ## Out of Scope
 
@@ -91,14 +57,12 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
-| Real-time ISO→PNG conversion | Adds latency, complexity, breaks single-source-of-truth. Provide CLI tool instead. |
-| PNG image editor compatibility | Visual encoding is not human-editable like layers. Provide dedicated analyzer. |
-| Video codec boot (MP4/WebM) | Lossy codecs corrupt binary data. PNG (lossless) required. |
-| Social sharing of boot images | Large file sizes (10-100MB), privacy concerns. Thumbnail for catalog only. |
-| Live modification during boot | Requires complex overlay, breaks verification. Use FUSE read-only + install workflow. |
-| Auto-update from network | Breaks reproducibility, security risk. Explicit update command required. |
-| Compression optimization (WebP/AVIF) | Lossy formats corrupt data. PNG sufficient with efficient encoding. |
-| Multiple filesystem support in PNG | Violates single-responsibility. One kernel/initrd per PNG. |
+| Real-time ISO→PNG conversion | Adds latency, breaks single-source-of-truth. Use CLI tool. |
+| Live modification during boot | Requires overlay filesystem, breaks verification. Use install workflow. |
+| Auto-arrange/snap-to-grid | Violates user agency in spatial arrangement. |
+| Real-time collaboration | Complex CRDT/OT required. Single-user first. |
+| Mobile touch support | Desktop-first interaction model. |
+| VNC console embedding | Scope bloat. Separate feature. |
 
 ## Traceability
 
@@ -106,32 +70,20 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VISION-01 | Phase 1 | Complete |
-| VISION-02 | Phase 1 | Complete |
-| VISION-03 | Phase 1 | Complete |
-| VISION-04 | Phase 1 | Complete |
-| DIRECT-01 | Phase 2 | Complete |
-| DIRECT-02 | Phase 2 | Complete |
-| DIRECT-03 | Phase 2 | Complete |
-| DIRECT-04 | Phase 2 | Complete |
-| VERIFY-01 | Phase 1 | Complete |
-| VERIFY-02 | Phase 1 | Complete |
-| VERIFY-03 | Phase 1 | Complete |
-| UX-01 | Phase 2 | Complete |
-| UX-02 | Phase 1 | Complete |
-| UX-03 | Phase 2 | Complete |
-| INTEGRATION-01 | Phase 1 | Complete |
-| INTEGRATION-02 | Phase 2 | Complete |
-| INTEGRATION-03 | Phase 1 | Complete |
-| CATALOG-01 | Phase 4 | Complete |
-| CATALOG-02 | Phase 4 | Complete |
+| DESKTOP-01 | Phase 5 | Pending |
+| DESKTOP-02 | Phase 5 | Pending |
+| DESKTOP-03 | Phase 5 | Pending |
+| DESKTOP-04 | Phase 5 | Pending |
+| BOOT-01 | Phase 6 | Pending |
+| BOOT-02 | Phase 6 | Pending |
+| BOOT-03 | Phase 6 | Pending |
+| BOOT-04 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 17 total
-- v1.x catalog requirements: 2
-- Mapped to phases: 19
+- v1.1 requirements: 8 total
+- Mapped to phases: 8
 - Unmapped: 0 ✓
 
 ---
-*Requirements defined: 2026-02-11*
-*Last updated: 2026-02-27 after Phase 4 completion*
+*Requirements defined: 2026-02-27*
+*Last updated: 2026-02-27*
