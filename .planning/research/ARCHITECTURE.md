@@ -1,462 +1,637 @@
-# Architecture Research
+# Architecture Patterns: Network Boot Integration
 
-**Domain:** PixelRTS v2 Expansion (Vision, FUSE, Installer, Catalog)
-**Researched:** 2026-02-11
-**Confidence:** HIGH
+**Domain:** PixelRTS Visual Shell Network Boot
+**Researched:** 2026-02-27
+**Confidence:** MEDIUM (based on codebase analysis, web search unavailable)
 
-## Standard Architecture
+## Executive Summary
 
-### System Overview
+Network boot extends the existing PixelRTS visual shell to support remote catalog servers and network-based boot operations. The architecture requires:
+1. Remote catalog client capabilities in CatalogBridge.js
+2. Cache management for offline/resilient operation
+3. Backend support for remote catalog aggregation
+4. Boot flow modifications to handle remote assets
 
-```
-+-----------------------------------------------------------------------+
-│                        Presentation Layer                             |
-+-----------------------------------------------------------------------+
-|  +---------------------+  +---------------------+  +---------------+  |
-│  |  Visual Catalog     |  |  Installer UI       |  |  CLI Tools    |  |
-│  |  (Thumbnail Gallery)|  |  (Progress Display) |  |  (boot, etc)  |  |
-│  +---------+-----------+  +----------+----------+  +-------+-------+  |
-+------------|---------------------------|-------------------|----------+
-             |                           |                   |
-+------------|---------------------------|-------------------|----------+
-|            v                           v                   v          |
-|                    Integration / Orchestration Layer                 |
-|  +---------------------+  +---------------------+  +---------------+  |
-│  |  Vision Pipeline    |  |  FUSE Bridge        |  |  Installer    |  |
-│  |  (Analyzer + VLM)   |  |  (Virtual Files)    |  |  (Extractor)  |  |
-│  +----------+----------+  +----------+----------+  +-------+-------+  |
-+-------------|---------------------------|-------------------|----------+
-              |                           |                   |
-              v                           v                   v
-+-----------------------------------------------------------------------+
-|                        Core PixelRTS v2 Layer                         |
-|  +---------------------+  +---------------------+  +---------------+  |
-│  |  Encoder/Decoder    |  |  Registry Manager   |  |  Metadata     |  |
-│  |  (Hilbert + PNG)    |  |  (Catalog Storage)  |  |  (tEXt chunks)|  |
-│  +---------------------+  +---------------------+  +---------------+  |
-+-----------------------------------------------------------------------+
-                                |
-                                v
-+-----------------------------------------------------------------------+
-|                        Storage Layer                                  |
-|  +---------------------+  +---------------------+  +---------------+  |
-│  |  .rts.png Files     |  |  .meta.json         |  |  SQLite       |  |
-│  |  (PNG Containers)   |  |  (Sidecar Metadata)  |  |  (Registry)   |  |
-│  +---------------------+  +---------------------+  +---------------+  |
-+-----------------------------------------------------------------------+
-```
-
-### Component Responsibilities
-
-| Component | Responsibility | Typical Implementation | Communicates With |
-|-----------|----------------|------------------------|-------------------|
-| **Vision Analyzer** | Extract visual features from PNG, prepare for VLM analysis | `PixelRTSVisionAnalyzer` class | Vision Model Client, Pattern Detector |
-| **Vision Model Client** | Interface to Claude/VLM APIs for image understanding | API client with retry logic | Vision Analyzer, Installer |
-| **FUSE Bridge** | Present .rts.png contents as virtual filesystem (kernel/initrd) | FUSE filesystem using `fusepy` | QEMU, boot loaders, shell tools |
-| **Installer Engine** | Extract and write OS to disk with progress tracking | Threaded extractor with callbacks | Vision Analyzer, FUSE Bridge |
-| **Visual Catalog** | Display thumbnail gallery with spatial layout | GUI using PyQt/Tk or TUI | Registry Manager, Vision Analyzer |
-| **Registry Manager** | Store and query cartridge metadata | SQLite + JSON indexing | All components |
-
-## Recommended Project Structure
+## Current Architecture
 
 ```
-systems/pixel_compiler/
-├── vision/                    # Vision analysis pipeline
-│   ├── __init__.py
-│   ├── analyzer.py           # PixelRTSVisionAnalyzer (exists)
-│   ├── vlm_client.py         # Claude/VLM API client
-│   ├── prompts.py            # Analysis prompt templates
-│   └── findings.py           # Response parsing
-├── fuse/                      # FUSE filesystem bridge
-│   ├── __init__.py
-│   ├── rts_filesystem.py     # Main FUSE operations
-│   ├── container.py          # PNG container handler
-│   ├── mount.py              # Mount/unmount CLI
-│   └── boot_integration.py   # QEMU integration
-├── installer/                 # Installation engine
-│   ├── __init__.py
-│   ├── engine.py             # Main installer logic
-│   ├── progress.py           # Progress tracking
-│   ├── visualizer.py         # Visual progress display
-│   └── disk.py               # Disk operations
-├── catalog/                   # Visual catalog manager
-│   ├── __init__.py
-│   ├── gallery.py            # Thumbnail browser
-│   ├── spatial_layout.py     # Spatial arrangement engine
-│   └── launcher.py           # Boot-from-catalog handler
-└── rts_registry_manager.py   # Existing registry backend
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           EXISTING ARCHITECTURE (v1.1)                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────────┐         REST API          ┌───────────────────────┐   │
+│  │   Frontend       │    /api/v1/catalog       │   Backend (FastAPI)    │   │
+│  │   (PixiJS v7)    │ ◄──────────────────────► │   catalog_server.py    │   │
+│  │                 │                          │                       │   │
+│  │  ┌──────────────┴──────────────┐           │  ┌─────────────────┐  │   │
+│  │  │ CatalogBridge.js            │           │  │ CatalogScanner  │  │   │
+│  │  │ - getCatalog()              │           │  │ ThumbnailCache  │  │   │
+│  │  │ - bootEntry()               │           │  │ SpatialLayout   │  │   │
+│  │  │ - updateLayout()            │           │  │ BootBridge      │  │   │
+│  │  │ - pollStatus()              │           │  └─────────────────┘  │   │
+│  │  └─────────────────────────────┘           └───────────────────────┘   │
+│  │                                            │                           │
+│  │  ┌──────────────────────────────┐           │      QEMU                │
+│  │  │ DesktopObjectManager.js      │           │   (Direct Kernel Boot)   │
+│  │  │ - loadCatalog()              │           │                          │
+│  │  │ - bootObject()               │           └──────────────────────────┘
+│  │  │ - moveObject()               │                       │
+│  │  └─────────────────────────────┘                       │
+│  │                    │                                   │
+│  │  ┌─────────────────▼─────────────┐                     │
+│  │  │ RTSDesktopObject.js           │                     │
+│  │  │ - Visual sprite               │                     │
+│  │  │ - Status indicator            │                     │
+│  │  │ - Boot progress animation     │                     │
+│  │  └───────────────────────────────┘                     │
+│  └─────────────────────────────────────────────────────────┘
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Structure Rationale
-
-- **vision/**: Isolated because vision analysis is optional (API key required). Can be mocked for testing.
-- **fuse/**: Platform-specific (Linux FUSE). Clear boundary for portability concerns.
-- **installer/**: Potentially dangerous (disk writes). Isolated for security and testing.
-- **catalog/**: UI component that depends on other modules. Placed last in dependency order.
-
-## Architectural Patterns
-
-### Pattern 1: Provider Interface for Vision Models
-
-**What:** Abstract interface for multiple vision model providers (Claude, LM Studio, local VLMs).
-
-**When to use:** When you need to support multiple VLM backends or mock for testing.
-
-**Trade-offs:** Adds abstraction layer (extra code) but enables flexibility and testing.
-
-**Example:**
-```python
-from abc import ABC, abstractmethod
-from typing import Dict, Any
-
-class VisionModelProvider(ABC):
-    """Abstract interface for vision model providers."""
-
-    @abstractmethod
-    def analyze(self, image_b64: str, prompt: str) -> str:
-        """Analyze image and return text response."""
-        pass
-
-    @abstractmethod
-    def build_kernel_prompt(self, metadata: Dict[str, Any]) -> str:
-        """Build prompt for kernel version detection."""
-        pass
-
-class ClaudeVisionProvider(VisionModelProvider):
-    """Claude API implementation."""
-
-    def __init__(self, api_key: str):
-        self.api_key = api_key
-
-    def analyze(self, image_b64: str, prompt: str) -> str:
-        # Anthropic API call
-        pass
-
-class MockVisionProvider(VisionModelProvider):
-    """Mock for testing without API calls."""
-
-    def analyze(self, image_b64: str, prompt: str) -> str:
-        return '{"kernel_version": "6.6.0", "distro": "Alpine"}'
-```
-
-### Pattern 2: Lazy FUSE Mount
-
-**What:** Mount FUSE filesystem only when first accessed, unmount after idle timeout.
-
-**When to use:** When you want to present .rts.png as always available but avoid resource overhead.
-
-**Trade-offs:** Adds complexity (mount/unmount lifecycle) but improves UX and resource usage.
-
-**Example:**
-```python
-class LazyFUSEMount:
-    """Lazy-mounting FUSE filesystem."""
-
-    def __init__(self, rts_path: str, mountpoint: str, idle_timeout: int = 300):
-        self.rts_path = rts_path
-        self.mountpoint = mountpoint
-        self.idle_timeout = idle_timeout
-        self._mount_thread = None
-        self._last_access = None
-
-    def __enter__(self):
-        """Mount on context entry."""
-        self._ensure_mounted()
-        return self.mountpoint
-
-    def __exit__(self, *args):
-        """Schedule unmount after timeout."""
-        self._schedule_unmount()
-
-    def _ensure_mounted(self):
-        """Mount if not already mounted."""
-        if not self._is_mounted():
-            self._mount_thread = threading.Thread(
-                target=self._mount_forever,
-                daemon=True
-            )
-            self._mount_thread.start()
-```
-
-### Pattern 3: Progress Callback Chain
-
-**What:** Chain of progress observers for visual installer feedback.
-
-**When to use:** When multiple components need progress updates (UI, logger, metrics).
-
-**Trade-offs:** More complex than single callback but enables multiple observers.
-
-**Example:**
-```python
-class ProgressChain:
-    """Chain multiple progress observers."""
-
-    def __init__(self):
-        self.observers = []
-
-    def add_observer(self, observer):
-        """Add progress observer (callable with progress, message)."""
-        self.observers.append(observer)
-
-    def update(self, progress: float, message: str):
-        """Notify all observers."""
-        for observer in self.observers:
-            try:
-                observer(progress, message)
-            except Exception:
-                pass  # Don't let one observer break others
-
-class VisualProgressObserver:
-    """Visual progress bar for installer."""
-
-    def __call__(self, progress: float, message: str):
-        # Update progress bar
-        pass
-```
-
-## Data Flow
-
-### Vision Analysis Flow
+## Recommended Architecture (v1.2)
 
 ```
-[User selects .rts.png]
-         ↓
-[PixelRTSVisionAnalyzer loads PNG]
-         ↓
-[generate_entropy_overlay() → creates visualization]
-         ↓
-[prepare_for_vision_model() → resize + base64]
-         ↓
-[VlmClient.analyze() → Claude API call]
-         ↓
-[parse_vision_findings() → structured JSON]
-         ↓
-[generate_findings_overlay() → annotated PNG]
-         ↓
-[Display results: version, distro, architecture, anomalies]
+┌───────────────────────────────────────────────────────────────────────────────────────┐
+│                         PROPOSED ARCHITECTURE (v1.2 Network Boot)                      │
+├───────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                       │
+│  ┌─────────────────────────────────────────────────────────────────────────────────┐ │
+│  │                              FRONTEND (PixiJS v7)                                │ │
+│  │                                                                                  │ │
+│  │  ┌────────────────────────────────────────────────────────────────────────────┐ │ │
+│  │  │                    RemoteCatalogClient (NEW)                                │ │ │
+│  │  │                                                                             │ │ │
+│  │  │  - Multiple server support        - Health monitoring                       │ │ │
+│  │  │  - Server priority/fallback       - Connection state machine               │ │ │
+│  │  │  - Remote catalog aggregation     - Timeout/retry logic                    │ │ │
+│  │  └────────────────────────────────────────────────────────────────────────────┘ │ │
+│  │                                     │                                            │ │
+│  │                                     ▼                                            │ │
+│  │  ┌────────────────────────────────────────────────────────────────────────────┐ │ │
+│  │  │                    CatalogBridge.js (MODIFIED)                              │ │ │
+│  │  │                                                                             │ │ │
+│  │  │  NEW METHODS:                                                               │ │ │
+│  │  │  - setRemoteServer(url)          - getRemoteEntry(entryId)                 │ │ │
+│  │  │  - getRemoteCatalog()            - bootRemoteEntry(entryId, serverUrl)      │ │ │
+│  │  │  - aggregateCatalogs()           - getServerHealth()                        │ │ │
+│  │  │                                                                             │ │ │
+│  │  │  EXISTING: (unchanged, for local fallback)                                  │ │ │
+│  │  │  - getCatalog(), bootEntry(), updateLayout(), pollStatus()                  │ │ │
+│  │  └────────────────────────────────────────────────────────────────────────────┘ │ │
+│  │                                     │                                            │ │
+│  │                                     ▼                                            │ │
+│  │  ┌────────────────────────────────────────────────────────────────────────────┐ │ │
+│  │  │                    CatalogCacheManager (NEW)                                │ │ │
+│  │  │                                                                             │ │ │
+│  │  │  - IndexedDB for offline catalogs    - Thumbnail caching                   │ │ │
+│  │  │  - LRU eviction (reuse LRUTileCache)  - Metadata caching                   │ │ │
+│  │  │  - Stale-while-revalidate pattern    - Cache invalidation                  │ │ │
+│  │  └────────────────────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                                  │ │
+│  │  DesktopObjectManager.js (MODIFIED)                                              │ │
+│  │  - loadRemoteCatalog()           - handleRemoteBootProgress()                   │ │
+│  │  - aggregateCatalogs()           - remoteStatusPolling()                        │ │
+│  │                                                                                  │ │
+│  │  RTSDesktopObject.js (UNCHANGED)                                                 │ │
+│  │  - All existing functionality preserved                                          │ │
+│  │                                                                                  │ │
+│  └──────────────────────────────────────────────────────────────────────────────────┘ │
+│                                          │                                            │
+│                         ┌────────────────┼────────────────┐                          │
+│                         │                │                │                          │
+│                         ▼                ▼                ▼                          │
+│  ┌──────────────────────────┐ ┌──────────────────┐ ┌──────────────────────────┐     │
+│  │   Local Catalog Server   │ │ Remote Server 1  │ │   Remote Server N        │     │
+│  │   (localhost:8080)       │ │ (server1:8080)   │ │   (serverN:8080)         │     │
+│  │                          │ │                  │ │                          │     │
+│  │  catalog_server.py       │ │ catalog_server   │ │  catalog_server          │     │
+│  │  - Local .rts.png files  │ │ - Regional       │ │  - Edge location         │     │
+│  │  - Local boot via QEMU   │ │ - Remote boot    │ │  - Cached images         │     │
+│  └──────────────────────────┘ └──────────────────┘ └──────────────────────────┘     │
+│                                                                                       │
+└───────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### FUSE Boot Flow
+## Component Boundaries
 
-```
-[User: boot_os alpine.rts.png]
-         ↓
-[InstallerEngine extracts kernel/initrd from PNG]
-         ↓
-[FUSERtsFilesystem.mount(mountpoint)]
-         ↓
-[QEMU reads /mount/vmlinuz via FUSE]
-         ↓
-[HilbertLUT translates file offset → PNG pixels]
-         ↓
-[RGBA bytes extracted from PNG image]
-         ↓
-[QEMU boots kernel from virtual file]
-         ↓
-[After boot, FUSE unmounts automatically]
-```
+| Component | Responsibility | Communicates With | Modified/New |
+|-----------|---------------|-------------------|--------------|
+| RemoteCatalogClient | Multi-server catalog aggregation | CatalogBridge, Remote servers | **NEW** |
+| CatalogBridge | API client abstraction | RemoteCatalogClient, Backend | **MODIFIED** |
+| CatalogCacheManager | Offline/resilient catalog access | CatalogBridge, IndexedDB | **NEW** |
+| DesktopObjectManager | Lifecycle management | CatalogBridge, RTSDesktopObject | **MODIFIED** |
+| RTSDesktopObject | Visual representation | DesktopObjectManager | UNCHANGED |
+| catalog_server.py | REST API endpoints | CatalogBridge, BootBridge | **MODIFIED** |
 
-### Installer Progress Flow
+## New Components
 
-```
-[User: install_os alpine.rts.png /dev/sda]
-         ↓
-[InstallerEngine.start()]
-         ↓
-[ProgressChain.add_observer(VisualProgressObserver)]
-         ↓
-[Analyzer: Vision analysis → verify OS type]
-         ↓ update(0.1, "Verifying OS type...")
-[Extractor: Decode PNG → get kernel + initrd]
-         ↓ update(0.4, "Extracting kernel...")
-[DiskWriter: Write kernel to disk]
-         ↓ update(0.7, "Writing to /dev/sda...")
-[DiskWriter: Write initrd to disk]
-         ↓ update(0.9, "Writing filesystem...")
-[Bootloader: Install GRUB/Syslinux]
-         ↓ update(1.0, "Installation complete!")
-[Cleanup: Unmount, close files]
-```
+### 1. RemoteCatalogClient.js
 
-### Catalog Boot Flow
+```javascript
+/**
+ * RemoteCatalogClient - Multi-server catalog aggregation
+ *
+ * Responsibilities:
+ * - Connect to multiple remote catalog servers
+ * - Aggregate catalogs from multiple sources
+ * - Handle server health monitoring
+ * - Fallback/priority chain for resilience
+ */
+class RemoteCatalogClient {
+    constructor(servers = [], options = {}) {
+        this.servers = servers;  // [{url, priority, label}]
+        this.healthStatus = new Map();  // serverUrl -> {healthy, lastCheck}
+        this.timeout = options.timeout || 5000;
+        this.retryAttempts = options.retryAttempts || 3;
+    }
 
-```
-[User launches visual catalog]
-         ↓
-[CatalogGallery.scan_directory() → find all .rts.png]
-         ↓
-[For each file: generate thumbnail via VisionAnalyzer]
-         ↓
-[SpatialLayout.arrange() → organize by similarity/type]
-         ↓
-[User double-clicks thumbnail]
-         ↓
-[CatalogLauncher.boot_selected()]
-         ↓
-[FUSERtsFilesystem.mount() → present as /mnt/rts]
-         ↓
-[QEMU boots: -kernel /mnt/rts/kernel -initrd /mnt/rts/initrd]
-         ↓
-[After boot, catalog updates status: "Last booted: now"]
+    // Core methods
+    async getAggregatedCatalog() { /* Merge catalogs from all servers */ }
+    async getRemoteEntry(entryId, serverUrl) { /* Fetch from specific server */ }
+    async bootRemoteEntry(entryId, serverUrl, options) { /* Remote boot */ }
+    async checkServerHealth(serverUrl) { /* Health check */ }
+    getServerPriority() { /* Return servers by health/priority */ }
+}
 ```
 
-## Scaling Considerations
+### 2. CatalogCacheManager.js
 
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| 1-50 cartridges | Single-process, in-memory thumbnails, SQLite catalog |
-| 50-500 cartridges | Thumbnail caching on disk, async vision analysis, catalog indexing |
-| 500+ cartridges | Background thumbnail generation, pagination, search indexing, distributed cache |
+```javascript
+/**
+ * CatalogCacheManager - Offline-first catalog caching
+ *
+ * Responsibilities:
+ * - Store catalog entries in IndexedDB for offline access
+ * - Cache thumbnails with LRU eviction
+ * - Implement stale-while-revalidate pattern
+ * - Provide instant UI while background refresh happens
+ */
+class CatalogCacheManager {
+    constructor(options = {}) {
+        this.dbName = options.dbName || 'pixelrts-catalog';
+        this.thumbnailCache = new LRUTileCache({
+            maxSize: options.maxThumbnails || 500,
+            maxMemoryMB: options.maxThumbnailMemoryMB || 100
+        });
+    }
 
-### Scaling Priorities
-
-1. **First bottleneck:** Vision analysis is slow (API latency). Mitigation: Cache results, parallel analysis, background generation.
-2. **Second bottleneck:** PNG decoding for many thumbnails. Mitigation: Thumbnail cache, lazy loading, downsized previews.
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Blocking Vision API Calls on UI Thread
-
-**What people do:** Call `VlmClient.analyze()` directly in button click handler.
-
-**Why it's wrong:** Freezes UI during API call (seconds to minutes).
-
-**Do this instead:** Run vision analysis in background thread, show loading spinner, update UI when complete.
-
-```python
-# BAD
-def on_button_click():
-    result = vlm_client.analyze(img_b64, prompt)  # Blocks!
-    update_ui(result)
-
-# GOOD
-def on_button_click():
-    show_loading_spinner()
-    threading.Thread(
-        target=lambda: update_ui(vlm_client.analyze(img_b64, prompt)),
-        daemon=True
-    ).start()
+    // Core methods
+    async getCachedCatalog(serverUrl) { /* Get from IndexedDB */ }
+    async cacheCatalog(serverUrl, data) { /* Store in IndexedDB */ }
+    async getCachedThumbnail(entryId) { /* Get cached thumbnail */ }
+    async cacheThumbnail(entryId, base64Data) { /* Store thumbnail */ }
+    async getStaleWhileRevalidate(serverUrl, fetchFn) { /* SWR pattern */ }
+    async invalidate(serverUrl) { /* Clear cache for server */ }
+}
 ```
 
-### Anti-Pattern 2: Holding FUSE Mount Open Indefinitely
+## Modified Components
 
-**What people do:** Mount FUSE and never unmount, leaking mounts.
+### CatalogBridge.js Modifications
 
-**Why it's wrong:** Exhausts system resources, prevents cleanup, locks files.
+```javascript
+class CatalogBridge {
+    constructor(baseUrl = 'http://localhost:8080', options = {}) {
+        // EXISTING: Keep all current functionality
+        this.baseUrl = baseUrl;
+        this.timeout = options.timeout || 5000;
+        // ...existing code...
 
-**Do this instead:** Use context managers or atexit handlers to ensure unmount.
+        // NEW: Remote catalog support
+        this.remoteClient = options.remoteClient || null;
+        this.cacheManager = options.cacheManager || null;
+        this.remoteServers = options.remoteServers || [];
+    }
+
+    // NEW METHODS (additive, no changes to existing methods)
+
+    /**
+     * Set remote catalog servers
+     * @param {Array} servers - [{url, priority, label}]
+     */
+    setRemoteServers(servers) {
+        this.remoteServers = servers;
+        if (this.remoteClient) {
+            this.remoteClient.servers = servers;
+        }
+    }
+
+    /**
+     * Get catalog from remote server with caching
+     * @param {string} serverUrl - Remote server URL
+     * @returns {Promise<Object|null>}
+     */
+    async getRemoteCatalog(serverUrl) {
+        if (this.cacheManager) {
+            return this.cacheManager.getStaleWhileRevalidate(
+                serverUrl,
+                () => this._fetchRemoteCatalog(serverUrl)
+            );
+        }
+        return this._fetchRemoteCatalog(serverUrl);
+    }
+
+    /**
+     * Aggregate catalogs from all configured servers
+     * @returns {Promise<Object>} Merged catalog
+     */
+    async aggregateCatalogs() {
+        if (!this.remoteClient) {
+            return this.getCatalog();  // Fallback to local only
+        }
+        return this.remoteClient.getAggregatedCatalog();
+    }
+
+    /**
+     * Boot entry from remote server
+     * @param {string} entryId
+     * @param {string} serverUrl
+     * @param {Object} options
+     */
+    async bootRemoteEntry(entryId, serverUrl, options = {}) {
+        // Remote boot sends request to remote server
+        // Remote server handles QEMU boot locally
+        return this._fetch(`${serverUrl}/api/v1/catalog/${entryId}/boot`, {
+            method: 'POST',
+            body: JSON.stringify(options)
+        });
+    }
+}
+```
+
+### DesktopObjectManager.js Modifications
+
+```javascript
+class DesktopObjectManager {
+    constructor(worldContainer, catalogBridge, options = {}) {
+        // EXISTING: Keep all current functionality
+        // ...existing code...
+
+        // NEW: Remote catalog support
+        this.remoteServers = options.remoteServers || [];
+        this.aggregatedMode = options.aggregatedMode || false;
+    }
+
+    // NEW METHODS (additive)
+
+    /**
+     * Load aggregated catalog from all servers
+     */
+    async loadAggregatedCatalog() {
+        const catalog = await this.bridge.aggregateCatalogs();
+
+        if (!catalog || !catalog.entries) {
+            console.warn('[DesktopObjectManager] No aggregated catalog data');
+            return 0;
+        }
+
+        // Mark entries with their source server
+        for (const entry of catalog.entries) {
+            entry._sourceServer = entry._sourceServer || 'local';
+        }
+
+        // Clear and create objects
+        this.clearAll();
+        let created = 0;
+        for (const entry of catalog.entries) {
+            this.createObject(entry);
+            created++;
+        }
+
+        this.emit('aggregated-catalog-loaded', { count: created });
+        return created;
+    }
+
+    /**
+     * Boot from specific server
+     */
+    async bootFromServer(entryId, serverUrl, options = {}) {
+        const obj = this.objects.get(entryId);
+        if (!obj) return null;
+
+        obj.setStatus('booting');
+
+        // Use remote boot if server is remote
+        if (serverUrl && serverUrl !== this.bridge.baseUrl) {
+            const result = await this.bridge.bootRemoteEntry(entryId, serverUrl, options);
+            // Remote boot - status polling would be to remote server
+            return result;
+        }
+
+        // Local boot (existing behavior)
+        return this.bootObject(entryId, options);
+    }
+}
+```
+
+### catalog_server.py Modifications
 
 ```python
-# BAD
-fuse_mount = mount_rts(path)  # Never unmounted!
+# Add new endpoints for network boot support
 
-# GOOD
-with mount_rts(path) as mountpoint:
-    use_mount(mountpoint)
-# Automatically unmounted
+@app.get("/api/v1/catalog/remote")
+async def get_remote_catalog(remote_url: str):
+    """
+    Fetch catalog from a remote server and proxy it.
+    Useful for testing and for clients that can't reach remote directly.
+    """
+    # Implementation: proxy request to remote_url
+    pass
+
+@app.post("/api/v1/catalog/{entry_id}/remote-boot")
+async def remote_boot_entry(entry_id: str, remote_url: str, options: BootOptions = BootOptions()):
+    """
+    Boot an entry from a remote server.
+    Downloads required assets and boots locally.
+    """
+    # Implementation: fetch from remote, cache, boot locally
+    pass
+
+@app.get("/api/v1/servers")
+async def list_configured_servers():
+    """
+    List all configured remote catalog servers.
+    """
+    # Return server list with health status
+    pass
+
+@app.get("/api/v1/health")
+async def health_check():
+    """
+    Health check endpoint for remote server monitoring.
+    """
+    return {
+        "status": "ok",
+        "version": "1.2.0",
+        "entries_count": len(get_catalog_server()._entries)
+    }
 ```
 
-### Anti-Pattern 3: Tight Coupling Between Installer and Vision
+## Data Flow Changes
 
-**What people do:** Installer directly calls Claude API, hard to test.
+### Current Flow (v1.1)
 
-**Why it's wrong:** Can't test installer without API key, slow tests.
+```
+User Double-Click
+       │
+       ▼
+DesktopObjectManager.bootObject()
+       │
+       ▼
+CatalogBridge.bootEntry() ──────► POST /api/v1/catalog/{id}/boot
+       │                                    │
+       ▼                                    ▼
+pollStatus() ◄───────────────────── BootBridge.boot()
+       │                                    │
+       ▼                                    ▼
+_updateStatus()                      QEMU starts
+       │
+       ▼
+RTSDesktopObject.setStatus('running')
+```
 
-**Do this instead:** Use provider interface, inject mock for testing.
+### New Flow (v1.2 - Remote Boot)
+
+```
+User Double-Click on Remote Entry
+       │
+       ▼
+DesktopObjectManager.bootFromServer(entryId, serverUrl)
+       │
+       ├─── serverUrl === local ──► bootObject() [EXISTING FLOW]
+       │
+       └─── serverUrl !== local
+                  │
+                  ▼
+       CatalogBridge.bootRemoteEntry() ──► POST {remoteUrl}/api/v1/catalog/{id}/boot
+                  │                                    │
+                  ▼                                    ▼
+       pollStatus(remoteUrl) ◄────────────── Remote BootBridge.boot()
+                  │                                    │
+                  ▼                                    ▼
+       _updateStatus()                          Remote QEMU starts
+                  │
+                  ▼
+       RTSDesktopObject.setStatus('running')
+```
+
+### Aggregated Catalog Flow (v1.2)
+
+```
+App Initialization
+       │
+       ▼
+CatalogCacheManager.getStaleWhileRevalidate()
+       │
+       ├─── Cache HIT ──► Return cached catalog immediately
+       │         │
+       │         ▼
+       │   Display entries instantly
+       │         │
+       │         ▼
+       │   Background: fetch fresh catalog
+       │         │
+       │         ▼
+       │   Update UI if changed
+       │
+       └─── Cache MISS
+                 │
+                 ▼
+       RemoteCatalogClient.getAggregatedCatalog()
+                 │
+                 ├─── Parallel fetch from all servers
+                 │         │
+                 │         ├─── localhost:8080 ──► entries[]
+                 │         ├─── server1:8080 ────► entries[]
+                 │         └─── serverN:8080 ────► entries[]
+                 │
+                 ▼
+       Merge entries, dedupe by ID, mark source server
+                 │
+                 ▼
+       CatalogCacheManager.cacheCatalog()
+                 │
+                 ▼
+       DesktopObjectManager.loadAggregatedCatalog()
+```
 
 ## Integration Points
 
-### External Services
+### 1. CatalogBridge Integration
 
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| **Claude API** | HTTP client with retry, async support | Needs API key in env/config |
-| **LM Studio** | Local HTTP API (localhost:1234) | No auth required, fallback |
-| **QEMU** | Subprocess with -kernel/-initrd pointing to FUSE mount | FUSE must be mounted before QEMU start |
+| Method | Local | Remote | Changes Required |
+|--------|-------|--------|------------------|
+| getCatalog() | YES | NO | None (unchanged) |
+| getRemoteCatalog() | NO | YES | **NEW** |
+| aggregateCatalogs() | YES | YES | **NEW** |
+| bootEntry() | YES | NO | None (unchanged) |
+| bootRemoteEntry() | NO | YES | **NEW** |
+| pollStatus() | YES | YES | Modified to accept serverUrl param |
 
-### Internal Boundaries
+### 2. DesktopObjectManager Integration
 
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| **Vision ↔ VLM Client** | Provider interface | Enables multiple backends |
-| **Installer ↔ FUSE** | Context manager | Ensures cleanup |
-| **Catalog ↔ Registry** | SQLite queries | Read-heavy, add caching |
-| **Installer ↔ Vision** | Callback/observer | Async progress updates |
+| Method | Local | Remote | Changes Required |
+|--------|-------|--------|------------------|
+| loadCatalog() | YES | NO | None (unchanged) |
+| loadAggregatedCatalog() | YES | YES | **NEW** |
+| bootObject() | YES | NO | None (unchanged) |
+| bootFromServer() | YES | YES | **NEW** |
+| startStatusPolling() | YES | YES | Modified to accept serverUrl param |
 
-## Build Order Implications
+### 3. catalog_server.py Integration
 
-### Dependencies
+| Endpoint | Local | Remote | Changes Required |
+|----------|-------|--------|------------------|
+| GET /api/v1/catalog | YES | NO | None (unchanged) |
+| GET /api/v1/catalog/remote | NO | YES | **NEW** |
+| POST /api/v1/catalog/{id}/boot | YES | NO | None (unchanged) |
+| POST /api/v1/catalog/{id}/remote-boot | YES | YES | **NEW** |
+| GET /api/v1/health | YES | YES | **MODIFIED** (add version, entry count) |
+| GET /api/v1/servers | YES | NO | **NEW** |
 
+## Build Order
+
+Recommended implementation order to maintain working system at each step:
+
+### Phase 1: Cache Infrastructure (No UI changes)
+
+1. **CatalogCacheManager.js** - Create new component
+   - IndexedDB setup for catalog storage
+   - Thumbnail caching integration with LRUTileCache
+   - Stale-while-revalidate pattern
+
+2. **Test cache independently** - No integration yet
+
+### Phase 2: Remote Client (No boot changes)
+
+3. **RemoteCatalogClient.js** - Create new component
+   - Multi-server connection management
+   - Health monitoring
+   - Catalog aggregation logic
+
+4. **Modify CatalogBridge.js** - Add remote methods
+   - setRemoteServers()
+   - getRemoteCatalog()
+   - aggregateCatalogs()
+   - **Do NOT modify boot methods yet**
+
+5. **Modify DesktopObjectManager.js** - Add aggregation
+   - loadAggregatedCatalog()
+   - Mark entries with source server
+
+6. **Test aggregated catalog display** - Visual only, no boot
+
+### Phase 3: Remote Boot
+
+7. **Modify CatalogBridge.js** - Add remote boot
+   - bootRemoteEntry()
+   - Modify pollStatus() to accept serverUrl
+
+8. **Modify DesktopObjectManager.js** - Add remote boot
+   - bootFromServer()
+   - Remote status polling
+
+9. **Test remote boot flow** - End-to-end
+
+### Phase 4: Backend Support
+
+10. **Modify catalog_server.py** - Add remote endpoints
+    - GET /api/v1/health (enhanced)
+    - POST /api/v1/catalog/{id}/remote-boot
+    - GET /api/v1/servers
+
+11. **Integration testing** - Full system
+
+### Phase 5: Polish
+
+12. **Error handling** - Connection failures, timeouts
+13. **UI feedback** - Loading states, server status indicators
+14. **Performance optimization** - Cache warming, prefetch
+
+## Anti-Patterns to Avoid
+
+### Anti-Pattern 1: Synchronous Remote Fetch
+
+**What:** Blocking UI while fetching from remote servers
+**Why bad:** Remote servers may be slow or unavailable
+**Instead:** Use stale-while-revalidate with loading states
+
+```javascript
+// BAD
+async loadCatalog() {
+    const catalog = await this.bridge.getRemoteCatalog(url);  // Blocks!
+    this.render(catalog);
+}
+
+// GOOD
+async loadCatalog() {
+    const cached = await this.cacheManager.getCachedCatalog(url);
+    if (cached) this.render(cached);  // Instant display
+
+    const fresh = await this.cacheManager.getStaleWhileRevalidate(url, fetchFn);
+    if (fresh !== cached) this.render(fresh);  // Update if changed
+}
 ```
-1. Core PixelRTS v2 (DONE)
-   ├── Encoder/Decoder
-   ├── Registry Manager
-   └── Metadata handling
 
-2. Vision Pipeline (Phase 1)
-   ├── VisionAnalyzer (exists, needs enhancement)
-   ├── VLM Client (NEW)
-   └── Prompt templates (NEW)
+### Anti-Pattern 2: Single Server URL
 
-3. FUSE Bridge (Phase 2)
-   ├── RTSFilesystem (exists, needs adaptation for boot)
-   ├── Mount helpers (NEW)
-   └── QEMU integration (NEW)
+**What:** Hardcoding single remote server URL
+**Why bad:** No fallback if server is down
+**Instead:** Multi-server configuration with priority
 
-4. Installer Engine (Phase 3)
-   ├── Extractor (exists in pixelrts_v2_extractor.py)
-   ├── Progress tracking (NEW)
-   └── Visual feedback (NEW)
+```javascript
+// BAD
+const bridge = new CatalogBridge('http://remote-server:8080');
 
-5. Visual Catalog (Phase 4)
-   ├── Thumbnail generation (uses VisionAnalyzer)
-   ├── Spatial layout (NEW)
-   └── Boot launcher (uses FUSE + QEMU)
+// GOOD
+const bridge = new CatalogBridge('http://localhost:8080', {
+    remoteServers: [
+        { url: 'http://remote1:8080', priority: 1 },
+        { url: 'http://remote2:8080', priority: 2 },
+        { url: 'http://fallback:8080', priority: 3 }
+    ]
+});
 ```
 
-### Recommended Build Order
+### Anti-Pattern 3: Duplicate Boot Logic
 
-**Phase 1: Vision Analysis (Foundational)**
-- Rationale: Demonstrates PixelRTS unique advantage, informs all other components
-- Builds on: Existing PixelRTSVisionAnalyzer
-- Outputs: Kernel version detection, OS identification, tamper detection
+**What:** Copying boot logic for remote vs local
+**Why bad:** Divergence, maintenance burden
+**Instead:** Single boot path with server routing
 
-**Phase 2: FUSE Bridge (Enables Direct Boot)**
-- Rationale: Removes extraction step, enables "one-command boot"
-- Builds on: Existing RTSFilesystem (systems/rts_fuse/)
-- Outputs: Virtual /kernel and /initrd files from PNG
+```javascript
+// BAD
+async bootLocal(entryId) { /* 50 lines of boot logic */ }
+async bootRemote(entryId) { /* 50 lines of similar logic */ }
 
-**Phase 3: Installer Engine (User Value)**
-- Rationale: Enables OS installation, practical use case
-- Builds on: VisionAnalyzer (verification), FUSE (access), extractor (writing)
-- Outputs: Visual installer with progress tracking
+// GOOD
+async boot(entryId, serverUrl = null) {
+    const targetUrl = serverUrl || this.baseUrl;
+    // Single unified boot logic using targetUrl
+}
+```
 
-**Phase 4: Visual Catalog (Complete Experience)**
-- Rationale: Delivers on "visual OS" promise, spatial UI
-- Builds on: All previous components
-- Outputs: Thumbnail gallery, spatial layout, one-click boot
+## Scalability Considerations
 
-**Why this order:**
-1. Vision first: Unique differentiator, validates technical approach
-2. FUSE second: Enables all subsequent "direct from PNG" workflows
-3. Installer third: First practical application using vision + FUSE
-4. Catalog last: Polished experience combining all features
+| Concern | At 1 server | At 10 servers | At 100 servers |
+|---------|-------------|---------------|----------------|
+| Catalog fetch | 1 request | 10 parallel requests | Batch/aggregation server |
+| Cache size | ~5MB | ~50MB | ~500MB with LRU eviction |
+| Boot latency | Local QEMU | Remote QEMU (network) | Consider edge caching |
+| Health monitoring | 1 health check | 10 parallel checks | Sampling + gossip |
 
 ## Sources
 
-### FUSE Filesystems
-- [A hand-holding guide to writing FUSE filesystems in Python (Gunnar Wolf, 2024)](https://gwolf.org/2024/10/started-a-guide-to-writing-fuse-filesystems-in-python.html)
-- [explosive.fuse Python Package](https://pypi.org/project/explosive.fuse/)
-- [Building a virtual filesystem in Python using FUSE (DevGenius, 2025)](https://blog.devgenius.io/building-a-virtual-file-system-in-python-using-fuse-956f140c55b6)
-- [Google mount-zip Project](https://github.com/google/mount-zip)
+**HIGH Confidence:**
+- Codebase analysis: CatalogBridge.js, DesktopObjectManager.js, RTSDesktopObject.js
+- Codebase analysis: catalog_server.py, boot_bridge.py
+- Codebase analysis: LRUTileCache.js (existing cache pattern)
 
-### Existing Codebase
-- `/home/jericho/zion/projects/geometry_os/geometry_os/systems/pixel_compiler/pixelrts_vision_analyzer.py`
-- `/home/jericho/zion/projects/geometry_os/geometry_os/systems/pixel_compiler/infinite_map_fuse.py`
-- `/home/jericho/zion/projects/geometry_os/geometry_os/systems/rts_fuse/filesystem.py`
-- `/home/jericho/zion/projects/geometry_os/geometry_os/.planning/codebase/ARCHITECTURE.md`
-- `/home/jericho/zion/projects/geometry_os/geometry_os/.planning/PROJECT.md`
+**MEDIUM Confidence:**
+- Architecture patterns based on standard REST API aggregation
+- Cache patterns (stale-while-revalidate) - common web pattern
 
----
-*Architecture research for: PixelRTS v2 Expansion*
-*Researched: 2026-02-11*
+**LOW Confidence:**
+- Remote QEMU boot latency (needs real-world testing)
+- Optimal cache size for 100+ servers (theoretical)
