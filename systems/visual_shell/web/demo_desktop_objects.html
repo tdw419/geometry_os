@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desktop Objects Integration Demo - Geometry OS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Status Bar */
+        #status-bar {
+            height: 36px;
+            background: #1a1a1a;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 24px;
+            font-size: 12px;
+            z-index: 100;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #666;
+        }
+
+        .status-dot.connected {
+            background: #00ff00;
+            box-shadow: 0 0 8px #00ff00;
+        }
+
+        .status-dot.connecting {
+            background: #ffff00;
+            animation: pulse 1s infinite;
+        }
+
+        .status-dot.error {
+            background: #ff0000;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        #object-count {
+            color: #00ffff;
+        }
+
+        #selected-object {
+            color: #888;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Canvas Container */
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #canvas-container canvas {
+            display: block;
+        }
+
+        /* Controls Panel */
+        #controls {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 8px 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 4px;
+        }
+
+        .control-btn:hover {
+            background: #2a2a2a;
+            border-color: #00ffff;
+            color: #00ffff;
+        }
+
+        .control-btn:active {
+            background: #00ffff;
+            color: #000;
+        }
+
+        /* Event Log */
+        #event-log {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            width: 320px;
+            max-height: 200px;
+            background: rgba(26, 26, 26, 0.95);
+            border: 1px solid #333;
+            border-radius: 4px;
+            font-size: 11px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #event-log-header {
+            padding: 8px 12px;
+            background: #222;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #event-log-header span {
+            color: #888;
+        }
+
+        #log-clear {
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 10px;
+        }
+
+        #log-clear:hover {
+            color: #00ffff;
+        }
+
+        #event-log-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #222;
+            display: flex;
+            gap: 8px;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-time {
+            color: #666;
+            flex-shrink: 0;
+        }
+
+        .log-type {
+            flex-shrink: 0;
+            width: 70px;
+        }
+
+        .log-type.info { color: #00ffff; }
+        .log-type.event { color: #00ff00; }
+        .log-type.error { color: #ff0000; }
+        .log-type.warn { color: #ffff00; }
+
+        .log-message {
+            color: #ccc;
+            word-break: break-all;
+        }
+
+        /* Grid overlay hint */
+        #grid-hint {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(26, 26, 26, 0.9);
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #888;
+            z-index: 50;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #grid-hint.visible {
+            opacity: 1;
+        }
+
+        /* Loading overlay */
+        #loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        #loading.hidden {
+            display: none;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #333;
+            border-top-color: #00ffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #loading-text {
+            margin-top: 16px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <!-- Status Bar -->
+    <div id="status-bar">
+        <div class="status-item">
+            <div id="connection-dot" class="status-dot"></div>
+            <span id="connection-status">Disconnected</span>
+        </div>
+        <div class="status-item">
+            <span>Objects:</span>
+            <span id="object-count">0</span>
+        </div>
+        <div class="status-item">
+            <span>Selected:</span>
+            <span id="selected-object">None</span>
+        </div>
+        <div class="status-item">
+            <span>Zoom:</span>
+            <span id="zoom-level">100%</span>
+        </div>
+        <div class="status-item">
+            <span>API:</span>
+            <span id="api-url">http://localhost:8080</span>
+        </div>
+    </div>
+
+    <!-- Canvas Container -->
+    <div id="canvas-container">
+        <div id="loading">
+            <div class="spinner"></div>
+            <div id="loading-text">Initializing...</div>
+        </div>
+    </div>
+
+    <!-- Grid Hint -->
+    <div id="grid-hint">Pan: Drag canvas | Zoom: Scroll | Select: Click object | Boot: Double-click</div>
+
+    <!-- Controls -->
+    <div id="controls">
+        <button class="control-btn" id="btn-refresh">Refresh Catalog</button>
+        <button class="control-btn" id="btn-center">Center View</button>
+        <button class="control-btn" id="btn-clear-log">Clear Log</button>
+    </div>
+
+    <!-- Event Log -->
+    <div id="event-log">
+        <div id="event-log-header">
+            <span>Event Log</span>
+            <button id="log-clear-btn">clear</button>
+        </div>
+        <div id="event-log-content"></div>
+    </div>
+
+    <!-- PIXI.js v7 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
+
+    <!-- Desktop Object Components -->
+    <script src="CatalogBridge.js"></script>
+    <script src="RTSDesktopObject.js"></script>
+    <script src="DesktopObjectManager.js"></script>
+
+    <script>
+        // ============================================
+        // Desktop Objects Integration Demo
+        // ============================================
+
+        // DOM Elements
+        const canvasContainer = document.getElementById('canvas-container');
+        const loadingOverlay = document.getElementById('loading');
+        const loadingText = document.getElementById('loading-text');
+        const connectionDot = document.getElementById('connection-dot');
+        const connectionStatus = document.getElementById('connection-status');
+        const objectCountEl = document.getElementById('object-count');
+        const selectedObjectEl = document.getElementById('selected-object');
+        const zoomLevelEl = document.getElementById('zoom-level');
+        const eventLogContent = document.getElementById('event-log-content');
+        const gridHint = document.getElementById('grid-hint');
+
+        // Buttons
+        const btnRefresh = document.getElementById('btn-refresh');
+        const btnCenter = document.getElementById('btn-center');
+        const btnClearLog = document.getElementById('btn-clear-log');
+        const logClearBtn = document.getElementById('log-clear-btn');
+
+        // Configuration
+        const API_URL = 'http://localhost:8080';
+
+        // State
+        let app = null;
+        let worldContainer = null;
+        let catalogBridge = null;
+        let desktopObjectManager = null;
+        let isDraggingCanvas = false;
+        let dragStart = { x: 0, y: 0 };
+        let worldStart = { x: 0, y: 0 };
+
+        // ============================================
+        // Logging
+        // ============================================
+
+        function log(type, message) {
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <span class="log-time">${time}</span>
+                <span class="log-type ${type}">[${type.toUpperCase()}]</span>
+                <span class="log-message">${message}</span>
+            `;
+            eventLogContent.appendChild(entry);
+            eventLogContent.scrollTop = eventLogContent.scrollHeight;
+
+            // Keep only last 50 entries
+            while (eventLogContent.children.length > 50) {
+                eventLogContent.removeChild(eventLogContent.firstChild);
+            }
+
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearLog() {
+            eventLogContent.innerHTML = '';
+        }
+
+        // ============================================
+        // Status Updates
+        // ============================================
+
+        function setConnectionStatus(status) {
+            connectionDot.className = 'status-dot ' + status;
+            switch (status) {
+                case 'connected':
+                    connectionStatus.textContent = 'Connected';
+                    break;
+                case 'connecting':
+                    connectionStatus.textContent = 'Connecting...';
+                    break;
+                case 'error':
+                    connectionStatus.textContent = 'Error';
+                    break;
+                default:
+                    connectionStatus.textContent = 'Disconnected';
+            }
+        }
+
+        function updateObjectCount(count) {
+            objectCountEl.textContent = count;
+        }
+
+        function updateSelectedObject(name) {
+            selectedObjectEl.textContent = name || 'None';
+        }
+
+        function updateZoomLevel() {
+            if (worldContainer) {
+                const scale = worldContainer.scale.x;
+                zoomLevelEl.textContent = Math.round(scale * 100) + '%';
+            }
+        }
+
+        // ============================================
+        // PixiJS Application Setup
+        // ============================================
+
+        async function initPixi() {
+            log('info', 'Initializing PIXI.Application...');
+
+            app = new PIXI.Application();
+            await app.init({
+                width: canvasContainer.clientWidth,
+                height: canvasContainer.clientHeight,
+                backgroundColor: 0x0a0a0a,
+                antialias: true,
+                resolution: window.devicePixelRatio || 1,
+                autoDensity: true,
+            });
+
+            canvasContainer.appendChild(app.canvas);
+
+            // Create world container for infinite canvas
+            worldContainer = new PIXI.Container();
+            worldContainer.label = 'worldContainer';
+            app.stage.addChild(worldContainer);
+
+            // Draw grid background
+            drawGrid();
+
+            log('info', 'PIXI.Application initialized');
+            return app;
+        }
+
+        function drawGrid() {
+            const gridGraphics = new PIXI.Graphics();
+            gridGraphics.label = 'gridBackground';
+
+            const gridSize = 50;
+            const gridExtent = 5000; // Draw grid from -5000 to +5000
+            const gridColor = 0x1a1a1a;
+
+            // Vertical lines
+            for (let x = -gridExtent; x <= gridExtent; x += gridSize) {
+                gridGraphics.moveTo(x, -gridExtent);
+                gridGraphics.lineTo(x, gridExtent);
+                gridGraphics.stroke({ color: gridColor, width: 1 });
+            }
+
+            // Horizontal lines
+            for (let y = -gridExtent; y <= gridExtent; y += gridSize) {
+                gridGraphics.moveTo(-gridExtent, y);
+                gridGraphics.lineTo(gridExtent, y);
+                gridGraphics.stroke({ color: gridColor, width: 1 });
+            }
+
+            // Origin marker
+            gridGraphics.circle(0, 0, 5);
+            gridGraphics.fill({ color: 0x333333 });
+
+            worldContainer.addChildAt(gridGraphics, 0);
+        }
+
+        // ============================================
+        // Pan and Zoom Controls
+        // ============================================
+
+        function setupPanZoom() {
+            // Pan: drag on stage
+            app.stage.eventMode = 'static';
+            app.stage.hitArea = app.screen;
+
+            app.stage.on('pointerdown', (e) => {
+                // Only pan if clicking on empty space (not on objects)
+                if (e.target === app.stage) {
+                    isDraggingCanvas = true;
+                    dragStart = { x: e.global.x, y: e.global.y };
+                    worldStart = { x: worldContainer.x, y: worldContainer.y };
+                    app.canvas.style.cursor = 'grabbing';
+                }
+            });
+
+            app.stage.on('pointermove', (e) => {
+                if (isDraggingCanvas) {
+                    const dx = e.global.x - dragStart.x;
+                    const dy = e.global.y - dragStart.y;
+                    worldContainer.x = worldStart.x + dx;
+                    worldContainer.y = worldStart.y + dy;
+                }
+            });
+
+            const endDrag = () => {
+                isDraggingCanvas = false;
+                app.canvas.style.cursor = 'default';
+            };
+
+            app.stage.on('pointerup', endDrag);
+            app.stage.on('pointerupoutside', endDrag);
+
+            // Zoom: scroll wheel
+            canvasContainer.addEventListener('wheel', (e) => {
+                e.preventDefault();
+
+                const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+                const mouseX = e.offsetX;
+                const mouseY = e.offsetY;
+
+                // Zoom towards mouse position
+                const worldPosBefore = {
+                    x: (mouseX - worldContainer.x) / worldContainer.scale.x,
+                    y: (mouseY - worldContainer.y) / worldContainer.scale.y
+                };
+
+                // Apply zoom
+                worldContainer.scale.x *= zoomFactor;
+                worldContainer.scale.y *= zoomFactor;
+
+                // Clamp scale
+                worldContainer.scale.x = Math.max(0.1, Math.min(3, worldContainer.scale.x));
+                worldContainer.scale.y = worldContainer.scale.x;
+
+                // Adjust position to zoom towards mouse
+                const worldPosAfter = {
+                    x: (mouseX - worldContainer.x) / worldContainer.scale.x,
+                    y: (mouseY - worldContainer.y) / worldContainer.scale.y
+                };
+
+                worldContainer.x += (worldPosAfter.x - worldPosBefore.x) * worldContainer.scale.x;
+                worldContainer.y += (worldPosAfter.y - worldPosBefore.y) * worldContainer.scale.y;
+
+                updateZoomLevel();
+            }, { passive: false });
+
+            log('info', 'Pan/zoom controls enabled');
+        }
+
+        function centerView() {
+            worldContainer.x = canvasContainer.clientWidth / 2;
+            worldContainer.y = canvasContainer.clientHeight / 2;
+            worldContainer.scale.set(1);
+            updateZoomLevel();
+            log('info', 'View centered');
+        }
+
+        // ============================================
+        // Catalog Integration
+        // ============================================
+
+        async function initCatalogBridge() {
+            log('info', `Connecting to catalog at ${API_URL}...`);
+            setConnectionStatus('connecting');
+
+            catalogBridge = new CatalogBridge(API_URL, { timeout: 5000 });
+
+            // Health check
+            const isHealthy = await catalogBridge.healthCheck();
+
+            if (isHealthy) {
+                setConnectionStatus('connected');
+                log('info', 'Catalog server connected');
+                return true;
+            } else {
+                setConnectionStatus('error');
+                log('error', 'Catalog server not reachable. Make sure server is running at ' + API_URL);
+                return false;
+            }
+        }
+
+        async function initDesktopObjectManager() {
+            log('info', 'Initializing DesktopObjectManager...');
+
+            desktopObjectManager = new DesktopObjectManager(worldContainer, catalogBridge, {
+                autoLoad: false, // We'll load manually
+                onObjectCreated: (obj) => {
+                    log('event', `Object created: ${obj.entryId}`);
+                },
+                onObjectDestroyed: (obj) => {
+                    log('event', `Object destroyed: ${obj.entryId}`);
+                }
+            });
+
+            // Set up event listeners
+            desktopObjectManager.on('object-selected', (data) => {
+                updateSelectedObject(data.object.entryId);
+                log('event', `Selected: ${data.object.entryId}`);
+            });
+
+            desktopObjectManager.on('object-booted', (data) => {
+                log('event', `Booted: ${data.object.entryId}`);
+            });
+
+            desktopObjectManager.on('object-moved', (data) => {
+                log('event', `Moved: ${data.object.entryId} to grid(${data.gridX}, ${data.gridY})`);
+            });
+
+            desktopObjectManager.on('catalog-loaded', (data) => {
+                updateObjectCount(data.count);
+                log('info', `Catalog loaded: ${data.count} objects`);
+            });
+
+            desktopObjectManager.on('selection-cleared', () => {
+                updateSelectedObject(null);
+            });
+
+            log('info', 'DesktopObjectManager initialized');
+        }
+
+        async function loadCatalog() {
+            log('info', 'Loading catalog...');
+            loadingText.textContent = 'Loading catalog...';
+            loadingOverlay.classList.remove('hidden');
+
+            try {
+                const count = await desktopObjectManager.loadCatalog();
+                updateObjectCount(count);
+
+                if (count === 0) {
+                    log('warn', 'No objects in catalog. Add .rts.png containers to the catalog directory.');
+                }
+            } catch (error) {
+                log('error', `Failed to load catalog: ${error.message}`);
+            } finally {
+                loadingOverlay.classList.add('hidden');
+            }
+        }
+
+        async function refreshCatalog() {
+            log('info', 'Refreshing catalog...');
+            btnRefresh.disabled = true;
+
+            try {
+                const count = await desktopObjectManager.refresh();
+                updateObjectCount(count);
+                log('info', `Catalog refreshed: ${count} objects`);
+            } catch (error) {
+                log('error', `Failed to refresh catalog: ${error.message}`);
+            } finally {
+                btnRefresh.disabled = false;
+            }
+        }
+
+        // ============================================
+        // Window Resize
+        // ============================================
+
+        function handleResize() {
+            if (app) {
+                app.renderer.resize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+            }
+        }
+
+        window.addEventListener('resize', handleResize);
+
+        // ============================================
+        // Button Handlers
+        // ============================================
+
+        btnRefresh.addEventListener('click', refreshCatalog);
+        btnCenter.addEventListener('click', centerView);
+        btnClearLog.addEventListener('click', clearLog);
+        logClearBtn.addEventListener('click', clearLog);
+
+        // ============================================
+        // Initialization
+        // ============================================
+
+        async function init() {
+            log('info', 'Starting Desktop Objects Demo...');
+            loadingText.textContent = 'Initializing...';
+
+            try {
+                // 1. Initialize PIXI
+                await initPixi();
+
+                // 2. Setup pan/zoom
+                setupPanZoom();
+
+                // 3. Center view
+                centerView();
+
+                // 4. Initialize catalog bridge
+                const connected = await initCatalogBridge();
+
+                // 5. Initialize desktop object manager
+                await initDesktopObjectManager();
+
+                // 6. Load catalog if connected
+                if (connected) {
+                    await loadCatalog();
+                }
+
+                // Show grid hint briefly
+                gridHint.classList.add('visible');
+                setTimeout(() => gridHint.classList.remove('visible'), 5000);
+
+                log('info', 'Demo initialized successfully');
+            } catch (error) {
+                log('error', `Initialization failed: ${error.message}`);
+                console.error(error);
+            } finally {
+                loadingOverlay.classList.add('hidden');
+            }
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
