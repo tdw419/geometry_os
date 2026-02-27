@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** Ready for next milestone planning
+**Current focus:** v1.2 Network Boot - remote catalog and boot
 
 ## Current Position
 
-**Milestone:** v1.1 Visual Shell Integration — COMPLETE
-**Phase:** All phases complete
-**Status:** Ready to start v1.2
-**Last activity:** 2026-02-27 — v1.1 milestone archived
+**Milestone:** v1.2 Network Boot
+**Phase:** Not started (defining requirements)
+**Status:** Defining requirements
+**Last activity:** 2026-02-27 — Milestone v1.2 started
 
-Progress: [████████████████████] 100%
+Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
 
 ## Accumulated Context
 
@@ -42,7 +42,4 @@ Progress: [████████████████████] 100%
 ## Session Continuity
 
 Last session: 2026-02-27
-Status: v1.1 milestone complete and archived
-
-**Next Steps:**
-Run `/gsd:new-milestone` to start planning v1.2
+Status: Defining requirements for v1.2 Network Boot

@@ -13,19 +13,54 @@ If everything else fails, users must be able to:
 2. See what OS they're about to boot (visual preview)
 3. Trust the container (vision-based verification)
 
-## Current State
+- **Cloud provider integration** — Focus on local/boot scenarios first
+- **Mobile apps** — Web/desktop interface only
+- **Container formats beyond PNG** — PixelRTS v2 is fixed
+- **Full OS installation from scratch** — Building on existing Alpine/Ubuntu bases
 
-**Shipped:** v1.1 Visual Shell Integration (2026-02-27)
+## Context
 
-OS containers now live directly on the infinite desktop - boot by clicking, arrange by dragging. Users can:
-- See .rts.png files as interactive desktop objects
-- Drag-and-drop to arrange containers on infinite canvas
-- Boot with a single click and watch real-time progress
-- See status indicators and error guidance when boot fails
+**Existing Codebase:**
+- Geometry OS is a large project with PixelRTS v2 as a component
+- Primary languages: Python 3.12+, TypeScript/JavaScript, Rust, WGSL
+- Located in `systems/pixel_compiler/` for PixelRTS components
+- `systems/visual_shell/` for PixiJS desktop environment
+- Uses QEMU for virtualization testing
 
-## Requirements
+**Current State:**
+- v1.1 shipped: Desktop objects with boot progress visualization
+- Visual shell connects to catalog server via REST API
+- PixiJS infinite desktop with drag-and-drop
+- Real-time boot status polling
 
-### Validated
+**Key Files:**
+- `systems/visual_shell/web/RTSDesktopObject.js` - Desktop object component
+- `systems/visual_shell/web/CatalogBridge.js` - API client
+- `systems/visual_shell/web/DesktopObjectManager.js` - Lifecycle manager
+- `systems/pixel_compiler/catalog/catalog_server.py` - Backend API
+
+## Constraints
+
+- **Python 3.12+** - Primary backend language
+- **TypeScript/JavaScript** - Visual shell frontend
+- **PixiJS v7** - Desktop rendering engine
+- **QEMU** - Virtualization platform
+- **Existing PixelRTS v2 format** - Must maintain backward compatibility
+- **Performance** - Boot overhead <10% vs traditional ISO boot
+
+## Key Decisions
+
+| Decision | Rationale | Outcome |
+|----------|-----------|---------|
+| Use existing PixelRTS v2 format | Leverage invested work, maintain compatibility | ✓ Good |
+| FUSE filesystem for direct boot | Clean integration with existing tools | ✓ Shipped v1.0 |
+| Vision model for verification | Unique advantage of visual format | ✓ Shipped v1.0 |
+| PixiJS v7 for visual shell | Mature 2D WebGL renderer | ✓ Shipped v1.1 |
+| REST polling for boot status | Simple, reliable, no WebSocket complexity | ✓ Shipped v1.1 |
+| Position mapping server→client | position.{x,y} → layout.{gridX,gridY} | ✓ Shipped v1.1 |
+
+---
+*Last updated: 2026-02-27 for milestone v1.2 Network Boot*
 
 ✓ **PixelRTS v2 encoding/decoding** — existing
   - `systems/pixel_compiler/pixelrts_v2_core.py` - PNG ↔ binary conversion
