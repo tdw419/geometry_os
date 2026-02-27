@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Geometric Code Editor - Geometry OS</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            overflow: hidden;
+        }
+        h1 { margin-bottom: 5px; font-size: 18px; }
+        .subtitle { color: #666; margin-bottom: 15px; font-size: 11px; }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 15px;
+            height: calc(100vh - 80px);
+        }
+
+        .main-panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            background: #252535;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .panel-title {
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-info {
+            color: #888;
+            font-size: 10px;
+        }
+
+        .panel-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            background: #0f0f0f;
+            color: #00ff88;
+            border: 1px solid #333;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 10px;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button.active {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        #editor-container {
+            flex: 1;
+            background: #0a0a0a;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+        }
+
+        .section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .section-title {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        .feature-toggles {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 10px;
+        }
+
+        .toggle-item input {
+            accent-color: #00ff88;
+        }
+
+        .syntax-legend {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            font-size: 9px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-shape {
+            width: 14px;
+            height: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .shape-function { color: #44ffff; }
+        .shape-class { color: #ff44ff; }
+        .shape-import { color: #ffff44; }
+        .shape-if { color: #ff8844; }
+        .shape-for { color: #44ff44; }
+        .shape-return { color: #ff4444; }
+
+        .diff-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 9px;
+        }
+
+        .diff-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .diff-glyph {
+            width: 20px;
+            height: 14px;
+            background: #0a0a0a;
+            border-radius: 2px;
+        }
+
+        .diff-add { border-left: 3px solid #00ff88; }
+        .diff-del { border-left: 3px solid #ff4444; }
+
+        .fold-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            font-size: 10px;
+        }
+
+        .stat-item {
+            background: #0a0a0a;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .stat-value {
+            color: #00ff88;
+            font-size: 16px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 8px;
+        }
+
+        .keyboard-shortcuts {
+            font-size: 9px;
+            color: #888;
+            line-height: 1.6;
+        }
+
+        .keyboard-shortcuts kbd {
+            background: #0a0a0a;
+            padding: 2px 5px;
+            border-radius: 3px;
+            border: 1px solid #333;
+            color: #00ff88;
+        }
+
+        .event-log {
+            height: 100px;
+            overflow-y: auto;
+            background: #0a0a0a;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 9px;
+        }
+
+        .log-entry {
+            margin-bottom: 3px;
+        }
+        .log-info { color: #00ff88; }
+        .log-fold { color: #44ffff; }
+        .log-diff { color: #ffff44; }
+        .log-edit { color: #ff88ff; }
+
+        .status-bar {
+            background: #1a1a1a;
+            padding: 8px 15px;
+            border-top: 1px solid #333;
+            font-size: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff88;
+        }
+
+        .status-dot.dirty {
+            background: #ffff44;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <h1>◈ Geometric Code Editor</h1>
+    <p class="subtitle">Syntax trees, code folding, and git diff as morphological geometry</p>
+
+    <div class="container">
+        <div class="main-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span>📄</span>
+                    <span id="file-name">demo.py</span>
+                    <span class="file-info" id="file-info">42 lines | Python</span>
+                </div>
+                <div class="panel-actions">
+                    <button onclick="toggleFolding()" id="btn-fold">◈ Folding</button>
+                    <button onclick="toggleSyntaxTree()" id="btn-syntax">◆ Syntax</button>
+                    <button onclick="toggleDiff()" id="btn-diff">△ Diff</button>
+                    <button onclick="loadSampleCode()">Load Sample</button>
+                    <button onclick="saveFile()">Save</button>
+                </div>
+            </div>
+            <div id="editor-container"></div>
+            <div class="status-bar">
+                <div class="status-item">
+                    <div class="status-dot" id="status-dot"></div>
+                    <span id="status-text">Ready</span>
+                </div>
+                <div class="status-item">
+                    <span id="cursor-pos">Ln 1, Col 1</span>
+                </div>
+                <div class="status-item">
+                    <span id="fold-count">0 folds</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="section">
+                <div class="section-title">Features</div>
+                <div class="feature-toggles">
+                    <label class="toggle-item">
+                        <input type="checkbox" checked onchange="toggleFeature('lineNumbers', this.checked)">
+                        Line Numbers
+                    </label>
+                    <label class="toggle-item">
+                        <input type="checkbox" checked onchange="toggleFeature('syntaxHighlight', this.checked)">
+                        Syntax Highlighting
+                    </label>
+                    <label class="toggle-item">
+                        <input type="checkbox" checked onchange="toggleFeature('geometricCursor', this.checked)">
+                        Geometric Cursor
+                    </label>
+                    <label class="toggle-item">
+                        <input type="checkbox" onchange="toggleFeature('minimap', this.checked)">
+                        Hilbert Minimap
+                    </label>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Syntax Tree Geometry</div>
+                <div class="syntax-legend">
+                    <div class="legend-item">
+                        <div class="legend-shape shape-function">▲</div>
+                        <span>Function</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-shape shape-class">⬡</div>
+                        <span>Class</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-shape shape-import">→</div>
+                        <span>Import</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-shape shape-if">◇</div>
+                        <span>Branch</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-shape shape-for">◎</div>
+                        <span>Loop</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-shape shape-return">↑</div>
+                        <span>Return</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Git Diff Morphology</div>
+                <div class="diff-legend">
+                    <div class="diff-item">
+                        <div class="diff-glyph diff-add"></div>
+                        <span>Addition (expanding glyph)</span>
+                    </div>
+                    <div class="diff-item">
+                        <div class="diff-glyph diff-del"></div>
+                        <span>Deletion (contracting glyph)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Code Folding</div>
+                <div class="fold-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="fold-regions">0</div>
+                        <div class="stat-label">Foldable</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="fold-collapsed">0</div>
+                        <div class="stat-label">Collapsed</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Keyboard Shortcuts</div>
+                <div class="keyboard-shortcuts">
+                    <div><kbd>Ctrl</kbd>+<kbd>S</kbd> Save</div>
+                    <div><kbd>Ctrl</kbd>+<kbd>Z</kbd> Undo</div>
+                    <div><kbd>Ctrl</kbd>+<kbd>Y</kbd> Redo</div>
+                    <div><kbd>Ctrl</kbd>+<kbd>D</kbd> Toggle Diff</div>
+                    <div><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> Fold All</div>
+                    <div><kbd>Ctrl</kbd>+<kbd>Click</kbd> Toggle Fold</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Event Log</div>
+                <div class="event-log" id="event-log"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="lib/pixi.min.js"></script>
+    <script type="module">
+        // Mock GeometricCodeEditor for demo
+        class MockCodeEditor {
+            constructor(container, options) {
+                this.container = container;
+                this.options = options;
+                this.code = '';
+                this.foldedRegions = new Map();
+                this.foldMarkers = [];
+                this.showDiff = false;
+                this.showSyntax = false;
+                this.lineHeight = 18;
+                this.charWidth = 9;
+                this.fontSize = 13;
+                this.scrollOffset = 0;
+                this.cursorX = 0;
+                this.cursorY = 0;
+
+                this._init();
+            }
+
+            _init() {
+                // Create PIXI app
+                this.app = new PIXI.Application({
+                    width: this.container.offsetWidth,
+                    height: this.container.offsetHeight,
+                    backgroundColor: 0x0a0a0a,
+                    resolution: window.devicePixelRatio || 1,
+                    autoDensity: true
+                });
+                this.container.appendChild(this.app.view);
+
+                // Create editor layers
+                this.editorLayer = new PIXI.Container();
+                this.gutterLayer = new PIXI.Container();
+                this.foldGutter = new PIXI.Container();
+                this.diffLayer = new PIXI.Container();
+
+                this.app.stage.addChild(this.diffLayer);
+                this.app.stage.addChild(this.gutterLayer);
+                this.app.stage.addChild(this.foldGutter);
+                this.app.stage.addChild(this.editorLayer);
+
+                // Setup interaction
+                this._setupInteraction();
+
+                // Load sample code
+                this.loadCode(sampleCode);
+
+                log('Editor initialized', 'info');
+            }
+
+            _setupInteraction() {
+                // Scroll handling
+                this.app.view.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const delta = Math.sign(e.deltaY) * 3;
+                    const lines = this.code.split('\n');
+                    const maxScroll = Math.max(0, lines.length - Math.floor(this.app.screen.height / this.lineHeight));
+                    this.scrollOffset = Math.max(0, Math.min(maxScroll, this.scrollOffset + delta));
+                    this._render();
+                });
+
+                // Keyboard handling
+                document.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                        if (e.key === 's') {
+                            e.preventDefault();
+                            this.save();
+                        } else if (e.key === 'd') {
+                            e.preventDefault();
+                            window.toggleDiff();
+                        } else if (e.key === 'z') {
+                            e.preventDefault();
+                            log('Undo triggered', 'edit');
+                        }
+                    }
+                });
+
+                // Click to set cursor
+                this.app.view.addEventListener('click', (e) => {
+                    const rect = this.app.view.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top - 30; // Account for header
+
+                    this.cursorX = Math.floor((x - 50) / this.charWidth);
+                    this.cursorY = this.scrollOffset + Math.floor(y / this.lineHeight);
+                    this._render();
+
+                    updateCursorPos(this.cursorY + 1, this.cursorX + 1);
+                });
+            }
+
+            loadCode(code) {
+                this.code = code;
+                this._detectFoldRegions();
+                this._render();
+                updateFileInfo(code.split('\n').length, 'Python');
+                log(`Loaded ${code.split('\n').length} lines`, 'info');
+            }
+
+            _detectFoldRegions() {
+                this.foldMarkers = [];
+                const lines = this.code.split('\n');
+                const stack = [];
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    const trimmed = line.trim();
+
+                    // Detect foldable regions
+                    if (trimmed.startsWith('def ') || trimmed.startsWith('class ') ||
+                        trimmed.startsWith('if ') || trimmed.startsWith('for ') ||
+                        trimmed.startsWith('while ') || trimmed.startsWith('with ') ||
+                        trimmed.startsWith('try:')) {
+                        stack.push({ start: i, indent: line.search(/\S/), end: null });
+                    }
+
+                    // Check for end of region
+                    const currentIndent = line.search(/\S|$/);
+                    while (stack.length > 0 && currentIndent < stack[stack.length - 1].indent) {
+                        const region = stack.pop();
+                        region.end = i - 1;
+                        if (region.end > region.start) {
+                            this.foldMarkers.push(region);
+                        }
+                    }
+                }
+
+                // Close remaining
+                while (stack.length > 0) {
+                    const region = stack.pop();
+                    region.end = lines.length - 1;
+                    this.foldMarkers.push(region);
+                }
+
+                document.getElementById('fold-regions').textContent = this.foldMarkers.length;
+                document.getElementById('fold-count').textContent = `${this.foldMarkers.length} folds`;
+            }
+
+            toggleFold(line) {
+                const region = this.foldMarkers.find(r => r.start === line);
+                if (!region) return;
+
+                if (this.foldedRegions.has(line)) {
+                    this.foldedRegions.delete(line);
+                    log(`Unfolded lines ${line}-${region.end}`, 'fold');
+                } else {
+                    this.foldedRegions.set(line, { endLine: region.end });
+                    log(`Folded lines ${line}-${region.end}`, 'fold');
+                }
+
+                document.getElementById('fold-collapsed').textContent = this.foldedRegions.size;
+                this._render();
+            }
+
+            toggleDiff() {
+                this.showDiff = !this.showDiff;
+                this._render();
+                log(`Diff view: ${this.showDiff ? 'on' : 'off'}`, 'diff');
+            }
+
+            toggleSyntax() {
+                this.showSyntax = !this.showSyntax;
+                this._render();
+                log(`Syntax tree: ${this.showSyntax ? 'on' : 'off'}`, 'info');
+            }
+
+            save() {
+                log('File saved', 'edit');
+                document.getElementById('status-text').textContent = 'Saved';
+                document.getElementById('status-dot').classList.remove('dirty');
+            }
+
+            _render() {
+                this.editorLayer.removeChildren();
+                this.gutterLayer.removeChildren();
+                this.foldGutter.removeChildren();
+                this.diffLayer.removeChildren();
+
+                const lines = this.code.split('\n');
+                const visibleLines = Math.ceil(this.app.screen.height / this.lineHeight);
+                const startLine = Math.max(0, this.scrollOffset);
+                const endLine = Math.min(lines.length, startLine + visibleLines);
+
+                for (let i = startLine; i < endLine; i++) {
+                    // Check if line is folded
+                    let skip = false;
+                    for (const [start, fold] of this.foldedRegions) {
+                        if (i > start && i <= fold.endLine) {
+                            skip = true;
+                            break;
+                        }
+                    }
+                    if (skip) continue;
+
+                    const y = (i - startLine) * this.lineHeight;
+
+                    // Line number
+                    const lineNum = new PIXI.Text(String(i + 1).padStart(3), {
+                        fontFamily: 'Courier New',
+                        fontSize: 11,
+                        fill: 0x444444
+                    });
+                    lineNum.x = 10;
+                    lineNum.y = y;
+                    this.gutterLayer.addChild(lineNum);
+
+                    // Code line
+                    const line = lines[i];
+                    const codeText = new PIXI.Text(line, {
+                        fontFamily: 'Courier New',
+                        fontSize: this.fontSize,
+                        fill: this._getLineColor(line, i)
+                    });
+                    codeText.x = 50;
+                    codeText.y = y;
+                    this.editorLayer.addChild(codeText);
+
+                    // Syntax geometry indicator
+                    if (this.showSyntax) {
+                        this._drawSyntaxIndicator(line, 40, y);
+                    }
+                }
+
+                // Draw fold indicators
+                this._drawFoldIndicators(startLine, endLine);
+
+                // Draw diff overlay
+                if (this.showDiff) {
+                    this._drawDiffOverlay(startLine, endLine);
+                }
+
+                // Draw cursor
+                this._drawCursor();
+            }
+
+            _getLineColor(line, lineNum) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('def ')) return 0x44ffff;
+                if (trimmed.startsWith('class ')) return 0xff44ff;
+                if (trimmed.startsWith('import ') || trimmed.startsWith('from ')) return 0xffff44;
+                if (trimmed.startsWith('#')) return 0x666666;
+                if (trimmed.startsWith('return ')) return 0xff4444;
+                if (trimmed.startsWith('if ') || trimmed.startsWith('elif ') || trimmed.startsWith('else:')) return 0xff8844;
+                if (trimmed.startsWith('for ') || trimmed.startsWith('while ')) return 0x44ff44;
+                return 0xcccccc;
+            }
+
+            _drawSyntaxIndicator(line, x, y) {
+                const trimmed = line.trim();
+                let shape = null;
+                let color = 0x888888;
+
+                if (trimmed.startsWith('def ')) {
+                    color = 0x44ffff;
+                    shape = this._drawTriangle(x, y + 9, 6, color);
+                } else if (trimmed.startsWith('class ')) {
+                    color = 0xff44ff;
+                    shape = this._drawHexagon(x, y + 9, 5, color);
+                } else if (trimmed.startsWith('import ') || trimmed.startsWith('from ')) {
+                    color = 0xffff44;
+                    shape = this._drawArrow(x, y + 9, color);
+                } else if (trimmed.startsWith('if ')) {
+                    color = 0xff8844;
+                    shape = this._drawDiamond(x, y + 9, 5, color);
+                } else if (trimmed.startsWith('for ')) {
+                    color = 0x44ff44;
+                    shape = this._drawCircle(x, y + 9, 4, color);
+                }
+
+                if (shape) {
+                    this.editorLayer.addChild(shape);
+                }
+            }
+
+            _drawTriangle(x, y, size, color) {
+                const g = new PIXI.Graphics();
+                g.beginFill(color, 0.6);
+                g.moveTo(x, y - size);
+                g.lineTo(x + size, y + size);
+                g.lineTo(x - size, y + size);
+                g.lineTo(x, y - size);
+                g.endFill();
+                return g;
+            }
+
+            _drawHexagon(x, y, size, color) {
+                const g = new PIXI.Graphics();
+                g.beginFill(color, 0.6);
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i * Math.PI) / 3 - Math.PI / 2;
+                    const px = x + size * Math.cos(angle);
+                    const py = y + size * Math.sin(angle);
+                    if (i === 0) g.moveTo(px, py);
+                    else g.lineTo(px, py);
+                }
+                g.closePath();
+                g.endFill();
+                return g;
+            }
+
+            _drawArrow(x, y, color) {
+                const g = new PIXI.Graphics();
+                g.beginFill(color, 0.6);
+                g.moveTo(x - 6, y - 3);
+                g.lineTo(x + 2, y - 3);
+                g.lineTo(x + 2, y - 6);
+                g.lineTo(x + 8, y);
+                g.lineTo(x + 2, y + 6);
+                g.lineTo(x + 2, y + 3);
+                g.lineTo(x - 6, y + 3);
+                g.closePath();
+                g.endFill();
+                return g;
+            }
+
+            _drawDiamond(x, y, size, color) {
+                const g = new PIXI.Graphics();
+                g.beginFill(color, 0.6);
+                g.moveTo(x, y - size);
+                g.lineTo(x + size, y);
+                g.lineTo(x, y + size);
+                g.lineTo(x - size, y);
+                g.closePath();
+                g.endFill();
+                return g;
+            }
+
+            _drawCircle(x, y, radius, color) {
+                const g = new PIXI.Graphics();
+                g.beginFill(color, 0.6);
+                g.drawCircle(x, y, radius);
+                g.endFill();
+                return g;
+            }
+
+            _drawFoldIndicators(startLine, endLine) {
+                for (const region of this.foldMarkers) {
+                    if (region.start < startLine || region.start >= endLine) continue;
+
+                    const y = (region.start - startLine) * this.lineHeight;
+                    const isFolded = this.foldedRegions.has(region.start);
+
+                    const indicator = new PIXI.Graphics();
+                    indicator.beginFill(isFolded ? 0x00ff88 : 0x333333);
+                    indicator.drawRect(0, y + 3, 12, 12);
+                    indicator.endFill();
+
+                    // Arrow
+                    indicator.beginFill(isFolded ? 0x0a0a0a : 0x888888);
+                    if (isFolded) {
+                        indicator.moveTo(3, y + 6);
+                        indicator.lineTo(9, y + 6);
+                        indicator.lineTo(6, y + 12);
+                    } else {
+                        indicator.moveTo(3, y + 5);
+                        indicator.lineTo(9, y + 10);
+                        indicator.lineTo(3, y + 15);
+                    }
+                    indicator.endFill();
+
+                    indicator.eventMode = 'static';
+                    indicator.cursor = 'pointer';
+                    indicator.on('pointerdown', () => this.toggleFold(region.start));
+
+                    this.foldGutter.addChild(indicator);
+
+                    // Show folded preview
+                    if (isFolded) {
+                        const preview = new PIXI.Text(` ⋯ (${region.end - region.start} lines)`, {
+                            fontFamily: 'Courier New',
+                            fontSize: 11,
+                            fill: 0x666666,
+                            fontStyle: 'italic'
+                        });
+                        preview.x = 50;
+                        preview.y = y + 15;
+                        this.editorLayer.addChild(preview);
+                    }
+                }
+            }
+
+            _drawDiffOverlay(startLine, endLine) {
+                // Mock diff hunks
+                const mockDiffs = [
+                    { line: 8, type: 'add' },
+                    { line: 15, type: 'add' },
+                    { line: 25, type: 'del' }
+                ];
+
+                for (const diff of mockDiffs) {
+                    if (diff.line < startLine || diff.line >= endLine) continue;
+
+                    const y = (diff.line - startLine) * this.lineHeight;
+                    const g = new PIXI.Graphics();
+
+                    if (diff.type === 'add') {
+                        // Expanding glyph (green, outward spiral)
+                        g.beginFill(0x00ff88, 0.15);
+                        g.drawRect(50, y, this.app.screen.width - 70, this.lineHeight);
+                        g.endFill();
+
+                        // Morphological indicator
+                        g.lineStyle(1, 0x00ff88, 0.8);
+                        g.moveTo(52, y + 4);
+                        g.lineTo(58, y + 4);
+                        g.lineTo(58, y + 14);
+                        g.lineTo(52, y + 14);
+                        g.lineTo(52, y + 9);
+                    } else {
+                        // Contracting glyph (red, inward arrows)
+                        g.beginFill(0xff4444, 0.15);
+                        g.drawRect(50, y, this.app.screen.width - 70, this.lineHeight);
+                        g.endFill();
+
+                        // Morphological indicator
+                        g.lineStyle(1, 0xff4444, 0.8);
+                        g.moveTo(52, y + 6);
+                        g.lineTo(58, y + 9);
+                        g.lineTo(52, y + 12);
+                    }
+
+                    this.diffLayer.addChild(g);
+                }
+            }
+
+            _drawCursor() {
+                const cursor = new PIXI.Graphics();
+                cursor.beginFill(0x00ff88);
+                cursor.drawRect(
+                    50 + this.cursorX * this.charWidth,
+                    (this.cursorY - this.scrollOffset) * this.lineHeight,
+                    2,
+                    this.lineHeight
+                );
+                cursor.endFill();
+                this.editorLayer.addChild(cursor);
+            }
+
+            resize() {
+                this.app.renderer.resize(
+                    this.container.offsetWidth,
+                    this.container.offsetHeight
+                );
+                this._render();
+            }
+        }
+
+        // Sample code
+        const sampleCode = `#!/usr/bin/env python3
+"""Geometry OS: Morphological Code Editor Demo"""
+
+import sys
+from typing import List, Dict, Optional
+
+class SyntaxNode:
+    """Represents a node in the syntax tree."""
+    def __init__(self, type: str, value: str):
+        self.type = type
+        self.value = value
+        self.children: List['SyntaxNode'] = []
+
+    def add_child(self, node: 'SyntaxNode'):
+        self.children.append(node)
+        return node
+
+class CodeParser:
+    """Parses code into geometric syntax trees."""
+    def __init__(self, code: str):
+        self.code = code
+        self.lines = code.split('\\n')
+        self.root = SyntaxNode('module', '')
+
+    def parse(self) -> SyntaxNode:
+        for i, line in enumerate(self.lines):
+            node = self._parse_line(line, i)
+            if node:
+                self.root.add_child(node)
+        return self.root
+
+    def _parse_line(self, line: str, num: int) -> Optional[SyntaxNode]:
+        line = line.strip()
+        if not line:
+            return None
+
+        # Detect node type
+        if line.startswith('def '):
+            return SyntaxNode('function', line)
+        elif line.startswith('class '):
+            return SyntaxNode('class', line)
+        elif line.startswith('import '):
+            return SyntaxNode('import', line)
+        elif line.startswith('if '):
+            return SyntaxNode('branch', line)
+
+        return SyntaxNode('statement', line)
+
+def main():
+    """Main entry point for the geometric editor."""
+    parser = CodeParser(sampleCode)
+    tree = parser.parse()
+
+    print(f"Parsed {len(tree.children)} syntax nodes")
+
+    # Visualize tree as geometry
+    for node in tree.children:
+        print(f"  {node.type}: {node.value[:30]}...")
+
+if __name__ == '__main__':
+    main()
+`;
+
+        // Editor instance
+        let editor = null;
+
+        // Initialize
+        function init() {
+            const container = document.getElementById('editor-container');
+            editor = new MockCodeEditor(container, {
+                editable: true,
+                showLineNumbers: true
+            });
+
+            // Handle resize
+            window.addEventListener('resize', () => {
+                editor.resize();
+            });
+
+            log('Click on fold indicators (left) to collapse regions', 'info');
+        }
+
+        // UI Functions
+        window.toggleFolding = function() {
+            document.getElementById('btn-fold').classList.toggle('active');
+            log('Folding toggled', 'fold');
+        };
+
+        window.toggleSyntaxTree = function() {
+            const btn = document.getElementById('btn-syntax');
+            btn.classList.toggle('active');
+            editor.toggleSyntax();
+        };
+
+        window.toggleDiff = function() {
+            const btn = document.getElementById('btn-diff');
+            btn.classList.toggle('active');
+            editor.toggleDiff();
+        };
+
+        window.loadSampleCode = function() {
+            editor.loadCode(sampleCode);
+        };
+
+        window.saveFile = function() {
+            editor.save();
+        };
+
+        window.toggleFeature = function(feature, enabled) {
+            log(`${feature}: ${enabled ? 'on' : 'off'}`, 'info');
+        };
+
+        // Helpers
+        function updateFileInfo(lines, lang) {
+            document.getElementById('file-info').textContent = `${lines} lines | ${lang}`;
+        }
+
+        function updateCursorPos(line, col) {
+            document.getElementById('cursor-pos').textContent = `Ln ${line}, Col ${col}`;
+        }
+
+        function log(msg, type = 'info') {
+            const eventLog = document.getElementById('event-log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+
+            const time = new Date().toLocaleTimeString('en-US', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            entry.textContent = `[${time}] ${msg}`;
+            eventLog.appendChild(entry);
+            eventLog.scrollTop = eventLog.scrollHeight;
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
