@@ -4,8 +4,15 @@
  * Provides methods to fetch catalog entries, boot containers, update layout,
  * and refresh the catalog. Uses native fetch API with error handling.
  *
+ * Features:
+ * - Cache-first fetching with stale-while-revalidate pattern
+ * - Offline access to previously downloaded containers
+ * - Background revalidation for stale cache entries
+ *
  * @module CatalogBridge
  */
+
+import { CatalogCacheManager } from './CatalogCacheManager.js';
 
 class CatalogBridge {
     /**
@@ -20,6 +27,7 @@ class CatalogBridge {
         this.lastFetchTime = null;
         this.cachedCatalog = null;
         this._activePolls = new Map(); // pollId -> { entryId, callback, interval }
+        this.cache = new CatalogCacheManager(); // IndexedDB cache for offline access
     }
 
     /**
@@ -119,6 +127,121 @@ class CatalogBridge {
         // Fetch from server
         const data = await this._fetch(`/api/v1/catalog/${encodeURIComponent(entryId)}`);
         return data;
+    }
+
+    /**
+     * Get container data with cache-first strategy and stale-while-revalidate
+     *
+     * This method implements a cache-first fetching pattern:
+     * 1. Try to get data from IndexedDB cache
+     * 2. If cached and fresh, return immediately
+     * 3. If cached but stale, return cached data AND trigger background revalidation
+     * 4. If not cached, fetch from network and store in cache
+     *
+     * @param {string} entryId - The entry ID to fetch
+     * @param {Object} options - Fetch options
+     * @param {boolean} options.forceRefresh - Bypass cache and fetch fresh data
+     * @returns {Promise<Object|null>} Container data or null on failure
+     *
+     * @example
+     * // Normal cache-first fetch
+     * const data = await bridge.getContainerData('ubuntu-22.04');
+     *
+     * // Force refresh from network
+     * const freshData = await bridge.getContainerData('ubuntu-22.04', { forceRefresh: true });
+     */
+    async getContainerData(entryId, options = {}) {
+        // Initialize cache if needed
+        if (!this.cache._initialized) {
+            await this.cache.init();
+        }
+
+        // Force refresh bypasses cache
+        if (!options.forceRefresh) {
+            // Check if we have a cache hit
+            const cachedData = await this.cache.get(entryId);
+
+            if (cachedData) {
+                // Check staleness
+                const staleStatus = await this.cache.getStaleStatus(entryId);
+
+                if (staleStatus.isStale && !staleStatus.isExpired) {
+                    // Stale but usable - trigger background revalidation
+                    this._revalidateInBackground(entryId);
+                }
+
+                // Return cached data immediately (stale-while-revalidate pattern)
+                return cachedData;
+            }
+        }
+
+        // Cache miss or force refresh - fetch from network
+        const networkData = await this._fetchContainerData(entryId);
+
+        if (networkData) {
+            // Store in cache for future offline access
+            await this.cache.set(entryId, networkData.data, {
+                etag: networkData.etag,
+                hash: networkData.hash,
+                source: 'network'
+            });
+            return networkData.data;
+        }
+
+        // Network failed - try to return stale cached data as last resort
+        const staleFallback = await this.cache.get(entryId);
+        if (staleFallback) {
+            console.warn(`[CatalogBridge] Network fetch failed, returning stale cache for ${entryId}`);
+        }
+        return staleFallback;
+    }
+
+    /**
+     * Fetch container data from the network
+     * @private
+     * @param {string} entryId - The entry ID to fetch
+     * @returns {Promise<Object|null>} Object with data, etag, and hash or null on failure
+     */
+    async _fetchContainerData(entryId) {
+        try {
+            const response = await fetch(`${this.baseUrl}/api/v1/catalog/${encodeURIComponent(entryId)}/data`, {
+                headers: {
+                    'Accept': 'application/octet-stream'
+                }
+            });
+
+            if (!response.ok) {
+                console.error(`[CatalogBridge] Failed to fetch container data: HTTP ${response.status}`);
+                return null;
+            }
+
+            const etag = response.headers.get('ETag');
+            const data = await response.arrayBuffer();
+
+            return {
+                data: data,
+                etag: etag,
+                hash: null // Will be computed by cache.set if needed
+            };
+        } catch (error) {
+            console.error(`[CatalogBridge] Network error fetching container data:`, error.message);
+            return null;
+        }
+    }
+
+    /**
+     * Trigger background revalidation for a stale cache entry
+     * @private
+     * @param {string} entryId - The entry ID to revalidate
+     */
+    _revalidateInBackground(entryId) {
+        // Use the cache's built-in revalidation with ETag support
+        this.cache.revalidate(entryId, async () => {
+            const result = await this._fetchContainerData(entryId);
+            return result;
+        }).catch(error => {
+            console.warn(`[CatalogBridge] Background revalidation failed for ${entryId}:`, error.message);
+        });
     }
 
     /**
