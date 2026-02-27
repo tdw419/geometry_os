@@ -11,11 +11,10 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Milestone:** v1.1 Visual Shell Integration
 **Phase:** 06-boot-progress-integration IN PROGRESS
-**Plan:** 06-02 complete (1/4 plans)
-**Status:** Status tracking and polling implemented
-**Last activity:** 2026-02-27 - Completed 06-02-SUMMARY.md
+**Status:** Plans 06-01 and 06-02 complete, 2 plans remaining
+**Last activity:** 2026-02-27 - Completed 06-01-SUMMARY.md
 
-Progress: [████████░░░░░░░░░░░░] 40% (1/2 phases complete, 1/4 plans in phase 6)
+Progress: [█████████░░░░░░░░░░░] 45% (1/2 phases complete, 2/4 plans in phase 6)
 
 ## Accumulated Context
 
@@ -27,28 +26,30 @@ Progress: [████████░░░░░░░░░░░░] 40% (1/
 - Position mapping: server position.{x,y} → client layout.{gridX,gridY}
 - Boot options: {memory, cpus, cmdline} format
 - Phase 6: Boot progress + status visualization
+- **06-01**: 30 second boot timeout with 4-stage progress animation
+- **06-01**: Progress caps at 99% until boot actually completes
 - **06-02**: Polling interval 1000ms default, max 60 attempts
 - **06-02**: Process death detected via os.kill(pid, 0)
 
-### Components Shipped (Phase 5)
-- RTSDesktopObject.js (628 lines) - PIXI.Container sprite with status
+### Components Shipped (Phase 5-6)
+- RTSDesktopObject.js (872 lines) - PIXI.Container sprite with status, progress bar, boot animation
 - CatalogBridge.js (364 lines) - API client with format transformations + status polling
 - DesktopObjectManager.js (621 lines) - Lifecycle manager with events + status polling
 - demo_desktop_objects.html (728 lines) - Integration demo
 
 ### Phase 6 Progress
-- 06-01: Pending
+- 06-01: **COMPLETE** - Progress bar overlay with time-based animation
 - 06-02: **COMPLETE** - Status tracking + polling
-- 06-03: Pending
-- 06-04: Pending
+- 06-03: Pending - Error handling with actionable guidance
+- 06-04: Pending - Integration demo (demo_boot_progress.html)
 
 ### Blockers
 - None currently
 
 ## Session Continuity
 
-Last session: 2026-02-27
-Status: Plan 06-02 complete
+Last session: 2026-02-27 19:31 UTC
+Status: Plans 06-01 and 06-02 complete
 
 **Next Steps:**
-Execute 06-01 (progress bar overlay) or 06-03 (error handling)
+Execute 06-03 (error handling) or 06-04 (integration demo)
