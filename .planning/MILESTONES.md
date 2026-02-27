@@ -1,5 +1,21 @@
 # Project Milestones: PixelRTS Boot Improvement
 
+## v1.2 Network Boot (In Progress)
+
+**Goal:** Boot OS containers from remote HTTP servers with visual progress and offline resilience.
+
+**Phases:** 7-11 (12 plans total)
+
+**Key features:**
+- Remote container boot with download progress
+- Local caching with hash verification
+- Unified local + remote catalog view
+- Graceful error handling with retry
+
+**Started:** 2026-02-27
+
+---
+
 ## v1.1 Visual Shell Integration (Shipped: 2026-02-27)
 
 **Delivered:** OS containers live directly on the infinite desktop - boot by clicking, arrange by dragging.

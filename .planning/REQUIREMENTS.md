@@ -57,24 +57,24 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RBOOT-01 | Phase 7 | Pending |
-| RBOOT-02 | Phase 7 | Pending |
-| RBOOT-03 | Phase 9 | Pending |
-| RBOOT-04 | Phase 7 | Pending |
-| RBOOT-05 | Phase 7 | Pending |
-| RCAT-01 | Phase 8 | Pending |
-| RCAT-02 | Phase 8 | Pending |
-| RCAT-03 | Phase 8 | Pending |
-| RCAT-04 | Phase 8 | Pending |
 | CACHE-01 | Phase 7 | Pending |
 | CACHE-02 | Phase 7 | Pending |
-| CACHE-03 | Phase 9 | Pending |
 | CACHE-04 | Phase 7 | Pending |
+| RCAT-01 | Phase 8 | Pending |
+| RCAT-04 | Phase 8 | Pending |
+| RBOOT-01 | Phase 9 | Pending |
+| RBOOT-02 | Phase 9 | Pending |
+| RBOOT-04 | Phase 9 | Pending |
+| RBOOT-05 | Phase 9 | Pending |
+| RCAT-02 | Phase 10 | Pending |
+| RCAT-03 | Phase 10 | Pending |
+| RBOOT-03 | Phase 11 | Pending |
+| CACHE-03 | Phase 11 | Pending |
 
 **Coverage:**
-- v1.2 requirements: 12 total
-- Mapped to phases: 12
-- Unmapped: 0 ✓
+- v1.2 requirements: 13 total
+- Mapped to phases: 13
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-27*
