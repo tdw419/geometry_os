@@ -512,7 +512,14 @@ class RTSDesktopObject extends PIXI.Container {
             this.border.rect(-1, -1, 142, 182);
             this.border.stroke({ color: 0x00ffff, width: 2, alpha: 0.8 });
         }
-        this.emit('hover', { target: this });
+
+        // Emit hover with status and error details
+        this.emit('hover', {
+            target: this,
+            status: this._status,
+            errorDetails: this._errorDetails,
+            statusInfo: this._statusInfo
+        });
     }
 
     /**
@@ -975,6 +982,27 @@ class RTSDesktopObject extends PIXI.Container {
      */
     getErrorDetails() {
         return this._errorDetails;
+    }
+
+    /**
+     * Format error details for tooltip display
+     * @returns {string|null} Formatted error text
+     */
+    formatErrorForTooltip() {
+        if (!this._errorDetails) return null;
+
+        const { message, stage, elapsedTime, config } = this._errorDetails;
+        const guidance = this._getErrorGuidance(message);
+
+        let text = `Boot failed at: ${stage}\n`;
+        text += `After: ${elapsedTime.toFixed(1)} seconds\n`;
+        if (config.memory || config.cpus) {
+            text += `Config: Memory=${config.memory || 'default'}, CPUs=${config.cpus || 'default'}\n`;
+        }
+        text += `\n${guidance.guidance}`;
+        text += `\n\nSuggestion: ${guidance.action}`;
+
+        return text;
     }
 
     /**
