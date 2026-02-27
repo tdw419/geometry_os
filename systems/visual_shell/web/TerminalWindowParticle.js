@@ -51,13 +51,22 @@ class TerminalWindowParticle extends PIXI.Container {
         this._resizeHandles = [];
         this._createResizeHandles();
 
-        // Create internal TerminalWindow
-        this._terminalWindow = new TerminalWindow({
-            ...this._config,
-            x: 0,  // Position relative to particle container
-            y: 0
-        });
-        this.addChild(this._terminalWindow);
+        // Create internal TerminalWindow (use compat version)
+        const TerminalWindowClass = typeof TerminalWindowCompat !== 'undefined'
+            ? TerminalWindowCompat
+            : (typeof TerminalWindow !== 'undefined' ? TerminalWindow : null);
+
+        if (TerminalWindowClass) {
+            this._terminalWindow = new TerminalWindowClass({
+                ...this._config,
+                x: 0,  // Position relative to particle container
+                y: 0
+            });
+            this.addChild(this._terminalWindow);
+        } else {
+            console.warn('[TerminalWindowParticle] No TerminalWindow class available');
+            this._terminalWindow = null;
+        }
 
         // Override terminal's focus/blur to use particle methods
         this._setupTerminalEvents();
