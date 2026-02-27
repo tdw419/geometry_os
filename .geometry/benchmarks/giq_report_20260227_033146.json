@@ -1,0 +1,66 @@
+{
+  "total_giq": 12710.882309903836,
+  "category_scores": {
+    "pattern_recognition": 50.94356155395508,
+    "morphological_synthesis": 6026.666666666666,
+    "spatial_reasoning": 90.92348142236376,
+    "symbolic_translation": 80.65962087846735,
+    "decomposition": 106.2478244304657
+  },
+  "test_results": [
+    {
+      "category": "pattern_recognition",
+      "test_name": "noise_pattern_identification",
+      "score": 50.94356155395508,
+      "latency_ms": 0.7054805755615234,
+      "accuracy": 0.05,
+      "complexity": 5,
+      "timestamp": "<built-in method isoformat of datetime.datetime object at 0x7011335b4630>"
+    },
+    {
+      "category": "morphological_synthesis",
+      "test_name": "semantic_glyph_generation",
+      "score": 6026.666666666666,
+      "latency_ms": 0.022649765014648438,
+      "accuracy": 0.8566666666666666,
+      "complexity": 7,
+      "timestamp": "<built-in method isoformat of datetime.datetime object at 0x7011335b6010>"
+    },
+    {
+      "category": "spatial_reasoning",
+      "test_name": "hilbert_traversal",
+      "score": 90.92348142236376,
+      "latency_ms": 0.514984130859375,
+      "accuracy": 0.90002951918291,
+      "complexity": 6,
+      "timestamp": "<built-in method isoformat of datetime.datetime object at 0x7011335b4570>"
+    },
+    {
+      "category": "symbolic_translation",
+      "test_name": "bidirectional_translation",
+      "score": 80.65962087846735,
+      "latency_ms": 0.0476837158203125,
+      "accuracy": 78.59205104582581,
+      "complexity": 8,
+      "timestamp": "<built-in method isoformat of datetime.datetime object at 0x7011335d4c60>"
+    },
+    {
+      "category": "decomposition",
+      "test_name": "shape_primitive_extraction",
+      "score": 106.2478244304657,
+      "latency_ms": 0.017404556274414062,
+      "accuracy": 1.0,
+      "complexity": 6,
+      "timestamp": "<built-in method isoformat of datetime.datetime object at 0x7011335d4de0>"
+    }
+  ],
+  "baseline_comparison": {
+    "pattern_recognition": 13.20791456434462,
+    "morphological_synthesis": 19988.888888888887,
+    "spatial_reasoning": 65.31542076793411,
+    "symbolic_translation": 101.64905219616838,
+    "decomposition": 203.5652126584734
+  },
+  "percentile": 100.0,
+  "generated_at": "<built-in method isoformat of datetime.datetime object at 0x7011335d5080>"
+}
