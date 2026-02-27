@@ -351,6 +351,13 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
             return null;
         }
 
+        // Store boot config for error context
+        obj._lastBootConfig = {
+            memory: options.memory || '2G',
+            cpus: options.cpus || 2,
+            cmdline: options.cmdline
+        };
+
         // Update status to booting
         obj.setStatus('booting');
 
@@ -419,6 +426,9 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
             return;
         }
 
+        // Get previous status for transition detection
+        const previousStatus = obj.getStatus();
+
         // Update object status
         obj.setStatus(status.status);
 
@@ -431,8 +441,9 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
             error_message: status.error_message
         };
 
-        // Handle transitions
-        if (status.status === 'running') {
+        // Handle status transitions
+        if (status.status === 'running' && previousStatus === 'booting') {
+            // Boot completed successfully
             console.log(`[DesktopObjectManager] Boot completed for ${entryId}, pid=${status.pid}`);
             this.emit('object-booted', {
                 object: obj,
@@ -443,15 +454,55 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
                     vnc_port: status.vnc_port
                 }
             });
-            // Polling will stop automatically when status is not 'booting'
+            this.stopStatusPolling(entryId);
         } else if (status.status === 'error') {
+            // Boot failed - capture context
             console.warn(`[DesktopObjectManager] Boot failed for ${entryId}: ${status.error_message}`);
-            this.emit('boot-error', {
+
+            // Get boot config from last boot attempt
+            const bootConfig = obj._lastBootConfig || {};
+
+            obj.failBootProgress(status.error_message, {
+                stage: this._estimateFailedStage(status),
+                elapsedTime: status.uptime_seconds || 0,
+                config: bootConfig
+            });
+
+            this.emit('boot-failed', {
                 object: obj,
                 entryId,
+                status,
                 error: status.error_message
             });
-            // Polling will stop automatically when status is not 'booting'
+            this.stopStatusPolling(entryId);
+        } else if (status.status === 'stopped') {
+            // Process stopped
+            this.stopStatusPolling(entryId);
+        }
+
+        // Store additional status info on object
+        obj._statusInfo = status;
+
+        this.emit('status-updated', { entryId, status, object: obj });
+    }
+
+    /**
+     * Estimate which boot stage failed based on timing
+     * @private
+     * @param {Object} status - Status object with timing info
+     * @returns {string} Stage label
+     */
+    _estimateFailedStage(status) {
+        const elapsed = status.uptime_seconds || 0;
+
+        if (elapsed < 5) {
+            return 'Starting QEMU...';
+        } else if (elapsed < 15) {
+            return 'Loading kernel...';
+        } else if (elapsed < 25) {
+            return 'Initializing...';
+        } else {
+            return 'Ready';
         }
     }
 
