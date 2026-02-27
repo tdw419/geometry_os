@@ -9,17 +9,17 @@ Requirements for Visual Shell Integration milestone. Each maps to a roadmap phas
 
 ### Desktop Objects (DESKTOP)
 
-- [ ] **DESKTOP-01**: User can see .rts.png files displayed as interactive objects on the PixiJS desktop
-- [ ] **DESKTOP-02**: User can drag and drop container objects to arrange them on the infinite canvas
-- [ ] **DESKTOP-03**: User can boot a container with a single click (or double-click) on its desktop object
-- [ ] **DESKTOP-04**: User can see container metadata (distro, kernel version, architecture) on hover or selection
+- [x] **DESKTOP-01**: User can see .rts.png files displayed as interactive objects on the PixiJS desktop
+- [x] **DESKTOP-02**: User can drag and drop container objects to arrange them on the infinite canvas
+- [x] **DESKTOP-03**: User can boot a container with a single click (or double-click) on its desktop object
+- [x] **DESKTOP-04**: User can see container metadata (distro, kernel version, architecture) on hover or selection
 
 ### Boot Progress (BOOT)
 
 - [ ] **BOOT-01**: User sees a progress indicator during QEMU boot launch (>1 second operations)
 - [ ] **BOOT-02**: User can see visual status of each container (running, stopped, error)
 - [ ] **BOOT-03**: User sees clear error messages when boot fails with actionable guidance
-- [ ] **BOOT-04**: User's container positions persist across sessions (layout saved and restored)
+- [x] **BOOT-04**: User's container positions persist across sessions (layout saved and restored)
 
 ## v1.x Requirements
 
@@ -66,24 +66,25 @@ Explicitly excluded. Documented to prevent scope creep.
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
+Which phases cover which requirements. Updated after phase completion.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DESKTOP-01 | Phase 5 | Pending |
-| DESKTOP-02 | Phase 5 | Pending |
-| DESKTOP-03 | Phase 5 | Pending |
-| DESKTOP-04 | Phase 5 | Pending |
+| DESKTOP-01 | Phase 5 | Complete |
+| DESKTOP-02 | Phase 5 | Complete |
+| DESKTOP-03 | Phase 5 | Complete |
+| DESKTOP-04 | Phase 5 | Complete |
 | BOOT-01 | Phase 6 | Pending |
 | BOOT-02 | Phase 6 | Pending |
 | BOOT-03 | Phase 6 | Pending |
-| BOOT-04 | Phase 5 | Pending |
+| BOOT-04 | Phase 5 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 8 total
-- Mapped to phases: 8
+- Complete: 5
+- Pending: 3
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-02-27*
-*Last updated: 2026-02-27*
+*Last updated: 2026-02-27 after Phase 5 completion*

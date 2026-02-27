@@ -26,7 +26,7 @@
 
 ## Phases
 
-### Phase 5: Desktop Object Integration
+### Phase 5: Desktop Object Integration ✅ COMPLETE
 
 **Goal**: Users can see and interact with .rts.png containers as desktop objects
 
@@ -34,20 +34,21 @@
 
 **Requirements**: DESKTOP-01, DESKTOP-02, DESKTOP-03, DESKTOP-04, BOOT-04
 
+**Completed**: 2026-02-27
+
 **Plans:**
-- [ ] 05-01-PLAN.md — Visual foundation (RTSDesktopObject, CatalogBridge, DesktopObjectManager)
-- [ ] 05-02-PLAN.md — Interaction (drag-and-drop, click-to-boot with status)
+- [x] 05-01 — Visual foundation (RTSDesktopObject, CatalogBridge, DesktopObjectManager)
+- [x] 05-02 — Interaction (drag-and-drop, click-to-boot with status)
+- [x] 05-03 — API Wiring Fix (endpoint alignment, field mapping)
+- [x] 05-04 — Integration Demo (demo_desktop_objects.html)
 
-**Success Criteria:**
-1. User opens visual shell and sees .rts.png files as draggable sprites
-2. User drags container to new position and position persists after refresh
-3. User clicks container and sees metadata tooltip (distro, kernel, arch)
-4. User double-clicks container and boot sequence initiates
-5. User returns next session and containers are in same positions
+**Delivered:**
+- RTSDesktopObject.js (628 lines) - PIXI.Container sprite with thumbnail, status, hover
+- CatalogBridge.js (267 lines) - API client with format transformations
+- DesktopObjectManager.js (533 lines) - Lifecycle manager with events
+- demo_desktop_objects.html (728 lines) - Full integration demo
 
-**Research flags:**
-- Canvas performance: implement visibility culling if >50 objects
-- WebSocket state: add reconnection state machine
+**Verification:** 9/9 must-haves passed
 
 ### Phase 6: Boot Progress Integration
 
@@ -73,7 +74,7 @@
 
 | Phase | Status | Plans | Goal |
 |-------|--------|-------|------|
-| 5 | Planning | 2 | Desktop Object Integration |
+| 5 | ✓ Complete | 4 | Desktop Object Integration |
 | 6 | Not Started | 0 | Boot Progress Integration |
 
 **Total:** 2 phases, 8 requirements
