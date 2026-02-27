@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Morphological Sound - Geometry OS</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            overflow: hidden;
+        }
+        h1 { margin-bottom: 5px; font-size: 18px; }
+        .subtitle { color: #666; margin-bottom: 15px; font-size: 11px; }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 15px;
+            height: calc(100vh - 80px);
+        }
+
+        .main-panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            background: #252535;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .panel-title { font-size: 12px; }
+
+        .panel-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            background: #0f0f0f;
+            color: #00ff88;
+            border: 1px solid #333;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 10px;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        button.active {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #canvas-container {
+            flex: 1;
+            background: #0a0a0a;
+            position: relative;
+        }
+
+        #canvas-container canvas {
+            cursor: crosshair;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+        }
+
+        .section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .section-title {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 10px;
+        }
+
+        .control-row label {
+            color: #888;
+        }
+
+        input[type="range"] {
+            width: 120px;
+            accent-color: #00ff88;
+        }
+
+        .control-value {
+            color: #00ff88;
+            width: 40px;
+            text-align: right;
+        }
+
+        select {
+            background: #0f0f0f;
+            border: 1px solid #333;
+            color: #00ff88;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 10px;
+        }
+
+        .shape-palette {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .shape-btn {
+            aspect-ratio: 1;
+            background: #0f0f0f;
+            border: 1px solid #333;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .shape-btn:hover {
+            border-color: #00ff88;
+            background: #0f1a0f;
+        }
+
+        .shape-btn.active {
+            border-color: #00ff88;
+            background: #1a2a1a;
+        }
+
+        .voice-indicator {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .voice-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #333;
+            transition: all 0.1s;
+        }
+
+        .voice-dot.active {
+            background: #00ff88;
+            box-shadow: 0 0 8px #00ff88;
+        }
+
+        .keyboard {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+        }
+
+        .key {
+            aspect-ratio: 1;
+            background: #0f0f0f;
+            border: 1px solid #333;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 10px;
+            transition: all 0.1s;
+        }
+
+        .key:hover {
+            background: #1a1a1a;
+        }
+
+        .key.playing {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        .spectrum {
+            height: 60px;
+            background: #0f0f0f;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .spectrum canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .instructions {
+            font-size: 9px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .instructions ul {
+            margin-left: 15px;
+            margin-top: 5px;
+        }
+
+        .instructions li {
+            margin-bottom: 3px;
+        }
+
+        .playback-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .playback-controls button {
+            flex: 1;
+        }
+
+        .status-bar {
+            background: #1a1a1a;
+            padding: 8px 15px;
+            border-top: 1px solid #333;
+            font-size: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .visualizer-overlay {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            height: 80px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            pointer-events: none;
+        }
+
+        .glyph-info {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 10px;
+            pointer-events: none;
+            display: none;
+            border: 1px solid #333;
+        }
+
+        .freq-display {
+            font-size: 24px;
+            text-align: center;
+            color: #00ff88;
+            margin: 10px 0;
+        }
+
+        .freq-label {
+            font-size: 8px;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>◈ Morphological Sound</h1>
+    <p class="subtitle">Visual-sonic glyphs: SDF → Audio synthesis</p>
+
+    <div class="container">
+        <div class="main-panel">
+            <div class="panel-header">
+                <div class="panel-title">Visual-Sonic Canvas</div>
+                <div class="panel-actions">
+                    <button onclick="initAudio()" id="btn-init">▶ Enable Audio</button>
+                    <button onclick="clearCanvas()">Clear</button>
+                    <button onclick="playHilbertCurve()">Play Hilbert</button>
+                    <button onclick="playSequence()">Auto Sequence</button>
+                </div>
+            </div>
+            <div id="canvas-container">
+                <div class="glyph-info" id="glyph-info"></div>
+                <div class="visualizer-overlay">
+                    <canvas id="spectrum-canvas"></canvas>
+                </div>
+            </div>
+            <div class="status-bar">
+                <span id="status-text">Click Enable Audio to start</span>
+                <span id="voice-count">0/8 voices</span>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="section">
+                <div class="section-title">Audio Status</div>
+                <div class="voice-indicator" id="voice-indicator">
+                    <div class="voice-dot"></div>
+                    <div class="voice-dot"></div>
+                    <div class="voice-dot"></div>
+                    <div class="voice-dot"></div>
+                    <div class="voice-dot"></div>
+                    <div class="voice-dot"></div>
+                    <div class="voice-dot"></div>
+                    <div class="voice-dot"></div>
+                </div>
+                <div class="freq-display" id="freq-display">---</div>
+                <div class="freq-label">Current Frequency</div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Shape Palette</div>
+                <div class="shape-palette">
+                    <div class="shape-btn active" data-shape="circle" onclick="selectShape(this)">○</div>
+                    <div class="shape-btn" data-shape="triangle" onclick="selectShape(this)">△</div>
+                    <div class="shape-btn" data-shape="square" onclick="selectShape(this)">□</div>
+                    <div class="shape-btn" data-shape="hexagon" onclick="selectShape(this)">⬡</div>
+                    <div class="shape-btn" data-shape="diamond" onclick="selectShape(this)">◇</div>
+                    <div class="shape-btn" data-shape="spiral" onclick="selectShape(this)">◎</div>
+                    <div class="shape-btn" data-shape="hilbert" onclick="selectShape(this)">◈</div>
+                    <div class="shape-btn" data-shape="star" onclick="selectShape(this)">☆</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Scale</div>
+                <select id="scale-select" onchange="changeScale()">
+                    <option value="pentatonic">Pentatonic</option>
+                    <option value="major">Major</option>
+                    <option value="minor">Minor</option>
+                    <option value="geometric">Geometric</option>
+                    <option value="hilbert">Hilbert</option>
+                </select>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Parameters</div>
+                <div class="control-row">
+                    <label>Base Frequency</label>
+                    <input type="range" min="110" max="440" value="220" id="base-freq" oninput="updateBaseFreq()">
+                    <span class="control-value" id="base-freq-val">220</span>
+                </div>
+                <div class="control-row">
+                    <label>Attack</label>
+                    <input type="range" min="1" max="100" value="50" id="attack" oninput="updateParam('attack')">
+                    <span class="control-value" id="attack-val">50ms</span>
+                </div>
+                <div class="control-row">
+                    <label>Release</label>
+                    <input type="range" min="100" max="2000" value="500" id="release" oninput="updateParam('release')">
+                    <span class="control-value" id="release-val">500ms</span>
+                </div>
+                <div class="control-row">
+                    <label>Volume</label>
+                    <input type="range" min="0" max="100" value="50" id="volume" oninput="updateVolume()">
+                    <span class="control-value" id="volume-val">50%</span>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Keyboard (Q-I)</div>
+                <div class="keyboard" id="keyboard">
+                    <div class="key" data-note="0">Q</div>
+                    <div class="key" data-note="1">W</div>
+                    <div class="key" data-note="2">E</div>
+                    <div class="key" data-note="3">R</div>
+                    <div class="key" data-note="4">T</div>
+                    <div class="key" data-note="5">Y</div>
+                    <div class="key" data-note="6">U</div>
+                    <div class="key" data-note="7">I</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Instructions</div>
+                <div class="instructions">
+                    <ul>
+                        <li><b>Click</b> canvas to create glyph</li>
+                        <li><b>Drag</b> to create continuous sound</li>
+                        <li><b>Q-I</b> keys for keyboard</li>
+                        <li>Size = Pitch (small = high)</li>
+                        <li>X position = Stereo pan</li>
+                        <li>Y position = Filter cutoff</li>
+                        <li>Shape = Waveform</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="lib/pixi.min.js"></script>
+    <script type="module">
+        import { MorphologicalSound } from './MorphologicalSound.js';
+
+        let app = null;
+        let synth = null;
+        let glyphs = [];
+        let currentShape = 'circle';
+        let isDragging = false;
+        let audioInitialized = false;
+
+        // Initialize
+        async function init() {
+            const container = document.getElementById('canvas-container');
+
+            // Create PIXI app
+            app = new PIXI.Application({
+                width: container.offsetWidth,
+                height: container.offsetHeight - 90, // Account for visualizer
+                backgroundColor: 0x0a0a0a,
+                resolution: window.devicePixelRatio || 1,
+                autoDensity: true
+            });
+            container.insertBefore(app.view, container.firstChild);
+
+            // Create glyph layer
+            app.glyphLayer = new PIXI.Container();
+            app.stage.addChild(app.glyphLayer);
+
+            // Setup interaction
+            setupInteraction();
+
+            // Setup keyboard
+            setupKeyboard();
+
+            // Initialize synth (but don't enable audio yet)
+            synth = new MorphologicalSound({
+                baseFrequency: 220,
+                scale: 'pentatonic',
+                onVoiceStart: (id, props) => {
+                    updateVoiceIndicator(true);
+                    document.getElementById('freq-display').textContent =
+                        `${Math.round(synth.baseFrequency * props.size * 2)} Hz`;
+                },
+                onVoiceEnd: (id) => {
+                    updateVoiceIndicator(false);
+                }
+            });
+
+            // Start animation
+            app.ticker.add(animate);
+
+            console.log('Morphological Sound ready');
+        }
+
+        function setupInteraction() {
+            app.view.addEventListener('pointerdown', (e) => {
+                if (!audioInitialized) return;
+                isDragging = true;
+                createGlyph(e);
+            });
+
+            app.view.addEventListener('pointermove', (e) => {
+                if (!isDragging || !audioInitialized) return;
+                if (Math.random() < 0.1) { // Throttle
+                    createGlyph(e);
+                }
+            });
+
+            app.view.addEventListener('pointerup', () => {
+                isDragging = false;
+            });
+
+            app.view.addEventListener('pointerleave', () => {
+                isDragging = false;
+            });
+        }
+
+        function setupKeyboard() {
+            const keys = document.querySelectorAll('.key');
+            const noteMap = [0, 1, 2, 3, 4, 5, 6, 7];
+
+            keys.forEach(key => {
+                const noteIndex = parseInt(key.dataset.note);
+                const note = noteMap[noteIndex];
+
+                key.addEventListener('pointerdown', () => {
+                    if (!audioInitialized) return;
+                    playNote(note);
+                    key.classList.add('playing');
+                });
+
+                key.addEventListener('pointerup', () => {
+                    key.classList.remove('playing');
+                });
+            });
+
+            // Physical keyboard
+            const keyCodes = ['KeyQ', 'KeyW', 'KeyE', 'KeyR', 'KeyT', 'KeyY', 'KeyU', 'KeyI'];
+            document.addEventListener('keydown', (e) => {
+                if (!audioInitialized) return;
+                const idx = keyCodes.indexOf(e.code);
+                if (idx >= 0) {
+                    keys[idx].classList.add('playing');
+                    playNote(idx);
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                const idx = keyCodes.indexOf(e.code);
+                if (idx >= 0) {
+                    keys[idx].classList.remove('playing');
+                }
+            });
+        }
+
+        function playNote(noteIndex) {
+            if (!audioInitialized) return;
+
+            const scale = synth.scales[synth.scale];
+            const size = noteIndex / (scale.length - 1);
+
+            synth.playGlyph({
+                shape: currentShape,
+                size: size,
+                x: 0.5,
+                y: 0.5,
+                width: 1,
+                height: 1,
+                color: 0x00ff88,
+                velocity: 0.5,
+                duration: 0.5,
+                morphState: 'stable'
+            });
+
+            // Visual feedback
+            const x = app.screen.width / 2 + (noteIndex - 3.5) * 50;
+            const y = app.screen.height / 2;
+            createVisualGlyph(x, y, size);
+        }
+
+        function createGlyph(e) {
+            const rect = app.view.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Size based on velocity modifier (shift = larger)
+            const baseSize = e.shiftKey ? 0.7 : 0.4;
+
+            synth.playGlyph({
+                shape: currentShape,
+                size: baseSize,
+                x: x,
+                y: y,
+                width: app.screen.width,
+                height: app.screen.height,
+                color: getShapeColor(currentShape),
+                velocity: 0.6,
+                duration: 0.8,
+                morphState: 'stable'
+            });
+
+            createVisualGlyph(x, y, baseSize);
+        }
+
+        function createVisualGlyph(x, y, size) {
+            const glyph = new PIXI.Container();
+            glyph.x = x;
+            glyph.y = y;
+
+            // Main shape
+            const graphics = new PIXI.Graphics();
+            const color = getShapeColor(currentShape);
+            const radius = 10 + size * 30;
+
+            graphics.beginFill(color, 0.3);
+            graphics.lineStyle(2, color, 0.8);
+
+            drawShape(graphics, currentShape, radius);
+
+            glyph.addChild(graphics);
+
+            // Pulse animation
+            glyph.pulse = 1;
+            glyph.life = 1;
+            glyph.radius = radius;
+
+            app.glyphLayer.addChild(glyph);
+            glyphs.push(glyph);
+        }
+
+        function drawShape(g, shape, r) {
+            switch (shape) {
+                case 'circle':
+                    g.drawCircle(0, 0, r);
+                    break;
+                case 'triangle':
+                    g.moveTo(0, -r);
+                    g.lineTo(r * 0.866, r * 0.5);
+                    g.lineTo(-r * 0.866, r * 0.5);
+                    g.closePath();
+                    break;
+                case 'square':
+                    g.drawRect(-r, -r, r * 2, r * 2);
+                    break;
+                case 'hexagon':
+                    for (let i = 0; i < 6; i++) {
+                        const angle = (i * Math.PI) / 3 - Math.PI / 2;
+                        const px = r * Math.cos(angle);
+                        const py = r * Math.sin(angle);
+                        if (i === 0) g.moveTo(px, py);
+                        else g.lineTo(px, py);
+                    }
+                    g.closePath();
+                    break;
+                case 'diamond':
+                    g.moveTo(0, -r);
+                    g.lineTo(r, 0);
+                    g.lineTo(0, r);
+                    g.lineTo(-r, 0);
+                    g.closePath();
+                    break;
+                case 'spiral':
+                    g.drawCircle(0, 0, r);
+                    g.drawCircle(0, 0, r * 0.5);
+                    break;
+                case 'hilbert':
+                    // Simplified Hilbert shape
+                    g.drawRect(-r, -r, r * 0.5, r * 2);
+                    g.drawRect(-r, r * 0.5, r * 2, r * 0.5);
+                    break;
+                case 'star':
+                    for (let i = 0; i < 5; i++) {
+                        const angle = (i * Math.PI * 2) / 5 - Math.PI / 2;
+                        const innerAngle = angle + Math.PI / 5;
+                        g.lineTo(r * Math.cos(angle), r * Math.sin(angle));
+                        g.lineTo(r * 0.5 * Math.cos(innerAngle), r * 0.5 * Math.sin(innerAngle));
+                    }
+                    g.closePath();
+                    break;
+            }
+        }
+
+        function getShapeColor(shape) {
+            const colors = {
+                circle: 0x00ff88,
+                triangle: 0x44ffff,
+                square: 0xffff44,
+                hexagon: 0xff44ff,
+                diamond: 0xff8844,
+                spiral: 0x88ff44,
+                hilbert: 0x4488ff,
+                star: 0xff4488
+            };
+            return colors[shape] || 0x00ff88;
+        }
+
+        function animate() {
+            // Update glyphs
+            for (let i = glyphs.length - 1; i >= 0; i--) {
+                const glyph = glyphs[i];
+                glyph.life -= 0.01;
+                glyph.pulse += 0.1;
+
+                // Scale pulse
+                const scale = 1 + Math.sin(glyph.pulse) * 0.1;
+                glyph.scale.set(scale * glyph.life);
+                glyph.alpha = glyph.life;
+
+                if (glyph.life <= 0) {
+                    app.glyphLayer.removeChild(glyph);
+                    glyphs.splice(i, 1);
+                }
+            }
+        }
+
+        function updateVoiceIndicator(active) {
+            const dots = document.querySelectorAll('.voice-dot');
+            const activeCount = synth.getActiveVoiceCount();
+
+            dots.forEach((dot, i) => {
+                dot.classList.toggle('active', i < activeCount);
+            });
+
+            document.getElementById('voice-count').textContent =
+                `${activeCount}/8 voices`;
+        }
+
+        // UI Controls
+        window.initAudio = async function() {
+            const btn = document.getElementById('btn-init');
+
+            if (!audioInitialized) {
+                const success = await synth.init();
+                if (success) {
+                    audioInitialized = true;
+                    btn.textContent = '◼ Mute';
+                    btn.classList.add('active');
+                    document.getElementById('status-text').textContent = 'Audio enabled - click to play';
+                }
+            } else {
+                synth.suspend();
+                audioInitialized = false;
+                btn.textContent = '▶ Enable Audio';
+                btn.classList.remove('active');
+            }
+        };
+
+        window.clearCanvas = function() {
+            for (const glyph of glyphs) {
+                app.glyphLayer.removeChild(glyph);
+            }
+            glyphs = [];
+        };
+
+        window.selectShape = function(el) {
+            document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            currentShape = el.dataset.shape;
+        };
+
+        window.changeScale = function() {
+            const scale = document.getElementById('scale-select').value;
+            synth.setScale(scale);
+        };
+
+        window.updateBaseFreq = function() {
+            const val = parseInt(document.getElementById('base-freq').value);
+            document.getElementById('base-freq-val').textContent = val;
+            synth.setBaseFrequency(val);
+        };
+
+        window.updateParam = function(param) {
+            const el = document.getElementById(param);
+            const val = parseInt(el.value);
+            document.getElementById(`${param}-val`).textContent = `${val}ms`;
+
+            if (param === 'attack') {
+                synth.attackTime = val / 1000;
+            } else if (param === 'release') {
+                synth.releaseTime = val / 1000;
+            }
+        };
+
+        window.updateVolume = function() {
+            const val = parseInt(document.getElementById('volume').value);
+            document.getElementById('volume-val').textContent = `${val}%`;
+            synth.setVolume(val / 100);
+        };
+
+        window.playHilbertCurve = function() {
+            if (!audioInitialized) return;
+
+            // Generate Hilbert curve points
+            const points = generateHilbertPoints(3);
+            const scaledPoints = points.map(p => ({
+                x: p.x / 7, // Normalize (2^3 - 1)
+                y: p.y / 7
+            }));
+
+            synth.playHilbertCurve(scaledPoints, 5);
+
+            // Visual feedback
+            scaledPoints.forEach((p, i) => {
+                setTimeout(() => {
+                    createVisualGlyph(
+                        p.x * app.screen.width,
+                        p.y * app.screen.height,
+                        0.3 + (i / scaledPoints.length) * 0.4
+                    );
+                }, i * 80);
+            });
+        };
+
+        function generateHilbertPoints(n) {
+            const points = [];
+            const size = Math.pow(2, n) - 1;
+
+            function hilbert(x, y, ax, ay, bx, by, depth) {
+                if (depth === 0) {
+                    points.push({ x, y });
+                    return;
+                }
+
+                hilbert(x, y, bx, by, ax, ay, depth - 1);
+                hilbert(x + ax, y + ay, ax, ay, bx, by, depth - 1);
+                hilbert(x + ax + bx, y + ay + by, ax, ay, bx, by, depth - 1);
+                hilbert(x + ax + ax + bx, y + ay + ay + by, -bx, -by, -ax, -ay, depth - 1);
+            }
+
+            hilbert(0, 0, 1, 0, 0, 1, n);
+            return points;
+        }
+
+        window.playSequence = function() {
+            if (!audioInitialized) return;
+
+            const shapes = ['circle', 'triangle', 'square', 'hexagon', 'diamond'];
+            const seq = [];
+
+            for (let i = 0; i < 8; i++) {
+                seq.push({
+                    shape: shapes[i % shapes.length],
+                    size: 0.3 + (i / 8) * 0.5,
+                    x: (i + 1) / 9,
+                    y: 0.5,
+                    width: 1,
+                    height: 1,
+                    color: getShapeColor(shapes[i % shapes.length]),
+                    velocity: 0.5,
+                    duration: 0.6
+                });
+            }
+
+            synth.playSequence(seq, 0.3);
+
+            // Visual feedback
+            seq.forEach((glyph, i) => {
+                setTimeout(() => {
+                    createVisualGlyph(
+                        glyph.x * app.screen.width,
+                        glyph.y * app.screen.height,
+                        glyph.size
+                    );
+                }, i * 300);
+            });
+        };
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
