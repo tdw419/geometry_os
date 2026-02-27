@@ -18,6 +18,7 @@ class CatalogCacheManager {
     static DB_VERSION = 1;
     static STORE_NAME = 'containers';
     static DEFAULT_MAX_SIZE = 500 * 1024 * 1024; // 500MB
+    static MAX_SIZE_KEY = 'gos-cache-max-size'; // localStorage key
 
     /**
      * Create a CatalogCacheManager instance
@@ -304,6 +305,92 @@ class CatalogCacheManager {
         } catch (error) {
             console.error('[CatalogCacheManager] Clear error:', error);
             return 0;
+        }
+    }
+
+    // ========================================
+    // Statistics & Size Management
+    // ========================================
+
+    /**
+     * Get cache statistics
+     * @returns {Promise<Object>} Statistics object
+     *
+     * @example
+     * const stats = await cache.getStats();
+     * // Returns: { entryCount, totalSize, oldestEntry, newestEntry }
+     */
+    async getStats() {
+        const entries = await this.getAll();
+
+        if (entries.length === 0) {
+            return {
+                entryCount: 0,
+                totalSize: 0,
+                oldestEntry: null,
+                newestEntry: null
+            };
+        }
+
+        const totalSize = entries.reduce((sum, entry) => sum + (entry.size || 0), 0);
+        const timestamps = entries.map(e => e.cachedAt).filter(t => t);
+        const oldestEntry = timestamps.length > 0 ? new Date(Math.min(...timestamps)) : null;
+        const newestEntry = timestamps.length > 0 ? new Date(Math.max(...timestamps)) : null;
+
+        return {
+            entryCount: entries.length,
+            totalSize: totalSize,
+            oldestEntry: oldestEntry,
+            newestEntry: newestEntry
+        };
+    }
+
+    /**
+     * Get total cache size in bytes
+     * @returns {Promise<number>} Total size in bytes
+     */
+    async getSize() {
+        const store = await this._getStore('readonly');
+        if (!store) {
+            return 0;
+        }
+
+        try {
+            const entries = await this._wrapRequest(store.getAll(), []);
+            return entries.reduce((sum, entry) => sum + (entry.size || 0), 0);
+        } catch (error) {
+            console.error('[CatalogCacheManager] GetSize error:', error);
+            return 0;
+        }
+    }
+
+    /**
+     * Get the maximum cache size limit in bytes
+     * Reads from localStorage, defaults to 500MB
+     * @returns {number} Maximum size in bytes
+     */
+    getMaxSize() {
+        try {
+            const stored = localStorage.getItem(CatalogCacheManager.MAX_SIZE_KEY);
+            if (stored) {
+                return parseInt(stored, 10);
+            }
+        } catch (error) {
+            console.error('[CatalogCacheManager] getMaxSize error:', error);
+        }
+        return CatalogCacheManager.DEFAULT_MAX_SIZE;
+    }
+
+    /**
+     * Set the maximum cache size limit in bytes
+     * Persists to localStorage
+     * @param {number} bytes - Maximum size in bytes
+     */
+    setMaxSize(bytes) {
+        try {
+            localStorage.setItem(CatalogCacheManager.MAX_SIZE_KEY, bytes.toString());
+        } catch (error) {
+            console.error('[CatalogCacheManager] setMaxSize error:', error);
         }
     }
 }
