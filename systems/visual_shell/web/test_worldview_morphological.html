@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WorldView Morphological - Geometry OS Agent Visualization</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #app-container {
+            width: 100vw;
+            height: 100vh;
+            display: grid;
+            grid-template-columns: 260px 1fr 280px;
+            grid-template-rows: 1fr 140px;
+            gap: 1px;
+            background: #1a1a1a;
+        }
+
+        /* Left Panel - Agent List */
+        #agent-panel {
+            background: #0f0f0f;
+            padding: 15px;
+            overflow-y: auto;
+            grid-row: 1 / 3;
+        }
+
+        .panel-title {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 8px;
+        }
+
+        .agent-item {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .agent-item:hover {
+            border-color: #00ff88;
+        }
+
+        .agent-item.active {
+            border-color: #00ff88;
+            background: #1a2520;
+        }
+
+        .agent-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .agent-name {
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .agent-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #666;
+        }
+
+        .agent-status.active { background: #00ff88; }
+        .agent-status.thinking { background: #ffff44; animation: pulse 0.5s infinite; }
+        .agent-status.sleeping { background: #4444ff; }
+
+        .agent-type {
+            font-size: 9px;
+            color: #666;
+        }
+
+        .agent-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            margin-top: 6px;
+            font-size: 9px;
+        }
+
+        .metric {
+            color: #888;
+        }
+
+        .metric-value {
+            color: #00ff88;
+        }
+
+        /* Center - WorldView Canvas */
+        #worldview-container {
+            background: #0a0a0a;
+            position: relative;
+        }
+
+        #worldview-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .worldview-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 10px;
+            z-index: 10;
+        }
+
+        .worldview-overlay kbd {
+            background: #333;
+            padding: 2px 5px;
+            border-radius: 3px;
+            color: #fff;
+        }
+
+        /* Right Panel - Agent Details */
+        #detail-panel {
+            background: #0f0f0f;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .detail-section {
+            margin-bottom: 15px;
+        }
+
+        .detail-title {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        .cognitive-state {
+            background: #1a1a1a;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+
+        .state-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            margin-bottom: 4px;
+        }
+
+        .state-label { color: #666; }
+        .state-value { color: #00ff88; }
+
+        .belief-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+        }
+
+        .belief-cell {
+            background: #1a1a1a;
+            padding: 6px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 9px;
+        }
+
+        .belief-icon {
+            font-size: 16px;
+            margin-bottom: 2px;
+        }
+
+        .belief-label {
+            color: #666;
+        }
+
+        .event-log {
+            height: 200px;
+            overflow-y: auto;
+            background: #1a1a1a;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 9px;
+        }
+
+        .event-entry {
+            margin-bottom: 4px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #222;
+        }
+
+        .event-time {
+            color: #666;
+        }
+
+        .event-type {
+            color: #00ff88;
+        }
+
+        .event-source {
+            color: #44ffff;
+        }
+
+        /* Bottom Panel - Neural Event Bus */
+        #neb-panel {
+            background: #0f0f0f;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .neb-stream {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .neb-event {
+            background: #1a1a1a;
+            border-left: 3px solid #333;
+            padding: 6px 10px;
+            border-radius: 0 4px 4px 0;
+            font-size: 10px;
+            display: flex;
+            gap: 10px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .neb-event.nerve { border-left-color: #ff4444; }
+        .neb-event.memory { border-left-color: #44ff44; }
+        .neb-event.world { border-left-color: #4444ff; }
+        .neb-event.agent { border-left-color: #ffff44; }
+        .neb-event.system { border-left-color: #ff44ff; }
+
+        .neb-time { color: #666; min-width: 60px; }
+        .neb-topic { color: #00ff88; min-width: 120px; }
+        .neb-payload { color: #888; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #252535;
+            color: #00ff88;
+            border: 1px solid #444;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 10px;
+            border-radius: 3px;
+        }
+
+        button:hover {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        button.active {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        /* Glyph Preview */
+        .glyph-preview {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .glyph-cell {
+            background: #0a0a0a;
+            padding: 4px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .glyph-cell canvas {
+            width: 24px;
+            height: 24px;
+        }
+
+        .glyph-label {
+            font-size: 8px;
+            color: #666;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <!-- Left Panel: Agent List -->
+        <div id="agent-panel">
+            <div class="panel-title">◈ Agents</div>
+            <div class="controls">
+                <button onclick="spawnAgent()">+ Spawn</button>
+                <button onclick="toggleSimulation()" id="btn-sim">▶ Run</button>
+            </div>
+            <div id="agent-list"></div>
+        </div>
+
+        <!-- Center: WorldView Canvas -->
+        <div id="worldview-container">
+            <canvas id="worldview-canvas"></canvas>
+            <div class="worldview-overlay">
+                <kbd>Click</kbd> Select agent &nbsp;
+                <kbd>Drag</kbd> Pan &nbsp;
+                <kbd>Scroll</kbd> Zoom &nbsp;
+                <kbd>Space</kbd> Pause
+            </div>
+        </div>
+
+        <!-- Right Panel: Agent Details -->
+        <div id="detail-panel">
+            <div class="detail-section">
+                <div class="panel-title">◈ Selected Agent</div>
+                <div id="agent-detail">
+                    <p style="color: #666; font-size: 10px;">Click an agent to view details</p>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-title">Morphological Glyphs</div>
+                <div class="glyph-preview" id="glyph-preview"></div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-title">Belief State</div>
+                <div class="belief-grid" id="belief-grid"></div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-title">Cognitive State</div>
+                <div id="cognitive-state" class="cognitive-state">
+                    <div class="state-row">
+                        <span class="state-label">Processing:</span>
+                        <span class="state-value" id="stat-processing">Idle</span>
+                    </div>
+                    <div class="state-row">
+                        <span class="state-label">Attention:</span>
+                        <span class="state-value" id="stat-attention">0%</span>
+                    </div>
+                    <div class="state-row">
+                        <span class="state-label">Memory:</span>
+                        <span class="state-value" id="stat-memory">0%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom: Neural Event Bus -->
+        <div id="neb-panel">
+            <div class="panel-title">◈ Neural Event Bus Stream</div>
+            <div class="neb-stream" id="neb-stream"></div>
+        </div>
+    </div>
+
+    <script src="lib/pixi.min.js"></script>
+    <script src="morphological/PatternLibrary.js"></script>
+    <script src="morphological/SemanticClassifier.js"></script>
+    <script src="morphological/HilbertGlyphSynthesizer.js"></script>
+    <script src="morphological/MorphologicalFont.js"></script>
+    <script>
+        let app;
+        let worldContainer;
+        let morphFont;
+        let semanticClassifier;
+
+        // Agent System
+        let agents = [];
+        let selectedAgent = null;
+        let simulationRunning = false;
+        let simulationTime = 0;
+
+        // NEB
+        let nebEvents = [];
+        const MAX_NEB_EVENTS = 50;
+
+        // Viewport
+        let viewport = { x: 0, y: 0, scale: 1.0 };
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+
+        // Agent Types with morphological categories
+        const AGENT_TYPES = [
+            { name: 'Architect', category: 'function', color: 0xFF44FF, glyph: 'A' },
+            { name: 'Engineer', category: 'control', color: 0x44FFFF, glyph: 'E' },
+            { name: 'Reviewer', category: 'return', color: 0xFFFF44, glyph: 'R' },
+            { name: 'Executor', category: 'data', color: 0x44FF44, glyph: 'X' },
+            { name: 'Observer', category: 'literal', color: 0x8888FF, glyph: 'O' },
+            { name: 'Daemon', category: 'operator', color: 0xFF8844, glyph: 'D' }
+        ];
+
+        const BELIEF_TYPES = [
+            { name: 'Truth', icon: '◆' },
+            { name: 'Goal', icon: '◈' },
+            { name: 'Memory', icon: '◇' },
+            { name: 'Intent', icon: '○' },
+            { name: 'Data', icon: '□' },
+            { name: 'Error', icon: '△' },
+            { name: 'Success', icon: '★' },
+            { name: 'Pending', icon: '◎' }
+        ];
+
+        async function init() {
+            console.log('[WorldView] Initializing...');
+
+            // Initialize morphological font
+            morphFont = new MorphologicalFont({ size: 12 });
+            await morphFont.init();
+
+            // Initialize semantic classifier
+            semanticClassifier = new SemanticClassifier();
+            semanticClassifier.setPatternLibrary(PatternLibrary);
+
+            // Initialize PIXI
+            const canvas = document.getElementById('worldview-canvas');
+            app = new PIXI.Application({
+                view: canvas,
+                width: canvas.offsetWidth,
+                height: canvas.offsetHeight,
+                backgroundColor: 0x0a0a0a,
+                resolution: window.devicePixelRatio || 1,
+                autoDensity: true
+            });
+
+            // World container
+            worldContainer = new PIXI.Container();
+            worldContainer.sortableChildren = true;
+            app.stage.addChild(worldContainer);
+
+            // Draw grid
+            drawGrid();
+
+            // Setup interaction
+            setupInteraction();
+
+            // Spawn initial agents
+            for (let i = 0; i < 4; i++) {
+                spawnAgent();
+            }
+
+            // Start render loop
+            app.ticker.add(update);
+
+            // Start simulation
+            toggleSimulation();
+
+            // Generate belief grid
+            generateBeliefGrid();
+
+            // Generate glyph preview
+            generateGlyphPreview();
+
+            console.log('[WorldView] Ready');
+        }
+
+        function drawGrid() {
+            const grid = new PIXI.Graphics();
+            grid.lineStyle(1, 0x1a1a1a, 0.5);
+
+            for (let x = -2000; x <= 2000; x += 100) {
+                grid.moveTo(x, -2000);
+                grid.lineTo(x, 2000);
+            }
+            for (let y = -2000; y <= 2000; y += 100) {
+                grid.moveTo(-2000, y);
+                grid.lineTo(2000, y);
+            }
+
+            // Origin marker
+            grid.lineStyle(2, 0x00ff88, 0.3);
+            grid.drawCircle(0, 0, 30);
+
+            worldContainer.addChildAt(grid, 0);
+        }
+
+        function setupInteraction() {
+            const container = document.getElementById('worldview-container');
+
+            container.addEventListener('pointerdown', (e) => {
+                const rect = container.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                // Check if clicked on agent
+                const worldX = (x - viewport.x) / viewport.scale;
+                const worldY = (y - viewport.y) / viewport.scale;
+
+                const clickedAgent = agents.find(a => {
+                    const dx = a.x - worldX;
+                    const dy = a.y - worldY;
+                    return Math.sqrt(dx*dx + dy*dy) < 40;
+                });
+
+                if (clickedAgent) {
+                    selectAgent(clickedAgent);
+                } else {
+                    // Pan
+                    isDragging = true;
+                    dragStart = { x: e.clientX - viewport.x, y: e.clientY - viewport.y };
+                }
+            });
+
+            container.addEventListener('pointermove', (e) => {
+                if (isDragging) {
+                    viewport.x = e.clientX - dragStart.x;
+                    viewport.y = e.clientY - dragStart.y;
+                    updateViewport();
+                }
+            });
+
+            container.addEventListener('pointerup', () => isDragging = false);
+            container.addEventListener('pointerleave', () => isDragging = false);
+
+            container.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const factor = e.deltaY > 0 ? 0.9 : 1.1;
+                viewport.scale = Math.max(0.2, Math.min(3, viewport.scale * factor));
+                updateViewport();
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    toggleSimulation();
+                }
+            });
+        }
+
+        function updateViewport() {
+            worldContainer.position.set(viewport.x, viewport.y);
+            worldContainer.scale.set(viewport.scale);
+        }
+
+        function spawnAgent() {
+            const type = AGENT_TYPES[Math.floor(Math.random() * AGENT_TYPES.length)];
+            const agent = {
+                id: `${type.name.toLowerCase()}-${Date.now().toString(36)}`,
+                type: type,
+                x: (Math.random() - 0.5) * 400,
+                y: (Math.random() - 0.5) * 400,
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: (Math.random() - 0.5) * 0.5,
+                status: 'active',
+                beliefs: generateBeliefs(),
+                attention: Math.random(),
+                memory: Math.random(),
+                processing: 'Idle',
+                thoughts: [],
+                graphics: null
+            };
+
+            // Create agent graphics
+            agent.graphics = createAgentGraphics(agent);
+            worldContainer.addChild(agent.graphics);
+
+            agents.push(agent);
+            updateAgentList();
+
+            // Emit NEB event
+            emitNebEvent('agent', 'agent.spawned', { id: agent.id, type: type.name });
+
+            return agent;
+        }
+
+        function generateBeliefs() {
+            const beliefs = {};
+            BELIEF_TYPES.forEach(b => {
+                beliefs[b.name] = Math.random();
+            });
+            return beliefs;
+        }
+
+        function createAgentGraphics(agent) {
+            const container = new PIXI.Container();
+            container.x = agent.x;
+            container.y = agent.y;
+
+            // Agent body (glyph shape based on type)
+            const body = new PIXI.Graphics();
+            const size = 30;
+
+            // Draw morphological-inspired shape
+            body.lineStyle(2, agent.type.color, 1);
+            body.beginFill(agent.type.color, 0.2);
+
+            switch (agent.type.category) {
+                case 'function': // Enclosed
+                    body.drawRoundedRect(-size/2, -size/2, size, size, 8);
+                    body.drawRoundedRect(-size/3, -size/3, size*2/3, size*2/3, 4);
+                    break;
+                case 'control': // Branch
+                    body.moveTo(0, -size/2);
+                    body.lineTo(-size/2, size/2);
+                    body.moveTo(0, -size/2);
+                    body.lineTo(size/2, size/2);
+                    body.moveTo(-size/2, size/2);
+                    body.lineTo(size/2, size/2);
+                    break;
+                case 'return': // Arrow
+                    body.moveTo(0, -size/2);
+                    body.lineTo(0, size/2);
+                    body.moveTo(-size/3, 0);
+                    body.lineTo(0, -size/2);
+                    body.lineTo(size/3, 0);
+                    break;
+                case 'data': // Square
+                    body.drawRect(-size/2, -size/2, size, size);
+                    break;
+                case 'operator': // Cross
+                    body.moveTo(-size/2, 0);
+                    body.lineTo(size/2, 0);
+                    body.moveTo(0, -size/2);
+                    body.lineTo(0, size/2);
+                    break;
+                case 'literal': // Circle
+                    body.drawCircle(0, 0, size/2);
+                    body.drawCircle(0, 0, size/3);
+                    break;
+                default:
+                    body.drawRect(-size/2, -size/2, size, size);
+            }
+            body.endFill();
+
+            container.addChild(body);
+
+            // Agent label
+            const label = new PIXI.Text(agent.type.glyph, {
+                fontFamily: 'Courier New',
+                fontSize: 14,
+                fill: 0xffffff,
+                align: 'center'
+            });
+            label.anchor.set(0.5);
+            label.y = 2;
+            container.addChild(label);
+
+            // Status indicator
+            const status = new PIXI.Graphics();
+            status.name = 'status';
+            status.beginFill(0x00ff88);
+            status.drawCircle(20, -20, 5);
+            status.endFill();
+            container.addChild(status);
+
+            // Connection lines to nearby agents
+            container.connections = new PIXI.Graphics();
+            container.addChildAt(container.connections, 0);
+
+            container.agentData = agent;
+            return container;
+        }
+
+        function selectAgent(agent) {
+            selectedAgent = agent;
+            updateAgentList();
+            updateAgentDetail();
+        }
+
+        function updateAgentList() {
+            const list = document.getElementById('agent-list');
+            list.innerHTML = '';
+
+            agents.forEach(agent => {
+                const item = document.createElement('div');
+                item.className = `agent-item ${selectedAgent === agent ? 'active' : ''}`;
+                item.innerHTML = `
+                    <div class="agent-header">
+                        <span class="agent-name" style="color: #${agent.type.color.toString(16).padStart(6, '0')}">${agent.type.name}</span>
+                        <span class="agent-status ${agent.status}"></span>
+                    </div>
+                    <div class="agent-type">${agent.id}</div>
+                    <div class="agent-metrics">
+                        <span class="metric">Attention: <span class="metric-value">${(agent.attention * 100).toFixed(0)}%</span></span>
+                        <span class="metric">Memory: <span class="metric-value">${(agent.memory * 100).toFixed(0)}%</span></span>
+                    </div>
+                `;
+                item.onclick = () => selectAgent(agent);
+                list.appendChild(item);
+            });
+        }
+
+        function updateAgentDetail() {
+            const detail = document.getElementById('agent-detail');
+
+            if (!selectedAgent) {
+                detail.innerHTML = '<p style="color: #666; font-size: 10px;">Click an agent to view details</p>';
+                return;
+            }
+
+            const a = selectedAgent;
+            detail.innerHTML = `
+                <div class="cognitive-state">
+                    <div class="state-row">
+                        <span class="state-label">ID:</span>
+                        <span class="state-value">${a.id}</span>
+                    </div>
+                    <div class="state-row">
+                        <span class="state-label">Type:</span>
+                        <span class="state-value" style="color: #${a.type.color.toString(16).padStart(6, '0')}">${a.type.name}</span>
+                    </div>
+                    <div class="state-row">
+                        <span class="state-label">Status:</span>
+                        <span class="state-value">${a.status}</span>
+                    </div>
+                    <div class="state-row">
+                        <span class="state-label">Position:</span>
+                        <span class="state-value">(${a.x.toFixed(0)}, ${a.y.toFixed(0)})</span>
+                    </div>
+                </div>
+            `;
+
+            // Update cognitive stats
+            document.getElementById('stat-processing').textContent = a.processing;
+            document.getElementById('stat-attention').textContent = (a.attention * 100).toFixed(0) + '%';
+            document.getElementById('stat-memory').textContent = (a.memory * 100).toFixed(0) + '%';
+        }
+
+        function generateBeliefGrid() {
+            const grid = document.getElementById('belief-grid');
+            grid.innerHTML = '';
+
+            BELIEF_TYPES.forEach(b => {
+                const cell = document.createElement('div');
+                cell.className = 'belief-cell';
+                cell.innerHTML = `
+                    <div class="belief-icon">${b.icon}</div>
+                    <div class="belief-label">${b.name}</div>
+                `;
+                grid.appendChild(cell);
+            });
+        }
+
+        function generateGlyphPreview() {
+            const preview = document.getElementById('glyph-preview');
+            preview.innerHTML = '';
+
+            AGENT_TYPES.forEach(type => {
+                const cell = document.createElement('div');
+                cell.className = 'glyph-cell';
+
+                const canvas = document.createElement('canvas');
+                canvas.width = 24;
+                canvas.height = 24;
+                const ctx = canvas.getContext('2d');
+
+                // Draw morphological glyph
+                ctx.strokeStyle = `#${type.color.toString(16).padStart(6, '0')}`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+
+                const cx = 12, cy = 12;
+                switch (type.category) {
+                    case 'function':
+                        ctx.rect(4, 4, 16, 16);
+                        ctx.rect(7, 7, 10, 10);
+                        break;
+                    case 'control':
+                        ctx.moveTo(cx, 4);
+                        ctx.lineTo(4, 20);
+                        ctx.moveTo(cx, 4);
+                        ctx.lineTo(20, 20);
+                        break;
+                    case 'return':
+                        ctx.moveTo(cx, 20);
+                        ctx.lineTo(cx, 4);
+                        ctx.moveTo(8, 10);
+                        ctx.lineTo(cx, 4);
+                        ctx.lineTo(16, 10);
+                        break;
+                    case 'data':
+                        ctx.rect(4, 4, 16, 16);
+                        break;
+                    case 'operator':
+                        ctx.moveTo(4, cy);
+                        ctx.lineTo(20, cy);
+                        ctx.moveTo(cx, 4);
+                        ctx.lineTo(cx, 20);
+                        break;
+                    case 'literal':
+                        ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+                        break;
+                }
+                ctx.stroke();
+
+                cell.appendChild(canvas);
+
+                const label = document.createElement('div');
+                label.className = 'glyph-label';
+                label.textContent = type.glyph;
+                cell.appendChild(label);
+
+                preview.appendChild(cell);
+            });
+        }
+
+        function emitNebEvent(type, topic, payload) {
+            const event = {
+                time: new Date().toLocaleTimeString(),
+                type: type,
+                topic: topic,
+                payload: JSON.stringify(payload)
+            };
+
+            nebEvents.unshift(event);
+            if (nebEvents.length > MAX_NEB_EVENTS) {
+                nebEvents.pop();
+            }
+
+            updateNebStream();
+        }
+
+        function updateNebStream() {
+            const stream = document.getElementById('neb-stream');
+            stream.innerHTML = '';
+
+            nebEvents.slice(0, 10).forEach(event => {
+                const entry = document.createElement('div');
+                entry.className = `neb-event ${event.type}`;
+                entry.innerHTML = `
+                    <span class="neb-time">${event.time}</span>
+                    <span class="neb-topic">${event.topic}</span>
+                    <span class="neb-payload">${event.payload}</span>
+                `;
+                stream.appendChild(entry);
+            });
+        }
+
+        function toggleSimulation() {
+            simulationRunning = !simulationRunning;
+            const btn = document.getElementById('btn-sim');
+            btn.textContent = simulationRunning ? '⏸ Pause' : '▶ Run';
+            btn.classList.toggle('active', simulationRunning);
+        }
+
+        function update() {
+            if (!simulationRunning) return;
+
+            simulationTime += 0.016;
+
+            // Update agents
+            agents.forEach(agent => {
+                // Movement with attraction to center
+                const dx = -agent.x * 0.001;
+                const dy = -agent.y * 0.001;
+                agent.vx += dx + (Math.random() - 0.5) * 0.1;
+                agent.vy += dy + (Math.random() - 0.5) * 0.1;
+                agent.vx *= 0.98;
+                agent.vy *= 0.98;
+                agent.x += agent.vx;
+                agent.y += agent.vy;
+
+                // Update graphics position
+                if (agent.graphics) {
+                    agent.graphics.x = agent.x;
+                    agent.graphics.y = agent.y;
+
+                    // Update connections
+                    agent.graphics.connections.clear();
+                    agents.forEach(other => {
+                        if (other === agent) return;
+                        const dist = Math.sqrt((agent.x - other.x)**2 + (agent.y - other.y)**2);
+                        if (dist < 200) {
+                            const alpha = 1 - dist / 200;
+                            agent.graphics.connections.lineStyle(1, agent.type.color, alpha * 0.3);
+                            agent.graphics.connections.moveTo(0, 0);
+                            agent.graphics.connections.lineTo(other.x - agent.x, other.y - agent.y);
+                        }
+                    });
+                }
+
+                // Update cognitive state
+                agent.attention = Math.max(0, Math.min(1, agent.attention + (Math.random() - 0.5) * 0.02));
+                agent.memory = Math.max(0, Math.min(1, agent.memory + (Math.random() - 0.5) * 0.01));
+
+                // Random status changes
+                if (Math.random() < 0.001) {
+                    agent.status = agent.status === 'thinking' ? 'active' : 'thinking';
+                    if (agent.status === 'thinking') {
+                        emitNebEvent('agent', 'agent.thinking', { id: agent.id });
+                    }
+                }
+
+                // Random NEB events
+                if (Math.random() < 0.002) {
+                    const eventTypes = ['nerve', 'memory', 'world', 'system'];
+                    const topics = ['perception.update', 'memory.consolidate', 'belief.revise', 'goal.advance'];
+                    emitNebEvent(
+                        eventTypes[Math.floor(Math.random() * eventTypes.length)],
+                        topics[Math.floor(Math.random() * topics.length)],
+                        { agent: agent.id }
+                    );
+                }
+            });
+
+            // Update UI
+            if (selectedAgent) {
+                updateAgentDetail();
+            }
+        }
+
+        // Initialize
+        init();
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            if (app) {
+                const container = document.getElementById('worldview-container');
+                app.renderer.resize(container.offsetWidth, container.offsetHeight);
+            }
+        });
+    </script>
+</body>
+</html>
