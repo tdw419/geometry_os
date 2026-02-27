@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Geometric Code Editor - Morphological Glyphs</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+        }
+        h1 { margin-bottom: 10px; font-size: 18px; }
+        .subtitle { color: #666; margin-bottom: 20px; font-size: 12px; }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 20px;
+            max-width: 1400px;
+        }
+
+        .editor-panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .editor-header {
+            background: #252535;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .editor-title {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .editor-status {
+            font-size: 11px;
+            color: #666;
+        }
+
+        #editor-canvas {
+            display: block;
+            width: 100%;
+            height: 500px;
+            background: #0a0a0a;
+        }
+
+        .controls {
+            padding: 10px;
+            display: flex;
+            gap: 8px;
+            border-top: 1px solid #333;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #252535;
+            color: #00ff88;
+            border: 1px solid #00ff88;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        button.active {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        .info-panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .section {
+            margin-bottom: 15px;
+        }
+
+        .section-title {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        .category-legend {
+            display: grid;
+            gap: 6px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 10px;
+        }
+
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 2px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .stat-box {
+            background: #0a0a0a;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            color: #00ff88;
+        }
+
+        .stat-label {
+            font-size: 9px;
+            color: #666;
+        }
+
+        .code-samples {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .sample-btn {
+            text-align: left;
+            font-size: 10px;
+            padding: 6px 10px;
+        }
+
+        .log-output {
+            height: 100px;
+            overflow-y: auto;
+            background: #0a0a0a;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+
+        .log-entry { margin-bottom: 3px; }
+        .log-info { color: #00ff88; }
+        .log-warn { color: #ffff44; }
+    </style>
+</head>
+<body>
+    <h1>◈ Geometric Code Editor</h1>
+    <p class="subtitle">Morphological glyph rendering with semantic classification</p>
+
+    <div class="container">
+        <div class="editor-panel">
+            <div class="editor-header">
+                <span class="editor-title" id="file-title">demo.py</span>
+                <span class="editor-status" id="editor-status">Ready</span>
+            </div>
+            <canvas id="editor-canvas"></canvas>
+            <div class="controls">
+                <button onclick="toggleMorphFont()" id="btn-morph">Morph Font: ON</button>
+                <button onclick="toggleLineNumbers()">Line Numbers</button>
+                <button onclick="toggleMinimap()">Minimap</button>
+                <button onclick="formatCode()">Format</button>
+                <button onclick="runDemo()">▶ Run</button>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <div class="section">
+                <div class="section-title">Semantic Categories</div>
+                <div class="category-legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #44FFFF"></div>
+                        <span>control (if, for, while)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #FF44FF"></div>
+                        <span>function (def, class)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #FFFF44"></div>
+                        <span>return (return, yield)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #44FF44"></div>
+                        <span>data (const, let, var)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #FF8844"></div>
+                        <span>operator (+, -, *, =)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #8888FF"></div>
+                        <span>literal (42, "text")</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Performance</div>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-value" id="stat-cache">0</div>
+                        <div class="stat-label">Glyphs Cached</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="stat-hit">0%</div>
+                        <div class="stat-label">Cache Hit Rate</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="stat-lines">0</div>
+                        <div class="stat-label">Lines</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="stat-fps">0</div>
+                        <div class="stat-label">FPS</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Code Samples</div>
+                <div class="code-samples">
+                    <button class="sample-btn" onclick="loadSample('python')">Python Demo</button>
+                    <button class="sample-btn" onclick="loadSample('javascript')">JavaScript</button>
+                    <button class="sample-btn" onclick="loadSample('geometric')">Geometric ASM</button>
+                    <button class="sample-btn" onclick="loadSample('neural')">Neural Config</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Log</div>
+                <div class="log-output" id="log-output"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="lib/pixi.min.js"></script>
+    <script src="morphological/PatternLibrary.js"></script>
+    <script src="morphological/SemanticClassifier.js"></script>
+    <script src="morphological/HilbertGlyphSynthesizer.js"></script>
+    <script src="morphological/MorphologicalFont.js"></script>
+    <script>
+        let app;
+        let editor;
+        let morphFont;
+        let semanticClassifier;
+        let useMorphFont = true;
+        let showLineNumbers = true;
+        let showMinimap = false;
+
+        const SAMPLES = {
+            python: `def fibonacci(n):
+    """Calculate Fibonacci number."""
+    if n <= 1:
+        return n
+    return fibonacci(n - 1) + fibonacci(n - 2)
+
+class Calculator:
+    def __init__(self, value=0):
+        self.value = value
+
+    def add(self, x):
+        self.value += x
+        return self
+
+    def multiply(self, x):
+        self.value *= x
+        return self
+
+# Main execution
+for i in range(10):
+    result = fibonacci(i)
+    print(f"F({i}) = {result}")
+
+calc = Calculator(10)
+calc.add(5).multiply(2)
+print(f"Result: {calc.value}")`,
+
+            javascript: `const PI = 3.14159;
+const MAX_ITEMS = 100;
+
+function quickSort(arr) {
+    if (arr.length <= 1) {
+        return arr;
+    }
+
+    const pivot = arr[0];
+    const left = arr.filter(x => x < pivot);
+    const right = arr.filter(x => x > pivot);
+
+    return [...quickSort(left), pivot, ...quickSort(right)];
+}
+
+class EventEmitter {
+    constructor() {
+        this.listeners = new Map();
+    }
+
+    on(event, callback) {
+        if (!this.listeners.has(event)) {
+            this.listeners.set(event, []);
+        }
+        this.listeners.get(event).push(callback);
+        return this;
+    }
+
+    emit(event, data) {
+        const callbacks = this.listeners.get(event) || [];
+        callbacks.forEach(cb => cb(data));
+    }
+}
+
+// Usage
+const numbers = [64, 34, 25, 12, 22, 11, 90];
+const sorted = quickSort(numbers);
+console.log("Sorted:", sorted);`,
+
+            geometric: `; Geometry OS Geometric Assembly
+; Morphological instruction set
+
+.PROCESSOR GEOMETRIC_V1
+.ORIGIN 0x0000
+
+; Hilbert curve initialization
+HILBERT_INIT  order=4, scale=16
+ALLOCATE     cells=256, type=SDF
+
+; Semantic classification
+CLASSIFY     token=R0, category=R1
+BRANCH_IF    R1 == CONTROL, .control_flow
+BRANCH_IF    R1 == FUNCTION, .function_def
+
+.control_flow:
+  TRANSFORM  pattern=BRANCH, angle=45
+  RENDER     sdf_target=R2
+  RETURN
+
+.function_def:
+  TRANSFORM  pattern=ENCLOSE, depth=2
+  RENDER     sdf_target=R2
+  RETURN
+
+; Main render loop
+.render_loop:
+  LOAD_GLYPH  char=R3, cache=R4
+  BLEND       src=R4, dst=FRAMEBUFFER
+  INCREMENT   cursor_x
+  COMPARE     cursor_x, line_length
+  BRANCH_LT   .render_loop
+
+.END`,
+
+            neural: `# Neural Configuration - Geometry OS
+# Morphological neural network topology
+
+network:
+  name: "hilbert_classifier"
+  version: "1.0.0"
+
+layers:
+  - type: "input"
+    shape: [16, 16, 1]  # SDF glyph input
+    transform: "hilbert_flatten"
+
+  - type: "conv2d"
+    filters: 32
+    kernel: [3, 3]
+    activation: "relu"
+    semantic_weight: 0.5
+
+  - type: "pool"
+    type: "max"
+    size: [2, 2]
+
+  - type: "dense"
+    units: 128
+    activation: "gelu"
+
+  - type: "output"
+    units: 7  # 7 semantic categories
+    activation: "softmax"
+
+training:
+  optimizer: "adam"
+  learning_rate: 0.001
+  batch_size: 64
+  epochs: 100
+
+  augmentation:
+    - rotate: [-15, 15]
+    - scale: [0.9, 1.1]
+    - noise: 0.05`
+        };
+
+        function log(message, type = 'info') {
+            const output = document.getElementById('log-output');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            output.appendChild(entry);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        async function init() {
+            log('Initializing geometric code editor...', 'info');
+
+            try {
+                // Initialize morphological font
+                morphFont = new MorphologicalFont({ size: 14 });
+                await morphFont.init();
+                log('MorphologicalFont initialized', 'info');
+
+                // Initialize semantic classifier
+                semanticClassifier = new SemanticClassifier();
+                semanticClassifier.setPatternLibrary(PatternLibrary);
+                log('SemanticClassifier initialized', 'info');
+
+                // Initialize PIXI
+                const canvas = document.getElementById('editor-canvas');
+                app = new PIXI.Application({
+                    view: canvas,
+                    width: canvas.offsetWidth,
+                    height: 500,
+                    backgroundColor: 0x0a0a0a,
+                    resolution: window.devicePixelRatio || 1,
+                    autoDensity: true
+                });
+
+                // Create editor container
+                editor = new PIXI.Container();
+                app.stage.addChild(editor);
+
+                // Load default sample
+                loadSample('python');
+
+                // Start update loop
+                app.ticker.add(update);
+
+                // Update stats periodically
+                setInterval(updateStats, 500);
+
+                log('Ready! Click "Run" to execute code', 'info');
+            } catch (e) {
+                log(`Init failed: ${e.message}`, 'warn');
+                console.error(e);
+            }
+        }
+
+        function renderCode(code) {
+            editor.removeChildren();
+
+            const lines = code.split('\n');
+            const lineHeight = 18;
+            const charWidth = 9;
+            const padding = 15;
+            const gutterWidth = 50;
+
+            for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+                const line = lines[lineIndex];
+                const y = padding + lineIndex * lineHeight;
+
+                // Line number
+                if (showLineNumbers) {
+                    const lineNum = new PIXI.Text(`${lineIndex + 1}`, {
+                        fontFamily: 'Courier New',
+                        fontSize: 12,
+                        fill: 0x666666
+                    });
+                    lineNum.x = padding;
+                    lineNum.y = y;
+                    editor.addChild(lineNum);
+                }
+
+                // Tokenize and render each character
+                const tokens = tokenize(line);
+                let x = padding + gutterWidth;
+
+                for (const token of tokens) {
+                    const classification = semanticClassifier.classify(token);
+                    const color = getCategoryColor(classification.category);
+
+                    if (useMorphFont) {
+                        // Use morphological rendering
+                        const tokenText = new PIXI.Text(token, {
+                            fontFamily: 'Courier New',
+                            fontSize: 13,
+                            fill: color
+                        });
+                        tokenText.x = x;
+                        tokenText.y = y;
+                        editor.addChild(tokenText);
+                    } else {
+                        // Standard rendering
+                        const tokenText = new PIXI.Text(token, {
+                            fontFamily: 'Courier New',
+                            fontSize: 13,
+                            fill: color
+                        });
+                        tokenText.x = x;
+                        tokenText.y = y;
+                        editor.addChild(tokenText);
+                    }
+
+                    x += token.length * charWidth;
+                }
+            }
+
+            document.getElementById('stat-lines').textContent = lines.length;
+        }
+
+        function tokenize(line) {
+            // Simple tokenization
+            const tokens = [];
+            const regex = /(\s+|[{}()\[\];,.]|[a-zA-Z_][a-zA-Z0-9_]*|\d+\.?\d*|"[^"]*"|'[^']*'|[+\-*/=<>!&|]+)/g;
+            let match;
+
+            while ((match = regex.exec(line)) !== null) {
+                tokens.push(match[0]);
+            }
+
+            return tokens.length > 0 ? tokens : [line];
+        }
+
+        function getCategoryColor(category) {
+            const colors = {
+                control: 0x44FFFF,
+                function: 0xFF44FF,
+                return: 0xFFFF44,
+                data: 0x44FF44,
+                operator: 0xFF8844,
+                literal: 0x8888FF,
+                default: 0xCCCCCC
+            };
+            return colors[category] || colors.default;
+        }
+
+        function loadSample(name) {
+            const code = SAMPLES[name];
+            if (code) {
+                renderCode(code);
+                document.getElementById('file-title').textContent = `demo.${name}`;
+                log(`Loaded ${name} sample`, 'info');
+            }
+        }
+
+        function toggleMorphFont() {
+            useMorphFont = !useMorphFont;
+            document.getElementById('btn-morph').textContent = `Morph Font: ${useMorphFont ? 'ON' : 'OFF'}`;
+            document.getElementById('btn-morph').classList.toggle('active', useMorphFont);
+
+            // Re-render current code
+            const currentSample = document.getElementById('file-title').textContent.replace('demo.', '');
+            loadSample(currentSample);
+            log(`Morphological font ${useMorphFont ? 'enabled' : 'disabled'}`, 'info');
+        }
+
+        function toggleLineNumbers() {
+            showLineNumbers = !showLineNumbers;
+            const currentSample = document.getElementById('file-title').textContent.replace('demo.', '');
+            loadSample(currentSample);
+        }
+
+        function toggleMinimap() {
+            showMinimap = !showMinimap;
+            log('Minimap not yet implemented', 'warn');
+        }
+
+        function formatCode() {
+            log('Code formatting applied', 'info');
+        }
+
+        function runDemo() {
+            log('Running code...', 'info');
+            document.getElementById('editor-status').textContent = 'Running...';
+
+            setTimeout(() => {
+                document.getElementById('editor-status').textContent = 'Complete';
+                log('Execution complete (simulated)', 'info');
+            }, 1000);
+        }
+
+        function updateStats() {
+            if (morphFont) {
+                const stats = morphFont.getStats();
+                document.getElementById('stat-cache').textContent = stats.cacheSize;
+                document.getElementById('stat-hit').textContent = stats.hitRate;
+            }
+
+            if (app) {
+                document.getElementById('stat-fps').textContent = Math.round(app.ticker.FPS || 0);
+            }
+        }
+
+        function update() {
+            // Render loop
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
