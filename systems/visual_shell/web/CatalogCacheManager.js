@@ -25,10 +25,12 @@ class CatalogCacheManager {
      * @param {Object} options - Configuration options
      * @param {string} options.dbName - Database name (default: 'gos-cache')
      * @param {number} options.dbVersion - Database version (default: 1)
+     * @param {boolean} options.verifyOnRead - Verify hash on every read (default: false)
      */
     constructor(options = {}) {
         this.dbName = options.dbName || CatalogCacheManager.DB_NAME;
         this.dbVersion = options.dbVersion || CatalogCacheManager.DB_VERSION;
+        this.verifyOnRead = options.verifyOnRead || false;
         this.db = null;
         this._initPromise = null;
     }
@@ -199,12 +201,13 @@ class CatalogCacheManager {
     /**
      * Retrieve cached container by ID
      * Updates lastAccessed timestamp on successful get
+     * Optionally verifies hash if verifyOnRead is enabled
      * @param {string} entryId - The entry ID to retrieve
      * @returns {Promise<Object|null>} Entry data or null if not found
      *
      * @example
      * const entry = await cache.get('ubuntu-22.04');
-     * // Returns: { id, data, metadata, size, cachedAt, lastAccessed, etag, hash }
+     * // Returns: { id, data, metadata, size, cachedAt, lastAccessed, hash, verificationStatus }
      */
     async get(entryId) {
         const store = await this._getStore('readwrite');
@@ -219,12 +222,104 @@ class CatalogCacheManager {
                 // Update lastAccessed timestamp
                 entry.lastAccessed = Date.now();
                 await this._wrapRequest(store.put(entry));
+
+                // Optionally verify hash on read
+                if (this.verifyOnRead && entry.hash && entry.data) {
+                    const computedHash = await this.computeHash(entry.data);
+                    if (computedHash && computedHash !== entry.hash) {
+                        console.warn('[CatalogCacheManager] Hash mismatch on read for', entryId);
+                        entry.verificationStatus = 'failed';
+                    }
+                }
             }
 
             return entry;
         } catch (error) {
             console.error('[CatalogCacheManager] Get error:', error);
             return null;
+        }
+    }
+
+    /**
+     * Retrieve cached container with full verification
+     * Computes hash and compares with stored hash
+     * @param {string} entryId - The entry ID to retrieve
+     * @returns {Promise<{entry: Object|null, verified: boolean, computedHash: string|null, storedHash: string|null}>}
+     *
+     * @example
+     * const result = await cache.getWithVerification('ubuntu-22.04');
+     * // Returns: { entry: {...}, verified: true, computedHash: 'a591...', storedHash: 'a591...' }
+     */
+    async getWithVerification(entryId) {
+        const store = await this._getStore('readwrite');
+        if (!store) {
+            return { entry: null, verified: false, computedHash: null, storedHash: null };
+        }
+
+        try {
+            const entry = await this._wrapRequest(store.get(entryId));
+
+            if (!entry) {
+                return { entry: null, verified: false, computedHash: null, storedHash: null };
+            }
+
+            // Update lastAccessed timestamp
+            entry.lastAccessed = Date.now();
+            await this._wrapRequest(store.put(entry));
+
+            const storedHash = entry.hash || null;
+            let computedHash = null;
+            let verified = false;
+
+            if (entry.data && storedHash) {
+                computedHash = await this.computeHash(entry.data);
+                verified = computedHash === storedHash;
+
+                if (!verified) {
+                    console.warn('[CatalogCacheManager] Hash verification failed for', entryId,
+                        '- stored:', storedHash, 'computed:', computedHash);
+                }
+            }
+
+            return {
+                entry: entry,
+                verified: verified,
+                computedHash: computedHash,
+                storedHash: storedHash
+            };
+        } catch (error) {
+            console.error('[CatalogCacheManager] getWithVerification error:', error);
+            return { entry: null, verified: false, computedHash: null, storedHash: null };
+        }
+    }
+
+    /**
+     * Get verification status without loading full data
+     * Quick check for UI to display verification status
+     * @param {string} entryId - The entry ID to check
+     * @returns {Promise<string>} 'verified' | 'failed' | 'pending' | 'not-found'
+     *
+     * @example
+     * const status = await cache.getVerificationStatus('ubuntu-22.04');
+     * // Returns: 'verified'
+     */
+    async getVerificationStatus(entryId) {
+        const store = await this._getStore('readonly');
+        if (!store) {
+            return 'not-found';
+        }
+
+        try {
+            const entry = await this._wrapRequest(store.get(entryId));
+
+            if (!entry) {
+                return 'not-found';
+            }
+
+            return entry.verificationStatus || 'pending';
+        } catch (error) {
+            console.error('[CatalogCacheManager] getVerificationStatus error:', error);
+            return 'not-found';
         }
     }
 
