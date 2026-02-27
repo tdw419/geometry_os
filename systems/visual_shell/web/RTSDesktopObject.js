@@ -78,6 +78,10 @@ class RTSDesktopObject extends PIXI.Container {
         if (entry.layout) {
             this.gridX = entry.layout.gridX || 0;
             this.gridY = entry.layout.gridY || 0;
+        } else if (entry.position) {
+            // Fallback: handle server's position.{x,y} format
+            this.gridX = entry.position.x || 0;
+            this.gridY = entry.position.y || 0;
         } else {
             this.gridX = 0;
             this.gridY = 0;
@@ -583,6 +587,9 @@ class RTSDesktopObject extends PIXI.Container {
 
         if (entry.layout) {
             this.setGridPosition(entry.layout.gridX || 0, entry.layout.gridY || 0);
+        } else if (entry.position) {
+            // Fallback: handle server's position.{x,y} format
+            this.setGridPosition(entry.position.x || 0, entry.position.y || 0);
         }
     }
 
