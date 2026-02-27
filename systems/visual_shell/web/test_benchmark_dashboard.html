@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GIQ Benchmark Dashboard - Geometry OS</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        h1 { margin-bottom: 5px; font-size: 20px; }
+        .subtitle { color: #666; margin-bottom: 20px; font-size: 11px; }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            max-width: 1400px;
+        }
+
+        .main-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .giq-score-card {
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
+            border: 2px solid #00ff88;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .giq-score-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, rgba(0,255,136,0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .giq-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+        }
+
+        .giq-value {
+            font-size: 72px;
+            font-weight: bold;
+            color: #00ff88;
+            text-shadow: 0 0 30px rgba(0,255,136,0.5);
+            line-height: 1;
+        }
+
+        .giq-max {
+            font-size: 24px;
+            color: #444;
+        }
+
+        .giq-percentile {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #44ffff;
+        }
+
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+        }
+
+        .category-card {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .category-card:hover {
+            border-color: #00ff88;
+            transform: translateY(-2px);
+            transition: all 0.2s;
+        }
+
+        .category-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .category-name {
+            font-size: 10px;
+            color: #888;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .category-score {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .category-bar {
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .category-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.5s ease;
+        }
+
+        .vs-llm {
+            font-size: 10px;
+            margin-top: 8px;
+        }
+
+        .positive { color: #44ff44; }
+        .negative { color: #ff4444; }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .panel-title {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #333;
+        }
+
+        .history-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #222;
+            font-size: 10px;
+        }
+
+        .history-item:hover {
+            background: #0f0f0f;
+        }
+
+        .run-button {
+            width: 100%;
+            background: linear-gradient(135deg, #00ff88, #00cc66);
+            color: #0a0a0a;
+            border: none;
+            padding: 15px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            margin-bottom: 10px;
+        }
+
+        .run-button:hover {
+            transform: scale(1.02);
+            transition: transform 0.2s;
+        }
+
+        .run-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .config-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 10px;
+        }
+
+        .config-row select, .config-row input {
+            background: #0f0f0f;
+            border: 1px solid #333;
+            color: #00ff88;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+
+        .progress-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .progress-overlay.active {
+            display: flex;
+        }
+
+        .progress-box {
+            background: #1a1a1a;
+            border: 2px solid #00ff88;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            min-width: 300px;
+        }
+
+        .progress-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #333;
+            border-top-color: #00ff88;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .progress-text {
+            font-size: 14px;
+            margin-top: 15px;
+        }
+
+        .progress-category {
+            font-size: 11px;
+            color: #888;
+            margin-top: 8px;
+        }
+
+        .chart-container {
+            height: 200px;
+            position: relative;
+        }
+
+        .chart-container canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #222;
+            font-size: 11px;
+        }
+
+        .metric-label { color: #888; }
+        .metric-value { color: #00ff88; font-weight: bold; }
+
+        .category-high { color: #44ff44; }
+        .category-medium { color: #ffff44; }
+        .category-low { color: #ff8844; }
+
+        button.secondary {
+            background: #0f0f0f;
+            color: #00ff88;
+            border: 1px solid #333;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 10px;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        button.secondary:hover {
+            background: #1a1a1a;
+            border-color: #00ff88;
+        }
+    </style>
+</head>
+<body>
+    <h1>◈ GIQ Benchmark Dashboard</h1>
+    <p class="subtitle">Geometric Intelligence Quotient Assessment System</p>
+
+    <div class="dashboard">
+        <div class="main-panel">
+            <!-- Main GIQ Score -->
+            <div class="giq-score-card">
+                <div class="giq-label">Total GIQ Score</div>
+                <div class="giq-value" id="giq-total">---</div>
+                <div class="giq-max">/ 1000</div>
+                <div class="giq-percentile" id="giq-percentile">Percentile: ---%</div>
+            </div>
+
+            <!-- Category Cards -->
+            <div class="categories-grid">
+                <div class="category-card">
+                    <div class="category-icon">◈</div>
+                    <div class="category-name">Pattern Recognition</div>
+                    <div class="category-score" id="cat-pattern">--</div>
+                    <div class="category-bar"><div class="category-bar-fill" id="bar-pattern" style="width:0%;background:#44ffff"></div></div>
+                    <div class="vs-llm" id="vs-pattern">vs LLM: --</div>
+                </div>
+                <div class="category-card">
+                    <div class="category-icon">◇</div>
+                    <div class="category-name">Morphological Synthesis</div>
+                    <div class="category-score" id="cat-synthesis">--</div>
+                    <div class="category-bar"><div class="category-bar-fill" id="bar-synthesis" style="width:0%;background:#ff44ff"></div></div>
+                    <div class="vs-llm" id="vs-synthesis">vs LLM: --</div>
+                </div>
+                <div class="category-card">
+                    <div class="category-icon">◎</div>
+                    <div class="category-name">Spatial Reasoning</div>
+                    <div class="category-score" id="cat-spatial">--</div>
+                    <div class="category-bar"><div class="category-bar-fill" id="bar-spatial" style="width:0%;background:#44ff44"></div></div>
+                    <div class="vs-llm" id="vs-spatial">vs LLM: --</div>
+                </div>
+                <div class="category-card">
+                    <div class="category-icon">⇄</div>
+                    <div class="category-name">Symbolic Translation</div>
+                    <div class="category-score" id="cat-translation">--</div>
+                    <div class="category-bar"><div class="category-bar-fill" id="bar-translation" style="width:0%;background:#ffff44"></div></div>
+                    <div class="vs-llm" id="vs-translation">vs LLM: --</div>
+                </div>
+                <div class="category-card">
+                    <div class="category-icon">⬡</div>
+                    <div class="category-name">Decomposition</div>
+                    <div class="category-score" id="cat-decomposition">--</div>
+                    <div class="category-bar"><div class="category-bar-fill" id="bar-decomposition" style="width:0%;background:#ff8844"></div></div>
+                    <div class="vs-llm" id="vs-decomposition">vs LLM: --</div>
+                </div>
+            </div>
+
+            <!-- Historical Chart -->
+            <div class="panel">
+                <div class="panel-title">GIQ History</div>
+                <div class="chart-container">
+                    <canvas id="history-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <!-- Run Benchmark -->
+            <div class="panel">
+                <button class="run-button" id="run-btn" onclick="runBenchmark()">
+                    ▶ Run Full Benchmark
+                </button>
+                <button class="secondary" onclick="runQuickBenchmark()">
+                    Quick Benchmark (1 category)
+                </button>
+            </div>
+
+            <!-- Configuration -->
+            <div class="panel">
+                <div class="panel-title">Configuration</div>
+                <div class="config-row">
+                    <span>Iterations:</span>
+                    <select id="iterations">
+                        <option value="1">1</option>
+                        <option value="3">3</option>
+                        <option value="5" selected>5</option>
+                        <option value="10">10</option>
+                    </select>
+                </div>
+                <div class="config-row">
+                    <span>Difficulty:</span>
+                    <select id="difficulty">
+                        <option value="easy">Easy</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Metrics -->
+            <div class="panel">
+                <div class="panel-title">Metrics</div>
+                <div class="metric-row">
+                    <span class="metric-label">Total Tests</span>
+                    <span class="metric-value" id="metric-tests">0</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Avg Latency</span>
+                    <span class="metric-value" id="metric-latency">--ms</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Avg Accuracy</span>
+                    <span class="metric-value" id="metric-accuracy">--%</span>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div class="panel">
+                <div class="panel-title">Recent Runs</div>
+                <div class="history-list" id="history-list">
+                    <div style="color:#666;padding:20px;text-align:center;">
+                        No runs yet
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export -->
+            <div class="panel">
+                <div class="panel-title">Export</div>
+                <button class="secondary" onclick="exportJSON()">
+                    📄 Export JSON Report
+                </button>
+                <button class="secondary" onclick="exportCSV()" style="margin-top:8px">
+                    📊 Export CSV History
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Overlay -->
+    <div class="progress-overlay" id="progress-overlay">
+        <div class="progress-box">
+            <div class="progress-spinner"></div>
+            <div class="progress-text">Running Benchmark...</div>
+            <div class="progress-category" id="progress-category">Initializing...</div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentResults = null;
+        let history = [];
+        let historyChart = null;
+
+        // Category configurations
+        const categories = [
+            { id: 'pattern_recognition', name: 'Pattern Recognition', icon: '◈', color: '#44ffff', baseline: 45 },
+            { id: 'morphological_synthesis', name: 'Morphological Synthesis', icon: '◇', color: '#ff44ff', baseline: 30 },
+            { id: 'spatial_reasoning', name: 'Spatial Reasoning', icon: '◎', color: '#44ff44', baseline: 55 },
+            { id: 'symbolic_translation', name: 'Symbolic Translation', icon: '⇄', color: '#ffff44', baseline: 40 },
+            { id: 'decomposition', name: 'Decomposition', icon: '⬡', color: '#ff8844', baseline: 35 }
+        ];
+
+        // Initialize history chart
+        function initChart() {
+            const canvas = document.getElementById('history-chart');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            canvas.width = canvas.offsetWidth * 2;
+            canvas.height = canvas.offsetHeight * 2;
+            ctx.scale(2, 2);
+
+            drawEmptyChart(ctx, canvas.width/2, canvas.height/2);
+        }
+
+        function drawEmptyChart(ctx, width, height) {
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+
+            // Grid lines
+            for (let y = 0; y < height; y += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+
+            // Axis labels
+            ctx.fillStyle = '#666';
+            ctx.font = '10px Courier New';
+            ctx.fillText('GIQ Score', 10, 20);
+            ctx.fillText('Run #', width - 40, height - 10);
+        }
+
+        function drawHistoryChart() {
+            const canvas = document.getElementById('history-chart');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width / 2;
+            const height = canvas.height / 2;
+
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, width, height);
+
+            if (history.length < 2) {
+                drawEmptyChart(ctx, width, height);
+                return;
+            }
+
+            // Calculate scales
+            const maxGIQ = Math.max(...history.map(h => h.total_giq), 1000);
+            const padding = 40;
+            const chartWidth = width - padding * 2;
+            const chartHeight = height - padding * 2;
+
+            // Draw grid
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const y = padding + (chartHeight / 4) * i;
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(width - padding, y);
+                ctx.stroke();
+
+                // Label
+                ctx.fillStyle = '#666';
+                ctx.font = '9px Courier New';
+                const value = Math.round(maxGIQ * (1 - i / 4));
+                ctx.fillText(value.toString(), 5, y + 3);
+            }
+
+            // Draw line
+            ctx.strokeStyle = '#00ff88';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            history.forEach((run, i) => {
+                const x = padding + (chartWidth / (history.length - 1)) * i;
+                const y = padding + chartHeight * (1 - run.total_giq / maxGIQ);
+
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+
+            ctx.stroke();
+
+            // Draw points
+            history.forEach((run, i) => {
+                const x = padding + (chartWidth / (history.length - 1)) * i;
+                const y = padding + chartHeight * (1 - run.total_giq / maxGIQ);
+
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#00ff88';
+                ctx.fill();
+            });
+
+            // Baseline line
+            const baselineY = padding + chartHeight * (1 - 500 / maxGIQ);
+            ctx.strokeStyle = '#ff4444';
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(padding, baselineY);
+            ctx.lineTo(width - padding, baselineY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = '#ff4444';
+            ctx.font = '9px Courier New';
+            ctx.fillText('LLM Baseline (500)', width - 100, baselineY - 5);
+        }
+
+        // Simulate benchmark run
+        async function runBenchmark() {
+            const btn = document.getElementById('run-btn');
+            btn.disabled = true;
+            showProgress(true);
+
+            const iterations = parseInt(document.getElementById('iterations').value);
+            const difficulty = document.getElementById('difficulty').value;
+
+            const results = {
+                total_giq: 0,
+                category_scores: {},
+                test_results: [],
+                baseline_comparison: {},
+                percentile: 0,
+                timestamp: new Date().toISOString()
+            };
+
+            // Run each category
+            for (const cat of categories) {
+                updateProgressCategory(cat.name + '...');
+                await sleep(500 + Math.random() * 500);
+
+                // Simulate score based on difficulty
+                const baseScore = cat.baseline * (1 + Math.random() * 0.5);
+                const difficultyMultiplier = difficulty === 'easy' ? 1.2 : difficulty === 'hard' ? 0.8 : 1;
+                const score = baseScore * difficultyMultiplier * (0.9 + Math.random() * 0.2);
+
+                results.category_scores[cat.id] = score;
+                results.baseline_comparison[cat.id] = ((score - cat.baseline) / cat.baseline) * 100;
+                results.total_giq += score * 2;
+
+                // Update UI in real-time
+                updateCategoryDisplay(cat, score, results.baseline_comparison[cat.id]);
+            }
+
+            // Calculate percentile
+            results.percentile = calculatePercentile(results.total_giq);
+
+            // Finalize
+            currentResults = results;
+            history.push(results);
+            if (history.length > 20) history.shift();
+
+            // Update main display
+            updateMainDisplay(results);
+            drawHistoryChart();
+            updateHistoryList();
+            updateMetrics();
+
+            showProgress(false);
+            btn.disabled = false;
+        }
+
+        async function runQuickBenchmark() {
+            // Run just one random category
+            const cat = categories[Math.floor(Math.random() * categories.length)];
+            
+            showProgress(true);
+            updateProgressCategory(cat.name + ' (quick)...');
+            await sleep(300);
+
+            const score = cat.baseline * (1 + Math.random() * 0.3);
+
+            showProgress(false);
+
+            // Update just this category
+            const vsLLM = ((score - cat.baseline) / cat.baseline) * 100;
+            updateCategoryDisplay(cat, score, vsLLM);
+        }
+
+        function updateCategoryDisplay(cat, score, vsLLM) {
+            const scoreEl = document.getElementById(`cat-${cat.id.split('_')[0]}`);
+            const barEl = document.getElementById(`bar-${cat.id.split('_')[0]}`);
+            const vsEl = document.getElementById(`vs-${cat.id.split('_')[0]}`);
+
+            if (scoreEl) {
+                scoreEl.textContent = score.toFixed(1);
+                scoreEl.className = `category-score ${score > cat.baseline * 1.5 ? 'category-high' : score > cat.baseline ? 'category-medium' : 'category-low'}`;
+            }
+
+            if (barEl) {
+                barEl.style.width = `${Math.min(100, score)}%`;
+            }
+
+            if (vsEl) {
+                const sign = vsLLM >= 0 ? '+' : '';
+                vsEl.textContent = `vs LLM: ${sign}${vsLLM.toFixed(1)}%`;
+                vsEl.className = `vs-llm ${vsLLM >= 0 ? 'positive' : 'negative'}`;
+            }
+        }
+
+        function updateMainDisplay(results) {
+            document.getElementById('giq-total').textContent = Math.round(results.total_giq);
+            document.getElementById('giq-percentile').textContent = 
+                `Percentile: ${results.percentile.toFixed(1)}% (Top ${(100 - results.percentile).toFixed(1)}%)`;
+        }
+
+        function calculatePercentile(giq) {
+            // Simplified percentile calculation
+            if (giq < 200) return giq / 4;
+            if (giq < 400) return 50 + (giq - 200) / 8;
+            if (giq < 600) return 75 + (giq - 400) / 8;
+            if (giq < 800) return 90 + (giq - 600) / 20;
+            return 95 + Math.min(5, (giq - 800) / 40);
+        }
+
+        function updateHistoryList() {
+            const list = document.getElementById('history-list');
+            list.innerHTML = '';
+
+            history.slice(-10).reverse().forEach((run, i) => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <span>${new Date(run.timestamp).toLocaleTimeString()}</span>
+                    <span style="color:#00ff88;font-weight:bold">${Math.round(run.total_giq)}</span>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function updateMetrics() {
+            document.getElementById('metric-tests').textContent = history.length * 5;
+            
+            if (history.length > 0) {
+                const avgLatency = Math.round(50 + Math.random() * 100);
+                const avgAccuracy = Math.round(70 + Math.random() * 25);
+                
+                document.getElementById('metric-latency').textContent = avgLatency + 'ms';
+                document.getElementById('metric-accuracy').textContent = avgAccuracy + '%';
+            }
+        }
+
+        function showProgress(show) {
+            document.getElementById('progress-overlay').classList.toggle('active', show);
+        }
+
+        function updateProgressCategory(text) {
+            document.getElementById('progress-category').textContent = text;
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function exportJSON() {
+            if (!currentResults) {
+                alert('Run benchmark first');
+                return;
+            }
+
+            const blob = new Blob([JSON.stringify(currentResults, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `giq_report_${Date.now()}.json`;
+            a.click();
+        }
+
+        function exportCSV() {
+            if (history.length === 0) {
+                alert('No history to export');
+                return;
+            }
+
+            const headers = ['timestamp', 'total_giq', 'percentile', ...categories.map(c => c.id)];
+            const rows = history.map(h => [
+                h.timestamp,
+                h.total_giq,
+                h.percentile,
+                ...categories.map(c => h.category_scores[c.id] || 0)
+            ]);
+
+            const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `giq_history_${Date.now()}.csv`;
+            a.click();
+        }
+
+        // Initialize
+        window.onload = () => {
+            initChart();
+        };
+
+        window.onresize = () => {
+            initChart();
+            if (history.length > 0) drawHistoryChart();
+        };
+    </script>
+</body>
+</html>
