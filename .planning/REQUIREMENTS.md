@@ -16,9 +16,9 @@ Requirements for Visual Shell Integration milestone. Each maps to a roadmap phas
 
 ### Boot Progress (BOOT)
 
-- [ ] **BOOT-01**: User sees a progress indicator during QEMU boot launch (>1 second operations)
-- [ ] **BOOT-02**: User can see visual status of each container (running, stopped, error)
-- [ ] **BOOT-03**: User sees clear error messages when boot fails with actionable guidance
+- [x] **BOOT-01**: User sees a progress indicator during QEMU boot launch (>1 second operations)
+- [x] **BOOT-02**: User can see visual status of each container (running, stopped, error)
+- [x] **BOOT-03**: User sees clear error messages when boot fails with actionable guidance
 - [x] **BOOT-04**: User's container positions persist across sessions (layout saved and restored)
 
 ## v1.x Requirements
@@ -74,17 +74,17 @@ Which phases cover which requirements. Updated after phase completion.
 | DESKTOP-02 | Phase 5 | Complete |
 | DESKTOP-03 | Phase 5 | Complete |
 | DESKTOP-04 | Phase 5 | Complete |
-| BOOT-01 | Phase 6 | Pending |
-| BOOT-02 | Phase 6 | Pending |
-| BOOT-03 | Phase 6 | Pending |
+| BOOT-01 | Phase 6 | Complete |
+| BOOT-02 | Phase 6 | Complete |
+| BOOT-03 | Phase 6 | Complete |
 | BOOT-04 | Phase 5 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 8 total
-- Complete: 5
-- Pending: 3
+- Complete: 8
+- Pending: 0
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-02-27*
-*Last updated: 2026-02-27 after Phase 5 completion*
+*Last updated: 2026-02-27 after Phase 6 completion*
