@@ -551,6 +551,45 @@ class RTSDesktopObject extends PIXI.Container {
     }
 
     /**
+     * Set the boot progress
+     * @param {number} percent - Progress percentage (0-100)
+     * @param {string} stageLabel - Optional stage label to display
+     */
+    setProgress(percent, stageLabel = null) {
+        this._progressPercent = Math.max(0, Math.min(100, percent));
+
+        // Update fill bar
+        this._drawProgressFill(this._progressPercent);
+
+        // Update label
+        if (stageLabel) {
+            this.progressLabel.text = `${stageLabel} ${Math.round(this._progressPercent)}%`;
+        } else {
+            this.progressLabel.text = `${Math.round(this._progressPercent)}%`;
+        }
+
+        // Show progress container
+        this.progressContainer.visible = true;
+    }
+
+    /**
+     * Hide the progress bar
+     */
+    hideProgress() {
+        this.progressContainer.visible = false;
+        this._progressPercent = 0;
+        this._progressStage = null;
+    }
+
+    /**
+     * Get current progress
+     * @returns {number} Progress percentage
+     */
+    getProgress() {
+        return this._progressPercent;
+    }
+
+    /**
      * Start pulse animation on status indicator
      * @private
      */
