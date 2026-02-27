@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Geometry OS - Unified Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 280px 1fr 280px;
+            grid-template-rows: 50px 1fr 150px;
+            height: 100vh;
+            gap: 1px;
+            background: #1a1a1a;
+        }
+
+        /* Header */
+        .header {
+            grid-column: 1 / -1;
+            background: #0f0f1a;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            border-bottom: 1px solid #333;
+        }
+
+        .logo {
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            font-size: 20px;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 5px;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: 1px solid #333;
+            color: #888;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 10px;
+            border-radius: 4px;
+        }
+
+        .nav-btn:hover {
+            border-color: #00ff88;
+            color: #00ff88;
+        }
+
+        .nav-btn.active {
+            background: #00ff88;
+            color: #0a0a0a;
+            border-color: #00ff88;
+        }
+
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 10px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff88;
+        }
+
+        .status-dot.warning { background: #ffff44; }
+        .status-dot.error { background: #ff4444; }
+
+        /* Left Sidebar */
+        .sidebar-left {
+            background: #0a0a0a;
+            padding: 15px;
+            overflow-y: auto;
+            border-right: 1px solid #222;
+        }
+
+        .sidebar-section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #222;
+        }
+
+        .component-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .component-item {
+            background: #0f0f0f;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .component-item:hover {
+            border-color: #333;
+        }
+
+        .component-item.active {
+            border-color: #00ff88;
+            background: #0f1a0f;
+        }
+
+        .component-name {
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+
+        .component-status {
+            font-size: 9px;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .status-badge {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 8px;
+        }
+
+        .status-badge.running { background: #003300; color: #00ff88; }
+        .status-badge.idle { background: #222; color: #888; }
+
+        /* Main Canvas */
+        .main-area {
+            background: #0a0a0a;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .canvas-tabs {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #0f0f0f;
+            display: flex;
+            border-bottom: 1px solid #222;
+            z-index: 10;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            font-size: 11px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: #888;
+        }
+
+        .tab:hover {
+            color: #00ff88;
+        }
+
+        .tab.active {
+            color: #00ff88;
+            border-bottom-color: #00ff88;
+        }
+
+        .canvas-container {
+            position: absolute;
+            top: 40px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+
+        .view-panel {
+            position: absolute;
+            inset: 0;
+            display: none;
+        }
+
+        .view-panel.active {
+            display: block;
+        }
+
+        /* Right Sidebar */
+        .sidebar-right {
+            background: #0a0a0a;
+            padding: 15px;
+            overflow-y: auto;
+            border-left: 1px solid #222;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .metric-card {
+            background: #0f0f0f;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 20px;
+            color: #00ff88;
+            margin-bottom: 4px;
+        }
+
+        .metric-label {
+            font-size: 8px;
+            color: #666;
+        }
+
+        .agent-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .agent-item {
+            background: #0f0f0f;
+            padding: 10px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .agent-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .agent-info {
+            flex: 1;
+        }
+
+        .agent-name {
+            font-size: 11px;
+            margin-bottom: 2px;
+        }
+
+        .agent-task {
+            font-size: 9px;
+            color: #666;
+        }
+
+        .agent-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* Bottom Panel */
+        .bottom-panel {
+            grid-column: 1 / -1;
+            background: #0a0a0a;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1px;
+            border-top: 1px solid #222;
+        }
+
+        .bottom-section {
+            background: #0f0f0f;
+            padding: 10px;
+        }
+
+        .bottom-title {
+            font-size: 9px;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .terminal-output {
+            height: 90px;
+            overflow-y: auto;
+            font-size: 10px;
+            line-height: 1.4;
+        }
+
+        .log-line {
+            margin-bottom: 2px;
+        }
+
+        .log-time { color: #444; }
+        .log-level-info { color: #00ff88; }
+        .log-level-warn { color: #ffff44; }
+        .log-level-error { color: #ff4444; }
+
+        .task-list {
+            height: 90px;
+            overflow-y: auto;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+            font-size: 10px;
+        }
+
+        .task-check {
+            width: 12px;
+            height: 12px;
+            border: 1px solid #333;
+            border-radius: 2px;
+        }
+
+        .task-check.done {
+            background: #00ff88;
+            border-color: #00ff88;
+        }
+
+        .neb-events {
+            height: 90px;
+            overflow-y: auto;
+        }
+
+        .neb-event {
+            font-size: 9px;
+            padding: 3px 0;
+            border-bottom: 1px solid #1a1a1a;
+        }
+
+        .neb-topic {
+            color: #44ffff;
+        }
+
+        /* Overlays */
+        .minimap {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 150px;
+            height: 100px;
+            background: rgba(0,0,0,0.8);
+            border: 1px solid #333;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .minimap-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Glyph Legend */
+        .glyph-legend {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            font-size: 9px;
+        }
+
+        .glyph-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px;
+            background: #0f0f0f;
+            border-radius: 4px;
+        }
+
+        .glyph-shape {
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <span class="logo-icon">◈</span>
+                <span>GEOMETRY OS</span>
+            </div>
+            <div class="header-nav">
+                <button class="nav-btn active" onclick="switchView('overview')">Overview</button>
+                <button class="nav-btn" onclick="switchView('terminal')">Terminal</button>
+                <button class="nav-btn" onclick="switchView('editor')">Editor</button>
+                <button class="nav-btn" onclick="switchView('agents')">Agents</button>
+                <button class="nav-btn" onclick="switchView('infinite')">Infinite</button>
+            </div>
+            <div class="header-status">
+                <div class="status-item">
+                    <div class="status-dot"></div>
+                    <span>NEB Active</span>
+                </div>
+                <div class="status-item">
+                    <span id="agent-count">5 agents</span>
+                </div>
+                <div class="status-item">
+                    <span id="memory-usage">64MB</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Left Sidebar -->
+        <div class="sidebar-left">
+            <div class="sidebar-section">
+                <div class="section-title">Active Components</div>
+                <div class="component-list">
+                    <div class="component-item active" onclick="selectComponent(this, 'neb')">
+                        <div class="component-name">◆ Neural Event Bus</div>
+                        <div class="component-status">
+                            <span>13 topics</span>
+                            <span class="status-badge running">Running</span>
+                        </div>
+                    </div>
+                    <div class="component-item" onclick="selectComponent(this, 'morph')">
+                        <div class="component-name">◈ Morphological Font</div>
+                        <div class="component-status">
+                            <span>256 glyphs</span>
+                            <span class="status-badge running">Active</span>
+                        </div>
+                    </div>
+                    <div class="component-item" onclick="selectComponent(this, 'terminal')">
+                        <div class="component-name">▹ Geometric Terminal</div>
+                        <div class="component-status">
+                            <span>3 sessions</span>
+                            <span class="status-badge running">Running</span>
+                        </div>
+                    </div>
+                    <div class="component-item" onclick="selectComponent(this, 'editor')">
+                        <div class="component-name">◇ Code Editor</div>
+                        <div class="component-status">
+                            <span>2 files</span>
+                            <span class="status-badge idle">Idle</span>
+                        </div>
+                    </div>
+                    <div class="component-item" onclick="selectComponent(this, 'swarm')">
+                        <div class="component-name">◈ Agent Swarm</div>
+                        <div class="component-status">
+                            <span>5 guilds</span>
+                            <span class="status-badge running">Active</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="section-title">Morphological Glyphs</div>
+                <div class="glyph-legend">
+                    <div class="glyph-item">
+                        <span class="glyph-shape" style="color:#44ffff">▲</span>
+                        <span>Function</span>
+                    </div>
+                    <div class="glyph-item">
+                        <span class="glyph-shape" style="color:#ff44ff">⬡</span>
+                        <span>Class</span>
+                    </div>
+                    <div class="glyph-item">
+                        <span class="glyph-shape" style="color:#ffff44">→</span>
+                        <span>Import</span>
+                    </div>
+                    <div class="glyph-item">
+                        <span class="glyph-shape" style="color:#ff8844">◇</span>
+                        <span>Branch</span>
+                    </div>
+                    <div class="glyph-item">
+                        <span class="glyph-shape" style="color:#44ff44">◎</span>
+                        <span>Loop</span>
+                    </div>
+                    <div class="glyph-item">
+                        <span class="glyph-shape" style="color:#ff4444">↑</span>
+                        <span>Return</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="section-title">Quick Actions</div>
+                <div class="component-list">
+                    <div class="component-item" onclick="spawnTerminal()">
+                        <div class="component-name">+ New Terminal</div>
+                    </div>
+                    <div class="component-item" onclick="spawnAgent()">
+                        <div class="component-name">+ Spawn Agent</div>
+                    </div>
+                    <div class="component-item" onclick="runBenchmark()">
+                        <div class="component-name">▸ Run GIQ Benchmark</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Area -->
+        <div class="main-area">
+            <div class="canvas-tabs">
+                <div class="tab active">Overview</div>
+                <div class="tab">Morphology</div>
+                <div class="tab">Agents</div>
+                <div class="tab">Diff</div>
+            </div>
+            <div class="canvas-container" id="main-canvas"></div>
+            <div class="minimap">
+                <canvas class="minimap-canvas" id="minimap-canvas"></canvas>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="sidebar-right">
+            <div class="sidebar-section">
+                <div class="section-title">System Metrics</div>
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="metric-fps">60</div>
+                        <div class="metric-label">FPS</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="metric-glyphs">256</div>
+                        <div class="metric-label">Glyphs</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="metric-events">1.2k</div>
+                        <div class="metric-label">NEB/s</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="metric-threads">8</div>
+                        <div class="metric-label">Threads</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="section-title">Active Agents</div>
+                <div class="agent-list" id="agent-list">
+                    <div class="agent-item">
+                        <div class="agent-avatar" style="background:#003344">◈</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Architect</div>
+                            <div class="agent-task">Designing module structure</div>
+                        </div>
+                        <div class="agent-status-dot" style="background:#00ff88"></div>
+                    </div>
+                    <div class="agent-item">
+                        <div class="agent-avatar" style="background:#004400">◆</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Engineer-1</div>
+                            <div class="agent-task">Implementing auth flow</div>
+                        </div>
+                        <div class="agent-status-dot" style="background:#00ff88"></div>
+                    </div>
+                    <div class="agent-item">
+                        <div class="agent-avatar" style="background:#004400">◆</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Engineer-2</div>
+                            <div class="agent-task">Writing unit tests</div>
+                        </div>
+                        <div class="agent-status-dot" style="background:#00ff88"></div>
+                    </div>
+                    <div class="agent-item">
+                        <div class="agent-avatar" style="background:#444400">◇</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Reviewer</div>
+                            <div class="agent-task">Code review pending</div>
+                        </div>
+                        <div class="agent-status-dot" style="background:#888888"></div>
+                    </div>
+                    <div class="agent-item">
+                        <div class="agent-avatar" style="background:#440044">○</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Executor</div>
+                            <div class="agent-task">Running integration tests</div>
+                        </div>
+                        <div class="agent-status-dot" style="background:#ffff44"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="section-title">GIQ Score</div>
+                <div class="metric-grid">
+                    <div class="metric-card" style="grid-column: span 2">
+                        <div class="metric-value" style="font-size:28px">847</div>
+                        <div class="metric-label">Geometric Intelligence Quotient</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">+12</div>
+                        <div class="metric-label">Δ Today</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">94%</div>
+                        <div class="metric-label">Accuracy</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Panel -->
+        <div class="bottom-panel">
+            <div class="bottom-section">
+                <div class="bottom-title">System Log</div>
+                <div class="terminal-output" id="system-log"></div>
+            </div>
+            <div class="bottom-section">
+                <div class="bottom-title">Task Queue</div>
+                <div class="task-list" id="task-list">
+                    <div class="task-item">
+                        <div class="task-check done"></div>
+                        <span>Parse syntax tree</span>
+                    </div>
+                    <div class="task-item">
+                        <div class="task-check done"></div>
+                        <span>Generate morphological glyphs</span>
+                    </div>
+                    <div class="task-item">
+                        <div class="task-check"></div>
+                        <span>Optimize SDF rendering</span>
+                    </div>
+                    <div class="task-item">
+                        <div class="task-check"></div>
+                        <span>Connect to live agents</span>
+                    </div>
+                </div>
+            </div>
+            <div class="bottom-section">
+                <div class="bottom-title">Neural Event Bus</div>
+                <div class="neb-events" id="neb-events"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="lib/pixi.min.js"></script>
+    <script>
+        // Main application
+        let app = null;
+        let currentView = 'overview';
+        let particles = [];
+        let agents = [];
+        let glyphs = [];
+        let frameCount = 0;
+        let lastTime = Date.now();
+
+        // Initialize
+        async function init() {
+            const container = document.getElementById('main-canvas');
+
+            app = new PIXI.Application({
+                width: container.offsetWidth,
+                height: container.offsetHeight,
+                backgroundColor: 0x0a0a0a,
+                resolution: window.devicePixelRatio || 1,
+                autoDensity: true
+            });
+            container.appendChild(app.view);
+
+            // Create layers
+            app.bgLayer = new PIXI.Container();
+            app.glyphLayer = new PIXI.Container();
+            app.agentLayer = new PIXI.Container();
+            app.particleLayer = new PIXI.Container();
+            app.uiLayer = new PIXI.Container();
+
+            app.stage.addChild(app.bgLayer);
+            app.stage.addChild(app.glyphLayer);
+            app.stage.addChild(app.agentLayer);
+            app.stage.addChild(app.particleLayer);
+            app.stage.addChild(app.uiLayer);
+
+            // Initialize visualizations
+            initBackground();
+            initAgents();
+            initGlyphs();
+
+            // Start animation loop
+            app.ticker.add(animate);
+
+            // Handle resize
+            window.addEventListener('resize', resize);
+
+            // Start log streams
+            startLogStreams();
+
+            log('Unified Dashboard initialized', 'info');
+            log('5 agents active', 'info');
+            log('NEB connected: 13 topics', 'info');
+        }
+
+        function initBackground() {
+            // Grid background
+            const grid = new PIXI.Graphics();
+            const gridSize = 40;
+
+            grid.lineStyle(1, 0x1a1a1a, 0.5);
+            for (let x = 0; x < app.screen.width * 2; x += gridSize) {
+                grid.moveTo(x, -app.screen.height);
+                grid.lineTo(x, app.screen.height * 2);
+            }
+            for (let y = 0; y < app.screen.height * 2; y += gridSize) {
+                grid.moveTo(-app.screen.width, y);
+                grid.lineTo(app.screen.width * 2, y);
+            }
+
+            app.bgLayer.addChild(grid);
+
+            // Origin marker
+            const origin = new PIXI.Graphics();
+            origin.lineStyle(2, 0x00ff88, 0.3);
+            origin.moveTo(-30, 0);
+            origin.lineTo(30, 0);
+            origin.moveTo(0, -30);
+            origin.lineTo(0, 30);
+            app.bgLayer.addChild(origin);
+        }
+
+        function initAgents() {
+            const agentData = [
+                { name: 'Architect', color: 0x44ffff, x: 200, y: 150, type: 'architect' },
+                { name: 'Engineer-1', color: 0x00ff88, x: 400, y: 100, type: 'engineer' },
+                { name: 'Engineer-2', color: 0x00ff88, x: 400, y: 250, type: 'engineer' },
+                { name: 'Reviewer', color: 0xffff44, x: 600, y: 150, type: 'reviewer' },
+                { name: 'Executor', color: 0xff44ff, x: 800, y: 175, type: 'executor' }
+            ];
+
+            for (const data of agentData) {
+                const agent = createAgentNode(data);
+                agents.push(agent);
+                app.agentLayer.addChild(agent.container);
+            }
+
+            // Draw connections
+            drawAgentConnections();
+        }
+
+        function createAgentNode(data) {
+            const container = new PIXI.Container();
+            container.x = data.x;
+            container.y = data.y;
+
+            // Pulse ring
+            const pulse = new PIXI.Graphics();
+            pulse.lineStyle(2, data.color, 0.3);
+            pulse.drawCircle(0, 0, 35);
+            container.addChild(pulse);
+
+            // Main body
+            const body = new PIXI.Graphics();
+            body.beginFill(data.color, 0.2);
+            body.drawCircle(0, 0, 30);
+            body.endFill();
+            body.lineStyle(2, data.color, 0.8);
+            body.drawCircle(0, 0, 30);
+            container.addChild(body);
+
+            // Type indicator
+            const icon = new PIXI.Text(getAgentIcon(data.type), {
+                fontFamily: 'Courier New',
+                fontSize: 18,
+                fill: data.color
+            });
+            icon.anchor.set(0.5);
+            container.addChild(icon);
+
+            // Name label
+            const label = new PIXI.Text(data.name, {
+                fontFamily: 'Courier New',
+                fontSize: 10,
+                fill: 0x888888
+            });
+            label.y = 45;
+            label.anchor.set(0.5);
+            container.addChild(label);
+
+            // Interaction
+            container.eventMode = 'static';
+            container.cursor = 'pointer';
+            container.on('pointerover', () => {
+                body.clear();
+                body.beginFill(data.color, 0.4);
+                body.drawCircle(0, 0, 35);
+                body.endFill();
+            });
+
+            return {
+                container,
+                data,
+                pulse,
+                pulsePhase: Math.random() * Math.PI * 2
+            };
+        }
+
+        function getAgentIcon(type) {
+            const icons = {
+                architect: '◈',
+                engineer: '◆',
+                reviewer: '◇',
+                executor: '○'
+            };
+            return icons[type] || '•';
+        }
+
+        function drawAgentConnections() {
+            const connections = new PIXI.Graphics();
+            connections.lineStyle(1, 0x333333, 0.5);
+
+            // Connect agents in workflow
+            connections.moveTo(agents[0].container.x, agents[0].container.y);
+            connections.lineTo(agents[1].container.x, agents[1].container.y);
+
+            connections.moveTo(agents[0].container.x, agents[0].container.y);
+            connections.lineTo(agents[2].container.x, agents[2].container.y);
+
+            connections.moveTo(agents[1].container.x, agents[1].container.y);
+            connections.lineTo(agents[3].container.x, agents[3].container.y);
+
+            connections.moveTo(agents[2].container.x, agents[2].container.y);
+            connections.lineTo(agents[3].container.x, agents[3].container.y);
+
+            connections.moveTo(agents[3].container.x, agents[3].container.y);
+            connections.lineTo(agents[4].container.x, agents[4].container.y);
+
+            app.agentLayer.addChildAt(connections, 0);
+        }
+
+        function initGlyphs() {
+            // Create floating morphological glyphs
+            for (let i = 0; i < 20; i++) {
+                const glyph = createGlyph();
+                glyphs.push(glyph);
+                app.glyphLayer.addChild(glyph.container);
+            }
+        }
+
+        function createGlyph() {
+            const container = new PIXI.Container();
+            container.x = Math.random() * app.screen.width;
+            container.y = Math.random() * app.screen.height;
+
+            const shapes = ['▲', '▽', '◇', '○', '⬡', '◎', '◈', '◆'];
+            const colors = [0x44ffff, 0xff44ff, 0xffff44, 0x00ff88, 0xff8844];
+
+            const text = new PIXI.Text(shapes[Math.floor(Math.random() * shapes.length)], {
+                fontFamily: 'Courier New',
+                fontSize: 16 + Math.random() * 12,
+                fill: colors[Math.floor(Math.random() * colors.length)]
+            });
+            text.alpha = 0.3;
+            container.addChild(text);
+
+            return {
+                container,
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: (Math.random() - 0.5) * 0.5,
+                rotation: (Math.random() - 0.5) * 0.01
+            };
+        }
+
+        function animate() {
+            frameCount++;
+            const now = Date.now();
+
+            // Update FPS every second
+            if (now - lastTime >= 1000) {
+                document.getElementById('metric-fps').textContent = frameCount;
+                frameCount = 0;
+                lastTime = now;
+            }
+
+            // Animate agent pulses
+            for (const agent of agents) {
+                agent.pulsePhase += 0.02;
+                const scale = 1 + Math.sin(agent.pulsePhase) * 0.1;
+                agent.pulse.scale.set(scale);
+                agent.pulse.alpha = 0.3 - Math.sin(agent.pulsePhase) * 0.15;
+            }
+
+            // Animate floating glyphs
+            for (const glyph of glyphs) {
+                glyph.container.x += glyph.vx;
+                glyph.container.y += glyph.vy;
+                glyph.container.rotation += glyph.rotation;
+
+                // Wrap around
+                if (glyph.container.x < -50) glyph.container.x = app.screen.width + 50;
+                if (glyph.container.x > app.screen.width + 50) glyph.container.x = -50;
+                if (glyph.container.y < -50) glyph.container.y = app.screen.height + 50;
+                if (glyph.container.y > app.screen.height + 50) glyph.container.y = -50;
+            }
+
+            // Spawn particles occasionally
+            if (Math.random() < 0.05) {
+                spawnParticle();
+            }
+
+            // Update particles
+            updateParticles();
+        }
+
+        function spawnParticle() {
+            const startX = agents[0].container.x;
+            const startY = agents[0].container.y;
+            const endAgent = agents[Math.floor(Math.random() * agents.length)];
+
+            const particle = new PIXI.Graphics();
+            particle.beginFill(0x00ff88, 0.8);
+            particle.drawCircle(0, 0, 3);
+            particle.endFill();
+            particle.x = startX;
+            particle.y = startY;
+
+            app.particleLayer.addChild(particle);
+
+            particles.push({
+                graphics: particle,
+                targetX: endAgent.container.x,
+                targetY: endAgent.container.y,
+                life: 1.0
+            });
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+
+                p.graphics.x += (p.targetX - p.graphics.x) * 0.05;
+                p.graphics.y += (p.targetY - p.graphics.y) * 0.05;
+                p.life -= 0.02;
+                p.graphics.alpha = p.life;
+
+                if (p.life <= 0) {
+                    app.particleLayer.removeChild(p.graphics);
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function resize() {
+            const container = document.getElementById('main-canvas');
+            app.renderer.resize(container.offsetWidth, container.offsetHeight);
+        }
+
+        // View switching
+        window.switchView = function(view) {
+            currentView = view;
+
+            // Update nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Clear and reinitialize for view
+            app.agentLayer.removeChildren();
+            app.glyphLayer.removeChildren();
+            app.particleLayer.removeChildren();
+
+            agents = [];
+            glyphs = [];
+
+            switch (view) {
+                case 'overview':
+                    initAgents();
+                    initGlyphs();
+                    break;
+                case 'terminal':
+                    initTerminalView();
+                    break;
+                case 'editor':
+                    initEditorView();
+                    break;
+                case 'agents':
+                    initAgentFlowView();
+                    break;
+                case 'infinite':
+                    initInfiniteView();
+                    break;
+            }
+
+            log(`Switched to ${view} view`, 'info');
+        };
+
+        function initTerminalView() {
+            // Create terminal windows as particles
+            for (let i = 0; i < 3; i++) {
+                const term = new PIXI.Container();
+                term.x = 100 + i * 250;
+                term.y = 100;
+
+                const bg = new PIXI.Graphics();
+                bg.beginFill(0x0f0f0f);
+                bg.drawRoundedRect(0, 0, 200, 150, 4);
+                bg.endFill();
+                bg.lineStyle(1, 0x00ff88, 0.5);
+                bg.drawRoundedRect(0, 0, 200, 150, 4);
+                term.addChild(bg);
+
+                const text = new PIXI.Text('$ npm run dev\n> Starting...\n> Ready ✓', {
+                    fontFamily: 'Courier New',
+                    fontSize: 10,
+                    fill: 0x00ff88
+                });
+                text.x = 10;
+                text.y = 30;
+                term.addChild(text);
+
+                app.agentLayer.addChild(term);
+            }
+        }
+
+        function initEditorView() {
+            // Show code with syntax geometry
+            const code = new PIXI.Text(
+                'class MorphologicalFont:\n' +
+                '    def __init__(self):\n' +
+                '        self.glyphs = []\n' +
+                '\n' +
+                '    def render(self, char):\n' +
+                '        return self.synthesize(char)\n',
+                {
+                    fontFamily: 'Courier New',
+                    fontSize: 14,
+                    fill: 0xcccccc,
+                    lineHeight: 20
+                }
+            );
+            code.x = 50;
+            code.y = 80;
+            app.agentLayer.addChild(code);
+
+            // Add fold indicators
+            const fold = new PIXI.Graphics();
+            fold.beginFill(0x00ff88, 0.3);
+            fold.moveTo(35, 100);
+            fold.lineTo(45, 105);
+            fold.lineTo(35, 110);
+            fold.endFill();
+            app.agentLayer.addChild(fold);
+        }
+
+        function initAgentFlowView() {
+            // Task flow visualization
+            const flow = new PIXI.Graphics();
+
+            // Draw flow lanes
+            flow.lineStyle(1, 0x333333);
+            flow.moveTo(50, 50);
+            flow.lineTo(50, 350);
+            flow.moveTo(400, 50);
+            flow.lineTo(400, 350);
+
+            // Draw task nodes
+            const tasks = [
+                { x: 100, y: 100, status: 'completed' },
+                { x: 100, y: 180, status: 'executing' },
+                { x: 100, y: 260, status: 'pending' }
+            ];
+
+            const colors = { completed: 0x44ff44, executing: 0xffff44, pending: 0x888888 };
+
+            for (const task of tasks) {
+                flow.beginFill(colors[task.status]);
+                flow.drawCircle(task.x, task.y, 15);
+                flow.endFill();
+            }
+
+            app.agentLayer.addChild(flow);
+        }
+
+        function initInfiniteView() {
+            // Infinite canvas preview
+            const canvas = new PIXI.Graphics();
+
+            // Draw window particles
+            for (let i = 0; i < 4; i++) {
+                const x = 80 + (i % 2) * 220;
+                const y = 80 + Math.floor(i / 2) * 180;
+
+                canvas.beginFill(0x1a1a2e, 0.8);
+                canvas.drawRoundedRect(x, y, 180, 140, 4);
+                canvas.endFill();
+                canvas.lineStyle(1, 0x00ff88, 0.5);
+                canvas.drawRoundedRect(x, y, 180, 140, 4);
+            }
+
+            app.agentLayer.addChild(canvas);
+        }
+
+        // Actions
+        window.selectComponent = function(el, id) {
+            document.querySelectorAll('.component-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            el.classList.add('active');
+            log(`Selected: ${id}`, 'info');
+        };
+
+        window.spawnTerminal = function() {
+            log('Spawning new terminal...', 'info');
+            addNebEvent('terminal.spawn', { id: 'term-' + Date.now() });
+        };
+
+        window.spawnAgent = function() {
+            log('Spawning new agent...', 'info');
+            addNebEvent('agent.spawn', { type: 'engineer' });
+        };
+
+        window.runBenchmark = function() {
+            log('Starting GIQ benchmark...', 'warn');
+            document.getElementById('metric-glyphs').textContent = '...';
+            setTimeout(() => {
+                document.getElementById('metric-glyphs').textContent = '256';
+                log('GIQ benchmark complete: 847 (+12)', 'info');
+            }, 2000);
+        };
+
+        // Logging
+        function log(msg, level = 'info') {
+            const output = document.getElementById('system-log');
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            output.innerHTML += `<div class="log-line"><span class="log-time">[${time}]</span> <span class="log-level-${level}">${msg}</span></div>`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function addNebEvent(topic, payload) {
+            const output = document.getElementById('neb-events');
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            output.innerHTML = `<div class="neb-event"><span class="log-time">[${time}]</span> <span class="neb-topic">${topic}</span></div>` + output.innerHTML;
+        }
+
+        function startLogStreams() {
+            // Simulate NEB events
+            setInterval(() => {
+                const topics = ['agent.heartbeat', 'task.progress', 'memory.allocate', 'glyph.render'];
+                const topic = topics[Math.floor(Math.random() * topics.length)];
+                addNebEvent(topic, {});
+            }, 2000);
+        }
+
+        // Initialize
+        init();
+    </script>
+</body>
+</html>
