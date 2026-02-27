@@ -131,6 +131,181 @@ class CatalogCacheManager {
             };
         });
     }
+
+    // ========================================
+    // CRUD Operations
+    // ========================================
+
+    /**
+     * Retrieve cached container by ID
+     * Updates lastAccessed timestamp on successful get
+     * @param {string} entryId - The entry ID to retrieve
+     * @returns {Promise<Object|null>} Entry data or null if not found
+     *
+     * @example
+     * const entry = await cache.get('ubuntu-22.04');
+     * // Returns: { id, data, metadata, size, cachedAt, lastAccessed, etag, hash }
+     */
+    async get(entryId) {
+        const store = await this._getStore('readwrite');
+        if (!store) {
+            return null;
+        }
+
+        try {
+            const entry = await this._wrapRequest(store.get(entryId));
+
+            if (entry) {
+                // Update lastAccessed timestamp
+                entry.lastAccessed = Date.now();
+                await this._wrapRequest(store.put(entry));
+            }
+
+            return entry;
+        } catch (error) {
+            console.error('[CatalogCacheManager] Get error:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Store container in cache
+     * @param {string} entryId - The entry ID to store
+     * @param {ArrayBuffer|Blob} data - The container data
+     * @param {Object} metadata - Metadata object with etag, hash, size
+     * @returns {Promise<boolean>} True on success, false on failure
+     *
+     * @example
+     * await cache.set('ubuntu-22.04', arrayBuffer, { etag: '"abc123"', hash: 'sha256:...', size: 1024000 });
+     */
+    async set(entryId, data, metadata = {}) {
+        const store = await this._getStore('readwrite');
+        if (!store) {
+            return false;
+        }
+
+        try {
+            const now = Date.now();
+            const entry = {
+                id: entryId,
+                data: data,
+                metadata: metadata,
+                size: metadata.size || (data.byteLength || data.size || 0),
+                cachedAt: now,
+                lastAccessed: now,
+                etag: metadata.etag || null,
+                hash: metadata.hash || null
+            };
+
+            await this._wrapRequest(store.put(entry));
+            return true;
+        } catch (error) {
+            console.error('[CatalogCacheManager] Set error:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Remove container from cache
+     * @param {string} entryId - The entry ID to delete
+     * @returns {Promise<boolean>} True if deleted, false if not found or error
+     */
+    async delete(entryId) {
+        const store = await this._getStore('readwrite');
+        if (!store) {
+            return false;
+        }
+
+        try {
+            // Check if entry exists first
+            const existing = await this._wrapRequest(store.get(entryId));
+            if (!existing) {
+                return false;
+            }
+
+            await this._wrapRequest(store.delete(entryId));
+            return true;
+        } catch (error) {
+            console.error('[CatalogCacheManager] Delete error:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Check if container exists in cache
+     * @param {string} entryId - The entry ID to check
+     * @returns {Promise<boolean>} True if entry exists
+     */
+    async has(entryId) {
+        const store = await this._getStore('readonly');
+        if (!store) {
+            return false;
+        }
+
+        try {
+            const entry = await this._wrapRequest(store.get(entryId));
+            return entry !== null && entry !== undefined;
+        } catch (error) {
+            console.error('[CatalogCacheManager] Has error:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Get list of all cached entries (without full data)
+     * @returns {Promise<Array<Object>>} Array of entry metadata objects
+     *
+     * @example
+     * const entries = await cache.getAll();
+     * // Returns: [{ id, metadata, size, cachedAt, lastAccessed }, ...]
+     */
+    async getAll() {
+        const store = await this._getStore('readonly');
+        if (!store) {
+            return [];
+        }
+
+        try {
+            const entries = await this._wrapRequest(store.getAll(), []);
+
+            // Return entries without the full data payload
+            return entries.map(entry => ({
+                id: entry.id,
+                metadata: entry.metadata,
+                size: entry.size,
+                cachedAt: entry.cachedAt,
+                lastAccessed: entry.lastAccessed,
+                etag: entry.etag,
+                hash: entry.hash
+            }));
+        } catch (error) {
+            console.error('[CatalogCacheManager] GetAll error:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Delete all cached containers
+     * @returns {Promise<number>} Count of deleted entries
+     */
+    async clear() {
+        const store = await this._getStore('readwrite');
+        if (!store) {
+            return 0;
+        }
+
+        try {
+            // Get count before clearing
+            const entries = await this._wrapRequest(store.getAll(), []);
+            const count = entries.length;
+
+            await this._wrapRequest(store.clear());
+            return count;
+        } catch (error) {
+            console.error('[CatalogCacheManager] Clear error:', error);
+            return 0;
+        }
+    }
 }
 
 // ES6 module export
