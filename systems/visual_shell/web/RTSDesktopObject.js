@@ -166,6 +166,7 @@ class RTSDesktopObject extends PIXI.Container {
         this._createNameLabel(entry.name || entry.id);
         this._createStatusIndicator();
         this._createProgressBar();
+        this._createErrorOverlay();
         this._createBorder();
 
         // Set up event handlers
@@ -356,6 +357,98 @@ class RTSDesktopObject extends PIXI.Container {
         this.progressLabel.y = -14;  // Above the bar
         this.progressLabel.anchor.set(0.5, 0);
         this.progressContainer.addChild(this.progressLabel);
+    }
+
+    /**
+     * Create the error overlay container
+     * @private
+     */
+    _createErrorOverlay() {
+        const { THUMBNAIL_SIZE, OBJECT_WIDTH, PADDING } = RTSDesktopObject.DIMENSIONS;
+
+        // Error overlay container (hidden by default)
+        this.errorContainer = new PIXI.Container();
+        this.errorContainer.visible = false;
+        this.errorContainer.x = (OBJECT_WIDTH - THUMBNAIL_SIZE) / 2;
+        this.errorContainer.y = PADDING + 4;
+        this.addChild(this.errorContainer);
+
+        // Semi-transparent red background
+        this.errorBackground = new PIXI.Graphics();
+        this.errorBackground.rect(0, 0, THUMBNAIL_SIZE, THUMBNAIL_SIZE);
+        this.errorBackground.fill({ color: 0x330000, alpha: 0.85 });
+        this.errorContainer.addChild(this.errorBackground);
+
+        // Error icon (warning triangle)
+        this.errorIcon = new PIXI.Text({
+            text: '!',
+            style: {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: 48,
+                fill: 0xff4444,
+                fontWeight: 'bold',
+                align: 'center'
+            }
+        });
+        this.errorIcon.x = THUMBNAIL_SIZE / 2;
+        this.errorIcon.y = 20;
+        this.errorIcon.anchor.set(0.5, 0);
+        this.errorContainer.addChild(this.errorIcon);
+
+        // Error title
+        this.errorTitle = new PIXI.Text({
+            text: 'Boot Failed',
+            style: {
+                fontFamily: 'Courier New, monospace',
+                fontSize: 11,
+                fill: 0xff6666,
+                fontWeight: 'bold',
+                align: 'center',
+                wordWrap: true,
+                wordWrapWidth: THUMBNAIL_SIZE - 8
+            }
+        });
+        this.errorTitle.x = THUMBNAIL_SIZE / 2;
+        this.errorTitle.y = 75;
+        this.errorTitle.anchor.set(0.5, 0);
+        this.errorContainer.addChild(this.errorTitle);
+
+        // Error message (truncated)
+        this.errorMessage = new PIXI.Text({
+            text: '',
+            style: {
+                fontFamily: 'Courier New, monospace',
+                fontSize: 9,
+                fill: 0xcccccc,
+                align: 'center',
+                wordWrap: true,
+                wordWrapWidth: THUMBNAIL_SIZE - 8
+            }
+        });
+        this.errorMessage.x = THUMBNAIL_SIZE / 2;
+        this.errorMessage.y = 92;
+        this.errorMessage.anchor.set(0.5, 0);
+        this.errorContainer.addChild(this.errorMessage);
+
+        // Guidance text
+        this.errorGuidance = new PIXI.Text({
+            text: '',
+            style: {
+                fontFamily: 'Courier New, monospace',
+                fontSize: 8,
+                fill: 0x88ccff,
+                align: 'center',
+                wordWrap: true,
+                wordWrapWidth: THUMBNAIL_SIZE - 12
+            }
+        });
+        this.errorGuidance.x = THUMBNAIL_SIZE / 2;
+        this.errorGuidance.y = 115;
+        this.errorGuidance.anchor.set(0.5, 0);
+        this.errorContainer.addChild(this.errorGuidance);
+
+        // Store error details for tooltip
+        this._errorDetails = null;
     }
 
     /**
