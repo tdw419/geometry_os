@@ -321,8 +321,9 @@ class RTSDesktopObject extends PIXI.Container {
         const clickDuration = Date.now() - (this._clickStart || 0);
 
         // Only emit if it was a quick tap (not a drag)
-        if (clickDuration < 300) {
+        if (clickDuration < 300 && !this.dragging) {
             this.emit('clicked', { target: this, event });
+            this.emit('selected', { target: this, event });
         }
     }
 
