@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 6: Boot Progress Integration Demo</title>
+    <script src="https://pixijs.download/v7.4.0/pixi.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #ffffff;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #1a1a1a;
+            padding: 12px 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 16px;
+            color: #00aaff;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #666;
+        }
+
+        .status-dot.connected { background: #00ff00; }
+        .status-dot.error { background: #ff0000; }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .side-panel {
+            width: 320px;
+            background: #1a1a1a;
+            border-left: 1px solid #333;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .panel-section {
+            margin-bottom: 20px;
+        }
+
+        .panel-section h3 {
+            font-size: 12px;
+            color: #00aaff;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .control-group input, .control-group select {
+            width: 100%;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 6px 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        button {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 8px 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #3a3a3a;
+            border-color: #00aaff;
+        }
+
+        button.primary {
+            background: #0066aa;
+            border-color: #0088cc;
+        }
+
+        button.primary:hover {
+            background: #0088cc;
+        }
+
+        button.danger {
+            background: #660000;
+            border-color: #880000;
+        }
+
+        button.danger:hover {
+            background: #880000;
+        }
+
+        .event-log {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            font-size: 10px;
+        }
+
+        .event-log .event {
+            margin-bottom: 4px;
+            padding: 2px 0;
+            border-bottom: 1px solid #222;
+        }
+
+        .event-log .event.success { color: #00ff00; }
+        .event-log .event.error { color: #ff6666; }
+        .event-log .event.info { color: #88ccff; }
+        .event-log .event.warning { color: #ffaa00; }
+
+        .tooltip {
+            position: absolute;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            padding: 10px;
+            font-size: 11px;
+            max-width: 250px;
+            white-space: pre-wrap;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+        }
+
+        .info-box {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            padding: 10px;
+            font-size: 11px;
+            margin-bottom: 12px;
+        }
+
+        .info-box code {
+            background: #1a1a1a;
+            padding: 2px 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Phase 6: Boot Progress Integration</h1>
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-dot" id="connectionStatus"></div>
+                <span id="connectionText">Not Connected</span>
+            </div>
+            <div class="status-item">
+                <span>Objects: <span id="objectCount">0</span></span>
+            </div>
+            <div class="status-item">
+                <span>Booting: <span id="bootingCount">0</span></span>
+            </div>
+            <div class="status-item">
+                <span>Running: <span id="runningCount">0</span></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="canvas-container">
+            <div id="canvas"></div>
+            <div class="tooltip" id="tooltip"></div>
+        </div>
+
+        <div class="side-panel">
+            <div class="panel-section">
+                <h3>Demo Controls</h3>
+                <div class="info-box">
+                    This demo simulates boot progress to verify Phase 6 features.
+                    Double-click an object to start a simulated boot.
+                </div>
+                <div class="button-group">
+                    <button id="btnSimulateBoot" class="primary">Simulate Boot</button>
+                    <button id="btnSimulateError">Simulate Error</button>
+                </div>
+                <div class="button-group">
+                    <button id="btnSimulateTimeout">Simulate Timeout</button>
+                    <button id="btnResetAll">Reset All</button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>Boot Options</h3>
+                <div class="control-group">
+                    <label>Memory</label>
+                    <select id="bootMemory">
+                        <option value="1G">1G</option>
+                        <option value="2G" selected>2G</option>
+                        <option value="4G">4G</option>
+                        <option value="8G">8G</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>CPUs</label>
+                    <select id="bootCpus">
+                        <option value="1">1</option>
+                        <option value="2" selected>2</option>
+                        <option value="4">4</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Boot Duration (seconds)</label>
+                    <input type="number" id="bootDuration" value="5" min="1" max="30">
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>Selected Object</h3>
+                <div class="info-box" id="selectedInfo">
+                    No object selected
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>Event Log</h3>
+                <div class="event-log" id="eventLog"></div>
+            </div>
+
+            <div class="panel-section">
+                <h3>Phase 6 Checklist</h3>
+                <div style="font-size: 11px;">
+                    <div id="check-boot-01">[ ] BOOT-01: Progress indicator during boot</div>
+                    <div id="check-boot-02">[ ] BOOT-02: Visual status indicator</div>
+                    <div id="check-boot-03">[ ] BOOT-03: Error messages with guidance</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Component scripts -->
+    <script src="RTSDesktopObject.js"></script>
+    <script src="CatalogBridge.js"></script>
+    <script src="DesktopObjectManager.js"></script>
+</body>
+</html>
