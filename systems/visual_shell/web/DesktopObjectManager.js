@@ -185,6 +185,9 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
             this.selectedObjectId = null;
         }
 
+        // Stop status polling if active
+        this.stopStatusPolling(entryId);
+
         // Remove from tracking and layer
         this.objects.delete(entryId);
         this.objectLayer.removeChild(obj);
@@ -603,6 +606,11 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
      * Clean up resources
      */
     destroy() {
+        // Stop all active status pollers
+        for (const entryId of this._statusPollers.keys()) {
+            this.stopStatusPolling(entryId);
+        }
+
         this.clearAll();
         this.objectLayer.destroy();
         this.removeAllListeners();
