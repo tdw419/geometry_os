@@ -350,6 +350,23 @@ class RTSDesktopObject extends PIXI.Container {
         this.cacheStatusIndicator.visible = false;
 
         this.addChild(this.cacheStatusIndicator);
+
+        // Create tooltip (hidden by default)
+        this.cacheStatusTooltip = new PIXI.Text({
+            text: '',
+            style: {
+                fontFamily: 'Courier New, monospace',
+                fontSize: 10,
+                fill: 0xffffff,
+                align: 'left',
+                backgroundColor: 0x333333,
+                padding: 4
+            }
+        });
+        this.cacheStatusTooltip.visible = false;
+        this.cacheStatusTooltip.x = OBJECT_WIDTH - PADDING - STATUS_INDICATOR_SIZE - 60;  // Left of indicator
+        this.cacheStatusTooltip.y = PADDING + 6 + STATUS_INDICATOR_SIZE + 4;
+        this.addChild(this.cacheStatusTooltip);
     }
 
     /**
@@ -381,6 +398,15 @@ class RTSDesktopObject extends PIXI.Container {
 
         // Show indicator only for cached containers (not 'uncached')
         this.cacheStatusIndicator.visible = (status !== 'uncached');
+
+        // Update tooltip text based on status
+        const tooltipTexts = {
+            verified: 'Cache: Verified',
+            failed: 'Cache: FAILED',
+            pending: 'Cache: Pending...',
+            uncached: ''
+        };
+        this.cacheStatusTooltip.text = tooltipTexts[status] || '';
     }
 
     /**
@@ -586,6 +612,11 @@ class RTSDesktopObject extends PIXI.Container {
             this.border.stroke({ color: 0x00ffff, width: 2, alpha: 0.8 });
         }
 
+        // Show cache status tooltip if indicator is visible
+        if (this.cacheStatusIndicator.visible) {
+            this.cacheStatusTooltip.visible = true;
+        }
+
         // Emit hover with status and error details
         this.emit('hover', {
             target: this,
@@ -605,6 +636,10 @@ class RTSDesktopObject extends PIXI.Container {
             this.border.rect(-1, -1, 142, 182);
             this.border.stroke({ color: 0x00ffff, width: 2, alpha: 0 });
         }
+
+        // Hide cache status tooltip
+        this.cacheStatusTooltip.visible = false;
+
         this.emit('hover-end', { target: this });
     }
 
