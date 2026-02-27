@@ -148,6 +148,10 @@ class CatalogServer:
         # Track active boot operations
         self._active_boots: Dict[str, Any] = {}
 
+        # Track boot status for each entry
+        # Format: { entry_id: { status, pid, started_at, error_message, vnc_port } }
+        self._boot_status: Dict[str, Dict[str, Any]] = {}
+
         # Initial scan
         self._refresh_entries()
 
@@ -322,6 +326,84 @@ class CatalogServer:
                 "pid": None,
                 "error_message": result.error_message if result else "Boot failed"
             }
+
+    def get_status(self, entry_id: str) -> Dict[str, Any]:
+        """
+        Get the current status of a catalog entry.
+
+        Args:
+            entry_id: ID of the entry to check
+
+        Returns:
+            Dictionary with status information
+
+        Raises:
+            ValueError: If entry_id not found
+        """
+        # Check if entry exists
+        entry_exists = any(e.id == entry_id for e in self._entries)
+        if not entry_exists:
+            raise ValueError(f"Entry not found: {entry_id}")
+
+        # Get stored status or return stopped
+        status_info = self._boot_status.get(entry_id, {
+            'status': 'stopped',
+            'pid': None,
+            'started_at': None,
+            'uptime_seconds': None,
+            'vnc_port': None,
+            'error_message': None
+        })
+
+        # If running, check if process is still alive
+        if status_info['status'] == 'running' and status_info.get('pid'):
+            try:
+                import os
+                os.kill(status_info['pid'], 0)  # Check if process exists
+                # Update uptime
+                if status_info.get('started_at'):
+                    from datetime import datetime
+                    started = datetime.fromisoformat(status_info['started_at'])
+                    status_info['uptime_seconds'] = (datetime.now() - started).total_seconds()
+            except (OSError, ProcessLookupError):
+                # Process died - update status to error
+                status_info = {
+                    'status': 'error',
+                    'pid': status_info['pid'],
+                    'started_at': status_info['started_at'],
+                    'uptime_seconds': None,
+                    'vnc_port': None,
+                    'error_message': 'Process terminated unexpectedly'
+                }
+                self._boot_status[entry_id] = status_info
+
+        return status_info
+
+    def update_boot_status(self, entry_id: str, status: str, **kwargs) -> None:
+        """
+        Update the boot status for an entry.
+
+        Args:
+            entry_id: ID of the entry to update
+            status: New status ('booting', 'running', 'error', 'stopped')
+            **kwargs: Additional status fields (pid, vnc_port, error_message)
+        """
+        from datetime import datetime
+
+        current = self._boot_status.get(entry_id, {})
+        current['status'] = status
+
+        if status == 'booting':
+            current['started_at'] = datetime.now().isoformat()
+        elif status == 'error':
+            current['error_message'] = kwargs.get('error_message', 'Boot failed')
+
+        # Merge additional kwargs
+        for key in ['pid', 'vnc_port', 'error_message']:
+            if key in kwargs:
+                current[key] = kwargs[key]
+
+        self._boot_status[entry_id] = current
 
 
 # Singleton instance
