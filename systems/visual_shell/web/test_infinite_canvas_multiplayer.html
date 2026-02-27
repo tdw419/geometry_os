@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Infinite Canvas Multiplayer - Geometry OS</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+        }
+        h1 { margin-bottom: 5px; font-size: 18px; }
+        .subtitle { color: #666; margin-bottom: 15px; font-size: 11px; }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 260px;
+            gap: 15px;
+            max-width: 1400px;
+        }
+
+        .main-panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: #252535;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .panel-title {
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff4444;
+        }
+
+        .status-indicator.connected { background: #00ff88; }
+        .status-indicator.connecting { background: #ffff44; animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 500px;
+            background: #0a0a0a;
+            cursor: crosshair;
+        }
+
+        .controls {
+            padding: 10px;
+            display: flex;
+            gap: 8px;
+            border-top: 1px solid #333;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #0f0f0f;
+            color: #00ff88;
+            border: 1px solid #333;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 10px;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .section-title {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        .connection-info {
+            font-size: 10px;
+            margin-bottom: 10px;
+        }
+
+        .connection-info code {
+            background: #0a0a0a;
+            padding: 2px 5px;
+            border-radius: 3px;
+            color: #44ffff;
+        }
+
+        .user-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .user-item {
+            background: #0a0a0a;
+            padding: 8px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 10px;
+        }
+
+        .user-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .user-name { flex: 1; }
+        .user-status { color: #666; font-size: 9px; }
+
+        .user-item.is-local {
+            border: 1px solid #00ff88;
+        }
+
+        .user-item.is-local .user-status {
+            color: #00ff88;
+        }
+
+        .identity-form {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .identity-form input {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            color: #00ff88;
+            padding: 6px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 10px;
+        }
+
+        .viewport-info {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            font-size: 10px;
+        }
+
+        .viewport-item {
+            background: #0a0a0a;
+            padding: 6px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .viewport-value {
+            color: #00ff88;
+        }
+
+        .viewport-label {
+            color: #666;
+            font-size: 8px;
+        }
+
+        .instructions {
+            font-size: 9px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .instructions ul {
+            margin-left: 15px;
+            margin-top: 5px;
+        }
+
+        .instructions li {
+            margin-bottom: 3px;
+        }
+
+        .log-output {
+            height: 100px;
+            overflow-y: auto;
+            background: #0a0a0a;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 9px;
+        }
+
+        .log-entry { margin-bottom: 3px; }
+        .log-info { color: #00ff88; }
+        .log-warn { color: #ffff44; }
+        .log-error { color: #ff4444; }
+        .log-user { color: #44ffff; }
+    </style>
+</head>
+<body>
+    <h1>◈ Infinite Canvas Multiplayer</h1>
+    <p class="subtitle">Real-time collaborative editing with presence awareness</p>
+
+    <div class="container">
+        <div class="main-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <div class="status-indicator" id="status-dot"></div>
+                    <span id="status-text">Disconnected</span>
+                </div>
+                <span style="font-size: 10px; color: #666;" id="user-count">0 users</span>
+            </div>
+
+            <div id="canvas-container"></div>
+
+            <div class="controls">
+                <button onclick="connect()" id="btn-connect">Connect</button>
+                <button onclick="disconnect()" id="btn-disconnect" disabled>Disconnect</button>
+                <button onclick="openInNewTab()">Open Second Client</button>
+                <button onclick="simulateUsers()">Add Simulated Users</button>
+                <button onclick="centerOnUser()">Center on Random User</button>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="section">
+                <div class="section-title">Your Identity</div>
+                <div class="identity-form">
+                    <input type="text" id="user-name" placeholder="Your name...">
+                    <button onclick="updateIdentity()">Update Name</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Connected Users</div>
+                <div class="user-list" id="user-list">
+                    <div style="color: #666; font-size: 10px;">Connect to see users...</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Viewport</div>
+                <div class="viewport-info">
+                    <div class="viewport-item">
+                        <div class="viewport-value" id="vp-x">0</div>
+                        <div class="viewport-label">X</div>
+                    </div>
+                    <div class="viewport-item">
+                        <div class="viewport-value" id="vp-y">0</div>
+                        <div class="viewport-label">Y</div>
+                    </div>
+                    <div class="viewport-item">
+                        <div class="viewport-value" id="vp-zoom">1.0</div>
+                        <div class="viewport-label">Zoom</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Instructions</div>
+                <div class="instructions">
+                    <ul>
+                        <li><b>Pan:</b> Shift + Drag or Middle-click drag</li>
+                        <li><b>Zoom:</b> Mouse wheel</li>
+                        <li><b>Cursor:</b> Move mouse to broadcast position</li>
+                    </ul>
+                    <p style="margin-top: 8px;">
+                        Open multiple tabs to see real-time presence.
+                    </p>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Event Log</div>
+                <div class="log-output" id="log-output"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="lib/pixi.min.js"></script>
+    <script src="InfiniteCanvasMultiplayer.js"></script>
+    <script>
+        let canvas = null;
+        let simulatedUsers = [];
+
+        const WS_URL = 'ws://localhost:8770/ws';
+
+        function log(msg, type = 'info') {
+            const output = document.getElementById('log-output');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            output.appendChild(entry);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function setStatus(status, connected = false) {
+            const dot = document.getElementById('status-dot');
+            const text = document.getElementById('status-text');
+
+            dot.className = 'status-indicator';
+            if (connected) {
+                dot.classList.add('connected');
+            } else if (status === 'Connecting...') {
+                dot.classList.add('connecting');
+            }
+
+            text.textContent = status;
+        }
+
+        async function init() {
+            log('Initializing infinite canvas...', 'info');
+
+            const container = document.getElementById('canvas-container');
+            const userName = `User-${Math.floor(Math.random() * 1000)}`;
+            document.getElementById('user-name').value = userName;
+
+            canvas = new InfiniteCanvasMultiplayer({
+                container: container,
+                width: container.offsetWidth,
+                height: 500,
+                wsUrl: WS_URL,
+                userName: userName,
+                onUserJoin: (user) => {
+                    log(`${user.name} joined`, 'user');
+                    updateUserList();
+                },
+                onUserLeave: (user) => {
+                    log(`${user.name} left`, 'user');
+                    updateUserList();
+                },
+                onUserUpdate: (user) => {
+                    // Update viewport display periodically
+                    updateViewportInfo();
+                },
+                onRemoteEdit: (user, edit) => {
+                    log(`Edit from ${user.name}: ${edit.type || 'unknown'}`, 'info');
+                }
+            });
+
+            await canvas.init();
+
+            // Update viewport info periodically
+            setInterval(updateViewportInfo, 100);
+
+            log('Ready - click Connect to join session', 'info');
+        }
+
+        async function connect() {
+            if (canvas.isConnected()) return;
+
+            setStatus('Connecting...', false);
+            log('Connecting to collaboration server...', 'info');
+
+            try {
+                await canvas._connect();
+
+                setStatus('Connected', true);
+                document.getElementById('btn-connect').disabled = true;
+                document.getElementById('btn-disconnect').disabled = false;
+
+                log('Connected! Move your cursor to share presence.', 'info');
+                updateUserList();
+            } catch (e) {
+                setStatus('Failed', false);
+                log(`Connection failed: ${e.message}`, 'error');
+            }
+        }
+
+        function disconnect() {
+            canvas.disconnect();
+            setStatus('Disconnected', false);
+            document.getElementById('btn-connect').disabled = false;
+            document.getElementById('btn-disconnect').disabled = true;
+            log('Disconnected', 'info');
+            updateUserList();
+        }
+
+        function updateUserList() {
+            const list = document.getElementById('user-list');
+            list.innerHTML = '';
+
+            const users = canvas.getUsers();
+
+            // Add local user first
+            const localItem = document.createElement('div');
+            localItem.className = 'user-item is-local';
+            localItem.innerHTML = `
+                <div class="user-dot" style="background: ${canvas.userColor}"></div>
+                <span class="user-name">${canvas.userName} (you)</span>
+                <span class="user-status">local</span>
+            `;
+            list.appendChild(localItem);
+
+            // Add remote users
+            for (const user of users) {
+                const item = document.createElement('div');
+                item.className = 'user-item';
+                item.innerHTML = `
+                    <div class="user-dot" style="background: ${user.color}"></div>
+                    <span class="user-name">${user.name}</span>
+                    <span class="user-status">${user.id.slice(0, 8)}</span>
+                `;
+                list.appendChild(item);
+            }
+
+            document.getElementById('user-count').textContent =
+                `${users.length + 1} user${users.length !== 0 ? 's' : ''}`;
+        }
+
+        function updateViewportInfo() {
+            if (!canvas || !canvas.localState) return;
+
+            const vp = canvas.localState.viewport;
+            document.getElementById('vp-x').textContent = Math.round(vp.x);
+            document.getElementById('vp-y').textContent = Math.round(vp.y);
+            document.getElementById('vp-zoom').textContent = vp.zoom.toFixed(2);
+        }
+
+        function updateIdentity() {
+            const name = document.getElementById('user-name').value.trim();
+            if (name) {
+                canvas.userName = name;
+                log(`Name updated to: ${name}`, 'info');
+            }
+        }
+
+        function openInNewTab() {
+            window.open(window.location.href, '_blank');
+            log('Opened new tab - connect to see multi-user presence', 'info');
+        }
+
+        function simulateUsers() {
+            const count = 3;
+
+            for (let i = 0; i < count; i++) {
+                const user = {
+                    id: `sim-${Date.now()}-${i}`,
+                    name: `Bot-${i + 1}`,
+                    color: `hsl(${Math.random() * 360}, 70%, 60%)`,
+                    position: {
+                        x: (Math.random() - 0.5) * 500,
+                        y: (Math.random() - 0.5) * 500
+                    }
+                };
+
+                canvas.users.set(user.id, {
+                    id: user.id,
+                    name: user.name,
+                    color: user.color,
+                    state: {
+                        position: user.position,
+                        viewport: { x: 0, y: 0, zoom: 1 },
+                        selection: null,
+                        editing: null
+                    },
+                    lastUpdate: Date.now()
+                });
+
+                canvas._createUserCursor(canvas.users.get(user.id));
+
+                simulatedUsers.push(user.id);
+            }
+
+            updateUserList();
+            log(`Added ${count} simulated users`, 'info');
+        }
+
+        function centerOnUser() {
+            const users = canvas.getUsers();
+            if (users.length > 0) {
+                const user = users[Math.floor(Math.random() * users.length)];
+                const pos = user.state.position;
+                canvas.moveTo(pos.x - 400, pos.y - 250);
+                log(`Centered on ${user.name}`, 'info');
+            } else {
+                log('No other users to center on', 'warn');
+            }
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
