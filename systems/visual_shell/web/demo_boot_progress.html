@@ -438,6 +438,179 @@ class MockCatalogBridge {
         return { success: true };
     }
 }
+
+// Boot simulation state
+const bootSimulations = new Map();
+
+/**
+ * Load mock catalog into manager
+ */
+async function loadMockCatalog() {
+    for (const entry of MOCK_CATALOG.entries) {
+        manager.createObject({
+            ...entry,
+            layout: {
+                gridX: entry.position.x,
+                gridY: entry.position.y
+            }
+        });
+    }
+    updateObjectCounts();
+}
+
+/**
+ * Simulate a successful boot
+ */
+function simulateSuccessfulBoot(entryId, duration = 5) {
+    const obj = manager.getObject(entryId);
+    if (!obj) {
+        log('error', `Object ${entryId} not found`);
+        return;
+    }
+
+    // Cancel any existing simulation
+    cancelSimulation(entryId);
+
+    // Start boot
+    obj.setStatus('booting');
+    obj._lastBootConfig = {
+        memory: document.getElementById('bootMemory').value,
+        cpus: parseInt(document.getElementById('bootCpus').value)
+    };
+
+    log('info', `Starting boot simulation for ${entryId} (${duration}s)`);
+
+    // Track simulation
+    const simulation = {
+        startTime: Date.now(),
+        duration: duration * 1000,
+        intervalId: null
+    };
+
+    // Update progress periodically
+    simulation.intervalId = setInterval(() => {
+        const elapsed = Date.now() - simulation.startTime;
+        const progress = Math.min(99, (elapsed / simulation.duration) * 100);
+
+        // Determine stage based on progress
+        let stage;
+        if (progress < 25) {
+            stage = 'Starting QEMU...';
+        } else if (progress < 60) {
+            stage = 'Loading kernel...';
+        } else if (progress < 90) {
+            stage = 'Initializing...';
+        } else {
+            stage = 'Ready';
+        }
+
+        obj.setProgress(progress, stage);
+        updateObjectCounts();
+
+    }, 100);
+
+    // Complete boot after duration
+    setTimeout(() => {
+        if (bootSimulations.has(entryId)) {
+            clearInterval(simulation.intervalId);
+            bootSimulations.delete(entryId);
+
+            obj.setStatus('running');
+            obj.completeBootProgress();
+            log('success', `${entryId} boot completed successfully`);
+            updateObjectCounts();
+
+            // Update checklist
+            document.getElementById('check-boot-01').innerHTML = '[X] BOOT-01: Progress indicator during boot';
+            document.getElementById('check-boot-02').innerHTML = '[X] BOOT-02: Visual status indicator';
+        }
+    }, duration * 1000);
+
+    bootSimulations.set(entryId, simulation);
+}
+
+/**
+ * Simulate a boot error
+ */
+function simulateBootError(entryId, errorType = 'memory') {
+    const obj = manager.getObject(entryId);
+    if (!obj) {
+        log('error', `Object ${entryId} not found`);
+        return;
+    }
+
+    // Cancel any existing simulation
+    cancelSimulation(entryId);
+
+    // Start boot briefly then fail
+    obj.setStatus('booting');
+    obj._lastBootConfig = {
+        memory: document.getElementById('bootMemory').value,
+        cpus: parseInt(document.getElementById('bootCpus').value)
+    };
+
+    log('info', `Simulating ${errorType} error for ${entryId}`);
+
+    // Simulate partial boot progress
+    let progress = 0;
+    const failAt = errorType === 'timeout' ? 75 : 40;
+
+    const intervalId = setInterval(() => {
+        progress += 5;
+
+        if (progress >= failAt) {
+            clearInterval(intervalId);
+            bootSimulations.delete(entryId);
+
+            // Generate appropriate error message
+            const errorMessages = {
+                memory: 'Failed to allocate memory: Out of memory (OOM)',
+                kernel: 'Kernel panic - not syncing: VFS: Unable to mount root fs',
+                timeout: 'Boot timeout: exceeded 30 second limit',
+                fuse: 'FUSE mount failed: fuse: failed to open /dev/fuse: Permission denied',
+                qemu: 'qemu-system-x86_64: failed to initialize KVM: Permission denied',
+                permission: 'Error: EACCES: permission denied, open \'/images/test.rts.png\''
+            };
+
+            const message = errorMessages[errorType] || 'Unknown boot error';
+            const elapsed = (Date.now() - (bootSimulations.get(entryId)?.startTime || Date.now())) / 1000;
+
+            obj.failBootProgress(message, {
+                stage: progress < 30 ? 'Starting QEMU...' : 'Loading kernel...',
+                elapsedTime: elapsed || (progress / 100 * 30),
+                config: obj._lastBootConfig
+            });
+
+            log('error', `${entryId} boot failed: ${message}`);
+            updateObjectCounts();
+
+            // Update checklist
+            document.getElementById('check-boot-03').innerHTML = '[X] BOOT-03: Error messages with guidance';
+
+        } else {
+            let stage;
+            if (progress < 25) {
+                stage = 'Starting QEMU...';
+            } else {
+                stage = 'Loading kernel...';
+            }
+            obj.setProgress(progress, stage);
+        }
+    }, 200);
+
+    bootSimulations.set(entryId, { intervalId, startTime: Date.now() });
+}
+
+/**
+ * Cancel a simulation
+ */
+function cancelSimulation(entryId) {
+    const sim = bootSimulations.get(entryId);
+    if (sim) {
+        clearInterval(sim.intervalId);
+        bootSimulations.delete(entryId);
+    }
+}
     </script>
 </body>
 </html>
