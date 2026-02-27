@@ -624,6 +624,114 @@ class RTSDesktopObject extends PIXI.Container {
     }
 
     /**
+     * Start boot progress animation
+     * Uses time-based progress estimation
+     */
+    startBootProgress() {
+        this._bootStartTime = Date.now();
+        this._progressPercent = 0;
+        this._progressStage = RTSDesktopObject.BOOT_STAGES.STARTING;
+
+        // Show progress bar
+        this.progressContainer.visible = true;
+        this.setProgress(0, this._progressStage.label);
+
+        // Start animation loop
+        this._updateBootProgress();
+    }
+
+    /**
+     * Update boot progress based on elapsed time
+     * @private
+     */
+    _updateBootProgress() {
+        if (!this._bootStartTime || this._status !== 'booting') {
+            return;
+        }
+
+        const elapsed = Date.now() - this._bootStartTime;
+        const { TIMEOUT_MS } = RTSDesktopObject.PROGRESS;
+        const { BOOT_STAGES } = RTSDesktopObject;
+
+        // Check for timeout
+        if (elapsed >= TIMEOUT_MS) {
+            this.setStatus('error');
+            this.setProgress(100, 'Boot timeout');
+            return;
+        }
+
+        // Calculate progress based on elapsed time
+        const rawPercent = (elapsed / TIMEOUT_MS) * 100;
+
+        // Determine current stage and adjust progress
+        let stage = BOOT_STAGES.STARTING;
+        let displayPercent = rawPercent;
+
+        if (rawPercent < BOOT_STAGES.STARTING.endPercent) {
+            stage = BOOT_STAGES.STARTING;
+            displayPercent = rawPercent;
+        } else if (rawPercent < BOOT_STAGES.LOADING.endPercent) {
+            stage = BOOT_STAGES.LOADING;
+            displayPercent = BOOT_STAGES.STARTING.endPercent +
+                (rawPercent - BOOT_STAGES.STARTING.endPercent);
+        } else if (rawPercent < BOOT_STAGES.INITIALIZING.endPercent) {
+            stage = BOOT_STAGES.INITIALIZING;
+            displayPercent = BOOT_STAGES.LOADING.endPercent +
+                (rawPercent - BOOT_STAGES.LOADING.endPercent);
+        } else {
+            stage = BOOT_STAGES.READY;
+            displayPercent = Math.min(99, rawPercent);  // Cap at 99% until actually ready
+        }
+
+        this._progressStage = stage;
+        this.setProgress(displayPercent, stage.label);
+
+        // Continue animation
+        this._progressAnimationId = requestAnimationFrame(() => this._updateBootProgress());
+    }
+
+    /**
+     * Complete boot progress (called when boot succeeds)
+     */
+    completeBootProgress() {
+        if (this._progressAnimationId) {
+            cancelAnimationFrame(this._progressAnimationId);
+            this._progressAnimationId = null;
+        }
+
+        this._bootStartTime = null;
+        this.setProgress(100, RTSDesktopObject.BOOT_STAGES.READY.label);
+
+        // Hide progress after short delay
+        setTimeout(() => {
+            this.hideProgress();
+        }, 500);
+    }
+
+    /**
+     * Fail boot progress with error
+     * @param {string} errorMessage - Error message to display
+     */
+    failBootProgress(errorMessage) {
+        if (this._progressAnimationId) {
+            cancelAnimationFrame(this._progressAnimationId);
+            this._progressAnimationId = null;
+        }
+
+        this._bootStartTime = null;
+        this.setStatus('error');
+
+        // Show error on progress bar
+        this.progressFill.clear();
+        this.progressFill.rect(0, 0, RTSDesktopObject.DIMENSIONS.THUMBNAIL_SIZE, RTSDesktopObject.PROGRESS.BAR_HEIGHT);
+        this.progressFill.fill({ color: 0xff0000, alpha: 0.9 });  // Red for error
+
+        this.progressLabel.text = errorMessage || 'Boot failed';
+        this.progressLabel.style.fill = 0xff6666;
+        this.progressContainer.visible = true;
+    }
+
+    /**
      * Get the current status
      * @returns {string}
      */
