@@ -296,5 +296,148 @@
     <script src="RTSDesktopObject.js"></script>
     <script src="CatalogBridge.js"></script>
     <script src="DesktopObjectManager.js"></script>
+
+    <script>
+// Demo configuration
+const DEMO_CONFIG = {
+    serverUrl: 'http://localhost:8080',
+    canvasWidth: 800,
+    canvasHeight: 600
+};
+
+// Mock catalog entries for demo
+const MOCK_CATALOG = {
+    entries: [
+        {
+            id: 'ubuntu-22.04',
+            name: 'Ubuntu 22.04 LTS',
+            path: '/images/ubuntu-22.04.rts.png',
+            size: 1073741824,
+            distro: 'Ubuntu',
+            kernel_version: '5.15.0',
+            architecture: 'x86_64',
+            thumbnail: null,  // Will use placeholder
+            position: { x: 0, y: 0 }
+        },
+        {
+            id: 'alpine-3.18',
+            name: 'Alpine Linux 3.18',
+            path: '/images/alpine-3.18.rts.png',
+            size: 134217728,
+            distro: 'Alpine',
+            kernel_version: '6.1.0',
+            architecture: 'x86_64',
+            thumbnail: null,
+            position: { x: 1, y: 0 }
+        },
+        {
+            id: 'fedora-38',
+            name: 'Fedora 38',
+            path: '/images/fedora-38.rts.png',
+            size: 2147483648,
+            distro: 'Fedora',
+            kernel_version: '6.2.0',
+            architecture: 'x86_64',
+            thumbnail: null,
+            position: { x: 2, y: 0 }
+        },
+        {
+            id: 'arch-linux',
+            name: 'Arch Linux',
+            path: '/images/arch-linux.rts.png',
+            size: 536870912,
+            distro: 'Arch',
+            kernel_version: '6.3.0',
+            architecture: 'x86_64',
+            thumbnail: null,
+            position: { x: 0, y: 1 }
+        },
+        {
+            id: 'debian-12',
+            name: 'Debian 12 Bookworm',
+            path: '/images/debian-12.rts.png',
+            size: 1610612736,
+            distro: 'Debian',
+            kernel_version: '6.1.0',
+            architecture: 'x86_64',
+            thumbnail: null,
+            position: { x: 1, y: 1 }
+        }
+    ]
+};
+
+// Global state
+let app = null;
+let manager = null;
+let bridge = null;
+let selectedObject = null;
+
+// Initialize PixiJS application
+async function initPixi() {
+    app = new PIXI.Application();
+    await app.init({
+        width: DEMO_CONFIG.canvasWidth,
+        height: DEMO_CONFIG.canvasHeight,
+        backgroundColor: 0x0a0a0a,
+        resolution: window.devicePixelRatio || 1,
+        autoDensity: true
+    });
+
+    document.getElementById('canvas').appendChild(app.canvas);
+
+    // Create world container
+    const worldContainer = new PIXI.Container();
+    worldContainer.label = 'world';
+    app.stage.addChild(worldContainer);
+
+    // Create mock bridge (doesn't connect to server)
+    bridge = new MockCatalogBridge();
+
+    // Create manager
+    manager = new DesktopObjectManager(worldContainer, bridge, {
+        autoLoad: false
+    });
+
+    // Set up event handlers
+    setupEventHandlers();
+
+    // Load mock catalog
+    await loadMockCatalog();
+
+    log('info', 'Demo initialized with ' + MOCK_CATALOG.entries.length + ' objects');
+    updateConnectionStatus(true);
+}
+
+// Mock CatalogBridge for demo (doesn't need server)
+class MockCatalogBridge {
+    constructor() {
+        this.cachedCatalog = null;
+    }
+
+    async getCatalog() {
+        return { entries: MOCK_CATALOG.entries };
+    }
+
+    async bootEntry(entryId, options = {}) {
+        log('info', `Boot request for ${entryId} with memory=${options.memory || '2G'}, cpus=${options.cpus || 2}`);
+        return { success: true, entry_id: entryId };
+    }
+
+    async getStatus(entryId) {
+        // Status is managed by simulation
+        return { status: 'stopped' };
+    }
+
+    pollStatus(entryId, callback, options = {}) {
+        // Polling is handled by simulation
+        return { id: 1, stop: () => {} };
+    }
+
+    async updateLayout(entryId, position) {
+        log('info', `Layout update for ${entryId}: (${position.gridX}, ${position.gridY})`);
+        return { success: true };
+    }
+}
+    </script>
 </body>
 </html>
