@@ -72,6 +72,272 @@ class GeometryOSApplication {
         this.ambientNarrativeHUD = null;
         this._sceneStreamInterval = null;
         this._fpsMonitorInterval = null;
+
+        // Holographic Agent Cards - executable agent state in RGB
+        this.holographicEncoder = null;
+        this.holographicExecutor = null; // WebGPU execution
+        this.holographicRISCVBridge = null; // RISC-V instruction execution
+        this.holographicInterference = null; // Ghost effect post-processor
+        this.holographicMode = true; // Enabled by default
+        this.interferenceEnabled = false; // Interference effect toggle
+        this.interferenceIntensity = 0.5; // 0.0 - 1.0
+    }
+
+    /**
+     * Initialize holographic encoder for executable agent cards.
+     * Agent cards become holographic - their RGB channels contain executable state.
+     */
+    async _initHolographicEncoder() {
+        try {
+            // Dynamic import of encoder
+            const encoderModule = await import('./HolographicAgentEncoder.js');
+            this.holographicEncoder = new encoderModule.HolographicAgentEncoder();
+            console.log('🧬 Holographic Agent Cards enabled - agents are executable');
+
+            // Initialize GPU executor if WebGPU is available
+            await this._initHolographicExecutor();
+
+            // Initialize holographic interference effect
+            await this._initHolographicInterference();
+        } catch (e) {
+            console.warn('Holographic encoder not available:', e.message);
+            this.holographicMode = false;
+        }
+    }
+
+    /**
+     * Initialize the Holographic Interference effect.
+     * Adds ghost/interference visual effects to holographic images.
+     */
+    async _initHolographicInterference() {
+        try {
+            const interferenceModule = await import('./HolographicInterference.js');
+            this.holographicInterference = new interferenceModule.HolographicInterference({
+                removalPercent: this.interferenceIntensity,
+                ghostAlpha: 0.3,
+                noiseColor: [0, 255, 255] // Cyan interference
+            });
+            console.log('👻 Holographic Interference effect ready');
+        } catch (e) {
+            console.warn('HolographicInterference not available:', e.message);
+        }
+    }
+
+    /**
+     * Initialize the WebGPU holographic executor.
+     */
+    async _initHolographicExecutor() {
+        if (!navigator.gpu) {
+            console.log('WebGPU not available - holographic execution will use CPU fallback');
+            return;
+        }
+
+        try {
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) return;
+
+            const device = await adapter.requestDevice();
+            if (!device) return;
+
+            const executorModule = await import('./HolographicAgentExecutor.js');
+            this.holographicExecutor = new executorModule.HolographicAgentExecutor({
+                device,
+                encoder: this.holographicEncoder
+            });
+
+            await this.holographicExecutor.initialize();
+            console.log('⚡ WebGPU Holographic Executor initialized');
+
+            // Initialize RISC-V bridge
+            await this._initHolographicRISCVBridge(device);
+        } catch (e) {
+            console.warn('WebGPU executor initialization failed:', e.message);
+        }
+    }
+
+    /**
+     * Initialize the RISC-V execution bridge.
+     */
+    async _initHolographicRISCVBridge(device) {
+        try {
+            const bridgeModule = await import('./HolographicRISCVBridge.js');
+            this.holographicRISCVBridge = new bridgeModule.HolographicRISCVBridge({
+                encoder: this.holographicEncoder,
+                device: device,
+                gpuSystem: null // Would be GPUExecutionSystem if available
+            });
+            console.log('🔗 Holographic RISC-V Bridge initialized');
+        } catch (e) {
+            console.warn('RISC-V bridge initialization failed:', e.message);
+        }
+    }
+
+    /**
+     * Encode agent state into holographic RGB pattern.
+     * Returns ImageData with visible card + executable data in RGB channels.
+     */
+    _encodeHolographicCard(agentState) {
+        if (!this.holographicEncoder) return null;
+
+        return this.holographicEncoder.encodeAgentCard({
+            taskId: this._hashString(agentState.id + (agentState.role || '')),
+            executionPtr: 0, // Would be actual instruction pointer in production
+            status: agentState.status === 'thinking' ? 2 :
+                    agentState.status === 'responding' ? 1 : 0,
+            type: this._getAgentTypeFromRole(agentState.role),
+            progress: agentState.progress || 0,
+            neuralWeights: [0.5, 0.5, 0.5, 0.5] // Placeholder neural state
+        });
+    }
+
+    /**
+     * Decode holographic state from an agent card image.
+     * This is how the GPU would read the executable state.
+     */
+    _decodeHolographicCard(imageData) {
+        if (!this.holographicEncoder) return null;
+        return this.holographicEncoder.decodeAgentCard(imageData);
+    }
+
+    /**
+     * Apply holographic interference effect to an image.
+     * Creates ghost/interference visual effect with 10% pixel removal.
+     */
+    applyHolographicInterference(imageData, options = {}) {
+        if (!this.holographicInterference) return imageData;
+
+        const intensity = options.intensity ?? this.interferenceIntensity;
+        const pattern = options.pattern || 'random';
+
+        return this.holographicInterference.apply(imageData, {
+            removalPercent: intensity,
+            ghostAlpha: options.ghostAlpha ?? 0.3,
+            pattern
+        });
+    }
+
+    /**
+     * Toggle holographic interference effect on/off.
+     */
+    toggleInterference(enabled = null) {
+        this.interferenceEnabled = enabled !== null ? enabled : !this.interferenceEnabled;
+        console.log(`👻 Holographic Interference: ${this.interferenceEnabled ? 'ON' : 'OFF'}`);
+        return this.interferenceEnabled;
+    }
+
+    /**
+     * Set interference intensity (0.0 - 1.0).
+     */
+    setInterferenceIntensity(intensity) {
+        this.interferenceIntensity = Math.max(0, Math.min(1, intensity));
+        if (this.holographicInterference) {
+            this.holographicInterference.removalPercent = this.interferenceIntensity;
+        }
+        return this.interferenceIntensity;
+    }
+
+    /**
+     * Apply full holographic glitch effect (combined interference types).
+     */
+    applyHolographicGlitch(imageData, intensity = 0.5) {
+        if (!this.holographicInterference) return imageData;
+        return this.holographicInterference.createHolographicGlitch(imageData, { intensity });
+    }
+
+    /**
+     * Get agent type index from role string.
+     */
+    _getAgentTypeFromRole(role) {
+        const roleMap = {
+            'architect': 0, 'engineer': 1, 'reviewer': 2,
+            'executor': 3, 'scribe': 4
+        };
+        if (!role) return 1;
+        const normalized = role.toLowerCase();
+        for (const [key, val] of Object.entries(roleMap)) {
+            if (normalized.includes(key)) return val;
+        }
+        return 1; // Default to engineer
+    }
+
+    /**
+     * Hash string to u32.
+     */
+    _hashString(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return Math.abs(hash);
+    }
+
+    /**
+     * Execute an agent's holographic state.
+     * This triggers RISC-V execution of the agent's task.
+     */
+    async executeAgentHolographic(agentId) {
+        const agent = this.areaAgents.get(agentId);
+        if (!agent || !agent.holographicCanvas || !this.holographicEncoder) {
+            console.warn('Cannot execute - no holographic data for agent:', agentId);
+            return null;
+        }
+
+        const imageData = agent.holographicCtx.getImageData(0, 0, 160, 100);
+        const decodedState = this._decodeHolographicCard(imageData);
+
+        console.log('⚡ Executing holographic agent state:', {
+            agentId,
+            taskId: '0x' + decodedState.taskId.toString(16),
+            executionPtr: '0x' + decodedState.executionPtr.toString(16),
+            neuralWeights: decodedState.neuralWeights.map(w => w.toFixed(3))
+        });
+
+        // Execute via RISC-V bridge (generates and runs instructions)
+        if (this.holographicRISCVBridge) {
+            const result = await this.holographicRISCVBridge.executeAgentAsRISCV(
+                agentId,
+                imageData,
+                decodedState
+            );
+
+            console.log('   RISC-V execution result:', result);
+
+            // Visual feedback - flash the card
+            if (agent.holographicSprite) {
+                agent.holographicSprite.alpha = 1.0;
+                setTimeout(() => {
+                    if (agent.holographicSprite) {
+                        agent.holographicSprite.alpha = 0.8;
+                    }
+                }, 200);
+            }
+
+            return result;
+        }
+
+        // Fallback: GPU executor (decode only, no RISC-V)
+        if (this.holographicExecutor) {
+            const result = await this.holographicExecutor.executeAgentCard(
+                agentId,
+                imageData,
+                decodedState
+            );
+            console.log('   GPU execution result:', result);
+            return result;
+        }
+
+        // Final fallback: CPU via Neural Event Bus
+        if (this.areaAgentSocket && this.areaAgentSocket.readyState === WebSocket.OPEN) {
+            this.areaAgentSocket.send(JSON.stringify({
+                type: 'holographic_execute',
+                agentId: agentId,
+                state: decodedState
+            }));
+        }
+
+        return decodedState;
     }
 
     /**
@@ -292,6 +558,9 @@ class GeometryOSApplication {
         // Initialize Area Agent Subsystem
         this.initializeAreaAgentConnection();
 
+        // Initialize Holographic Agent Cards (executable state in RGB)
+        this._initHolographicEncoder();
+
         // 6. Initialize Managers
         this.viewport = new ViewportManager({
             target: this.app.view,
@@ -300,6 +569,20 @@ class GeometryOSApplication {
             initialZoom: 1.0,
             websocketUrl: 'ws://127.0.0.1:8765' // Connect to Rust data daemon
         });
+
+        // --- GOS-RP: Geometric Routing Protocol Visual Stack ---
+        if (typeof GeometricTextRenderer !== 'undefined') {
+            this.geometricTextRenderer = new GeometricTextRenderer(this.app, `ws://${window.location.hostname}:8765`);
+            
+            if (typeof GOSRPRouter !== 'undefined') {
+                this.gosrpRouter = new GOSRPRouter(this.app, this.worldContainer);
+            }
+            
+            if (typeof SpatialNetworkDashboard !== 'undefined') {
+                this.networkDashboard = new SpatialNetworkDashboard(this.app, this.viewport, this.worldContainer);
+            }
+            console.log("🌀 GOS-RP Routing Protocol Visual Stack initialized");
+        }
 
         // Phase 47: Tectonic Saccadic Optimization - Initialize all subsystems
         this.initializePhase47();
@@ -854,6 +1137,10 @@ class GeometryOSApplication {
     }
 
     update(delta) {
+        if (this.networkDashboard) {
+            this.networkDashboard.update(delta.deltaTime);
+        }
+
         // Run Native Substrate (CPU Tick)
         if (this.computeSystem) {
             this.computeSystem.tick();
@@ -1556,7 +1843,11 @@ class GeometryOSApplication {
                 textRole: agentTextRole,
                 textLog: agentTextLog,
                 textStreaming: agentTextStreaming,
-                color: state.color || 0x4488FF
+                color: state.color || 0x4488FF,
+                // Holographic card components
+                holographicCanvas: null,
+                holographicCtx: null,
+                holographicSprite: null
             });
         }
 
@@ -1642,6 +1933,66 @@ class GeometryOSApplication {
                     this.updateAgentInputStatus('✅ Ready', 'normal');
                     break;
             }
+        }
+
+        // Holographic card overlay - encodes agent state into RGB for GPU execution
+        if (this.holographicMode && this.holographicEncoder) {
+            this._updateHolographicCard(agent, state);
+        }
+    }
+
+    /**
+     * Update holographic card overlay for an agent.
+     * The RGB channels contain executable state that the GPU can decode.
+     */
+    _updateHolographicCard(agent, state) {
+        // Create holographic canvas if needed
+        if (!agent.holographicCanvas) {
+            agent.holographicCanvas = document.createElement('canvas');
+            agent.holographicCanvas.width = 160;
+            agent.holographicCanvas.height = 100;
+            agent.holographicCtx = agent.holographicCanvas.getContext('2d');
+
+            // Create sprite for the holographic card (positioned in corner)
+            const texture = PIXI.Texture.from(agent.holographicCanvas);
+            agent.holographicSprite = new PIXI.Sprite(texture);
+            agent.holographicSprite.x = 350 - 165; // Right side of card
+            agent.holographicSprite.y = 5;
+            agent.holographicSprite.alpha = 0.8;
+            agent.holographicSprite.interactive = true;
+            agent.holographicSprite.cursor = 'pointer';
+
+            // Click to execute holographic state
+            agent.holographicSprite.on('pointerdown', (e) => {
+                e.stopPropagation();
+                this.executeAgentHolographic(state.id);
+            });
+
+            agent.container.addChild(agent.holographicSprite);
+        }
+
+        // Encode current state into holographic pattern
+        const holographicData = this._encodeHolographicCard(state);
+        if (holographicData) {
+            agent.holographicCtx.putImageData(holographicData, 0, 0);
+
+            // Update texture
+            const texture = PIXI.Texture.from(agent.holographicCanvas);
+            agent.holographicSprite.texture = texture;
+
+            // Visual indicator that card is executable
+            const indicator = new PIXI.Graphics();
+            indicator.lineStyle(1, 0x00FF88, 0.8);
+            indicator.drawRect(0, 0, 160, 100);
+
+            // Add "EXEC" label
+            const label = new PIXI.Text('⚡', {
+                fontFamily: 'Courier New',
+                fontSize: 10,
+                fill: 0x00FF88
+            });
+            label.x = 5;
+            label.y = 85;
         }
     }
 

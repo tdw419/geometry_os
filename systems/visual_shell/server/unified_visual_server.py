@@ -20,7 +20,7 @@ import json
 import os
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 try:
     from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -79,7 +79,12 @@ async def test_page(page_name: str):
         "geometric_code_editor": "test_geometric_code_editor.html",
         "morphological_sound": "test_morphological_sound.html",
         "agent_visualizer": "test_agent_visualizer.html",
-        "benchmark_dashboard": "test_benchmark_dashboard.html"
+        "benchmark_dashboard": "test_benchmark_dashboard.html",
+        "holographic_agent_cards": "test_holographic_agent_cards.html",
+        "holographic_gpu_pipeline": "test_holographic_gpu_pipeline.html",
+        "holographic_linux": "demo_holographic_linux.html",
+        "holographic_kernel": "demo_holographic_kernel.html",
+        "holographic_interference": "demo_holographic_interference.html"
     }
 
     filename = page_map.get(page_name)
@@ -468,8 +473,8 @@ if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(description="Unified Visual Shell Server")
-    parser.add_argument("--port", type=int, default=8080, help="Port to listen on")
-    parser.add_argument("--host", default="0.4.4.4", help="Host to bind to")
+    parser.add_argument("--port", type=int, default=8770, help="Port to listen on")
+    parser.add_argument("--host", default="127.0.0.1", help="Host to bind to")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload")
     args = parser.parse_args()
     
