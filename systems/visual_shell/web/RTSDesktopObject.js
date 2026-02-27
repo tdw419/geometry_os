@@ -855,24 +855,34 @@ class RTSDesktopObject extends PIXI.Container {
     /**
      * Fail boot progress with error
      * @param {string} errorMessage - Error message to display
+     * @param {Object} options - Additional error context
+     * @param {string} options.stage - Boot stage where error occurred
+     * @param {number} options.elapsedTime - Time elapsed before failure
+     * @param {Object} options.config - Boot configuration used
      */
-    failBootProgress(errorMessage) {
+    failBootProgress(errorMessage, options = {}) {
         if (this._progressAnimationId) {
             cancelAnimationFrame(this._progressAnimationId);
             this._progressAnimationId = null;
         }
 
+        // Calculate elapsed time if not provided
+        const elapsedTime = options.elapsedTime ||
+            (this._bootStartTime ? (Date.now() - this._bootStartTime) / 1000 : 0);
+
+        // Get current stage
+        const stage = options.stage ||
+            (this._progressStage ? this._progressStage.label : 'Unknown');
+
+        // Show comprehensive error
+        this.showError({
+            message: errorMessage,
+            stage,
+            elapsedTime,
+            config: options.config || {}
+        });
+
         this._bootStartTime = null;
-        this.setStatus('error');
-
-        // Show error on progress bar
-        this.progressFill.clear();
-        this.progressFill.rect(0, 0, RTSDesktopObject.DIMENSIONS.THUMBNAIL_SIZE, RTSDesktopObject.PROGRESS.BAR_HEIGHT);
-        this.progressFill.fill({ color: 0xff0000, alpha: 0.9 });  // Red for error
-
-        this.progressLabel.text = errorMessage || 'Boot failed';
-        this.progressLabel.style.fill = 0xff6666;
-        this.progressContainer.visible = true;
     }
 
     /**
