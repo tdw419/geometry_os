@@ -61,6 +61,15 @@ class RTSDesktopObject extends PIXI.Container {
         this._highlighted = false;
         this._status = entry.status || 'unknown';
 
+        // Drag state
+        this.dragging = false;
+        this.dragData = null;
+        this.dragOffset = { x: 0, y: 0 };
+
+        // Pulse animation state
+        this._pulseActive = false;
+        this._pulseTime = 0;
+
         // Set up interactivity
         this.eventMode = 'static';
         this.cursor = 'pointer';
@@ -257,6 +266,8 @@ class RTSDesktopObject extends PIXI.Container {
         this.on('pointerout', this._onPointerOut, this);
         this.on('pointerdown', this._onPointerDown, this);
         this.on('pointerup', this._onPointerUp, this);
+        this.on('pointerupoutside', this._onDragEnd, this);
+        this.on('pointermove', this._onDragMove, this);
         this.on('dblclick', this._onDoubleClick, this);
     }
 
@@ -288,12 +299,16 @@ class RTSDesktopObject extends PIXI.Container {
     }
 
     /**
-     * Handle pointer down (click start)
+     * Handle pointer down (click start / drag start)
      * @private
      * @param {PIXI.FederatedPointerEvent} event
      */
     _onPointerDown(event) {
         this._clickStart = Date.now();
+
+        // Start drag
+        this._onDragStart(event);
+
         this.emit('pointer-pressed', { target: this, event });
     }
 
@@ -319,6 +334,82 @@ class RTSDesktopObject extends PIXI.Container {
     _onDoubleClick(event) {
         this.emit('double-clicked', { target: this, event });
         this.emit('boot-requested', { entryId: this.entryId, target: this });
+    }
+
+    /**
+     * Handle drag start
+     * @private
+     * @param {PIXI.FederatedPointerEvent} event
+     */
+    _onDragStart(event) {
+        // Store drag data and offset
+        this.dragging = true;
+        this.dragData = event.data;
+
+        // Calculate offset from object position
+        const globalPos = event.data.global;
+        this.dragOffset.x = globalPos.x - this.x;
+        this.dragOffset.y = globalPos.y - this.y;
+
+        // Visual feedback
+        this.alpha = 0.7;
+        this.cursor = 'grabbing';
+
+        // Bring to front
+        if (this.parent) {
+            this.parent.addChild(this);
+        }
+
+        this.emit('drag-start', { target: this, event, globalPos: { x: globalPos.x, y: globalPos.y } });
+    }
+
+    /**
+     * Handle drag move
+     * @private
+     * @param {PIXI.FederatedPointerEvent} event
+     */
+    _onDragMove(event) {
+        if (!this.dragging || !this.dragData) {
+            return;
+        }
+
+        const globalPos = this.dragData.global;
+
+        // Update position using drag data and offset
+        this.x = globalPos.x - this.dragOffset.x;
+        this.y = globalPos.y - this.dragOffset.y;
+
+        this.emit('drag-move', { target: this, event, globalPos: { x: globalPos.x, y: globalPos.y } });
+    }
+
+    /**
+     * Handle drag end
+     * @private
+     * @param {PIXI.FederatedPointerEvent} event
+     */
+    _onDragEnd(event) {
+        if (!this.dragging) {
+            return;
+        }
+
+        // Reset drag state
+        this.dragging = false;
+        this.dragData = null;
+        this.dragOffset = { x: 0, y: 0 };
+
+        // Restore visual state
+        this.alpha = 1.0;
+        this.cursor = 'pointer';
+
+        // Calculate new grid position
+        const gridX = Math.round(this.x / 160);
+        const gridY = Math.round(this.y / 200);
+
+        // Update grid position
+        this.gridX = gridX;
+        this.gridY = gridY;
+
+        this.emit('drag-end', { target: this, event, gridX, gridY, worldPos: { x: this.x, y: this.y } });
     }
 
     /**
@@ -355,6 +446,47 @@ class RTSDesktopObject extends PIXI.Container {
         this._status = status;
         const color = RTSDesktopObject.STATUS_COLORS[status] || RTSDesktopObject.STATUS_COLORS.unknown;
         this._drawStatusCircle(color);
+
+        // Start pulse animation for booting status
+        if (status === 'booting') {
+            this._startPulse();
+        } else {
+            this._stopPulse();
+        }
+    }
+
+    /**
+     * Start pulse animation on status indicator
+     * @private
+     */
+    _startPulse() {
+        if (this._pulseActive) return;
+        this._pulseActive = true;
+        this._pulseTime = 0;
+        this._updatePulse();
+    }
+
+    /**
+     * Update pulse animation frame
+     * @private
+     */
+    _updatePulse() {
+        if (!this._pulseActive) return;
+
+        this._pulseTime += 0.1;
+        const alpha = 0.5 + Math.sin(this._pulseTime) * 0.5;
+        this.statusIndicator.alpha = alpha;
+
+        requestAnimationFrame(() => this._updatePulse());
+    }
+
+    /**
+     * Stop pulse animation
+     * @private
+     */
+    _stopPulse() {
+        this._pulseActive = false;
+        this.statusIndicator.alpha = 1;
     }
 
     /**
@@ -457,11 +589,16 @@ class RTSDesktopObject extends PIXI.Container {
      * Clean up resources
      */
     destroy() {
+        // Stop pulse animation
+        this._stopPulse();
+
         // Remove event listeners
         this.off('pointerover', this._onPointerOver, this);
         this.off('pointerout', this._onPointerOut, this);
         this.off('pointerdown', this._onPointerDown, this);
         this.off('pointerup', this._onPointerUp, this);
+        this.off('pointerupoutside', this._onDragEnd, this);
+        this.off('pointermove', this._onDragMove, this);
         this.off('dblclick', this._onDoubleClick, this);
 
         // Destroy sprite texture if it exists
