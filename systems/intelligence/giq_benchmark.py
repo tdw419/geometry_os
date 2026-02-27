@@ -34,6 +34,7 @@ class BenchmarkCategory(Enum):
     PATTERN = "pattern"
     TOPOLOGY = "topology"
     SYMMETRY = "symmetry"
+    HOLOGRAPHIC = "holographic"
 
 
 @dataclass
@@ -324,6 +325,146 @@ class SymmetryDetection:
         return "Cn"  # General rotation group
 
 
+class HolographicCapabilities:
+    """Holographic encoding/decoding benchmarks for Phase Q capabilities."""
+
+    @staticmethod
+    def hadamard_basis(size: int = 16) -> List[List[int]]:
+        """Generate Hadamard basis matrix."""
+        basis = [[0] * size for _ in range(size)]
+        for i in range(size):
+            for j in range(size):
+                parity = bin(i & j).count('1') % 2
+                basis[i][j] = 1 if parity == 0 else -1
+        return basis
+
+    @staticmethod
+    def encode_32bit(value: int, basis: List[List[int]]) -> List[List[float]]:
+        """Encode 32-bit value into 16x16 holographic pattern."""
+        size = 16
+        signal = [[0.0] * size for _ in range(size)]
+
+        for bit in range(32):
+            is_set = (value & (1 << bit)) != 0
+            weight = 1.0 if is_set else -1.0
+
+            row = bit // size
+            col = bit % size
+
+            for i in range(size):
+                for j in range(size):
+                    h1 = basis[i][row]
+                    h2 = basis[col][j]
+                    signal[i][j] += weight * h1 * h2
+
+        # Normalize to [0, 255]
+        for i in range(size):
+            for j in range(size):
+                signal[i][j] = int((signal[i][j] / 64.0 + 0.5) * 255)
+                signal[i][j] = max(0, min(255, signal[i][j]))
+
+        return signal
+
+    @staticmethod
+    def decode_32bit(signal: List[List[float]], basis: List[List[int]]) -> int:
+        """Decode 32-bit value from 16x16 holographic pattern."""
+        size = 16
+        value = 0
+
+        # Denormalize signal
+        normalized = [[0.0] * size for _ in range(size)]
+        for i in range(size):
+            for j in range(size):
+                normalized[i][j] = (signal[i][j] / 255.0 - 0.5) * 64.0
+
+        for bit in range(32):
+            row = bit // size
+            col = bit % size
+
+            correlation = 0.0
+            for i in range(size):
+                for j in range(size):
+                    h1 = basis[i][row]
+                    h2 = basis[col][j]
+                    correlation += normalized[i][j] * h1 * h2
+
+            if correlation > 0:
+                value |= (1 << bit)
+
+        return value
+
+    @staticmethod
+    def apply_interference(signal: List[List[float]], intensity: float = 0.1,
+                          seed: int = None) -> List[List[float]]:
+        """Apply random interference (pixel removal) to signal."""
+        import random
+        if seed is not None:
+            random.seed(seed)
+
+        size = len(signal)
+        result = [row[:] for row in signal]
+        pixels_to_affect = int(size * size * intensity)
+
+        affected = set()
+        while len(affected) < pixels_to_affect:
+            x = random.randint(0, size - 1)
+            y = random.randint(0, size - 1)
+            if (x, y) not in affected:
+                affected.add((x, y))
+                # Ghost effect: reduce intensity
+                result[y][x] = result[y][x] * 0.3
+
+        return result
+
+    @staticmethod
+    def hilbert_d2xy(d: int, size: int) -> Tuple[int, int]:
+        """Convert Hilbert distance to (x, y) coordinates."""
+        x = y = 0
+        s = 1
+        rx = ry = t = 0
+
+        while s < size:
+            rx = 1 & (d // 2)
+            ry = 1 & (d ^ rx)
+
+            # Rotate
+            if ry == 0:
+                if rx == 1:
+                    x = s - 1 - x
+                    y = s - 1 - y
+                x, y = y, x
+
+            x += s * rx
+            y += s * ry
+            d //= 4
+            s *= 2
+
+        return (x, y)
+
+    @staticmethod
+    def compute_hilbert_coherence(signal: List[List[float]], segment_length: int = 16) -> float:
+        """Measure coherence along Hilbert curve (higher = better data preservation)."""
+        size = len(signal)
+        total_points = size * size
+
+        # Sample segments along Hilbert curve
+        coherences = []
+        for start in range(0, total_points - segment_length, segment_length * 4):
+            segment_values = []
+            for i in range(segment_length):
+                d = (start + i) % total_points
+                x, y = HolographicCapabilities.hilbert_d2xy(d, size)
+                segment_values.append(signal[y][x])
+
+            # Measure variance in segment (lower = more coherent)
+            if segment_values:
+                mean_val = sum(segment_values) / len(segment_values)
+                variance = sum((v - mean_val) ** 2 for v in segment_values) / len(segment_values)
+                coherences.append(1.0 / (1.0 + variance / 1000))
+
+        return sum(coherences) / len(coherences) if coherences else 0.0
+
+
 class GIQBenchmark:
     """Main benchmark runner for Geometric Intelligence Quotient."""
 
@@ -350,6 +491,9 @@ class GIQBenchmark:
         # Symmetry tests
         self._run_symmetry_tests()
 
+        # Holographic capability tests
+        self._run_holographic_tests()
+
         return self._compile_results()
 
     def run_category(self, category: BenchmarkCategory) -> BenchmarkSuite:
@@ -364,6 +508,8 @@ class GIQBenchmark:
             self._run_topology_tests()
         elif category == BenchmarkCategory.SYMMETRY:
             self._run_symmetry_tests()
+        elif category == BenchmarkCategory.HOLOGRAPHIC:
+            self._run_holographic_tests()
 
         return self._compile_results()
 
@@ -613,6 +759,83 @@ class GIQBenchmark:
             details={"points": points, "group": group}
         ))
 
+    def _run_holographic_tests(self):
+        """Run holographic capability benchmarks."""
+        basis = HolographicCapabilities.hadamard_basis(16)
+
+        # Test 1: Basic encode/decode accuracy
+        start = time.time()
+        test_values = [0, 1, 0xFFFFFFFF, 0xDEADBEEF, 0x12345678, 42]
+        correct = 0
+        for val in test_values:
+            encoded = HolographicCapabilities.encode_32bit(val, basis)
+            decoded = HolographicCapabilities.decode_32bit(encoded, basis)
+            if decoded == val:
+                correct += 1
+        passed = correct == len(test_values)
+        self.results.append(BenchmarkResult(
+            test_id="holographic_encode_decode",
+            category="holographic",
+            passed=passed,
+            score=correct / len(test_values),
+            time_ms=(time.time() - start) * 1000,
+            details={"tested": len(test_values), "correct": correct}
+        ))
+
+        # Test 2: Interference resilience (10% noise)
+        start = time.time()
+        test_val = 0xCAFEBABE
+        encoded = HolographicCapabilities.encode_32bit(test_val, basis)
+        noisy = HolographicCapabilities.apply_interference(encoded, intensity=0.10, seed=42)
+        decoded = HolographicCapabilities.decode_32bit(noisy, basis)
+        # With Hadamard encoding, should survive 10% interference
+        passed = decoded == test_val
+        self.results.append(BenchmarkResult(
+            test_id="holographic_interference_10pct",
+            category="holographic",
+            passed=passed,
+            score=1.0 if passed else 0.5,
+            time_ms=(time.time() - start) * 1000,
+            details={"original": hex(test_val), "decoded": hex(decoded), "match": passed}
+        ))
+
+        # Test 3: Hilbert curve coherence
+        start = time.time()
+        encoded = HolographicCapabilities.encode_32bit(0x12345678, basis)
+        coherence = HolographicCapabilities.compute_hilbert_coherence(encoded)
+        # High coherence indicates data is structured, not random
+        passed = coherence > 0.5
+        self.results.append(BenchmarkResult(
+            test_id="holographic_hilbert_coherence",
+            category="holographic",
+            passed=passed,
+            score=coherence,
+            time_ms=(time.time() - start) * 1000,
+            details={"coherence": coherence, "threshold": 0.5}
+        ))
+
+        # Test 4: Stress test (100 random values)
+        start = time.time()
+        import random
+        random.seed(12345)
+        stress_values = [random.randint(0, 0xFFFFFFFF) for _ in range(100)]
+        correct = 0
+        for val in stress_values:
+            encoded = HolographicCapabilities.encode_32bit(val, basis)
+            decoded = HolographicCapabilities.decode_32bit(encoded, basis)
+            if decoded == val:
+                correct += 1
+        accuracy = correct / len(stress_values)
+        passed = accuracy >= 0.95
+        self.results.append(BenchmarkResult(
+            test_id="holographic_stress_100",
+            category="holographic",
+            passed=passed,
+            score=accuracy,
+            time_ms=(time.time() - start) * 1000,
+            details={"tested": 100, "correct": correct, "accuracy": f"{accuracy*100:.1f}%"}
+        ))
+
     def _compile_results(self) -> BenchmarkSuite:
         """Compile all results into a suite."""
         total_tests = len(self.results)
@@ -660,7 +883,7 @@ class GIQBenchmark:
 def main():
     parser = argparse.ArgumentParser(description="Geometry OS GIQ Benchmark")
     parser.add_argument("--run-all", action="store_true", help="Run all benchmarks")
-    parser.add_argument("--category", choices=["spatial", "pattern", "topology", "symmetry"],
+    parser.add_argument("--category", choices=["spatial", "pattern", "topology", "symmetry", "holographic"],
                        help="Run specific category")
     parser.add_argument("--output", "-o", help="Output file for results (JSON)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
