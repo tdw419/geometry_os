@@ -87,6 +87,17 @@ class CatalogBridge {
         if (data) {
             this.lastFetchTime = Date.now();
             this.cachedCatalog = data;
+
+            // Map server's position.{x,y} to client's expected layout.{gridX,gridY}
+            if (data.entries) {
+                data.entries = data.entries.map(entry => ({
+                    ...entry,
+                    layout: {
+                        gridX: entry.position?.x || 0,
+                        gridY: entry.position?.y || 0
+                    }
+                }));
+            }
         }
 
         return data;
