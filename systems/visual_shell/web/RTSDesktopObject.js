@@ -876,6 +876,98 @@ class RTSDesktopObject extends PIXI.Container {
     }
 
     /**
+     * Show error overlay with detailed message and guidance
+     * @param {Object} errorInfo - Error information
+     * @param {string} errorInfo.message - Error message from server
+     * @param {string} errorInfo.stage - Boot stage where error occurred
+     * @param {number} errorInfo.elapsedTime - Time elapsed before failure
+     * @param {Object} errorInfo.config - Boot configuration used
+     */
+    showError(errorInfo) {
+        const { message, stage, elapsedTime, config } = errorInfo;
+
+        // Store details for tooltip
+        this._errorDetails = {
+            message,
+            stage: stage || 'Unknown',
+            elapsedTime: elapsedTime || 0,
+            config: config || {},
+            timestamp: Date.now()
+        };
+
+        // Find matching guidance
+        const guidance = this._getErrorGuidance(message);
+
+        // Update error display
+        this.errorTitle.text = 'Boot Failed';
+        this.errorMessage.text = this._truncateText(message || 'Unknown error', 80);
+
+        // Show guidance if available
+        if (guidance) {
+            this.errorGuidance.text = guidance.action;
+        } else {
+            this.errorGuidance.text = RTSDesktopObject.ERROR_GUIDANCE.default.action;
+        }
+
+        // Show overlay
+        this.errorContainer.visible = true;
+        this.progressContainer.visible = false;
+
+        // Set error status
+        this.setStatus('error');
+    }
+
+    /**
+     * Get guidance for an error message
+     * @private
+     * @param {string} message - Error message
+     * @returns {Object|null} Guidance object or null
+     */
+    _getErrorGuidance(message) {
+        if (!message) return null;
+
+        const { ERROR_GUIDANCE } = RTSDesktopObject;
+
+        for (const [key, info] of Object.entries(ERROR_GUIDANCE)) {
+            if (key === 'default') continue;
+            if (info.pattern.test(message)) {
+                return info;
+            }
+        }
+
+        return ERROR_GUIDANCE.default;
+    }
+
+    /**
+     * Truncate text to fit in display
+     * @private
+     * @param {string} text - Text to truncate
+     * @param {number} maxLength - Maximum length
+     * @returns {string} Truncated text
+     */
+    _truncateText(text, maxLength) {
+        if (!text) return '';
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength - 3) + '...';
+    }
+
+    /**
+     * Hide the error overlay
+     */
+    hideError() {
+        this.errorContainer.visible = false;
+        this._errorDetails = null;
+    }
+
+    /**
+     * Get error details for tooltip
+     * @returns {Object|null} Error details
+     */
+    getErrorDetails() {
+        return this._errorDetails;
+    }
+
+    /**
      * Get the current status
      * @returns {string}
      */
