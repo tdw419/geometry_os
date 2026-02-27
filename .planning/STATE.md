@@ -11,17 +11,17 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Milestone:** v1.2 Network Boot
 **Phase:** 7 of 11 (Cache Infrastructure) - COMPLETE
-**Plan:** 4 of 4 in current phase (gap closure complete)
+**Plan:** 5 of 5 in current phase (gap closure complete)
 **Status:** Phase complete
-**Last activity:** 2026-02-27 — Completed 07-04-PLAN.md (Cache Integration)
+**Last activity:** 2026-02-27 — Completed 07-05-PLAN.md (Cache Verification Status UI)
 
 Progress: [█░░░░░░░░░] 10%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 35 (v1.0: 23, v1.1: 8, v1.2: 4)
-- v1.2 plans remaining: 8
+- Total plans completed: 36 (v1.0: 23, v1.1: 8, v1.2: 5)
+- v1.2 plans remaining: 7
 
 **By Phase:**
 
@@ -29,14 +29,14 @@ Progress: [█░░░░░░░░░] 10%
 |-------|-------|--------|
 | 1-4 (v1.0) | 23 | Complete |
 | 5-6 (v1.1) | 8 | Complete |
-| 7-11 (v1.2) | 12 | In progress (4/12) |
+| 7-11 (v1.2) | 12 | In progress (5/12) |
 
 ## Accumulated Context
 
 ### Shipped Milestones
 - **v1.0:** PixelRTS Boot Improvement — Vision analysis, FUSE boot, installer, catalog
 - **v1.1:** Visual Shell Integration — Desktop objects, boot progress, error handling
-- **v1.2 (partial):** Cache Infrastructure — IndexedDB, hash verification, LRU eviction, ETag revalidation, cache-first fetching
+- **v1.2 (partial):** Cache Infrastructure — IndexedDB, hash verification, LRU eviction, ETag revalidation, cache-first fetching, verification status UI
 
 ### Key Decisions
 - PixiJS v7 for desktop rendering
@@ -56,9 +56,12 @@ Progress: [█░░░░░░░░░] 10%
 - **07-03:** Conditional fetch with If-None-Match header for ETag revalidation
 - **07-04:** ES6 export + window attachment pattern for dual module/script usage
 - **07-04:** getContainerData uses cache-first with background revalidation for stale entries
+- **07-05:** Cache status indicator positioned below main status indicator
+- **07-05:** Cache status indicator hidden for uncached containers
+- **07-05:** Hover tooltip shows verification state text
 
 ### Components Shipped
-- RTSDesktopObject.js (1145 lines) - PIXI.Container with progress, status, error
+- RTSDesktopObject.js (1271 lines) - PIXI.Container with progress, status, error, cache verification indicator
 - CatalogBridge.js (487 lines) - API client with status polling and cache-first fetching
 - DesktopObjectManager.js (678 lines) - Lifecycle manager
 - catalog_server.py (639 lines) - Status tracking and REST API
@@ -69,6 +72,6 @@ Progress: [█░░░░░░░░░] 10%
 
 ## Session Continuity
 
-Last session: 2026-02-27T22:40:15Z
+Last session: 2026-02-27T22:43:12Z
 Status: Completed Phase 7 Cache Infrastructure (including gap closure) — ready for Phase 8
 Resume file: None
