@@ -7,7 +7,7 @@ Rules-based classification of Bible verses into CTRM categories.
 from enum import Enum
 import re
 import logging
-from typing import Set, Tuple, List, Optional
+from typing import Set, Tuple, List
 
 logger = logging.getLogger(__name__)
 

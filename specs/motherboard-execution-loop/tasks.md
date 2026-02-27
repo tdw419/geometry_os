@@ -75,7 +75,7 @@ Focus: Connect shader to executor, validate GPU compute works end-to-end.
   - _Requirements: FR-6_
   - _Design: Registers per Core_
 
-- [ ] 1.8 POC Checkpoint: Browser test page
+- [x] 1.8 POC Checkpoint: Browser test page
   - **Do**: Create test_motherboard.html with status display, execute/auto buttons, mode switching. Load GlyphExecutor, init with shader path, register test glyphs.
   - **Files**: `systems/visual_shell/web/test_motherboard.html` (create)
   - **Done when**: Page loads, shows WebGPU status, buttons work
@@ -96,7 +96,7 @@ Focus: Connect shader to executor, validate GPU compute works end-to-end.
 
 ## Phase 3: Documentation
 
-- [ ] 3.1 Update spec documentation
+- [x] 3.1 Update spec documentation
   - **Do**: Create/update HOLOGRAPHIC_HYPERVISOR_PROTOCOL.md with implementation status section: components, execution cycle, registers.
   - **Files**: `specs/HOLOGRAPHIC_HYPERVISOR_PROTOCOL.md`
   - **Done when**: Spec reflects current implementation
@@ -106,7 +106,7 @@ Focus: Connect shader to executor, validate GPU compute works end-to-end.
 
 ## Phase 4: Quality Gates
 
-- [ ] 4.1 Final syntax verification
+- [x] 4.1 Final syntax verification
   - **Do**: Run node -c on all modified JS files
   - **Verify**: All files pass syntax check
   - **Done when**: No syntax errors

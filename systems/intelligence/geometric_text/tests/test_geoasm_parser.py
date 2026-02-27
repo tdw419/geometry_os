@@ -4,18 +4,13 @@ Unit tests for GeoASM Parser
 Tests for parsing Geometric Assembly source code into instruction lists.
 """
 
-import pytest
 from systems.intelligence.geometric_text.geoasm_parser import (
     GeoASMParser,
-    GeoASMInstruction,
-    ParseError,
     disassemble,
 )
 from systems.intelligence.geometric_text.geoasm_opcodes import (
     OP_I32_CONST,
     OP_I32_ADD,
-    OP_NOP,
-    OP_LOCAL_GET,
 )
 
 

@@ -47,6 +47,7 @@ except ImportError:
 
 # --- EVOLUTION SYSTEMS ---
 sys.path.append(os.path.join(os.path.dirname(__file__), "systems"))
+print(f"DEBUG sys.path: {sys.path}")
 from evolution_inference.sleep_daemon import SleepDaemon
 from evolution.PixelRTS import PixelRTS
 from evolution.PixelSurgeon import PixelSurgeon
@@ -66,7 +67,7 @@ from systems.vectorland.recursive_planner import RecursiveGraphPlanner
 sys.path.append(os.path.join(os.path.dirname(__file__), "systems", "neural_cortex"))
 from harmonic_hub import HarmonicHub, DaemonRole, DaemonFrequencyBand
 from evolution_protocol_server import EvolutionProtocolServer, MessageType
-from systems.neural_cortex.evolution_daemon_bridge import get_bridge
+from systems.neural_cortex.evolution_daemon_bridge import get_bridge, EvolutionDaemonBridge
 
 # --- PHASE 23: EMERGENT CONSCIOUSNESS ---
 from consciousness import ConsciousnessDaemon, OverrideAction, OverrideSignal
@@ -485,6 +486,9 @@ class EvolutionDaemonV8:
         self.surgeon = PixelSurgeon()
         self.texture_atlas = NeuralTextureAtlas("geometry_os.rts")
         self.consciousness = AestheticEngine()
+        self.metabolism = MetabolicDaemon()
+        self.immune_system = SelfHealingDaemon()
+        self.replication_active = False
         
         # 3. VISUAL SYSTEMS (The V8 Upgrade)
         self.visual_cortex = VisualCortexV8()

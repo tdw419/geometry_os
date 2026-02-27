@@ -1,8 +1,8 @@
 # Geometry OS & Pixel RTS - Unified Development Roadmap 2026
 
-> **Last Updated:** 2026-02-15
+> **Last Updated:** 2026-02-27
 > **Branch:** `master`
-> **Vision:** "The Screen is the Hard Drive — and the AI is the Operator."
+> **Vision:** "The Screen is the Hard Drive — and the Text is the Code."
 
 ---
 
@@ -611,3 +611,295 @@ result = engine.route_request(request)
 **Completed Phases:** K, L, M, N, O (5/5)
 
 **Next Milestone:** Q4 2026 - Visual IDE & Production
+
+---
+
+## Q4 2026: Holographic Computing Substrate
+
+> **Key Insight:** Text is no longer just labels — it is the executable RAM.
+> The screen IS the memory. Reading = Loading. Writing = Storing.
+
+---
+
+### Phase P: Holographic Font Architecture
+
+**Goal:** Convert Geometry OS pixel fonts to TTF with embedded executable RGB data. Enable "text as executable substrate."
+
+**Concept:**
+- **TTF Alpha Channel:** Human-readable text (scalable, standard)
+- **RGB Channels:** Holographic Hadamard-encoded instruction data
+- **Runtime Fusion:** WebGPU shader combines TTF mask + holographic RGB
+
+**Tasks:**
+
+#### P.1 TTF Generation Pipeline
+- [ ] **Task P.1.1**: Create `generate_gos_ttf.py` - Converts 16x16 pixel atlas to vector TTF
+- [ ] **Task P.1.2**: Implement bitmap-to-vector conversion using potrace/autotrace
+- [ ] **Task P.1.3**: Add OpenType COLR/SVG table support for RGB embedding
+- [ ] **Task P.1.4**: Generate GeometryOS-Regular.ttf with 95 printable ASCII chars
+
+**File:** `fonts/GeometryOS-Regular.ttf`
+
+#### P.2 Holographic Encoding Layer
+- [ ] **Task P.2.1**: Implement Hadamard basis encoding in `holographic_encoder.py`
+- [ ] **Task P.2.2**: Create RGB steganography for 32-bit RISC-V opcodes per character
+- [ ] **Task P.2.3**: Build verification decoder with >95% accuracy
+- [ ] **Task P.2.4**: Add noise resilience (survive 10% pixel corruption)
+
+**File:** `systems/holographic/encoder.py`
+
+#### P.3 Runtime Fusion Shader
+- [ ] **Task P.3.1**: Create `holographic_glyph_fusion.wgsl` - Combines TTF alpha + RGB data
+- [ ] **Task P.3.2**: Implement sub-pixel anti-aliasing for holographic edges
+- [ ] **Task P.3.3**: Add dynamic font scaling (no blur at any zoom)
+- [ ] **Task P.3.4**: Benchmark fusion performance (target: 60 FPS at 1M glyphs)
+
+**File:** `systems/visual_shell/web/shaders/holographic_glyph_fusion.wgsl`
+
+#### P.4 GOS Font Distinguishing Characteristics
+- [ ] **Task P.4.1**: Add "Terminal Pins" - 1px dots at left/right centers (chip aesthetic)
+- [ ] **Task P.4.2**: Add "Circuit Traces" - vertical lines from char to grid edge
+- [ ] **Task P.4.3**: Add "Holographic Interference" - 10% random pixel removal (ghost effect)
+- [ ] **Task P.4.4**: Create font preview page with all characteristics visible
+
+**Files:** `demo_gos_font.py`, `gos_font_preview.png`
+
+**Success Criteria:**
+- GeometryOS-Regular.ttf installs on standard OS (Mac/Windows/Linux)
+- Text renders sharply at any zoom level
+- RGB data survives screenshot → re-import cycle
+- Visual debugging shows holographic data integrity
+
+**Dependencies:** Phase L (Multi-Kernel Orchestration) - Complete
+
+---
+
+### Phase Q: Holographic Agent Cards
+
+**Goal:** Agent state encoded in RGB channels of visual cards. Clicking a card executes the agent's task on GPU.
+
+**Concept:**
+```
+┌─────────────────────┐
+│ 🤖 Engineer         │  ← Alpha (visible)
+│ Task: compile       │
+│ [██████░░] 67%      │
+└─────────────────────┘
+         ↓
+    RGB Channels:
+    • task_id (32-bit)
+    • execution_ptr
+    • neural_weights[4]
+    • status + type
+         ↓
+    Click = Execute on GPU
+```
+
+**Tasks:**
+
+#### Q.1 Holographic Agent Encoder
+- [x] **Task Q.1.1**: Create `HolographicAgentEncoder.js` - Encodes agent state to RGB
+- [x] **Task Q.1.2**: Implement 32-bit Hadamard correlation for decode
+- [x] **Task Q.1.3**: Add neural weight compression (4 floats → RGB)
+- [x] **Task Q.1.4**: Build round-trip validation (>95% accuracy)
+
+**File:** `systems/visual_shell/web/HolographicAgentEncoder.js`
+
+#### Q.2 GPU Execution Pipeline
+- [x] **Task Q.2.1**: Create `HolographicAgentExecutor.js` - WebGPU compute pipeline
+- [x] **Task Q.2.2**: Implement `holographic_agent_card.wgsl` decode shader
+- [x] **Task Q.2.3**: Add CPU fallback for non-WebGPU browsers
+- [x] **Task Q.2.4**: Connect to Neural Event Bus for execution events
+
+**Files:** `systems/visual_shell/web/HolographicAgentExecutor.js`, `shaders/holographic_agent_card.wgsl`
+
+#### Q.3 Visual Shell Integration
+- [x] **Task Q.3.1**: Add holographic mode to `AgentVisualizer.js`
+- [x] **Task Q.3.2**: Implement `executeAgentHolographic()` in application.js
+- [x] **Task Q.3.3**: Add holographic card overlay to agent sprites
+- [x] **Task Q.3.4**: Create click-to-execute interaction
+
+**File:** `systems/visual_shell/web/application.js`
+
+#### Q.4 Testing & Validation
+- [x] **Task Q.4.1**: Create `test_holographic_agent_cards.html` demo page
+- [x] **Task Q.4.2**: Create `test_holographic_gpu_pipeline.html` test suite
+- [x] **Task Q.4.3**: Add stress test (1000 iterations, measure accuracy)
+- [ ] **Task Q.4.4**: Integrate with GIQ benchmark as capability metric
+
+**Files:** `test_holographic_agent_cards.html`, `test_holographic_gpu_pipeline.html`
+
+**Success Criteria:**
+- Agent cards render with executable RGB data
+- Click triggers GPU decode + execution
+- Round-trip accuracy >95% after 1000 iterations
+- Works on both WebGPU and CPU fallback
+
+**Dependencies:** Phase P.2 (Holographic Encoding) - In Progress
+
+---
+
+### Phase R: Text-as-Substrate (Executable Documents)
+
+**Goal:** Documents are executable. Reading = Loading into memory. Writing = Storing to disk.
+
+**Concept:**
+```
+┌────────────────────────────────────────┐
+│ # Linux Kernel v6.1                    │  ← Visible text
+│ Booting...                             │
+│ [████████░░] 80%                       │
+└────────────────────────────────────────┘
+              ↓
+         RGB Channels:
+         RISC-V opcodes
+         (ADDI, LD, CSRRW...)
+              ↓
+         GPU reads pixels
+         = executes kernel
+```
+
+**Tasks:**
+
+#### R.1 Binary-to-Holographic-Text Converter
+- [ ] **Task R.1.1**: Create `generate_holographic_linux.py` - vmlinuz → text document
+- [ ] **Task R.1.2**: Map RISC-V opcodes to visible disassembly
+- [ ] **Task R.1.3**: Encode 32-bit instructions into character RGB
+- [ ] **Task R.1.4**: Generate `holographic_linux_boot.png` prototype
+
+**File:** `systems/holographic/generate_holographic_linux.py`
+
+#### R.2 Holographic Glyph Decoder (GPU)
+- [ ] **Task R.2.1**: Create `holographic_glyph_decoder.wgsl` - Reads text → extracts ops
+- [ ] **Task R.2.2**: Implement 32-bit Hadamard correlation in WGSL
+- [ ] **Task R.2.3**: Connect to `visual_cpu_riscv.wgsl` as instruction fetch
+- [ ] **Task R.2.4**: Add Spatial MMU mapping (text coords → virtual memory)
+
+**File:** `systems/visual_shell/web/shaders/holographic_glyph_decoder.wgsl`
+
+#### R.3 Visual Execution Feedback
+- [ ] **Task R.3.1**: Implement text mutation on memory write (chars change color)
+- [ ] **Task R.3.2**: Add crash visualization (text corruption on kernel panic)
+- [ ] **Task R.3.3**: Create "copy = fork" semantics (duplicate text = spawn process)
+- [ ] **Task R.3.4**: Add "delete = free" semantics (remove text = deallocate)
+
+**File:** `systems/visual_shell/web/ExecutableDocument.js`
+
+#### R.4 Spatial Memory Management
+- [ ] **Task R.4.1**: Map Infinite Map coordinates to virtual address space
+- [ ] **Task R.4.2**: Implement page table as visible text regions
+- [ ] **Task R.4.3**: Add memory protection (read-only regions = protected text)
+- [ ] **Task R.4.4**: Create swap visualization (off-screen text = swapped out)
+
+**File:** `systems/visual_shell/web/SpatialMMU.js`
+
+**Success Criteria:**
+- Compiled binary → holographic text document
+- GPU can execute by "reading" the document
+- Memory writes visibly mutate the text
+- Copy-paste spawns new execution contexts
+
+**Dependencies:** Phase P (Holographic Fonts), Phase Q (Agent Cards)
+
+---
+
+### Phase S: Linux Boot via Holographic Text
+
+**Goal:** Boot a minimal Linux kernel (Alpine) by placing a holographic text document on the Infinite Map.
+
+**Tasks:**
+
+#### S.1 Minimal Kernel Encoding
+- [ ] **Task S.1.1**: Compile Alpine Linux for RISC-V 32-bit (tiny config)
+- [ ] **Task S.1.2**: Convert vmlinuz to holographic text document
+- [ ] **Task S.1.3**: Create boot sector as visible text block
+- [ ] **Task S.1.4**: Add kernel command line as holographic string
+
+**File:** `systems/holographic/alpine_holographic.txt`
+
+#### S.2 Boot Sequence Integration
+- [ ] **Task S.2.1**: Set Program Counter to (X,Y) of first character
+- [ ] **Task S.2.2**: Implement BIOS emulation in WGSL (minimal)
+- [ ] **Task S.2.3**: Connect serial output to visible text region
+- [ ] **Task S.2.4**: Add boot progress visualization
+
+**File:** `systems/visual_shell/web/shaders/holographic_boot.wgsl`
+
+#### S.3 Interactive Debugging
+- [ ] **Task S.3.1**: Pause execution by clicking text region
+- [ ] **Task S.3.2**: Edit memory by typing over characters
+- [ ] **Task S.3.3**: Hot-patch kernel by modifying text in real-time
+- [ ] **Task S.3.4**: Add time-travel debugging (undo text changes)
+
+**File:** `systems/visual_shell/web/HolographicDebugger.js`
+
+#### S.4 Multi-Instance Linux
+- [ ] **Task S.4.1**: Copy-paste kernel document → spawn second Linux
+- [ ] **Task S.4.2**: Implement isolated address spaces per text block
+- [ ] **Task S.4.3**: Add inter-VM communication via text regions
+- [ ] **Task S.4.4**: Create orchestration for managing multiple VMs
+
+**File:** `systems/visual_shell/web/MultiVMManager.js`
+
+**Success Criteria:**
+- Place holographic Linux document on Infinite Map
+- GPU boots kernel, shows boot log in text
+- Can pause, edit, resume execution
+- Copy-paste spawns additional Linux instances
+
+**Dependencies:** Phase R (Text-as-Substrate)
+
+---
+
+## Q1 2027: Self-Modifying Systems
+
+> **Vision:** The OS can read and modify its own source code by editing the text it displays.
+
+---
+
+### Phase T: Self-Modifying Kernel
+
+**Goal:** Linux kernel that can patch itself by editing the holographic text it renders.
+
+**Tasks:**
+- [ ] **Task T.1**: Implement syscall for text self-modification
+- [ ] **Task T.2**: Add safety gates (no modifying critical sections)
+- [ ] **Task T.3**: Create rollback mechanism (undo bad patches)
+- [ ] **Task T.4**: Benchmark self-modification performance
+
+---
+
+### Phase U: Evolutionary Code Optimization
+
+**Goal:** Genetic algorithms evolve better kernel configurations by mutating holographic text.
+
+**Tasks:**
+- [ ] **Task U.1**: Define fitness function (boot time, memory usage, throughput)
+- [ ] **Task U.2**: Implement mutation operators (change instruction, swap region)
+- [ ] **Task U.3**: Add crossover (merge two kernel documents)
+- [ ] **Task U.4**: Create visualization of evolution progress
+
+---
+
+## Summary: Holographic Computing Roadmap
+
+| Phase | Description | Status | Quarter |
+|-------|-------------|--------|---------|
+| **P** | Holographic Font Architecture | 🔄 Pending | Q4 2026 |
+| **Q** | Holographic Agent Cards | 🔄 In Progress | Q4 2026 |
+| **R** | Text-as-Substrate | 📋 Planned | Q4 2026 |
+| **S** | Linux Boot via Holographic Text | 📋 Planned | Q4 2026 |
+| **T** | Self-Modifying Kernel | 📋 Planned | Q1 2027 |
+| **U** | Evolutionary Code Optimization | 📋 Planned | Q1 2027 |
+
+**Key Milestones:**
+- **Q4 2026:** Holographic font renders on standard OS
+- **Q4 2026:** Agent cards execute on GPU click
+- **Q4 2026:** First Linux boot from holographic text
+- **Q1 2027:** Self-modifying kernel demonstration
+
+**Architecture Principle:**
+> "The Screen is the Hard Drive — and the Text is the Code."
+> 
+> In Geometry OS, there is no hidden memory. Everything on screen is executable.
+> Reading a document loads it. Editing a document patches it. Copying spawns it.

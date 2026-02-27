@@ -105,8 +105,28 @@ class InfiniteMap {
             this.glyphExecutor = new GlyphExecutor({
                 maxCores: 64,
                 glyphSize: 16,
-                atlasPath: '/assets/universal_font.rts.png'
+                atlasPath: '/assets/polymorphic_atlas.png'
             });
+
+            // Register shift callback for visual shell
+            this.glyphExecutor.onMorphologicalShift = (mode) => {
+                console.log(`🗺️ Map shifting to ${mode} mode`);
+                
+                // Phase 43: Instant Visual Shift
+                // Update all existing glyph sprites to point to the new morphological layer
+                const modeOffset = mode === 'stealth' ? 1024 : (mode === 'native' ? 512 : 0);
+                
+                for (const glyph of this.glyphExecutor.registry.values()) {
+                    if (glyph.sprite && glyph.sprite.texture) {
+                        const frame = glyph.sprite.texture.frame.clone();
+                        // Reset to original relative Y within its 512x512 block
+                        const relativeY = (glyph.atlasY * 16) % 512;
+                        frame.y = modeOffset + relativeY;
+                        glyph.sprite.texture.frame = frame;
+                    }
+                }
+            };
+
             // Async init - don't block constructor
             this.glyphExecutor.init().then(() => {
                 console.log('GlyphExecutor integrated with InfiniteMap');
@@ -1452,6 +1472,20 @@ class InfiniteMap {
                 case 'KeyL':
                     event.preventDefault();
                     this.openBrickFileDialog();
+                    break;
+                case 'KeyM':
+                    // Cycle Morphological Mode (Standard <-> Native)
+                    if (this.glyphExecutor) {
+                        const currentMode = this.glyphExecutor.options.atlasMode;
+                        const nextMode = currentMode === 'standard' ? 'native' : 'standard';
+                        this.glyphExecutor.setMorphologicalMode(nextMode);
+                    }
+                    break;
+                case 'KeyN':
+                    // Stealth Mode (Security Shift)
+                    if (this.glyphExecutor) {
+                        this.glyphExecutor.setMorphologicalMode('stealth');
+                    }
                     break;
                 case 'Enter':
                     // Ctrl+Enter: Execute glyphs

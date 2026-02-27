@@ -8,16 +8,13 @@ import json
 import os
 import tempfile
 import pytest
-from PIL import Image
 
 from systems.intelligence.geometric_text.morphological_compiler import (
     MorphologicalCompiler,
-    CompileResult,
 )
 from systems.intelligence.geometric_text.geoasm_opcodes import (
     OP_I32_CONST,
     OP_I32_ADD,
-    OP_I32_SUB,
 )
 
 

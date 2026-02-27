@@ -8,7 +8,7 @@ Supports 12 symbols mapped to WebAssembly-style opcodes.
 from dataclasses import dataclass
 from typing import List, Tuple
 
-from systems.intelligence.geometric_text.geoasm_opcodes import SYMBOL_TO_OPCODE, OPCODE_NAMES, get_opcode_name
+from systems.intelligence.geometric_text.geoasm_opcodes import SYMBOL_TO_OPCODE, get_opcode_name
 
 
 @dataclass

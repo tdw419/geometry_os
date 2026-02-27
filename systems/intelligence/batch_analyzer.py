@@ -7,8 +7,7 @@ Integrates with WordPress Semantic District for result publishing.
 
 import json
 import os
-import time
-from typing import Dict, List, Any, Optional
+from typing import Dict, Optional
 from datetime import datetime
 
 # Ensure we can import from the intelligence directory
@@ -16,7 +15,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Import using absolute names relative to systems/intelligence
-from scripture_truth_analyzer import ScriptureTruthAnalyzer, VerseCategory
+from scripture_truth_analyzer import ScriptureTruthAnalyzer
 from verse_classifier import VerseClassifier
 from evidence_scorer import EvidenceScorer
 from ctrm_triad import CTRMAnalyzer
@@ -229,16 +228,16 @@ class BatchAnalyzer:
         """
 
         # Publish to WordPress
-        print(f"\n📝 Publishing to WordPress Semantic District...")
+        print("\n📝 Publishing to WordPress Semantic District...")
         result = publisher(title, content, post_type="post")
 
         if result:
-            print(f"✅ Results published to WordPress!")
+            print("✅ Results published to WordPress!")
             print(f"   Post ID: {result.get('post_id')}")
             print(f"   URL: {result.get('url')}")
             return True
         else:
-            print(f"❌ Failed to publish to WordPress")
+            print("❌ Failed to publish to WordPress")
             return False
 
 if __name__ == "__main__":

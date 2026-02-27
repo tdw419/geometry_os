@@ -46,7 +46,10 @@ class AutonomousEvolution:
             storage_path="prompt_versions.json",
             auto_save=True
         )
-        self.validator = pv.PromptValidator(strict_mode=False)
+        self.validator = pv.PromptValidator(
+            strict_mode=False,
+            role_constraints=[pv.GEOMETRY_OS_ARCHITECT]
+        )
         self.budget = eb.EvolutionBudget(
             max_per_hour=3,
             max_per_day=10,
@@ -218,14 +221,17 @@ Reply with ONLY a number between 0.0 and 1.0, nothing else."""
         logger.info(f"  Evolved prompt ({len(evolved_prompt)} chars): {evolved_prompt[:80]}...")
         
         # Validate evolved prompt
-        logger.info("  🔍 Validating evolved prompt...")
+        logger.info("  🔍 Validating evolved prompt with role constraints...")
         validation = self.validator.validate(evolved_prompt)
-        
+
         if not validation.is_valid:
-            logger.warning("  ❌ Validation failed:")
+            logger.warning("  ❌ Validation FAILED - prompt rejected:")
             for issue in validation.issues:
                 if issue['severity'] == 'error':
                     logger.warning(f"    - {issue['message']}")
+            # Check if it was a role constraint that blocked it
+            if any('constraint' in i for i in validation.issues):
+                logger.info("  🛡️ Role constraint prevented drift!")
             return
         
         if validation.has_warnings:

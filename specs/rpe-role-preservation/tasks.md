@@ -136,7 +136,7 @@ After POC validated, clean up code structure.
   - **Commit**: `refactor(rpe): add graceful handling for invalid regex patterns`
   - _Design: Error Handling_
 
-- [ ] 2.2 [VERIFY] Quality checkpoint: ruff + mypy
+- [x] 2.2 [VERIFY] Quality checkpoint: ruff + mypy
   - **Do**: Run lint and type check
   - **Verify**: `python -m ruff check systems/intelligence/ && python -m mypy systems/intelligence/ --ignore-missing-imports`
   - **Done when**: No errors
@@ -174,7 +174,7 @@ After POC validated, clean up code structure.
   - _Requirements: FR-2, FR-3, FR-4, FR-5, FR-7, FR-8, AC-2.1, AC-2.2, AC-2.3, AC-2.4_
   - _Design: Test Strategy_
 
-- [ ] 3.3 [VERIFY] Quality checkpoint: full test suite
+- [x] 3.3 [VERIFY] Quality checkpoint: full test suite
   - **Do**: Run all intelligence tests
   - **Verify**: `python -m pytest tests/intelligence/ -v`
   - **Done when**: All tests pass

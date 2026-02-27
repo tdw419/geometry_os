@@ -8,7 +8,7 @@ This is the CPU side of the "Screen is the Hard Drive" architecture.
 
 import numpy as np
 from PIL import Image
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Optional
 from dataclasses import dataclass, field
 
 
@@ -225,7 +225,7 @@ class VisualCPUEmulator:
         Returns final execution state.
         """
         if self.debug:
-            print(f"\n=== Running Visual CPU ===")
+            print("\n=== Running Visual CPU ===")
             print(f"Instructions: {len(self.instructions)}")
             print(f"Max cycles: {max_cycles}")
             print()
@@ -235,7 +235,7 @@ class VisualCPUEmulator:
                 break
 
         if self.debug:
-            print(f"\n=== Execution Complete ===")
+            print("\n=== Execution Complete ===")
             print(f"Cycles: {self.state.cycles}")
             print(f"Halted: {self.state.halted}")
             print(f"Final stack: {self.state.stack}")

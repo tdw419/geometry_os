@@ -30,11 +30,13 @@ import websockets
 import aiohttp
 from aiohttp import web
 import tempfile
+from systems.swarm.gos_rp.bridge_adapter import GOSRPBridgeAdapter
 
 # Add project root to path (relative to this file)
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
-sys.path.append(str(PROJECT_ROOT))
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 # Configure logging
 logging.basicConfig(
@@ -141,8 +143,8 @@ class FileSystemScanner:
 
                 # Validate TypeScript files
                 semantic_health = None
-                if file_type == 'CODE' and filename.endswith('.ts'):
-                    semantic_health = self._validate_typescript_file(filepath)
+                # if file_type == 'CODE' and filename.endswith('.ts'):
+                #     semantic_health = self._validate_typescript_file(filepath)
 
                 file_data = {
                     'id': str(rel_path),
@@ -223,43 +225,8 @@ class FileSystemScanner:
             return 'OTHER'
 
     def _validate_typescript_file(self, filepath: Path) -> Optional[Dict]:
-        """Validate a TypeScript file using the compositor daemon."""
-        try:
-            # Check if compositor is available
-            if not self.compositor_path.exists():
-                return None
-
-            # Run the validation script
-            cmd = [
-                'npx', 'ts-node',
-                str(self.compositor_path / 'examples' / 'validate-file.ts'),
-                str(filepath)
-            ]
-
-            result = subprocess.run(
-                cmd,
-                cwd=str(self.compositor_path),
-                capture_output=True,
-                text=True,
-                timeout=10  # 10 second timeout
-            )
-
-            if result.returncode == 0:
-                validation_data = json.loads(result.stdout)
-                return {
-                    'has_errors': validation_data['hasErrors'],
-                    'has_warnings': validation_data['hasWarnings'],
-                    'error_count': validation_data['errorCount'],
-                    'warning_count': validation_data['warningCount'],
-                    'diagnostics': validation_data['diagnostics']
-                }
-            else:
-                logger.warning(f"TypeScript validation failed for {filepath}: {result.stderr}")
-                return None
-
-        except (subprocess.TimeoutExpired, json.JSONDecodeError, KeyError) as e:
-            logger.warning(f"TypeScript validation error for {filepath}: {e}")
-            return None
+        """Skip validation to avoid log flood during GOS-RP testing."""
+        return None
 
 
 
@@ -434,7 +401,7 @@ class InfiniteDesktopServer:
 
     Provides real-time updates from HarmonicHub and file system.
     """
-    def __init__(self, ws_port=8765, http_port=8080, udp_port=5005):
+    def __init__(self, ws_port=8765, http_port=8083, udp_port=5005):
         self.ws_port = ws_port
         self.http_port = http_port
         self.udp_port = udp_port
@@ -463,6 +430,9 @@ class InfiniteDesktopServer:
         # Dream Mode State
         self.dream_mode = True
         self.dream_beat_phase = 0.0
+
+        # GOS-RP Routing Protocol Integration
+        self.gosrp_bridge = GOSRPBridgeAdapter(executor_callback=self._execute_geometric_command)
         
         logger.info("🚀 Infinite Desktop Server Initialized")
         logger.info(f"📡 WebSocket Port: {ws_port}")
@@ -502,6 +472,19 @@ class InfiniteDesktopServer:
                 # No loop?
                 pass
                 
+    async def _execute_geometric_command(self, command_text: str) -> str:
+        """Execute a decoded geometric command and return a response string."""
+        logger.info(f"🌀 Executing Geometric Command: {command_text}")
+        
+        # 1. Try file execution first
+        success = self.executor.execute(command_text)
+        if success:
+            return f"EXECUTED {command_text}"
+            
+        # 2. Fallback to Intelligence / OpenClaw
+        # This is where we bridge to the broader OS intelligence
+        return f"PROCESSED INTENT: {command_text}"
+
     async def _broadcast_message(self, message_dict):
         """Helper to send message to all clients."""
         msg_str = json.dumps(message_dict)
@@ -607,8 +590,14 @@ class InfiniteDesktopServer:
         
         logger.info("📦 Initial data sent to client")
     
-    async def handle_client_message(self, websocket, message: str):
-        """Handle incoming message from client."""
+    async def handle_client_message(self, websocket, message):
+        """Handle incoming message from client (JSON string or binary GOS-RP)."""
+        if isinstance(message, bytes):
+            # GOS-RP Binary Packet
+            if self.gosrp_bridge:
+                await self.gosrp_bridge.handle_binary(websocket, message)
+            return
+
         try:
             data = json.loads(message)
             msg_type = data.get('type')
@@ -1159,7 +1148,12 @@ class InfiniteDesktopServer:
         self.udp_task = asyncio.create_task(self.handle_udp_packets())
 
         # Start WebSocket server
-        async with websockets.serve(self.handle_websocket, 'localhost', self.ws_port):
+        async with websockets.serve(
+            self.handle_websocket, 
+            '127.0.0.1', 
+            self.ws_port,
+            max_size=10 * 1024 * 1024  # 10MB
+        ):
             logger.info(f"📡 WebSocket Server started on port {self.ws_port}")
             logger.info("🎯 Infinite Desktop Server is ready!")
 

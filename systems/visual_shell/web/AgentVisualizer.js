@@ -10,6 +10,10 @@
  *                    [Agent State Updates]
  *                    [Task Assignments]
  *                    [Belief Updates]
+ *
+ * HOLOGRAPHIC MODE:
+ * When enabled, agent cards contain executable state encoded in RGB channels.
+ * Clicking an agent card allows the GPU to decode and execute the agent's state.
  */
 
 export class AgentVisualizer {
@@ -18,6 +22,10 @@ export class AgentVisualizer {
         this.height = options.height || 600;
         this.wsUrl = options.wsUrl || 'ws://localhost:8770/ws/agents';
         this.nebUrl = options.nebUrl || 'ws://localhost:8765';
+
+        // Holographic mode - encodes agent state in RGB for GPU execution
+        this.holographicMode = options.holographicMode || false;
+        this.holographicEncoder = null;
 
         // Agent state
         this.agents = new Map();
@@ -93,6 +101,103 @@ export class AgentVisualizer {
 
         // Initialize with placeholder agents
         this._initPlaceholderAgents();
+
+        // Initialize holographic encoder if in holographic mode
+        if (this.holographicMode) {
+            this._initHolographicEncoder();
+        }
+    }
+
+    /**
+     * Initialize holographic encoder for executable agent cards.
+     */
+    async _initHolographicEncoder() {
+        try {
+            const { HolographicAgentEncoder } = await import('./HolographicAgentEncoder.js');
+            this.holographicEncoder = new HolographicAgentEncoder();
+            console.log('AgentVisualizer: Holographic mode enabled');
+        } catch (e) {
+            console.warn('AgentVisualizer: Failed to load holographic encoder', e);
+            this.holographicMode = false;
+        }
+    }
+
+    /**
+     * Enable/disable holographic mode.
+     */
+    setHolographicMode(enabled) {
+        this.holographicMode = enabled;
+        if (enabled && !this.holographicEncoder) {
+            this._initHolographicEncoder();
+        }
+        // Re-render all agents
+        for (const [id, agent] of this.agents) {
+            this._updateAgentHolographic(agent);
+        }
+    }
+
+    /**
+     * Update holographic sprite for an agent.
+     */
+    _updateAgentHolographic(agent) {
+        if (!this.holographicMode || !this.holographicEncoder) return;
+
+        // Create holographic card
+        const state = {
+            taskId: agent.currentTask ? this._hashString(agent.currentTask) : 0,
+            executionPtr: Math.floor(Math.random() * 0xFFFFFF),
+            status: agent.status,
+            type: this._getAgentTypeIndex(agent.type),
+            progress: agent.progress || 0,
+            neuralWeights: [Math.random(), Math.random(), Math.random(), Math.random()]
+        };
+
+        const imageData = this.holographicEncoder.encodeAgentCard(state);
+
+        // Create or update holographic sprite
+        if (!agent.holographicSprite) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 160;
+            canvas.height = 100;
+            const texture = PIXI.Texture.from(canvas);
+            agent.holographicSprite = new PIXI.Sprite(texture);
+            agent.holographicSprite.anchor.set(0.5);
+            agent.container.addChildAt(agent.holographicSprite, 0);
+            agent.holographicCanvas = canvas;
+            agent.holographicCtx = canvas.getContext('2d');
+        }
+
+        // Update canvas with new holographic data
+        agent.holographicCtx.putImageData(imageData, 0, 0);
+
+        // Update texture
+        const texture = PIXI.Texture.from(agent.holographicCanvas);
+        agent.holographicSprite.texture = texture;
+
+        // Toggle visibility
+        agent.holographicSprite.visible = this.holographicMode;
+        agent.body.visible = !this.holographicMode;
+    }
+
+    /**
+     * Get numeric index for agent type.
+     */
+    _getAgentTypeIndex(type) {
+        const types = ['architect', 'engineer', 'reviewer', 'executor', 'scribe'];
+        return types.indexOf(type);
+    }
+
+    /**
+     * Hash string to u32 for task IDs.
+     */
+    _hashString(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return Math.abs(hash);
     }
 
     _calculateLayout() {
@@ -363,6 +468,20 @@ export class AgentVisualizer {
                 agent: this._getAgentState(agent)
             });
         }
+
+        // In holographic mode, emit executable state
+        if (this.holographicMode && this.holographicEncoder && agent.holographicCanvas) {
+            const imageData = agent.holographicCtx.getImageData(0, 0, 160, 100);
+            const decodedState = this.holographicEncoder.decodeAgentCard(imageData);
+
+            if (this.onAgentUpdate) {
+                this.onAgentUpdate({
+                    type: 'execute',
+                    agent: this._getAgentState(agent),
+                    holographicState: decodedState
+                });
+            }
+        }
     }
 
     _getAgentState(agent) {
@@ -427,6 +546,11 @@ export class AgentVisualizer {
                 type: 'updated',
                 agent: this._getAgentState(agent)
             });
+        }
+
+        // Update holographic representation
+        if (this.holographicMode) {
+            this._updateAgentHolographic(agent);
         }
 
         return agent;
@@ -805,6 +929,39 @@ export class AgentVisualizer {
             states.push(this._getAgentState(agent));
         }
         return states;
+    }
+
+    /**
+     * Get holographic executable state from an agent card.
+     * This is the key method - clicking an agent returns its executable state.
+     */
+    getExecutableState(agentId) {
+        const agent = this.agents.get(agentId);
+        if (!agent || !this.holographicEncoder || !agent.holographicCanvas) {
+            return null;
+        }
+
+        const imageData = agent.holographicCtx.getImageData(0, 0, 160, 100);
+        return this.holographicEncoder.decodeAgentCard(imageData);
+    }
+
+    /**
+     * Export all agent cards as holographic images.
+     * These images can be loaded by the GPU for execution.
+     */
+    exportHolographicCards() {
+        const cards = [];
+        for (const [id, agent] of this.agents) {
+            if (agent.holographicCanvas) {
+                cards.push({
+                    agentId: id,
+                    type: agent.type,
+                    dataUrl: agent.holographicCanvas.toDataURL('image/png'),
+                    state: this.getExecutableState(id)
+                });
+            }
+        }
+        return cards;
     }
 
     /**

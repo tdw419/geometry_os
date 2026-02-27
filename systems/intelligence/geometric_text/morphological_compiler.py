@@ -17,14 +17,14 @@ import argparse
 import json
 import os
 import sys
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from typing import Optional, List
 
 import numpy as np
 from PIL import Image
 
 from systems.intelligence.geometric_text.geoasm_opcodes import OPCODE_TO_SYMBOL, OPCODE_NAMES
-from systems.intelligence.geometric_text.geoasm_parser import GeoASMParser, GeoASMInstruction
+from systems.intelligence.geometric_text.geoasm_parser import GeoASMParser
 from systems.intelligence.geometric_text.universal_font_demo import UniversalMorphologicalFont
 
 

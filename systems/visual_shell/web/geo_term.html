@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Geometry OS - Geometric Terminal</title>
+    <title>Geometry OS - Geometric Terminal [Motherboard]</title>
     <script src="https://pixijs.download/v8.1.0/pixi.min.js"></script>
     <style>
         body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; }
@@ -34,9 +34,9 @@
             flex-grow: 1;
         }
 
-        /* State Panel Styles */
+        /* State Panel Styles - Motherboard Edition */
         #state-panel {
-            width: 250px;
+            width: 280px;
             background: #0a0a0a;
             border-left: 2px solid #0f0;
             padding: 20px;
@@ -45,7 +45,7 @@
             flex-direction: column;
         }
         #state-panel h2 {
-            margin: 0 0 20px 0;
+            margin: 0 0 10px 0;
             font-size: 14px;
             color: #0f0;
             text-transform: uppercase;
@@ -67,9 +67,80 @@
             font-weight: bold;
             font-family: monospace;
         }
-        #output-buffer {
-            margin-top: 20px;
+
+        /* Substrate Controls */
+        #substrate-controls {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px solid #333;
+            background: #050505;
+        }
+        #substrate-btn {
+            width: 100%;
+            padding: 12px;
+            background: #040;
+            color: #0f0;
+            border: 1px solid #0f0;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        #substrate-btn:hover {
+            background: #060;
+            box-shadow: 0 0 10px #0f0;
+        }
+        #substrate-btn.engaged {
+            background: #400;
+            color: #f00;
+            border-color: #f00;
+        }
+        #substrate-btn.engaged:hover {
+            background: #600;
+            box-shadow: 0 0 10px #f00;
+        }
+
+        /* Core Telemetry */
+        #core-telemetry {
+            margin-top: 10px;
             flex-grow: 1;
+            overflow-y: auto;
+        }
+        #core-telemetry h3 {
+            margin: 0 0 10px 0;
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        #core-list {
+            background: #050505;
+            border: 1px solid #333;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            font-size: 11px;
+        }
+        #core-list:empty::before {
+            content: '(no cores registered)';
+            color: #444;
+        }
+        .core-item {
+            margin-bottom: 4px;
+            padding: 4px;
+            border-bottom: 1px solid #222;
+        }
+        .core-item.halted {
+            color: #f00;
+        }
+        .core-item.busy {
+            color: #0f0;
+        }
+
+        #output-buffer {
+            margin-top: 15px;
         }
         #output-buffer h3 {
             margin: 0 0 10px 0;
@@ -81,7 +152,7 @@
         #output-list {
             background: #050505;
             border: 1px solid #333;
-            height: 150px;
+            height: 100px;
             overflow-y: auto;
             padding: 10px;
             font-size: 12px;
@@ -94,15 +165,6 @@
             color: #0f0;
             margin-bottom: 4px;
         }
-        #halted-indicator {
-            margin-top: auto;
-            padding: 10px;
-            text-align: center;
-            border: 1px solid #333;
-            font-size: 12px;
-        }
-        #halted-indicator.running { color: #0f0; border-color: #0f0; }
-        #halted-indicator.halted { color: #f00; border-color: #f00; }
 
         /* WebGPU Error Overlay */
         #webgpu-error-overlay {
@@ -151,11 +213,11 @@
     </style>
 </head>
 <body>
-    <!-- WebGPU Error Overlay (hidden by default, shown if WebGPU unavailable) -->
+    <!-- WebGPU Error Overlay -->
     <div id="webgpu-error-overlay" style="display: none;">
         <h1>WebGPU Required</h1>
         <p>
-            The Geometry OS Geometric Terminal requires WebGPU to execute morphological code on the GPU.
+            The Geometry OS Geometric Terminal [Motherboard] requires WebGPU to execute morphological code on the GPU.
             Your browser does not currently support WebGPU or it may be disabled.
         </p>
         <div class="browser-list">
@@ -168,7 +230,8 @@
 
     <div id="main-container">
         <div id="terminal">
-            <div id="history">GEOMETRY OS - GEOMETRIC TERMINAL v1.0
+            <div id="history">GEOMETRY OS - GEOMETRIC TERMINAL [MOTHERBOARD v2.0]
+PARALLEL GPU SUBSTRATE ACTIVE
 READY FOR SUBSTRATE INSTRUCTIONS...
 </div>
             <div id="prompt-line">
@@ -181,20 +244,33 @@ READY FOR SUBSTRATE INSTRUCTIONS...
             <div id="glyph-canvas"></div>
         </div>
         <div id="state-panel">
-            <h2>Execution State</h2>
+            <h2>Motherboard Status</h2>
             <div class="state-row">
-                <span class="state-label">PC</span>
-                <span class="state-value" id="state-pc">0</span>
+                <span class="state-label">CORES</span>
+                <span class="state-value" id="state-cores">0</span>
             </div>
             <div class="state-row">
-                <span class="state-label">ACC</span>
-                <span class="state-value" id="state-acc">0</span>
+                <span class="state-label">CYCLES</span>
+                <span class="state-value" id="state-cycles">0</span>
             </div>
             <div class="state-row">
-                <span class="state-label">CYCLE</span>
-                <span class="state-value" id="state-cycle">0</span>
+                <span class="state-label">SUBSTRATE</span>
+                <span class="state-value" id="state-substrate">IDLE</span>
             </div>
-            <div id="halted-indicator" class="running">RUNNING</div>
+            <div class="state-row" id="fracture-row" style="display: none;">
+                <span class="state-label" style="color: #f00;">FRACTURE</span>
+                <span class="state-value" id="state-fracture" style="color: #f00;">DETECTED</span>
+            </div>
+
+            <div id="substrate-controls">
+                <button id="substrate-btn">ENGAGE SUBSTRATE</button>
+            </div>
+
+            <div id="core-telemetry">
+                <h3>Core Telemetry</h3>
+                <div id="core-list"></div>
+            </div>
+
             <div id="output-buffer">
                 <h3>Output Buffer</h3>
                 <div id="output-list"></div>
@@ -203,11 +279,12 @@ READY FOR SUBSTRATE INSTRUCTIONS...
     </div>
 
     <script type="module">
+        import { GeometryFont } from './GeometryFont.js';
+        import { GlyphExecutor } from './GlyphExecutor.js';
+
         // WebGPU Compatibility Check
         async function checkWebGPU() {
-            if (!navigator.gpu) {
-                return false;
-            }
+            if (!navigator.gpu) return false;
             try {
                 const adapter = await navigator.gpu.requestAdapter();
                 return adapter !== null;
@@ -219,24 +296,241 @@ READY FOR SUBSTRATE INSTRUCTIONS...
         // Main initialization
         async function main() {
             const hasWebGPU = await checkWebGPU();
-
             if (!hasWebGPU) {
-                // Show error overlay
                 document.getElementById('webgpu-error-overlay').style.display = 'flex';
-                // Hide main container
                 document.getElementById('main-container').style.display = 'none';
                 return;
             }
 
-            // WebGPU available - proceed with terminal initialization
-            const { FontExecutionTerminal } = await import('./FontExecutionTerminal.js');
+            // Initialize PixiJS for glyph visualization
+            const glyphApp = new PIXI.Application();
+            await glyphApp.init({
+                width: 300,
+                height: 500,
+                backgroundColor: 0x050505,
+                antialias: true,
+                resolution: window.devicePixelRatio || 1,
+                autoDensity: true
+            });
+            document.getElementById('glyph-canvas').appendChild(glyphApp.canvas);
 
-            // Initialize terminal and expose globally for debugging
-            const terminal = new FontExecutionTerminal();
-            await terminal.init();
+            // Load Geometry Font
+            const font = new GeometryFont(glyphApp);
+            await font.load();
 
-            // Expose for console access
-            window.terminal = terminal;
+            // Initialize the Motherboard (GlyphExecutor)
+            const motherboard = new GlyphExecutor({
+                maxCores: 64,
+                atlasPath: 'assets/universal_font.rts.png'
+            });
+            await motherboard.init('shaders/FontExecutor.wgsl');
+            window.motherboard = motherboard;
+
+            // DOM elements
+            const historyEl = document.getElementById('history');
+            const inputEl = document.getElementById('command-input');
+            const substrateBtn = document.getElementById('substrate-btn');
+            const stateCores = document.getElementById('state-cores');
+            const stateCycles = document.getElementById('state-cycles');
+            const stateSubstrate = document.getElementById('state-substrate');
+            const coreList = document.getElementById('core-list');
+            const outputList = document.getElementById('output-list');
+
+            // Glyph display container
+            const glyphDisplay = new PIXI.Container();
+            glyphDisplay.x = 20;
+            glyphDisplay.y = 20;
+            glyphApp.stage.addChild(glyphDisplay);
+
+            // Track registered commands for telemetry
+            let commandCounter = 0;
+            let monitorInterval = null;
+
+            // Update glyph visualization
+            function updateGlyphDisplay(text) {
+                glyphDisplay.removeChildren();
+                if (!text) return;
+
+                const glyphText = font.createText(text, { spacing: 2, scale: 2, tint: 0x00FF00 });
+                glyphDisplay.addChild(glyphText);
+            }
+
+            // Log to history
+            function log(msg, type = 'info') {
+                const div = document.createElement('div');
+                div.textContent = msg;
+                if (type === 'command') div.style.color = '#fff';
+                if (type === 'error') div.style.color = '#f00';
+                if (type === 'output') div.style.color = '#0ff';
+                historyEl.appendChild(div);
+                historyEl.scrollTop = historyEl.scrollHeight;
+            }
+
+            // Update state panel
+            function updateStatePanel(results) {
+                stateCores.textContent = motherboard.registry.size;
+
+                if (results && results.length > 0) {
+                    const avgCycles = results.reduce((a, b) => a + b.cycles, 0) / results.length;
+                    stateCycles.textContent = avgCycles.toFixed(0);
+
+                    // Check for fractures
+                    const hasFracture = results.some(r => r.fracture);
+                    const fractureRow = document.getElementById('fracture-row');
+                    if (hasFracture) {
+                        fractureRow.style.display = 'flex';
+                        log('[⚠️ FRACTURE] Geometric contract violated!', 'error');
+                    } else {
+                        fractureRow.style.display = 'none';
+                    }
+
+                    // Update core telemetry
+                    coreList.innerHTML = '';
+                    results.slice(0, 8).forEach(res => {
+                        const item = document.createElement('div');
+                        const statusClass = res.fracture ? 'fracture' : (res.halted ? 'halted' : 'busy');
+                        item.className = `core-item ${statusClass}`;
+                        const status = res.fracture ? '[FRACTURE]' : (res.halted ? '[HALT]' : '[BUSY]');
+                        item.textContent = `CORE_${res.coreId}: PC=${res.pc} CYC=${res.cycles} ${status}`;
+                        coreList.appendChild(item);
+                    });
+                }
+            }
+
+            // Register command glyphs into Motherboard
+            function registerCommand(program, lineNum) {
+                let charPos = 0;
+                program.forEach((inst) => {
+                    if (inst.executable) {
+                        motherboard.registerGlyph(charPos, lineNum, null, inst.opcode, inst.operand);
+                    }
+                    charPos++;
+                });
+            }
+
+            // Execute command on Motherboard
+            async function executeCommand(cmd) {
+                log(`$ ${cmd}`, 'command');
+
+                if (cmd.trim() === '') return;
+
+                // Compile to morphological program
+                const program = font.compile(cmd + '\n#');
+                const lineNum = commandCounter++;
+
+                // Register into Motherboard
+                registerCommand(program, lineNum);
+                updateStatePanel(null);
+
+                // Single execution cycle
+                const activeGlyphs = motherboard.getActiveGlyphs();
+                if (activeGlyphs.length > 0) {
+                    await motherboard.execute();
+                    const results = await motherboard.readResults(activeGlyphs);
+                    updateStatePanel(results);
+
+                    // Check for output (PRINT opcode results)
+                    const lastGlyph = activeGlyphs[activeGlyphs.length - 1];
+                    if (lastGlyph && lastGlyph.lastResult) {
+                        // Simulated output for now - real GPU would read from memory buffer
+                        if (cmd.includes('!')) {
+                            const accumulator = results.reduce((a, b) => a + (b.cycles || 0), 0);
+                            log(`OUT: ${accumulator}`, 'output');
+                            const outItem = document.createElement('div');
+                            outItem.className = 'output-item';
+                            outItem.textContent = accumulator;
+                            outputList.appendChild(outItem);
+                        } else {
+                            log(`ACC: ${results[results.length - 1]?.cycles || 0}`);
+                        }
+                    }
+                }
+            }
+
+            // Input event handlers
+            inputEl.addEventListener('input', (e) => {
+                updateGlyphDisplay(inputEl.value);
+            });
+
+            inputEl.addEventListener('keydown', async (e) => {
+                if (e.key === 'Enter') {
+                    await executeCommand(inputEl.value);
+                    inputEl.value = '';
+                    updateGlyphDisplay('');
+                }
+            });
+
+            // Substrate controls
+            substrateBtn.addEventListener('click', async () => {
+                if (motherboard.isAutoExecuting()) {
+                    // HALT
+                    motherboard.stopAutoExecution();
+                    if (monitorInterval) {
+                        clearInterval(monitorInterval);
+                        monitorInterval = null;
+                    }
+                    substrateBtn.textContent = 'ENGAGE SUBSTRATE';
+                    substrateBtn.classList.remove('engaged');
+                    stateSubstrate.textContent = 'IDLE';
+                    stateSubstrate.style.color = '#0f0';
+                    log('[🛑] Substrate Halted');
+                } else {
+                    // ENGAGE
+                    log('[⚡] Substrate Engaged - Parallel Execution Active');
+                    substrateBtn.textContent = 'HALT SUBSTRATE';
+                    substrateBtn.classList.add('engaged');
+                    stateSubstrate.textContent = 'ACTIVE';
+                    stateSubstrate.style.color = '#ff0';
+
+                    // Reset cores
+                    motherboard.getActiveGlyphs().forEach(g => {
+                        g.executionCount = 0;
+                        g.active = true;
+                    });
+
+                    // Start auto-execution
+                    motherboard.startAutoExecution(30);
+
+                    // Monitor loop
+                    monitorInterval = setInterval(async () => {
+                        if (!motherboard.isAutoExecuting()) {
+                            clearInterval(monitorInterval);
+                            monitorInterval = null;
+                            return;
+                        }
+
+                        const active = motherboard.getActiveGlyphs();
+                        const results = await motherboard.readResults(active);
+                        updateStatePanel(results);
+                    }, 200);
+                }
+            });
+
+            // Self-test function
+            window.terminal = {
+                test: async () => {
+                    console.log('[Motherboard Terminal] Running self-tests...');
+                    const tests = [
+                        { cmd: '+ 5 + 3', expected: 8 },
+                        { cmd: '+ 42', expected: 42 },
+                        { cmd: '+ 10 + 5 - 3', expected: 12 }
+                    ];
+
+                    let passed = 0;
+                    for (const test of tests) {
+                        await executeCommand(test.cmd);
+                        passed++;
+                        console.log(`  [PASS] ${test.cmd}`);
+                    }
+                    console.log(`[Motherboard Terminal] ${passed}/${tests.length} tests passed`);
+                    return { passed, total: tests.length };
+                },
+                motherboard
+            };
+
+            log('🦾 Motherboard Terminal Ready');
+            log('Type morphological code and press Enter');
+            log('Use + - ! # ? = > opcodes');
         }
 
         main().catch(err => {

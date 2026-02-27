@@ -26,7 +26,9 @@ created: 2026-02-26T00:00:00Z
 
 Focus: Validate core functionality end-to-end. Skip tests, accept hardcoded values, focus on dry-run flow.
 
-### Task 1.1: Create script skeleton with dataclasses [DONE]
+### Task 1.1: Create script skeleton with dataclasses
+
+- [x] Task complete
 
 **Do**:
 1. Create `scripts/openspec_triage.py`
@@ -54,6 +56,8 @@ _Design: Components - Scanner, Archiver_
 ---
 
 ### Task 1.2: Implement Scanner component
+
+- [x] Task complete
 
 **Do**:
 1. Add `scan_changes(base_path: Path, threshold: int = 15) -> ScanResult`
@@ -84,6 +88,8 @@ _Design: Components - Scanner_
 
 ### Task 1.3: Implement Categorizer component
 
+- [x] Task complete
+
 **Do**:
 1. Add `SYSTEM_KEYWORDS` dictionary with priority order
 2. Implement `categorize_proposal(metrics: DirectoryMetrics, project_root: Path) -> ProposalCategory`
@@ -112,6 +118,8 @@ _Design: Components - Categorizer_
 ---
 
 ### Task 1.4: Implement Archiver component (dry-run only)
+
+- [x] Task complete
 
 **Do**:
 1. Add `archive_directory()` with dry_run parameter
@@ -142,6 +150,8 @@ _Design: Components - Archiver_
 
 ### Task 1.5: Implement manifest generation
 
+- [x] Task complete
+
 **Do**:
 1. Add `generate_manifest(entries: List[ArchiveEntry], dry_run: bool) -> ArchiveManifest`
 2. Generate unique manifest ID using timestamp
@@ -171,6 +181,8 @@ _Design: Components - Archiver_
 
 ### Task 1.6: Implement Dashboard Generator
 
+- [x] Task complete
+
 **Do**:
 1. Add `format_ascii_table(rows, headers) -> str`
 2. Implement `generate_dashboard()` function
@@ -199,6 +211,8 @@ _Design: Components - Dashboard Generator_
 ---
 
 ### Task 1.7: Implement CLI with argparse
+
+- [x] Task complete
 
 **Do**:
 1. Add argparse setup with all required flags
@@ -230,6 +244,8 @@ _Design: CLI Interface_
 
 ### Task 1.8: Wire dry-run flow end-to-end
 
+- [x] Task complete
+
 **Do**:
 1. Connect all components in main() for dry-run mode
 2. Scan -> Categorize -> Generate manifest (no moves) -> Dashboard
@@ -258,6 +274,8 @@ _Design: Data Flow_
 ---
 
 ### Task 1.9: Implement rollback functionality
+
+- [x] Task complete
 
 **Do**:
 1. Add `rollback_manifest(manifest_path: Path, archive_base: Path) -> int`
@@ -288,6 +306,8 @@ _Design: Components - Archiver_
 
 ### Task 1.10: [VERIFY] Quality checkpoint: syntax + imports
 
+- [x] Task complete
+
 **Do**:
 1. Run Python syntax check
 2. Verify all imports resolve
@@ -308,6 +328,8 @@ python -c "import scripts.openspec_triage" && echo "Imports OK"
 ---
 
 ### Task 1.11: POC Checkpoint - dry-run validation
+
+- [x] Task complete
 
 **Do**:
 1. Run dry-run on actual openspec/changes/ directory

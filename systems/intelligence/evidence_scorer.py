@@ -6,7 +6,7 @@ Generates CTRM triad scores using heuristics (mock) or LLM analysis.
 
 import os
 import sys
-from typing import Dict, Any
+from typing import Dict
 import hashlib
 
 # Ensure we can import from the intelligence directory

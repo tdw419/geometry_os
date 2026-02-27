@@ -20,9 +20,11 @@ class EvolutionDaemonBridge:
     Singleton-like access pattern recommended.
     """
     
-    def __init__(self):
-        self.daemon_instance = None
+    def __init__(self, daemon=None):
+        self.daemon_instance = daemon
         self.genome_queue: Optional[queue.Queue] = None
+        if daemon and hasattr(daemon, 'genome_queue'):
+            self.genome_queue = daemon.genome_queue
         logger.info("🌉 Evolution Daemon Bridge initialized")
 
     def register_daemon(self, daemon):

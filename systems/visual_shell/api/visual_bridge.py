@@ -80,12 +80,12 @@ except ImportError:
     EvolutionWebMCPHook = None
 
 class VisualBridge:
-    def __init__(self, memory_socket="/tmp/vector_memory_daemon.sock", ws_port=8768, map_size=4096):
+    def __init__(self, memory_socket=".gos_pids/vector_memory_daemon.sock", ws_port=8768, map_size=4096):
         self.memory_socket = memory_socket
         self.ws_port = ws_port
         self.map_size = map_size
         self.clients = set()
-        self.lock_file = "/tmp/visual_bridge.pid"
+        self.lock_file = ".gos_pids/visual_bridge.pid"
 
         # ASCII Scene Graph state
         self.ascii_scene_dir = Path(".geometry/ascii_scene")

@@ -17,14 +17,10 @@ Usage:
 
 import sys
 import os
-import json
-import time
 import random
 import math
-from datetime import datetime
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Tuple
 from dataclasses import dataclass, field
-from multiprocessing import Pool, cpu_count
 import hashlib
 
 # Add paths for imports
@@ -519,7 +515,7 @@ class InfiniteEvolutionSubstrate:
 
 def run_evolution_demo(num_tiles: int = 8, generations: int = 50):
     """Demo: Run parallel evolution substrate."""
-    print(f"🌱 Initializing Infinite Evolution Substrate")
+    print("🌱 Initializing Infinite Evolution Substrate")
     print(f"   Tiles: {num_tiles} | Generations: {generations}")
     print("=" * 50)
 

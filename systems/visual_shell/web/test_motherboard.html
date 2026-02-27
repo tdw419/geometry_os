@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Motherboard - Glyph Execution Test</title>
+    <title>Geometry OS - Motherboard Test Page</title>
     <style>
         * {
             margin: 0;
@@ -35,13 +35,21 @@
             border-radius: 8px;
             padding: 16px;
             z-index: 1000;
-            min-width: 200px;
+            min-width: 280px;
         }
 
         #controls h3 {
             color: #00ff88;
             margin-bottom: 12px;
             font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #controls h4 {
+            color: #888;
+            margin: 12px 0 8px 0;
+            font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
@@ -68,6 +76,52 @@
             transform: scale(0.95);
         }
 
+        #controls button.execute-once {
+            border-color: #00aaff;
+            color: #00aaff;
+        }
+
+        #controls button.execute-once:hover {
+            background: #00aaff;
+            color: #0a0a0f;
+        }
+
+        #controls button.start-auto {
+            border-color: #00ff00;
+            color: #00ff00;
+        }
+
+        #controls button.start-auto:hover {
+            background: #00ff00;
+            color: #0a0a0f;
+        }
+
+        #controls button.stop-auto {
+            border-color: #ff4444;
+            color: #ff4444;
+        }
+
+        #controls button.stop-auto:hover {
+            background: #ff4444;
+            color: #0a0a0f;
+        }
+
+        .mode-btn {
+            border-color: #888 !important;
+            color: #888 !important;
+        }
+
+        .mode-btn:hover {
+            background: #888 !important;
+            color: #0a0a0f !important;
+        }
+
+        .mode-btn.active {
+            background: #00ff88 !important;
+            border-color: #00ff88 !important;
+            color: #0a0a0f !important;
+        }
+
         #status {
             margin-top: 12px;
             padding: 8px;
@@ -79,6 +133,60 @@
 
         .status-label {
             color: #888;
+            margin-right: 8px;
+        }
+
+        .status-value {
+            color: #00ff88;
+        }
+
+        .status-value.ok { color: #00ff00; }
+        .status-value.error { color: #ff4444; }
+        .status-value.pending { color: #ffaa00; }
+
+        /* Log Panel - Right Side */
+        #log-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 400px;
+            height: 300px;
+            background: rgba(10, 10, 15, 0.95);
+            border: 1px solid #333;
+            border-radius: 8px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #log-panel h4 {
+            color: #00ff88;
+            padding: 10px 12px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #333;
+        }
+
+        #log {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+        }
+
+        .log-entry.info { color: #888; }
+        .log-entry.success { color: #00ff00; }
+        .log-entry.error { color: #ff4444; }
+        .log-entry.warn { color: #ffaa00; }
+
+        .log-timestamp {
+            color: #555;
             margin-right: 8px;
         }
 
@@ -135,7 +243,7 @@
         /* Help Text */
         #help {
             position: fixed;
-            top: 20px;
+            bottom: 20px;
             right: 20px;
             background: rgba(10, 10, 15, 0.9);
             border: 1px solid #333;
@@ -213,52 +321,96 @@
 
     <div id="controls">
         <h3>The Motherboard</h3>
+
+        <!-- System Status -->
+        <div id="status">
+            <div><span class="status-label">WebGPU:</span><span id="webgpu-status" class="status-value pending">Checking...</span></div>
+            <div><span class="status-label">Pipeline:</span><span id="pipeline-status" class="status-value pending">Not initialized</span></div>
+            <div><span class="status-label">Atlas:</span><span id="atlas-status" class="status-value pending">Not loaded</span></div>
+            <div><span class="status-label">Bind Group:</span><span id="bindgroup-status" class="status-value pending">Not created</span></div>
+            <div><span class="status-label">Mode:</span><span id="mode-status" class="status-value ok">standard</span></div>
+            <div><span class="status-label">Glyphs:</span><span id="glyph-count" class="status-value">0</span></div>
+            <div><span class="status-label">Cycles:</span><span id="cycle-count" class="status-value">0</span></div>
+            <div><span class="status-label">Auto:</span><span id="auto-status" class="status-value pending">Stopped</span></div>
+        </div>
+
+        <!-- Execution Controls -->
+        <h4>Execution</h4>
         <div>
-            <button id="btn-execute">Execute</button>
-            <button id="btn-auto">Auto Run</button>
+            <button id="btn-execute" class="execute-once">Execute Once</button>
+            <button id="btn-start-auto" class="start-auto">Start Auto</button>
+            <button id="btn-stop-auto" class="stop-auto" style="display:none;">Stop Auto</button>
             <button id="btn-clear">Clear</button>
         </div>
-        <div id="status">
-            <div><span class="status-label">Glyphs:</span><span id="glyph-count">0</span></div>
-            <div><span class="status-label">Cycles:</span><span id="cycle-count">0</span></div>
-            <div><span class="status-label">Last:</span><span id="last-action">Ready</span></div>
+
+        <!-- Mode Switching -->
+        <h4>Morphological Mode</h4>
+        <div>
+            <button id="btn-mode-standard" class="mode-btn active">Standard</button>
+            <button id="btn-mode-native" class="mode-btn">Native</button>
+            <button id="btn-mode-stealth" class="mode-btn">Stealth</button>
         </div>
     </div>
 
+    <div id="log-panel">
+        <h4>Execution Log</h4>
+        <div id="log"></div>
+    </div>
+
     <div id="glyph-palette">
-        <h4>Glyph Palette</h4>
+        <h4>Test Glyphs</h4>
         <div class="glyph-grid">
-            <button class="glyph-btn selected" data-glyph="65" title="A - Accumulator">A</button>
-            <button class="glyph-btn" data-glyph="43" title="+ - Add">+</button>
-            <button class="glyph-btn" data-glyph="76" title="L - Load">L</button>
-            <button class="glyph-btn" data-glyph="83" title="S - Store">S</button>
-            <button class="glyph-btn" data-glyph="74" title="J - Jump">J</button>
-            <button class="glyph-btn" data-glyph="8721" title="Sum - Accumulate">∑</button>
+            <button class="glyph-btn selected" data-glyph="0" data-atlas-x="0" data-atlas-y="0" title="ADD">A</button>
+            <button class="glyph-btn" data-glyph="1" data-atlas-x="1" data-atlas-y="0" title="SUB">S</button>
+            <button class="glyph-btn" data-glyph="2" data-atlas-x="2" data-atlas-y="0" title="LOAD">L</button>
         </div>
     </div>
 
     <div id="help">
         <div><kbd>Click</kbd> Place glyph</div>
         <div><kbd>Ctrl+Enter</kbd> Execute</div>
-        <div><kbd>1-6</kbd> Select glyph</div>
+        <div><kbd>1-3</kbd> Select glyph</div>
     </div>
 
     <script>
         // State
         let app = null;
         let infiniteMap = null;
-        let selectedGlyph = 65; // Default: 'A'
+        let glyphExecutor = null;
+        let selectedGlyph = { index: 0, atlasX: 0, atlasY: 0 };
         let placedGlyphs = [];
 
         // DOM elements
+        const webgpuStatusEl = document.getElementById('webgpu-status');
+        const pipelineStatusEl = document.getElementById('pipeline-status');
+        const atlasStatusEl = document.getElementById('atlas-status');
+        const bindgroupStatusEl = document.getElementById('bindgroup-status');
+        const modeStatusEl = document.getElementById('mode-status');
         const glyphCountEl = document.getElementById('glyph-count');
         const cycleCountEl = document.getElementById('cycle-count');
-        const lastActionEl = document.getElementById('last-action');
+        const autoStatusEl = document.getElementById('auto-status');
+        const logEl = document.getElementById('log');
         const loadingEl = document.getElementById('loading');
+
+        // Logging
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span>${message}`;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(`[${type}] ${message}`);
+        }
+
+        function updateStatus(element, value, type = 'ok') {
+            element.textContent = value;
+            element.className = `status-value ${type}`;
+        }
 
         // Initialize PixiJS application
         async function initApp() {
-            console.log('Initializing Motherboard test page...');
+            log('Initializing Motherboard test page...', 'info');
 
             // Create PixiJS app
             app = new PIXI.Application();
@@ -280,12 +432,32 @@
                     gridSize: 100,
                     tileScale: 1.0,
                 });
-
-                console.log('InfiniteMap created');
+                glyphExecutor = infiniteMap.glyphExecutor;
+                log('InfiniteMap created', 'success');
             } else {
-                console.error('InfiniteMap not loaded!');
-                return;
+                log('InfiniteMap not loaded - creating standalone GlyphExecutor', 'warn');
+
+                // Create standalone GlyphExecutor for testing
+                if (typeof GlyphExecutor !== 'undefined') {
+                    glyphExecutor = new GlyphExecutor({
+                        maxCores: 64,
+                        glyphSize: 16,
+                        regsPerCore: 46,
+                        atlasMode: 'standard',
+                        atlasPath: '/assets/polymorphic_atlas.png'
+                    });
+                    await glyphExecutor.init('/shaders/visual_cpu_riscv_morph.wgsl');
+                } else {
+                    log('GlyphExecutor not loaded!', 'error');
+                    return;
+                }
             }
+
+            // Update status based on initialization
+            updateSystemStatus();
+
+            // Register 3 test glyphs
+            registerTestGlyphs();
 
             // Setup interaction
             setupInteraction();
@@ -293,8 +465,99 @@
             // Hide loading
             loadingEl.classList.add('hidden');
 
-            console.log('Motherboard ready!');
-            updateStatus('Ready');
+            log('Motherboard ready!', 'success');
+        }
+
+        function updateSystemStatus() {
+            if (!glyphExecutor) {
+                updateStatus(webgpuStatusEl, 'Not initialized', 'error');
+                updateStatus(pipelineStatusEl, 'Not initialized', 'error');
+                updateStatus(atlasStatusEl, 'Not initialized', 'error');
+                updateStatus(bindgroupStatusEl, 'Not initialized', 'error');
+                return;
+            }
+
+            // WebGPU status
+            if (glyphExecutor.device) {
+                updateStatus(webgpuStatusEl, 'Active', 'ok');
+            } else {
+                updateStatus(webgpuStatusEl, 'Simulation Mode', 'warn');
+            }
+
+            // Pipeline status
+            if (glyphExecutor.computePipeline) {
+                updateStatus(pipelineStatusEl, 'Ready', 'ok');
+            } else {
+                updateStatus(pipelineStatusEl, 'Simulation Mode', 'warn');
+            }
+
+            // Atlas status
+            if (glyphExecutor.atlasTexture) {
+                updateStatus(atlasStatusEl, `${glyphExecutor.atlasWidth}x${glyphExecutor.atlasHeight}`, 'ok');
+            } else {
+                updateStatus(atlasStatusEl, 'Not loaded', 'warn');
+            }
+
+            // Bind group status
+            if (glyphExecutor.bindGroup) {
+                updateStatus(bindgroupStatusEl, 'Created', 'ok');
+            } else {
+                updateStatus(bindgroupStatusEl, 'Not created', 'warn');
+            }
+
+            // Mode status
+            updateStatus(modeStatusEl, glyphExecutor.options.atlasMode || 'standard', 'ok');
+
+            // Glyph count
+            glyphCountEl.textContent = placedGlyphs.length;
+
+            // Cycle count
+            cycleCountEl.textContent = glyphExecutor.executionCount || 0;
+
+            // Auto status
+            if (glyphExecutor.isAutoExecuting && glyphExecutor.isAutoExecuting()) {
+                updateStatus(autoStatusEl, 'Running (30 FPS)', 'ok');
+            } else {
+                updateStatus(autoStatusEl, 'Stopped', 'pending');
+            }
+        }
+
+        function registerTestGlyphs() {
+            // Register 3 test glyphs with mock sprites
+            const testGlyphData = [
+                { x: 0, y: 0, atlasX: 0, atlasY: 0, name: 'ADD (x0, x0, x1)' },
+                { x: 1, y: 0, atlasX: 1, atlasY: 0, name: 'SUB (x1, x1, x2)' },
+                { x: 2, y: 0, atlasX: 2, atlasY: 0, name: 'LOAD (x2, addr)' }
+            ];
+
+            for (const data of testGlyphData) {
+                // Create mock sprite object
+                const mockSprite = {
+                    x: data.x * 16,
+                    y: data.y * 16,
+                    alpha: 1.0,
+                    tint: 0xffffff,
+                    scale: { x: 1, y: 1, set: function(v) { this.x = v; this.y = v; } }
+                };
+
+                const coreId = glyphExecutor.registerGlyph(
+                    data.x,
+                    data.y,
+                    mockSprite,
+                    data.atlasX,
+                    data.atlasY
+                );
+
+                placedGlyphs.push({
+                    ...data,
+                    coreId,
+                    mockSprite
+                });
+
+                log(`Registered test glyph: ${data.name} (core ${coreId})`, 'info');
+            }
+
+            glyphCountEl.textContent = placedGlyphs.length;
         }
 
         // Setup click and keyboard interaction
@@ -308,49 +571,63 @@
             window.addEventListener('keydown', onKeyDown);
 
             // Button handlers
-            document.getElementById('btn-execute').addEventListener('click', executeGlyphs);
-            document.getElementById('btn-auto').addEventListener('click', toggleAutoExecution);
+            document.getElementById('btn-execute').addEventListener('click', executeOnce);
+            document.getElementById('btn-start-auto').addEventListener('click', startAutoExecution);
+            document.getElementById('btn-stop-auto').addEventListener('click', stopAutoExecution);
             document.getElementById('btn-clear').addEventListener('click', clearGlyphs);
+
+            // Mode buttons
+            document.getElementById('btn-mode-standard').addEventListener('click', () => setMode('standard'));
+            document.getElementById('btn-mode-native').addEventListener('click', () => setMode('native'));
+            document.getElementById('btn-mode-stealth').addEventListener('click', () => setMode('stealth'));
 
             // Glyph palette
             document.querySelectorAll('.glyph-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     document.querySelectorAll('.glyph-btn').forEach(b => b.classList.remove('selected'));
                     btn.classList.add('selected');
-                    selectedGlyph = parseInt(btn.dataset.glyph);
-                    console.log('Selected glyph:', selectedGlyph);
+                    selectedGlyph = {
+                        index: parseInt(btn.dataset.glyph),
+                        atlasX: parseInt(btn.dataset.atlasX),
+                        atlasY: parseInt(btn.dataset.atlasY)
+                    };
+                    log(`Selected glyph: ${btn.title}`, 'info');
                 });
-            });
-
-            // Number keys for glyph selection
-            const glyphCodes = [65, 43, 76, 83, 74, 8721];
-            glyphCodes.forEach((code, index) => {
-                // Handled in onKeyDown
             });
         }
 
         // Handle map clicks
         function onMapClick(event) {
-            if (!infiniteMap) return;
+            if (!glyphExecutor) return;
 
             // Get world coordinates
             const worldPos = event.global;
             const mapX = Math.floor(worldPos.x / 16); // 16px per glyph
             const mapY = Math.floor(worldPos.y / 16);
 
-            console.log(`Click at (${worldPos.x}, ${worldPos.y}) -> map (${mapX}, ${mapY})`);
+            log(`Click at (${worldPos.x}, ${worldPos.y}) -> map (${mapX}, ${mapY})`, 'info');
 
-            // Place the glyph
-            if (infiniteMap.placeExecutableGlyph) {
-                const sprite = infiniteMap.placeExecutableGlyph(mapX, mapY, selectedGlyph);
-                if (sprite) {
-                    placedGlyphs.push({ x: mapX, y: mapY, sprite });
-                    updateGlyphCount();
-                    updateStatus(`Placed ${String.fromCharCode(selectedGlyph)} at (${mapX}, ${mapY})`);
-                }
-            } else {
-                console.warn('placeExecutableGlyph not available');
-            }
+            // Create mock sprite
+            const mockSprite = {
+                x: mapX * 16,
+                y: mapY * 16,
+                alpha: 1.0,
+                tint: 0xffffff,
+                scale: { x: 1, y: 1, set: function(v) { this.x = v; this.y = v; } }
+            };
+
+            // Register glyph
+            const coreId = glyphExecutor.registerGlyph(
+                mapX,
+                mapY,
+                mockSprite,
+                selectedGlyph.atlasX,
+                selectedGlyph.atlasY
+            );
+
+            placedGlyphs.push({ x: mapX, y: mapY, coreId, mockSprite });
+            glyphCountEl.textContent = placedGlyphs.length;
+            log(`Placed glyph at (${mapX}, ${mapY}) - core ${coreId}`, 'success');
         }
 
         // Handle keyboard shortcuts
@@ -358,103 +635,124 @@
             // Ctrl+Enter: Execute glyphs
             if (event.key === 'Enter' && event.ctrlKey) {
                 event.preventDefault();
-                executeGlyphs();
+                executeOnce();
                 return;
             }
 
-            // Number keys 1-6: Select glyph
+            // Number keys 1-3: Select glyph
             const num = parseInt(event.key);
-            if (num >= 1 && num <= 6) {
-                const glyphCodes = [65, 43, 76, 83, 74, 8721];
-                selectedGlyph = glyphCodes[num - 1];
-
-                // Update UI
+            if (num >= 1 && num <= 3) {
                 document.querySelectorAll('.glyph-btn').forEach((btn, idx) => {
-                    btn.classList.toggle('selected', idx === num - 1);
+                    if (idx === num - 1) {
+                        btn.classList.add('selected');
+                        selectedGlyph = {
+                            index: parseInt(btn.dataset.glyph),
+                            atlasX: parseInt(btn.dataset.atlasX),
+                            atlasY: parseInt(btn.dataset.atlasY)
+                        };
+                    } else {
+                        btn.classList.remove('selected');
+                    }
                 });
-
-                console.log('Selected glyph via keyboard:', selectedGlyph);
             }
         }
 
-        // Execute all glyphs
-        async function executeGlyphs() {
-            if (!infiniteMap || !infiniteMap.executeGlyphs) {
-                console.warn('executeGlyphs not available');
+        // Execute once
+        async function executeOnce() {
+            if (!glyphExecutor) {
+                log('GlyphExecutor not initialized', 'error');
                 return;
             }
 
-            updateStatus('Executing...');
+            log('Executing once...', 'info');
+            const result = await glyphExecutor.execute();
 
-            try {
-                const result = await infiniteMap.executeGlyphs();
-                console.log('Execution result:', result);
-
-                if (result && result.executed !== undefined) {
-                    cycleCountEl.textContent = infiniteMap.glyphExecutor ?
-                        infiniteMap.glyphExecutor.executionCount : result.executed;
-                    updateStatus(`Executed ${result.executed} glyphs`);
-                }
-            } catch (error) {
-                console.error('Execution error:', error);
-                updateStatus('Execution failed: ' + error.message);
+            if (result.skipped) {
+                log('Execution skipped (already in progress)', 'warn');
+            } else {
+                log(`Executed ${result.executed} glyphs`, 'success');
+                cycleCountEl.textContent = glyphExecutor.executionCount;
             }
+        }
+
+        // Start auto execution
+        function startAutoExecution() {
+            if (!glyphExecutor) {
+                log('GlyphExecutor not initialized', 'error');
+                return;
+            }
+
+            glyphExecutor.startAutoExecution(30);
+            log('Auto execution started at 30 FPS', 'success');
+            updateStatus(autoStatusEl, 'Running (30 FPS)', 'ok');
+
+            document.getElementById('btn-start-auto').style.display = 'none';
+            document.getElementById('btn-stop-auto').style.display = 'inline-block';
+
+            // Update cycle count periodically
+            window.autoUpdateInterval = setInterval(() => {
+                cycleCountEl.textContent = glyphExecutor.executionCount;
+            }, 1000);
+        }
+
+        // Stop auto execution
+        function stopAutoExecution() {
+            if (!glyphExecutor) return;
+
+            glyphExecutor.stopAutoExecution();
+            log('Auto execution stopped', 'info');
+            updateStatus(autoStatusEl, 'Stopped', 'pending');
+
+            document.getElementById('btn-start-auto').style.display = 'inline-block';
+            document.getElementById('btn-stop-auto').style.display = 'none';
+
+            if (window.autoUpdateInterval) {
+                clearInterval(window.autoUpdateInterval);
+                window.autoUpdateInterval = null;
+            }
+        }
+
+        // Set morphological mode
+        async function setMode(mode) {
+            if (!glyphExecutor) {
+                log('GlyphExecutor not initialized', 'error');
+                return;
+            }
+
+            await glyphExecutor.setMorphologicalMode(mode);
+            updateStatus(modeStatusEl, mode, 'ok');
+            log(`Morphological mode changed to: ${mode}`, 'success');
+
+            // Update button states
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(`btn-mode-${mode}`).classList.add('active');
         }
 
         // Clear all glyphs
         function clearGlyphs() {
-            if (!infiniteMap || !infiniteMap.glyphExecutor) {
-                console.warn('GlyphExecutor not available');
+            if (!glyphExecutor) {
+                log('GlyphExecutor not initialized', 'error');
                 return;
             }
 
             // Stop auto-execution if running
-            if (infiniteMap.glyphExecutor.isAutoExecuting()) {
-                infiniteMap.glyphExecutor.stopAutoExecution();
-                updateAutoButton(false);
+            if (glyphExecutor.isAutoExecuting()) {
+                stopAutoExecution();
             }
 
             // Unregister all glyphs
             for (const glyph of placedGlyphs) {
-                if (glyph.sprite && glyph.sprite.parent) {
-                    glyph.sprite.parent.removeChild(glyph.sprite);
-                }
-                infiniteMap.glyphExecutor.unregisterGlyph(glyph.x, glyph.y);
+                glyphExecutor.unregisterGlyph(glyph.x, glyph.y);
             }
 
             placedGlyphs = [];
-            updateGlyphCount();
-            updateStatus('Cleared all glyphs');
-        }
+            glyphCountEl.textContent = 0;
+            log('Cleared all glyphs', 'info');
 
-        // Toggle auto-execution mode
-        function toggleAutoExecution() {
-            if (!infiniteMap || !infiniteMap.glyphExecutor) {
-                console.warn('GlyphExecutor not available');
-                return;
-            }
-
-            const isRunning = infiniteMap.glyphExecutor.toggleAutoExecution(30);
-            updateAutoButton(isRunning);
-            updateStatus(isRunning ? 'Auto-execution started (30 FPS)' : 'Auto-execution stopped');
-        }
-
-        // Update Auto button text based on state
-        function updateAutoButton(isRunning) {
-            const btn = document.getElementById('btn-auto');
-            btn.textContent = isRunning ? 'Stop' : 'Auto Run';
-            btn.style.borderColor = isRunning ? '#ff4444' : '#00ff88';
-            btn.style.color = isRunning ? '#ff4444' : '#00ff88';
-        }
-
-        // Update glyph count display
-        function updateGlyphCount() {
-            glyphCountEl.textContent = placedGlyphs.length;
-        }
-
-        // Update status display
-        function updateStatus(message) {
-            lastActionEl.textContent = message;
+            // Re-register test glyphs
+            registerTestGlyphs();
         }
 
         // Initialize on load
