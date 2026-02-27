@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NEB Bridge Live Test - Geometry OS</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+        }
+        h1 { margin-bottom: 5px; font-size: 18px; }
+        .subtitle { color: #666; margin-bottom: 15px; font-size: 11px; }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 15px;
+            max-width: 1400px;
+        }
+
+        .main-panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: #252535;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .panel-title {
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff4444;
+        }
+
+        .status-indicator.connected { background: #00ff88; }
+        .status-indicator.connecting { background: #ffff44; animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        #event-stream {
+            height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            font-size: 11px;
+        }
+
+        .event-item {
+            margin-bottom: 8px;
+            padding: 8px;
+            background: #0f0f0f;
+            border-radius: 4px;
+            border-left: 3px solid #333;
+        }
+
+        .event-item.agent-thought { border-left-color: #44FFFF; }
+        .event-item.agent-state { border-left-color: #FF44FF; }
+        .event-item.system { border-left-color: #888; }
+
+        .event-topic {
+            color: #888;
+            font-size: 10px;
+            margin-bottom: 4px;
+        }
+
+        .event-data {
+            color: #CCCCCC;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .controls {
+            padding: 10px;
+            display: flex;
+            gap: 8px;
+            border-top: 1px solid #333;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #252535;
+            color: #00ff88;
+            border: 1px solid #444;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .section-title {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        .connection-info {
+            font-size: 10px;
+            margin-bottom: 10px;
+        }
+
+        .connection-info code {
+            background: #0a0a0a;
+            padding: 2px 5px;
+            border-radius: 3px;
+            color: #44ffff;
+        }
+
+        .agent-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .agent-card {
+            background: #0f0f0f;
+            padding: 8px;
+            border-radius: 4px;
+            border-left: 3px solid #333;
+        }
+
+        .agent-card.architect { border-left-color: #FF44FF; }
+        .agent-card.engineer { border-left-color: #44FFFF; }
+        .agent-card.reviewer { border-left-color: #FFFF44; }
+        .agent-card.executor { border-left-color: #44FF44; }
+
+        .agent-name {
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .agent-status {
+            font-size: 9px;
+            color: #666;
+        }
+
+        .agent-status span {
+            display: inline-block;
+            padding: 1px 4px;
+            border-radius: 2px;
+            margin-right: 4px;
+        }
+
+        .agent-status .active { background: #00ff88; color: #0a0a0a; }
+        .agent-status .thinking { background: #ffff44; color: #0a0a0a; }
+        .agent-status .sleeping { background: #666; color: #fff; }
+        .agent-status .error { background: #ff4444; color: #fff; }
+
+        .belief-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4px;
+            margin-top: 6px;
+            font-size: 9px;
+        }
+
+        .belief-item {
+            background: #1a1a1a;
+            padding: 3px 6px;
+            border-radius: 2px;
+        }
+
+        .belief-bar {
+            height: 3px;
+            background: #333;
+            border-radius: 1px;
+            margin-top: 2px;
+        }
+
+        .belief-fill {
+            height: 100%;
+            background: #00ff88;
+            border-radius: 1px;
+            transition: width 0.3s ease;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .stat-box {
+            background: #0a0a0a;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            color: #00ff88;
+        }
+
+        .stat-label {
+            font-size: 8px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>◈ NEB Bridge Live Test</h1>
+    <p class="subtitle">Real-time agent activity via WebSocket</p>
+
+    <div class="container">
+        <div class="main-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <div class="status-indicator" id="status-dot"></div>
+                    <span id="status-text">Disconnected</span>
+                </div>
+                <span style="font-size: 10px; color: #666;" id="mode-indicator">Mock Mode</span>
+            </div>
+
+            <div id="event-stream"></div>
+
+            <div class="controls">
+                <button onclick="connect()" id="btn-connect">Connect</button>
+                <button onclick="disconnect()" id="btn-disconnect" disabled>Disconnect</button>
+                <button onclick="clearEvents()">Clear</button>
+                <button onclick="subscribe('agent.*')">Subscribe All</button>
+                <button onclick="subscribe('agent.architect.*')">Architect Only</button>
+                <button onclick="getAgents()">Refresh Agents</button>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="section">
+                <div class="section-title">Connection</div>
+                <div class="connection-info">
+                    WebSocket: <code>ws://localhost:8768/ws</code><br>
+                    REST API: <code>http://localhost:8768</code>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-value" id="stat-events">0</div>
+                        <div class="stat-label">Events</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="stat-agents">0</div>
+                        <div class="stat-label">Agents</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Live Agents</div>
+                <div class="agent-list" id="agent-list">
+                    <div style="color: #666; font-size: 10px;">Connect to see agents...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let eventCount = 0;
+        let agents = {};
+
+        const WS_URL = 'ws://localhost:8768/ws';
+        const API_URL = 'http://localhost:8768';
+
+        function setStatus(status, connected = false) {
+            const dot = document.getElementById('status-dot');
+            const text = document.getElementById('status-text');
+
+            dot.className = 'status-indicator';
+            if (connected) {
+                dot.classList.add('connected');
+            } else if (status === 'Connecting...') {
+                dot.classList.add('connecting');
+            }
+
+            text.textContent = status;
+        }
+
+        function addEvent(topic, data) {
+            eventCount++;
+            document.getElementById('stat-events').textContent = eventCount;
+
+            const stream = document.getElementById('event-stream');
+            const item = document.createElement('div');
+
+            let eventClass = 'event-item';
+            if (topic.includes('thought')) eventClass += ' agent-thought';
+            else if (topic.includes('state')) eventClass += ' agent-state';
+            else if (topic.startsWith('system')) eventClass += ' system';
+
+            item.className = eventClass;
+            item.innerHTML = `
+                <div class="event-topic">${topic} • ${new Date().toLocaleTimeString()}</div>
+                <div class="event-data">${JSON.stringify(data, null, 2)}</div>
+            `;
+
+            stream.insertBefore(item, stream.firstChild);
+
+            // Keep only last 100 events
+            while (stream.children.length > 100) {
+                stream.removeChild(stream.lastChild);
+            }
+        }
+
+        function updateAgentCard(agent) {
+            agents[agent.agent_id] = agent;
+            renderAgents();
+        }
+
+        function renderAgents() {
+            const list = document.getElementById('agent-list');
+            list.innerHTML = '';
+
+            Object.values(agents).forEach(agent => {
+                const card = document.createElement('div');
+                card.className = `agent-card ${agent.agent_type}`;
+
+                const statusClass = agent.status.toLowerCase();
+                const beliefs = agent.belief_state || {};
+
+                card.innerHTML = `
+                    <div class="agent-name">${agent.agent_id}</div>
+                    <div class="agent-status">
+                        <span class="${statusClass}">${agent.status}</span>
+                        ${agent.agent_type}
+                    </div>
+                    <div class="belief-grid">
+                        ${Object.entries(beliefs).map(([key, value]) => `
+                            <div class="belief-item">
+                                ${key}: ${Math.round(value * 100)}%
+                                <div class="belief-bar">
+                                    <div class="belief-fill" style="width: ${value * 100}%"></div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+
+                list.appendChild(card);
+            });
+
+            document.getElementById('stat-agents').textContent = Object.keys(agents).length;
+        }
+
+        function connect() {
+            if (ws && ws.readyState === WebSocket.OPEN) return;
+
+            setStatus('Connecting...', false);
+            addEvent('system.connecting', { url: WS_URL });
+
+            try {
+                ws = new WebSocket(WS_URL);
+
+                ws.onopen = () => {
+                    setStatus('Connected', true);
+                    addEvent('system.connected', { message: 'WebSocket connected' });
+                    document.getElementById('btn-connect').disabled = true;
+                    document.getElementById('btn-disconnect').disabled = false;
+
+                    // Subscribe to all agent events
+                    ws.send(JSON.stringify({ type: 'subscribe', pattern: '**' }));
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const msg = JSON.parse(event.data);
+
+                        if (msg.type === 'agent.state') {
+                            updateAgentCard(msg.data);
+                            addEvent('agent.state', msg.data);
+                        } else if (msg.type === 'system.connected') {
+                            document.getElementById('mode-indicator').textContent =
+                                msg.data.mode === 'mock' ? 'Mock Mode' : 'Live Mode';
+                            addEvent('system.connected', msg.data);
+                        } else if (msg.type === 'event') {
+                            addEvent(msg.topic, msg.data);
+
+                            // Update agent on state change
+                            if (msg.topic.includes('state_change') && msg.data.agent_id) {
+                                if (agents[msg.data.agent_id]) {
+                                    agents[msg.data.agent_id].status = msg.data.new_status;
+                                    agents[msg.data.agent_id].memory_activity = msg.data.memory_activity;
+                                    renderAgents();
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        addEvent('error', { error: e.message, raw: event.data });
+                    }
+                };
+
+                ws.onerror = (e) => {
+                    addEvent('system.error', { message: 'WebSocket error' });
+                    setStatus('Error', false);
+                };
+
+                ws.onclose = () => {
+                    setStatus('Disconnected', false);
+                    addEvent('system.disconnected', { message: 'Connection closed' });
+                    document.getElementById('btn-connect').disabled = false;
+                    document.getElementById('btn-disconnect').disabled = true;
+                };
+            } catch (e) {
+                addEvent('system.error', { error: e.message });
+                setStatus('Failed', false);
+            }
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+
+        function clearEvents() {
+            document.getElementById('event-stream').innerHTML = '';
+            eventCount = 0;
+            document.getElementById('stat-events').textContent = '0';
+        }
+
+        function subscribe(pattern) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'subscribe', pattern }));
+                addEvent('system.subscribe', { pattern });
+            }
+        }
+
+        async function getAgents() {
+            try {
+                const response = await fetch(`${API_URL}/agents`);
+                const data = await response.json();
+
+                agents = {};
+                data.agents.forEach(agent => {
+                    agents[agent.agent_id] = agent;
+                });
+                renderAgents();
+
+                addEvent('system.agents', { count: data.count });
+            } catch (e) {
+                addEvent('system.error', { error: e.message, hint: 'Is the NEB bridge running?' });
+            }
+        }
+
+        // Auto-connect on load
+        setTimeout(() => {
+            connect();
+        }, 500);
+    </script>
+</body>
+</html>
