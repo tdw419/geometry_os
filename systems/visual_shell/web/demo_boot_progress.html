@@ -611,6 +611,207 @@ function cancelSimulation(entryId) {
         bootSimulations.delete(entryId);
     }
 }
+
+/**
+ * Set up event handlers
+ */
+function setupEventHandlers() {
+    // Button handlers
+    document.getElementById('btnSimulateBoot').addEventListener('click', () => {
+        if (selectedObject) {
+            const duration = parseInt(document.getElementById('bootDuration').value) || 5;
+            simulateSuccessfulBoot(selectedObject.entryId, duration);
+        } else {
+            log('warning', 'Select an object first (click on it)');
+        }
+    });
+
+    document.getElementById('btnSimulateError').addEventListener('click', () => {
+        if (selectedObject) {
+            simulateBootError(selectedObject.entryId, 'memory');
+        } else {
+            log('warning', 'Select an object first (click on it)');
+        }
+    });
+
+    document.getElementById('btnSimulateTimeout').addEventListener('click', () => {
+        if (selectedObject) {
+            simulateBootError(selectedObject.entryId, 'timeout');
+        } else {
+            log('warning', 'Select an object first (click on it)');
+        }
+    });
+
+    document.getElementById('btnResetAll').addEventListener('click', () => {
+        // Cancel all simulations
+        for (const entryId of bootSimulations.keys()) {
+            cancelSimulation(entryId);
+        }
+
+        // Reset all objects
+        for (const [entryId, obj] of manager.getAllObjects()) {
+            obj.setStatus('idle');
+            obj.hideProgress();
+            obj.hideError();
+        }
+
+        log('info', 'All objects reset');
+        updateObjectCounts();
+    });
+
+    // Manager event handlers
+    manager.on('object-selected', (data) => {
+        selectedObject = data.object;
+        updateSelectedInfo(data.object);
+        log('info', `Selected: ${data.entryId}`);
+    });
+
+    manager.on('boot-started', (data) => {
+        log('info', `Boot started: ${data.entryId}`);
+    });
+
+    manager.on('boot-completed', (data) => {
+        log('success', `Boot completed: ${data.entryId}`);
+    });
+
+    manager.on('boot-failed', (data) => {
+        log('error', `Boot failed: ${data.entryId} - ${data.error}`);
+    });
+
+    manager.on('object-hover', (data) => {
+        showTooltip(data);
+    });
+
+    manager.on('object-hover-end', () => {
+        hideTooltip();
+    });
+}
+
+/**
+ * Update selected object info panel
+ */
+function updateSelectedInfo(obj) {
+    const info = document.getElementById('selectedInfo');
+    const entry = obj.entryData;
+    const status = obj.getStatus();
+
+    let html = `<strong>${entry.name}</strong><br>`;
+    html += `ID: ${entry.id}<br>`;
+    html += `Status: <span style="color: ${getStatusColor(status)}">${status}</span><br>`;
+    html += `Distro: ${entry.distro || 'Unknown'}<br>`;
+    html += `Kernel: ${entry.kernel_version || 'Unknown'}<br>`;
+
+    const progress = obj.getProgress();
+    if (progress > 0) {
+        html += `Progress: ${Math.round(progress)}%<br>`;
+    }
+
+    const errorDetails = obj.getErrorDetails();
+    if (errorDetails) {
+        html += `<br><span style="color: #ff6666">Error: ${errorDetails.message}</span><br>`;
+        html += `Stage: ${errorDetails.stage}<br>`;
+        html += `Elapsed: ${errorDetails.elapsedTime.toFixed(1)}s`;
+    }
+
+    info.innerHTML = html;
+}
+
+/**
+ * Get status color
+ */
+function getStatusColor(status) {
+    const colors = {
+        idle: '#888888',
+        booting: '#ffaa00',
+        running: '#00ff00',
+        error: '#ff0000',
+        stopped: '#666666'
+    };
+    return colors[status] || '#888888';
+}
+
+/**
+ * Update object counts in header
+ */
+function updateObjectCounts() {
+    let booting = 0;
+    let running = 0;
+
+    for (const [id, obj] of manager.getAllObjects()) {
+        const status = obj.getStatus();
+        if (status === 'booting') booting++;
+        if (status === 'running') running++;
+    }
+
+    document.getElementById('objectCount').textContent = manager.getObjectCount();
+    document.getElementById('bootingCount').textContent = booting;
+    document.getElementById('runningCount').textContent = running;
+}
+
+/**
+ * Update connection status
+ */
+function updateConnectionStatus(connected) {
+    const dot = document.getElementById('connectionStatus');
+    const text = document.getElementById('connectionText');
+
+    if (connected) {
+        dot.className = 'status-dot connected';
+        text.textContent = 'Demo Ready';
+    } else {
+        dot.className = 'status-dot error';
+        text.textContent = 'Disconnected';
+    }
+}
+
+/**
+ * Log an event
+ */
+function log(type, message) {
+    const logEl = document.getElementById('eventLog');
+    const event = document.createElement('div');
+    event.className = `event ${type}`;
+
+    const time = new Date().toLocaleTimeString();
+    event.textContent = `[${time}] ${message}`;
+
+    logEl.appendChild(event);
+    logEl.scrollTop = logEl.scrollHeight;
+}
+
+/**
+ * Show tooltip
+ */
+function showTooltip(data) {
+    const tooltip = document.getElementById('tooltip');
+    const obj = data.object;
+
+    let text = `${obj.entryData.name}\n`;
+    text += `Status: ${obj.getStatus()}\n`;
+
+    const errorDetails = obj.getErrorDetails();
+    if (errorDetails) {
+        text += '\n' + obj.formatErrorForTooltip();
+    }
+
+    tooltip.textContent = text;
+    tooltip.style.display = 'block';
+
+    // Position near cursor
+    const rect = document.getElementById('canvas').getBoundingClientRect();
+    tooltip.style.left = (data.target?.x || 100) + 'px';
+    tooltip.style.top = (data.target?.y || 100) + 'px';
+}
+
+/**
+ * Hide tooltip
+ */
+function hideTooltip() {
+    document.getElementById('tooltip').style.display = 'none';
+}
+
+// Initialize on load
+window.addEventListener('load', initPixi);
     </script>
 </body>
 </html>
