@@ -4,12 +4,49 @@
  * Provides persistent browser storage for downloaded containers,
  * enabling offline access to previously downloaded containers.
  *
+ * Features:
+ * - IndexedDB-based persistent storage
+ * - LRU (Least Recently Used) eviction policy
+ * - Stale-while-revalidate pattern with ETag support
+ * - SHA256 hash verification using Web Crypto API
+ *
  * Uses native IndexedDB API with no external dependencies.
  *
  * @module CatalogCacheManager
+ * @extends PIXI.utils.EventEmitter
  */
 
-class CatalogCacheManager {
+// Import PIXI EventEmitter if available, otherwise use a minimal polyfill
+let EventEmitter;
+if (typeof PIXI !== 'undefined' && PIXI.utils && PIXI.utils.EventEmitter) {
+    EventEmitter = PIXI.utils.EventEmitter;
+} else {
+    // Minimal EventEmitter polyfill for standalone usage
+    EventEmitter = class EventEmitter {
+        constructor() {
+            this._events = {};
+        }
+        on(event, listener) {
+            if (!this._events[event]) this._events[event] = [];
+            this._events[event].push(listener);
+            return this;
+        }
+        emit(event, ...args) {
+            if (this._events[event]) {
+                this._events[event].forEach(listener => listener(...args));
+            }
+            return this;
+        }
+        off(event, listener) {
+            if (this._events[event]) {
+                this._events[event] = this._events[event].filter(l => l !== listener);
+            }
+            return this;
+        }
+    };
+}
+
+class CatalogCacheManager extends EventEmitter {
     /**
      * Database configuration
      * @private
@@ -325,6 +362,7 @@ class CatalogCacheManager {
 
     /**
      * Store container in cache with hash verification
+     * Automatically evicts LRU entries if cache size limit would be exceeded
      * @param {string} entryId - The entry ID to store
      * @param {ArrayBuffer|Blob} data - The container data
      * @param {Object} metadata - Metadata object with etag, hash, size, source
@@ -332,13 +370,31 @@ class CatalogCacheManager {
      * @param {string} metadata.hash - Expected SHA256 hash for validation (optional)
      * @param {number} metadata.size - Data size in bytes (optional, computed if not provided)
      * @param {string} metadata.source - URL or server ID (optional)
-     * @returns {Promise<{success: boolean, hash: string|null, verified: boolean}>} Result object with verification status
+     * @returns {Promise<{success: boolean, hash: string|null, verified: boolean, evicted?: string[]}>} Result object with verification status
      *
      * @example
      * const result = await cache.set('ubuntu-22.04', arrayBuffer, { etag: '"abc123"', hash: 'a591...', size: 1024000 });
-     * // Returns: { success: true, hash: 'a591...', verified: true }
+     * // Returns: { success: true, hash: 'a591...', verified: true, evicted: ['old-entry-1'] }
      */
     async set(entryId, data, metadata = {}) {
+        // Calculate data size before getting store
+        const dataSize = metadata.size || (data.byteLength || data.size || 0);
+
+        // Check if eviction is needed before storing
+        const maxSize = this.getMaxSize();
+        const currentSize = await this.getSize();
+
+        // If existing entry is being updated, account for size change
+        const existingEntry = await this._getEntryWithoutUpdate(entryId);
+        const existingSize = existingEntry ? (existingEntry.size || 0) : 0;
+        const netSizeChange = dataSize - existingSize;
+
+        let evicted = [];
+        if (currentSize + netSizeChange > maxSize) {
+            console.log('[CatalogCacheManager] Cache size limit exceeded, evicting LRU entries...');
+            evicted = await this.evictLRU(dataSize);
+        }
+
         const store = await this._getStore('readwrite');
         if (!store) {
             return { success: false, hash: null, verified: false };
@@ -370,10 +426,10 @@ class CatalogCacheManager {
                 data: data,
                 metadata: {
                     etag: metadata.etag || null,
-                    size: metadata.size || (data.byteLength || data.size || 0),
+                    size: dataSize,
                     source: metadata.source || null
                 },
-                size: metadata.size || (data.byteLength || data.size || 0),
+                size: dataSize,
                 cachedAt: now,
                 lastAccessed: now,
                 hash: computedHash,
@@ -382,14 +438,38 @@ class CatalogCacheManager {
 
             await this._wrapRequest(store.put(entry));
 
-            return {
+            const result = {
                 success: true,
                 hash: computedHash,
                 verified: verified
             };
+            if (evicted.length > 0) {
+                result.evicted = evicted;
+            }
+            return result;
         } catch (error) {
             console.error('[CatalogCacheManager] Set error:', error);
             return { success: false, hash: null, verified: false };
+        }
+    }
+
+    /**
+     * Get entry without updating lastAccessed timestamp
+     * Used internally for size calculations before eviction
+     * @private
+     * @param {string} entryId - The entry ID to retrieve
+     * @returns {Promise<Object|null>} Entry data or null if not found
+     */
+    async _getEntryWithoutUpdate(entryId) {
+        const store = await this._getStore('readonly');
+        if (!store) {
+            return null;
+        }
+
+        try {
+            return await this._wrapRequest(store.get(entryId));
+        } catch (error) {
+            return null;
         }
     }
 
@@ -580,7 +660,111 @@ class CatalogCacheManager {
             console.error('[CatalogCacheManager] setMaxSize error:', error);
         }
     }
-}
+
+    // ========================================
+    // LRU Eviction
+    // ========================================
+
+    /**
+     * Evict entries using LRU (Least Recently Used) policy to make room
+     * @param {number} bytesNeeded - Number of bytes needed for new entry
+     * @returns {Promise<string[]>} Array of evicted entry IDs
+     *
+     * @example
+     * const evicted = await cache.evictLRU(1024000);
+     * // Evicts oldest entries until there's room for 1MB
+     */
+    async evictLRU(bytesNeeded) {
+        const store = await this._getStore('readwrite');
+        if (!store) {
+            return [];
+        }
+
+        try {
+            const maxSize = this.getMaxSize();
+            const currentSize = await this.getSize();
+            const targetSize = maxSize - bytesNeeded;
+
+            // Check if eviction is needed
+            if (currentSize <= targetSize) {
+                console.log('[CatalogCacheManager] No eviction needed, current size:', currentSize, 'max:', maxSize);
+                return [];
+            }
+
+            // Get all entries sorted by lastAccessed (oldest first)
+            const entries = await this._wrapRequest(store.getAll(), []);
+            const sortedEntries = entries.sort((a, b) => (a.lastAccessed || 0) - (b.lastAccessed || 0));
+
+            const evictedIds = [];
+            let freedBytes = 0;
+            let runningSize = currentSize;
+
+            for (const entry of sortedEntries) {
+                if (runningSize <= targetSize) {
+                    break;
+                }
+
+                const entrySize = entry.size || 0;
+                await this._wrapRequest(store.delete(entry.id));
+                evictedIds.push(entry.id);
+                freedBytes += entrySize;
+                runningSize -= entrySize;
+
+                console.log('[CatalogCacheManager] Evicted LRU entry:', entry.id, 'freed:', entrySize, 'bytes');
+            }
+
+            // Emit eviction event
+            if (evictedIds.length > 0) {
+                this.emit('cache-evicted', { entryIds: evictedIds, freedBytes: freedBytes });
+                console.log('[CatalogCacheManager] LRU eviction complete. Evicted:', evictedIds.length, 'entries, freed:', freedBytes, 'bytes');
+            }
+
+            return evictedIds;
+        } catch (error) {
+            console.error('[CatalogCacheManager] evictLRU error:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get the next N entries that would be evicted by LRU policy
+     * Useful for UI showing "low space" warnings
+     * @param {number} count - Number of candidates to return
+     * @returns {Promise<Array<Object>>} Array of entry metadata (without data)
+     *
+     * @example
+     * const candidates = await cache.getEvictionCandidates(5);
+     * // Returns next 5 entries that would be evicted
+     */
+    async getEvictionCandidates(count = 5) {
+        const store = await this._getStore('readonly');
+        if (!store) {
+            return [];
+        }
+
+        try {
+            const entries = await this._wrapRequest(store.getAll(), []);
+
+            // Sort by lastAccessed (oldest first) and take first N
+            const sortedEntries = entries
+                .sort((a, b) => (a.lastAccessed || 0) - (b.lastAccessed || 0))
+                .slice(0, count);
+
+            // Return entries without the full data payload
+            return sortedEntries.map(entry => ({
+                id: entry.id,
+                metadata: entry.metadata,
+                size: entry.size,
+                cachedAt: entry.cachedAt,
+                lastAccessed: entry.lastAccessed,
+                hash: entry.hash,
+                verificationStatus: entry.verificationStatus
+            }));
+        } catch (error) {
+            console.error('[CatalogCacheManager] getEvictionCandidates error:', error);
+            return [];
+        }
+    }
 
 // ES6 module export
 export { CatalogCacheManager };
