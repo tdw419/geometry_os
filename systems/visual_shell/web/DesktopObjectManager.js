@@ -116,6 +116,11 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
         obj.on('hover', (data) => this._onObjectHover(obj, data));
         obj.on('hover-end', (data) => this._onObjectHoverEnd(obj, data));
 
+        // Drag event handlers
+        obj.on('drag-start', (data) => this._handleDragStart(obj, data));
+        obj.on('drag-move', (data) => this._handleDragMove(obj, data));
+        obj.on('drag-end', (data) => this._handleDragEnd(obj, data));
+
         // Add to tracking and layer
         this.objects.set(entry.id, obj);
         this.objectLayer.addChild(obj);
@@ -445,6 +450,67 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
      */
     _onObjectHoverEnd(obj, data) {
         this.emit('object-hover-end', { object: obj, entryId: obj.entryId });
+    }
+
+    /**
+     * Handle drag start
+     * @private
+     */
+    _handleDragStart(obj, data) {
+        this.emit('object-drag-start', { object: obj, entryId: obj.entryId, data });
+    }
+
+    /**
+     * Handle drag move - update spatial tracking
+     * @private
+     */
+    _handleDragMove(obj, data) {
+        // Update spatial index during drag (optional, for hit testing)
+        this._updateSpatialIndex(obj.entryId, obj.x, obj.y);
+    }
+
+    /**
+     * Handle drag end - persist position to catalog
+     * @private
+     */
+    async _handleDragEnd(obj, data) {
+        const { gridX, gridY, worldPos } = data;
+
+        // Snap to grid position
+        obj.x = gridX * DesktopObjectManager.GRID_SPACING.X;
+        obj.y = gridY * DesktopObjectManager.GRID_SPACING.Y;
+
+        // Update spatial index
+        this._updateSpatialIndex(obj.entryId, obj.x, obj.y);
+
+        // Persist to catalog via bridge
+        if (this.bridge) {
+            try {
+                await this.bridge.updateLayout(obj.entryId, { gridX, gridY });
+                console.log(`[DesktopObjectManager] Persisted layout for ${obj.entryId}: grid(${gridX}, ${gridY})`);
+            } catch (error) {
+                console.error(`[DesktopObjectManager] Failed to persist layout for ${obj.entryId}:`, error);
+            }
+        }
+
+        this.emit('object-moved', { object: obj, entryId: obj.entryId, gridX, gridY, worldPos });
+    }
+
+    /**
+     * Update spatial index for an object
+     * @private
+     * @param {string} entryId
+     * @param {number} x - World X coordinate
+     * @param {number} y - World Y coordinate
+     */
+    _updateSpatialIndex(entryId, x, y) {
+        // Spatial index can be used for efficient hit testing
+        // Currently just updating the object's internal grid position
+        const obj = this.objects.get(entryId);
+        if (obj) {
+            obj.gridX = Math.round(x / DesktopObjectManager.GRID_SPACING.X);
+            obj.gridY = Math.round(y / DesktopObjectManager.GRID_SPACING.Y);
+        }
     }
 
     /**
