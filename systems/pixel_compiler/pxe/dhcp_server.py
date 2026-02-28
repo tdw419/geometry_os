@@ -558,40 +558,90 @@ class DHCPServer:
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._transport: Optional[asyncio.DatagramTransport] = None
         self._protocol: Optional[DHCPProtocol] = None
+        self._status_task: Optional[asyncio.Task] = None
 
     async def start(self):
         """Start DHCP server on configured interface."""
-        self._loop = asyncio.get_event_loop()
+        self._loop = asyncio.get_running_loop()
 
-        # Create UDP endpoint
+        # Create UDP socket with proper options for DHCP
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        # Allow address reuse for quick restart
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        # Enable broadcast for DHCP responses
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+        # Bind to all interfaces on configured port
+        try:
+            sock.bind(('0.0.0.0', self.config.listen_port))
+            logger.info(
+                f"[DHCP] Server started on {self.config.interface} "
+                f"- IP range {self.config.ip_range_start}-{self.config.ip_range_end}"
+            )
+        except PermissionError:
+            logger.error(
+                f"[DHCP] Permission denied - DHCP requires root to bind to port {self.config.listen_port}"
+            )
+            sock.close()
+            raise
+        except OSError as e:
+            logger.error(f"[DHCP] Failed to bind to port {self.config.listen_port}: {e}")
+            sock.close()
+            raise
+
+        # Create datagram endpoint with pre-configured socket
         try:
             self._transport, self._protocol = await self._loop.create_datagram_endpoint(
                 lambda: DHCPProtocol(self.config, self.lease_store),
-                local_addr=('0.0.0.0', self.config.listen_port),
-                allow_broadcast=True
+                sock=sock,
             )
-
-            # Enable socket options for DHCP
-            sock = self._transport.get_extra_info('socket')
-            if sock:
-                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-
-            logger.info(f"[DHCP] Server started on {self.config.interface} - IP range {self.config.ip_range_start}-{self.config.ip_range_end}")
-
         except Exception as e:
-            logger.error(f"[DHCP] Failed to start server: {e}")
+            logger.error(f"[DHCP] Failed to create datagram endpoint: {e}")
+            sock.close()
             raise
+
+        logger.info(f"[DHCP] Listening for PXE clients...")
+        logger.info(f"[DHCP] TFTP server: {self.config.tftp_server}")
+        logger.info(f"[DHCP] Bootfile: {self.config.bootfile}")
 
     async def stop(self):
         """Stop DHCP server gracefully."""
+        # Cancel status logging task if running
+        if self._status_task and not self._status_task.done():
+            self._status_task.cancel()
+            try:
+                await self._status_task
+            except asyncio.CancelledError:
+                pass
+
         if self._transport:
             self._transport.close()
+            self._transport = None
+            self._protocol = None
             logger.info("[DHCP] Server stopped")
 
+        # Log active leases on shutdown
+        active = len(self.lease_store.leases)
+        if active > 0:
+            logger.info(f"[DHCP] {active} active leases at shutdown:")
+            for mac, lease in self.lease_store.leases.items():
+                logger.info(f"[DHCP]   {mac} -> {lease.ip}")
+
     async def serve_forever(self):
-        """Start and run until cancelled."""
+        """Start and run with periodic status logging."""
         await self.start()
+
+        # Status logging task - every 5 minutes
+        async def log_status():
+            while True:
+                await asyncio.sleep(300)  # Every 5 minutes
+                active = len(self.lease_store.leases)
+                logger.info(f"[DHCP] Status: {active} active leases")
+
+        self._status_task = asyncio.create_task(log_status())
+
         try:
             await asyncio.Future()  # Run forever
         except asyncio.CancelledError:
