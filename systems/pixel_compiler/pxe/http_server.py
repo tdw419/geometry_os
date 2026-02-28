@@ -64,6 +64,9 @@ class HTTPServerConfig:
     # Catalog integration
     watch_paths: Optional[List[str]] = None  # Directories to scan for containers
     use_vision: bool = False  # Vision analysis for catalog
+    # Menu configuration
+    default_entry: str = "local"     # Default boot entry ID or "local"
+    menu_timeout: int = 10           # Auto-boot timeout in seconds (0 = no timeout)
 
 
 # =============================================================================
@@ -108,6 +111,12 @@ class HTTPServer:
         self._app.router.add_post('/catalog/refresh', self._handle_catalog_refresh)
         self._app.router.add_get('/pxe', self._handle_pxe_list)
         self._app.router.add_post('/pxe/{entry_id}/toggle', self._handle_pxe_toggle)
+            # iPXE boot script endpoints
+        self._app.router.add_get('/pxe/boot.ipxe', self._handle_boot_script)
+        self._app.router.add_get('/pxe/menu.ipxe', self._handle_menu_script)
+
+
+        self._runner = web.AppRunner(self._app)
 
         self._runner = web.AppRunner(self._app)
         await self._runner.setup()
@@ -335,6 +344,119 @@ class HTTPServer:
             'entry_id': entry_id,
             'pxe_enabled': enabled
         })
+
+    # =========================================================================
+    # iPXE Boot Script Handlers
+    # =========================================================================
+
+    async def _handle_boot_script(self, request: web.Request) -> web.Response:
+        """Handle GET /pxe/boot.ipxe to serve the iPXE boot script.
+
+        This is the initial script iPXE loads after DHCP/TFTP boot.
+        It chains to the dynamic menu script.
+        """
+        # Extract server address from request host
+        host = request.host or f"{self.config.interface}:{self.config.listen_port}"
+
+        # Generate boot script
+        script = f"""#!ipxe
+# PixelRTS PXE Boot Menu
+chain http://{host}/pxe/menu.ipxe
+"""
+
+        logger.info(f"[HTTP] Serving boot script to {request.remote or 'unknown'}")
+
+        return web.Response(
+            text=script,
+            content_type='text/plain',
+            charset='utf-8'
+        )
+
+    async def _handle_menu_script(self, request: web.Request) -> web.Response:
+        """Handle GET /pxe/menu.ipxe to serve dynamic iPXE menu script.
+
+        Generates menu items from PXE-enabled containers with metadata
+        (size, distro) displayed alongside container names.
+
+        Uses menu configuration:
+        - default_entry: Pre-selected boot option
+        - menu_timeout: Auto-boot timeout in seconds (0 = no timeout)
+        """
+        # Extract server address from request host
+        host = request.host or f"{self.config.interface}:{self.config.listen_port}"
+
+        # Get PXE-enabled containers sorted by boot order
+        pxe_containers = sorted(
+            self.get_pxe_containers(),
+            key=lambda info: info.pxe_boot_order
+        )
+
+        # Build menu script
+        lines = [
+            "#!ipxe",
+            "# PixelRTS Container Selection Menu",
+            "",
+            "# Set default selection",
+            f"isset ${{menu-default}} || set menu-default {self.config.default_entry}",
+            "",
+            "menu PixelRTS Boot Menu",
+            "item --key 0 local Boot from local disk",
+            "",
+        ]
+
+        # Add container items with metadata
+        for idx, info in enumerate(pxe_containers, start=1):
+            entry = info.entry
+            # Calculate size in MB
+            size_mb = entry.size // (1024 * 1024)
+            # Get distro or "Unknown"
+            distro = getattr(entry, 'distro', 'Unknown') or 'Unknown'
+            # Use entry_id as the boot target
+            lines.append(f"item --key {idx} {info.entry_id} {entry.name} ({size_mb}MB, {distro})")
+
+        lines.append("")
+
+        # Build choose command with optional timeout
+        if self.config.menu_timeout > 0:
+            lines.append(f"choose --default ${{menu-default}} --timeout {self.config.menu_timeout} selected || goto local")
+        else:
+            lines.append(f"choose --default ${{menu-default}} selected || goto local")
+
+        lines.append("")
+        lines.append("echo Booting ${{selected}}...")
+        lines.append("goto ${{selected}}")
+        lines.append("")
+
+        # Local boot fallback
+        lines.append(":local")
+        lines.append("echo Booting from local disk...")
+        lines.append("sanboot --no-describe 0x80")
+        lines.append("")
+
+        # Add per-container boot labels
+        for info in pxe_containers:
+            lines.append(f":{info.entry_id}")
+            lines.append(f"chain http://{host}/containers/{info.entry_id} || goto failed")
+            lines.append("")
+
+        lines.append(":failed")
+        lines.append("echo Boot failed, returning to menu...")
+        lines.append("sleep 3")
+        lines.append("goto start")
+
+        script = "\n".join(lines)
+
+        logger.info(
+            f"[HTTP] Serving menu script with {len(pxe_containers)} containers "
+            f"(default={self.config.default_entry}, timeout={self.config.menu_timeout}s) "
+            f"to {request.remote or 'unknown'}"
+        )
+
+        return web.Response(
+            text=script,
+            content_type='text/plain',
+            charset='utf-8'
+        )
 
     async def _handle_file(self, request: web.Request) -> web.StreamResponse:
         """Handle GET /{filename} to serve container files."""
