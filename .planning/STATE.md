@@ -11,17 +11,17 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Milestone:** v1.2 Network Boot
 **Phase:** 9 of 11 (Remote Boot) - In Progress
-**Plan:** 1 of 3 complete
+**Plan:** 2 of 3 complete
 **Status:** In progress
-**Last activity:** 2026-02-28 — Completed 09-01 RemoteBootFetcher
+**Last activity:** 2026-02-28 — Completed 09-02 Download Progress Overlay
 
-Progress: [██░░░░░░░░] 20%
+Progress: [███░░░░░░░] 30%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 39 (v1.0: 23, v1.1: 8, v1.2: 8)
-- v1.2 plans remaining: 4
+- Total plans completed: 40 (v1.0: 23, v1.1: 8, v1.2: 9)
+- v1.2 plans remaining: 3
 
 **By Phase:**
 
@@ -31,7 +31,7 @@ Progress: [██░░░░░░░░] 20%
 | 5-6 (v1.1) | 8 | Complete |
 | 7 (v1.2) | 5 | Complete |
 | 8 (v1.2) | 2 | Complete |
-| 9 (v1.2) | 1/3 | In Progress |
+| 9 (v1.2) | 2/3 | In Progress |
 | 10-11 (v1.2) | 2 | Pending |
 
 ## Accumulated Context
@@ -39,7 +39,7 @@ Progress: [██░░░░░░░░] 20%
 ### Shipped Milestones
 - **v1.0:** PixelRTS Boot Improvement — Vision analysis, FUSE boot, installer, catalog
 - **v1.1:** Visual Shell Integration — Desktop objects, boot progress, error handling
-- **v1.2 (partial):** Cache Infrastructure + Remote Client + Remote Boot — IndexedDB, hash verification, LRU eviction, ETag revalidation, cache-first fetching, verification status UI, multi-server aggregation, server source badges, settings panel, streaming downloads
+- **v1.2 (partial):** Cache Infrastructure + Remote Client + Remote Boot — IndexedDB, hash verification, LRU eviction, ETag revalidation, cache-first fetching, verification status UI, multi-server aggregation, server source badges, settings panel, streaming downloads, download progress overlay
 
 ### Key Decisions
 - PixiJS v7 for desktop rendering
@@ -75,11 +75,15 @@ Progress: [██░░░░░░░░] 20%
 - **09-01:** 60-second default timeout for large container downloads
 - **09-01:** Data returned on hash verification failure (error also emitted)
 - **09-01:** Error categorization with retryable hints for retry logic
+- **09-02:** Reuse progressContainer for download overlay (no separate container)
+- **09-02:** Red border on hover during download indicates click-to-cancel
+- **09-02:** 1.5 second delay after verification before boot starts
+- **09-02:** 2-minute timeout for remote container downloads
 
 ### Components Shipped
-- RTSDesktopObject.js (1394 lines) - PIXI.Container with progress, status, error, cache verification, server source badge
+- RTSDesktopObject.js (1615 lines) - PIXI.Container with progress, status, error, cache verification, server source badge, download overlay
 - CatalogBridge.js (487 lines) - API client with status polling and cache-first fetching
-- DesktopObjectManager.js (820 lines) - Lifecycle manager with remote catalog integration
+- DesktopObjectManager.js (1135 lines) - Lifecycle manager with remote catalog integration, remote boot flow
 - catalog_server.py (639 lines) - Status tracking and REST API
 - CatalogCacheManager.js (1286 lines) - IndexedDB cache with LRU eviction, stale detection, ETag revalidation, ES6 exports
 - ServerRegistry.js (327 lines) - localStorage server configuration persistence
@@ -92,6 +96,6 @@ Progress: [██░░░░░░░░] 20%
 
 ## Session Continuity
 
-Last session: 2026-02-28T01:18:00Z
-Status: Phase 9 Plan 1 complete — RemoteBootFetcher streaming download implemented
+Last session: 2026-02-28T01:35:00Z
+Status: Phase 9 Plan 2 complete — Download progress overlay with click-to-cancel implemented
 Resume file: None
