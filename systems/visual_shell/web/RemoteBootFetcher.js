@@ -43,6 +43,24 @@ class RemoteBootFetcher {
     static MIN_BYTES_FOR_SPEED = 1024;
 
     /**
+     * Maximum retry attempts for retryable errors
+     * @static
+     */
+    static MAX_RETRIES = 3;
+
+    /**
+     * Base delay for exponential backoff in milliseconds
+     * @static
+     */
+    static BASE_RETRY_DELAY = 1000; // 1 second
+
+    /**
+     * Maximum delay cap for exponential backoff
+     * @static
+     */
+    static MAX_RETRY_DELAY = 10000; // 10 seconds
+
+    /**
      * Create a new RemoteBootFetcher instance
      * @param {Object} options - Configuration options
      * @param {number} [options.timeout=60000] - Download timeout in milliseconds
@@ -60,6 +78,12 @@ class RemoteBootFetcher {
 
         // Callbacks stored per-fetch
         this._callbacks = null;
+
+        // Retry state
+        this._retryCount = 0;
+        this._lastUrl = null;
+        this._lastOptions = null;
+        this._lastError = null;
     }
 
     /**
@@ -259,6 +283,92 @@ class RemoteBootFetcher {
     }
 
     /**
+     * Fetch with automatic retry on retryable errors
+     * @param {string} url - The URL to fetch
+     * @param {Object} options - Fetch options (same as fetch())
+     * @param {Object} retryOptions - Retry-specific options
+     * @param {number} [retryOptions.maxRetries=3] - Maximum retry attempts
+     * @param {Function} [retryOptions.onRetry] - Callback before each retry: ({ attempt, delay, error })
+     * @returns {Promise<{data: ArrayBuffer, hash: string|null, verified: boolean}|null>}
+     */
+    async fetchWithRetry(url, options = {}, retryOptions = {}) {
+        const maxRetries = retryOptions.maxRetries ?? RemoteBootFetcher.MAX_RETRIES;
+        this._lastUrl = url;
+        this._lastOptions = options;
+
+        let lastError = null;
+
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            this._retryCount = attempt;
+
+            // Emit retry status if not first attempt
+            if (attempt > 0 && retryOptions.onRetry) {
+                const delay = this._calculateBackoffDelay(attempt - 1);
+                retryOptions.onRetry({ attempt, delay, error: lastError });
+                await this._sleep(delay);
+            }
+
+            const result = await this.fetch(url, options);
+
+            if (result !== null) {
+                // Success - reset retry count
+                this._retryCount = 0;
+                return result;
+            }
+
+            // Check if error was retryable
+            lastError = this._lastError;
+
+            if (lastError && !lastError.retryable) {
+                // Non-retryable error - abort immediately
+                console.log('[RemoteBootFetcher] Non-retryable error, not retrying');
+                this._retryCount = 0;
+                return null;
+            }
+
+            if (attempt < maxRetries) {
+                console.log(`[RemoteBootFetcher] Attempt ${attempt + 1} failed, retrying... (${maxRetries - attempt} retries left)`);
+            }
+        }
+
+        // All retries exhausted
+        console.log(`[RemoteBootFetcher] All ${maxRetries} retry attempts exhausted`);
+        this._retryCount = 0;
+        return null;
+    }
+
+    /**
+     * Calculate exponential backoff delay with jitter
+     * @param {number} attempt - Current attempt number (0-indexed)
+     * @returns {number} Delay in milliseconds
+     * @private
+     */
+    _calculateBackoffDelay(attempt) {
+        // Exponential backoff: 1s, 2s, 4s with jitter
+        const baseDelay = RemoteBootFetcher.BASE_RETRY_DELAY * Math.pow(2, attempt);
+        const jitter = Math.random() * 500; // Add up to 500ms of jitter
+        return Math.min(baseDelay + jitter, RemoteBootFetcher.MAX_RETRY_DELAY);
+    }
+
+    /**
+     * Sleep for specified milliseconds
+     * @param {number} ms - Milliseconds to sleep
+     * @returns {Promise<void>}
+     * @private
+     */
+    _sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
+     * Get current retry count
+     * @returns {number}
+     */
+    getRetryCount() {
+        return this._retryCount;
+    }
+
+    /**
      * Get current download progress info
      * @returns {Object|null} Progress object or null if not downloading
      */
@@ -383,6 +493,7 @@ class RemoteBootFetcher {
      * @private
      */
     _emitError(callback, errorInfo) {
+        this._lastError = errorInfo; // Store for retry logic
         if (typeof callback === 'function') {
             try {
                 callback(errorInfo);
