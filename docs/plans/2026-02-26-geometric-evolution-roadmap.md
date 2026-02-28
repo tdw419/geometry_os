@@ -20,7 +20,12 @@ This roadmap outlines the trajectory of Geometry OS, from its fundamental geomet
 
 ## Epoch 2: Tectonic Architecture (IN PROGRESS)
 *Moving from individual letters (instructions) to structural buildings (programs).*
-- [ ] **Tectonic Compilers:** Tools to transform high-level logic (C, Rust, GeoASM) into 3D architectural blocks of Resonance Glyphs.
+- [x] **Tectonic Compilers:** Tools to transform high-level logic (C, Rust, GeoASM) into 3D architectural blocks of Resonance Glyphs.
+  - `TectonicCompiler.js`: GeoASM parser and building generator
+  - Opcode mapping for WebAssembly instruction set
+  - 2D glyph layout algorithm
+  - I/O port auto-generation from function signatures
+  - `GeoASMLibrary`: Standard function templates (add, sub, mul, div, etc.)
 - [x] **Visual Pipelining:** Connecting Tectonic buildings with holographic "wires" to facilitate inter-process communication (IPC) via visual data flow.
   - `TectonicBuilding.js`: Container for grouped glyphs with I/O ports
   - `VisualWire.js`: Bezier curve connections with animated data particles
