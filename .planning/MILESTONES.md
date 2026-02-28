@@ -1,5 +1,29 @@
 # Project Milestones: PixelRTS Boot Improvement
 
+## v1.3 PXE Boot (Shipped: 2026-02-28)
+
+**Delivered:** Boot bare metal machines over PXE with the same visual, drag-and-drop experience. Full stack implementation: DHCP → TFTP → HTTP → Boot Menu → Visual Shell integration.
+
+**Phases completed:** 12-16 (20 plans total)
+
+**Key accomplishments:**
+- Full PXE stack: DHCP server with PXE options, TFTP server with concurrent transfers, HTTP server with range requests
+- iPXE boot menu with container selection and customization
+- Visual shell integration: PXE badge, toggle, settings panel
+- 226 comprehensive tests across all components
+
+**Stats:**
+- 5 phases, 20 plans
+- 4 server components (~3,658 lines Python)
+- 5 test suites (226 tests)
+- 16 requirements shipped (100%)
+
+**Git range:** `feat(12-01)` → `docs(16-04)`
+
+**What's next:** v1.4 - Linux-equivalent capabilities
+
+---
+
 ## v1.2 Network Boot (Shipped: 2026-02-28)
 
 **Delivered:** Boot OS containers from anywhere - local or remote - with the same drag-and-drop experience. Remote containers are cached locally for offline access.

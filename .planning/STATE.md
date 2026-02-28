@@ -5,23 +5,22 @@
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file - from anywhere, including bare metal.
-**Current focus:** v1.3 PXE Boot - COMPLETE
+**Current focus:** Planning v1.4
 
 ## Current Position
 
-**Milestone:** v1.3 PXE Boot
-**Phase:** 16 - Integration
-**Plan:** 04 complete
-**Status:** Complete
-**Last activity:** 2026-02-28 - v1.3 PXE Boot milestone complete
+**Milestone:** v1.4 (not yet defined)
+**Phase:** Not started
+**Plan:** Not started
+**Status:** Ready for milestone planning
+**Last activity:** 2026-02-28 - v1.3 PXE Boot milestone complete, archived
 
-Progress: [█████████] 100% (5/5 phases complete, 21/21 plans in v1.3)
+Progress: [----------] 0% (v1.4 not started)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 80 (v1.0: 23, v1.1: 8, v1.2: 14, v1.3: 21, other: 14)
-- Current milestone: 21
+- Total plans completed: 80 (v1.0: 23, v1.1: 8, v1.2: 14, v1.3: 20, other: 15)
 
 **By Milestone:**
 
@@ -30,102 +29,39 @@ Progress: [█████████] 100% (5/5 phases complete, 21/21 plans i
 | v1.0 | 1-4 | 23 | Complete |
 | v1.1 | 5-6 | 8 | Complete |
 | v1.2 | 7-11 | 14 | Complete |
-| v1.3 | 12-16 | 21 | Complete |
-
-**v1.3 Breakdown:**
-
-| Phase | Goal | Requirements | Status |
-|-------|------|--------------|--------|
-| 12 - DHCP Server | PXE clients receive boot instructions | 4 | **Complete** (4/4 plans) |
-| 13 - TFTP Server | Bootloader delivered via TFTP | 4 | **Complete** (4/4 plans) |
-| 14 - HTTP Serving | Containers available via HTTP | 4 | **Complete** (4/4 plans) |
-| 15 - Boot Menu | Interactive container selection | 4 | **Complete** (4/4 plans) |
-| 16 - Integration | Unified with v1.2 infrastructure | 4 | **Complete** (4/4 plans) |
+| v1.3 | 12-16 | 20 | Complete |
+| v1.4 | TBD | - | Planning |
 
 ## Accumulated Context
 
 ### Shipped Milestones
 - **v1.0:** PixelRTS Boot Improvement - Vision analysis, FUSE boot, installer, catalog
 - **v1.1:** Visual Shell Integration - Desktop objects, boot progress, error handling
-- **v1.2:** Network Boot - Cache infrastructure, remote client, remote boot, source filtering, search, retry logic, cache management UI
+- **v1.2:** Network Boot - Cache infrastructure, remote client, remote boot, search, retry logic
 - **v1.3:** PXE Boot - DHCP server, TFTP server, HTTP container serving, boot menu, visual shell integration (226 tests)
 
-### Key Decisions
-- PixiJS v7 for desktop rendering
-- REST polling for boot status (1000ms interval, max 60 attempts)
-- Position mapping: server `position.{x,y}` -> client `layout.{gridX,gridY}`
-- 30-second boot timeout with 4-stage progress animation
-- ERROR_GUIDANCE pattern matching for actionable error suggestions
-- Native IndexedDB for container caching (no external library)
-- Native Web Crypto API for SHA256 hash computation
-- Stale-while-revalidate pattern for responsive UI
-- Streaming download via fetch ReadableStream
-- MAX_RETRIES=3 with exponential backoff (1s, 2s, 4s max)
+### Key Decisions (v1.3)
 - iPXE bootloader for PXE (supports both BIOS and UEFI via chainload)
 - asyncio.DatagramProtocol for DHCP UDP handling
 - Round-robin IP allocation with lease reuse
 - argparse subcommands for CLI structure (pxe dhcp start/stop/status)
 - Pre-configure socket with SO_REUSEADDR/SO_BROADCAST before binding
-- Periodic status logging via asyncio background task (5 min interval)
-- Verbose debug logging for raw packet inspection
 - TFTP block size 512 bytes (RFC 1350 standard)
 - Path traversal prevention via basename-only sanitization
 - aiofiles for async file I/O enabling concurrent TFTP transfers
-- asyncio.Event for ACK signaling between sync/async contexts
-- asyncio.ensure_future for spawning concurrent transfer tasks
-- TFTP CLI subcommands following DHCP pattern (pxe tftp start/stop)
-- unittest with MagicMock for protocol testing
-- Helper functions for TFTP test packet building
 - aiohttp.web for async HTTP server (Application/Runner/TCPSite pattern)
 - HTTP range requests (RFC 7233) for large container file support
-- HTTP CLI subcommands following DHCP/TFTP pattern (pxe http start/stop)
-- --watch-path CLI option uses action='append' for multiple directories
-- Catalog integration with optional watch_paths configuration
-- PXEContainerInfo for tracking per-container PXE availability with boot order
-- Graceful fallback to file-based serving when CatalogScanner unavailable
-- unittest with aiohttp TestClient for async HTTP testing
-- Dynamic port allocation (28080+) to avoid test port conflicts
 - iPXE menu uses choose command with optional timeout for auto-boot
-- Local boot fallback using sanboot for exiting to local disk
-- Per-container boot labels for clean goto routing in iPXE menu
-- Optional[str] for menu customization fields (None = use defaults)
-- POST /pxe/{entry_id}/menu endpoint for menu customization updates
-- CLI pxe menu list/set commands for menu management
-- Boot menu test port counter starts at 28100 to avoid conflicts with HTTP tests (28080)
-- PXE badge orange (0xff6600) for enabled, gray (0x666666) for disabled
-- PXE badge positioned at OFFSET_X: 14, next to offline badge
+- PXE badge orange (#ff6600) for enabled, gray (#666666) for disabled
 - Event-driven PXE toggle with pxe-toggled event for UI sync
-- Orange (#ff6600) for PXE toggles/badges to distinguish from other status indicators
-- Mock helper classes for testing browser-dependent PIXI components without browser environment
-
-### Components Shipped
-- RTSDesktopObject.js (2030 lines) - PIXI.Container with all UI features
-- CatalogBridge.js (540 lines) - API client with cache-first fetching, PXE methods
-- DesktopObjectManager.js (1600+ lines) - Lifecycle manager with remote integration, PXE toggle
-- CatalogCacheManager.js (1340 lines) - IndexedDB cache with LRU eviction
-- ServerRegistry.js (327 lines) - Server configuration persistence
-- RemoteCatalogClient.js (478 lines) - Multi-server catalog aggregation
-- ServerSettingsPanel.js (1100+ lines) - Settings UI with cache management, PXE section
-- RemoteBootFetcher.js (744 lines) - Streaming downloads with retry
-- CatalogFilterBar.js (166 lines) - Filter bar UI
-- CatalogSearchBar.js (167 lines) - Search input with debounce
-- dhcp_server.py (848 lines) - Async DHCP server with PXE options, production logging
-- pxe_cli.py (754 lines) - CLI interface for PXE server management with DHCP, TFTP, HTTP, and menu subcommands
-- test_dhcp_server.py (1180 lines) - Unit + integration tests (46 tests)
-- tftp_server.py (750 lines) - Async TFTP server with concurrent transfers, aiofiles
-- test_tftp_server.py (795 lines) - Unit + integration tests (52 tests)
-- http_server.py (662 lines) - Async HTTP server with range requests, catalog integration, iPXE boot/menu endpoints, menu customization
-- test_http_server.py (1340 lines) - Unit + integration tests (66 tests)
-- test_boot_menu.py (1398 lines) - Boot menu tests (49 tests)
-- test_pxe_visual_integration.py (484 lines) - PXE visual shell integration tests (13 tests)
 
 ### Blockers
 - None currently
 
 ## Session Continuity
 
-Last session: 2026-02-28T19:30:00Z
-Status: v1.3 PXE Boot milestone COMPLETE
+Last session: 2026-02-28T20:00:00Z
+Status: v1.3 archived, ready for v1.4 planning
 Resume file: None
 
-**Next Action:** Run /gsd:audit-milestone to verify milestone completion. or /gsd:complete-milestone to archive.
+**Next Action:** Run /gsd:new-milestone to start v1.4 planning

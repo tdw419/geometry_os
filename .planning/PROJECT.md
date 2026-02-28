@@ -15,16 +15,11 @@ If everything else fails, users must be able to:
 4. Boot from remote URLs with offline resilience
 5. Boot bare metal machines over PXE
 
-## Current Milestone: v1.3 PXE Boot
+## Current Milestone: Planning v1.4
 
-**Goal:** Extend remote boot to bare metal with full PXE stack.
+**Last Shipped:** v1.3 PXE Boot (2026-02-28)
 
-**Target features:**
-- DHCP server configuration for PXE clients
-- TFTP server with iPXE bootloader
-- HTTP container serving for .rts.png files
-- PXE boot menu with container selection
-- Integration with v1.2 remote boot infrastructure
+**Next Goal:** To be defined — run `/gsd:new-milestone`
 
 ## Requirements
 
@@ -40,10 +35,15 @@ If everything else fails, users must be able to:
 - ✓ Local caching with hash verification — v1.2
 - ✓ Unified local + remote catalog view — v1.2
 - ✓ Graceful error handling with retry — v1.2
+- ✓ DHCP server for PXE clients — v1.3
+- ✓ TFTP server for bootloader delivery — v1.3
+- ✓ HTTP container serving with range requests — v1.3
+- ✓ iPXE boot menu with customization — v1.3
+- ✓ PXE visual shell integration (badge, toggle) — v1.3
 
 ### Active
 
-(None — defining requirements for v1.3)
+(None — run `/gsd:new-milestone` to define v1.4 requirements)
 
 ### Future
 
@@ -66,20 +66,22 @@ If everything else fails, users must be able to:
 - Uses QEMU for virtualization testing
 
 **Current State:**
-- v1.2 shipped: Remote boot with caching and offline resilience
-- 7 new JavaScript components (~8,264 lines)
-- IndexedDB cache with LRU eviction
-- Multi-server catalog aggregation
-- Streaming downloads with retry logic
+- v1.3 shipped: Full PXE boot stack (DHCP, TFTP, HTTP, Menu, Integration)
+- 4 new Python server components (~3,658 lines)
+- 5 test suites (226 tests)
+- Visual shell PXE badge and toggle
 
 **Key Files:**
 - `systems/visual_shell/web/RTSDesktopObject.js` - Desktop object component (2030 lines)
-- `systems/visual_shell/web/CatalogBridge.js` - API client (486 lines)
-- `systems/visual_shell/web/DesktopObjectManager.js` - Lifecycle manager (1569 lines)
+- `systems/visual_shell/web/CatalogBridge.js` - API client (540 lines)
+- `systems/visual_shell/web/DesktopObjectManager.js` - Lifecycle manager (1600+ lines)
 - `systems/visual_shell/web/CatalogCacheManager.js` - IndexedDB cache (1340 lines)
 - `systems/visual_shell/web/RemoteBootFetcher.js` - Streaming downloads (744 lines)
-- `systems/visual_shell/web/ServerSettingsPanel.js` - Settings UI (957 lines)
-- `systems/pixel_compiler/catalog/catalog_server.py` - Backend API
+- `systems/visual_shell/web/ServerSettingsPanel.js` - Settings UI (1100+ lines)
+- `systems/pixel_compiler/pxe/dhcp_server.py` - DHCP server (848 lines)
+- `systems/pixel_compiler/pxe/tftp_server.py` - TFTP server (750 lines)
+- `systems/pixel_compiler/pxe/http_server.py` - HTTP server (662 lines)
+- `systems/pixel_compiler/pxe/pxe_cli.py` - CLI interface (754 lines)
 
 ## Constraints
 
@@ -103,6 +105,10 @@ If everything else fails, users must be able to:
 | Stale-while-revalidate pattern | Responsive UI, fresh data | ✓ Shipped v1.2 |
 | Streaming fetch with ReadableStream | True streaming progress | ✓ Shipped v1.2 |
 | Exponential backoff retry | Graceful network error handling | ✓ Shipped v1.2 |
+| iPXE bootloader for PXE | Supports both BIOS and UEFI via chainload | ✓ Shipped v1.3 |
+| asyncio.DatagramProtocol | Async UDP handling for DHCP | ✓ Shipped v1.3 |
+| aiohttp.web for HTTP server | Async HTTP with range requests | ✓ Shipped v1.3 |
+| PXE badge orange (#ff6600) | Distinguish from other status indicators | ✓ Shipped v1.3 |
 
 ---
-*Last updated: 2026-02-28 for milestone v1.3 PXE Boot*
+*Last updated: 2026-02-28 after v1.3 PXE Boot milestone*
