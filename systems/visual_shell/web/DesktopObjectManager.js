@@ -69,6 +69,9 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
         // Search filter state
         this._searchQuery = '';
 
+        // PXE data tracking
+        this._pxeData = new Map(); // entryId -> { pxe_enabled, boot_order }
+
         // Create dedicated layer for desktop objects
         this.objectLayer = new PIXI.Container();
         this.objectLayer.label = 'desktopObjectLayer';
@@ -124,6 +127,11 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
         // Load remote catalogs in background (non-blocking)
         this.loadRemoteCatalogs().catch(err => {
             console.warn('[DesktopObjectManager] Remote catalog load failed:', err);
+        });
+
+        // Load PXE data in background
+        this.loadPXEData().catch(err => {
+            console.warn('[DesktopObjectManager] PXE data load failed:', err);
         });
 
         return created;
@@ -1543,6 +1551,106 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
             obj.gridX = Math.round(x / DesktopObjectManager.GRID_SPACING.X);
             obj.gridY = Math.round(y / DesktopObjectManager.GRID_SPACING.Y);
         }
+    }
+
+    // ========================================
+    // PXE Management Methods
+    // ========================================
+
+    /**
+     * Load PXE data from the server and merge with desktop objects
+     * @returns {Promise<number>} Number of PXE-enabled containers found
+     */
+    async loadPXEData() {
+        if (!this.bridge || typeof this.bridge.getPXEContainers !== 'function') {
+            console.warn('[DesktopObjectManager] Bridge does not support PXE data');
+            return 0;
+        }
+
+        try {
+            const pxeData = await this.bridge.getPXEContainers();
+            const containers = pxeData?.pxe_containers || [];
+
+            // Clear and rebuild PXE data map
+            this._pxeData.clear();
+
+            let enabledCount = 0;
+            for (const container of containers) {
+                this._pxeData.set(container.entry_id, {
+                    pxe_enabled: container.pxe_enabled,
+                    boot_order: container.boot_order
+                });
+
+                // Update the desktop object's PXE badge if it exists
+                const obj = this.objects.get(container.entry_id);
+                if (obj && typeof obj.setPXEEnabled === 'function') {
+                    obj.setPXEEnabled(container.pxe_enabled);
+                    if (container.pxe_enabled) {
+                        enabledCount++;
+                    }
+                }
+            }
+
+            console.log(`[DesktopObjectManager] Loaded PXE data: ${enabledCount}/${containers.length} enabled`);
+            this.emit('pxe-data-loaded', { count: containers.length, enabled: enabledCount });
+
+            return containers.length;
+        } catch (error) {
+            console.error('[DesktopObjectManager] Failed to load PXE data:', error);
+            return 0;
+        }
+    }
+
+    /**
+     * Toggle PXE availability for a container
+     * @param {string} entryId - Entry ID to toggle
+     * @param {boolean} enabled - Whether to enable or disable PXE
+     * @returns {Promise<boolean>} True if toggle succeeded
+     */
+    async togglePXE(entryId, enabled) {
+        if (!this.bridge || typeof this.bridge.setPXEAvailability !== 'function') {
+            console.warn('[DesktopObjectManager] Bridge does not support PXE toggle');
+            return false;
+        }
+
+        try {
+            const result = await this.bridge.setPXEAvailability(entryId, enabled);
+
+            if (result && result.success !== false) {
+                // Update local PXE data
+                this._pxeData.set(entryId, {
+                    pxe_enabled: enabled,
+                    boot_order: result.boot_order || 0
+                });
+
+                // Update the desktop object's PXE badge
+                const obj = this.objects.get(entryId);
+                if (obj && typeof obj.setPXEEnabled === 'function') {
+                    obj.setPXEEnabled(enabled);
+                }
+
+                // Emit pxe-toggled event for UI components to react
+                this.emit('pxe-toggled', { entryId, enabled });
+
+                console.log(`[DesktopObjectManager] PXE ${enabled ? 'enabled' : 'disabled'} for ${entryId}`);
+                return true;
+            }
+
+            console.warn(`[DesktopObjectManager] PXE toggle failed for ${entryId}`);
+            return false;
+        } catch (error) {
+            console.error(`[DesktopObjectManager] PXE toggle error for ${entryId}:`, error);
+            return false;
+        }
+    }
+
+    /**
+     * Get PXE data for a specific entry
+     * @param {string} entryId - Entry ID to get PXE data for
+     * @returns {Object|null} PXE data { pxe_enabled, boot_order } or null
+     */
+    getPXEData(entryId) {
+        return this._pxeData.get(entryId) || null;
     }
 
     /**
