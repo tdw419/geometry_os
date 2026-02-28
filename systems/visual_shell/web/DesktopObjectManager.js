@@ -66,6 +66,9 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
         // Selection state
         this.selectedObjectId = null;
 
+        // Set up network status listeners for offline badge updates
+        this._setupNetworkListeners();
+
         // Auto-load if enabled
         if (options.autoLoad !== false) {
             this.loadCatalog().catch(err => {
@@ -129,14 +132,14 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
         const cached = this.remoteClient.getAggregatedCatalog();
         if (cached.entries.length > 0) {
             console.log(`[DesktopObjectManager] Showing ${cached.entries.length} cached remote entries`);
-            this._createRemoteObjects(cached.entries);
+            await this._createRemoteObjects(cached.entries);
         }
 
         // Fetch fresh data
         const result = await this.remoteClient.fetchAllCatalogs();
 
         // Sync UI with fresh data
-        this._syncRemoteObjects(result.entries);
+        await this._syncRemoteObjects(result.entries);
 
         // Update server statuses based on errors
         if (result.errors && result.errors.length > 0) {
@@ -160,8 +163,10 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
      * @param {Array<Object>} entries - Remote catalog entries
      * @private
      */
-    _createRemoteObjects(entries) {
+    async _createRemoteObjects(entries) {
         let created = 0;
+        const cache = this.bridge?.cache;
+
         for (const entry of entries) {
             // Skip if already exists
             if (this.objects.has(entry.id)) {
@@ -173,6 +178,14 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
                 entry._isRemote = true;
                 this.createObject(entry);
                 this._remoteEntryIds.add(entry.id);
+
+                // Initialize offline availability badge
+                const obj = this.objects.get(entry.id);
+                if (obj && cache) {
+                    const isOfflineCapable = await cache.isOfflineCapable(entry.id);
+                    obj.setOfflineAvailable(isOfflineCapable);
+                }
+
                 created++;
             } catch (error) {
                 console.error(`[DesktopObjectManager] Failed to create remote object for ${entry.id}:`, error);
@@ -186,8 +199,9 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
      * @param {Array<Object>} entries - Current remote catalog entries
      * @private
      */
-    _syncRemoteObjects(entries) {
+    async _syncRemoteObjects(entries) {
         const currentRemoteIds = new Set(entries.map(e => e.id));
+        const cache = this.bridge?.cache;
 
         // Remove objects that no longer exist
         for (const entryId of [...this._remoteEntryIds]) {
@@ -210,6 +224,13 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
             }
 
             this._remoteEntryIds.add(entry.id);
+
+            // Update offline availability badge
+            const obj = this.objects.get(entry.id);
+            if (obj && cache) {
+                const isOfflineCapable = await cache.isOfflineCapable(entry.id);
+                obj.setOfflineAvailable(isOfflineCapable);
+            }
         }
 
         console.log(`[DesktopObjectManager] Synced ${entries.length} remote objects`);
@@ -655,6 +676,7 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
 
     /**
      * Boot a remote container - download if not cached, then boot
+     * Implements cache-first pattern with offline support
      * @private
      * @param {string} entryId - Entry ID to boot
      * @param {Object} entry - Catalog entry data
@@ -672,9 +694,62 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
             return;
         }
 
-        // Check if already cached
-        // Note: Full cache-first path covered in 09-03
-        // For now, we always download (streaming download will be cached on completion)
+        // Check if already cached and verified (offline capable)
+        const cache = this.bridge?.cache;
+        if (cache) {
+            const isOfflineCapable = await cache.isOfflineCapable(entryId);
+            if (isOfflineCapable) {
+                // Boot from cache immediately
+                console.log(`[DesktopObjectManager] Booting ${entryId} from cache (offline capable)`);
+                await this._bootFromCache(entryId);
+
+                // Check if cache is stale and revalidate in background
+                const cachedEntry = await cache.get(entryId);
+                if (cachedEntry && cache.isStale && cache.isStale(cachedEntry)) {
+                    console.log(`[DesktopObjectManager] Cache stale for ${entryId}, revalidating in background`);
+                    this._revalidateInBackground(entryId, cachedEntry, entry);
+                }
+                return;
+            }
+
+            // Check if entry exists but not verified
+            const hasEntry = await cache.has(entryId);
+            if (hasEntry) {
+                console.log(`[DesktopObjectManager] Entry ${entryId} exists but not verified, verifying...`);
+                // Entry exists - try to verify and boot
+                const cachedEntry = await cache.get(entryId);
+                if (cachedEntry && cachedEntry.data) {
+                    // Re-verify the hash
+                    if (cachedEntry.hash) {
+                        const computedHash = await cache.computeHash(cachedEntry.data);
+                        if (computedHash === cachedEntry.hash) {
+                            // Verification passed, boot from cache
+                            await cache.updateVerificationStatus(entryId, 'verified');
+                            obj.setCacheStatus('verified');
+                            obj.setOfflineAvailable(true);
+                            await this._bootFromCache(entryId);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Not cached or not verified - need to download
+        // Check if offline
+        if (!navigator.onLine) {
+            console.warn(`[DesktopObjectManager] Cannot download ${entryId} - offline and not cached`);
+            obj.setStatus('error');
+            obj.showError({
+                message: 'Not cached - network required',
+                stage: 'Offline',
+                elapsedTime: 0,
+                config: {}
+            });
+            return;
+        }
+
+        // Get download URL
         const downloadUrl = this._getRemoteDownloadUrl(entry);
         if (!downloadUrl) {
             console.error(`[DesktopObjectManager] No download URL for remote container ${entryId}`);
@@ -685,6 +760,120 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
         // Start download with progress
         console.log(`[DesktopObjectManager] Starting remote boot download for ${entryId}`);
         this._startRemoteDownload(entryId, downloadUrl, entry);
+    }
+
+    /**
+     * Boot a container from cached data
+     * @private
+     * @param {string} entryId - Entry ID to boot
+     */
+    async _bootFromCache(entryId) {
+        const obj = this.objects.get(entryId);
+        if (!obj) return;
+
+        const cache = this.bridge?.cache;
+        if (!cache) {
+            console.warn(`[DesktopObjectManager] No cache available for ${entryId}`);
+            return;
+        }
+
+        const cached = await cache.get(entryId);
+        if (cached && cached.data) {
+            console.log(`[DesktopObjectManager] Booting ${entryId} from cache (${cached.data.byteLength} bytes)`);
+
+            // Update last accessed
+            obj.setOfflineAvailable(true);
+            obj.setCacheStatus('verified');
+
+            // Start boot with cached data
+            await this._startBootWithData(entryId, cached.data);
+        } else {
+            console.warn(`[DesktopObjectManager] Cache entry ${entryId} has no data`);
+        }
+    }
+
+    /**
+     * Revalidate cache entry in background (non-blocking)
+     * @private
+     * @param {string} entryId - Entry ID to revalidate
+     * @param {Object} cachedEntry - Current cached entry
+     * @param {Object} entry - Catalog entry data
+     */
+    async _revalidateInBackground(entryId, cachedEntry, entry) {
+        // Don't block - run async in background
+        (async () => {
+            try {
+                const downloadUrl = this._getRemoteDownloadUrl(entry);
+                if (!downloadUrl) {
+                    console.log(`[DesktopObjectManager] No download URL for revalidation of ${entryId}`);
+                    return;
+                }
+
+                // Check with ETag if available
+                const headers = {};
+                if (cachedEntry.etag) {
+                    headers['If-None-Match'] = cachedEntry.etag;
+                }
+
+                const response = await fetch(downloadUrl, { method: 'HEAD', headers });
+
+                if (response.status === 304) {
+                    console.log(`[DesktopObjectManager] Cache still valid for ${entryId} (304)`);
+                    // Update lastAccessed but don't re-download
+                } else if (response.ok) {
+                    const newEtag = response.headers.get('ETag');
+                    if (newEtag && newEtag !== cachedEntry.etag) {
+                        console.log(`[DesktopObjectManager] Update available for ${entryId} (new ETag)`);
+                        // Emit event so UI can show update available indicator
+                        this.emit('cache-update-available', {
+                            entryId,
+                            oldEtag: cachedEntry.etag,
+                            newEtag
+                        });
+                    }
+                }
+            } catch (error) {
+                // Silently fail - background revalidation shouldn't interrupt user
+                console.log(`[DesktopObjectManager] Background revalidation failed for ${entryId}: ${error.message}`);
+            }
+        })();
+    }
+
+    /**
+     * Set up network status listeners to update offline badges
+     * @private
+     */
+    _setupNetworkListeners() {
+        if (this._networkListenersSet) return;
+
+        window.addEventListener('online', () => {
+            console.log('[DesktopObjectManager] Network online - updating offline badges');
+            this._updateOfflineBadges();
+        });
+
+        window.addEventListener('offline', () => {
+            console.log('[DesktopObjectManager] Network offline - updating offline badges');
+            this._updateOfflineBadges();
+        });
+
+        this._networkListenersSet = true;
+    }
+
+    /**
+     * Update offline availability badges on all remote objects
+     * @private
+     */
+    async _updateOfflineBadges() {
+        const cache = this.bridge?.cache;
+        if (!cache) return;
+
+        for (const entryId of this._remoteEntryIds) {
+            const obj = this.objects.get(entryId);
+            if (obj) {
+                const isOfflineCapable = await cache.isOfflineCapable(entryId);
+                obj.setOfflineAvailable(isOfflineCapable);
+            }
+        }
     }
 
     /**
@@ -822,8 +1011,14 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
         if (!result.verified && result.expectedHash) {
             console.warn(`[DesktopObjectManager] Hash verification failed for ${entryId}`);
             obj.setStatus('error');
+            obj.setOfflineAvailable(false);
             // Error details shown via cache status indicator
             return;
+        }
+
+        // Update offline availability badge
+        if (result.verified) {
+            obj.setOfflineAvailable(true);
         }
 
         // Store in cache and boot

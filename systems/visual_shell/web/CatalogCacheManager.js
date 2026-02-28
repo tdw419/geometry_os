@@ -599,6 +599,33 @@ class CatalogCacheManager extends EventEmitter {
     }
 
     /**
+     * Update the verification status of a cached entry
+     * @param {string} entryId - The entry ID to update
+     * @param {string} status - New verification status ('verified', 'failed', 'pending')
+     * @returns {Promise<boolean>} True if update succeeded
+     */
+    async updateVerificationStatus(entryId, status) {
+        const store = await this._getStore('readwrite');
+        if (!store) {
+            return false;
+        }
+
+        try {
+            const entry = await this._wrapRequest(store.get(entryId));
+            if (!entry) {
+                return false;
+            }
+
+            entry.verificationStatus = status;
+            await this._wrapRequest(store.put(entry));
+            return true;
+        } catch (error) {
+            console.error('[CatalogCacheManager] updateVerificationStatus error:', error);
+            return false;
+        }
+    }
+
+    /**
      * Get list of all cached entries (without full data)
      * @returns {Promise<Array<Object>>} Array of entry metadata objects
      *
