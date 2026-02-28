@@ -30,10 +30,10 @@ Requirements for PXE Boot milestone. Each maps to a roadmap phase.
 
 ### Boot Menu (MENU)
 
-- [ ] **MENU-01**: PXE client sees boot menu with available containers
-- [ ] **MENU-02**: User can customize boot menu entries (name, description)
-- [ ] **MENU-03**: Boot menu shows container thumbnails/metadata
-- [ ] **MENU-04**: User can set default boot entry and timeout
+- [x] **MENU-01**: PXE client sees boot menu with available containers
+- [x] **MENU-02**: User can customize boot menu entries (name, description)
+- [x] **MENU-03**: Boot menu shows container thumbnails/metadata
+- [x] **MENU-04**: User can set default boot entry and timeout
 
 ### Integration (INT)
 
@@ -80,10 +80,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | HTTP-02 | Phase 14 | Complete |
 | HTTP-03 | Phase 14 | Complete |
 | HTTP-04 | Phase 14 | Complete |
-| MENU-01 | Phase 15 | Pending |
-| MENU-02 | Phase 15 | Pending |
-| MENU-03 | Phase 15 | Pending |
-| MENU-04 | Phase 15 | Pending |
+| MENU-01 | Phase 15 | Complete |
+| MENU-02 | Phase 15 | Complete |
+| MENU-03 | Phase 15 | Complete |
+| MENU-04 | Phase 15 | Complete |
 | INT-01 | Phase 16 | Pending |
 | INT-02 | Phase 16 | Pending |
 | INT-03 | Phase 16 | Pending |

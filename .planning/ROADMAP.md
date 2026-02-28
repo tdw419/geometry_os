@@ -78,13 +78,13 @@ Extend PixelRTS boot capabilities to bare metal machines via PXE. Users can boot
 3. Menu displays container metadata (size, OS type) alongside entries
 4. User can set default selection and auto-boot timeout in configuration
 
-**Plans:** 4 plans
+**Plans:** 4 plans (Complete)
 
 Plans:
-- [ ] 15-01-PLAN.md - iPXE boot script and menu script endpoints
-- [ ] 15-02-PLAN.md - Menu configuration (default entry, timeout)
-- [ ] 15-03-PLAN.md - Menu entry customization (names, descriptions, CLI)
-- [ ] 15-04-PLAN.md - Boot menu tests
+- [x] 15-01-PLAN.md - iPXE boot script and menu script endpoints
+- [x] 15-02-PLAN.md - Menu configuration (default entry, timeout)
+- [x] 15-03-PLAN.md - Menu entry customization (names, descriptions, CLI)
+- [x] 15-04-PLAN.md - Boot menu tests (49 tests)
 
 ---
 
@@ -113,7 +113,7 @@ Plans:
 | 12 - DHCP Server | PXE clients receive boot instructions | 4 | 4 | Complete |
 | 13 - TFTP Server | Bootloader delivered via TFTP | 4 | 4 | Complete |
 | 14 - HTTP Serving | Containers available via HTTP | 4 | 4 | Complete |
-| 15 - Boot Menu | Interactive container selection | 4 | 4 | Pending |
+| 15 - Boot Menu | Interactive container selection | 4 | 4 | Complete |
 | 16 - Integration | Unified with v1.2 infrastructure | 4 | 0 | Pending |
 
 **Total:** 16 requirements, 5 phases, 16 plans
