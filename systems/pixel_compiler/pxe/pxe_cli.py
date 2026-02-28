@@ -304,6 +304,19 @@ Examples:
         help='Disable range request support'
     )
 
+    # Menu configuration
+    http_start_parser.add_argument(
+        '--default-entry',
+        default='local',
+        help='Default boot entry ID (default: local)'
+    )
+    http_start_parser.add_argument(
+        '--menu-timeout',
+        type=int,
+        default=10,
+        help='Menu timeout in seconds, 0 for no timeout (default: 10)'
+    )
+
     # Verbosity
     http_start_parser.add_argument(
         '-v', '--verbose',
@@ -526,6 +539,8 @@ def cmd_http_start(args: argparse.Namespace) -> int:
         root_dir=args.root_dir,
         watch_paths=args.watch_path if args.watch_path else None,
         enable_range_requests=not args.no_range,
+        default_entry=args.default_entry,
+        menu_timeout=args.menu_timeout,
     )
 
     # Configure logging level
