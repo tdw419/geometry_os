@@ -563,10 +563,37 @@ class CatalogCacheManager extends EventEmitter {
         }
 
         try {
-            const entry = await this._wrapRequest(store.get(entryId));
-            return entry !== null && entry !== undefined;
+            // Use getKey for efficiency - doesn't load full data
+            const request = store.getKey(entryId);
+            const result = await this._wrapRequest(request, null);
+            return result !== undefined && result !== null;
         } catch (error) {
             console.error('[CatalogCacheManager] Has error:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Check if a container is available for offline use
+     * Returns true only if entry exists and has been verified
+     * @param {string} entryId - The entry ID to check
+     * @returns {Promise<boolean>} True if entry exists and is verified
+     */
+    async isOfflineCapable(entryId) {
+        const store = await this._getStore('readonly');
+        if (!store) {
+            return false;
+        }
+
+        try {
+            const entry = await this._wrapRequest(store.get(entryId));
+            if (!entry) {
+                return false;
+            }
+            // Only return true if verification succeeded
+            return entry.verificationStatus === 'verified';
+        } catch (error) {
+            console.error('[CatalogCacheManager] isOfflineCapable error:', error);
             return false;
         }
     }
