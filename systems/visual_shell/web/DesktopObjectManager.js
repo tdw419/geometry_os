@@ -3,12 +3,16 @@
  *
  * Creates, tracks, and destroys desktop objects on the infinite canvas.
  * Coordinates with CatalogBridge for data and SpatialLayoutManager for positions.
+ * Integrates with RemoteCatalogClient for loading remote catalog entries.
  *
  * Grid-to-world conversion: World X = grid.x * 160, World Y = grid.y * 200
- * Events: 'object-selected', 'object-booted', 'object-moved'
+ * Events: 'object-selected', 'object-booted', 'object-moved', 'remote-catalog-loaded'
  *
  * @module DesktopObjectManager
  */
+
+import { RemoteCatalogClient } from './RemoteCatalogClient.js';
+import { ServerRegistry } from './ServerRegistry.js';
 
 class DesktopObjectManager extends PIXI.utils.EventEmitter {
     /**
@@ -42,6 +46,13 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
         // Status polling tracking
         this._statusPollers = new Map(); // entryId -> pollId
 
+        // Remote catalog support
+        this.remoteClient = new RemoteCatalogClient();
+        this.serverRegistry = this.remoteClient.getRegistry();
+
+        // Track which objects are from remote servers
+        this._remoteEntryIds = new Set();
+
         // Create dedicated layer for desktop objects
         this.objectLayer = new PIXI.Container();
         this.objectLayer.label = 'desktopObjectLayer';
@@ -61,6 +72,7 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
 
     /**
      * Load catalog data and create objects for all entries
+     * Also loads remote catalogs after local catalog is loaded.
      * @returns {Promise<number>} Number of objects created
      */
     async loadCatalog() {
@@ -73,10 +85,10 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
             return 0;
         }
 
-        // Clear existing objects
+        // Clear existing objects (but not remote ones yet - they'll be refreshed)
         this.clearAll();
 
-        // Create objects for each entry
+        // Create objects for each local entry
         let created = 0;
         for (const entry of catalog.entries) {
             try {
@@ -87,10 +99,141 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
             }
         }
 
-        console.log(`[DesktopObjectManager] Created ${created} objects from catalog`);
+        console.log(`[DesktopObjectManager] Created ${created} objects from local catalog`);
         this.emit('catalog-loaded', { count: created });
 
+        // Load remote catalogs in background (non-blocking)
+        this.loadRemoteCatalogs().catch(err => {
+            console.warn('[DesktopObjectManager] Remote catalog load failed:', err);
+        });
+
         return created;
+    }
+
+    /**
+     * Load remote catalogs with stale-while-revalidate pattern
+     *
+     * Shows stale cached data immediately if available, then fetches
+     * fresh data in the background and updates the UI.
+     *
+     * @returns {Promise<Object>} Result with entries and errors
+     */
+    async loadRemoteCatalogs() {
+        console.log('[DesktopObjectManager] Loading remote catalogs...');
+
+        // Show stale cached data immediately if available
+        const cached = this.remoteClient.getAggregatedCatalog();
+        if (cached.entries.length > 0) {
+            console.log(`[DesktopObjectManager] Showing ${cached.entries.length} cached remote entries`);
+            this._createRemoteObjects(cached.entries);
+        }
+
+        // Fetch fresh data
+        const result = await this.remoteClient.fetchAllCatalogs();
+
+        // Sync UI with fresh data
+        this._syncRemoteObjects(result.entries);
+
+        // Update server statuses based on errors
+        if (result.errors && result.errors.length > 0) {
+            for (const err of result.errors) {
+                this.serverRegistry.setServerStatus(err.serverId, 'error', err.error);
+                console.warn(`[DesktopObjectManager] Server ${err.serverName} error: ${err.error}`);
+            }
+        }
+
+        console.log(`[DesktopObjectManager] Remote catalogs loaded: ${result.entries.length} entries, ${result.errors.length} errors`);
+        this.emit('remote-catalog-loaded', {
+            entries: result.entries.length,
+            errors: result.errors.length
+        });
+
+        return result;
+    }
+
+    /**
+     * Create objects for remote catalog entries
+     * @param {Array<Object>} entries - Remote catalog entries
+     * @private
+     */
+    _createRemoteObjects(entries) {
+        let created = 0;
+        for (const entry of entries) {
+            // Skip if already exists
+            if (this.objects.has(entry.id)) {
+                continue;
+            }
+
+            try {
+                // Mark as remote entry
+                entry._isRemote = true;
+                this.createObject(entry);
+                this._remoteEntryIds.add(entry.id);
+                created++;
+            } catch (error) {
+                console.error(`[DesktopObjectManager] Failed to create remote object for ${entry.id}:`, error);
+            }
+        }
+        console.log(`[DesktopObjectManager] Created ${created} remote objects`);
+    }
+
+    /**
+     * Sync remote objects with current entries (add/update/remove)
+     * @param {Array<Object>} entries - Current remote catalog entries
+     * @private
+     */
+    _syncRemoteObjects(entries) {
+        const currentRemoteIds = new Set(entries.map(e => e.id));
+
+        // Remove objects that no longer exist
+        for (const entryId of [...this._remoteEntryIds]) {
+            if (!currentRemoteIds.has(entryId)) {
+                this.removeObject(entryId);
+                this._remoteEntryIds.delete(entryId);
+            }
+        }
+
+        // Add or update objects
+        for (const entry of entries) {
+            entry._isRemote = true;
+
+            if (this.objects.has(entry.id)) {
+                // Update existing object
+                this.updateObject(entry);
+            } else {
+                // Create new object
+                this.createObject(entry);
+            }
+
+            this._remoteEntryIds.add(entry.id);
+        }
+
+        console.log(`[DesktopObjectManager] Synced ${entries.length} remote objects`);
+    }
+
+    /**
+     * Get the remote catalog client instance
+     * @returns {RemoteCatalogClient}
+     */
+    getRemoteClient() {
+        return this.remoteClient;
+    }
+
+    /**
+     * Get the server registry instance
+     * @returns {ServerRegistry}
+     */
+    getServerRegistry() {
+        return this.serverRegistry;
+    }
+
+    /**
+     * Check if an entry is from a remote server
+     * @param {string} entryId - Entry ID to check
+     * @returns {boolean}
+     */
+    isRemoteEntry(entryId) {
+        return this._remoteEntryIds.has(entryId);
     }
 
     /**
