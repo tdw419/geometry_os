@@ -63,6 +63,12 @@ Examples:
 
   # Start TFTP on custom port with verbose logging
   pixelrts pxe tftp start --port 6969 --verbose
+
+  # Start HTTP server for container delivery
+  pixelrts pxe http start --root-dir /var/tftpboot
+
+  # Start HTTP on custom port with verbose logging
+  pixelrts pxe http start --port 3000 --verbose
 """
         )
         pxe_subparsers = parser.add_subparsers(dest='pxe_command')
@@ -244,6 +250,66 @@ Examples:
         help='Force stop without graceful shutdown'
     )
 
+    # HTTP subcommand
+    http_parser = pxe_subparsers.add_parser(
+        'http',
+        help='HTTP server',
+        description='Manage HTTP server for container delivery'
+    )
+    http_subparsers = http_parser.add_subparsers(dest='http_command')
+
+    # HTTP start subcommand
+    http_start_parser = http_subparsers.add_parser(
+        'start',
+        help='Start HTTP server for container delivery',
+        description='Start an HTTP server that serves .rts.png container files to iPXE clients',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    # Network configuration
+    http_start_parser.add_argument(
+        '-i', '--interface',
+        default='0.0.0.0',
+        help='Network interface to bind (default: 0.0.0.0)'
+    )
+    http_start_parser.add_argument(
+        '-p', '--port',
+        type=int,
+        default=8080,
+        help='HTTP server port (default: 8080)'
+    )
+
+    # File serving configuration
+    http_start_parser.add_argument(
+        '-r', '--root-dir',
+        default='/tftpboot',
+        help='Root directory containing container files (default: /tftpboot)'
+    )
+    http_start_parser.add_argument(
+        '--no-range',
+        action='store_true',
+        help='Disable range request support'
+    )
+
+    # Verbosity
+    http_start_parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help='Enable verbose logging'
+    )
+
+    # HTTP stop subcommand (placeholder for future)
+    http_stop_parser = http_subparsers.add_parser(
+        'stop',
+        help='Stop running HTTP server (future)',
+        description='Stop a running HTTP server'
+    )
+    http_stop_parser.add_argument(
+        '--force',
+        action='store_true',
+        help='Force stop without graceful shutdown'
+    )
+
     return root_parser
 
 
@@ -420,6 +486,89 @@ def cmd_tftp_stop(args: argparse.Namespace) -> int:
     return 1
 
 
+def cmd_http_start(args: argparse.Namespace) -> int:
+    """
+    Start HTTP server with parsed arguments.
+
+    Args:
+        args: Parsed command-line arguments
+
+    Returns:
+        Exit code (0 for success, non-zero for error)
+    """
+    import asyncio
+    import os
+    from .http_server import HTTPServer, HTTPServerConfig
+
+    # Validate root directory exists
+    if not os.path.isdir(args.root_dir):
+        logger.error(f"[HTTP] Root directory does not exist: {args.root_dir}")
+        logger.info(f"[HTTP] Create it with: sudo mkdir -p {args.root_dir}")
+        return 1
+
+    # Build config from args
+    config = HTTPServerConfig(
+        interface=args.interface,
+        listen_port=args.port,
+        root_dir=args.root_dir,
+        enable_range_requests=not args.no_range,
+    )
+
+    # Configure logging level
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    logging.getLogger().setLevel(log_level)
+
+    # Log startup configuration
+    logger.info(f"[HTTP] Starting server on {config.interface}:{config.listen_port}")
+    logger.info(f"[HTTP] Root directory: {config.root_dir}")
+    logger.info(f"[HTTP] Range requests: {'enabled' if config.enable_range_requests else 'disabled'}")
+
+    # List available container files
+    try:
+        files = [f for f in os.listdir(config.root_dir) if f.endswith('.rts.png')]
+        if files:
+            logger.info(f"[HTTP] Available containers: {', '.join(files[:5])}{'...' if len(files) > 5 else ''}")
+        else:
+            logger.warning(f"[HTTP] No .rts.png containers in root directory")
+    except PermissionError:
+        logger.warning(f"[HTTP] Cannot list files in root directory (permission denied)")
+
+    # Create and run server
+    server = HTTPServer(config)
+
+    try:
+        asyncio.run(server.serve_forever())
+    except KeyboardInterrupt:
+        logger.info("[HTTP] Server stopped by user")
+        return 0
+    except PermissionError as e:
+        logger.error(f"[HTTP] Permission denied: {e}")
+        return 1
+    except Exception as e:
+        logger.error(f"[HTTP] Server error: {e}")
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+    return 0
+
+
+def cmd_http_stop(args: argparse.Namespace) -> int:
+    """
+    Stop running HTTP server (placeholder for future implementation).
+
+    Args:
+        args: Parsed command-line arguments
+
+    Returns:
+        Exit code (0 for success, non-zero for error)
+    """
+    logger.error("[HTTP] Stop command not yet implemented")
+    logger.info("[HTTP] Use Ctrl+C to stop the running server")
+    return 1
+
+
 def main(args: argparse.Namespace) -> int:
     """
     Main entry point for PXE commands.
@@ -447,6 +596,14 @@ def main(args: argparse.Namespace) -> int:
             return cmd_tftp_stop(args)
         else:
             logger.error(f"Unknown TFTP command: {args.tftp_command}")
+            return 1
+    elif args.pxe_command == 'http':
+        if args.http_command == 'start':
+            return cmd_http_start(args)
+        elif args.http_command == 'stop':
+            return cmd_http_stop(args)
+        else:
+            logger.error(f"Unknown HTTP command: {args.http_command}")
             return 1
     elif args.pxe_command == 'status':
         return cmd_status(args)
