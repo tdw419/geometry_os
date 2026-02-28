@@ -910,5 +910,271 @@ class TestMsgTypeName(unittest.TestCase):
         self.assertEqual(result, "UNKNOWN(None)")
 
 
+# =============================================================================
+# Extended Integration Tests (Task 2: 12-04)
+# =============================================================================
+
+class TestDHCPIntegration(unittest.TestCase):
+    """Extended integration tests for DHCP server with simulated client transactions."""
+
+    def setUp(self):
+        """Set up test server configuration."""
+        self.config = DHCPServerConfig(
+            interface="lo",  # Loopback for testing
+            server_ip="127.0.0.1",
+            ip_range_start="192.168.254.100",
+            ip_range_end="192.168.254.110",
+            tftp_server="192.168.254.1",
+            bootfile="test-ipxe.pxe",
+        )
+        self.lease_store = LeaseStore(self.config)
+        self.protocol = DHCPProtocol(self.config, self.lease_store)
+        self.protocol.transport = MagicMock()
+
+    def test_full_discover_offer_transaction(self):
+        """Test complete DISCOVER -> OFFER flow with raw packet simulation."""
+        client_mac = b'\xde\xad\xbe\xef\xca\xfe'
+        client_xid = 0xABCDEF01
+
+        # 1. Client sends DISCOVER
+        discover_raw = build_dhcp_discover(
+            mac=':'.join(f'{b:02x}' for b in client_mac),
+            xid=client_xid
+        )
+        discover = DHCPPacketParser.parse(discover_raw)
+
+        self.assertEqual(discover.xid, client_xid)
+        self.assertEqual(discover.chaddr[:6], client_mac)
+
+        # 2. Server responds with OFFER
+        offer = self.protocol._handle_discover(discover)
+
+        self.assertIsNotNone(offer, "Server should respond to DISCOVER")
+        self.assertEqual(offer.op, 2, "Response should be BOOTREPLY")
+        self.assertNotEqual(offer.yiaddr, "0.0.0.0", "Server should assign IP")
+        self.assertEqual(offer.xid, client_xid, "Transaction ID should match")
+
+        # 3. Verify PXE options
+        self.assertEqual(
+            offer.options.get(DHCP_OPTION_PXE_SERVER),
+            self.config.tftp_server.encode('utf-8'),
+            "TFTP server option should match config"
+        )
+        self.assertEqual(
+            offer.options.get(DHCP_OPTION_BOOTFILE),
+            self.config.bootfile.encode('utf-8'),
+            "Bootfile option should match config"
+        )
+
+    def test_full_request_ack_transaction(self):
+        """Test complete REQUEST -> ACK flow with raw packet simulation."""
+        client_mac = b'\xca\xfe\xba\xbe\xde\xad'
+        client_xid = 0x12345678
+
+        # 1. DISCOVER -> OFFER
+        mac_str = ':'.join(f'{b:02x}' for b in client_mac)
+        discover_raw = build_dhcp_discover(mac=mac_str, xid=client_xid)
+        discover = DHCPPacketParser.parse(discover_raw)
+        offer = self.protocol._handle_discover(discover)
+        offered_ip = offer.yiaddr
+
+        # 2. Client sends REQUEST for offered IP
+        request_raw = build_dhcp_request(
+            mac=mac_str,
+            xid=client_xid,
+            requested_ip=offered_ip,
+            server_ip=self.config.server_ip
+        )
+        request = DHCPPacketParser.parse(request_raw)
+
+        # 3. Server responds with ACK
+        ack = self.protocol._handle_request(request)
+
+        self.assertIsNotNone(ack, "Server should respond to REQUEST")
+        self.assertEqual(ack.op, 2, "Response should be BOOTREPLY")
+        self.assertEqual(ack.yiaddr, offered_ip, "ACK should confirm offered IP")
+        self.assertEqual(ack.options.get(DHCP_OPTION_MESSAGE_TYPE), bytes([DHCP_ACK]),
+                        "Message type should be ACK")
+
+        # 4. Verify lease was recorded
+        lease = self.lease_store.get_lease(mac_str)
+        self.assertIsNotNone(lease, "Lease should be recorded")
+        self.assertEqual(lease.ip, offered_ip, "Lease IP should match assigned IP")
+
+    def test_concurrent_clients_get_different_ips(self):
+        """Test that multiple clients get different IPs."""
+        clients = [
+            (b'\x11\x22\x33\x44\x55\x66', 0x11111111),
+            (b'\x22\x33\x44\x55\x66\x77', 0x22222222),
+            (b'\x33\x44\x55\x66\x77\x88', 0x33333333),
+        ]
+
+        assigned_ips = []
+
+        for mac_bytes, xid in clients:
+            mac_str = ':'.join(f'{b:02x}' for b in mac_bytes)
+            discover_raw = build_dhcp_discover(mac=mac_str, xid=xid)
+            discover = DHCPPacketParser.parse(discover_raw)
+            offer = self.protocol._handle_discover(discover)
+
+            self.assertIsNotNone(offer)
+            assigned_ips.append(offer.yiaddr)
+
+        # All IPs should be different
+        self.assertEqual(len(assigned_ips), len(set(assigned_ips)),
+                        "Each client should get unique IP")
+
+    def test_client_receives_same_ip_on_renewal(self):
+        """Test that returning client gets same IP."""
+        client_mac = b'\xaa\xbb\xcc\xdd\xee\xff'
+        mac_str = ':'.join(f'{b:02x}' for b in client_mac)
+        client_xid = 0xDEADBEEF
+
+        # First request
+        discover1 = build_dhcp_discover(mac=mac_str, xid=client_xid)
+        offer1 = self.protocol._handle_discover(DHCPPacketParser.parse(discover1))
+        ip1 = offer1.yiaddr
+
+        # Simulate renewal (new xid, same MAC)
+        discover2 = build_dhcp_discover(mac=mac_str, xid=0xCAFEBABE)
+        offer2 = self.protocol._handle_discover(DHCPPacketParser.parse(discover2))
+        ip2 = offer2.yiaddr
+
+        self.assertEqual(ip1, ip2, "Returning client should get same IP")
+
+    def test_dhcp_packet_roundtrip_preserves_all_fields(self):
+        """Test that packet serialization and parsing preserves all fields."""
+        original = DHCPPacket(
+            op=2,
+            htype=1,
+            hlen=6,
+            hops=1,
+            xid=0xFEEDFACE,
+            secs=100,
+            flags=0x8000,
+            ciaddr="192.168.1.50",
+            yiaddr="192.168.1.100",
+            siaddr="192.168.1.1",
+            giaddr="10.0.0.1",
+            chaddr=bytes.fromhex("aabbccddeeff").ljust(16, b'\x00'),
+            sname="test-server",
+            file="boot/test.pxe",
+            options={
+                DHCP_OPTION_MESSAGE_TYPE: bytes([DHCP_OFFER]),
+                DHCP_OPTION_SERVER_ID: socket.inet_aton("192.168.1.1"),
+                DHCP_OPTION_LEASE_TIME: struct.pack('!I', 7200),
+                DHCP_OPTION_SUBNET_MASK: socket.inet_aton("255.255.255.0"),
+                DHCP_OPTION_PXE_SERVER: b"192.168.1.1",
+                DHCP_OPTION_BOOTFILE: b"test-boot.pxe",
+            }
+        )
+
+        # Serialize and parse back
+        raw = DHCPPacketParser.build(original)
+        parsed = DHCPPacketParser.parse(raw)
+
+        # Verify all fields preserved
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed.op, original.op)
+        self.assertEqual(parsed.htype, original.htype)
+        self.assertEqual(parsed.hlen, original.hlen)
+        self.assertEqual(parsed.hops, original.hops)
+        self.assertEqual(parsed.xid, original.xid)
+        self.assertEqual(parsed.secs, original.secs)
+        self.assertEqual(parsed.flags, original.flags)
+        self.assertEqual(parsed.ciaddr, original.ciaddr)
+        self.assertEqual(parsed.yiaddr, original.yiaddr)
+        self.assertEqual(parsed.siaddr, original.siaddr)
+        self.assertEqual(parsed.giaddr, original.giaddr)
+        self.assertEqual(parsed.get_mac_address(), original.get_mac_address())
+        self.assertEqual(parsed.sname, original.sname)
+        self.assertEqual(parsed.file, original.file)
+        self.assertEqual(parsed.get_message_type(), DHCP_OFFER)
+
+    def test_server_handles_broadcast_flag(self):
+        """Test that server correctly handles broadcast flag in client requests."""
+        mac = "00:11:22:33:44:55"
+        xid = 0xBEEFCAFE
+
+        # DISCOVER with broadcast flag set
+        discover_raw = build_dhcp_discover(mac=mac, xid=xid)
+        discover = DHCPPacketParser.parse(discover_raw)
+
+        # Broadcast flag should be set (0x8000)
+        self.assertEqual(discover.flags & 0x8000, 0x8000)
+
+        # Server should respond
+        offer = self.protocol._handle_discover(discover)
+        self.assertIsNotNone(offer)
+        # Response should preserve the broadcast flag
+        self.assertEqual(offer.flags & 0x8000, 0x8000)
+
+
+class TestDHCPServerLifecycle(unittest.TestCase):
+    """Tests for DHCPServer lifecycle management."""
+
+    def test_server_config_initialization(self):
+        """Test server initializes correctly with config."""
+        config = DHCPServerConfig(
+            interface="eth0",
+            server_ip="192.168.1.1",
+            ip_range_start="192.168.1.100",
+            ip_range_end="192.168.1.200",
+            tftp_server="192.168.1.1",
+            bootfile="ipxe.pxe",
+        )
+
+        server = DHCPServer(config)
+
+        self.assertEqual(server.config, config)
+        self.assertIsNotNone(server.lease_store)
+        self.assertIsNone(server._transport)
+        self.assertIsNone(server._protocol)
+
+    def test_server_creates_lease_store_with_correct_config(self):
+        """Test that server creates lease store with correct IP range."""
+        config = DHCPServerConfig(
+            interface="eth0",
+            server_ip="10.0.0.1",
+            ip_range_start="10.0.0.100",
+            ip_range_end="10.0.0.110",
+        )
+
+        server = DHCPServer(config)
+
+        # Lease store should have 11 IPs available
+        self.assertEqual(len(server.lease_store._ip_pool), 11)
+        self.assertEqual(server.lease_store._ip_pool[0], "10.0.0.100")
+        self.assertEqual(server.lease_store._ip_pool[-1], "10.0.0.110")
+
+    def test_server_from_args_factory(self):
+        """Test server creation from CLI arguments."""
+        import argparse
+
+        args = argparse.Namespace(
+            interface="eth1",
+            server_ip="172.16.0.1",
+            ip_start="172.16.0.50",
+            ip_end="172.16.0.100",
+            subnet="255.255.0.0",
+            lease_time=7200,
+            tftp_server="172.16.0.2",
+            bootfile="boot/ipxe.efi",
+            port=67,
+        )
+
+        server = DHCPServer.from_args(args)
+
+        self.assertEqual(server.config.interface, "eth1")
+        self.assertEqual(server.config.server_ip, "172.16.0.1")
+        self.assertEqual(server.config.ip_range_start, "172.16.0.50")
+        self.assertEqual(server.config.ip_range_end, "172.16.0.100")
+        self.assertEqual(server.config.subnet_mask, "255.255.0.0")
+        self.assertEqual(server.config.lease_time, 7200)
+        self.assertEqual(server.config.tftp_server, "172.16.0.2")
+        self.assertEqual(server.config.bootfile, "boot/ipxe.efi")
+        self.assertEqual(server.config.listen_port, 67)
+
+
 if __name__ == '__main__':
     unittest.main()
