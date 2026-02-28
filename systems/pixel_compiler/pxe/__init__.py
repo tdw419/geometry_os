@@ -65,6 +65,7 @@ from .tftp_server import (
 from .http_server import (
     HTTPServer,
     HTTPServerConfig,
+    PXEContainerInfo,
 )
 from .pxe_cli import (
     create_parser,
@@ -97,6 +98,7 @@ __all__ = [
     # HTTP
     'HTTPServer',
     'HTTPServerConfig',
+    'PXEContainerInfo',
     # CLI
     'create_parser',
     'main',

@@ -19,10 +19,26 @@ import argparse
 import asyncio
 import logging
 import os
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Optional, List, Dict, TYPE_CHECKING
 
 from aiohttp import web
+
+if TYPE_CHECKING:
+    from systems.pixel_compiler.catalog.catalog_scanner import CatalogEntry
+
+
+# =============================================================================
+# PXE Container Info
+# =============================================================================
+
+@dataclass
+class PXEContainerInfo:
+    """Extended info for PXE-available containers."""
+    entry_id: str
+    entry: 'CatalogEntry'
+    pxe_enabled: bool = True
+    pxe_boot_order: int = 0  # Lower = higher priority in boot menu
 
 # Configure logging
 logging.basicConfig(
@@ -45,6 +61,9 @@ class HTTPServerConfig:
     root_dir: str = "/tftpboot"      # Directory containing container files
     max_file_size: int = 0           # Max file size (0 = unlimited)
     enable_range_requests: bool = True  # Support range requests for large files
+    # Catalog integration
+    watch_paths: Optional[List[str]] = None  # Directories to scan for containers
+    use_vision: bool = False  # Vision analysis for catalog
 
 
 # =============================================================================
@@ -60,12 +79,35 @@ class HTTPServer:
         self._runner: Optional[web.AppRunner] = None
         self._site: Optional[web.TCPSite] = None
         self._status_task: Optional[asyncio.Task] = None
+        # Catalog integration
+        self._catalog: Dict[str, 'CatalogEntry'] = {}  # entry_id -> CatalogEntry
+        self._scanner = None  # CatalogScanner instance
+        # PXE availability tracking
+        self._pxe_containers: Dict[str, PXEContainerInfo] = {}
 
     async def start(self):
         """Start HTTP server on configured port."""
+        # Initialize catalog scanner if watch_paths configured
+        if self.config.watch_paths:
+            try:
+                from systems.pixel_compiler.catalog.catalog_scanner import CatalogScanner
+                self._scanner = CatalogScanner(
+                    watch_paths=self.config.watch_paths,
+                    use_vision=self.config.use_vision
+                )
+                self._refresh_catalog()
+                logger.info(f"[HTTP] Catalog initialized with {len(self._catalog)} entries")
+            except ImportError:
+                logger.warning("[HTTP] CatalogScanner not available, using file-based serving")
+
         self._app = web.Application()
         self._app.router.add_get('/', self._handle_index)
-        self._app.router.add_get('/{filename}', self._handle_file)
+        self._app.router.add_get('/containers', self._handle_containers_list)
+        self._app.router.add_get('/containers/{entry_id}', self._handle_container_by_id)
+        self._app.router.add_get('/files/{filename}', self._handle_file)
+        self._app.router.add_post('/catalog/refresh', self._handle_catalog_refresh)
+        self._app.router.add_get('/pxe', self._handle_pxe_list)
+        self._app.router.add_post('/pxe/{entry_id}/toggle', self._handle_pxe_toggle)
 
         self._runner = web.AppRunner(self._app)
         await self._runner.setup()
@@ -108,31 +150,191 @@ class HTTPServer:
             await self.stop()
 
     # =========================================================================
+    # Catalog Methods
+    # =========================================================================
+
+    def _refresh_catalog(self) -> int:
+        """Refresh catalog entries from filesystem."""
+        if not self._scanner:
+            return 0
+
+        entries = self._scanner.scan()
+        self._catalog = {entry.id: entry for entry in entries}
+
+        # Preserve PXE settings for existing entries
+        old_pxe = self._pxe_containers.copy()
+        self._pxe_containers = {}
+
+        for entry in entries:
+            if entry.id in old_pxe:
+                # Preserve existing PXE settings
+                self._pxe_containers[entry.id] = old_pxe[entry.id]
+                self._pxe_containers[entry.id].entry = entry
+            else:
+                # New entry - enable PXE by default
+                self._pxe_containers[entry.id] = PXEContainerInfo(
+                    entry_id=entry.id,
+                    entry=entry,
+                    pxe_enabled=True,
+                    pxe_boot_order=len(self._pxe_containers)
+                )
+
+        logger.info(f"[HTTP] Refreshed catalog: {len(self._catalog)} entries")
+
+        return len(self._catalog)
+
+    def set_pxe_availability(self, entry_id: str, enabled: bool) -> bool:
+        """Set PXE availability for a container."""
+        if entry_id not in self._pxe_containers:
+            return False
+
+        self._pxe_containers[entry_id].pxe_enabled = enabled
+        status = "enabled" if enabled else "disabled"
+        logger.info(f"[HTTP] PXE {status} for container {entry_id}")
+        return True
+
+    def get_pxe_containers(self) -> List[PXEContainerInfo]:
+        """Get list of PXE-enabled containers."""
+        return [
+            info for info in self._pxe_containers.values()
+            if info.pxe_enabled
+        ]
+
+    # =========================================================================
     # Request Handlers
     # =========================================================================
 
     async def _handle_index(self, request: web.Request) -> web.Response:
-        """Handle GET / to list available containers."""
-        try:
-            files = []
-            for f in os.listdir(self.config.root_dir):
-                if f.endswith('.rts.png'):
-                    filepath = os.path.join(self.config.root_dir, f)
-                    stat = os.stat(filepath)
-                    files.append({
-                        'name': f,
-                        'size': stat.st_size,
-                        'url': f'/{f}'
-                    })
+        """Handle GET / to show server info and available endpoints."""
+        return web.json_response({
+            'server': 'PixelRTS PXE HTTP Server',
+            'version': '1.0.0',
+            'endpoints': {
+                '/': 'This help',
+                '/containers': 'List all available containers',
+                '/containers/{id}': 'Download container by catalog ID',
+                '/files/{filename}': 'Download file by name (fallback)',
+                '/catalog/refresh': 'POST to rescan filesystem',
+            },
+            'catalog': {
+                'enabled': bool(self._catalog),
+                'count': len(self._catalog)
+            },
+            'config': {
+                'port': self.config.listen_port,
+                'root_dir': self.config.root_dir,
+                'range_requests': self.config.enable_range_requests
+            }
+        })
 
-            return web.json_response({
-                'containers': files,
-                'count': len(files)
+    async def _handle_containers_list(self, request: web.Request) -> web.Response:
+        """Handle GET /containers to list all available containers."""
+        if not self._catalog:
+            # Fall back to file-based listing
+            try:
+                files = []
+                for f in os.listdir(self.config.root_dir):
+                    if f.endswith('.rts.png'):
+                        filepath = os.path.join(self.config.root_dir, f)
+                        stat = os.stat(filepath)
+                        files.append({
+                            'id': f.replace('.rts.png', ''),
+                            'name': f,
+                            'size': stat.st_size,
+                            'url': f'/files/{f}'
+                        })
+
+                return web.json_response({
+                    'containers': files,
+                    'count': len(files)
+                })
+            except PermissionError:
+                raise web.HTTPForbidden(text="Permission denied")
+            except FileNotFoundError:
+                raise web.HTTPNotFound(text="Root directory not found")
+
+        # Use catalog-based listing
+        containers = []
+        for entry in self._catalog.values():
+            containers.append({
+                'id': entry.id,
+                'name': entry.name,
+                'size': entry.size,
+                'url': f'/containers/{entry.id}',
+                'kernel_version': entry.kernel_version,
+                'distro': entry.distro,
+                'architecture': entry.architecture,
             })
-        except PermissionError:
-            raise web.HTTPForbidden(text="Permission denied")
-        except FileNotFoundError:
-            raise web.HTTPNotFound(text="Root directory not found")
+
+        return web.json_response({
+            'containers': containers,
+            'count': len(containers)
+        })
+
+    async def _handle_container_by_id(self, request: web.Request) -> web.StreamResponse:
+        """Handle GET /containers/{entry_id} to serve container by catalog ID."""
+        entry_id = request.match_info.get('entry_id', '')
+
+        # Look up entry in catalog
+        entry = self._catalog.get(entry_id)
+        if not entry:
+            logger.warning(f"[HTTP] Container not found: {entry_id}")
+            raise web.HTTPNotFound(text=f"Container not found: {entry_id}")
+
+        # Serve the file
+        return await self._serve_entry(request, entry)
+
+    async def _handle_catalog_refresh(self, request: web.Request) -> web.Response:
+        """Handle POST /catalog/refresh to rescan filesystem."""
+        if not self._scanner:
+            raise web.HTTPBadRequest(text="Catalog scanning not enabled")
+
+        count = self._refresh_catalog()
+
+        return web.json_response({
+            'success': True,
+            'count': count,
+            'message': f'Refreshed catalog with {count} entries'
+        })
+
+    async def _handle_pxe_list(self, request: web.Request) -> web.Response:
+        """Handle GET /pxe to list PXE-enabled containers."""
+        containers = []
+        for info in self.get_pxe_containers():
+            containers.append({
+                'id': info.entry_id,
+                'name': info.entry.name,
+                'url': f'/containers/{info.entry_id}',
+                'boot_order': info.pxe_boot_order,
+                'size': info.entry.size,
+            })
+
+        return web.json_response({
+            'pxe_containers': containers,
+            'count': len(containers)
+        })
+
+    async def _handle_pxe_toggle(self, request: web.Request) -> web.Response:
+        """Handle POST /pxe/{entry_id}/toggle to enable/disable PXE."""
+        entry_id = request.match_info.get('entry_id', '')
+
+        if entry_id not in self._pxe_containers:
+            raise web.HTTPNotFound(text=f"Container not found: {entry_id}")
+
+        # Parse request body
+        try:
+            data = await request.json()
+            enabled = data.get('enabled', True)
+        except Exception:
+            enabled = True
+
+        success = self.set_pxe_availability(entry_id, enabled)
+
+        return web.json_response({
+            'success': success,
+            'entry_id': entry_id,
+            'pxe_enabled': enabled
+        })
 
     async def _handle_file(self, request: web.Request) -> web.StreamResponse:
         """Handle GET /{filename} to serve container files."""
@@ -158,6 +360,25 @@ class HTTPServer:
         client_ip = request.remote or "unknown"
 
         # Handle range request for large files
+        range_header = request.headers.get('Range')
+
+        if range_header and self.config.enable_range_requests:
+            return await self._serve_range(request, filepath, file_size, range_header, client_ip)
+        else:
+            return await self._serve_full(request, filepath, file_size, client_ip)
+
+    async def _serve_entry(self, request: web.Request, entry: 'CatalogEntry') -> web.StreamResponse:
+        """Serve a catalog entry file."""
+        filepath = entry.path
+        file_size = entry.size
+        client_ip = request.remote or "unknown"
+
+        # Check file still exists
+        if not os.path.isfile(filepath):
+            logger.error(f"[HTTP] File missing for entry {entry.id}: {filepath}")
+            raise web.HTTPNotFound(text="File not found")
+
+        # Handle range request
         range_header = request.headers.get('Range')
 
         if range_header and self.config.enable_range_requests:
