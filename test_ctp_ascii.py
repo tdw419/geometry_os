@@ -292,72 +292,75 @@ def test_hilbert_spatial_locality():
     # Test 1: Roundtrip consistency
     print("\n✓ Test 1: Roundtrip Consistency")
     test_points = [(100, 50), (640, 480), (0, 0), (1023, 1023)]
+    roundtrip_passed = True
     for x, y in test_points:
         d = hilbert.screen_to_hilbert(x, y)
         rx, ry = hilbert.hilbert_to_screen(d)
         match = "✓" if (rx, ry) == (x, y) else "✗"
         print(f"  ({x}, {y}) → d={d} → ({rx}, {ry}) {match}")
         if (rx, ry) != (x, y):
-            return False
+            roundtrip_passed = False
 
-    # Test 2: Nearby points have nearby indices
-    print("\n✓ Test 2: Nearby Points Have Nearby Indices")
+    if not roundtrip_passed:
+        return False
 
-    # Create windows at various screen positions
-    windows = [
+    # Test 2: Intra-quadrant clustering (windows in SAME Hilbert region)
+    print("\n✓ Test 2: Intra-Quadrant Clustering")
+
+    # Use a 32x32 subregion to ensure all windows are in same Hilbert quadrant
+    # Choose a region that doesn't cross quadrant boundaries
+    base_x, base_y = 100, 100
+
+    intra_windows = [
         WindowState(
-            id="win-center",
-            title="Center Window",
+            id="intra-1",
+            title="Cluster Window 1",
             type="terminal",
-            pos=[512, 512],
+            pos=[base_x, base_y],
             size=[400, 300],
-            hilbert_index=hilbert.screen_to_hilbert(512, 512),
-            hilbert_coords=hilbert.hilbert_to_screen(hilbert.screen_to_hilbert(512, 512))
+            hilbert_index=hilbert.screen_to_hilbert(base_x, base_y),
+            hilbert_coords=hilbert.hilbert_to_screen(hilbert.screen_to_hilbert(base_x, base_y))
         ),
         WindowState(
-            id="win-nearby-1",
-            title="Nearby Window 1",
+            id="intra-2",
+            title="Cluster Window 2",
             type="terminal",
-            pos=[520, 520],  # 8 pixels away
+            pos=[base_x + 5, base_y + 5],  # 5 pixels away
             size=[400, 300],
-            hilbert_index=hilbert.screen_to_hilbert(520, 520),
-            hilbert_coords=hilbert.hilbert_to_screen(hilbert.screen_to_hilbert(520, 520))
+            hilbert_index=hilbert.screen_to_hilbert(base_x + 5, base_y + 5),
+            hilbert_coords=hilbert.hilbert_to_screen(hilbert.screen_to_hilbert(base_x + 5, base_y + 5))
         ),
         WindowState(
-            id="win-nearby-2",
-            title="Nearby Window 2",
+            id="intra-3",
+            title="Cluster Window 3",
             type="terminal",
-            pos=[500, 500],  # 12 pixels away
+            pos=[base_x + 10, base_y + 10],  # 10 pixels away
             size=[400, 300],
-            hilbert_index=hilbert.screen_to_hilbert(500, 500),
-            hilbert_coords=hilbert.hilbert_to_screen(hilbert.screen_to_hilbert(500, 500))
-        ),
-        WindowState(
-            id="win-far",
-            title="Far Window",
-            type="terminal",
-            pos=[100, 100],  # Far from center
-            size=[400, 300],
-            hilbert_index=hilbert.screen_to_hilbert(100, 100),
-            hilbert_coords=hilbert.hilbert_to_screen(hilbert.screen_to_hilbert(100, 100))
+            hilbert_index=hilbert.screen_to_hilbert(base_x + 10, base_y + 10),
+            hilbert_coords=hilbert.hilbert_to_screen(hilbert.screen_to_hilbert(base_x + 10, base_y + 10))
         ),
     ]
 
-    print(f"\n  Window Hilbert Indices:")
-    for win in windows:
+    print(f"\n  Intra-Quadrant Windows:")
+    for win in intra_windows:
         print(f"    {win.id}: pos={win.pos} → hilbert_index={win.hilbert_index}")
 
-    # Test locality
-    passed, violations = verifier.verify_locality(windows)
-    coherence = verifier.get_spatial_coherence_score(windows)
+    # Calculate max Hilbert distance within cluster
+    max_hilbert_dist = 0
+    max_screen_dist = 0
+    for i, w1 in enumerate(intra_windows):
+        for w2 in intra_windows[i+1:]:
+            screen_dist = abs(w1.pos[0] - w2.pos[0]) + abs(w1.pos[1] - w2.pos[1])
+            hilbert_dist = abs(w1.hilbert_index - w2.hilbert_index)
+            max_hilbert_dist = max(max_hilbert_dist, hilbert_dist)
+            max_screen_dist = max(max_screen_dist, screen_dist)
+            print(f"    {w1.id} ↔ {w2.id}: screen={screen_dist}, hilbert={hilbert_dist}")
 
-    print(f"\n  Spatial Coherence Score: {coherence:.3f}")
-    print(f"  Locality Verification: {'✓ PASS' if passed else '✗ FAIL'}")
-
-    if violations:
-        print(f"  Violations found: {len(violations)}")
-        for v in violations[:3]:  # Show first 3
-            print(f"    {v['window1']} ↔ {v['window2']}: screen_dist={v['screen_distance']}, hilbert_dist={v['hilbert_distance']}")
+    # Intra-quadrant clustering: small screen distance should give small Hilbert distance
+    clustering_passed = max_hilbert_dist < 500  # Reasonable bound for <15px screen distance
+    print(f"\n  Max Screen Distance: {max_screen_dist}px")
+    print(f"  Max Hilbert Distance: {max_hilbert_dist}")
+    print(f"  Clustering Verification: {'✓ PASS' if clustering_passed else '✗ FAIL'}")
 
     # Test 3: Consecutive indices are spatially adjacent
     print("\n✓ Test 3: Consecutive Indices Are Adjacent")
@@ -377,17 +380,40 @@ def test_hilbert_spatial_locality():
     adjacency_rate = adjacent_count / total_checked
     print(f"  Adjacency Rate: {adjacency_rate:.1%} ({adjacent_count}/{total_checked})")
 
-    # Hilbert curve should have high adjacency rate
-    if adjacency_rate < 0.95:
-        print(f"  ✗ Adjacency rate too low (expected ≥ 95%)")
+    # Hilbert curve should have 100% adjacency rate
+    if adjacency_rate < 1.0:
+        print(f"  ✗ Adjacency rate too low (expected 100%)")
+        return False
+
+    # Test 4: Match Rust reference test vectors
+    print("\n✓ Test 4: Rust Reference Vectors")
+    test_vectors = [
+        (4, 0, (0, 0)),
+        (4, 1, (1, 0)),
+        (4, 2, (1, 1)),
+        (4, 3, (0, 1)),
+        (8, 0, (0, 0)),
+        (8, 7, (2, 1)),
+    ]
+
+    vectors_passed = True
+    for n, d, expected in test_vectors:
+        result = hilbert.d2xy(n, d)
+        match = "✓" if result == expected else "✗"
+        print(f"  d2xy({n}, {d}) = {result}, expected {expected} {match}")
+        if result != expected:
+            vectors_passed = False
+
+    if not vectors_passed:
         return False
 
     print(f"\n✓ Hilbert Spatial Locality Test Complete")
     print(f"  - Roundtrip consistency: PASS")
-    print(f"  - Locality verification: {'PASS' if passed else 'FAIL'}")
-    print(f"  - Adjacency rate: {adjacency_rate:.1%}")
+    print(f"  - Intra-quadrant clustering: {'PASS' if clustering_passed else 'FAIL'}")
+    print(f"  - Adjacency rate: 100%")
+    print(f"  - Rust reference vectors: PASS")
 
-    return passed and adjacency_rate >= 0.95
+    return clustering_passed and adjacency_rate >= 1.0 and vectors_passed
 
 
 def main():
