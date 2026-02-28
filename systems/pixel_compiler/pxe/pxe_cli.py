@@ -65,10 +65,13 @@ Examples:
   pixelrts pxe tftp start --port 6969 --verbose
 
   # Start HTTP server for container delivery
-  pixelrts pxe http start --root-dir /var/tftpboot
+  pixelrts pxe http start --port 8080 --root-dir /var/containers
 
-  # Start HTTP on custom port with verbose logging
-  pixelrts pxe http start --port 3000 --verbose
+  # Start HTTP server with catalog integration
+  pixelrts pxe http start -w /path/to/containers -v
+
+  # Show PXE stack status
+  pixelrts pxe status
 """
         )
         pxe_subparsers = parser.add_subparsers(dest='pxe_command')
@@ -285,6 +288,16 @@ Examples:
         default='/tftpboot',
         help='Root directory containing container files (default: /tftpboot)'
     )
+
+    # Catalog configuration
+    http_start_parser.add_argument(
+        '-w', '--watch-path',
+        action='append',
+        default=[],
+        help='Directory to scan for containers (can specify multiple times)'
+    )
+
+    # Range request configuration
     http_start_parser.add_argument(
         '--no-range',
         action='store_true',
@@ -511,6 +524,7 @@ def cmd_http_start(args: argparse.Namespace) -> int:
         interface=args.interface,
         listen_port=args.port,
         root_dir=args.root_dir,
+        watch_paths=args.watch_path if args.watch_path else None,
         enable_range_requests=not args.no_range,
     )
 
@@ -522,6 +536,9 @@ def cmd_http_start(args: argparse.Namespace) -> int:
     logger.info(f"[HTTP] Starting server on {config.interface}:{config.listen_port}")
     logger.info(f"[HTTP] Root directory: {config.root_dir}")
     logger.info(f"[HTTP] Range requests: {'enabled' if config.enable_range_requests else 'disabled'}")
+
+    if args.watch_path:
+        logger.info(f"[HTTP] Catalog watch paths: {', '.join(args.watch_path)}")
 
     # List available container files
     try:
