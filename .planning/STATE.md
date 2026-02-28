@@ -11,16 +11,16 @@ See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Milestone:** v1.3 PXE Boot
 **Phase:** 16 - Integration
-**Plan:** 01 complete
+**Plan:** 02 complete
 **Status:** In Progress
-**Last activity:** 2026-02-28 - PXE badge for visual shell catalog
+**Last activity:** 2026-02-28 - PXE toggle in settings panel
 
-Progress: [█████] 84% (4/5 phases complete, 18/21 plans in v1.3)
+Progress: [█████] 86% (4/5 phases complete, 19/21 plans in v1.3)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 75 (v1.0: 23, v1.1: 8, v1.2: 14, v1.3: 16, other: 14)
+- Total plans completed: 76 (v1.0: 23, v1.1: 8, v1.2: 14, v1.3: 17, other: 14)
 - Current milestone: 15
 
 **By Milestone:**
@@ -30,7 +30,7 @@ Progress: [█████] 84% (4/5 phases complete, 18/21 plans in v1.3)
 | v1.0 | 1-4 | 23 | Complete |
 | v1.1 | 5-6 | 8 | Complete |
 | v1.2 | 7-11 | 14 | Complete |
-| v1.3 | 12-16 | 16 | In Progress |
+| v1.3 | 12-16 | 17 | In Progress |
 
 **v1.3 Breakdown:**
 
@@ -40,7 +40,7 @@ Progress: [█████] 84% (4/5 phases complete, 18/21 plans in v1.3)
 | 13 - TFTP Server | Bootloader delivered via TFTP | 4 | **Complete** (4/4 plans) |
 | 14 - HTTP Serving | Containers available via HTTP | 4 | **Complete** (4/4 plans) |
 | 15 - Boot Menu | Interactive container selection | 4 | **Complete** (4/4 plans) |
-| 16 - Integration | Unified with v1.2 infrastructure | 4 | **In Progress** (1/4 plans) |
+| 16 - Integration | Unified with v1.2 infrastructure | 4 | **In Progress** (2/4 plans) |
 
 ## Accumulated Context
 
@@ -97,15 +97,17 @@ Progress: [█████] 84% (4/5 phases complete, 18/21 plans in v1.3)
 - Boot menu test port counter starts at 28100 to avoid conflicts with HTTP tests (28080)
 - PXE badge orange (0xff6600) for enabled, gray (0x666666) for disabled
 - PXE badge positioned at OFFSET_X: 14, next to offline badge
+- Event-driven PXE toggle with pxe-toggled event for UI sync
+- Orange (#ff6600) for PXE toggles/badges to distinguish from other status indicators
 
 ### Components Shipped
 - RTSDesktopObject.js (2030 lines) - PIXI.Container with all UI features
 - CatalogBridge.js (540 lines) - API client with cache-first fetching, PXE methods
-- DesktopObjectManager.js (1569 lines) - Lifecycle manager with remote integration
+- DesktopObjectManager.js (1600+ lines) - Lifecycle manager with remote integration, PXE toggle
 - CatalogCacheManager.js (1340 lines) - IndexedDB cache with LRU eviction
 - ServerRegistry.js (327 lines) - Server configuration persistence
 - RemoteCatalogClient.js (478 lines) - Multi-server catalog aggregation
-- ServerSettingsPanel.js (957 lines) - Settings UI with cache management
+- ServerSettingsPanel.js (1100+ lines) - Settings UI with cache management, PXE section
 - RemoteBootFetcher.js (744 lines) - Streaming downloads with retry
 - CatalogFilterBar.js (166 lines) - Filter bar UI
 - CatalogSearchBar.js (167 lines) - Search input with debounce
@@ -123,8 +125,8 @@ Progress: [█████] 84% (4/5 phases complete, 18/21 plans in v1.3)
 
 ## Session Continuity
 
-Last session: 2026-02-28T17:27:XXZ
-Status: Phase 16 Integration in progress (1/4 plans)
+Last session: 2026-02-28T18:00:XXZ
+Status: Phase 16 Integration in progress (2/4 plans)
 Resume file: None
 
-**Next Action:** Continue Phase 16 Integration plans (02-04)
+**Next Action:** Continue Phase 16 Integration plans (03-04)
