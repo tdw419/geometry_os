@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file - from anywhere, including bare metal.
-**Current focus:** v1.3 PXE Boot - Phase 14 HTTP Server complete
+**Current focus:** v1.3 PXE Boot - Phase 15 Boot Menu complete
 
 ## Current Position
 
 **Milestone:** v1.3 PXE Boot
 **Phase:** 15 - Boot Menu
-**Plan:** Not started
-**Status:** Ready to plan
-**Last activity:** 2026-02-28 - Phase 14 HTTP Container Serving verified complete
+**Plan:** 01 complete
+**Status:** Phase 15-01 complete
+**Last activity:** 2026-02-28 - iPXE boot and menu script endpoints implemented
 
-Progress: [█████] 80% (4/5 phases complete, 14/16 plans in v1.3)
+Progress: [█████] 81% (4/5 phases complete, 15/16 plans in v1.3)
 
 ## Performance Metrics
 
@@ -87,6 +87,9 @@ Progress: [█████] 80% (4/5 phases complete, 14/16 plans in v1.3)
 - Graceful fallback to file-based serving when CatalogScanner unavailable
 - unittest with aiohttp TestClient for async HTTP testing
 - Dynamic port allocation (28080+) to avoid test port conflicts
+- iPXE menu uses choose command with optional timeout for auto-boot
+- Local boot fallback using sanboot for exiting to local disk
+- Per-container boot labels for clean goto routing in iPXE menu
 
 ### Components Shipped
 - RTSDesktopObject.js (2030 lines) - PIXI.Container with all UI features
@@ -104,7 +107,7 @@ Progress: [█████] 80% (4/5 phases complete, 14/16 plans in v1.3)
 - test_dhcp_server.py (1180 lines) - Unit + integration tests (46 tests)
 - tftp_server.py (750 lines) - Async TFTP server with concurrent transfers, aiofiles
 - test_tftp_server.py (795 lines) - Unit + integration tests (52 tests)
-- http_server.py (553 lines) - Async HTTP server with range requests and catalog integration
+- http_server.py (615 lines) - Async HTTP server with range requests, catalog integration, and iPXE boot/menu endpoints
 - test_http_server.py (1340 lines) - Unit + integration tests (66 tests)
 
 ### Blockers
@@ -112,8 +115,8 @@ Progress: [█████] 80% (4/5 phases complete, 14/16 plans in v1.3)
 
 ## Session Continuity
 
-Last session: 2026-02-28T14:30:00Z
-Status: Phase 14 HTTP Container Serving verified and complete
+Last session: 2026-02-28T15:58:42Z
+Status: Phase 15-01 iPXE boot/menu endpoints complete
 Resume file: None
 
-**Next Action:** Proceed to Phase 15 (Boot Menu) - /gsd:discuss-phase 15
+**Next Action:** Proceed to Phase 15 Plan 02 (Boot Menu continuation) or Phase 16 Integration
