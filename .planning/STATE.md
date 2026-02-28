@@ -11,17 +11,17 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Milestone:** v1.2 Network Boot
 **Phase:** 8 of 11 (Remote Client)
-**Plan:** 0 of 2 in current phase
-**Status:** Ready to plan
-**Last activity:** 2026-02-27 — Phase 7 complete (5/5 plans)
+**Plan:** 1 of 2 in current phase
+**Status:** In progress
+**Last activity:** 2026-02-28 — Completed 08-01 remote catalog client
 
-Progress: [██░░░░░░░░] 15%
+Progress: [██░░░░░░░░] 16%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 36 (v1.0: 23, v1.1: 8, v1.2: 5)
-- v1.2 plans remaining: 7
+- Total plans completed: 37 (v1.0: 23, v1.1: 8, v1.2: 6)
+- v1.2 plans remaining: 6
 
 **By Phase:**
 
@@ -29,14 +29,14 @@ Progress: [██░░░░░░░░] 15%
 |-------|-------|--------|
 | 1-4 (v1.0) | 23 | Complete |
 | 5-6 (v1.1) | 8 | Complete |
-| 7-11 (v1.2) | 12 | In progress (5/12) |
+| 7-11 (v1.2) | 12 | In progress (6/12) |
 
 ## Accumulated Context
 
 ### Shipped Milestones
 - **v1.0:** PixelRTS Boot Improvement — Vision analysis, FUSE boot, installer, catalog
 - **v1.1:** Visual Shell Integration — Desktop objects, boot progress, error handling
-- **v1.2 (partial):** Cache Infrastructure — IndexedDB, hash verification, LRU eviction, ETag revalidation, cache-first fetching, verification status UI
+- **v1.2 (partial):** Cache Infrastructure + Remote Client — IndexedDB, hash verification, LRU eviction, ETag revalidation, cache-first fetching, verification status UI, multi-server aggregation
 
 ### Key Decisions
 - PixiJS v7 for desktop rendering
@@ -59,6 +59,10 @@ Progress: [██░░░░░░░░] 15%
 - **07-05:** Cache status indicator positioned below main status indicator
 - **07-05:** Cache status indicator hidden for uncached containers
 - **07-05:** Hover tooltip shows verification state text
+- **08-01:** ServerRegistry uses localStorage for server configuration persistence
+- **08-01:** 10-second timeout per server request via AbortController
+- **08-01:** Promise.allSettled for parallel server fetching (no sequential fallback)
+- **08-01:** Remote entries tagged with sourceServerId, sourceServerName, sourceServerColor
 
 ### Components Shipped
 - RTSDesktopObject.js (1271 lines) - PIXI.Container with progress, status, error, cache verification indicator
@@ -66,12 +70,14 @@ Progress: [██░░░░░░░░] 15%
 - DesktopObjectManager.js (678 lines) - Lifecycle manager
 - catalog_server.py (639 lines) - Status tracking and REST API
 - CatalogCacheManager.js (1286 lines) - IndexedDB cache with LRU eviction, stale detection, ETag revalidation, ES6 exports
+- ServerRegistry.js (327 lines) - localStorage server configuration persistence
+- RemoteCatalogClient.js (478 lines) - Multi-server catalog aggregation with SWR pattern
 
 ### Blockers
 - None currently
 
 ## Session Continuity
 
-Last session: 2026-02-27T22:43:12Z
-Status: Completed Phase 7 Cache Infrastructure (including gap closure) — ready for Phase 8
+Last session: 2026-02-28T00:05:36Z
+Status: Completed 08-01 remote catalog client — 1 more plan in Phase 8
 Resume file: None
