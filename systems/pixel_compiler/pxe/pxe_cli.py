@@ -334,6 +334,92 @@ def cmd_status(args: argparse.Namespace) -> int:
     return 1
 
 
+def cmd_tftp_start(args: argparse.Namespace) -> int:
+    """
+    Start TFTP server with parsed arguments.
+
+    Args:
+        args: Parsed command-line arguments
+
+    Returns:
+        Exit code (0 for success, non-zero for error)
+    """
+    import asyncio
+    import os
+    from .tftp_server import TFTPServer, TFTPServerConfig
+
+    # Validate root directory exists
+    if not os.path.isdir(args.root_dir):
+        logger.error(f"[TFTP] Root directory does not exist: {args.root_dir}")
+        logger.info(f"[TFTP] Create it with: sudo mkdir -p {args.root_dir}")
+        return 1
+
+    # Build config from args
+    config = TFTPServerConfig(
+        interface=args.interface,
+        listen_port=args.port,
+        root_dir=args.root_dir,
+        block_size=args.block_size,
+        timeout=args.timeout,
+        max_retries=args.max_retries,
+    )
+
+    # Configure logging level
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    logging.getLogger().setLevel(log_level)
+
+    # Log startup configuration
+    logger.info(f"[TFTP] Starting server on {config.interface}:{config.listen_port}")
+    logger.info(f"[TFTP] Root directory: {config.root_dir}")
+    logger.info(f"[TFTP] Block size: {config.block_size} bytes")
+    logger.info(f"[TFTP] Timeout: {config.timeout}s, Max retries: {config.max_retries}")
+
+    # List available boot files
+    try:
+        files = [f for f in os.listdir(config.root_dir) if os.path.isfile(os.path.join(config.root_dir, f))]
+        if files:
+            logger.info(f"[TFTP] Available files: {', '.join(files[:5])}{'...' if len(files) > 5 else ''}")
+        else:
+            logger.warning(f"[TFTP] No files in root directory")
+    except PermissionError:
+        logger.warning(f"[TFTP] Cannot list files in root directory (permission denied)")
+
+    # Create and run server
+    server = TFTPServer(config)
+
+    try:
+        asyncio.run(server.serve_forever())
+    except KeyboardInterrupt:
+        logger.info("[TFTP] Server stopped by user")
+        return 0
+    except PermissionError as e:
+        logger.error(f"[TFTP] Permission denied - need root to bind to port {config.listen_port}: {e}")
+        return 1
+    except Exception as e:
+        logger.error(f"[TFTP] Server error: {e}")
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+    return 0
+
+
+def cmd_tftp_stop(args: argparse.Namespace) -> int:
+    """
+    Stop running TFTP server (placeholder for future implementation).
+
+    Args:
+        args: Parsed command-line arguments
+
+    Returns:
+        Exit code (0 for success, non-zero for error)
+    """
+    logger.error("[TFTP] Stop command not yet implemented")
+    logger.info("[TFTP] Use Ctrl+C to stop the running server")
+    return 1
+
+
 def main(args: argparse.Namespace) -> int:
     """
     Main entry point for PXE commands.
@@ -353,6 +439,14 @@ def main(args: argparse.Namespace) -> int:
             return cmd_dhcp_stop(args)
         else:
             logger.error(f"Unknown DHCP command: {args.dhcp_command}")
+            return 1
+    elif args.pxe_command == 'tftp':
+        if args.tftp_command == 'start':
+            return cmd_tftp_start(args)
+        elif args.tftp_command == 'stop':
+            return cmd_tftp_stop(args)
+        else:
+            logger.error(f"Unknown TFTP command: {args.tftp_command}")
             return 1
     elif args.pxe_command == 'status':
         return cmd_status(args)
