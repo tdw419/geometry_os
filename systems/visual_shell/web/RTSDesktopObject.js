@@ -86,38 +86,80 @@ class RTSDesktopObject extends PIXI.Container {
         timeout: {
             pattern: /timeout|timed out|30 seconds/i,
             guidance: 'Boot took too long. Try increasing memory or use a lighter kernel.',
-            action: 'Increase memory allocation or check kernel compatibility.'
+            action: 'Increase memory allocation or check kernel compatibility.',
+            category: 'TIMEOUT'
+        },
+        network: {
+            pattern: /network|connection|fetch|failed to fetch|ECONNREFUSED|ENOTFOUND|offline|unreachable/i,
+            guidance: 'Network connection failed. Check your internet connection.',
+            action: 'Check network connection and try again.',
+            category: 'NETWORK'
+        },
+        notfound: {
+            pattern: /not found|404|does not exist|no such file/i,
+            guidance: 'Container not found. It may have been removed.',
+            action: 'Refresh catalog to get latest container list.',
+            category: 'NOT FOUND'
         },
         memory: {
             pattern: /memory|oom|out of memory|cannot allocate/i,
             guidance: 'Insufficient memory for boot. Increase memory allocation.',
-            action: 'Increase memory to at least 2G for most distributions.'
+            action: 'Increase memory to at least 2G for most distributions.',
+            category: 'MEMORY'
         },
         kernel: {
             pattern: /kernel|vmlinuz|bzImage|boot failed/i,
             guidance: 'Kernel failed to load. Check kernel compatibility.',
-            action: 'Verify the kernel is compatible with this architecture.'
+            action: 'Verify the kernel is compatible with this architecture.',
+            category: 'KERNEL'
         },
         fuse: {
             pattern: /fuse|mount|failed to mount/i,
             guidance: 'FUSE mount failed. Check if FUSE is installed.',
-            action: 'Ensure fuse3 or fuse is installed: sudo apt install fuse3'
+            action: 'Ensure fuse3 or fuse is installed: sudo apt install fuse3',
+            category: 'MOUNT'
         },
         qemu: {
             pattern: /qemu|kvm|accelerator|hv_error/i,
             guidance: 'QEMU or KVM error. Check virtualization support.',
-            action: 'Enable virtualization in BIOS or install qemu-system-x86'
+            action: 'Enable virtualization in BIOS or install qemu-system-x86',
+            category: 'QEMU'
         },
         permission: {
             pattern: /permission|denied|access|eacces/i,
             guidance: 'Permission denied. Check file permissions.',
-            action: 'Ensure the .rts.png file is readable and executable.'
+            action: 'Ensure the .rts.png file is readable and executable.',
+            category: 'PERMISSION'
+        },
+        hash: {
+            pattern: /hash|checksum|verification failed|integrity/i,
+            guidance: 'Container verification failed. File may be corrupted.',
+            action: 'Clear cache and re-download the container.',
+            category: 'VERIFICATION'
         },
         default: {
             pattern: /.*/,
             guidance: 'Boot failed. Check logs for details.',
-            action: 'Try different boot options or check system compatibility.'
+            action: 'Try different boot options or check system compatibility.',
+            category: 'ERROR'
         }
+    };
+
+    /**
+     * Error category badge colors
+     * @static
+     */
+    static ERROR_CATEGORY_COLORS = {
+        'TIMEOUT': 0xffaa00,     // Orange
+        'NETWORK': 0xff6600,     // Darker orange
+        'NOT FOUND': 0x888888,   // Gray
+        'MEMORY': 0xff4444,      // Light red
+        'KERNEL': 0xff00ff,      // Magenta
+        'MOUNT': 0x00aaff,       // Cyan
+        'QEMU': 0xff0088,        // Pink
+        'PERMISSION': 0xffff00,  // Yellow
+        'VERIFICATION': 0xaa44ff,// Purple
+        'ERROR': 0xff0000        // Red
     };
 
     /**
@@ -817,6 +859,27 @@ class RTSDesktopObject extends PIXI.Container {
         this.errorGuidance.y = 105;
         this.errorGuidance.anchor.set(0.5, 0);
         this.errorContainer.addChild(this.errorGuidance);
+
+        // Error category badge (small colored tag showing error type)
+        this.errorBadge = new PIXI.Graphics();
+        this.errorBadge.x = THUMBNAIL_SIZE - 4;
+        this.errorBadge.y = 4;
+        this.errorBadge.visible = false;  // Hidden by default
+        this.errorContainer.addChild(this.errorBadge);
+
+        // Error category label
+        this.errorBadgeLabel = new PIXI.Text({
+            text: '',
+            style: {
+                fontFamily: 'Courier New, monospace',
+                fontSize: 7,
+                fill: 0xffffff,
+                fontWeight: 'bold',
+                align: 'center'
+            }
+        });
+        this.errorBadgeLabel.visible = false;
+        this.errorContainer.addChild(this.errorBadgeLabel);
 
         // Retry button container (hidden by default, shown for retryable errors)
         this.retryButton = new PIXI.Container();
@@ -1686,6 +1749,99 @@ class RTSDesktopObject extends PIXI.Container {
     hideError() {
         this.errorContainer.visible = false;
         this._errorDetails = null;
+        this.errorBadge.visible = false;
+        this.errorBadgeLabel.visible = false;
+    }
+
+    /**
+     * Show error with category badge (enhanced error display for boot failures)
+     * Shows an error overlay with a colored badge indicating the error category
+     * (TIMEOUT, NETWORK, NOT FOUND, etc.)
+     * @param {Object} errorInfo - Error information
+     * @param {string} errorInfo.message - Error message
+     * @param {string} [errorInfo.stage] - Boot stage where error occurred
+     * @param {number} [errorInfo.elapsedTime] - Time elapsed before failure
+     */
+    showErrorWithBadge(errorInfo) {
+        const { message, stage, elapsedTime } = errorInfo;
+
+        // Get error category from guidance
+        const guidance = this._getErrorGuidance(message);
+        const category = guidance?.category || 'ERROR';
+        const categoryColor = RTSDesktopObject.ERROR_CATEGORY_COLORS[category] || 0xff0000;
+
+        // Call base showError for boot failures
+        this.showError({
+            message,
+            stage,
+            elapsedTime,
+            config: {}
+        });
+
+        // Update title to reflect boot failure
+        this.errorTitle.text = 'Boot Failed';
+
+        // Draw category badge
+        this._drawErrorBadge(category, categoryColor);
+    }
+
+    /**
+     * Draw the error category badge
+     * @private
+     * @param {string} category - Error category text
+     * @param {number} color - Badge color
+     */
+    _drawErrorBadge(category, color) {
+        const { THUMBNAIL_SIZE } = RTSDesktopObject.DIMENSIONS;
+
+        // Set badge label
+        this.errorBadgeLabel.text = category;
+        this.errorBadgeLabel.visible = true;
+
+        // Calculate badge width based on text
+        const textWidth = this.errorBadgeLabel.width;
+        const badgeWidth = textWidth + 8;
+        const badgeHeight = 11;
+
+        // Position badge at top-right corner
+        this.errorBadge.x = THUMBNAIL_SIZE - badgeWidth - 4;
+        this.errorBadge.y = 4;
+        this.errorBadgeLabel.x = this.errorBadge.x + 4;
+        this.errorBadgeLabel.y = 5;
+
+        // Draw badge background
+        this.errorBadge.clear();
+        this.errorBadge.roundRect(0, 0, badgeWidth, badgeHeight, 2);
+        this.errorBadge.fill({ color: color, alpha: 0.9 });
+        this.errorBadge.visible = true;
+    }
+
+    /**
+     * Show offline status indicator
+     * Displays a "CACHED" badge for items available offline
+     * @param {boolean} isCached - Whether the item is cached locally
+     */
+    showOfflineStatus(isCached) {
+        if (!this._isRemote) {
+            // Local containers don't show offline status
+            this._cachedBadgeVisible = false;
+            return;
+        }
+
+        this._cachedBadgeVisible = isCached;
+
+        // Update the offline badge tooltip
+        if (this.offlineBadgeTooltip) {
+            this.offlineBadgeTooltip.text = isCached ? 'CACHED' : 'Network required';
+        }
+    }
+
+    /**
+     * Check if cached badge is visible
+     * @returns {boolean}
+     */
+    isCachedBadgeVisible() {
+        return this._cachedBadgeVisible || false;
     }
 
     /**
