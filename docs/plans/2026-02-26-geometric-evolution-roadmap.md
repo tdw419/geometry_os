@@ -60,7 +60,7 @@ This roadmap outlines the trajectory of Geometry OS, from its fundamental geomet
   - EvolutionDaemon: Continuous improvement loop
   - Strategies: dead_code, hot_path, error_prone, caching
 
-## Epoch 4: The Cartridge Ecosystem (IN PROGRESS)
+## Epoch 4: The Cartridge Ecosystem (COMPLETE)
 *Achieving parity with traditional OS capabilities via visual simulation.*
 - [x] **The WASM Hypervisor:** A Tectonic building that emulates a traditional CPU (RISC-V/x86) using WebAssembly.
   - `WasmHypervisor.js`: RISC-V emulator in browser
@@ -74,7 +74,13 @@ This roadmap outlines the trajectory of Geometry OS, from its fundamental geomet
   - InitrdBuilder: CPIO archive builder (newc format)
   - ResonanceEncoder: Binary ↔ glyph grid conversion
   - CartridgeBoot: Boot sequence coordinator
-- [ ] **The Infinite Desktop:** Running full Linux environments, web browsers, and media suites as interactive, holographic "Tiles" within the Geometry OS visual shell.
+- [x] **The Infinite Desktop:** Running full Linux environments, web browsers, and media suites as interactive, holographic "Tiles" within the Geometry OS visual shell.
+  - `InfiniteDesktop.js`: Visual shell for cartridges
+  - DesktopTile: Visual container with state management
+  - TileManager: Layout and interaction (grid, cascade)
+  - InputBridge: Keyboard/mouse routing
+  - Viewport: Pan, zoom, center controls
+  - Serialization: Save/restore desktop state
 
 ---
 
