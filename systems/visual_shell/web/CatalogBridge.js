@@ -475,6 +475,60 @@ class CatalogBridge {
             this._activePolls.clear();
         }
     }
+
+    /**
+     * Fetch PXE-enabled containers from the server
+     * @returns {Promise<Object|null>} Object with pxe_containers array and count, or null on failure
+     *
+     * @example
+     * const pxeData = await bridge.getPXEContainers();
+     * // Returns: { pxe_containers: [{ entry_id, pxe_enabled, boot_order }], count: N }
+     */
+    async getPXEContainers() {
+        // Return cached data if available
+        if (this._cachedPXEContainers) {
+            return this._cachedPXEContainers;
+        }
+
+        const data = await this._fetch('/pxe');
+
+        if (data) {
+            this._cachedPXEContainers = data;
+        }
+
+        return data;
+    }
+
+    /**
+     * Toggle PXE availability for a container
+     * @param {string} entryId - The entry ID to toggle PXE for
+     * @param {boolean} enabled - Whether to enable or disable PXE
+     * @returns {Promise<Object|null>} Result with updated status, or null on failure
+     *
+     * @example
+     * const result = await bridge.setPXEAvailability('ubuntu-22.04', true);
+     * // Returns: { success: true, entry_id: 'ubuntu-22.04', pxe_enabled: true }
+     */
+    async setPXEAvailability(entryId, enabled) {
+        const data = await this._fetch(`/pxe/${encodeURIComponent(entryId)}/toggle`, {
+            method: 'POST',
+            body: JSON.stringify({ enabled })
+        });
+
+        // Clear PXE cache after toggle to force refresh
+        if (data) {
+            this._cachedPXEContainers = null;
+        }
+
+        return data;
+    }
+
+    /**
+     * Clear the PXE containers cache
+     */
+    clearPXECache() {
+        this._cachedPXEContainers = null;
+    }
 }
 
 // ES6 module export
