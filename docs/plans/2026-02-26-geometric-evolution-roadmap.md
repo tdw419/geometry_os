@@ -68,7 +68,12 @@ This roadmap outlines the trajectory of Geometry OS, from its fundamental geomet
   - RiscVEmulator: Full RV32I instruction set
   - CartridgeLoader: Binary/URL/test cartridge loading
   - System calls: write, exit (extensible)
-- [ ] **Linux as a Cartridge:** Converting an entire Linux environment (Kernel + Initrd) into a multi-gigapixel Resonance Texture.
+- [x] **Linux as a Cartridge:** Converting an entire Linux environment (Kernel + Initrd) into a multi-gigapixel Resonance Texture.
+  - `LinuxCartridge.js`: Linux-to-texture converter
+  - KernelLoader: ELF parser with segment loading
+  - InitrdBuilder: CPIO archive builder (newc format)
+  - ResonanceEncoder: Binary ↔ glyph grid conversion
+  - CartridgeBoot: Boot sequence coordinator
 - [ ] **The Infinite Desktop:** Running full Linux environments, web browsers, and media suites as interactive, holographic "Tiles" within the Geometry OS visual shell.
 
 ---
