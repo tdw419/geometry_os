@@ -68,14 +68,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RBOOT-05 | Phase 9 | Complete |
 | RCAT-02 | Phase 10 | Complete |
 | RCAT-03 | Phase 10 | Complete |
-| RBOOT-03 | Phase 11 | Pending |
-| CACHE-03 | Phase 11 | Pending |
+| RBOOT-03 | Phase 11 | Complete |
+| CACHE-03 | Phase 11 | Complete |
 
 **Coverage:**
 - v1.2 requirements: 13 total
 - Mapped to phases: 13
 - Unmapped: 0
+- Complete: 13/13 (100%)
 
 ---
 *Requirements defined: 2026-02-27*
-*Last updated: 2026-02-27*
+*Last updated: 2026-02-28 — v1.2 Network Boot milestone COMPLETE*
