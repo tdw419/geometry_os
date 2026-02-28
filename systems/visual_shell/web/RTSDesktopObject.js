@@ -121,6 +121,16 @@ class RTSDesktopObject extends PIXI.Container {
     };
 
     /**
+     * Server source badge configuration
+     * @static
+     */
+    static SERVER_BADGE = {
+        SIZE: 8,           // Small colored dot
+        OFFSET_X: 4,       // From left edge
+        OFFSET_Y: 4        // From top edge
+    };
+
+    /**
      * Create an RTSDesktopObject instance
      * @param {Object} entry - Catalog entry data
      * @param {string} entry.id - Unique entry ID
@@ -178,6 +188,7 @@ class RTSDesktopObject extends PIXI.Container {
         this._createNameLabel(entry.name || entry.id);
         this._createStatusIndicator();
         this._createCacheStatusIndicator();
+        this._createServerSourceBadge(entry);
         this._createProgressBar();
         this._createErrorOverlay();
         this._createBorder();
@@ -418,6 +429,109 @@ class RTSDesktopObject extends PIXI.Container {
     }
 
     /**
+     * Create the server source badge indicator
+     * Small colored circle in top-left corner indicating which server
+     * the container comes from. Hidden for local containers.
+     * @private
+     * @param {Object} entry - Catalog entry with optional sourceServerId
+     */
+    _createServerSourceBadge(entry) {
+        const { SIZE, OFFSET_X, OFFSET_Y } = RTSDesktopObject.SERVER_BADGE;
+
+        // Store server source info
+        this._serverSourceId = entry.sourceServerId || null;
+        this._serverSourceName = entry.sourceServerName || null;
+        this._serverSourceColor = entry.sourceServerColor || '#888888';
+
+        // Create badge graphics
+        this.serverSourceBadge = new PIXI.Graphics();
+        this.serverSourceBadge.x = OFFSET_X;
+        this.serverSourceBadge.y = OFFSET_Y;
+
+        // Draw initial badge (will be updated)
+        this._drawServerSourceBadge(this._serverSourceColor);
+
+        // Hide badge for local containers (no sourceServerId)
+        this.serverSourceBadge.visible = !!entry.sourceServerId;
+
+        this.addChild(this.serverSourceBadge);
+
+        // Create tooltip for server name (hidden by default)
+        this.serverSourceTooltip = new PIXI.Text({
+            text: this._serverSourceName || '',
+            style: {
+                fontFamily: 'Courier New, monospace',
+                fontSize: 10,
+                fill: 0xffffff,
+                align: 'left',
+                backgroundColor: 0x333333,
+                padding: 4
+            }
+        });
+        this.serverSourceTooltip.visible = false;
+        this.serverSourceTooltip.x = OFFSET_X + SIZE + 4;  // Right of badge
+        this.serverSourceTooltip.y = OFFSET_Y - 2;
+        this.addChild(this.serverSourceTooltip);
+    }
+
+    /**
+     * Draw the server source badge circle
+     * @private
+     * @param {string} color - Hex color string (e.g., '#00aaff')
+     */
+    _drawServerSourceBadge(color) {
+        const { SIZE } = RTSDesktopObject.SERVER_BADGE;
+        const radius = SIZE / 2;
+
+        // Convert hex string to number
+        let colorNum = 0x888888;
+        if (color && color.startsWith('#')) {
+            colorNum = parseInt(color.slice(1), 16);
+        } else if (typeof color === 'number') {
+            colorNum = color;
+        }
+
+        this.serverSourceBadge.clear();
+        this.serverSourceBadge.circle(radius, radius, radius);
+        this.serverSourceBadge.fill({ color: colorNum, alpha: 1 });
+
+        // Add subtle border
+        this.serverSourceBadge.circle(radius, radius, radius);
+        this.serverSourceBadge.stroke({ color: 0x000000, width: 1 });
+    }
+
+    /**
+     * Set the server source for this object
+     * @param {string} serverId - Server ID (null for local containers)
+     * @param {string} serverName - Display name for the server
+     * @param {string} color - Hex color for the badge
+     */
+    setServerSource(serverId, serverName, color) {
+        this._serverSourceId = serverId;
+        this._serverSourceName = serverName;
+        this._serverSourceColor = color || '#888888';
+
+        // Update badge
+        this._drawServerSourceBadge(this._serverSourceColor);
+        this.serverSourceBadge.visible = !!serverId;
+
+        // Update tooltip
+        this.serverSourceTooltip.text = serverName || '';
+    }
+
+    /**
+     * Get the server source info
+     * @returns {Object} { serverId, serverName, color }
+     */
+    getServerSource() {
+        return {
+            serverId: this._serverSourceId,
+            serverName: this._serverSourceName,
+            color: this._serverSourceColor
+        };
+    }
+
+    /**
      * Create the progress bar overlay
      * @private
      */
@@ -617,6 +731,11 @@ class RTSDesktopObject extends PIXI.Container {
             this.cacheStatusTooltip.visible = true;
         }
 
+        // Show server source tooltip if badge is visible
+        if (this.serverSourceBadge && this.serverSourceBadge.visible) {
+            this.serverSourceTooltip.visible = true;
+        }
+
         // Emit hover with status and error details
         this.emit('hover', {
             target: this,
@@ -639,6 +758,11 @@ class RTSDesktopObject extends PIXI.Container {
 
         // Hide cache status tooltip
         this.cacheStatusTooltip.visible = false;
+
+        // Hide server source tooltip
+        if (this.serverSourceTooltip) {
+            this.serverSourceTooltip.visible = false;
+        }
 
         this.emit('hover-end', { target: this });
     }
