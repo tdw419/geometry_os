@@ -39,6 +39,9 @@ class PXEContainerInfo:
     entry: 'CatalogEntry'
     pxe_enabled: bool = True
     pxe_boot_order: int = 0  # Lower = higher priority in boot menu
+    # Menu customization
+    pxe_name: Optional[str] = None        # Custom display name (None = use entry.name)
+    pxe_description: Optional[str] = None  # Custom description (None = use distro/arch)
 
 # Configure logging
 logging.basicConfig(
@@ -163,7 +166,36 @@ class HTTPServer:
     # =========================================================================
 
     def _refresh_catalog(self) -> int:
-        """Refresh catalog entries from filesystem."""
+        """Refresh catalog entries from filesystem preserving PXE customization."""
+        if not self._scanner:
+            return 0
+
+        entries = self._scanner.scan()
+        self._catalog = {entry.id: entry for entry in entries}
+
+        # Preserve PXE settings including customization for existing entries
+        old_pxe = self._pxe_containers.copy()
+        self._pxe_containers = {}
+
+        for entry in entries:
+            if entry.id in old_pxe:
+                # Preserve existing PXE settings including name and description
+                self._pxe_containers[entry.id] = old_pxe[entry.id]
+                self._pxe_containers[entry.id].entry = entry
+            else:
+                # New entry - enable PXE by default, name/description default to None
+                self._pxe_containers[entry.id] = PXEContainerInfo(
+                    entry_id=entry.id,
+                    entry=entry,
+                    pxe_enabled=True,
+                    pxe_boot_order=len(self._pxe_containers),
+                    pxe_name=None,
+                    pxe_description=None,
+                )
+
+        logger.info(f"[HTTP] Refreshed catalog: {len(self._catalog)} entries")
+
+        return len(self._catalog)        """Refresh catalog entries from filesystem."""
         if not self._scanner:
             return 0
 
@@ -381,6 +413,8 @@ chain http://{host}/pxe/menu.ipxe
         Uses menu configuration:
         - default_entry: Pre-selected boot option
         - menu_timeout: Auto-boot timeout in seconds (0 = no timeout)
+        - pxe_name: Custom display name (overrides entry.name)
+        - pxe_description: Custom description (overrides distro/arch display)
         """
         # Extract server address from request host
         host = request.host or f"{self.config.interface}:{self.config.listen_port}"
@@ -407,12 +441,19 @@ chain http://{host}/pxe/menu.ipxe
         # Add container items with metadata
         for idx, info in enumerate(pxe_containers, start=1):
             entry = info.entry
-            # Calculate size in MB
-            size_mb = entry.size // (1024 * 1024)
-            # Get distro or "Unknown"
-            distro = getattr(entry, 'distro', 'Unknown') or 'Unknown'
+            # Use custom name if set, otherwise entry name
+            display_name = info.pxe_name if info.pxe_name else entry.name
+            # Use custom description if set, otherwise generate from metadata
+            if info.pxe_description:
+                description = info.pxe_description
+            else:
+                # Calculate size in MB
+                size_mb = entry.size // (1024 * 1024)
+                # Get distro or "Unknown"
+                distro = getattr(entry, 'distro', 'Unknown') or 'Unknown'
+                description = f"({size_mb}MB, {distro})"
             # Use entry_id as the boot target
-            lines.append(f"item --key {idx} {info.entry_id} {entry.name} ({size_mb}MB, {distro})")
+            lines.append(f"item --key {idx} {info.entry_id} {display_name} {description}")
 
         lines.append("")
 
