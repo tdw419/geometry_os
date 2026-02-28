@@ -196,33 +196,6 @@ class HTTPServer:
 
         logger.info(f"[HTTP] Refreshed catalog: {len(self._catalog)} entries")
 
-        return len(self._catalog)        """Refresh catalog entries from filesystem."""
-        if not self._scanner:
-            return 0
-
-        entries = self._scanner.scan()
-        self._catalog = {entry.id: entry for entry in entries}
-
-        # Preserve PXE settings for existing entries
-        old_pxe = self._pxe_containers.copy()
-        self._pxe_containers = {}
-
-        for entry in entries:
-            if entry.id in old_pxe:
-                # Preserve existing PXE settings
-                self._pxe_containers[entry.id] = old_pxe[entry.id]
-                self._pxe_containers[entry.id].entry = entry
-            else:
-                # New entry - enable PXE by default
-                self._pxe_containers[entry.id] = PXEContainerInfo(
-                    entry_id=entry.id,
-                    entry=entry,
-                    pxe_enabled=True,
-                    pxe_boot_order=len(self._pxe_containers)
-                )
-
-        logger.info(f"[HTTP] Refreshed catalog: {len(self._catalog)} entries")
-
         return len(self._catalog)
 
     def set_pxe_availability(self, entry_id: str, enabled: bool) -> bool:

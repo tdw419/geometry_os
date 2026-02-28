@@ -336,6 +336,41 @@ Examples:
         help='Force stop without graceful shutdown'
     )
 
+    # Menu subcommand group
+    menu_parser = pxe_subparsers.add_parser(
+        'menu',
+        help='Boot menu management',
+        description='Manage PXE boot menu entries'
+    )
+    menu_subparsers = menu_parser.add_subparsers(dest='menu_command')
+
+    # menu list subcommand
+    menu_list_parser = menu_subparsers.add_parser(
+        'list',
+        help='List menu entries',
+        description='Show all PXE menu entries with their customization'
+    )
+    menu_list_parser.add_argument('--url', '-u', default='http://localhost:8080',
+                                  help='HTTP server URL')
+    menu_list_parser.add_argument('--json', action='store_true',
+                              help='Output as JSON')
+
+    # menu set subcommand
+    menu_set_parser = menu_subparsers.add_parser(
+        'set',
+        help='Update menu entry',
+        description='Customize a menu entry display'
+    )
+    menu_set_parser.add_argument('entry_id', help='Container entry ID')
+    menu_set_parser.add_argument('--url', '-u', default='http://localhost:8080',
+                             help='HTTP server URL')
+    menu_set_parser.add_argument('--name', '-n', help='Custom display name')
+    menu_set_parser.add_argument('--description', '-d', help='Custom description')
+    menu_set_parser.add_argument('--boot-order', '-o', type=int,
+                             help='Boot order (lower = higher priority)')
+    menu_set_parser.add_argument('--verbose', '-v', action='store_true',
+                             help='Enable verbose logging')
+
     return root_parser
 
 
@@ -601,6 +636,76 @@ def cmd_http_stop(args: argparse.Namespace) -> int:
     return 1
 
 
+def cmd_menu_list(args: argparse.Namespace) -> int:
+    """
+    List all menu entries.
+
+    Args:
+        args: Parsed command-line arguments
+
+    Returns:
+        Exit code (0 for success, non-zero for error)
+    """
+    import requests
+    import json
+
+    try:
+        response = requests.get(f"{args.url}/pxe")
+        response.raise_for_status()
+        data = response.json()
+
+        if args.json:
+            print(json.dumps(data, indent=2))
+        else:
+            for container in data.get('pxe_containers', []):
+                # Use custom name if set, otherwise use default name
+                name = container.get('pxe_name') or container.get('name')
+                print(f"{container['id']}: {name} (order: {container['boot_order']})")
+        return 0
+    except Exception as e:
+        logger.error(f"Failed to list menu: {e}")
+        return 1
+
+
+def cmd_menu_set(args: argparse.Namespace) -> int:
+    """
+    Update menu entry customization.
+
+    Args:
+        args: Parsed command-line arguments
+
+    Returns:
+        Exit code (0 for success, non-zero for error)
+    """
+    import requests
+
+    # Build update data
+    update_data = {}
+    if args.name is not None:
+        update_data['name'] = args.name
+    if args.description is not None:
+        update_data['description'] = args.description
+    if args.boot_order is not None:
+        update_data['boot_order'] = args.boot_order
+
+    if not update_data:
+        logger.error("No updates specified")
+        return 1
+
+    try:
+        response = requests.post(
+            f"{args.url}/pxe/{args.entry_id}/menu",
+            json=update_data
+        )
+        response.raise_for_status()
+        data = response.json()
+        logger.info(f"Updated menu entry: {data['entry_id']}")
+        return 0
+    except Exception as e:
+        logger.error(f"Failed to update menu entry: {e}")
+        return 1
+
+
 def main(args: argparse.Namespace) -> int:
     """
     Main entry point for PXE commands.
@@ -639,6 +744,14 @@ def main(args: argparse.Namespace) -> int:
             return 1
     elif args.pxe_command == 'status':
         return cmd_status(args)
+    elif args.pxe_command == 'menu':
+        if args.menu_command == 'list':
+            return cmd_menu_list(args)
+        elif args.menu_command == 'set':
+            return cmd_menu_set(args)
+        else:
+            logger.error(f"Unknown menu command: {args.menu_command}")
+            return 1
     else:
         logger.error(f"Unknown PXE command: {args.pxe_command}")
         return 1
