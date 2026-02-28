@@ -57,6 +57,9 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
         // Track active downloads (entryId -> RemoteBootFetcher instance)
         this._activeDownloads = new Map();
 
+        // Source filter state
+        this._sourceFilter = 'all'; // 'all' | 'local' | 'remote'
+
         // Create dedicated layer for desktop objects
         this.objectLayer = new PIXI.Container();
         this.objectLayer.label = 'desktopObjectLayer';
@@ -233,6 +236,9 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
             }
         }
 
+        // Apply source filter after syncing remote objects
+        this._applySourceFilter();
+
         console.log(`[DesktopObjectManager] Synced ${entries.length} remote objects`);
     }
 
@@ -259,6 +265,66 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
      */
     isRemoteEntry(entryId) {
         return this._remoteEntryIds.has(entryId);
+    }
+
+    /**
+     * Set the source filter and update object visibility
+     * @param {string} filter - 'all' | 'local' | 'remote'
+     */
+    setSourceFilter(filter) {
+        this._sourceFilter = filter;
+        this._applySourceFilter();
+        this.emit('filter-changed', { filter });
+    }
+
+    /**
+     * Get the current source filter
+     * @returns {string}
+     */
+    getSourceFilter() {
+        return this._sourceFilter;
+    }
+
+    /**
+     * Apply source filter to all objects
+     * @private
+     */
+    _applySourceFilter() {
+        for (const [entryId, obj] of this.objects) {
+            this._applySourceFilterToObject(obj, entryId);
+        }
+    }
+
+    /**
+     * Apply source filter to a single object
+     * @param {RTSDesktopObject} obj - The object to filter
+     * @param {string} entryId - The entry ID
+     * @private
+     */
+    _applySourceFilterToObject(obj, entryId) {
+        const isRemote = this._remoteEntryIds.has(entryId);
+
+        switch (this._sourceFilter) {
+            case 'local':
+                obj.visible = !isRemote;
+                break;
+            case 'remote':
+                obj.visible = isRemote;
+                break;
+            case 'all':
+            default:
+                obj.visible = true;
+        }
+    }
+
+    /**
+     * Get counts for filter UI
+     * @returns {{local: number, remote: number, all: number}}
+     */
+    getFilterCounts() {
+        const local = this.objects.size - this._remoteEntryIds.size;
+        const remote = this._remoteEntryIds.size;
+        return { local, remote, all: this.objects.size };
     }
 
     /**
@@ -295,6 +361,9 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
         // Add to tracking and layer
         this.objects.set(entry.id, obj);
         this.objectLayer.addChild(obj);
+
+        // Apply source filter visibility
+        this._applySourceFilterToObject(obj, entry.id);
 
         // Callback if provided
         if (this.options.onObjectCreated) {
