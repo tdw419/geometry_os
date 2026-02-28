@@ -373,16 +373,27 @@ class DHCPProtocol(asyncio.DatagramProtocol):
         """Handle incoming DHCP packet."""
         client_ip, client_port = addr
 
+        # Debug: log raw packet data
+        logger.debug(f"[DHCP] Raw packet ({len(data)} bytes) from {client_ip}:{client_port}")
+        logger.debug(f"[DHCP] Packet hex: {data[:64].hex()}...")
+
         # Parse the packet
         packet = DHCPPacketParser.parse(data)
         if not packet:
-            logger.warning(f"[DHCP] Failed to parse packet from {client_ip}:{client_port}")
+            logger.warning(f"[DHCP] Malformed packet from {client_ip}:{client_port}")
             return
 
         mac = packet.get_mac_address()
         msg_type = packet.get_message_type()
 
-        logger.info(f"[DHCP] Received {self._msg_type_name(msg_type)} from {mac} (xid=0x{packet.xid:08x})")
+        logger.info(f"[DHCP] DISCOVER from {mac} (xid=0x{packet.xid:08x})" if msg_type == DHCP_DISCOVER
+                   else f"[DHCP] REQUEST from {mac} for {packet.ciaddr} (xid=0x{packet.xid:08x})"
+                   if msg_type == DHCP_REQUEST
+                   else f"[DHCP] {self._msg_type_name(msg_type)} from {mac} (xid=0x{packet.xid:08x})")
+
+        # Debug: log parsed options
+        if logger.isEnabledFor(logging.DEBUG):
+            self._log_packet_options(packet)
 
         # Route to appropriate handler
         response = None
@@ -390,12 +401,62 @@ class DHCPProtocol(asyncio.DatagramProtocol):
             response = self._handle_discover(packet)
         elif msg_type == DHCP_REQUEST:
             response = self._handle_request(packet)
+        elif msg_type == DHCP_RELEASE:
+            self._handle_release(packet)
+            return
         else:
             logger.debug(f"[DHCP] Ignoring message type {msg_type} from {mac}")
             return
 
         if response:
             self._send_response(response, addr)
+
+    def _log_packet_options(self, packet: DHCPPacket):
+        """Log DHCP options for debugging."""
+        option_names = {
+            1: "subnet_mask",
+            3: "router",
+            6: "dns_server",
+            12: "hostname",
+            50: "requested_ip",
+            51: "lease_time",
+            53: "message_type",
+            54: "server_id",
+            55: "parameter_request_list",
+            60: "vendor_class",
+            61: "client_id",
+            66: "tftp_server",
+            67: "bootfile",
+        }
+        for code, value in packet.options.items():
+            name = option_names.get(code, f"option_{code}")
+            if code in (50, 54):  # IP addresses
+                try:
+                    value_str = socket.inet_ntoa(value)
+                except:
+                    value_str = value.hex()
+            elif code == 51:  # Lease time
+                value_str = str(struct.unpack('!I', value)[0]) + "s"
+            elif code == 53:  # Message type
+                value_str = self._msg_type_name(value[0])
+            elif code == 55:  # Parameter request list
+                value_str = "[" + ", ".join(option_names.get(b, str(b)) for b in value) + "]"
+            else:
+                try:
+                    value_str = value.decode('utf-8', errors='replace')
+                except:
+                    value_str = value.hex()
+            logger.debug(f"[DHCP]   {name}: {value_str}")
+
+    def _handle_release(self, packet: DHCPPacket):
+        """Handle DHCP RELEASE message."""
+        mac = packet.get_mac_address()
+        lease = self.lease_store.get_lease(mac)
+        if lease:
+            self.lease_store.release(mac)
+            logger.info(f"[DHCP] RELEASE {lease.ip} from {mac}")
+        else:
+            logger.debug(f"[DHCP] RELEASE from unknown client {mac}")
 
     def error_received(self, exc):
         """Handle UDP errors."""
@@ -416,6 +477,11 @@ class DHCPProtocol(asyncio.DatagramProtocol):
             return None
 
         logger.info(f"[DHCP] OFFER {ip} to {mac}")
+
+        # Debug: log lease allocation details
+        lease = self.lease_store.get_lease(mac)
+        if lease and logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f"[DHCP] Lease expires at {lease.expires_at.isoformat()}")
 
         return self._build_response(
             request=packet,
@@ -442,8 +508,6 @@ class DHCPProtocol(asyncio.DatagramProtocol):
                 # No pending offer, allocate new
                 requested_ip = self.lease_store.allocate(mac) or "0.0.0.0"
 
-        logger.info(f"[DHCP] REQUEST from {mac} for {requested_ip}")
-
         # Verify we have this lease
         lease = self.lease_store.get_lease(mac)
         if not lease or lease.ip != requested_ip:
@@ -454,7 +518,10 @@ class DHCPProtocol(asyncio.DatagramProtocol):
                 yiaddr="0.0.0.0"
             )
 
-        logger.info(f"[DHCP] ACK {requested_ip} to {mac} - PXE: tftp://{self.config.tftp_server}/{self.config.bootfile}")
+        logger.info(
+            f"[DHCP] ACK {requested_ip} to {mac} - "
+            f"PXE: tftp://{self.config.tftp_server}/{self.config.bootfile}"
+        )
 
         return self._build_response(
             request=packet,
