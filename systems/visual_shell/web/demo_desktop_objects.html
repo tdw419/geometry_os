@@ -283,6 +283,7 @@
             <span>API:</span>
             <span id="api-url">http://localhost:8080</span>
         </div>
+        <div id="filter-container" style="margin-left: auto;"></div>
     </div>
 
     <!-- Canvas Container -->
@@ -319,6 +320,7 @@
     <script src="CatalogBridge.js"></script>
     <script src="RTSDesktopObject.js"></script>
     <script src="DesktopObjectManager.js"></script>
+    <script src="CatalogFilterBar.js"></script>
 
     <script>
         // ============================================
@@ -351,6 +353,7 @@
         let worldContainer = null;
         let catalogBridge = null;
         let desktopObjectManager = null;
+        let filterBar = null;
         let isDraggingCanvas = false;
         let dragStart = { x: 0, y: 0 };
         let worldStart = { x: 0, y: 0 };
@@ -406,6 +409,10 @@
 
         function updateObjectCount(count) {
             objectCountEl.textContent = count;
+            if (filterBar && desktopObjectManager) {
+                const counts = desktopObjectManager.getFilterCounts();
+                filterBar.updateCounts(counts.local, counts.remote);
+            }
         }
 
         function updateSelectedObject(name) {
@@ -618,6 +625,26 @@
 
             desktopObjectManager.on('selection-cleared', () => {
                 updateSelectedObject(null);
+            });
+
+            // Initialize filter bar
+            const filterContainer = document.getElementById('filter-container');
+            filterBar = new CatalogFilterBar({
+                onFilterChange: (filter) => {
+                    desktopObjectManager.setSourceFilter(filter);
+                }
+            });
+            filterContainer.appendChild(filterBar.getContainer());
+
+            // Update counts when catalog loads
+            desktopObjectManager.on('catalog-loaded', () => {
+                const counts = desktopObjectManager.getFilterCounts();
+                filterBar.updateCounts(counts.local, counts.remote);
+            });
+
+            desktopObjectManager.on('remote-catalog-loaded', () => {
+                const counts = desktopObjectManager.getFilterCounts();
+                filterBar.updateCounts(counts.local, counts.remote);
             });
 
             log('info', 'DesktopObjectManager initialized');
