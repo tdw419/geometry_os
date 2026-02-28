@@ -102,7 +102,7 @@ Plans:
 3. Settings panel includes PXE toggle per container with immediate effect
 4. Boot progress visualization works identically for PXE and local boot
 
-**Plans:** 0 plans (Pending)
+**Plans:** 4 plans (Complete)
 
 ---
 
@@ -114,9 +114,9 @@ Plans:
 | 13 - TFTP Server | Bootloader delivered via TFTP | 4 | 4 | Complete |
 | 14 - HTTP Serving | Containers available via HTTP | 4 | 4 | Complete |
 | 15 - Boot Menu | Interactive container selection | 4 | 4 | Complete |
-| 16 - Integration | Unified with v1.2 infrastructure | 4 | 0 | Pending |
+| 16 - Integration | Unified with v1.2 infrastructure | 4 | 4 | Complete |
 
-**Total:** 16 requirements, 5 phases, 16 plans
+**Total:** 16 requirements, 5 phases, 20 plans
 
 ---
 

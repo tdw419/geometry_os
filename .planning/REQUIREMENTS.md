@@ -37,10 +37,10 @@ Requirements for PXE Boot milestone. Each maps to a roadmap phase.
 
 ### Integration (INT)
 
-- [ ] **INT-01**: PXE boot uses existing RemoteBootFetcher for container download
-- [ ] **INT-02**: PXE containers appear in visual shell catalog with PXE badge
-- [ ] **INT-03**: User can toggle PXE availability per container from settings
-- [ ] **INT-04**: PXE boot status integrates with existing boot progress visualization
+- [x] **INT-01**: PXE boot uses existing RemoteBootFetcher for container download
+- [x] **INT-02**: PXE containers appear in visual shell catalog with PXE badge
+- [x] **INT-03**: User can toggle PXE availability per container from settings
+- [x] **INT-04**: PXE boot status integrates with existing boot progress visualization
 
 ## v1.x Requirements
 
@@ -84,10 +84,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MENU-02 | Phase 15 | Complete |
 | MENU-03 | Phase 15 | Complete |
 | MENU-04 | Phase 15 | Complete |
-| INT-01 | Phase 16 | Pending |
-| INT-02 | Phase 16 | Pending |
-| INT-03 | Phase 16 | Pending |
-| INT-04 | Phase 16 | Pending |
+| INT-01 | Phase 16 | Complete |
+| INT-02 | Phase 16 | Complete |
+| INT-03 | Phase 16 | Complete |
+| INT-04 | Phase 16 | Complete |
 
 **Coverage:**
 - v1.3 requirements: 16 total
