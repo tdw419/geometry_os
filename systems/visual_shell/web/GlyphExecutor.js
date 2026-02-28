@@ -9,7 +9,11 @@
  * - State synchronization with CPU
  *
  * Phase 28: Zero-Symbol Holographic Execution
+ * Epoch 2: Tectonic Building Support
  */
+
+import { TectonicBuilding } from './TectonicBuilding.js';
+import { WireManager } from './VisualWire.js';
 
 export class GlyphExecutor {
     /**
@@ -1121,5 +1125,294 @@ export class GlyphExecutor {
 
         console.log(`[GlyphExecutor] Executed ${executedCount} visible glyphs`);
         return executedCount;
+    }
+
+    // ============================================
+    // TECTONIC BUILDING SUPPORT (Epoch 2)
+    // ============================================
+
+    /**
+     * Register a Tectonic Building and all its glyphs.
+     * @param {TectonicBuilding} building - Building to register
+     * @returns {number} Number of glyphs registered
+     */
+    registerBuilding(building) {
+        if (!building || !building.glyphs) {
+            console.warn('[GlyphExecutor] Invalid building provided');
+            return 0;
+        }
+
+        // Track building
+        if (!this.buildings) {
+            this.buildings = new Map();
+        }
+
+        this.buildings.set(building.id, building);
+
+        // Register all glyphs in the building
+        let registeredCount = 0;
+        for (const glyph of building.glyphs) {
+            this.registerGlyph(glyph.absX, glyph.absY, {
+                opcode: glyph.opcode,
+                operand: glyph.operand,
+                atlasX: glyph.atlasX,
+                atlasY: glyph.atlasY,
+                buildingId: building.id
+            });
+            registeredCount++;
+        }
+
+        console.log(`[GlyphExecutor] Registered building '${building.name}' with ${registeredCount} glyphs`);
+        return registeredCount;
+    }
+
+    /**
+     * Unregister a building and its glyphs.
+     * @param {string} buildingId - Building ID to unregister
+     */
+    unregisterBuilding(buildingId) {
+        const building = this.buildings?.get(buildingId);
+        if (!building) return;
+
+        // Remove all glyphs
+        for (const glyph of building.glyphs) {
+            const key = `${glyph.absX},${glyph.absY}`;
+            this.glyphRegistry.delete(key);
+        }
+
+        this.buildings.delete(buildingId);
+        console.log(`[GlyphExecutor] Unregistered building '${building.name}'`);
+    }
+
+    /**
+     * Get building by ID.
+     * @param {string} buildingId - Building ID
+     * @returns {TectonicBuilding|null}
+     */
+    getBuilding(buildingId) {
+        return this.buildings?.get(buildingId) || null;
+    }
+
+    /**
+     * Get all registered buildings.
+     * @returns {Array<TectonicBuilding>}
+     */
+    getAllBuildings() {
+        return this.buildings ? Array.from(this.buildings.values()) : [];
+    }
+
+    /**
+     * Connect two buildings with a wire for IPC.
+     * @param {string} sourceBuildingId - Source building ID
+     * @param {string} sourcePortName - Source port name
+     * @param {string} targetBuildingId - Target building ID
+     * @param {string} targetPortName - Target port name
+     * @param {string} dataType - Data type (i32, f32, ptr)
+     * @returns {VisualWire|null} Created wire or null
+     */
+    connectBuildings(sourceBuildingId, sourcePortName, targetBuildingId, targetPortName, dataType = 'i32') {
+        const sourceBuilding = this.buildings?.get(sourceBuildingId);
+        const targetBuilding = this.buildings?.get(targetBuildingId);
+
+        if (!sourceBuilding || !targetBuilding) {
+            console.warn('[GlyphExecutor] Cannot connect: building not found');
+            return null;
+        }
+
+        // Initialize wire manager if needed
+        if (!this.wireManager) {
+            this.wireManager = new WireManager();
+            if (this.graphicsLayer) {
+                this.wireManager.setGraphicsLayer(this.graphicsLayer);
+            }
+        }
+
+        try {
+            const wire = this.wireManager.connect(
+                sourceBuilding,
+                sourcePortName,
+                targetBuilding,
+                targetPortName,
+                dataType
+            );
+
+            // Set up data transfer callback
+            wire.onDataTransfer = (data) => {
+                this._handleWireDataTransfer(wire, data);
+            };
+
+            console.log(`[GlyphExecutor] Connected ${sourceBuilding.name}.${sourcePortName} -> ${targetBuilding.name}.${targetPortName}`);
+            return wire;
+        } catch (e) {
+            console.error('[GlyphExecutor] Failed to connect buildings:', e);
+            return null;
+        }
+    }
+
+    /**
+     * Disconnect a wire.
+     * @param {string} wireId - Wire ID to disconnect
+     */
+    disconnectBuildings(wireId) {
+        if (this.wireManager) {
+            this.wireManager.disconnect(wireId);
+        }
+    }
+
+    /**
+     * Handle data transfer through a wire.
+     */
+    _handleWireDataTransfer(wire, data) {
+        // Update target building input port
+        if (wire.targetBuilding && wire.targetPort) {
+            // Store data in target building's input buffer
+            if (!wire.targetBuilding.inputBuffer) {
+                wire.targetBuilding.inputBuffer = new Map();
+            }
+            wire.targetBuilding.inputBuffer.set(wire.targetPort.name, data);
+
+            // Mark building as having new input
+            wire.targetBuilding.hasNewInput = true;
+        }
+    }
+
+    /**
+     * Transfer data between connected buildings.
+     * @param {string} wireId - Wire ID
+     * @param {*} data - Data to transfer
+     */
+    transferData(wireId, data) {
+        if (this.wireManager) {
+            this.wireManager.transferData(wireId, data);
+        }
+    }
+
+    /**
+     * Execute all buildings in dependency order.
+     * @param {string} kernelId - Kernel to use
+     * @param {number} cycles - Cycles per building
+     */
+    executeBuildings(kernelId, cycles = 1000) {
+        if (!this.buildings || this.buildings.size === 0) return;
+
+        // Topological sort based on wire connections
+        const order = this._getExecutionOrder();
+
+        for (const buildingId of order) {
+            const building = this.buildings.get(buildingId);
+            if (building && building.state !== 'halted') {
+                building.setState('running');
+
+                // Execute building's glyphs
+                for (const glyph of building.glyphs) {
+                    this.markExecuted(glyph.absX, glyph.absY);
+                }
+
+                // Transfer outputs through connected wires
+                this._transferBuildingOutputs(building);
+
+                building.executionCount++;
+            }
+        }
+
+        // Execute kernel once
+        if (kernelId && this.kernels.has(kernelId)) {
+            this.execute(kernelId, cycles);
+        }
+    }
+
+    /**
+     * Get execution order based on wire dependencies.
+     */
+    _getExecutionOrder() {
+        const order = [];
+        const visited = new Set();
+        const visiting = new Set();
+
+        const visit = (buildingId) => {
+            if (visited.has(buildingId)) return;
+            if (visiting.has(buildingId)) {
+                console.warn('[GlyphExecutor] Circular dependency detected');
+                return;
+            }
+
+            visiting.add(buildingId);
+
+            const building = this.buildings.get(buildingId);
+            if (building) {
+                // Visit dependencies (buildings connected to inputs)
+                for (const wire of building.incomingWires) {
+                    if (wire.sourceBuilding) {
+                        visit(wire.sourceBuilding.id);
+                    }
+                }
+            }
+
+            visiting.delete(buildingId);
+            visited.add(buildingId);
+            order.push(buildingId);
+        };
+
+        for (const buildingId of this.buildings.keys()) {
+            visit(buildingId);
+        }
+
+        return order;
+    }
+
+    /**
+     * Transfer outputs from a building through its wires.
+     */
+    _transferBuildingOutputs(building) {
+        if (!building.outputBuffer || !this.wireManager) return;
+
+        for (const wire of building.outgoingWires) {
+            const outputValue = building.outputBuffer.get(wire.sourcePort?.name);
+            if (outputValue !== undefined) {
+                this.wireManager.transferData(wire.id, outputValue);
+            }
+        }
+    }
+
+    /**
+     * Update wire animations.
+     * @param {number} deltaTime - Time since last update
+     */
+    updateWires(deltaTime) {
+        if (this.wireManager) {
+            this.wireManager.update(deltaTime);
+        }
+    }
+
+    /**
+     * Serialize all buildings.
+     */
+    serializeBuildings() {
+        const buildings = this.getAllBuildings();
+        return buildings.map(b => b.serialize());
+    }
+
+    /**
+     * Deserialize buildings from data.
+     * @param {Array} buildingsData - Serialized buildings
+     */
+    deserializeBuildings(buildingsData) {
+        if (!buildingsData) return;
+
+        for (const data of buildingsData) {
+            const building = TectonicBuilding.deserialize(data);
+            this.registerBuilding(building);
+        }
+    }
+
+    /**
+     * Set graphics layer for wire rendering.
+     * @param {PIXI.Container} layer - Graphics layer
+     */
+    setGraphicsLayer(layer) {
+        this.graphicsLayer = layer;
+        if (this.wireManager) {
+            this.wireManager.setGraphicsLayer(layer);
+        }
     }
 }

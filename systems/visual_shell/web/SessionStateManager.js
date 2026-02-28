@@ -96,6 +96,15 @@ export class SessionStateManager {
             state.components.terminals = this._saveTerminalPositions();
         }
 
+        // Save buildings and wires
+        if (this.glyphExecutor?.serializeBuildings) {
+            state.components.buildings = this.glyphExecutor.serializeBuildings();
+        }
+
+        if (this.glyphExecutor?.wireManager) {
+            state.components.wires = this.glyphExecutor.wireManager.serialize();
+        }
+
         // Write to localStorage
         try {
             localStorage.setItem(
@@ -212,6 +221,12 @@ export class SessionStateManager {
             if (state.components?.terminals && this.terminalManager) {
                 this._loadTerminalPositions(state.components.terminals);
                 results.terminals = { restored: Object.keys(state.components.terminals).length };
+            }
+
+            // Restore buildings and wires
+            if (state.components?.buildings && this.glyphExecutor?.deserializeBuildings) {
+                this.glyphExecutor.deserializeBuildings(state.components.buildings);
+                results.buildings = { restored: state.components.buildings.length };
             }
 
             console.log('[SessionStateManager] Restored session from',
