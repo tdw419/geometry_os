@@ -114,6 +114,7 @@ class HTTPServer:
         self._app.router.add_post('/catalog/refresh', self._handle_catalog_refresh)
         self._app.router.add_get('/pxe', self._handle_pxe_list)
         self._app.router.add_post('/pxe/{entry_id}/toggle', self._handle_pxe_toggle)
+        self._app.router.add_post('/pxe/{entry_id}/menu', self._handle_pxe_menu_update)
             # iPXE boot script endpoints
         self._app.router.add_get('/pxe/boot.ipxe', self._handle_boot_script)
         self._app.router.add_get('/pxe/menu.ipxe', self._handle_menu_script)
@@ -339,15 +340,17 @@ class HTTPServer:
         })
 
     async def _handle_pxe_list(self, request: web.Request) -> web.Response:
-        """Handle GET /pxe to list PXE-enabled containers."""
+        """Handle GET /pxe to list PXE-enabled containers with customization."""
         containers = []
         for info in self.get_pxe_containers():
             containers.append({
                 'id': info.entry_id,
-                'name': info.entry.name,
+                'name': info.pxe_name or info.entry.name,
                 'url': f'/containers/{info.entry_id}',
                 'boot_order': info.pxe_boot_order,
                 'size': info.entry.size,
+                'pxe_name': info.pxe_name,
+                'pxe_description': info.pxe_description,
             })
 
         return web.json_response({
@@ -375,6 +378,38 @@ class HTTPServer:
             'success': success,
             'entry_id': entry_id,
             'pxe_enabled': enabled
+        })
+
+    async def _handle_pxe_menu_update(self, request: web.Request) -> web.Response:
+        """Handle POST /pxe/{entry_id}/menu to update menu customization."""
+        entry_id = request.match_info.get('entry_id', '')
+
+        if entry_id not in self._pxe_containers:
+            raise web.HTTPNotFound(text=f"Container not found: {entry_id}")
+
+        try:
+            data = await request.json()
+        except Exception:
+            raise web.HTTPBadRequest(text="Invalid JSON body")
+
+        info = self._pxe_containers[entry_id]
+
+        # Update fields if provided
+        if 'name' in data:
+            info.pxe_name = data['name']
+        if 'description' in data:
+            info.pxe_description = data['description']
+        if 'boot_order' in data:
+            info.pxe_boot_order = int(data['boot_order'])
+
+        logger.info(f"[HTTP] Updated menu entry for {entry_id}")
+
+        return web.json_response({
+            'success': True,
+            'entry_id': entry_id,
+            'name': info.pxe_name or info.entry.name,
+            'description': info.pxe_description,
+            'boot_order': info.pxe_boot_order
         })
 
     # =========================================================================
