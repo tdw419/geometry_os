@@ -23,6 +23,15 @@ Usage:
     )
     tftp_server = TFTPServer(tftp_config)
 
+    # HTTP Server
+    from systems.pixel_compiler.pxe import HTTPServer, HTTPServerConfig
+
+    http_config = HTTPServerConfig(
+        root_dir="/tftpboot",
+        listen_port=8080,
+    )
+    http_server = HTTPServer(http_config)
+
     asyncio.run(dhcp_server.serve_forever())
 
 CLI Usage:
@@ -53,6 +62,10 @@ from .tftp_server import (
     TFTP_ERROR_ACCESS_VIOLATION,
     TFTP_BLOCK_SIZE,
 )
+from .http_server import (
+    HTTPServer,
+    HTTPServerConfig,
+)
 from .pxe_cli import (
     create_parser,
     main,
@@ -81,6 +94,9 @@ __all__ = [
     'TFTP_ERROR_FILE_NOT_FOUND',
     'TFTP_ERROR_ACCESS_VIOLATION',
     'TFTP_BLOCK_SIZE',
+    # HTTP
+    'HTTPServer',
+    'HTTPServerConfig',
     # CLI
     'create_parser',
     'main',
