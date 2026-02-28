@@ -1,18 +1,27 @@
 # Project Milestones: PixelRTS Boot Improvement
 
-## v1.2 Network Boot (In Progress)
+## v1.2 Network Boot (Shipped: 2026-02-28)
 
-**Goal:** Boot OS containers from remote HTTP servers with visual progress and offline resilience.
+**Delivered:** Boot OS containers from anywhere - local or remote - with the same drag-and-drop experience. Remote containers are cached locally for offline access.
 
-**Phases:** 7-11 (12 plans total)
+**Phases completed:** 7-11 (14 plans total)
 
-**Key features:**
-- Remote container boot with download progress
-- Local caching with hash verification
-- Unified local + remote catalog view
-- Graceful error handling with retry
+**Key accomplishments:**
+- IndexedDB cache with LRU eviction and hash verification
+- Multi-server catalog aggregation with stale-while-revalidate
+- Streaming downloads with real-time progress (speed, ETA)
+- Source filtering and search across local + remote catalogs
+- Exponential backoff retry with manual retry button
+- Cache management UI with clear functionality
 
-**Started:** 2026-02-27
+**Stats:**
+- 7 new components (~8,264 lines)
+- 5 phases, 14 plans
+- 13 requirements shipped (100%)
+
+**Git range:** `feat(07-01)` → `docs(11)`
+
+**What's next:** Network boot over PXE/NBD
 
 ---
 
@@ -37,8 +46,6 @@
 
 **Git range:** `feat(05-01)` → `docs(06)`
 
-**What's next:** Advanced visualization and network features
-
 ---
 
 ## v1.0 PixelRTS Boot Improvement (Shipped: 2026-02-27)
@@ -56,8 +63,6 @@
 **Stats:**
 - 4 phases, 23 plans
 - CLI Commands: `pixelrts analyze|boot|install|catalog`
-
-**What's next:** Visual Shell Integration
 
 ---
 
