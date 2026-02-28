@@ -66,8 +66,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RBOOT-02 | Phase 9 | Complete |
 | RBOOT-04 | Phase 9 | Complete |
 | RBOOT-05 | Phase 9 | Complete |
-| RCAT-02 | Phase 10 | Pending |
-| RCAT-03 | Phase 10 | Pending |
+| RCAT-02 | Phase 10 | Complete |
+| RCAT-03 | Phase 10 | Complete |
 | RBOOT-03 | Phase 11 | Pending |
 | CACHE-03 | Phase 11 | Pending |
 
