@@ -42,6 +42,14 @@ class ServerSettingsPanel {
         this._isAddFormVisible = false;
         this._cacheStats = null;
 
+        // Set up event listeners for PXE toggles from DesktopObjectManager
+        if (this.desktopManager) {
+            this._onPXEToggledHandler = (data) => {
+                this._handlePXEToggledEvent(data);
+            };
+            this.desktopManager.on('pxe-toggled', this._onPXEToggledHandler);
+        }
+
         // Inject styles
         this._injectStyles();
 
@@ -1214,7 +1222,29 @@ class ServerSettingsPanel {
      * @private
      */
     async _handlePXEToggle(entryId, enabled) {
-        if (!this.catalogBridge) return;
+        if (!this.desktopManager) {
+            // Fallback to direct bridge call if desktopManager not available
+            if (!this.catalogBridge) return;
+
+            const toggleEl = document.querySelector(`#pxe-toggle-${entryId}`);
+            if (!toggleEl) return;
+
+            toggleEl.classList.toggle('enabled', enabled);
+
+            try {
+                const result = await this.catalogBridge.setPXEAvailability(entryId, enabled);
+                if (result && result.success !== false) {
+                    this._showPXEMessage(`PXE ${enabled ? 'enabled' : 'disabled'} for ${entryId}`, 'success');
+                } else {
+                    toggleEl.classList.toggle('enabled', !enabled);
+                    this._showPXEMessage('Failed to update PXE status', 'error');
+                }
+            } catch (error) {
+                toggleEl.classList.toggle('enabled', !enabled);
+                this._showPXEMessage(`Error: ${error.message}`, 'error');
+            }
+            return;
+        }
 
         const toggleEl = document.querySelector(`#pxe-toggle-${entryId}`);
         if (!toggleEl) return;
@@ -1223,41 +1253,18 @@ class ServerSettingsPanel {
         toggleEl.classList.toggle('enabled', enabled);
 
         try {
-            const result = await this.catalogBridge.setPXEAvailability(entryId, enabled);
+            // Use DesktopObjectManager.togglePXE() which will:
+            // 1. Call the API
+            // 2. Update the desktop object badge
+            // 3. Emit 'pxe-toggled' event
+            const success = await this.desktopManager.togglePXE(entryId, enabled);
 
-            if (result && result.success !== false) {
-                // Update local data
-                if (this._pxeData) {
-                    const container = this._pxeData.pxe_containers?.find(c => c.entry_id === entryId);
-                    if (container) {
-                        container.pxe_enabled = enabled;
-                    }
-                }
-
-                // Update desktop object badge
-                if (this.desktopManager) {
-                    const obj = this.desktopManager.getObject(entryId);
-                    if (obj && typeof obj.setPXEEnabled === 'function') {
-                        obj.setPXEEnabled(enabled);
-                    }
-                }
-
-                // Update entry data for future toggles
-                const entryEl = this.pxeListEl?.querySelector(`[data-entry-id="${entryId}"]`);
-                if (entryEl) {
-                    // Update the entry's pxe_enabled state for future clicks
-                    const entryData = this._pxeData?.pxe_containers?.find(c => c.entry_id === entryId);
-                    if (entryData) {
-                        entryData.pxe_enabled = enabled;
-                    }
-                }
-
-                this._showPXEMessage(`PXE ${enabled ? 'enabled' : 'disabled'} for ${entryId}`, 'success');
-            } else {
+            if (!success) {
                 // Revert on failure
                 toggleEl.classList.toggle('enabled', !enabled);
                 this._showPXEMessage('Failed to update PXE status', 'error');
             }
+            // Success message will be shown by _handlePXEToggledEvent handler
         } catch (error) {
             console.error('[ServerSettingsPanel] PXE toggle error:', error);
             // Revert on error
@@ -1309,9 +1316,46 @@ class ServerSettingsPanel {
     }
 
     /**
+     * Handle pxe-toggled event from DesktopObjectManager
+     * @param {Object} data - Event data { entryId, enabled }
+     * @private
+     */
+    _handlePXEToggledEvent(data) {
+        const { entryId, enabled } = data;
+
+        // Update the toggle switch in our UI
+        const toggleEl = document.querySelector(`#pxe-toggle-${entryId}`);
+        if (toggleEl) {
+            toggleEl.classList.toggle('enabled', enabled);
+        }
+
+        // Update local data
+        if (this._pxeData) {
+            const container = this._pxeData.pxe_containers?.find(c => c.entry_id === entryId);
+            if (container) {
+                container.pxe_enabled = enabled;
+            }
+        }
+
+        // Update status display
+        const statusDisplay = this.pxeSectionEl?.querySelector('#pxe-status-display');
+        if (statusDisplay && this._pxeData?.pxe_containers) {
+            const enabledCount = this._pxeData.pxe_containers.filter(c => c.pxe_enabled).length;
+            statusDisplay.textContent = `${enabledCount}/${this._pxeData.pxe_containers.length} enabled`;
+        }
+
+        // Show success message
+        this._showPXEMessage(`PXE ${enabled ? 'enabled' : 'disabled'} for ${entryId}`, 'success');
+    }
+
+    /**
      * Clean up and destroy the panel
      */
     destroy() {
+        // Remove event listeners
+        if (this.desktopManager && this._onPXEToggledHandler) {
+            this.desktopManager.off('pxe-toggled', this._onPXEToggledHandler);
+        }
         if (this.container) {
             this.container.innerHTML = '';
         }
