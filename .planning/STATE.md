@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file — from anywhere.
-**Current focus:** Phase 8 - Remote Client (Complete)
+**Current focus:** Phase 9 - Remote Boot
 
 ## Current Position
 
 **Milestone:** v1.2 Network Boot
-**Phase:** 8 of 11 (Remote Client) - COMPLETE
-**Plan:** 2 of 2 complete
-**Status:** Phase complete
-**Last activity:** 2026-02-28 — Completed 08-02 server source indicators
+**Phase:** 9 of 11 (Remote Boot) - In Progress
+**Plan:** 1 of 3 complete
+**Status:** In progress
+**Last activity:** 2026-02-28 — Completed 09-01 RemoteBootFetcher
 
-Progress: [██░░░░░░░░] 18%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 38 (v1.0: 23, v1.1: 8, v1.2: 7)
-- v1.2 plans remaining: 5
+- Total plans completed: 39 (v1.0: 23, v1.1: 8, v1.2: 8)
+- v1.2 plans remaining: 4
 
 **By Phase:**
 
@@ -31,14 +31,15 @@ Progress: [██░░░░░░░░] 18%
 | 5-6 (v1.1) | 8 | Complete |
 | 7 (v1.2) | 5 | Complete |
 | 8 (v1.2) | 2 | Complete |
-| 9-11 (v1.2) | 5 | Pending |
+| 9 (v1.2) | 1/3 | In Progress |
+| 10-11 (v1.2) | 2 | Pending |
 
 ## Accumulated Context
 
 ### Shipped Milestones
 - **v1.0:** PixelRTS Boot Improvement — Vision analysis, FUSE boot, installer, catalog
 - **v1.1:** Visual Shell Integration — Desktop objects, boot progress, error handling
-- **v1.2 (partial):** Cache Infrastructure + Remote Client — IndexedDB, hash verification, LRU eviction, ETag revalidation, cache-first fetching, verification status UI, multi-server aggregation, server source badges, settings panel
+- **v1.2 (partial):** Cache Infrastructure + Remote Client + Remote Boot — IndexedDB, hash verification, LRU eviction, ETag revalidation, cache-first fetching, verification status UI, multi-server aggregation, server source badges, settings panel, streaming downloads
 
 ### Key Decisions
 - PixiJS v7 for desktop rendering
@@ -69,6 +70,11 @@ Progress: [██░░░░░░░░] 18%
 - **08-02:** Hover shows server name tooltip near badge
 - **08-02:** Local containers have no badge (only remote containers show badge)
 - **08-02:** Vanilla DOM for settings panel (no framework dependency)
+- **09-01:** Streaming download via fetch ReadableStream (no XMLHttpRequest)
+- **09-01:** 3-second speed smoothing window to prevent progress jitter
+- **09-01:** 60-second default timeout for large container downloads
+- **09-01:** Data returned on hash verification failure (error also emitted)
+- **09-01:** Error categorization with retryable hints for retry logic
 
 ### Components Shipped
 - RTSDesktopObject.js (1394 lines) - PIXI.Container with progress, status, error, cache verification, server source badge
@@ -79,12 +85,13 @@ Progress: [██░░░░░░░░] 18%
 - ServerRegistry.js (327 lines) - localStorage server configuration persistence
 - RemoteCatalogClient.js (478 lines) - Multi-server catalog aggregation with SWR pattern
 - ServerSettingsPanel.js (674 lines) - Settings UI for managing remote servers
+- RemoteBootFetcher.js (633 lines) - Streaming download with progress, cancellation, hash verification
 
 ### Blockers
 - None currently
 
 ## Session Continuity
 
-Last session: 2026-02-28T00:13:00Z
-Status: Phase 8 complete — Remote Client fully implemented
+Last session: 2026-02-28T01:18:00Z
+Status: Phase 9 Plan 1 complete — RemoteBootFetcher streaming download implemented
 Resume file: None
