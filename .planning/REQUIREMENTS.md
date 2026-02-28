@@ -9,10 +9,10 @@ Requirements for PXE Boot milestone. Each maps to a roadmap phase.
 
 ### DHCP Server (DHCP)
 
-- [ ] **DHCP-01**: User can configure DHCP server to respond to PXE client requests
-- [ ] **DHCP-02**: User can specify network interface for DHCP service
-- [ ] **DHCP-03**: User can configure IP range for PXE clients
-- [ ] **DHCP-04**: DHCP responses include PXE boot server and filename options
+- [x] **DHCP-01**: User can configure DHCP server to respond to PXE client requests
+- [x] **DHCP-02**: User can specify network interface for DHCP service
+- [x] **DHCP-03**: User can configure IP range for PXE clients
+- [x] **DHCP-04**: DHCP responses include PXE boot server and filename options
 
 ### TFTP Server (TFTP)
 
@@ -68,10 +68,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DHCP-01 | Phase 12 | Pending |
-| DHCP-02 | Phase 12 | Pending |
-| DHCP-03 | Phase 12 | Pending |
-| DHCP-04 | Phase 12 | Pending |
+| DHCP-01 | Phase 12 | Complete |
+| DHCP-02 | Phase 12 | Complete |
+| DHCP-03 | Phase 12 | Complete |
+| DHCP-04 | Phase 12 | Complete |
 | TFTP-01 | Phase 13 | Pending |
 | TFTP-02 | Phase 13 | Pending |
 | TFTP-03 | Phase 13 | Pending |
