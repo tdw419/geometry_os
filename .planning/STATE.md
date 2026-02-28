@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file — from anywhere.
-**Current focus:** Phase 8 - Remote Client
+**Current focus:** Phase 8 - Remote Client (Complete)
 
 ## Current Position
 
 **Milestone:** v1.2 Network Boot
-**Phase:** 8 of 11 (Remote Client)
-**Plan:** 1 of 2 in current phase
-**Status:** In progress
-**Last activity:** 2026-02-28 — Completed 08-01 remote catalog client
+**Phase:** 8 of 11 (Remote Client) - COMPLETE
+**Plan:** 2 of 2 complete
+**Status:** Phase complete
+**Last activity:** 2026-02-28 — Completed 08-02 server source indicators
 
-Progress: [██░░░░░░░░] 16%
+Progress: [██░░░░░░░░] 18%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 37 (v1.0: 23, v1.1: 8, v1.2: 6)
-- v1.2 plans remaining: 6
+- Total plans completed: 38 (v1.0: 23, v1.1: 8, v1.2: 7)
+- v1.2 plans remaining: 5
 
 **By Phase:**
 
@@ -29,14 +29,16 @@ Progress: [██░░░░░░░░] 16%
 |-------|-------|--------|
 | 1-4 (v1.0) | 23 | Complete |
 | 5-6 (v1.1) | 8 | Complete |
-| 7-11 (v1.2) | 12 | In progress (6/12) |
+| 7 (v1.2) | 5 | Complete |
+| 8 (v1.2) | 2 | Complete |
+| 9-11 (v1.2) | 5 | Pending |
 
 ## Accumulated Context
 
 ### Shipped Milestones
 - **v1.0:** PixelRTS Boot Improvement — Vision analysis, FUSE boot, installer, catalog
 - **v1.1:** Visual Shell Integration — Desktop objects, boot progress, error handling
-- **v1.2 (partial):** Cache Infrastructure + Remote Client — IndexedDB, hash verification, LRU eviction, ETag revalidation, cache-first fetching, verification status UI, multi-server aggregation
+- **v1.2 (partial):** Cache Infrastructure + Remote Client — IndexedDB, hash verification, LRU eviction, ETag revalidation, cache-first fetching, verification status UI, multi-server aggregation, server source badges, settings panel
 
 ### Key Decisions
 - PixiJS v7 for desktop rendering
@@ -63,21 +65,26 @@ Progress: [██░░░░░░░░] 16%
 - **08-01:** 10-second timeout per server request via AbortController
 - **08-01:** Promise.allSettled for parallel server fetching (no sequential fallback)
 - **08-01:** Remote entries tagged with sourceServerId, sourceServerName, sourceServerColor
+- **08-02:** 8px colored dot badge in top-left corner for server source indicator
+- **08-02:** Hover shows server name tooltip near badge
+- **08-02:** Local containers have no badge (only remote containers show badge)
+- **08-02:** Vanilla DOM for settings panel (no framework dependency)
 
 ### Components Shipped
-- RTSDesktopObject.js (1271 lines) - PIXI.Container with progress, status, error, cache verification indicator
+- RTSDesktopObject.js (1394 lines) - PIXI.Container with progress, status, error, cache verification, server source badge
 - CatalogBridge.js (487 lines) - API client with status polling and cache-first fetching
-- DesktopObjectManager.js (678 lines) - Lifecycle manager
+- DesktopObjectManager.js (820 lines) - Lifecycle manager with remote catalog integration
 - catalog_server.py (639 lines) - Status tracking and REST API
 - CatalogCacheManager.js (1286 lines) - IndexedDB cache with LRU eviction, stale detection, ETag revalidation, ES6 exports
 - ServerRegistry.js (327 lines) - localStorage server configuration persistence
 - RemoteCatalogClient.js (478 lines) - Multi-server catalog aggregation with SWR pattern
+- ServerSettingsPanel.js (674 lines) - Settings UI for managing remote servers
 
 ### Blockers
 - None currently
 
 ## Session Continuity
 
-Last session: 2026-02-28T00:05:36Z
-Status: Completed 08-01 remote catalog client — 1 more plan in Phase 8
+Last session: 2026-02-28T00:13:00Z
+Status: Phase 8 complete — Remote Client fully implemented
 Resume file: None
