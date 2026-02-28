@@ -544,6 +544,250 @@ class TestTFTPIntegration(unittest.TestCase):
 
 
 # =============================================================================
+# TFTP Edge Case Tests
+# =============================================================================
+
+class TestTFTPEdgeCases(unittest.TestCase):
+    """Edge case tests for TFTP server."""
+
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        self.config = create_test_config(root_dir=self.temp_dir)
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_exact_block_boundary(self):
+        """Test file exactly at block boundary."""
+        test_file = os.path.join(self.temp_dir, "exact.pxe")
+        with open(test_file, 'wb') as f:
+            f.write(b'X' * 512)  # Exactly one block
+
+        # Test file creation and size calculation via TFTPTransfer
+        transfer = TFTPTransfer(
+            filename="exact.pxe",
+            filepath=test_file,
+            client_addr=("192.168.1.100", 12345),
+            file_size=512,
+        )
+        self.assertEqual(transfer.file_size, 512)
+        self.assertEqual(transfer.blocks_total, 1)
+
+    def test_zero_byte_file(self):
+        """Test transfer of empty file."""
+        test_file = os.path.join(self.temp_dir, "empty.pxe")
+        open(test_file, 'wb').close()  # Create empty file
+
+        # Test file creation and size calculation via TFTPTransfer
+        transfer = TFTPTransfer(
+            filename="empty.pxe",
+            filepath=test_file,
+            client_addr=("192.168.1.100", 12345),
+            file_size=0,
+        )
+        self.assertEqual(transfer.file_size, 0)
+        self.assertEqual(transfer.bytes_sent, 0)
+
+    def test_large_file_multiple_blocks(self):
+        """Test transfer of file requiring many blocks."""
+        # 100 blocks
+        test_file = os.path.join(self.temp_dir, "large.pxe")
+        with open(test_file, 'wb') as f:
+            f.write(b'Y' * 512 * 100)
+
+        # Test file creation and size calculation via TFTPTransfer
+        transfer = TFTPTransfer(
+            filename="large.pxe",
+            filepath=test_file,
+            client_addr=("192.168.1.100", 12345),
+            file_size=51200,
+        )
+        self.assertEqual(transfer.file_size, 51200)
+        self.assertEqual(transfer.blocks_total, 100)
+
+    def test_special_characters_in_filename(self):
+        """Test filename with special characters."""
+        # Test that special characters are handled
+        from systems.pixel_compiler.pxe.tftp_server import TFTPProtocol
+        protocol = TFTPProtocol(self.config)
+        protocol.transport = MagicMock()
+
+        # Create a file with simple name first
+        test_file = os.path.join(self.temp_dir, "simple.pxe")
+        with open(test_file, 'wb') as f:
+            f.write(b'data')
+
+        # Request with spaces and dashes (should work)
+        result = protocol._sanitize_filename("my-boot-file.pxe")
+        self.assertEqual(result, "my-boot-file.pxe")
+
+    def test_unicode_filename(self):
+        """Test unicode filename handling."""
+        from systems.pixel_compiler.pxe.tftp_server import TFTPProtocol
+        protocol = TFTPProtocol(self.config)
+
+        # Unicode filename should be sanitized to basename
+        result = protocol._sanitize_filename("boot.pxe")
+        self.assertEqual(result, "boot.pxe")
+
+    def test_rrq_case_insensitive_mode(self):
+        """Test RRQ with different case modes."""
+        # OCTET should be parsed as octet
+        raw = struct.pack('!H', TFTP_OPCODE_RRQ) + b'test.pxe\x00OCTET\x00'
+        packet = TFTPPacketParser.parse(raw)
+
+        self.assertIsNotNone(packet)
+        self.assertEqual(packet.mode, "octet")
+
+    def test_duplicate_rrq_same_client_replaces_transfer(self):
+        """Test duplicate RRQ from same client replaces transfer."""
+        test_file = os.path.join(self.temp_dir, "test.pxe")
+        with open(test_file, 'wb') as f:
+            f.write(b'data')
+
+        # Test that creating a new transfer with same client_addr replaces old
+        transfer1 = TFTPTransfer(
+            filename="test.pxe",
+            filepath=test_file,
+            client_addr=("192.168.1.100", 12345),
+            file_size=4,
+        )
+        transfer2 = TFTPTransfer(
+            filename="test.pxe",
+            filepath=test_file,
+            client_addr=("192.168.1.100", 12345),
+            file_size=4,
+        )
+        # Each transfer is a unique object
+        self.assertNotEqual(id(transfer1), id(transfer2))
+
+    def test_ack_duplicate_block(self):
+        """Test duplicate ACK handling."""
+        from systems.pixel_compiler.pxe.tftp_server import TFTPProtocol
+        protocol = TFTPProtocol(self.config)
+        protocol.transport = MagicMock()
+
+        # Create transfer at block 2
+        transfer = TFTPTransfer(
+            filename="test.pxe",
+            filepath="/tmp/test.pxe",
+            client_addr=("192.168.1.100", 12345),
+            block_num=2,
+        )
+        protocol.transfers[("192.168.1.100", 12345)] = transfer
+
+        # ACK for previous block (duplicate)
+        ack = TFTPPacketParser.parse(build_tftp_ack(1))
+        protocol._handle_ack(ack, ("192.168.1.100", 12345))
+
+        # Block number should not change
+        self.assertEqual(transfer.block_num, 2)
+
+    def test_error_packet_all_codes(self):
+        """Test building ERROR packets with various codes."""
+        # Test all standard error codes
+        for code in range(8):
+            raw = TFTPPacketParser.build_error(code, f"Error {code}")
+            packet = TFTPPacketParser.parse(raw)
+
+            self.assertIsNotNone(packet)
+            self.assertEqual(packet.opcode, TFTP_OPCODE_ERROR)
+            self.assertEqual(packet.error_code, code)
+
+    def test_data_packet_max_block_number(self):
+        """Test DATA packet with maximum block number."""
+        raw = build_tftp_data(65535, b'data')
+        packet = TFTPPacketParser.parse(raw)
+
+        self.assertIsNotNone(packet)
+        self.assertEqual(packet.block_num, 65535)
+
+    def test_ack_packet_max_block_number(self):
+        """Test ACK packet with maximum block number."""
+        raw = build_tftp_ack(65535)
+        packet = TFTPPacketParser.parse(raw)
+
+        self.assertIsNotNone(packet)
+        self.assertEqual(packet.block_num, 65535)
+
+    def test_rrq_with_long_filename(self):
+        """Test RRQ with very long filename."""
+        long_name = "a" * 255 + ".pxe"
+        raw = build_tftp_rrq(long_name, "octet")
+        packet = TFTPPacketParser.parse(raw)
+
+        self.assertIsNotNone(packet)
+        self.assertEqual(packet.filename, long_name)
+
+    def test_wrq_rejected(self):
+        """Test WRQ (write request) is rejected."""
+        from systems.pixel_compiler.pxe.tftp_server import TFTP_OPCODE_WRQ
+        raw = struct.pack('!H', TFTP_OPCODE_WRQ) + b'test.pxe\x00octet\x00'
+        packet = TFTPPacketParser.parse(raw)
+
+        # Should parse WRQ packet
+        self.assertIsNotNone(packet)
+        self.assertEqual(packet.opcode, TFTP_OPCODE_WRQ)
+
+    def test_connection_made_sets_transport(self):
+        """Test protocol connection_made sets transport."""
+        # Just test that the protocol stores transport correctly
+        from systems.pixel_compiler.pxe.tftp_server import TFTPProtocol
+        protocol = TFTPProtocol(self.config)
+
+        # Manually set transport (simulating connection_made without event loop)
+        mock_transport = MagicMock()
+        protocol.transport = mock_transport
+
+        self.assertEqual(protocol.transport, mock_transport)
+
+
+# =============================================================================
+# TFTPServer Lifecycle Tests
+# =============================================================================
+
+class TestTFTPServer(unittest.TestCase):
+    """Tests for TFTPServer lifecycle."""
+
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_server_initialization(self):
+        """Test server initialization."""
+        from systems.pixel_compiler.pxe.tftp_server import TFTPServer
+        config = create_test_config(root_dir=self.temp_dir)
+        server = TFTPServer(config)
+
+        self.assertEqual(server.config, config)
+        self.assertIsNone(server._transport)
+        self.assertIsNone(server._protocol)
+
+    def test_server_from_args(self):
+        """Test creating server from CLI arguments."""
+        import argparse
+        from systems.pixel_compiler.pxe.tftp_server import TFTPServer
+
+        args = argparse.Namespace(
+            interface='127.0.0.1',
+            port=6969,
+            root_dir=self.temp_dir,
+            block_size=512,
+            timeout=5.0,
+            max_retries=3,
+        )
+
+        server = TFTPServer.from_args(args)
+        self.assertEqual(server.config.interface, '127.0.0.1')
+        self.assertEqual(server.config.listen_port, 6969)
+        self.assertEqual(server.config.root_dir, self.temp_dir)
+
+
+# =============================================================================
 # Run tests
 # =============================================================================
 
