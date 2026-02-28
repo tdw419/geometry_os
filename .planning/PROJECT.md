@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A transformation of PixelRTS from a novel encoding format into a practical, production-ready OS boot and distribution system with network capabilities. The project enables booting OS containers from anywhere - local files or remote servers - with the same visual, drag-and-drop experience.
+A transformation of PixelRTS from a novel encoding format into a practical, production-ready OS boot and distribution system with network capabilities. The project enables booting OS containers from anywhere - local files, remote servers, or bare metal over PXE - with the same visual, drag-and-drop experience.
 
 ## Core Value
 
@@ -13,6 +13,18 @@ If everything else fails, users must be able to:
 2. See what OS they're about to boot (visual preview)
 3. Trust the container (vision-based verification)
 4. Boot from remote URLs with offline resilience
+5. Boot bare metal machines over PXE
+
+## Current Milestone: v1.3 PXE Boot
+
+**Goal:** Extend remote boot to bare metal with full PXE stack.
+
+**Target features:**
+- DHCP server configuration for PXE clients
+- TFTP server with iPXE bootloader
+- HTTP container serving for .rts.png files
+- PXE boot menu with container selection
+- Integration with v1.2 remote boot infrastructure
 
 ## Requirements
 
@@ -31,11 +43,10 @@ If everything else fails, users must be able to:
 
 ### Active
 
-(None — plan next milestone with `/gsd:new-milestone`)
+(None — defining requirements for v1.3)
 
 ### Future
 
-- **NETWORK-01**: Boot PixelRTS containers over network (PXE/NBD)
 - **NETWORK-02**: Delta-based OS updates (download only changed bytes)
 
 ### Out of Scope
@@ -94,4 +105,4 @@ If everything else fails, users must be able to:
 | Exponential backoff retry | Graceful network error handling | ✓ Shipped v1.2 |
 
 ---
-*Last updated: 2026-02-28 after v1.2 Network Boot milestone*
+*Last updated: 2026-02-28 for milestone v1.3 PXE Boot*

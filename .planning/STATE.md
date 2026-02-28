@@ -4,24 +4,24 @@
 
 See: .planning/PROJECT.md (updated 2026-02-28)
 
-**Core value:** Booting an OS should be as visual and intuitive as opening an image file — from anywhere.
-**Current focus:** Planning next milestone
+**Core value:** Booting an OS should be as visual and intuitive as opening an image file - from anywhere, including bare metal.
+**Current focus:** v1.3 PXE Boot - Roadmap created, ready for Phase 12 planning
 
 ## Current Position
 
-**Milestone:** Not started (v1.2 complete)
-**Phase:** —
-**Plan:** —
-**Status:** Ready for next milestone
-**Last activity:** 2026-02-28 — v1.2 Network Boot milestone complete
+**Milestone:** v1.3 PXE Boot
+**Phase:** 12 - DHCP Server
+**Plan:** None
+**Status:** Roadmap Created
+**Last activity:** 2026-02-28 - Roadmap created for v1.3 PXE Boot (5 phases, 16 requirements)
 
-Progress: [██████████] 100%
+Progress: [ ] 0%
 
 ## Performance Metrics
 
 **Velocity:**
 - Total plans completed: 59 (v1.0: 23, v1.1: 8, v1.2: 14, other: 14)
-- Current milestone: Complete
+- Current milestone: 0
 
 **By Milestone:**
 
@@ -30,13 +30,24 @@ Progress: [██████████] 100%
 | v1.0 | 1-4 | 23 | Complete |
 | v1.1 | 5-6 | 8 | Complete |
 | v1.2 | 7-11 | 14 | Complete |
+| v1.3 | 12-16 | 0 | Roadmap Created |
+
+**v1.3 Breakdown:**
+
+| Phase | Goal | Requirements | Status |
+|-------|------|--------------|--------|
+| 12 - DHCP Server | PXE clients receive boot instructions | 4 | Pending |
+| 13 - TFTP Server | Bootloader delivered via TFTP | 4 | Pending |
+| 14 - HTTP Serving | Containers available via HTTP | 4 | Pending |
+| 15 - Boot Menu | Interactive container selection | 4 | Pending |
+| 16 - Integration | Unified with v1.2 infrastructure | 4 | Pending |
 
 ## Accumulated Context
 
 ### Shipped Milestones
-- **v1.0:** PixelRTS Boot Improvement — Vision analysis, FUSE boot, installer, catalog
-- **v1.1:** Visual Shell Integration — Desktop objects, boot progress, error handling
-- **v1.2:** Network Boot — Cache infrastructure, remote client, remote boot, source filtering, search, retry logic, cache management UI
+- **v1.0:** PixelRTS Boot Improvement - Vision analysis, FUSE boot, installer, catalog
+- **v1.1:** Visual Shell Integration - Desktop objects, boot progress, error handling
+- **v1.2:** Network Boot - Cache infrastructure, remote client, remote boot, source filtering, search, retry logic, cache management UI
 
 ### Key Decisions
 - PixiJS v7 for desktop rendering
@@ -49,6 +60,7 @@ Progress: [██████████] 100%
 - Stale-while-revalidate pattern for responsive UI
 - Streaming download via fetch ReadableStream
 - MAX_RETRIES=3 with exponential backoff (1s, 2s, 4s max)
+- iPXE bootloader for PXE (supports both BIOS and UEFI via chainload)
 
 ### Components Shipped
 - RTSDesktopObject.js (2030 lines) - PIXI.Container with all UI features
@@ -67,6 +79,8 @@ Progress: [██████████] 100%
 
 ## Session Continuity
 
-Last session: 2026-02-28T04:00:00Z
-Status: v1.2 milestone complete — ready for next milestone
+Last session: 2026-02-28T04:30:00Z
+Status: Roadmap created for v1.3 PXE Boot
 Resume file: None
+
+**Next Action:** Run `/gsd:plan-phase 12` to plan DHCP Server implementation

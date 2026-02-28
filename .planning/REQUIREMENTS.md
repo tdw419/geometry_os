@@ -1,0 +1,98 @@
+# Requirements: PXE Boot
+
+**Defined:** 2026-02-28
+**Core Value:** Booting an OS should be as visual and intuitive as opening an image file — from anywhere, including bare metal.
+
+## v1.3 Requirements
+
+Requirements for PXE Boot milestone. Each maps to a roadmap phase.
+
+### DHCP Server (DHCP)
+
+- [ ] **DHCP-01**: User can configure DHCP server to respond to PXE client requests
+- [ ] **DHCP-02**: User can specify network interface for DHCP service
+- [ ] **DHCP-03**: User can configure IP range for PXE clients
+- [ ] **DHCP-04**: DHCP responses include PXE boot server and filename options
+
+### TFTP Server (TFTP)
+
+- [ ] **TFTP-01**: User can start TFTP server for bootloader delivery
+- [ ] **TFTP-02**: User can serve iPXE bootloader to PXE clients
+- [ ] **TFTP-03**: TFTP server handles concurrent client connections
+- [ ] **TFTP-04**: User sees TFTP transfer logs for debugging
+
+### HTTP Container Serving (HTTP)
+
+- [ ] **HTTP-01**: User can serve .rts.png containers via HTTP for PXE boot
+- [ ] **HTTP-02**: HTTP server integrates with existing catalog infrastructure
+- [ ] **HTTP-03**: User can select which containers are available for PXE boot
+- [ ] **HTTP-04**: HTTP server supports range requests for large containers
+
+### Boot Menu (MENU)
+
+- [ ] **MENU-01**: PXE client sees boot menu with available containers
+- [ ] **MENU-02**: User can customize boot menu entries (name, description)
+- [ ] **MENU-03**: Boot menu shows container thumbnails/metadata
+- [ ] **MENU-04**: User can set default boot entry and timeout
+
+### Integration (INT)
+
+- [ ] **INT-01**: PXE boot uses existing RemoteBootFetcher for container download
+- [ ] **INT-02**: PXE containers appear in visual shell catalog with PXE badge
+- [ ] **INT-03**: User can toggle PXE availability per container from settings
+- [ ] **INT-04**: PXE boot status integrates with existing boot progress visualization
+
+## v1.x Requirements
+
+Deferred to future releases.
+
+### Network Integration (NETWORK)
+
+- **NETWORK-02**: Delta-based OS updates — moved to v1.4+
+
+## Out of Scope
+
+Explicitly excluded. Documented to prevent scope creep.
+
+| Feature | Reason |
+|---------|--------|
+| DNS server | Use existing network DNS |
+| Full PXE provisioner | Focus on boot, not provisioning |
+| UEFI HTTP Boot | iPXE chainload supports both BIOS and UEFI |
+| Multiple network interfaces | Single interface sufficient for v1.3 |
+| PXE authentication | Open network for v1.3 |
+
+## Traceability
+
+Which phases cover which requirements. Updated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| DHCP-01 | Phase 12 | Pending |
+| DHCP-02 | Phase 12 | Pending |
+| DHCP-03 | Phase 12 | Pending |
+| DHCP-04 | Phase 12 | Pending |
+| TFTP-01 | Phase 13 | Pending |
+| TFTP-02 | Phase 13 | Pending |
+| TFTP-03 | Phase 13 | Pending |
+| TFTP-04 | Phase 13 | Pending |
+| HTTP-01 | Phase 14 | Pending |
+| HTTP-02 | Phase 14 | Pending |
+| HTTP-03 | Phase 14 | Pending |
+| HTTP-04 | Phase 14 | Pending |
+| MENU-01 | Phase 15 | Pending |
+| MENU-02 | Phase 15 | Pending |
+| MENU-03 | Phase 15 | Pending |
+| MENU-04 | Phase 15 | Pending |
+| INT-01 | Phase 16 | Pending |
+| INT-02 | Phase 16 | Pending |
+| INT-03 | Phase 16 | Pending |
+| INT-04 | Phase 16 | Pending |
+
+**Coverage:**
+- v1.3 requirements: 16 total
+- Mapped to phases: 16
+- Unmapped: 0
+
+---
+*Requirements defined: 2026-02-28*
