@@ -49,7 +49,7 @@ Primary driver of the implementation phase. Features a self-contained execution 
 | `tasks` | Generate implementation tasks | tasks.md |
 | `implement` | Execute implementation tasks | Code changes |
 | `status` | Check spec status | Status report |
-| `refactor` | Update specs after execution | Updated spec files |
+| `refactor` | Update specs methodically after execution | requirements → design → tasks |
 | `cancel` | Cancel active execution loop | Cleanup state |
 
 ### Quick Mode
@@ -59,18 +59,25 @@ Primary driver of the implementation phase. Features a self-contained execution 
 | `start --quick` | Skip interviews, auto-generate artifacts | Immediate execution |
 | `research --quick` | Quick research phase | Auto-generates research |
 
-### Code Discovery
+### Code Discovery & Meta
 
 | Command | Use When | Output |
 |---------|----------|--------|
 | `index` | Scan repository for components | Searchable specs |
 | `smart-ralph` | Get help with Ralph arguments | Usage guide |
+| `interview-framework` | Standard adaptive interview loop | Internal logic guide |
+| `communication-style` | Rules for concise, scannable output | Formatting rules |
+| `delegation-principle` | Coordination and subagent delegation | Role guidance |
+| `reality-verification` | Verify fixes, diagnose issues | Evidence criteria |
+| `feedback` | Report issues or submit feedback | Feedback loop |
+| `spec-workflow` | Start a new feature or spec | `/ralph-specum:start` |
 
 ### Ralph Special Features
 
 - **Stop-Hook Mechanism**: Allows agent to move through tasks without external dependencies
 - **Quick Mode** (`--quick`): Skips interactive interviews, immediately starts execution
 - **Indexing**: Scans repository for services, models, helpers—generating searchable specs
+- **Reality Verification**: Use for "verify a fix", "reproduce failure", "diagnose issue", "check BEFORE/AFTER state"
 - **Smart Compaction**: Combines Ralph Wiggum loop with structured specification workflow
 
 ---
