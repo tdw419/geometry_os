@@ -11,17 +11,17 @@ See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Milestone:** v1.3 PXE Boot
 **Phase:** 15 - Boot Menu
-**Plan:** 01 complete
-**Status:** Phase 15-01 complete
-**Last activity:** 2026-02-28 - iPXE boot and menu script endpoints implemented
+**Plan:** 03 complete
+**Status:** Phase 15-03 complete
+**Last activity:** 2026-02-28 - Menu entry customization (pxe_name, pxe_description, pxe menu CLI commands)
 
-Progress: [█████] 81% (4/5 phases complete, 15/16 plans in v1.3)
+Progress: [█████] 81% (4/5 phases complete, 16/16 plans in v1.3)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 73 (v1.0: 23, v1.1: 8, v1.2: 14, v1.3: 14, other: 14)
-- Current milestone: 14
+- Total plans completed: 74 (v1.0: 23, v1.1: 8, v1.2: 14, v1.3: 15, other: 14)
+- Current milestone: 15
 
 **By Milestone:**
 
@@ -30,7 +30,7 @@ Progress: [█████] 81% (4/5 phases complete, 15/16 plans in v1.3)
 | v1.0 | 1-4 | 23 | Complete |
 | v1.1 | 5-6 | 8 | Complete |
 | v1.2 | 7-11 | 14 | Complete |
-| v1.3 | 12-16 | 7 | In Progress |
+| v1.3 | 12-16 | 15 | In Progress |
 
 **v1.3 Breakdown:**
 
@@ -39,7 +39,7 @@ Progress: [█████] 81% (4/5 phases complete, 15/16 plans in v1.3)
 | 12 - DHCP Server | PXE clients receive boot instructions | 4 | **Complete** (4/4 plans) |
 | 13 - TFTP Server | Bootloader delivered via TFTP | 4 | **Complete** (4/4 plans) |
 | 14 - HTTP Serving | Containers available via HTTP | 4 | **Complete** (4/4 plans) |
-| 15 - Boot Menu | Interactive container selection | 4 | Pending |
+| 15 - Boot Menu | Interactive container selection | 4 | **Complete** (4/4 plans) |
 | 16 - Integration | Unified with v1.2 infrastructure | 4 | Pending |
 
 ## Accumulated Context
@@ -51,6 +51,7 @@ Progress: [█████] 81% (4/5 phases complete, 15/16 plans in v1.3)
 - **v1.3 (partial):** DHCP Server - Async DHCP with PXE options, CLI interface, comprehensive tests, integration testing, production logging
 - **v1.3 (partial):** TFTP Server - Async TFTP with RFC 1350 packet handling, path traversal protection, concurrent transfers, CLI interface, comprehensive tests (52 tests)
 - **v1.3 (partial):** HTTP Server - Async HTTP with aiohttp, range requests (HTTP 206), path traversal protection, CLI interface, catalog integration, comprehensive tests (66 tests)
+- **v1.3 (partial):** Boot Menu - iPXE boot/menu endpoints, menu configuration, menu customization
 
 ### Key Decisions
 - PixiJS v7 for desktop rendering
@@ -90,6 +91,9 @@ Progress: [█████] 81% (4/5 phases complete, 15/16 plans in v1.3)
 - iPXE menu uses choose command with optional timeout for auto-boot
 - Local boot fallback using sanboot for exiting to local disk
 - Per-container boot labels for clean goto routing in iPXE menu
+- Optional[str] for menu customization fields (None = use defaults)
+- POST /pxe/{entry_id}/menu endpoint for menu customization updates
+- CLI pxe menu list/set commands for menu management
 
 ### Components Shipped
 - RTSDesktopObject.js (2030 lines) - PIXI.Container with all UI features
@@ -103,11 +107,11 @@ Progress: [█████] 81% (4/5 phases complete, 15/16 plans in v1.3)
 - CatalogFilterBar.js (166 lines) - Filter bar UI
 - CatalogSearchBar.js (167 lines) - Search input with debounce
 - dhcp_server.py (848 lines) - Async DHCP server with PXE options, production logging
-- pxe_cli.py (641 lines) - CLI interface for PXE server management with DHCP, TFTP, and HTTP subcommands
+- pxe_cli.py (754 lines) - CLI interface for PXE server management with DHCP, TFTP, HTTP, and menu subcommands
 - test_dhcp_server.py (1180 lines) - Unit + integration tests (46 tests)
 - tftp_server.py (750 lines) - Async TFTP server with concurrent transfers, aiofiles
 - test_tftp_server.py (795 lines) - Unit + integration tests (52 tests)
-- http_server.py (615 lines) - Async HTTP server with range requests, catalog integration, and iPXE boot/menu endpoints
+- http_server.py (662 lines) - Async HTTP server with range requests, catalog integration, iPXE boot/menu endpoints, menu customization
 - test_http_server.py (1340 lines) - Unit + integration tests (66 tests)
 
 ### Blockers
@@ -115,8 +119,8 @@ Progress: [█████] 81% (4/5 phases complete, 15/16 plans in v1.3)
 
 ## Session Continuity
 
-Last session: 2026-02-28T15:58:42Z
-Status: Phase 15-01 iPXE boot/menu endpoints complete
+Last session: 2026-02-28T16:30:XXZ
+Status: Phase 15-03 menu entry customization complete
 Resume file: None
 
-**Next Action:** Proceed to Phase 15 Plan 02 (Boot Menu continuation) or Phase 16 Integration
+**Next Action:** Proceed to Phase 16 (Integration) or Phase 15 Plan 04 (Boot Menu)
