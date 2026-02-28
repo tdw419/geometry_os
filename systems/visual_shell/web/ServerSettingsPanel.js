@@ -22,15 +22,20 @@ class ServerSettingsPanel {
      * @param {Object} options - Configuration options
      * @param {Function} options.onServerChange - Callback when servers change
      * @param {ServerRegistry} options.registry - External registry instance (optional)
+     * @param {CatalogCacheManager} options.cacheManager - Cache manager instance (optional)
+     * @param {Function} options.onCacheClear - Callback when cache is cleared (optional)
      */
     constructor(container, options = {}) {
         this.container = container;
         this.options = options;
         this.registry = options.registry || new ServerRegistry();
+        this.cacheManager = options.cacheManager || null;
         this.onServerChange = options.onServerChange || (() => {});
+        this.onCacheClear = options.onCacheClear || (() => {});
 
         // Panel state
         this._isAddFormVisible = false;
+        this._cacheStats = null;
 
         // Inject styles
         this._injectStyles();
@@ -301,6 +306,106 @@ class ServerSettingsPanel {
                 font-size: 10px;
                 margin-top: 8px;
             }
+
+            .server-settings-panel .cache-section {
+                margin-top: 16px;
+                padding-top: 16px;
+                border-top: 1px solid #333;
+            }
+
+            .server-settings-panel .cache-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+            }
+
+            .server-settings-panel .cache-header h4 {
+                margin: 0;
+                font-size: 12px;
+                color: #00ffff;
+            }
+
+            .server-settings-panel .cache-stats {
+                font-size: 10px;
+                color: #888;
+            }
+
+            .server-settings-panel .cache-bar-container {
+                background: #222;
+                border-radius: 4px;
+                height: 8px;
+                margin-bottom: 8px;
+                overflow: hidden;
+            }
+
+            .server-settings-panel .cache-bar {
+                background: linear-gradient(90deg, #00aa44, #00ff88);
+                height: 100%;
+                transition: width 0.3s ease;
+            }
+
+            .server-settings-panel .cache-bar.warning {
+                background: linear-gradient(90deg, #ffaa00, #ff6600);
+            }
+
+            .server-settings-panel .cache-bar.critical {
+                background: linear-gradient(90deg, #ff4444, #ff0000);
+            }
+
+            .server-settings-panel .cache-actions {
+                display: flex;
+                gap: 8px;
+            }
+
+            .server-settings-panel .clear-cache-btn {
+                background: #aa2222;
+                color: #fff;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-family: inherit;
+                font-size: 10px;
+            }
+
+            .server-settings-panel .clear-cache-btn:hover {
+                background: #cc3333;
+            }
+
+            .server-settings-panel .clear-cache-btn:disabled {
+                background: #444;
+                color: #666;
+                cursor: not-allowed;
+            }
+
+            .server-settings-panel .refresh-cache-btn {
+                background: #333;
+                color: #ccc;
+                border: 1px solid #444;
+                padding: 6px 12px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-family: inherit;
+                font-size: 10px;
+            }
+
+            .server-settings-panel .cache-message {
+                font-size: 10px;
+                margin-top: 8px;
+                padding: 6px;
+                border-radius: 4px;
+            }
+
+            .server-settings-panel .cache-message.success {
+                background: #224422;
+                color: #88ff88;
+            }
+
+            .server-settings-panel .cache-message.error {
+                background: #442222;
+                color: #ff8888;
+            }
         `;
         document.head.appendChild(style);
     }
@@ -372,6 +477,15 @@ class ServerSettingsPanel {
         this.container.appendChild(panel);
         this.panel = panel;
         this.serverListEl = serverList;
+
+        // Cache management section (if cacheManager is available)
+        if (this.cacheManager) {
+            const cacheSection = this._createCacheSection();
+            panel.appendChild(cacheSection);
+            this.cacheSectionEl = cacheSection;
+            // Initial cache stats load
+            this._refreshCacheStats();
+        }
     }
 
     /**
@@ -653,6 +767,167 @@ class ServerSettingsPanel {
     }
 
     /**
+     * Create the cache management section
+     * @returns {HTMLElement}
+     * @private
+     */
+    _createCacheSection() {
+        const section = document.createElement('div');
+        section.className = 'cache-section';
+
+        section.innerHTML = `
+            <div class="cache-header">
+                <h4>Container Cache</h4>
+                <span class="cache-stats" id="cache-size-display">Loading...</span>
+            </div>
+            <div class="cache-bar-container">
+                <div class="cache-bar" id="cache-usage-bar" style="width: 0%"></div>
+            </div>
+            <div class="cache-actions">
+                <button class="refresh-cache-btn" id="refresh-cache-btn">Refresh Stats</button>
+                <button class="clear-cache-btn" id="clear-cache-btn">Clear Cache</button>
+            </div>
+            <div class="cache-message" id="cache-message" style="display: none"></div>
+        `;
+
+        // Event listeners
+        section.querySelector('#refresh-cache-btn').addEventListener('click', () => {
+            this._refreshCacheStats();
+        });
+
+        section.querySelector('#clear-cache-btn').addEventListener('click', () => {
+            this.handleClearCache();
+        });
+
+        return section;
+    }
+
+    /**
+     * Refresh cache statistics from the cache manager
+     * @private
+     */
+    async _refreshCacheStats() {
+        if (!this.cacheManager) return;
+
+        try {
+            // Get cache stats from CatalogCacheManager
+            const stats = await this.cacheManager.getStats();
+            this._cacheStats = stats;
+            this._updateCacheUI(stats);
+        } catch (error) {
+            console.error('[ServerSettingsPanel] Failed to get cache stats:', error);
+            this._showCacheMessage('Failed to load cache stats', 'error');
+        }
+    }
+
+    /**
+     * Update cache UI with current stats
+     * @param {Object} stats - Cache statistics
+     * @param {number} stats.sizeBytes - Current cache size in bytes
+     * @param {number} stats.maxSize - Maximum cache size in bytes
+     * @param {number} stats.entryCount - Number of cached entries
+     * @private
+     */
+    _updateCacheUI(stats) {
+        if (!this.cacheSectionEl || !stats) return;
+
+        const sizeDisplay = this.cacheSectionEl.querySelector('#cache-size-display');
+        const usageBar = this.cacheSectionEl.querySelector('#cache-usage-bar');
+        const clearBtn = this.cacheSectionEl.querySelector('#clear-cache-btn');
+
+        // Format size for display
+        const sizeMB = (stats.sizeBytes / (1024 * 1024)).toFixed(1);
+        const maxMB = (stats.maxSize / (1024 * 1024)).toFixed(0);
+        const percentUsed = Math.min(100, (stats.sizeBytes / stats.maxSize) * 100);
+
+        sizeDisplay.textContent = `${sizeMB} MB / ${maxMB} MB (${stats.entryCount} items)`;
+
+        // Update progress bar
+        usageBar.style.width = `${percentUsed}%`;
+
+        // Color code based on usage
+        usageBar.classList.remove('warning', 'critical');
+        if (percentUsed > 90) {
+            usageBar.classList.add('critical');
+        } else if (percentUsed > 70) {
+            usageBar.classList.add('warning');
+        }
+
+        // Enable/disable clear button based on content
+        clearBtn.disabled = stats.entryCount === 0;
+    }
+
+    /**
+     * Handle clearing the cache
+     */
+    async handleClearCache() {
+        if (!this.cacheManager) return;
+
+        // Show confirmation dialog
+        const confirmed = confirm(
+            'Clear all cached containers?\n\n' +
+            'This will remove all downloaded container data from your browser storage.\n' +
+            'You will need to re-download containers to boot them offline.'
+        );
+
+        if (!confirmed) return;
+
+        const clearBtn = this.cacheSectionEl.querySelector('#clear-cache-btn');
+        const messageEl = this.cacheSectionEl.querySelector('#cache-message');
+
+        try {
+            clearBtn.disabled = true;
+            clearBtn.textContent = 'Clearing...';
+
+            // Clear the cache
+            const result = await this.cacheManager.clear();
+
+            console.log(`[ServerSettingsPanel] Cache cleared: ${result.count} entries removed`);
+
+            // Show success message
+            this._showCacheMessage(`Cache cleared: ${result.count} entries removed`, 'success');
+
+            // Refresh stats
+            await this._refreshCacheStats();
+
+            // Notify callback
+            this.onCacheClear({
+                count: result.count,
+                bytesFreed: result.bytesFreed
+            });
+
+        } catch (error) {
+            console.error('[ServerSettingsPanel] Failed to clear cache:', error);
+            this._showCacheMessage(`Failed to clear cache: ${error.message}`, 'error');
+        } finally {
+            clearBtn.disabled = false;
+            clearBtn.textContent = 'Clear Cache';
+        }
+    }
+
+    /**
+     * Show a cache message (success or error)
+     * @param {string} message - Message to display
+     * @param {string} type - Message type ('success' or 'error')
+     * @private
+     */
+    _showCacheMessage(message, type) {
+        if (!this.cacheSectionEl) return;
+
+        const messageEl = this.cacheSectionEl.querySelector('#cache-message');
+        if (!messageEl) return;
+
+        messageEl.textContent = message;
+        messageEl.className = `cache-message ${type}`;
+        messageEl.style.display = 'block';
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            messageEl.style.display = 'none';
+        }, 5000);
+    }
+
+    /**
      * Clean up and destroy the panel
      */
     destroy() {
@@ -662,6 +937,8 @@ class ServerSettingsPanel {
         this.panel = null;
         this.serverListEl = null;
         this.addForm = null;
+        this.cacheSectionEl = null;
+        this._cacheStats = null;
     }
 }
 
