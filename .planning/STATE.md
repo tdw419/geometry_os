@@ -11,16 +11,16 @@ See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Milestone:** v1.3 PXE Boot
 **Phase:** 15 - Boot Menu
-**Plan:** 03 complete
-**Status:** Phase 15-03 complete
-**Last activity:** 2026-02-28 - Menu entry customization (pxe_name, pxe_description, pxe menu CLI commands)
+**Plan:** 04 complete
+**Status:** Phase 15 Complete
+**Last activity:** 2026-02-28 - Boot menu test suite (49 tests)
 
-Progress: [█████] 81% (4/5 phases complete, 16/16 plans in v1.3)
+Progress: [█████] 81% (4/5 phases complete, 17/17 plans in v1.3)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 74 (v1.0: 23, v1.1: 8, v1.2: 14, v1.3: 15, other: 14)
+- Total plans completed: 75 (v1.0: 23, v1.1: 8, v1.2: 14, v1.3: 16, other: 14)
 - Current milestone: 15
 
 **By Milestone:**
@@ -30,7 +30,7 @@ Progress: [█████] 81% (4/5 phases complete, 16/16 plans in v1.3)
 | v1.0 | 1-4 | 23 | Complete |
 | v1.1 | 5-6 | 8 | Complete |
 | v1.2 | 7-11 | 14 | Complete |
-| v1.3 | 12-16 | 15 | In Progress |
+| v1.3 | 12-16 | 16 | In Progress |
 
 **v1.3 Breakdown:**
 
@@ -51,7 +51,7 @@ Progress: [█████] 81% (4/5 phases complete, 16/16 plans in v1.3)
 - **v1.3 (partial):** DHCP Server - Async DHCP with PXE options, CLI interface, comprehensive tests, integration testing, production logging
 - **v1.3 (partial):** TFTP Server - Async TFTP with RFC 1350 packet handling, path traversal protection, concurrent transfers, CLI interface, comprehensive tests (52 tests)
 - **v1.3 (partial):** HTTP Server - Async HTTP with aiohttp, range requests (HTTP 206), path traversal protection, CLI interface, catalog integration, comprehensive tests (66 tests)
-- **v1.3 (partial):** Boot Menu - iPXE boot/menu endpoints, menu configuration, menu customization
+- **v1.3 (partial):** Boot Menu - iPXE boot/menu endpoints, menu configuration, menu customization, comprehensive tests (49 tests)
 
 ### Key Decisions
 - PixiJS v7 for desktop rendering
@@ -94,6 +94,7 @@ Progress: [█████] 81% (4/5 phases complete, 16/16 plans in v1.3)
 - Optional[str] for menu customization fields (None = use defaults)
 - POST /pxe/{entry_id}/menu endpoint for menu customization updates
 - CLI pxe menu list/set commands for menu management
+- Boot menu test port counter starts at 28100 to avoid conflicts with HTTP tests (28080)
 
 ### Components Shipped
 - RTSDesktopObject.js (2030 lines) - PIXI.Container with all UI features
@@ -113,14 +114,15 @@ Progress: [█████] 81% (4/5 phases complete, 16/16 plans in v1.3)
 - test_tftp_server.py (795 lines) - Unit + integration tests (52 tests)
 - http_server.py (662 lines) - Async HTTP server with range requests, catalog integration, iPXE boot/menu endpoints, menu customization
 - test_http_server.py (1340 lines) - Unit + integration tests (66 tests)
+- test_boot_menu.py (1398 lines) - Boot menu tests (49 tests)
 
 ### Blockers
 - None currently
 
 ## Session Continuity
 
-Last session: 2026-02-28T16:30:XXZ
-Status: Phase 15-03 menu entry customization complete
+Last session: 2026-02-28T16:46:XXZ
+Status: Phase 15 Boot Menu complete (all 4 plans)
 Resume file: None
 
-**Next Action:** Proceed to Phase 16 (Integration) or Phase 15 Plan 04 (Boot Menu)
+**Next Action:** Proceed to Phase 16 (Integration) to unify with v1.2 infrastructure
