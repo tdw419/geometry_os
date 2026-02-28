@@ -283,6 +283,7 @@
             <span>API:</span>
             <span id="api-url">http://localhost:8080</span>
         </div>
+        <div id="search-container" style="margin-right: 16px;"></div>
         <div id="filter-container" style="margin-left: auto;"></div>
     </div>
 
@@ -295,7 +296,7 @@
     </div>
 
     <!-- Grid Hint -->
-    <div id="grid-hint">Pan: Drag canvas | Zoom: Scroll | Select: Click object | Boot: Double-click</div>
+    <div id="grid-hint">Pan: Drag | Zoom: Scroll | Select: Click | Boot: Double-click | Search: Type to filter</div>
 
     <!-- Controls -->
     <div id="controls">
@@ -321,6 +322,7 @@
     <script src="RTSDesktopObject.js"></script>
     <script src="DesktopObjectManager.js"></script>
     <script src="CatalogFilterBar.js"></script>
+    <script src="CatalogSearchBar.js"></script>
 
     <script>
         // ============================================
@@ -354,6 +356,7 @@
         let catalogBridge = null;
         let desktopObjectManager = null;
         let filterBar = null;
+        let searchBar = null;
         let isDraggingCanvas = false;
         let dragStart = { x: 0, y: 0 };
         let worldStart = { x: 0, y: 0 };
@@ -559,6 +562,16 @@
             log('info', 'Pan/zoom controls enabled');
         }
 
+        // Keyboard shortcut for search focus
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                if (searchBar) {
+                    searchBar.focus();
+                }
+            }
+        });
+
         function centerView() {
             worldContainer.x = canvasContainer.clientWidth / 2;
             worldContainer.y = canvasContainer.clientHeight / 2;
@@ -635,6 +648,15 @@
                 }
             });
             filterContainer.appendChild(filterBar.getContainer());
+
+            // Initialize search bar
+            const searchContainer = document.getElementById('search-container');
+            searchBar = new CatalogSearchBar({
+                onSearchChange: (query) => {
+                    desktopObjectManager.setSearchQuery(query);
+                }
+            });
+            searchContainer.appendChild(searchBar.getContainer());
 
             // Update counts when catalog loads
             desktopObjectManager.on('catalog-loaded', () => {
