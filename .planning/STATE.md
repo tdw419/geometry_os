@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file - from anywhere, including bare metal.
-**Current focus:** v1.3 PXE Boot - Phase 15 Boot Menu complete
+**Current focus:** v1.3 PXE Boot - Phase 16 Integration in progress
 
 ## Current Position
 
 **Milestone:** v1.3 PXE Boot
-**Phase:** 15 - Boot Menu
-**Plan:** 04 complete
-**Status:** Phase 15 Complete
-**Last activity:** 2026-02-28 - Boot menu test suite (49 tests)
+**Phase:** 16 - Integration
+**Plan:** 01 complete
+**Status:** In Progress
+**Last activity:** 2026-02-28 - PXE badge for visual shell catalog
 
-Progress: [█████] 81% (4/5 phases complete, 17/17 plans in v1.3)
+Progress: [█████] 84% (4/5 phases complete, 18/21 plans in v1.3)
 
 ## Performance Metrics
 
@@ -40,7 +40,7 @@ Progress: [█████] 81% (4/5 phases complete, 17/17 plans in v1.3)
 | 13 - TFTP Server | Bootloader delivered via TFTP | 4 | **Complete** (4/4 plans) |
 | 14 - HTTP Serving | Containers available via HTTP | 4 | **Complete** (4/4 plans) |
 | 15 - Boot Menu | Interactive container selection | 4 | **Complete** (4/4 plans) |
-| 16 - Integration | Unified with v1.2 infrastructure | 4 | Pending |
+| 16 - Integration | Unified with v1.2 infrastructure | 4 | **In Progress** (1/4 plans) |
 
 ## Accumulated Context
 
@@ -95,10 +95,12 @@ Progress: [█████] 81% (4/5 phases complete, 17/17 plans in v1.3)
 - POST /pxe/{entry_id}/menu endpoint for menu customization updates
 - CLI pxe menu list/set commands for menu management
 - Boot menu test port counter starts at 28100 to avoid conflicts with HTTP tests (28080)
+- PXE badge orange (0xff6600) for enabled, gray (0x666666) for disabled
+- PXE badge positioned at OFFSET_X: 14, next to offline badge
 
 ### Components Shipped
 - RTSDesktopObject.js (2030 lines) - PIXI.Container with all UI features
-- CatalogBridge.js (486 lines) - API client with cache-first fetching
+- CatalogBridge.js (540 lines) - API client with cache-first fetching, PXE methods
 - DesktopObjectManager.js (1569 lines) - Lifecycle manager with remote integration
 - CatalogCacheManager.js (1340 lines) - IndexedDB cache with LRU eviction
 - ServerRegistry.js (327 lines) - Server configuration persistence
@@ -121,8 +123,8 @@ Progress: [█████] 81% (4/5 phases complete, 17/17 plans in v1.3)
 
 ## Session Continuity
 
-Last session: 2026-02-28T16:46:XXZ
-Status: Phase 15 Boot Menu complete (all 4 plans)
+Last session: 2026-02-28T17:27:XXZ
+Status: Phase 16 Integration in progress (1/4 plans)
 Resume file: None
 
-**Next Action:** Proceed to Phase 16 (Integration) to unify with v1.2 infrastructure
+**Next Action:** Continue Phase 16 Integration plans (02-04)
