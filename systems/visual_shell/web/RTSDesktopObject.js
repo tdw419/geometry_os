@@ -143,6 +143,18 @@ class RTSDesktopObject extends PIXI.Container {
     };
 
     /**
+     * Offline availability badge configuration
+     * @static
+     */
+    static OFFLINE_BADGE = {
+        SIZE: 6,              // Small indicator
+        OFFSET_X: 4,          // Bottom-left corner
+        OFFSET_Y: -10,        // Below the name label
+        COLOR_AVAILABLE: 0x00ff00,  // Green - cached and available offline
+        COLOR_UNAVAILABLE: 0x666666 // Gray - not cached, network required
+    };
+
+    /**
      * Create an RTSDesktopObject instance
      * @param {Object} entry - Catalog entry data
      * @param {string} entry.id - Unique entry ID
@@ -205,6 +217,7 @@ class RTSDesktopObject extends PIXI.Container {
         this._createStatusIndicator();
         this._createCacheStatusIndicator();
         this._createServerSourceBadge(entry);
+        this._createOfflineBadge(entry);
         this._createProgressBar();
         this._createErrorOverlay();
         this._createBorder();
@@ -548,6 +561,102 @@ class RTSDesktopObject extends PIXI.Container {
     }
 
     /**
+     * Create the offline availability badge indicator
+     * Small colored circle in bottom-left corner indicating if container
+     * is available offline. Only visible for remote containers.
+     * @private
+     * @param {Object} entry - Catalog entry with optional sourceServerId
+     */
+    _createOfflineBadge(entry) {
+        const { SIZE, OFFSET_X, OFFSET_Y } = RTSDesktopObject.OFFLINE_BADGE;
+        const { OBJECT_HEIGHT } = RTSDesktopObject.DIMENSIONS;
+
+        // Track if this is a remote container
+        this._isRemote = !!entry.sourceServerId;
+        this._offlineAvailable = false;
+
+        // Create badge graphics
+        this.offlineBadge = new PIXI.Graphics();
+        this.offlineBadge.x = OFFSET_X;
+        this.offlineBadge.y = OBJECT_HEIGHT + OFFSET_Y;
+
+        // Draw initial badge (gray = unavailable)
+        this._drawOfflineBadge(false);
+
+        // Hide badge for local containers (always available)
+        this.offlineBadge.visible = this._isRemote;
+
+        this.addChild(this.offlineBadge);
+
+        // Create tooltip for offline availability (hidden by default)
+        this.offlineBadgeTooltip = new PIXI.Text({
+            text: 'Network required',
+            style: {
+                fontFamily: 'Courier New, monospace',
+                fontSize: 10,
+                fill: 0xffffff,
+                align: 'left',
+                backgroundColor: 0x333333,
+                padding: 4
+            }
+        });
+        this.offlineBadgeTooltip.visible = false;
+        this.offlineBadgeTooltip.x = OFFSET_X + SIZE + 4;  // Right of badge
+        this.offlineBadgeTooltip.y = OBJECT_HEIGHT + OFFSET_Y - 2;
+        this.addChild(this.offlineBadgeTooltip);
+    }
+
+    /**
+     * Draw the offline availability badge circle
+     * @private
+     * @param {boolean} available - Whether container is available offline
+     */
+    _drawOfflineBadge(available) {
+        const { SIZE, COLOR_AVAILABLE, COLOR_UNAVAILABLE } = RTSDesktopObject.OFFLINE_BADGE;
+        const radius = SIZE / 2;
+
+        const color = available ? COLOR_AVAILABLE : COLOR_UNAVAILABLE;
+
+        this.offlineBadge.clear();
+        this.offlineBadge.circle(radius, radius, radius);
+        this.offlineBadge.fill({ color: color, alpha: 1 });
+
+        // Add subtle border
+        this.offlineBadge.circle(radius, radius, radius);
+        this.offlineBadge.stroke({ color: 0x000000, width: 1 });
+    }
+
+    /**
+     * Set the offline availability status for this object
+     * @param {boolean} available - Whether container is available offline
+     */
+    setOfflineAvailable(available) {
+        this._offlineAvailable = available;
+        this._drawOfflineBadge(available);
+
+        // Update tooltip text based on availability
+        this.offlineBadgeTooltip.text = available ? 'Available offline' : 'Network required';
+
+        // Badge visibility is controlled by _isRemote (set during creation)
+    }
+
+    /**
+     * Get the offline availability status
+     * @returns {boolean} Whether container is available offline
+     */
+    getOfflineAvailable() {
+        return this._offlineAvailable;
+    }
+
+    /**
+     * Check if this is a remote container
+     * @returns {boolean}
+     */
+    isRemote() {
+        return this._isRemote;
+    }
+
+    /**
      * Create the progress bar overlay
      * @private
      */
@@ -789,6 +898,11 @@ class RTSDesktopObject extends PIXI.Container {
             this.serverSourceTooltip.visible = true;
         }
 
+        // Show offline badge tooltip if badge is visible
+        if (this.offlineBadge && this.offlineBadge.visible) {
+            this.offlineBadgeTooltip.visible = true;
+        }
+
         // Emit hover with status and error details
         this.emit('hover', {
             target: this,
@@ -816,6 +930,11 @@ class RTSDesktopObject extends PIXI.Container {
         // Hide server source tooltip
         if (this.serverSourceTooltip) {
             this.serverSourceTooltip.visible = false;
+        }
+
+        // Hide offline badge tooltip
+        if (this.offlineBadgeTooltip) {
+            this.offlineBadgeTooltip.visible = false;
         }
 
         this.emit('hover-end', { target: this });
