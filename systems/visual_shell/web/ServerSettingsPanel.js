@@ -9,6 +9,7 @@
  * - Toggle server enabled/disabled state
  * - Display server reachability status (ok/error/loading)
  * - Color picker for server badge colors
+ * - PXE boot availability toggles per container
  *
  * @module ServerSettingsPanel
  */
@@ -24,6 +25,8 @@ class ServerSettingsPanel {
      * @param {ServerRegistry} options.registry - External registry instance (optional)
      * @param {CatalogCacheManager} options.cacheManager - Cache manager instance (optional)
      * @param {Function} options.onCacheClear - Callback when cache is cleared (optional)
+     * @param {CatalogBridge} options.catalogBridge - Catalog bridge for PXE API calls (optional)
+     * @param {DesktopObjectManager} options.desktopManager - Desktop manager for PXE toggle updates (optional)
      */
     constructor(container, options = {}) {
         this.container = container;
@@ -32,6 +35,8 @@ class ServerSettingsPanel {
         this.cacheManager = options.cacheManager || null;
         this.onServerChange = options.onServerChange || (() => {});
         this.onCacheClear = options.onCacheClear || (() => {});
+        this.catalogBridge = options.catalogBridge || null;
+        this.desktopManager = options.desktopManager || null;
 
         // Panel state
         this._isAddFormVisible = false;
@@ -406,6 +411,120 @@ class ServerSettingsPanel {
                 background: #442222;
                 color: #ff8888;
             }
+
+            .server-settings-panel .pxe-section {
+                margin-top: 16px;
+                padding-top: 16px;
+                border-top: 1px solid #333;
+            }
+
+            .server-settings-panel .pxe-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+            }
+
+            .server-settings-panel .pxe-header h4 {
+                margin: 0;
+                font-size: 12px;
+                color: #ff6600;
+            }
+
+            .server-settings-panel .pxe-list {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                max-height: 200px;
+                overflow-y: auto;
+            }
+
+            .server-settings-panel .pxe-entry {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 10px;
+                background: #222;
+                border-radius: 6px;
+                border: 1px solid #333;
+            }
+
+            .server-settings-panel .pxe-entry-name {
+                flex: 1;
+                font-size: 11px;
+                color: #fff;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .server-settings-panel .pxe-entry-size {
+                font-size: 10px;
+                color: #888;
+                margin-right: 8px;
+            }
+
+            .server-settings-panel .pxe-toggle {
+                position: relative;
+                width: 36px;
+                height: 18px;
+                background: #444;
+                border-radius: 9px;
+                cursor: pointer;
+                transition: background 0.3s;
+            }
+
+            .server-settings-panel .pxe-toggle.enabled {
+                background: #ff6600;
+            }
+
+            .server-settings-panel .pxe-toggle-knob {
+                position: absolute;
+                top: 2px;
+                left: 2px;
+                width: 14px;
+                height: 14px;
+                background: #fff;
+                border-radius: 50%;
+                transition: transform 0.3s;
+            }
+
+            .server-settings-panel .pxe-toggle.enabled .pxe-toggle-knob {
+                transform: translateX(18px);
+            }
+
+            .server-settings-panel .pxe-status {
+                font-size: 10px;
+                color: #888;
+            }
+
+            .server-settings-panel .pxe-status.enabled {
+                color: #ff6600;
+            }
+
+            .server-settings-panel .pxe-empty {
+                text-align: center;
+                padding: 16px;
+                color: #666;
+                font-size: 11px;
+            }
+
+            .server-settings-panel .pxe-message {
+                font-size: 10px;
+                margin-top: 8px;
+                padding: 6px;
+                border-radius: 4px;
+            }
+
+            .server-settings-panel .pxe-message.success {
+                background: #224422;
+                color: #88ff88;
+            }
+
+            .server-settings-panel .pxe-message.error {
+                background: #442222;
+                color: #ff8888;
+            }
         `;
         document.head.appendChild(style);
     }
@@ -485,6 +604,15 @@ class ServerSettingsPanel {
             this.cacheSectionEl = cacheSection;
             // Initial cache stats load
             this._refreshCacheStats();
+        }
+
+        // PXE management section (if catalogBridge is available)
+        if (this.catalogBridge) {
+            const pxeSection = this._createPXESection();
+            panel.appendChild(pxeSection);
+            this.pxeSectionEl = pxeSection;
+            // Initial PXE data load
+            this._refreshPXEData();
         }
     }
 
@@ -933,6 +1061,253 @@ class ServerSettingsPanel {
         }, 5000);
     }
 
+    // ========================================
+    // PXE Management Methods
+    // ========================================
+
+    /**
+     * Create the PXE management section
+     * @returns {HTMLElement}
+     * @private
+     */
+    _createPXESection() {
+        const section = document.createElement('div');
+        section.className = 'pxe-section';
+
+        section.innerHTML = `
+            <div class="pxe-header">
+                <h4>PXE Boot Availability</h4>
+                <span class="pxe-status" id="pxe-status-display">Loading...</span>
+            </div>
+            <div class="pxe-list" id="pxe-list">
+                <div class="pxe-empty">Loading containers...</div>
+            </div>
+            <div class="pxe-message" id="pxe-message" style="display: none"></div>
+        `;
+
+        // Store reference to list element
+        this.pxeListEl = section.querySelector('#pxe-list');
+
+        return section;
+    }
+
+    /**
+     * Refresh PXE data from the server
+     * @private
+     */
+    async _refreshPXEData() {
+        if (!this.catalogBridge) return;
+
+        try {
+            const pxeData = await this.catalogBridge.getPXEContainers();
+            this._pxeData = pxeData;
+            this._updatePXEList(pxeData);
+        } catch (error) {
+            console.error('[ServerSettingsPanel] Failed to get PXE data:', error);
+            this._showPXEMessage('Failed to load PXE data', 'error');
+        }
+    }
+
+    /**
+     * Update PXE list UI
+     * @param {Object} pxeData - PXE data from server
+     * @private
+     */
+    _updatePXEList(pxeData) {
+        if (!this.pxeListEl) return;
+
+        // Clear existing entries
+        this.pxeListEl.innerHTML = '';
+
+        const containers = pxeData?.pxe_containers || [];
+
+        if (!containers || containers.length === 0) {
+            this.pxeListEl.innerHTML = '<div class="pxe-empty">No containers available</div>';
+            return;
+        }
+
+        // Update status display
+        const statusDisplay = this.pxeSectionEl.querySelector('#pxe-status-display');
+        if (statusDisplay) {
+            const enabledCount = containers.filter(c => c.pxe_enabled).length;
+            statusDisplay.textContent = `${enabledCount}/${containers.length} enabled`;
+        }
+
+        // Get all catalog entries to merge with PXE data
+        const allEntries = [];
+
+        // Get local catalog entries
+        if (this.desktopManager) {
+            const localEntries = this.desktopManager.getAllObjects();
+            for (const [entryId, obj] of localEntries) {
+                const entry = obj.entryData || obj.entry;
+                if (entry) {
+                    allEntries.push({
+                        id: entryId,
+                        name: entry.name || entryId,
+                        size: entry.size || 0,
+                        pxe_enabled: false
+                    });
+                }
+            }
+        }
+
+        // Merge PXE status
+        for (const container of containers) {
+            const existing = allEntries.find(e => e.id === container.entry_id);
+            if (existing) {
+                existing.pxe_enabled = container.pxe_enabled;
+            } else {
+                allEntries.push({
+                    id: container.entry_id,
+                    name: container.entry_id,
+                    size: 0,
+                    pxe_enabled: container.pxe_enabled
+                });
+            }
+        }
+
+        // Sort by name
+        allEntries.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+        // Create entry elements
+        for (const entry of allEntries) {
+            const entryEl = this._createPXEEntry(entry);
+            this.pxeListEl.appendChild(entryEl);
+        }
+    }
+
+    /**
+     * Create a PXE entry element
+     * @param {Object} entry - Entry data
+     * @returns {HTMLElement}
+     * @private
+     */
+    _createPXEEntry(entry) {
+        const entryEl = document.createElement('div');
+        entryEl.className = 'pxe-entry';
+        entryEl.dataset.entryId = entry.id;
+
+        const sizeStr = entry.size ? this._formatBytes(entry.size) : '';
+
+        entryEl.innerHTML = `
+            <div class="pxe-entry-name">${this._escapeHtml(entry.name || entry.id)}</div>
+            <div class="pxe-entry-size">${sizeStr}</div>
+            <div class="pxe-toggle ${entry.pxe_enabled ? 'enabled' : ''}" id="pxe-toggle-${entry.id}">
+                <div class="pxe-toggle-knob"></div>
+            </div>
+        `;
+
+        // Toggle click handler
+        const toggleEl = entryEl.querySelector(`#pxe-toggle-${entry.id}`);
+        toggleEl.addEventListener('click', () => {
+            this._handlePXEToggle(entry.id, !entry.pxe_enabled);
+        });
+
+        return entryEl;
+    }
+
+    /**
+     * Handle PXE toggle click
+     * @param {string} entryId - Entry ID to toggle
+     * @param {boolean} enabled - New enabled state
+     * @private
+     */
+    async _handlePXEToggle(entryId, enabled) {
+        if (!this.catalogBridge) return;
+
+        const toggleEl = document.querySelector(`#pxe-toggle-${entryId}`);
+        if (!toggleEl) return;
+
+        // Optimistic UI update
+        toggleEl.classList.toggle('enabled', enabled);
+
+        try {
+            const result = await this.catalogBridge.setPXEAvailability(entryId, enabled);
+
+            if (result && result.success !== false) {
+                // Update local data
+                if (this._pxeData) {
+                    const container = this._pxeData.pxe_containers?.find(c => c.entry_id === entryId);
+                    if (container) {
+                        container.pxe_enabled = enabled;
+                    }
+                }
+
+                // Update desktop object badge
+                if (this.desktopManager) {
+                    const obj = this.desktopManager.getObject(entryId);
+                    if (obj && typeof obj.setPXEEnabled === 'function') {
+                        obj.setPXEEnabled(enabled);
+                    }
+                }
+
+                // Update entry data for future toggles
+                const entryEl = this.pxeListEl?.querySelector(`[data-entry-id="${entryId}"]`);
+                if (entryEl) {
+                    // Update the entry's pxe_enabled state for future clicks
+                    const entryData = this._pxeData?.pxe_containers?.find(c => c.entry_id === entryId);
+                    if (entryData) {
+                        entryData.pxe_enabled = enabled;
+                    }
+                }
+
+                this._showPXEMessage(`PXE ${enabled ? 'enabled' : 'disabled'} for ${entryId}`, 'success');
+            } else {
+                // Revert on failure
+                toggleEl.classList.toggle('enabled', !enabled);
+                this._showPXEMessage('Failed to update PXE status', 'error');
+            }
+        } catch (error) {
+            console.error('[ServerSettingsPanel] PXE toggle error:', error);
+            // Revert on error
+            toggleEl.classList.toggle('enabled', !enabled);
+            this._showPXEMessage(`Error: ${error.message}`, 'error');
+        }
+    }
+
+    /**
+     * Show a PXE message (success or error)
+     * @param {string} message - Message to display
+     * @param {string} type - Message type ('success' or 'error')
+     * @private
+     */
+    _showPXEMessage(message, type) {
+        if (!this.pxeSectionEl) return;
+
+        const messageEl = this.pxeSectionEl.querySelector('#pxe-message');
+        if (!messageEl) return;
+
+        messageEl.textContent = message;
+        messageEl.className = `pxe-message ${type}`;
+        messageEl.style.display = 'block';
+
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            messageEl.style.display = 'none';
+        }, 3000);
+    }
+
+    /**
+     * Format bytes for display
+     * @param {number} bytes - Size in bytes
+     * @returns {string} Formatted size string
+     * @private
+     */
+    _formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    /**
+     * Refresh the PXE section
+     */
+    refreshPXESection() {
+        this._refreshPXEData();
+    }
+
     /**
      * Clean up and destroy the panel
      */
@@ -945,6 +1320,9 @@ class ServerSettingsPanel {
         this.addForm = null;
         this.cacheSectionEl = null;
         this._cacheStats = null;
+        this.pxeSectionEl = null;
+        this.pxeListEl = null;
+        this._pxeData = null;
     }
 }
 
