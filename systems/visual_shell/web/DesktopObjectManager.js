@@ -54,8 +54,14 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
         // Track which objects are from remote servers
         this._remoteEntryIds = new Set();
 
+        // Store remote entries for retry lookup
+        this._remoteEntries = [];
+
         // Track active downloads (entryId -> RemoteBootFetcher instance)
         this._activeDownloads = new Map();
+
+        // Retry tracking per object
+        this._retryState = new Map(); // entryId -> { attempts: number, maxAttempts: 3 }
 
         // Source filter state
         this._sourceFilter = 'all'; // 'all' | 'local' | 'remote'
@@ -208,6 +214,9 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
     async _syncRemoteObjects(entries) {
         const currentRemoteIds = new Set(entries.map(e => e.id));
         const cache = this.bridge?.cache;
+
+        // Store remote entries for retry lookup
+        this._remoteEntries = entries;
 
         // Remove objects that no longer exist
         for (const entryId of [...this._remoteEntryIds]) {
@@ -1014,7 +1023,37 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
     }
 
     /**
+     * Initiate remote boot - get download URL and start download
+     * @private
+     * @param {string} entryId - Entry ID
+     * @param {Object} entry - Catalog entry data
+     */
+    async _initiateRemoteBoot(entryId, entry) {
+        const obj = this.objects.get(entryId);
+        if (!obj) return;
+
+        // Get download URL
+        const downloadUrl = this._getRemoteDownloadUrl(entry);
+        if (!downloadUrl) {
+            console.error(`[DesktopObjectManager] No download URL for remote container ${entryId}`);
+            obj.setStatus('error');
+            obj.showError({
+                message: 'No download URL available',
+                stage: 'Connecting',
+                type: 'network',
+                retryable: false
+            });
+            return;
+        }
+
+        // Start download with progress
+        console.log(`[DesktopObjectManager] Initiating remote boot download for ${entryId}`);
+        await this._startRemoteDownload(entryId, downloadUrl, entry);
+    }
+
+    /**
      * Start remote container download with progress tracking
+     * Uses fetchWithRetry for automatic retry with exponential backoff
      * @private
      * @param {string} entryId - Entry ID
      * @param {string} url - Download URL
@@ -1040,7 +1079,7 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
         obj.once('cancel-download', cancelHandler);
 
         try {
-            const result = await fetcher.fetch(url, {
+            const result = await fetcher.fetchWithRetry(url, {
                 expectedHash: entry.hash || null,  // Use hash from entry if available
 
                 onProgress: (progress) => {
@@ -1061,10 +1100,27 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
                     console.log(`[DesktopObjectManager] Download cancelled for ${entryId}: ${cancelInfo.bytesLoaded} bytes`);
                     obj.off('cancel-download', cancelHandler);
                 }
+            }, {
+                maxRetries: RemoteBootFetcher.MAX_RETRIES,
+
+                onRetry: ({ attempt, delay, error }) => {
+                    console.log(`[DesktopObjectManager] Auto-retry ${attempt} for ${entryId} after ${Math.round(delay)}ms`);
+
+                    // Update retry state
+                    const retryState = this._retryState.get(entryId) || { attempts: 0, maxAttempts: 3 };
+                    retryState.attempts = attempt;
+                    this._retryState.set(entryId, retryState);
+
+                    // Show retrying status on object
+                    obj.showDownloadRetrying(attempt, Math.round(delay / 1000));
+                }
             });
 
             // Result is also returned directly
             if (result && result.data) {
+                // Clear retry state on success
+                this._clearRetryState(entryId);
+
                 // Store in cache (if cache manager available)
                 this._storeDownloadInCache(entryId, result.data, result.hash, entry);
 
@@ -1079,7 +1135,8 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
             this._handleDownloadError(entryId, {
                 error,
                 type: 'network',
-                message: error.message || 'Download failed'
+                message: error.message || 'Download failed',
+                retryable: true
             });
         } finally {
             this._activeDownloads.delete(entryId);
@@ -1112,6 +1169,9 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
         if (!obj) return;
 
         console.log(`[DesktopObjectManager] Download complete for ${entryId}: verified=${result.verified}, hash=${result.hash?.substring(0, 12)}...`);
+
+        // Clear retry state on success
+        this._clearRetryState(entryId);
 
         // Show verification status
         obj.showVerificationStatus(result.verified, result.hash);
@@ -1159,20 +1219,27 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
         obj.setDownloading(false);
         this._activeDownloads.delete(entryId);
 
-        // Show error on object
-        obj.setStatus('error');
+        // Get retry state
+        const retryState = this._retryState.get(entryId) || { attempts: 0, maxAttempts: 3 };
+        const canRetry = errorInfo.retryable && retryState.attempts < retryState.maxAttempts;
+
+        // Show error with retry option
         obj.showError({
             message: errorInfo.message || 'Download failed',
-            stage: 'Downloading',
+            stage: errorInfo.stage || 'Downloading',
             elapsedTime: 0,
-            config: {}
+            config: {},
+            type: errorInfo.type,
+            httpStatus: errorInfo.httpStatus,
+            retryable: canRetry,
+            onRetry: canRetry ? () => this.retryDownload(entryId) : null
         });
 
         // Emit download failed event
         this.emit('download-failed', {
             entryId,
             error: errorInfo,
-            retryable: errorInfo.retryable || false
+            canRetry
         });
     }
 
@@ -1262,6 +1329,66 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
             console.log(`[DesktopObjectManager] Cancelled download for ${entryId}`);
             this.emit('download-cancelled', { entryId });
         }
+    }
+
+    /**
+     * Retry a failed download
+     * @param {string} entryId - Entry ID to retry
+     * @returns {Promise<boolean>} True if retry was initiated
+     */
+    async retryDownload(entryId) {
+        const obj = this.objects.get(entryId);
+        if (!obj) {
+            console.warn(`[DesktopObjectManager] Cannot retry: object not found for ${entryId}`);
+            return false;
+        }
+
+        // Get current retry state
+        const retryState = this._retryState.get(entryId) || { attempts: 0, maxAttempts: 3 };
+
+        if (retryState.attempts >= retryState.maxAttempts) {
+            console.log(`[DesktopObjectManager] Max retries (${retryState.maxAttempts}) reached for ${entryId}`);
+            return false;
+        }
+
+        // Get remote entry info
+        const remoteEntry = this._remoteEntries?.find(e => e.id === entryId);
+        if (!remoteEntry) {
+            console.warn(`[DesktopObjectManager] Cannot retry: no remote entry for ${entryId}`);
+            return false;
+        }
+
+        // Clear error state and restart download
+        obj.hideError(); // Clear error
+
+        // Increment retry count
+        retryState.attempts++;
+        this._retryState.set(entryId, retryState);
+
+        console.log(`[DesktopObjectManager] Manual retry ${retryState.attempts}/${retryState.maxAttempts} for ${entryId}`);
+
+        // Re-initiate download
+        await this._initiateRemoteBoot(entryId, remoteEntry);
+
+        return true;
+    }
+
+    /**
+     * Get retry state for an entry
+     * @param {string} entryId - Entry ID
+     * @returns {Object} Retry state { attempts, maxAttempts }
+     */
+    getRetryState(entryId) {
+        return this._retryState.get(entryId) || { attempts: 0, maxAttempts: 3 };
+    }
+
+    /**
+     * Clear retry state for an entry (called on success)
+     * @param {string} entryId - Entry ID
+     * @private
+     */
+    _clearRetryState(entryId) {
+        this._retryState.delete(entryId);
     }
 
     /**
