@@ -5,22 +5,22 @@
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file — from anywhere.
-**Current focus:** Phase 10 - Remote Catalog Integration (In Progress)
+**Current focus:** Phase 11 - Error Handling & Polish (Complete)
 
 ## Current Position
 
 **Milestone:** v1.2 Network Boot
-**Phase:** 10 of 11 (Remote Catalog Integration) - In Progress
-**Plan:** 2 of 2 complete
+**Phase:** 11 of 11 (Error Handling & Polish) - Complete
+**Plan:** 1 of 1 complete
 **Status:** Phase complete
-**Last activity:** 2026-02-28 — Completed 10-02 Unified Catalog Search
+**Last activity:** 2026-02-28 — Completed 11-01 Retry Logic with Exponential Backoff
 
-Progress: [█████░░░░░] 44%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 43 (v1.0: 23, v1.1: 8, v1.2: 12)
+- Total plans completed: 44 (v1.0: 23, v1.1: 8, v1.2: 13)
 - v1.2 plans remaining: 0
 
 **By Phase:**
@@ -33,14 +33,14 @@ Progress: [█████░░░░░] 44%
 | 8 (v1.2) | 2 | Complete |
 | 9 (v1.2) | 3 | Complete |
 | 10 (v1.2) | 2 | Complete |
-| 11 (v1.2) | 1 | Pending |
+| 11 (v1.2) | 1 | Complete |
 
 ## Accumulated Context
 
 ### Shipped Milestones
 - **v1.0:** PixelRTS Boot Improvement — Vision analysis, FUSE boot, installer, catalog
 - **v1.1:** Visual Shell Integration — Desktop objects, boot progress, error handling
-- **v1.2:** Cache Infrastructure + Remote Client + Remote Boot + Source Filtering + Search — IndexedDB, hash verification, LRU eviction, ETag revalidation, cache-first fetching, verification status UI, multi-server aggregation, server source badges, settings panel, streaming downloads, download progress overlay, offline availability, filter bar UI, search bar with debounce
+- **v1.2:** Cache Infrastructure + Remote Client + Remote Boot + Source Filtering + Search + Retry Logic — IndexedDB, hash verification, LRU eviction, ETag revalidation, cache-first fetching, verification status UI, multi-server aggregation, server source badges, settings panel, streaming downloads, download progress overlay, offline availability, filter bar UI, search bar with debounce, exponential backoff retry, manual retry button
 
 ### Key Decisions
 - PixiJS v7 for desktop rendering
@@ -93,17 +93,21 @@ Progress: [█████░░░░░] 44%
 - **10-02:** Case-insensitive search matching on container name and ID
 - **10-02:** Combined filtering: object must pass BOTH source filter AND search query
 - **10-02:** Ctrl+F and Cmd+F both supported for cross-platform keyboard shortcut
+- **11-01:** MAX_RETRIES = 3 with exponential backoff (1s base, 10s max, 500ms jitter)
+- **11-01:** Retryable errors: network, timeout, DNS, 5xx HTTP
+- **11-01:** Non-retryable: 4xx HTTP (except gateway), cancelled, verification failed
+- **11-01:** Orange (0xffaa00) for retrying status indicator
 
 ### Components Shipped
-- RTSDesktopObject.js (1734 lines) - PIXI.Container with progress, status, error, cache verification, server source badge, download overlay, offline availability badge
+- RTSDesktopObject.js (1890 lines) - PIXI.Container with progress, status, error, cache verification, server source badge, download overlay, offline availability badge, retry button
 - CatalogBridge.js (487 lines) - API client with status polling and cache-first fetching
-- DesktopObjectManager.js (1433 lines) - Lifecycle manager with remote catalog integration, remote boot flow, cache-first boot path, source filtering
+- DesktopObjectManager.js (1567 lines) - Lifecycle manager with remote catalog integration, remote boot flow, cache-first boot path, source filtering, retry handling
 - catalog_server.py (639 lines) - Status tracking and REST API
 - CatalogCacheManager.js (1345 lines) - IndexedDB cache with LRU eviction, stale detection, ETag revalidation, ES6 exports, isOfflineCapable
 - ServerRegistry.js (327 lines) - localStorage server configuration persistence
 - RemoteCatalogClient.js (478 lines) - Multi-server catalog aggregation with SWR pattern
 - ServerSettingsPanel.js (674 lines) - Settings UI for managing remote servers
-- RemoteBootFetcher.js (633 lines) - Streaming download with progress, cancellation, hash verification
+- RemoteBootFetcher.js (744 lines) - Streaming download with progress, cancellation, hash verification, exponential backoff retry
 - CatalogFilterBar.js (166 lines) - Filter bar UI with All/Local/Remote buttons and count display
 - CatalogSearchBar.js (167 lines) - Search input with debounce, clear button, ES6 exports
 
@@ -112,6 +116,6 @@ Progress: [█████░░░░░] 44%
 
 ## Session Continuity
 
-Last session: 2026-02-28T02:28:19Z
-Status: Phase 10 complete — Unified catalog search with combined filtering implemented
+Last session: 2026-02-28T03:51:45Z
+Status: Phase 11 complete — Retry logic with exponential backoff implemented
 Resume file: None
