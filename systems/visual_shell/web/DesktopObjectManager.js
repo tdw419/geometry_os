@@ -13,6 +13,7 @@
 
 import { RemoteCatalogClient } from './RemoteCatalogClient.js';
 import { ServerRegistry } from './ServerRegistry.js';
+import { RemoteBootFetcher } from './RemoteBootFetcher.js';
 
 class DesktopObjectManager extends PIXI.utils.EventEmitter {
     /**
@@ -52,6 +53,9 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
 
         // Track which objects are from remote servers
         this._remoteEntryIds = new Set();
+
+        // Track active downloads (entryId -> RemoteBootFetcher instance)
+        this._activeDownloads = new Map();
 
         // Create dedicated layer for desktop objects
         this.objectLayer = new PIXI.Container();
@@ -650,6 +654,309 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
     }
 
     /**
+     * Boot a remote container - download if not cached, then boot
+     * @private
+     * @param {string} entryId - Entry ID to boot
+     * @param {Object} entry - Catalog entry data
+     */
+    async _bootRemoteContainer(entryId, entry) {
+        const obj = this.objects.get(entryId);
+        if (!obj) {
+            console.warn(`[DesktopObjectManager] Cannot boot non-existent remote object ${entryId}`);
+            return;
+        }
+
+        // Check if already downloading
+        if (this._activeDownloads.has(entryId)) {
+            console.log(`[DesktopObjectManager] Download already in progress for ${entryId}`);
+            return;
+        }
+
+        // Check if already cached
+        // Note: Full cache-first path covered in 09-03
+        // For now, we always download (streaming download will be cached on completion)
+        const downloadUrl = this._getRemoteDownloadUrl(entry);
+        if (!downloadUrl) {
+            console.error(`[DesktopObjectManager] No download URL for remote container ${entryId}`);
+            obj.setStatus('error');
+            return;
+        }
+
+        // Start download with progress
+        console.log(`[DesktopObjectManager] Starting remote boot download for ${entryId}`);
+        this._startRemoteDownload(entryId, downloadUrl, entry);
+    }
+
+    /**
+     * Get the download URL for a remote container
+     * @private
+     * @param {Object} entry - Catalog entry with sourceServerId
+     * @returns {string|null} Download URL or null if unavailable
+     */
+    _getRemoteDownloadUrl(entry) {
+        if (!entry.sourceServerId) {
+            return null;
+        }
+
+        // Get server info from registry
+        const server = this.serverRegistry.getServer(entry.sourceServerId);
+        if (!server || !server.url) {
+            console.warn(`[DesktopObjectManager] Server not found for ${entry.sourceServerId}`);
+            return null;
+        }
+
+        // Construct download URL
+        // Assumes server provides containers at /api/container/{id}/download
+        const baseUrl = server.url.replace(/\/$/, '');
+        return `${baseUrl}/api/container/${entry.id}/download`;
+    }
+
+    /**
+     * Start remote container download with progress tracking
+     * @private
+     * @param {string} entryId - Entry ID
+     * @param {string} url - Download URL
+     * @param {Object} entry - Catalog entry data
+     */
+    async _startRemoteDownload(entryId, url, entry) {
+        const obj = this.objects.get(entryId);
+        if (!obj) return;
+
+        // Create fetcher instance
+        const fetcher = new RemoteBootFetcher({ timeout: 120000 }); // 2 minute timeout for large containers
+        this._activeDownloads.set(entryId, fetcher);
+
+        // Set downloading state on object
+        obj.setDownloading(true);
+
+        // Wire up cancel-download event
+        const cancelHandler = (data) => {
+            if (data.entryId === entryId) {
+                this.cancelDownload(entryId);
+            }
+        };
+        obj.once('cancel-download', cancelHandler);
+
+        try {
+            const result = await fetcher.fetch(url, {
+                expectedHash: entry.hash || null,  // Use hash from entry if available
+
+                onProgress: (progress) => {
+                    this._handleDownloadProgress(entryId, progress);
+                },
+
+                onComplete: (result) => {
+                    this._handleDownloadComplete(entryId, result, entry);
+                    obj.off('cancel-download', cancelHandler);
+                },
+
+                onError: (errorInfo) => {
+                    this._handleDownloadError(entryId, errorInfo);
+                    obj.off('cancel-download', cancelHandler);
+                },
+
+                onCancel: (cancelInfo) => {
+                    console.log(`[DesktopObjectManager] Download cancelled for ${entryId}: ${cancelInfo.bytesLoaded} bytes`);
+                    obj.off('cancel-download', cancelHandler);
+                }
+            });
+
+            // Result is also returned directly
+            if (result && result.data) {
+                // Store in cache (if cache manager available)
+                this._storeDownloadInCache(entryId, result.data, result.hash, entry);
+
+                // Start boot after short delay (let verification status show)
+                setTimeout(() => {
+                    this._startBootWithData(entryId, result.data);
+                }, 1500);
+            }
+
+        } catch (error) {
+            console.error(`[DesktopObjectManager] Download error for ${entryId}:`, error);
+            this._handleDownloadError(entryId, {
+                error,
+                type: 'network',
+                message: error.message || 'Download failed'
+            });
+        } finally {
+            this._activeDownloads.delete(entryId);
+            obj.setDownloading(false);
+        }
+    }
+
+    /**
+     * Handle download progress update
+     * @private
+     * @param {string} entryId - Entry ID being downloaded
+     * @param {Object} progress - Progress info { loaded, total, percent, speed, timeRemaining }
+     */
+    _handleDownloadProgress(entryId, progress) {
+        const obj = this.objects.get(entryId);
+        if (obj) {
+            obj.setDownloadProgress(progress);
+        }
+    }
+
+    /**
+     * Handle download completion
+     * @private
+     * @param {string} entryId - Entry ID that completed
+     * @param {Object} result - Download result { data, hash, verified, expectedHash }
+     * @param {Object} entry - Catalog entry data
+     */
+    _handleDownloadComplete(entryId, result, entry) {
+        const obj = this.objects.get(entryId);
+        if (!obj) return;
+
+        console.log(`[DesktopObjectManager] Download complete for ${entryId}: verified=${result.verified}, hash=${result.hash?.substring(0, 12)}...`);
+
+        // Show verification status
+        obj.showVerificationStatus(result.verified, result.hash);
+
+        // Clean up download state
+        obj.setDownloading(false);
+        this._activeDownloads.delete(entryId);
+
+        // If verification failed, show error but don't boot
+        if (!result.verified && result.expectedHash) {
+            console.warn(`[DesktopObjectManager] Hash verification failed for ${entryId}`);
+            obj.setStatus('error');
+            // Error details shown via cache status indicator
+            return;
+        }
+
+        // Store in cache and boot
+        this._storeDownloadInCache(entryId, result.data, result.hash, entry);
+
+        // Boot after delay to show verification success
+        setTimeout(() => {
+            this._startBootWithData(entryId, result.data);
+        }, 1500);
+    }
+
+    /**
+     * Handle download error
+     * @private
+     * @param {string} entryId - Entry ID that failed
+     * @param {Object} errorInfo - Error information
+     */
+    _handleDownloadError(entryId, errorInfo) {
+        const obj = this.objects.get(entryId);
+        if (!obj) return;
+
+        console.error(`[DesktopObjectManager] Download error for ${entryId}:`, errorInfo.message);
+
+        // Clean up download state
+        obj.setDownloading(false);
+        this._activeDownloads.delete(entryId);
+
+        // Show error on object
+        obj.setStatus('error');
+        obj.showError({
+            message: errorInfo.message || 'Download failed',
+            stage: 'Downloading',
+            elapsedTime: 0,
+            config: {}
+        });
+
+        // Emit download failed event
+        this.emit('download-failed', {
+            entryId,
+            error: errorInfo,
+            retryable: errorInfo.retryable || false
+        });
+    }
+
+    /**
+     * Store downloaded data in cache
+     * @private
+     * @param {string} entryId - Entry ID
+     * @param {ArrayBuffer} data - Container data
+     * @param {string} hash - Computed hash
+     * @param {Object} entry - Catalog entry data
+     */
+    async _storeDownloadInCache(entryId, data, hash, entry) {
+        // Check if cache manager is available
+        if (window.catalogBridge?.cache) {
+            try {
+                await window.catalogBridge.cache.setContainerData(entryId, data, {
+                    hash: hash,
+                    size: data.byteLength,
+                    metadata: {
+                        name: entry.name,
+                        sourceServerId: entry.sourceServerId
+                    }
+                });
+                console.log(`[DesktopObjectManager] Cached ${entryId} (${data.byteLength} bytes)`);
+
+                // Update cache status on object
+                const obj = this.objects.get(entryId);
+                if (obj) {
+                    obj.setCacheStatus('verified');
+                }
+            } catch (e) {
+                console.warn(`[DesktopObjectManager] Failed to cache ${entryId}:`, e);
+            }
+        }
+    }
+
+    /**
+     * Start boot with container data (for remote containers)
+     * @private
+     * @param {string} entryId - Entry ID to boot
+     * @param {ArrayBuffer} data - Container data
+     */
+    async _startBootWithData(entryId, data) {
+        const obj = this.objects.get(entryId);
+        if (!obj) return;
+
+        // For remote containers, we need to pass data to the boot endpoint
+        // This requires server support for receiving container data
+        // For now, we use the standard boot flow (server may have cached it)
+        console.log(`[DesktopObjectManager] Starting boot for ${entryId} with downloaded data`);
+
+        // Update status
+        obj.setStatus('booting');
+
+        // Emit boot-ready event with data (for custom handling)
+        this.emit('boot-ready', {
+            entryId,
+            data,
+            entry: obj.entryData
+        });
+
+        // Try standard boot (server may have received data during download)
+        try {
+            await this.bootObject(entryId);
+        } catch (error) {
+            console.error(`[DesktopObjectManager] Boot failed for ${entryId}:`, error);
+        }
+    }
+
+    /**
+     * Cancel an active download
+     * @param {string} entryId - Entry ID to cancel download for
+     */
+    cancelDownload(entryId) {
+        const fetcher = this._activeDownloads.get(entryId);
+        if (fetcher) {
+            fetcher.cancel();
+            this._activeDownloads.delete(entryId);
+
+            const obj = this.objects.get(entryId);
+            if (obj) {
+                obj.setDownloading(false);
+                obj.setStatus('idle');
+                obj.hideProgress();
+            }
+
+            console.log(`[DesktopObjectManager] Cancelled download for ${entryId}`);
+            this.emit('download-cancelled', { entryId });
+        }
+    }
+
+    /**
      * Serialize all object states
      * @returns {Object} Serializable state
      */
@@ -716,7 +1023,14 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
      * @private
      */
     _onBootRequested(obj, data) {
-        this.bootObject(obj.entryId);
+        const entryId = obj.entryId;
+
+        // Check if this is a remote container
+        if (this._remoteEntryIds.has(entryId)) {
+            this._bootRemoteContainer(entryId, obj.entryData);
+        } else {
+            this.bootObject(entryId);
+        }
     }
 
     /**
