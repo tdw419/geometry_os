@@ -23,10 +23,10 @@ Requirements for PXE Boot milestone. Each maps to a roadmap phase.
 
 ### HTTP Container Serving (HTTP)
 
-- [ ] **HTTP-01**: User can serve .rts.png containers via HTTP for PXE boot
-- [ ] **HTTP-02**: HTTP server integrates with existing catalog infrastructure
-- [ ] **HTTP-03**: User can select which containers are available for PXE boot
-- [ ] **HTTP-04**: HTTP server supports range requests for large containers
+- [x] **HTTP-01**: User can serve .rts.png containers via HTTP for PXE boot
+- [x] **HTTP-02**: HTTP server integrates with existing catalog infrastructure
+- [x] **HTTP-03**: User can select which containers are available for PXE boot
+- [x] **HTTP-04**: HTTP server supports range requests for large containers
 
 ### Boot Menu (MENU)
 
@@ -76,10 +76,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TFTP-02 | Phase 13 | Complete |
 | TFTP-03 | Phase 13 | Complete |
 | TFTP-04 | Phase 13 | Complete |
-| HTTP-01 | Phase 14 | Pending |
-| HTTP-02 | Phase 14 | Pending |
-| HTTP-03 | Phase 14 | Pending |
-| HTTP-04 | Phase 14 | Pending |
+| HTTP-01 | Phase 14 | Complete |
+| HTTP-02 | Phase 14 | Complete |
+| HTTP-03 | Phase 14 | Complete |
+| HTTP-04 | Phase 14 | Complete |
 | MENU-01 | Phase 15 | Pending |
 | MENU-02 | Phase 15 | Pending |
 | MENU-03 | Phase 15 | Pending |
