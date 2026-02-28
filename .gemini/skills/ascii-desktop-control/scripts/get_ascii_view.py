@@ -2,21 +2,68 @@ import subprocess
 import json
 import re
 import os
+import sys
 import tempfile
+
+# Add project root to path for HilbertCurve import
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(SCRIPT_DIR))))
+sys.path.insert(0, PROJECT_ROOT)
+
+try:
+    from systems.visual_shell.ascii_gui_bridge import HilbertCurve
+    HILBERT_AVAILABLE = True
+except ImportError:
+    HILBERT_AVAILABLE = False
+
+# Initialize Hilbert curve (order 10 = 1024x1024 grid)
+hilbert = HilbertCurve(order=10) if HILBERT_AVAILABLE else None
 
 
 def get_focused_window():
     try:
-        # Get active window ID
-        window_id = subprocess.check_output(["xdotool", "getactivewindow"]).decode().strip()
-        # Get window info
-        info = subprocess.check_output(["xwininfo", "-id", window_id]).decode()
+        # Ensure DISPLAY is set
+        env = os.environ.copy()
+        if not env.get('DISPLAY'):
+            env['DISPLAY'] = ':0'
 
-        # Parse geometry
+        # Get active window ID
+        window_id = subprocess.check_output(
+            ["xdotool", "getactivewindow"],
+            env=env
+        ).decode().strip()
+
+        # Get window info
+        info = subprocess.check_output(
+            ["xwininfo", "-id", window_id],
+            env=env
+        ).decode()
+
+        # Parse geometry from xwininfo output (multiple format support)
+        # Try -geometry format first
         geometry = re.search(r"-geometry\s+(\d+)x(\d+)\+(\d+)\+(\d+)", info)
         if geometry:
             w, h, x, y = map(int, geometry.groups())
-            return {"id": window_id, "w": w, "h": h, "x": x, "y": y, "name": "Active Window"}
+        else:
+            # Parse separate fields format
+            x_match = re.search(r"Absolute upper-left X:\s+(\d+)", info)
+            y_match = re.search(r"Absolute upper-left Y:\s+(\d+)", info)
+            w_match = re.search(r"Width:\s+(\d+)", info)
+            h_match = re.search(r"Height:\s+(\d+)", info)
+
+            if all([x_match, y_match, w_match, h_match]):
+                x = int(x_match.group(1))
+                y = int(y_match.group(1))
+                w = int(w_match.group(1))
+                h = int(h_match.group(1))
+            else:
+                return None
+
+        # Get window name
+        name_match = re.search(r'xwininfo: Window id: [^\"]+"([^"]+)"', info)
+        name = name_match.group(1) if name_match else "Active Window"
+
+        return {"id": window_id, "w": w, "h": h, "x": x, "y": y, "name": name}
     except Exception as e:
         return None
 
@@ -163,13 +210,23 @@ def generate_ascii_view():
                     if 0 < gx < grid_w-1 and 0 < gy < grid_h-1:
                         char = labels[label_idx]
                         grid[gy][gx] = char
-                        bindings[char] = {
+                        screen_x = window["x"] + cx + (cw // 2)
+                        screen_y = window["y"] + cy + (ch // 2)
+
+                        binding = {
                             "id": child_id,
-                            "x": window["x"] + cx + (cw // 2),
-                            "y": window["y"] + cy + (ch // 2),
+                            "x": screen_x,
+                            "y": screen_y,
                             "w": cw,
                             "h": ch
                         }
+
+                        # Add Hilbert spatial encoding
+                        if hilbert:
+                            binding["hilbert_index"] = hilbert.screen_to_hilbert(screen_x, screen_y)
+                            binding["hilbert_order"] = 10
+
+                        bindings[char] = binding
                         label_idx += 1
 
         except Exception:
@@ -179,8 +236,15 @@ def generate_ascii_view():
         if not use_screenshot:
             ascii_view = "\n".join(["".join(row) for row in grid])
 
-    # Add metadata header
-    header = f"WINDOW: {window['id']} | SIZE: {window['w']}x{window['h']} | MODE: {'screenshot' if use_screenshot else 'x11'}\n"
+    # Add metadata header with Hilbert encoding
+    hilbert_info = ""
+    if hilbert:
+        center_x = window['x'] + window['w'] // 2
+        center_y = window['y'] + window['h'] // 2
+        h_idx = hilbert.screen_to_hilbert(center_x, center_y)
+        hilbert_info = f" | HILBERT: {h_idx}"
+
+    header = f"WINDOW: {window['id']} | SIZE: {window['w']}x{window['h']}{hilbert_info} | MODE: {'screenshot' if use_screenshot else 'x11'}\n"
     return header + ascii_view, bindings
 
 if __name__ == "__main__":
