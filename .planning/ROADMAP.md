@@ -24,6 +24,8 @@ Extend PixelRTS boot capabilities to bare metal machines via PXE. Users can boot
 3. DHCP response includes correct PXE boot server IP and bootloader filename
 4. User sees DHCP lease logs showing client MAC addresses and assigned IPs
 
+**Plans:** 4 plans (Complete)
+
 ---
 
 ### Phase 13: TFTP Server
@@ -39,6 +41,8 @@ Extend PixelRTS boot capabilities to bare metal machines via PXE. Users can boot
 2. PXE client successfully downloads bootloader after receiving DHCP response
 3. Multiple PXE clients can boot simultaneously without blocking
 4. User sees TFTP transfer logs with file names and transfer sizes
+
+**Plans:** 4 plans (Complete)
 
 ---
 
@@ -56,6 +60,8 @@ Extend PixelRTS boot capabilities to bare metal machines via PXE. Users can boot
 3. User can enable/disable PXE availability per container via settings panel
 4. Large containers download correctly with HTTP range request support
 
+**Plans:** 4 plans (Complete)
+
 ---
 
 ### Phase 15: Boot Menu
@@ -71,6 +77,14 @@ Extend PixelRTS boot capabilities to bare metal machines via PXE. Users can boot
 2. User can customize container names and descriptions shown in menu
 3. Menu displays container metadata (size, OS type) alongside entries
 4. User can set default selection and auto-boot timeout in configuration
+
+**Plans:** 4 plans
+
+Plans:
+- [ ] 15-01-PLAN.md - iPXE boot script and menu script endpoints
+- [ ] 15-02-PLAN.md - Menu configuration (default entry, timeout)
+- [ ] 15-03-PLAN.md - Menu entry customization (names, descriptions, CLI)
+- [ ] 15-04-PLAN.md - Boot menu tests
 
 ---
 
@@ -88,6 +102,8 @@ Extend PixelRTS boot capabilities to bare metal machines via PXE. Users can boot
 3. Settings panel includes PXE toggle per container with immediate effect
 4. Boot progress visualization works identically for PXE and local boot
 
+**Plans:** 0 plans (Pending)
+
 ---
 
 ## Progress
@@ -97,7 +113,7 @@ Extend PixelRTS boot capabilities to bare metal machines via PXE. Users can boot
 | 12 - DHCP Server | PXE clients receive boot instructions | 4 | 4 | Complete |
 | 13 - TFTP Server | Bootloader delivered via TFTP | 4 | 4 | Complete |
 | 14 - HTTP Serving | Containers available via HTTP | 4 | 4 | Complete |
-| 15 - Boot Menu | Interactive container selection | 4 | 0 | Pending |
+| 15 - Boot Menu | Interactive container selection | 4 | 4 | Pending |
 | 16 - Integration | Unified with v1.2 infrastructure | 4 | 0 | Pending |
 
 **Total:** 16 requirements, 5 phases, 16 plans
@@ -133,3 +149,4 @@ Mapped: 16/16 (100%)
 
 ---
 *Roadmap created: 2026-02-28*
+*Plans added: 2026-02-28*
