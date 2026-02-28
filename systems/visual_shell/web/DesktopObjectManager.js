@@ -60,6 +60,9 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
         // Source filter state
         this._sourceFilter = 'all'; // 'all' | 'local' | 'remote'
 
+        // Search filter state
+        this._searchQuery = '';
+
         // Create dedicated layer for desktop objects
         this.objectLayer = new PIXI.Container();
         this.objectLayer.label = 'desktopObjectLayer';
@@ -286,6 +289,39 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
     }
 
     /**
+     * Set the search query and update object visibility
+     * @param {string} query - Search query (empty string shows all)
+     */
+    setSearchQuery(query) {
+        this._searchQuery = query.toLowerCase().trim();
+        this._applySourceFilter();
+        this.emit('search-changed', { query });
+    }
+
+    /**
+     * Get the current search query
+     * @returns {string}
+     */
+    getSearchQuery() {
+        return this._searchQuery;
+    }
+
+    /**
+     * Check if an object matches the current search query
+     * @param {RTSDesktopObject} obj - The object to check
+     * @returns {boolean}
+     * @private
+     */
+    _matchesSearch(obj) {
+        if (!this._searchQuery) return true;
+
+        // Get name from entry data
+        const entry = obj.entryData || obj.entry;
+        const name = (entry?.name || entry?.id || '').toLowerCase();
+        return name.includes(this._searchQuery);
+    }
+
+    /**
      * Apply source filter to all objects
      * @private
      */
@@ -304,17 +340,25 @@ class DesktopObjectManager extends PIXI.utils.EventEmitter {
     _applySourceFilterToObject(obj, entryId) {
         const isRemote = this._remoteEntryIds.has(entryId);
 
+        // Check source filter
+        let passesSourceFilter = true;
         switch (this._sourceFilter) {
             case 'local':
-                obj.visible = !isRemote;
+                passesSourceFilter = !isRemote;
                 break;
             case 'remote':
-                obj.visible = isRemote;
+                passesSourceFilter = isRemote;
                 break;
             case 'all':
             default:
-                obj.visible = true;
+                passesSourceFilter = true;
         }
+
+        // Check search filter
+        const passesSearch = this._matchesSearch(obj);
+
+        // Object is visible only if it passes both filters
+        obj.visible = passesSourceFilter && passesSearch;
     }
 
     /**
