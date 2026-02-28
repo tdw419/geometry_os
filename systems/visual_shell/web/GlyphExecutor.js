@@ -131,6 +131,180 @@ export class GlyphExecutor {
         return active;
     }
 
+    // ============================================
+    // VISUAL PERSISTENCE (Epoch 1)
+    // ============================================
+
+    /**
+     * Serialize glyph registry for persistence.
+     * Excludes sprite references (can't be serialized).
+     * @returns {string} JSON string of serializable glyph state
+     */
+    serializeGlyphRegistry() {
+        const serializable = [];
+
+        for (const [key, entry] of this.glyphRegistry) {
+            const [x, y] = key.split(',').map(Number);
+            serializable.push({
+                x,
+                y,
+                coreId: entry.coreId,
+                atlasX: entry.atlasX,
+                atlasY: entry.atlasY,
+                state: entry.state,
+                pc: entry.pc,
+                cycleCount: entry.cycleCount,
+                lastOutput: entry.lastOutput
+            });
+        }
+
+        return JSON.stringify({
+            version: 1,
+            timestamp: Date.now(),
+            nextCoreId: this.nextCoreId,
+            glyphs: serializable
+        });
+    }
+
+    /**
+     * Deserialize glyph registry from persistence.
+     * Note: Sprites must be re-attached via attachSpritesToRestoredGlyphs()
+     * @param {string} json - Serialized glyph registry
+     * @returns {number} Number of glyphs restored
+     */
+    deserializeGlyphRegistry(json) {
+        try {
+            const data = JSON.parse(json);
+
+            if (data.version !== 1) {
+                console.warn('[GlyphExecutor] Unsupported serialization version:', data.version);
+                return 0;
+            }
+
+            this.glyphRegistry.clear();
+            this.nextCoreId = data.nextCoreId || 1;
+
+            for (const glyph of data.glyphs) {
+                const key = `${glyph.x},${glyph.y}`;
+                this.glyphRegistry.set(key, {
+                    coreId: glyph.coreId,
+                    sprite: null, // Must be re-attached
+                    atlasX: glyph.atlasX,
+                    atlasY: glyph.atlasY,
+                    state: glyph.state || 'idle',
+                    pc: glyph.pc || 0,
+                    cycleCount: glyph.cycleCount || 0,
+                    lastOutput: glyph.lastOutput || null,
+                    restored: true // Flag for sprite re-attachment
+                });
+            }
+
+            console.log(`[GlyphExecutor] Restored ${data.glyphs.length} glyphs from persistence`);
+            return data.glyphs.length;
+        } catch (e) {
+            console.error('[GlyphExecutor] Failed to deserialize glyph registry:', e);
+            return 0;
+        }
+    }
+
+    /**
+     * Get glyphs that need sprite re-attachment after restoration.
+     * @returns {Array} Array of {x, y, coreId, atlasX, atlasY} objects
+     */
+    getGlyphsNeedingSprites() {
+        const needsSprites = [];
+
+        for (const [key, entry] of this.glyphRegistry) {
+            if (entry.restored && !entry.sprite) {
+                const [x, y] = key.split(',').map(Number);
+                needsSprites.push({
+                    x,
+                    y,
+                    coreId: entry.coreId,
+                    atlasX: entry.atlasX,
+                    atlasY: entry.atlasY
+                });
+            }
+        }
+
+        return needsSprites;
+    }
+
+    /**
+     * Attach a sprite to a restored glyph.
+     * @param {number} x - Glyph X position
+     * @param {number} y - Glyph Y position
+     * @param {PIXI.Sprite} sprite - Sprite to attach
+     * @returns {boolean} True if attachment succeeded
+     */
+    attachSpriteToGlyph(x, y, sprite) {
+        const key = `${x},${y}`;
+        const entry = this.glyphRegistry.get(key);
+
+        if (!entry) return false;
+
+        entry.sprite = sprite;
+        delete entry.restored;
+
+        // Restore visual state
+        this.updateGlyphState(x, y, { state: entry.state });
+
+        return true;
+    }
+
+    /**
+     * Save glyph registry to localStorage.
+     * @param {string} key - Storage key (default: 'gos_glyph_registry')
+     */
+    saveToLocalStorage(key = 'gos_glyph_registry') {
+        try {
+            const data = this.serializeGlyphRegistry();
+            localStorage.setItem(key, data);
+            localStorage.setItem(`${key}_timestamp`, Date.now().toString());
+            console.log(`[GlyphExecutor] Saved ${this.glyphRegistry.size} glyphs to localStorage`);
+        } catch (e) {
+            console.error('[GlyphExecutor] Failed to save to localStorage:', e);
+        }
+    }
+
+    /**
+     * Load glyph registry from localStorage.
+     * @param {string} key - Storage key (default: 'gos_glyph_registry')
+     * @returns {number} Number of glyphs restored
+     */
+    loadFromLocalStorage(key = 'gos_glyph_registry') {
+        try {
+            const data = localStorage.getItem(key);
+            if (!data) {
+                console.log('[GlyphExecutor] No saved glyph registry found');
+                return 0;
+            }
+
+            const count = this.deserializeGlyphRegistry(data);
+            const timestamp = localStorage.getItem(`${key}_timestamp`);
+
+            if (timestamp) {
+                const age = Date.now() - parseInt(timestamp);
+                console.log(`[GlyphExecutor] Registry age: ${Math.round(age / 1000)}s`);
+            }
+
+            return count;
+        } catch (e) {
+            console.error('[GlyphExecutor] Failed to load from localStorage:', e);
+            return 0;
+        }
+    }
+
+    /**
+     * Clear persisted glyph registry from localStorage.
+     * @param {string} key - Storage key (default: 'gos_glyph_registry')
+     */
+    clearPersistedState(key = 'gos_glyph_registry') {
+        localStorage.removeItem(key);
+        localStorage.removeItem(`${key}_timestamp`);
+        console.log('[GlyphExecutor] Cleared persisted state');
+    }
+
     /**
      * Update execution state for a glyph
      * @param {number} x - Screen X position
@@ -765,5 +939,187 @@ export class GlyphExecutor {
      */
     getFrameCount() {
         return this.frameCount;
+    }
+
+    // ============================================
+    // SACCADIC EXECUTION (Epoch 1)
+    // ============================================
+
+    /**
+     * Start saccadic auto-execution - only executes visible glyphs.
+     * Integrates with viewport manager for GPU-optimized execution.
+     * @param {Object} viewportManager - ViewportManager instance
+     * @param {number} fps - Target frames per second (default: 30)
+     * @param {string} kernelId - Kernel to execute
+     * @param {Object} options - Additional options
+     */
+    startSaccadicExecution(viewportManager, fps = 30, kernelId = null, options = {}) {
+        if (this.autoExecutionEnabled) {
+            console.warn('[GlyphExecutor] Auto-execution already running');
+            return;
+        }
+
+        this.autoExecutionEnabled = true;
+        this.saccadicMode = true;
+        this.viewportManager = viewportManager;
+
+        const frameInterval = 1000 / fps;
+        const paddingFactor = options.paddingFactor || 1.2; // 20% padding for preloading
+
+        // Statistics
+        this.saccadicStats = {
+            totalGlyphs: 0,
+            visibleGlyphs: 0,
+            skippedGlyphs: 0,
+            lastUpdate: Date.now()
+        };
+
+        console.log(`[GlyphExecutor] Starting saccadic execution at ${fps} FPS`);
+
+        this._autoExecutionInterval = setInterval(() => {
+            this.frameCount++;
+
+            // Get current viewport bounds
+            const bounds = viewportManager?.getVisibleBoundsWithPadding?.(paddingFactor)
+                || viewportManager?.getVisibleBounds?.()
+                || { x: -Infinity, y: -Infinity, width: Infinity, height: Infinity };
+
+            let visibleCount = 0;
+            let skippedCount = 0;
+
+            // Execute only visible glyphs
+            for (const [key, entry] of this.glyphRegistry) {
+                const [x, y] = key.split(',').map(Number);
+
+                // Check if glyph is in viewport
+                const isVisible = this._isGlyphInViewport(x, y, bounds, entry.sprite);
+
+                if (isVisible) {
+                    visibleCount++;
+
+                    if (entry.state === 'running' || entry.state === 'idle') {
+                        this.markExecuted(x, y);
+                        this.updateGlyphState(x, y, { state: 'running' });
+                    }
+                } else {
+                    skippedCount++;
+
+                    // Pause off-screen glyphs (save GPU cycles)
+                    if (entry.state === 'running') {
+                        this.updateGlyphState(x, y, { state: 'idle' });
+                    }
+                }
+            }
+
+            // Update stats
+            this.saccadicStats.totalGlyphs = this.glyphRegistry.size;
+            this.saccadicStats.visibleGlyphs = visibleCount;
+            this.saccadicStats.skippedGlyphs = skippedCount;
+            this.saccadicStats.lastUpdate = Date.now();
+
+            // Execute kernel if specified and there are visible glyphs
+            if (kernelId && this.kernels.has(kernelId) && visibleCount > 0) {
+                this.execute(kernelId, 1000);
+            }
+
+            // Update visual feedback
+            this.updateVisualFeedback();
+
+        }, frameInterval);
+    }
+
+    /**
+     * Check if a glyph is within the viewport bounds.
+     * @param {number} x - Glyph X position
+     * @param {number} y - Glyph Y position
+     * @param {Object} bounds - Viewport bounds {x, y, width, height}
+     * @param {PIXI.Sprite} sprite - Optional sprite for bounds calculation
+     * @returns {boolean} True if glyph is visible
+     */
+    _isGlyphInViewport(x, y, bounds, sprite = null) {
+        // Use sprite bounds if available
+        if (sprite?.getBounds) {
+            const spriteBounds = sprite.getBounds();
+            return (
+                spriteBounds.x < bounds.x + bounds.width &&
+                spriteBounds.x + spriteBounds.width > bounds.x &&
+                spriteBounds.y < bounds.y + bounds.height &&
+                spriteBounds.y + spriteBounds.height > bounds.y
+            );
+        }
+
+        // Use tile size for bounds estimation
+        const tileSize = this.tileSize || 16;
+        return (
+            x < bounds.x + bounds.width &&
+            x + tileSize > bounds.x &&
+            y < bounds.y + bounds.height &&
+            y + tileSize > bounds.y
+        );
+    }
+
+    /**
+     * Get saccadic execution statistics.
+     * @returns {Object} Stats object
+     */
+    getSaccadicStats() {
+        return this.saccadicStats || {
+            totalGlyphs: this.glyphRegistry.size,
+            visibleGlyphs: 0,
+            skippedGlyphs: 0,
+            lastUpdate: Date.now()
+        };
+    }
+
+    /**
+     * Get glyphs within a specific viewport region.
+     * @param {Object} bounds - Viewport bounds {x, y, width, height}
+     * @returns {Array} Array of visible glyph entries
+     */
+    getGlyphsInViewport(bounds) {
+        const visible = [];
+
+        for (const [key, entry] of this.glyphRegistry) {
+            const [x, y] = key.split(',').map(Number);
+
+            if (this._isGlyphInViewport(x, y, bounds, entry.sprite)) {
+                visible.push({ x, y, ...entry });
+            }
+        }
+
+        return visible;
+    }
+
+    /**
+     * Execute only glyphs within viewport (one-shot execution).
+     * @param {Object} viewportManager - ViewportManager instance
+     * @param {string} kernelId - Kernel to execute
+     * @param {number} cycles - Cycles per glyph
+     */
+    executeVisibleOnly(viewportManager, kernelId, cycles = 1000) {
+        const bounds = viewportManager?.getVisibleBounds?.() ||
+            { x: -Infinity, y: -Infinity, width: Infinity, height: Infinity };
+
+        let executedCount = 0;
+
+        for (const [key, entry] of this.glyphRegistry) {
+            const [x, y] = key.split(',').map(Number);
+
+            if (this._isGlyphInViewport(x, y, bounds, entry.sprite)) {
+                if (entry.state === 'running' || entry.state === 'idle') {
+                    this.markExecuted(x, y);
+                    this.updateGlyphState(x, y, { state: 'running' });
+                    executedCount++;
+                }
+            }
+        }
+
+        // Execute kernel once for all visible glyphs
+        if (kernelId && this.kernels.has(kernelId) && executedCount > 0) {
+            this.execute(kernelId, cycles);
+        }
+
+        console.log(`[GlyphExecutor] Executed ${executedCount} visible glyphs`);
+        return executedCount;
     }
 }
