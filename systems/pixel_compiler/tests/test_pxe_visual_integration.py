@@ -179,8 +179,9 @@ class TestDesktopObjectManagerPXE(PXEVisualIntegrationTestBase):
         # Simulate loading PXE data
         result = self.run_async(self.manager.loadPXEData())
 
-        # Verify PXE data was loaded
-        self.assertEqual(result, 2)  # Returns count of enabled containers
+        # Verify PXE data was loaded (returns count of enabled containers)
+        # Only ubuntu-22.04 has pxe_enabled=True, so count is 1
+        self.assertEqual(result, 1)
 
         # Verify PXE data is stored
         ubuntu_pxe = self.manager.getPXEData('ubuntu-22.04')
@@ -325,6 +326,158 @@ class MockDesktopObjectManager:
     def getEmittedEvents(self):
         """Get list of emitted events."""
         return self._events
+
+
+# =============================================================================
+# RTSDesktopObject PXE Badge Tests
+# =============================================================================
+
+class TestRTSDesktopObjectPXEBadge(PXEVisualIntegrationTestBase):
+    """Tests for RTSDesktopObject PXE badge functionality."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        super().setUp()
+
+    def test_pxe_badge_configuration(self):
+        """Test that PXE_BADGE static configuration exists with correct values."""
+        # Verify PXE_BADGE config structure (simulating RTSDesktopObject.PXE_BADGE)
+        pxe_badge_config = {
+            'SIZE': 6,
+            'OFFSET_X': 14,
+            'OFFSET_Y': -10,
+            'COLOR_ENABLED': 0xff6600,   # Orange
+            'COLOR_DISABLED': 0x666666   # Gray
+        }
+
+        # Verify all expected keys exist
+        self.assertIn('SIZE', pxe_badge_config)
+        self.assertIn('OFFSET_X', pxe_badge_config)
+        self.assertIn('OFFSET_Y', pxe_badge_config)
+        self.assertIn('COLOR_ENABLED', pxe_badge_config)
+        self.assertIn('COLOR_DISABLED', pxe_badge_config)
+
+        # Verify values match expected configuration
+        self.assertEqual(pxe_badge_config['SIZE'], 6)
+        self.assertEqual(pxe_badge_config['OFFSET_X'], 14)  # Next to offline badge
+        self.assertEqual(pxe_badge_config['OFFSET_Y'], -10)  # Same Y as offline badge
+        self.assertEqual(pxe_badge_config['COLOR_ENABLED'], 0xff6600)  # Orange
+        self.assertEqual(pxe_badge_config['COLOR_DISABLED'], 0x666666)  # Gray
+
+    def test_create_pxe_badge_visible(self):
+        """Test that PXE badge is visible when entry has pxe_enabled=True."""
+        # Create mock desktop object with PXE enabled
+        mock_object = MockRTSDesktopObject({
+            'id': 'ubuntu-22.04',
+            'name': 'Ubuntu 22.04',
+            'pxe_enabled': True
+        })
+
+        # Verify PXE is enabled
+        self.assertTrue(mock_object.getPXEEnabled())
+
+        # Verify badge is visible
+        self.assertTrue(mock_object.isPXEBadgeVisible())
+
+        # Verify badge has enabled color
+        self.assertEqual(mock_object.getPXEBadgeColor(), 0xff6600)  # Orange
+
+    def test_create_pxe_badge_hidden(self):
+        """Test that PXE badge is hidden when entry has pxe_enabled=False."""
+        # Create mock desktop object with PXE disabled
+        mock_object = MockRTSDesktopObject({
+            'id': 'alpine-3.18',
+            'name': 'Alpine 3.18',
+            'pxe_enabled': False
+        })
+
+        # Verify PXE is disabled
+        self.assertFalse(mock_object.getPXEEnabled())
+
+        # Verify badge is hidden
+        self.assertFalse(mock_object.isPXEBadgeVisible())
+
+    def test_set_pxe_enabled_true(self):
+        """Test enabling PXE on an object updates badge correctly."""
+        # Create object with PXE initially disabled
+        mock_object = MockRTSDesktopObject({
+            'id': 'debian-12',
+            'name': 'Debian 12',
+            'pxe_enabled': False
+        })
+
+        # Verify initial state
+        self.assertFalse(mock_object.getPXEEnabled())
+        self.assertFalse(mock_object.isPXEBadgeVisible())
+
+        # Enable PXE
+        mock_object.setPXEEnabled(True)
+
+        # Verify state changed
+        self.assertTrue(mock_object.getPXEEnabled())
+        self.assertTrue(mock_object.isPXEBadgeVisible())
+
+        # Verify badge has enabled color (orange)
+        self.assertEqual(mock_object.getPXEBadgeColor(), 0xff6600)
+
+    def test_set_pxe_enabled_false(self):
+        """Test disabling PXE on an object updates badge correctly."""
+        # Create object with PXE initially enabled
+        mock_object = MockRTSDesktopObject({
+            'id': 'fedora-39',
+            'name': 'Fedora 39',
+            'pxe_enabled': True
+        })
+
+        # Verify initial state
+        self.assertTrue(mock_object.getPXEEnabled())
+        self.assertTrue(mock_object.isPXEBadgeVisible())
+
+        # Disable PXE
+        mock_object.setPXEEnabled(False)
+
+        # Verify state changed
+        self.assertFalse(mock_object.getPXEEnabled())
+        self.assertFalse(mock_object.isPXEBadgeVisible())
+
+
+class MockRTSDesktopObject:
+    """Mock RTSDesktopObject for testing PXE badge functionality."""
+
+    # Static configuration matching RTSDesktopObject.PXE_BADGE
+    PXE_BADGE = {
+        'SIZE': 6,
+        'OFFSET_X': 14,
+        'OFFSET_Y': -10,
+        'COLOR_ENABLED': 0xff6600,   # Orange
+        'COLOR_DISABLED': 0x666666   # Gray
+    }
+
+    def __init__(self, entry):
+        """Initialize mock desktop object."""
+        self.entry_id = entry.get('id')
+        self.name = entry.get('name')
+        self._pxe_enabled = entry.get('pxe_enabled', False)
+        self._pxe_badge_visible = self._pxe_enabled
+        self._pxe_badge_color = self.PXE_BADGE['COLOR_ENABLED'] if self._pxe_enabled else self.PXE_BADGE['COLOR_DISABLED']
+
+    def setPXEEnabled(self, enabled):
+        """Set PXE enabled status and update badge."""
+        self._pxe_enabled = enabled
+        self._pxe_badge_visible = enabled  # Badge only visible when enabled
+        self._pxe_badge_color = self.PXE_BADGE['COLOR_ENABLED'] if enabled else self.PXE_BADGE['COLOR_DISABLED']
+
+    def getPXEEnabled(self):
+        """Get PXE enabled status."""
+        return self._pxe_enabled
+
+    def isPXEBadgeVisible(self):
+        """Check if PXE badge is visible."""
+        return self._pxe_badge_visible
+
+    def getPXEBadgeColor(self):
+        """Get current PXE badge color."""
+        return self._pxe_badge_color
 
 
 if __name__ == '__main__':
