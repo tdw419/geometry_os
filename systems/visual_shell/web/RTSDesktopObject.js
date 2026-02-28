@@ -198,6 +198,18 @@ class RTSDesktopObject extends PIXI.Container {
     };
 
     /**
+     * PXE boot availability badge configuration
+     * @static
+     */
+    static PXE_BADGE = {
+        SIZE: 6,
+        OFFSET_X: 14,         // Next to offline badge
+        OFFSET_Y: -10,        // Same Y as offline badge
+        COLOR_ENABLED: 0xff6600,   // Orange - PXE available
+        COLOR_DISABLED: 0x666666  // Gray - not available
+    };
+
+    /**
      * Create an RTSDesktopObject instance
      * @param {Object} entry - Catalog entry data
      * @param {string} entry.id - Unique entry ID
@@ -236,6 +248,9 @@ class RTSDesktopObject extends PIXI.Container {
         this._isDownloading = false;
         this._downloadProgress = null; // { loaded, total, percent, speed, timeRemaining }
 
+        // PXE boot availability state
+        this._pxeEnabled = false;
+
         // Set up interactivity
         this.eventMode = 'static';
         this.cursor = 'pointer';
@@ -261,6 +276,7 @@ class RTSDesktopObject extends PIXI.Container {
         this._createCacheStatusIndicator();
         this._createServerSourceBadge(entry);
         this._createOfflineBadge(entry);
+        this._createPXEBadge(entry);
         this._createProgressBar();
         this._createErrorOverlay();
         this._createBorder();
@@ -697,6 +713,92 @@ class RTSDesktopObject extends PIXI.Container {
      */
     isRemote() {
         return this._isRemote;
+    }
+
+    /**
+     * Create the PXE boot availability badge indicator
+     * Small colored circle next to offline badge indicating if container
+     * is available for PXE network boot.
+     * @private
+     * @param {Object} entry - Catalog entry with optional pxe_enabled field
+     */
+    _createPXEBadge(entry) {
+        const { SIZE, OFFSET_X, OFFSET_Y } = RTSDesktopObject.PXE_BADGE;
+        const { OBJECT_HEIGHT } = RTSDesktopObject.DIMENSIONS;
+
+        // Initialize PXE state from entry data
+        this._pxeEnabled = entry.pxe_enabled || false;
+
+        // Create badge graphics
+        this.pxeBadge = new PIXI.Graphics();
+        this.pxeBadge.x = OFFSET_X;
+        this.pxeBadge.y = OBJECT_HEIGHT + OFFSET_Y;
+
+        // Draw initial badge based on entry data
+        this._drawPXEBadge(this._pxeEnabled);
+
+        // Hidden by default - shown when pxe_enabled is true
+        this.pxeBadge.visible = this._pxeEnabled;
+
+        this.addChild(this.pxeBadge);
+
+        // Create tooltip for PXE availability (hidden by default)
+        this.pxeBadgeTooltip = new PIXI.Text({
+            text: 'PXE boot available',
+            style: {
+                fontFamily: 'Courier New, monospace',
+                fontSize: 10,
+                fill: 0xffffff,
+                align: 'left',
+                backgroundColor: 0x333333,
+                padding: 4
+            }
+        });
+        this.pxeBadgeTooltip.visible = false;
+        this.pxeBadgeTooltip.x = OFFSET_X + SIZE + 4;  // Right of badge
+        this.pxeBadgeTooltip.y = OBJECT_HEIGHT + OFFSET_Y - 2;
+        this.addChild(this.pxeBadgeTooltip);
+    }
+
+    /**
+     * Draw the PXE availability badge circle
+     * @private
+     * @param {boolean} enabled - Whether PXE boot is enabled
+     */
+    _drawPXEBadge(enabled) {
+        const { SIZE, COLOR_ENABLED, COLOR_DISABLED } = RTSDesktopObject.PXE_BADGE;
+        const radius = SIZE / 2;
+
+        const color = enabled ? COLOR_ENABLED : COLOR_DISABLED;
+
+        this.pxeBadge.clear();
+        this.pxeBadge.circle(radius, radius, radius);
+        this.pxeBadge.fill({ color: color, alpha: 1 });
+
+        // Add subtle border
+        this.pxeBadge.circle(radius, radius, radius);
+        this.pxeBadge.stroke({ color: 0x000000, width: 1 });
+    }
+
+    /**
+     * Set the PXE boot availability status for this object
+     * @param {boolean} enabled - Whether PXE boot is available
+     */
+    setPXEEnabled(enabled) {
+        this._pxeEnabled = enabled;
+        this._drawPXEBadge(enabled);
+        this.pxeBadge.visible = enabled;
+
+        // Update tooltip text
+        this.pxeBadgeTooltip.text = enabled ? 'PXE boot available' : 'PXE disabled';
+    }
+
+    /**
+     * Get the PXE boot availability status
+     * @returns {boolean} Whether PXE boot is enabled
+     */
+    getPXEEnabled() {
+        return this._pxeEnabled;
     }
 
     /**
