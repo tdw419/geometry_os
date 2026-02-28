@@ -26,7 +26,8 @@ class RTSDesktopObject extends PIXI.Container {
         running: 0x00ff00,   // Green
         error: 0xff0000,     // Red
         stopped: 0x666666,   // Dark gray
-        unknown: 0x444444    // Darker gray
+        unknown: 0x444444,   // Darker gray
+        downloading: 0x00aaff // Cyan for downloading
     };
 
     /**
@@ -49,6 +50,17 @@ class RTSDesktopObject extends PIXI.Container {
         LOADING: { label: 'Loading kernel...', startPercent: 25, endPercent: 60 },
         INITIALIZING: { label: 'Initializing...', startPercent: 60, endPercent: 90 },
         READY: { label: 'Ready', startPercent: 90, endPercent: 100 }
+    };
+
+    /**
+     * Download stages with labels
+     * @static
+     */
+    static DOWNLOAD_STAGES = {
+        CONNECTING: { label: 'Connecting...', percent: 0 },
+        DOWNLOADING: { label: 'Downloading...', percent: 1 },
+        VERIFYING: { label: 'Verifying...', percent: 95 },
+        COMPLETE: { label: 'Complete', percent: 100 }
     };
 
     /**
@@ -164,6 +176,10 @@ class RTSDesktopObject extends PIXI.Container {
         this._progressStage = null;
         this._bootStartTime = null;
         this._progressAnimationId = null;
+
+        // Download tracking state
+        this._isDownloading = false;
+        this._downloadProgress = null; // { loaded, total, percent, speed, timeRemaining }
 
         // Set up interactivity
         this.eventMode = 'static';
@@ -570,6 +586,38 @@ class RTSDesktopObject extends PIXI.Container {
         this.progressLabel.y = -14;  // Above the bar
         this.progressLabel.anchor.set(0.5, 0);
         this.progressContainer.addChild(this.progressLabel);
+
+        // Download speed label (smaller font, below bar)
+        this.downloadSpeedLabel = new PIXI.Text({
+            text: '',
+            style: {
+                fontFamily: 'Courier New, monospace',
+                fontSize: 8,
+                fill: 0xaaddff,  // Light blue
+                align: 'center'
+            }
+        });
+        this.downloadSpeedLabel.x = THUMBNAIL_SIZE / 2;
+        this.downloadSpeedLabel.y = BAR_HEIGHT + 2;  // Below the bar
+        this.downloadSpeedLabel.anchor.set(0.5, 0);
+        this.downloadSpeedLabel.visible = false;  // Hidden by default
+        this.progressContainer.addChild(this.downloadSpeedLabel);
+
+        // Download time remaining label
+        this.downloadTimeLabel = new PIXI.Text({
+            text: '',
+            style: {
+                fontFamily: 'Courier New, monospace',
+                fontSize: 8,
+                fill: 0xaaddff,  // Light blue
+                align: 'center'
+            }
+        });
+        this.downloadTimeLabel.x = THUMBNAIL_SIZE / 2;
+        this.downloadTimeLabel.y = BAR_HEIGHT + 12;  // Below speed label
+        this.downloadTimeLabel.anchor.set(0.5, 0);
+        this.downloadTimeLabel.visible = false;  // Hidden by default
+        this.progressContainer.addChild(this.downloadTimeLabel);
     }
 
     /**
@@ -723,7 +771,12 @@ class RTSDesktopObject extends PIXI.Container {
             this.border.alpha = 1;
             this.border.clear();
             this.border.rect(-1, -1, 142, 182);
-            this.border.stroke({ color: 0x00ffff, width: 2, alpha: 0.8 });
+            // Use red border when downloading to indicate click-to-cancel
+            if (this._isDownloading) {
+                this.border.stroke({ color: 0xff4444, width: 2, alpha: 0.8 });
+            } else {
+                this.border.stroke({ color: 0x00ffff, width: 2, alpha: 0.8 });
+            }
         }
 
         // Show cache status tooltip if indicator is visible
@@ -741,7 +794,8 @@ class RTSDesktopObject extends PIXI.Container {
             target: this,
             status: this._status,
             errorDetails: this._errorDetails,
-            statusInfo: this._statusInfo
+            statusInfo: this._statusInfo,
+            isDownloading: this._isDownloading
         });
     }
 
@@ -791,8 +845,13 @@ class RTSDesktopObject extends PIXI.Container {
 
         // Only emit if it was a quick tap (not a drag)
         if (clickDuration < 300 && !this.dragging) {
-            this.emit('clicked', { target: this, event });
-            this.emit('selected', { target: this, event });
+            // If downloading, emit cancel-download instead of clicked
+            if (this._isDownloading) {
+                this.emit('cancel-download', { target: this, event, entryId: this.entryId });
+            } else {
+                this.emit('clicked', { target: this, event });
+                this.emit('selected', { target: this, event });
+            }
         }
     }
 
@@ -910,7 +969,7 @@ class RTSDesktopObject extends PIXI.Container {
 
     /**
      * Set the status of the object
-     * @param {string} status - Status value (idle, booting, running, error, stopped, unknown)
+     * @param {string} status - Status value (idle, booting, running, error, stopped, unknown, downloading)
      */
     setStatus(status) {
         this._status = status;
@@ -927,6 +986,9 @@ class RTSDesktopObject extends PIXI.Container {
         } else if (status === 'error') {
             this._stopPulse();
             // Progress bar shows error state via failBootProgress()
+        } else if (status === 'downloading') {
+            this._startPulse();
+            // Progress shown via setDownloadProgress()
         } else {
             this._stopPulse();
             this.hideProgress();  // Hide progress for other states
@@ -962,6 +1024,159 @@ class RTSDesktopObject extends PIXI.Container {
         this.progressContainer.visible = false;
         this._progressPercent = 0;
         this._progressStage = null;
+
+        // Hide download-specific labels
+        if (this.downloadSpeedLabel) this.downloadSpeedLabel.visible = false;
+        if (this.downloadTimeLabel) this.downloadTimeLabel.visible = false;
+    }
+
+    /**
+     * Set the download progress
+     * Shows progress bar with download-specific information
+     * @param {Object} progress - Progress information
+     * @param {number} progress.loaded - Bytes loaded so far
+     * @param {number} progress.total - Total bytes (may be null)
+     * @param {number} progress.percent - Progress percentage (0-100, may be null)
+     * @param {number} progress.speed - Download speed in bytes/sec (may be null)
+     * @param {number} progress.timeRemaining - Time remaining in seconds (may be null)
+     */
+    setDownloadProgress(progress) {
+        this._downloadProgress = progress;
+
+        // Determine percentage
+        let displayPercent = 0;
+        if (progress.percent !== null && progress.percent !== undefined) {
+            displayPercent = progress.percent;
+        } else if (progress.total && progress.total > 0) {
+            displayPercent = Math.round((progress.loaded / progress.total) * 100);
+        }
+
+        // Update progress bar
+        this._progressPercent = Math.max(0, Math.min(100, displayPercent));
+        this._drawProgressFill(this._progressPercent);
+
+        // Update progress label with percentage
+        this.progressLabel.text = `${Math.round(this._progressPercent)}%`;
+        this.progressContainer.visible = true;
+
+        // Show download speed if available
+        if (this.downloadSpeedLabel) {
+            if (progress.speed !== null && progress.speed !== undefined) {
+                const speedText = this._formatSpeed(progress.speed);
+                this.downloadSpeedLabel.text = speedText;
+                this.downloadSpeedLabel.visible = true;
+            } else {
+                this.downloadSpeedLabel.visible = false;
+            }
+        }
+
+        // Show time remaining if available
+        if (this.downloadTimeLabel) {
+            if (progress.timeRemaining !== null && progress.timeRemaining !== undefined && progress.timeRemaining > 0) {
+                const timeText = this._formatTimeRemaining(progress.timeRemaining);
+                this.downloadTimeLabel.text = timeText;
+                this.downloadTimeLabel.visible = true;
+            } else {
+                this.downloadTimeLabel.visible = false;
+            }
+        }
+    }
+
+    /**
+     * Format download speed for display
+     * @param {number} bytesPerSecond - Speed in bytes per second
+     * @returns {string} Formatted speed string (e.g., "1.2 MB/s" or "500 KB/s")
+     * @private
+     */
+    _formatSpeed(bytesPerSecond) {
+        if (bytesPerSecond >= 1024 * 1024) {
+            // MB/s
+            const mb = bytesPerSecond / (1024 * 1024);
+            return `${mb.toFixed(1)} MB/s`;
+        } else if (bytesPerSecond >= 1024) {
+            // KB/s
+            const kb = bytesPerSecond / 1024;
+            return `${Math.round(kb)} KB/s`;
+        } else {
+            // Bytes/s
+            return `${Math.round(bytesPerSecond)} B/s`;
+        }
+    }
+
+    /**
+     * Format time remaining for display
+     * @param {number} seconds - Time remaining in seconds
+     * @returns {string} Formatted time string (e.g., "2:30 remaining")
+     * @private
+     */
+    _formatTimeRemaining(seconds) {
+        if (seconds < 60) {
+            return `${Math.round(seconds)}s remaining`;
+        } else {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.round(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')} remaining`;
+        }
+    }
+
+    /**
+     * Set the downloading state
+     * @param {boolean} isDownloading - Whether a download is in progress
+     */
+    setDownloading(isDownloading) {
+        this._isDownloading = isDownloading;
+
+        if (isDownloading) {
+            this.setStatus('downloading');
+            this.progressContainer.visible = true;
+
+            // Hide download labels initially (will show when progress updates)
+            if (this.downloadSpeedLabel) this.downloadSpeedLabel.visible = false;
+            if (this.downloadTimeLabel) this.downloadTimeLabel.visible = false;
+        }
+    }
+
+    /**
+     * Check if currently downloading
+     * @returns {boolean}
+     */
+    isDownloading() {
+        return this._isDownloading;
+    }
+
+    /**
+     * Show verification status after download completes
+     * @param {boolean} verified - Whether hash verification succeeded
+     * @param {string} hash - The computed hash (for display/debug)
+     */
+    showVerificationStatus(verified, hash) {
+        // Update cache status indicator
+        this.setCacheStatus(verified ? 'verified' : 'failed');
+
+        // Show brief verification indicator in progress label
+        if (verified) {
+            this.progressLabel.text = 'Verified!';
+            this.progressLabel.style.fill = 0x00ff00;  // Green
+        } else {
+            this.progressLabel.text = 'Verify Failed';
+            this.progressLabel.style.fill = 0xff0000;  // Red
+        }
+
+        // Hide download-specific labels
+        if (this.downloadSpeedLabel) this.downloadSpeedLabel.visible = false;
+        if (this.downloadTimeLabel) this.downloadTimeLabel.visible = false;
+
+        // Emit verification complete event
+        this.emit('verification-complete', {
+            entryId: this.entryId,
+            verified,
+            hash
+        });
+
+        // Reset progress label color after a delay
+        setTimeout(() => {
+            this.progressLabel.style.fill = RTSDesktopObject.PROGRESS.TEXT_COLOR;
+        }, 2000);
     }
 
     /**
