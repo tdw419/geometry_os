@@ -11,17 +11,17 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Milestone:** v1.2 Network Boot
 **Phase:** 10 of 11 (Remote Catalog Integration) - In Progress
-**Plan:** 1 of 1 complete
-**Status:** In progress
-**Last activity:** 2026-02-28 — Completed 10-01 Hybrid Catalog View with Source Filtering
+**Plan:** 2 of 2 complete
+**Status:** Phase complete
+**Last activity:** 2026-02-28 — Completed 10-02 Unified Catalog Search
 
-Progress: [█████░░░░░] 42%
+Progress: [█████░░░░░] 44%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 42 (v1.0: 23, v1.1: 8, v1.2: 11)
-- v1.2 plans remaining: 1
+- Total plans completed: 43 (v1.0: 23, v1.1: 8, v1.2: 12)
+- v1.2 plans remaining: 0
 
 **By Phase:**
 
@@ -32,7 +32,7 @@ Progress: [█████░░░░░] 42%
 | 7 (v1.2) | 5 | Complete |
 | 8 (v1.2) | 2 | Complete |
 | 9 (v1.2) | 3 | Complete |
-| 10 (v1.2) | 1 | Complete |
+| 10 (v1.2) | 2 | Complete |
 | 11 (v1.2) | 1 | Pending |
 
 ## Accumulated Context
@@ -40,7 +40,7 @@ Progress: [█████░░░░░] 42%
 ### Shipped Milestones
 - **v1.0:** PixelRTS Boot Improvement — Vision analysis, FUSE boot, installer, catalog
 - **v1.1:** Visual Shell Integration — Desktop objects, boot progress, error handling
-- **v1.2:** Cache Infrastructure + Remote Client + Remote Boot + Source Filtering — IndexedDB, hash verification, LRU eviction, ETag revalidation, cache-first fetching, verification status UI, multi-server aggregation, server source badges, settings panel, streaming downloads, download progress overlay, offline availability, filter bar UI
+- **v1.2:** Cache Infrastructure + Remote Client + Remote Boot + Source Filtering + Search — IndexedDB, hash verification, LRU eviction, ETag revalidation, cache-first fetching, verification status UI, multi-server aggregation, server source badges, settings panel, streaming downloads, download progress overlay, offline availability, filter bar UI, search bar with debounce
 
 ### Key Decisions
 - PixiJS v7 for desktop rendering
@@ -89,6 +89,10 @@ Progress: [█████░░░░░] 42%
 - **10-01:** Filter state stored in DesktopObjectManager, not persisted
 - **10-01:** Filter applied immediately on object creation to prevent visual flicker
 - **10-01:** Cyan (#00ffff) active state matching project theme
+- **10-02:** 300ms debounce delay for search to prevent excessive filtering while typing
+- **10-02:** Case-insensitive search matching on container name and ID
+- **10-02:** Combined filtering: object must pass BOTH source filter AND search query
+- **10-02:** Ctrl+F and Cmd+F both supported for cross-platform keyboard shortcut
 
 ### Components Shipped
 - RTSDesktopObject.js (1734 lines) - PIXI.Container with progress, status, error, cache verification, server source badge, download overlay, offline availability badge
@@ -101,12 +105,13 @@ Progress: [█████░░░░░] 42%
 - ServerSettingsPanel.js (674 lines) - Settings UI for managing remote servers
 - RemoteBootFetcher.js (633 lines) - Streaming download with progress, cancellation, hash verification
 - CatalogFilterBar.js (166 lines) - Filter bar UI with All/Local/Remote buttons and count display
+- CatalogSearchBar.js (167 lines) - Search input with debounce, clear button, ES6 exports
 
 ### Blockers
 - None currently
 
 ## Session Continuity
 
-Last session: 2026-02-28T02:19:28Z
-Status: Phase 10 Plan 1 complete — Hybrid catalog view with source filtering implemented
+Last session: 2026-02-28T02:28:19Z
+Status: Phase 10 complete — Unified catalog search with combined filtering implemented
 Resume file: None
