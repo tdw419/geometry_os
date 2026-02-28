@@ -57,6 +57,12 @@ Examples:
 
   # Specify TFTP server (for multi-server setups)
   pixelrts pxe dhcp start --tftp-server 192.168.1.10 --server-ip 192.168.1.1
+
+  # Start TFTP server serving bootloader files
+  pixelrts pxe tftp start --root-dir /var/tftpboot
+
+  # Start TFTP on custom port with verbose logging
+  pixelrts pxe tftp start --port 6969 --verbose
 """
         )
         pxe_subparsers = parser.add_subparsers(dest='pxe_command')
@@ -161,6 +167,81 @@ Examples:
         '--json',
         action='store_true',
         help='Output in JSON format'
+    )
+
+    # TFTP subcommand
+    tftp_parser = pxe_subparsers.add_parser(
+        'tftp',
+        help='TFTP server',
+        description='Manage TFTP server for PXE boot'
+    )
+    tftp_subparsers = tftp_parser.add_subparsers(dest='tftp_command')
+
+    # TFTP start subcommand
+    tftp_start_parser = tftp_subparsers.add_parser(
+        'start',
+        help='Start TFTP server for PXE boot',
+        description='Start a TFTP server that serves bootloader files to PXE clients',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    # Network configuration
+    tftp_start_parser.add_argument(
+        '-i', '--interface',
+        default='0.0.0.0',
+        help='Network interface to bind (default: 0.0.0.0)'
+    )
+    tftp_start_parser.add_argument(
+        '-p', '--port',
+        type=int,
+        default=69,
+        help='TFTP server port (default: 69)'
+    )
+
+    # File serving configuration
+    tftp_start_parser.add_argument(
+        '-r', '--root-dir',
+        default='/tftpboot',
+        help='Root directory containing boot files (default: /tftpboot)'
+    )
+    tftp_start_parser.add_argument(
+        '-b', '--block-size',
+        type=int,
+        default=512,
+        help='TFTP block size in bytes (default: 512)'
+    )
+
+    # Timeout configuration
+    tftp_start_parser.add_argument(
+        '-t', '--timeout',
+        type=float,
+        default=5.0,
+        help='Retransmission timeout in seconds (default: 5.0)'
+    )
+    tftp_start_parser.add_argument(
+        '--max-retries',
+        type=int,
+        default=5,
+        help='Maximum retransmission attempts (default: 5)'
+    )
+
+    # Verbosity
+    tftp_start_parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help='Enable verbose logging'
+    )
+
+    # TFTP stop subcommand (placeholder for future)
+    tftp_stop_parser = tftp_subparsers.add_parser(
+        'stop',
+        help='Stop running TFTP server (future)',
+        description='Stop a running TFTP server'
+    )
+    tftp_stop_parser.add_argument(
+        '--force',
+        action='store_true',
+        help='Force stop without graceful shutdown'
     )
 
     return root_parser
