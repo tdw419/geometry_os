@@ -11,11 +11,11 @@ See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Milestone:** v1.3 PXE Boot
 **Phase:** 14 - HTTP Container Serving
-**Plan:** 02 complete
+**Plan:** 03 complete
 **Status:** In progress
-**Last activity:** 2026-02-28 - Completed 14-02 HTTP Server Catalog Integration
+**Last activity:** 2026-02-28 - Completed 14-03 HTTP Server CLI Integration
 
-Progress: [████░] 62% (3/5 phases complete, 10/16 plans in v1.3)
+Progress: [████░] 69% (3/5 phases complete, 11/16 plans in v1.3)
 
 ## Performance Metrics
 
@@ -38,7 +38,7 @@ Progress: [████░] 62% (3/5 phases complete, 10/16 plans in v1.3)
 |-------|------|--------------|--------|
 | 12 - DHCP Server | PXE clients receive boot instructions | 4 | **Complete** (4/4 plans) |
 | 13 - TFTP Server | Bootloader delivered via TFTP | 4 | **Complete** (4/4 plans) |
-| 14 - HTTP Serving | Containers available via HTTP | 4 | In Progress (2/4 plans) |
+| 14 - HTTP Serving | Containers available via HTTP | 4 | In Progress (3/4 plans) |
 | 15 - Boot Menu | Interactive container selection | 4 | Pending |
 | 16 - Integration | Unified with v1.2 infrastructure | 4 | Pending |
 
@@ -81,6 +81,7 @@ Progress: [████░] 62% (3/5 phases complete, 10/16 plans in v1.3)
 - aiohttp.web for async HTTP server (Application/Runner/TCPSite pattern)
 - HTTP range requests (RFC 7233) for large container file support
 - HTTP CLI subcommands following DHCP/TFTP pattern (pxe http start/stop)
+- --watch-path CLI option uses action='append' for multiple directories
 - Catalog integration with optional watch_paths configuration
 - PXEContainerInfo for tracking per-container PXE availability with boot order
 - Graceful fallback to file-based serving when CatalogScanner unavailable
@@ -97,7 +98,7 @@ Progress: [████░] 62% (3/5 phases complete, 10/16 plans in v1.3)
 - CatalogFilterBar.js (166 lines) - Filter bar UI
 - CatalogSearchBar.js (167 lines) - Search input with debounce
 - dhcp_server.py (848 lines) - Async DHCP server with PXE options, production logging
-- pxe_cli.py (623 lines) - CLI interface for PXE server management with DHCP, TFTP, and HTTP subcommands
+- pxe_cli.py (641 lines) - CLI interface for PXE server management with DHCP, TFTP, and HTTP subcommands
 - test_dhcp_server.py (1180 lines) - Unit + integration tests (46 tests)
 - tftp_server.py (750 lines) - Async TFTP server with concurrent transfers, aiofiles
 - test_tftp_server.py (795 lines) - Unit + integration tests (52 tests)
@@ -108,8 +109,8 @@ Progress: [████░] 62% (3/5 phases complete, 10/16 plans in v1.3)
 
 ## Session Continuity
 
-Last session: 2026-02-28T14:05:00Z
-Status: Phase 14-02 HTTP Server Catalog Integration complete
+Last session: 2026-02-28T14:11:00Z
+Status: Phase 14-03 HTTP Server CLI Integration complete
 Resume file: None
 
-**Next Action:** Proceed to Phase 14-03 (HTTP Server Tests)
+**Next Action:** Proceed to Phase 14-04 (HTTP Server Tests)
