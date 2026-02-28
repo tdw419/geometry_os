@@ -27,7 +27,8 @@ class RTSDesktopObject extends PIXI.Container {
         error: 0xff0000,     // Red
         stopped: 0x666666,   // Dark gray
         unknown: 0x444444,   // Darker gray
-        downloading: 0x00aaff // Cyan for downloading
+        downloading: 0x00aaff, // Cyan for downloading
+        retrying: 0xffaa00   // Orange for retrying
     };
 
     /**
@@ -761,7 +762,7 @@ class RTSDesktopObject extends PIXI.Container {
             }
         });
         this.errorIcon.x = THUMBNAIL_SIZE / 2;
-        this.errorIcon.y = 20;
+        this.errorIcon.y = 15;
         this.errorIcon.anchor.set(0.5, 0);
         this.errorContainer.addChild(this.errorIcon);
 
@@ -779,7 +780,7 @@ class RTSDesktopObject extends PIXI.Container {
             }
         });
         this.errorTitle.x = THUMBNAIL_SIZE / 2;
-        this.errorTitle.y = 75;
+        this.errorTitle.y = 68;
         this.errorTitle.anchor.set(0.5, 0);
         this.errorContainer.addChild(this.errorTitle);
 
@@ -796,7 +797,7 @@ class RTSDesktopObject extends PIXI.Container {
             }
         });
         this.errorMessage.x = THUMBNAIL_SIZE / 2;
-        this.errorMessage.y = 92;
+        this.errorMessage.y = 84;
         this.errorMessage.anchor.set(0.5, 0);
         this.errorContainer.addChild(this.errorMessage);
 
@@ -813,12 +814,68 @@ class RTSDesktopObject extends PIXI.Container {
             }
         });
         this.errorGuidance.x = THUMBNAIL_SIZE / 2;
-        this.errorGuidance.y = 115;
+        this.errorGuidance.y = 105;
         this.errorGuidance.anchor.set(0.5, 0);
         this.errorContainer.addChild(this.errorGuidance);
 
+        // Retry button container (hidden by default, shown for retryable errors)
+        this.retryButton = new PIXI.Container();
+        this.retryButton.x = THUMBNAIL_SIZE / 2;
+        this.retryButton.y = 125;
+        this.retryButton.visible = false;
+        this.retryButton.eventMode = 'static';
+        this.retryButton.cursor = 'pointer';
+        this.errorContainer.addChild(this.retryButton);
+
+        // Retry button background
+        this.retryButtonBg = new PIXI.Graphics();
+        this.retryButtonBg.rect(-30, 0, 60, 16);
+        this.retryButtonBg.fill({ color: 0x008844, alpha: 0.9 });
+        this.retryButtonBg.rect(-30, 0, 60, 16);
+        this.retryButtonBg.stroke({ color: 0x00ff88, width: 1 });
+        this.retryButton.addChild(this.retryButtonBg);
+
+        // Retry button text
+        this.retryButtonText = new PIXI.Text({
+            text: 'Retry',
+            style: {
+                fontFamily: 'Courier New, monospace',
+                fontSize: 9,
+                fill: 0xffffff,
+                fontWeight: 'bold',
+                align: 'center'
+            }
+        });
+        this.retryButtonText.x = 0;
+        this.retryButtonText.y = 3;
+        this.retryButtonText.anchor.set(0.5, 0);
+        this.retryButton.addChild(this.retryButtonText);
+
+        // Set up retry button interaction
+        this.retryButton.on('pointerover', () => {
+            this.retryButtonBg.clear();
+            this.retryButtonBg.rect(-30, 0, 60, 16);
+            this.retryButtonBg.fill({ color: 0x00aa55, alpha: 1 });
+            this.retryButtonBg.rect(-30, 0, 60, 16);
+            this.retryButtonBg.stroke({ color: 0x00ffaa, width: 2 });
+        });
+        this.retryButton.on('pointerout', () => {
+            this.retryButtonBg.clear();
+            this.retryButtonBg.rect(-30, 0, 60, 16);
+            this.retryButtonBg.fill({ color: 0x008844, alpha: 0.9 });
+            this.retryButtonBg.rect(-30, 0, 60, 16);
+            this.retryButtonBg.stroke({ color: 0x00ff88, width: 1 });
+        });
+        this.retryButton.on('pointerdown', (event) => {
+            event.stopPropagation();
+            if (this._retryCallback) {
+                this._retryCallback();
+            }
+        });
+
         // Store error details for tooltip
         this._errorDetails = null;
+        this._retryCallback = null;
     }
 
     /**
@@ -1299,6 +1356,35 @@ class RTSDesktopObject extends PIXI.Container {
     }
 
     /**
+     * Show retrying status in download overlay
+     * @param {number} attempt - Current retry attempt number
+     * @param {number} delaySeconds - Delay before retry in seconds
+     */
+    showDownloadRetrying(attempt, delaySeconds) {
+        // Set retrying status
+        this._status = 'retrying';
+        this._drawStatusCircle(RTSDesktopObject.STATUS_COLORS.retrying);
+
+        // Show progress container with retry status
+        this.progressContainer.visible = true;
+
+        // Update progress label to show retry status
+        this.progressLabel.text = `Retry ${attempt} in ${delaySeconds}s...`;
+        this.progressLabel.style.fill = 0xffaa00;  // Orange
+
+        // Hide download-specific labels
+        if (this.downloadSpeedLabel) this.downloadSpeedLabel.visible = false;
+        if (this.downloadTimeLabel) this.downloadTimeLabel.visible = false;
+
+        // Emit retry status event
+        this.emit('retrying', {
+            entryId: this.entryId,
+            attempt,
+            delaySeconds
+        });
+    }
+
+    /**
      * Get current progress
      * @returns {number} Progress percentage
      */
@@ -1466,8 +1552,20 @@ class RTSDesktopObject extends PIXI.Container {
      * @param {number} errorInfo.elapsedTime - Time elapsed before failure
      * @param {Object} errorInfo.config - Boot configuration used
      */
+    /**
+     * Show error overlay with detailed message and guidance
+     * @param {Object} errorInfo - Error information
+     * @param {string} errorInfo.message - Error message from server
+     * @param {string} errorInfo.stage - Boot stage where error occurred
+     * @param {number} errorInfo.elapsedTime - Time elapsed before failure
+     * @param {Object} errorInfo.config - Boot configuration used
+     * @param {string} [errorInfo.type] - Error type (network, timeout, dns, http, etc.)
+     * @param {number} [errorInfo.httpStatus] - HTTP status code if applicable
+     * @param {boolean} [errorInfo.retryable] - Whether the error is retryable
+     * @param {Function} [errorInfo.onRetry] - Callback to trigger retry
+     */
     showError(errorInfo) {
-        const { message, stage, elapsedTime, config } = errorInfo;
+        const { message, stage, elapsedTime, config, type, httpStatus, retryable, onRetry } = errorInfo;
 
         // Store details for tooltip
         this._errorDetails = {
@@ -1475,21 +1573,33 @@ class RTSDesktopObject extends PIXI.Container {
             stage: stage || 'Unknown',
             elapsedTime: elapsedTime || 0,
             config: config || {},
+            type,
+            httpStatus,
+            retryable,
             timestamp: Date.now()
         };
 
-        // Find matching guidance
-        const guidance = this._getErrorGuidance(message);
+        // Get guidance based on error type
+        const guidance = this._getErrorGuidanceForType(type, httpStatus) || this._getErrorGuidance(message);
 
         // Update error display
-        this.errorTitle.text = 'Boot Failed';
+        this.errorTitle.text = 'Download Failed';
         this.errorMessage.text = this._truncateText(message || 'Unknown error', 80);
 
         // Show guidance if available
         if (guidance) {
-            this.errorGuidance.text = guidance.action;
+            this.errorGuidance.text = guidance;
         } else {
             this.errorGuidance.text = RTSDesktopObject.ERROR_GUIDANCE.default.action;
+        }
+
+        // Show retry button if retryable
+        if (retryable && onRetry) {
+            this._retryCallback = onRetry;
+            this.retryButton.visible = true;
+        } else {
+            this._retryCallback = null;
+            this.retryButton.visible = false;
         }
 
         // Show overlay
@@ -1498,6 +1608,42 @@ class RTSDesktopObject extends PIXI.Container {
 
         // Set error status
         this.setStatus('error');
+    }
+
+    /**
+     * Get error guidance based on error type
+     * @private
+     * @param {string} type - Error type
+     * @param {number} httpStatus - HTTP status code
+     * @returns {string|null} Guidance message or null
+     */
+    _getErrorGuidanceForType(type, httpStatus) {
+        const ERROR_GUIDANCE_BY_TYPE = {
+            'network': 'Check your internet connection',
+            'timeout': 'Server is slow or unavailable',
+            'dns': 'Server address could not be found',
+            'cancelled': 'Download was cancelled',
+            'verification': 'Downloaded file is corrupted'
+        };
+
+        const ERROR_GUIDANCE_BY_HTTP = {
+            404: 'Container not found on server',
+            403: 'Access denied by server',
+            500: 'Server error, try again later',
+            502: 'Bad gateway, try again later',
+            503: 'Server unavailable, try again later',
+            504: 'Gateway timeout, try again later'
+        };
+
+        if (httpStatus && ERROR_GUIDANCE_BY_HTTP[httpStatus]) {
+            return ERROR_GUIDANCE_BY_HTTP[httpStatus];
+        }
+
+        if (type && ERROR_GUIDANCE_BY_TYPE[type]) {
+            return ERROR_GUIDANCE_BY_TYPE[type];
+        }
+
+        return null;
     }
 
     /**
