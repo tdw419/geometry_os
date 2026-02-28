@@ -11,17 +11,17 @@ See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Milestone:** v1.3 PXE Boot
 **Phase:** 14 - HTTP Container Serving
-**Plan:** 01 complete
+**Plan:** 02 complete
 **Status:** In progress
-**Last activity:** 2026-02-28 - Completed 14-01 HTTP Server Implementation
+**Last activity:** 2026-02-28 - Completed 14-02 HTTP Server Catalog Integration
 
-Progress: [████░] 60% (3/5 phases complete, 9/16 plans in v1.3)
+Progress: [████░] 62% (3/5 phases complete, 10/16 plans in v1.3)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 70 (v1.0: 23, v1.1: 8, v1.2: 14, v1.3: 11, other: 14)
-- Current milestone: 11
+- Total plans completed: 71 (v1.0: 23, v1.1: 8, v1.2: 14, v1.3: 12, other: 14)
+- Current milestone: 12
 
 **By Milestone:**
 
@@ -38,7 +38,7 @@ Progress: [████░] 60% (3/5 phases complete, 9/16 plans in v1.3)
 |-------|------|--------------|--------|
 | 12 - DHCP Server | PXE clients receive boot instructions | 4 | **Complete** (4/4 plans) |
 | 13 - TFTP Server | Bootloader delivered via TFTP | 4 | **Complete** (4/4 plans) |
-| 14 - HTTP Serving | Containers available via HTTP | 4 | In Progress (1/4 plans) |
+| 14 - HTTP Serving | Containers available via HTTP | 4 | In Progress (2/4 plans) |
 | 15 - Boot Menu | Interactive container selection | 4 | Pending |
 | 16 - Integration | Unified with v1.2 infrastructure | 4 | Pending |
 
@@ -50,7 +50,7 @@ Progress: [████░] 60% (3/5 phases complete, 9/16 plans in v1.3)
 - **v1.2:** Network Boot - Cache infrastructure, remote client, remote boot, source filtering, search, retry logic, cache management UI
 - **v1.3 (partial):** DHCP Server - Async DHCP with PXE options, CLI interface, comprehensive tests, integration testing, production logging
 - **v1.3 (partial):** TFTP Server - Async TFTP with RFC 1350 packet handling, path traversal protection, concurrent transfers, CLI interface, comprehensive tests (52 tests)
-- **v1.3 (partial):** HTTP Server - Async HTTP with aiohttp, range requests (HTTP 206), path traversal protection, CLI interface
+- **v1.3 (partial):** HTTP Server - Async HTTP with aiohttp, range requests (HTTP 206), path traversal protection, CLI interface, catalog integration
 
 ### Key Decisions
 - PixiJS v7 for desktop rendering
@@ -81,6 +81,9 @@ Progress: [████░] 60% (3/5 phases complete, 9/16 plans in v1.3)
 - aiohttp.web for async HTTP server (Application/Runner/TCPSite pattern)
 - HTTP range requests (RFC 7233) for large container file support
 - HTTP CLI subcommands following DHCP/TFTP pattern (pxe http start/stop)
+- Catalog integration with optional watch_paths configuration
+- PXEContainerInfo for tracking per-container PXE availability with boot order
+- Graceful fallback to file-based serving when CatalogScanner unavailable
 
 ### Components Shipped
 - RTSDesktopObject.js (2030 lines) - PIXI.Container with all UI features
@@ -98,15 +101,15 @@ Progress: [████░] 60% (3/5 phases complete, 9/16 plans in v1.3)
 - test_dhcp_server.py (1180 lines) - Unit + integration tests (46 tests)
 - tftp_server.py (750 lines) - Async TFTP server with concurrent transfers, aiofiles
 - test_tftp_server.py (795 lines) - Unit + integration tests (52 tests)
-- http_server.py (331 lines) - Async HTTP server with range request support
+- http_server.py (553 lines) - Async HTTP server with range requests and catalog integration
 
 ### Blockers
 - None currently
 
 ## Session Continuity
 
-Last session: 2026-02-28T13:38:49Z
-Status: Phase 14-01 HTTP Server Implementation complete
+Last session: 2026-02-28T14:05:00Z
+Status: Phase 14-02 HTTP Server Catalog Integration complete
 Resume file: None
 
-**Next Action:** Proceed to Phase 14-02 (HTTP Server Tests)
+**Next Action:** Proceed to Phase 14-03 (HTTP Server Tests)
