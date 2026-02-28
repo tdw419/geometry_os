@@ -284,6 +284,10 @@
             <span id="api-url">http://localhost:8080</span>
         </div>
         <div id="search-container" style="margin-right: 16px;"></div>
+        <div class="status-item" id="cache-status" style="cursor: pointer;" title="Click to open settings">
+            <span class="status-label">Cache:</span>
+            <span class="status-value" id="cache-size">--</span>
+        </div>
         <div id="filter-container" style="margin-left: auto;"></div>
     </div>
 
@@ -302,8 +306,12 @@
     <div id="controls">
         <button class="control-btn" id="btn-refresh">Refresh Catalog</button>
         <button class="control-btn" id="btn-center">Center View</button>
+        <button class="control-btn" id="btn-settings">Settings</button>
         <button class="control-btn" id="btn-clear-log">Clear Log</button>
     </div>
+
+    <!-- Settings Panel Container (hidden by default) -->
+    <div id="settings-panel-container" style="position: absolute; top: 50px; right: 16px; z-index: 150; display: none;"></div>
 
     <!-- Event Log -->
     <div id="event-log">
@@ -323,6 +331,9 @@
     <script src="DesktopObjectManager.js"></script>
     <script src="CatalogFilterBar.js"></script>
     <script src="CatalogSearchBar.js"></script>
+    <script src="CatalogCacheManager.js"></script>
+    <script src="ServerRegistry.js"></script>
+    <script src="ServerSettingsPanel.js"></script>
 
     <script>
         // ============================================
@@ -344,8 +355,14 @@
         // Buttons
         const btnRefresh = document.getElementById('btn-refresh');
         const btnCenter = document.getElementById('btn-center');
+        const btnSettings = document.getElementById('btn-settings');
         const btnClearLog = document.getElementById('btn-clear-log');
         const logClearBtn = document.getElementById('log-clear-btn');
+
+        // Cache status elements
+        const cacheStatusEl = document.getElementById('cache-status');
+        const cacheSizeEl = document.getElementById('cache-size');
+        const settingsPanelContainer = document.getElementById('settings-panel-container');
 
         // Configuration
         const API_URL = 'http://localhost:8080';
@@ -360,6 +377,11 @@
         let isDraggingCanvas = false;
         let dragStart = { x: 0, y: 0 };
         let worldStart = { x: 0, y: 0 };
+
+        // Cache and settings
+        let cacheManager = null;
+        let serverRegistry = null;
+        let settingsPanel = null;
 
         // ============================================
         // Logging
@@ -426,6 +448,79 @@
             if (worldContainer) {
                 const scale = worldContainer.scale.x;
                 zoomLevelEl.textContent = Math.round(scale * 100) + '%';
+            }
+        }
+
+        // ============================================
+        // Cache Management
+        // ============================================
+
+        async function initCacheManager() {
+            log('info', 'Initializing cache manager...');
+
+            cacheManager = new CatalogCacheManager();
+            await cacheManager.init();
+
+            // Initialize server registry
+            serverRegistry = new ServerRegistry();
+
+            // Update cache status display
+            updateCacheStatus();
+
+            log('info', 'Cache manager initialized');
+        }
+
+        async function updateCacheStatus() {
+            if (!cacheManager) return;
+
+            try {
+                const stats = await cacheManager.getStats();
+                const sizeMB = (stats.totalSize / (1024 * 1024)).toFixed(1);
+                cacheSizeEl.textContent = `${sizeMB} MB`;
+            } catch (error) {
+                cacheSizeEl.textContent = '--';
+            }
+        }
+
+        function toggleSettingsPanel() {
+            if (settingsPanelContainer.style.display === 'none') {
+                // Show settings panel
+                if (!settingsPanel) {
+                    settingsPanel = new ServerSettingsPanel(settingsPanelContainer, {
+                        registry: serverRegistry,
+                        cacheManager: cacheManager,
+                        onServerChange: (event) => {
+                            console.log('[Demo] Server change:', event.type);
+                            handleServerChange(event);
+                        },
+                        onCacheClear: (event) => {
+                            console.log('[Demo] Cache cleared:', event.count, 'entries');
+                            // Update cache status display
+                            updateCacheStatus();
+                            // Refresh catalog to show uncached state
+                            if (desktopObjectManager) {
+                                desktopObjectManager.refreshCatalog();
+                            }
+                        }
+                    });
+                }
+                settingsPanelContainer.style.display = 'block';
+                log('info', 'Settings panel opened');
+            } else {
+                // Hide settings panel
+                settingsPanelContainer.style.display = 'none';
+                log('info', 'Settings panel closed');
+            }
+        }
+
+        async function handleServerChange(event) {
+            console.log('[Demo] Server change event:', event);
+
+            if (event.type === 'add' || event.type === 'remove' || event.type === 'toggle') {
+                // Refresh remote catalogs
+                if (desktopObjectManager) {
+                    await desktopObjectManager.refreshRemoteCatalogs();
+                }
             }
         }
 
@@ -724,8 +819,12 @@
 
         btnRefresh.addEventListener('click', refreshCatalog);
         btnCenter.addEventListener('click', centerView);
+        btnSettings.addEventListener('click', toggleSettingsPanel);
         btnClearLog.addEventListener('click', clearLog);
         logClearBtn.addEventListener('click', clearLog);
+
+        // Cache status click opens settings
+        cacheStatusEl.addEventListener('click', toggleSettingsPanel);
 
         // ============================================
         // Initialization
@@ -745,13 +844,16 @@
                 // 3. Center view
                 centerView();
 
-                // 4. Initialize catalog bridge
+                // 4. Initialize cache manager
+                await initCacheManager();
+
+                // 5. Initialize catalog bridge
                 const connected = await initCatalogBridge();
 
-                // 5. Initialize desktop object manager
+                // 6. Initialize desktop object manager
                 await initDesktopObjectManager();
 
-                // 6. Load catalog if connected
+                // 7. Load catalog if connected
                 if (connected) {
                     await loadCatalog();
                 }

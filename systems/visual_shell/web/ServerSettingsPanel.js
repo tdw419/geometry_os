@@ -822,9 +822,8 @@ class ServerSettingsPanel {
 
     /**
      * Update cache UI with current stats
-     * @param {Object} stats - Cache statistics
-     * @param {number} stats.sizeBytes - Current cache size in bytes
-     * @param {number} stats.maxSize - Maximum cache size in bytes
+     * @param {Object} stats - Cache statistics from CatalogCacheManager.getStats()
+     * @param {number} stats.totalSize - Current cache size in bytes
      * @param {number} stats.entryCount - Number of cached entries
      * @private
      */
@@ -835,10 +834,13 @@ class ServerSettingsPanel {
         const usageBar = this.cacheSectionEl.querySelector('#cache-usage-bar');
         const clearBtn = this.cacheSectionEl.querySelector('#clear-cache-btn');
 
+        // Get max size from cache manager
+        const maxSize = this.cacheManager.getMaxSize ? this.cacheManager.getMaxSize() : (500 * 1024 * 1024);
+
         // Format size for display
-        const sizeMB = (stats.sizeBytes / (1024 * 1024)).toFixed(1);
-        const maxMB = (stats.maxSize / (1024 * 1024)).toFixed(0);
-        const percentUsed = Math.min(100, (stats.sizeBytes / stats.maxSize) * 100);
+        const sizeMB = (stats.totalSize / (1024 * 1024)).toFixed(1);
+        const maxMB = (maxSize / (1024 * 1024)).toFixed(0);
+        const percentUsed = Math.min(100, (stats.totalSize / maxSize) * 100);
 
         sizeDisplay.textContent = `${sizeMB} MB / ${maxMB} MB (${stats.entryCount} items)`;
 
@@ -879,21 +881,25 @@ class ServerSettingsPanel {
             clearBtn.disabled = true;
             clearBtn.textContent = 'Clearing...';
 
-            // Clear the cache
-            const result = await this.cacheManager.clear();
+            // Get stats before clearing to know how many bytes were freed
+            const statsBefore = await this.cacheManager.getStats();
+            const bytesFreed = statsBefore.totalSize;
 
-            console.log(`[ServerSettingsPanel] Cache cleared: ${result.count} entries removed`);
+            // Clear the cache (returns count of deleted entries)
+            const count = await this.cacheManager.clear();
+
+            console.log(`[ServerSettingsPanel] Cache cleared: ${count} entries removed`);
 
             // Show success message
-            this._showCacheMessage(`Cache cleared: ${result.count} entries removed`, 'success');
+            this._showCacheMessage(`Cache cleared: ${count} entries removed`, 'success');
 
             // Refresh stats
             await this._refreshCacheStats();
 
             // Notify callback
             this.onCacheClear({
-                count: result.count,
-                bytesFreed: result.bytesFreed
+                count: count,
+                bytesFreed: bytesFreed
             });
 
         } catch (error) {
