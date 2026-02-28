@@ -16,10 +16,10 @@ Requirements for PXE Boot milestone. Each maps to a roadmap phase.
 
 ### TFTP Server (TFTP)
 
-- [ ] **TFTP-01**: User can start TFTP server for bootloader delivery
-- [ ] **TFTP-02**: User can serve iPXE bootloader to PXE clients
-- [ ] **TFTP-03**: TFTP server handles concurrent client connections
-- [ ] **TFTP-04**: User sees TFTP transfer logs for debugging
+- [x] **TFTP-01**: User can start TFTP server for bootloader delivery
+- [x] **TFTP-02**: User can serve iPXE bootloader to PXE clients
+- [x] **TFTP-03**: TFTP server handles concurrent client connections
+- [x] **TFTP-04**: User sees TFTP transfer logs for debugging
 
 ### HTTP Container Serving (HTTP)
 
@@ -72,10 +72,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DHCP-02 | Phase 12 | Complete |
 | DHCP-03 | Phase 12 | Complete |
 | DHCP-04 | Phase 12 | Complete |
-| TFTP-01 | Phase 13 | Pending |
-| TFTP-02 | Phase 13 | Pending |
-| TFTP-03 | Phase 13 | Pending |
-| TFTP-04 | Phase 13 | Pending |
+| TFTP-01 | Phase 13 | Complete |
+| TFTP-02 | Phase 13 | Complete |
+| TFTP-03 | Phase 13 | Complete |
+| TFTP-04 | Phase 13 | Complete |
 | HTTP-01 | Phase 14 | Pending |
 | HTTP-02 | Phase 14 | Pending |
 | HTTP-03 | Phase 14 | Pending |

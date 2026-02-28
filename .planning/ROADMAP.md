@@ -95,12 +95,12 @@ Extend PixelRTS boot capabilities to bare metal machines via PXE. Users can boot
 | Phase | Goal | Requirements | Plans | Status |
 |-------|------|--------------|-------|--------|
 | 12 - DHCP Server | PXE clients receive boot instructions | 4 | 4 | Complete |
-| 13 - TFTP Server | Bootloader delivered via TFTP | 4 | 0 | Pending |
+| 13 - TFTP Server | Bootloader delivered via TFTP | 4 | 4 | Complete |
 | 14 - HTTP Serving | Containers available via HTTP | 4 | 0 | Pending |
 | 15 - Boot Menu | Interactive container selection | 4 | 0 | Pending |
 | 16 - Integration | Unified with v1.2 infrastructure | 4 | 0 | Pending |
 
-**Total:** 16 requirements, 5 phases, 4 plans
+**Total:** 16 requirements, 5 phases, 8 plans
 
 ---
 
