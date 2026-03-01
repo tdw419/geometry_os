@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file - from anywhere, including bare metal.
-**Current focus:** Planning v1.4
+**Current focus:** Defining v1.4 requirements
 
 ## Current Position
 
-**Milestone:** v1.4 (not yet defined)
-**Phase:** Not started
+**Milestone:** v1.4 GPU Linux Execution
+**Phase:** Not started (defining requirements)
 **Plan:** Not started
-**Status:** Ready for milestone planning
-**Last activity:** 2026-02-28 - v1.3 PXE Boot milestone complete, archived
+**Status:** Gathering requirements
+**Last activity:** 2026-02-28 — Milestone v1.4 started
 
-Progress: [----------] 0% (v1.4 not started)
+Progress: [----------] 0% (v1.4 requirements phase)
 
 ## Performance Metrics
 
@@ -30,7 +30,7 @@ Progress: [----------] 0% (v1.4 not started)
 | v1.1 | 5-6 | 8 | Complete |
 | v1.2 | 7-11 | 14 | Complete |
 | v1.3 | 12-16 | 20 | Complete |
-| v1.4 | TBD | - | Planning |
+| v1.4 | TBD | - | Requirements |
 
 ## Accumulated Context
 
@@ -61,7 +61,7 @@ Progress: [----------] 0% (v1.4 not started)
 ## Session Continuity
 
 Last session: 2026-02-28T20:00:00Z
-Status: v1.3 archived, ready for v1.4 planning
+Status: v1.4 started, gathering requirements
 Resume file: None
 
-**Next Action:** Run /gsd:new-milestone to start v1.4 planning
+**Next Action:** Complete research, then define requirements

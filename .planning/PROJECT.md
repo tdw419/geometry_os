@@ -15,11 +15,15 @@ If everything else fails, users must be able to:
 4. Boot from remote URLs with offline resilience
 5. Boot bare metal machines over PXE
 
-## Current Milestone: Planning v1.4
+## Current Milestone: v1.4 GPU Linux Execution
 
-**Last Shipped:** v1.3 PXE Boot (2026-02-28)
+**Goal:** Execute Linux kernel entirely on GPU via WebGPU compute shaders
 
-**Next Goal:** To be defined — run `/gsd:new-milestone`
+**Target features:**
+- RISC-V instruction emulation in WebGPU compute shaders
+- LNX bundle loading and kernel execution on GPU
+- Memory management with GPU buffer-backed RAM
+- Interrupt handling and device emulation
 
 ## Requirements
 
@@ -43,7 +47,7 @@ If everything else fails, users must be able to:
 
 ### Active
 
-(None — run `/gsd:new-milestone` to define v1.4 requirements)
+(None — defining v1.4 requirements)
 
 ### Future
 
@@ -63,6 +67,7 @@ If everything else fails, users must be able to:
 - Primary languages: Python 3.12+, TypeScript/JavaScript, Rust, WGSL
 - Located in `systems/pixel_compiler/` for PixelRTS components
 - `systems/visual_shell/` for PixiJS desktop environment
+- `systems/infinite_map_rs/` has existing RISC-V emulator in Rust
 - Uses QEMU for virtualization testing
 
 **Current State:**
@@ -70,6 +75,7 @@ If everything else fails, users must be able to:
 - 4 new Python server components (~3,658 lines)
 - 5 test suites (226 tests)
 - Visual shell PXE badge and toggle
+- Existing GPU infrastructure: WebGPU compute shaders, WGSL shader code
 
 **Key Files:**
 - `systems/visual_shell/web/RTSDesktopObject.js` - Desktop object component (2030 lines)
@@ -82,12 +88,15 @@ If everything else fails, users must be able to:
 - `systems/pixel_compiler/pxe/tftp_server.py` - TFTP server (750 lines)
 - `systems/pixel_compiler/pxe/http_server.py` - HTTP server (662 lines)
 - `systems/pixel_compiler/pxe/pxe_cli.py` - CLI interface (754 lines)
+- `systems/infinite_map_rs/src/riscv_native/executor.rs` - RISC-V emulator
 
 ## Constraints
 
 - **Python 3.12+** - Primary backend language
 - **TypeScript/JavaScript** - Visual shell frontend
 - **PixiJS v7** - Desktop rendering engine
+- **WebGPU** - GPU compute API for shader execution
+- **WGSL** - Shader language for GPU kernels
 - **QEMU** - Virtualization platform
 - **Existing PixelRTS v2 format** - Must maintain backward compatibility
 - **Performance** - Boot overhead <10% vs traditional ISO boot
@@ -109,6 +118,7 @@ If everything else fails, users must be able to:
 | asyncio.DatagramProtocol | Async UDP handling for DHCP | ✓ Shipped v1.3 |
 | aiohttp.web for HTTP server | Async HTTP with range requests | ✓ Shipped v1.3 |
 | PXE badge orange (#ff6600) | Distinguish from other status indicators | ✓ Shipped v1.3 |
+| WebGPU compute shaders for RISC-V | Execute kernel on GPU, no CPU emulation | — Pending v1.4 |
 
 ---
-*Last updated: 2026-02-28 after v1.3 PXE Boot milestone*
+*Last updated: 2026-02-28 after v1.3 PXE Boot milestone, starting v1.4*
