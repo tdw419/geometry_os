@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 17-01: Verification Harness Test</title>
+    <style>
+        body {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #00ff88;
+            border-bottom: 2px solid #00ff88;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #88ccff;
+        }
+        .test-section {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .pass {
+            color: #00ff88;
+            font-weight: bold;
+            font-size: 24px;
+        }
+        .fail {
+            color: #ff4444;
+            font-weight: bold;
+            font-size: 24px;
+        }
+        .pending {
+            color: #ffaa00;
+            font-style: italic;
+        }
+        .result-box {
+            background: #0f0f1a;
+            border: 1px solid #444;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .detail-label {
+            color: #888;
+        }
+        .value {
+            color: #00ccff;
+        }
+        .mismatch {
+            color: #ff6666;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        th, td {
+            border: 1px solid #333;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background: #2a2a4e;
+        }
+        .summary {
+            font-size: 18px;
+            padding: 15px;
+            background: #1a2a1a;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .summary.all-pass {
+            border: 2px solid #00ff88;
+        }
+        .summary.has-fail {
+            border: 2px solid #ff4444;
+        }
+    </style>
+</head>
+<body>
+    <h1>Phase 17-01: Verification Harness Test</h1>
+    <p>Testing CoreExecutionVerifier for reliable async GPU state readback.</p>
+
+    <div class="test-section">
+        <h2>WebGPU Initialization</h2>
+        <div id="gpu-status" class="pending">Checking WebGPU availability...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test: State Readback</h2>
+        <div id="test-state" class="pending">Waiting for WebGPU...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test: Memory Readback</h2>
+        <div id="test-memory" class="pending">Waiting for WebGPU...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test: Consistency (Repeated Reads)</h2>
+        <div id="test-consistency" class="pending">Waiting for WebGPU...</div>
+    </div>
+
+    <div id="summary" class="summary" style="display: none;"></div>
+
+    <script type="module">
+        import { CoreExecutionVerifier } from '../CoreExecutionVerifier.js';
+
+        const results = {
+            webgpu: false,
+            state: false,
+            memory: false,
+            consistency: false
+        };
+
+        function updateStatus(elementId, html, isSuccess = null) {
+            const el = document.getElementById(elementId);
+            el.innerHTML = html;
+            el.className = isSuccess === true ? 'pass' : isSuccess === false ? 'fail' : 'pending';
+        }
+
+        async function runTests() {
+            try {
+                // ===== WebGPU Initialization =====
+                if (!navigator.gpu) {
+                    updateStatus('gpu-status',
+                        '<span class="fail">FAIL</span><br>WebGPU not supported in this browser.', false);
+                    return;
+                }
+
+                const adapter = await navigator.gpu.requestAdapter();
+                if (!adapter) {
+                    updateStatus('gpu-status',
+                        '<span class="fail">FAIL</span><br>No GPU adapter found.', false);
+                    return;
+                }
+
+                const device = await adapter.requestDevice();
+                if (!device) {
+                    updateStatus('gpu-status',
+                        '<span class="fail">FAIL</span><br>Failed to get GPU device.', false);
+                    return;
+                }
+
+                results.webgpu = true;
+                updateStatus('gpu-status',
+                    '<span class="pass">PASS</span><br>WebGPU initialized successfully.', true);
+
+                // Create verifier
+                const verifier = new CoreExecutionVerifier(device);
+
+                // ===== Test 1: State Readback =====
+                try {
+                    // Create a test state buffer with known values
+                    const testStateSize = 256; // 64 u32 values
+                    const stateBuffer = device.createBuffer({
+                        size: testStateSize,
+                        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+                        label: 'test-state-buffer'
+                    });
+
+                    // Write known pattern to state buffer
+                    // registers[0-31] = 1-32, pc = 100, halted = 0
+                    const expectedState = new Uint32Array(64);
+                    for (let i = 0; i < 32; i++) {
+                        expectedState[i] = i + 1; // registers[0]=1, registers[1]=2, ...
+                    }
+                    expectedState[32] = 100; // PC
+                    expectedState[38] = 0;   // halted = false
+
+                    device.queue.writeBuffer(stateBuffer, 0, expectedState);
+
+                    // Read back via verifier
+                    const state = await verifier.readState(stateBuffer, testStateSize);
+
+                    // Verify values
+                    const reg0Ok = state.registers[0] === 1;
+                    const reg31Ok = state.registers[31] === 32;
+                    const pcOk = state.pc === 100;
+                    const haltedOk = state.halted === false;
+
+                    const allOk = reg0Ok && reg31Ok && pcOk && haltedOk;
+                    results.state = allOk;
+
+                    let html = `<span class="${allOk ? 'pass' : 'fail'}">${allOk ? 'PASS' : 'FAIL'}</span>\n`;
+                    html += '<div class="result-box">';
+                    html += `<span class="detail-label">registers[0]:</span> <span class="${reg0Ok ? 'value' : 'mismatch'}">${state.registers[0]}</span> (expected: 1)\n`;
+                    html += `<span class="detail-label">registers[31]:</span> <span class="${reg31Ok ? 'value' : 'mismatch'}">${state.registers[31]}</span> (expected: 32)\n`;
+                    html += `<span class="detail-label">pc:</span> <span class="${pcOk ? 'value' : 'mismatch'}">${state.pc}</span> (expected: 100)\n`;
+                    html += `<span class="detail-label">halted:</span> <span class="${haltedOk ? 'value' : 'mismatch'}">${state.halted}</span> (expected: false)\n`;
+                    html += '</div>';
+
+                    updateStatus('test-state', html, allOk);
+                    stateBuffer.destroy();
+                } catch (e) {
+                    results.state = false;
+                    updateStatus('test-state',
+                        `<span class="fail">FAIL</span><br>Error: ${e.message}`, false);
+                }
+
+                // ===== Test 2: Memory Readback =====
+                try {
+                    // Create a test memory buffer
+                    const testMemorySize = 128; // 32 u32 values
+                    const memoryBuffer = device.createBuffer({
+                        size: testMemorySize,
+                        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+                        label: 'test-memory-buffer'
+                    });
+
+                    // Write known pattern
+                    const expectedMemory = new Uint8Array(testMemorySize);
+                    for (let i = 0; i < testMemorySize; i++) {
+                        expectedMemory[i] = (i * 7) % 256; // Pseudo-random pattern
+                    }
+                    device.queue.writeBuffer(memoryBuffer, 0, expectedMemory);
+
+                    // Read back via verifier
+                    const memory = await verifier.readMemory(memoryBuffer, 0, testMemorySize);
+
+                    // Verify values
+                    let memoryOk = true;
+                    const mismatches = [];
+                    for (let i = 0; i < testMemorySize; i++) {
+                        if (memory[i] !== expectedMemory[i]) {
+                            memoryOk = false;
+                            if (mismatches.length < 5) {
+                                mismatches.push(`[${i}]: got ${memory[i]}, expected ${expectedMemory[i]}`);
+                            }
+                        }
+                    }
+
+                    results.memory = memoryOk;
+
+                    let html = `<span class="${memoryOk ? 'pass' : 'fail'}">${memoryOk ? 'PASS' : 'FAIL'}</span>\n`;
+                    html += '<div class="result-box">';
+                    html += `<span class="detail-label">Memory size:</span> <span class="value">${testMemorySize} bytes</span>\n`;
+                    html += `<span class="detail-label">First 8 bytes:</span> <span class="value">[${Array.from(memory.slice(0, 8)).join(', ')}]</span>\n`;
+                    if (!memoryOk) {
+                        html += `<span class="mismatch">Mismatches (first 5):</span>\n${mismatches.join('\n')}\n`;
+                    }
+                    html += '</div>';
+
+                    updateStatus('test-memory', html, memoryOk);
+                    memoryBuffer.destroy();
+                } catch (e) {
+                    results.memory = false;
+                    updateStatus('test-memory',
+                        `<span class="fail">FAIL</span><br>Error: ${e.message}`, false);
+                }
+
+                // ===== Test 3: Consistency (Repeated Reads) =====
+                try {
+                    // Create a test buffer
+                    const testSize = 256;
+                    const testBuffer = device.createBuffer({
+                        size: testSize,
+                        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+                        label: 'test-consistency-buffer'
+                    });
+
+                    // Write known pattern
+                    const expected = new Uint32Array(64);
+                    for (let i = 0; i < 64; i++) {
+                        expected[i] = i * 3;
+                    }
+                    device.queue.writeBuffer(testBuffer, 0, expected);
+
+                    // Read multiple times
+                    const reads = [];
+                    for (let i = 0; i < 3; i++) {
+                        const state = await verifier.readState(testBuffer, testSize);
+                        reads.push(state);
+                    }
+
+                    // Check consistency
+                    let consistent = true;
+                    for (let i = 1; i < reads.length; i++) {
+                        for (let j = 0; j < 32; j++) {
+                            if (reads[i].registers[j] !== reads[0].registers[j]) {
+                                consistent = false;
+                                break;
+                            }
+                        }
+                        if (reads[i].pc !== reads[0].pc) consistent = false;
+                    }
+
+                    // Also check against expected
+                    let matchesExpected = true;
+                    for (let i = 0; i < 32; i++) {
+                        if (reads[0].registers[i] !== expected[i]) {
+                            matchesExpected = false;
+                            break;
+                        }
+                    }
+
+                    const allConsistent = consistent && matchesExpected;
+                    results.consistency = allConsistent;
+
+                    let html = `<span class="${allConsistent ? 'pass' : 'fail'}">${allConsistent ? 'PASS' : 'FAIL'}</span>\n`;
+                    html += '<div class="result-box">';
+                    html += `<span class="detail-label">Reads performed:</span> <span class="value">${reads.length}</span>\n`;
+                    html += `<span class="detail-label">All reads identical:</span> <span class="${consistent ? 'value' : 'mismatch'}">${consistent}</span>\n`;
+                    html += `<span class="detail-label">Matches expected:</span> <span class="${matchesExpected ? 'value' : 'mismatch'}">${matchesExpected}</span>\n`;
+                    html += `<span class="detail-label">Sample registers[5]:</span> <span class="value">${reads[0].registers[5]}</span> (expected: 15)\n`;
+                    html += '</div>';
+
+                    updateStatus('test-consistency', html, allConsistent);
+                    testBuffer.destroy();
+                } catch (e) {
+                    results.consistency = false;
+                    updateStatus('test-consistency',
+                        `<span class="fail">FAIL</span><br>Error: ${e.message}`, false);
+                }
+
+                // ===== Summary =====
+                const totalTests = Object.keys(results).length;
+                const passedTests = Object.values(results).filter(v => v).length;
+                const allPassed = passedTests === totalTests;
+
+                let summaryHtml = `<strong>Summary:</strong> ${passedTests}/${totalTests} tests passed\n`;
+                summaryHtml += '<table>';
+                summaryHtml += '<tr><th>Test</th><th>Result</th></tr>';
+                summaryHtml += `<tr><td>WebGPU Init</td><td>${results.webgpu ? '<span class="pass">PASS</span>' : '<span class="fail">FAIL</span>'}</td></tr>`;
+                summaryHtml += `<tr><td>State Readback</td><td>${results.state ? '<span class="pass">PASS</span>' : '<span class="fail">FAIL</span>'}</td></tr>`;
+                summaryHtml += `<tr><td>Memory Readback</td><td>${results.memory ? '<span class="pass">PASS</span>' : '<span class="fail">FAIL</span>'}</td></tr>`;
+                summaryHtml += `<tr><td>Consistency</td><td>${results.consistency ? '<span class="pass">PASS</span>' : '<span class="fail">FAIL</span>'}</td></tr>`;
+                summaryHtml += '</table>';
+
+                if (allPassed) {
+                    summaryHtml += '<br><span class="pass">ALL TESTS PASSED - Verification harness is working correctly.</span>';
+                } else {
+                    summaryHtml += '<br><span class="fail">SOME TESTS FAILED - Check details above.</span>';
+                }
+
+                const summaryEl = document.getElementById('summary');
+                summaryEl.innerHTML = summaryHtml;
+                summaryEl.style.display = 'block';
+                summaryEl.className = 'summary ' + (allPassed ? 'all-pass' : 'has-fail');
+
+            } catch (e) {
+                document.getElementById('summary').innerHTML =
+                    `<span class="fail">Test suite failed with error:</span><br>${e.message}<br><br>${e.stack}`;
+                document.getElementById('summary').style.display = 'block';
+            }
+        }
+
+        // Run tests on page load
+        runTests();
+    </script>
+</body>
+</html>
