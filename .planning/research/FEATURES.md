@@ -1,202 +1,251 @@
-# Feature Landscape: Network Boot for PixelRTS
+# Features Research: GPU-Based Linux Execution
 
-**Domain:** Network boot / remote container distribution
-**Researched:** 2026-02-27
-**Confidence:** MEDIUM (based on existing codebase analysis + domain knowledge; WebSearch unavailable)
+**Domain:** GPU compute emulation for Linux kernel execution
+**Researched:** 2026-02-28
+**Project Context:** Geometry OS - PixelRTS Boot Improvement
+**Goal:** Execute Linux kernel entirely on GPU via WebGPU compute shaders
 
-## Executive Summary
+---
 
-Network boot for PixelRTS extends the existing local boot system to support fetching .rts.png containers from remote HTTP servers. The core user experience remains the same (click-to-boot with visual progress), but adds remote URL resolution, download progress visualization, and local caching for offline access.
+## Summary
 
-The existing infrastructure already provides:
-- Desktop objects with thumbnails on infinite canvas
-- Click-to-boot with progress visualization (RTSDesktopObject)
-- Status polling and error handling (CatalogBridge, DesktopObjectManager)
-- Position persistence (SpatialLayoutManager)
+GPU-based Linux execution means using GPU compute shaders to emulate a RISC-V CPU, which then runs a Linux kernel. This is NOT "Linux running natively on GPU" but rather "GPU emulating the CPU that runs Linux." The approach leverages WebGPU's compute capabilities to implement instruction fetch, decode, execute, memory management, and device emulation in parallel WGSL shaders. The existing codebase already has RV32IMA emulation with MMU support, CSR banks, and MMIO peripherals in WGSL.
 
-## Table Stakes
+---
 
-Features users expect. Missing = product feels incomplete or broken.
+## Table Stakes (Must Have)
 
-| Feature | Why Expected | Complexity | Dependencies | Notes |
-|---------|--------------|------------|--------------|-------|
-| **Remote URL boot** | Core promise of network boot | Medium | CatalogBridge | Boot .rts.png from HTTP/HTTPS URL |
-| **Download progress indicator** | Users need feedback during fetch | Medium | RTSDesktopObject | Shows bytes downloaded, percent, speed |
-| **Connection error handling** | Networks are unreliable | Low | Existing error system | Timeout, DNS failure, 404, auth errors |
-| **Cache to local storage** | Avoid re-downloading large files | Medium | New CacheManager | Store fetched containers locally |
-| **Cache hit detection** | Don't download if already cached | Medium | CacheManager | Check by URL hash or server-provided ID |
-| **Boot from cache** | Seamless offline operation | Low | CacheManager + BootBridge | Reuse existing local boot flow |
-| **Remote catalog browsing** | Discover available containers | Medium | New RemoteCatalogClient | List containers from remote server |
-| **Remote metadata fetch** | Show info before downloading | Low | RemoteCatalogClient | Name, size, kernel version, distro |
+These features are essential for any GPU-based Linux execution system. Missing these means the kernel cannot boot or run.
 
-## Differentiators
+### Core Emulation
 
-Features that set PixelRTS apart from traditional PXE/network boot.
+| Feature | Description | Complexity | Notes |
+|---------|-------------|------------|-------|
+| **RISC-V RV32I Base ISA** | Integer instructions (LUI, AUIPC, JAL, branches, loads, stores, ALU ops) | High | Already implemented in `riscv_executor.wgsl` |
+| **Instruction Fetch/Decode** | Read instructions from memory, extract opcode, rd, rs1, rs2, funct3, funct7, immediate | Medium | Already implemented |
+| **Register File (x0-x31)** | 32 x 32-bit registers with x0 hardwired to zero | Low | Already implemented |
+| **Program Counter** | Track execution address, handle branches/jumps | Low | Already implemented |
 
-| Feature | Value Proposition | Complexity | Dependencies | Notes |
-|---------|-------------------|------------|--------------|-------|
-| **Visual progress during download** | Unique visual boot experience extends to fetch phase | Low | RTSDesktopObject | Animate thumbnail "filling in" as bytes arrive |
-| **Predictive pre-fetch** | Anticipate what user will boot based on hover/focus | Medium | PredictivePrefetcher (existing) | Start download on hover, cancel if unhovered |
-| **Delta updates** | Only download changed bytes when updating containers | High | Server support required | Reduces bandwidth for version updates |
-| **Multi-source aggregation** | Combine catalogs from multiple servers | Medium | RemoteCatalogClient | Browse containers from heterogeneous sources |
-| **P2P distribution** | Share containers peer-to-peer | Very High | WebRTC infrastructure | Beyond v1.2 scope |
-| **Checksum verification** | Verify integrity of downloaded containers | Low | Existing VERIFY system | SHA256 hash comparison after download |
-| **Bandwidth-aware behavior** | Throttle downloads on slow connections | Medium | Network detection | Pause/resume support |
+### Privileged Architecture (Required for Linux)
 
-## Anti-Features
+| Feature | Description | Complexity | Notes |
+|---------|-------------|------------|-------|
+| **Privilege Modes** | Machine (M), Supervisor (S), User (U) mode support | High | Required for Linux kernel |
+| **CSR Bank** | Control/Status Registers (mstatus, mtvec, sstatus, satp, etc.) | High | Already in `riscv_linux_vm.wgsl` |
+| **Trap Handling** | Exception entry/exit, interrupt handling | High | Required for syscalls, page faults |
+| **ECALL/EBREAK** | System calls and breakpoints | Medium | Required for Linux syscalls |
+| **MRET/SRET** | Return from trap instructions | Medium | Required for exception return |
 
-Features to explicitly NOT build. Common mistakes in this domain.
+### Memory Management
 
-| Anti-Feature | Why Avoid | What to Do Instead |
-|--------------|-----------|-------------------|
-| **Auto-update containers** | Breaks reproducibility, surprises user | Explicit update command with preview |
-| **Background downloads** | Consumes bandwidth user might need | Only download on explicit action or hover-prefetch |
-| **Centralized registry** | Single point of failure, vendor lock-in | Support any HTTP server, user provides URLs |
-| **Required authentication** | Blocks casual exploration | Support anonymous access, auth optional |
-| **Real-time sync** | Over-engineering for file distribution | Pull-based refresh, user-initiated |
-| **Cloud storage integration** | Scope creep, multiple providers | Generic HTTP only, users can point to any host |
-| **Container signing/PKI** | Premature security complexity | Defer to post-MVP, use HTTPS for transport security |
+| Feature | Description | Complexity | Notes |
+|---------|-------------|------------|-------|
+| **Sv32 MMU** | Virtual memory with page table walking | Very High | Already partially in `riscv_linux_vm.wgsl` |
+| **Page Tables** | 2-level page tables for 32-bit addressing | High | VPN0/VPN1 extraction, PTE parsing |
+| **Page Fault Handling** | Detect and report page faults to host | High | Required for demand paging |
+| **Physical Memory Map** | RAM at 0x80000000, MMIO regions | Medium | Standard RISC-V layout |
+
+### Device Emulation (MMIO Peripherals)
+
+| Feature | Description | Complexity | Notes |
+|---------|-------------|------------|-------|
+| **UART 16550** | Console I/O (THR/RBR registers) | Medium | Required for kernel boot messages |
+| **CLINT** | Core Local Interruptor (mtime, mtimecmp) | Medium | Required for timer interrupts |
+| **PLIC** | Platform Level Interrupt Controller | High | Required for device interrupts |
+
+### Host-GPU Communication
+
+| Feature | Description | Complexity | Notes |
+|---------|-------------|------------|-------|
+| **Syscall Queue** | GPU->Host syscall requests (write, exit, etc.) | Medium | Already in `riscv_executor.rs` |
+| **Console Buffer** | UART output buffer read by host | Low | Already implemented |
+| **VM Status** | Running/halted/waiting states | Low | Already implemented |
+
+### Boot Sequence
+
+| Feature | Description | Complexity | Notes |
+|---------|-------------|------------|-------|
+| **LNX Bundle Format** | Magic + entry point + kernel + initrd + DTB | Low | Already in `LinuxBundleHeader` |
+| **Kernel Loading** | Load kernel to RAM_BASE (0x80000000) | Low | Already implemented |
+| **Entry Point Jump** | Set PC to kernel entry, start execution | Low | Already implemented |
+| **DTB/Initrd Placement** | Load device tree and initrd at correct offsets | Medium | Standard Linux boot protocol |
+
+---
+
+## Differentiators (Competitive Advantage)
+
+Features that set this project apart from other emulation approaches.
+
+### GPU-Native Execution
+
+| Feature | Description | Complexity | Notes |
+|---------|-------------|------------|-------|
+| **WGSL Compute Shaders** | All CPU emulation runs on GPU | Very High | Core differentiator - no CPU emulation layer |
+| **Parallel Instruction Dispatch** | Multiple workgroups execute different instruction batches | High | Already using workgroup parallelism |
+| **Texture-as-Memory** | PNG/texture storage for program images | Medium | Unique to Geometry OS ecosystem |
+| **Hilbert Memory Layout** | Spatial locality optimization via Hilbert curves | Medium | Already in codebase |
+
+### Performance Optimizations
+
+| Feature | Description | Complexity | Notes |
+|---------|-------------|------------|-------|
+| **Basic Block Profiler** | Track hot code paths for potential JIT | High | Phase 44 in `riscv_executor.wgsl` |
+| **Subgroup Operations** | Use GPU subgroup instructions for atomics | Medium | `riscv_executor_subgroup.wgsl` exists |
+| **i64 Emulation Layer** | Software 64-bit ops when GPU lacks native support | Medium | `i64_emulation.rs` generates WGSL |
+| **Multi-VM Concurrent Execution** | Run multiple VMs on same GPU (vm_id 0-7) | High | Already in uniforms |
+
+### Integration Features
+
+| Feature | Description | Complexity | Notes |
+|---------|-------------|------------|-------|
+| **Visual Shell Integration** | VM output rendered as tiles on infinite desktop | Medium | Unique to Geometry OS |
+| **ACE-RTS Cognitive BIOS** | Self-healing, evolutionary VM management | High | Geometry OS specific |
+| **Real-time Visual Feedback** | Display texture shows execution state | Low | Already implemented |
+| **WebSocket API** | Remote control and monitoring | Medium | `api_server.rs` exists |
+
+### RISC-V Extensions
+
+| Feature | Description | Complexity | Notes |
+|---------|-------------|------------|-------|
+| **RV32M (Multiply/Divide)** | MUL, DIV, REM instructions | Medium | Required for real Linux |
+| **RV32A (Atomic)** | LR/SC, AMO instructions | High | Required for SMP Linux |
+| **RV32F (Float)** | Single-precision floating point | High | Partially in `riscv_executor.wgsl` |
+
+---
+
+## Anti-Features (Deliberately NOT Building)
+
+Features we explicitly exclude to maintain focus and avoid common pitfalls.
+
+| Anti-Feature | Why Excluded | What to Do Instead |
+|--------------|--------------|-------------------|
+| **Full x86/ARM Emulation** | Too complex, RISC-V is cleaner target | Stick with RISC-V RV32IMA |
+| **GPU Native Linux Kernel** | Requires GPU-capable kernel drivers | Emulate CPU, keep standard kernel |
+| **Hardware Acceleration Passthrough** | Security nightmare, complex | Software emulation only |
+| **Full GUI/Framebuffer** | Too slow on GPU emulation | Serial console only (UART) |
+| **Network Stack in Kernel** | Complex, slow | Host handles networking, proxy to VM |
+| **Block Device Persistence** | GPU memory is volatile | Snapshot to PNG, load on restart |
+| **JIT Compilation on GPU** | Self-modifying WGSL is not possible | Profile on GPU, JIT hints to host |
+| **Multi-core SMP** | Coordination overhead too high for MVP | Single-core emulation |
+| **Full 64-bit (RV64)** | Memory requirements double | Stay with RV32, 256MB RAM limit |
+| **Real-time Guarantees** | GPU scheduling is nondeterministic | Best-effort execution, not RTOS |
+
+---
 
 ## Feature Dependencies
 
 ```
-Remote URL Boot
+Boot Sequence
     |
-    +-- RemoteCatalogClient (new)
-    |       |
-    |       +-- HTTP fetch for catalog.json
-    |       +-- Entry metadata parsing
+    v
+RISC-V Base ISA (RV32I) ----> Register File
+    |                              |
+    v                              v
+Privileged Architecture ----> CSR Bank
+    |                              |
+    v                              v
+Sv32 MMU <------------------ Trap Handling
     |
-    +-- RemoteContainerFetcher (new)
-    |       |
-    |       +-- Fetch .rts.png from URL
-    |       +-- Progress events
-    |       +-- Cache storage
+    v
+MMIO Peripherals (UART, CLINT, PLIC)
     |
-    +-- CacheManager (new)
-    |       |
-    |       +-- Local file cache
-    |       +-- LRU eviction
-    |       +-- Cache hit lookup
+    v
+Linux Kernel Execution
     |
-    +-- RTSDesktopObject (enhanced)
-    |       |
-    |       +-- Download progress visualization
-    |       +-- Remote vs local indicator
-    |       +-- Error recovery
+    v
+Syscall Emulation (Host-GPU Bridge)
     |
-    +-- CatalogBridge (enhanced)
-            |
-            +-- Remote catalog endpoints
-            +-- Hybrid local/remote entries
+    v
+User Space (Init, Shell)
 ```
-
-## Expected Network Boot Behavior
-
-Based on domain knowledge of PXE, HTTP boot, and container distribution:
-
-### Typical Flow (Happy Path)
-
-1. **Discovery**: User browses remote catalog OR enters URL directly
-2. **Metadata Fetch**: System retrieves container metadata (name, size, hash)
-3. **Cache Check**: System checks if container already cached locally
-4. **Download** (if not cached):
-   - Show download progress with bytes/total, speed estimate
-   - Allow cancel
-   - Store to cache with hash verification
-5. **Boot**: Use existing local boot flow from cached file
-6. **Status**: Existing status polling shows boot progress
-
-### Error Scenarios
-
-| Error | Expected Behavior |
-|-------|-------------------|
-| Network timeout | Show "Connection timeout" with retry button |
-| DNS failure | Show "Server not found" with URL for user to verify |
-| HTTP 404 | Show "Container not found at URL" |
-| HTTP 401/403 | Show "Access denied" - may need credentials |
-| Disk full | Show "Not enough disk space" with size needed |
-| Hash mismatch | Show "Download corrupted" with retry option |
-| Server error (5xx) | Show "Server error" with retry later suggestion |
-
-### Progress Indicators
-
-For downloads, users expect:
-- Percentage complete (0-100%)
-- Bytes transferred (e.g., "45 MB / 120 MB")
-- Transfer speed (e.g., "2.3 MB/s")
-- Time remaining estimate (e.g., "~30 seconds remaining")
-- Cancel button
-
-## MVP Recommendation
-
-For v1.2 milestone, prioritize:
-
-1. **Remote URL boot** - Core feature, enables network operation
-2. **Download progress indicator** - Essential UX for large files
-3. **Local caching** - Avoids re-download, enables offline use
-4. **Cache hit detection** - Transparent to user, improves experience
-5. **Error handling** - Network errors must be graceful
-
-Defer to post-MVP:
-- **Remote catalog browsing**: Can add URLs manually in v1.2
-- **Delta updates**: Requires server protocol changes
-- **Multi-source aggregation**: Nice-to-have, not essential
-- **Predictive pre-fetch**: Can enhance UX later
-
-## Integration with Existing System
-
-### RTSDesktopObject Enhancements
-
-The existing `RTSDesktopObject` class already has:
-- Progress bar with stages (`BOOT_STAGES`)
-- Error overlay with guidance (`ERROR_GUIDANCE`)
-- Status indicator colors (`STATUS_COLORS`)
-
-**Additions needed:**
-- New status: `downloading` (separate from `booting`)
-- New boot stages for download phase:
-  - `FETCHING: { label: 'Downloading...', startPercent: 0, endPercent: 30 }`
-- Download progress method: `setDownloadProgress(percent, bytesDownloaded, totalBytes)`
-- Remote origin indicator (show URL or "remote" badge)
-
-### CatalogBridge Enhancements
-
-The existing `CatalogBridge` has:
-- `bootEntry()` - triggers boot
-- `getStatus()` - polls for status
-- `refresh()` - rescans catalog
-
-**Additions needed:**
-- `fetchRemoteEntry(url)` - fetch metadata from remote URL
-- `downloadRemoteContainer(url, onProgress)` - download with progress callback
-- `getCachedEntry(url)` - check cache for existing download
-
-### New Components
-
-| Component | Responsibility |
-|-----------|---------------|
-| `RemoteCatalogClient` | Fetch catalog.json from remote servers |
-| `RemoteContainerFetcher` | Download .rts.png files with progress events |
-| `CacheManager` | Manage local cache of downloaded containers |
-
-## Sources
-
-- Existing codebase analysis (HIGH confidence)
-- Domain knowledge of network boot patterns (MEDIUM confidence - training data)
-- WebSearch attempted but unavailable (would provide current best practices)
-
-## Confidence Assessment
-
-| Area | Level | Reason |
-|------|-------|--------|
-| Existing system integration | HIGH | Direct codebase analysis |
-| Table stakes features | MEDIUM | Based on domain knowledge, not web research |
-| Differentiators | LOW | Speculative without market research |
-| Anti-features | MEDIUM | Based on common pitfalls knowledge |
-| Technical feasibility | HIGH | Existing architecture supports extension |
 
 ---
 
-*Research completed: 2026-02-27*
-*Next step: Requirements definition for v1.2 milestone*
+## Complexity Summary
+
+| Feature | Complexity | Dependencies | Status |
+|---------|------------|--------------|--------|
+| RV32I Base ISA | High | None | Implemented |
+| RV32M Extension | Medium | RV32I | Implemented |
+| RV32A Extension | High | RV32I | Partial |
+| RV32F Extension | High | RV32I | Partial |
+| Privilege Modes | High | RV32I | Implemented |
+| CSR Bank | High | Privilege | Implemented |
+| Trap Handling | High | CSR, Privilege | Implemented |
+| Sv32 MMU | Very High | CSR, Trap | Implemented |
+| UART 16550 | Medium | MMIO | Implemented |
+| CLINT Timer | Medium | MMIO | Implemented |
+| PLIC Interrupt | High | MMIO | Stub |
+| Syscall Queue | Medium | Host Bridge | Implemented |
+| Basic Block Profiler | High | Execution Loop | Implemented |
+| Multi-VM Support | High | All Core | Implemented |
+| LNX Bundle Loading | Low | Memory | Implemented |
+| Visual Shell Integration | Medium | Texture Bridge | Partial |
+
+---
+
+## References
+
+### Existing Codebase (HIGH Confidence - Direct Review)
+
+- `systems/infinite_map_rs/src/riscv_executor.rs` - Host-side RISC-V VM management
+- `systems/infinite_map_rs/src/shaders/riscv_executor.wgsl` - GPU compute shader for RV32I
+- `systems/infinite_map_rs/src/shaders/riscv_linux_vm.wgsl` - Full Linux VM with MMU
+- `systems/infinite_map_rs/src/riscv_native/` - Native GPU executor module
+- `systems/infinite_map_rs/tests/golden_path_boot_test.rs` - Boot sequence validation
+
+### External Projects (MEDIUM Confidence - Web Research)
+
+- **Vortex (Georgia Tech)** - Open-source RISC-V GPGPU, Apache 2.0
+  - https://vortex.cc.gatech.edu/
+  - Only 6 new instructions for GPGPU on RISC-V
+
+- **Ventus (Tsinghua)** - RISC-V GPGPU with vector extensions
+  - https://OpenGPGPU.org.cn
+  - IEEE TVLSI paper (Aug 2025)
+
+- **WebGPU Spec (W3C)** - Compute shader API
+  - Candidate Recommendation Dec 2024
+  - WebGPU 2.0 expected Q2 2025 with ray tracing
+
+### Technical Approaches (MEDIUM Confidence)
+
+- **GPU-as-CPU-Emulator Pattern**: Use storage buffers for RAM, compute shaders for instruction dispatch
+- **Texture-as-Memory**: Encode program data in PNG RGBA channels (4 bytes per pixel)
+- **Hilbert Curve Mapping**: Preserve spatial locality in 2D texture representation
+- **Syscall Proxy Pattern**: GPU queues syscalls, host processes and returns results
+
+---
+
+## MVP Recommendation
+
+For a working GPU-based Linux boot, prioritize:
+
+1. **Table Stakes Core**: RV32I + Privilege + CSR + Trap Handling (DONE)
+2. **Table Stakes MMU**: Sv32 with basic page tables (DONE)
+3. **Table Stakes Devices**: UART for console, CLINT for timer (DONE)
+4. **Differentiator**: Visual shell integration for boot visualization
+5. **Syscall Bridge**: Host handles write/exit, GPU continues execution
+
+Defer to post-MVP:
+- **PLIC**: Only needed for complex device interrupts
+- **RV32F**: Most Linux kernels don't require FPU
+- **JIT**: Profiler exists, JIT compilation requires host involvement
+- **Multi-VM**: Works but not critical for first boot
+
+---
+
+## Risk Assessment
+
+| Risk | Severity | Mitigation |
+|------|----------|------------|
+| GPU Memory Limits | High | Limit RAM to 256MB, use streaming for larger |
+| Instruction Throughput | Medium | Batch execution, profiler-guided optimization |
+| Page Fault Overhead | Medium | Pre-fault pages, use large pages where possible |
+| Syscall Latency | Medium | Batch syscalls, async host processing |
+| WGSL Limitations | Medium | Generate emulation code for missing features (i64) |
+| Kernel Compatibility | Low | Use standard RISC-V Linux, no special patches |
+
+---
+
+*Research complete. Ready for roadmap phase definition.*
