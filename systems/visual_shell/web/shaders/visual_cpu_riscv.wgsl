@@ -625,6 +625,52 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                         if (rd != 0u) { cpu_states[base_idx + rd] = old; }
                         cpu_states[base_idx + csr_idx] = cpu_states[base_idx + rs1];
                     }
+                } else if (funct3_sys == 2u) { // CSRRS (Read and Set bits)
+                    let csr_idx = _get_csr_index(inst >> 20u);
+                    if (csr_idx < 255u) {
+                        let old = cpu_states[base_idx + csr_idx];
+                        if (rd != 0u) { cpu_states[base_idx + rd] = old; }
+                        if (rs1 != 0u) {
+                            cpu_states[base_idx + csr_idx] = old | cpu_states[base_idx + rs1];
+                        }
+                    }
+                } else if (funct3_sys == 3u) { // CSRRC (Read and Clear bits)
+                    let csr_idx = _get_csr_index(inst >> 20u);
+                    if (csr_idx < 255u) {
+                        let old = cpu_states[base_idx + csr_idx];
+                        if (rd != 0u) { cpu_states[base_idx + rd] = old; }
+                        if (rs1 != 0u) {
+                            cpu_states[base_idx + csr_idx] = old & ~cpu_states[base_idx + rs1];
+                        }
+                    }
+                } else if (funct3_sys == 5u) { // CSRRWI (Read and Write Immediate)
+                    let csr_idx = _get_csr_index(inst >> 20u);
+                    let zimm = (inst >> 15u) & 0x1Fu;  // 5-bit immediate from bits 19:15
+                    if (csr_idx < 255u) {
+                        let old = cpu_states[base_idx + csr_idx];
+                        if (rd != 0u) { cpu_states[base_idx + rd] = old; }
+                        cpu_states[base_idx + csr_idx] = zimm;
+                    }
+                } else if (funct3_sys == 6u) { // CSRRSI (Read and Set Immediate)
+                    let csr_idx = _get_csr_index(inst >> 20u);
+                    let zimm = (inst >> 15u) & 0x1Fu;  // 5-bit immediate from bits 19:15
+                    if (csr_idx < 255u) {
+                        let old = cpu_states[base_idx + csr_idx];
+                        if (rd != 0u) { cpu_states[base_idx + rd] = old; }
+                        if (zimm != 0u) {
+                            cpu_states[base_idx + csr_idx] = old | zimm;
+                        }
+                    }
+                } else if (funct3_sys == 7u) { // CSRRCI (Read and Clear Immediate)
+                    let csr_idx = _get_csr_index(inst >> 20u);
+                    let zimm = (inst >> 15u) & 0x1Fu;  // 5-bit immediate from bits 19:15
+                    if (csr_idx < 255u) {
+                        let old = cpu_states[base_idx + csr_idx];
+                        if (rd != 0u) { cpu_states[base_idx + rd] = old; }
+                        if (zimm != 0u) {
+                            cpu_states[base_idx + csr_idx] = old & ~zimm;
+                        }
+                    }
                 }
             }
             case 0x2Fu: { trap_triggered = true; }
