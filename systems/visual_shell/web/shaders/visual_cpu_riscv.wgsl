@@ -376,11 +376,35 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         var trap_triggered = false;
 
         switch (opcode) {
-            case 0x13u: { 
-                if (funct3 == 0u) { 
-                    let imm = i32(inst) >> 20u;
-                    let val1 = i32(cpu_states[base_idx + rs1]);
+            case 0x13u: { // OP-IMM (ADDI, SLTI, SLTIU, XORI, ORI, ANDI, SLLI, SRLI, SRAI)
+                let imm = i32(inst) >> 20u;  // Sign-extended 12-bit immediate
+                let uimm = (inst >> 20u) & 0xFFFu;  // Unsigned immediate for shifts
+                let val1 = i32(cpu_states[base_idx + rs1]);
+                let uval1 = cpu_states[base_idx + rs1];
+                let shamt = uimm & 0x1Fu;  // Shift amount (bits 24:20)
+
+                if (funct3 == 0x0u) { // ADDI
                     if (rd != 0u) { cpu_states[base_idx + rd] = u32(val1 + imm); }
+                } else if (funct3 == 0x2u) { // SLTI (set less than immediate, signed)
+                    if (rd != 0u) { cpu_states[base_idx + rd] = select(0u, 1u, val1 < imm); }
+                } else if (funct3 == 0x3u) { // SLTIU (set less than immediate, unsigned)
+                    // Note: immediate is still sign-extended, then treated as unsigned
+                    if (rd != 0u) { cpu_states[base_idx + rd] = select(0u, 1u, uval1 < u32(imm)); }
+                } else if (funct3 == 0x4u) { // XORI
+                    if (rd != 0u) { cpu_states[base_idx + rd] = uval1 ^ u32(imm); }
+                } else if (funct3 == 0x6u) { // ORI
+                    if (rd != 0u) { cpu_states[base_idx + rd] = uval1 | u32(imm); }
+                } else if (funct3 == 0x7u) { // ANDI
+                    if (rd != 0u) { cpu_states[base_idx + rd] = uval1 & u32(imm); }
+                } else if (funct3 == 0x1u) { // SLLI (shift left logical immediate)
+                    if (rd != 0u) { cpu_states[base_idx + rd] = uval1 << shamt; }
+                } else if (funct3 == 0x5u) { // SRLI/SRAI
+                    let funct7bit = (inst >> 30u) & 1u;
+                    if (funct7bit == 0u) { // SRLI (shift right logical immediate)
+                        if (rd != 0u) { cpu_states[base_idx + rd] = uval1 >> shamt; }
+                    } else { // SRAI (shift right arithmetic immediate)
+                        if (rd != 0u) { cpu_states[base_idx + rd] = u32(val1 >> i32(shamt)); }
+                    }
                 }
             }
             case 0x33u: { // OP (ADD, SUB, SLL, SLT, SLTU, XOR, SRL, SRA, OR, AND)
