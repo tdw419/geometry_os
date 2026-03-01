@@ -283,6 +283,15 @@ fn should_delegate_to_smode(base_idx: u32, cause: u32) -> bool {
     }
 }
 
+// Unified trap entry - dispatches to M-mode or S-mode based on delegation
+fn trap_enter_dispatch(base_idx: u32, cause: u32, tval: u32, pc: u32) -> u32 {
+    if (should_delegate_to_smode(base_idx, cause)) {
+        return trap_enter(base_idx, cause, tval, pc);  // S-mode handler
+    } else {
+        return trap_enter_mmode(base_idx, cause, tval, pc);  // M-mode handler
+    }
+}
+
 // Return from M-mode trap (MRET instruction)
 fn trap_ret_mmode(base_idx: u32) -> u32 {
     // Get MEPC (return address)
