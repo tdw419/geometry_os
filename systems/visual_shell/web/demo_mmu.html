@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 19: Memory Management Unit Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a1a;
+            color: #00FF88;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #00FFFF;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .panel-container {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .demo-buttons {
+            background: #1a2e1a;
+            border: 1px solid #2a4a2a;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .demo-buttons h2 {
+            color: #00FF88;
+            font-size: 14px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #2a4a2a;
+        }
+
+        .demo-btn {
+            display: block;
+            width: 100%;
+            background: #0a0a1a;
+            border: 1px solid #333;
+            color: #00FF88;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: left;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .demo-btn:hover {
+            background: #1a1a2e;
+            border-color: #00FFFF;
+        }
+
+        .demo-btn .demo-num {
+            color: #00FFFF;
+            font-weight: bold;
+        }
+
+        .demo-btn .demo-name {
+            color: #00FF88;
+        }
+
+        .demo-btn .demo-desc {
+            color: #666;
+            display: block;
+            margin-top: 4px;
+            font-size: 11px;
+        }
+
+        .status-panel {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .status-panel h3 {
+            color: #00FFFF;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .status-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .status-label {
+            color: #888;
+            font-size: 11px;
+            min-width: 60px;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .mode-m {
+            background: #ff8800;
+            color: white;
+        }
+
+        .mode-s {
+            background: #4488ff;
+            color: white;
+        }
+
+        .mode-u {
+            background: #888;
+            color: white;
+        }
+
+        .mmu-off {
+            background: #666;
+            color: white;
+        }
+
+        .mmu-sv32 {
+            background: #00aa44;
+            color: white;
+        }
+
+        .output-panel {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .output-panel h3 {
+            color: #00FFFF;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        #output {
+            background: #0a0a15;
+            padding: 10px;
+            min-height: 300px;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        .result-pass {
+            color: #00FF88;
+            font-weight: bold;
+        }
+
+        .result-fail {
+            color: #FF6666;
+            font-weight: bold;
+        }
+
+        .info-panel {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .info-panel h2 {
+            color: #00FFFF;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .info-panel h3 {
+            color: #00FFFF;
+            font-size: 12px;
+            margin-top: 15px;
+            margin-bottom: 8px;
+        }
+
+        .info-panel p {
+            color: #888;
+            font-size: 12px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .info-panel code {
+            background: #0a0a1a;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #00FF88;
+            font-size: 11px;
+        }
+
+        .info-panel ul {
+            color: #888;
+            font-size: 12px;
+            margin-left: 20px;
+        }
+
+        .info-panel li {
+            margin-bottom: 5px;
+        }
+
+        .architecture-diagram {
+            background: #0a0a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 11px;
+            overflow-x: auto;
+        }
+
+        .architecture-diagram pre {
+            color: #00FF88;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #888;
+        }
+
+        .loading .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #333;
+            border-top-color: #00FFFF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .webgpu-error {
+            background: #2e1a1a;
+            border: 1px solid #4a2a2a;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .webgpu-error h2 {
+            color: #ff6666;
+            margin-bottom: 15px;
+        }
+
+        .webgpu-error p {
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .webgpu-error code {
+            background: #1a1a2e;
+            padding: 4px 8px;
+            border-radius: 3px;
+            color: #ffaa00;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Phase 19: Memory Management Unit</h1>
+        <div class="subtitle">Sv32 Virtual Memory, Page Table Walks, and TLB Caching</div>
+    </div>
+
+    <div class="main-container" id="main-container">
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Initializing WebGPU...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { PrivilegedTestEncoder } from './tests/test_privileged.js';
+        import { CoreExecutionVerifier } from './CoreExecutionVerifier.js';
+
+        const CSR_SATP = 0x180;
+        const CSR_MTVEC = 0x305;
+        const CSR_MCAUSE = 0x342;
+        const CSR_MEPC = 0x341;
+
+        let device, queue, verifier;
+
+        async function initGPU() {
+            if (!navigator.gpu) throw new Error('WebGPU not supported');
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) throw new Error('No WebGPU adapter found');
+            device = await adapter.requestDevice();
+            queue = device.queue;
+            verifier = new CoreExecutionVerifier(device);
+        }
+
+        function log(msg, isResult = null) {
+            const output = document.getElementById('output');
+            if (!output) return;
+
+            if (isResult === true) {
+                output.innerHTML += `<span class="result-pass">${msg}</span>\n`;
+            } else if (isResult === false) {
+                output.innerHTML += `<span class="result-fail">${msg}</span>\n`;
+            } else {
+                output.innerHTML += msg + '\n';
+            }
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearLog() {
+            const output = document.getElementById('output');
+            if (output) output.innerHTML = '';
+        }
+
+        function updateStatus(mode, mmuOn) {
+            const modeEl = document.getElementById('mode-status');
+            const mmuEl = document.getElementById('mmu-status');
+
+            if (modeEl) {
+                modeEl.textContent = mode === 3 ? 'M-Mode' : mode === 1 ? 'S-Mode' : 'U-Mode';
+                modeEl.className = 'status-badge ' + (mode === 3 ? 'mode-m' : mode === 1 ? 'mode-s' : 'mode-u');
+            }
+
+            if (mmuEl) {
+                mmuEl.textContent = mmuOn ? 'Sv32' : 'OFF';
+                mmuEl.className = 'status-badge ' + (mmuOn ? 'mmu-sv32' : 'mmu-off');
+            }
+        }
+
+        async function runDemo(name) {
+            clearLog();
+            if (!device) await initGPU();
+
+            log(`Running demo: ${name}`);
+            log('---');
+
+            try {
+                switch (name) {
+                    case 'bare':
+                        await demoBareMode();
+                        break;
+                    case 'identity':
+                        await demoIdentityMap();
+                        break;
+                    case 'pagefault':
+                        await demoPageFault();
+                        break;
+                    case 'sfence':
+                        await demoSFENCE();
+                        break;
+                    case 'mmio':
+                        await demoMMIO();
+                        break;
+                    case 'full':
+                        await demoFull();
+                        break;
+                }
+            } catch (error) {
+                log(`Error: ${error.message}`, false);
+                console.error(error);
+            }
+        }
+
+        async function demoBareMode() {
+            log('Demo: Bare Mode (MMU disabled)');
+            log('Virtual addresses = Physical addresses');
+            log('');
+
+            const e = new PrivilegedTestEncoder();
+            // Don't enable MMU, just access memory directly
+            e.addi(1, 0, 0x42);
+            e.lui(2, 0x00001);  // x2 = 0x1000
+            e.sw(1, 2, 0);      // mem[0x1000] = 0x42
+            e.lw(3, 2, 0);      // x3 = mem[0x1000]
+            e.jal(0, 0);
+
+            const state = await executeDemo(e.finalize());
+            log(`Wrote 0x42 to PA 0x1000`);
+            log(`Read back: x3 = 0x${(state.registers[3] || 0).toString(16)}`);
+            const passed = state.registers[3] === 0x42;
+            log(`Result: ${passed ? 'PASS' : 'FAIL'}`, passed);
+            updateStatus(3, false);
+        }
+
+        async function demoIdentityMap() {
+            log('Demo: Identity Map with MMU enabled');
+            log('VA 0x00000000 -> PA 0x00000000 (identity)');
+            log('');
+
+            const e = new PrivilegedTestEncoder();
+            const rootPA = 0x03000000;
+            const satp = (1 << 31) | (rootPA >> 12);
+
+            e.lui(1, satp >>> 12);
+            e.csrrw(0, 1, CSR_SATP);  // Enable MMU
+            e.addi(2, 0, 0x42);
+            e.lui(3, 0x00001);
+            e.sw(2, 3, 0);  // VA 0x1000
+            e.lw(4, 3, 0);
+            e.jal(0, 0);
+
+            const state = await executeDemo(e.finalize(), { identityMap: true });
+            log(`Enabled Sv32 MMU with page table at 0x${rootPA.toString(16)}`);
+            log(`Wrote 0x42 to VA 0x1000`);
+            log(`Read back: x4 = 0x${(state.registers[4] || 0).toString(16)}`);
+            const passed = state.registers[4] === 0x42;
+            log(`Result: ${passed ? 'PASS' : 'FAIL'}`, passed);
+            updateStatus(3, true);
+        }
+
+        async function demoPageFault() {
+            log('Demo: Page Fault on unmapped address');
+            log('Accessing VA 0x80000000 should fault');
+            log('');
+
+            const e = new PrivilegedTestEncoder();
+            const rootPA = 0x03000000;
+            const satp = (1 << 31) | (rootPA >> 12);
+
+            // Set trap handler
+            e.lui(1, 0x200);
+            e.csrrw(0, 1, CSR_MTVEC);
+
+            // Enable MMU
+            e.lui(1, satp >>> 12);
+            e.csrrw(0, 1, CSR_SATP);
+
+            // Access unmapped address
+            e.lui(2, 0x80000);  // x2 = 0x80000000
+            e.lw(3, 2, 0);      // Should fault!
+            e.addi(4, 0, 0x99); // Should not execute
+
+            // Handler at 0x200
+            while (e.code.length < 0x80) e.code.push(0);
+            e.csrrs(5, 0, CSR_MCAUSE);
+            e.addi(4, 0, 0x42);
+            e.jal(0, 0);
+
+            const state = await executeDemo(e.finalize(), { identityMap: true });
+            log(`Trap handler reached!`);
+            log(`mcause = ${state.registers[5]} (13 = Load Page Fault)`);
+            log(`x4 = ${state.registers[4]} (should be 66 = 0x42)`);
+            const passed = state.registers[5] === 13 && state.registers[4] === 66;
+            log(`Result: ${passed ? 'PASS' : 'FAIL'}`, passed);
+            updateStatus(3, true);
+        }
+
+        async function demoSFENCE() {
+            log('Demo: SFENCE.VMA TLB Flush');
+            log('');
+
+            const e = new PrivilegedTestEncoder();
+            const rootPA = 0x03000000;
+            const satp = (1 << 31) | (rootPA >> 12);
+
+            e.lui(1, satp >>> 12);
+            e.csrrw(0, 1, CSR_SATP);
+
+            e.lui(2, 0x00001);
+            e.addi(3, 0, 0x42);
+            e.sw(3, 2, 0);
+
+            e.sfence_vma();  // Flush TLB
+
+            e.lw(4, 2, 0);  // Should still work
+            e.jal(0, 0);
+
+            const state = await executeDemo(e.finalize(), { identityMap: true });
+            log(`Accessed memory, flushed TLB with SFENCE.VMA`);
+            log(`Re-accessed: x4 = 0x${(state.registers[4] || 0).toString(16)}`);
+            const passed = state.registers[4] === 0x42;
+            log(`Result: ${passed ? 'PASS' : 'FAIL'}`, passed);
+            updateStatus(3, true);
+        }
+
+        async function demoMMIO() {
+            log('Demo: MMIO Access Through MMU');
+            log('Verifies device access works with MMU enabled');
+            log('');
+
+            const e = new PrivilegedTestEncoder();
+            const rootPA = 0x03000000;
+            const satp = (1 << 31) | (rootPA >> 12);
+
+            // Set trap handler (in case of page fault)
+            e.lui(1, 0x200);
+            e.csrrw(0, 1, CSR_MTVEC);
+
+            // Enable MMU with identity map
+            e.lui(1, satp >>> 12);
+            e.csrrw(0, 1, CSR_SATP);
+
+            // Access MMIO region (UART at 0x05000000)
+            e.lui(2, 0x05000);       // x2 = 0x05000000 (UART base)
+            e.addi(3, 0, 0x41);      // x3 = 'A'
+            e.sw(3, 2, 0);           // mem[VA 0x05000000] = 'A'
+
+            // Read from MMIO input region (safe read)
+            e.lui(4, 0x02000);       // x4 = 0x02000000 (MMIO input base)
+            e.lw(5, 4, 0);           // x5 = mem[VA 0x02000000]
+
+            e.addi(6, 0, 0x42);      // x6 = 0x42 (marker - we got here!)
+            e.jal(0, 0);
+
+            // Trap handler at 0x200
+            while (e.code.length < 0x80) e.code.push(0);
+            e.csrrs(7, 0, CSR_MCAUSE);
+            e.addi(6, 0, 0x00);      // x6 = 0 (fault occurred)
+            e.jal(0, 0);
+
+            const state = await executeDemo(e.finalize(), { identityMap: true, memorySize: 128 * 1024 * 1024 });
+            log(`Accessed UART at VA 0x05000000 through MMU`);
+            log(`Accessed MMIO input at VA 0x02000000 through MMU`);
+            log(`x6 = 0x${(state.registers[6] || 0).toString(16)} (0x42 = success, 0x00 = fault)`);
+            const passed = state.registers[6] === 0x42;
+            log(`Result: ${passed ? 'PASS' : 'FAIL'}`, passed);
+            updateStatus(3, true);
+        }
+
+        async function demoFull() {
+            log('Running all MMU demos...\n');
+            await demoBareMode();
+            log('\n---\n');
+            await demoIdentityMap();
+            log('\n---\n');
+            await demoPageFault();
+            log('\n---\n');
+            await demoSFENCE();
+            log('\n---\n');
+            await demoMMIO();
+            log('\n---\nAll demos complete!');
+        }
+
+        async function executeDemo(code, options = {}) {
+            const { identityMap = false, memorySize = 4 * 1024 * 1024 } = options;
+            const actualSize = Math.max(memorySize, 0x04000000);
+            const { codeBuffer, memoryBuffer, stateBuffer } = verifier.createTestBuffers(code, actualSize);
+
+            try {
+                if (identityMap) {
+                    const rootPA = 0x03000000;
+                    // Create MegaPage entries for identity mapping
+                    // Each MegaPage covers 4MB, we create entries for first 4 regions (16MB)
+                    const pteData = new Uint32Array(4);
+                    for (let i = 0; i < 4; i++) {
+                        // PTE format: V(1) | R(1) | W(1) | X(1) | U(0) | G(0) | A(1) | D(1) | RSW(0) | PPN[1:0](22)
+                        // MegaPage at VPN[1]=i maps to PA = i * 4MB
+                        // PPN = (i * 0x400) | permissions 0x0F (V+R+W+X)
+                        pteData[i] = (i << 10) | 0x0F;
+                    }
+                    device.queue.writeBuffer(memoryBuffer, rootPA, pteData);
+                }
+
+                const shaderModule = device.createShaderModule({
+                    label: 'mmu-demo',
+                    code: await fetch('./shaders/visual_cpu_riscv.wgsl').then(r => r.text())
+                });
+
+                const bindGroupLayout = device.createBindGroupLayout({
+                    entries: [
+                        { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'read-only-storage' } },
+                        { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'storage' } },
+                        { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'storage' } }
+                    ]
+                });
+
+                const pipeline = device.createComputePipeline({
+                    layout: device.createPipelineLayout({ bindGroupLayouts: [bindGroupLayout] }),
+                    compute: { module: shaderModule, entryPoint: 'main' }
+                });
+
+                const bindGroup = device.createBindGroup({
+                    layout: bindGroupLayout,
+                    entries: [
+                        { binding: 0, resource: { buffer: codeBuffer } },
+                        { binding: 1, resource: { buffer: memoryBuffer } },
+                        { binding: 2, resource: { buffer: stateBuffer } }
+                    ]
+                });
+
+                const encoder = device.createCommandEncoder();
+                const pass = encoder.beginComputePass();
+                pass.setPipeline(pipeline);
+                pass.setBindGroup(0, bindGroup);
+                pass.dispatchWorkgroups(1);
+                pass.end();
+                queue.submit([encoder.finish()]);
+
+                return await verifier.readState(stateBuffer);
+            } finally {
+                codeBuffer.destroy();
+                memoryBuffer.destroy();
+                stateBuffer.destroy();
+            }
+        }
+
+        function renderUI() {
+            document.getElementById('main-container').innerHTML = `
+                <div class="panel-container">
+                    <div class="demo-buttons">
+                        <h2>MMU Demos</h2>
+                        <button class="demo-btn" id="demo-bare">
+                            <span class="demo-num">1.</span> <span class="demo-name">Bare Mode (MMU Off)</span>
+                            <span class="demo-desc">Virtual = Physical addresses</span>
+                        </button>
+                        <button class="demo-btn" id="demo-identity">
+                            <span class="demo-num">2.</span> <span class="demo-name">Identity Map</span>
+                            <span class="demo-desc">MMU enabled, VA=PA mapping</span>
+                        </button>
+                        <button class="demo-btn" id="demo-pagefault">
+                            <span class="demo-num">3.</span> <span class="demo-name">Page Fault</span>
+                            <span class="demo-desc">Access unmapped address triggers trap</span>
+                        </button>
+                        <button class="demo-btn" id="demo-sfence">
+                            <span class="demo-num">4.</span> <span class="demo-name">SFENCE.VMA</span>
+                            <span class="demo-desc">TLB flush instruction</span>
+                        </button>
+                        <button class="demo-btn" id="demo-mmio">
+                            <span class="demo-num">5.</span> <span class="demo-name">MMIO Through MMU</span>
+                            <span class="demo-desc">Device access with MMU enabled</span>
+                        </button>
+                        <button class="demo-btn" id="demo-full">
+                            <span class="demo-num">6.</span> <span class="demo-name">Full MMU Test</span>
+                            <span class="demo-desc">Run all demos sequentially</span>
+                        </button>
+                    </div>
+
+                    <div class="status-panel">
+                        <h3>Status</h3>
+                        <div class="status-row">
+                            <span class="status-label">Mode:</span>
+                            <span id="mode-status" class="status-badge mode-m">M-Mode</span>
+                        </div>
+                        <div class="status-row">
+                            <span class="status-label">MMU:</span>
+                            <span id="mmu-status" class="status-badge mmu-off">OFF</span>
+                        </div>
+                    </div>
+
+                    <div class="output-panel">
+                        <h3>Console Output</h3>
+                        <div id="output"></div>
+                    </div>
+                </div>
+
+                <div class="info-panel">
+                    <h2>About Phase 19</h2>
+                    <p>
+                        Phase 19 implements the Memory Management Unit (MMU) for Sv32 virtual memory
+                        support. This enables address translation, memory protection, and efficient
+                        memory allocation for operating systems.
+                    </p>
+
+                    <h3>Sv32 Address Translation</h3>
+                    <ul>
+                        <li><code>VPN[1]</code> - Virtual Page Number level 1 (10 bits)</li>
+                        <li><code>VPN[0]</code> - Virtual Page Number level 0 (10 bits)</li>
+                        <li><code>page offset</code> - 12 bits (4KB pages)</li>
+                    </ul>
+
+                    <h3>Key Features</h3>
+                    <ul>
+                        <li><code>satp</code> CSR controls MMU mode (bare/Sv32)</li>
+                        <li><code>sfence.vma</code> instruction flushes TLB</li>
+                        <li>16-entry direct-mapped TLB cache</li>
+                        <li>Page fault exceptions for invalid access</li>
+                    </ul>
+
+                    <h3>Page Table Entry Format</h3>
+                    <p>
+                        Each PTE contains permission bits (V, R, W, X) and a physical page number.
+                        MegaPages (4MB) use single-level translation for efficiency.
+                    </p>
+
+                    <div class="architecture-diagram">
+<pre>
++----------------+     +----------------+     +----------------+
+| Virtual        | --> | Page Table     | --> | Physical       |
+| Address        |     | Walk (TLB)     |     | Address        |
+| 0x1000         |     | VPN -> PPN     |     | 0x1000         |
++----------------+     +----------------+     +----------------+
+        |                      |
+        v                      v
++----------------+     +----------------+
+| satp CSR       |     | TLB Cache      |
+| Mode | PPN     |     | 16 entries     |
++----------------+     +----------------+
+</pre>
+                    </div>
+
+                    <h3>Success Criteria</h3>
+                    <ul>
+                        <li>All 6 demos show PASS</li>
+                        <li>MMU status badge changes color</li>
+                        <li>Page fault correctly traps to handler</li>
+                        <li>MMIO access works through MMU</li>
+                    </ul>
+                </div>
+            `;
+
+            // Add event listeners
+            document.getElementById('demo-bare').addEventListener('click', () => runDemo('bare'));
+            document.getElementById('demo-identity').addEventListener('click', () => runDemo('identity'));
+            document.getElementById('demo-pagefault').addEventListener('click', () => runDemo('pagefault'));
+            document.getElementById('demo-sfence').addEventListener('click', () => runDemo('sfence'));
+            document.getElementById('demo-mmio').addEventListener('click', () => runDemo('mmio'));
+            document.getElementById('demo-full').addEventListener('click', () => runDemo('full'));
+        }
+
+        function showWebGPUError(error) {
+            document.getElementById('main-container').innerHTML = `
+                <div class="webgpu-error" style="grid-column: 1 / -1;">
+                    <h2>WebGPU Not Available</h2>
+                    <p>${error.message || 'WebGPU is not supported in this browser'}</p>
+                    <p>Requirements:</p>
+                    <p><code>Chrome 113+</code> or <code>Edge 113+</code> with WebGPU enabled</p>
+                    <p style="margin-top: 20px;">If you're using a supported browser, try:</p>
+                    <ul style="text-align: left; max-width: 400px; margin: 10px auto; color: #888;">
+                        <li>Enable chrome://flags/#enable-unsafe-webgpu</li>
+                        <li>Update your GPU drivers</li>
+                        <li>Restart your browser</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        async function init() {
+            try {
+                await initGPU();
+                renderUI();
+            } catch (error) {
+                console.error('WebGPU initialization failed:', error);
+                showWebGPUError(error);
+            }
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
