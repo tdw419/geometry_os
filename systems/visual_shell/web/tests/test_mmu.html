@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Geometry OS - MMU Test Suite</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #00ff88;
+            border-bottom: 2px solid #00ff88;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #00cc6a;
+            margin-top: 0;
+        }
+        .pass {
+            color: #00ff88;
+            font-weight: bold;
+        }
+        .fail {
+            color: #ff4444;
+            font-weight: bold;
+        }
+        .category {
+            margin: 20px 0;
+            padding: 15px;
+            background: #16213e;
+            border-radius: 8px;
+            border-left: 4px solid #0f3460;
+        }
+        .category.basic { border-left-color: #00ff88; }
+        .category.faults { border-left-color: #ff6b6b; }
+        .category.tlb { border-left-color: #4ecdc4; }
+        .category.mmio { border-left-color: #ffd93d; }
+        .test {
+            padding: 8px 0;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .test:last-child {
+            border-bottom: none;
+        }
+        .test-name {
+            flex: 1;
+        }
+        .test-result {
+            text-align: right;
+            min-width: 300px;
+        }
+        .test-details {
+            font-size: 0.85em;
+            color: #888;
+            margin-top: 4px;
+        }
+        #summary {
+            font-size: 1.3em;
+            padding: 15px;
+            background: #0f3460;
+            margin-top: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        #summary.all-passed {
+            background: #0a4a2a;
+            border: 2px solid #00ff88;
+        }
+        #summary.has-failures {
+            background: #4a1a1a;
+            border: 2px solid #ff4444;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 1.1em;
+            cursor: pointer;
+            background: #00ff88;
+            color: #1a1a2e;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #00cc6a;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .description {
+            color: #888;
+            margin-bottom: 20px;
+        }
+        .roadmap-note {
+            background: #0f3460;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+        .roadmap-note strong {
+            color: #ffd93d;
+        }
+        #loading {
+            display: none;
+            color: #888;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Phase 19: MMU Test Suite</h1>
+
+    <p class="description">
+        Tests for Sv32 virtual memory, page table walks, TLB caching, and page faults.
+        Validates the Memory Management Unit implementation for RISC-V privileged mode.
+    </p>
+
+    <div class="roadmap-note">
+        <strong>ROADMAP Criterion 4:</strong> User can access memory-mapped I/O at device address ranges when MMU is enabled.
+    </div>
+
+    <button id="runTests">Run Tests</button>
+    <span id="loading">Initializing GPU...</span>
+
+    <div id="results"></div>
+    <div id="summary"></div>
+
+    <script type="module">
+        import { runAllMMUTests } from './test_mmu.js';
+        import { CoreExecutionVerifier } from '../CoreExecutionVerifier.js';
+
+        let device, queue, verifier;
+
+        async function initGPU() {
+            if (!navigator.gpu) {
+                throw new Error('WebGPU not supported. Please use a browser with WebGPU support (Chrome 113+, Edge 113+, or Firefox Nightly with flags).');
+            }
+            const adapter = await navigator.gpu.requestAdapter();
+            if (!adapter) {
+                throw new Error('No GPU adapter found. Please ensure your GPU is available.');
+            }
+            device = await adapter.requestDevice();
+            queue = device.queue;
+            verifier = new CoreExecutionVerifier(device);
+        }
+
+        function renderResults(results) {
+            const container = document.getElementById('results');
+            container.innerHTML = '';
+
+            const categoryNames = {
+                basic: 'Basic Translation',
+                faults: 'Page Faults',
+                tlb: 'TLB Functionality',
+                mmio: 'MMIO Through MMU'
+            };
+
+            for (const [category, tests] of Object.entries(results.categories)) {
+                if (tests.length === 0) continue;
+
+                const catDiv = document.createElement('div');
+                catDiv.className = `category ${category}`;
+                catDiv.innerHTML = `<h2>${categoryNames[category] || category.toUpperCase()}</h2>`;
+
+                for (const test of tests) {
+                    const testDiv = document.createElement('div');
+                    testDiv.className = 'test';
+
+                    const statusClass = test.pass ? 'pass' : 'fail';
+                    const statusText = test.pass ? 'PASS' : 'FAIL';
+
+                    testDiv.innerHTML = `
+                        <div class="test-name">
+                            <span class="${statusClass}">[${statusText}]</span> ${test.name}
+                        </div>
+                        <div class="test-result">
+                            <div>${test.actual}</div>
+                            <div class="test-details">Expected: ${test.expected}</div>
+                        </div>
+                    `;
+
+                    catDiv.appendChild(testDiv);
+                }
+
+                container.appendChild(catDiv);
+            }
+
+            // Show errors if any
+            if (results.errors && results.errors.length > 0) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'category';
+                errorDiv.style.borderLeftColor = '#ff4444';
+                errorDiv.innerHTML = '<h2>Errors</h2>';
+                for (const err of results.errors) {
+                    const errDiv = document.createElement('div');
+                    errDiv.className = 'test';
+                    errDiv.innerHTML = `<span class="fail">ERROR:</span> ${err}`;
+                    errorDiv.appendChild(errDiv);
+                }
+                container.appendChild(errorDiv);
+            }
+
+            // Update summary
+            const summary = document.getElementById('summary');
+            summary.textContent = `${results.passedTests}/${results.totalTests} tests passed`;
+
+            if (results.allPassed) {
+                summary.className = 'all-passed';
+                summary.textContent += ' - All tests passed!';
+            } else {
+                summary.className = 'has-failures';
+                summary.textContent += ` - ${results.totalTests - results.passedTests} failures`;
+            }
+        }
+
+        document.getElementById('runTests').addEventListener('click', async () => {
+            const btn = document.getElementById('runTests');
+            const loading = document.getElementById('loading');
+            const resultsDiv = document.getElementById('results');
+            const summaryDiv = document.getElementById('summary');
+
+            btn.disabled = true;
+            btn.textContent = 'Running...';
+            loading.style.display = 'inline';
+            resultsDiv.innerHTML = '';
+            summaryDiv.innerHTML = '';
+            summaryDiv.className = '';
+
+            try {
+                await initGPU();
+                loading.textContent = 'Running MMU tests...';
+
+                const results = await runAllMMUTests(verifier, device, queue);
+                renderResults(results);
+            } catch (e) {
+                resultsDiv.innerHTML = `
+                    <div class="category has-failures" style="border-left-color: #ff4444;">
+                        <h2>Error</h2>
+                        <div class="test">
+                            <span class="fail">Failed to run tests:</span> ${e.message}
+                        </div>
+                        <div class="test-details" style="margin-top: 10px;">
+                            <pre>${e.stack || ''}</pre>
+                        </div>
+                    </div>
+                `;
+                summaryDiv.className = 'has-failures';
+                summaryDiv.textContent = 'Test execution failed';
+                console.error('MMU test error:', e);
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Run Tests';
+            loading.style.display = 'none';
+            loading.textContent = 'Initializing GPU...';
+        });
+    </script>
+</body>
+</html>
