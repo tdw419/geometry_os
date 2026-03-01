@@ -443,6 +443,19 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                     }
                 }
             }
+            case 0x17u: { // AUIPC (Add Upper Immediate to PC)
+                let imm = inst & 0xFFFFF000u;  // Upper 20 bits, shifted left 12
+                if (rd != 0u) {
+                    // PC is instruction index, byte address is pc * 4
+                    cpu_states[base_idx + rd] = u32(i32(pc * 4u) + i32(imm));
+                }
+            }
+            case 0x37u: { // LUI (Load Upper Immediate)
+                let imm = inst & 0xFFFFF000u;  // Upper 20 bits, shifted left 12
+                if (rd != 0u) {
+                    cpu_states[base_idx + rd] = imm;
+                }
+            }
             case 0x6Fu: { // JAL
                 let imm = ( (inst >> 31u) << 20u ) | ( ((inst >> 12u) & 0xFFu) << 12u ) | ( ((inst >> 20u) & 1u) << 11u ) | ( ((inst >> 21u) & 0x3FFu) << 1u );
                 let offset = (i32(imm) << 11u) >> 11u; 
@@ -551,13 +564,17 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                     }
                 }
             }
-            case 0x73u: { 
+            case 0x73u: { // SYSTEM (ECALL, EBREAK, SRET, CSRRW)
                 let funct3_sys = (inst >> 12u) & 0x7u;
                 let funct7_sys = (inst >> 25u) & 0x7Fu;
-                if (funct7_sys == 0x30u) { pc = trap_ret(base_idx); pc_changed = true; }
-                else if (funct3_sys == 0u) {
-                    let eid = cpu_states[base_idx + 17u]; 
-                    let fid = cpu_states[base_idx + 16u]; 
+                let funct12_sys = (inst >> 20u) & 0xFFFu;  // For ECALL/EBREAK distinction
+
+                if (funct7_sys == 0x30u) { // SRET
+                    pc = trap_ret(base_idx);
+                    pc_changed = true;
+                } else if (funct3_sys == 0u && funct12_sys == 0x000u) { // ECALL
+                    let eid = cpu_states[base_idx + 17u];
+                    let fid = cpu_states[base_idx + 16u];
                     system_memory[SBI_BRIDGE_EID / 4u] = eid;
                     system_memory[SBI_BRIDGE_FID / 4u] = fid;
                     system_memory[(SBI_BRIDGE_ARGS + 0u) / 4u] = cpu_states[base_idx + 10u];
@@ -570,7 +587,10 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                     let priv = cpu_states[base_idx + CSR_MODE];
                     pc = trap_enter(base_idx, select(CAUSE_ECALL_S, CAUSE_ECALL_U, priv == 0u), eid, pc);
                     trap_triggered = true;
-                } else if (funct3_sys == 1u) { 
+                } else if (funct3_sys == 0u && funct12_sys == 0x001u) { // EBREAK
+                    pc = trap_enter(base_idx, CAUSE_BREAKPOINT, pc * 4u, pc);
+                    trap_triggered = true;
+                } else if (funct3_sys == 1u) { // CSRRW
                     let csr_idx = _get_csr_index(inst >> 20u);
                     if (csr_idx < 255u) {
                         let old = cpu_states[base_idx + csr_idx];
