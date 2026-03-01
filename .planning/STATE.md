@@ -10,17 +10,17 @@ See: .planning/PROJECT.md (updated 2026-02-28)
 ## Current Position
 
 Phase: 17 of 22 (Core Execution Foundation)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-02-28 - v1.4 GPU Linux Execution roadmap created
+Plan: 1 of TBD in current phase
+Status: In progress
+Last activity: 2026-02-28 - Completed 17-01-PLAN.md
 
-Progress: [0/6 phases complete]
+Progress: [1/6 phases complete: █░░░░░]
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 80 (v1.0: 23, v1.1: 8, v1.2: 14, v1.3: 20, other: 15)
-- v1.4 plans completed: 0 (new milestone)
+- Total plans completed: 81 (v1.0: 23, v1.1: 8, v1.2: 14, v1.3: 20, v1.4: 1, other: 15)
+- v1.4 plans completed: 1
 
 **By Milestone:**
 
@@ -30,7 +30,7 @@ Progress: [0/6 phases complete]
 | v1.1 | 5-6 | 8 | Complete |
 | v1.2 | 7-11 | 14 | Complete |
 | v1.3 | 12-16 | 20 | Complete |
-| v1.4 | 17-22 | TBD | Planning |
+| v1.4 | 17-22 | 1+ | In Progress |
 
 ## Accumulated Context
 
@@ -45,6 +45,7 @@ Progress: [0/6 phases complete]
 - RV32I base instruction set target (not RV64)
 - 64MB+ GPU storage buffer for kernel memory
 - Phase ordering: Core -> Privileged -> MMU -> Devices -> Boot -> UI
+- Staging buffer pattern for GPU readback (await mapAsync, destroy buffer)
 
 ### Blockers
 - None currently
@@ -56,8 +57,8 @@ Progress: [0/6 phases complete]
 
 ## Session Continuity
 
-Last session: 2026-02-28
-Status: v1.4 roadmap created, ready for Phase 17 planning
+Last session: 2026-02-28 20:14
+Status: Phase 17-01 complete, verification harness ready
 Resume file: None
 
-**Next Action:** Run `/gsd:plan-phase 17` to create Phase 17 execution plan
+**Next Action:** Run `/gsd:execute-phase 17-02` for instruction verification tests
