@@ -258,6 +258,31 @@ fn trap_ret(base_idx: u32) -> u32 {
     return epc;
 }
 
+// Check if trap should be delegated to S-mode based on medeleg/mideleg
+// Returns true if delegation should occur
+fn should_delegate_to_smode(base_idx: u32, cause: u32) -> bool {
+    // Only delegate if currently in S-mode or U-mode
+    let current_mode = cpu_states[base_idx + CSR_MODE];
+    if (current_mode == 3u) {
+        // Already in M-mode, don't delegate downward
+        return false;
+    }
+
+    // Check if cause is an interrupt (bit 31 set)
+    let is_interrupt = (cause & 0x80000000u) != 0u;
+
+    if (is_interrupt) {
+        // Check mideleg for interrupt delegation
+        let mideleg = cpu_states[base_idx + CSR_MIDELEG];
+        let cause_bit = cause & 0x1Fu;  // Lower 5 bits for interrupt type
+        return (mideleg & (1u << cause_bit)) != 0u;
+    } else {
+        // Check medeleg for exception delegation
+        let medeleg = cpu_states[base_idx + CSR_MEDELEG];
+        return (medeleg & (1u << cause)) != 0u;
+    }
+}
+
 // Return from M-mode trap (MRET instruction)
 fn trap_ret_mmode(base_idx: u32) -> u32 {
     // Get MEPC (return address)
