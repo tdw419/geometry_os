@@ -146,10 +146,13 @@ Plans:
   2. User can see page table walks succeed for valid mappings
   3. User can see page faults trigger when accessing unmapped memory
   4. User can access memory-mapped I/O at device address ranges
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 19-01: [To be planned]
+- [ ] 19-01-PLAN.md — TLB caching for Sv32 address translation
+- [ ] 19-02-PLAN.md — SFENCE.VMA instruction and satp flush
+- [ ] 19-03-PLAN.md — MMU test suite (TDD)
+- [ ] 19-04-PLAN.md — Visual shell integration (MMU status, demo page)
 
 ### Phase 20: Device Emulation
 **Goal**: Users can see Linux kernel output on the JavaScript console
@@ -203,8 +206,8 @@ Phases execute in numeric order: 17 → 18 → 19 → 20 → 21 → 22
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 17. Core Execution Foundation | v1.4 | 4/4 | Complete | 2026-02-28 |
-| 18. Privileged Architecture | v1.4 | 0/5 | Planning | - |
-| 19. Memory Management Unit | v1.4 | 0/TBD | Not started | - |
+| 18. Privileged Architecture | v1.4 | 5/5 | Complete | 2026-03-01 |
+| 19. Memory Management Unit | v1.4 | 0/4 | Planning | - |
 | 20. Device Emulation | v1.4 | 0/TBD | Not started | - |
 | 21. Boot Integration | v1.4 | 0/TBD | Not started | - |
 | 22. Visual Shell Integration | v1.4 | 0/TBD | Not started | - |
@@ -229,5 +232,5 @@ Phases execute in numeric order: 17 → 18 → 19 → 20 → 21 → 22
 
 ---
 
-*Roadmap updated: 2026-02-28*
-*Phase 18 planning complete - 5 plans in 5 waves*
+*Roadmap updated: 2026-03-01*
+*Phase 19 planning complete - 4 plans in 4 waves*
