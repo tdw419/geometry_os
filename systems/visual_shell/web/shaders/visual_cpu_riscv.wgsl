@@ -370,6 +370,52 @@ fn phys_to_morton(paddr: u32) -> u32 {
     return x | (y << 1u);
 }
 
+// --- TLB HELPER FUNCTIONS ---
+
+// TLB Lookup: Returns translated physical address or 0xFFFFFFFF on miss
+fn tlb_lookup(vaddr: u32, access_type: u32) -> u32 {
+    let vpn = vaddr >> 12u;
+    let idx = vpn % TLB_ENTRIES;
+    let offset = vaddr & 0xFFFu;
+
+    // Check for TLB hit
+    if (tlb_tags[idx] == vpn && (tlb_flags[idx] & 1u) != 0u) {
+        // Validate permissions
+        let perms = (tlb_flags[idx] >> 1u) & 0x7u;
+        let pte_r = perms & 1u;
+        let pte_w = (perms >> 1u) & 1u;
+        let pte_x = (perms >> 2u) & 1u;
+
+        if (access_type == ACCESS_READ && pte_r == 0u) { return 0xFFFFFFFFu; }
+        if (access_type == ACCESS_WRITE && pte_w == 0u) { return 0xFFFFFFFFu; }
+        if (access_type == ACCESS_EXEC && pte_x == 0u) { return 0xFFFFFFFFu; }
+
+        // TLB hit - return translated address
+        return (tlb_paddrs[idx] << 12u) | offset;
+    }
+    return 0xFFFFFFFFu;  // TLB miss
+}
+
+// TLB Fill: Cache a successful translation
+fn tlb_fill(vaddr: u32, paddr: u32, pte: u32) {
+    let vpn = vaddr >> 12u;
+    let idx = vpn % TLB_ENTRIES;
+
+    tlb_tags[idx] = vpn;
+    tlb_paddrs[idx] = paddr >> 12u;
+
+    // Extract and store permissions (XWR bits 3:1)
+    let perms = (pte >> 1u) & 0x7u;
+    tlb_flags[idx] = (perms << 1u) | 1u;  // Set valid bit
+}
+
+// TLB Flush: Clear all entries
+fn tlb_flush() {
+    for (var i = 0u; i < TLB_ENTRIES; i = i + 1u) {
+        tlb_flags[i] = 0u;  // Clear valid bit
+    }
+}
+
 // --- MMU: Sv32 PAGE TABLE WALKER ---
 fn translate_address(vaddr: u32, access_type: u32, base_idx: u32) -> u32 {
     let satp = cpu_states[base_idx + CSR_SATP];
