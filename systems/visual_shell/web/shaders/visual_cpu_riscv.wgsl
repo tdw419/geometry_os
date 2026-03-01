@@ -479,6 +479,15 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         let halted = cpu_states[base_idx + CSR_HALT];
         if (halted > 0u) { break; }
 
+        // Initialize M-mode state if this is first execution (CSR_MODE unset)
+        let current_mode = cpu_states[base_idx + CSR_MODE];
+        if (current_mode == 0u && cpu_states[base_idx + CSR_MTVEC] == 0u) {
+            // First boot - initialize M-mode CSRs
+            cpu_states[base_idx + CSR_MODE] = 3u;  // Start in M-mode
+            cpu_states[base_idx + CSR_MSTATUS] = MSTATUS_MPIE;  // MPIE=1 for first MRET
+            // MTVEC should be set by firmware/bootloader via CSR write
+        }
+
         let sbi_flag = system_memory[SBI_BRIDGE_FLAG / 4u];
         if (sbi_flag != 0u) { break; }
 
