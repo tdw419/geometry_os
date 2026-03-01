@@ -217,6 +217,38 @@ fn trap_ret(base_idx: u32) -> u32 {
     return epc;
 }
 
+// Return from M-mode trap (MRET instruction)
+fn trap_ret_mmode(base_idx: u32) -> u32 {
+    // Get MEPC (return address)
+    let epc = cpu_states[base_idx + CSR_MEPC];
+
+    // Get mstatus and extract fields
+    let mstatus = cpu_states[base_idx + CSR_MSTATUS];
+    let mpie = (mstatus >> 7u) & 1u;   // MPIE at bit 7
+    let mpp = (mstatus >> 11u) & 3u;   // MPP at bits 12:11
+
+    // Restore MIE from MPIE
+    var new_mstatus = mstatus;
+    if (mpie == 1u) {
+        new_mstatus = new_mstatus | MSTATUS_MIE;
+    } else {
+        new_mstatus = new_mstatus & ~MSTATUS_MIE;
+    }
+
+    // Set MPIE to 1
+    new_mstatus = new_mstatus | MSTATUS_MPIE;
+
+    // Clear MPP to 0 (U-mode) after reading it
+    new_mstatus = new_mstatus & ~MSTATUS_MPP_MASK;
+
+    cpu_states[base_idx + CSR_MSTATUS] = new_mstatus;
+
+    // Restore privilege mode from MPP
+    cpu_states[base_idx + CSR_MODE] = mpp;
+
+    return epc;
+}
+
 // --- INTERRUPT CHECKING ---
 fn check_timer_interrupt(base_idx: u32) -> bool {
     let sstatus = cpu_states[base_idx + CSR_SSTATUS];
@@ -597,7 +629,11 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                 let funct7_sys = (inst >> 25u) & 0x7Fu;
                 let funct12_sys = (inst >> 20u) & 0xFFFu;  // For ECALL/EBREAK distinction
 
-                if (funct7_sys == 0x30u) { // SRET
+                // MRET: funct7=0x18, funct3=0, funct12=0x302
+                if (funct7_sys == 0x18u && funct3_sys == 0u && funct12_sys == 0x302u) {
+                    pc = trap_ret_mmode(base_idx);
+                    pc_changed = true;
+                } else if (funct7_sys == 0x30u) { // SRET
                     pc = trap_ret(base_idx);
                     pc_changed = true;
                 } else if (funct3_sys == 0u && funct12_sys == 0x000u) { // ECALL
