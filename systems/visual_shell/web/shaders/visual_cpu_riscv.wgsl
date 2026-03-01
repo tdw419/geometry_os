@@ -197,6 +197,47 @@ fn trap_enter(base_idx: u32, cause: u32, tval: u32, pc: u32) -> u32 {
     return stvec;
 }
 
+// Enter M-mode trap handler
+// Saves PC to MEPC, sets MCAUSE/MTVAL, updates MSTATUS, jumps to MTVEC
+fn trap_enter_mmode(base_idx: u32, cause: u32, tval: u32, pc: u32) -> u32 {
+    // 1. Save exception PC to MEPC
+    cpu_states[base_idx + CSR_MEPC] = pc;
+
+    // 2. Set exception cause
+    cpu_states[base_idx + CSR_MCAUSE] = cause;
+
+    // 3. Set trap value (faulting address)
+    cpu_states[base_idx + CSR_MTVAL] = tval;
+
+    // 4. Update MSTATUS
+    let current_mode = cpu_states[base_idx + CSR_MODE];
+    let current_mstatus = cpu_states[base_idx + CSR_MSTATUS];
+
+    var new_mstatus = current_mstatus;
+
+    // Copy MIE to MPIE
+    if ((current_mstatus & MSTATUS_MIE) != 0u) {
+        new_mstatus = new_mstatus | MSTATUS_MPIE;
+    } else {
+        new_mstatus = new_mstatus & ~MSTATUS_MPIE;
+    }
+
+    // Clear MIE (disable interrupts)
+    new_mstatus = new_mstatus & ~MSTATUS_MIE;
+
+    // Save current mode to MPP (bits 12:11)
+    new_mstatus = new_mstatus & ~MSTATUS_MPP_MASK;
+    new_mstatus = new_mstatus | (current_mode << 11u);
+
+    cpu_states[base_idx + CSR_MSTATUS] = new_mstatus;
+
+    // 5. Set MODE to M-mode (3)
+    cpu_states[base_idx + CSR_MODE] = 3u;
+
+    // 6. Return MTVEC as new PC
+    return cpu_states[base_idx + CSR_MTVEC];
+}
+
 // Return from trap (SRET instruction)
 fn trap_ret(base_idx: u32) -> u32 {
     let epc = cpu_states[base_idx + CSR_SEPC];
