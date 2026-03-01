@@ -5,7 +5,10 @@
  * Allows users to load programs, execute them, and inspect results.
  *
  * Phase 17-04: User-facing interface for GPU execution verification.
+ * Phase 18-05: SBI console output and privilege mode indicator.
  */
+
+import { SbiBridge } from './SbiBridge.js';
 
 export class RiscvExecutionPanel {
     /**
@@ -27,6 +30,10 @@ export class RiscvExecutionPanel {
         this.bindGroup = null;         // GPU bind group
         this.verifier = null;          // CoreExecutionVerifier instance
         this.currentState = null;      // Last read state
+        this.sbiBridge = null;         // SBI bridge for GPU-JS communication
+
+        // CSR indices (matching shader)
+        this.CSR_MODE = 37;            // Privilege mode (0=U, 1=S, 3=M)
 
         // ABI names for registers
         this.registerNames = [
@@ -95,6 +102,10 @@ export class RiscvExecutionPanel {
                             <span class="label">Status:</span>
                             <span id="riscv-status-value" class="value">Idle</span>
                         </div>
+                        <div class="status-item privilege-indicator">
+                            <span class="label">Mode:</span>
+                            <span id="priv-mode" class="mode-badge mode-m">M</span>
+                        </div>
                     </div>
                 </div>
 
@@ -116,6 +127,13 @@ export class RiscvExecutionPanel {
                     </div>
                     <div id="riscv-memory-display" class="memory-display">
                         <span class="placeholder">Memory will appear here after execution</span>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h2>SBI Console</h2>
+                    <div id="sbi-output" class="console-output">
+                        <span class="placeholder">Console output from SBI calls will appear here</span>
                     </div>
                 </div>
 
@@ -351,6 +369,54 @@ export class RiscvExecutionPanel {
             .log-entry.success { color: #00ff00; }
             .log-entry.error { color: #ff6666; }
             .log-entry.warning { color: #ffaa00; }
+
+            /* Privilege mode badge styles */
+            .privilege-indicator {
+                display: flex;
+                align-items: center;
+            }
+
+            .mode-badge {
+                display: inline-block;
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-weight: bold;
+                font-size: 11px;
+                min-width: 24px;
+                text-align: center;
+            }
+
+            .mode-m {
+                background: #ff6600;
+                color: white;
+            }
+
+            .mode-s {
+                background: #0066ff;
+                color: white;
+            }
+
+            .mode-u {
+                background: #666;
+                color: white;
+            }
+
+            /* SBI Console output styles */
+            .console-output {
+                background: #0a0a0a;
+                border: 1px solid #333;
+                padding: 8px;
+                font-family: 'Courier New', monospace;
+                font-size: 12px;
+                height: 150px;
+                overflow-y: auto;
+                white-space: pre-wrap;
+                color: #00FF88;
+            }
+
+            .console-output .placeholder {
+                color: #666;
+            }
         `;
         document.head.appendChild(style);
     }
@@ -469,6 +535,9 @@ export class RiscvExecutionPanel {
         this.memoryBuffer = buffers.memoryBuffer;
         this.stateBuffer = buffers.stateBuffer;
 
+        // Initialize SBI bridge with memory buffer
+        this.sbiBridge = new SbiBridge(this.device, this.memoryBuffer);
+
         this.log('GPU buffers created', 'info');
     }
 
@@ -497,12 +566,16 @@ export class RiscvExecutionPanel {
             // Wait for GPU to complete
             await this.device.queue.onSubmittedWorkDone();
 
+            // Poll for SBI calls (console output, etc.)
+            await this.pollSBICalls();
+
             // Read back state
             this.currentState = await this.verifier.readState(this.stateBuffer);
 
             // Update display
             this.updateRegisterDisplay();
             this.updateStatusDisplay();
+            this.updatePrivilegeMode();
 
             this.log('Execution complete', 'success');
 
@@ -617,6 +690,89 @@ export class RiscvExecutionPanel {
     }
 
     /**
+     * Poll for SBI calls and handle console output
+     */
+    async pollSBICalls() {
+        if (!this.sbiBridge) return;
+
+        try {
+            const hasPending = await this.sbiBridge.poll();
+            if (hasPending) {
+                const callInfo = await this.sbiBridge.handleCall();
+                this.handleSBIOutput(callInfo);
+            }
+        } catch (error) {
+            this.log(`SBI poll error: ${error.message}`, 'warning');
+        }
+    }
+
+    /**
+     * Handle SBI output and display in console
+     * @param {Object} callInfo - SBI call information from handleCall
+     */
+    handleSBIOutput(callInfo) {
+        const outputDiv = document.getElementById('sbi-output');
+
+        // Clear placeholder on first output
+        if (outputDiv.querySelector('.placeholder')) {
+            outputDiv.innerHTML = '';
+        }
+
+        const { eid, fid, args, result } = callInfo;
+
+        // Handle console output (EID 0x01)
+        if (eid === 0x01) {  // SBI_EID_CONSOLE
+            if (fid === 0x00) {  // putchar
+                const ch = args[0] & 0xFF;
+                const charStr = String.fromCharCode(ch);
+                outputDiv.textContent += charStr;
+                outputDiv.scrollTop = outputDiv.scrollHeight;
+                this.log(`SBI putchar: '${charStr}' (0x${ch.toString(16).padStart(2, '0')})`, 'info');
+            }
+        } else if (eid === 0x08) {  // SBI_EID_SRST - System Reset
+            const resetType = args[0];
+            const resetReason = args[1];
+            outputDiv.textContent += `\n[System Reset: type=${resetType}, reason=${resetReason}]`;
+            this.log(`SBI system reset: type=${resetType}, reason=${resetReason}`, 'warning');
+        } else if (eid === 0x10) {  // SBI_EID_BASE
+            this.log(`SBI base call: fid=${fid}, result=${result.value}`, 'info');
+        } else {
+            this.log(`SBI call: eid=0x${eid.toString(16).padStart(2, '0')}, fid=${fid}`, 'info');
+        }
+    }
+
+    /**
+     * Update privilege mode indicator based on CSR_MODE
+     */
+    updatePrivilegeMode() {
+        if (!this.currentState) return;
+
+        // Get raw state array to access CSR_MODE at index 37
+        // The currentState from verifier may have structured access
+        const rawState = this.currentState.rawState || this.currentState;
+        const mode = rawState[this.CSR_MODE] !== undefined
+            ? rawState[this.CSR_MODE]
+            : (this.currentState.mode !== undefined ? this.currentState.mode : 3);
+
+        const modeSpan = document.getElementById('priv-mode');
+        if (!modeSpan) return;
+
+        if (mode === 3) {
+            modeSpan.textContent = 'M';
+            modeSpan.className = 'mode-badge mode-m';
+            modeSpan.title = 'Machine Mode';
+        } else if (mode === 1) {
+            modeSpan.textContent = 'S';
+            modeSpan.className = 'mode-badge mode-s';
+            modeSpan.title = 'Supervisor Mode';
+        } else {
+            modeSpan.textContent = 'U';
+            modeSpan.className = 'mode-badge mode-u';
+            modeSpan.title = 'User Mode';
+        }
+    }
+
+    /**
      * Read memory at specified address
      */
     async readMemory() {
@@ -701,6 +857,12 @@ export class RiscvExecutionPanel {
             this.memoryBuffer = null;
         }
 
+        // Clear SBI bridge
+        if (this.sbiBridge) {
+            this.sbiBridge.clearConsole();
+            this.sbiBridge = null;
+        }
+
         // Clear UI
         document.getElementById('riscv-program-input').value = '';
         document.getElementById('riscv-execute-btn').disabled = true;
@@ -708,6 +870,17 @@ export class RiscvExecutionPanel {
         document.getElementById('riscv-status-value').textContent = 'Idle';
         document.getElementById('riscv-memory-display').innerHTML =
             '<span class="placeholder">Memory will appear here after execution</span>';
+
+        // Clear SBI console
+        document.getElementById('sbi-output').innerHTML =
+            '<span class="placeholder">Console output from SBI calls will appear here</span>';
+
+        // Reset privilege mode to M
+        const modeSpan = document.getElementById('priv-mode');
+        if (modeSpan) {
+            modeSpan.textContent = 'M';
+            modeSpan.className = 'mode-badge mode-m';
+        }
 
         // Reset register display
         for (let i = 0; i < 32; i++) {
