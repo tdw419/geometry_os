@@ -40,6 +40,23 @@ const CSR_GUEST_SIZE: u32 = 47u;      // Dimensions of the guest plate
 const CSR_GEOM_CACHE_BASE: u32 = 48u; // Address for Tier 2 JIT
 const CSR_TRANS_FLAGS: u32 = 49u;     // Metadata for the Transpiler (Tier status)
 
+// --- M-MODE CSRs (Indices 50-59) ---
+const CSR_MSTATUS: u32 = 50u;   // 0x300 - Machine status
+const CSR_MTVEC: u32 = 51u;     // 0x305 - Machine trap handler
+const CSR_MEPC: u32 = 52u;      // 0x341 - Machine exception PC
+const CSR_MCAUSE: u32 = 53u;    // 0x342 - Machine exception cause
+const CSR_MTVAL: u32 = 54u;     // 0x343 - Machine trap value
+const CSR_MSCRATCH: u32 = 55u;  // 0x340 - Machine scratch
+const CSR_MIDELEG: u32 = 56u;   // 0x303 - Interrupt delegation
+const CSR_MEDELEG: u32 = 57u;   // 0x302 - Exception delegation
+const CSR_MIE: u32 = 58u;       // 0x304 - Machine interrupt enable
+const CSR_MIP: u32 = 59u;       // 0x344 - Machine interrupt pending
+
+// MSTATUS bit positions (RV32)
+const MSTATUS_MIE: u32 = 0x8u;      // Bit 3: Machine Interrupt Enable
+const MSTATUS_MPIE: u32 = 0x80u;    // Bit 7: Machine Previous IE
+const MSTATUS_MPP_MASK: u32 = 0x1800u; // Bits 12:11: Previous privilege
+
 // SSTATUS bit positions (per RISC-V Privileged Spec v1.12)
 const SSTATUS_SIE: u32 = 2u;    // Bit 1: Supervisor Interrupt Enable
 const SSTATUS_SPIE: u32 = 32u;  // Bit 5: Supervisor Previous Interrupt Enable
