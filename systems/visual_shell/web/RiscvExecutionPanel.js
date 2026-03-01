@@ -34,6 +34,7 @@ export class RiscvExecutionPanel {
 
         // CSR indices (matching shader)
         this.CSR_MODE = 37;            // Privilege mode (0=U, 1=S, 3=M)
+        this.CSR_SATP = 34;            // satp CSR (MMU control)
 
         // ABI names for registers
         this.registerNames = [
@@ -105,6 +106,10 @@ export class RiscvExecutionPanel {
                         <div class="status-item privilege-indicator">
                             <span class="label">Mode:</span>
                             <span id="priv-mode" class="mode-badge mode-m">M</span>
+                        </div>
+                        <div class="status-item mmu-indicator">
+                            <span class="label">MMU:</span>
+                            <span id="mmu-status" class="mmu-badge mmu-off">OFF</span>
                         </div>
                     </div>
                 </div>
@@ -401,6 +406,32 @@ export class RiscvExecutionPanel {
                 color: white;
             }
 
+            /* MMU status badge styles */
+            .mmu-indicator {
+                display: flex;
+                align-items: center;
+            }
+
+            .mmu-badge {
+                display: inline-block;
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-weight: bold;
+                font-size: 11px;
+                min-width: 80px;
+                text-align: center;
+            }
+
+            .mmu-off {
+                background: #666;
+                color: white;
+            }
+
+            .mmu-sv32 {
+                background: #00aa44;
+                color: white;
+            }
+
             /* SBI Console output styles */
             .console-output {
                 background: #0a0a0a;
@@ -576,6 +607,7 @@ export class RiscvExecutionPanel {
             this.updateRegisterDisplay();
             this.updateStatusDisplay();
             this.updatePrivilegeMode();
+            this.updateMMUStatus();
 
             this.log('Execution complete', 'success');
 
@@ -773,6 +805,39 @@ export class RiscvExecutionPanel {
     }
 
     /**
+     * Update MMU status indicator based on satp CSR
+     */
+    updateMMUStatus() {
+        if (!this.currentState) return;
+
+        // Get raw state array to access satp at index 34
+        const rawState = this.currentState.rawState || this.currentState;
+        const satp = rawState[this.CSR_SATP] !== undefined
+            ? rawState[this.CSR_SATP]
+            : 0;
+
+        const mmuSpan = document.getElementById('mmu-status');
+        if (!mmuSpan) return;
+
+        // satp mode bit is bit 31 (1 = Sv32, 0 = bare)
+        const satpMode = (satp >>> 31) & 1;
+
+        if (satpMode === 1) {
+            // Sv32 mode enabled
+            const ppn = satp & 0x3FFFFF;  // PPN is bits 0-21
+            const pageTableAddr = ppn << 12;  // Convert PPN to physical address
+            mmuSpan.textContent = `Sv32 (PT@0x${pageTableAddr.toString(16).toUpperCase().padStart(8, '0')})`;
+            mmuSpan.className = 'mmu-badge mmu-sv32';
+            mmuSpan.title = `MMU enabled in Sv32 mode\nPage table root: 0x${pageTableAddr.toString(16).toUpperCase().padStart(8, '0')}`;
+        } else {
+            // Bare mode (MMU off)
+            mmuSpan.textContent = 'OFF';
+            mmuSpan.className = 'mmu-badge mmu-off';
+            mmuSpan.title = 'MMU disabled (bare mode)\nVirtual addresses = Physical addresses';
+        }
+    }
+
+    /**
      * Read memory at specified address
      */
     async readMemory() {
@@ -880,6 +945,13 @@ export class RiscvExecutionPanel {
         if (modeSpan) {
             modeSpan.textContent = 'M';
             modeSpan.className = 'mode-badge mode-m';
+        }
+
+        // Reset MMU status to OFF
+        const mmuSpan = document.getElementById('mmu-status');
+        if (mmuSpan) {
+            mmuSpan.textContent = 'OFF';
+            mmuSpan.className = 'mmu-badge mmu-off';
         }
 
         // Reset register display
