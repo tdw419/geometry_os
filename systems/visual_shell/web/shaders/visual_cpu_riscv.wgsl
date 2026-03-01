@@ -819,56 +819,74 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                     tlb_flush();
                     // SFENCE.VMA is a fence, no register write needed
                 } else if (funct3_sys == 1u) { // CSRRW
-                    let csr_idx = _get_csr_index(inst >> 20u);
+                    let csr_num = inst >> 20u;
+                    let csr_idx = _get_csr_index(csr_num);
                     if (csr_idx < 255u) {
                         let old = cpu_states[base_idx + csr_idx];
                         if (rd != 0u) { cpu_states[base_idx + rd] = old; }
                         cpu_states[base_idx + csr_idx] = cpu_states[base_idx + rs1];
+                        // Flush TLB on satp write
+                        if (csr_num == 0x180u) { tlb_flush(); }
                     }
                 } else if (funct3_sys == 2u) { // CSRRS (Read and Set bits)
-                    let csr_idx = _get_csr_index(inst >> 20u);
+                    let csr_num = inst >> 20u;
+                    let csr_idx = _get_csr_index(csr_num);
                     if (csr_idx < 255u) {
                         let old = cpu_states[base_idx + csr_idx];
                         if (rd != 0u) { cpu_states[base_idx + rd] = old; }
                         if (rs1 != 0u) {
                             cpu_states[base_idx + csr_idx] = old | cpu_states[base_idx + rs1];
+                            // Flush TLB on satp write
+                            if (csr_num == 0x180u) { tlb_flush(); }
                         }
                     }
                 } else if (funct3_sys == 3u) { // CSRRC (Read and Clear bits)
-                    let csr_idx = _get_csr_index(inst >> 20u);
+                    let csr_num = inst >> 20u;
+                    let csr_idx = _get_csr_index(csr_num);
                     if (csr_idx < 255u) {
                         let old = cpu_states[base_idx + csr_idx];
                         if (rd != 0u) { cpu_states[base_idx + rd] = old; }
                         if (rs1 != 0u) {
                             cpu_states[base_idx + csr_idx] = old & ~cpu_states[base_idx + rs1];
+                            // Flush TLB on satp write
+                            if (csr_num == 0x180u) { tlb_flush(); }
                         }
                     }
                 } else if (funct3_sys == 5u) { // CSRRWI (Read and Write Immediate)
-                    let csr_idx = _get_csr_index(inst >> 20u);
+                    let csr_num = inst >> 20u;
+                    let csr_idx = _get_csr_index(csr_num);
                     let zimm = (inst >> 15u) & 0x1Fu;  // 5-bit immediate from bits 19:15
                     if (csr_idx < 255u) {
                         let old = cpu_states[base_idx + csr_idx];
                         if (rd != 0u) { cpu_states[base_idx + rd] = old; }
                         cpu_states[base_idx + csr_idx] = zimm;
+                        // Flush TLB on satp write
+                        if (csr_num == 0x180u) { tlb_flush(); }
                     }
                 } else if (funct3_sys == 6u) { // CSRRSI (Read and Set Immediate)
-                    let csr_idx = _get_csr_index(inst >> 20u);
+                    let csr_num = inst >> 20u;
+                    let csr_idx = _get_csr_index(csr_num);
                     let zimm = (inst >> 15u) & 0x1Fu;  // 5-bit immediate from bits 19:15
                     if (csr_idx < 255u) {
                         let old = cpu_states[base_idx + csr_idx];
                         if (rd != 0u) { cpu_states[base_idx + rd] = old; }
                         if (zimm != 0u) {
                             cpu_states[base_idx + csr_idx] = old | zimm;
+                            // Flush TLB on satp write
+                            if (csr_num == 0x180u) { tlb_flush(); }
                         }
                     }
                 } else if (funct3_sys == 7u) { // CSRRCI (Read and Clear Immediate)
-                    let csr_idx = _get_csr_index(inst >> 20u);
+                    let csr_num = inst >> 20u;
+                    let csr_idx = _get_csr_index(csr_num);
                     let zimm = (inst >> 15u) & 0x1Fu;  // 5-bit immediate from bits 19:15
                     if (csr_idx < 255u) {
                         let old = cpu_states[base_idx + csr_idx];
                         if (rd != 0u) { cpu_states[base_idx + rd] = old; }
                         if (zimm != 0u) {
                             cpu_states[base_idx + csr_idx] = old & ~zimm;
+                            // Flush TLB on satp write
+                            if (csr_num == 0x180u) { tlb_flush(); }
                         }
                     }
                 }
