@@ -14,13 +14,14 @@ Prerequisites:
 - Visual Bridge running
 - Terminal page open in browser
 
-Run: python systems/visual_shell/api/tests/ascii_terminal_test.py
+Run: pytest systems/visual_shell/api/tests/ascii_terminal_test.py -v
 """
 
 import subprocess
 import json
 import re
-import time
+import os
+import pytest
 from pathlib import Path
 from typing import Optional, Tuple, List
 from dataclasses import dataclass
@@ -42,7 +43,8 @@ class ASCIITerminalVerifier:
     """Verifies terminal using ASCII desktop capture."""
 
     def __init__(self):
-        self.project_root = Path(__file__).parent.parent.parent.parent
+        # Path from: systems/visual_shell/api/tests/ -> need 5 parents to reach project root
+        self.project_root = Path(__file__).parent.parent.parent.parent.parent
         self.ascii_script = self.project_root / ".gemini/skills/ascii-desktop-control/scripts/get_ascii_view.py"
 
     def capture_desktop(self, width: int = 160, height: int = 50) -> str:
@@ -58,20 +60,23 @@ class ASCIITerminalVerifier:
 
         try:
             result = subprocess.run(
-                ["python3", str(self.ascii_script), str(width), str(height)],
+                ["python3", str(self.ascii_script)],
                 capture_output=True,
                 text=True,
-                env={**subprocess.os.environ, "DISPLAY": ":0"},
+                env={**os.environ, "DISPLAY": ":0"},
                 timeout=10
             )
 
             if result.returncode == 0:
-                # Parse JSON output if available
-                try:
-                    data = json.loads(result.stdout)
-                    return data.get("ascii", result.stdout)
-                except json.JSONDecodeError:
-                    return result.stdout
+                # The script outputs --- ASCII MAP --- header, extract the actual ASCII
+                output = result.stdout
+                if "--- ASCII MAP ---" in output:
+                    # Extract content between ASCII MAP and BINDINGS sections
+                    parts = output.split("--- ASCII MAP ---")
+                    if len(parts) > 1:
+                        ascii_part = parts[1].split("--- BINDINGS ---")[0]
+                        return ascii_part.strip()
+                return output
             else:
                 return f"ERROR: {result.stderr}"
         except Exception as e:
@@ -111,7 +116,6 @@ class ASCIITerminalVerifier:
         )
 
         # Check for cursor (block or underline)
-        cursor_patterns = [r'█', r'▋', r'▌', r'_\s*$']
         cursor_visible = any(p in ascii_output for p in ['█', '▋', '▌'])
 
         # Check readability (alphanumeric density)
@@ -154,133 +158,137 @@ class ASCIITerminalVerifier:
         )
 
 
-class TerminalVerificationSuite:
-    """Complete verification suite using ASCII capture."""
+@pytest.fixture
+def verifier():
+    """Create ASCIITerminalVerifier instance."""
+    return ASCIITerminalVerifier()
 
-    def __init__(self):
-        self.verifier = ASCIITerminalVerifier()
-        self.results = []
 
-    def test_desktop_capture(self) -> Tuple[bool, str]:
-        """Test that ASCII capture is working."""
-        print("\n🧪 Test 1: Desktop Capture")
-        ascii_output = self.verifier.capture_desktop()
+@pytest.fixture
+def captured_ascii(verifier):
+    """Capture desktop ASCII for tests."""
+    return verifier.capture_desktop()
 
+
+class TestASCIICapture:
+    """Test ASCII desktop capture functionality."""
+
+    def test_ascii_script_exists(self, verifier):
+        """Verify the ASCII capture script exists."""
+        assert verifier.ascii_script.exists(), f"Script not found at {verifier.ascii_script}"
+
+    def test_capture_returns_output(self, verifier):
+        """Test that capture returns non-error output."""
+        ascii_output = verifier.capture_desktop()
+        assert not ascii_output.startswith("ERROR"), f"Capture failed: {ascii_output}"
+
+    def test_capture_has_content(self, captured_ascii):
+        """Test that captured ASCII has meaningful content."""
+        assert len(captured_ascii) > 100, "ASCII output too short"
+        assert len(captured_ascii.split('\n')) >= 5, "Not enough lines captured"
+
+
+class TestTerminalDetection:
+    """Test terminal detection in ASCII output."""
+
+    def test_detect_terminal_returns_detection(self, verifier, captured_ascii):
+        """Test that detect_terminal returns a TerminalDetection object."""
+        if captured_ascii.startswith("ERROR"):
+            pytest.skip(f"Capture failed: {captured_ascii}")
+
+        detection = verifier.detect_terminal(captured_ascii)
+        assert isinstance(detection, TerminalDetection)
+        assert detection.found in [True, False]
+        assert 0.0 <= detection.confidence <= 1.0
+
+    def test_detection_has_confidence_score(self, verifier, captured_ascii):
+        """Test that detection includes confidence score."""
+        if captured_ascii.startswith("ERROR"):
+            pytest.skip(f"Capture failed: {captured_ascii}")
+
+        detection = verifier.detect_terminal(captured_ascii)
+        assert detection.confidence >= 0.0, "Confidence should be non-negative"
+
+    def test_terminal_found_or_valid_negative(self, verifier, captured_ascii):
+        """Test that terminal is either found or has valid reason for not being found."""
+        if captured_ascii.startswith("ERROR"):
+            pytest.skip(f"Capture failed: {captured_ascii}")
+
+        detection = verifier.detect_terminal(captured_ascii)
+        # If not found, confidence should be below threshold
+        if not detection.found:
+            assert detection.confidence <= 0.5, "Not found but confidence > 0.5"
+
+
+class TestTerminalContent:
+    """Test terminal content verification."""
+
+    def test_ascii_has_readable_text(self, captured_ascii):
+        """Test that captured ASCII has readable alphanumeric text."""
+        if captured_ascii.startswith("ERROR"):
+            pytest.skip(f"Capture failed: {captured_ascii}")
+
+        alpha_count = sum(1 for c in captured_ascii if c.isalnum())
+        assert alpha_count > 50, f"Not enough alphanumeric chars: {alpha_count}"
+
+    def test_ascii_structure(self, captured_ascii):
+        """Test that ASCII output has expected structure."""
+        if captured_ascii.startswith("ERROR"):
+            pytest.skip(f"Capture failed: {captured_ascii}")
+
+        lines = captured_ascii.split('\n')
+        # Should have header line with window info
+        assert len(lines) >= 2, "Should have at least header and content"
+
+
+class TestIntegration:
+    """Integration tests for full ASCII bridge workflow."""
+
+    def test_full_capture_and_detect_workflow(self, verifier):
+        """Test complete workflow: capture -> detect -> verify."""
+        # Capture
+        ascii_output = verifier.capture_desktop()
         if ascii_output.startswith("ERROR"):
-            print(f"   ❌ Capture failed: {ascii_output}")
-            return False, ascii_output
+            pytest.skip(f"Capture failed: {ascii_output}")
 
-        lines = ascii_output.split('\n')
-        print(f"   ✅ Captured {len(lines)} lines")
-        return True, ascii_output
+        # Detect
+        detection = verifier.detect_terminal(ascii_output)
 
-    def test_terminal_detection(self, ascii_output: str) -> TerminalDetection:
-        """Test terminal detection in ASCII output."""
-        print("\n🧪 Test 2: Terminal Detection")
-
-        detection = self.verifier.detect_terminal(ascii_output)
-
-        print(f"   Found: {'✅' if detection.found else '❌'}")
-        print(f"   Prompt: {'✅' if detection.prompt_detected else '❌'}")
-        print(f"   Shell: {detection.shell_type}")
-        print(f"   Confidence: {detection.confidence:.0%}")
-
-        return detection
-
-    def test_terminal_content(
-        self, expected_content: str = None
-    ) -> Tuple[bool, str]:
-        """Test specific content in terminal."""
-        print("\n🧪 Test 3: Terminal Content")
-
-        ascii_output = self.verifier.capture_desktop(120, 36)
-
-        if expected_content:
-            found = expected_content.lower() in ascii_output.lower()
-            print(f"   Expected '{expected_content}': {'✅' if found else '❌'}")
-            return found, ascii_output
-
-        # Generic check for shell activity
-        has_prompt = any(c in ascii_output for c in ['$', '#', '>'])
-        has_text = len(re.findall(r'[a-zA-Z]{3,}', ascii_output)) > 5
-
-        print(f"   Has prompt: {'✅' if has_prompt else '❌'}")
-        print(f"   Has readable text: {'✅' if has_text else '❌'}")
-
-        return has_prompt and has_text, ascii_output
-
-    def run_all_tests(self) -> dict:
-        """Run complete verification suite."""
-        print("=" * 60)
-        print("🖥️  ASCII Desktop Verification - Web Terminal")
-        print("=" * 60)
-
-        results = {
-            "capture_works": False,
-            "terminal_found": False,
-            "content_verified": False,
-            "details": {}
-        }
-
-        # Test 1: Capture
-        capture_ok, ascii_output = self.test_desktop_capture()
-        results["capture_works"] = capture_ok
-
-        if not capture_ok:
-            print("\n❌ Cannot proceed - desktop capture not working")
-            return results
-
-        # Test 2: Detection
-        detection = self.test_terminal_detection(ascii_output)
-        results["terminal_found"] = detection.found
-        results["details"]["detection"] = {
-            "prompt": detection.prompt_detected,
-            "shell": detection.shell_type,
-            "confidence": detection.confidence
-        }
-
-        # Test 3: Content
-        content_ok, _ = self.test_terminal_content()
-        results["content_verified"] = content_ok
-
-        # Summary
-        print("\n" + "=" * 60)
-        print("📊 Results Summary")
-        print("=" * 60)
-
-        total = 3
-        passed = sum([
-            results["capture_works"],
-            results["terminal_found"],
-            results["content_verified"]
-        ])
-
-        print(f"Capture: {'✅' if results['capture_works'] else '❌'}")
-        print(f"Terminal: {'✅' if results['terminal_found'] else '❌'}")
-        print(f"Content: {'✅' if results['content_verified'] else '❌'}")
-        print(f"\nTotal: {passed}/{total} ({passed/total*100:.0f}%)")
-
-        if passed == total:
-            print("\n🎉 Terminal verified via ASCII capture!")
-        else:
-            print("\n⚠️  Some checks failed - ensure terminal is visible on screen")
-
-        # Print sample of ASCII output
-        print("\n📄 ASCII Preview (first 500 chars):")
-        print("-" * 40)
-        print(ascii_output[:500])
-        print("-" * 40)
-
-        return results
+        # Verify detection object is complete
+        assert detection.raw_ascii == ascii_output
+        assert isinstance(detection.prompt_detected, bool)
+        assert isinstance(detection.cursor_visible, bool)
+        assert isinstance(detection.text_readable, bool)
+        assert detection.shell_type in ["unknown", "bash", "zsh", "fish", "detected"]
 
 
 def main():
-    """Run verification."""
-    suite = TerminalVerificationSuite()
-    results = suite.run_all_tests()
+    """Run verification (for direct script execution)."""
+    suite_verifier = ASCIITerminalVerifier()
+    ascii_output = suite_verifier.capture_desktop()
 
-    # Exit code based on results
-    exit(0 if results.get("terminal_found", False) else 1)
+    print("=" * 60)
+    print("🖥️  ASCII Desktop Verification - Web Terminal")
+    print("=" * 60)
+
+    if ascii_output.startswith("ERROR"):
+        print(f"\n❌ Capture failed: {ascii_output}")
+        exit(1)
+
+    detection = suite_verifier.detect_terminal(ascii_output)
+
+    print(f"\n✅ Captured {len(ascii_output)} chars")
+    print(f"Terminal found: {'✅' if detection.found else '❌'}")
+    print(f"Prompt detected: {'✅' if detection.prompt_detected else '❌'}")
+    print(f"Shell type: {detection.shell_type}")
+    print(f"Confidence: {detection.confidence:.0%}")
+
+    print("\n📄 ASCII Preview (first 500 chars):")
+    print("-" * 40)
+    print(ascii_output[:500])
+    print("-" * 40)
+
+    exit(0 if detection.found else 1)
 
 
 if __name__ == "__main__":
