@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 18: Privileged Architecture Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a1a;
+            color: #00FF88;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #00FFFF;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .panel-container {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .success-criteria {
+            background: #1a2e1a;
+            border: 1px solid #2a4a2a;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .success-criteria h2 {
+            color: #00FF88;
+            font-size: 14px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #2a4a2a;
+        }
+
+        .criteria-list {
+            list-style: none;
+        }
+
+        .criteria-list li {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #0a1a0a;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .criteria-list li .checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #00FF88;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #00FF88;
+        }
+
+        .criteria-list li .checkbox.checked {
+            background: #00FF88;
+            color: #0a0a0a;
+        }
+
+        .criteria-list li .instruction {
+            flex: 1;
+            font-size: 12px;
+        }
+
+        .criteria-list li .expected {
+            color: #888;
+            font-size: 11px;
+            text-align: right;
+        }
+
+        .webgpu-error {
+            background: #2e1a1a;
+            border: 1px solid #4a2a2a;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .webgpu-error h2 {
+            color: #ff6666;
+            margin-bottom: 15px;
+        }
+
+        .webgpu-error p {
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .webgpu-error code {
+            background: #1a1a2e;
+            padding: 4px 8px;
+            border-radius: 3px;
+            color: #ffaa00;
+        }
+
+        .phase-info {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .phase-info h2 {
+            color: #00FFFF;
+            font-size: 14px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+
+        .phase-info h3 {
+            color: #00FFFF;
+            font-size: 12px;
+            margin-top: 15px;
+            margin-bottom: 8px;
+        }
+
+        .phase-info p {
+            color: #888;
+            font-size: 12px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .phase-info ul {
+            color: #888;
+            font-size: 12px;
+            margin-left: 20px;
+        }
+
+        .phase-info li {
+            margin-bottom: 5px;
+        }
+
+        .phase-info code {
+            background: #0a0a1a;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #00FF88;
+            font-size: 11px;
+        }
+
+        .example-programs {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .example-programs h3 {
+            color: #00FFFF;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .example-btn {
+            display: block;
+            width: 100%;
+            background: #0a0a1a;
+            border: 1px solid #333;
+            color: #00FF88;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: left;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .example-btn:hover {
+            background: #1a1a2e;
+            border-color: #00FFFF;
+        }
+
+        .example-btn .example-name {
+            color: #00FFFF;
+            font-weight: bold;
+        }
+
+        .example-btn .example-desc {
+            color: #666;
+            display: block;
+            margin-top: 4px;
+        }
+
+        .architecture-diagram {
+            background: #0a0a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 11px;
+            overflow-x: auto;
+        }
+
+        .architecture-diagram pre {
+            color: #00FF88;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #888;
+        }
+
+        .loading .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #333;
+            border-top-color: #00FFFF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Phase 18: Privileged Architecture</h1>
+        <div class="subtitle">RISC-V M-Mode Execution Panel - SBI Console & Privilege Mode Verification</div>
+    </div>
+
+    <div class="main-container" id="main-container">
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Initializing WebGPU...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { RiscvExecutionPanel } from './RiscvExecutionPanel.js';
+
+        // Example programs demonstrating privileged features
+        const examplePrograms = {
+            sbiConsole: {
+                name: 'SBI Console Output',
+                description: 'Output "H" character via SBI putchar call',
+                instructions: [
+                    0x04800513,  // li a0, 'H' (0x48 = 72)
+                    0x00100893,  // li a7, 1 (SBI_EID_CONSOLE)
+                    0x00000073,  // ecall
+                    0x0000006f   // jal x0, 0 (halt)
+                ],
+                comments: [
+                    '# li a0, 72    (a0 = "H" character)',
+                    '# li a7, 1     (a7 = SBI console extension)',
+                    '# ecall        (invoke SBI)',
+                    '# jal x0, 0    (halt)'
+                ]
+            },
+            mmodeCsr: {
+                name: 'M-mode CSR Access',
+                description: 'Write and read mscratch CSR',
+                instructions: [
+                    0x12345137,  // lui x2, 0x12345
+                    0x34011073,  // csrw mscratch, x2
+                    0x0000d183,  // csrrs x3, mscratch, x0 (read only)
+                    0x0000006f   // jal x0, 0 (halt)
+                ],
+                comments: [
+                    '# lui x2, 0x12345      (x2 = 0x12345000)',
+                    '# csrw mscratch, x2    (write to mscratch CSR)',
+                    '# csrrs x3, mscratch, x0 (read mscratch into x3)',
+                    '# jal x0, 0            (halt)'
+                ]
+            },
+            mstatusRead: {
+                name: 'MSTATUS Read',
+                description: 'Read the mstatus CSR',
+                instructions: [
+                    0x3000a183,  // csrrs x3, mstatus, x0
+                    0x0000006f   // jal x0, 0 (halt)
+                ],
+                comments: [
+                    '# csrrs x3, mstatus, x0 (read mstatus into x3)',
+                    '# jal x0, 0            (halt)'
+                ]
+            }
+        };
+
+        // Success criteria for Phase 18
+        const successCriteria = [
+            {
+                id: 'mode-m',
+                instruction: 'Verify privilege mode badge shows "M"',
+                expected: 'Orange M badge'
+            },
+            {
+                id: 'sbi-output',
+                instruction: 'Load SBI Console example and execute',
+                expected: 'H appears in console'
+            },
+            {
+                id: 'csr-read',
+                instruction: 'Load M-mode CSR example and execute',
+                expected: 'x3 shows mscratch value'
+            },
+            {
+                id: 'no-errors',
+                instruction: 'Check browser console for errors',
+                expected: 'No JavaScript errors'
+            }
+        ];
+
+        // Render success criteria panel
+        function renderCriteriaPanel() {
+            let html = `
+                <div class="success-criteria">
+                    <h2>Phase 18 Success Criteria</h2>
+                    <ul class="criteria-list">
+            `;
+
+            for (const criteria of successCriteria) {
+                html += `
+                    <li>
+                        <div class="checkbox" id="check-${criteria.id}"></div>
+                        <span class="instruction">${criteria.instruction}</span>
+                        <span class="expected">${criteria.expected}</span>
+                    </li>
+                `;
+            }
+
+            html += `
+                    </ul>
+
+                    <div class="example-programs">
+                        <h3>Example Programs</h3>
+                        <button class="example-btn" id="load-sbi-console">
+                            <span class="example-name">SBI Console Output</span>
+                            <span class="example-desc">Output "H" character via SBI putchar</span>
+                        </button>
+                        <button class="example-btn" id="load-mmode-csr">
+                            <span class="example-name">M-mode CSR Access</span>
+                            <span class="example-desc">Write and read mscratch CSR</span>
+                        </button>
+                        <button class="example-btn" id="load-mstatus">
+                            <span class="example-name">MSTATUS Read</span>
+                            <span class="example-desc">Read the mstatus CSR</span>
+                        </button>
+                    </div>
+
+                    <div class="phase-info">
+                        <h2>About This Demo</h2>
+                        <p>
+                            This panel demonstrates RISC-V privileged architecture support
+                            with M-mode (Machine Mode) execution and SBI (Supervisor Binary Interface)
+                            console output.
+                        </p>
+                        <h3>Privilege Modes</h3>
+                        <ul>
+                            <li><code>M-mode (3)</code> - Machine mode, highest privilege</li>
+                            <li><code>S-mode (1)</code> - Supervisor mode</li>
+                            <li><code>U-mode (0)</code> - User mode, lowest privilege</li>
+                        </ul>
+                        <h3>SBI Console</h3>
+                        <p>
+                            The SBI console allows programs to output characters via ECALL.
+                            The GPU shader sets a flag, and JavaScript reads from the SBI bridge
+                            memory region to display the output.
+                        </p>
+                        <p>
+                            <strong>Key Registers:</strong>
+                            <ul>
+                                <li><code>a0</code> - Character to output (for putchar)</li>
+                                <li><code>a7</code> - Extension ID (1 = console)</li>
+                            </ul>
+                        </p>
+
+                        <div class="architecture-diagram">
+<pre>
++------------------+     +-------------------+     +------------------+
+| RISC-V Program   | --> | GPU Shader        | --> | SBI Bridge       |
+| (ECALL with      |     | Sets SBI_FLAG     |     | JS polls memory  |
+|  a7=EID, a0=arg) |     | in GPU memory     |     | reads args       |
++------------------+     +-------------------+     +------------------+
+                                                          |
+                                                          v
+                                                 +-------------------+
+                                                 | Console Output    |
+                                                 | Display in UI     |
+                                                 +-------------------+
+</pre>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            return html;
+        }
+
+        // Show WebGPU error
+        function showWebGPUError(error) {
+            document.getElementById('main-container').innerHTML = `
+                <div class="webgpu-error" style="grid-column: 1 / -1;">
+                    <h2>WebGPU Not Available</h2>
+                    <p>${error.message || 'WebGPU is not supported in this browser'}</p>
+                    <p>Requirements:</p>
+                    <p>
+                        <code>Chrome 113+</code> or <code>Edge 113+</code> with WebGPU enabled
+                    </p>
+                    <p style="margin-top: 20px;">
+                        If you're using a supported browser, try:
+                    </p>
+                    <ul style="text-align: left; max-width: 400px; margin: 10px auto; color: #888;">
+                        <li>Enable chrome://flags/#enable-unsafe-webgpu</li>
+                        <li>Update your GPU drivers</li>
+                        <li>Restart your browser</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        // Initialize WebGPU and create panel
+        async function init() {
+            try {
+                // Check for WebGPU
+                if (!navigator.gpu) {
+                    throw new Error('WebGPU not supported');
+                }
+
+                const adapter = await navigator.gpu.requestAdapter();
+                if (!adapter) {
+                    throw new Error('No WebGPU adapter found');
+                }
+
+                const device = await adapter.requestDevice();
+                const queue = device.queue;
+
+                // Render main container
+                document.getElementById('main-container').innerHTML = `
+                    <div class="panel-container" id="riscv-panel-container"></div>
+                    ${renderCriteriaPanel()}
+                `;
+
+                // Create execution panel
+                const container = document.getElementById('riscv-panel-container');
+                const panel = new RiscvExecutionPanel(container, device, queue);
+
+                // Helper to load example program
+                function loadExample(programKey) {
+                    const prog = examplePrograms[programKey];
+                    if (!prog) return;
+
+                    const textarea = document.getElementById('riscv-program-input');
+                    const exampleText = prog.instructions.map((inst, i) => {
+                        return '0x' + inst.toString(16).padStart(8, '0') + '  ' + prog.comments[i];
+                    }).join('\n');
+
+                    textarea.value = exampleText;
+                    panel.program = new Uint32Array(prog.instructions);
+
+                    // Create buffers
+                    panel.createBuffers();
+
+                    document.getElementById('riscv-execute-btn').disabled = false;
+                    panel.log(`Loaded example: ${prog.name}`, 'info');
+                }
+
+                // Setup example buttons
+                document.getElementById('load-sbi-console').addEventListener('click', () => {
+                    loadExample('sbiConsole');
+                });
+
+                document.getElementById('load-mmode-csr').addEventListener('click', () => {
+                    loadExample('mmodeCsr');
+                });
+
+                document.getElementById('load-mstatus').addEventListener('click', () => {
+                    loadExample('mstatusRead');
+                });
+
+                // Check mode indicator after execution
+                const origExecute = panel.execute.bind(panel);
+                panel.execute = async function() {
+                    await origExecute();
+
+                    // Check mode badge
+                    const modeSpan = document.getElementById('priv-mode');
+                    if (modeSpan && modeSpan.textContent === 'M') {
+                        const checkMode = document.getElementById('check-mode-m');
+                        if (checkMode) {
+                            checkMode.classList.add('checked');
+                            checkMode.textContent = 'OK';
+                        }
+                    }
+
+                    // Check for SBI output
+                    const sbiOutput = document.getElementById('sbi-output');
+                    if (sbiOutput && !sbiOutput.querySelector('.placeholder') && sbiOutput.textContent.includes('H')) {
+                        const checkSbi = document.getElementById('check-sbi-output');
+                        if (checkSbi) {
+                            checkSbi.classList.add('checked');
+                            checkSbi.textContent = 'OK';
+                        }
+                    }
+
+                    // Check for CSR read (x3 should have value)
+                    if (panel.currentState) {
+                        const regs = panel.currentState.registers;
+                        if (regs && regs[3] !== 0) {
+                            const checkCsr = document.getElementById('check-csr-read');
+                            if (checkCsr) {
+                                checkCsr.classList.add('checked');
+                                checkCsr.textContent = 'OK';
+                            }
+                        }
+                    }
+
+                    // Mark no errors if we got here
+                    const checkErrors = document.getElementById('check-no-errors');
+                    if (checkErrors) {
+                        checkErrors.classList.add('checked');
+                        checkErrors.textContent = 'OK';
+                    }
+                };
+
+            } catch (error) {
+                console.error('WebGPU initialization failed:', error);
+                showWebGPUError(error);
+            }
+        }
+
+        // Start
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
