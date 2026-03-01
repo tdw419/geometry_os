@@ -578,6 +578,9 @@ class ASCIIGUIBridge:
 
     async def on_window_create(self, window: WindowState):
         """Handle window creation from frontend."""
+        # Compute Hilbert encoding if not already set
+        if window.hilbert_index is None:
+            window.hilbert_index, window.hilbert_coords = self._compute_hilbert_encoding(window.pos)
         self.windows[window.id] = window
         if window.focused:
             self.focused_window_id = window.id
