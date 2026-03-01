@@ -121,6 +121,17 @@ fn _get_csr_index(csr_num: u32) -> u32 {
         case 0x143u: { return CSR_STVAL; }     // stval
         case 0x104u: { return CSR_SIE; }       // sie
         case 0x144u: { return CSR_SIP; }       // sip
+        // M-mode CSRs
+        case 0x300u: { return CSR_MSTATUS; }   // mstatus
+        case 0x305u: { return CSR_MTVEC; }     // mtvec
+        case 0x341u: { return CSR_MEPC; }      // mepc
+        case 0x342u: { return CSR_MCAUSE; }    // mcause
+        case 0x343u: { return CSR_MTVAL; }     // mtval
+        case 0x340u: { return CSR_MSCRATCH; }  // mscratch
+        case 0x303u: { return CSR_MIDELEG; }   // mideleg
+        case 0x302u: { return CSR_MEDELEG; }   // medeleg
+        case 0x304u: { return CSR_MIE; }       // mie
+        case 0x344u: { return CSR_MIP; }       // mip
         default: { return 255u; }              // Unknown CSR
     }
 }
