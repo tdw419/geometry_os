@@ -420,15 +420,31 @@ fn tlb_flush() {
 fn translate_address(vaddr: u32, access_type: u32, base_idx: u32) -> u32 {
     let satp = cpu_states[base_idx + CSR_SATP];
     let satp_mode = (satp >> 31u) & 1u;
-    
+
     var paddr: u32 = 0u;
 
-    if (satp_mode == 0u) { 
-        paddr = vaddr; 
+    if (satp_mode == 0u) {
+        paddr = vaddr;
     } else {
-        let vpn1 = (vaddr >> 22u) & 0x3FFu;   
-        let vpn0 = (vaddr >> 12u) & 0x3FFu;   
-        let offset = vaddr & 0xFFFu;            
+        // Try TLB lookup first
+        let tlb_result = tlb_lookup(vaddr, access_type);
+        if (tlb_result != 0xFFFFFFFFu) {
+            // TLB hit - return translated address directly
+            // Still need to check Tectonic bounds
+            let g_base = cpu_states[base_idx + CSR_GUEST_BASE];
+            let g_size = cpu_states[base_idx + CSR_GUEST_SIZE];
+            if (g_size > 0u) {
+                if (tlb_result < g_base || tlb_result >= (g_base + g_size)) {
+                    return 0xFFFFFFFFu;
+                }
+            }
+            return tlb_result;
+        }
+
+        // TLB miss - perform page table walk
+        let vpn1 = (vaddr >> 22u) & 0x3FFu;
+        let vpn0 = (vaddr >> 12u) & 0x3FFu;
+        let offset = vaddr & 0xFFFu;
 
         let ppn_root = satp & 0x3FFFFFu;
         let pte1_addr = (ppn_root * 4096u) + (vpn1 * 4u);
@@ -443,11 +459,14 @@ fn translate_address(vaddr: u32, access_type: u32, base_idx: u32) -> u32 {
             // Leaf PTE at level 1 (MegaPage)
             let ppn1 = (pte1 >> 10u) & 0xFFFFFu;
             paddr = (ppn1 << 22u) | (vpn0 << 12u) | offset;
-            
+
             // Set A/D bits
             pte1 = pte1 | 0x40u; // A=1
             if (access_type == ACCESS_WRITE) { pte1 = pte1 | 0x80u; } // D=1
             system_memory[pte1_addr / 4u] = pte1;
+
+            // Cache in TLB
+            tlb_fill(vaddr, paddr, pte1);
         } else {
             let ppn1_from_pte1 = (pte1 >> 10u) & 0x3FFFFFu;
             let pte0_addr = (ppn1_from_pte1 * 4096u) + (vpn0 * 4u);
@@ -460,18 +479,21 @@ fn translate_address(vaddr: u32, access_type: u32, base_idx: u32) -> u32 {
             let pte_r = (pte0 >> 1u) & 1u;
             let pte_w = (pte0 >> 2u) & 1u;
             let pte_x = (pte0 >> 3u) & 1u;
-            
+
             if (access_type == ACCESS_READ && pte_r == 0u) { return 0xFFFFFFFFu; }
             if (access_type == ACCESS_WRITE && pte_w == 0u) { return 0xFFFFFFFFu; }
             if (access_type == ACCESS_EXEC && pte_x == 0u) { return 0xFFFFFFFFu; }
 
             let ppn0 = (pte0 >> 10u) & 0xFFFFFu;
             paddr = (ppn0 << 12u) | offset;
-            
+
             // Set A/D bits
             pte0 = pte0 | 0x40u; // A=1
             if (access_type == ACCESS_WRITE) { pte0 = pte0 | 0x80u; } // D=1
             system_memory[pte0_addr / 4u] = pte0;
+
+            // Cache in TLB
+            tlb_fill(vaddr, paddr, pte0);
         }
     }
 
