@@ -4,23 +4,23 @@
 
 See: .planning/PROJECT.md (updated 2026-02-28)
 
-**Core value:** Booting an OS should be as visual and intuitive as opening an image file - from anywhere, including bare metal.
-**Current focus:** Defining v1.4 requirements
+**Core value:** Booting an OS should be as visual and intuitive as opening an image file - from anywhere.
+**Current focus:** Phase 17 - Core Execution Foundation
 
 ## Current Position
 
-**Milestone:** v1.4 GPU Linux Execution
-**Phase:** Not started (defining requirements)
-**Plan:** Not started
-**Status:** Gathering requirements
-**Last activity:** 2026-02-28 — Milestone v1.4 started
+Phase: 17 of 22 (Core Execution Foundation)
+Plan: 0 of TBD in current phase
+Status: Ready to plan
+Last activity: 2026-02-28 - v1.4 GPU Linux Execution roadmap created
 
-Progress: [----------] 0% (v1.4 requirements phase)
+Progress: [0/6 phases complete]
 
 ## Performance Metrics
 
 **Velocity:**
 - Total plans completed: 80 (v1.0: 23, v1.1: 8, v1.2: 14, v1.3: 20, other: 15)
+- v1.4 plans completed: 0 (new milestone)
 
 **By Milestone:**
 
@@ -30,7 +30,7 @@ Progress: [----------] 0% (v1.4 requirements phase)
 | v1.1 | 5-6 | 8 | Complete |
 | v1.2 | 7-11 | 14 | Complete |
 | v1.3 | 12-16 | 20 | Complete |
-| v1.4 | TBD | - | Requirements |
+| v1.4 | 17-22 | TBD | Planning |
 
 ## Accumulated Context
 
@@ -40,28 +40,24 @@ Progress: [----------] 0% (v1.4 requirements phase)
 - **v1.2:** Network Boot - Cache infrastructure, remote client, remote boot, search, retry logic
 - **v1.3:** PXE Boot - DHCP server, TFTP server, HTTP container serving, boot menu, visual shell integration (226 tests)
 
-### Key Decisions (v1.3)
-- iPXE bootloader for PXE (supports both BIOS and UEFI via chainload)
-- asyncio.DatagramProtocol for DHCP UDP handling
-- Round-robin IP allocation with lease reuse
-- argparse subcommands for CLI structure (pxe dhcp start/stop/status)
-- Pre-configure socket with SO_REUSEADDR/SO_BROADCAST before binding
-- TFTP block size 512 bytes (RFC 1350 standard)
-- Path traversal prevention via basename-only sanitization
-- aiofiles for async file I/O enabling concurrent TFTP transfers
-- aiohttp.web for async HTTP server (Application/Runner/TCPSite pattern)
-- HTTP range requests (RFC 7233) for large container file support
-- iPXE menu uses choose command with optional timeout for auto-boot
-- PXE badge orange (#ff6600) for enabled, gray (#666666) for disabled
-- Event-driven PXE toggle with pxe-toggled event for UI sync
+### Key Decisions (v1.4)
+- WebGPU compute shaders for RISC-V emulation (no CPU fallback)
+- RV32I base instruction set target (not RV64)
+- 64MB+ GPU storage buffer for kernel memory
+- Phase ordering: Core -> Privileged -> MMU -> Devices -> Boot -> UI
 
 ### Blockers
 - None currently
 
+### v1.4 Research Flags
+- Phase 18: RISC-V trap handling edge cases
+- Phase 20: GPU-JS async coordination patterns
+- Phase 21: Alpine RV32 kernel build process
+
 ## Session Continuity
 
-Last session: 2026-02-28T20:00:00Z
-Status: v1.4 started, gathering requirements
+Last session: 2026-02-28
+Status: v1.4 roadmap created, ready for Phase 17 planning
 Resume file: None
 
-**Next Action:** Complete research, then define requirements
+**Next Action:** Run `/gsd:plan-phase 17` to create Phase 17 execution plan

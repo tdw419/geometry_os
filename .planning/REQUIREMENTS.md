@@ -99,48 +99,48 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CORE-01 | TBD | Pending |
-| CORE-02 | TBD | Pending |
-| CORE-03 | TBD | Pending |
-| CORE-04 | TBD | Pending |
-| CORE-05 | TBD | Pending |
-| CORE-06 | TBD | Pending |
-| CORE-07 | TBD | Pending |
-| CORE-08 | TBD | Pending |
-| CORE-09 | TBD | Pending |
-| MEM-01 | TBD | Pending |
-| MEM-02 | TBD | Pending |
-| MEM-03 | TBD | Pending |
-| MEM-04 | TBD | Pending |
-| MEM-05 | TBD | Pending |
-| PRIV-01 | TBD | Pending |
-| PRIV-02 | TBD | Pending |
-| PRIV-03 | TBD | Pending |
-| PRIV-04 | TBD | Pending |
-| PRIV-05 | TBD | Pending |
-| PRIV-06 | TBD | Pending |
-| PRIV-07 | TBD | Pending |
-| PRIV-08 | TBD | Pending |
-| DEV-01 | TBD | Pending |
-| DEV-02 | TBD | Pending |
-| DEV-03 | TBD | Pending |
-| DEV-04 | TBD | Pending |
-| BOOT-01 | TBD | Pending |
-| BOOT-02 | TBD | Pending |
-| BOOT-03 | TBD | Pending |
-| BOOT-04 | TBD | Pending |
-| BOOT-05 | TBD | Pending |
-| BOOT-06 | TBD | Pending |
-| INT-01 | TBD | Pending |
-| INT-02 | TBD | Pending |
-| INT-03 | TBD | Pending |
-| INT-04 | TBD | Pending |
+| CORE-01 | Phase 17 | Pending |
+| CORE-02 | Phase 17 | Pending |
+| CORE-03 | Phase 17 | Pending |
+| CORE-04 | Phase 17 | Pending |
+| CORE-05 | Phase 17 | Pending |
+| CORE-06 | Phase 17 | Pending |
+| CORE-07 | Phase 17 | Pending |
+| CORE-08 | Phase 17 | Pending |
+| CORE-09 | Phase 17 | Pending |
+| MEM-01 | Phase 17 | Pending |
+| MEM-02 | Phase 19 | Pending |
+| MEM-03 | Phase 19 | Pending |
+| MEM-04 | Phase 19 | Pending |
+| MEM-05 | Phase 19 | Pending |
+| PRIV-01 | Phase 18 | Pending |
+| PRIV-02 | Phase 18 | Pending |
+| PRIV-03 | Phase 18 | Pending |
+| PRIV-04 | Phase 18 | Pending |
+| PRIV-05 | Phase 18 | Pending |
+| PRIV-06 | Phase 18 | Pending |
+| PRIV-07 | Phase 18 | Pending |
+| PRIV-08 | Phase 18 | Pending |
+| DEV-01 | Phase 20 | Pending |
+| DEV-02 | Phase 20 | Pending |
+| DEV-03 | Phase 20 | Pending |
+| DEV-04 | Phase 20 | Pending |
+| BOOT-01 | Phase 21 | Pending |
+| BOOT-02 | Phase 21 | Pending |
+| BOOT-03 | Phase 21 | Pending |
+| BOOT-04 | Phase 21 | Pending |
+| BOOT-05 | Phase 21 | Pending |
+| BOOT-06 | Phase 21 | Pending |
+| INT-01 | Phase 22 | Pending |
+| INT-02 | Phase 22 | Pending |
+| INT-03 | Phase 22 | Pending |
+| INT-04 | Phase 22 | Pending |
 
 **Coverage:**
 - v1 requirements: 34 total
-- Mapped to phases: 0
-- Unmapped: 34 ⚠️
+- Mapped to phases: 34
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-28*
-*Last updated: 2026-02-28 after research synthesis*
+*Last updated: 2026-02-28 after roadmap creation*
