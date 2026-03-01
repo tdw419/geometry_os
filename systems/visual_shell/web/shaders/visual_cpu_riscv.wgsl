@@ -383,16 +383,40 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                     if (rd != 0u) { cpu_states[base_idx + rd] = u32(val1 + imm); }
                 }
             }
-            case 0x33u: { 
+            case 0x33u: { // OP (ADD, SUB, SLL, SLT, SLTU, XOR, SRL, SRA, OR, AND)
                 let val1 = i32(cpu_states[base_idx + rs1]);
                 let val2 = i32(cpu_states[base_idx + rs2]);
+                let uval1 = cpu_states[base_idx + rs1];
+                let uval2 = cpu_states[base_idx + rs2];
                 let funct7 = (inst >> 25u) & 0x7Fu;
+
                 if (funct7 == 0x01u) {
+                    // M extension (MUL, DIV)
                     if (funct3 == 0u) { if (rd != 0u) { cpu_states[base_idx + rd] = u32(val1 * val2); } }
                     else if (funct3 == 4u) { if (val2 != 0 && rd != 0u) { cpu_states[base_idx + rd] = u32(val1 / val2); } }
-                } else if (funct3 == 0u) {
-                    if (funct7 == 0x00u) { if (rd != 0u) { cpu_states[base_idx + rd] = u32(val1 + val2); } }
-                    else if (funct7 == 0x20u) { if (rd != 0u) { cpu_states[base_idx + rd] = u32(val1 - val2); } }
+                } else if (funct7 == 0x00u || funct7 == 0x20u) {
+                    // Standard R-type operations
+                    if (funct3 == 0x0u) { // ADD
+                        if (rd != 0u) { cpu_states[base_idx + rd] = u32(val1 + val2); }
+                    } else if (funct3 == 0x1u) { // SLL (shift left logical)
+                        if (rd != 0u) { cpu_states[base_idx + rd] = uval1 << (uval2 & 0x1Fu); }
+                    } else if (funct3 == 0x2u) { // SLT (set less than, signed)
+                        if (rd != 0u) { cpu_states[base_idx + rd] = select(0u, 1u, val1 < val2); }
+                    } else if (funct3 == 0x3u) { // SLTU (set less than, unsigned)
+                        if (rd != 0u) { cpu_states[base_idx + rd] = select(0u, 1u, uval1 < uval2); }
+                    } else if (funct3 == 0x4u) { // XOR
+                        if (rd != 0u) { cpu_states[base_idx + rd] = uval1 ^ uval2; }
+                    } else if (funct3 == 0x5u) { // SRL/SRA
+                        if (funct7 == 0x00u) { // SRL (shift right logical)
+                            if (rd != 0u) { cpu_states[base_idx + rd] = uval1 >> (uval2 & 0x1Fu); }
+                        } else { // SRA (shift right arithmetic)
+                            if (rd != 0u) { cpu_states[base_idx + rd] = u32(val1 >> i32(uval2 & 0x1Fu)); }
+                        }
+                    } else if (funct3 == 0x6u) { // OR
+                        if (rd != 0u) { cpu_states[base_idx + rd] = uval1 | uval2; }
+                    } else if (funct3 == 0x7u) { // AND
+                        if (rd != 0u) { cpu_states[base_idx + rd] = uval1 & uval2; }
+                    }
                 }
             }
             case 0x6Fu: { // JAL
