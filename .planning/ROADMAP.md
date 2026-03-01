@@ -128,10 +128,14 @@ Plans:
   3. User can see trap handling work when exceptions occur
   4. User can see MRET/SRET return from traps correctly
   5. User can see SBI calls for console output reach JavaScript
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- [ ] 18-01: [To be planned]
+- [ ] 18-01-PLAN.md — M-mode CSR constants + SBI JavaScript bridge
+- [ ] 18-02-PLAN.md — Complete CSR instructions (CSRRS/CSRRC/CSRRWI/CSRRSI/CSRRCI) + MRET
+- [ ] 18-03-PLAN.md — M-mode trap handling + delegation (medeleg/mideleg)
+- [ ] 18-04-PLAN.md — Privileged architecture test suite (TDD)
+- [ ] 18-05-PLAN.md — Visual shell integration (SBI console, mode indicator)
 
 ### Phase 19: Memory Management Unit
 **Goal**: Users can run Linux with virtual memory enabled via Sv32 page tables
@@ -198,8 +202,8 @@ Phases execute in numeric order: 17 → 18 → 19 → 20 → 21 → 22
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 17. Core Execution Foundation | v1.4 | 0/4 | Planning | - |
-| 18. Privileged Architecture | v1.4 | 0/TBD | Not started | - |
+| 17. Core Execution Foundation | v1.4 | 4/4 | Complete | 2026-02-28 |
+| 18. Privileged Architecture | v1.4 | 0/5 | Planning | - |
 | 19. Memory Management Unit | v1.4 | 0/TBD | Not started | - |
 | 20. Device Emulation | v1.4 | 0/TBD | Not started | - |
 | 21. Boot Integration | v1.4 | 0/TBD | Not started | - |
@@ -226,4 +230,4 @@ Phases execute in numeric order: 17 → 18 → 19 → 20 → 21 → 22
 ---
 
 *Roadmap updated: 2026-02-28*
-*Phase 17 planning complete - 4 plans in 4 waves*
+*Phase 18 planning complete - 5 plans in 5 waves*
