@@ -814,6 +814,10 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                 } else if (funct3_sys == 0u && funct12_sys == 0x001u) { // EBREAK
                     pc = trap_enter_dispatch(base_idx, CAUSE_BREAKPOINT, pc * 4u, pc);
                     trap_triggered = true;
+                } else if (funct3_sys == 0u && funct12_sys == 0x12u) { // SFENCE.VMA - TLB flush
+                    // SFENCE.VMA flushes TLB entries (rs1/rs2 can specify ASID/VPN, but we flush all)
+                    tlb_flush();
+                    // SFENCE.VMA is a fence, no register write needed
                 } else if (funct3_sys == 1u) { // CSRRW
                     let csr_idx = _get_csr_index(inst >> 20u);
                     if (csr_idx < 255u) {
