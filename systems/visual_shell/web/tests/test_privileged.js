@@ -148,6 +148,14 @@ export class PrivilegedTestEncoder extends RiscvTestEncoder {
         return 0x00100073;
     }
 
+    /**
+     * SFENCE.VMA - TLB Flush
+     * Encoding: 0x00012073
+     */
+    static SFENCE_VMA() {
+        return 0x00012073;
+    }
+
     // ========================================================================
     // INSTANCE METHODS - CSR INSTRUCTIONS (opcode 0x73, SYSTEM)
     // ========================================================================
@@ -224,6 +232,12 @@ export class PrivilegedTestEncoder extends RiscvTestEncoder {
     /** EBREAK - Breakpoint (causes trap) */
     ebreak() {
         this.code.push(PrivilegedTestEncoder.EBREAK());
+        this.pc += 4;
+    }
+
+    /** SFENCE.VMA - TLB Flush */
+    sfence_vma() {
+        this.code.push(0x00012073 >>> 0);
         this.pc += 4;
     }
 }
