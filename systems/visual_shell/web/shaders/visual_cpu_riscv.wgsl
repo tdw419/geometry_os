@@ -471,34 +471,76 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                     pc_changed = true;
                 }
             }
-            case 0x03u: { 
-                if (funct3 == 0x2u) { 
-                     let offset = i32(inst) >> 20u;
-                     let val1 = i32(cpu_states[base_idx + rs1]);
-                     let vaddr = u32(val1 + offset);
-                     let paddr = translate_address(vaddr, ACCESS_READ, base_idx);
-                     if (paddr == 0xFFFFFFFFu) { pc = trap_enter(base_idx, CAUSE_LOAD_PAGE_FAULT, vaddr, pc); trap_triggered = true; }
-                     else if (paddr < 134217728u) { if (rd != 0u) { cpu_states[base_idx + rd] = system_memory[paddr / 4u]; } }
+            case 0x03u: { // LOAD (LB, LH, LW, LBU, LHU)
+                let offset = i32(inst) >> 20u;
+                let val1 = i32(cpu_states[base_idx + rs1]);
+                let vaddr = u32(val1 + offset);
+                let paddr = translate_address(vaddr, ACCESS_READ, base_idx);
+
+                if (paddr == 0xFFFFFFFFu) {
+                    pc = trap_enter(base_idx, CAUSE_LOAD_PAGE_FAULT, vaddr, pc);
+                    trap_triggered = true;
+                } else if (paddr < 134217728u) {
+                    let word_addr = paddr / 4u;
+                    let byte_offset = paddr % 4u;
+                    let word_val = system_memory[word_addr];
+
+                    if (funct3 == 0x0u) { // LB (load byte, sign-extend)
+                        let byte_val = (word_val >> (byte_offset * 8u)) & 0xFFu;
+                        let sign_ext = select(0u, 0xFFFFFF00u, (byte_val & 0x80u) != 0u);
+                        if (rd != 0u) { cpu_states[base_idx + rd] = byte_val | sign_ext; }
+                    } else if (funct3 == 0x1u) { // LH (load half, sign-extend)
+                        let half_offset = (paddr / 2u) % 2u;
+                        let half_val = (word_val >> (half_offset * 16u)) & 0xFFFFu;
+                        let sign_ext = select(0u, 0xFFFF0000u, (half_val & 0x8000u) != 0u);
+                        if (rd != 0u) { cpu_states[base_idx + rd] = half_val | sign_ext; }
+                    } else if (funct3 == 0x2u) { // LW (load word)
+                        if (rd != 0u) { cpu_states[base_idx + rd] = word_val; }
+                    } else if (funct3 == 0x4u) { // LBU (load byte, zero-extend)
+                        let byte_val = (word_val >> (byte_offset * 8u)) & 0xFFu;
+                        if (rd != 0u) { cpu_states[base_idx + rd] = byte_val; }
+                    } else if (funct3 == 0x5u) { // LHU (load half, zero-extend)
+                        let half_offset = (paddr / 2u) % 2u;
+                        let half_val = (word_val >> (half_offset * 16u)) & 0xFFFFu;
+                        if (rd != 0u) { cpu_states[base_idx + rd] = half_val; }
+                    }
                 }
             }
-            case 0x23u: { 
-                if (funct3 == 0x2u) { 
-                     let imm_s = ((inst >> 25u) & 0x7Fu) << 5u | ((inst >> 7u) & 0x1Fu);
-                     let offset_s = (i32(imm_s) << 20u) >> 20u;
-                     let val1 = i32(cpu_states[base_idx + rs1]);
-                     let val2 = i32(cpu_states[base_idx + rs2]);
-                     let vaddr = u32(val1 + offset_s);
-                     let paddr = translate_address(vaddr, ACCESS_WRITE, base_idx);
-                     if (paddr == 0xFFFFFFFFu) { pc = trap_enter(base_idx, CAUSE_STORE_PAGE_FAULT, vaddr, pc); trap_triggered = true; }
-                     else if (paddr < 134217728u) {
-                         system_memory[paddr / 4u] = val2;
-                         if (paddr == UART_BASE) {
-                             let char_byte = val2 & 0xFFu;
-                             let head = system_memory[UART_FIFO_PTR / 4u];
-                             system_memory[(UART_FIFO_BASE / 4u) + (head % 256u)] = char_byte;
-                             system_memory[UART_FIFO_PTR / 4u] = head + 1u;
-                         }
-                     }
+            case 0x23u: { // STORE (SB, SH, SW)
+                let imm_s = ((inst >> 25u) & 0x7Fu) << 5u | ((inst >> 7u) & 0x1Fu);
+                let offset_s = (i32(imm_s) << 20u) >> 20u;
+                let val1 = i32(cpu_states[base_idx + rs1]);
+                let val2 = cpu_states[base_idx + rs2];
+                let vaddr = u32(val1 + offset_s);
+                let paddr = translate_address(vaddr, ACCESS_WRITE, base_idx);
+
+                if (paddr == 0xFFFFFFFFu) {
+                    pc = trap_enter(base_idx, CAUSE_STORE_PAGE_FAULT, vaddr, pc);
+                    trap_triggered = true;
+                } else if (paddr < 134217728u) {
+                    if (funct3 == 0x0u) { // SB (store byte)
+                        let byte_offset = paddr % 4u;
+                        let mask = ~(0xFFu << (byte_offset * 8u));
+                        let existing = system_memory[paddr / 4u] & mask;
+                        let new_byte = (val2 & 0xFFu) << (byte_offset * 8u);
+                        system_memory[paddr / 4u] = existing | new_byte;
+                    } else if (funct3 == 0x1u) { // SH (store half)
+                        let half_offset = (paddr / 2u) % 2u;
+                        let mask = ~(0xFFFFu << (half_offset * 16u));
+                        let existing = system_memory[paddr / 4u] & mask;
+                        let new_half = (val2 & 0xFFFFu) << (half_offset * 16u);
+                        system_memory[paddr / 4u] = existing | new_half;
+                    } else if (funct3 == 0x2u) { // SW (store word)
+                        system_memory[paddr / 4u] = val2;
+                    }
+
+                    // UART handling
+                    if (paddr == UART_BASE) {
+                        let char_byte = val2 & 0xFFu;
+                        let head = system_memory[UART_FIFO_PTR / 4u];
+                        system_memory[(UART_FIFO_BASE / 4u) + (head % 256u)] = char_byte;
+                        system_memory[UART_FIFO_PTR / 4u] = head + 1u;
+                    }
                 }
             }
             case 0x73u: { 
