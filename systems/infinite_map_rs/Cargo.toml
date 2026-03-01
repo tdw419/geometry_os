@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 png = "0.17"
 winit = "0.29"
-wgpu = "0.19"
+wgpu = { version = "0.19", features = ["spirv"] }
 pollster = "0.3"
 bytemuck = { version = "1.25", features = ["derive"] }
 image = "0.25"
@@ -111,6 +111,12 @@ tower-http = { version = "0.6.8", features = ["cors", "fs"] }
 # Phase 0.5: Performance Baseline - Benchmark infrastructure
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
+
+# Build dependencies for SPIR-V compilation
+[build-dependencies]
+naga = { version = "28", features = ["wgsl-in", "spv-out"] }
+serde_json = "1.0"
+chrono = "0.4"
 
 [[bench]]
 name = "multi_workgroup_benchmark"
