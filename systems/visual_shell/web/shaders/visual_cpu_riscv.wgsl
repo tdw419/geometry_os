@@ -458,15 +458,23 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                 pc = target / 4u;
                 pc_changed = true;
             }
-            case 0x63u: { 
+            case 0x63u: { // BRANCH (BEQ, BNE, BLT, BGE, BLTU, BGEU)
                 let val1 = cpu_states[base_idx + rs1];
                 let val2 = cpu_states[base_idx + rs2];
+                let sval1 = i32(val1);
+                let sval2 = i32(val2);
                 var branch = false;
-                if (funct3 == 0u) { branch = (val1 == val2); }
-                else if (funct3 == 1u) { branch = (val1 != val2); }
+
+                if (funct3 == 0u) { branch = (val1 == val2); }          // BEQ
+                else if (funct3 == 1u) { branch = (val1 != val2); }     // BNE
+                else if (funct3 == 4u) { branch = (sval1 < sval2); }    // BLT (signed)
+                else if (funct3 == 5u) { branch = (sval1 >= sval2); }   // BGE (signed)
+                else if (funct3 == 6u) { branch = (val1 < val2); }      // BLTU (unsigned)
+                else if (funct3 == 7u) { branch = (val1 >= val2); }     // BGEU (unsigned)
+
                 if (branch) {
                     let imm = ( (inst >> 31u) << 12u ) | ( ((inst >> 7u) & 1u) << 11u ) | ( ((inst >> 25u) & 0x3Fu) << 5u ) | ( ((inst >> 8u) & 0xFu) << 1u );
-                    let offset = (i32(imm) << 19u) >> 19u; 
+                    let offset = (i32(imm) << 19u) >> 19u;
                     pc = u32(i32(pc) + (offset / 4));
                     pc_changed = true;
                 }
