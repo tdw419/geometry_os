@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 17-03: RV32I Core Execution Tests</title>
+    <style>
+        body {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #00ff88;
+            border-bottom: 2px solid #00ff88;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #88ccff;
+            margin-top: 25px;
+        }
+        .test-section {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .pass {
+            color: #00ff88;
+            font-weight: bold;
+        }
+        .fail {
+            color: #ff4444;
+            font-weight: bold;
+        }
+        .pending {
+            color: #ffaa00;
+            font-style: italic;
+        }
+        .result-box {
+            background: #0f0f1a;
+            border: 1px solid #444;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin: 5px 0;
+            background: #12121f;
+            border-radius: 4px;
+            border-left: 4px solid #333;
+        }
+        .test-item.pass {
+            border-left-color: #00ff88;
+        }
+        .test-item.fail {
+            border-left-color: #ff4444;
+        }
+        .test-name {
+            flex: 1;
+        }
+        .test-result {
+            min-width: 150px;
+            text-align: right;
+        }
+        .detail-label {
+            color: #888;
+        }
+        .value {
+            color: #00ccff;
+        }
+        .mismatch {
+            color: #ff6666;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        th, td {
+            border: 1px solid #333;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background: #2a2a4e;
+        }
+        .summary {
+            font-size: 18px;
+            padding: 15px;
+            background: #1a2a1a;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .summary.all-pass {
+            border: 2px solid #00ff88;
+        }
+        .summary.has-fail {
+            border: 2px solid #ff4444;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #1a1a2e;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #00cc66);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-weight: bold;
+        }
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 10px;
+            background: #1a1a2e;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .category-header:hover {
+            background: #252540;
+        }
+        .category-tests {
+            padding-left: 15px;
+        }
+        .category-toggle {
+            font-size: 12px;
+            color: #888;
+        }
+        .error-box {
+            background: #2a1a1a;
+            border: 1px solid #ff4444;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .stat-card {
+            background: #1a1a2e;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #00ff88;
+        }
+        .stat-label {
+            color: #888;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <h1>Phase 17-03: RV32I Core Execution Tests</h1>
+    <p>Comprehensive test suite for all 40 RV32I instructions on GPU via WebGPU compute shaders.</p>
+
+    <div class="test-section">
+        <h2>WebGPU Initialization</h2>
+        <div id="gpu-status" class="pending">Checking WebGPU availability...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>Shader Loading</h2>
+        <div id="shader-status" class="pending">Waiting for WebGPU...</div>
+    </div>
+
+    <div id="progress-section" style="display: none;">
+        <h2>Test Progress</h2>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill" style="width: 0%;">0%</div>
+        </div>
+    </div>
+
+    <div id="stats-section" style="display: none;">
+        <h2>Statistics</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-total">0</div>
+                <div class="stat-label">Total Tests</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-passed" style="color: #00ff88;">0</div>
+                <div class="stat-label">Passed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-failed" style="color: #ff4444;">0</div>
+                <div class="stat-label">Failed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-categories">0</div>
+                <div class="stat-label">Categories</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="test-results" style="display: none;"></div>
+
+    <div id="summary" class="summary" style="display: none;"></div>
+
+    <script type="module">
+        import { CoreExecutionVerifier } from '../CoreExecutionVerifier.js';
+        import {
+            RiscvTestEncoder,
+            runAllTests,
+            executeProgram
+        } from './test_riscv_core.js';
+
+        const results = {
+            webgpu: false,
+            shader: false,
+            tests: null
+        };
+
+        function updateStatus(elementId, html, isSuccess = null) {
+            const el = document.getElementById(elementId);
+            el.innerHTML = html;
+            el.className = isSuccess === true ? 'pass' : isSuccess === false ? 'fail' : 'pending';
+        }
+
+        function updateProgress(current, total) {
+            const percentage = Math.round((current / total) * 100);
+            const fill = document.getElementById('progress-fill');
+            fill.style.width = percentage + '%';
+            fill.textContent = percentage + '%';
+        }
+
+        function renderTestResults(testResults) {
+            const container = document.getElementById('test-results');
+            container.style.display = 'block';
+
+            let html = '';
+
+            const categories = [
+                { key: 'arithmetic', name: 'Arithmetic (R-type)', icon: '+' },
+                { key: 'immediate', name: 'Immediate (I-type)', icon: '#' },
+                { key: 'memory', name: 'Memory (Load/Store)', icon: 'M' },
+                { key: 'branch', name: 'Branch', icon: '?' },
+                { key: 'jump', name: 'Jump', icon: '>' },
+                { key: 'upperImmediate', name: 'Upper Immediate', icon: 'U' }
+            ];
+
+            for (const cat of categories) {
+                const tests = testResults.categories[cat.key] || [];
+                const passed = tests.filter(t => t.pass).length;
+                const total = tests.length;
+                const allPassed = passed === total;
+
+                html += `
+                    <div class="test-section">
+                        <div class="category-header" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">
+                            <span><strong>${cat.name}</strong> - ${passed}/${total} passed</span>
+                            <span class="${allPassed ? 'pass' : 'fail'}">${allPassed ? 'PASS' : 'FAIL'}</span>
+                        </div>
+                        <div class="category-tests" style="display: block;">
+                `;
+
+                for (const test of tests) {
+                    html += `
+                        <div class="test-item ${test.pass ? 'pass' : 'fail'}">
+                            <span class="test-name">${test.name}</span>
+                            <span class="test-result">
+                                ${test.pass
+                                    ? `<span class="pass">PASS</span>`
+                                    : `<span class="fail">FAIL</span>`
+                                }
+                            </span>
+                        </div>
+                    `;
+                    if (!test.pass) {
+                        html += `
+                            <div class="result-box">
+                                <span class="detail-label">Expected:</span> <span class="value">${test.expected}</span>
+                                <span class="detail-label">Actual:</span> <span class="mismatch">${test.actual}</span>
+                            </div>
+                        `;
+                    }
+                }
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Show errors if any
+            if (testResults.errors && testResults.errors.length > 0) {
+                html += `
+                    <div class="error-box">
+                        <h3 style="color: #ff4444;">Errors</h3>
+                        ${testResults.errors.map(e => `<div>${e}</div>`).join('')}
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function renderSummary(testResults) {
+            const summaryEl = document.getElementById('summary');
+            const allPassed = testResults.allPassed;
+
+            let html = `<strong>Summary:</strong> ${testResults.passedTests}/${testResults.totalTests} tests passed\n`;
+
+            if (allPassed) {
+                html += '<br><span class="pass" style="font-size: 24px;">ALL TESTS PASSED</span>';
+                html += '<br><br>RV32I instruction set is correctly implemented in the GPU shader.';
+            } else {
+                html += '<br><span class="fail" style="font-size: 24px;">SOME TESTS FAILED</span>';
+                html += '<br><br>Check individual test results above for details.';
+            }
+
+            summaryEl.innerHTML = html;
+            summaryEl.style.display = 'block';
+            summaryEl.className = 'summary ' + (allPassed ? 'all-pass' : 'has-fail');
+        }
+
+        async function runTests() {
+            try {
+                // ===== WebGPU Initialization =====
+                if (!navigator.gpu) {
+                    updateStatus('gpu-status',
+                        '<span class="fail">FAIL</span><br>WebGPU not supported in this browser.', false);
+                    return;
+                }
+
+                const adapter = await navigator.gpu.requestAdapter();
+                if (!adapter) {
+                    updateStatus('gpu-status',
+                        '<span class="fail">FAIL</span><br>No GPU adapter found.', false);
+                    return;
+                }
+
+                const device = await adapter.requestDevice();
+                if (!device) {
+                    updateStatus('gpu-status',
+                        '<span class="fail">FAIL</span><br>Failed to get GPU device.', false);
+                    return;
+                }
+
+                results.webgpu = true;
+                updateStatus('gpu-status',
+                    '<span class="pass">PASS</span><br>WebGPU initialized successfully.', true);
+
+                // ===== Shader Loading =====
+                let shaderCode;
+                try {
+                    const response = await fetch('../shaders/visual_cpu_riscv.wgsl');
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    shaderCode = await response.text();
+                } catch (e) {
+                    updateStatus('shader-status',
+                        `<span class="fail">FAIL</span><br>Failed to load shader: ${e.message}`, false);
+                    return;
+                }
+
+                // Create shader module to validate
+                try {
+                    const shaderModule = device.createShaderModule({
+                        label: 'visual_cpu_riscv_test',
+                        code: shaderCode
+                    });
+
+                    // Check for compilation errors
+                    const compilationInfo = await shaderModule.getCompilationInfo();
+                    const errors = compilationInfo.messages.filter(m => m.type === 'error');
+
+                    if (errors.length > 0) {
+                        const errorMsg = errors.map(e => `Line ${e.lineNum}: ${e.message}`).join('<br>');
+                        updateStatus('shader-status',
+                            `<span class="fail">FAIL</span><br>Shader compilation errors:<br>${errorMsg}`, false);
+                        return;
+                    }
+
+                    results.shader = true;
+                    updateStatus('shader-status',
+                        `<span class="pass">PASS</span><br>Shader loaded and compiled (${shaderCode.length} bytes).`, true);
+                } catch (e) {
+                    updateStatus('shader-status',
+                        `<span class="fail">FAIL</span><br>Shader compilation failed: ${e.message}`, false);
+                    return;
+                }
+
+                // ===== Run Tests =====
+                document.getElementById('progress-section').style.display = 'block';
+                document.getElementById('stats-section').style.display = 'block';
+
+                const verifier = new CoreExecutionVerifier(device);
+
+                // Run all tests
+                const testResults = await runAllTests(verifier, device, device.queue);
+                results.tests = testResults;
+
+                // Update stats
+                document.getElementById('stat-total').textContent = testResults.totalTests;
+                document.getElementById('stat-passed').textContent = testResults.passedTests;
+                document.getElementById('stat-failed').textContent = testResults.totalTests - testResults.passedTests;
+                document.getElementById('stat-categories').textContent = Object.keys(testResults.categories).length;
+
+                // Update progress
+                updateProgress(testResults.passedTests, testResults.totalTests);
+
+                // Render results
+                renderTestResults(testResults);
+                renderSummary(testResults);
+
+            } catch (e) {
+                console.error('Test suite error:', e);
+                document.getElementById('summary').innerHTML =
+                    `<span class="fail">Test suite failed with error:</span><br>${e.message}<br><br>${e.stack}`;
+                document.getElementById('summary').style.display = 'block';
+                document.getElementById('summary').className = 'summary has-fail';
+            }
+        }
+
+        // Run tests on page load
+        runTests();
+    </script>
+</body>
+</html>
