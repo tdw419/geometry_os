@@ -110,10 +110,13 @@
   3. User can see arithmetic operations (ADD, SUB, etc.) produce correct results
   4. User can see memory load/store operations work correctly
   5. User can see branch and jump instructions change program flow correctly
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 17-01: [To be planned]
+- [ ] 17-01-PLAN.md — Verification harness (async state readback)
+- [ ] 17-02-PLAN.md — Complete RV32I instruction implementation
+- [ ] 17-03-PLAN.md — Test suite with RiscvEncoder pattern
+- [ ] 17-04-PLAN.md — Visual shell integration (execution panel + demo)
 
 ### Phase 18: Privileged Architecture
 **Goal**: Users can run code that requires privilege mode switching (M-mode/S-mode)
@@ -195,7 +198,7 @@ Phases execute in numeric order: 17 → 18 → 19 → 20 → 21 → 22
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 17. Core Execution Foundation | v1.4 | 0/TBD | Not started | - |
+| 17. Core Execution Foundation | v1.4 | 0/4 | Planning | - |
 | 18. Privileged Architecture | v1.4 | 0/TBD | Not started | - |
 | 19. Memory Management Unit | v1.4 | 0/TBD | Not started | - |
 | 20. Device Emulation | v1.4 | 0/TBD | Not started | - |
@@ -223,4 +226,4 @@ Phases execute in numeric order: 17 → 18 → 19 → 20 → 21 → 22
 ---
 
 *Roadmap updated: 2026-02-28*
-*v1.4 GPU Linux Execution milestone initialized*
+*Phase 17 planning complete - 4 plans in 4 waves*
