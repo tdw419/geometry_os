@@ -10,17 +10,17 @@ See: .planning/PROJECT.md (updated 2026-02-28)
 ## Current Position
 
 Phase: 17 of 22 (Core Execution Foundation)
-Plan: 1 of TBD in current phase
+Plan: 2 of TBD in current phase
 Status: In progress
-Last activity: 2026-02-28 - Completed 17-01-PLAN.md
+Last activity: 2026-02-28 - Completed 17-02-PLAN.md
 
-Progress: [1/6 phases complete: █░░░░░]
+Progress: [2/6 phases complete: ██░░░░]
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 81 (v1.0: 23, v1.1: 8, v1.2: 14, v1.3: 20, v1.4: 1, other: 15)
-- v1.4 plans completed: 1
+- Total plans completed: 82 (v1.0: 23, v1.1: 8, v1.2: 14, v1.3: 20, v1.4: 2, other: 15)
+- v1.4 plans completed: 2
 
 **By Milestone:**
 
@@ -30,7 +30,7 @@ Progress: [1/6 phases complete: █░░░░░]
 | v1.1 | 5-6 | 8 | Complete |
 | v1.2 | 7-11 | 14 | Complete |
 | v1.3 | 12-16 | 20 | Complete |
-| v1.4 | 17-22 | 1+ | In Progress |
+| v1.4 | 17-22 | 2+ | In Progress |
 
 ## Accumulated Context
 
@@ -46,6 +46,9 @@ Progress: [1/6 phases complete: █░░░░░]
 - 64MB+ GPU storage buffer for kernel memory
 - Phase ordering: Core -> Privileged -> MMU -> Devices -> Boot -> UI
 - Staging buffer pattern for GPU readback (await mapAsync, destroy buffer)
+- Funct3 dispatch for instruction variants within opcodes
+- Read-modify-write for byte/halfword memory operations
+- Signed vs unsigned comparison patterns (val1 vs uval1)
 
 ### Blockers
 - None currently
@@ -57,8 +60,8 @@ Progress: [1/6 phases complete: █░░░░░]
 
 ## Session Continuity
 
-Last session: 2026-02-28 20:14
-Status: Phase 17-01 complete, verification harness ready
+Last session: 2026-02-28 20:23
+Status: Phase 17-02 complete, full RV32I instruction set implemented
 Resume file: None
 
-**Next Action:** Run `/gsd:execute-phase 17-02` for instruction verification tests
+**Next Action:** Run `/gsd:execute-phase 17-03` for instruction verification tests
