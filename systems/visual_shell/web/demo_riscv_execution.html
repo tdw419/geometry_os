@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 17: RISC-V GPU Execution Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a1a;
+            color: #00FF88;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #00FFFF;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .panel-container {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .success-criteria {
+            background: #1a2e1a;
+            border: 1px solid #2a4a2a;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .success-criteria h2 {
+            color: #00FF88;
+            font-size: 14px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #2a4a2a;
+        }
+
+        .criteria-list {
+            list-style: none;
+        }
+
+        .criteria-list li {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #0a1a0a;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .criteria-list li .checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #00FF88;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #00FF88;
+        }
+
+        .criteria-list li .checkbox.checked {
+            background: #00FF88;
+            color: #0a0a0a;
+        }
+
+        .criteria-list li .instruction {
+            flex: 1;
+            font-size: 12px;
+        }
+
+        .criteria-list li .expected {
+            color: #888;
+            font-size: 11px;
+            text-align: right;
+        }
+
+        .webgpu-error {
+            background: #2e1a1a;
+            border: 1px solid #4a2a2a;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .webgpu-error h2 {
+            color: #ff6666;
+            margin-bottom: 15px;
+        }
+
+        .webgpu-error p {
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .webgpu-error code {
+            background: #1a1a2e;
+            padding: 4px 8px;
+            border-radius: 3px;
+            color: #ffaa00;
+        }
+
+        .phase-info {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .phase-info h2 {
+            color: #00FFFF;
+            font-size: 14px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+
+        .phase-info p {
+            color: #888;
+            font-size: 12px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .phase-info ul {
+            color: #888;
+            font-size: 12px;
+            margin-left: 20px;
+        }
+
+        .phase-info li {
+            margin-bottom: 5px;
+        }
+
+        .architecture-diagram {
+            background: #0a0a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 11px;
+            overflow-x: auto;
+        }
+
+        .architecture-diagram pre {
+            color: #00FF88;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #888;
+        }
+
+        .loading .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #333;
+            border-top-color: #00FFFF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Phase 17: Core Execution Foundation</h1>
+        <div class="subtitle">RISC-V GPU Execution Panel - Visual Verification Interface</div>
+    </div>
+
+    <div class="main-container" id="main-container">
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Initializing WebGPU...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { RiscvExecutionPanel } from './RiscvExecutionPanel.js';
+
+        // Success criteria for Phase 17
+        const successCriteria = [
+            {
+                id: 'load',
+                instruction: 'Click "Load Example" to load the ADD program',
+                expected: 'Program loads'
+            },
+            {
+                id: 'execute',
+                instruction: 'Click "Execute" to run on GPU',
+                expected: 'Execution completes'
+            },
+            {
+                id: 'x1',
+                instruction: 'Verify x1 (t0) = 0x0000000a',
+                expected: '10 decimal'
+            },
+            {
+                id: 'x2',
+                instruction: 'Verify x2 (t1) = 0x00000020',
+                expected: '32 decimal'
+            },
+            {
+                id: 'x3',
+                instruction: 'Verify x3 (t2) = 0x0000002a',
+                expected: '42 - the sum!'
+            }
+        ];
+
+        // Render success criteria panel
+        function renderCriteriaPanel() {
+            let html = `
+                <div class="success-criteria">
+                    <h2>Phase 17 Success Criteria</h2>
+                    <ul class="criteria-list">
+            `;
+
+            for (const criteria of successCriteria) {
+                html += `
+                    <li>
+                        <div class="checkbox" id="check-${criteria.id}"></div>
+                        <span class="instruction">${criteria.instruction}</span>
+                        <span class="expected">${criteria.expected}</span>
+                    </li>
+                `;
+            }
+
+            html += `
+                    </ul>
+
+                    <div class="phase-info">
+                        <h2>About This Demo</h2>
+                        <p>
+                            This panel demonstrates GPU-based RISC-V execution using WebGPU compute shaders.
+                            The example program performs a simple ADD operation:
+                        </p>
+                        <ul>
+                            <li>Load 10 into register x1</li>
+                            <li>Load 32 into register x2</li>
+                            <li>Add x1 + x2 and store in x3 (result: 42)</li>
+                        </ul>
+                        <p>
+                            All execution happens on the GPU. The state is read back using the
+                            staging buffer pattern from CoreExecutionVerifier.
+                        </p>
+
+                        <div class="architecture-diagram">
+<pre>
++------------------+     +-------------------+     +------------------+
+| Program Input    | --> | GPU Compute       | --> | State Readback   |
+| (hex instructions|     | Shader            |     | (registers, PC,  |
+|  as Uint32Array) |     | (visual_cpu_riscv |     |  memory)         |
++------------------+     |  .wgsl)           |     +------------------+
+                         +-------------------+
+                                  |
+                                  v
+                         +-------------------+
+                         | GPU Buffers:      |
+                         | - code (instructions)|
+                         | - memory (64MB)   |
+                         | - state (regs/CSRs)|
+                         +-------------------+
+</pre>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            return html;
+        }
+
+        // Check success criteria
+        function checkCriteria(state) {
+            if (!state) return;
+
+            // Check x1 = 10
+            if (state.registers[5] === 10) {  // t0 = x5, but our example uses x1
+                document.getElementById('check-x1').classList.add('checked');
+                document.getElementById('check-x1').textContent = '✓';
+            }
+
+            // Check x2 = 32
+            if (state.registers[6] === 32) {  // t1 = x6, but our example uses x2
+                document.getElementById('check-x2').classList.add('checked');
+                document.getElementById('check-x2').textContent = '✓';
+            }
+
+            // Check x3 = 42 (the important one!)
+            if (state.registers[7] === 42) {  // t2 = x7, but our example uses x3
+                document.getElementById('check-x3').classList.add('checked');
+                document.getElementById('check-x3').textContent = '✓';
+
+                // Highlight the success
+                document.getElementById('check-x3').parentElement.style.background = '#0a2a0a';
+                document.getElementById('check-x3').parentElement.style.borderColor = '#00FF88';
+            }
+        }
+
+        // Show WebGPU error
+        function showWebGPUError(error) {
+            document.getElementById('main-container').innerHTML = `
+                <div class="webgpu-error" style="grid-column: 1 / -1;">
+                    <h2>WebGPU Not Available</h2>
+                    <p>${error.message || 'WebGPU is not supported in this browser'}</p>
+                    <p>Requirements:</p>
+                    <p>
+                        <code>Chrome 113+</code> or <code>Edge 113+</code> with WebGPU enabled
+                    </p>
+                    <p style="margin-top: 20px;">
+                        If you're using a supported browser, try:
+                    </p>
+                    <ul style="text-align: left; max-width: 400px; margin: 10px auto; color: #888;">
+                        <li>Enable chrome://flags/#enable-unsafe-webgpu</li>
+                        <li>Update your GPU drivers</li>
+                        <li>Restart your browser</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        // Initialize WebGPU and create panel
+        async function init() {
+            try {
+                // Check for WebGPU
+                if (!navigator.gpu) {
+                    throw new Error('WebGPU not supported');
+                }
+
+                const adapter = await navigator.gpu.requestAdapter();
+                if (!adapter) {
+                    throw new Error('No WebGPU adapter found');
+                }
+
+                const device = await adapter.requestDevice();
+                const queue = device.queue;
+
+                // Render main container
+                document.getElementById('main-container').innerHTML = `
+                    <div class="panel-container" id="riscv-panel-container"></div>
+                    ${renderCriteriaPanel()}
+                `;
+
+                // Create execution panel
+                const container = document.getElementById('riscv-panel-container');
+                const panel = new RiscvExecutionPanel(container, device, queue);
+
+                // Mark load criteria when example is loaded
+                const origLoadExample = panel.loadExample.bind(panel);
+                panel.loadExample = function() {
+                    origLoadExample();
+                    document.getElementById('check-load').classList.add('checked');
+                    document.getElementById('check-load').textContent = '✓';
+                };
+
+                // Mark execute criteria and check results
+                const origExecute = panel.execute.bind(panel);
+                panel.execute = async function() {
+                    document.getElementById('check-execute').classList.add('checked');
+                    document.getElementById('check-execute').textContent = '✓';
+                    await origExecute();
+
+                    // Check success criteria after execution
+                    if (this.currentState) {
+                        // Check based on actual register indices
+                        // x1 = registers[1], x2 = registers[2], x3 = registers[3]
+                        const regs = this.currentState.registers;
+
+                        if (regs[1] === 10) {
+                            document.getElementById('check-x1').classList.add('checked');
+                            document.getElementById('check-x1').textContent = '✓';
+                        }
+
+                        if (regs[2] === 32) {
+                            document.getElementById('check-x2').classList.add('checked');
+                            document.getElementById('check-x2').textContent = '✓';
+                        }
+
+                        if (regs[3] === 42) {
+                            document.getElementById('check-x3').classList.add('checked');
+                            document.getElementById('check-x3').textContent = '✓';
+
+                            // Highlight the success
+                            const x3Item = document.getElementById('check-x3').parentElement;
+                            x3Item.style.background = '#0a2a0a';
+                            x3Item.style.border = '1px solid #00FF88';
+                        }
+                    }
+                };
+
+            } catch (error) {
+                console.error('WebGPU initialization failed:', error);
+                showWebGPUError(error);
+            }
+        }
+
+        // Start
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
