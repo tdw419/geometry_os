@@ -339,7 +339,7 @@ fn check_timer_interrupt(base_idx: u32) -> bool {
 fn take_timer_interrupt(base_idx: u32, pc: u32) -> u32 {
     let sip = cpu_states[base_idx + CSR_SIP];
     cpu_states[base_idx + CSR_SIP] = sip & ~SIP_STIP;
-    return trap_enter(base_idx, CAUSE_S_TIMER_INT, 0u, pc);
+    return trap_enter_dispatch(base_idx, CAUSE_S_TIMER_INT, 0u, pc);
 }
 
 // --- TECTONIC SPATIAL MAPPING ---
@@ -505,7 +505,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         let pc_paddr = translate_address(pc * 4u, ACCESS_EXEC, base_idx);
         if (pc_paddr == 0xFFFFFFFFu) {
             // Instruction fetch fault - trap to handler
-            pc = trap_enter(base_idx, CAUSE_INST_PAGE_FAULT, pc * 4u, pc);
+            pc = trap_enter_dispatch(base_idx, CAUSE_INST_PAGE_FAULT, pc * 4u, pc);
             trap_triggered = true;
             break;
         }
@@ -643,7 +643,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                 let paddr = translate_address(vaddr, ACCESS_READ, base_idx);
 
                 if (paddr == 0xFFFFFFFFu) {
-                    pc = trap_enter(base_idx, CAUSE_LOAD_PAGE_FAULT, vaddr, pc);
+                    pc = trap_enter_dispatch(base_idx, CAUSE_LOAD_PAGE_FAULT, vaddr, pc);
                     trap_triggered = true;
                 } else if (paddr < 134217728u) {
                     let word_addr = paddr / 4u;
@@ -680,7 +680,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                 let paddr = translate_address(vaddr, ACCESS_WRITE, base_idx);
 
                 if (paddr == 0xFFFFFFFFu) {
-                    pc = trap_enter(base_idx, CAUSE_STORE_PAGE_FAULT, vaddr, pc);
+                    pc = trap_enter_dispatch(base_idx, CAUSE_STORE_PAGE_FAULT, vaddr, pc);
                     trap_triggered = true;
                 } else if (paddr < 134217728u) {
                     if (funct3 == 0x0u) { // SB (store byte)
@@ -733,10 +733,10 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                     system_memory[(SBI_BRIDGE_ARGS + 20u) / 4u] = cpu_states[base_idx + 15u];
                     system_memory[SBI_BRIDGE_FLAG / 4u] = 1u;
                     let priv = cpu_states[base_idx + CSR_MODE];
-                    pc = trap_enter(base_idx, select(CAUSE_ECALL_S, CAUSE_ECALL_U, priv == 0u), eid, pc);
+                    pc = trap_enter_dispatch(base_idx, select(CAUSE_ECALL_S, CAUSE_ECALL_U, priv == 0u), eid, pc);
                     trap_triggered = true;
                 } else if (funct3_sys == 0u && funct12_sys == 0x001u) { // EBREAK
-                    pc = trap_enter(base_idx, CAUSE_BREAKPOINT, pc * 4u, pc);
+                    pc = trap_enter_dispatch(base_idx, CAUSE_BREAKPOINT, pc * 4u, pc);
                     trap_triggered = true;
                 } else if (funct3_sys == 1u) { // CSRRW
                     let csr_idx = _get_csr_index(inst >> 20u);
@@ -794,7 +794,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                 }
             }
             case 0x2Fu: { trap_triggered = true; }
-            default: { pc = trap_enter(base_idx, CAUSE_ILLEGAL_INST, inst, pc); trap_triggered = true; }
+            default: { pc = trap_enter_dispatch(base_idx, CAUSE_ILLEGAL_INST, inst, pc); trap_triggered = true; }
         }
 
         if (!pc_changed && !trap_triggered) { cpu_states[base_idx + 32u] = pc + 1u; }
