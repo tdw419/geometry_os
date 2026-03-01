@@ -100,6 +100,14 @@ const SBI_BRIDGE_FID: u32 = 0x05010008u;
 const SBI_BRIDGE_ARGS: u32 = 0x0501000Cu; // 6 args = 24 bytes
 const SBI_BRIDGE_RET: u32 = 0x05010024u; // 2 returns = 8 bytes
 
+// --- TLB (Translation Lookaside Buffer) ---
+const TLB_ENTRIES: u32 = 16u;
+
+// Per-thread TLB arrays (private to avoid synchronization)
+var<private> tlb_tags: array<u32, TLB_ENTRIES>;    // VPN (virtual page number)
+var<private> tlb_paddrs: array<u32, TLB_ENTRIES>;  // Physical page number
+var<private> tlb_flags: array<u32, TLB_ENTRIES>;   // Bit 0: valid, Bits 1-3: R/W/X perms
+
 // --- DECODING HELPERS ---
 fn get_opcode(inst: u32) -> u32 { return inst & 0x7Fu; }
 fn get_rd(inst: u32) -> u32     { return (inst >> 7u) & 0x1Fu; }
