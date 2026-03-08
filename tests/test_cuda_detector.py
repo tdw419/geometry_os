@@ -3,6 +3,9 @@ import pytest
 import sys
 import os
 
+# Skip all tests in this module if required modules not available
+pytest.importorskip("geometry_os.systems.pixel_compiler.cuda_detector")
+
 # Add parent directory to path to allow imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

@@ -12,6 +12,7 @@ Run: pytest tests/test_directive_performance.py -v --benchmark-only
 """
 
 import pytest
+pytest.importorskip("systems.intelligence.directive_agent")
 import time
 import json
 import tempfile

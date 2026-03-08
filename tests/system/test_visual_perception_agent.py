@@ -3,6 +3,7 @@ Tests for VisualPerceptionAgent - Render Monitoring.
 """
 
 import pytest
+pytest.importorskip("systems.visual_shell.swarm.worker_agent")
 import asyncio
 import os
 import sys

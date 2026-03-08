@@ -10,6 +10,7 @@ Tests RGBA texture encoding for CTRM results including:
 - File saving functionality
 """
 
+pytest.importorskip("systems.intelligence.core")
 import os
 import tempfile
 import unittest

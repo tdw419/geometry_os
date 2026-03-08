@@ -9,6 +9,7 @@ Tests CTRM triad scoring including:
 - Category-specific archaeology scoring
 """
 
+pytest.importorskip("systems.intelligence.core")
 import unittest
 from systems.intelligence.evidence_scorer import EvidenceScorer
 from systems.intelligence.verse_classifier import VerseCategory

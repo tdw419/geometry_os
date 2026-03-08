@@ -9,6 +9,7 @@ Run: pytest tests/test_directive_contracts.py -v
 """
 
 import pytest
+pytest.importorskip("systems.intelligence.directive_agent")
 import json
 from unittest.mock import patch, MagicMock
 

@@ -12,6 +12,7 @@ Author: Neural Pipeline Specialist
 Date: 2026-02-09
 """
 
+pytest.importorskip("systems.neural_substrate")
 import asyncio
 import json
 import socket

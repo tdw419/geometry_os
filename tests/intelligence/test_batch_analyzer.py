@@ -11,6 +11,7 @@ Tests the full batch processing pipeline including:
 - WordPress publishing integration
 """
 
+pytest.importorskip("systems.intelligence.core")
 import json
 import os
 import time

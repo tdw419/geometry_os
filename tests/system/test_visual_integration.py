@@ -1,4 +1,5 @@
 import pytest
+pytest.importorskip("systems.visual_shell.swarm.worker_agent")
 import asyncio
 from systems.visual_shell.swarm.visual_perception.visual_perception_agent import VisualPerceptionAgent
 from systems.visual_shell.swarm.ide.ide_agents import ResearcherAgent

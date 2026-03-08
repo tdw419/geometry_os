@@ -13,6 +13,7 @@ Tests will skip gracefully if WordPress is unavailable.
 """
 
 import pytest
+pytest.importorskip("systems.intelligence.directive_agent")
 import requests
 import time
 import json

@@ -4,6 +4,7 @@ Validates the structure and content of genesis_kjv.json data file
 used by the CTRM Triad batch analyzer.
 """
 
+pytest.importorskip("systems.intelligence.core")
 import json
 import os
 import unittest

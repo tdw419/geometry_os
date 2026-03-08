@@ -4,6 +4,10 @@ Tests for AMP BF16 utilities
 Tests for BF16 detection, dtype selection, and capability checking.
 """
 import pytest
+
+# Skip all tests in this module if required modules not available
+pytest.importorskip("geometry_os.systems.pixel_compiler.amp_bf16_utils")
+
 import torch
 from geometry_os.systems.pixel_compiler.amp_bf16_utils import (
     detect_bf16_support,

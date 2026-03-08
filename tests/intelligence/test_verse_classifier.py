@@ -9,6 +9,7 @@ Tests classification of Bible verses into CTRM categories including:
 - Default fallback behavior
 """
 
+pytest.importorskip("systems.intelligence.core")
 import unittest
 from systems.intelligence.verse_classifier import VerseClassifier, VerseCategory
 

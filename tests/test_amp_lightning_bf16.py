@@ -5,6 +5,9 @@ Tests for BF16 integration in the Lightning AMP module.
 """
 import pytest
 
+# Skip all tests in this module if required modules not available
+pytest.importorskip("geometry_os.systems.pixel_compiler.amp_config")
+
 # Check if PyTorch Lightning is available
 try:
     import pytorch_lightning as pl

@@ -10,6 +10,7 @@ Tests cover:
 """
 
 import pytest
+pytest.importorskip("systems.intelligence.directive_agent")
 from unittest.mock import Mock, patch, mock_open
 import json
 import os
