@@ -1,250 +1,198 @@
 ; ============================================
 ; GeoASM Glyph Library - Native Visual Shell
-; Proof of Concept
 ; ============================================
 ;
-; This file demonstrates the native glyph-based
-; visual shell concept, replacing PixiJS with
-; pure GeoASM rendering via Hilbert-mapped VRAM.
+; Core rendering primitives for the native visual shell.
+; These functions bridge GeoASM logic to Hilbert-mapped VRAM.
 ;
 ; Opcodes used:
 ;   0xC0 SET_COLOR   - Set drawing color
-;   0xC1 DRAW_CHAR   - Draw character
-;   0xC2 DRAW_LINE   - Draw line
 ;   0xC3 DRAW_RECT   - Draw rectangle outline
 ;   0xC4 FILL_RECT   - Fill rectangle
 ;   0xCF DRAW_PIXEL  - Draw single pixel
-;   0xF8 PY_CALL     - FFI Bridge to Python
-;   0xF9 PY_MAP      - Map Hilbert region to NumPy
+;   0xF8 PY_CALL     - FFI Bridge to Python (Layout/Math)
 ;
 ; ============================================
 
-; === Color Palette ===
-COLOR_BACKGROUND:   EQU 0x0A0A14  ; Dark blue
-COLOR_PANEL_BG:     EQU 0x1A1A2E  ; Panel background
-COLOR_PANEL_BORDER: EQU 0x4A4A6E  ; Panel border
-COLOR_ORB_GOLD:     EQU 0xFFD700  ; .rts.png files
-COLOR_ORB_ORANGE:   EQU 0xFF8C00  ; Folders
-COLOR_ORB_CYAN:     EQU 0x00CED1  ; Other files
-COLOR_TEXT:         EQU 0xE0E0E0  ; Text
-COLOR_GLOW:         EQU 0x4040FF  ; Glow effect
+; === Global State Initialization ===
+; R255 is reserved as ZERO register
+; R254 is Stack Pointer (SP)
 
-; === Entry Point ===
-START:
-    ; Initialize the desktop
-    CALL INIT_DESKTOP
-
-    ; Render sample glyphs
-    CALL RENDER_SAMPLE_ORBS
-    CALL RENDER_SAMPLE_PANEL
-
-    ; Done
-    HALT
-
-; === Initialize Desktop ===
-INIT_DESKTOP:
-    ; Set background color
-    MOVI R0, 10      ; R
-    MOVI R1, 10      ; G
-    MOVI R2, 20      ; B
-    SET_COLOR R0, R1, R2
-
-    ; Clear entire substrate (conceptually)
-    ; In practice, this would be done via PY_MAP to NumPy
-    ; for efficient bulk operations
-
+INIT_SYSTEM:
+    MOVI R255, 0      ; R255 = 0
     RET
 
-; === Render Sample Orbs ===
-RENDER_SAMPLE_ORBS:
-    ; Orb 1: .rts.png file (Gold)
-    MOVI R0, 100     ; x
-    MOVI R1, 100     ; y
-    MOVI R2, 16      ; radius
-    MOVI R3, 0xFF    ; R
-    MOVI R4, 0xD7    ; G
-    MOVI R5, 0x00    ; B
-    CALL RENDER_ORB
+; ============================================
+; HILBERT UTILITIES
+; ============================================
 
-    ; Orb 2: Folder (Orange)
-    MOVI R0, 150     ; x
-    MOVI R1, 100     ; y
-    MOVI R2, 16      ; radius
-    MOVI R3, 0xFF    ; R
-    MOVI R4, 0x8C    ; G
-    MOVI R5, 0x00    ; B
-    CALL RENDER_ORB
-
-    ; Orb 3: Regular file (Cyan)
-    MOVI R0, 200     ; x
-    MOVI R1, 100     ; y
-    MOVI R2, 16      ; radius
-    MOVI R3, 0x00    ; R
-    MOVI R4, 0xCE    ; G
-    MOVI R5, 0xD1    ; B
-    CALL RENDER_ORB
-
-    RET
-
-; === Render Single Orb ===
-; Args: R0=x, R1=y, R2=radius, R3-5=RGB
-RENDER_ORB:
-    ; Save registers
-    PUSH R6
-    PUSH R7
-    PUSH R8
-
-    ; Set color
-    SET_COLOR R3, R4, R5
-
-    ; Draw glow (outer ring)
-    ; In full implementation, this would use alpha blending
-    ; For now, draw a simple circle
-    MOV R6, R2       ; radius
-    ADD R6, R6, 4    ; glow radius = radius + 4
-
-    ; Simplified circle via midpoint algorithm
-    ; (Full implementation would use PY_CALL to Python)
-    MOVI R7, 0       ; x = 0
-    MOV R8, R6       ; y = radius
-
-ORB_CIRCLE_LOOP:
-    ; Draw 8 symmetric points
-    ; (Simplified - real implementation would be more efficient)
-
-    ; Point at (R0+R7, R1+R8)
-    ADD R6, R0, R7
-    PUSH R0
-    MOV R0, R6
-    ADD R6, R1, R8
-    PUSH R1
-    MOV R1, R6
-    DRAW_PIXEL R0, R1
-    POP R1
-    POP R0
-
-    ; ... (7 more points in full implementation)
-
-    ; Midpoint decision
-    ; (Simplified for proof of concept)
-
-    ; Increment x, check y
-    ADD R7, R7, 1
-    CMP R7, R8
-    JLT ORB_CIRCLE_LOOP
-
-    ; Restore registers
-    POP R8
-    POP R7
-    POP R6
-    RET
-
-; === Render Sample Glass Panel ===
-RENDER_SAMPLE_PANEL:
-    ; Panel position and size
-    MOVI R0, 300     ; x
-    MOVI R1, 50      ; y
-    MOVI R2, 200     ; width
-    MOVI R3, 150     ; height
-
-    ; Draw panel background
-    MOVI R4, 26      ; R (0x1A)
-    MOVI R5, 26      ; G (0x1A)
-    MOVI R6, 46      ; B (0x2E)
-    SET_COLOR R4, R5, R6
-
-    ; Fill rectangle
-    ; R0=x, R1=y, R2=width, R3=height
-    FILL_RECT R0, R1, R2
-
-    ; Draw panel border
-    MOVI R4, 74      ; R (0x4A)
-    MOVI R5, 74      ; G (0x4A)
-    MOVI R6, 110     ; B (0x6E)
-    SET_COLOR R4, R5, R6
-
-    DRAW_RECT R0, R1, R2
-
-    ; Draw title text
-    MOVI R0, 310     ; x
-    MOVI R1, 60      ; y
-    MOVI R2, 0x47    ; 'G' character
-    SET_COLOR R7, R8, R9  ; Text color (placeholder)
-    DRAW_CHAR R0, R1, R2
-
-    RET
-
-; === Hilbert Coordinate Conversion ===
-; Uses FFI Bridge (0xF8) to call Python
-
+; Convert (x, y) to Hilbert index
+; Args: R0=x, R1=y, R2=order
+; Returns: R0=index
 HILBERT_XY_TO_INDEX:
-    ; Args: R0=x, R1=y, R2=order
-    ; Returns: R0=index
-
-    ; Pack args into memory
-    MOVI R3, 1000    ; args_ptr
-    STR_IMM R0, 1000 ; x
-    STR_IMM R1, 1001 ; y
-    STR_IMM R2, 1002 ; order
-
-    ; Call Python via FFI
-    ; funcId=16 (hilbert.xy_to_index)
-    MOVI R4, 16
-    MOVI R5, 1000    ; args_ptr
-    MOVI R6, 1100    ; ret_ptr
+    ; Pack arguments (u32 words)
+    STR_IMM R0, 4096  ; Word 1024 (byte 4096)
+    STR_IMM R1, 4097
+    STR_IMM R2, 4098
+    
+    ; Call Python FFI
+    MOVI R4, 310      ; FFI_HILBERT_XY_TO_INDEX
+    MOVI R5, 4096     ; args_ptr (word)
+    MOVI R6, 4100     ; ret_ptr (word)
     PY_CALL R4, R5, R6
-
-    ; Get result
-    LDR R0, 1100
-
+    
+    ; Load result
+    LDR R0, 4100
     RET
 
+; Convert index to (x, y)
+; Args: R0=index, R1=order
+; Returns: R0=x, R1=y
 HILBERT_INDEX_TO_XY:
-    ; Args: R0=index, R1=order
-    ; Returns: R0=x, R1=y
-
-    ; Pack args
-    STR_IMM R0, 1000
-    STR_IMM R1, 1001
-
-    ; Call Python via FFI
-    ; funcId=17 (hilbert.index_to_xy)
-    MOVI R4, 17
-    MOVI R5, 1000
-    MOVI R6, 1100
+    STR_IMM R0, 4096
+    STR_IMM R1, 4097
+    
+    MOVI R4, 311      ; FFI_HILBERT_INDEX_TO_XY
+    MOVI R5, 4096
+    MOVI R6, 4100
     PY_CALL R4, R5, R6
-
-    ; Get results
-    LDR R0, 1100     ; x
-    LDR R1, 1101     ; y
-
+    
+    LDR R0, 4100      ; x
+    LDR R1, 4101      ; y
     RET
 
-; === Hilbert-Mapped Pixel Write ===
-; Writes a pixel using Hilbert indexing for spatial locality
+; ============================================
+; SHAPE PRIMITIVES (GeoASM Native)
+; ============================================
 
-DRAW_PIXEL_HILBERT:
-    ; Args: R0=x, R1=y, R2=color
-    ; Uses Hilbert curve for VRAM indexing
+; Set active drawing color
+; Args: R0=R, R1=G, R2=B, R3=A
+GLYPH_SET_COLOR:
+    SET_COLOR R0, R1, R2
+    ; Alpha handling (R253 is alpha in hypervisor)
+    ADD R253, R3, R255 ; Move R3 to R253
+    RET
 
-    PUSH R3
+; Draw a solid rectangle
+; Args: R0=x, R1=y, R2=w, R3=h
+GLYPH_FILL_RECT:
+    ; Correct calling convention for FILL_RECT Rx, Ry, Rw (uses R0 for Rh)
+    PUSH R4
+    ADD R4, R0, R255  ; Save x to R4
+    ADD R0, R3, R255  ; Move h to R0
+    FILL_RECT R4, R1, R2
+    POP R4
+    RET
 
-    ; Convert to Hilbert index
-    MOVI R3, 10      ; order = 10 (1024x1024)
+; Draw an orb (circle with glow)
+; Args: R0=x, R1=y, R2=radius
+GLYPH_DRAW_ORB:
     PUSH R0
     PUSH R1
     PUSH R2
-    CALL HILBERT_XY_TO_INDEX
-    ; R0 now contains Hilbert index
-
-    ; Write to Hilbert-indexed VRAM
-    ; (In practice, this would be a memory write to
-    ; the GPU buffer at the calculated index)
+    
+    ADD R2, R2, 2     ; glow_radius = r + 2
+    MOVI R3, 80       ; alpha 0.3ish
+    CALL GLYPH_DRAW_CIRCLE
+    
     POP R2
     POP R1
     POP R0
-
-    POP R3
+    MOVI R3, 255      ; full alpha
+    CALL GLYPH_DRAW_CIRCLE
     RET
 
-; === End of Glyph Library ===
+; Draw a circle (Simplified for PoC)
+; Args: R0=cx, R1=cy, R2=radius, R3=alpha
+GLYPH_DRAW_CIRCLE:
+    SUB R0, R0, R2    ; x = cx - r
+    SUB R1, R1, R2    ; y = cy - r
+    MUL R2, R2, 2     ; w = 2r
+    ADD R3, R2, R255  ; h = 2r
+    CALL GLYPH_FILL_RECT
+    RET
+
+; ================= ===========================
+; LAYOUT ENGINE
+; ============================================
+
+; Generate spiral positions for N entities
+; Args: R0=count, R1=spacing, R2=target_mem_ptr
+GLYPH_LAYOUT_SPIRAL:
+    STR_IMM R0, 4096  ; count
+    STR_IMM R1, 4097  ; spacing
+    
+    MOVI R4, 300      ; FFI_LAYOUT_SPIRAL
+    MOVI R5, 4096
+    ADD R6, R2, R255  ; Move R2 to R6
+    PY_CALL R4, R5, R6
+    RET
+
+; ============================================
+; MAIN ENTRY POINT
+; ============================================
+
+START:
+    CALL INIT_SYSTEM
+
+    ; 1. Set background
+    MOVI R0, 5
+    MOVI R1, 5
+    MOVI R2, 10
+    MOVI R3, 255
+    CALL GLYPH_SET_COLOR
+    
+    MOVI R0, 0
+    MOVI R1, 0
+    MOVI R2, 1024
+    MOVI R3, 1024
+    CALL GLYPH_FILL_RECT
+    
+    ; 2. Draw a test panel
+    MOVI R0, 100
+    MOVI R1, 100
+    MOVI R2, 300
+    MOVI R3, 200
+    
+    ; Save panel dimensions
+    PUSH R0
+    PUSH R1
+    PUSH R2
+    PUSH R3
+    
+    ; Set panel color
+    MOVI R0, 30
+    MOVI R1, 30
+    MOVI R2, 50
+    MOVI R3, 200
+    CALL GLYPH_SET_COLOR
+    
+    ; Restore dimensions and draw
+    POP R3
+    POP R2
+    POP R1
+    POP R0
+    CALL GLYPH_FILL_RECT
+    
+    ; 3. Draw a file orb
+    MOVI R0, 500
+    MOVI R1, 500
+    MOVI R2, 20
+    
+    PUSH R0
+    PUSH R1
+    PUSH R2
+    
+    ; Set orb color (Gold)
+    MOVI R0, 255
+    MOVI R1, 215
+    MOVI R2, 0
+    MOVI R3, 255
+    CALL GLYPH_SET_COLOR
+    
+    POP R2
+    POP R1
+    POP R0
+    CALL GLYPH_DRAW_ORB
+    
+    HALT
