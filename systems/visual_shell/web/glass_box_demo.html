@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glass Box - Sisyphus Thought Visualization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a0a0a;
+            color: #ccc;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            overflow: hidden;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        header {
+            padding: 12px 20px;
+            background: #111;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 {
+            font-size: 18px;
+            color: #0ff;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        .status {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #666;
+        }
+        .status-dot.connected {
+            background: #0f0;
+            box-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
+        }
+        .status-dot.disconnected {
+            background: #f00;
+            box-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+        }
+        .main {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+        #canvas-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #050505;
+        }
+        #thought-canvas {
+            border: 1px solid #222;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.1);
+        }
+        .sidebar {
+            width: 300px;
+            background: #111;
+            border-left: 1px solid #333;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        .sidebar h2 {
+            font-size: 14px;
+            color: #0ff;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #333;
+        }
+        .thought-list {
+            font-size: 11px;
+        }
+        .thought-item {
+            padding: 8px;
+            margin-bottom: 6px;
+            background: #1a1a1a;
+            border-radius: 4px;
+            border-left: 3px solid #666;
+        }
+        .thought-item.task_start { border-left-color: #0ff; }
+        .thought-item.task_complete { border-left-color: #0f0; }
+        .thought-item.task_failure { border-left-color: #f00; }
+        .thought-item.gvn { border-left-color: #ff0; }
+        .thought-item.dna_synthesis { border-left-color: #f0f; }
+        .thought-item.heuristic { border-left-color: #88f; }
+        .thought-item.checkpoint { border-left-color: #f80; }
+        .thought-type {
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+        .thought-content {
+            color: #888;
+            word-break: break-all;
+        }
+        .thought-time {
+            color: #555;
+            font-size: 10px;
+            margin-top: 4px;
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 11px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        .controls {
+            padding: 10px 20px;
+            background: #111;
+            border-top: 1px solid #333;
+            display: flex;
+            gap: 15px;
+        }
+        button {
+            background: #222;
+            color: #0ff;
+            border: 1px solid #0ff;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #0ff;
+            color: #000;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+            color: #888;
+        }
+        .stat-value {
+            color: #0ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GLASS BOX v1.0</h1>
+            <div class="status">
+                <div class="status-item">
+                    <div class="status-dot" id="ws-status"></div>
+                    <span>WebSocket</span>
+                </div>
+                <div class="status-item">
+                    <span>Thoughts: <span class="stat-value" id="thought-count">0</span></span>
+                </div>
+                <div class="status-item">
+                    <span>FPS: <span class="stat-value" id="fps">0</span></span>
+                </div>
+            </div>
+        </header>
+
+        <div class="main">
+            <div id="canvas-container">
+                <canvas id="thought-canvas" width="512" height="512"></canvas>
+            </div>
+
+            <div class="sidebar">
+                <h2>Color Legend</h2>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #0ff;"></div>
+                        <span>Task Start</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #0f0;"></div>
+                        <span>Complete</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f00;"></div>
+                        <span>Failure</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ff0;"></div>
+                        <span>GVN</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f0f;"></div>
+                        <span>DNA</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f80;"></div>
+                        <span>Checkpoint</span>
+                    </div>
+                </div>
+
+                <h2>Recent Thoughts</h2>
+                <div class="thought-list" id="thought-list">
+                    <div class="thought-item">
+                        <div class="thought-content">Waiting for thoughts...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="connect-btn">Connect</button>
+            <button id="clear-btn">Clear</button>
+            <button id="test-btn">Send Test Thought</button>
+        </div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="hilbert_lut.js"></script>
+    <script src="ThoughtVisualizer.js"></script>
+
+    <script>
+        // Initialize visualizer
+        const canvas = document.getElementById('thought-canvas');
+        const visualizer = new ThoughtVisualizer('thought-canvas', 8);
+
+        // UI elements
+        const wsStatus = document.getElementById('ws-status');
+        const thoughtCount = document.getElementById('thought-count');
+        const fpsDisplay = document.getElementById('fps');
+        const thoughtList = document.getElementById('thought-list');
+        const connectBtn = document.getElementById('connect-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const testBtn = document.getElementById('test-btn');
+
+        // FPS tracking
+        let frameCount = 0;
+        let lastFpsUpdate = performance.now();
+
+        // Update status on connection change
+        const originalOnOpen = visualizer.ws?.onopen;
+        const originalOnClose = visualizer.ws?.onclose;
+
+        function updateConnectionStatus(connected) {
+            wsStatus.className = 'status-dot ' + (connected ? 'connected' : 'disconnected');
+            connectBtn.textContent = connected ? 'Disconnect' : 'Connect';
+        }
+
+        // Override visualizer connect to update UI
+        const originalConnect = visualizer.connect.bind(visualizer);
+        visualizer.connect = function(url) {
+            originalConnect(url);
+
+            // Patch onopen/onclose for UI updates
+            setTimeout(() => {
+                if (visualizer.ws) {
+                    const ws = visualizer.ws;
+                    const origOnOpen = ws.onopen;
+                    const origOnClose = ws.onclose;
+
+                    ws.onopen = (e) => {
+                        updateConnectionStatus(true);
+                        if (origOnOpen) origOnOpen(e);
+                    };
+
+                    ws.onclose = (e) => {
+                        updateConnectionStatus(false);
+                        if (origOnClose) origOnClose(e);
+                    };
+                }
+            }, 0);
+        };
+
+        // Override addThought to update sidebar
+        const originalAddThought = visualizer.addThought.bind(visualizer);
+        visualizer.addThought = function(thought) {
+            originalAddThought(thought);
+            addThoughtToSidebar(thought);
+            thoughtCount.textContent = visualizer.thoughts.length;
+        };
+
+        // Add thought to sidebar list
+        function addThoughtToSidebar(thought) {
+            const type = thought.type || 'default';
+            const content = thought.content || thought.task_name || JSON.stringify(thought).slice(0, 100);
+            const time = new Date().toLocaleTimeString();
+
+            const item = document.createElement('div');
+            item.className = `thought-item ${type}`;
+            item.innerHTML = `
+                <div class="thought-type">${type.toUpperCase()}</div>
+                <div class="thought-content">${escapeHtml(content)}</div>
+                <div class="thought-time">${time}</div>
+            `;
+
+            thoughtList.insertBefore(item, thoughtList.firstChild);
+
+            // Keep only last 50 thoughts in sidebar
+            while (thoughtList.children.length > 50) {
+                thoughtList.removeChild(thoughtList.lastChild);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // FPS counter in render loop
+        function updateFps() {
+            frameCount++;
+            const now = performance.now();
+            if (now - lastFpsUpdate >= 1000) {
+                fpsDisplay.textContent = frameCount;
+                frameCount = 0;
+                lastFpsUpdate = now;
+            }
+            requestAnimationFrame(updateFps);
+        }
+        updateFps();
+
+        // Button handlers
+        connectBtn.addEventListener('click', () => {
+            if (visualizer.connected) {
+                visualizer.ws?.close();
+            } else {
+                visualizer.connect();
+            }
+        });
+
+        clearBtn.addEventListener('click', () => {
+            visualizer.thoughts = [];
+            thoughtList.innerHTML = '';
+            thoughtCount.textContent = '0';
+
+            // Clear canvas
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        });
+
+        testBtn.addEventListener('click', () => {
+            const types = ['task_start', 'task_complete', 'gvn', 'dna_synthesis', 'heuristic', 'checkpoint'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            const contents = [
+                'Optimizing loop in render_pass',
+                'Checkpoint saved: task_42',
+                'GVN eliminated 23 redundant loads',
+                'DNA synthesis: 3 new tasks generated',
+                'Heuristic: uncommitted files detected',
+                'Task complete: 15.3s'
+            ];
+            const content = contents[Math.floor(Math.random() * contents.length)];
+
+            visualizer.addThought({
+                type: type,
+                content: content,
+                task_name: content,
+                timestamp: Date.now()
+            });
+        });
+
+        // Start render loop
+        visualizer.render();
+
+        // Initial status
+        updateConnectionStatus(false);
+
+        // Auto-connect on load
+        setTimeout(() => {
+            visualizer.connect();
+        }, 500);
+    </script>
+</body>
+</html>
