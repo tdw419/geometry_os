@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 5 of 5 (Visual Diff Engine) - IN PROGRESS
-Plan: 1 of 4 complete
+Plan: 2 of 4 complete
 Status: Active
-Last activity: 2026-03-08 — Completed 05-01 (PixelRTSDiffer core)
+Last activity: 2026-03-08 — Completed 05-02 (Hilbert region highlighting)
 
-Progress: [████░░░░░░░░░░░░░░░░] 25% v1.1 (1/4 plans)
+Progress: [████████░░░░░░░░░░░░] 50% v1.1 (2/4 plans)
 
 ## Performance Metrics
 
@@ -32,6 +32,10 @@ Key decisions from v1.0 archived in `.planning/milestones/v1.0-ROADMAP.md`
 - 05-01: Reuse PixelRTSDecoder for byte extraction (no new PNG parsing)
 - 05-01: Three-way classification: added (0->nonzero), removed (nonzero->0), changed (both nonzero, different)
 - 05-01: Zero-padding for size mismatches in diff arrays
+- 05-02: Map byte indices to pixel indices via byte_idx // 4 (RGBA packing)
+- 05-02: Use scipy.ndimage.label for connected region detection
+- 05-02: Cap regions at 100 to prevent memory issues
+- 05-02: Sort regions by pixel_count descending for priority visualization
 
 ### Pending Todos
 
@@ -43,8 +47,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-08T21:34:03Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-03-08T21:41:15Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None
 
 **CLI Commands Available (v1.0):**
