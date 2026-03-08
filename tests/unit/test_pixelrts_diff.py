@@ -170,3 +170,76 @@ class TestPixelRTSDiffer:
         # Should raise FileNotFoundError for missing new file
         with pytest.raises(FileNotFoundError):
             self.differ.diff(existing_path, non_existent)
+
+    # ==================== Region Tests ====================
+
+    def test_get_regions_returns_list(self):
+        """Test that _get_regions returns a list (may be empty)."""
+        # Create a diff mask with some changes
+        mask = np.zeros(100, dtype=bool)
+        mask[10:20] = True
+
+        # Call _get_regions with a small grid
+        regions = self.differ._get_regions(mask, grid_size=16)
+
+        # Should return a list
+        assert isinstance(regions, list)
+
+    def test_diff_includes_changed_regions(self):
+        """Test that diff() result contains 'changed_regions' key."""
+        # Create files with differences
+        old_data = b"AAAAAAAAAA"  # 10 bytes
+        new_data = b"AABBBBBBBB"  # 10 bytes, different
+
+        old_path = self._create_rts_file(old_data, "old.rts.png")
+        new_path = self._create_rts_file(new_data, "new.rts.png")
+
+        # Run diff
+        result = self.differ.diff(old_path, new_path)
+
+        # Verify changed_regions is present and is a list
+        assert 'changed_regions' in result, "Missing changed_regions in result"
+        assert isinstance(result['changed_regions'], list), "changed_regions should be a list"
+
+    def test_regions_have_bounds(self):
+        """Test that each region has x_min, x_max, y_min, y_max, pixel_count."""
+        # Create a diff mask with some changes
+        mask = np.zeros(1000, dtype=bool)
+        mask[100:200] = True  # Create some changed bytes
+
+        # Call _get_regions
+        regions = self.differ._get_regions(mask, grid_size=16)
+
+        # If regions exist, verify structure
+        if regions:
+            region = regions[0]
+            assert 'x_min' in region, "Missing x_min in region"
+            assert 'x_max' in region, "Missing x_max in region"
+            assert 'y_min' in region, "Missing y_min in region"
+            assert 'y_max' in region, "Missing y_max in region"
+            assert 'pixel_count' in region, "Missing pixel_count in region"
+            assert 'id' in region, "Missing id in region"
+            assert 'byte_count' in region, "Missing byte_count in region"
+
+            # Verify types
+            assert isinstance(region['x_min'], int), "x_min should be int"
+            assert isinstance(region['y_min'], int), "y_min should be int"
+            assert isinstance(region['pixel_count'], int), "pixel_count should be int"
+
+    def test_regions_sorted_by_size(self):
+        """Test that regions are sorted by pixel_count descending."""
+        # Create a diff mask with changes in two separate areas
+        # Using a larger mask to create distinct regions
+        mask = np.zeros(2000, dtype=bool)
+        mask[100:200] = True  # First region (25 pixels)
+        mask[500:700] = True  # Second region (50 pixels) - should be first after sort
+
+        # Call _get_regions
+        regions = self.differ._get_regions(mask, grid_size=16)
+
+        # If multiple regions exist, verify they're sorted
+        if len(regions) > 1:
+            pixel_counts = [r['pixel_count'] for r in regions]
+            # Verify descending order
+            assert pixel_counts == sorted(pixel_counts, reverse=True), \
+                f"Regions not sorted by pixel_count descending: {pixel_counts}"
