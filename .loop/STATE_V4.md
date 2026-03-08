@@ -37,7 +37,7 @@
 
 - [x] 18. **Commit Native C Hilbert Curve Library**: Committed `hilbert.c`, `hilbert.h`, `Makefile`, `libhilbert.so`. Python wrapper already exists at `systems/sisyphus/native_hilbert.py`. **Verification**: Run `git log --oneline -1 systems/native/` - shows commit. **COMPLETED**.
 
-- [ ] 19. **Fix test_native_hilbert_wrapper.py Collection Error**: Test file has import error causing collection failure. Investigate missing module/dependency and fix imports. **Verification**: Run `python3 -m pytest tests/test_native_hilbert_wrapper.py --collect-only` - 0 errors, shows test count.
+- [x] 19. **Fix test_native_hilbert_wrapper.py Collection Error**: Fixed syntax error and API mismatch. Tests now use correct methods: `d2xy(n,d)`, `xy2d(n,x,y)`. **Verification**: Run `python3 -m pytest tests/test_native_hilbert_wrapper.py -v` - 8 passed. **COMPLETED**.
 
 - [ ] 20. **Commit sisyphus_v4.py Entry Point**: Uncommitted `sisyphus_v4.py` provides daemon entry point. Add to version control. **Verification**: Run `git add sisyphus_v4.py && git commit`. Run `git status sisyphus_v4.py` - clean.
 
