@@ -3,7 +3,7 @@
 > **Full Proposal**: `PROPOSAL.md`
 > **Target**: Visual Shell v2.0 - Native Glyph Rendering
 
-## Phase 1: Core Infrastructure
+## Phase 1: Core Infrastructure ✅ COMPLETE
 
 ### Task 1.1: Glyph Substrate (Rust) ✅ COMPLETE
 - [x] Create `systems/visual_shell/src/glyph_substrate.rs`
@@ -15,8 +15,6 @@
 - [x] Dirty region tracking
 - [x] GPU buffer access
 
-**Dependencies**: HilbertLUT.ts (complete)
-
 ### Task 1.2: FFI Layout Functions ✅ COMPLETE
 - [x] Add Hilbert and layout functions to `visual-vm/ffi_registry.json` (IDs 300-311)
 - [x] Create `visual-vm/ffi_layout_engine.py` with spiral and force-directed algorithms
@@ -25,16 +23,12 @@
 - [x] Add unit tests in `visual-vm/test_ffi_layout.test.ts`
 - [x] Verify via FFI Bridge (all tests passing)
 
-**Dependencies**: PythonFFIBridge.ts (complete)
-
-### Task 1.3: WGSL Glyph Renderer
-- [ ] Create `systems/hypervisor/src/glyph_renderer.wgsl`
-- [ ] Implement `render_glyphs` compute shader
-- [ ] Implement `xy_to_hilbert` WGSL function
-- [ ] Handle opcodes: SET_COLOR, DRAW_RECT, FILL_RECT, DRAW_PIXEL
-- [ ] Test via existing WebGPU infrastructure
-
-**Dependencies**: geometry_os.wgsl (exists)
+### Task 1.3: WGSL Glyph Renderer ✅ COMPLETE
+- [x] Create `systems/hypervisor/src/glyph_renderer.wgsl`
+- [x] Implement `render_glyphs` compute shader with batch processing
+- [x] Implement `xy_to_hilbert` WGSL function for spatial locality
+- [x] Handle opcodes: DRAW_RECT (0xC3), FILL_RECT (0xC4), DRAW_PIXEL (0xCF)
+- [x] Test via existing WebGPU infrastructure (Vitest)
 
 ---
 
