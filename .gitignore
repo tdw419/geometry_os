@@ -7,7 +7,6 @@ backups/
 *.tar.gz
 *.tdl
 
-<<<<<<< HEAD
 # Build artifacts and binaries
 build/
 
@@ -26,6 +25,10 @@ debug/
 __pycache__/
 *.pyc
 *.pyo
+
+# Coverage
+.coverage
+htmlcov/
 
 # Databases
 *.db
@@ -70,10 +73,19 @@ systems/visual_shell/electron/dist/
 *.raw
 specs/.current-spec
 **/.progress.md
-=======
+
 # Generated test files
 .generated_test_*
 
 # Massive generated async tests
 tests/generated_async_tests/
->>>>>>> 0e49d11c2e9 (chore(ffi): update submodule pointers and root documentation for FFI Bridge)
+
+# Node modules
+node_modules/
+
+# Rust build artifacts
+systems/infinite_map_rs/target/
+
+# Daemon runtime state
+.loop/state/
+.loop/*.archive
