@@ -9,6 +9,7 @@ pub mod damage_tracker;
 pub mod entities;
 pub mod font_bitmap;
 pub mod glyph_atlas;
+pub mod glyph_substrate;
 pub mod gpu;
 pub mod hilbert;
 pub mod hilbert_writer;

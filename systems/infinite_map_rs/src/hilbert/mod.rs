@@ -182,6 +182,7 @@ pub fn xy2d(n: u32, x: u32, y: u32) -> u64 {
 ///
 /// Useful when performing multiple conversions on the same grid size,
 /// as it validates the grid size once and provides a cleaner API.
+#[derive(Debug, Clone, Copy)]
 pub struct HilbertCurve {
     /// Grid size (must be power of 2)
     pub n: u32,
