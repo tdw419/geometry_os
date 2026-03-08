@@ -381,3 +381,301 @@ class TestBroadcastEvent:
 
         # Should have logged a warning
         assert "Failed to broadcast" in caplog.text or "Network error" in caplog.text
+
+
+class TestCaptureNeuralEvent:
+    """Tests for capture_neural_event method."""
+
+    @pytest.fixture
+    def service(self):
+        """Create a LiveTileService instance for testing."""
+        return LiveTileService()
+
+    @pytest.fixture
+    def running_tile(self):
+        """Create a running tile with console output."""
+        tile = LiveTileInstance(
+            tile_id="tile-neural",
+            rts_path="/path/to/test.rts.png",
+            status="running"
+        )
+        tile.metrics = {"cpu": 15.0, "memory": 140}
+        tile.console_output = [
+            {"text": "> ls -la"},
+            {"text": "file1 file2"},
+            {"text": "> cat test.txt"}
+        ]
+        return tile
+
+    @pytest.mark.asyncio
+    async def test_capture_neural_event_returns_none_for_missing_tile(self, service):
+        """capture_neural_event should return None for non-existent tile."""
+        result = await service.capture_neural_event("nonexistent")
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_capture_neural_event_with_shell_tokens(self, service, running_tile):
+        """capture_neural_event should use provided shell_tokens."""
+        service.tiles[running_tile.tile_id] = running_tile
+
+        event = await service.capture_neural_event(
+            "tile-neural",
+            shell_tokens=["ls", "-la", "/home"],
+            broadcast=False
+        )
+
+        assert event is not None
+        assert event.tile_id == "tile-neural"
+        assert event.shell_tokens == ["ls", "-la", "/home"]
+        assert event.broadcast is False
+
+    @pytest.mark.asyncio
+    async def test_capture_neural_event_extracts_from_console(self, service, running_tile):
+        """capture_neural_event should extract shell tokens from console."""
+        service.tiles[running_tile.tile_id] = running_tile
+
+        event = await service.capture_neural_event(
+            "tile-neural",
+            shell_tokens=None,  # Should extract from console
+            broadcast=True
+        )
+
+        assert event is not None
+        # Should have extracted tokens from console output
+        assert len(event.shell_tokens) > 0
+        assert "ls" in event.shell_tokens or "cat" in event.shell_tokens
+
+    @pytest.mark.asyncio
+    async def test_capture_neural_event_with_event_type_override(self, service, running_tile):
+        """capture_neural_event should allow event_type override."""
+        from systems.evolution_daemon.neural_event import EventType
+
+        service.tiles[running_tile.tile_id] = running_tile
+
+        event = await service.capture_neural_event(
+            "tile-neural",
+            shell_tokens=["test"],
+            event_type=EventType.ALPINE_COMMAND,
+            broadcast=False
+        )
+
+        assert event is not None
+        assert event.event_type == EventType.ALPINE_COMMAND
+
+
+class TestGetCollectiveContext:
+    """Tests for get_collective_context method."""
+
+    @pytest.fixture
+    def service(self):
+        """Create a LiveTileService instance for testing."""
+        return LiveTileService()
+
+    @pytest.mark.asyncio
+    async def test_get_collective_context_returns_dict(self, service):
+        """get_collective_context should return context dict."""
+        result = await service.get_collective_context("tile-test")
+
+        assert isinstance(result, dict)
+        assert "recent_events" in result
+        assert "similar_tiles" in result
+        assert "similar_events" in result
+
+
+class TestGetFramebuffer:
+    """Tests for get_framebuffer method."""
+
+    @pytest.fixture
+    def service(self):
+        """Create a LiveTileService instance for testing."""
+        return LiveTileService()
+
+    @pytest.mark.asyncio
+    async def test_get_framebuffer_missing_tile(self, service):
+        """get_framebuffer should return None for missing tile."""
+        result = await service.get_framebuffer("nonexistent")
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_get_framebuffer_running_tile(self, service):
+        """get_framebuffer should return framebuffer data for running tile."""
+        tile = LiveTileInstance(
+            tile_id="tile-fb",
+            rts_path="/path/to/test.rts.png",
+            status="running",
+            framebuffer="base64imagedata"
+        )
+        service.tiles[tile.tile_id] = tile
+
+        result = await service.get_framebuffer("tile-fb")
+
+        assert result["tile_id"] == "tile-fb"
+        assert result["data"] == "base64imagedata"
+        assert result["width"] == 320
+        assert result["height"] == 240
+
+
+class TestHandleRPCAdvanced:
+    """Tests for additional handle_rpc methods."""
+
+    @pytest.fixture
+    def service(self):
+        """Create a LiveTileService instance for testing."""
+        return LiveTileService()
+
+    @pytest.mark.asyncio
+    async def test_handle_rpc_capture_neural_event(self, service):
+        """handle_rpc should handle capture_neural_event method."""
+        tile = LiveTileInstance(
+            tile_id="tile-rpc",
+            rts_path="/path/to/test.rts.png",
+            status="running"
+        )
+        tile.metrics = {"cpu": 10, "memory": 128}
+        service.tiles[tile.tile_id] = tile
+
+        result = await service.handle_rpc("capture_neural_event", {
+            "tile_id": "tile-rpc",
+            "shell_tokens": ["test"],
+            "broadcast": False
+        })
+
+        assert result is not None
+        assert result["tile_id"] == "tile-rpc"
+
+    @pytest.mark.asyncio
+    async def test_handle_rpc_capture_neural_event_missing_tile(self, service):
+        """handle_rpc capture_neural_event should return None for missing tile."""
+        result = await service.handle_rpc("capture_neural_event", {
+            "tile_id": "nonexistent",
+            "shell_tokens": ["test"]
+        })
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_handle_rpc_get_collective_context(self, service):
+        """handle_rpc should handle get_collective_context method."""
+        result = await service.handle_rpc("get_collective_context", {
+            "tile_id": "tile-test"
+        })
+
+        assert isinstance(result, dict)
+        assert "recent_events" in result
+
+    @pytest.mark.asyncio
+    async def test_handle_rpc_send_console_input_missing_tile(self, service):
+        """handle_rpc send_console_input should handle missing tile."""
+        result = await service.handle_rpc("send_console_input", {
+            "tile_id": "nonexistent",
+            "input": "ls"
+        })
+
+        assert result["status"] == "not_found"
+
+    @pytest.mark.asyncio
+    async def test_handle_rpc_send_console_input_not_running(self, service):
+        """handle_rpc send_console_input should handle stopped tile."""
+        tile = LiveTileInstance(
+            tile_id="tile-stopped",
+            rts_path="/path/to/test.rts.png",
+            status="stopped"
+        )
+        service.tiles[tile.tile_id] = tile
+
+        result = await service.handle_rpc("send_console_input", {
+            "tile_id": "tile-stopped",
+            "input": "ls"
+        })
+
+        assert result["status"] == "not_running"
+
+
+class TestCalculateTargetFps:
+    """Tests for _calculate_target_fps method."""
+
+    @pytest.fixture
+    def service(self):
+        """Create a LiveTileService instance for testing."""
+        return LiveTileService()
+
+    def test_calculate_fps_background(self, service):
+        """Background tiles should have low FPS."""
+        tile = LiveTileInstance(
+            tile_id="tile-bg",
+            rts_path="/path/to/test.rts.png",
+            status="running"
+        )
+        tile.focus_state = "background"
+
+        fps = service._calculate_target_fps(tile)
+        assert fps == 0.5
+
+    def test_calculate_fps_focused(self, service):
+        """Focused tiles should have high FPS."""
+        tile = LiveTileInstance(
+            tile_id="tile-focus",
+            rts_path="/path/to/test.rts.png",
+            status="running"
+        )
+        tile.focus_state = "focused"
+
+        fps = service._calculate_target_fps(tile)
+        assert fps == 15.0
+
+    def test_calculate_fps_typing_recent_input(self, service):
+        """Typing tiles with recent input should have medium-high FPS."""
+        import time
+
+        tile = LiveTileInstance(
+            tile_id="tile-type",
+            rts_path="/path/to/test.rts.png",
+            status="running"
+        )
+        tile.focus_state = "typing"
+        tile.last_input_time = time.time()
+
+        fps = service._calculate_target_fps(tile)
+        assert fps == 10.0
+
+    def test_calculate_fps_typing_no_recent_input(self, service):
+        """Typing tiles without recent input should have high FPS."""
+        tile = LiveTileInstance(
+            tile_id="tile-type",
+            rts_path="/path/to/test.rts.png",
+            status="running"
+        )
+        tile.focus_state = "typing"
+        tile.last_input_time = 0  # Very old
+
+        fps = service._calculate_target_fps(tile)
+        assert fps == 15.0
+
+    def test_calculate_fps_idle_recent_input(self, service):
+        """Idle tiles with recent input should have medium FPS."""
+        import time
+
+        tile = LiveTileInstance(
+            tile_id="tile-idle",
+            rts_path="/path/to/test.rts.png",
+            status="running"
+        )
+        tile.focus_state = "idle"
+        tile.last_input_time = time.time()
+
+        fps = service._calculate_target_fps(tile)
+        assert fps == 5.0
+
+    def test_calculate_fps_idle_no_recent_input(self, service):
+        """Idle tiles without recent input should have low FPS."""
+        tile = LiveTileInstance(
+            tile_id="tile-idle",
+            rts_path="/path/to/test.rts.png",
+            status="running"
+        )
+        tile.focus_state = "idle"
+        tile.last_input_time = 0
+
+        fps = service._calculate_target_fps(tile)
+        assert fps == 1.0
