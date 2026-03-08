@@ -89,3 +89,4 @@ systems/infinite_map_rs/target/
 # Daemon runtime state
 .loop/state/
 .loop/*.archive
+.geometry/clones/
