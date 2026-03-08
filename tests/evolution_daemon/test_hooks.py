@@ -249,3 +249,225 @@ class TestPipelineStatus:
         assert PipelineStatus.IN_PROGRESS.value == "in_progress"
         assert PipelineStatus.COMPLETED.value == "completed"
         assert PipelineStatus.FAILED.value == "failed"
+
+
+class TestAsciiEmitterHook:
+    """Tests for AsciiEmitterHook."""
+
+    def test_initialization(self):
+        """Test AsciiEmitterHook initialization."""
+        from systems.evolution_daemon.hooks import AsciiEmitterHook
+        hook = AsciiEmitterHook()
+        assert hook._prefix == "[EVOLUTION]"
+
+    def test_custom_prefix(self):
+        """Test custom prefix."""
+        from systems.evolution_daemon.hooks import AsciiEmitterHook
+        hook = AsciiEmitterHook(prefix="[CUSTOM]")
+        assert hook._prefix == "[CUSTOM]"
+
+    def test_on_pas_change_excellent(self, capsys):
+        """Test PAS change with excellent health."""
+        from systems.evolution_daemon.hooks import AsciiEmitterHook
+        hook = AsciiEmitterHook()
+        hook.on_pas_change(0.85, 0.95)
+
+        captured = capsys.readouterr()
+        assert "PAS:" in captured.out
+        assert "EXCELLENT" in captured.out
+
+    def test_on_pas_change_good(self, capsys):
+        """Test PAS change with good health."""
+        from systems.evolution_daemon.hooks import AsciiEmitterHook
+        hook = AsciiEmitterHook()
+        hook.on_pas_change(0.6, 0.75)
+
+        captured = capsys.readouterr()
+        assert "GOOD" in captured.out
+
+    def test_on_pas_change_moderate(self, capsys):
+        """Test PAS change with moderate health."""
+        from systems.evolution_daemon.hooks import AsciiEmitterHook
+        hook = AsciiEmitterHook()
+        hook.on_pas_change(0.4, 0.55)
+
+        captured = capsys.readouterr()
+        assert "MODERATE" in captured.out
+
+    def test_on_pas_change_critical(self, capsys):
+        """Test PAS change with critical health."""
+        from systems.evolution_daemon.hooks import AsciiEmitterHook
+        hook = AsciiEmitterHook()
+        hook.on_pas_change(0.3, 0.35)
+
+        captured = capsys.readouterr()
+        assert "CRITICAL" in captured.out
+
+    def test_on_pas_change_negative_delta(self, capsys):
+        """Test PAS change with negative delta."""
+        from systems.evolution_daemon.hooks import AsciiEmitterHook
+        hook = AsciiEmitterHook()
+        hook.on_pas_change(0.9, 0.7)
+
+        captured = capsys.readouterr()
+        assert "-0.200" in captured.out or "-" in captured.out
+
+    def test_on_pipeline_stage_started(self, capsys):
+        """Test pipeline stage started."""
+        from systems.evolution_daemon.hooks import AsciiEmitterHook
+        hook = AsciiEmitterHook()
+        hook.on_pipeline_stage("Scan", "started")
+
+        captured = capsys.readouterr()
+        assert "STAGE:" in captured.out
+        assert "Scan" in captured.out
+        assert "[>]" in captured.out
+
+    def test_on_pipeline_stage_in_progress(self, capsys):
+        """Test pipeline stage in progress."""
+        from systems.evolution_daemon.hooks import AsciiEmitterHook
+        hook = AsciiEmitterHook()
+        hook.on_pipeline_stage("Build", "in_progress")
+
+        captured = capsys.readouterr()
+        assert "[...]" in captured.out
+
+    def test_on_pipeline_stage_completed(self, capsys):
+        """Test pipeline stage completed."""
+        from systems.evolution_daemon.hooks import AsciiEmitterHook
+        hook = AsciiEmitterHook()
+        hook.on_pipeline_stage("Patch", "completed")
+
+        captured = capsys.readouterr()
+        assert "[OK]" in captured.out
+
+    def test_on_pipeline_stage_failed(self, capsys):
+        """Test pipeline stage failed."""
+        from systems.evolution_daemon.hooks import AsciiEmitterHook
+        hook = AsciiEmitterHook()
+        hook.on_pipeline_stage("Reason", "failed")
+
+        captured = capsys.readouterr()
+        assert "[FAIL]" in captured.out
+
+    def test_on_self_correction_success(self, capsys):
+        """Test self-correction success."""
+        from systems.evolution_daemon.hooks import AsciiEmitterHook
+        hook = AsciiEmitterHook()
+        hook.on_self_correction("test_failure", "rollback", True)
+
+        captured = capsys.readouterr()
+        assert "CORRECTION:" in captured.out
+        assert "OK" in captured.out
+
+    def test_on_self_correction_failure(self, capsys):
+        """Test self-correction failure."""
+        from systems.evolution_daemon.hooks import AsciiEmitterHook
+        hook = AsciiEmitterHook()
+        hook.on_self_correction("error", "retry", False)
+
+        captured = capsys.readouterr()
+        assert "FAIL" in captured.out
+
+    def test_pas_history_tracking(self):
+        """Test that PAS history is tracked."""
+        from systems.evolution_daemon.hooks import AsciiEmitterHook
+        hook = AsciiEmitterHook()
+        hook.on_pas_change(0.5, 0.6)
+        hook.on_pas_change(0.6, 0.7)
+
+        assert 0.6 in hook._pas_history
+        assert 0.7 in hook._pas_history
+
+
+class TestGetEvolutionBroadcaster:
+    """Tests for get_evolution_broadcaster singleton."""
+
+    def test_get_broadcaster_returns_instance(self):
+        """Test that get_evolution_broadcaster returns an instance."""
+        from systems.evolution_daemon.hooks import (
+            get_evolution_broadcaster,
+            EvolutionHookBroadcaster
+        )
+        # Reset singleton
+        import systems.evolution_daemon.hooks as hooks_module
+        hooks_module._default_broadcaster = None
+
+        broadcaster = get_evolution_broadcaster()
+        assert isinstance(broadcaster, EvolutionHookBroadcaster)
+
+    def test_get_broadcaster_singleton(self):
+        """Test that get_evolution_broadcaster returns singleton."""
+        from systems.evolution_daemon.hooks import get_evolution_broadcaster
+        import systems.evolution_daemon.hooks as hooks_module
+        hooks_module._default_broadcaster = None
+
+        b1 = get_evolution_broadcaster()
+        b2 = get_evolution_broadcaster()
+        assert b1 is b2
+
+    def test_broadcaster_has_ascii_emitter(self):
+        """Test that broadcaster has AsciiEmitterHook by default."""
+        from systems.evolution_daemon.hooks import (
+            get_evolution_broadcaster,
+            AsciiEmitterHook
+        )
+        import systems.evolution_daemon.hooks as hooks_module
+        hooks_module._default_broadcaster = None
+
+        broadcaster = get_evolution_broadcaster()
+        # Should have at least the ASCII emitter
+        assert len(broadcaster._hooks) >= 1
+        assert any(isinstance(h, AsciiEmitterHook) for h in broadcaster._hooks)
+
+
+class TestEvolutionHookBroadcasterClear:
+    """Tests for clear_hooks method."""
+
+    def test_clear_hooks(self):
+        """Test clearing all hooks."""
+        broadcaster = EvolutionHookBroadcaster()
+        hook1 = ConcreteHook()
+        hook2 = ConcreteHook()
+        broadcaster.add_hook(hook1)
+        broadcaster.add_hook(hook2)
+
+        assert len(broadcaster._hooks) == 2
+        broadcaster.clear_hooks()
+        assert len(broadcaster._hooks) == 0
+
+    def test_clear_hooks_empty(self):
+        """Test clearing when already empty."""
+        broadcaster = EvolutionHookBroadcaster()
+        broadcaster.clear_hooks()  # Should not raise
+        assert len(broadcaster._hooks) == 0
+
+
+class TestEvolutionHookBroadcasterHooksProperty:
+    """Tests for hooks property."""
+
+    def test_hooks_returns_copy(self):
+        """Test that hooks property returns a copy."""
+        broadcaster = EvolutionHookBroadcaster()
+        hook = ConcreteHook()
+        broadcaster.add_hook(hook)
+
+        hooks_copy = broadcaster.hooks
+        assert hooks_copy == [hook]
+
+        # Modifying copy shouldn't affect original
+        hooks_copy.clear()
+        assert len(broadcaster._hooks) == 1
+
+
+class TestEvolutionHookBroadcasterDuplicateAdd:
+    """Tests for adding duplicate hooks."""
+
+    def test_add_duplicate_hook(self):
+        """Test that duplicate hooks aren't added twice."""
+        broadcaster = EvolutionHookBroadcaster()
+        hook = ConcreteHook()
+        broadcaster.add_hook(hook)
+        broadcaster.add_hook(hook)  # Add same hook again
+
+        assert len(broadcaster._hooks) == 1
