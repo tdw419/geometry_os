@@ -189,7 +189,21 @@ class PixelRTSDiffer:
                 'change_percent': 0.0,
                 'diff_mask': np.array([], dtype=bool),
                 'old_metadata': old_metadata,
-                'new_metadata': new_metadata
+                'new_metadata': new_metadata,
+                'old_grid_size': 256,
+                'new_grid_size': 256,
+                'grid_size_used': 256,
+                'channel_stats': {
+                    'per_channel': {'R': {'changed': 0, 'mean_delta': 0.0},
+                                    'G': {'changed': 0, 'mean_delta': 0.0},
+                                    'B': {'changed': 0, 'mean_delta': 0.0},
+                                    'A': {'changed': 0, 'mean_delta': 0.0}},
+                    'most_changed_channel': 'R',
+                    'least_changed_channel': 'R'
+                },
+                'old_bytes': np.array([], dtype=np.uint8),
+                'new_bytes': np.array([], dtype=np.uint8),
+                'changed_regions': []
             }
 
         # Convert to numpy arrays
@@ -238,8 +252,14 @@ class PixelRTSDiffer:
         if new_metadata and 'grid_size' in new_metadata:
             new_grid_size = new_metadata['grid_size']
 
+        # Use max of both grid sizes for region calculation
+        grid_size_used = max(old_grid_size, new_grid_size)
+
         # Compute channel statistics
         channel_stats = self._compute_channel_stats(diff_mask, old_array, new_array)
+
+        # Compute changed regions using Hilbert mapping
+        changed_regions = self._get_regions(diff_mask, grid_size_used)
 
         return {
             'old_file': str(old_path),
@@ -255,9 +275,11 @@ class PixelRTSDiffer:
             'new_metadata': new_metadata,
             'old_grid_size': old_grid_size,
             'new_grid_size': new_grid_size,
+            'grid_size_used': grid_size_used,
             'channel_stats': channel_stats,
             'old_bytes': old_array,
-            'new_bytes': new_array
+            'new_bytes': new_array,
+            'changed_regions': changed_regions
         }
 
     def _compute_channel_stats(self, diff_mask: np.ndarray, old_arr: np.ndarray, new_arr: np.ndarray) -> dict:
