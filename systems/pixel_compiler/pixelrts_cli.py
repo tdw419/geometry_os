@@ -983,6 +983,57 @@ def cmd_catalog(args):
     return 0
 
 
+def cmd_diff(args):
+    """Handle diff command - Compare two .rts.png files."""
+    import json
+    from systems.pixel_compiler.pixelrts_diff import PixelRTSDiffer, format_diff_output
+
+    differ = PixelRTSDiffer()
+
+    try:
+        result = differ.diff(args.old, args.new)
+
+        if args.json:
+            # Create JSON-serializable copy (exclude numpy arrays)
+            json_result = {
+                'old_file': result.get('old_file'),
+                'new_file': result.get('new_file'),
+                'added_bytes': result.get('added_bytes'),
+                'removed_bytes': result.get('removed_bytes'),
+                'changed_bytes': result.get('changed_bytes'),
+                'unchanged_bytes': result.get('unchanged_bytes'),
+                'total_bytes': result.get('total_bytes'),
+                'change_percent': result.get('change_percent'),
+                'old_grid_size': result.get('old_grid_size'),
+                'new_grid_size': result.get('new_grid_size'),
+                'grid_size_used': result.get('grid_size_used'),
+                'changed_regions': result.get('changed_regions', []),
+                'channel_stats': result.get('channel_stats', {}),
+                'old_metadata': result.get('old_metadata'),
+                'new_metadata': result.get('new_metadata')
+            }
+            print(json.dumps(json_result, indent=2, default=str))
+        else:
+            print(format_diff_output(result))
+
+        # Return 0 if identical, 1 if different (for scripting)
+        return 0 if result.get('change_percent', 0) == 0 else 1
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 2
+    except ValueError as e:
+        # Invalid PNG or RTS format
+        print(f"Error: Invalid file format - {e}", file=sys.stderr)
+        return 3
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -995,6 +1046,7 @@ Commands:
   boot         Boot .rts.png files with QEMU (single command)
   install      Install .rts.png files to disk image (with verification)
   catalog      Launch visual catalog server for browsing .rts.png files
+  diff         Compare two .rts.png files and show differences
   benchmark    Run performance benchmarks
   dashboard    Generate performance dashboard
   info         Display information about .rts.png file
@@ -1015,6 +1067,8 @@ Examples:
   pixelrts catalog
   pixelrts catalog --port 8080 --paths /path/to/images
   pixelrts catalog --no-browser
+  pixelrts diff old.rts.png new.rts.png
+  pixelrts diff old.rts.png new.rts.png --json
   pixelrts analyze image.rts.png --method edges --edge-method sobel
   pixelrts analyze image.rts.png --method all --output results.json
   pixelrts execute fibonacci.rts.png --function fib --arguments 10
@@ -1304,6 +1358,32 @@ Examples:
         help='Enable verbose output'
     )
 
+    # Diff command (compare two .rts.png files)
+    diff_parser = subparsers.add_parser(
+        'diff',
+        help='Compare two .rts.png files',
+        description='Compare two .rts.png files and show byte-level differences'
+    )
+    diff_parser.add_argument(
+        'old',
+        help='Original .rts.png file'
+    )
+    diff_parser.add_argument(
+        'new',
+        help='New/modified .rts.png file'
+    )
+    diff_parser.add_argument(
+        '--json',
+        action='store_true',
+        help='Output as JSON'
+    )
+    diff_parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help='Enable verbose output'
+    )
+    diff_parser.set_defaults(func=cmd_diff)
+
     args = parser.parse_args()
 
     if not args.command:
@@ -1317,6 +1397,7 @@ Examples:
         'boot': cmd_boot,
         'install': cmd_install,
         'catalog': cmd_catalog,
+        'diff': cmd_diff,
         'benchmark': cmd_benchmark,
         'dashboard': cmd_dashboard,
         'info': cmd_info,
