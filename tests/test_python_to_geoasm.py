@@ -14,6 +14,74 @@ import ast
 from python_to_geoasm import PythonToGeoASM
 
 
+class MockVM:
+    """Simple mock VM for testing transpiled GeoASM execution."""
+
+    def __init__(self):
+        self.program = ""
+        self.registers = {}
+        self.memory = {}
+        self.arrays = {}
+        self.halted = False
+        self.steps = 0
+
+    def load_geoasm(self, program: str):
+        """Load GeoASM program string."""
+        self.program = program
+
+    def reset(self):
+        """Reset VM state."""
+        self.registers = {}
+        self.memory = {}
+        self.arrays = {}
+        self.halted = False
+        self.steps = 0
+
+    def run(self, max_steps=10000):
+        """Execute loaded program (simplified simulation)."""
+        self.steps = 0
+        lines = self.program.strip().split('\n')
+
+        for line in lines:
+            self.steps += 1
+            if self.steps > max_steps:
+                break
+
+            line = line.strip()
+            if not line or line.startswith(';'):
+                continue
+
+            # Parse instruction
+            parts = line.split()
+            if not parts:
+                continue
+
+            instr = parts[0].upper()
+
+            if instr == 'HALT':
+                self.halted = True
+                break
+            elif instr == 'MOVI':
+                # MOVI R0, 5 or MOVI R0, 0xFFFF
+                reg = parts[1].rstrip(',')
+                val_str = parts[2]
+                val = int(val_str, 16) if val_str.startswith('0x') else int(val_str)
+                self.registers[reg] = val
+            elif instr == 'DEL':
+                # del x - simple variable delete
+                pass
+            elif instr in ('SLICE_DEL_LOOP', 'DEL_SHIFT_LOOP', 'NEG_IDX', 'NESTED_DEL'):
+                # These are delete operations - simulated
+                pass
+
+        return {
+            'halted': self.halted,
+            'steps': self.steps,
+            'registers': self.registers,
+            'arrays': self.arrays
+        }
+
+
 class TestAnnAssign:
     """Tests for annotated assignment (x: int = 5)."""
 
@@ -435,11 +503,7 @@ class TestDeleteSliceEdgeCasesWithMockVM:
 
     @pytest.fixture
     def mock_vm(self):
-        """Import and return MockVM from test_transpiler_self_hosting."""
-        import sys
-        from pathlib import Path
-        sys.path.insert(0, str(Path(__file__).parent.parent))
-        from test_transpiler_self_hosting import MockVM
+        """Return MockVM instance."""
         return MockVM()
 
     def test_empty_slice_vm_execution(self, mock_vm):

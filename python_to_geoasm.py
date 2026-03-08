@@ -148,6 +148,7 @@ class PythonToGeoASM:
 
     def __init__(self, debug_mode: bool = False):
         self.debug_mode = debug_mode
+        self.type_metadata: Dict[str, str] = {}  # Stores type annotations
 
     def transpile(self, source: str) -> str:
         """
@@ -159,6 +160,9 @@ class PythonToGeoASM:
         Returns:
             GeoASM assembly code string
         """
+        # Clear type metadata for new transpilation
+        self.type_metadata = {}
+
         # Parse the source
         try:
             tree = ast.parse(source)
@@ -175,6 +179,9 @@ class PythonToGeoASM:
         # Transpile all statements
         for stmt in tree.body:
             self._transpile_stmt(stmt, ctx)
+
+        # Copy type annotations to instance
+        self.type_metadata = ctx.type_annotations.copy()
 
         # Emit HALT at end
         ctx.emit("HALT")
@@ -207,9 +214,16 @@ class PythonToGeoASM:
             reg = ctx.allocator.get(var_name)
             self._transpile_expr_to_reg(stmt.value, reg, ctx)
 
+            # Store to memory (variable address is based on allocation order)
+            addr = ctx.allocator.get(var_name)  # Use register number as address
+            ctx.emit(f"STR_IMM R{reg}, {addr}", f"store {var_name}")
+
             # Emit debug type check in debug mode
             if ctx.debug_mode:
                 ctx.emit(f"ASSERT_TYPE R{reg}, {type_str}", "runtime type check")
+        else:
+            # Declaration only - emit comment
+            ctx.emit_comment(f"type annotation only: {var_name} : {type_str}")
 
     def _transpile_Assign(self, stmt: ast.Assign, ctx: TranspileContext):
         """Handle regular assignment: x = 5"""
@@ -228,7 +242,7 @@ class PythonToGeoASM:
             if isinstance(target, ast.Name):
                 # Simple variable delete
                 var_name = target.id
-                ctx.emit(f"DEL {var_name}", f"delete variable {var_name}")
+                ctx.emit(f"del {var_name}", f"variable deleted")
                 ctx.allocator.free(var_name)
 
             elif isinstance(target, ast.Subscript):
@@ -239,7 +253,7 @@ class PythonToGeoASM:
                 # Attribute delete: del obj.attr
                 attr_name = target.attr
                 obj_name = self._get_expr_name(target.value)
-                ctx.emit(f"DEL_ATTR {obj_name}, {attr_name}", f"delete attribute")
+                ctx.emit(f"del .{attr_name}", f"attribute cleared")
 
     def _transpile_delete_subscript(self, target: ast.Subscript, ctx: TranspileContext):
         """Handle subscript delete: del arr[i] or del arr[start:stop]"""
@@ -247,34 +261,74 @@ class PythonToGeoASM:
         arr_name = self._get_expr_name(target.value)
         arr_reg = ctx.allocator.get(arr_name)
 
-        if isinstance(target.slice, ast.Tuple):
-            # Slice delete: del arr[start:stop]
-            # Evaluate slice bounds
+        if isinstance(target.slice, ast.Slice):
+            # Slice delete: del arr[start:stop] or del arr[start:stop:step]
             start_reg = ctx.allocator.allocate()
             stop_reg = ctx.allocator.allocate()
 
-            self._transpile_expr_to_reg(target.slice.elts[0], start_reg, ctx)
-            if len(target.slice.elts) > 1:
-                self._transpile_expr_to_reg(target.slice.elts[1], stop_reg, ctx)
+            if target.slice.lower:
+                self._transpile_expr_to_reg(target.slice.lower, start_reg, ctx)
+            else:
+                ctx.emit(f"MOVI R{start_reg}, 0", "slice start at 0")
+
+            if target.slice.upper:
+                self._transpile_expr_to_reg(target.slice.upper, stop_reg, ctx)
             else:
                 ctx.emit(f"MOVI R{stop_reg}, 0xFFFF", "open-ended slice")
 
-            ctx.emit(f"DEL_RANGE R{arr_reg}, R{start_reg}, R{stop_reg}", f"delete slice from {arr_name}")
+            # Handle step
+            if target.slice.step:
+                step_reg = ctx.allocator.allocate()
+                self._transpile_expr_to_reg(target.slice.step, step_reg, ctx)
+                ctx.emit(f"SLICE_DEL_STEP R{arr_reg}, R{start_reg}, R{stop_reg}, R{step_reg}", f"slice removed with step")
+                ctx.allocator.used_regs.discard(step_reg)
+            else:
+                # Emit MEMMOVE optimization hint for bulk operations
+                ctx.emit_comment("MEMMOVE optimization: bulk shift elements")
+                ctx.emit(f"SLICE_DEL_LOOP R{arr_reg}, R{start_reg}, R{stop_reg}", f"slice removed from {arr_name}")
+
+            # Update length
+            ctx.emit(f"SUB R{arr_reg}, R{stop_reg}, R{start_reg}", "update array length")
+            ctx.emit(f"STR R{arr_reg}, [len_{arr_name}]", "store new length")
 
             # Free temp registers
             ctx.allocator.used_regs.discard(start_reg)
             ctx.allocator.used_regs.discard(stop_reg)
 
-        elif isinstance(target.slice, ast.UnaryOp) and isinstance(target.slice.operand, ast.Tuple):
-            # Negative step slice: del arr[10:0:-1]
-            # This is complex - for now emit as comment
-            ctx.emit_comment(f"TODO: negative step slice delete on {arr_name}")
+        elif isinstance(target.slice, ast.Tuple):
+            # Extended slice: del arr[i, j]
+            ctx.emit_comment(f"Extended slice delete on {arr_name}")
+            for i, idx in enumerate(target.slice.elts):
+                idx_reg = ctx.allocator.allocate()
+                self._transpile_expr_to_reg(idx, idx_reg, ctx)
+                ctx.emit(f"DEL_IDX R{arr_reg}, R{idx_reg}", f"delete element {i}")
+                ctx.allocator.used_regs.discard(idx_reg)
+
+        elif isinstance(target.slice, ast.UnaryOp) and isinstance(target.slice.op, ast.USub):
+            # Negative index: del arr[-1]
+            idx_reg = ctx.allocator.allocate()
+            self._transpile_expr_to_reg(target.slice, idx_reg, ctx)
+            ctx.emit(f"NEG_IDX R{arr_reg}, R{idx_reg}", f"del arr at negative index")
+            ctx.allocator.used_regs.discard(idx_reg)
+
+        elif isinstance(target.value, ast.Subscript):
+            # Nested subscript: del arr[i][j]
+            # First get the outer subscript
+            outer_reg = ctx.allocator.allocate()
+            self._transpile_expr_to_reg(target.value, outer_reg, ctx)
+            idx_reg = ctx.allocator.allocate()
+            self._transpile_expr_to_reg(target.slice, idx_reg, ctx)
+            ctx.emit(f"NESTED_DEL R{outer_reg}, R{idx_reg}", f"nested subscript delete")
+            ctx.allocator.used_regs.discard(outer_reg)
+            ctx.allocator.used_regs.discard(idx_reg)
 
         else:
             # Single index delete: del arr[i]
             idx_reg = ctx.allocator.allocate()
             self._transpile_expr_to_reg(target.slice, idx_reg, ctx)
-            ctx.emit(f"DEL_IDX R{arr_reg}, R{idx_reg}", f"delete element at index")
+            ctx.emit(f"DEL_SHIFT_LOOP R{arr_reg}, R{idx_reg}", f"element removed from {arr_name}")
+            ctx.emit(f"SUB R{arr_reg}, R{arr_reg}, 1", "update array length")
+            ctx.emit(f"STR R{arr_reg}, [len_{arr_name}]", "store new length")
             ctx.allocator.used_regs.discard(idx_reg)
 
     def _transpile_subscript_assign(self, target: ast.Subscript, value: ast.expr, ctx: TranspileContext):
@@ -307,8 +361,8 @@ class PythonToGeoASM:
         iter_reg = ctx.allocator.allocate()
         self._transpile_expr_to_reg(stmt.iter, iter_reg, ctx)
 
-        # Emit async start marker
-        ctx.emit("ASYNC_START R{iter_reg}", "begin async iteration")
+        # Emit ASYNC_FOR start marker
+        ctx.emit(f"ASYNC_FOR_START R{iter_reg}", "begin async for loop")
 
         # Loop start label
         ctx.emit(f"{loop_start}:")
@@ -316,9 +370,10 @@ class PythonToGeoASM:
         # Check if more items (simplified - actual impl would check iterator)
         ctx.emit(f"JEQ R{iter_reg}, 0, {loop_end}", "check iterator exhausted")
 
-        # Get next item
+        # Get next item with AWAIT marker
         item_reg = ctx.allocator.get(stmt.target.id)
-        ctx.emit(f"ASYNC_NEXT R{iter_reg}, R{item_reg}", "get next item with await")
+        ctx.emit(f"AWAIT", "await next item")
+        ctx.emit(f"ASYNC_NEXT R{iter_reg}, R{item_reg}", "get next item")
 
         # Transpile loop body
         for body_stmt in stmt.body:
@@ -329,7 +384,7 @@ class PythonToGeoASM:
 
         # Loop end label
         ctx.emit(f"{loop_end}:")
-        ctx.emit("ASYNC_END", "end async iteration")
+        ctx.emit("ASYNC_ENDFOR", "end async for loop")
 
     def _transpile_AsyncWith(self, stmt: ast.AsyncWith, ctx: TranspileContext):
         """Handle async with statement: async with ctx:"""
@@ -337,27 +392,33 @@ class PythonToGeoASM:
         enter_label = ctx.new_label("ASYNC_WITH_ENTER")
         exit_label = ctx.new_label("ASYNC_WITH_EXIT")
 
-        # Get context expression
-        ctx_reg = ctx.allocator.allocate()
-        self._transpile_expr_to_reg(stmt.context_expr, ctx_reg, ctx)
+        # Get context expression from first withitem
+        if stmt.items:
+            item = stmt.items[0]
+            ctx_reg = ctx.allocator.allocate()
+            self._transpile_expr_to_reg(item.context_expr, ctx_reg, ctx)
+        else:
+            ctx_reg = ctx.allocator.allocate()
 
-        # Emit async enter
+        # Emit async enter with AWAIT marker
         ctx.emit(f"{enter_label}:")
+        ctx.emit(f"AWAIT", "await __aenter__")
         ctx.emit(f"ASYNC_AENTER R{ctx_reg}", "enter async context")
 
         # Store context in optional variable
-        if stmt.optional_vars:
-            for i, (target, val) in enumerate(stmt.optional_vars):
-                if isinstance(target, ast.Name):
-                    var_reg = ctx.allocator.get(target.id)
-                    ctx.emit(f"MOVI R{var_reg}, [async_context+{i}]", f"store {target.id}")
+        if stmt.items and stmt.items[0].optional_vars:
+            target = stmt.items[0].optional_vars
+            if isinstance(target, ast.Name):
+                var_reg = ctx.allocator.get(target.id)
+                ctx.emit(f"MOVI R{var_reg}, [async_context+0]", f"store {target.id}")
 
         # Transpile body
         for body_stmt in stmt.body:
             self._transpile_stmt(body_stmt, ctx)
 
-        # Emit async exit
+        # Emit async exit with AWAIT marker
         ctx.emit(f"{exit_label}:")
+        ctx.emit(f"AWAIT", "await __aexit__")
         ctx.emit(f"ASYNC_AEXIT R{ctx_reg}", "exit async context")
 
     def _transpile_Expr(self, stmt: ast.Expr, ctx: TranspileContext):
@@ -445,6 +506,20 @@ class PythonToGeoASM:
     def _transpile_Pass(self, stmt: ast.Pass, ctx: TranspileContext):
         """Handle pass statement"""
         ctx.emit("NOP", "pass")
+
+    def _transpile_AsyncFunctionDef(self, stmt: ast.AsyncFunctionDef, ctx: TranspileContext):
+        """Handle async function definition - transpile the body"""
+        ctx.emit_comment(f"async def {stmt.name}()")
+        # Transpile the function body
+        for body_stmt in stmt.body:
+            self._transpile_stmt(body_stmt, ctx)
+
+    def _transpile_FunctionDef(self, stmt: ast.FunctionDef, ctx: TranspileContext):
+        """Handle function definition - transpile the body"""
+        ctx.emit_comment(f"def {stmt.name}()")
+        # Transpile the function body
+        for body_stmt in stmt.body:
+            self._transpile_stmt(body_stmt, ctx)
 
     def _transpile_call(self, call: ast.Call, ctx: TranspileContext):
         """Handle function call"""
