@@ -298,3 +298,284 @@ How roadmap phases should address these pitfalls.
 ---
 *Pitfalls research for: Vision-based OS Boot (PixelRTS v2)*
 *Researched: 2026-02-11*
+
+---
+
+# MILESTONE: Network Boot (PXE/NBD) and Delta Updates
+
+**Domain:** PXE Boot, Network Block Device, Delta Updates
+**Context:** Adding network boot and delta update features to existing PixelRTS boot system
+**Researched:** 2026-03-08
+**Confidence:** MEDIUM (based on official documentation and established patterns; specific PixelRTS integration needs validation)
+
+---
+
+## Critical Pitfalls
+
+### Pitfall 7: DHCP Conflict with Existing Network Infrastructure
+
+**What goes wrong:**
+PXE requires DHCP options 66 (TFTP server) and 67 (boot filename). Adding a PXE server to an existing network with an operational DHCP server causes IP assignment conflicts, boot failures, or network-wide outages.
+
+**Why it happens:**
+Developers assume they can run a full DHCP server alongside the existing one, not realizing DHCP broadcasts reach all clients. Two DHCP servers on the same network = race condition chaos.
+
+**How to avoid:**
+- Use **proxyDHCP** mode (dnsmasq or similar) that only responds to PXE DHCP requests (option 60 = "PXEClient")
+- Configure existing DHCP server with options 66/67 pointing to PXE server
+- Test on isolated VLAN before production deployment
+
+**Warning signs:**
+- Clients receive IP but no boot filename
+- Intermittent boot failures (race condition between DHCP servers)
+- Network admin complaints about IP conflicts
+
+**Phase to address:** Phase 1 (Infrastructure Setup)
+
+---
+
+### Pitfall 8: NBD copyonwrite Memory Exhaustion
+
+**What goes wrong:**
+NBD's copyonwrite mode appears to solve concurrent read/write by creating per-client diff files. With many clients or long-running sessions, these diff files grow unbounded, consuming all disk space or memory.
+
+**Why it happens:**
+Each NBD client with copyonwrite enabled maintains its own diff file that accumulates all writes. Developers underestimate how quickly these grow, especially when clients perform updates or log writes.
+
+**How to avoid:**
+- Set explicit diff file size limits and cleanup schedules
+- Use copyonwrite only for read-only rootfs scenarios
+- Implement periodic rebase/merge operations to consolidate diffs
+- Monitor disk usage on NBD server with alerts at 80% capacity
+
+**Warning signs:**
+- NBD server disk usage climbing steadily
+- Client I/O errors after extended uptime
+- Server becoming unresponsive due to disk full
+
+**Phase to address:** Phase 2 (NBD Server Implementation)
+
+---
+
+### Pitfall 9: TFTP Timeout on Large PixelRTS Containers
+
+**What goes wrong:**
+TFTP has no built-in progress indication and uses small block sizes (default 512 bytes). Transferring a 64MB PixelRTS container (4096x4096 grid) takes 10+ minutes with no feedback, appearing "hung" to users.
+
+**Why it happens:**
+TFTP is intentionally simple (UDP-based, no authentication). Large file transfers expose its weaknesses. Developers assume "it works for 1MB files, it'll work for 64MB."
+
+**How to avoid:**
+- Use **tsize** option to report file size upfront (client can show progress)
+- Increase block size to 1468 bytes (max for Ethernet MTU) via `blksize` option
+- Consider HTTP-based boot for large files (UEFI HTTP Boot standard)
+- Implement chunked loading: transfer minimal boot kernel first, NBD for rootfs
+
+**Warning signs:**
+- Boot times exceeding 5 minutes with no visual feedback
+- TFTP "connection lost" errors on large files
+- Users killing power during boot thinking system is frozen
+
+**Phase to address:** Phase 1 (Infrastructure Setup) + Phase 4 (Integration with PixelRTS)
+
+---
+
+### Pitfall 10: Hilbert Curve Mismatch Between Encoder and NBD Server
+
+**What goes wrong:**
+PixelRTS uses Hilbert curve mapping for 2D-to-1D conversion. If the NBD server reads a byte range without applying the same Hilbert curve as the encoder, clients receive corrupted data at "random" offsets.
+
+**Why it happens:**
+NBD operates on linear byte offsets. Developers treat the PNG as a flat byte stream, forgetting the Hilbert curve remapping. The corruption is subtle because sequential bytes often remain sequential in Hilbert space (just not always).
+
+**How to avoid:**
+- NBD server must use the same HilbertCurve implementation as encoder
+- Include Hilbert order in container metadata (verify before serving)
+- Add round-trip test: encode -> NBD serve -> decode -> compare hash
+- Consider caching Hilbert LUT to avoid regeneration per-request
+
+**Warning signs:**
+- Extracted data has correct size but wrong SHA256
+- Boot succeeds sometimes, fails other times (depends on which blocks accessed)
+- Binary diff shows scattered byte-level corruption
+
+**Phase to address:** Phase 3 (NBD + PixelRTS Integration)
+
+---
+
+### Pitfall 11: Delta Update Breaks on PNG Recompression
+
+**What goes wrong:**
+Delta updates (rsync/bsdiff) work on byte differences. PNG compression is not byte-stable: re-encoding the same image can produce different byte sequences due to compression library versions, optimization settings, or even random z-buffer states.
+
+**Why it happens:**
+PixelRTS containers are PNG files. A small change to the underlying binary data may result in a completely different PNG byte stream after compression, making delta updates huge or ineffective.
+
+**How to avoid:**
+- Apply delta updates to the **extracted binary**, not the PNG container
+- Re-encode to PNG after applying delta, using consistent compression settings
+- Store pre-compression checksum for verification
+- Consider "raw" mode for frequently-updated containers (skip PNG, serve binary directly via NBD)
+
+**Warning signs:**
+- Delta files nearly as large as full containers
+- rsync showing "100% of file transferred" for minor changes
+- bsdiff producing patches larger than source files
+
+**Phase to address:** Phase 5 (Delta Update Implementation)
+
+---
+
+### Pitfall 12: NBD Single-Threaded Bottleneck
+
+**What goes wrong:**
+Classic nbd-server is single-threaded per export. Multiple booting clients compete for a single request queue, causing sequential boot times even with parallel hardware.
+
+**Why it happens:**
+NBD protocol was designed for single-client scenarios (disk over network). Server processes requests one at a time per export. Developers expect parallel boot because "the network can handle it."
+
+**How to avoid:**
+- Use multi-connection NBD (nbd-client `-N` option for multiple connections)
+- Deploy multiple nbd-server instances with load balancing
+- Consider modern alternatives: NVMe-oF, iSCSI with multipathing
+- Implement client-side caching to reduce server load
+
+**Warning signs:**
+- Boot time scales linearly with client count
+- Server CPU at 100% while network is underutilized
+- Clients timing out while others boot
+
+**Phase to address:** Phase 2 (NBD Server Implementation)
+
+---
+
+## Technical Debt Patterns (Network Boot)
+
+| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
+|----------|-------------------|----------------|-----------------|
+| Skip proxyDHCP, use full DHCP | Simpler initial setup | Network conflicts, angry network admins | Never in production; OK for isolated dev |
+| Disable copyonwrite on NBD | Faster writes, less disk | All clients share writes, data corruption | Read-only rootfs only |
+| Use default TFTP block size | No configuration needed | 10x slower transfers for large containers | Never; always set blksize |
+| Skip Hilbert LUT caching | Less code | Per-request LUT generation, latency spikes | Only for <64x64 grids (trivial LUT) |
+| Apply delta to PNG directly | Skip decode/encode step | Delta ineffective, large patches | Never |
+| Single NBD export for all clients | Simpler server config | Sequential boot bottleneck | Single-client deployments only |
+
+---
+
+## Integration Gotchas (Network Boot)
+
+| Integration | Common Mistake | Correct Approach |
+|-------------|----------------|------------------|
+| Existing DHCP server | Ignore it, run competing DHCP | Use proxyDHCP or configure options 66/67 on existing server |
+| PixelRTS BootManager | Assume NBD replaces local boot | Implement hybrid: try NBD, fall back to local if timeout |
+| ParallelBootLoader | Treat NBD as another local file | NBD has network latency; adjust timeout expectations |
+| InitrdOptimizer | Optimize for local disk I/O patterns | NBD benefits from larger read-ahead; different optimization |
+| Blueprint metadata | Serve NBD without blueprint validation | Verify blueprint matches NBD export before serving |
+| BootConfigStore | Store NBD config alongside local configs | Separate NBD config namespace to avoid collision |
+
+---
+
+## Performance Traps (Network Boot)
+
+| Trap | Symptoms | Prevention | When It Breaks |
+|------|----------|------------|----------------|
+| TFTP for large containers | Boot >5 min, no progress | HTTP boot or chunked loading | >10MB containers |
+| NBD over WiFi | Intermittent timeouts, corruption | Wired network only for NBD | Any WiFi deployment |
+| Hilbert LUT regeneration | 500ms+ latency per request | Cache LUT, precompute on startup | >512x512 grids |
+| copyonwrite diff accumulation | Disk full after days/weeks | Scheduled cleanup, size limits | >10 concurrent clients |
+| Delta on compressed PNG | Patches >50% of source | Apply delta to extracted binary | Any PNG container |
+| Single NBD server instance | Linear boot scaling | Multiple instances, load balance | >3 concurrent clients |
+
+---
+
+## Security Mistakes (Network Boot)
+
+| Mistake | Risk | Prevention |
+|---------|------|------------|
+| NBD without authentication | Any client can read/write rootfs | Use authfile, restrict by IP, or tunnel over SSH |
+| PXE on corporate network | Rogue DHCP breaks network | Isolated VLAN, proxyDHCP only |
+| Unencrypted NBD traffic | MITM can inject malicious kernel | TLS tunneling or IPsec |
+| TFTP directory traversal | Clients read arbitrary files | chroot TFTP server, validate paths |
+| Missing NBD export validation | Serve wrong container version | Verify SHA256 before serving, use blueprint |
+| Permissive copyonwrite | Clients modify shared base | Use snapshot mode with periodic reset |
+
+---
+
+## UX Pitfalls (Network Boot)
+
+| Pitfall | User Impact | Better Approach |
+|---------|-------------|-----------------|
+| No boot progress indication | User thinks system is frozen | Progress bar via TFTP tsize, serial console output |
+| Silent NBD failure | "It just doesn't boot" with no info | Verbose error messages, fallback to local boot |
+| Timeout too short for large containers | Boot fails on slower networks | Adaptive timeout based on container size / estimated transfer rate |
+| Cryptic NBD error codes | User can't diagnose network issues | Human-readable error messages with remediation hints |
+| No indication of PXE vs local boot | User doesn't know which system is running | Boot splash indicating boot source |
+
+---
+
+## "Looks Done But Isn't" Checklist (Network Boot)
+
+- [ ] **PXE Boot:** Often missing proxyDHCP configuration -- verify DHCP options 66/67 present on network, test on isolated client
+- [ ] **NBD Server:** Often missing timeout handling -- verify clients recover from server restart, test with `kill -STOP` on server
+- [ ] **NBD + PixelRTS:** Often missing Hilbert curve alignment -- verify round-trip SHA256 matches, test with multiple container sizes
+- [ ] **Delta Updates:** Often applied to PNG instead of binary -- verify patch size is reasonable (<20% of source for typical changes)
+- [ ] **Large Containers:** Often untested for TFTP -- verify boot time acceptable for 64MB+ containers, test with progress indication
+- [ ] **Concurrent Clients:** Often tested with single client only -- verify boot succeeds with 5+ concurrent clients, measure time scaling
+- [ ] **Fallback Path:** Often untested -- verify system falls back to local boot when NBD unavailable, test with server powered off
+- [ ] **Security:** Often skipped for "internal network" -- verify authfile works, test from unauthorized IP
+
+---
+
+## Recovery Strategies (Network Boot)
+
+| Pitfall | Recovery Cost | Recovery Steps |
+|---------|---------------|----------------|
+| DHCP conflict | HIGH | Disable rogue DHCP, clear DHCP leases on clients, possibly restart network switches |
+| NBD disk full | MEDIUM | Stop server, merge/delete copyonwrite diffs, restart with monitoring |
+| Hilbert mismatch | HIGH | Re-encode all affected containers with consistent implementation, redistribute |
+| Delta corruption | MEDIUM | Fall back to full container transfer, investigate diff algorithm issue |
+| Security breach | HIGH | Rotate all credentials, audit access logs, potentially re-image affected clients |
+
+---
+
+## Pitfall-to-Phase Mapping (Network Boot)
+
+| Pitfall | Prevention Phase | Verification |
+|---------|------------------|--------------|
+| DHCP Conflict | Phase 1 (Infrastructure) | Test boot on network with existing DHCP, verify no conflicts |
+| NBD Memory Exhaustion | Phase 2 (NBD Server) | Run 10+ concurrent clients for 24h, verify disk usage stable |
+| TFTP Timeout | Phase 1 + Phase 4 | Boot 64MB container, verify time <5 min with progress |
+| Hilbert Mismatch | Phase 3 (NBD + PixelRTS) | Round-trip SHA256 verification, test all grid sizes |
+| Delta on PNG | Phase 5 (Delta Updates) | Generate delta for typical update, verify patch <20% of source |
+| NBD Bottleneck | Phase 2 (NBD Server) | Boot 5 clients simultaneously, verify parallel performance |
+
+---
+
+## Phase-Specific Research Flags (Network Boot)
+
+| Phase | Likely Needs Deeper Research |
+|-------|------------------------------|
+| Phase 1 (Infrastructure) | UEFI vs BIOS PXE differences for target hardware |
+| Phase 2 (NBD Server) | nbd-server vs qemu-nbd vs nbdkit feature comparison |
+| Phase 3 (NBD + PixelRTS) | Memory-mapped Hilbert LUT for low latency |
+| Phase 4 (Boot Integration) | Timeout tuning for BootManager fallback logic |
+| Phase 5 (Delta Updates) | Content-defined chunking for binary data vs text |
+
+---
+
+## Sources (Network Boot)
+
+- Wikipedia PXE: https://en.wikipedia.org/wiki/Preboot_Execution_Environment
+- Ubuntu nbd-server manpage: https://manpages.ubuntu.com/manpages/jammy/man1/nbd-server.1.html
+- Arch Linux Diskless system: https://wiki.archlinux.org/title/Diskless_system
+- rsync algorithm: https://rsync.samba.org/tech_report/node2.html
+- bsdiff/Delta encoding: https://en.wikipedia.org/wiki/Delta_encoding
+- PixelRTS v2 Design: `/specs/pixelrts-v2/design.md`
+- PixelRTS v2 Requirements: `/specs/pixelrts-v2/requirements.md`
+- PixelRTS Boot System: `/systems/pixel_compiler/pixelrts_boot.py`
+- Blueprint Release Summary: `/docs/plans/2026-02-10-pixelrts-v2-blueprint-release-summary.md`
+
+---
+*Pitfalls research for: Network Boot (PXE/NBD) and Delta Updates*
+*Context: Adding to existing PixelRTS boot system*
+*Researched: 2026-03-08*
