@@ -1626,13 +1626,120 @@ Examples:
     elif args.image and args.visualize:
         # Load and visualize VAT
         print(f"Visualizing VAT for {args.image}")
-        # TODO: Implement visualization
-        print("  Loading VAT from PNG...")
-        print("  Generating heatmap...")
-        print("  This would show:")
-        print("    - Hot files (red) at center")
-        print("    - Warm files (yellow) nearby")
-        print("    - Cool files (blue) at edges")
+
+        try:
+            from PIL import Image
+            import numpy as np
+
+            # Load the RTS PNG
+            img = Image.open(args.image)
+
+            # Extract VAT metadata from PNG chunks
+            vat_data = None
+            if hasattr(img, 'info') and 'VAT' in img.info:
+                vat_data = json.loads(img.info['VAT'])
+            elif hasattr(img, 'info') and 'vat' in img.info:
+                vat_data = json.loads(img.info['vat'])
+            else:
+                # Try loading from sidecar JSON
+                json_path = Path(args.image).with_suffix('.rts.json')
+                if json_path.exists():
+                    with open(json_path) as f:
+                        metadata = json.load(f)
+                        vat_data = metadata.get('vat') or metadata.get('VAT')
+
+            if not vat_data:
+                print("  No VAT metadata found in image")
+                print("  Generating visualization from pixel data only...")
+                # Fall back to pixel-based visualization
+                arr = np.array(img)
+                if len(arr.shape) == 3:
+                    arr = arr.mean(axis=2)
+
+                # Normalize to 0-255
+                arr = ((arr - arr.min()) / (arr.max() - arr.min() + 1e-9) * 255).astype(np.uint8)
+
+                # Apply colormap (hot: black->red->yellow->white)
+                heatmap = Image.fromarray(arr, mode='L')
+                heatmap = heatmap.resize((512, 512), Image.NEAREST)
+
+                output_path = Path(args.image).with_name(f"{Path(args.image).stem}_heatmap.png")
+                heatmap.save(output_path)
+                print(f"  Saved pixel heatmap to: {output_path}")
+            else:
+                print(f"  Found VAT with {len(vat_data)} entries")
+
+                # Create heatmap from VAT data
+                grid_size = 512
+                heatmap_arr = np.zeros((grid_size, grid_size), dtype=np.float32)
+
+                # Get image dimensions for coordinate mapping
+                img_width, img_height = img.size
+                scale_x = grid_size / img_width
+                scale_y = grid_size / img_height
+
+                for entry in vat_data:
+                    if isinstance(entry, dict):
+                        x = entry.get('x', 0)
+                        y = entry.get('y', 0)
+                        heat = entry.get('heat', 1.0)
+                    else:
+                        continue
+
+                    # Map to heatmap coordinates
+                    hx = int(x * scale_x)
+                    hy = int(y * scale_y)
+                    hx = max(0, min(grid_size - 1, hx))
+                    hy = max(0, min(grid_size - 1, hy))
+
+                    # Apply heat with gaussian spread
+                    for dx in range(-5, 6):
+                        for dy in range(-5, 6):
+                            nx, ny = hx + dx, hy + dy
+                            if 0 <= nx < grid_size and 0 <= ny < grid_size:
+                                dist = math.sqrt(dx*dx + dy*dy)
+                                falloff = math.exp(-dist / 3)
+                                heatmap_arr[ny, nx] += heat * falloff
+
+                # Normalize and convert to color
+                max_val = heatmap_arr.max()
+                if max_val > 0:
+                    heatmap_arr = (heatmap_arr / max_val * 255).astype(np.uint8)
+                else:
+                    heatmap_arr = heatmap_arr.astype(np.uint8)
+
+                # Create heatmap image with colormap
+                heatmap_img = Image.fromarray(heatmap_arr, mode='L')
+
+                # Apply hot colormap (blue->cyan->green->yellow->red)
+                colored = np.zeros((grid_size, grid_size, 3), dtype=np.uint8)
+                for y in range(grid_size):
+                    for x in range(grid_size):
+                        v = heatmap_arr[y, x]
+                        if v < 64:
+                            # Blue to cyan
+                            colored[y, x] = [0, v * 4, 255]
+                        elif v < 128:
+                            # Cyan to green
+                            colored[y, x] = [0, 255, 255 - (v - 64) * 4]
+                        elif v < 192:
+                            # Green to yellow
+                            colored[y, x] = [(v - 128) * 4, 255, 0]
+                        else:
+                            # Yellow to red
+                            colored[y, x] = [255, 255 - (v - 192) * 4, 0]
+
+                heatmap_colored = Image.fromarray(colored, mode='RGB')
+
+                output_path = Path(args.image).with_name(f"{Path(args.image).stem}_vat_heatmap.png")
+                heatmap_colored.save(output_path)
+                print(f"  Saved VAT heatmap to: {output_path}")
+                print("  Legend: Blue=Cold, Cyan, Green, Yellow, Red=Hot")
+
+        except ImportError as e:
+            print(f"  PIL/numpy required for visualization: {e}")
+        except Exception as e:
+            print(f"  Visualization error: {e}")
     else:
         parser.print_help()
 
