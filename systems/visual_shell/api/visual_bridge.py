@@ -1,1423 +1,908 @@
-#!/usr/bin/env python3
 """
-Visual Bridge - Geometry OS
-===========================
+Geometry OS Visual Bridge - Multi-VM Multiplexed Streaming
 
-The central communication hub between AI agents (Evolution Daemon, etc.)
-and the PixiJS Visual Shell.
+Reads orchestrator state from /dev/shm/geometry_orchestrator to discover
+active VMs and their spatial positions, then multiplexes visual streams
+to the PixiJS frontend.
 
-Capabilities:
-- Semantic Memory Retrieval (Hippocampus)
-- Mirror Validation Results (Master Stage)
-- RISC-V UART Streaming (Neuro-Silicon Bridge)
-- Token Visualization Update (Neural City)
-- Visual Action Routing
-- Ambient Narrative System (WordPress WebMCP)
-
-Port: 8768 (WebSocket)
+Phase 6: Multi-VM Orchestration & Visual Organisms
+Phase 7: FFI Bridge Integration for CV/Analysis
 """
 
 import asyncio
 import json
+import mmap
 import os
-import sys
-import socket
-import time
-import uuid
-import websockets
-from websockets.server import serve
+import struct
 import numpy as np
-import argparse
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
+from typing import Optional, Dict, List, Set, Any, Callable
 from pathlib import Path
-from typing import Dict, Any, Optional, List
-from aiohttp import web
+import sys
 
-# Add project root to path for imports
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-sys.path.insert(0, PROJECT_ROOT)
+import uvicorn
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
-# Import SynapticQueryEngine for semantic search
-from systems.neural_city.synaptic_query_engine import SynapticQueryEngine
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
+from logger_config import get_logger
 
-# Import Spatial Tectonics components (Phase 28 Step 2)
-from systems.visual_shell.api.tectonic_handler import TectonicHandler
-from systems.visual_shell.api.vat_manager import VATManager
 
-# Import Semantic Notification Bridge (PixelRTS v3 integration)
-from systems.visual_shell.api.semantic_notification_bridge import (
-    SemanticNotificationBridge,
-    NotificationEvent,
+# Global instances
+streamers: Dict[str, "MemoryStreamer"] = {}
+
+# Initialize multi_vm_streamer at module level for test compatibility
+# The lifespan will properly start/stop the watcher when the app runs
+multi_vm_streamer: "MultiVmStreamer" = None  # type: ignore[assignment]
+
+
+def _init_multi_vm_streamer() -> "MultiVmStreamer":
+    """Initialize multi_vm_streamer if not already initialized."""
+    global multi_vm_streamer
+    if multi_vm_streamer is None:
+        multi_vm_streamer = MultiVmStreamer()
+    return multi_vm_streamer
+
+
+# Initialize immediately for test compatibility (import-time initialization)
+# This ensures multi_vm_streamer is available even when tests don't trigger lifespan
+_init_multi_vm_streamer()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Modern FastAPI lifespan context manager for startup/shutdown.
+
+    Handles:
+    - Starting the orchestrator watcher on startup
+    - Stopping the watcher and cleaning up resources on shutdown
+    - Initializing FFI Bridge for CV/analysis
+    """
+    global multi_vm_streamer, ffi_bridge
+    logger = get_logger(f"{__name__}.lifespan")
+
+    # Ensure multi_vm_streamer is initialized (it should be from import)
+    _init_multi_vm_streamer()
+
+    # Initialize FFI Bridge
+    _init_ffi_bridge()
+    logger.info("FFI Bridge initialized")
+
+    # Startup: Start the orchestrator watcher if not already running
+    if not multi_vm_streamer.watcher.running:
+        await multi_vm_streamer.start()
+        logger.info("Visual Bridge lifespan started")
+    else:
+        logger.info("Visual Bridge lifespan started (watcher already running)")
+
+    yield  # Application runs here
+
+    # Shutdown: Clean up resources
+    logger.info("Visual Bridge shutting down...")
+
+    # Stop the orchestrator watcher
+    if multi_vm_streamer and multi_vm_streamer.watcher:
+        multi_vm_streamer.watcher.stop()
+
+    # Close all active streamers
+    if multi_vm_streamer:
+        for vm_id, streamer in list(multi_vm_streamer.streamers.items()):
+            try:
+                streamer.close()
+            except Exception as e:
+                logger.error(f"Error closing streamer for {vm_id}: {e}")
+        multi_vm_streamer.streamers.clear()
+
+    # Shutdown FFI Bridge
+    if ffi_bridge:
+        ffi_bridge.shutdown()
+        logger.info("FFI Bridge shutdown")
+
+    logger.info("Visual Bridge shutdown complete")
+
+
+app = FastAPI(title="Geometry OS Visual Bridge - Multi-VM", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Import Evolution WebMCP Bridge (Ambient Narrative System)
-try:
-    from systems.visual_shell.api.evolution_webmcp_bridge import (
-        EvolutionWebMCPBridge,
-        EvolutionWebMCPHook
-    )
-    HAS_WEBMCP_BRIDGE = True
-except ImportError:
-    HAS_WEBMCP_BRIDGE = False
-    EvolutionWebMCPBridge = None
-    EvolutionWebMCPHook = None
+# Orchestrator state file path
+ORCHESTRATOR_SHM_PATH = "/dev/shm/geometry_orchestrator"
 
-class VisualBridge:
-    def __init__(self, memory_socket="/tmp/vector_memory_daemon.sock", ws_port=8768, map_size=4096):
-        self.memory_socket = memory_socket
-        self.ws_port = ws_port
-        self.map_size = map_size
-        self.clients = set()
-        self.lock_file = "/tmp/visual_bridge.pid"
 
-        # ASCII Scene Graph state
-        self.ascii_scene_dir = Path(".geometry/ascii_scene")
-        self.ascii_scene_files: Dict[str, str] = {}  # filename -> content cache
-        self._ascii_renderers_registered = False
+@dataclass
+class SpatialComponent:
+    """Spatial data for an organism."""
+    x: float = 0.0
+    y: float = 0.0
+    radius: float = 10.0
+    velocity: Dict[str, float] = field(default_factory=lambda: {"x": 0.0, "y": 0.0})
 
-        # Spatial Tectonics (Phase 28)
-        self.consensus_engine = None  # Initialized lazily
-        self._tectonic_enabled = True
 
-        # Tectonic components (Step 2)
-        self.tectonic_handler = TectonicHandler()
-        self.vat_manager = VATManager()
+@dataclass
+class OrganismState:
+    """State of a single VM organism."""
+    id: str
+    status: str = "Running"
+    spatial: SpatialComponent = field(default_factory=SpatialComponent)
+    metrics: Dict = field(default_factory=dict)
+    spawned_at: int = 0
 
-        # Heat Map Aggregator (Visual Hotspot Debugger)
-        self.heat_aggregator: Optional[Any] = None  # Initialized in start_heat_aggregator()
-        self._heat_aggregator_enabled = True
 
-        # Semantic Notification Bridge (WordPress → Terminal)
-        self.semantic_bridge = SemanticNotificationBridge()
+class OrchestratorWatcher:
+    """Watches the orchestrator state file for VM discovery."""
 
-        # Ambient Narrative System (WordPress WebMCP)
-        self.webmcp_bridge: Optional[EvolutionWebMCPBridge] = None
-        self._narrative_session_id: Optional[int] = None
-        self._webmcp_enabled = True  # Can be disabled via CLI
+    def __init__(self, poll_interval: float = 0.5):
+        self.poll_interval = poll_interval
+        self.known_organisms: Dict[str, OrganismState] = {}
+        self.running = False
+        self.logger = get_logger(f"{__name__}.OrchestratorWatcher")
 
-        # Current session state for narrative
-        self._ambient_state = "MONITORING"
-        self._fps_data = {"fps": 60.0, "draw_calls": 0, "last_update": time.time()}
+    async def watch(self, on_change: callable):
+        """Poll the orchestrator state file and call on_change when VMs change."""
+        self.running = True
+        last_count = 0
 
-        # Agent task queue for WordPress agent requests
-        self.agent_task_queue: Dict[str, dict] = {}
-        self.task_counter = 0
-
-        # HTTP server for REST endpoints (WordPress agent requests)
-        self.http_port = 8769  # Different from WebSocket port
-        self.app = web.Application()
-
-        # Register HTTP routes
-        self._setup_http_routes()
-
-    def _setup_http_routes(self) -> None:
-        """Setup HTTP routes for WordPress agent requests."""
-        self.app.router.add_post('/agent/request', self._handle_agent_request_http)
-        self.app.router.add_get('/agent/status/{task_id}', self._handle_agent_status_http)
-
-    async def _handle_agent_request_http(self, request: web.Request) -> web.Response:
-        """HTTP endpoint for agent requests from WordPress."""
-        try:
-            data = await request.json()
-            result = self.handle_agent_request(data)
-            status_code = 200 if result.get('status') != 'error' else 400
-            return web.json_response(result, status=status_code)
-        except json.JSONDecodeError:
-            return web.json_response(
-                {'status': 'error', 'message': 'Invalid JSON'},
-                status=400
-            )
-        except Exception as e:
-            return web.json_response(
-                {'status': 'error', 'message': str(e)},
-                status=500
-            )
-
-    async def _handle_agent_status_http(self, request: web.Request) -> web.Response:
-        """HTTP endpoint to check task status."""
-        task_id = request.match_info['task_id']
-        status = self.get_task_status(task_id)
-        status_code = 200 if status.get('status') != 'error' else 404
-        return web.json_response(status, status=status_code)
-
-    def handle_agent_request(self, data: dict) -> dict:
-        """
-        Handle agent request from WordPress.
-
-        Args:
-            data: Dict containing:
-                - agent_type: One of 'content_intelligence', 'evolution_publish', 'plugin_analysis'
-                - payload: Dict with request-specific data
-                - request_id: Optional unique request identifier
-
-        Returns:
-            Dict with 'status' and 'task_id' or 'error' and 'message'
-        """
-        agent_type = data.get('agent_type')
-        payload = data.get('payload', {})
-        request_id = data.get('request_id', str(uuid.uuid4()))
-
-        valid_agent_types = ['content_intelligence', 'evolution_publish', 'plugin_analysis']
-        if agent_type not in valid_agent_types:
-            return {'status': 'error', 'message': f'Unknown agent type: {agent_type}'}
-
-        self.task_counter += 1
-        task_id = f"wp-{agent_type}-{self.task_counter}-{int(time.time())}"
-
-        task = {
-            'task_id': task_id,
-            'request_id': request_id,
-            'agent_type': agent_type,
-            'payload': payload,
-            'status': 'queued',
-            'created_at': time.time(),
-            'result': None
-        }
-
-        self.agent_task_queue[task_id] = task
-
-        # Notify Evolution Daemon via pulse system (only if event loop running)
-        try:
-            loop = asyncio.get_running_loop()
-            loop.create_task(self._send_agent_pulse(task))
-        except RuntimeError:
-            # No event loop running - pulse will be sent when server starts
-            pass
-
-        return {'status': 'queued', 'task_id': task_id}
-
-    def get_task_status(self, task_id: str) -> dict:
-        """Get status of agent task."""
-        task = self.agent_task_queue.get(task_id)
-        if not task:
-            return {'status': 'error', 'message': f'Task not found: {task_id}'}
-
-        return {
-            'task_id': task_id,
-            'status': task['status'],
-            'result': task.get('result')
-        }
-
-    async def _send_agent_pulse(self, task: dict) -> None:
-        """Send neural pulse to trigger Evolution Daemon."""
-        pulse = {
-            'type': 'agent_request',
-            'event': 'agent_request',
-            'task': task,
-            'timestamp': task['created_at']
-        }
-        await self._broadcast(pulse)
-
-    def _is_already_running(self):
-        """Check if another instance of visual_bridge is already running via PID file."""
-        if not os.path.exists(self.lock_file):
-            return False
-        
-        try:
-            with open(self.lock_file, 'r') as f:
-                pid = int(f.read().strip())
-            
-            # Check if process with this PID actually exists
-            os.kill(pid, 0)
-            return True
-        except (ValueError, ProcessLookupError, PermissionError, OSError):
-            return False
-
-    def _acquire_lock(self):
-        """Write current PID to lock file."""
-        with open(self.lock_file, 'w') as f:
-            f.write(str(os.getpid()))
-
-    def _release_lock(self):
-        """Remove the PID lock file."""
-        if os.path.exists(self.lock_file):
+        while self.running:
             try:
-                os.remove(self.lock_file)
-            except OSError:
-                pass
-
-    def _query_memory_daemon(self, message):
-        """Send a message to the Vector Memory Daemon and get response"""
-        try:
-            if not os.path.exists(self.memory_socket):
-                return {"error": f"Memory socket not found at {self.memory_socket}"}
-
-            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
-                sock.connect(self.memory_socket)
-                sock.sendall(json.dumps(message).encode('utf-8'))
-
-                # Receive response
-                response_data = b""
-                while True:
-                    chunk = sock.recv(4096)
-                    if not chunk:
-                        break
-                    response_data += chunk
-
-                if not response_data:
-                    return {"error": "Empty response from memory daemon"}
-
-                return json.loads(response_data.decode('utf-8'))
-        except Exception as e:
-            print(f"❌ Failed to connect to Memory Daemon: {e}")
-            return {"error": str(e)}
-
-    async def handle_client(self, websocket):
-        """Handle WebSocket client (Browser or AI Agent)"""
-        self.clients.add(websocket)
-        print(f"🔌 Connection established: {websocket.remote_address}")
-        try:
-            async for message in websocket:
-                try:
-                    data = json.loads(message)
-                except json.JSONDecodeError:
-                    continue
-
-                msg_type = data.get('type')
-
-                # 1. Semantic Memory Retrieval
-                if msg_type == 'recall_memories':
-                    await self._handle_recall_memories(websocket, data)
-
-                # 2. Mirror Validation Results (from AI Agent)
-                elif msg_type == 'mirror_validation_result' or data.get('method') == 'broadcast_event':
-                    # Handle both flat and JSON-RPC formats
-                    event_data = data
-                    if data.get('method') == 'broadcast_event':
-                        params = data.get('params', {})
-                        event_data = {
-                            'type': params.get('type'),
-                            **params.get('data', {})
-                        }
-                    
-                    print(f"🪞 Received event: {event_data.get('type')}")
-                    # Broadcast to all clients (specifically the browser)
-                    await self._broadcast(event_data)
-
-                # 3. RISC-V UART Output (Neuro-Silicon Bridge)
-                elif msg_type == 'riscv_uart':
-                    # Broadcast UART output to browser HUD
-                    uart_text = data.get('text', data.get('data', {}).get('text', ''))
-                    print(f"🦾 RISC-V UART: {uart_text[:50]}...")
-                    await self._broadcast({
-                        'type': 'RISCV_UART_OUTPUT',
-                        'data': {
-                            'text': uart_text,
-                            'bytes': data.get('bytes', []),
-                            'timestamp': data.get('timestamp'),
-                            'vm_id': data.get('vm_id', 'riscv-gpu-vm')
-                        }
-                    })
-
-                # 3b. RISC-V Execution State (Execution Traces)
-                elif msg_type == 'riscv_state':
-                    # Broadcast execution state to browser for Silicon District pulses
-                    print(f"⚡ RISC-V State: PC=0x{data.get('pc', 0):08x}, Cycles={data.get('cycles', 0)}")
-                    await self._broadcast({
-                        'type': 'RISCV_STATE_UPDATE',
-                        'data': data
-                    })
-
-                # 3c. Shotcut Visual HUD Update
-                elif msg_type == 'shotcut_frame':
-                    # Broadcast frame + extraction data to browser HUD
-                    print(f"🎬 Shotcut Frame: {len(data.get('widgets', []))} widgets detected")
-                    await self._broadcast({
-                        'type': 'SHOTCUT_FRAME_UPDATE',
-                        'data': data
-                    })
-
-                # 4. Swarm Health Updates
-                elif msg_type == 'swarm_health':
-                    # Broadcast Swarm Health to browser HUD
-                    print(f"🐝 Swarm Health Update received")
-                    await self._broadcast({
-                        'type': 'SWARM_HEALTH_UPDATE',
-                        'data': data.get('data', {})
-                    })
-
-                # 5. Collective Consciousness Thoughts (Glass Box)
-                elif msg_type == 'thought_journal':
-                    # Broadcast thought to browser HUD
-                    thought_data = data.get('data', {})
-                    print(f"🧠 Thought Journal: {thought_data.get('agent_id')} → {thought_data.get('thought_type')}")
-                    await self._broadcast({
-                        'type': 'THOUGHT_JOURNAL',
-                        'data': thought_data
-                    })
-
-                # 6. Task DAG Updates (Distributed Task Visualization)
-                elif msg_type == 'task_update':
-                    # Broadcast task update to browser HUD
-                    task_data = data.get('data', data)
-                    print(f"📋 Task Update: {task_data.get('task_id')} → {task_data.get('status')}")
-                    await self._broadcast({
-                        'type': 'TASK_DAG_UPDATE',
-                        'data': task_data
-                    })
-
-                # 7. Agent Relocation (District Rebalancing)
-                elif msg_type == 'agent_relocated':
-                    # Broadcast agent relocation to browser HUD
-                    relocation_data = data.get('data', data)
-                    agent_id = relocation_data.get('agent_id', 'unknown')
-                    to_district = relocation_data.get('to_district', 'unknown')
-                    print(f"🔀 Agent Relocated: {agent_id} → {to_district}")
-                    await self._broadcast({
-                        'type': 'AGENT_RELOCATED',
-                        'data': relocation_data
-                    })
-
-                # 16. Diagnostic Pulse Events (Perceptual Bridge V16)
-                elif msg_type == 'diagnostic_pulse':
-                    status = data.get('status', 'HEALTHY')
-                    district_id = data.get('district_id', 'silicon')
-                    matched_pattern = data.get('matched_pattern', '')
-                    detected_text = data.get('detected_text', '')
-
-                    print(f"🔮 Diagnostic Pulse: {district_id} → {status}")
-                    if status == 'CRITICAL':
-                        print(f"   ⚠️  ANOMALY: {matched_pattern}")
-
-                    await self._broadcast({
-                        "type": "DIAGNOSTIC_PULSE",
-                        "district_id": district_id,
-                        "status": status,
-                        "matched_pattern": matched_pattern,
-                        "detected_text": detected_text[:200],
-                        "timestamp": data.get('timestamp', time.time())
-                    })
-
-                    if status == 'CRITICAL':
-                        await self._broadcast({
-                            "type": "QUARANTINE_DISTRICT",
-                            "district_id": district_id,
-                            "reason": matched_pattern,
-                            "severity": "CRITICAL",
-                            "timestamp": data.get('timestamp', time.time())
-                        })
-
-                # 8. Echo/Ping
-                elif msg_type == 'ping':
-                    await websocket.send(json.dumps({'type': 'pong'}))
-
-                # 9. Token Visualization Update (Neural City)
-                elif msg_type == 'token_visualization_update':
-                    await self.relay_token_pulse(data)
-
-                # 9b. Tectonic Drift Update (Neural City V15)
-                elif msg_type == 'tectonic_drift':
-                    # Relay 16KB float32 buffer (base64 encoded in 'data' field)
-                    await self._broadcast({
-                        "type": "tectonic_drift_update",
-                        "data": data.get("data")
-                    })
-
-                # 10. Synaptic Query (Semantic Search)
-                elif msg_type == 'synaptic_query':
-                    response = await self._handle_synaptic_query(data)
-                    await websocket.send(json.dumps(response))
-
-                # 11. ASCII Scene Graph Events
-                elif msg_type == 'ascii_scene_update':
-                    # Broadcast ASCII file update to all clients
-                    filename = data.get('filename')
-                    content = data.get('content')
-                    if filename:
-                        self.ascii_scene_files[filename] = content
-                        await self._broadcast({
-                            "type": "ascii_scene_update",
-                            "filename": filename,
-                            "content": content,
-                            "timestamp": data.get('timestamp', time.time())
-                        })
-
-                elif msg_type == 'ascii_scene_request':
-                    # Client requests list of ASCII files
-                    await self.broadcast_ascii_scene_list()
-                    # Also send current cached content
-                    for filename, content in self.ascii_scene_files.items():
-                        await websocket.send(json.dumps({
-                            "type": "ascii_scene_update",
-                            "filename": filename,
-                            "content": content,
-                            "timestamp": time.time()
-                        }))
-
-                # 12. Neural City Events (from NeuralCityHookBroadcaster)
-                elif msg_type == 'neural_city_event':
-                    event_type = data.get('event_type')
-                    print(f"🏙️ Neural City Event: {event_type}")
-                    await self._broadcast({
-                        "type": "NEURAL_CITY_EVENT",
-                        "data": data
-                    })
-                    # Trigger ASCII file refresh
-                    await self.broadcast_ascii_file("neural_city_map.ascii")
-
-                # 13. Visual Shell Events (from VisualShellHookBroadcaster)
-                elif msg_type == 'visual_shell_event':
-                    event_type = data.get('event_type')
-                    print(f"🪟 Visual Shell Event: {event_type}")
-                    await self._broadcast({
-                        "type": "VISUAL_SHELL_EVENT",
-                        "data": data
-                    })
-                    # Trigger ASCII file refresh
-                    await self.broadcast_ascii_file("shell_fragments.ascii")
-
-                # 14. Evolution Events (from EvolutionHookBroadcaster)
-                elif msg_type == 'evolution_event':
-                    event_type = data.get('event_type')
-                    print(f"🧬 Evolution Event: {event_type}")
-                    await self._broadcast({
-                        "type": "EVOLUTION_EVENT",
-                        "data": data
-                    })
-                    # Trigger ASCII file refresh
-                    await self.broadcast_ascii_file("evolution_pas.ascii")
-
-                # 14b. WordPress Semantic Publishing (Memory District)
-                elif msg_type == 'wordpress_publish':
-                    title = data.get('title', 'Untitled')
-                    content = data.get('content', '')
-                    url = data.get('url', '')
-                    print(f"📝 WordPress Publish: {title}")
-
-                    # Create notification event for semantic bridge
-                    event = NotificationEvent(
-                        title=title,
-                        content=content,
-                        url=url,
-                    )
-
-                    # Broadcast to browser clients
-                    await self._broadcast({
-                        "type": "WORDPRESS_PUBLISH",
-                        "title": title,
-                        "content": content,
-                        "url": url,
-                        "timestamp": time.time()
-                    })
-
-                    # Send to geometric terminal (PixelRTS v3)
-                    terminal_op = self.semantic_bridge.to_terminal_opcode(event)
-                    await self._broadcast(terminal_op)
-                    print(f"📺 Terminal notification: {title[:40]}...")
-
-                # 15a. Mutation Batch Events (Evolution Daemon)
-                elif msg_type == 'mutation_batch':
-                    # Broadcast mutation batch to all clients for visualization
-                    mutations = data.get('mutations', [])
-                    generation = data.get('generation', 0)
-                    print(f"🧬 Mutation Batch: {len(mutations)} mutations in generation {generation}")
-                    await self._broadcast({
-                        "type": "WEIGHT_MUTATION_BATCH",
-                        "data": {
-                            "mutations": mutations,
-                            "generation": generation,
-                            "timestamp": data.get('timestamp', time.time() * 1000)
-                        }
-                    })
-
-                # 15b. District Upgrade Events (Neural City)
-                elif msg_type == 'district_upgrade':
-                    # Broadcast district upgrade with animation data
-                    district_id = data.get('district_id')
-                    upgrade_type = data.get('upgrade_type', 'capacity')
-                    animation_data = data.get('animation', {})
-                    print(f"🏙️ District Upgrade: {district_id} ({upgrade_type})")
-                    await self._broadcast({
-                        "type": "DISTRICT_UPGRADE",
-                        "data": {
-                            "district_id": district_id,
-                            "upgrade_type": upgrade_type,
-                            "animation": animation_data,
-                            "timestamp": data.get('timestamp', time.time() * 1000)
-                        }
-                    })
-
-                # 15. Tectonic Pulse Events (Phase 28: Spatial Tectonics)
-                elif msg_type == 'tectonic_pulse':
-                    # Forward pulse to ConsensusEngine for spatial realignment
-                    source = data.get('source', 0)
-                    dest = data.get('dest', 0)
-                    pulse_type = data.get('pulse_type', 'violet')
-                    volume = data.get('volume', 1.0)
-                    print(f"🌋 Tectonic Pulse: {source} → {dest} ({pulse_type}, vol={volume})")
-
-                    # Record in ConsensusEngine if available
-                    if hasattr(self, 'consensus_engine') and self.consensus_engine:
-                        from systems.evolution_daemon.spatial_tectonics import PulseEvent
-                        event = PulseEvent(
-                            source_tile=source,
-                            dest_tile=dest,
-                            pulse_type=pulse_type,
-                            volume=volume,
-                            timestamp=time.time()
-                        )
-                        self.consensus_engine.record_pulse(event)
-
-                    # Broadcast to browser for visualization
-                    await self._broadcast({
-                        "type": "TECTONIC_PULSE",
-                        "source": source,
-                        "dest": dest,
-                        "pulse_type": pulse_type,
-                        "volume": volume,
-                        "timestamp": data.get('timestamp', time.time() * 1000)
-                    })
-
-                # 16. Tectonic Realignment Proposal (from ConsensusEngine)
-                elif msg_type == 'tectonic_proposal':
-                    # Forward proposal to Rust TectonicSimulator via TectonicHandler
-                    proposal_id = data.get('proposal_id')
-                    bonds = data.get('bonds', [])
-                    print(f"🌋 Tectonic Proposal: {proposal_id} with {len(bonds)} bonds")
-
-                    # Process proposal through TectonicHandler
-                    success = self.tectonic_handler.process_proposal(data)
-
-                    # Check for layout delta from Rust (simulated for now)
-                    delta = self.tectonic_handler.read_layout_delta()
-                    if not delta:
-                        # Simulate delta if Rust not available
-                        delta = self.tectonic_handler.simulate_delta(data)
-
-                    # Apply delta to VAT
-                    moved_count = self.vat_manager.apply_delta(delta)
-                    print(f"🌍 Applied layout delta: {moved_count} tiles moved")
-
-                    # Broadcast for HUD display with full status
-                    status = self.tectonic_handler.get_status()
-                    await self._broadcast({
-                        "type": "TECTONIC_PROPOSAL",
-                        "proposal_id": proposal_id,
-                        "bonds": bonds,
-                        "expected_improvement": data.get('expected_improvement', 0),
-                        "timestamp": data.get('timestamp', time.time() * 1000),
-                        "delta_applied": moved_count,
-                        "status": status
-                    })
-
-                    # Trigger ASCII file refresh
-                    await self.broadcast_ascii_file("tectonic_activity.ascii")
-
-                # 17. Heat Access Events (Visual Hotspot Debugger)
-                elif msg_type == 'heat_access':
-                    # Record heat access from external sources (e.g., RISC-V executor)
-                    heat_x = data.get('x', 0)
-                    heat_y = data.get('y', 0)
-                    access_type = data.get('access_type', 'unknown')
-                    source = data.get('source', 'unknown')
-
-                    if self.heat_aggregator:
-                        self.heat_aggregator.record_access(heat_x, heat_y, source)
-                        print(f"🔥 Heat Access: ({heat_x}, {heat_y}) from {source}")
-                    else:
-                        print(f"⚠️  Heat Aggregator not initialized, ignoring heat_access")
-
-                # 18. Heat Memory Access Events (from RISC-V executor)
-                elif msg_type == 'heat_memory_access':
-                    # Record heat for memory access (linear address)
-                    address = data.get('address', 0)
-                    access_type = data.get('access_type', 'read')
-                    source = data.get('source', 'riscv')
-
-                    if self.heat_aggregator:
-                        self.heat_aggregator.record_memory_access(address, source)
-                        print(f"🔥 Heat Memory: 0x{address:x} ({access_type}) from {source}")
-
-                # 19. Alpine Linux Live Tile Handlers (v3)
-                elif msg_type == 'alpine_input':
-                    # Forward input to LiveTileService
-                    tile_id = data.get('tile_id')
-                    input_text = data.get('input', '')
-                    source = data.get('source', 'human')
-                    print(f"⌨️ Alpine Input: {tile_id} <- '{input_text.strip()}' ({source})")
-                    
-                    # Implementation depends on LiveTileService integration
-                    # For now, broadcast to all (including agents)
-                    await self._broadcast({
-                        "type": "ALPINE_INPUT_RELAY",
-                        "tile_id": tile_id,
-                        "input": input_text,
-                        "source": source
-                    })
-
-                elif msg_type == 'alpine_output':
-                    # Relay terminal grid updates to browser
-                    await self._broadcast({
-                        "type": "ALPINE_OUTPUT",
-                        "data": data
-                    })
-
-                elif msg_type == 'alpine_focus':
-                    # Handle focus changes
-                    tile_id = data.get('tile_id')
-                    focused = data.get('focused', False)
-                    print(f"🎯 Alpine Focus: {tile_id} -> {'FOCUSED' if focused else 'IDLE'}")
-                    await self._broadcast({
-                        "type": "ALPINE_FOCUS_UPDATE",
-                        "tile_id": tile_id,
-                        "focused": focused
-                    })
-
-                elif msg_type == 'alpine_stats':
-                    # Relay metrics
-                    await self._broadcast({
-                        "type": "ALPINE_STATS",
-                        "data": data
-                    })
-
-                # === Track Coordination (WordPress Git Coordination) ===
-
-                elif msg_type == 'track_claim':
-                    # Track claim event from WordPress Track Board
-                    track_id = data.get('track_id')
-                    agent_id = data.get('agent_id')
-                    files = data.get('files', [])
-                    coordinates = data.get('coordinates', {'x': 0, 'y': 0})
-
-                    print(f"🎯 Track Claimed: {track_id} by {agent_id} ({len(files)} files)")
-
-                    await self._broadcast({
-                        "type": "TRACK_CLAIMED",
-                        "track_id": track_id,
-                        "agent_id": agent_id,
-                        "files": files,
-                        "coordinates": coordinates,
-                        "timestamp": data.get('timestamp', time.time())
-                    })
-
-                elif msg_type == 'track_release':
-                    # Track release event from WordPress Track Board
-                    track_id = data.get('track_id')
-                    agent_id = data.get('agent_id')
-
-                    print(f"🔓 Track Released: {track_id} by {agent_id}")
-
-                    await self._broadcast({
-                        "type": "TRACK_RELEASED",
-                        "track_id": track_id,
-                        "agent_id": agent_id,
-                        "timestamp": data.get('timestamp', time.time())
-                    })
-
-                # === Ambient Narrative System (V2.0) ===
-
-                elif msg_type == 'narrative_event':
-                    # AI agent publishing a thought or steering action
-                    event_type = data.get('event_type', 'thought')
-                    session_id = data.get('session_id', self._narrative_session_id)
-                    print(f"📖 Narrative Event: {event_type} (session={session_id})")
-
-                    # Relay to WordPress via WebMCP
-                    if self.webmcp_bridge and session_id:
-                        if event_type == 'thought':
-                            result = self.webmcp_bridge.invoke_tool('publishNarrative', {
-                                'session_id': session_id,
-                                'thought': data.get('thought', ''),
-                                'state': data.get('state', 'MONITORING')
-                            })
-                        elif event_type == 'steering':
-                            result = self.webmcp_bridge.invoke_tool('steerSession', {
-                                'session_id': session_id,
-                                'action': data.get('action', ''),
-                                'target': data.get('target', '')
-                            })
-                        else:
-                            result = {'success': False, 'error': f'Unknown event type: {event_type}'}
-
-                        if result.get('success'):
-                            print(f"   ✅ Published to WordPress")
-
-                    # Broadcast to browser clients
-                    await self._broadcast({
-                        "type": "NARRATIVE_EVENT",
-                        "event_type": event_type,
-                        "data": data
-                    })
-
-                elif msg_type == 'scene_graph_update':
-                    # PixiJS streaming scene graph for AI analysis
-                    scene_graph = data.get('scene_graph', {})
-                    session_id = data.get('session_id', self._narrative_session_id)
-                    fps = data.get('fps', 60.0)
-                    draw_calls = data.get('draw_calls', 0)
-
-                    # Update local FPS tracking
-                    self._fps_data = {
-                        "fps": fps,
-                        "draw_calls": draw_calls,
-                        "last_update": time.time()
-                    }
-
-                    # Relay to WordPress
-                    if self.webmcp_bridge and session_id:
-                        self.webmcp_bridge.invoke_tool('scene_update', {
-                            'session_id': session_id,
-                            'scene_graph': scene_graph
-                        })
-
-                    # Optional: Forward to VLM for visual analysis
-                    # This would be handled by a separate service
-
-                elif msg_type == 'daemon_heartbeat':
-                    # Evolution daemon status update
-                    daemon_state = data.get('state', 'unknown')
-                    evolution_count = data.get('evolution_count', 0)
-                    visual_connected = data.get('visual_connected', False)
-
-                    print(f"💓 Daemon Heartbeat: {daemon_state} (evolutions={evolution_count})")
-
-                    # Update ambient state
-                    self._ambient_state = daemon_state
-
-                    # Relay to WordPress
-                    if self.webmcp_bridge:
-                        self.webmcp_bridge.invoke_tool('daemon_status', {
-                            'state': daemon_state,
-                            'evolution_count': evolution_count,
-                            'visual_connected': visual_connected,
-                            'fps': self._fps_data.get('fps', 60.0),
-                            'draw_calls': self._fps_data.get('draw_calls', 0)
-                        })
-
-                    # Broadcast to browser
-                    await self._broadcast({
-                        "type": "DAEMON_HEARTBEAT",
-                        "state": daemon_state,
-                        "evolution_count": evolution_count,
-                        "visual_connected": visual_connected
-                    })
-
-                elif msg_type == 'get_narrative_session':
-                    # Client requesting current session info
-                    if self.webmcp_bridge:
-                        result = self.webmcp_bridge.invoke_tool('get_narrative_session', {})
-                        if result.get('success') and result.get('result', {}).get('session'):
-                            self._narrative_session_id = result['result']['session'].get('id')
-                    await websocket.send(json.dumps({
-                        "type": "narrative_session",
-                        "session_id": self._narrative_session_id,
-                        "ambient_state": self._ambient_state
-                    }))
-
-                # === GOSR Radio Broadcast Events ===
-
-                elif msg_type == 'radio_broadcast':
-                    # Radio segment broadcast from GOSR (Geometry OS Radio)
-                    station_id = data.get('station_id', '87.6')
-                    segment_type = data.get('segment_type', 'NEWS')
-                    content = data.get('content', '')
-                    timestamp = data.get('timestamp', time.time())
-
-                    print(f"📻 Radio Broadcast: {station_id} FM [{segment_type}] {content[:50]}...")
-
-                    # Broadcast to all WebSocket clients (browser HUD, etc.)
-                    await self._broadcast({
-                        "type": "RADIO_BROADCAST",
-                        "station_id": station_id,
-                        "segment_type": segment_type,
-                        "content": content,
-                        "timestamp": timestamp,
-                        "entropy": data.get('entropy', 0.5),
-                        "evolution_count": data.get('evolution_count', 0)
-                    })
-
-        except websockets.exceptions.ConnectionClosed:
-            pass
-        except Exception as e:
-            print(f"❌ Error handling client: {e}")
-        finally:
-            if websocket in self.clients:
-                self.clients.remove(websocket)
-            print(f"🔌 Connection closed: {websocket.remote_address}")
-
-    async def _handle_recall_memories(self, websocket, data):
-        world_x = data.get('x', 0)
-        world_y = data.get('y', 0)
-        
-        norm_x = world_x / self.map_size
-        norm_y = world_y / self.map_size
-        
-        query_vector = data.get('embedding')
-        if not query_vector:
-            query_vector = np.random.rand(1536).tolist()
-        
-        memory_msg = {
-            'message_type': 'GetMemoryBeam',
-            'payload': {
-                'query_vector': query_vector,
-                'current_x': norm_x,
-                'current_y': norm_y,
-                'limit': 20
-            }
-        }
-        
-        response = self._query_memory_daemon(memory_msg)
-        
-        if 'beam' in response:
-            memories = []
-            for m in response['beam']:
-                memories.append({
-                    'x': m['hilbert_x'] * self.map_size,
-                    'y': m['hilbert_y'] * self.map_size,
-                    'similarity': m['similarity'],
-                    'preview': m['token'],
-                    'timestamp': m['timestamp']
-                })
-            
-            await websocket.send(json.dumps({
-                'type': 'memory_beam_results',
-                'memories': memories
-            }))
-        else:
-            await websocket.send(json.dumps({
-                'type': 'error',
-                'message': f"Memory retrieval failed: {response.get('error')}"
-            }))
-
-    async def _handle_synaptic_query(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Handle a synaptic_query message by routing to SynapticQueryEngine.
-
-        Args:
-            data: Dict containing 'query' (str) and optional 'limit' (int)
-
-        Returns:
-            Dict with:
-                - type: 'synaptic_query_response'
-                - results: List of search results
-                - navigate_to: Best match coordinates (or None if no results)
-        """
-        query_text = data.get('query', '')
-        limit = data.get('limit', 10)
-
-        # Create engine and execute query
-        engine = SynapticQueryEngine()
-        results = engine.query(query_text, limit=limit)
-
-        # Build response
-        response = {
-            'type': 'synaptic_query_response',
-            'results': results,
-            'navigate_to': None
-        }
-
-        # Include navigate_to for best match (highest similarity, already sorted)
-        if results:
-            best = results[0]
-            response['navigate_to'] = {
-                'x': best['x'],
-                'y': best['y']
-            }
-
-        return response
-
-    async def _broadcast(self, data):
-        """Broadcast a message to all connected clients"""
-        if not self.clients:
-            return
-
-        message = json.dumps(data)
-        await asyncio.gather(*[client.send(message) for client in self.clients], return_exceptions=True)
-
-    # --- ASCII Scene Graph Methods ---
-
-    async def broadcast_ascii_file(self, filename: str) -> None:
-        """
-        Read and broadcast an ASCII file to all connected clients.
-
-        Args:
-            filename: Name of the .ascii file in .geometry/ascii_scene/
-        """
-        try:
-            filepath = self.ascii_scene_dir / filename
-            if not filepath.exists():
-                return
-
-            content = filepath.read_text()
-            self.ascii_scene_files[filename] = content
-
-            await self._broadcast({
-                "type": "ascii_scene_update",
-                "filename": filename,
-                "content": content,
-                "timestamp": time.time()
-            })
-            print(f"📄 ASCII Scene: {filename} updated ({len(content)} bytes)")
-        except Exception as e:
-            print(f"❌ Failed to broadcast ASCII file {filename}: {e}")
-
-    async def broadcast_ascii_scene_list(self) -> None:
-        """Broadcast list of available ASCII scene files."""
-        try:
-            if not self.ascii_scene_dir.exists():
-                return
-
-            files = list(self.ascii_scene_dir.glob("*.ascii"))
-            file_list = [f.name for f in files]
-
-            await self._broadcast({
-                "type": "ascii_scene_list",
-                "files": file_list,
-                "timestamp": time.time()
-            })
-        except Exception as e:
-            print(f"❌ Failed to list ASCII files: {e}")
-
-    def register_ascii_renderers(self) -> None:
-        """
-        Register ASCII renderers with their respective hook broadcasters.
-
-        This wires up the NeuralCity, VisualShell, and Evolution ASCII
-        renderers to receive events and generate .ascii files.
-        """
-        if self._ascii_renderers_registered:
-            return
-
-        try:
-            from systems.visual_shell.ascii_scene import wire_all_renderers
-
-            # Wire all renderers to their broadcasters
-            results = wire_all_renderers(output_dir=str(self.ascii_scene_dir))
-
-            # Store references for potential future use
-            self._ascii_renderers = results
-
-            print(f"📄 ASCII Scene Graph renderers registered ({len(results)} types)")
-            self._ascii_renderers_registered = True
-
-        except ImportError as e:
-            print(f"⚠️ Could not register ASCII renderers: {e}")
-
-    def _setup_ascii_scene_watcher(self) -> None:
-        """
-        Setup file watcher for ASCII scene directory.
-
-        This monitors .geometry/ascii_scene/ for changes and broadcasts
-        updates to connected clients.
-        """
-        # This is a simple polling-based watcher
-        # In production, consider using watchdog library
-        asyncio.create_task(self._ascii_scene_poller())
-
-    async def _ascii_scene_poller(self) -> None:
-        """Poll ASCII scene directory for changes and broadcast updates."""
-        while True:
-            try:
-                await asyncio.sleep(1.0)  # Poll every second
-
-                if not self.ascii_scene_dir.exists():
-                    continue
-
-                for filepath in self.ascii_scene_dir.glob("*.ascii"):
-                    filename = filepath.name
-                    try:
-                        content = filepath.read_text()
-                        if filename not in self.ascii_scene_files or \
-                           self.ascii_scene_files[filename] != content:
-                            self.ascii_scene_files[filename] = content
-                            await self._broadcast({
-                                "type": "ascii_scene_update",
-                                "filename": filename,
-                                "content": content,
-                                "timestamp": time.time()
-                            })
-                    except Exception:
-                        pass
-            except asyncio.CancelledError:
-                break
+                state = self.read_state()
+                if state:
+                    organisms = state.get("organisms", [])
+                    current_ids = {o["id"] for o in organisms}
+
+                    # Check for new or removed VMs
+                    known_ids = set(self.known_organisms.keys())
+                    new_ids = current_ids - known_ids
+                    removed_ids = known_ids - current_ids
+
+                    if new_ids or removed_ids or len(organisms) != last_count:
+                        # Update known organisms
+                        self.known_organisms.clear()
+                        for o in organisms:
+                            spatial = SpatialComponent(
+                                x=o.get("spatial", {}).get("x", 0.0),
+                                y=o.get("spatial", {}).get("y", 0.0),
+                                radius=o.get("spatial", {}).get("radius", 10.0),
+                                velocity=o.get("spatial", {}).get("velocity", {"x": 0.0, "y": 0.0}),
+                            )
+                            self.known_organisms[o["id"]] = OrganismState(
+                                id=o["id"],
+                                status=o.get("status", "Running"),
+                                spatial=spatial,
+                                metrics=o.get("metrics", {}),
+                                spawned_at=o.get("spawned_at", 0),
+                            )
+
+                        await on_change(new_ids, removed_ids, self.known_organisms)
+                        last_count = len(organisms)
             except Exception as e:
-                print(f"⚠️ ASCII scene poller error: {e}")
-                await asyncio.sleep(5.0)  # Back off on error
+                self.logger.error(f"Error reading state: {e}")
 
-    async def relay_token_pulse(self, token_event: dict):
-        """
-        Relay a token visualization event to Neural City clients.
+            await asyncio.sleep(self.poll_interval)
 
-        Args:
-            token_event: Dict with hilbert_x, hilbert_y, token, timestamp
-        """
-        if not self.clients:
-            return
-
-        # Transform to Neural City pulse format
-        pulse_message = {
-            "type": "neural_city_pulse",
-            "x": token_event.get("hilbert_x", 0),
-            "y": token_event.get("hilbert_y", 0),
-            "token": token_event.get("token", ""),
-            "timestamp": token_event.get("timestamp", 0)
-        }
-
-        # Use existing _broadcast method
-        await self._broadcast(pulse_message)
-
-    async def start(self):
-        """Start the Visual Bridge server with singleton enforcement."""
-        # Check for existing instance
-        if self._is_already_running():
-            print(f"🛑 Visual Bridge is already running (PID lock found at {self.lock_file})")
-            print("   Connect as a client instead: VisualBridgeClient()")
-            sys.exit(1)
-
-        # Acquire lock
-        self._acquire_lock()
-
-        print(f"🚀 Visual Bridge starting...")
-        print(f"   WebSocket: ws://localhost:{self.ws_port}")
-        print(f"   Memory Daemon: {self.memory_socket}")
-        print(f"   PID Lock: {self.lock_file}")
-
+    def read_state(self) -> Optional[dict]:
+        """Read the orchestrator state file."""
         try:
-            # Register ASCII renderers and start watcher
-            self.register_ascii_renderers()
-            self._setup_ascii_scene_watcher()
-
-            # Initialize Spatial Tectonics (Phase 28)
-            if self._tectonic_enabled:
-                await self._setup_spatial_tectonics()
-
-            # Initialize Perceptual Bridge V16 (New)
-            await self._setup_perceptual_bridge()
-
-            # Initialize Heat Aggregator (Visual Hotspot Debugger)
-            if self._heat_aggregator_enabled:
-                await self.start_heat_aggregator()
-
-            # Initialize WebMCP Bridge (Ambient Narrative System)
-            if self._webmcp_enabled:
-                await self._setup_webmcp_bridge()
-
-            async with serve(self.handle_client, "0.0.0.0", self.ws_port):
-                await asyncio.Future()
-        finally:
-            # Release lock on shutdown
-            self._release_lock()
-            print("🔓 PID lock released")
-
-    async def _setup_spatial_tectonics(self):
-        """Initialize the Spatial Tectonics ConsensusEngine."""
-        try:
-            from systems.evolution_daemon.spatial_tectonics import ConsensusEngine
-            self.consensus_engine = ConsensusEngine(
-                aggregation_window_secs=60,
-                min_pulse_count=10,
-                min_bond_strength=0.1
-            )
-            await self.consensus_engine.start()
-            print("🌋 Spatial Tectonics initialized (60s aggregation window)")
-        except ImportError as e:
-            print(f"⚠️  Spatial Tectonics not available: {e}")
-            self.consensus_engine = None
-        except Exception as e:
-            print(f"⚠️  Failed to initialize Spatial Tectonics: {e}")
-            self.consensus_engine = None
-
-    async def _setup_perceptual_bridge(self):
-        """Initialize the Perceptual Bridge for Silicon District monitoring."""
-        try:
-            from systems.neural_city.perceptual_bridge import PerceptualBridge
-
-            self.perceptual_bridge = PerceptualBridge(
-                ws_url=f"ws://localhost:{self.ws_port}",
-                district_id="silicon",
-                scan_interval=2.0
-            )
-
-            # Start as background task
-            asyncio.create_task(self.perceptual_bridge.start())
-            print("🔮 Perceptual Bridge V16 initialized (2s scan interval)")
-
-        except ImportError as e:
-            print(f"⚠️  Perceptual Bridge not available: {e}")
-            self.perceptual_bridge = None
-        except Exception as e:
-            print(f"⚠️  Failed to initialize Perceptual Bridge: {e}")
-            self.perceptual_bridge = None
-
-    async def _setup_webmcp_bridge(self):
-        """Initialize the WebMCP Bridge for Ambient Narrative System."""
-        if not HAS_WEBMCP_BRIDGE:
-            print("⚠️  WebMCP Bridge not available (evolution_webmcp_bridge not imported)")
-            return
-
-        try:
-            # Get WordPress URL from environment or use default
-            wordpress_url = os.environ.get('WORDPRESS_URL', 'http://localhost:8080')
-
-            self.webmcp_bridge = EvolutionWebMCPBridge(
-                wordpress_url=wordpress_url,
-                enabled=True
-            )
-
-            # Get or create narrative session
-            result = self.webmcp_bridge.invoke_tool('get_narrative_session', {})
-            if result.get('success') and result.get('result', {}).get('session'):
-                self._narrative_session_id = result['result']['session'].get('id')
-                print(f"📖 WebMCP Bridge initialized (session={self._narrative_session_id})")
-            else:
-                # Create new session
-                result = self.webmcp_bridge.invoke_tool('create_narrative_session', {})
-                if result.get('success'):
-                    self._narrative_session_id = result.get('result', {}).get('session_id')
-                    print(f"📖 WebMCP Bridge initialized (new session={self._narrative_session_id})")
-                else:
-                    print(f"⚠️  Failed to create narrative session: {result.get('error')}")
-
-            print(f"   WordPress URL: {wordpress_url}")
-
-        except Exception as e:
-            print(f"⚠️  Failed to initialize WebMCP Bridge: {e}")
-            self.webmcp_bridge = None
-
-    # --- Heat Aggregator Methods (Visual Hotspot Debugger) ---
-
-    async def start_heat_aggregator(self, vat_manager: Optional[Any] = None):
-        """
-        Start the heat aggregation service.
-
-        The HeatAggregator collects access patterns from multiple sources
-        (RISC-V execution, FUSE filesystem, Evolution Daemon) and broadcasts
-        a real-time heat map to connected clients.
-
-        Args:
-            vat_manager: Optional VATManager instance (uses self.vat_manager if not provided)
-
-        Example:
-            bridge = VisualBridge()
-            await bridge.start_heat_aggregator()
-            # Heat map updates will be broadcast via WebSocket
-        """
-        if self.heat_aggregator is not None:
-            print("⚠️  Heat Aggregator already running")
-            return
-
-        try:
-            try:
-                from .heat_aggregator import HeatAggregator
-            except ImportError:
-                from systems.visual_shell.api.heat_aggregator import HeatAggregator
-
-            vat = vat_manager or self.vat_manager
-            self.heat_aggregator = HeatAggregator(self, vat)
-            await self.heat_aggregator.start()
-            print("🔥 Heat Aggregator started (1 Hz update rate)")
-
-        except ImportError as e:
-            print(f"⚠️  Heat Aggregator not available: {e}")
-            self.heat_aggregator = None
-        except Exception as e:
-            print(f"⚠️  Failed to initialize Heat Aggregator: {e}")
-            self.heat_aggregator = None
-
-    async def stop_heat_aggregator(self):
-        """
-        Stop the heat aggregation service.
-
-        Persists the current heat state to disk before stopping.
-        """
-        if self.heat_aggregator is not None:
-            await self.heat_aggregator.stop()
-            self.heat_aggregator = None
-            print("🔥 Heat Aggregator stopped")
-
-    def record_heat_access(self, x: int, y: int, source: str = "unknown"):
-        """
-        Record a heat access event at the given coordinates.
-
-        Convenience method that delegates to HeatAggregator.record_access().
-
-        Args:
-            x: Grid X coordinate
-            y: Grid Y coordinate
-            source: Source identifier (e.g., "riscv", "fuse", "evolution")
-        """
-        if self.heat_aggregator is not None:
-            self.heat_aggregator.record_access(x, y, source)
-
-    def record_heat_memory_access(self, address: int, source: str = "riscv"):
-        """
-        Record a heat access event for a memory address.
-
-        Convenience method that delegates to HeatAggregator.record_memory_access().
-
-        Args:
-            address: Linear memory address
-            source: Source identifier (default: "riscv")
-        """
-        if self.heat_aggregator is not None:
-            self.heat_aggregator.record_memory_access(address, source)
-
-
-class VisualBridgeClient:
-    """
-    Client for connecting to a running Visual Bridge server.
-
-    AI agents should use this class instead of starting their own VisualBridge
-    to avoid port conflicts and state fragmentation.
-
-    Usage:
-        client = VisualBridgeClient()
-        await client.connect()
-
-        # Send events
-        await client.broadcast("mirror_validation_result", {"task_id": "...", "passed": True})
-        await client.send("riscv_uart", {"text": "Hello from RISC-V"})
-
-        # Disconnect when done
-        await client.disconnect()
-    """
-
-    def __init__(self, ws_url: str = "ws://localhost:8768", agent_id: str = None):
-        self.ws_url = ws_url
-        self.agent_id = agent_id or f"agent-{os.getpid()}"
-        self._ws = None
-        self._connected = False
-
-    async def connect(self) -> bool:
-        """Connect to the Visual Bridge server."""
-        if self._connected:
-            return True
-
-        try:
-            self._ws = await websockets.connect(self.ws_url)
-            self._connected = True
-            print(f"🔌 {self.agent_id} connected to Visual Bridge at {self.ws_url}")
-            return True
-        except Exception as e:
-            print(f"❌ {self.agent_id} failed to connect to Visual Bridge: {e}")
-            return False
-
-    async def disconnect(self):
-        """Disconnect from the Visual Bridge server."""
-        if self._ws:
-            await self._ws.close()
-            self._ws = None
-            self._connected = False
-            print(f"🔌 {self.agent_id} disconnected from Visual Bridge")
-
-    async def send(self, msg_type: str, data: dict) -> bool:
-        """
-        Send a message to the Visual Bridge.
-
-        Args:
-            msg_type: Message type (e.g., "riscv_uart", "mirror_validation_result")
-            data: Message payload
-
-        Returns:
-            True if sent successfully, False otherwise
-        """
-        if not self._connected:
-            if not await self.connect():
-                return False
-
-        try:
-            message = {"type": msg_type, **data}
-            await self._ws.send(json.dumps(message))
-            return True
-        except Exception as e:
-            print(f"❌ {self.agent_id} failed to send message: {e}")
-            self._connected = False
-            return False
-
-    async def broadcast(self, msg_type: str, data: dict) -> bool:
-        """
-        Send a broadcast event to all connected clients.
-
-        This is an alias for send() - all messages are broadcast by the server.
-        """
-        return await self.send(msg_type, data)
-
-    async def receive(self, timeout: float = None) -> Optional[dict]:
-        """
-        Receive a message from the Visual Bridge.
-
-        Args:
-            timeout: Optional timeout in seconds
-
-        Returns:
-            Message dict or None if timeout/no message
-        """
-        if not self._connected:
-            if not await self.connect():
+            if not os.path.exists(ORCHESTRATOR_SHM_PATH):
                 return None
 
+            with open(ORCHESTRATOR_SHM_PATH, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            self.logger.error(f"Failed to read {ORCHESTRATOR_SHM_PATH}: {e}")
+            return None
+
+    def stop(self):
+        """Stop the watcher."""
+        self.running = False
+
+
+class MemoryStreamer:
+    """Manages high-speed bidirectional streaming between shared memory and WebSockets."""
+
+    def __init__(self, vm_id: str, width: int = 2048, height: int = 2048):
+        self.vm_id = vm_id
+        self.width = width
+        self.height = height
+        self.shm_path = f"/dev/shm/geometry_vm_{vm_id}_visual"
+        self.ram_shm_path = f"/dev/shm/geometry_vm_{vm_id}"
+        self.header_size = 4096
+        self.pixel_data_size = width * height * 4  # RGBA8
+        self.total_size = self.header_size + self.pixel_data_size
+
+        self.viz_mm: Optional[mmap.mmap] = None
+        self.ram_mm: Optional[mmap.mmap] = None
+        self.is_streaming = False
+        self._closed = False  # Track explicit closure state
+
+        # RAM configuration
+        self.ram_size = 512 * 1024 * 1024
+        self.whitelist_start = self.ram_size - (1024 * 1024)
+        self.whitelist_end = self.ram_size
+        self.ring_offset = self.ram_size - (4 * 1024 * 1024)
+        self.logger = get_logger(f"{__name__}.MemoryStreamer.{vm_id}")
+
+    def _is_mmap_valid(self, mm: Optional[mmap.mmap]) -> bool:
+        """Check if an mmap object is valid and not closed."""
+        if mm is None:
+            return False
         try:
-            if timeout:
-                message = await asyncio.wait_for(self._ws.recv(), timeout=timeout)
-            else:
-                message = await self._ws.recv()
-            return json.loads(message)
-        except asyncio.TimeoutError:
+            # Try to get the size - this will raise ValueError if closed
+            mm.size()
+            return True
+        except (ValueError, AttributeError, OSError):
+            return False
+
+    def close(self):
+        """Clean up shared memory resources."""
+        if self._closed:
+            return
+        self._closed = True
+        self.is_streaming = False
+
+        # Close viz_mm with ValueError handling for already-closed mmaps
+        if self._is_mmap_valid(self.viz_mm):
+            try:
+                self.viz_mm.close()
+            except ValueError:
+                pass  # Already closed - this is fine
+            except Exception as e:
+                self.logger.error(f"Error closing viz_mm: {e}")
+        self.viz_mm = None
+
+        # Close ram_mm with ValueError handling for already-closed mmaps
+        if self._is_mmap_valid(self.ram_mm):
+            try:
+                self.ram_mm.close()
+            except ValueError:
+                pass  # Already closed - this is fine
+            except Exception as e:
+                self.logger.error(f"Error closing ram_mm: {e}")
+        self.ram_mm = None
+
+    def __del__(self):
+        """Cleanup on garbage collection - handles already-closed mmaps gracefully."""
+        try:
+            self.close()
+        except (ValueError, AttributeError, OSError):
+            # Mmap already closed or invalid - this is expected during GC
+            pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
+
+    def get_geo_metrics(self) -> dict:
+        """Read VirtIO-Geo metrics from the ring header."""
+        if not self.ram_mm:
+            return {}
+        try:
+            self.ram_mm.seek(self.ring_offset)
+            header_bytes = self.ram_mm.read(64)
+            head, tail, c_head, c_tail, size = struct.unpack("<IIIII", header_bytes[0:20])
+            if size == 0:
+                return {}
+            return {
+                "geo_active": True,
+                "submission_depth": (tail - head) % size,
+                "completion_depth": (c_head - c_tail) % size,
+                "total_processed": c_head,
+            }
+        except Exception as e:
+            return {"geo_error": str(e)}
+
+    def connect_shm(self) -> bool:
+        """Connect to the shared memory segments."""
+        try:
+            # Reset closed state on new connection attempt
+            self._closed = False
+
+            if os.path.exists(self.shm_path):
+                fd_viz = os.open(self.shm_path, os.O_RDONLY)
+                try:
+                    self.viz_mm = mmap.mmap(fd_viz, self.total_size, access=mmap.ACCESS_READ)
+                    self.logger.debug(f"Connected to Visual SHM: {self.shm_path}")
+                finally:
+                    try:
+                        os.close(fd_viz)
+                    except Exception:
+                        pass
+
+            if os.path.exists(self.ram_shm_path):
+                fd_ram = os.open(self.ram_shm_path, os.O_RDWR)
+                try:
+                    self.ram_mm = mmap.mmap(fd_ram, self.ram_size, access=mmap.ACCESS_WRITE)
+                    self.logger.debug(f"Connected to RAM SHM: {self.ram_shm_path}")
+                finally:
+                    try:
+                        os.close(fd_ram)
+                    except Exception:
+                        pass
+
+            return self.viz_mm is not None
+        except Exception as e:
+            self.logger.error(f"Failed to connect to SHM: {e}")
+            return False
+
+    async def handle_commands(self, websocket: WebSocket):
+        """Listen for incoming commands from the UI."""
+        try:
+            while self.is_streaming:
+                message = await websocket.receive_text()
+                cmd = json.loads(message)
+
+                if cmd.get("type") == "write_memory":
+                    addr = cmd.get("address")
+                    value = cmd.get("value")
+
+                    if addr is not None and value is not None:
+                        if self.whitelist_start <= addr < self.whitelist_end:
+                            if self.ram_mm:
+                                self.ram_mm.seek(addr)
+                                if isinstance(value, int):
+                                    self.ram_mm.write(bytes([value & 0xFF]))
+                                else:
+                                    self.ram_mm.write(bytes(value))
+                        else:
+                            self.logger.error(f"REJECTED write to 0x{addr:X}")
+
+        except WebSocketDisconnect:
+            pass
+        except Exception as e:
+            self.logger.error(f"Command handler error: {e}")
+
+    async def stream_visuals(self, websocket: WebSocket):
+        """Stream visual frames to the UI."""
+        try:
+            while self.is_streaming:
+                if self.viz_mm:
+                    self.viz_mm.seek(0)
+                    data = self.viz_mm.read(self.total_size)
+
+                    meta_len = struct.unpack("<I", data[0:4])[0]
+                    payload = data[0:4] + data[4 : 4 + meta_len] + data[self.header_size :]
+                    await websocket.send_bytes(payload)
+
+                await asyncio.sleep(1 / 60)
+        except WebSocketDisconnect:
+            pass
+        except Exception as e:
+            self.logger.error(f"Visual stream error: {e}")
+
+    async def stream_geo_metrics(self, websocket: WebSocket):
+        """Stream VirtIO-Geo metrics periodically."""
+        try:
+            while self.is_streaming:
+                metrics = self.get_geo_metrics()
+                if metrics:
+                    await websocket.send_text(json.dumps({"type": "geo_metrics", "data": metrics}))
+                await asyncio.sleep(0.5)
+        except WebSocketDisconnect:
+            pass
+        except Exception as e:
+            self.logger.error(f"Geo metrics stream error: {e}")
+
+    async def stream(self, websocket: WebSocket):
+        """Start bidirectional streaming."""
+        if not self.viz_mm and not self.connect_shm():
+            await websocket.send_text(json.dumps({"error": "SHM not found"}))
+            return
+
+        self.is_streaming = True
+        self.logger.info(f"Starting session for VM {self.vm_id}")
+
+        try:
+            await asyncio.gather(
+                self.stream_visuals(websocket),
+                self.handle_commands(websocket),
+                self.stream_geo_metrics(websocket),
+            )
+        finally:
+            self.is_streaming = False
+
+
+class FFIBridge:
+    """
+    Python FFI Bridge for Visual Shell CV/Analysis.
+
+    Provides safe execution of whitelisted numpy/scipy functions
+    for real-time computer vision and data analysis operations.
+    """
+
+    def __init__(self, registry_path: Optional[str] = None):
+        self.logger = get_logger(f"{__name__}.FFIBridge")
+        self.functions: Dict[str, dict] = {}
+        self.id_to_name: Dict[int, str] = {}
+        self.executor = ThreadPoolExecutor(max_workers=4)
+        self._loaded = False
+
+        if registry_path is None:
+            # Default registry path relative to this file
+            registry_path = os.path.join(
+                os.path.dirname(__file__),
+                "..", "..", "..", "visual-vm", "ffi_registry.json"
+            )
+
+        self.registry_path = registry_path
+        self._load_registry()
+
+    def _load_registry(self) -> bool:
+        """Load the FFI function registry."""
+        try:
+            if not os.path.exists(self.registry_path):
+                self.logger.warning(f"FFI registry not found: {self.registry_path}")
+                return False
+
+            with open(self.registry_path, "r") as f:
+                data = json.load(f)
+
+            self.functions = data.get("functions", {})
+            self.id_to_name = {
+                meta["id"]: name
+                for name, meta in self.functions.items()
+            }
+            self.dangerous_patterns = data.get("dangerousPatterns", [])
+            self._loaded = True
+            self.logger.info(f"Loaded {len(self.functions)} FFI functions")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to load FFI registry: {e}")
+            return False
+
+    def is_whitelisted(self, func_name: str) -> bool:
+        """Check if a function is whitelisted."""
+        return func_name in self.functions
+
+    def get_function_by_id(self, func_id: int) -> Optional[str]:
+        """Get function name by ID."""
+        return self.id_to_name.get(func_id)
+
+    def get_whitelisted_functions(self) -> List[str]:
+        """Get list of all whitelisted functions."""
+        return list(self.functions.keys())
+
+    def get_function_info(self, func_name: str) -> Optional[dict]:
+        """Get metadata for a function."""
+        return self.functions.get(func_name)
+
+    def _resolve_function(self, func_name: str) -> Optional[Callable]:
+        """Resolve a function name to a callable."""
+        if not self.is_whitelisted(func_name):
+            return None
+
+        try:
+            parts = func_name.split(".")
+            if parts[0] == "numpy":
+                module = np
+                for part in parts[1:]:
+                    if part == "linalg":
+                        module = np.linalg
+                    else:
+                        module = getattr(module, part)
+                return module
+            elif parts[0] == "scipy":
+                import scipy
+                module = scipy
+                for part in parts[1:]:
+                    if part == "optimize":
+                        module = scipy.optimize
+                    elif part == "signal":
+                        module = scipy.signal
+                    elif part == "ndimage":
+                        module = scipy.ndimage
+                    else:
+                        module = getattr(module, part)
+                return module
+            elif func_name in ("len", "range", "enumerate", "zip", "map", "filter"):
+                return eval(func_name)  # Safe: only builtins in whitelist
             return None
         except Exception as e:
-            print(f"❌ {self.agent_id} failed to receive message: {e}")
-            self._connected = False
+            self.logger.error(f"Failed to resolve function {func_name}: {e}")
             return None
 
-    @property
-    def connected(self) -> bool:
-        return self._connected
+    async def execute(
+        self,
+        func_name: str,
+        args: List[Any],
+        kwargs: Optional[dict] = None
+    ) -> dict:
+        """
+        Execute a whitelisted Python function.
+
+        Returns a dict with:
+        - status: "ok" or "error"
+        - result: the function result (serialized)
+        - error: error message if status is "error"
+        """
+        if not self._loaded:
+            return {"status": "error", "error": "FFI registry not loaded"}
+
+        if not self.is_whitelisted(func_name):
+            return {"status": "error", "error": f"Function '{func_name}' is not whitelisted"}
+
+        func = self._resolve_function(func_name)
+        if func is None:
+            return {"status": "error", "error": f"Could not resolve function '{func_name}'"}
+
+        kwargs = kwargs or {}
+
+        try:
+            # Run in thread pool to avoid blocking
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                self.executor,
+                lambda: func(*args, **kwargs)
+            )
+
+            # Serialize result
+            serialized = self._serialize_result(result)
+            return {"status": "ok", "result": serialized}
+        except Exception as e:
+            self.logger.error(f"FFI execution error for {func_name}: {e}")
+            return {"status": "error", "error": str(e)}
+
+    def _serialize_result(self, result: Any) -> Any:
+        """Serialize a result for JSON transmission."""
+        if isinstance(result, np.ndarray):
+            return {
+                "__ndarray__": True,
+                "data": result.tolist(),
+                "dtype": str(result.dtype),
+                "shape": list(result.shape)
+            }
+        elif isinstance(result, (np.integer, np.floating)):
+            return float(result) if isinstance(result, np.floating) else int(result)
+        elif isinstance(result, tuple):
+            return {"__tuple__": True, "data": [self._serialize_result(x) for x in result]}
+        elif isinstance(result, dict):
+            return {k: self._serialize_result(v) for k, v in result.items()}
+        elif isinstance(result, list):
+            return [self._serialize_result(x) for x in result]
+        else:
+            return result
+
+    def shutdown(self):
+        """Shutdown the executor."""
+        self.executor.shutdown(wait=False)
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(description='Visual Bridge for Geometry OS')
-    parser.add_argument('--port', type=int, default=8768, help='WebSocket port')
-    parser.add_argument('--socket', default='/tmp/vector_memory_daemon.sock', help='Memory daemon socket')
-    parser.add_argument('--map-size', type=int, default=4096, help='Map size for conversion')
-    return parser.parse_args()
+# Global FFI Bridge instance
+ffi_bridge: FFIBridge = None  # type: ignore[assignment]
 
 
-# Standalone handler function for testing and external use
-async def handle_synaptic_query(bridge: Any, data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Standalone synaptic query handler for testing.
+def _init_ffi_bridge() -> FFIBridge:
+    """Initialize the FFI bridge."""
+    global ffi_bridge
+    if ffi_bridge is None:
+        ffi_bridge = FFIBridge()
+    return ffi_bridge
 
-    Args:
-        bridge: VisualBridge instance (or mock for testing)
-        data: Dict containing 'query' (str) and optional 'limit' (int)
 
-    Returns:
-        Dict with:
-            - type: 'synaptic_query_response'
-            - results: List of search results
-            - navigate_to: Best match coordinates (or None if no results)
-    """
-    query_text = data.get('query', '')
-    limit = data.get('limit', 10)
+class MultiVmStreamer:
+    """Multiplexes visual streams from multiple VMs."""
 
-    # Create engine and execute query
-    engine = SynapticQueryEngine()
-    results = engine.query(query_text, limit=limit)
+    def __init__(self):
+        self.streamers: Dict[str, MemoryStreamer] = {}
+        self.watcher = OrchestratorWatcher()
+        self.active_websockets: Set[WebSocket] = set()
+        self.logger = get_logger(f"{__name__}.MultiVmStreamer")
 
-    # Build response
-    response = {
-        'type': 'synaptic_query_response',
-        'results': results,
-        'navigate_to': None
-    }
+    async def start(self):
+        """Start the orchestrator watcher."""
+        asyncio.create_task(self.watcher.watch(self._on_organisms_changed))
+        self.logger.info("Started orchestrator watcher")
 
-    # Include navigate_to for best match (highest similarity, already sorted)
-    if results:
-        best = results[0]
-        response['navigate_to'] = {
-            'x': best['x'],
-            'y': best['y']
+    async def _on_organisms_changed(
+        self,
+        new_ids: Set[str],
+        removed_ids: Set[str],
+        organisms: Dict[str, OrganismState]
+    ):
+        """Handle changes in the organism population."""
+        if new_ids:
+            self.logger.info(f"New organisms: {new_ids}")
+        if removed_ids:
+            self.logger.info(f"Removed organisms: {removed_ids}")
+            for vm_id in removed_ids:
+                if vm_id in self.streamers:
+                    self.streamers[vm_id].close()
+                    del self.streamers[vm_id]
+
+        # Notify all connected websockets about the change
+        state_update = {
+            "type": "orchestrator_state",
+            "organisms": [
+                {
+                    "id": o.id,
+                    "status": o.status,
+                    "spatial": {
+                        "x": o.spatial.x,
+                        "y": o.spatial.y,
+                        "radius": o.spatial.radius,
+                        "velocity": o.spatial.velocity,
+                    },
+                    "metrics": o.metrics,
+                }
+                for o in organisms.values()
+            ],
         }
 
-    return response
+        for ws in list(self.active_websockets):
+            try:
+                await ws.send_text(json.dumps(state_update))
+            except Exception:
+                self.active_websockets.discard(ws)
+
+    async def stream_multiplexed(self, websocket: WebSocket):
+        """Stream all organisms to a websocket."""
+        await websocket.accept()
+        self.active_websockets.add(websocket)
+
+        try:
+            # Send current state
+            state = self.watcher.read_state()
+            if state:
+                await websocket.send_text(json.dumps({
+                    "type": "orchestrator_state",
+                    **state
+                }))
+
+            # Stream updates
+            while True:
+                await asyncio.sleep(0.1)
+
+                # Send periodic state updates
+                state = self.watcher.read_state()
+                if state:
+                    await websocket.send_text(json.dumps({
+                        "type": "orchestrator_state",
+                        **state
+                    }))
+
+        except WebSocketDisconnect:
+            pass
+        finally:
+            self.active_websockets.discard(websocket)
+
+    def get_or_create_streamer(self, vm_id: str) -> MemoryStreamer:
+        """Get or create a streamer for a VM."""
+        if vm_id not in self.streamers:
+            self.streamers[vm_id] = MemoryStreamer(vm_id)
+        return self.streamers[vm_id]
+
+
+# Note: multi_vm_streamer is initialized at module import time for test compatibility
+# The lifespan context manager handles proper startup/shutdown of the watcher
+
+
+@app.get("/status")
+async def get_status():
+    """Get current bridge status."""
+    state = multi_vm_streamer.watcher.read_state()
+    return {
+        "status": "online",
+        "active_vms": list(multi_vm_streamer.streamers.keys()),
+        "known_organisms": list(multi_vm_streamer.watcher.known_organisms.keys()),
+        "orchestrator_state": state,
+        "whitelist": {"start": "0x1FF00000", "end": "0x20000000", "size": "1MB"},
+    }
+
+
+@app.get("/organisms")
+async def get_organisms():
+    """Get all known organisms from the orchestrator."""
+    state = multi_vm_streamer.watcher.read_state()
+    if state:
+        return state.get("organisms", [])
+    return []
+
+
+@app.websocket("/ws/v1/memory/{vm_id}")
+async def websocket_single_vm(websocket: WebSocket, vm_id: str):
+    """Stream a single VM's memory visualization."""
+    await websocket.accept()
+    streamer = multi_vm_streamer.get_or_create_streamer(vm_id)
+    await streamer.stream(websocket)
+
+
+@app.websocket("/ws/v1/orchestrator")
+async def websocket_orchestrator(websocket: WebSocket):
+    """Stream orchestrator state (all organisms)."""
+    await multi_vm_streamer.stream_multiplexed(websocket)
+
+
+@app.websocket("/ws/v1/multiplexed")
+async def websocket_multiplexed(websocket: WebSocket):
+    """Stream all VMs with their spatial positions."""
+    await multi_vm_streamer.stream_multiplexed(websocket)
+
+
+# ============================================================================
+# FFI Bridge API Endpoints (Phase 7: CV/Analysis Integration)
+# ============================================================================
+
+# Initialize FFI Bridge at module level for test compatibility
+_init_ffi_bridge()
+
+
+class FFIExecuteRequest(BaseModel):
+    """Request model for FFI execution."""
+    function: str
+    args: List[Any] = []
+    kwargs: dict = {}
+
+
+class FFIExecuteResponse(BaseModel):
+    """Response model for FFI execution."""
+    status: str
+    result: Any = None
+    error: Optional[str] = None
+
+
+@app.get("/ffi/functions")
+async def get_ffi_functions():
+    """Get all whitelisted FFI functions."""
+    if not ffi_bridge or not ffi_bridge._loaded:
+        return {"status": "error", "error": "FFI Bridge not initialized"}
+
+    return {
+        "status": "ok",
+        "functions": ffi_bridge.functions,
+        "count": len(ffi_bridge.functions)
+    }
+
+
+@app.get("/ffi/functions/{func_name}")
+async def get_ffi_function_info(func_name: str):
+    """Get info about a specific FFI function."""
+    if not ffi_bridge or not ffi_bridge._loaded:
+        return {"status": "error", "error": "FFI Bridge not initialized"}
+
+    info = ffi_bridge.get_function_info(func_name)
+    if info is None:
+        return {"status": "error", "error": f"Function '{func_name}' not found"}
+
+    return {"status": "ok", "function": func_name, "info": info}
+
+
+@app.post("/ffi/execute", response_model=FFIExecuteResponse)
+async def execute_ffi_function(request: FFIExecuteRequest):
+    """
+    Execute an FFI function.
+
+    Example:
+        POST /ffi/execute
+        {
+            "function": "numpy.sum",
+            "args": [[[1, 2, 3], [4, 5, 6]]],
+            "kwargs": {"axis": 0}
+        }
+    """
+    if not ffi_bridge or not ffi_bridge._loaded:
+        return FFIExecuteResponse(status="error", error="FFI Bridge not initialized")
+
+    result = await ffi_bridge.execute(request.function, request.args, request.kwargs)
+    return FFIExecuteResponse(**result)
+
+
+@app.post("/ffi/analyze/memory/{vm_id}")
+async def analyze_vm_memory(vm_id: str, operation: str = "mean"):
+    """
+    Analyze VM memory region using FFI.
+
+    Supported operations: mean, std, sum, min, max, argmax, argmin
+    """
+    if not ffi_bridge or not ffi_bridge._loaded:
+        return {"status": "error", "error": "FFI Bridge not initialized"}
+
+    streamer = multi_vm_streamer.get_or_create_streamer(vm_id)
+    if not streamer.ram_mm:
+        if not streamer.connect_shm():
+            return {"status": "error", "error": f"Cannot connect to VM {vm_id} memory"}
+
+    try:
+        # Read a sample region (first 1MB of RAM for analysis)
+        streamer.ram_mm.seek(0)
+        sample_data = streamer.ram_mm.read(1024 * 1024)
+        arr = np.frombuffer(sample_data, dtype=np.uint8)
+
+        # Execute the requested operation
+        func_name = f"numpy.{operation}"
+        if not ffi_bridge.is_whitelisted(func_name):
+            return {"status": "error", "error": f"Operation '{operation}' not supported"}
+
+        result = await ffi_bridge.execute(func_name, [arr])
+
+        return {
+            "status": "ok",
+            "vm_id": vm_id,
+            "operation": operation,
+            "sample_size": len(arr),
+            "result": result.get("result"),
+            "error": result.get("error")
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.websocket("/ws/v1/ffi")
+async def websocket_ffi(websocket: WebSocket):
+    """
+    WebSocket endpoint for real-time FFI operations.
+
+    Protocol:
+    - Client sends: {"type": "execute", "function": "numpy.sum", "args": [...], "kwargs": {...}}
+    - Server responds: {"type": "result", "status": "ok", "result": ...}
+    """
+    await websocket.accept()
+    logger = get_logger(f"{__name__}.ws_ffi")
+
+    if not ffi_bridge or not ffi_bridge._loaded:
+        await websocket.send_json({"type": "error", "error": "FFI Bridge not initialized"})
+        await websocket.close()
+        return
+
+    try:
+        while True:
+            message = await websocket.receive_text()
+            try:
+                data = json.loads(message)
+            except json.JSONDecodeError:
+                await websocket.send_json({"type": "error", "error": "Invalid JSON"})
+                continue
+
+            msg_type = data.get("type")
+
+            if msg_type == "execute":
+                func_name = data.get("function")
+                args = data.get("args", [])
+                kwargs = data.get("kwargs", {})
+
+                if not func_name:
+                    await websocket.send_json({"type": "error", "error": "Missing function name"})
+                    continue
+
+                result = await ffi_bridge.execute(func_name, args, kwargs)
+                await websocket.send_json({"type": "result", **result})
+
+            elif msg_type == "list_functions":
+                await websocket.send_json({
+                    "type": "functions",
+                    "functions": ffi_bridge.get_whitelisted_functions()
+                })
+
+            elif msg_type == "ping":
+                await websocket.send_json({"type": "pong"})
+
+            else:
+                await websocket.send_json({"type": "error", "error": f"Unknown message type: {msg_type}"})
+
+    except WebSocketDisconnect:
+        logger.debug("FFI WebSocket disconnected")
+    except Exception as e:
+        logger.error(f"FFI WebSocket error: {e}")
+
 
 if __name__ == "__main__":
-    args = parse_args()
-    bridge = VisualBridge(
-        memory_socket=args.socket,
-        ws_port=args.port,
-        map_size=args.map_size
-    )
-    try:
-        asyncio.run(bridge.start())
-    except KeyboardInterrupt:
-        print("\n🛑 Shutting down...")
+    port = int(os.environ.get("BRIDGE_PORT", 3002))
+    logger = get_logger(__name__)
+    logger.info(f"Starting Multi-VM Visual Bridge on port {port}")
+    uvicorn.run(app, host="0.0.0.0", port=port)

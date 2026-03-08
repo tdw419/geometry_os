@@ -1,12 +1,23 @@
 /**
+<<<<<<< HEAD
  * NeuralCityEngine - Main controller for Neural City visualization.
  *
  * Orchestrates TelemetryBus, CityOrchestrator, and PixiJS rendering.
  * Creates a living urban landscape representing agent cognition,
  * metabolism, and system state.
+=======
+ * NeuralCityEngine - PixiJS v8 based rendering engine for Geometry OS.
+ *
+ * This engine handles the high-frequency visualization of guest memory
+ * as "Window Particles" on an infinite desktop, including real-time
+ * diagnostic overlays (vCPU, IO activity).
+ *
+ * Phase 7: FFI Bridge Integration for CV/Analysis
+>>>>>>> acf84183548 (feat(ffi): integrate FFI Bridge with Visual Shell for CV/Analysis)
  */
 
 class NeuralCityEngine {
+<<<<<<< HEAD
     constructor(config = {}) {
         this.config = {
             wsUrl: config.wsUrl || 'ws://localhost:8768',
@@ -55,24 +66,189 @@ class NeuralCityEngine {
 
         // Neural Pulse System (Phase 27)
         this.neuralPulseSystem = null;
+=======
+    constructor(app) {
+        this.app = app; // PIXI.Application (v8)
+        this.windows = new Map();
+        this.bridgeUrl = `ws://${window.location.hostname}:3002/ws/v1/memory/`;
+        this.orchUrl = `ws://${window.location.hostname}:3002/ws/v1/orchestrator`;
+        this.ffiUrl = `ws://${window.location.hostname}:3002/ws/v1/ffi`;
+
+        // Order 11 = 2048x2048
+        this.hilbert = new HilbertCurve(11);
+
+        // World container for all organisms (infinite canvas)
+        this.world = new PIXI.Container();
+        this.app.stage.addChild(this.world);
+
+        this.orchestratorWs = null;
+        this.isOrchestratorConnected = false;
+
+        // FFI Bridge for CV/Analysis
+        this.ffiWs = null;
+        this.isFFIConnected = false;
+        this.ffiFunctions = [];
+        this.pendingFFIRequests = new Map();
+        this.nextFFIRequestId = 1;
+>>>>>>> acf84183548 (feat(ffi): integrate FFI Bridge with Visual Shell for CV/Analysis)
     }
 
     /**
      * Start the Neural City engine.
      * Initializes render layers, connects telemetry, starts render loop.
      */
+<<<<<<< HEAD
     async start() {
         console.log('NeuralCityEngine starting...');
+=======
+    connectOrchestrator() {
+        console.log(`[Engine] Connecting to orchestrator: ${this.orchUrl}`);
+        this.orchestratorWs = new WebSocket(this.orchUrl);
+
+        this.orchestratorWs.onmessage = (event) => {
+            const state = JSON.parse(event.data);
+            if (state.type === 'orchestrator_state') {
+                this.syncOrganisms(state.organisms);
+            }
+        };
+>>>>>>> acf84183548 (feat(ffi): integrate FFI Bridge with Visual Shell for CV/Analysis)
 
         this._setupOrchestratorCallbacks();
         this._setupTelemetryHandlers();
         this._createRenderLayers();
 
+<<<<<<< HEAD
         // Connect telemetry bus
         try {
             await this.telemetryBus.connect();
         } catch (e) {
             console.warn('TelemetryBus connection failed, running in standalone mode:', e);
+=======
+        this.orchestratorWs.onclose = () => {
+            this.isOrchestratorConnected = false;
+            console.warn("[Engine] Orchestrator disconnected, retrying...");
+            setTimeout(() => this.connectOrchestrator(), 2000);
+        };
+    }
+
+    /**
+     * Connect to the FFI Bridge for CV/Analysis operations.
+     */
+    connectFFI() {
+        console.log(`[Engine] Connecting to FFI Bridge: ${this.ffiUrl}`);
+        this.ffiWs = new WebSocket(this.ffiUrl);
+
+        this.ffiWs.onmessage = (event) => {
+            const response = JSON.parse(event.data);
+            this.handleFFIResponse(response);
+        };
+
+        this.ffiWs.onopen = () => {
+            this.isFFIConnected = true;
+            console.log("[Engine] FFI Bridge connected");
+            // Request available functions
+            this.ffiWs.send(JSON.stringify({ type: 'list_functions' }));
+        };
+
+        this.ffiWs.onclose = () => {
+            this.isFFIConnected = false;
+            console.warn("[Engine] FFI Bridge disconnected, retrying...");
+            setTimeout(() => this.connectFFI(), 2000);
+        };
+    }
+
+    /**
+     * Handle FFI Bridge responses.
+     */
+    handleFFIResponse(response) {
+        if (response.type === 'functions') {
+            this.ffiFunctions = response.functions;
+            console.log(`[Engine] FFI functions available: ${this.ffiFunctions.length}`);
+        } else if (response.type === 'result') {
+            const callback = this.pendingFFIRequests.get(response.request_id);
+            if (callback) {
+                this.pendingFFIRequests.delete(response.request_id);
+                callback(response);
+            }
+        } else if (response.type === 'error') {
+            console.error('[Engine] FFI error:', response.error);
+        }
+    }
+
+    /**
+     * Execute an FFI function (numpy/scipy operation).
+     *
+     * @param {string} funcName - Function name (e.g., "numpy.sum")
+     * @param {Array} args - Function arguments
+     * @param {Object} kwargs - Keyword arguments
+     * @returns {Promise} - Resolves with result
+     */
+    async executeFFI(funcName, args = [], kwargs = {}) {
+        if (!this.isFFIConnected) {
+            throw new Error('FFI Bridge not connected');
+        }
+
+        return new Promise((resolve, reject) => {
+            const requestId = this.nextFFIRequestId++;
+            this.pendingFFIRequests.set(requestId, (response) => {
+                if (response.status === 'ok') {
+                    resolve(response.result);
+                } else {
+                    reject(new Error(response.error));
+                }
+            });
+
+            this.ffiWs.send(JSON.stringify({
+                type: 'execute',
+                function: funcName,
+                args: args,
+                kwargs: kwargs,
+                request_id: requestId
+            }));
+
+            // Timeout after 10 seconds
+            setTimeout(() => {
+                if (this.pendingFFIRequests.has(requestId)) {
+                    this.pendingFFIRequests.delete(requestId);
+                    reject(new Error('FFI request timeout'));
+                }
+            }, 10000);
+        });
+    }
+
+    /**
+     * Analyze VM memory using FFI (convenience method).
+     *
+     * @param {string} vmId - VM identifier
+     * @param {string} operation - Operation (mean, std, sum, min, max)
+     * @returns {Promise} - Analysis result
+     */
+    async analyzeMemory(vmId, operation = 'mean') {
+        const response = await fetch(
+            `http://${window.location.hostname}:3002/ffi/analyze/memory/${vmId}?operation=${operation}`
+        );
+        return response.json();
+    }
+
+    /**
+     * Get available FFI functions.
+     */
+    getFFIFunctions() {
+        return this.ffiFunctions;
+    }
+
+    /**
+     * Synchronize local windows with orchestrator state.
+     */
+    syncOrganisms(organisms) {
+        const currentIds = new Set(organisms.map(o => o.id));
+        
+        // 1. Remove dead organisms
+        for (const vmId of this.windows.keys()) {
+            if (!currentIds.has(vmId)) {
+                this.removeVmWindow(vmId);
+            }
+>>>>>>> acf84183548 (feat(ffi): integrate FFI Bridge with Visual Shell for CV/Analysis)
         }
 
         // Setup Live Tile Manager
