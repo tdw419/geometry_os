@@ -16,11 +16,62 @@ import time
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
 
-from .content_analyzer import ImprovementProposal
-from .evolution_agent import WordPressEvolutionAgent, EvolutionCycleResult
-from .action_executor import PlaywrightActionExecutor, ExecutionResult
-
 logger = logging.getLogger("wp_evolution_bridge")
+
+
+# --- Stub classes for missing modules ---
+
+@dataclass
+class ImprovementProposal:
+    """A proposed improvement for WordPress content."""
+    post_id: int
+    proposal_type: str
+    description: str
+    confidence: float = 0.0
+    changes: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class EvolutionCycleResult:
+    """Result of an evolution cycle."""
+    cycle_id: int
+    proposals: List[ImprovementProposal] = field(default_factory=list)
+    executed_count: int = 0
+    success: bool = True
+    error: Optional[str] = None
+
+
+@dataclass
+class ExecutionResult:
+    """Result of executing an action."""
+    success: bool
+    action_type: str = ""
+    message: str = ""
+    error: Optional[str] = None
+
+
+class WordPressEvolutionAgent:
+    """Evolves WordPress content through analysis and improvement cycles."""
+
+    def __init__(self, wp_url: str = ""):
+        self.wp_url = wp_url
+
+    def run_cycle(self) -> EvolutionCycleResult:
+        """Run a single evolution cycle."""
+        logger.info(f"Running evolution cycle for {self.wp_url}")
+        return EvolutionCycleResult(cycle_id=int(time.time()))
+
+
+class PlaywrightActionExecutor:
+    """Executes actions via Playwright automation."""
+
+    def __init__(self, ws_uri: str = ""):
+        self.ws_uri = ws_uri
+
+    def execute(self, proposal: ImprovementProposal) -> ExecutionResult:
+        """Execute an improvement proposal."""
+        logger.info(f"Executing proposal for post {proposal.post_id}")
+        return ExecutionResult(success=False, message="Playwright not connected")
 
 
 @dataclass
