@@ -869,6 +869,90 @@ class SSATransformer:
         return result
 
 
+class GlyphCache:
+    """
+    LRU cache for glyph bitmaps with eviction tracking.
+
+    Used by the transpiler to manage glyph storage and emit
+    GLYPH_CACHE_EVICT instructions when the cache exceeds capacity.
+
+    Features:
+    - max_entries parameter (default 256)
+    - cache_get/cache_put with LRU tracking
+    - Hit/miss counters for profiling
+    - Eviction counter and instruction generation
+    """
+
+    def __init__(self, max_entries: int = 256):
+        """Initialize glyph cache with given capacity."""
+        self.max_entries = max_entries
+        self._cache: Dict[str, list] = {}  # glyph_id -> bitmap
+        self._lru_order: List[str] = []    # Ordered from LRU to MRU
+        self._evicted_ids: List[str] = []  # IDs evicted since last get_evict_instructions
+        self.hits = 0
+        self.misses = 0
+        self.evictions = 0
+
+    def size(self) -> int:
+        """Return current number of entries in cache."""
+        return len(self._cache)
+
+    def cache_put(self, glyph_id: str, bitmap: list) -> List[str]:
+        """
+        Store a glyph bitmap in cache.
+
+        Returns list of evicted glyph IDs if eviction occurred.
+        """
+        evicted = []
+
+        # If already exists, remove from LRU order (will be re-added at end)
+        if glyph_id in self._cache:
+            self._lru_order.remove(glyph_id)
+        else:
+            # Check if we need to evict
+            while len(self._cache) >= self.max_entries:
+                # Evict LRU (first in order)
+                lru_id = self._lru_order.pop(0)
+                del self._cache[lru_id]
+                self._evicted_ids.append(lru_id)
+                evicted.append(lru_id)
+                self.evictions += 1
+
+        # Add/update the entry
+        self._cache[glyph_id] = bitmap
+        self._lru_order.append(glyph_id)
+
+        return evicted
+
+    def cache_get(self, glyph_id: str) -> Optional[list]:
+        """
+        Retrieve a glyph bitmap from cache.
+
+        Updates LRU order on hit. Returns None on miss.
+        """
+        if glyph_id in self._cache:
+            # Move to most recently used (end of list)
+            self._lru_order.remove(glyph_id)
+            self._lru_order.append(glyph_id)
+            self.hits += 1
+            return self._cache[glyph_id]
+        else:
+            self.misses += 1
+            return None
+
+    def get_evict_instructions(self) -> List[str]:
+        """
+        Generate GLYPH_CACHE_EVICT instructions for evicted glyphs.
+
+        Returns list of assembly instructions. Clears the evicted list.
+        """
+        instructions = []
+        for glyph_id in self._evicted_ids:
+            instructions.append(f"GLYPH_CACHE_EVICT 1    ; evict glyph {glyph_id}")
+        self._evicted_ids.clear()
+        return instructions
+
+
 class GVNPass:
     """
     Global Value Numbering pass with advanced redundancy elimination.
