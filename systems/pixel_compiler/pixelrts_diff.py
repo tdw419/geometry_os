@@ -334,3 +334,61 @@ class PixelRTSDiffer:
             'most_changed_channel': most_changed,
             'least_changed_channel': least_changed
         }
+
+    def get_summary(self, result: dict) -> str:
+        """
+        Format diff result as human-readable plain-text summary.
+
+        Args:
+            result: Dictionary from diff() method
+
+        Returns:
+            Formatted string with byte statistics and channel breakdown
+        """
+        lines = []
+
+        # Header with file names
+        old_name = result.get('old_file', 'unknown')
+        new_name = result.get('new_file', 'unknown')
+        lines.append(f"Comparing: {old_name} -> {new_name}")
+        lines.append("")
+
+        # Calculate percentages
+        total = result.get('total_bytes', 0)
+        added = result.get('added_bytes', 0)
+        removed = result.get('removed_bytes', 0)
+        changed = result.get('changed_bytes', 0)
+        unchanged = result.get('unchanged_bytes', 0)
+
+        def pct(val, total_val):
+            if total_val == 0:
+                return 0.0
+            return (val / total_val) * 100
+
+        # Byte change summary with percentages
+        lines.append(f"Bytes Added:    {added:>8,} ({pct(added, total):>5.1f}%)")
+        lines.append(f"Bytes Removed:  {removed:>8,} ({pct(removed, total):>5.1f}%)")
+        lines.append(f"Bytes Changed:  {changed:>8,} ({pct(changed, total):>5.1f}%)")
+        lines.append(f"Unchanged:      {unchanged:>8,} ({pct(unchanged, total):>5.1f}%)")
+        lines.append("")
+
+        # Total and change percentage
+        change_pct = result.get('change_percent', 0.0)
+        lines.append(f"Total: {total:,} bytes | {change_pct}% changed")
+        lines.append("")
+
+        # Changed regions if available
+        regions = result.get('changed_regions', [])
+        if regions:
+            lines.append(f"Changed Regions: {len(regions)}")
+
+        # Channel stats if available
+        channel_stats = result.get('channel_stats', {})
+        if channel_stats:
+            most = channel_stats.get('most_changed_channel', 'N/A')
+            per_ch = channel_stats.get('per_channel', {})
+            if most != 'N/A' and per_ch:
+                most_count = per_ch.get(most, {}).get('changed', 0)
+                lines.append(f"Most changed channel: {most} ({most_count:,} bytes)")
+
+        return "\n".join(lines)
