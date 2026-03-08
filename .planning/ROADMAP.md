@@ -2,14 +2,14 @@
 
 ## Milestones
 
-- ✅ **v1.0 PixelRTS Boot** — Phases 1-4 (shipped 2026-03-08)
-- ✅ **v1.1 Visual Diff** — Phase 5 (shipped 2026-03-08)
-- 🚧 **v1.2 Network Boot** — Phases 6-8 (in progress)
+- **v1.0 PixelRTS Boot** -- Phases 1-4 (shipped 2026-03-08)
+- **v1.1 Visual Diff** -- Phase 5 (shipped 2026-03-08)
+- **v1.2 Network Boot** -- Phases 6-8 (in progress)
 
 ## Phases
 
 <details>
-<summary>✅ v1.0 PixelRTS Boot (Phases 1-4) — SHIPPED 2026-03-08</summary>
+<summary>v1.0 PixelRTS Boot (Phases 1-4) -- SHIPPED 2026-03-08</summary>
 
 - [x] Phase 1: Vision Analysis Pipeline (8/8 plans)
 - [x] Phase 2: FUSE Bridge for Direct Boot (6/6 plans)
@@ -21,7 +21,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details.
 </details>
 
 <details>
-<summary>✅ v1.1 Visual Diff (Phase 5) — SHIPPED 2026-03-08</summary>
+<summary>v1.1 Visual Diff (Phase 5) -- SHIPPED 2026-03-08</summary>
 
 - [x] Phase 5: Visual Diff Engine (4/4 plans)
 
@@ -35,7 +35,7 @@ See: `.planning/milestones/v1.1-ROADMAP.md` for full details.
 
 </details>
 
-## 🚧 v1.2 Network Boot (In Progress)
+## v1.2 Network Boot (In Progress)
 
 **Milestone Goal:** Boot PixelRTS containers over network (PXE/NBD) with bandwidth-efficient delta updates.
 
@@ -54,12 +54,12 @@ See: `.planning/milestones/v1.1-ROADMAP.md` for full details.
 4. NBD server exports .rts.png files as network block devices mountable via nbd-client
 5. Boot progress shows network transfer status to the user
 
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 06-01: NBD Server Foundation (nbdkit plugin, range decoding)
-- [ ] 06-02: PXE Boot Infrastructure (DHCP proxy, TFTP server)
-- [ ] 06-03: Network Boot Integration (`pixelrts serve` command, progress)
+- [ ] 06-01-PLAN.md -- NBD Server Foundation (nbdkit plugin, range decoding)
+- [ ] 06-02-PLAN.md -- PXE Boot Infrastructure (DHCP proxy, TFTP server)
+- [ ] 06-03-PLAN.md -- Network Boot Integration (pixelrts serve command, progress)
 
 ### Phase 7: HTTP Boot via iPXE
 
@@ -74,11 +74,11 @@ Plans:
 2. HTTP server serves kernel/initrd with byte-range support for partial transfers
 3. Boot time is measurably faster than TFTP for large containers (>10MB)
 
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 07-01: iPXE Chainload Configuration
-- [ ] 07-02: HTTP Boot Server with Byte-Range Support
+- [ ] 07-01-PLAN.md -- iPXE Chainload Configuration
+- [ ] 07-02-PLAN.md -- HTTP Boot Server with Byte-Range Support
 
 ### Phase 8: Delta Updates
 
@@ -94,17 +94,17 @@ Plans:
 3. Delta transfer leverages existing PixelRTSDiffer infrastructure
 4. Patch size is significantly smaller than full container download (target: <20%)
 
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 08-01: Delta Manifest Generation
-- [ ] 08-02: Delta Patch Application
-- [ ] 08-03: Delta Server Integration
+- [ ] 08-01-PLAN.md -- Delta Manifest Generation
+- [ ] 08-02-PLAN.md -- Delta Patch Application
+- [ ] 08-03-PLAN.md -- Delta Server Integration
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 6 → 7 → 8
+Phases execute in numeric order: 6 -> 7 -> 8
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -113,10 +113,10 @@ Phases execute in numeric order: 6 → 7 → 8
 | 3. Visual Installer Engine | v1.0 | 4/4 | Complete | 2026-02-15 |
 | 4. Visual Catalog Manager | v1.0 | 4/4 | Complete | 2026-02-17 |
 | 5. Visual Diff Engine | v1.1 | 4/4 | Complete | 2026-03-08 |
-| 6. NBD Server + PXE Boot | v1.2 | 0/3 | Not started | - |
+| 6. NBD Server + PXE Boot | v1.2 | 0/3 | Ready for execution | - |
 | 7. HTTP Boot via iPXE | v1.2 | 0/2 | Not started | - |
 | 8. Delta Updates | v1.2 | 0/3 | Not started | - |
 
 ---
 
-*Next: `/gsd:plan-phase 6`*
+*Next: `/gsd:execute-phase 6`*
