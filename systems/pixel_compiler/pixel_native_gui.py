@@ -120,8 +120,28 @@ class PixelNativeGUI:
         """Execute one frame."""
         # Flush injector events to runtime before executing
         for event in self._injector.flush():
-            # Convert to runtime input format
-            pass  # TODO: Convert InjectedEvent to InputEvent
+            # Convert InjectedEvent to runtime InputEvent format
+            if event.event_type == "click":
+                runtime_event = ClickEvent(
+                    x=event.x or 0,
+                    y=event.y or 0,
+                    button=event.button or 1
+                )
+                self._runtime.inject_input(runtime_event)
+            elif event.event_type == "key":
+                runtime_event = KeyEvent(
+                    key=event.key or "",
+                    modifiers=event.modifiers or []
+                )
+                self._runtime.inject_input(runtime_event)
+            elif event.event_type == "move":
+                # Move events update cursor position without click
+                runtime_event = ClickEvent(
+                    x=event.x or 0,
+                    y=event.y or 0,
+                    button=0  # No button for move
+                )
+                self._runtime.inject_input(runtime_event)
         self._runtime.execute_frame()
 
     def wait_for_change(self, timeout_ms: int = 1000) -> bool:
