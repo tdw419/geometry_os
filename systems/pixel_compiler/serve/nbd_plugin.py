@@ -77,11 +77,6 @@ class PixelRTSPlugin:
         self._png_data: Optional[bytes] = None
         self._lock = threading.Lock()
 
-        # Image data for range decoding
-        self._pixel_array = None
-        self._hilbert_lut = None
-        self._grid_size: int = 0
-
     def config(self, key: str, value: str) -> None:
         """
         Handle nbdkit configuration key=value pairs.
@@ -105,7 +100,7 @@ class PixelRTSPlugin:
         This method:
         1. Verifies the file path is set and exists
         2. Loads the PNG file
-        3. Extracts metadata from PNG tEXt chunks
+        3. Creates a PixelRTSDecoder for range decoding
         4. Validates it's a valid PixelRTS container
         5. Gets the data size for get_size()
 
@@ -123,34 +118,30 @@ class PixelRTSPlugin:
         with open(self.file, 'rb') as f:
             self._png_data = f.read()
 
-        # Import decoder (lazy to avoid circular imports)
-        from systems.pixel_compiler.pixelrts_v2_core import (
-            PixelRTSDecoder,
-            PixelRTSMetadata,
-            HilbertCurve
-        )
-        from PIL import Image
-        from io import BytesIO
-        import numpy as np
+        # Import decoder (lazy to avoid import overhead)
+        from systems.pixel_compiler.pixelrts_v2_core import PixelRTSDecoder
 
-        # Load image and extract metadata
-        image = Image.open(BytesIO(self._png_data))
+        # Create decoder instance for range decoding
+        self._decoder = PixelRTSDecoder()
 
-        # Extract metadata from PNG tEXt chunks
-        for key, value in image.text.items():
-            if "PixelRTS" in value:
-                try:
-                    self._metadata = PixelRTSMetadata.decode_png_text(
-                        value.encode("utf-8")
-                    )
-                    break
-                except ValueError:
-                    continue
+        # Try to decode a single byte to validate the container
+        # and extract metadata
+        try:
+            # This will parse metadata and validate the container
+            self._decoder.decode_range(self._png_data, 0, 1)
+        except Exception as e:
+            raise ValueError(
+                f"Not a valid PixelRTS container: {self.file}. "
+                f"Error: {e}"
+            )
+
+        # Get metadata from decoder
+        self._metadata = self._decoder.get_metadata()
 
         if not self._metadata:
             raise ValueError(
                 f"Not a valid PixelRTS container: {self.file}. "
-                "Missing PixelRTS metadata in PNG tEXt chunks."
+                "Missing PixelRTS metadata."
             )
 
         # Get data size from metadata
@@ -162,35 +153,10 @@ class PixelRTSPlugin:
         else:
             raise ValueError("Missing data_size in container metadata")
 
-        # Convert to RGBA if needed and store pixel array
-        if image.mode != 'RGBA':
-            image = image.convert('RGBA')
-
-        width, height = image.size
-        if width != height:
-            raise ValueError(f"Image must be square, got {width}x{height}")
-
-        self._grid_size = width
-
-        # Verify grid size is power of 2
-        if self._grid_size & (self._grid_size - 1) != 0:
-            raise ValueError(
-                f"Invalid grid size: {self._grid_size} (not power of 2)"
-            )
-
-        # Store pixel array for range decoding
-        self._pixel_array = np.array(image, dtype=np.uint8)
-
-        # Generate Hilbert LUT for coordinate mapping
-        import math
-        order = int(math.log2(self._grid_size))
-        hilbert = HilbertCurve(order=order)
-        self._hilbert_lut = hilbert.generate_lut()
-
         if NBDKIT_AVAILABLE:
             nbdkit.debug(
                 f"Loaded PixelRTS container: {self.file}, "
-                f"size={self._size} bytes, grid={self._grid_size}x{self._grid_size}"
+                f"size={self._size} bytes"
             )
 
     def open(self, readonly: bool) -> Any:
@@ -238,9 +204,9 @@ class PixelRTSPlugin:
         """
         Read `count` bytes from the block device at `offset`.
 
-        This method implements range decoding to read only the pixels
-        needed for the requested byte range, enabling memory-efficient
-        serving of large containers.
+        This method uses range decoding via PixelRTSDecoder.decode_range()
+        to read only the pixels needed for the requested byte range,
+        enabling memory-efficient serving of large containers.
 
         The mapping from bytes to pixels follows the Hilbert curve:
         - Each pixel stores 4 bytes (RGBA)
@@ -258,63 +224,18 @@ class PixelRTSPlugin:
         Raises:
             ValueError: If read would exceed container size
         """
-        import numpy as np
-
         # Validate bounds
         if offset < 0:
             raise ValueError(f"Negative offset: {offset}")
+        if offset >= self._size:
+            return b''
+
+        # Clamp count to available bytes
         if offset + count > self._size:
-            # Short read at end of device is allowed
-            count = max(0, self._size - offset)
-            if count == 0:
-                return b''
+            count = self._size - offset
 
         if count == 0:
             return b''
 
-        # Use decode_range if available on decoder
-        # For now, implement range decoding directly
-        return self._decode_range(offset, count)
-
-    def _decode_range(self, start_byte: int, count: int) -> bytes:
-        """
-        Decode a byte range from the pixel array using Hilbert mapping.
-
-        This is the core range decoding implementation that enables
-        memory-efficient serving of large containers.
-
-        Args:
-            start_byte: Starting byte offset
-            count: Number of bytes to read
-
-        Returns:
-            Decoded bytes
-        """
-        import numpy as np
-
-        result = bytearray(count)
-
-        # Calculate pixel range
-        first_pixel = start_byte // 4
-        first_channel = start_byte % 4
-        end_byte = start_byte + count
-        last_pixel = (end_byte - 1) // 4
-
-        # Read bytes one at a time
-        # This is simple but correct - can be optimized later
-        for i in range(count):
-            byte_offset = start_byte + i
-            pixel_idx = byte_offset // 4
-            channel = byte_offset % 4
-
-            # Check bounds
-            if pixel_idx >= len(self._hilbert_lut):
-                break
-
-            # Get pixel coordinates from Hilbert LUT
-            x, y = self._hilbert_lut[pixel_idx]
-
-            # Extract byte from pixel channel
-            result[i] = self._pixel_array[y, x, channel]
-
-        return bytes(result)
+        # Use decoder's decode_range for memory-efficient serving
+        return self._decoder.decode_range(self._png_data, offset, count)

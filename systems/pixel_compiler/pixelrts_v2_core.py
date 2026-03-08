@@ -799,6 +799,133 @@ class PixelRTSDecoder:
         actual_hash = PixelRTSMetadata.hash_data(data)
         return actual_hash == expected_hash
 
+    def decode_range(
+        self,
+        png_data: bytes,
+        start_byte: int,
+        count: int
+    ) -> bytes:
+        """
+        Decode only a byte range from the PNG data.
+
+        This method enables memory-efficient serving of large containers
+        by decoding only the pixels needed for the requested byte range,
+        rather than loading the entire image into memory.
+
+        The mapping from bytes to pixels follows the Hilbert curve:
+        - Each pixel stores 4 bytes (RGBA channels)
+        - Byte at offset N is stored at pixel N//4, channel N%4
+
+        Args:
+            png_data: PNG image bytes
+            start_byte: Starting byte offset to decode
+            count: Number of bytes to decode
+
+        Returns:
+            Decoded bytes for the requested range
+
+        Raises:
+            ValueError: If start_byte or count are invalid
+
+        Note:
+            This method does NOT handle compression. For compressed
+            containers, use decode() to get the full decompressed data.
+            Range decoding is intended for uncompressed containers or
+            pre-decoded pixel data.
+        """
+        from PIL import Image
+        from io import BytesIO
+
+        # Validate inputs
+        if start_byte < 0:
+            raise ValueError(f"Negative start_byte: {start_byte}")
+        if count < 0:
+            raise ValueError(f"Negative count: {count}")
+        if count == 0:
+            return b''
+
+        # Load image
+        image = Image.open(BytesIO(png_data))
+
+        # Extract metadata if not already set
+        if not self._metadata:
+            for key, value in image.text.items():
+                if "PixelRTS" in value:
+                    try:
+                        self._metadata = PixelRTSMetadata.decode_png_text(
+                            value.encode("utf-8")
+                        )
+                        break
+                    except ValueError:
+                        continue
+
+        # Get total data size for bounds checking
+        if self._metadata:
+            if "encoded_size" in self._metadata:
+                total_size = self._metadata["encoded_size"]
+            elif "data_size" in self._metadata:
+                total_size = self._metadata["data_size"]
+            else:
+                total_size = None
+        else:
+            total_size = None
+
+        # Bounds check
+        if total_size is not None and start_byte >= total_size:
+            return b''
+
+        # Convert to RGBA if needed
+        if image.mode != 'RGBA':
+            image = image.convert('RGBA')
+
+        # Get image dimensions
+        width, height = image.size
+        if width != height:
+            raise ValueError(f"Image must be square, got {width}x{height}")
+
+        grid_size = width
+
+        # Verify grid size is power of 2
+        if grid_size & (grid_size - 1) != 0:
+            raise ValueError(f"Invalid grid size: {grid_size} (not power of 2)")
+
+        # Initialize Hilbert curve
+        order = int(np.log2(grid_size))
+        hilbert = HilbertCurve(order=order)
+        lut = hilbert.generate_lut()
+
+        # Convert image to numpy array
+        pixel_array = np.array(image, dtype=np.uint8)
+
+        # Calculate the pixel range needed
+        end_byte = start_byte + count
+        if total_size is not None:
+            end_byte = min(end_byte, total_size)
+            count = end_byte - start_byte
+
+        if count <= 0:
+            return b''
+
+        # Decode the requested bytes
+        result = bytearray(count)
+
+        for i in range(count):
+            byte_offset = start_byte + i
+            pixel_idx = byte_offset // 4
+            channel = byte_offset % 4
+
+            # Check bounds
+            if pixel_idx >= len(lut):
+                break
+
+            # Get pixel coordinates from Hilbert LUT
+            x, y = lut[pixel_idx]
+
+            # Extract byte from pixel channel
+            result[i] = pixel_array[y, x, channel]
+
+        return bytes(result)
+
     def load(self, input_path: str, verify_hash: bool = False) -> bytes:
         """
         Load and decode PNG file.
