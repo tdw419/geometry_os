@@ -144,6 +144,109 @@ class CheckpointManager:
         """Check if a valid checkpoint exists."""
         return self.checkpoint_path.exists()
 
+
+class GitCommitHook:
+    """
+    Handles automatic git commits of daemon session state.
+
+    Features:
+    - Commits .loop/ directory changes after task completion
+    - Handles "nothing to commit" gracefully
+    - Logs commit SHA to evolution.log
+    """
+
+    def __init__(self, repo_path: str = ".", log_path: str = ".loop/evolution.log"):
+        self.repo_path = Path(repo_path)
+        self.log_path = Path(log_path)
+
+    def _log_event(self, message: str):
+        """Log commit event to evolution.log."""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_entry = f"[{timestamp}] [GIT_COMMIT] {message}\n"
+
+        # Ensure directory exists
+        self.log_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(self.log_path, 'a') as f:
+            f.write(log_entry)
+
+    def commit_session_dna(self) -> Dict[str, Any]:
+        """
+        Commit .loop/ directory changes.
+
+        Returns:
+            Dict with success, commit_sha, and nothing_to_commit fields
+        """
+        try:
+            # Stage .loop/ directory
+            subprocess.run(
+                ["git", "add", ".loop/"],
+                cwd=self.repo_path,
+                check=True,
+                capture_output=True
+            )
+
+            # Create commit message with timestamp
+            timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+            commit_msg = f"chore: daemon session {timestamp}"
+
+            # Try to commit
+            result = subprocess.run(
+                ["git", "commit", "-m", commit_msg],
+                cwd=self.repo_path,
+                capture_output=True,
+                text=True
+            )
+
+            if result.returncode == 0:
+                # Get commit SHA
+                sha_result = subprocess.run(
+                    ["git", "rev-parse", "--short", "HEAD"],
+                    cwd=self.repo_path,
+                    check=True,
+                    capture_output=True,
+                    text=True
+                )
+                commit_sha = sha_result.stdout.strip()
+
+                self._log_event(f"Commit created: {commit_sha}")
+                return {
+                    "success": True,
+                    "commit_sha": commit_sha,
+                    "nothing_to_commit": False
+                }
+            elif "nothing to commit" in result.stdout or "nothing to commit" in result.stderr:
+                # No changes to commit - this is fine
+                self._log_event("No changes to commit")
+                return {
+                    "success": True,
+                    "commit_sha": None,
+                    "nothing_to_commit": True
+                }
+            else:
+                # Some other error
+                self._log_event(f"Git commit failed: {result.stderr}")
+                return {
+                    "success": False,
+                    "commit_sha": None,
+                    "error": result.stderr
+                }
+
+        except subprocess.CalledProcessError as e:
+            self._log_event(f"Git command failed: {e}")
+            return {
+                "success": False,
+                "commit_sha": None,
+                "error": str(e)
+            }
+        except Exception as e:
+            self._log_event(f"Unexpected error: {e}")
+            return {
+                "success": False,
+                "commit_sha": None,
+                "error": str(e)
+            }
+
 class TaskState(Enum):
     PENDING = "[ ]"
     IN_PROGRESS = "[→]"
@@ -167,7 +270,7 @@ class Task:
         return self.description
 
 class SisyphusDaemon:
-    def __init__(self, state_file=".loop/STATE_V4.md", session_dir=None, force_clean=False):
+    def __init__(self, state_file=".loop/STATE_V4.md", session_dir=None, force_clean=False, auto_commit=False):
         self.state_file = Path(state_file)
         self.project_dir = Path(__file__).parent.parent.parent.resolve()
         self.log_dir = Path(".loop/logs/v4")
@@ -190,6 +293,10 @@ class SisyphusDaemon:
         self.force_clean = force_clean
         self._last_checkpoint_time = 0
         self._checkpoint_interval = 60  # seconds
+
+        # Git commit hook for session DNA
+        self.auto_commit = auto_commit
+        self.git_commit_hook = GitCommitHook(repo_path=self.project_dir)
 
     def _save_task_checkpoint(self, task_id: int, task_name: str, extra_state: Dict[str, Any] = None):
         """Save current task state to checkpoint."""
@@ -334,6 +441,8 @@ Ensure task numbering continues correctly.
                 self.log(f"✓ Task {task.number} complete ({duration:.1f}s)")
                 # Clear checkpoint on successful completion
                 self.checkpoint_manager.clear_checkpoint()
+                # Commit session DNA if auto_commit enabled
+                self._commit_session_dna()
             else:
                 self.mark_task_state(task, TaskState.FAILED)
                 self.log(f"✗ Task {task.number} failed ({duration:.1f}s) - see {task_log}")
@@ -341,6 +450,22 @@ Ensure task numbering continues correctly.
         except Exception as e:
             self.log(f"Error running task {task.number}: {e}")
             self.mark_task_state(task, TaskState.FAILED)
+
+    def _commit_session_dna(self) -> Optional[Dict[str, Any]]:
+        """Commit .loop/ changes if auto_commit is enabled."""
+        if not self.auto_commit:
+            return {"skipped": True, "reason": "auto_commit disabled"}
+
+        result = self.git_commit_hook.commit_session_dna()
+
+        if result.get("success") and result.get("commit_sha"):
+            self.log(f"Session DNA committed: {result['commit_sha']}")
+        elif result.get("nothing_to_commit"):
+            self.log("Session DNA: nothing to commit")
+        elif not result.get("success"):
+            self.log(f"Session DNA commit failed: {result.get('error', 'unknown')}")
+
+        return result
 
     def run(self):
         self.log("--- SISYPHUS V4 DAEMON STARTING ---")
