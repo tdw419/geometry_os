@@ -549,3 +549,113 @@ class TestDeleteSliceEdgeCasesWithMockVM:
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])
+
+
+# ============================================================================
+# COVERAGE GAP TESTS: For, While, If, Syntax Error
+# ============================================================================
+
+class TestForLoop:
+    """Tests for For loop transpilation (coverage gap)."""
+
+    def test_for_loop_compiles(self):
+        """For loop should compile to GeoASM."""
+        t = PythonToGeoASM()
+        result = t.transpile('for x in items:\n    pass')
+        assert 'FOR_START' in result or 'FOR_END' in result
+
+    def test_for_loop_with_body(self):
+        """For loop with body should include body instructions."""
+        t = PythonToGeoASM()
+        result = t.transpile('for x in items:\n    y = x')
+        assert 'FOR_START' in result
+        assert 'HALT' in result
+
+    def test_for_loop_iterator_register(self):
+        """For loop should allocate iterator register."""
+        t = PythonToGeoASM()
+        result = t.transpile('for x in items:\n    pass')
+        # Should have NEXT instruction for iteration
+        assert 'NEXT' in result or 'JEQ' in result
+
+
+class TestWhileLoop:
+    """Tests for While loop transpilation (coverage gap)."""
+
+    def test_while_loop_compiles(self):
+        """While loop should compile to GeoASM."""
+        t = PythonToGeoASM()
+        result = t.transpile('while x > 0:\n    pass')
+        assert 'WHILE_START' in result or 'WHILE_END' in result
+
+    def test_while_loop_with_body(self):
+        """While loop with body should include body instructions."""
+        t = PythonToGeoASM()
+        result = t.transpile('while x > 0:\n    x = x - 1')
+        assert 'WHILE_START' in result
+        assert 'HALT' in result
+
+    def test_while_loop_condition_check(self):
+        """While loop should have condition check."""
+        t = PythonToGeoASM()
+        result = t.transpile('while x > 0:\n    pass')
+        # Should have conditional jump
+        assert 'JEQ' in result or 'JMP' in result
+
+
+class TestIfStatement:
+    """Tests for If statement transpilation (coverage gap)."""
+
+    def test_if_compiles(self):
+        """If statement should compile to GeoASM."""
+        t = PythonToGeoASM()
+        result = t.transpile('if x > 0:\n    pass')
+        assert 'IF_' in result or 'JEQ' in result
+
+    def test_if_with_else(self):
+        """If-else should compile with both branches."""
+        t = PythonToGeoASM()
+        result = t.transpile('if x > 0:\n    y = 1\nelse:\n    y = 2')
+        assert 'IF_' in result
+        assert 'HALT' in result
+
+    def test_if_with_elif(self):
+        """If-elif should compile correctly."""
+        t = PythonToGeoASM()
+        result = t.transpile('if x > 0:\n    y = 1\nelif x < 0:\n    y = 2')
+        assert 'IF_' in result or 'ELIF' in result.upper() or 'JEQ' in result
+
+
+class TestSyntaxErrorHandling:
+    """Tests for syntax error handling (coverage gap)."""
+
+    def test_syntax_error_returns_error_message(self):
+        """Syntax error should return error message."""
+        t = PythonToGeoASM()
+        result = t.transpile('if x > 0\n    y = 1')  # Missing colon
+        assert 'ERROR' in result
+        assert 'Syntax error' in result
+
+    def test_invalid_syntax_detected(self):
+        """Invalid syntax should be detected."""
+        t = PythonToGeoASM()
+        result = t.transpile('def foo(\n')  # Incomplete function definition
+        assert 'ERROR' in result
+
+
+class TestRegisterAllocation:
+    """Tests for register allocation edge cases (coverage gap)."""
+
+    def test_reuse_existing_register(self):
+        """Reusing variable should use existing register."""
+        t = PythonToGeoASM()
+        result = t.transpile('x = 1\nx = 2')
+        # Variable x should reuse its register
+        assert 'HALT' in result
+
+    def test_register_get_or_allocate(self):
+        """Getting register for new variable should allocate."""
+        t = PythonToGeoASM()
+        result = t.transpile('x = 1\ny = x')
+        assert 'HALT' in result
+

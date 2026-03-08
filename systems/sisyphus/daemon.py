@@ -5,16 +5,20 @@ Replaces shell scripts with native Python daemon that:
 2. Monitors performance and offloads bottlenecks
 3. Integrates with visual-vm via shared memory
 4. Checkpoint/restore for crash recovery
+5. Heartbeat monitoring for compositor socket connection
 """
 
 import re
 import os
 import time
 import json
+import socket
+import struct
 import subprocess
 import logging
 import hashlib
-from dataclasses import dataclass
+import threading
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -29,6 +33,206 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger("SisyphusV4")
+
+
+# Heartbeat message opcode
+HEARTBEAT_OPCODE = 0xFE
+HEARTBEAT_TIMEOUT = 5.0  # seconds
+HEARTBEAT_INTERVAL = 2.0  # seconds between heartbeats
+
+
+class CompositorConnection:
+    """
+    Manages connection to the compositor socket with heartbeat monitoring.
+
+    Features:
+    - Automatic connection to /tmp/evolution_daemon.sock
+    - Heartbeat messages with 5-second timeout
+    - Automatic reconnection on failure
+    - Thread-safe operation
+    """
+
+    def __init__(self, socket_path: str = "/tmp/evolution_daemon.sock"):
+        self.socket_path = socket_path
+        self.socket: Optional[socket.socket] = None
+        self.connected = False
+        self.last_heartbeat: float = 0
+        self.last_heartbeat_response: float = 0
+        self._lock = threading.Lock()
+        self._heartbeat_thread: Optional[threading.Thread] = None
+        self._running = False
+        self._reconnect_attempts = 0
+        self._max_reconnect_attempts = 5
+
+    def connect(self) -> bool:
+        """
+        Connect to the compositor socket.
+
+        Returns:
+            True if connected successfully
+        """
+        with self._lock:
+            if self.connected:
+                return True
+
+            try:
+                self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                self.socket.settimeout(HEARTBEAT_TIMEOUT)
+                self.socket.connect(self.socket_path)
+                self.connected = True
+                self._reconnect_attempts = 0
+                self.last_heartbeat = time.time()
+                self.last_heartbeat_response = time.time()
+                logger.info(f"Connected to compositor socket: {self.socket_path}")
+                return True
+            except FileNotFoundError:
+                logger.debug(f"Compositor socket not found: {self.socket_path}")
+                self.connected = False
+                return False
+            except ConnectionRefusedError:
+                logger.debug(f"Connection refused to: {self.socket_path}")
+                self.connected = False
+                return False
+            except Exception as e:
+                logger.error(f"Failed to connect to compositor: {e}")
+                self.connected = False
+                return False
+
+    def disconnect(self):
+        """Disconnect from the compositor socket."""
+        with self._lock:
+            self._running = False
+            self.connected = False
+            if self.socket:
+                try:
+                    self.socket.close()
+                except:
+                    pass
+                self.socket = None
+            logger.info("Disconnected from compositor socket")
+
+    def send_heartbeat(self) -> bool:
+        """
+        Send a heartbeat message to the compositor.
+
+        Returns:
+            True if heartbeat was acknowledged
+        """
+        with self._lock:
+            if not self.connected or not self.socket:
+                return False
+
+            try:
+                # Create heartbeat message
+                # Format: [4-byte length][JSON with opcode 0xFE]
+                message = {
+                    "msg_type": "Heartbeat",
+                    "sequence": int(time.time() * 1000) % 0xFFFFFFFF,
+                    "payload": {"opcode": HEARTBEAT_OPCODE, "timestamp": time.time()}
+                }
+                json_data = json.dumps(message).encode('utf-8')
+                length_bytes = struct.pack('>I', len(json_data))
+                self.socket.sendall(length_bytes + json_data)
+                self.last_heartbeat = time.time()
+
+                # Wait for response with timeout
+                self.socket.settimeout(HEARTBEAT_TIMEOUT)
+                response_length = self.socket.recv(4)
+                if len(response_length) < 4:
+                    raise socket.timeout("No response length")
+
+                length = struct.unpack('>I', response_length)[0]
+                response_data = b''
+                while len(response_data) < length:
+                    chunk = self.socket.recv(length - len(response_data))
+                    if not chunk:
+                        raise socket.timeout("Incomplete response")
+                    response_data += chunk
+
+                response = json.loads(response_data.decode('utf-8'))
+                if response.get('msg_type') in ('Ack', 'Heartbeat'):
+                    self.last_heartbeat_response = time.time()
+                    return True
+                return False
+
+            except socket.timeout:
+                logger.warning("Heartbeat timeout - compositor not responding")
+                self._handle_disconnect()
+                return False
+            except Exception as e:
+                logger.error(f"Heartbeat error: {e}")
+                self._handle_disconnect()
+                return False
+
+    def _handle_disconnect(self):
+        """Handle disconnection from compositor."""
+        self.connected = False
+        if self.socket:
+            try:
+                self.socket.close()
+            except:
+                pass
+            self.socket = None
+
+    def start_heartbeat_loop(self):
+        """Start the heartbeat thread."""
+        if self._heartbeat_thread and self._heartbeat_thread.is_alive():
+            return
+
+        self._running = True
+        self._heartbeat_thread = threading.Thread(target=self._heartbeat_loop, daemon=True)
+        self._heartbeat_thread.start()
+        logger.info("Heartbeat thread started")
+
+    def _heartbeat_loop(self):
+        """Background thread for heartbeat monitoring."""
+        while self._running:
+            try:
+                if not self.connected:
+                    # Try to reconnect
+                    self._reconnect_attempts += 1
+                    if self._reconnect_attempts <= self._max_reconnect_attempts:
+                        logger.info(f"Attempting reconnect ({self._reconnect_attempts}/{self._max_reconnect_attempts})...")
+                        if self.connect():
+                            self._reconnect_attempts = 0
+                    else:
+                        logger.warning("Max reconnect attempts reached, waiting...")
+                        time.sleep(10)
+                        self._reconnect_attempts = 0
+
+                if self.connected:
+                    # Check if last heartbeat response is too old
+                    time_since_response = time.time() - self.last_heartbeat_response
+                    if time_since_response > HEARTBEAT_TIMEOUT * 2:
+                        logger.warning(f"Heartbeat timeout: no response for {time_since_response:.1f}s")
+                        self._handle_disconnect()
+                    else:
+                        # Send heartbeat
+                        self.send_heartbeat()
+
+                time.sleep(HEARTBEAT_INTERVAL)
+
+            except Exception as e:
+                logger.error(f"Heartbeat loop error: {e}")
+                time.sleep(1)
+
+    def stop_heartbeat_loop(self):
+        """Stop the heartbeat thread."""
+        self._running = False
+        if self._heartbeat_thread:
+            self._heartbeat_thread.join(timeout=2.0)
+        logger.info("Heartbeat thread stopped")
+
+    def get_state(self) -> Dict[str, Any]:
+        """Get current connection state."""
+        return {
+            "connected": self.connected,
+            "socket_path": self.socket_path,
+            "last_heartbeat": self.last_heartbeat,
+            "last_heartbeat_response": self.last_heartbeat_response,
+            "seconds_since_heartbeat": time.time() - self.last_heartbeat_response if self.last_heartbeat_response else None,
+            "reconnect_attempts": self._reconnect_attempts
+        }
 
 
 class CheckpointManager:
@@ -270,7 +474,7 @@ class Task:
         return self.description
 
 class SisyphusDaemon:
-    def __init__(self, state_file=".loop/STATE_V4.md", session_dir=None, force_clean=False, auto_commit=False):
+    def __init__(self, state_file=".loop/STATE_V4.md", session_dir=None, force_clean=False, auto_commit=False, enable_heartbeat=True):
         self.state_file = Path(state_file)
         self.project_dir = Path(__file__).parent.parent.parent.resolve()
         self.log_dir = Path(".loop/logs/v4")
@@ -280,7 +484,7 @@ class SisyphusDaemon:
         if not session_dir:
             home = Path.home()
             # This is specific to our project structure
-            self.session_dir = home / ".pi/agent/sessions/--home-jericho-zion-projects-geometry_os-geometry_os--"
+            self.session_dir = home / ".pi/agent/sessions/--home-jericho-zion-projects-geometry_os-geometry-os--"
         else:
             self.session_dir = Path(session_dir)
 
@@ -297,6 +501,10 @@ class SisyphusDaemon:
         # Git commit hook for session DNA
         self.auto_commit = auto_commit
         self.git_commit_hook = GitCommitHook(repo_path=self.project_dir)
+
+        # Compositor connection with heartbeat
+        self.enable_heartbeat = enable_heartbeat
+        self.compositor = CompositorConnection() if enable_heartbeat else None
 
     def _save_task_checkpoint(self, task_id: int, task_name: str, extra_state: Dict[str, Any] = None):
         """Save current task state to checkpoint."""
@@ -581,18 +789,31 @@ Ensure task numbering continues correctly.
         if checkpoint:
             self.log(f"Resuming from checkpoint: task {checkpoint.get('task_id')}")
 
-        while self.running:
-            tasks = self.get_tasks()
-            pending_tasks = [t for t in tasks if t.state == TaskState.PENDING]
+        # Start compositor heartbeat if enabled
+        if self.enable_heartbeat and self.compositor:
+            self.compositor.connect()
+            self.compositor.start_heartbeat_loop()
+            self.log("Compositor heartbeat monitoring enabled")
 
-            if not pending_tasks:
-                if all(t.state in [TaskState.COMPLETE, TaskState.FAILED] for t in tasks):
-                    self.generate_tasks()
-                else:
-                    self.log("No pending tasks. Waiting...")
-                    time.sleep(self.poll_interval)
-                continue
+        try:
+            while self.running:
+                tasks = self.get_tasks()
+                pending_tasks = [t for t in tasks if t.state == TaskState.PENDING]
 
-            # Run the first pending task
-            self.run_task(pending_tasks[0])
-            time.sleep(2)
+                if not pending_tasks:
+                    if all(t.state in [TaskState.COMPLETE, TaskState.FAILED] for t in tasks):
+                        self.generate_tasks()
+                    else:
+                        self.log("No pending tasks. Waiting...")
+                        time.sleep(self.poll_interval)
+                    continue
+
+                # Run the first pending task
+                self.run_task(pending_tasks[0])
+                time.sleep(2)
+        finally:
+            # Cleanup
+            if self.compositor:
+                self.compositor.stop_heartbeat_loop()
+                self.compositor.disconnect()
+                self.log("Compositor connection closed")

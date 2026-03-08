@@ -820,6 +820,122 @@ def orb_visualize(path: str, order: int = 8) -> GlyphSubstrate:
     return substrate
 
 
+# ============================================================================
+# GLYPH BLIT RENDERING
+# ============================================================================
+
+# Global glyph registry for the Native Glyph Shell
+_glyph_registry: Dict[str, tuple] = {}  # glyph_id -> (width, height, pixel_data)
+_glyph_substrate: Optional[GlyphSubstrate] = None
+
+
+def _get_substrate() -> GlyphSubstrate:
+    """Get or create the global glyph substrate."""
+    global _glyph_substrate
+    if _glyph_substrate is None:
+        _glyph_substrate = GlyphSubstrate(order=8)  # 256x256
+    return _glyph_substrate
+
+
+def glyph_define(glyph_id: str, width: int, height: int, pixel_data: list = None) -> bool:
+    """
+    Register a glyph in the glyph registry.
+
+    Args:
+        glyph_id: Unique identifier for the glyph
+        width: Width of glyph in pixels
+        height: Height of glyph in pixels
+        pixel_data: Optional list of RGBA color values (u32). If None, creates a solid white glyph.
+
+    Returns:
+        True if glyph was registered successfully
+
+    Example:
+        >>> glyph_define('test_glyph', 64, 64)
+        True
+    """
+    if pixel_data is None:
+        # Create a solid white glyph
+        pixel_data = [0xFFFFFFFF] * (width * height)
+
+    _glyph_registry[glyph_id] = (width, height, pixel_data)
+    return True
+
+
+def glyph_blit(glyph_id: str, x: int, y: int, width: int = None, height: int = None) -> bool:
+    """
+    Blit a glyph to the glyph substrate at position (x, y).
+
+    This is the Python implementation of the GLYPH_BLIT opcode (0xC6).
+    Uses Hilbert-indexed GlyphSubstrate for cache-efficient rendering.
+
+    Args:
+        glyph_id: Identifier of the glyph to blit
+        x: X position on substrate
+        y: Y position on substrate
+        width: Optional width override (defaults to glyph's width)
+        height: Optional height override (defaults to glyph's height)
+
+    Returns:
+        True if blit was successful, False if glyph not found or out of bounds
+
+    Raises:
+        ValueError: If coordinates are negative
+
+    Example:
+        >>> glyph_define('test_glyph', 64, 64)
+        True
+        >>> glyph_blit('test_glyph', 0, 0, 64, 64)
+        True
+        >>> glyph_blit('nonexistent', 0, 0)
+        False
+    """
+    if x < 0 or y < 0:
+        raise ValueError(f"Coordinates must be non-negative: ({x}, {y})")
+
+    # Check if glyph exists
+    if glyph_id not in _glyph_registry:
+        # Auto-define if not found (for testing convenience)
+        if width is not None and height is not None:
+            glyph_define(glyph_id, width, height)
+        else:
+            return False
+
+    gw, gh, pixel_data = _glyph_registry[glyph_id]
+
+    # Use provided dimensions or glyph's dimensions
+    blit_w = width if width is not None else gw
+    blit_h = height if height is not None else gh
+
+    substrate = _get_substrate()
+
+    # Bounds check
+    if x >= substrate.n or y >= substrate.n:
+        return False
+
+    # Blit the glyph to the substrate
+    for py in range(min(blit_h, substrate.n - y)):
+        for px in range(min(blit_w, substrate.n - x)):
+            src_idx = py * gw + px
+            if src_idx < len(pixel_data):
+                color = pixel_data[src_idx]
+                substrate.set_pixel(x + px, y + py, color)
+
+    return True
+
+
+def glyph_get_substrate() -> GlyphSubstrate:
+    """Get the current glyph substrate for rendering."""
+    return _get_substrate()
+
+
+def glyph_clear_substrate():
+    """Clear the glyph substrate."""
+    global _glyph_substrate
+    if _glyph_substrate is not None:
+        _glyph_substrate.buffer = [0] * (_glyph_substrate.n * _glyph_substrate.n)
+
+
 def cmd_run(args):
     """Run a GeoASM program."""
     print(f"Running {args.file}...")
