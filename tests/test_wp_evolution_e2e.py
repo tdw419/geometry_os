@@ -9,20 +9,15 @@ import asyncio
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from systems.evolution_daemon.wordpress.content_analyzer import (
+# Use the unified imports from __init__.py
+from systems.evolution_daemon.wordpress import (
     WordPressContentAnalyzer,
     ContentAnalysis,
     ImprovementProposal,
-)
-from systems.evolution_daemon.wordpress.evolution_agent import (
     WordPressEvolutionAgent,
     EvolutionCycleResult,
-)
-from systems.evolution_daemon.wordpress.action_executor import (
     PlaywrightActionExecutor,
     ExecutionResult,
-)
-from systems.evolution_daemon.wordpress.bridge_service import (
     BridgeServiceConfig,
     WPEvolutionBridgeService,
 )

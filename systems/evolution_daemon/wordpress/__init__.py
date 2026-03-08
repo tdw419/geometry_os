@@ -12,10 +12,12 @@ from .bridge_service import (
     BridgeServiceConfig,
     WPEvolutionBridgeService,
     ServiceStats,
+    ImprovementProposal,
+    EvolutionCycleResult,
+    ExecutionResult,
+    WordPressEvolutionAgent,
+    PlaywrightActionExecutor,
 )
-
-# Stub classes for components not yet implemented
-# These provide type hints and basic structure
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
@@ -25,20 +27,12 @@ from typing import List, Dict, Any, Optional
 class ContentAnalysis:
     """Analysis result for WordPress content."""
     post_id: int
-    title: str
-    content_quality_score: float = 0.0
+    title: str = ""
+    content: str = ""
+    word_count: int = 0
+    issues: List[str] = field(default_factory=list)
     suggestions: List[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class ImprovementProposal:
-    """A proposed improvement for WordPress content."""
-    post_id: int
-    proposal_type: str
-    description: str
-    confidence: float = 0.0
-    changes: Dict[str, Any] = field(default_factory=dict)
 
 
 class WordPressContentAnalyzer:
@@ -47,54 +41,52 @@ class WordPressContentAnalyzer:
     def __init__(self, wp_url: str = ""):
         self.wp_url = wp_url
 
-    def analyze(self, post_id: int) -> ContentAnalysis:
+    def analyze(self, post: Dict[str, Any]) -> ContentAnalysis:
         """Analyze a WordPress post."""
-        return ContentAnalysis(post_id=post_id, title="")
+        content = post.get("content", "")
+        title = post.get("title", "")
+        post_id = post.get("id", 0)
+
+        issues = []
+        word_count = len(content.split())
+
+        if word_count < 50:
+            issues.append(f"Content is too short ({word_count} words)")
+        if len(title) < 10:
+            issues.append("Title is too short")
+
+        return ContentAnalysis(
+            post_id=post_id,
+            title=title,
+            content=content,
+            word_count=word_count,
+            issues=issues,
+        )
+
+    def propose_improvement(self, post: Dict[str, Any]) -> Optional[ImprovementProposal]:
+        """Generate an improvement proposal for a post."""
+        analysis = self.analyze(post)
+
+        if not analysis.issues:
+            return None
+
+        content = post.get("content", "")
+        post_id = post.get("id", 0)
+
+        # Generate expanded content
+        expanded = content + " [Expanded with additional context and details.]"
+
+        return ImprovementProposal(
+            post_id=post_id,
+            improvement_type="expand",
+            suggested_content=expanded,
+            confidence=0.7 if analysis.word_count < 50 else 0.5,
+            reason=f"Content needs expansion ({analysis.word_count} words)",
+        )
 
     def analyze_all(self) -> List[ContentAnalysis]:
         """Analyze all WordPress posts."""
         return []
-
-
-@dataclass
-class EvolutionCycleResult:
-    """Result of an evolution cycle."""
-    cycle_id: int
-    proposals: List[ImprovementProposal] = field(default_factory=list)
-    executed_count: int = 0
-    success: bool = True
-    error: Optional[str] = None
-
-
-class WordPressEvolutionAgent:
-    """Evolves WordPress content through analysis and improvement cycles."""
-
-    def __init__(self, wp_url: str = ""):
-        self.wp_url = wp_url
-
-    def run_cycle(self) -> EvolutionCycleResult:
-        """Run a single evolution cycle."""
-        return EvolutionCycleResult(cycle_id=0)
-
-
-@dataclass
-class ExecutionResult:
-    """Result of executing an action."""
-    success: bool
-    action_type: str = ""
-    message: str = ""
-    error: Optional[str] = None
-
-
-class PlaywrightActionExecutor:
-    """Executes actions via Playwright automation."""
-
-    def __init__(self, ws_uri: str = ""):
-        self.ws_uri = ws_uri
-
-    def execute(self, proposal: ImprovementProposal) -> ExecutionResult:
-        """Execute an improvement proposal."""
-        return ExecutionResult(success=False, message="Not implemented")
 
 
 __all__ = [

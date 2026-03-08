@@ -25,16 +25,19 @@ logger = logging.getLogger("wp_evolution_bridge")
 class ImprovementProposal:
     """A proposed improvement for WordPress content."""
     post_id: int
-    proposal_type: str
-    description: str
+    improvement_type: str = "expand"  # expand, rewrite, add_images, etc.
+    suggested_content: str = ""
     confidence: float = 0.0
+    reason: str = ""
     changes: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class EvolutionCycleResult:
     """Result of an evolution cycle."""
-    cycle_id: int
+    cycle_number: int
+    posts_analyzed: int = 0
+    proposals_generated: int = 0
     proposals: List[ImprovementProposal] = field(default_factory=list)
     executed_count: int = 0
     success: bool = True
@@ -45,7 +48,8 @@ class EvolutionCycleResult:
 class ExecutionResult:
     """Result of executing an action."""
     success: bool
-    action_type: str = ""
+    action: str = ""
+    post_id: int = 0
     message: str = ""
     error: Optional[str] = None
 
@@ -56,10 +60,10 @@ class WordPressEvolutionAgent:
     def __init__(self, wp_url: str = ""):
         self.wp_url = wp_url
 
-    def run_cycle(self) -> EvolutionCycleResult:
+    async def run_cycle(self) -> EvolutionCycleResult:
         """Run a single evolution cycle."""
         logger.info(f"Running evolution cycle for {self.wp_url}")
-        return EvolutionCycleResult(cycle_id=int(time.time()))
+        return EvolutionCycleResult(cycle_number=int(time.time()))
 
 
 class PlaywrightActionExecutor:
@@ -68,7 +72,16 @@ class PlaywrightActionExecutor:
     def __init__(self, ws_uri: str = ""):
         self.ws_uri = ws_uri
 
-    def execute(self, proposal: ImprovementProposal) -> ExecutionResult:
+    async def connect(self) -> bool:
+        """Connect to Playwright."""
+        logger.info(f"Connecting to Playwright at {self.ws_uri}")
+        return False
+
+    async def disconnect(self):
+        """Disconnect from Playwright."""
+        pass
+
+    async def execute_proposal(self, proposal: ImprovementProposal) -> ExecutionResult:
         """Execute an improvement proposal."""
         logger.info(f"Executing proposal for post {proposal.post_id}")
         return ExecutionResult(success=False, message="Playwright not connected")
@@ -227,7 +240,7 @@ class WPEvolutionBridgeService:
             "proposals_generated": result.proposals_generated,
             "qualified_proposals": len(qualified_proposals),
             "executed": executed_count,
-            "errors": len(result.errors)
+            "errors": 1 if result.error else 0
         }
 
     async def _execute_proposal(self, proposal: ImprovementProposal) -> ExecutionResult:
