@@ -281,6 +281,109 @@ class TestLiveTileService:
         assert "hub-test" in tile_ids
 
 
+class TestBootTileV3:
+    """Tests for boot_tile_v3 method (PixelRTS v3 format)."""
+
+    @pytest.fixture
+    def service(self):
+        """Create a fresh service for each test."""
+        return LiveTileService()
+
+    @pytest.mark.asyncio
+    async def test_boot_tile_v3_basic(self, service):
+        """Test basic v3 tile boot."""
+        result = await service.boot_tile_v3("v3-01", "rts/alpine_v3.rts.png")
+
+        assert result["tile_id"] == "v3-01"
+        assert result["status"] == "running"
+        assert "v3-01" in service.tiles
+
+    @pytest.mark.asyncio
+    async def test_boot_tile_v3_sets_v3_format(self, service):
+        """Test that v3 boot sets v3_format flag."""
+        await service.boot_tile_v3("v3-02", "rts/test.rts.png")
+
+        tile = service.tiles["v3-02"]
+        assert tile.v3_format is True
+
+    @pytest.mark.asyncio
+    async def test_boot_tile_v3_console_output(self, service):
+        """Test v3 boot adds appropriate console output."""
+        await service.boot_tile_v3("v3-03", "rts/test.rts.png")
+
+        tile = service.tiles["v3-03"]
+        assert len(tile.console_output) > 0
+        # Should have v3-specific boot message
+        messages = [out.get("text", "") for out in tile.console_output]
+        assert any("v3" in msg.lower() for msg in messages)
+
+    @pytest.mark.asyncio
+    async def test_boot_tile_v3_already_running(self, service):
+        """Test that booting already-running v3 tile returns already_running."""
+        await service.boot_tile_v3("v3-04", "rts/test.rts.png")
+
+        # Try to boot again
+        result = await service.boot_tile_v3("v3-04", "rts/other.rts.png")
+
+        assert result["status"] == "already_running"
+        assert result["tile_id"] == "v3-04"
+
+    @pytest.mark.asyncio
+    async def test_boot_tile_v3_already_booting(self, service):
+        """Test that booting already-booting v3 tile returns already_running."""
+        # Manually set up a booting tile
+        service.tiles["v3-05"] = LiveTileInstance(
+            tile_id="v3-05",
+            rts_path="rts/test.rts.png",
+            status="booting"
+        )
+
+        result = await service.boot_tile_v3("v3-05", "rts/test.rts.png")
+
+        assert result["status"] == "already_running"
+
+    @pytest.mark.asyncio
+    async def test_boot_tile_v3_via_rpc(self, service):
+        """Test boot_tile_v3 through RPC handler."""
+        result = await service.handle_rpc("boot_tile_v3", {
+            "tile_id": "v3-rpc-01",
+            "rts_path": "rts/alpine_v3.rts.png"
+        })
+
+        assert result["tile_id"] == "v3-rpc-01"
+        assert result["status"] == "running"
+        assert service.tiles["v3-rpc-01"].v3_format is True
+
+    @pytest.mark.asyncio
+    async def test_boot_tile_v3_broadcasts_event(self, service):
+        """Test that v3 boot broadcasts tile_booted event."""
+        events = []
+
+        # Capture broadcast events
+        original_broadcast = service._broadcast_event
+        async def capture_broadcast(event_type, data):
+            events.append({"type": event_type, "data": data})
+            await original_broadcast(event_type, data)
+        service._broadcast_event = capture_broadcast
+
+        await service.boot_tile_v3("v3-06", "rts/test.rts.png")
+
+        # Should have broadcast tile_booted event
+        booted_events = [e for e in events if e["type"] == "tile_booted"]
+        assert len(booted_events) == 1
+        assert booted_events[0]["data"]["tile_id"] == "v3-06"
+        assert booted_events[0]["data"]["v3_format"] is True
+
+    @pytest.mark.asyncio
+    async def test_boot_tile_v3_has_boot_time(self, service):
+        """Test that v3 boot sets boot_time."""
+        await service.boot_tile_v3("v3-07", "rts/test.rts.png")
+
+        tile = service.tiles["v3-07"]
+        assert tile.boot_time is not None
+        assert tile.boot_time > 0
+
+
 class TestGetLiveTileService:
     """Tests for module-level service getter."""
 
