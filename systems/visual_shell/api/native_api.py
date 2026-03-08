@@ -5,14 +5,18 @@ Coordinates between high-level system services and the GeoASM native rasterizer.
 
 import logging
 import json
+import time
+import warnings
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, asdict
 
 try:
     from .native_panel import NativePanel
+    from .renderer_config import RendererConfig, RendererType, DeprecationWarning
 except ImportError:
     from native_panel import NativePanel
+    from renderer_config import RendererConfig, RendererType, DeprecationWarning
 
 logger = logging.getLogger("native_visual_shell")
 
@@ -29,17 +33,74 @@ class UIEntity:
     metadata: Dict[str, Any] = None
 
 class NativeVisualShellAPI:
-    def __init__(self, bin_path: str = "systems/visual_shell/native/geoasm_glyphs.bin"):
+    def __init__(
+        self,
+        bin_path: str = "systems/visual_shell/native/geoasm_glyphs.bin",
+        config: Optional[RendererConfig] = None
+    ):
         self.entities: Dict[str, UIEntity] = {}
         self.panels: Dict[str, NativePanel] = {}
         self.bin_path = Path(bin_path)
         self.resolution = 1024
         self._next_z: int = 1
         self._focused_panel: Optional[str] = None
+        self._config = config or RendererConfig()
+        self._last_frame_time: float = 0.0
+        self._frame_count: int = 0
 
         # Load the pre-assembled GeoASM library
         self.library_bytes = self._load_library()
         logger.info(f"Native Visual Shell API initialized with {len(self.library_bytes)} bytes of GeoASM")
+
+    @property
+    def config(self) -> RendererConfig:
+        """Get the current renderer configuration"""
+        return self._config
+
+    @property
+    def renderer_type(self) -> str:
+        """Get the current renderer type"""
+        return "native" if self._config.use_native_renderer else "pixijs"
+
+    def set_renderer(self, renderer_type: str):
+        """
+        Switch between native and PixiJS renderers.
+
+        Args:
+            renderer_type: 'native' or 'pixijs'
+
+        Warns:
+            DeprecationWarning: When switching to PixiJS
+        """
+        if renderer_type == "pixijs":
+            warnings.warn(
+                "PixiJS renderer is deprecated. Native renderer is recommended.",
+                DeprecationWarning,
+                stacklevel=2
+            )
+            self._config.use_native_renderer = False
+            self._config.preferred_renderer = RendererType.PIXIJS
+        elif renderer_type == "native":
+            self._config.use_native_renderer = True
+            self._config.preferred_renderer = RendererType.NATIVE
+        else:
+            raise ValueError(f"Unknown renderer type: {renderer_type}")
+
+    def get_telemetry(self) -> Dict[str, Any]:
+        """
+        Get telemetry data for performance monitoring.
+
+        Returns:
+            Dictionary with render time, entity count, renderer type
+        """
+        return {
+            "renderer": self.renderer_type,
+            "entity_count": len(self.entities),
+            "panel_count": len(self.panels),
+            "frame_count": self._frame_count,
+            "last_frame_time_ms": self._last_frame_time,
+            "use_native_renderer": self._config.use_native_renderer,
+        }
 
     def _load_library(self) -> bytes:
         if not self.bin_path.exists():
@@ -69,15 +130,22 @@ class NativeVisualShellAPI:
     def compose_frame(self) -> bytes:
         """
         Generate a full GeoASM frame that renders the current state.
-        This dynamically builds a GeoASM program that calls functions 
+        This dynamically builds a GeoASM program that calls functions
         from the pre-assembled library.
         """
+        start_time = time.time()
+
         # 1. Start with the library
         frame_code = bytearray(self.library_bytes)
-        
+
         # 2. Append dynamic calls for each entity
         # (In a real implementation, we'd use a linker or fixed entry points)
         # For now, we return the state as JSON which the hypervisor handles
+
+        # Track telemetry
+        self._frame_count += 1
+        self._last_frame_time = (time.time() - start_time) * 1000
+
         return bytes(frame_code)
 
     def calculate_layout(self, engine_bridge: Any):
