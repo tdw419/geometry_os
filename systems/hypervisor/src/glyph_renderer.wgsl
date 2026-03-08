@@ -1,43 +1,118 @@
-// Glyph Renderer WGSL Compute Shader
-// Renders glyph primitives to a Hilbert-indexed texture buffer
-// Part of the Native Glyph Visual Shell project
-// Target: 60 FPS at 10,000+ glyphs with 95% spatial coherence
+/**
+ * Glyph Renderer Compute Shader
+ * 
+ * Optimized for batch rasterization of geometric primitives (glyphs)
+ * into Hilbert-mapped VRAM.
+ */
 
-// Opcode constants for glyph commands
-const GLYPH_NOP: u32 = 0x00u;
-const GLYPH_SET_COLOR: u32 = 0x01u;
-const GLYPH_DRAW_RECT: u32 = 0x02u;
-const GLYPH_FILL_RECT: u32 = 0x03u;
-const GLYPH_DRAW_PIXEL: u32 = 0x04u;
-const GLYPH_DRAW_CIRCLE: u32 = 0x05u;
-const GLYPH_FILL_CIRCLE: u32 = 0x06u;
-const GLYPH_DRAW_LINE: u32 = 0x07u;
+struct Glyph {
+    opcode: u32,    // 0xC0=SET_COLOR, 0xC3=DRAW_RECT, 0xC4=FILL_RECT, 0xCF=DRAW_PIXEL
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+    color: vec4<f32>,
+    params: vec4<f32>,
+};
 
-// Maximum number of commands in the buffer
-const MAX_COMMANDS: u32 = 4096u;
+struct GlyphBuffer {
+    count: u32,
+    glyphs: array<Glyph, 1024>,
+};
 
-// Glyph command structure (32 bytes)
-struct GlyphCommand {
-    opcode: u32,
-    x: u32,
-    y: u32,
-    width: u32,
-    height: u32,
-    color: u32,  // 0xRRGGBBAA format
-    flags: u32,
-    _padding: array<u32, 1>,
+struct Uniforms {
+    resolution: u32, // 2^order
+    time: f32,
+    _padding: vec2<u32>,
+};
+
+@group(0) @binding(0) var<uniform> uniforms: Uniforms;
+@group(0) @binding(1) var<storage, read> glyph_buffer: GlyphBuffer;
+@group(0) @binding(2) var canvas: texture_storage_2d<rgba8unorm, read_write>;
+
+// Hilbert curve utilities (spatial locality preservation)
+fn xy_to_hilbert(x: u32, y: u32, n: u32) -> u32 {
+    var d: u32 = 0u;
+    var s: u32 = n / 2u;
+    var xx = x;
+    var yy = y;
+    while (s > 0u) {
+        let rx = select(0u, 1u, (xx & s) > 0u);
+        let ry = select(0u, 1u, (yy & s) > 0u);
+        d += s * s * ((3u * rx) ^ ry);
+        let rotated = hilbert_rot(s, xx, yy, rx, ry);
+        xx = rotated.x;
+        yy = rotated.y;
+        s >>= 1u;
+    }
+    return d;
 }
 
-// Command buffer for glyph rendering
-struct GlyphCommandBuffer {
-    count: atomic<u32>,
-    commands: array<GlyphCommand, 4096>,
+fn hilbert_rot(n: u32, x: u32, y: u32, rx: u32, ry: u32) -> vec2<u32> {
+    if (ry == 0u) {
+        if (rx == 1u) {
+            return vec2<u32>(n - 1u - y, n - 1u - x);
+        }
+        return vec2<u32>(y, x);
+    }
+    return vec2<u32>(x, y);
 }
 
-// Render state for the glyph renderer
-struct GlyphRenderState {
-    dimension: u32,  // substrate dimension = 2^order
-    order: u32,      // Hilbert curve order
-    current_color: u32,
-    commands_processed: atomic<u32>,
+// Main rendering entry point
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+    let glyph_idx = global_id.x;
+    if (glyph_idx >= glyph_buffer.count) {
+        return;
+    }
+
+    let glyph = glyph_buffer.glyphs[glyph_idx];
+
+    switch (glyph.opcode) {
+        case 0xC3u: { // DRAW_RECT
+            render_rect_outline(glyph);
+        }
+        case 0xC4u: { // FILL_RECT
+            render_rect_filled(glyph);
+        }
+        case 0xCFu: { // DRAW_PIXEL
+            let px = u32(glyph.x);
+            let py = u32(glyph.y);
+            if (px < uniforms.resolution && py < uniforms.resolution) {
+                textureStore(canvas, vec2<u32>(px, py), glyph.color);
+            }
+        }
+        default: {} // SET_COLOR (0xC0) is handled as state by the caller
+    }
+}
+
+fn render_rect_filled(glyph: Glyph) {
+    let x_start = u32(max(0.0, glyph.x));
+    let y_start = u32(max(0.0, glyph.y));
+    let x_end = u32(min(f32(uniforms.resolution), glyph.x + glyph.w));
+    let y_end = u32(min(f32(uniforms.resolution), glyph.y + glyph.h));
+
+    for (var y = y_start; y < y_end; y++) {
+        for (var x = x_start; x < x_end; x++) {
+            textureStore(canvas, vec2<u32>(x, y), glyph.color);
+        }
+    }
+}
+
+fn render_rect_outline(glyph: Glyph) {
+    let x_start = u32(max(0.0, glyph.x));
+    let y_start = u32(max(0.0, glyph.y));
+    let x_end = u32(min(f32(uniforms.resolution), glyph.x + glyph.w)) - 1u;
+    let y_end = u32(min(f32(uniforms.resolution), glyph.y + glyph.h)) - 1u;
+
+    // Horizontal lines
+    for (var x = x_start; x <= x_end; x++) {
+        textureStore(canvas, vec2<u32>(x, y_start), glyph.color);
+        textureStore(canvas, vec2<u32>(x, y_end), glyph.color);
+    }
+    // Vertical lines
+    for (var y = y_start; y <= y_end; y++) {
+        textureStore(canvas, vec2<u32>(x_start, y), glyph.color);
+        textureStore(canvas, vec2<u32>(x_end, y), glyph.color);
+    }
 }
