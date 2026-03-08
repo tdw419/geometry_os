@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 
 ## Current Position
 
-Phase: 5 of 5 (Visual Diff Engine) - NOT STARTED
-Plan: —
-Status: Ready to plan
-Last activity: 2026-03-08 — v1.1 milestone started
+Phase: 5 of 5 (Visual Diff Engine) - IN PROGRESS
+Plan: 1 of 4 complete
+Status: Active
+Last activity: 2026-03-08 — Completed 05-01 (PixelRTSDiffer core)
 
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0% v1.1 (0/4 plans)
+Progress: [████░░░░░░░░░░░░░░░░] 25% v1.1 (1/4 plans)
 
 ## Performance Metrics
 
@@ -28,6 +28,11 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0% v1.1
 
 Key decisions from v1.0 archived in `.planning/milestones/v1.0-ROADMAP.md`
 
+**v1.1 Decisions:**
+- 05-01: Reuse PixelRTSDecoder for byte extraction (no new PNG parsing)
+- 05-01: Three-way classification: added (0->nonzero), removed (nonzero->0), changed (both nonzero, different)
+- 05-01: Zero-padding for size mismatches in diff arrays
+
 ### Pending Todos
 
 None.
@@ -38,8 +43,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-08
-Stopped at: v1.1 milestone initialized
+Last session: 2026-03-08T21:34:03Z
+Stopped at: Completed 05-01-PLAN.md
 Resume file: None
 
 **CLI Commands Available (v1.0):**
