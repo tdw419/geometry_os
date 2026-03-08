@@ -11,10 +11,10 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 
 Phase: 6 of ? (Network Boot - PXE/NBD)
 Plan: Not started
-Status: Ready to plan next milestone
-Last activity: 2026-03-08 — v1.1 milestone complete
+Status: Defining requirements for v1.2
+Last activity: 2026-03-08 — v1.2 milestone started
 
-Progress: [████████████████████] 100% v1.1 shipped
+Progress: [░░░░░░░░░░░░░░░░░░░░] 0% v1.2 just started
 
 ## Performance Metrics
 
@@ -47,7 +47,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-08
-Stopped at: v1.1 milestone complete
+Stopped at: v1.2 milestone started
 Resume file: None
 
 **CLI Commands Available (v1.0 + v1.1):**

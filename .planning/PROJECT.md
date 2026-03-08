@@ -56,18 +56,39 @@ If everything else fails, users must be able to:
   - HTML gallery with boot buttons
   - SpatialLayoutManager for drag-and-drop
 
-### Active (v1.1)
+✓ **VISUAL-01**: User can compare two .rts.png files and see visual diff — v1.1
+  - `pixelrts diff <old.png> <new.png>` command
+  - Byte-level comparison with Hilbert region highlighting
 
-- [ ] **VISUAL-01**: User can compare two .rts.png files and see visual diff
-- [ ] **VISUAL-02**: Diff highlights changed regions in Hilbert-encoded pixel space
-- [ ] **VISUAL-03**: Byte-level statistics (added, removed, changed)
-- [ ] **VISUAL-04**: CLI command `pixelrts diff <old.png> <new.png>`
+✓ **VISUAL-02**: Diff highlights changed regions in Hilbert-encoded pixel space — v1.1
+  - scipy.ndimage.label for connected component detection
+  - Hilbert coordinate mapping (pixel_idx = byte_idx // 4)
+
+✓ **VISUAL-03**: Byte-level statistics (added, removed, changed) — v1.1
+  - Per-channel RGBA breakdown
+  - Rich terminal output with plain text fallback
+
+✓ **VISUAL-04**: CLI command `pixelrts diff <old.png> <new.png>` — v1.1
+  - Exit codes: 0=identical, 1=different, 2=missing, 3=invalid
+  - JSON export with --json flag
+
+## Current Milestone: v1.2 Network Boot
+
+**Goal:** Boot PixelRTS containers over network (PXE/NBD) with delta updates
+
+**Target features:**
+- PXE boot server for network booting .rts.png files
+- NBD (Network Block Device) serving containers
+- Delta-based OS updates (download only changed bytes)
+
+### Active (v1.2)
+
+- [ ] **NETWORK-01**: Boot PixelRTS containers over network (PXE/NBD)
+- [ ] **NETWORK-02**: Delta-based OS updates (download only changed bytes)
 
 ### Future
 
 - [ ] **VISION-02**: Vision model can detect tampering or corruption
-- [ ] **NETWORK-01**: Boot PixelRTS containers over network (PXE/NBD)
-- [ ] **NETWORK-02**: Delta-based OS updates (download only changed bytes)
 
 ### Out of Scope
 
@@ -83,6 +104,11 @@ If everything else fails, users must be able to:
 - 4 phases, 22 plans completed
 - CLI commands: analyze, boot, install, catalog
 - 90+ unit tests across boot, install, catalog
+
+**Shipped v1.1 (2026-03-08):**
+- 1 phase, 4 plans completed
+- CLI command: diff
+- 23 tests passing
 
 **Tech Stack:**
 - Python 3.12+
@@ -118,6 +144,9 @@ If everything else fails, users must be able to:
 | Lazy unmount with fusermount -uz | Stuck mount recovery | ✓ Good |
 | Rich library for terminal output | Graceful fallback to plain text | ✓ Good |
 | MD5 hash of path for catalog IDs | Stable, collision-resistant | ✓ Good |
+| scipy.ndimage.label for regions | Connected component detection | ✓ Good |
+| RGBA channel mapping via (byte_idx % 4) | Simple channel extraction | ✓ Good |
+| Output limited to 20 regions | Prevent terminal flood | ✓ Good |
 
 ---
-*Last updated: 2026-03-08 after v1.0 milestone*
+*Last updated: 2026-03-08 — v1.2 milestone started*
