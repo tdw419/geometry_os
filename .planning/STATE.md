@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 5 of 5 (Visual Diff Engine) - IN PROGRESS
-Plan: 2 of 4 complete
+Plan: 3 of 4 complete
 Status: Active
-Last activity: 2026-03-08 — Completed 05-02 (Hilbert region highlighting)
+Last activity: 2026-03-08 — Completed 05-03 (Byte statistics with RGBA breakdown)
 
-Progress: [████████░░░░░░░░░░░░] 50% v1.1 (2/4 plans)
+Progress: [████████████░░░░░░░░] 75% v1.1 (3/4 plans)
 
 ## Performance Metrics
 
@@ -36,6 +36,9 @@ Key decisions from v1.0 archived in `.planning/milestones/v1.0-ROADMAP.md`
 - 05-02: Use scipy.ndimage.label for connected region detection
 - 05-02: Cap regions at 100 to prevent memory issues
 - 05-02: Sort regions by pixel_count descending for priority visualization
+- 05-03: Channel index mapping via (byte_position % 4) for R=0, G=1, B=2, A=3
+- 05-03: Mean delta calculated only for changed bytes (not all bytes in channel)
+- 05-03: Plain-text summary format (Rich reserved for CLI layer)
 
 ### Pending Todos
 
@@ -47,8 +50,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-08T21:41:15Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-03-08T21:40:23Z
+Stopped at: Completed 05-03-PLAN.md
 Resume file: None
 
 **CLI Commands Available (v1.0):**
