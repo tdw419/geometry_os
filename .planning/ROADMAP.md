@@ -74,11 +74,12 @@ Plans:
 2. HTTP server serves kernel/initrd with byte-range support for partial transfers
 3. Boot time is measurably faster than TFTP for large containers (>10MB)
 
-**Plans:** 2 plans
+**Plans:** 3 plans
 
 Plans:
 - [ ] 07-01-PLAN.md -- iPXE Chainload Configuration
 - [ ] 07-02-PLAN.md -- HTTP Boot Server with Byte-Range Support
+- [ ] 07-03-PLAN.md -- HTTP Boot Integration (serve command, CLI flags)
 
 ### Phase 8: Delta Updates
 
@@ -114,9 +115,9 @@ Phases execute in numeric order: 6 -> 7 -> 8
 | 4. Visual Catalog Manager | v1.0 | 4/4 | Complete | 2026-02-17 |
 | 5. Visual Diff Engine | v1.1 | 4/4 | Complete | 2026-03-08 |
 | 6. NBD Server + PXE Boot | v1.2 | 3/3 | Complete | 2026-03-08 |
-| 7. HTTP Boot via iPXE | v1.2 | 0/2 | Not started | - |
+| 7. HTTP Boot via iPXE | v1.2 | 0/3 | Not started | - |
 | 8. Delta Updates | v1.2 | 0/3 | Not started | - |
 
 ---
 
-*Next: `/gsd:discuss-phase 7`*
+*Next: `/gsd:execute-phase 7`*
