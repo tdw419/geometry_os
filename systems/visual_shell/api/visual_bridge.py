@@ -47,11 +47,6 @@ def _init_multi_vm_streamer() -> "MultiVmStreamer":
     return multi_vm_streamer
 
 
-# Initialize immediately for test compatibility (import-time initialization)
-# This ensures multi_vm_streamer is available even when tests don't trigger lifespan
-_init_multi_vm_streamer()
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Modern FastAPI lifespan context manager for startup/shutdown.
@@ -899,6 +894,11 @@ async def websocket_ffi(websocket: WebSocket):
         logger.debug("FFI WebSocket disconnected")
     except Exception as e:
         logger.error(f"FFI WebSocket error: {e}")
+
+
+# Initialize multi_vm_streamer at module level for test compatibility
+# This must be after class definitions to avoid NameError
+_init_multi_vm_streamer()
 
 
 if __name__ == "__main__":
