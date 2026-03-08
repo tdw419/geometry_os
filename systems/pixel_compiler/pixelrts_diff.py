@@ -4,14 +4,24 @@ Compares two .rts.png files and extracts byte-level differences.
 """
 
 import numpy as np
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 from pathlib import Path
+import logging
 
 # Import decoder from existing module
 try:
-    from systems.pixel_compiler.pixelrts_v2_core import PixelRTSDecoder
+    from systems.pixel_compiler.pixelrts_v2_core import PixelRTSDecoder, HilbertCurve
 except ImportError:
-    from pixelrts_v2_core import PixelRTSDecoder
+    from pixelrts_v2_core import PixelRTSDecoder, HilbertCurve
+
+# Import scipy.ndimage for region labeling (graceful fallback)
+try:
+    from scipy import ndimage
+    SCIPY_AVAILABLE = True
+except ImportError:
+    SCIPY_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
 
 
 class PixelRTSDiffer:
@@ -28,6 +38,91 @@ class PixelRTSDiffer:
     def __init__(self):
         """Initialize differ with decoder instance."""
         self._decoder = PixelRTSDecoder()
+
+    def _get_regions(self, diff_mask: np.ndarray, grid_size: int) -> List[Dict[str, Any]]:
+        """
+        Map changed byte indices to Hilbert coordinates and group into connected regions.
+
+        Args:
+            diff_mask: Boolean numpy array where True indicates a changed byte
+            grid_size: Size of the Hilbert grid (e.g., 256 for a 256x256 grid)
+
+        Returns:
+            List of region dicts sorted by pixel_count descending.
+            Each region contains:
+                - id: "R1", "R2", etc.
+                - x_min, x_max, y_min, y_max (int)
+                - pixel_count (int)
+                - byte_count (pixel_count * 4, approximate)
+        """
+        if not SCIPY_AVAILABLE:
+            logger.warning("scipy.ndimage not available, returning empty regions list")
+            return []
+
+        # No changes, no regions
+        if not np.any(diff_mask):
+            return []
+
+        # Calculate Hilbert order from grid_size
+        # grid_size = 2^order, so order = log2(grid_size)
+        order = int(np.log2(grid_size))
+
+        # Create HilbertCurve instance and generate LUT
+        hilbert = HilbertCurve(order)
+        lut = hilbert.generate_lut()
+
+        # Create 2D boolean pixel_mask array
+        pixel_mask = np.zeros((grid_size, grid_size), dtype=bool)
+
+        # Map changed byte indices to Hilbert coordinates
+        changed_indices = np.where(diff_mask)[0]
+
+        for byte_idx in changed_indices:
+            # Each pixel stores 4 bytes (RGBA), so pixel_idx = byte_idx // 4
+            pixel_idx = byte_idx // 4
+
+            # Guard against index out of bounds
+            if pixel_idx >= len(lut):
+                continue
+
+            # Look up (x, y) from Hilbert LUT
+            x, y = lut[pixel_idx]
+
+            # Bounds check (should always pass if lut is correct size)
+            if x < grid_size and y < grid_size:
+                pixel_mask[y, x] = True
+
+        # Use scipy.ndimage.label to find connected regions
+        labeled, num_features = ndimage.label(pixel_mask)
+
+        # Cap at 100 regions to prevent memory issues
+        max_regions = min(num_features, 100)
+
+        regions = []
+        for i in range(1, max_regions + 1):
+            # Extract coordinates for this region
+            coords = np.where(labeled == i)
+            if len(coords[0]) == 0:
+                continue
+
+            y_coords = coords[0]
+            x_coords = coords[1]
+
+            region = {
+                'id': f"R{i}",
+                'x_min': int(np.min(x_coords)),
+                'x_max': int(np.max(x_coords)),
+                'y_min': int(np.min(y_coords)),
+                'y_max': int(np.max(y_coords)),
+                'pixel_count': int(len(x_coords)),
+                'byte_count': int(len(x_coords) * 4)  # Approximate: 4 bytes per pixel
+            }
+            regions.append(region)
+
+        # Sort by pixel_count descending
+        regions.sort(key=lambda r: r['pixel_count'], reverse=True)
+
+        return regions
 
     def diff(self, old_path: str, new_path: str) -> Dict[str, Any]:
         """
@@ -143,6 +238,9 @@ class PixelRTSDiffer:
         if new_metadata and 'grid_size' in new_metadata:
             new_grid_size = new_metadata['grid_size']
 
+        # Compute channel statistics
+        channel_stats = self._compute_channel_stats(diff_mask, old_array, new_array)
+
         return {
             'old_file': str(old_path),
             'new_file': str(new_path),
@@ -156,5 +254,61 @@ class PixelRTSDiffer:
             'old_metadata': old_metadata,
             'new_metadata': new_metadata,
             'old_grid_size': old_grid_size,
-            'new_grid_size': new_grid_size
+            'new_grid_size': new_grid_size,
+            'channel_stats': channel_stats,
+            'old_bytes': old_array,
+            'new_bytes': new_array
+        }
+
+    def _compute_channel_stats(self, diff_mask: np.ndarray, old_arr: np.ndarray, new_arr: np.ndarray) -> dict:
+        """
+        Compute per-channel (RGBA) statistics for changed bytes.
+
+        Args:
+            diff_mask: Boolean array where True indicates a difference
+            old_arr: Old byte array (padded to match new_arr length)
+            new_arr: New byte array (padded to match old_arr length)
+
+        Returns:
+            Dictionary containing:
+                - per_channel: dict mapping channel name to {changed: int, mean_delta: float}
+                - most_changed_channel: channel name with most changes
+                - least_changed_channel: channel name with fewest changes
+        """
+        channels = ['R', 'G', 'B', 'A']
+        per_channel = {}
+
+        for channel_idx, channel_name in enumerate(channels):
+            # Get mask for bytes at this channel position (every 4th byte starting at channel_idx)
+            byte_positions = np.arange(len(diff_mask))
+            channel_mask = (byte_positions % 4) == channel_idx
+
+            # Combine with diff_mask to find changed bytes in this channel
+            changed_in_channel = diff_mask & channel_mask
+
+            # Count changed bytes in this channel
+            changed_count = int(np.sum(changed_in_channel))
+
+            # Calculate mean absolute change for changed bytes
+            if changed_count > 0:
+                old_values = old_arr[changed_in_channel].astype(np.float64)
+                new_values = new_arr[changed_in_channel].astype(np.float64)
+                mean_delta = float(np.mean(np.abs(new_values - old_values)))
+            else:
+                mean_delta = 0.0
+
+            per_channel[channel_name] = {
+                'changed': changed_count,
+                'mean_delta': mean_delta
+            }
+
+        # Find most and least changed channels
+        changed_counts = {ch: per_channel[ch]['changed'] for ch in channels}
+        most_changed = max(channels, key=lambda ch: changed_counts[ch])
+        least_changed = min(channels, key=lambda ch: changed_counts[ch])
+
+        return {
+            'per_channel': per_channel,
+            'most_changed_channel': most_changed,
+            'least_changed_channel': least_changed
         }
