@@ -9,10 +9,10 @@ Requirements for visual diff milestone.
 
 ### Visual Updates (VISUAL)
 
-- [ ] **VISUAL-01**: User can compare two .rts.png files and see visual diff of changes
-- [ ] **VISUAL-02**: Diff highlights changed regions in the Hilbert-encoded pixel space
-- [ ] **VISUAL-03**: User can see byte-level statistics (added, removed, changed bytes)
-- [ ] **VISUAL-04**: CLI command `pixelrts diff <old.png> <new.png>` produces visual comparison
+- [x] **VISUAL-01**: User can compare two .rts.png files and see visual diff of changes
+- [x] **VISUAL-02**: Diff highlights changed regions in the Hilbert-encoded pixel space
+- [x] **VISUAL-03**: User can see byte-level statistics (added, removed, changed bytes)
+- [x] **VISUAL-04**: CLI command `pixelrts diff <old.png> <new.png>` produces visual comparison
 
 ## v2 Requirements
 
@@ -40,16 +40,16 @@ Deferred to future release.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VISUAL-01 | Phase 5 | Pending |
-| VISUAL-02 | Phase 5 | Pending |
-| VISUAL-03 | Phase 5 | Pending |
-| VISUAL-04 | Phase 5 | Pending |
+| VISUAL-01 | Phase 5 | Complete |
+| VISUAL-02 | Phase 5 | Complete |
+| VISUAL-03 | Phase 5 | Complete |
+| VISUAL-04 | Phase 5 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 4 total
 - Mapped to phases: 4
-- Unmapped: 0 ✓
+- Complete: 4 ✓
 
 ---
 *Requirements defined: 2026-03-08*
-*Last updated: 2026-03-08 after v1.1 scope definition*
+*Last updated: 2026-03-08 after v1.1 milestone complete*
