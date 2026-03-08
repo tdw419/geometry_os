@@ -983,6 +983,104 @@ def cmd_catalog(args):
     return 0
 
 
+def cmd_serve(args):
+    """
+    Handle serve command - Start network boot server.
+
+    Starts all network boot services:
+    - DHCP proxy (port 4011) for PXE boot info
+    - TFTP server (port 69) for boot files
+    - NBD server (port 10809) for root filesystem
+
+    Exit codes:
+        0: Clean shutdown
+        1: Invalid file
+        2: Port already in use
+        3: Network detection failed
+        4: Service startup failed
+    """
+    import asyncio
+    from systems.pixel_compiler.serve.server import PixelRTSServer
+    from systems.pixel_compiler.serve.progress import ServeProgress
+
+    rts_file = args.file
+
+    # Print startup banner
+    try:
+        from rich.console import Console
+        from rich.panel import Panel
+        console = Console()
+        console.print(Panel.fit(
+            "[bold blue]PixelRTS Network Boot Server[/bold blue]",
+            border_style="blue"
+        ))
+    except ImportError:
+        print("\n=== PixelRTS Network Boot Server ===\n")
+
+    # Create server instance
+    try:
+        server = PixelRTSServer(
+            rts_png_path=rts_file,
+            interface=args.interface,
+            verbose=args.verbose
+        )
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+    # Create progress display
+    progress = ServeProgress(verbose=args.verbose)
+
+    # Set up signal handling for clean shutdown
+    def signal_handler(signum, frame):
+        print("\nShutdown signal received...")
+        # The server handles shutdown internally via asyncio
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    # Run the server
+    try:
+        exit_code = asyncio.run(server.run())
+
+        # Print summary
+        progress.print_summary()
+
+        return exit_code
+
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        print("\nPlease ensure the file is a valid PixelRTS container.",
+              file=sys.stderr)
+        return 1
+    except RuntimeError as e:
+        error_msg = str(e)
+
+        # Provide specific guidance based on error
+        if "Permission denied" in error_msg or "port" in error_msg.lower():
+            print(f"\nError: {e}", file=sys.stderr)
+            print("\nPossible solutions:", file=sys.stderr)
+            print("  - Run with sudo: sudo pixelrts serve <file>", file=sys.stderr)
+            print("  - Stop existing TFTP/DHCP services", file=sys.stderr)
+            return 2
+        elif "interface" in error_msg.lower() or "network" in error_msg.lower():
+            print(f"\nError: {e}", file=sys.stderr)
+            print("\nPossible solutions:", file=sys.stderr)
+            print("  - Specify interface: pixelrts serve <file> --interface eth0",
+                  file=sys.stderr)
+            print("  - Check network connectivity", file=sys.stderr)
+            return 3
+        else:
+            print(f"\nError: {e}", file=sys.stderr)
+            return 4
+    except Exception as e:
+        print(f"\nUnexpected error: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 4
+
+
 def cmd_diff(args):
     """Handle diff command - Compare two .rts.png files."""
     import json
@@ -1045,6 +1143,7 @@ Commands:
   transpile    Transpile native software (source/binary/WASM) to PixelRTS format
   boot         Boot .rts.png files with QEMU (single command)
   install      Install .rts.png files to disk image (with verification)
+  serve        Start network boot server (DHCP, TFTP, NBD)
   catalog      Launch visual catalog server for browsing .rts.png files
   diff         Compare two .rts.png files and show differences
   benchmark    Run performance benchmarks
@@ -1064,6 +1163,8 @@ Examples:
   pixelrts boot os.rts.png --cmdline "console=ttyS0" --qemu-arg "-nographic"
   pixelrts install alpine.rts.png /tmp/alpine.img
   pixelrts install os.rts.png /dev/sdX --no-verify
+  pixelrts serve alpine.rts.png
+  pixelrts serve os.rts.png --interface eth0
   pixelrts catalog
   pixelrts catalog --port 8080 --paths /path/to/images
   pixelrts catalog --no-browser
@@ -1358,6 +1459,29 @@ Examples:
         help='Enable verbose output'
     )
 
+    # Serve command (network boot server)
+    serve_parser = subparsers.add_parser(
+        'serve',
+        help='Start network boot server',
+        description='Start PXE network boot server with DHCP proxy, TFTP, and NBD services'
+    )
+    serve_parser.add_argument(
+        'file',
+        help='PixelRTS container file to serve (.rts.png)'
+    )
+    serve_parser.add_argument(
+        '--interface', '-i',
+        type=str,
+        default=None,
+        help='Network interface to bind (auto-detect if not specified)'
+    )
+    serve_parser.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        help='Enable verbose output'
+    )
+    serve_parser.set_defaults(func=cmd_serve)
+
     # Diff command (compare two .rts.png files)
     diff_parser = subparsers.add_parser(
         'diff',
@@ -1396,6 +1520,7 @@ Examples:
         'transpile': cmd_transpile,
         'boot': cmd_boot,
         'install': cmd_install,
+        'serve': cmd_serve,
         'catalog': cmd_catalog,
         'diff': cmd_diff,
         'benchmark': cmd_benchmark,
