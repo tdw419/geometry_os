@@ -312,35 +312,220 @@ class VLMSelfHealingDaemon:
                 details={'backup_path': str(backup_path)}
             )
 
-        # TODO: Implement actual region restoration
-        # For now, this is a placeholder
-        logger.warning(f"  Region restoration not yet implemented for {action.target_region}")
+        # Parse target region (format: "x,y,w,h" or "full")
+        try:
+            from PIL import Image
 
-        return HealingResult(
-            success=True,
-            action_type=action.action_type,
-            message=f"Restoration planned for {action.target_region} (placeholder)",
-            details={'backup_path': str(backup_path)}
-        )
+            current_img = Image.open(self.rts_path)
+            backup_img = Image.open(backup_path)
+
+            if action.target_region == "full" or not action.target_region:
+                # Full restoration
+                backup_img.save(self.rts_path)
+                return HealingResult(
+                    success=True,
+                    action_type=action.action_type,
+                    message="Full image restored from backup",
+                    details={'backup_path': str(backup_path)}
+                )
+
+            # Parse region coordinates
+            parts = action.target_region.split(',')
+            if len(parts) == 4:
+                x, y, w, h = map(int, parts)
+                # Extract region from backup
+                region = backup_img.crop((x, y, x + w, y + h))
+                # Paste into current image
+                current_img.paste(region, (x, y))
+                current_img.save(self.rts_path)
+
+                return HealingResult(
+                    success=True,
+                    action_type=action.action_type,
+                    message=f"Region ({x},{y},{w},{h}) restored from backup",
+                    details={'backup_path': str(backup_path), 'region': action.target_region}
+                )
+            else:
+                logger.warning(f"  Invalid region format: {action.target_region}")
+                return HealingResult(
+                    success=False,
+                    action_type=action.action_type,
+                    message=f"Invalid region format: {action.target_region}",
+                    details={'expected': 'x,y,w,h'}
+                )
+
+        except ImportError:
+            logger.warning("PIL not available, falling back to file copy")
+            import shutil
+            shutil.copy2(backup_path, self.rts_path)
+            return HealingResult(
+                success=True,
+                action_type=action.action_type,
+                message="Full file restored from backup (PIL unavailable)",
+                details={'backup_path': str(backup_path)}
+            )
+        except Exception as e:
+            logger.error(f"  Region restoration failed: {e}")
+            return HealingResult(
+                success=False,
+                action_type=action.action_type,
+                message=f"Restoration failed: {e}",
+                details={'error': str(e)}
+            )
 
     def _action_regenerate_region(self, action: HealingAction) -> HealingResult:
         """Regenerate affected region from metadata"""
-        # TODO: Implement region regeneration
-        return HealingResult(
-            success=True,
-            action_type=action.action_type,
-            message=f"Region regeneration planned for {action.target_region} (placeholder)"
-        )
+        try:
+            from PIL import Image
+
+            # Load the RTS image
+            img = Image.open(self.rts_path)
+            metadata_path = Path(f"{self.rts_path}.json")
+
+            if not metadata_path.exists():
+                return HealingResult(
+                    success=False,
+                    action_type=action.action_type,
+                    message="No metadata file found for regeneration",
+                    details={'expected_metadata': str(metadata_path)}
+                )
+
+            # Load metadata
+            with open(metadata_path) as f:
+                metadata = json.load(f)
+
+            # Parse region coordinates
+            if action.target_region == "full" or not action.target_region:
+                return self._action_regenerate_full(action)
+
+            parts = action.target_region.split(',')
+            if len(parts) != 4:
+                return HealingResult(
+                    success=False,
+                    action_type=action.action_type,
+                    message=f"Invalid region format: {action.target_region}",
+                    details={'expected': 'x,y,w,h'}
+                )
+
+            x, y, w, h = map(int, parts)
+
+            # Look for region source in metadata
+            regions = metadata.get('regions', {})
+            region_key = f"{x}_{y}_{w}_{h}"
+
+            if region_key in regions:
+                region_info = regions[region_key]
+                # Regenerate from source if available
+                source_path = region_info.get('source_path')
+                if source_path and Path(source_path).exists():
+                    source_img = Image.open(source_path)
+                    sx, sy, sw, sh = region_info.get('source_rect', (0, 0, w, h))
+                    source_region = source_img.crop((sx, sy, sx + sw, sy + sh))
+                    source_region = source_region.resize((w, h))
+                    img.paste(source_region, (x, y))
+                    img.save(self.rts_path)
+
+                    return HealingResult(
+                        success=True,
+                        action_type=action.action_type,
+                        message=f"Region regenerated from source: {source_path}",
+                        details={'region': action.target_region, 'source': source_path}
+                    )
+
+            # Fallback: fill with neutral color
+            from PIL import ImageDraw
+            draw = ImageDraw.Draw(img)
+            draw.rectangle([x, y, x + w, y + h], fill=(128, 128, 128))
+            img.save(self.rts_path)
+
+            return HealingResult(
+                success=True,
+                action_type=action.action_type,
+                message=f"Region filled with placeholder (no source in metadata)",
+                details={'region': action.target_region}
+            )
+
+        except ImportError:
+            return HealingResult(
+                success=False,
+                action_type=action.action_type,
+                message="PIL not available for region regeneration"
+            )
+        except Exception as e:
+            logger.error(f"  Region regeneration failed: {e}")
+            return HealingResult(
+                success=False,
+                action_type=action.action_type,
+                message=f"Regeneration failed: {e}",
+                details={'error': str(e)}
+            )
 
     def _action_regenerate_full(self, action: HealingAction) -> HealingResult:
         """Regenerate entire image from source"""
         logger.info(f"  Full regeneration requested for {self.rts_path}")
-        # TODO: Implement full regeneration
-        return HealingResult(
-            success=True,
-            action_type=action.action_type,
-            message="Full regeneration planned (placeholder)"
-        )
+
+        try:
+            metadata_path = Path(f"{self.rts_path}.json")
+
+            if not metadata_path.exists():
+                return HealingResult(
+                    success=False,
+                    action_type=action.action_type,
+                    message="No metadata file found for full regeneration",
+                    details={'expected_metadata': str(metadata_path)}
+                )
+
+            with open(metadata_path) as f:
+                metadata = json.load(f)
+
+            # Look for source image in metadata
+            source_path = metadata.get('source_path')
+            if not source_path:
+                # Try alternate keys
+                source_path = metadata.get('original_source') or metadata.get('source_image')
+
+            if source_path and Path(source_path).exists():
+                from PIL import Image
+                import shutil
+
+                # Copy source to RTS path
+                shutil.copy2(source_path, self.rts_path)
+
+                # Apply any transformations from metadata
+                if 'transformations' in metadata:
+                    img = Image.open(self.rts_path)
+                    for transform in metadata['transformations']:
+                        t_type = transform.get('type')
+                        if t_type == 'resize':
+                            img = img.resize(tuple(transform.get('size', img.size)))
+                        elif t_type == 'crop':
+                            box = transform.get('box')
+                            if box:
+                                img = img.crop(tuple(box))
+                    img.save(self.rts_path)
+
+                return HealingResult(
+                    success=True,
+                    action_type=action.action_type,
+                    message=f"Full image regenerated from source: {source_path}",
+                    details={'source_path': source_path}
+                )
+
+            return HealingResult(
+                success=False,
+                action_type=action.action_type,
+                message="No source path found in metadata for regeneration",
+                details={'metadata_keys': list(metadata.keys())}
+            )
+
+        except Exception as e:
+            logger.error(f"  Full regeneration failed: {e}")
+            return HealingResult(
+                success=False,
+                action_type=action.action_type,
+                message=f"Full regeneration failed: {e}",
+                details={'error': str(e)}
+            )
 
     def _action_quarantine_and_analyze(self, action: HealingAction) -> HealingResult:
         """Quarantine file for deeper analysis"""
@@ -380,12 +565,91 @@ class VLMSelfHealingDaemon:
 
     def _action_deep_scan(self, action: HealingAction) -> HealingResult:
         """Perform deeper scan of the file"""
-        # TODO: Implement deeper analysis
-        return HealingResult(
-            success=True,
-            action_type=action.action_type,
-            message="Deep scan completed (placeholder)"
-        )
+        try:
+            from PIL import Image
+            import hashlib
+
+            findings = []
+
+            # Load image for analysis
+            img = Image.open(self.rts_path)
+            width, height = img.size
+
+            # 1. Check for uniform regions (potential corruption)
+            if img.mode in ('RGB', 'RGBA'):
+                pixels = list(img.getdata())
+                unique_colors = len(set(pixels[:min(10000, len(pixels))]))
+                if unique_colors < 10:
+                    findings.append(f"Low color diversity: only {unique_colors} unique colors in sample")
+
+            # 2. Check image dimensions are reasonable
+            if width > 8192 or height > 8192:
+                findings.append(f"Unusual dimensions: {width}x{height}")
+            if width < 8 or height < 8:
+                findings.append(f"Suspiciously small: {width}x{height}")
+
+            # 3. Check file integrity via hash
+            with open(self.rts_path, 'rb') as f:
+                file_hash = hashlib.md5(f.read()).hexdigest()
+
+            # 4. Check metadata consistency
+            metadata_path = Path(f"{self.rts_path}.json")
+            metadata_status = "not_found"
+            if metadata_path.exists():
+                with open(metadata_path) as f:
+                    metadata = json.load(f)
+                metadata_status = "valid"
+                # Check if dimensions match
+                if 'width' in metadata and 'height' in metadata:
+                    if metadata['width'] != width or metadata['height'] != height:
+                        findings.append(f"Dimension mismatch: metadata says {metadata['width']}x{metadata['height']}, actual is {width}x{height}")
+
+            # 5. Statistical analysis of pixel distribution
+            if img.mode == 'RGB':
+                r_vals = [p[0] for p in pixels[:min(10000, len(pixels))]]
+                g_vals = [p[1] for p in pixels[:min(10000, len(pixels))]]
+                b_vals = [p[2] for p in pixels[:min(10000, len(pixels))]]
+
+                # Check for channel imbalance
+                r_avg = sum(r_vals) / len(r_vals)
+                g_avg = sum(g_vals) / len(g_vals)
+                b_avg = sum(b_vals) / len(b_vals)
+
+                if abs(r_avg - g_avg) > 100 or abs(r_avg - b_avg) > 100 or abs(g_avg - b_avg) > 100:
+                    findings.append(f"Channel imbalance detected: R={r_avg:.1f}, G={g_avg:.1f}, B={b_avg:.1f}")
+
+            result_message = f"Deep scan completed. Hash: {file_hash[:8]}..."
+            if findings:
+                result_message += f" Findings: {'; '.join(findings)}"
+
+            return HealingResult(
+                success=True,
+                action_type=action.action_type,
+                message=result_message,
+                details={
+                    'hash': file_hash,
+                    'dimensions': f"{width}x{height}",
+                    'mode': img.mode,
+                    'metadata_status': metadata_status,
+                    'findings': findings,
+                    'unique_colors_sample': unique_colors if 'unique_colors' in dir() else None
+                }
+            )
+
+        except ImportError:
+            return HealingResult(
+                success=False,
+                action_type=action.action_type,
+                message="PIL not available for deep scan"
+            )
+        except Exception as e:
+            logger.error(f"  Deep scan failed: {e}")
+            return HealingResult(
+                success=False,
+                action_type=action.action_type,
+                message=f"Deep scan failed: {e}",
+                details={'error': str(e)}
+            )
 
     async def monitor_loop(self):
         """
