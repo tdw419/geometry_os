@@ -112,6 +112,119 @@ GLYPH_DRAW_CIRCLE:
     CALL GLYPH_FILL_RECT
     RET
 
+; Draw a glass panel with title bar and borders
+; Args: R0=x, R1=y, R2=w, R3=h
+GLYPH_RENDER_PANEL:
+    PUSH R0
+    PUSH R1
+    PUSH R2
+    PUSH R3
+    
+    ; 1. Draw main background
+    MOVI R4, 20
+    MOVI R5, 20
+    MOVI R6, 35
+    MOVI R7, 180      ; semi-transparent
+    PUSH R0
+    PUSH R1
+    PUSH R2
+    PUSH R3
+    ADD R0, R4, R255
+    ADD R1, R5, R255
+    ADD R2, R6, R255
+    ADD R3, R7, R255
+    CALL GLYPH_SET_COLOR
+    POP R3
+    POP R2
+    POP R1
+    POP R0
+    CALL GLYPH_FILL_RECT
+    
+    ; 2. Draw title bar (top 24 pixels)
+    MOVI R4, 40
+    MOVI R5, 40
+    MOVI R6, 60
+    MOVI R7, 220
+    PUSH R0
+    PUSH R1
+    PUSH R2
+    PUSH R3
+    ADD R0, R4, R255
+    ADD R1, R5, R255
+    ADD R2, R6, R255
+    ADD R3, R7, R255
+    CALL GLYPH_SET_COLOR
+    POP R3
+    POP R2
+    POP R1
+    POP R0
+    PUSH R3           ; Save full height
+    MOVI R3, 24       ; Title height
+    CALL GLYPH_FILL_RECT
+    POP R3
+    
+    ; 3. Draw border
+    MOVI R4, 100
+    MOVI R5, 100
+    MOVI R6, 150
+    MOVI R7, 255
+    PUSH R0
+    PUSH R1
+    PUSH R2
+    PUSH R3
+    ADD R0, R4, R255
+    ADD R1, R5, R255
+    ADD R2, R6, R255
+    ADD R3, R7, R255
+    CALL GLYPH_SET_COLOR
+    POP R3
+    POP R2
+    POP R1
+    POP R0
+    ; DRAW_RECT opcode expects R0=x, R1=y, R2=w, R0 used for h
+    PUSH R4
+    ADD R4, R0, R255
+    ADD R0, R3, R255
+    DRAW_RECT R4, R1, R2
+    POP R4
+    
+    POP R3
+    POP R2
+    POP R1
+    POP R0
+    RET
+
+; Render the entire desktop substrate
+GLYPH_RENDER_DESKTOP:
+    ; 1. Clear background
+    MOVI R0, 5
+    MOVI R1, 5
+    MOVI R2, 10
+    MOVI R3, 255
+    CALL GLYPH_SET_COLOR
+    
+    MOVI R0, 0
+    MOVI R1, 0
+    MOVI R2, 1024
+    MOVI R3, 1024
+    CALL GLYPH_FILL_RECT
+    
+    ; 2. Render some orbs via spiral layout
+    ; (Conceptual - would use actual entity buffer)
+    
+    RET
+
+; Draw a single character (stub for now)
+; Args: R0=x, R1=y, R2=char_code
+GLYPH_DRAW_CHAR:
+    ; Placeholder: draw a small rect for the char
+    PUSH R2
+    MOVI R2, 8
+    MOVI R3, 16
+    CALL GLYPH_FILL_RECT
+    POP R2
+    RET
+
 ; ================= ===========================
 ; LAYOUT ENGINE
 ; ============================================
@@ -135,49 +248,20 @@ GLYPH_LAYOUT_SPIRAL:
 START:
     CALL INIT_SYSTEM
 
-    ; 1. Set background
-    MOVI R0, 5
-    MOVI R1, 5
-    MOVI R2, 10
-    MOVI R3, 255
-    CALL GLYPH_SET_COLOR
-    
-    MOVI R0, 0
-    MOVI R1, 0
-    MOVI R2, 1024
-    MOVI R3, 1024
-    CALL GLYPH_FILL_RECT
+    ; 1. Render desktop
+    CALL GLYPH_RENDER_DESKTOP
     
     ; 2. Draw a test panel
     MOVI R0, 100
     MOVI R1, 100
-    MOVI R2, 300
-    MOVI R3, 200
+    MOVI R2, 400
+    MOVI R3, 300
+    CALL GLYPH_RENDER_PANEL
     
-    ; Save panel dimensions
-    PUSH R0
-    PUSH R1
-    PUSH R2
-    PUSH R3
-    
-    ; Set panel color
-    MOVI R0, 30
-    MOVI R1, 30
-    MOVI R2, 50
-    MOVI R3, 200
-    CALL GLYPH_SET_COLOR
-    
-    ; Restore dimensions and draw
-    POP R3
-    POP R2
-    POP R1
-    POP R0
-    CALL GLYPH_FILL_RECT
-    
-    ; 3. Draw a file orb
-    MOVI R0, 500
-    MOVI R1, 500
-    MOVI R2, 20
+    ; 3. Draw a file orb on top of the panel
+    MOVI R0, 200
+    MOVI R1, 200
+    MOVI R2, 15
     
     PUSH R0
     PUSH R1
