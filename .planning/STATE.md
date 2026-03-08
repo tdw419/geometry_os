@@ -10,23 +10,24 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 6 of 8 (NBD Server + PXE Boot)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-03-08 — v1.2 roadmap created
+Plan: 01 of 3 (complete)
+Status: In progress
+Last activity: 2026-03-08 — Completed 06-01-PLAN.md (NBD Plugin)
 
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0% v1.2 just started
+Progress: [██░░░░░░░░░░░░░░░░░░] 12% (1/8 plans in v1.2)
 
 ## Performance Metrics
 
-**v1.1 Velocity:**
-- Total plans completed: 4
-- Duration: ~27 min
-- Tests: 23 passing
+**v1.2 Velocity:**
+- Plans completed: 1
+- Duration: ~8 min
+- Tests: 28 passing
 
 **Cumulative:**
 - v1.0: 22 plans
 - v1.1: 4 plans
-- Total: 26 plans
+- v1.2: 1 plan (in progress)
+- Total: 27 plans
 
 ## Accumulated Context
 
@@ -41,6 +42,10 @@ Key decisions archived in `.planning/milestones/`:
 - Phase 7: HTTP boot as enhancement layer (2 requirements)
 - Phase 8: Delta updates leverage existing PixelRTSDiffer (3 requirements)
 
+**06-01 Decisions:**
+- Range decoding in decoder class (decode_range()) for reusability
+- Mock nbdkit module for testing without nbdkit installed
+
 ### Pending Todos
 
 None.
@@ -53,8 +58,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-08
-Stopped at: v1.2 roadmap created, ready for Phase 6 planning
+Last session: 2026-03-08T23:19:15Z
+Stopped at: Completed 06-01-PLAN.md (NBD Plugin Skeleton)
 Resume file: None
 
 **CLI Commands Available (v1.0 + v1.1):**
