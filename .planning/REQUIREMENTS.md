@@ -1,55 +1,68 @@
-# Requirements: PixelRTS v1.1 Visual Diff
+# Requirements: v1.2 Network Boot
 
-**Defined:** 2026-03-08
-**Core Value:** Booting an OS should be as visual and intuitive as opening an image file.
+**Milestone:** v1.2 Network Boot
+**Status:** Active
+**Created:** 2026-03-08
 
-## v1.1 Requirements
+## Requirements
 
-Requirements for visual diff milestone.
+### Network Boot (NETWORK)
 
-### Visual Updates (VISUAL)
+- [ ] **NETWORK-01**: User can boot PixelRTS containers over network via PXE
+- [ ] **NETWORK-02**: DHCP proxy mode responds to PXE requests without conflicting with existing DHCP
+- [ ] **NETWORK-03**: TFTP server serves legacy PXE boot files
+- [ ] **NETWORK-04**: `pixelrts serve <file.png>` command starts all network boot services
+- [ ] **NETWORK-05**: Boot progress indication shows network transfer status
 
-- [x] **VISUAL-01**: User can compare two .rts.png files and see visual diff of changes
-- [x] **VISUAL-02**: Diff highlights changed regions in the Hilbert-encoded pixel space
-- [x] **VISUAL-03**: User can see byte-level statistics (added, removed, changed bytes)
-- [x] **VISUAL-04**: CLI command `pixelrts diff <old.png> <new.png>` produces visual comparison
+### NBD Block Export (NBD)
 
-## v2 Requirements
+- [ ] **NBD-01**: User can serve .rts.png files as NBD block devices
+- [ ] **NBD-02**: nbdkit Python plugin decodes PixelRTS v2 containers on-demand
+- [ ] **NBD-03**: Range decoding for memory-efficient serving of large containers
 
-Deferred to future release.
+### HTTP Boot (HTTP)
 
-### Network (NETWORK)
+- [ ] **HTTP-01**: iPXE chainload enables HTTP boot for faster transfers
+- [ ] **HTTP-02**: HTTP server serves kernel/initrd with byte-range support
 
-- **NETWORK-01**: Boot PixelRTS containers over network (PXE/NBD)
-- **NETWORK-02**: Network boot supports multiple clients simultaneously
+### Delta Updates (DELTA)
 
-### Updates (UPDATE)
+- [ ] **DELTA-01**: User can generate delta manifest between two .rts.png versions
+- [ ] **DELTA-02**: Client can apply delta patch to update local copy
+- [ ] **DELTA-03**: Delta transfer leverages existing PixelRTSDiffer infrastructure
 
-- **UPDATE-01**: Download delta updates (only changed bytes/regions)
-- **UPDATE-03**: Review and approve updates before applying
+## Future Requirements
+
+- [ ] **NETWORK-06**: Visual boot menu with catalog integration
+- [ ] **NBD-04**: TLS/encryption for secure network boot
+- [ ] **DELTA-04**: Chunked streaming boot (start before full download)
 
 ## Out of Scope
 
-| Feature | Reason |
-|---------|--------|
-| Network boot | Separate milestone |
-| Delta download | Requires server infrastructure |
-| Auto-apply updates | Explicit approval required for safety |
+- **Full DHCP server** — Use proxy mode only to avoid network conflicts
+- **Cloud provider integration** — Focus on local/bare-metal network boot
+- **Multicast boot** — Too complex for v1.2
+- **Live migration** — Not needed for boot/install use case
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VISUAL-01 | Phase 5 | Complete |
-| VISUAL-02 | Phase 5 | Complete |
-| VISUAL-03 | Phase 5 | Complete |
-| VISUAL-04 | Phase 5 | Complete |
-
-**Coverage:**
-- v1.1 requirements: 4 total
-- Mapped to phases: 4
-- Complete: 4 ✓
+| NETWORK-01 | 6 | Pending |
+| NETWORK-02 | 6 | Pending |
+| NETWORK-03 | 6 | Pending |
+| NETWORK-04 | 6 | Pending |
+| NETWORK-05 | 6 | Pending |
+| NBD-01 | 6 | Pending |
+| NBD-02 | 6 | Pending |
+| NBD-03 | 6 | Pending |
+| HTTP-01 | 7 | Pending |
+| HTTP-02 | 7 | Pending |
+| DELTA-01 | 8 | Pending |
+| DELTA-02 | 8 | Pending |
+| DELTA-03 | 8 | Pending |
 
 ---
-*Requirements defined: 2026-03-08*
-*Last updated: 2026-03-08 after v1.1 milestone complete*
+
+*Milestone: v1.2 Network Boot*
+*Created: 2026-03-08*
