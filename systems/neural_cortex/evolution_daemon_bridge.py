@@ -10,6 +10,7 @@ to the daemon without tight coupling or circular dependencies.
 
 import logging
 import queue
+import time
 from typing import Optional, Dict, Any
 
 logger = logging.getLogger("EvolutionDaemonBridge")
@@ -126,14 +127,52 @@ class EvolutionDaemonBridge:
                 # Create backup from current (assumed good) state
                 logger.info(f"Creating backup: {backup_path}")
                 shutil.copy2(rts_path, backup_path)
+                return {
+                    "success": True,
+                    "message": "Backup created (no existing backup to restore from)",
+                    "backup_path": str(backup_path)
+                }
 
-            # TODO: Implement actual restoration logic
-            # For now, this is a placeholder
+            # Restore from backup
+            logger.info(f"Restoring from backup: {backup_path}")
+
+            # Verify backup is valid before restoring
+            if backup_path.stat().st_size == 0:
+                return {
+                    "success": False,
+                    "error": "Backup file is empty",
+                    "backup_path": str(backup_path)
+                }
+
+            # Create a safety backup of current state before overwriting
+            safety_backup = rts_path.parent / f"{rts_path.stem}_pre_restore_{int(time.time())}.png"
+            if rts_path.exists():
+                shutil.copy2(rts_path, safety_backup)
+                logger.info(f"Created safety backup: {safety_backup}")
+
+            # Restore from backup
+            shutil.copy2(backup_path, rts_path)
+
+            # Verify restoration succeeded
+            if not rts_path.exists():
+                return {
+                    "success": False,
+                    "error": "Restoration failed - file not created",
+                    "backup_path": str(backup_path)
+                }
+
+            restored_size = rts_path.stat().st_size
+            backup_size = backup_path.stat().st_size
+
+            if restored_size != backup_size:
+                logger.warning(f"Size mismatch after restore: {restored_size} vs {backup_size}")
 
             return {
                 "success": True,
-                "message": "Health restoration placeholder",
-                "backup_path": str(backup_path)
+                "message": f"Restored from backup ({restored_size} bytes)",
+                "backup_path": str(backup_path),
+                "safety_backup": str(safety_backup) if safety_backup.exists() else None,
+                "restored_size": restored_size
             }
 
         except Exception as e:
