@@ -243,3 +243,100 @@ class TestPixelRTSDiffer:
             # Verify descending order
             assert pixel_counts == sorted(pixel_counts, reverse=True), \
                 f"Regions not sorted by pixel_count descending: {pixel_counts}"
+
+    # ==================== Statistics Tests ====================
+
+    def test_channel_stats_structure(self):
+        """Test _compute_channel_stats returns expected keys."""
+        # Create test arrays with changes
+        old_arr = np.array([100, 100, 100, 255] * 10, dtype=np.uint8)
+        new_arr = np.array([110, 90, 100, 255] * 10, dtype=np.uint8)
+        diff_mask = old_arr != new_arr
+
+        # Compute channel stats
+        stats = self.differ._compute_channel_stats(diff_mask, old_arr, new_arr)
+
+        # Verify structure
+        assert 'per_channel' in stats, "Missing per_channel in stats"
+        assert 'most_changed_channel' in stats, "Missing most_changed_channel in stats"
+        assert 'least_changed_channel' in stats, "Missing least_changed_channel in stats"
+
+        # Verify per_channel has all RGBA channels
+        per_ch = stats['per_channel']
+        for ch in ['R', 'G', 'B', 'A']:
+            assert ch in per_ch, f"Missing channel {ch} in per_channel"
+            assert 'changed' in per_ch[ch], f"Missing 'changed' in {ch} stats"
+            assert 'mean_delta' in per_ch[ch], f"Missing 'mean_delta' in {ch} stats"
+
+    def test_channel_stats_accuracy(self):
+        """Test that R channel changes are counted correctly."""
+        # Create arrays where only R channel (index 0 of each pixel) changes
+        # Each pixel is RGBA, so R is at positions 0, 4, 8, 12, ...
+        old_arr = np.array([100, 50, 50, 255] * 5, dtype=np.uint8)  # 20 bytes, 5 pixels
+        new_arr = np.array([120, 50, 50, 255] * 5, dtype=np.uint8)  # R changed by +20
+
+        diff_mask = old_arr != new_arr
+
+        # Compute stats
+        stats = self.differ._compute_channel_stats(diff_mask, old_arr, new_arr)
+
+        # R channel should have 5 changed bytes
+        assert stats['per_channel']['R']['changed'] == 5, \
+            f"Expected 5 R channel changes, got {stats['per_channel']['R']['changed']}"
+
+        # Other channels should have 0 changes
+        assert stats['per_channel']['G']['changed'] == 0, "G should have 0 changes"
+        assert stats['per_channel']['B']['changed'] == 0, "B should have 0 changes"
+        assert stats['per_channel']['A']['changed'] == 0, "A should have 0 changes"
+
+        # R should be most changed
+        assert stats['most_changed_channel'] == 'R', \
+            f"Expected R as most changed, got {stats['most_changed_channel']}"
+
+    def test_get_summary_format(self):
+        """Test get_summary returns non-empty string with expected content."""
+        result = {
+            'old_file': 'old.rts.png',
+            'new_file': 'new.rts.png',
+            'added_bytes': 100,
+            'removed_bytes': 50,
+            'changed_bytes': 200,
+            'unchanged_bytes': 650,
+            'total_bytes': 1000,
+            'change_percent': 35.0,
+            'changed_regions': [{'id': 'R1'}]
+        }
+
+        summary = self.differ.get_summary(result)
+
+        # Should return non-empty string
+        assert isinstance(summary, str), "Summary should be a string"
+        assert len(summary) > 0, "Summary should not be empty"
+
+        # Should contain key elements
+        assert 'old.rts.png' in summary, "Summary should contain old file name"
+        assert 'new.rts.png' in summary, "Summary should contain new file name"
+        assert 'Bytes Added' in summary, "Summary should contain 'Bytes Added'"
+        assert 'Bytes Removed' in summary, "Summary should contain 'Bytes Removed'"
+        assert 'Bytes Changed' in summary, "Summary should contain 'Bytes Changed'"
+        assert '1,000' in summary or '1000' in summary, "Summary should contain total bytes"
+
+    def test_diff_includes_channel_stats(self):
+        """Test that diff() result has channel_stats key."""
+        # Create files with differences
+        old_data = b"AAAA"
+        new_data = b"AABB"
+
+        old_path = self._create_rts_file(old_data, "old.rts.png")
+        new_path = self._create_rts_file(new_data, "new.rts.png")
+
+        # Run diff
+        result = self.differ.diff(old_path, new_path)
+
+        # Verify channel_stats is present
+        assert 'channel_stats' in result, "Missing channel_stats in diff result"
+
+        # Verify structure
+        stats = result['channel_stats']
+        assert 'per_channel' in stats, "Missing per_channel in channel_stats"
+        assert 'most_changed_channel' in stats, "Missing most_changed_channel"
