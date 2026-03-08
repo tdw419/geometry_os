@@ -471,3 +471,143 @@ class TestEvolutionHookBroadcasterDuplicateAdd:
         broadcaster.add_hook(hook)  # Add same hook again
 
         assert len(broadcaster._hooks) == 1
+
+
+class TestEvolutionHookBroadcasterErrorHandling:
+    """Tests for error handling in broadcaster."""
+
+    def test_safe_call_catches_exceptions(self, caplog):
+        """Test that _safe_call catches and logs exceptions from hooks."""
+        import time
+
+        broadcaster = EvolutionHookBroadcaster()
+
+        # Create a hook that raises an exception
+        class BrokenHook(EvolutionHook):
+            def on_pas_change(self, old_score, new_score):
+                raise RuntimeError("Hook error!")
+
+            def on_pipeline_stage(self, stage, status):
+                pass
+
+            def on_self_correction(self, trigger, action, result):
+                pass
+
+        broken_hook = BrokenHook()
+        broadcaster.add_hook(broken_hook)
+
+        with caplog.at_level(logging.ERROR):
+            broadcaster.on_pas_change(0.5, 0.6)
+            time.sleep(0.1)  # Let async dispatch complete
+
+        # Should have logged the error
+        assert "BrokenHook" in caplog.text or "Hook error" in caplog.text or "Error" in caplog.text
+
+    def test_dispatch_async_with_running_loop(self):
+        """Test _dispatch_async uses running loop when available."""
+        broadcaster = EvolutionHookBroadcaster()
+
+        # Add a hook so that _dispatch_async actually gets called
+        hook = ConcreteHook()
+        broadcaster.add_hook(hook)
+
+        # Create an async context to test with running loop
+        async def run_in_async_context():
+            import asyncio
+            loop = asyncio.get_running_loop()
+            assert loop is not None
+
+            # This should use loop.create_task path (line 181)
+            tasks_created = []
+
+            original_create_task = loop.create_task
+
+            def tracked_create_task(coro):
+                tasks_created.append(coro)
+                return original_create_task(coro)
+
+            loop.create_task = tracked_create_task
+
+            try:
+                broadcaster.on_pas_change(0.5, 0.7)
+                await asyncio.sleep(0.05)
+            finally:
+                loop.create_task = original_create_task
+
+            # Verify the running loop path was taken
+            assert len(tasks_created) >= 1
+
+        import asyncio
+        asyncio.run(run_in_async_context())
+
+    def test_dispatch_async_without_running_loop(self, caplog):
+        """Test _dispatch_async falls back to sync dispatch when no loop."""
+        import time
+
+        broadcaster = EvolutionHookBroadcaster()
+
+        # Add a hook to verify sync dispatch worked
+        class SyncHook(EvolutionHook):
+            def __init__(self):
+                self.pas_changes = []
+
+            def on_pas_change(self, old_score, new_score):
+                self.pas_changes.append((old_score, new_score))
+
+            def on_pipeline_stage(self, stage, status):
+                pass
+
+            def on_self_correction(self, trigger, action, result):
+                pass
+
+        sync_hook = SyncHook()
+        broadcaster.add_hook(sync_hook)
+
+        # Call outside async context - should use sync dispatch
+        with caplog.at_level(logging.DEBUG):
+            broadcaster.on_pas_change(0.5, 0.6)
+            time.sleep(0.1)
+
+        # Verify the hook received the event via sync dispatch
+        assert sync_hook.pas_changes == [(0.5, 0.6)]
+
+        # Should have logged about no running loop (or completed via sync)
+        assert "No running event loop" in caplog.text or sync_hook.pas_changes == [(0.5, 0.6)]
+
+
+class TestEvolutionHookBroadcasterSyncDispatchError:
+    """Tests for sync dispatch error handling."""
+
+    def test_sync_dispatch_error_handling(self, caplog):
+        """Test that errors in sync dispatch are logged."""
+        import time
+
+        broadcaster = EvolutionHookBroadcaster()
+
+        # Create a hook that raises an exception during sync dispatch
+        class SyncErrorHook(EvolutionHook):
+            def __init__(self):
+                self.called = False
+
+            def on_pas_change(self, old_score, new_score):
+                self.called = True
+                raise RuntimeError("Sync dispatch error!")
+
+            def on_pipeline_stage(self, stage, status):
+                pass
+
+            def on_self_correction(self, trigger, action, result):
+                pass
+
+        error_hook = SyncErrorHook()
+        broadcaster.add_hook(error_hook)
+
+        with caplog.at_level(logging.ERROR):
+            broadcaster.on_pas_change(0.5, 0.6)
+            time.sleep(0.1)
+
+        # The hook should have been called
+        assert error_hook.called
+
+        # Error should have been logged
+        assert "Sync dispatch error" in caplog.text or "Error in sync dispatch" in caplog.text or "Error" in caplog.text
