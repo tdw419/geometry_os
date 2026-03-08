@@ -300,6 +300,40 @@ class TestNeuralMemoryHub:
         zero = np.array([0.0, 0.0, 0.0])
         assert hub._cosine_similarity(a, zero) == 0.0
 
+    @pytest.mark.asyncio
+    async def test_find_similar_query_without_vector_returns_empty(self, hub, sample_event):
+        """Test find_similar returns empty list when query has no vector."""
+        await hub.store_event(sample_event)
+
+        # Create query without vector
+        query = NeuralEvent(
+            tile_id="query",
+            shell_tokens=[],
+            cpu_jitter=0.0,
+            memory_delta=0.0,
+            io_frequency=0.0,
+            broadcast=False
+        )
+        query.event_vector = None  # Clear vector
+
+        similar = await hub.find_similar(query)
+        assert similar == []
+
+    @pytest.mark.asyncio
+    async def test_broadcast_event_error_handling(self, hub, sample_event):
+        """Test that _broadcast_event handles errors gracefully."""
+        mock_webmcp = MagicMock()
+        mock_webmcp.broadcast_event = AsyncMock(side_effect=RuntimeError("Network error"))
+
+        hub.set_webmcp(mock_webmcp)
+
+        # Should not raise, just log warning
+        await hub.store_event(sample_event)
+
+        # Event should still be stored
+        assert len(hub.events) == 1
+        mock_webmcp.broadcast_event.assert_called_once()
+
 
 class TestGetNeuralMemoryHub:
     """Tests for module-level hub getter."""
