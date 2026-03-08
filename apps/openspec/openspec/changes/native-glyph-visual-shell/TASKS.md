@@ -17,15 +17,13 @@
 
 **Dependencies**: HilbertLUT.ts (complete)
 
-### Task 1.2: FFI Layout Functions
-- [ ] Add layout functions to `visual-vm/ffi_registry.json`:
-  - `hilbert.xy_to_index` (ID: 16)
-  - `hilbert.index_to_xy` (ID: 17)
-  - `layout.spiral_coords` (ID: 18)
-  - `layout.force_directed` (ID: 19)
-- [ ] Create `visual-vm/ffi_layout_engine.py`
-- [ ] Add tests for layout functions
-- [ ] Verify via FFI Bridge
+### Task 1.2: FFI Layout Functions ✅ COMPLETE
+- [x] Add Hilbert and layout functions to `visual-vm/ffi_registry.json` (IDs 300-311)
+- [x] Create `visual-vm/ffi_layout_engine.py` with spiral and force-directed algorithms
+- [x] Update `visual-vm/python_ffi_host.py` to support layout and hilbert modules
+- [x] Enable complex return types (arrays/tuples) in `PythonFFIBridge.ts`
+- [x] Add unit tests in `visual-vm/test_ffi_layout.test.ts`
+- [x] Verify via FFI Bridge (all tests passing)
 
 **Dependencies**: PythonFFIBridge.ts (complete)
 
