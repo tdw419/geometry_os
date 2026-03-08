@@ -329,3 +329,108 @@ class TestUITransmuterEdgeCases:
 
         # Should use custom threshold
         assert "0.1000" in wgsl
+
+
+class TestUITransmuterWidgetsWithActions:
+    """Tests for widgets with action attributes."""
+
+    def test_panel_with_action(self):
+        """Test panel widget with action generates pressed state."""
+        from systems.evolution_daemon.ui_transmuter import UITransmuter
+
+        transmuter = UITransmuter()
+        extraction_data = {
+            "widgets": [
+                {
+                    "type": "panel",
+                    "bbox": [0, 0, 100, 50],
+                    "action": "click:submit"
+                }
+            ]
+        }
+
+        wgsl = transmuter.transmute(extraction_data)
+
+        assert "panel_0" in wgsl
+        assert "mouse_pressed" in wgsl  # Pressed state check
+
+    def test_button_with_action(self):
+        """Test button widget with action generates pressed state."""
+        from systems.evolution_daemon.ui_transmuter import UITransmuter
+
+        transmuter = UITransmuter()
+        extraction_data = {
+            "widgets": [
+                {
+                    "type": "button",
+                    "bbox": [10, 10, 100, 40],
+                    "text": "Click Me",
+                    "action": "click:handle_click"
+                }
+            ]
+        }
+
+        wgsl = transmuter.transmute(extraction_data)
+
+        assert "button_0" in wgsl
+        assert "mouse_pressed" in wgsl
+
+    def test_clip_with_action(self):
+        """Test clip widget with action generates pressed state."""
+        from systems.evolution_daemon.ui_transmuter import UITransmuter
+
+        transmuter = UITransmuter()
+        extraction_data = {
+            "widgets": [
+                {
+                    "type": "clip",
+                    "bbox": [0, 100, 300, 50],
+                    "action": "click:play_clip"
+                }
+            ]
+        }
+
+        wgsl = transmuter.transmute(extraction_data)
+
+        assert "clip_0" in wgsl
+        assert "mouse_pressed" in wgsl
+
+    def test_playhead_with_action(self):
+        """Test playhead widget with action generates pressed state."""
+        from systems.evolution_daemon.ui_transmuter import UITransmuter
+
+        transmuter = UITransmuter()
+        extraction_data = {
+            "widgets": [
+                {
+                    "type": "playhead",
+                    "bbox": [150, 0, 2, 200],
+                    "action": "drag:seek"
+                }
+            ]
+        }
+
+        wgsl = transmuter.transmute(extraction_data)
+
+        assert "playhead_0" in wgsl
+        assert "mouse_pressed" in wgsl
+
+    def test_unknown_widget_with_action(self):
+        """Test unknown widget type with action generates pressed state."""
+        from systems.evolution_daemon.ui_transmuter import UITransmuter
+
+        transmuter = UITransmuter()
+        extraction_data = {
+            "widgets": [
+                {
+                    "type": "custom_slider",
+                    "bbox": [50, 50, 100, 20],
+                    "action": "drag:adjust"
+                }
+            ]
+        }
+
+        wgsl = transmuter.transmute(extraction_data)
+
+        assert "custom_slider_0" in wgsl
+        assert "mouse_pressed" in wgsl
