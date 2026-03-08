@@ -114,3 +114,61 @@ class TestHilbertBrush:
 
             assert recovered_index == test_index, \
                 f"Roundtrip failed: {test_index} -> ({x}, {y}) -> {recovered_index}"
+
+    def test_hilbert_d2xy_out_of_range(self):
+        """HilbertBrush d2xy should raise IndexError for out of range index."""
+        from systems.evolution_daemon.substrate_brush import HilbertBrush
+
+        brush = HilbertBrush(order=2)  # 4x4 = 16 indices (0-15)
+
+        # Negative index should raise
+        with pytest.raises(IndexError, match="out of range"):
+            brush.d2xy(-1)
+
+        # Index beyond grid should raise
+        with pytest.raises(IndexError, match="out of range"):
+            brush.d2xy(16)
+
+    def test_hilbert_paint_range(self):
+        """HilbertBrush paint_hilbert_range should paint bytes along curve."""
+        from systems.evolution_daemon.substrate_brush import HilbertBrush
+
+        brush = HilbertBrush(order=2)  # 4x4 = 16 indices
+
+        # Paint 5 bytes starting at index 0
+        data = bytes([50, 100, 150, 200, 250])
+        brush.paint_hilbert_range(0, 5, data)
+
+        texture = brush.get_texture()
+
+        # Verify first 5 positions along Hilbert curve have correct grayscale values
+        for i, byte in enumerate(data):
+            x, y = brush.d2xy(i)
+            pixel = texture[y, x]
+            # Should be grayscale: R=G=B=byte, A=255
+            assert pixel[0] == byte, f"Red channel at index {i}"
+            assert pixel[1] == byte, f"Green channel at index {i}"
+            assert pixel[2] == byte, f"Blue channel at index {i}"
+            assert pixel[3] == 255, f"Alpha channel at index {i}"
+
+    def test_hilbert_paint_range_truncates_data(self):
+        """HilbertBrush paint_hilbert_range should respect count parameter."""
+        from systems.evolution_daemon.substrate_brush import HilbertBrush
+
+        brush = HilbertBrush(order=2)
+
+        # Paint only 2 bytes even though data has 5
+        data = bytes([50, 100, 150, 200, 250])
+        brush.paint_hilbert_range(0, 2, data)
+
+        texture = brush.get_texture()
+
+        # First 2 positions should be painted
+        x0, y0 = brush.d2xy(0)
+        x1, y1 = brush.d2xy(1)
+        assert texture[y0, x0][0] == 50
+        assert texture[y1, x1][0] == 100
+
+        # Position 2 should still be zero (not painted)
+        x2, y2 = brush.d2xy(2)
+        assert texture[y2, x2][0] == 0
