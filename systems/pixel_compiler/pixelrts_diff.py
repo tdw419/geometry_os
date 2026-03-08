@@ -8,6 +8,15 @@ from typing import Dict, Optional, Any, List
 from pathlib import Path
 import logging
 
+# Try to import rich for nice output
+try:
+    from rich.console import Console
+    from rich.table import Table
+    from rich.panel import Panel
+    HAS_RICH = True
+except ImportError:
+    HAS_RICH = False
+
 # Import decoder from existing module
 try:
     from systems.pixel_compiler.pixelrts_v2_core import PixelRTSDecoder, HilbertCurve
@@ -392,3 +401,125 @@ class PixelRTSDiffer:
                 lines.append(f"Most changed channel: {most} ({most_count:,} bytes)")
 
         return "\n".join(lines)
+
+
+def format_diff_output(result: dict) -> str:
+    """
+    Format diff result for terminal output.
+    Uses Rich if available, falls back to plain text.
+
+    Args:
+        result: Dictionary from PixelRTSDiffer.diff() method
+
+    Returns:
+        Empty string (Rich prints directly) or plain text summary
+    """
+    if HAS_RICH:
+        return format_diff_rich(result)
+    return PixelRTSDiffer().get_summary(result)
+
+
+def format_diff_rich(result: dict) -> str:
+    """
+    Format with rich library for nice terminal output.
+
+    Args:
+        result: Dictionary from PixelRTSDiffer.diff() method
+
+    Returns:
+        Empty string (Rich prints directly to console)
+    """
+    console = Console()
+
+    old_name = result.get('old_file', 'unknown')
+    new_name = result.get('new_file', 'unknown')
+
+    # Calculate percentages
+    total = result.get('total_bytes', 0)
+    added = result.get('added_bytes', 0)
+    removed = result.get('removed_bytes', 0)
+    changed = result.get('changed_bytes', 0)
+    change_pct = result.get('change_percent', 0.0)
+
+    def pct(val, total_val):
+        if total_val == 0:
+            return 0.0
+        return (val / total_val) * 100
+
+    # Create byte statistics panel
+    stats_content = (
+        f"[green]+ Added:[/green]    {added:>10,} ({pct(added, total):>5.1f}%)\n"
+        f"[red]- Removed:[/red]  {removed:>10,} ({pct(removed, total):>5.1f}%)\n"
+        f"[yellow]~ Changed:[/yellow]   {changed:>10,} ({pct(changed, total):>5.1f}%)\n"
+        f"[dim]Total:[/dim]       {total:>10,} ({change_pct}% changed)"
+    )
+
+    console.print(Panel(
+        stats_content,
+        title=f"[bold]Diff:[/bold] {old_name} -> {new_name}",
+        border_style="blue"
+    ))
+
+    # Print changed regions table if available (limit to top 20)
+    regions = result.get('changed_regions', [])
+    if regions:
+        console.print()  # Blank line
+
+        # Limit to top 20 regions
+        display_regions = regions[:20]
+
+        table = Table(title=f"Changed Regions ({len(display_regions)}/{len(regions)} shown)")
+        table.add_column("Region", style="cyan", justify="left")
+        table.add_column("Pixels", justify="right")
+        table.add_column("X Range", justify="center")
+        table.add_column("Y Range", justify="center")
+
+        for region in display_regions:
+            region_id = region.get('id', '?')
+            pixel_count = region.get('pixel_count', 0)
+            x_min = region.get('x_min', 0)
+            x_max = region.get('x_max', 0)
+            y_min = region.get('y_min', 0)
+            y_max = region.get('y_max', 0)
+
+            table.add_row(
+                region_id,
+                f"{pixel_count:,}",
+                f"{x_min}-{x_max}",
+                f"{y_min}-{y_max}"
+            )
+
+        console.print(table)
+
+        if len(regions) > 20:
+            console.print(f"[dim]  ... and {len(regions) - 20} more regions[/dim]")
+
+    # Print channel stats mini-table if available
+    channel_stats = result.get('channel_stats', {})
+    if channel_stats and channel_stats.get('per_channel'):
+        console.print()  # Blank line
+
+        ch_table = Table(title="Channel Statistics")
+        ch_table.add_column("Channel", justify="center")
+        ch_table.add_column("Changed Bytes", justify="right")
+        ch_table.add_column("Mean Delta", justify="right")
+
+        per_channel = channel_stats.get('per_channel', {})
+        most_changed = channel_stats.get('most_changed_channel', '')
+
+        for ch in ['R', 'G', 'B', 'A']:
+            ch_data = per_channel.get(ch, {})
+            changed_count = ch_data.get('changed', 0)
+            mean_delta = ch_data.get('mean_delta', 0.0)
+
+            # Highlight most changed channel
+            if ch == most_changed:
+                ch_name = f"[bold yellow]{ch}[/bold yellow]"
+            else:
+                ch_name = ch
+
+            ch_table.add_row(ch_name, f"{changed_count:,}", f"{mean_delta:.2f}")
+
+        console.print(ch_table)
+
+    return ""
