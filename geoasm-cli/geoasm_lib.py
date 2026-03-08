@@ -57,6 +57,17 @@ OPCODES = {
     0xC2: ("DRAW_LINE", 3, "Draw line"),
     0xC3: ("DRAW_RECT", 3, "Draw rectangle"),
     0xC4: ("FILL_RECT", 3, "Fill rectangle"),
+    # Glyph Primitives (Screen is the Hard Drive architecture)
+    0xC5: ("GLYPH_DEFINE", 4, "Register glyph bitmap"),
+    0xC6: ("GLYPH_BLIT", 3, "Render glyph to framebuffer"),
+    0xC7: ("GLYPH_TRANSFORM", 2, "Apply rotation/scale matrix"),
+    0xC8: ("GLYPH_COMPOSITE", 2, "Layer multiple glyphs"),
+    0xC9: ("GLYPH_CACHE_EVICT", 1, "Evict oldest glyph from cache"),
+    0xCA: ("ORB", 4, "Draw orb (file visualization)"),
+    0xCB: ("PANEL", 5, "Draw glass panel"),
+    0xCC: ("PANEL_TITLE", 2, "Set panel title bar"),
+    0xCD: ("PANEL_BORDER", 1, "Draw panel border"),
+    0xCE: ("HEATMAP_CELL", 3, "Draw heatmap cell"),
     0xCF: ("DRAW_PIXEL", 2, "Draw pixel"),
     0xD4: ("LLM_PROMPT", 0, "Call LLM"),
     0xD5: ("START_TIMER", 1, "Start timer"),
@@ -326,6 +337,13 @@ class GeoASMVM:
         self.color = (0, 0, 0)  # Current draw color
         self.pixels = []  # List of (x, y, r, g, b) drawn
         self.lines = []   # List of (x1, y1, x2, y2, r, g, b) drawn
+        # Glyph state (Screen is the Hard Drive architecture)
+        self.glyphs = {}  # glyph_id -> (width, height, data_ptr)
+        self.glyph_cache_order = []  # LRU tracking
+        self.glyph_blits = []  # List of (glyph_id, x, y) renders
+        self.orbs = []  # List of (x, y, radius, r, g, b, a) visualizations
+        self.panels = []  # List of (x, y, w, h, r, g, b, a) panels
+        self.heatmap_cells = []  # List of (x, y, value, r, g, b)
 
     def load(self, program: AssembledProgram):
         """Load a program into memory."""
@@ -457,6 +475,78 @@ class GeoASMVM:
             x2 = src2 & 0xFF
             y2 = (src2 >> 8) & 0xFF
             self.lines.append((x1, y1, x2, y2, *self.color))
+        # Glyph Primitives (Screen is the Hard Drive architecture)
+        elif opcode == 0xC5:  # GLYPH_DEFINE
+            glyph_id = dst
+            width = src1
+            height = src2 >> 4
+            data_ptr = (src2 & 0x0F) << 8 | self._get_reg(0)  # Extended addressing
+            self.glyphs[glyph_id] = (width, height, data_ptr)
+            self.glyph_cache_order.append(glyph_id)
+        elif opcode == 0xC6:  # GLYPH_BLIT
+            glyph_id = dst
+            x = self._get_reg(src1)
+            y = src2
+            if glyph_id in self.glyphs:
+                self.glyph_blits.append((glyph_id, x, y))
+        elif opcode == 0xC7:  # GLYPH_TRANSFORM
+            glyph_id = dst
+            matrix_ptr = src1 | (src2 << 8)
+            # Transform matrix stored at memory[matrix_ptr]
+            # For now, just mark the glyph as transformed
+            if glyph_id in self.glyphs:
+                w, h, data = self.glyphs[glyph_id]
+                self.glyphs[glyph_id] = (w, h, data | 0x8000)  # Flag as transformed
+        elif opcode == 0xC8:  # GLYPH_COMPOSITE
+            dst_id = dst
+            src_count = src1
+            src_ptr = src2 << 8
+            # Read source glyph IDs from memory
+            src_ids = [self.memory[src_ptr + i] for i in range(min(src_count, 8))]
+            # Composite into destination
+            if dst_id not in self.glyphs:
+                self.glyphs[dst_id] = (0, 0, 0)
+        elif opcode == 0xC9:  # GLYPH_CACHE_EVICT
+            count = dst
+            for _ in range(min(count, len(self.glyph_cache_order))):
+                if self.glyph_cache_order:
+                    old_id = self.glyph_cache_order.pop(0)
+                    self.glyphs.pop(old_id, None)
+        elif opcode == 0xCA:  # ORB (file visualization)
+            x = self._get_reg(dst)
+            y = self._get_reg(src1)
+            radius = src2 & 0x1F
+            r, g, b = self.color
+            self.orbs.append((x, y, radius, r, g, b, 200))
+        elif opcode == 0xCB:  # PANEL (glass panel)
+            x = self._get_reg(dst)
+            y = self._get_reg(src1)
+            w = src2  # Width in src2 (8-bit)
+            h = int(w * 0.75)  # Default aspect ratio
+            r, g, b = self.color
+            self.panels.append((x, y, w, h, r, g, b, 180))
+        elif opcode == 0xCC:  # PANEL_TITLE
+            panel_id = dst
+            title_ptr = src1 | (src2 << 8)
+            # Read title string from memory (null-terminated)
+            title = []
+            for i in range(32):
+                c = self.memory[title_ptr + i]
+                if c == 0:
+                    break
+                title.append(chr(c))
+        elif opcode == 0xCD:  # PANEL_BORDER
+            panel_id = dst
+            style = src1
+            # Border style: 0=none, 1=solid, 2=rounded, 3=shadow
+        elif opcode == 0xCE:  # HEATMAP_CELL
+            x = self._get_reg(dst)
+            y = self._get_reg(src1)
+            value = src2 / 255.0  # Normalize to 0-1
+            r = int(255 * value)
+            g = int(50 * (1 - abs(value - 0.5) * 2))
+            b = int(255 * (1 - value))
+            self.heatmap_cells.append((x, y, value, r, g, b))
         elif opcode == 0xCF:  # DRAW_PIXEL
             x = self._get_reg(dst)
             y = self._get_reg(src1)
