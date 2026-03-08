@@ -376,31 +376,137 @@ class SisyphusDaemon:
         
         task.state = state
 
+    def _generate_heuristic_tasks(self) -> List[str]:
+        """
+        Generate tasks based on codebase heuristics.
+
+        Scans for:
+        - Uncommitted files via git status
+        - Failing tests via pytest collection
+        - TODO/FIXME comments in source
+        - Low coverage modules
+
+        Returns:
+            List of task description strings
+        """
+        tasks = []
+
+        # 1. Check for uncommitted files
+        try:
+            result = subprocess.run(
+                ["git", "status", "--porcelain"],
+                cwd=self.project_dir,
+                capture_output=True, text=True, timeout=10
+            )
+            uncommitted = [line for line in result.stdout.strip().split("\n") if line]
+
+            if uncommitted:
+                # Group by type
+                modified = [l for l in uncommitted if l.startswith(" M") or l.startswith("M ")]
+                untracked = [l for l in uncommitted if l.startswith("??")]
+                staged = [l for l in uncommitted if l.startswith("A ") or l.startswith("M  ")]
+
+                if len(untracked) > 3:
+                    tasks.append(f"Commit Untracked Files: {len(untracked)} untracked files in project root. Review and commit relevant files, add others to .gitignore.")
+                elif untracked:
+                    sample = untracked[0].split()[-1] if untracked else ""
+                    tasks.append(f"Commit New File: {sample} is untracked. Add to version control if relevant.")
+
+                if len(modified) > 5:
+                    tasks.append(f"Batch Commit Modified Files: {len(modified)} modified files need commits. Group by feature and commit with descriptive messages.")
+                elif modified:
+                    sample = modified[0].split()[-1] if modified else ""
+                    tasks.append(f"Commit Changes: {sample} has uncommitted modifications.")
+        except Exception as e:
+            self.log(f"Heuristic scan failed (git): {e}")
+
+        # 2. Check for failing tests
+        try:
+            result = subprocess.run(
+                ["python3", "-m", "pytest", "tests/", "--collect-only", "-q"],
+                cwd=self.project_dir,
+                capture_output=True, text=True, timeout=30
+            )
+            if "ERROR" in result.stdout or result.returncode != 0:
+                error_count = result.stdout.count("ERROR")
+                if error_count > 0:
+                    tasks.append(f"Fix Test Collection Errors: {error_count} test files have collection errors. Add missing imports or skip conditions.")
+        except Exception:
+            pass  # pytest might not be available
+
+        # 3. Scan for TODO/FIXME comments
+        try:
+            result = subprocess.run(
+                ["grep", "-r", "-n", "-E", "(TODO|FIXME|XXX|HACK):", "systems/", "geoasm-cli/", "--include=*.py"],
+                cwd=self.project_dir,
+                capture_output=True, text=True, timeout=15
+            )
+            todos = [line for line in result.stdout.strip().split("\n") if line][:5]
+
+            if todos:
+                sample = todos[0]
+                file_match = sample.split(":")[0] if ":" in sample else "source"
+                tasks.append(f"Address TODO Comment: Found in {file_match}. Review and implement or document.")
+        except Exception:
+            pass
+
+        # 4. Check coverage (if .coverage exists)
+        coverage_file = self.project_dir / ".coverage"
+        if coverage_file.exists():
+            try:
+                result = subprocess.run(
+                    ["coverage", "report", "--include=systems/*", "--skip-covered"],
+                    cwd=self.project_dir,
+                    capture_output=True, text=True, timeout=30
+                )
+                low_coverage = []
+                for line in result.stdout.strip().split("\n"):
+                    if "%" in line:
+                        parts = line.split()
+                        if len(parts) >= 4:
+                            try:
+                                pct = int(parts[-1].replace("%", ""))
+                                if pct < 50:
+                                    low_coverage.append(parts[0])
+                            except ValueError:
+                                pass
+
+                if low_coverage:
+                    tasks.append(f"Improve Coverage: {low_coverage[0]} has <50% coverage. Add tests for uncovered branches.")
+            except Exception:
+                pass
+
+        return tasks
+
     def generate_tasks(self):
         self.log("🎉 Harvesting DNA from history for new prompts...")
-        
+
+        # First, collect heuristic tasks from codebase scan
+        heuristic_tasks = self._generate_heuristic_tasks()
+        heuristic_task_text = "\n".join(f"- {t}" for t in heuristic_tasks) if heuristic_tasks else ""
+
         try:
             # First, check if script exists
             extractor_script = self.project_dir / "scripts/session_dna_extractor.py"
             if not extractor_script.exists():
                 self.log(f"Extractor script missing at {extractor_script}")
-                time.sleep(self.poll_interval)
-                return
                 
             dna_output = subprocess.check_output(
                 ["python3", str(extractor_script), str(self.session_dir)],
                 stderr=subprocess.STDOUT, text=True
             )
             
-            prompt = f"""You are the Sisyphus Evolution Daemon (v4). 
+            prompt = f"""You are the Sisyphus Evolution Daemon (v4).
 Recent Session DNA:
 {dna_output}
 
-Analyze this DNA. Notice the intent, specific failures, and git status of touched files.
-Append 5 new actionable tasks to {self.state_file}.
+Heuristic Tasks (from codebase scan):
+{heuristic_tasks}
+
+Combine both sources to create diverse, actionable tasks. Priority heuristic tasks over DNA tasks when there are TODO/FIXME or uncommitted files present.
 
 Each task must:
-1. Address failures or uncommitted states from the DNA.
+1. Address failures, uncommitted states from the DNA or heuristics.
 2. Include concrete Verification Steps.
 3. Advance the Native Glyph Shell architecture.
 
