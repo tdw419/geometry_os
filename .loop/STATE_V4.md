@@ -41,4 +41,4 @@
 
 - [x] 20. **Commit sisyphus_v4.py Entry Point**: Committed daemon entry point (15 lines). **Verification**: Run `git status sisyphus_v4.py` - clean. **COMPLETED**.
 
-- [ ] 21. **Wire GlyphSubstrate into GeoASM ORB Instruction**: The `ORB` opcode (0xCA) in `geoasm-cli/geoasm_lib.py` should visualize files using Hilbert-indexed GlyphSubstrate. Implement `orb_visualize(path)` that loads file bytes, maps to Hilbert curve colors, renders to substrate. **Verification**: Run `python3 -c "from geoasm_cli.geoasm_lib import orb_visualize; orb_visualize('/etc/hostname')"` - no errors, produces substrate buffer.
+- [x] 21. **Wire GlyphSubstrate into GeoASM ORB Instruction**: Added `GlyphSubstrate` class and `orb_visualize(path)` to `geoasm-cli/geoasm_lib.py`. Maps file bytes to colors along Hilbert curve with HSV-like coloring. Uses native Hilbert library if available. **Verification**: Run `python3 -c "import sys; sys.path.insert(0,'geoasm-cli'); from geoasm_lib import orb_visualize; s=orb_visualize('/etc/hostname'); print(f'{s.n}x{s.n}')"` - outputs `256x256`. **COMPLETED**.

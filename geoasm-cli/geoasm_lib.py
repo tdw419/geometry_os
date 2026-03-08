@@ -659,6 +659,167 @@ class GeoASMDisassembler:
         return "\n".join(lines)
 
 
+# ============================================================================
+# ORB FILE VISUALIZATION
+# ============================================================================
+
+class GlyphSubstrate:
+    """
+    Python implementation of Hilbert-indexed pixel buffer for file visualization.
+
+    Uses the native Hilbert library if available, falls back to Python implementation.
+    """
+
+    def __init__(self, order: int = 8):
+        """
+        Create a glyph substrate with grid size 2^order.
+
+        Args:
+            order: Hilbert curve order (default 8 = 256x256 grid)
+        """
+        self.order = order
+        self.n = 1 << order  # Grid size (2^order)
+        self.buffer = [0] * (self.n * self.n)
+
+        # Try to use native Hilbert library
+        try:
+            from systems.sisyphus.native_hilbert import NativeHilbertLUT
+            self._hilbert = NativeHilbertLUT()
+            self._use_native = True
+        except ImportError:
+            self._hilbert = None
+            self._use_native = False
+
+    def xy2d(self, x: int, y: int) -> int:
+        """Convert 2D coordinates to Hilbert distance."""
+        if self._use_native:
+            return self._hilbert.xy2d(self.n, x, y)
+        return self._xy2d_python(x, y)
+
+    def d2xy(self, d: int) -> tuple:
+        """Convert Hilbert distance to 2D coordinates."""
+        if self._use_native:
+            return self._hilbert.d2xy(self.n, d)
+        return self._d2xy_python(d)
+
+    def _rot(self, n, x, y, rx, ry):
+        """Hilbert rotation helper."""
+        if ry == 0:
+            if rx == 1:
+                x = n - 1 - x
+                y = n - 1 - y
+            return y, x
+        return x, y
+
+    def _xy2d_python(self, x: int, y: int) -> int:
+        """Python fallback for xy2d."""
+        d = 0
+        s = self.n // 2
+        xx, yy = x, y
+        while s > 0:
+            rx = 1 if (xx & s) else 0
+            ry = 1 if (yy & s) else 0
+            d += s * s * ((3 * rx) ^ ry)
+            xx, yy = self._rot(s, xx, yy, rx, ry)
+            s //= 2
+        return d
+
+    def _d2xy_python(self, d: int) -> tuple:
+        """Python fallback for d2xy."""
+        x = y = 0
+        t = d
+        s = 1
+        while s < self.n:
+            rx = 1 & (t // 2)
+            ry = 1 & (t ^ rx)
+            x, y = self._rot(s, x, y, rx, ry)
+            x += s * rx
+            y += s * ry
+            t //= 4
+            s *= 2
+        return x, y
+
+    def set_pixel(self, x: int, y: int, color: int):
+        """Set pixel at (x, y) to color (RGBA as u32)."""
+        if 0 <= x < self.n and 0 <= y < self.n:
+            d = self.xy2d(x, y)
+            self.buffer[d] = color
+
+    def get_pixel(self, x: int, y: int) -> int:
+        """Get pixel color at (x, y)."""
+        if 0 <= x < self.n and 0 <= y < self.n:
+            d = self.xy2d(x, y)
+            return self.buffer[d]
+        return 0
+
+
+def orb_visualize(path: str, order: int = 8) -> GlyphSubstrate:
+    """
+    Visualize a file using Hilbert curve color mapping.
+
+    Loads file bytes and maps them to colors on a Hilbert-indexed substrate.
+    Each byte becomes one pixel, with color derived from byte value.
+
+    Args:
+        path: Path to file to visualize
+        order: Hilbert curve order (default 8 = 256x256 = 65536 pixels max)
+
+    Returns:
+        GlyphSubstrate with file visualization
+
+    Example:
+        >>> substrate = orb_visualize('/etc/hostname')
+        >>> substrate.n  # Grid size
+        256
+    """
+    import os
+
+    # Read file bytes
+    with open(path, 'rb') as f:
+        data = f.read()
+
+    # Create substrate
+    substrate = GlyphSubstrate(order)
+    max_pixels = substrate.n * substrate.n
+
+    # Map bytes to pixels along Hilbert curve
+    for i, byte in enumerate(data[:max_pixels]):
+        # Convert byte to color using HSV-like mapping
+        # Hue from byte value, full saturation, full value
+        hue = byte / 255.0
+
+        # Simple color mapping: byte -> RGB
+        if byte < 32:
+            # Low bytes: blue tones
+            r = byte * 2
+            g = byte * 4
+            b = 128 + byte * 4
+        elif byte < 128:
+            # Mid-low bytes: cyan/green tones
+            r = byte
+            g = 128 + (byte - 32) * 2
+            b = 255 - byte
+        elif byte < 200:
+            # Mid-high bytes: yellow/orange tones
+            r = 255
+            g = 255 - (byte - 128) * 2
+            b = 0
+        else:
+            # High bytes: red/magenta tones
+            r = 255
+            g = (byte - 200) * 3
+            b = (byte - 200) * 4
+
+        # Pack RGBA (alpha = 255)
+        color = ((r & 0xFF) << 24) | ((g & 0xFF) << 16) | ((b & 0xFF) << 8) | 0xFF
+
+        # Get 2D coordinates from Hilbert distance
+        x, y = substrate.d2xy(i)
+        substrate.set_pixel(x, y, color)
+
+    return substrate
+
+
 def cmd_run(args):
     """Run a GeoASM program."""
     print(f"Running {args.file}...")
