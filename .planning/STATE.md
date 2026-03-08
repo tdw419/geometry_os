@@ -5,29 +5,29 @@
 See: .planning/PROJECT.md (updated 2026-03-08)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** Phase 6 - NBD Server + PXE Boot
+**Current focus:** Phase 6 - NBD Server + PXE Boot (COMPLETE)
 
 ## Current Position
 
 Phase: 6 of 8 (NBD Server + PXE Boot)
-Plan: 02 of 3 (complete)
-Status: In progress
-Last activity: 2026-03-08 — Completed 06-02-PLAN.md (PXE Boot Infrastructure)
+Plan: 03 of 3 (complete)
+Status: Phase complete
+Last activity: 2026-03-08 — Completed 06-03-PLAN.md (Unified Serve Command)
 
-Progress: [████░░░░░░░░░░░░░░░░] 25% (2/8 plans in v1.2)
+Progress: [██████░░░░░░░░░░░░░░] 37% (3/8 plans in v1.2)
 
 ## Performance Metrics
 
 **v1.2 Velocity:**
-- Plans completed: 2
-- Duration: ~13 min
-- Tests: 87 passing (28 + 59)
+- Plans completed: 3
+- Duration: ~22 min (13 + 9)
+- Tests: 140 passing (28 + 59 + 53)
 
 **Cumulative:**
 - v1.0: 22 plans
 - v1.1: 4 plans
-- v1.2: 2 plans (in progress)
-- Total: 28 plans
+- v1.2: 3 plans (Phase 6 complete)
+- Total: 29 plans
 
 ## Accumulated Context
 
@@ -51,6 +51,12 @@ Key decisions archived in `.planning/milestones/`:
 - Asyncio design for integration with serve command event loop
 - Read-only TFTP server (RRQ only) for security
 
+**06-03 Decisions:**
+- Async orchestrator pattern for service coordination
+- Signal handlers for graceful Ctrl+C shutdown
+- Rich library optional with graceful degradation
+- Exit codes: 1=invalid file, 2=port in use, 3=network failed, 4=service failed
+
 ### Pending Todos
 
 None.
@@ -64,17 +70,17 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-08T23:16:00Z
-Stopped at: Completed 06-02-PLAN.md (PXE Boot Infrastructure)
+Last session: 2026-03-08T23:29:22Z
+Stopped at: Completed 06-03-PLAN.md (Unified Serve Command)
 Resume file: None
 
-**CLI Commands Available (v1.0 + v1.1):**
+**CLI Commands Available (v1.0 + v1.1 + v1.2):**
 - `pixelrts analyze <file.png>` - Vision analysis and verification
 - `pixelrts boot <file.png>` - Boot .rts.png files with QEMU
 - `pixelrts install <file.png> <target>` - Install .rts.png to disk image
 - `pixelrts catalog` - Launch visual catalog server
 - `pixelrts diff <old.png> <new.png>` - Visual diff comparison
+- `pixelrts serve <file.png>` - Start network boot services (NEW in v1.2)
 
 **Planned Commands (v1.2):**
-- `pixelrts serve <file.png>` - Start network boot services (Phase 6)
 - `pixelrts delta <old.png> <new.png>` - Generate delta manifest (Phase 8)
