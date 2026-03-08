@@ -14,6 +14,7 @@ import json
 import mmap
 import os
 import struct
+import time
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
@@ -728,6 +729,86 @@ async def websocket_orchestrator(websocket: WebSocket):
 async def websocket_multiplexed(websocket: WebSocket):
     """Stream all VMs with their spatial positions."""
     await multi_vm_streamer.stream_multiplexed(websocket)
+
+
+# ============================================================================
+# Glass Box Thought Streaming (Phase 7: Sisyphus Daemon Integration)
+# ============================================================================
+
+# Store for active thought stream connections
+active_thought_connections: Set[WebSocket] = set()
+
+
+@app.websocket("/ws/v1/thoughts")
+async def websocket_thoughts(websocket: WebSocket):
+    """
+    Stream Sisyphus daemon thoughts for Glass Box visualization.
+
+    Protocol:
+    - Client connects and receives thought updates in real-time
+    - Thoughts are sent as JSON with msg_type="Thought" and payload containing:
+        - type: thought type (task_start, gvn, slice, heuristic, checkpoint, etc.)
+        - content: thought content string
+        - hilbert_index: position on Hilbert curve
+        - color: RGBA tuple
+        - timestamp: Unix timestamp
+    """
+    await websocket.accept()
+    active_thought_connections.add(websocket)
+
+    try:
+        # Send initial connection message
+        await websocket.send_text(json.dumps({
+            "msg_type": "Connected",
+            "message": "Glass Box Thought Stream active",
+            "timestamp": time.time()
+        }))
+
+        # Keep connection alive and send periodic pings
+        while True:
+            await asyncio.sleep(30)  # Ping every 30 seconds
+            await websocket.send_text(json.dumps({
+                "msg_type": "Ping",
+                "timestamp": time.time()
+            }))
+
+    except WebSocketDisconnect:
+        pass
+    finally:
+        active_thought_connections.discard(websocket)
+
+
+async def broadcast_thought(thought: dict):
+    """Broadcast a thought to all connected thought stream clients."""
+    global active_thought_connections
+
+    message = {
+        "msg_type": "Thought",
+        "sequence": int(time.time() * 1000) % 0xFFFFFFFF,
+        "payload": thought
+    }
+
+    disconnected = set()
+    for ws in active_thought_connections:
+        try:
+            await ws.send_text(json.dumps(message))
+        except Exception:
+            disconnected.add(ws)
+
+    for ws in disconnected:
+        active_thought_connections.discard(ws)
+
+
+@app.post("/thoughts/broadcast")
+async def broadcast_thought_endpoint(thought: dict):
+    """
+    HTTP endpoint for broadcasting thoughts (used by CompositorBridge).
+
+    The Sisyphus daemon sends thoughts here which are then
+    broadcast to all connected WebSocket clients.
+    """
+    await broadcast_thought(thought)
+    return {"status": "ok", "broadcast_to": len(active_thought_connections)}
 
 
 # ============================================================================

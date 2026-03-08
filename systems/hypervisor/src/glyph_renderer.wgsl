@@ -270,6 +270,7 @@ const GLYPH_DRAW_PIXEL: u32 = 0x04u;
 const GLYPH_DRAW_CIRCLE: u32 = 0x05u;
 const GLYPH_FILL_CIRCLE: u32 = 0x06u;
 const GLYPH_DRAW_LINE: u32 = 0x07u;
+const GLYPH_THOUGHT_RENDER: u32 = 0x08u;
 
 // Command structure for the dispatcher
 struct GlyphCommand {
@@ -328,10 +329,26 @@ fn execute_command(cmd: GlyphCommand) {
             let color_f32 = unpack_color_to_f32(cmd.color);
             draw_line(cmd.x, cmd.y, cmd.width, cmd.height, color_f32);
         }
+        case GLYPH_THOUGHT_RENDER: {
+            render_thought_geometric(cmd);
+        }
         default: {
             // Ignore unknown opcode
         }
     }
+}
+
+fn render_thought_geometric(cmd: GlyphCommand) {
+    let dim = uniforms.resolution;
+    let idx = xy_to_hilbert(u32(cmd.x), u32(cmd.y), dim);
+    
+    // Apply pulse effect: alpha fades over time
+    let color_f32 = unpack_color_to_f32(cmd.color);
+    let pulse = 0.5 + 0.5 * sin(uniforms.time * 5.0);
+    let final_color = vec4<f32>(color_f32.rgb, color_f32.a * pulse);
+    
+    // Write to Hilbert-indexed VRAM
+    pixel_buffer[idx] = color_to_u32(final_color);
 }
 
 // Main rendering entry point
@@ -357,6 +374,13 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
             if (px < uniforms.resolution && py < uniforms.resolution) {
                 textureStore(canvas, vec2<u32>(px, py), glyph.color);
             }
+        }
+        case 0xCEu: { // THOUGHT_RENDER (Direct buffer access)
+            let dim = uniforms.resolution;
+            let idx = xy_to_hilbert(u32(glyph.x), u32(glyph.y), dim);
+            let pulse = 0.5 + 0.5 * sin(uniforms.time * 5.0);
+            let final_color = vec4<f32>(glyph.color.rgb, glyph.color.a * pulse);
+            pixel_buffer[idx] = color_to_u32(final_color);
         }
         default: {} // SET_COLOR (0xC0) is handled as state by the caller
     }
