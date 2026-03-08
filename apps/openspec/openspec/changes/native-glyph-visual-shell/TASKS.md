@@ -5,12 +5,15 @@
 
 ## Phase 1: Core Infrastructure
 
-### Task 1.1: Glyph Substrate (Rust)
-- [ ] Create `systems/visual_shell/native/glyph_substrate.rs`
-- [ ] Implement `GlyphSubstrate` struct with Hilbert indexing
-- [ ] Port `HilbertLUT.ts` algorithm to Rust
-- [ ] Add unit tests for Hilbert conversion
-- [ ] Benchmark spatial locality (target: 95% coherence)
+### Task 1.1: Glyph Substrate (Rust) ✅ COMPLETE
+- [x] Create `systems/visual_shell/src/glyph_substrate.rs`
+- [x] Implement `GlyphSubstrate` struct with Hilbert indexing
+- [x] Port `HilbertLUT.ts` algorithm to Rust
+- [x] Add unit tests for Hilbert conversion
+- [x] Benchmark spatial locality (target: 95% coherence)
+- [x] Shape drawing primitives (rect, line, circle)
+- [x] Dirty region tracking
+- [x] GPU buffer access
 
 **Dependencies**: HilbertLUT.ts (complete)
 

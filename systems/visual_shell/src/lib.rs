@@ -17,6 +17,7 @@ mod hilbert_mapper;
 mod pixelrts_bridge;
 mod integration;
 mod spectral_mixer;
+pub mod glyph_substrate;
 
 pub use design_tokens::{DesignTokens, ColorToken, TypographyToken, SpacingToken};
 pub use visual_state::{VisualState, NeuralNode, SynapticConnection};
@@ -24,6 +25,7 @@ pub use hilbert_mapper::HilbertMapper;
 pub use pixelrts_bridge::PixelRTSBridge;
 pub use integration::{VisualShellIntegration, VisualShellIntegrationBuilder};
 pub use spectral_mixer::{SpectralMixer, WaveLayer, FrequencyBand, DaemonId, SpectralMixerError};
+pub use glyph_substrate::{GlyphSubstrate, RGBA, Rect, SubstrateError};
 
 use wgpu::{Device, Queue, Texture, TextureView, TextureFormat, Extent3d};
 use std::path::Path;
