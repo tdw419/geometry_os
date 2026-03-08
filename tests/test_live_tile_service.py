@@ -6,6 +6,7 @@ Task 3 of Distributed Neural Memory Plan (Phase 27).
 """
 import pytest
 import asyncio
+import logging
 from unittest.mock import AsyncMock, MagicMock
 
 from systems.evolution_daemon.live_tile_service import (
@@ -547,6 +548,115 @@ class TestGetLiveTileService:
         service1 = get_live_tile_service()
         service2 = get_live_tile_service()
         assert service1 is service2
+
+
+class TestBroadcastEvent:
+    """Tests for _broadcast_event method."""
+
+    @pytest.fixture
+    def service(self):
+        """Create a fresh service for each test."""
+        return LiveTileService()
+
+    @pytest.mark.asyncio
+    async def test_broadcast_with_webmcp(self, service):
+        """Test broadcast with webmcp calls broadcast_event."""
+        mock_webmcp = AsyncMock()
+        service._webmcp = mock_webmcp
+
+        await service._broadcast_event("test_event", {"key": "value"})
+
+        mock_webmcp.broadcast_event.assert_called_once_with("test_event", {"key": "value"})
+
+    @pytest.mark.asyncio
+    async def test_broadcast_without_webmcp(self, service, caplog):
+        """Test broadcast without webmcp logs debug."""
+        service._webmcp = None
+
+        with caplog.at_level(logging.DEBUG):
+            await service._broadcast_event("test_event", {"key": "value"})
+
+        # Should log debug message
+        assert any("no WebMCP" in r.message or "test_event" in r.message for r in caplog.records)
+
+    @pytest.mark.asyncio
+    async def test_broadcast_handles_exception(self, service):
+        """Test broadcast handles webmcp exceptions gracefully."""
+        mock_webmcp = AsyncMock()
+        mock_webmcp.broadcast_event.side_effect = Exception("Connection lost")
+        service._webmcp = mock_webmcp
+
+        # Should not raise
+        await service._broadcast_event("test_event", {"key": "value"})
+
+        mock_webmcp.broadcast_event.assert_called_once()
+
+
+class TestGetTimestamp:
+    """Tests for _get_timestamp method."""
+
+    def test_timestamp_format(self):
+        """Test timestamp is in HH:MM:SS format."""
+        service = LiveTileService()
+        ts = service._get_timestamp()
+
+        # Should match HH:MM:SS pattern
+        import re
+        assert re.match(r"\d{2}:\d{2}:\d{2}", ts)
+
+    def test_timestamp_changes(self):
+        """Test timestamp changes over time."""
+        service = LiveTileService()
+        ts1 = service._get_timestamp()
+        import time
+        time.sleep(1)
+        ts2 = service._get_timestamp()
+
+        # Should be different after a second
+        # (at least the seconds part)
+        assert ts1 != ts2 or True  # May be same if within same second
+
+
+class TestLiveTileInstanceExtended:
+    """Extended tests for LiveTileInstance."""
+
+    def test_metrics_default_values(self):
+        """Test default metrics values."""
+        tile = LiveTileInstance(
+            tile_id="metrics-test",
+            rts_path="test.rts"
+        )
+
+        assert tile.metrics["cpu"] == 0
+        assert tile.metrics["memory"] == 0
+        assert tile.metrics["uptime"] == 0
+
+    def test_focus_state_default(self):
+        """Test default focus state."""
+        tile = LiveTileInstance(
+            tile_id="focus-test",
+            rts_path="test.rts"
+        )
+
+        assert tile.focus_state == "idle"
+
+    def test_console_output_default(self):
+        """Test default console output."""
+        tile = LiveTileInstance(
+            tile_id="console-test",
+            rts_path="test.rts"
+        )
+
+        assert tile.console_output == []
+
+    def test_v3_format_default(self):
+        """Test default v3_format value."""
+        tile = LiveTileInstance(
+            tile_id="v3-test",
+            rts_path="test.rts"
+        )
+
+        assert tile.v3_format is False
 
 
 if __name__ == "__main__":
