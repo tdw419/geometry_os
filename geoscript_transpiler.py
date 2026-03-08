@@ -980,6 +980,14 @@ class GVNPass:
         self.next_vn = 0
         self.enable_pre = enable_pre
         
+        # Glass Box Integration
+        self.bridge = None
+        try:
+            from systems.sisyphus.glass_box_bridge import GlassBoxBridge
+            self.bridge = GlassBoxBridge()
+        except Exception:
+            pass
+        
         # Cross-block GVN state
         self.block_vn_tables: Dict[int, Dict[str, int]] = {}  # block_id -> expr_hash -> vn
         self.phi_vns: Dict[str, int] = {}  # phi node -> vn
@@ -999,7 +1007,21 @@ class GVNPass:
             "pre_insertions": 0,
             "instruction_reduction": 0,
         }
-    
+
+    def get_vn(self, expr_hash: str) -> Optional[int]:
+        """Get the value number for an expression hash."""
+        return self.value_numbers.get(expr_hash)
+
+    def set_vn(self, expr_hash: str, vn: int):
+        """Set the value number for an expression hash."""
+        self.value_numbers[expr_hash] = vn
+        if self.bridge:
+            self.bridge.stream_thought("COMPILER", "GVN_ASSIGN", {"expr": expr_hash, "vn": vn})
+
+    def get_var_for_vn(self, vn: int) -> Optional[str]:
+        """Get the variable name currently holding a specific value number."""
+        return self.value_to_var.get(vn)
+
     def optimize(self, tree: ast.Module) -> ast.Module:
         """Apply GVN to eliminate redundant computations."""
         new_body = []

@@ -118,49 +118,53 @@ class CompositorConnection:
         Returns:
             True if heartbeat was acknowledged
         """
+        return self.send_thought({"opcode": HEARTBEAT_OPCODE, "timestamp": time.time()}, msg_type="Heartbeat")
+
+    def send_thought(self, payload: Dict[str, Any], msg_type: str = "Thought") -> bool:
+        """
+        Send a thought/message to the compositor socket.
+
+        Returns:
+            True if sent successfully
+        """
         with self._lock:
             if not self.connected or not self.socket:
                 return False
 
             try:
-                # Create heartbeat message
-                # Format: [4-byte length][JSON with opcode 0xFE]
                 message = {
-                    "msg_type": "Heartbeat",
+                    "msg_type": msg_type,
                     "sequence": int(time.time() * 1000) % 0xFFFFFFFF,
-                    "payload": {"opcode": HEARTBEAT_OPCODE, "timestamp": time.time()}
+                    "payload": payload
                 }
                 json_data = json.dumps(message).encode('utf-8')
                 length_bytes = struct.pack('>I', len(json_data))
                 self.socket.sendall(length_bytes + json_data)
-                self.last_heartbeat = time.time()
+                
+                # If it's a heartbeat, wait for Ack. Otherwise, fire and forget.
+                if msg_type == "Heartbeat":
+                    self.socket.settimeout(HEARTBEAT_TIMEOUT)
+                    response_length = self.socket.recv(4)
+                    if len(response_length) < 4:
+                        raise socket.timeout("No response length")
 
-                # Wait for response with timeout
-                self.socket.settimeout(HEARTBEAT_TIMEOUT)
-                response_length = self.socket.recv(4)
-                if len(response_length) < 4:
-                    raise socket.timeout("No response length")
+                    length = struct.unpack('>I', response_length)[0]
+                    response_data = b''
+                    while len(response_data) < length:
+                        chunk = self.socket.recv(length - len(response_data))
+                        if not chunk:
+                            raise socket.timeout("Incomplete response")
+                        response_data += chunk
 
-                length = struct.unpack('>I', response_length)[0]
-                response_data = b''
-                while len(response_data) < length:
-                    chunk = self.socket.recv(length - len(response_data))
-                    if not chunk:
-                        raise socket.timeout("Incomplete response")
-                    response_data += chunk
+                    response = json.loads(response_data.decode('utf-8'))
+                    if response.get('msg_type') in ('Ack', 'Heartbeat'):
+                        self.last_heartbeat_response = time.time()
+                        return True
+                
+                return True
 
-                response = json.loads(response_data.decode('utf-8'))
-                if response.get('msg_type') in ('Ack', 'Heartbeat'):
-                    self.last_heartbeat_response = time.time()
-                    return True
-                return False
-
-            except socket.timeout:
-                logger.warning("Heartbeat timeout - compositor not responding")
-                self._handle_disconnect()
-                return False
             except Exception as e:
-                logger.error(f"Heartbeat error: {e}")
+                logger.error(f"Socket send error: {e}")
                 self._handle_disconnect()
                 return False
 
@@ -736,6 +740,15 @@ Ensure task numbering continues correctly.
         self.log(f"Starting Task {task.number}: {task.name}")
         self.mark_task_state(task, TaskState.IN_PROGRESS)
 
+        # Stream thought to Glass Box
+        if self.compositor:
+            self.compositor.send_thought({
+                "type": "TASK_START",
+                "task_id": task.number,
+                "task_name": task.name,
+                "timestamp": time.time()
+            })
+
         # Save checkpoint at task start
         self._save_task_checkpoint(task.number, task.name)
 
@@ -753,6 +766,16 @@ Ensure task numbering continues correctly.
             if process.returncode == 0:
                 self.mark_task_state(task, TaskState.COMPLETE)
                 self.log(f"✓ Task {task.number} complete ({duration:.1f}s)")
+                
+                # Stream success thought
+                if self.compositor:
+                    self.compositor.send_thought({
+                        "type": "TASK_COMPLETE",
+                        "task_id": task.number,
+                        "duration": duration,
+                        "timestamp": time.time()
+                    })
+                
                 # Clear checkpoint on successful completion
                 self.checkpoint_manager.clear_checkpoint()
                 # Commit session DNA if auto_commit enabled
@@ -760,6 +783,15 @@ Ensure task numbering continues correctly.
             else:
                 self.mark_task_state(task, TaskState.FAILED)
                 self.log(f"✗ Task {task.number} failed ({duration:.1f}s) - see {task_log}")
+                
+                # Stream failure thought
+                if self.compositor:
+                    self.compositor.send_thought({
+                        "type": "TASK_FAILURE",
+                        "task_id": task.number,
+                        "error": "Subprocess exit non-zero",
+                        "timestamp": time.time()
+                    })
 
         except Exception as e:
             self.log(f"Error running task {task.number}: {e}")
