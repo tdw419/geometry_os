@@ -4,7 +4,7 @@
 
 - ✅ **v1.0 PixelRTS Boot** — Phases 1-4 (shipped 2026-03-08)
 - ✅ **v1.1 Visual Diff** — Phase 5 (shipped 2026-03-08)
-- 📋 **v1.2 Network Boot** — Planned (PXE/NBD boot, delta updates)
+- 🚧 **v1.2 Network Boot** — Phases 6-8 (in progress)
 
 ## Phases
 
@@ -35,14 +35,76 @@ See: `.planning/milestones/v1.1-ROADMAP.md` for full details.
 
 </details>
 
-## 📋 v1.2 Network Boot (Planned)
+## 🚧 v1.2 Network Boot (In Progress)
 
-Future phases for network boot capabilities:
+**Milestone Goal:** Boot PixelRTS containers over network (PXE/NBD) with bandwidth-efficient delta updates.
 
-- **Phase 6**: PXE/NBD Boot - Boot PixelRTS containers over network
-- **Phase 7**: Delta Updates - Download only changed bytes for OS updates
+### Phase 6: NBD Server + PXE Boot
+
+**Goal**: Users can boot PixelRTS containers over the network using PXE/NBD.
+
+**Depends on**: Phase 5 (Visual Diff - shipped)
+
+**Requirements**: NETWORK-01, NETWORK-02, NETWORK-03, NETWORK-04, NETWORK-05, NBD-01, NBD-02, NBD-03
+
+**Success Criteria** (what must be TRUE):
+1. User can run `pixelrts serve <file.png>` and start all network boot services
+2. Client machines can PXE boot and load the PixelRTS container
+3. DHCP proxy mode works alongside existing DHCP servers without conflicts
+4. NBD server exports .rts.png files as network block devices mountable via nbd-client
+5. Boot progress shows network transfer status to the user
+
+**Plans**: TBD
+
+Plans:
+- [ ] 06-01: NBD Server Foundation (nbdkit plugin, range decoding)
+- [ ] 06-02: PXE Boot Infrastructure (DHCP proxy, TFTP server)
+- [ ] 06-03: Network Boot Integration (`pixelrts serve` command, progress)
+
+### Phase 7: HTTP Boot via iPXE
+
+**Goal**: Users can boot via HTTP for faster transfers than legacy TFTP.
+
+**Depends on**: Phase 6
+
+**Requirements**: HTTP-01, HTTP-02
+
+**Success Criteria** (what must be TRUE):
+1. User can chainload iPXE to enable HTTP boot on clients
+2. HTTP server serves kernel/initrd with byte-range support for partial transfers
+3. Boot time is measurably faster than TFTP for large containers (>10MB)
+
+**Plans**: TBD
+
+Plans:
+- [ ] 07-01: iPXE Chainload Configuration
+- [ ] 07-02: HTTP Boot Server with Byte-Range Support
+
+### Phase 8: Delta Updates
+
+**Goal**: Users can update OS containers by downloading only changed bytes.
+
+**Depends on**: Phase 7
+
+**Requirements**: DELTA-01, DELTA-02, DELTA-03
+
+**Success Criteria** (what must be TRUE):
+1. User can generate a delta manifest between two .rts.png versions
+2. Client can apply a delta patch to update local copy
+3. Delta transfer leverages existing PixelRTSDiffer infrastructure
+4. Patch size is significantly smaller than full container download (target: <20%)
+
+**Plans**: TBD
+
+Plans:
+- [ ] 08-01: Delta Manifest Generation
+- [ ] 08-02: Delta Patch Application
+- [ ] 08-03: Delta Server Integration
 
 ## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 6 → 7 → 8
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -51,7 +113,10 @@ Future phases for network boot capabilities:
 | 3. Visual Installer Engine | v1.0 | 4/4 | Complete | 2026-02-15 |
 | 4. Visual Catalog Manager | v1.0 | 4/4 | Complete | 2026-02-17 |
 | 5. Visual Diff Engine | v1.1 | 4/4 | Complete | 2026-03-08 |
+| 6. NBD Server + PXE Boot | v1.2 | 0/3 | Not started | - |
+| 7. HTTP Boot via iPXE | v1.2 | 0/2 | Not started | - |
+| 8. Delta Updates | v1.2 | 0/3 | Not started | - |
 
 ---
 
-*Ready for v1.2 planning: `/gsd:new-milestone`*
+*Next: `/gsd:plan-phase 6`*
