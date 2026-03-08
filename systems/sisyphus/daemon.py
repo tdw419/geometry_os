@@ -4,17 +4,20 @@ Replaces shell scripts with native Python daemon that:
 1. Uses FFI-accelerated Hilbert mapping for glyph operations
 2. Monitors performance and offloads bottlenecks
 3. Integrates with visual-vm via shared memory
+4. Checkpoint/restore for crash recovery
 """
 
 import re
 import os
 import time
+import json
 import subprocess
 import logging
+import hashlib
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 from .native_hilbert import NativeHilbertLUT
@@ -26,6 +29,120 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger("SisyphusV4")
+
+
+class CheckpointManager:
+    """
+    Manages daemon state checkpointing for crash recovery.
+
+    Features:
+    - Saves checkpoint to JSON file with checksum validation
+    - Logs checkpoint events to evolution.log
+    - Validates integrity on restore
+    """
+
+    def __init__(self, checkpoint_path: str = ".loop/checkpoint.json",
+                 log_path: str = ".loop/evolution.log"):
+        self.checkpoint_path = Path(checkpoint_path)
+        self.log_path = Path(log_path)
+
+    def _compute_checksum(self, data: Dict[str, Any]) -> str:
+        """Compute SHA256 checksum of checkpoint data (excluding checksum field)."""
+        # Create a copy without the checksum field for hashing
+        hash_data = {k: v for k, v in data.items() if k != "checksum"}
+        content = json.dumps(hash_data, sort_keys=True)
+        return hashlib.sha256(content.encode()).hexdigest()[:16]
+
+    def _log_event(self, message: str):
+        """Log checkpoint event to evolution.log."""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_entry = f"[{timestamp}] [CHECKPOINT] {message}\n"
+
+        # Ensure directory exists
+        self.log_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(self.log_path, 'a') as f:
+            f.write(log_entry)
+
+    def save_checkpoint(self, state: Dict[str, Any]) -> bool:
+        """
+        Save daemon state to checkpoint file.
+
+        Args:
+            state: Dictionary with task_id, task_name, and any other state
+
+        Returns:
+            True if saved successfully
+        """
+        # Add timestamp if not present
+        if "timestamp" not in state:
+            state["timestamp"] = datetime.now().isoformat()
+
+        # Add checksum
+        state["checksum"] = self._compute_checksum(state)
+
+        # Ensure directory exists
+        self.checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+
+        try:
+            with open(self.checkpoint_path, 'w') as f:
+                json.dump(state, f, indent=2)
+
+            self._log_event(f"Checkpoint saved: task_id={state.get('task_id')}, "
+                          f"checksum={state['checksum']}")
+            return True
+        except Exception as e:
+            self._log_event(f"ERROR: Failed to save checkpoint: {e}")
+            return False
+
+    def load_checkpoint(self) -> Optional[Dict[str, Any]]:
+        """
+        Load and validate checkpoint.
+
+        Returns:
+            Checkpoint data if valid, None if missing or invalid
+        """
+        if not self.checkpoint_path.exists():
+            return None
+
+        try:
+            with open(self.checkpoint_path) as f:
+                data = json.load(f)
+
+            # Validate checksum
+            if "checksum" not in data:
+                self._log_event("WARNING: Checkpoint missing checksum, discarding")
+                self.checkpoint_path.unlink()
+                return None
+
+            expected_checksum = self._compute_checksum(data)
+            if data["checksum"] != expected_checksum:
+                self._log_event(f"ERROR: Checksum mismatch (expected {expected_checksum}, "
+                              f"got {data['checksum']}), discarding")
+                self.checkpoint_path.unlink()
+                return None
+
+            self._log_event(f"Checkpoint restored: task_id={data.get('task_id')}, "
+                          f"timestamp={data.get('timestamp')}")
+            return data
+
+        except json.JSONDecodeError as e:
+            self._log_event(f"ERROR: Invalid checkpoint JSON: {e}, discarding")
+            self.checkpoint_path.unlink()
+            return None
+        except Exception as e:
+            self._log_event(f"ERROR: Failed to load checkpoint: {e}")
+            return None
+
+    def clear_checkpoint(self):
+        """Remove checkpoint file if it exists."""
+        if self.checkpoint_path.exists():
+            self.checkpoint_path.unlink()
+            self._log_event("Checkpoint cleared")
+
+    def checkpoint_exists(self) -> bool:
+        """Check if a valid checkpoint exists."""
+        return self.checkpoint_path.exists()
 
 class TaskState(Enum):
     PENDING = "[ ]"
@@ -50,12 +167,12 @@ class Task:
         return self.description
 
 class SisyphusDaemon:
-    def __init__(self, state_file=".loop/STATE_V4.md", session_dir=None):
+    def __init__(self, state_file=".loop/STATE_V4.md", session_dir=None, force_clean=False):
         self.state_file = Path(state_file)
         self.project_dir = Path(__file__).parent.parent.parent.resolve()
         self.log_dir = Path(".loop/logs/v4")
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Determine session dir if not provided
         if not session_dir:
             home = Path.home()
@@ -63,10 +180,46 @@ class SisyphusDaemon:
             self.session_dir = home / ".pi/agent/sessions/--home-jericho-zion-projects-geometry_os-geometry_os--"
         else:
             self.session_dir = Path(session_dir)
-            
+
         self.hilbert = NativeHilbertLUT()
         self.poll_interval = 5
         self.running = True
+
+        # Checkpoint management
+        self.checkpoint_manager = CheckpointManager()
+        self.force_clean = force_clean
+        self._last_checkpoint_time = 0
+        self._checkpoint_interval = 60  # seconds
+
+    def _save_task_checkpoint(self, task_id: int, task_name: str, extra_state: Dict[str, Any] = None):
+        """Save current task state to checkpoint."""
+        state = {
+            "task_id": task_id,
+            "task_name": task_name,
+            "project_dir": str(self.project_dir),
+        }
+        if extra_state:
+            state.update(extra_state)
+        self.checkpoint_manager.save_checkpoint(state)
+        self._last_checkpoint_time = time.time()
+
+    def _handle_existing_checkpoint(self):
+        """Handle existing checkpoint on startup."""
+        if self.force_clean:
+            self.log("Force clean requested, clearing existing checkpoint")
+            self.checkpoint_manager.clear_checkpoint()
+            return None
+
+        checkpoint = self.checkpoint_manager.load_checkpoint()
+        if checkpoint:
+            self.log(f"Found checkpoint from task {checkpoint.get('task_id')}: "
+                    f"{checkpoint.get('task_name')}")
+            return checkpoint
+        return None
+
+    def _should_checkpoint(self) -> bool:
+        """Check if enough time has passed for periodic checkpoint."""
+        return time.time() - self._last_checkpoint_time >= self._checkpoint_interval
 
     def log(self, msg):
         logger.info(msg)
@@ -161,9 +314,12 @@ Ensure task numbering continues correctly.
     def run_task(self, task: Task):
         self.log(f"Starting Task {task.number}: {task.name}")
         self.mark_task_state(task, TaskState.IN_PROGRESS)
-        
+
+        # Save checkpoint at task start
+        self._save_task_checkpoint(task.number, task.name)
+
         task_log = self.log_dir / f"task_{task.number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-        
+
         start_time = time.time()
         try:
             # Run pi with the description and verification
@@ -171,26 +327,33 @@ Ensure task numbering continues correctly.
             with open(task_log, 'w') as f:
                 # We use -p for non-interactive mode
                 process = subprocess.run(["pi", "-p", full_prompt], stdout=f, stderr=subprocess.STDOUT)
-            
+
             duration = time.time() - start_time
             if process.returncode == 0:
                 self.mark_task_state(task, TaskState.COMPLETE)
                 self.log(f"✓ Task {task.number} complete ({duration:.1f}s)")
+                # Clear checkpoint on successful completion
+                self.checkpoint_manager.clear_checkpoint()
             else:
                 self.mark_task_state(task, TaskState.FAILED)
                 self.log(f"✗ Task {task.number} failed ({duration:.1f}s) - see {task_log}")
-                
+
         except Exception as e:
             self.log(f"Error running task {task.number}: {e}")
             self.mark_task_state(task, TaskState.FAILED)
 
     def run(self):
         self.log("--- SISYPHUS V4 DAEMON STARTING ---")
-        
+
+        # Handle existing checkpoint on startup
+        checkpoint = self._handle_existing_checkpoint()
+        if checkpoint:
+            self.log(f"Resuming from checkpoint: task {checkpoint.get('task_id')}")
+
         while self.running:
             tasks = self.get_tasks()
             pending_tasks = [t for t in tasks if t.state == TaskState.PENDING]
-            
+
             if not pending_tasks:
                 if all(t.state in [TaskState.COMPLETE, TaskState.FAILED] for t in tasks):
                     self.generate_tasks()
@@ -198,7 +361,7 @@ Ensure task numbering continues correctly.
                     self.log("No pending tasks. Waiting...")
                     time.sleep(self.poll_interval)
                 continue
-            
+
             # Run the first pending task
             self.run_task(pending_tasks[0])
             time.sleep(2)
