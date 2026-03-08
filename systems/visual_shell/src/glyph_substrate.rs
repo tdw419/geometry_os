@@ -325,67 +325,68 @@ impl GlyphSubstrate {
 
     /// Unchecked version of xy_to_hilbert for internal use
     fn xy_to_hilbert_unchecked(&self, x: u32, y: u32) -> u64 {
-        let n = self.width;
         let mut d = 0u64;
-        let mut s = n >> 1;
-        let mut x = x;
-        let mut y = y;
-
+        let mut s = self.width as i32 / 2;
+        
+        let mut xx = x as i32;
+        let mut yy = y as i32;
+        
         while s > 0 {
-            let rx = if (x & s) > 0 { 1u64 } else { 0u64 };
-            let ry = if (y & s) > 0 { 1u64 } else { 0u64 };
-
-            d += s as u64 * s as u64 * ((3 * rx) ^ ry);
-
-            // Rotate
-            let (nx, ny) = self.rot(s, x, y, rx as u32, ry as u32);
-            x = nx;
-            y = ny;
-
+            let rx = if (xx & s) > 0 { 1u32 } else { 0u32 };
+            let ry = if (yy & s) > 0 { 1u32 } else { 0u32 };
+            
+            d += s as u64 * s as u64 * ((3 * rx as u64) ^ ry as u64);
+            
+            let (nx, ny) = self.rot(s, xx, yy, rx as i32, ry as i32);
+            xx = nx;
+            yy = ny;
+            
             s >>= 1;
         }
-
+        
         d
     }
 
     /// Unchecked version of hilbert_to_xy for internal use
     fn hilbert_to_xy_unchecked(&self, d: u64) -> (u32, u32) {
-        let n = self.width;
-        let mut x = 0u32;
-        let mut y = 0u32;
-        let mut s = 1u32;
-        let mut d = d;
-
+        let mut x = 0i32;
+        let mut y = 0i32;
+        let mut t = d;
+        let mut s = 1i32;
+        
+        let n = self.width as i32;
+        
         while s < n {
-            let rx = (1u32 & (d as u32 >> 1)) as u32;
-            let ry = (1u32 & (d as u32 ^ rx)) as u32;
+            let rx = 1u32 & (t as u32 >> 1);
+            let ry = 1u32 & (t as u32 ^ rx);
 
             // Rotate
-            let (nx, ny) = self.rot(s, x, y, rx, ry);
+            let (nx, ny) = self.rot(s, x, y, rx as i32, ry as i32);
             x = nx;
             y = ny;
-
-            x += s * rx;
-            y += s * ry;
-
-            d >>= 2;
+            
+            x += s * rx as i32;
+            y += s * ry as i32;
+            
+            t >>= 2;
             s <<= 1;
         }
-
-        (x, y)
+        
+        (x as u32, y as u32)
     }
 
     /// Rotate/flip quadrant appropriately
-    fn rot(&self, n: u32, x: u32, y: u32, rx: u32, ry: u32) -> (u32, u32) {
+    fn rot(&self, n: i32, x: i32, y: i32, rx: i32, ry: i32) -> (i32, i32) {
         if ry == 0 {
-            let mut x = x;
-            let mut y = y;
+            let mut nx = x;
+            let mut ny = y;
             if rx == 1 {
-                x = n - 1 - x;
-                y = n - 1 - y;
+                nx = n - 1 - x;
+                ny = n - 1 - y;
             }
+            
             // Swap x and y
-            (y, x)
+            (ny, nx)
         } else {
             (x, y)
         }
