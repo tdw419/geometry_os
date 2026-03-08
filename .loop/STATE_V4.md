@@ -39,6 +39,6 @@
 
 - [x] 19. **Fix test_native_hilbert_wrapper.py Collection Error**: Fixed syntax error and API mismatch. Tests now use correct methods: `d2xy(n,d)`, `xy2d(n,x,y)`. **Verification**: Run `python3 -m pytest tests/test_native_hilbert_wrapper.py -v` - 8 passed. **COMPLETED**.
 
-- [ ] 20. **Commit sisyphus_v4.py Entry Point**: Uncommitted `sisyphus_v4.py` provides daemon entry point. Add to version control. **Verification**: Run `git add sisyphus_v4.py && git commit`. Run `git status sisyphus_v4.py` - clean.
+- [x] 20. **Commit sisyphus_v4.py Entry Point**: Committed daemon entry point (15 lines). **Verification**: Run `git status sisyphus_v4.py` - clean. **COMPLETED**.
 
 - [ ] 21. **Wire GlyphSubstrate into GeoASM ORB Instruction**: The `ORB` opcode (0xCA) in `geoasm-cli/geoasm_lib.py` should visualize files using Hilbert-indexed GlyphSubstrate. Implement `orb_visualize(path)` that loads file bytes, maps to Hilbert curve colors, renders to substrate. **Verification**: Run `python3 -c "from geoasm_cli.geoasm_lib import orb_visualize; orb_visualize('/etc/hostname')"` - no errors, produces substrate buffer.
