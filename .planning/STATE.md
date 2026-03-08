@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-03-08)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** Phase 6 - NBD Server + PXE Boot (COMPLETE)
+**Current focus:** Phase 7 - HTTP Boot via iPXE
 
 ## Current Position
 
-Phase: 6 of 8 (NBD Server + PXE Boot)
-Plan: 03 of 3 (complete)
-Status: Phase complete
-Last activity: 2026-03-08 — Completed 06-03-PLAN.md (Unified Serve Command)
+Phase: 7 of 8 (HTTP Boot via iPXE)
+Plan: Not started
+Status: Phase 6 complete, ready to plan Phase 7
+Last activity: 2026-03-08 — Phase 6 NBD Server + PXE Boot complete
 
 Progress: [██████░░░░░░░░░░░░░░] 37% (3/8 plans in v1.2)
 

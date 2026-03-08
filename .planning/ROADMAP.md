@@ -57,9 +57,9 @@ See: `.planning/milestones/v1.1-ROADMAP.md` for full details.
 **Plans:** 3 plans
 
 Plans:
-- [ ] 06-01-PLAN.md -- NBD Server Foundation (nbdkit plugin, range decoding)
-- [ ] 06-02-PLAN.md -- PXE Boot Infrastructure (DHCP proxy, TFTP server)
-- [ ] 06-03-PLAN.md -- Network Boot Integration (pixelrts serve command, progress)
+- [x] 06-01-PLAN.md -- NBD Server Foundation (nbdkit plugin, range decoding)
+- [x] 06-02-PLAN.md -- PXE Boot Infrastructure (DHCP proxy, TFTP server)
+- [x] 06-03-PLAN.md -- Network Boot Integration (pixelrts serve command, progress)
 
 ### Phase 7: HTTP Boot via iPXE
 
@@ -113,10 +113,10 @@ Phases execute in numeric order: 6 -> 7 -> 8
 | 3. Visual Installer Engine | v1.0 | 4/4 | Complete | 2026-02-15 |
 | 4. Visual Catalog Manager | v1.0 | 4/4 | Complete | 2026-02-17 |
 | 5. Visual Diff Engine | v1.1 | 4/4 | Complete | 2026-03-08 |
-| 6. NBD Server + PXE Boot | v1.2 | 0/3 | Ready for execution | - |
+| 6. NBD Server + PXE Boot | v1.2 | 3/3 | Complete | 2026-03-08 |
 | 7. HTTP Boot via iPXE | v1.2 | 0/2 | Not started | - |
 | 8. Delta Updates | v1.2 | 0/3 | Not started | - |
 
 ---
 
-*Next: `/gsd:execute-phase 6`*
+*Next: `/gsd:discuss-phase 7`*
