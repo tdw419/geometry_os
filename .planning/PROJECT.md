@@ -56,7 +56,14 @@ If everything else fails, users must be able to:
   - HTML gallery with boot buttons
   - SpatialLayoutManager for drag-and-drop
 
-### Active
+### Active (v1.1)
+
+- [ ] **VISUAL-01**: User can compare two .rts.png files and see visual diff
+- [ ] **VISUAL-02**: Diff highlights changed regions in Hilbert-encoded pixel space
+- [ ] **VISUAL-03**: Byte-level statistics (added, removed, changed)
+- [ ] **VISUAL-04**: CLI command `pixelrts diff <old.png> <new.png>`
+
+### Future
 
 - [ ] **VISION-02**: Vision model can detect tampering or corruption
 - [ ] **NETWORK-01**: Boot PixelRTS containers over network (PXE/NBD)
