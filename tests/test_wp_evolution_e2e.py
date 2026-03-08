@@ -614,3 +614,240 @@ class TestWordPressContentAnalyzer:
         assert proposal.post_id == 5
         assert proposal.improvement_type == "expand"
         assert len(proposal.suggested_content) > len(post["content"])
+
+
+class TestPlaywrightActionExecutor:
+    """Tests for PlaywrightActionExecutor stub class."""
+
+    @pytest.mark.asyncio
+    async def test_default_connect_returns_false(self):
+        """Test that default connect returns False."""
+        from systems.evolution_daemon.wordpress.bridge_service import PlaywrightActionExecutor
+
+        executor = PlaywrightActionExecutor(ws_uri="ws://test:1234")
+        result = await executor.connect()
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_disconnect_does_not_raise(self):
+        """Test that disconnect completes without error."""
+        from systems.evolution_daemon.wordpress.bridge_service import PlaywrightActionExecutor
+
+        executor = PlaywrightActionExecutor()
+        await executor.disconnect()  # Should not raise
+
+    @pytest.mark.asyncio
+    async def test_execute_proposal_returns_failure(self):
+        """Test that execute_proposal returns failure when not connected."""
+        from systems.evolution_daemon.wordpress.bridge_service import (
+            PlaywrightActionExecutor,
+            ImprovementProposal
+        )
+
+        executor = PlaywrightActionExecutor()
+        proposal = ImprovementProposal(post_id=1, suggested_content="test")
+        result = await executor.execute_proposal(proposal)
+
+        assert result.success is False
+        assert "not connected" in result.message.lower()
+
+
+class TestWordPressEvolutionAgent:
+    """Tests for WordPressEvolutionAgent stub class."""
+
+    @pytest.mark.asyncio
+    async def test_run_cycle_returns_result(self):
+        """Test that run_cycle returns a result."""
+        from systems.evolution_daemon.wordpress.bridge_service import WordPressEvolutionAgent
+
+        agent = WordPressEvolutionAgent(wp_url="http://test.local")
+        result = await agent.run_cycle()
+
+        assert result is not None
+        assert result.cycle_number > 0
+
+
+class TestBridgeServiceStartStop:
+    """Tests for service start/stop edge cases."""
+
+    @pytest.fixture
+    def config(self):
+        """Create a test config."""
+        return BridgeServiceConfig(
+            wp_url="http://test.local",
+            ws_uri="ws://localhost:8768",
+            cycle_interval=5,
+            auto_execute=False,
+        )
+
+    @pytest.mark.asyncio
+    async def test_start_when_already_running(self, config):
+        """Test that start returns False when already running."""
+        mock_agent = MagicMock()
+        mock_agent.run_cycle = AsyncMock(
+            return_value=EvolutionCycleResult(cycle_number=1)
+        )
+
+        mock_executor = MagicMock()
+        mock_executor.connect = AsyncMock(return_value=True)
+        mock_executor.disconnect = AsyncMock()
+
+        service = WPEvolutionBridgeService(
+            config,
+            agent=mock_agent,
+            executor=mock_executor
+        )
+
+        # First start should succeed
+        result1 = await service.start()
+        assert result1 is True
+
+        # Second start should return False
+        result2 = await service.start()
+        assert result2 is False
+
+        # Clean up
+        await service.stop()
+
+    @pytest.mark.asyncio
+    async def test_stop_when_not_running(self, config):
+        """Test that stop when not running doesn't raise."""
+        mock_agent = MagicMock()
+        mock_executor = MagicMock()
+
+        service = WPEvolutionBridgeService(
+            config,
+            agent=mock_agent,
+            executor=mock_executor
+        )
+
+        # Should not raise
+        await service.stop()
+
+    @pytest.mark.asyncio
+    async def test_get_stats_with_uptime(self, config):
+        """Test that get_stats includes uptime after start."""
+        mock_agent = MagicMock()
+        mock_agent.run_cycle = AsyncMock(
+            return_value=EvolutionCycleResult(cycle_number=1)
+        )
+
+        mock_executor = MagicMock()
+        mock_executor.connect = AsyncMock(return_value=True)
+        mock_executor.disconnect = AsyncMock()
+
+        service = WPEvolutionBridgeService(
+            config,
+            agent=mock_agent,
+            executor=mock_executor
+        )
+
+        # Before start, uptime should be 0
+        stats = service.get_stats()
+        assert stats.uptime_seconds == 0.0
+
+        # After start
+        await service.start()
+        await asyncio.sleep(0.1)  # Small delay
+
+        stats = service.get_stats()
+        assert stats.uptime_seconds > 0
+        assert stats.running is True
+
+        # Clean up
+        await service.stop()
+
+
+class TestMemorySyncErrorHandling:
+    """Tests for memory sync error handling."""
+
+    @pytest.fixture
+    def config(self):
+        """Create a test config."""
+        return BridgeServiceConfig(
+            wp_url="http://test.local",
+            ws_uri="ws://localhost:8768",
+            cycle_interval=5,
+            auto_execute=False,
+        )
+
+    @pytest.mark.asyncio
+    async def test_memory_sync_error_increments_error_count(self, config):
+        """Test that memory sync errors increment the error count."""
+        mock_agent = MagicMock()
+        mock_agent.run_cycle = AsyncMock(
+            return_value=EvolutionCycleResult(cycle_number=1)
+        )
+
+        mock_executor = MagicMock()
+        mock_executor.connect = AsyncMock(return_value=True)
+        mock_executor.disconnect = AsyncMock()
+
+        # Create a memory provider that raises an error
+        mock_memory_provider = MagicMock()
+        mock_memory_provider.sync_posts = MagicMock(side_effect=RuntimeError("Sync failed"))
+
+        service = WPEvolutionBridgeService(
+            config,
+            agent=mock_agent,
+            executor=mock_executor,
+            memory_provider=mock_memory_provider
+        )
+
+        await service.run_single_cycle()
+
+        # Error count should be incremented
+        stats = service.get_stats()
+        assert stats.errors >= 1
+
+
+class TestServiceLoopErrorHandling:
+    """Tests for service loop error handling."""
+
+    @pytest.fixture
+    def config(self):
+        """Create a test config."""
+        return BridgeServiceConfig(
+            wp_url="http://test.local",
+            ws_uri="ws://localhost:8768",
+            cycle_interval=0.1,  # Short interval for testing
+            auto_execute=False,
+        )
+
+    @pytest.mark.asyncio
+    async def test_service_loop_handles_cycle_errors(self, config):
+        """Test that service loop continues after cycle errors."""
+        call_count = 0
+
+        async def failing_cycle():
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise RuntimeError("First cycle failed")
+            return EvolutionCycleResult(cycle_number=call_count)
+
+        mock_agent = MagicMock()
+        mock_agent.run_cycle = AsyncMock(side_effect=failing_cycle)
+
+        mock_executor = MagicMock()
+        mock_executor.connect = AsyncMock(return_value=True)
+        mock_executor.disconnect = AsyncMock()
+
+        service = WPEvolutionBridgeService(
+            config,
+            agent=mock_agent,
+            executor=mock_executor
+        )
+
+        # Start the service
+        result = await service.start()
+        assert result is True
+
+        # Wait for a few cycles
+        await asyncio.sleep(0.3)
+
+        # Should have completed multiple cycles despite first one failing
+        assert call_count >= 2
+
+        # Clean up
+        await service.stop()
