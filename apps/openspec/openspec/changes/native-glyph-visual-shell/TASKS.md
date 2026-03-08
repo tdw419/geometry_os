@@ -40,19 +40,12 @@
 
 ## Phase 2: GeoASM Rasterizer
 
-### Task 2.1: Glyph Library
-- [ ] Create `systems/visual_shell/native/geoasm_glyphs.geoasm`
-- [ ] Implement primitive shapes:
-  - `GLYPH_DRAW_RECT`
-  - `GLYPH_FILL_RECT`
-  - `GLYPH_DRAW_CIRCLE`
-  - `GLYPH_DRAW_LINE`
-- [ ] Implement color management:
-  - `GLYPH_SET_COLOR`
-- [ ] Implement Hilbert utilities:
-  - `GLYPH_HILBERT_XY_TO_INDEX`
-  - `GLYPH_HILBERT_INDEX_TO_XY`
-- [ ] Test with `geoasm-cli/geoasm_lib.py`
+### Task 2.1: Glyph Library ✅ COMPLETE
+- [x] Create `systems/visual_shell/native/geoasm_glyphs.geoasm`
+- [x] Implement primitive shapes (RECT, FILL_RECT, ORB, PIXEL)
+- [x] Implement Hilbert utilities (XY_TO_INDEX, INDEX_TO_XY) via FFI
+- [x] Implement color management with alpha support
+- [x] Successfully assemble with `geoasm_lib.py`
 
 **Dependencies**: geoasm_lib.py (complete)
 
