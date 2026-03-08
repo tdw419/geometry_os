@@ -21,6 +21,8 @@ from systems.evolution_daemon.wordpress import (
     BridgeServiceConfig,
     WPEvolutionBridgeService,
 )
+from systems.evolution_daemon.wordpress.bridge_service import create_cli_parser
+from systems.evolution_daemon.wordpress.bridge_service import create_cli_parser
 
 
 class TestWPEvolutionE2E:
@@ -389,3 +391,226 @@ class TestWPEvolutionE2E:
         # Error count should be incremented
         stats = service.get_stats()
         assert stats.errors == 1
+
+    @pytest.mark.asyncio
+    async def test_service_start_success(self, config):
+        """Test that service starts successfully with connected executor."""
+        mock_agent = MagicMock(spec=WordPressEvolutionAgent)
+        mock_agent.run_cycle = AsyncMock(
+            return_value=EvolutionCycleResult(cycle_number=1)
+        )
+
+        mock_executor = MagicMock(spec=PlaywrightActionExecutor)
+        mock_executor.connect = AsyncMock(return_value=True)
+        mock_executor.disconnect = AsyncMock()
+
+        service = WPEvolutionBridgeService(config, agent=mock_agent, executor=mock_executor)
+
+        result = await service.start()
+
+        assert result is True
+        assert service._running is True
+        mock_executor.connect.assert_called_once()
+
+        # Clean up
+        await service.stop()
+
+    @pytest.mark.asyncio
+    async def test_service_start_fails_without_executor(self, config):
+        """Test that service start fails if executor can't connect."""
+        mock_agent = MagicMock(spec=WordPressEvolutionAgent)
+        mock_executor = MagicMock(spec=PlaywrightActionExecutor)
+        mock_executor.connect = AsyncMock(return_value=False)
+
+        service = WPEvolutionBridgeService(config, agent=mock_agent, executor=mock_executor)
+
+        result = await service.start()
+
+        assert result is False
+        assert service._running is False
+
+    @pytest.mark.asyncio
+    async def test_service_stop(self, config):
+        """Test that service stops cleanly."""
+        mock_agent = MagicMock(spec=WordPressEvolutionAgent)
+        mock_agent.run_cycle = AsyncMock(
+            return_value=EvolutionCycleResult(cycle_number=1)
+        )
+
+        mock_executor = MagicMock(spec=PlaywrightActionExecutor)
+        mock_executor.connect = AsyncMock(return_value=True)
+        mock_executor.disconnect = AsyncMock()
+
+        service = WPEvolutionBridgeService(config, agent=mock_agent, executor=mock_executor)
+        await service.start()
+        await service.stop()
+
+        assert service._running is False
+        mock_executor.disconnect.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_get_stats_tracking(self, config):
+        """Test that get_stats returns accurate statistics."""
+        mock_agent = MagicMock(spec=WordPressEvolutionAgent)
+        mock_agent.run_cycle = AsyncMock(
+            return_value=EvolutionCycleResult(
+                cycle_number=1,
+                posts_analyzed=5,
+                proposals_generated=3,
+                proposals=[
+                    ImprovementProposal(
+                        post_id=1,
+                        improvement_type="expand",
+                        confidence=0.8,
+                    )
+                ],
+            )
+        )
+
+        mock_executor = MagicMock(spec=PlaywrightActionExecutor)
+        mock_executor.connect = AsyncMock(return_value=True)
+        mock_executor.disconnect = AsyncMock()
+        mock_executor.execute_proposal = AsyncMock(
+            return_value=ExecutionResult(success=True, action="update", post_id=1)
+        )
+
+        config.auto_execute = True
+        service = WPEvolutionBridgeService(config, agent=mock_agent, executor=mock_executor)
+
+        # Run a cycle
+        await service.run_single_cycle()
+
+        stats = service.get_stats()
+        assert stats.cycles_completed == 1
+        assert stats.proposals_generated == 3
+        assert stats.proposals_executed == 1
+        assert stats.running is False
+
+    @pytest.mark.asyncio
+    async def test_multiple_cycles_accumulate_stats(self, config):
+        """Test that running multiple cycles accumulates statistics."""
+        mock_agent = MagicMock(spec=WordPressEvolutionAgent)
+        call_count = 0
+
+        async def mock_cycle():
+            nonlocal call_count
+            call_count += 1
+            return EvolutionCycleResult(
+                cycle_number=call_count,
+                posts_analyzed=2,
+                proposals_generated=1,
+                proposals=[],
+            )
+
+        mock_agent.run_cycle = AsyncMock(side_effect=mock_cycle)
+        service = WPEvolutionBridgeService(config, agent=mock_agent)
+
+        # Run 3 cycles
+        for _ in range(3):
+            await service.run_single_cycle()
+
+        stats = service.get_stats()
+        assert stats.cycles_completed == 3
+        assert stats.proposals_generated == 3
+
+
+class TestCLI:
+    """Tests for CLI argument parser."""
+
+    def test_create_cli_parser(self):
+        """Test that CLI parser is created with expected arguments."""
+        parser = create_cli_parser()
+
+        # Test default values
+        args = parser.parse_args([])
+        assert args.wp_url == "http://localhost:8080"
+        assert args.ws_uri == "ws://localhost:8768"
+        assert args.interval == 60
+        assert args.auto_execute is False
+        assert args.min_confidence == 0.5
+        assert args.single_cycle is False
+        assert args.verbose is False
+
+    def test_cli_parser_custom_args(self):
+        """Test CLI parser with custom arguments."""
+        parser = create_cli_parser()
+        args = parser.parse_args([
+            "--wp-url", "https://example.com",
+            "--ws-uri", "wss://ws.example.com",
+            "--interval", "30",
+            "--auto-execute",
+            "--min-confidence", "0.8",
+            "--single-cycle",
+            "--verbose",
+        ])
+
+        assert args.wp_url == "https://example.com"
+        assert args.ws_uri == "wss://ws.example.com"
+        assert args.interval == 30
+        assert args.auto_execute is True
+        assert args.min_confidence == 0.8
+        assert args.single_cycle is True
+        assert args.verbose is True
+
+
+class TestWordPressContentAnalyzer:
+    """Tests for WordPressContentAnalyzer."""
+
+    def test_analyze_short_content(self):
+        """Test analyzing content that's too short."""
+        analyzer = WordPressContentAnalyzer()
+        post = {"id": 1, "title": "Test", "content": "Short."}
+
+        analysis = analyzer.analyze(post)
+
+        assert analysis.post_id == 1
+        assert analysis.word_count < 50
+        assert len(analysis.issues) > 0
+        assert any("short" in issue.lower() for issue in analysis.issues)
+
+    def test_analyze_long_content(self):
+        """Test analyzing content that's long enough."""
+        analyzer = WordPressContentAnalyzer()
+        content = " ".join(["word"] * 100)  # 100 words
+        post = {"id": 2, "title": "Long Title Here", "content": content}
+
+        analysis = analyzer.analyze(post)
+
+        assert analysis.post_id == 2
+        assert analysis.word_count == 100
+        # Should have fewer issues than short content
+
+    def test_analyze_short_title(self):
+        """Test detecting short title."""
+        analyzer = WordPressContentAnalyzer()
+        post = {"id": 3, "title": "X", "content": " ".join(["word"] * 60)}
+
+        analysis = analyzer.analyze(post)
+
+        assert any("title" in issue.lower() for issue in analysis.issues)
+
+    def test_propose_improvement_returns_none_for_good_content(self):
+        """Test that no proposal is made for good content."""
+        analyzer = WordPressContentAnalyzer()
+        post = {
+            "id": 4,
+            "title": "This is a Properly Sized Title",
+            "content": " ".join(["content"] * 100),
+        }
+
+        proposal = analyzer.propose_improvement(post)
+
+        # Good content should not generate a proposal
+        assert proposal is None
+
+    def test_propose_improvement_for_short_content(self):
+        """Test that proposal is made for short content."""
+        analyzer = WordPressContentAnalyzer()
+        post = {"id": 5, "title": "Test Title", "content": "Short content."}
+
+        proposal = analyzer.propose_improvement(post)
+
+        assert proposal is not None
+        assert proposal.post_id == 5
+        assert proposal.improvement_type == "expand"
+        assert len(proposal.suggested_content) > len(post["content"])
