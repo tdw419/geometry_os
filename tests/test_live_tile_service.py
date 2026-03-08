@@ -384,6 +384,156 @@ class TestBootTileV3:
         assert tile.boot_time > 0
 
 
+class TestLiveTileServiceAdditional:
+    """Additional tests for LiveTileService coverage."""
+
+    @pytest.fixture
+    def service(self):
+        """Create a fresh service for each test."""
+        return LiveTileService()
+
+    def test_set_boot_callback(self, service):
+        """Test that boot callback is stored."""
+        callback_called = []
+
+        def my_callback(tile_id, result):
+            callback_called.append((tile_id, result))
+
+        service.set_boot_callback(my_callback)
+        assert service._boot_callback is my_callback
+
+    def test_calculate_target_fps_focused(self, service):
+        """Test FPS calculation for focused tile."""
+        tile = LiveTileInstance(
+            tile_id="fps-test",
+            rts_path="test.rts",
+            status="running"
+        )
+        tile.focus_state = "focused"
+
+        fps = service._calculate_target_fps(tile)
+        assert fps == 15.0  # Focused tiles get 15 FPS
+
+    def test_calculate_target_fps_idle(self, service):
+        """Test FPS calculation for idle tile."""
+        tile = LiveTileInstance(
+            tile_id="fps-idle",
+            rts_path="test.rts",
+            status="running"
+        )
+        tile.focus_state = "idle"
+
+        fps = service._calculate_target_fps(tile)
+        assert fps == 1.0  # Idle tiles get 1 FPS
+
+    def test_calculate_target_fps_background(self, service):
+        """Test FPS calculation for background tile."""
+        tile = LiveTileInstance(
+            tile_id="fps-bg",
+            rts_path="test.rts",
+            status="running"
+        )
+        tile.focus_state = "background"
+
+        fps = service._calculate_target_fps(tile)
+        assert fps == 0.5  # Background tiles get 0.5 FPS
+
+    def test_get_timestamp_format(self, service):
+        """Test timestamp format is HH:MM:SS."""
+        ts = service._get_timestamp()
+
+        # Should be a time string
+        assert isinstance(ts, str)
+        assert ":" in ts  # Time separator
+
+    @pytest.mark.asyncio
+    async def test_list_tiles_empty(self, service):
+        """Test listing tiles when none exist."""
+        tiles = await service.list_tiles()
+        assert tiles == []
+
+    @pytest.mark.asyncio
+    async def test_list_tiles_multiple(self, service):
+        """Test listing multiple tiles."""
+        await service.boot_tile("list-a", "rts/a.rts")
+        await service.boot_tile("list-b", "rts/b.rts")
+        await service.boot_tile("list-c", "rts/c.rts")
+
+        tiles = await service.list_tiles()
+        tile_ids = [t["tile_id"] for t in tiles]
+
+        assert "list-a" in tile_ids
+        assert "list-b" in tile_ids
+        assert "list-c" in tile_ids
+
+    @pytest.mark.asyncio
+    async def test_get_framebuffer_running_tile(self, service):
+        """Test getting framebuffer from running tile."""
+        await service.boot_tile("fb-test", "rts/test.rts")
+        service.tiles["fb-test"].status = "running"
+        service.tiles["fb-test"].framebuffer = [["A", "B"], ["C", "D"]]
+
+        fb = await service.get_framebuffer("fb-test")
+
+        assert fb is not None
+        assert fb["tile_id"] == "fb-test"
+
+    @pytest.mark.asyncio
+    async def test_get_framebuffer_nonexistent_tile(self, service):
+        """Test getting framebuffer from nonexistent tile."""
+        fb = await service.get_framebuffer("nonexistent-fb")
+        assert fb is None
+
+    @pytest.mark.asyncio
+    async def test_handle_rpc_list_tiles(self, service):
+        """Test RPC handler for list_tiles."""
+        await service.boot_tile("rpc-list", "rts/test.rts")
+
+        result = await service.handle_rpc("list_tiles", {})
+
+        assert isinstance(result, list)
+        assert len(result) >= 1
+
+    @pytest.mark.asyncio
+    async def test_handle_rpc_set_tile_focus(self, service):
+        """Test RPC handler for set_tile_focus."""
+        await service.boot_tile("rpc-focus", "rts/test.rts")
+
+        result = await service.handle_rpc("set_tile_focus", {
+            "tile_id": "rpc-focus",
+            "focused": True
+        })
+
+        assert result["status"] == "ok"
+        assert service.tiles["rpc-focus"].focus_state == "focused"
+
+    @pytest.mark.asyncio
+    async def test_handle_rpc_set_tile_focus_nonexistent(self, service):
+        """Test RPC handler for set_tile_focus on nonexistent tile."""
+        result = await service.handle_rpc("set_tile_focus", {
+            "tile_id": "nonexistent",
+            "focused": True
+        })
+
+        assert result["status"] == "error"
+
+    @pytest.mark.asyncio
+    async def test_handle_rpc_unknown_method_raises(self, service):
+        """Test RPC handler for unknown method raises ValueError."""
+        with pytest.raises(ValueError, match="Unknown method"):
+            await service.handle_rpc("unknown_method", {})
+
+    @pytest.mark.asyncio
+    async def test_send_console_input_to_stopped_tile(self, service):
+        """Test that sending input to stopped tile returns not_running."""
+        await service.boot_tile("stopped-input", "rts/test.rts")
+        # Leave status as stopped (default after boot failure)
+
+        result = await service.send_console_input("stopped-input", "ls")
+
+        assert result["status"] == "not_running"
+
+
 class TestGetLiveTileService:
     """Tests for module-level service getter."""
 
