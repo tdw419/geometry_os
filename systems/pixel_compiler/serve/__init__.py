@@ -6,8 +6,17 @@ Provides network serving capabilities for PixelRTS containers:
 - Proxy DHCP server for PXE boot (port 4011)
 - TFTP server for boot file transfer (port 69)
 - PXE configuration generator
+- Unified server orchestrator
+- Rich progress display
 
 Usage:
+    # Simple one-command serving
+    from systems.pixel_compiler.serve import PixelRTSServer
+
+    server = PixelRTSServer("container.rts.png")
+    await server.run()  # Blocks until Ctrl+C
+
+    # Or manage individual services:
     from systems.pixel_compiler.serve import ProxyDHCP, TFTPServer, PXEConfig
 
     # Configure
@@ -34,6 +43,8 @@ from .nbd_plugin import PixelRTSPlugin
 from .dhcp_proxy import ProxyDHCP, DHCPConfig, DHCPPacket
 from .tftp_server import TFTPServer, TFTPTransfer
 from .pxe_config import PXEConfig
+from .server import PixelRTSServer, NetworkConfig, ServerStatus
+from .progress import ServeProgress, ClientTracker, ClientInfo, BootStage
 
 __all__ = [
     'PixelRTSPlugin',
@@ -43,4 +54,11 @@ __all__ = [
     'TFTPServer',
     'TFTPTransfer',
     'PXEConfig',
+    'PixelRTSServer',
+    'NetworkConfig',
+    'ServerStatus',
+    'ServeProgress',
+    'ClientTracker',
+    'ClientInfo',
+    'BootStage',
 ]
