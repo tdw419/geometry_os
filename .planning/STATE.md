@@ -10,24 +10,24 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 6 of 8 (NBD Server + PXE Boot)
-Plan: 01 of 3 (complete)
+Plan: 02 of 3 (complete)
 Status: In progress
-Last activity: 2026-03-08 — Completed 06-01-PLAN.md (NBD Plugin)
+Last activity: 2026-03-08 — Completed 06-02-PLAN.md (PXE Boot Infrastructure)
 
-Progress: [██░░░░░░░░░░░░░░░░░░] 12% (1/8 plans in v1.2)
+Progress: [████░░░░░░░░░░░░░░░░] 25% (2/8 plans in v1.2)
 
 ## Performance Metrics
 
 **v1.2 Velocity:**
-- Plans completed: 1
-- Duration: ~8 min
-- Tests: 28 passing
+- Plans completed: 2
+- Duration: ~13 min
+- Tests: 87 passing (28 + 59)
 
 **Cumulative:**
 - v1.0: 22 plans
 - v1.1: 4 plans
-- v1.2: 1 plan (in progress)
-- Total: 27 plans
+- v1.2: 2 plans (in progress)
+- Total: 28 plans
 
 ## Accumulated Context
 
@@ -46,6 +46,11 @@ Key decisions archived in `.planning/milestones/`:
 - Range decoding in decoder class (decode_range()) for reusability
 - Mock nbdkit module for testing without nbdkit installed
 
+**06-02 Decisions:**
+- Proxy DHCP mode (port 4011) to avoid conflicting with existing DHCP servers
+- Asyncio design for integration with serve command event loop
+- Read-only TFTP server (RRQ only) for security
+
 ### Pending Todos
 
 None.
@@ -55,11 +60,12 @@ None.
 **Research Flags (from SUMMARY.md):**
 - Phase 6: UEFI vs BIOS PXE differences - test on real hardware
 - Phase 6: Memory-mapped Hilbert LUT may need performance profiling
+- Phase 6: Port 69 (TFTP) requires root privileges or CAP_NET_BIND_SERVICE
 
 ## Session Continuity
 
-Last session: 2026-03-08T23:19:15Z
-Stopped at: Completed 06-01-PLAN.md (NBD Plugin Skeleton)
+Last session: 2026-03-08T23:16:00Z
+Stopped at: Completed 06-02-PLAN.md (PXE Boot Infrastructure)
 Resume file: None
 
 **CLI Commands Available (v1.0 + v1.1):**
