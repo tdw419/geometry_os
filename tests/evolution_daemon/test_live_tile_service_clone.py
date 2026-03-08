@@ -679,3 +679,218 @@ class TestCalculateTargetFps:
 
         fps = service._calculate_target_fps(tile)
         assert fps == 1.0
+
+
+class TestBootTileV3:
+    """Tests for boot_tile_v3 method."""
+
+    @pytest.fixture
+    def service(self):
+        """Create a LiveTileService instance for testing."""
+        return LiveTileService()
+
+    @pytest.mark.asyncio
+    async def test_boot_tile_v3_creates_tile(self, service):
+        """boot_tile_v3 should create a v3 format tile."""
+        result = await service.boot_tile_v3("tile-v3", "/path/to/test.rts.png")
+
+        assert result["tile_id"] == "tile-v3"
+        assert result["status"] == "running"
+
+        tile = service.tiles["tile-v3"]
+        assert tile.v3_format is True
+        assert tile.status == "running"
+        assert tile.boot_time is not None
+
+    @pytest.mark.asyncio
+    async def test_boot_tile_v3_already_running(self, service):
+        """boot_tile_v3 should return already_running for existing tile."""
+        # First boot
+        await service.boot_tile_v3("tile-v3-existing", "/path/to/test.rts.png")
+
+        # Second boot attempt
+        result = await service.boot_tile_v3("tile-v3-existing", "/path/to/test.rts.png")
+
+        assert result["status"] == "already_running"
+
+    @pytest.mark.asyncio
+    async def test_boot_tile_v3_adds_console_output(self, service):
+        """boot_tile_v3 should add boot message to console."""
+        await service.boot_tile_v3("tile-v3-console", "/path/to/test.rts.png")
+
+        tile = service.tiles["tile-v3-console"]
+        assert len(tile.console_output) == 1
+        assert "Alpine" in tile.console_output[0]["text"]
+
+    @pytest.mark.asyncio
+    async def test_handle_rpc_boot_tile_v3(self, service):
+        """handle_rpc should handle boot_tile_v3 method."""
+        result = await service.handle_rpc("boot_tile_v3", {
+            "tile_id": "tile-rpc-v3",
+            "rts_path": "/path/to/test.rts.png"
+        })
+
+        assert result["tile_id"] == "tile-rpc-v3"
+        assert result["status"] == "running"
+
+
+class TestOnAlpineOutput:
+    """Tests for _on_alpine_output method."""
+
+    @pytest.fixture
+    def service(self):
+        """Create a LiveTileService instance for testing."""
+        return LiveTileService()
+
+    @pytest.mark.asyncio
+    async def test_on_alpine_output_missing_tile(self, service):
+        """_on_alpine_output should handle missing tile."""
+        # Should not raise
+        await service._on_alpine_output("nonexistent", "output", 0)
+
+    @pytest.mark.asyncio
+    async def test_on_alpine_output_no_pending_command(self, service):
+        """_on_alpine_output should return early if no pending command."""
+        tile = LiveTileInstance(
+            tile_id="tile-no-cmd",
+            rts_path="/path/to/test.rts.png",
+            status="running"
+        )
+        service.tiles[tile.tile_id] = tile
+
+        # Should not raise and should not modify console
+        await service._on_alpine_output("tile-no-cmd", "output", 0)
+
+    @pytest.mark.asyncio
+    async def test_on_alpine_output_captures_neural_event(self, service):
+        """_on_alpine_output should capture neural event for command."""
+        tile = LiveTileInstance(
+            tile_id="tile-alpine",
+            rts_path="/path/to/test.rts.png",
+            status="running"
+        )
+        tile._pending_command = "ls -la"
+        service.tiles[tile.tile_id] = tile
+
+        # Should capture event and clear pending command
+        await service._on_alpine_output("tile-alpine", "file1\nfile2", 0)
+
+        assert tile._pending_command == ""
+
+
+class TestSendConsoleInputV3:
+    """Tests for send_console_input with v3 format."""
+
+    @pytest.fixture
+    def service(self):
+        """Create a LiveTileService instance for testing."""
+        return LiveTileService()
+
+    @pytest.mark.asyncio
+    async def test_send_console_input_v3_simulates_ls(self, service):
+        """send_console_input should simulate ls command in v3."""
+        tile = LiveTileInstance(
+            tile_id="tile-v3-input",
+            rts_path="/path/to/test.rts.png",
+            status="running",
+            v3_format=True
+        )
+        service.tiles[tile.tile_id] = tile
+
+        result = await service.send_console_input("tile-v3-input", "ls\n")
+
+        assert result["status"] == "sent"
+        # Should have triggered _on_alpine_output which adds console
+        # Wait a bit for async
+        await asyncio.sleep(0.1)
+
+    @pytest.mark.asyncio
+    async def test_send_console_input_v3_simulates_uname(self, service):
+        """send_console_input should simulate uname command in v3."""
+        tile = LiveTileInstance(
+            tile_id="tile-v3-uname",
+            rts_path="/path/to/test.rts.png",
+            status="running",
+            v3_format=True
+        )
+        service.tiles[tile.tile_id] = tile
+
+        result = await service.send_console_input("tile-v3-uname", "uname -a\n")
+
+        assert result["status"] == "sent"
+
+    @pytest.mark.asyncio
+    async def test_send_console_input_updates_focus_state(self, service):
+        """send_console_input should update focus_state for v3 tiles."""
+        tile = LiveTileInstance(
+            tile_id="tile-v3-focus",
+            rts_path="/path/to/test.rts.png",
+            status="running",
+            v3_format=True
+        )
+        service.tiles[tile.tile_id] = tile
+
+        await service.send_console_input("tile-v3-focus", "test\n")
+
+        assert tile.focus_state == "typing"
+        assert tile.last_input_time > 0
+
+
+class TestCaptureV3Terminal:
+    """Tests for _capture_v3_terminal method."""
+
+    @pytest.fixture
+    def service(self):
+        """Create a LiveTileService instance for testing."""
+        return LiveTileService()
+
+    @pytest.mark.asyncio
+    async def test_capture_v3_terminal_returns_grid(self, service):
+        """_capture_v3_terminal should return terminal grid."""
+        tile = LiveTileInstance(
+            tile_id="tile-terminal",
+            rts_path="/path/to/test.rts.png",
+            status="running"
+        )
+        # Set some terminal content
+        tile.terminal_grid[0][0] = 'H'
+        tile.terminal_grid[0][1] = 'i'
+        service.tiles[tile.tile_id] = tile
+
+        result = await service._capture_v3_terminal(tile)
+
+        assert result is not None
+        assert result[0][0] == 'H'
+        assert result[0][1] == 'i'
+
+
+class TestCloneTileErrors:
+    """Tests for clone_tile error handling."""
+
+    @pytest.fixture
+    def service(self):
+        """Create a LiveTileService instance for testing."""
+        return LiveTileService()
+
+    @pytest.mark.asyncio
+    async def test_clone_tile_transmuter_error(self, service):
+        """clone_tile should handle transmuter errors gracefully."""
+        tile = LiveTileInstance(
+            tile_id="tile-clone-error",
+            rts_path="/path/to/test.rts.png",
+            status="running"
+        )
+        tile.last_extraction = {
+            "widgets": [{"type": "button", "bbox": [0, 0, 10, 10]}]
+        }
+        service.tiles[tile.tile_id] = tile
+
+        # Mock the transmuter to raise an error
+        service._clone_orchestrator.transmuter.transmute = MagicMock(
+            side_effect=RuntimeError("Transmutation failed")
+        )
+
+        result = await service.clone_tile("tile-clone-error", "test_output")
+
+        assert result["status"] == "failed"
+        assert "Transmutation failed" in result["error"]
