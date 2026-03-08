@@ -112,9 +112,17 @@ class TerminalRipper:
 
             spawned_ids.append(tile_id)
 
-            # TODO: Pre-fill with detected text content
-            # if candidate.text:
-            #     self.geometric_bridge.feed_pty_output(tile_id, candidate.text.encode())
+            # Pre-fill with detected text content if available
+            if hasattr(candidate, 'text') and candidate.text:
+                try:
+                    if config.use_geometric and self.geometric_bridge:
+                        self.geometric_bridge.feed_pty_output(tile_id, candidate.text.encode())
+                        logger.info(f"   → Pre-filled terminal with {len(candidate.text)} chars of detected text")
+                    elif self.bridge and hasattr(self.bridge, 'feed_pty_output'):
+                        self.bridge.feed_pty_output(tile_id, candidate.text.encode())
+                        logger.info(f"   → Pre-filled terminal with {len(candidate.text)} chars of detected text")
+                except Exception as e:
+                    logger.warning(f"   → Failed to pre-fill terminal: {e}")
 
         return spawned_ids
 
