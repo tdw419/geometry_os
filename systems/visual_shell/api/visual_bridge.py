@@ -742,6 +742,44 @@ class MultiVmStreamer:
             f"intensity={intensity:.2f}"
         )
 
+        # Broadcast to all connected WebSocket clients
+        async def _broadcast():
+            """Broadcast glyph to all connected clients."""
+            message = {
+                "type": "THOUGHT_PULSE",
+                "opcode": glyph["opcode"],
+                "token_id": glyph["token_id"],
+                "x": glyph["x"],
+                "y": glyph["y"],
+                "intensity": glyph["intensity"],
+                "timestamp": glyph["timestamp"]
+            }
+
+            dead_connections = set()
+            for ws in list(self.active_websockets):
+                try:
+                    await ws.send_json(message)
+                except Exception:
+                    # Connection failed, mark for removal
+                    dead_connections.add(ws)
+
+            # Clean up dead connections
+            for ws in dead_connections:
+                self.active_websockets.discard(ws)
+
+        # Schedule broadcast on event loop
+        try:
+            loop = asyncio.get_running_loop()
+            # Loop is running, schedule broadcast as task
+            asyncio.create_task(_broadcast())
+        except RuntimeError:
+            # No running event loop available (e.g., synchronous test context)
+            # Try to create a new loop for broadcast
+            try:
+                asyncio.run(_broadcast())
+            except Exception as e:
+                self.logger.debug(f"Could not broadcast THOUGHT_PULSE: {e}")
+
         return True
 
     def has_active_glyphs(self) -> bool:
@@ -823,6 +861,7 @@ async def websocket_multiplexed(websocket: WebSocket):
 
 # Store for active thought stream connections
 active_thought_connections: Set[WebSocket] = set()
+active_token_connections: Set[WebSocket] = set()
 
 
 @app.websocket("/ws/v1/thoughts")
@@ -864,6 +903,26 @@ async def websocket_thoughts(websocket: WebSocket):
         active_thought_connections.discard(websocket)
 
 
+@app.websocket("/ws/v1/tokens")
+async def websocket_tokens(websocket: WebSocket):
+    """Stream LLM tokens for Mind's Eye visualization."""
+    await websocket.accept()
+    active_token_connections.add(websocket)
+    try:
+        await websocket.send_text(json.dumps({
+            "msg_type": "Connected",
+            "message": "Mind's Eye Token Stream active",
+            "timestamp": time.time()
+        }))
+        while True:
+            await asyncio.sleep(30)
+            await websocket.send_text(json.dumps({"msg_type": "Ping", "timestamp": time.time()}))
+    except WebSocketDisconnect:
+        pass
+    finally:
+        active_token_connections.discard(websocket)
+
+
 async def broadcast_thought(thought: dict):
     """Broadcast a thought to all connected thought stream clients."""
     global active_thought_connections
@@ -885,16 +944,36 @@ async def broadcast_thought(thought: dict):
         active_thought_connections.discard(ws)
 
 
+async def broadcast_token(token_data: dict):
+    """Broadcast a token to all connected Mind's Eye clients."""
+    global active_token_connections
+    message = {
+        "msg_type": "Token",
+        "sequence": int(time.time() * 1000) % 0xFFFFFFFF,
+        "payload": token_data
+    }
+    disconnected = set()
+    for ws in active_token_connections:
+        try:
+            await ws.send_text(json.dumps(message))
+        except Exception:
+            disconnected.add(ws)
+    for ws in disconnected:
+        active_token_connections.discard(ws)
+
+
 @app.post("/thoughts/broadcast")
 async def broadcast_thought_endpoint(thought: dict):
-    """
-    HTTP endpoint for broadcasting thoughts (used by CompositorBridge).
-
-    The Sisyphus daemon sends thoughts here which are then
-    broadcast to all connected WebSocket clients.
-    """
+    """HTTP endpoint for broadcasting thoughts."""
     await broadcast_thought(thought)
     return {"status": "ok", "broadcast_to": len(active_thought_connections)}
+
+
+@app.post("/tokens/broadcast")
+async def broadcast_token_endpoint(token_data: dict):
+    """HTTP endpoint for broadcasting tokens."""
+    await broadcast_token(token_data)
+    return {"status": "ok", "broadcast_to": len(active_token_connections)}
 
 
 # ============================================================================

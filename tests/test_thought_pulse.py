@@ -1,6 +1,8 @@
 """Tests for THOUGHT_PULSE visual emission."""
+import asyncio
 import time
 import pytest
+from unittest.mock import MagicMock, AsyncMock
 
 
 class TestThoughtPulse:
@@ -108,3 +110,27 @@ class TestThoughtPulse:
         assert glyphs1 is not glyphs2
         # But same content
         assert glyphs1 == glyphs2
+
+
+class TestThoughtPulseBroadcast:
+    """Test THOUGHT_PULSE WebSocket broadcast functionality."""
+
+    @pytest.mark.asyncio
+    async def test_emit_thought_pulse_broadcasts_to_websockets(self):
+        """emit_thought_pulse should broadcast to all connected clients."""
+        from systems.visual_shell.api.visual_bridge import MultiVmStreamer
+
+        streamer = MultiVmStreamer()
+        mock_ws = MagicMock()
+        mock_ws.send_json = AsyncMock()
+        streamer.active_websockets.add(mock_ws)
+
+        result = streamer.emit_thought_pulse(15496, (100, 100), 0.8)
+
+        assert result is True
+        await asyncio.sleep(0.1)  # Let async broadcast complete
+        mock_ws.send_json.assert_called_once()
+        call_args = mock_ws.send_json.call_args[0][0]
+        assert call_args["type"] == "THOUGHT_PULSE"
+
+        streamer.active_websockets.discard(mock_ws)
