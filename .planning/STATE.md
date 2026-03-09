@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-03-09)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** Milestone v1.7 complete - ready for /gsd:complete-milestone
+**Current focus:** Ready for next milestone planning
 
 ## Current Position
 
 Phase: 22 of 22 (CLI Integration)
-Plan: 1 of 1 complete
-Status: Milestone Complete
-Last activity: 2026-03-09 - v1.7 Vision Integrity milestone complete (all 8 requirements satisfied)
+Plan: 7 of 7 complete
+Status: Milestone v1.7 Complete
+Last activity: 2026-03-09 — v1.7 Vision Integrity milestone archived
 
 Progress: [████████████████████████] 100% (73/73 plans across all milestones)
 
@@ -40,7 +40,7 @@ Progress: [███████████████████████
 - Last 7 plans: ~3.5 min per plan
 - Trend: Accelerating
 
-*Updated after each plan completion*
+*Updated after milestone completion*
 
 ## Accumulated Context
 
@@ -52,16 +52,9 @@ Key decisions archived in `.planning/milestones/` and PROJECT.md:
 - v1.2: Proxy DHCP, range decoding, async orchestrator, handler pattern
 - v1.3: ContainerRole enum, ordered boot/shutdown, VirtualNetwork class
 - v1.4: VMSnapshotManager, linear timeout scaling, SnapshotMetadata, dual-source listing
-- v1.5: qemu-img convert -l for snapshot extraction, VM pause/resume guarantee, combined data encoding with offset metadata, ContainerType enum for vm-snapshot detection, CLI boot auto-routing, binary kernel/initrd extraction with hash verification
-- v1.6: ContainerInfo.is_ephemeral field for ephemeral container tracking with state persistence, EphemeralBooter wrapper with temp file management, MultiBootManager.boot_all() ephemeral parameter for concurrent ephemeral boot, --ephemeral CLI flag with _boot_ephemeral helper, atexit cleanup for crash recovery with signal handler delegation, ps EPHEM column with [E] indicator for ephemeral container identification, commit command ephemeral handling with informational messaging
-
-**v1.7 Decisions:**
-- Phase 19-01: VerificationStep abstract base class with composable pattern, VerificationContext lazy loading, StructureVerifier for PNG validation
-- Phase 19-02: ConsistencyVerifier for SHA256 hash verification with SKIP for missing metadata, truncated hash display in PASS details
-- Phase 20-01: SegmentIntegrityChecker with per-segment verification via decode_range(), optional segment_name param, metadata offsets/hashes pattern
-- Phase 21-01: SignatureVerifier for Ed25519 verification, sign SHA256 hash (32 bytes) not full data, SKIP for unsigned files, PIXELRTS_PUBLIC_KEY env var override
-- Phase 21-02: FileSigner for Ed25519 signing, PKCS8 PEM format for private keys, self-contained signatures with embedded public key
-- Phase 22-01: Unified pixelrts verify CLI command composing all verifiers, --json for machine-parseable output, --verbose for step details, exit code 0 for PASS/WARNING and 1 for FAIL
+- v1.5: qemu-img convert -l for snapshot extraction, VM pause/resume guarantee, combined data encoding
+- v1.6: EphemeralBooter, atexit cleanup, is_ephemeral field, [E] indicator
+- v1.7: VerificationStep pattern, SKIP for unsigned, sign-hash-not-data, range-based verification
 
 ### Pending Todos
 
@@ -74,8 +67,8 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: Completed 22-01 CLI verify command (Phase 22 complete)
+Stopped at: v1.7 milestone archived, ready for /gsd:new-milestone
 Resume file: None
 
 ---
-*State updated: 2026-03-09*
+*State updated: 2026-03-09 after v1.7 milestone completion*

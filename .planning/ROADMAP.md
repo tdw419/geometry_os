@@ -9,89 +9,50 @@
 - **v1.4 Live Snapshots** - Phases 12-14 (shipped 2026-03-09)
 - **v1.5 Commit to File** - Phases 15-17 (shipped 2026-03-09) — [Archive](milestones/v1.5-ROADMAP.md)
 - **v1.6 Ephemeral Boot** - Phase 18 (shipped 2026-03-09) — [Archive](milestones/v1.6-ROADMAP.md)
-- **v1.7 Vision Integrity** - Phases 19-22 (shipped 2026-03-09)
+- **v1.7 Vision Integrity** - Phases 19-22 (shipped 2026-03-09) — [Archive](milestones/v1.7-ROADMAP.md)
 
 ## Current Status
 
-**Milestone v1.7 Vision Integrity complete.** All 8 requirements satisfied.
+**All planned milestones complete.** Ready for next milestone definition.
+
+Run `/gsd:new-milestone` to start planning the next version.
 
 ---
 
-## Phases
+## Completed Milestones
 
-### v1.7 Vision Integrity
+<details>
+<summary>v1.7 Vision Integrity (Phases 19-22) — SHIPPED 2026-03-09</summary>
 
-**Milestone Goal:** Users can verify .rts.png file integrity before booting
+- [x] Phase 19: Basic Verification (2/2 plans)
+- [x] Phase 20: Segment Integrity (1/1 plan)
+- [x] Phase 21: Cryptographic Signatures (2/2 plans)
+- [x] Phase 22: CLI Integration (1/1 plan)
 
-#### Phase 19: Basic Verification
-**Goal**: Users can verify PNG structure and hash consistency
-**Depends on**: Phase 18 (Ephemeral boot complete)
-**Requirements**: VERIFY-01, VERIFY-02
-**Success Criteria** (what must be TRUE):
-  1. User can run a verification check on any .rts.png file
-  2. Invalid PNG files are detected and reported with specific error
-  3. Hash mismatch between metadata and decoded data is detected
-  4. Verification returns clear pass/fail status
-**Plans**: 2
+**Key Features:** VerificationStep pattern, Ed25519 signatures, range-based segment verification, `pixelrts verify` command
 
-Plans:
-- [x] 19-01: Verification infrastructure and structure validation
-- [x] 19-02: Hash consistency verification
+</details>
 
-#### Phase 20: Segment Integrity
-**Goal**: Users can verify individual segments (kernel, initrd, disk) without full decode
-**Depends on**: Phase 19
-**Requirements**: VERIFY-03
-**Success Criteria** (what must be TRUE):
-  1. User can verify kernel segment integrity independently
-  2. User can verify initrd segment integrity independently
-  3. User can verify disk segment integrity independently
-  4. Range-based verification is faster than full decode for large files
-**Plans**: 1
+<details>
+<summary>v1.6 Ephemeral Boot (Phase 18) — SHIPPED 2026-03-09</summary>
 
-Plans:
-- [x] 20-01: Segment integrity checker with range decode
+- [x] Phase 18: Ephemeral Containers (8/8 plans)
 
-#### Phase 21: Cryptographic Signatures
-**Goal**: Users can verify and create Ed25519 cryptographic signatures
-**Depends on**: Phase 20
-**Requirements**: CRYPTO-01, CRYPTO-02
-**Success Criteria** (what must be TRUE):
-  1. User can verify file signature against embedded public key
-  2. User can sign a .rts.png file with their private key
-  3. Signature is stored in PNG tEXt chunk
-  4. Unsigned files report as "unsigned" (not "failed")
-**Plans**: 2
+**Key Features:** `--ephemeral` flag, automatic cleanup, crash recovery
 
-Plans:
-- [x] 21-01-PLAN.md — Signature verification with SignatureVerifier
-- [x] 21-02-PLAN.md — File signing with FileSigner
+</details>
 
-#### Phase 22: CLI Integration
-**Goal**: Users can verify files via unified CLI command
-**Depends on**: Phase 21
-**Requirements**: CLI-01, CLI-02, CLI-03
-**Success Criteria** (what must be TRUE):
-  1. `pixelrts verify <file.png>` command returns exit code 0 on pass, non-zero on fail
-  2. `--json` flag outputs machine-parseable results
-  3. `--verbose` flag shows each verification step with details
-  4. Human-readable output shows clear pass/fail with reasons
-**Plans**: 1
+<details>
+<summary>v1.5 Commit to File (Phases 15-17) — SHIPPED 2026-03-09</summary>
 
-Plans:
-- [x] 22-01-PLAN.md — Add pixelrts verify CLI command with --json and --verbose flags
+- [x] Phase 15: Container Commit (3/3 plans)
+- [x] Phase 16: Snapshot Export (3/3 plans)
+- [x] Phase 17: Boot Committed Files (3/3 plans)
 
-## Progress
+**Key Features:** `pixelrts commit` command, VM pause/resume, combined data encoding
 
-**Execution Order:**
-Phases execute in numeric order: 19 → 20 → 21 → 22
-
-| Phase | Milestone | Plans Complete | Status | Completed |
-|-------|-----------|----------------|--------|-----------|
-| 19. Basic Verification | v1.7 | 2/2 | Complete | 2026-03-09 |
-| 20. Segment Integrity | v1.7 | 1/1 | Complete | 2026-03-09 |
-| 21. Cryptographic Signatures | v1.7 | 2/2 | Complete | 2026-03-09 |
-| 22. CLI Integration | v1.7 | 1/1 | Complete | 2026-03-09 |
+</details>
 
 ---
+
 *Last updated: 2026-03-09 — v1.7 milestone complete*

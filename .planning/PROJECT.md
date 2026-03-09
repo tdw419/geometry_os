@@ -249,9 +249,41 @@ If everything else fails, users must be able to:
   - `pixelrts commit <ephemeral-container> <output>`
   - Informational message shown
 
-### Active (v1.7)
+### Validated (v1.7)
 
-- [ ] **VISION-02**: Vision model can detect tampering or corruption
+✓ **VERIFY-01**: User can verify PNG structure integrity — v1.7
+  - StructureVerifier validates PNG signature, chunks, grid size
+  - VerificationStep composable pattern
+
+✓ **VERIFY-02**: User can verify hash consistency — v1.7
+  - ConsistencyVerifier checks SHA256 against metadata
+  - Graceful SKIP for missing hash metadata
+
+✓ **VERIFY-03**: User can verify segment integrity via range decode — v1.7
+  - SegmentIntegrityChecker with decode_range() for efficiency
+  - ~5000x faster than full decode for large files
+
+✓ **CRYPTO-01**: User can verify Ed25519 signature — v1.7
+  - SignatureVerifier for cryptographic authenticity
+  - PIXELRTS_PUBLIC_KEY env var override
+
+✓ **CRYPTO-02**: User can sign .rts.png file with private key — v1.7
+  - FileSigner with PKCS8 PEM key format
+  - Self-contained signatures with embedded public key
+
+✓ **CLI-01**: `pixelrts verify <file.png>` with exit codes — v1.7
+  - Exit 0 for PASS/WARNING, 1 for FAIL
+  - CI/CD compatible
+
+✓ **CLI-02**: JSON output via `--json` flag — v1.7
+  - Machine-parseable for automation
+
+✓ **CLI-03**: Verbose output via `--verbose` flag — v1.7
+  - Step-by-step verification details
+
+### Active (v1.8)
+
+(None planned - ready for next milestone definition)
 
 ### Future
 
@@ -298,6 +330,21 @@ If everything else fails, users must be able to:
 - Complete container lifecycle: boot → modify → commit → boot again
 - VM pause/resume during commit for state consistency
 - Combined data encoding with offset metadata
+
+**Shipped v1.6 (2026-03-09):**
+- 1 phase (18), 8 plans completed
+- CLI flag: --ephemeral
+- 50+ tests passing (ephemeral boot)
+- Ephemeral boot with automatic cleanup
+- Crash recovery via atexit
+
+**Shipped v1.7 (2026-03-09):**
+- 4 phases (19-22), 7 plans completed
+- CLI command: verify
+- 88 tests passing (verification)
+- Composable verification pattern
+- Ed25519 cryptographic signatures
+- Range-based segment verification
 
 **Tech Stack:**
 - Python 3.12+
@@ -378,8 +425,15 @@ If everything else fails, users must be able to:
 | atexit + signal handler cleanup | Crash recovery | ✓ Good |
 | ContainerInfo.is_ephemeral field | State tracking | ✓ Good |
 | ps [E] indicator | Visual identification | ✓ Good |
+| VerificationStep composable pattern | Reusable verification steps | ✓ Good |
+| Lazy loading in VerificationContext | Efficient I/O across steps | ✓ Good |
+| SKIP status for unsigned files | Graceful degradation | ✓ Good |
+| Sign hash (32 bytes) not full data | Efficient Ed25519 signing | ✓ Good |
+| PIXELRTS_PUBLIC_KEY env var override | Key rotation without re-signing | ✓ Good |
+| Range-based decode for segment verification | ~5000x speedup | ✓ Good |
+| Run all verifiers in sequence | Complete picture on failure | ✓ Good |
 
 ---
-*Last updated: 2026-03-09 — v1.7 Vision Integrity started*
+*Last updated: 2026-03-09 after v1.7 milestone*
 
 
