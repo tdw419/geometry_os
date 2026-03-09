@@ -18,6 +18,7 @@ from systems.pixel_compiler.boot.multi_boot_manager import (
     ContainerRole,
     ContainerInfo,
     MultiBootResult,
+    RestoreResult,
 )
 from systems.pixel_compiler.boot.resource_allocator import (
     ResourceAllocator,
@@ -30,6 +31,8 @@ from systems.pixel_compiler.boot.vm_snapshot import (
     SnapshotResult,
     SnapshotInfo,
     SnapshotState,
+    RestoreProgress,
+    RestoreState,
 )
 
 
@@ -1761,4 +1764,434 @@ class TestMultiBootManagerSnapshotMethods:
 
         assert result.success is True
         assert len(info.snapshots) == 0
+
+
+# ========================================
+# RestoreResult Tests
+# ========================================
+
+class TestRestoreResult:
+    """Tests for RestoreResult dataclass."""
+
+    def test_restore_result_creation(self):
+        """Test creating RestoreResult with required fields."""
+        result = RestoreResult(
+            success=True,
+            container_name="test-container",
+            snapshot_tag="snap1",
+        )
+
+        assert result.success is True
+        assert result.container_name == "test-container"
+        assert result.snapshot_tag == "snap1"
+        assert result.identity_preserved is True  # default
+        assert result.network_reconnected is None  # default
+        assert result.pre_restore_state is None  # default
+        assert result.post_restore_state is None  # default
+        assert result.error_message is None  # default
+        assert result.restore_progress is None  # default
+
+    def test_restore_result_to_dict(self):
+        """Test RestoreResult serialization to dict."""
+        result = RestoreResult(
+            success=True,
+            container_name="test-container",
+            snapshot_tag="snap1",
+            identity_preserved=True,
+            network_reconnected=True,
+            pre_restore_state=ContainerState.RUNNING,
+            post_restore_state=ContainerState.RUNNING,
+            error_message=None,
+        )
+
+        data = result.to_dict()
+
+        assert data["success"] is True
+        assert data["container_name"] == "test-container"
+        assert data["snapshot_tag"] == "snap1"
+        assert data["identity_preserved"] is True
+        assert data["network_reconnected"] is True
+        assert data["pre_restore_state"] == "running"
+        assert data["post_restore_state"] == "running"
+        assert data["error_message"] is None
+
+    def test_restore_result_optional_fields(self):
+        """Test RestoreResult with optional fields set."""
+        progress = RestoreProgress(
+            state=RestoreState.COMPLETE,
+            tag="snap1",
+            started_at=datetime.now(),
+        )
+
+        result = RestoreResult(
+            success=False,
+            container_name="test-container",
+            snapshot_tag="snap1",
+            identity_preserved=False,
+            network_reconnected=None,
+            pre_restore_state=ContainerState.RUNNING,
+            post_restore_state=ContainerState.RUNNING,
+            error_message="Restore failed",
+            restore_progress=progress,
+        )
+
+        assert result.success is False
+        assert result.identity_preserved is False
+        assert result.network_reconnected is None
+        assert result.pre_restore_state == ContainerState.RUNNING
+        assert result.post_restore_state == ContainerState.RUNNING
+        assert result.error_message == "Restore failed"
+        assert result.restore_progress is progress
+
+
+# ========================================
+# Enhanced Restore Snapshot Tests
+# ========================================
+
+class TestRestoreSnapshotEnhanced:
+    """Tests for enhanced restore_snapshot with identity preservation."""
+
+    @patch.object(MultiBootManager, '_get_snapshot_manager')
+    def test_restore_returns_restore_result(self, mock_get_manager, manager):
+        """Test restore_snapshot returns RestoreResult type."""
+        # Setup running container with resources
+        info = ContainerInfo(
+            name="running-container",
+            path=Path("/fake/running.rts.png"),
+            state=ContainerState.RUNNING,
+            resources=AllocatedResources(
+                vnc_port=5900,
+                container_id="test-id",
+                serial_socket=Path("/tmp/serial.sock"),
+                monitor_socket=Path("/tmp/monitor.sock"),
+                container_name="running-container",
+            ),
+        )
+        manager._containers["running-container"] = info
+
+        # Mock snapshot manager
+        mock_snapshot_manager = Mock()
+        mock_snapshot_manager.restore_snapshot.return_value = SnapshotResult(
+            success=True,
+            tag="snap1",
+        )
+        mock_get_manager.return_value = mock_snapshot_manager
+
+        result = manager.restore_snapshot("running-container", "snap1")
+
+        assert isinstance(result, RestoreResult)
+        assert result.success is True
+        assert result.container_name == "running-container"
+        assert result.snapshot_tag == "snap1"
+
+    @patch.object(MultiBootManager, '_get_snapshot_manager')
+    def test_restore_preserves_identity(self, mock_get_manager, manager):
+        """Test container identity (name, VNC port) is preserved after restore."""
+        # Setup running container with resources
+        info = ContainerInfo(
+            name="running-container",
+            path=Path("/fake/running.rts.png"),
+            state=ContainerState.RUNNING,
+            resources=AllocatedResources(
+                vnc_port=5901,
+                container_id="test-id",
+                serial_socket=Path("/tmp/serial.sock"),
+                monitor_socket=Path("/tmp/monitor.sock"),
+                container_name="running-container",
+            ),
+        )
+        manager._containers["running-container"] = info
+
+        # Mock snapshot manager
+        mock_snapshot_manager = Mock()
+        mock_snapshot_manager.restore_snapshot.return_value = SnapshotResult(
+            success=True,
+            tag="snap1",
+        )
+        mock_get_manager.return_value = mock_snapshot_manager
+
+        result = manager.restore_snapshot("running-container", "snap1")
+
+        assert result.identity_preserved is True
+        assert result.container_name == "running-container"
+        # VNC port should still be 5901 after restore
+        assert info.resources.vnc_port == 5901
+
+    @patch.object(MultiBootManager, '_get_snapshot_manager')
+    def test_restore_tracks_pre_post_state(self, mock_get_manager, manager):
+        """Test pre/post restore states are tracked."""
+        # Setup running container with resources
+        info = ContainerInfo(
+            name="running-container",
+            path=Path("/fake/running.rts.png"),
+            state=ContainerState.RUNNING,
+            resources=AllocatedResources(
+                vnc_port=5900,
+                container_id="test-id",
+                serial_socket=Path("/tmp/serial.sock"),
+                monitor_socket=Path("/tmp/monitor.sock"),
+                container_name="running-container",
+            ),
+        )
+        manager._containers["running-container"] = info
+
+        # Mock snapshot manager
+        mock_snapshot_manager = Mock()
+        mock_snapshot_manager.restore_snapshot.return_value = SnapshotResult(
+            success=True,
+            tag="snap1",
+        )
+        mock_get_manager.return_value = mock_snapshot_manager
+
+        result = manager.restore_snapshot("running-container", "snap1")
+
+        assert result.pre_restore_state == ContainerState.RUNNING
+        assert result.post_restore_state == ContainerState.RUNNING
+
+    @patch.object(MultiBootManager, '_get_snapshot_manager')
+    def test_restore_handles_failure_gracefully(self, mock_get_manager, manager):
+        """Test failed restore doesn't corrupt state."""
+        # Setup running container with resources
+        info = ContainerInfo(
+            name="running-container",
+            path=Path("/fake/running.rts.png"),
+            state=ContainerState.RUNNING,
+            resources=AllocatedResources(
+                vnc_port=5900,
+                container_id="test-id",
+                serial_socket=Path("/tmp/serial.sock"),
+                monitor_socket=Path("/tmp/monitor.sock"),
+                container_name="running-container",
+            ),
+        )
+        manager._containers["running-container"] = info
+
+        # Mock snapshot manager with failed restore
+        mock_snapshot_manager = Mock()
+        mock_snapshot_manager.restore_snapshot.return_value = SnapshotResult(
+            success=False,
+            tag="snap1",
+            error_message="Snapshot not found",
+        )
+        mock_get_manager.return_value = mock_snapshot_manager
+
+        result = manager.restore_snapshot("running-container", "snap1")
+
+        # Container should still be RUNNING (QEMU process alive)
+        assert result.success is False
+        assert result.error_message == "Snapshot not found"
+        assert result.post_restore_state == ContainerState.RUNNING
+        # Identity should still be preserved
+        assert result.identity_preserved is True
+
+    @patch.object(MultiBootManager, '_get_snapshot_manager')
+    def test_restore_includes_progress(self, mock_get_manager, manager):
+        """Test RestoreProgress is included in result."""
+        # Setup running container with resources
+        info = ContainerInfo(
+            name="running-container",
+            path=Path("/fake/running.rts.png"),
+            state=ContainerState.RUNNING,
+            resources=AllocatedResources(
+                vnc_port=5900,
+                container_id="test-id",
+                serial_socket=Path("/tmp/serial.sock"),
+                monitor_socket=Path("/tmp/monitor.sock"),
+                container_name="running-container",
+            ),
+        )
+        manager._containers["running-container"] = info
+
+        # Create progress object
+        progress = RestoreProgress(
+            state=RestoreState.COMPLETE,
+            tag="snap1",
+            started_at=datetime.now(),
+            completed_at=datetime.now(),
+            pre_restore_vm_state="running",
+        )
+
+        # Mock snapshot manager
+        mock_snapshot_manager = Mock()
+        mock_snapshot_manager.restore_snapshot.return_value = SnapshotResult(
+            success=True,
+            tag="snap1",
+            restore_progress=progress,
+        )
+        mock_get_manager.return_value = mock_snapshot_manager
+
+        result = manager.restore_snapshot("running-container", "snap1")
+
+        assert result.restore_progress is progress
+        assert result.restore_progress.state == RestoreState.COMPLETE
+
+
+# ========================================
+# Restore Network Reconnection Tests
+# ========================================
+
+class TestRestoreNetworkReconnection:
+    """Tests for network reconnection tracking during restore."""
+
+    @patch.object(MultiBootManager, '_get_snapshot_manager')
+    def test_restore_network_reconnected_on_success(self, mock_get_manager, manager):
+        """Test network_reconnected=True on successful restore with virtual network."""
+        # Setup running container with virtual network (not fallback)
+        info = ContainerInfo(
+            name="running-container",
+            path=Path("/fake/running.rts.png"),
+            state=ContainerState.RUNNING,
+            network_fallback=False,  # Using virtual network
+            resources=AllocatedResources(
+                vnc_port=5900,
+                container_id="test-id",
+                serial_socket=Path("/tmp/serial.sock"),
+                monitor_socket=Path("/tmp/monitor.sock"),
+                container_name="running-container",
+            ),
+        )
+        manager._containers["running-container"] = info
+
+        # Mock snapshot manager
+        mock_snapshot_manager = Mock()
+        mock_snapshot_manager.restore_snapshot.return_value = SnapshotResult(
+            success=True,
+            tag="snap1",
+        )
+        mock_get_manager.return_value = mock_snapshot_manager
+
+        result = manager.restore_snapshot("running-container", "snap1")
+
+        assert result.success is True
+        assert result.network_reconnected is True
+
+    @patch.object(MultiBootManager, '_get_snapshot_manager')
+    def test_restore_network_none_on_fallback(self, mock_get_manager, manager):
+        """Test network_reconnected=None when using fallback (USER mode)."""
+        # Setup running container with network fallback
+        info = ContainerInfo(
+            name="running-container",
+            path=Path("/fake/running.rts.png"),
+            state=ContainerState.RUNNING,
+            network_fallback=True,  # Using fallback (USER mode)
+            resources=AllocatedResources(
+                vnc_port=5900,
+                container_id="test-id",
+                serial_socket=Path("/tmp/serial.sock"),
+                monitor_socket=Path("/tmp/monitor.sock"),
+                container_name="running-container",
+            ),
+        )
+        manager._containers["running-container"] = info
+
+        # Mock snapshot manager
+        mock_snapshot_manager = Mock()
+        mock_snapshot_manager.restore_snapshot.return_value = SnapshotResult(
+            success=True,
+            tag="snap1",
+        )
+        mock_get_manager.return_value = mock_snapshot_manager
+
+        result = manager.restore_snapshot("running-container", "snap1")
+
+        assert result.success is True
+        assert result.network_reconnected is None
+
+    @patch.object(MultiBootManager, '_get_snapshot_manager')
+    def test_restore_tracks_network_fallback_containers(self, mock_get_manager, manager):
+        """Test restore handles containers that fell back to USER mode."""
+        # Setup running container with network fallback and failed restore
+        info = ContainerInfo(
+            name="fallback-container",
+            path=Path("/fake/fallback.rts.png"),
+            state=ContainerState.RUNNING,
+            network_fallback=True,  # Fell back to USER mode
+            resources=AllocatedResources(
+                vnc_port=5902,
+                container_id="fallback-id",
+                serial_socket=Path("/tmp/serial-fb.sock"),
+                monitor_socket=Path("/tmp/monitor-fb.sock"),
+                container_name="fallback-container",
+            ),
+        )
+        manager._containers["fallback-container"] = info
+
+        # Mock snapshot manager with failed restore
+        mock_snapshot_manager = Mock()
+        mock_snapshot_manager.restore_snapshot.return_value = SnapshotResult(
+            success=False,
+            tag="snap1",
+            error_message="Snapshot corrupted",
+        )
+        mock_get_manager.return_value = mock_snapshot_manager
+
+        result = manager.restore_snapshot("fallback-container", "snap1")
+
+        # Even on failure, network_reconnected is None for fallback containers
+        assert result.success is False
+        assert result.network_reconnected is None
+        assert result.error_message == "Snapshot corrupted"
+        # Identity should still be preserved
+        assert result.identity_preserved is True
+
+    @patch.object(MultiBootManager, '_get_snapshot_manager')
+    def test_restore_network_false_on_failure_with_virtual_network(self, mock_get_manager, manager):
+        """Test network_reconnected=False on failed restore with virtual network."""
+        # Setup running container with virtual network (not fallback)
+        info = ContainerInfo(
+            name="running-container",
+            path=Path("/fake/running.rts.png"),
+            state=ContainerState.RUNNING,
+            network_fallback=False,  # Using virtual network
+            resources=AllocatedResources(
+                vnc_port=5900,
+                container_id="test-id",
+                serial_socket=Path("/tmp/serial.sock"),
+                monitor_socket=Path("/tmp/monitor.sock"),
+                container_name="running-container",
+            ),
+        )
+        manager._containers["running-container"] = info
+
+        # Mock snapshot manager with failed restore
+        mock_snapshot_manager = Mock()
+        mock_snapshot_manager.restore_snapshot.return_value = SnapshotResult(
+            success=False,
+            tag="snap1",
+            error_message="Restore failed",
+        )
+        mock_get_manager.return_value = mock_snapshot_manager
+
+        result = manager.restore_snapshot("running-container", "snap1")
+
+        assert result.success is False
+        assert result.network_reconnected is False
+
+    @patch.object(MultiBootManager, '_get_snapshot_manager')
+    def test_restore_snapshot_manager_none(self, mock_get_manager, manager):
+        """Test restore when snapshot manager is None."""
+        # Setup running container
+        info = ContainerInfo(
+            name="running-container",
+            path=Path("/fake/running.rts.png"),
+            state=ContainerState.RUNNING,
+            resources=AllocatedResources(
+                vnc_port=5900,
+                container_id="test-id",
+                serial_socket=Path("/tmp/serial.sock"),
+                monitor_socket=Path("/tmp/monitor.sock"),
+                container_name="running-container",
+            ),
+        )
+        manager._containers["running-container"] = info
+
+        # Mock snapshot manager returning None
+        mock_get_manager.return_value = None
+
+        result = manager.restore_snapshot("running-container", "snap1")
+
+        assert result.success is False
+        assert result.identity_preserved is False
+        assert result.error_message == "Could not get snapshot manager for container"
+        assert result.pre_restore_state == ContainerState.RUNNING
 
