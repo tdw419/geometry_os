@@ -117,6 +117,7 @@ class ContainerInfo:
     error_message: Optional[str] = None
     network_fallback: bool = False
     snapshots: List[VMSnapshotMetadata] = field(default_factory=list)
+    is_ephemeral: bool = False  # True if booted with --ephemeral flag
 
     def __post_init__(self):
         """Set default role after initialization."""
@@ -138,6 +139,7 @@ class ContainerInfo:
             "error_message": self.error_message,
             "network_fallback": self.network_fallback,
             "snapshots": [s.to_dict() for s in self.snapshots],
+            "is_ephemeral": self.is_ephemeral,
         }
 
 
