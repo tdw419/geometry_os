@@ -215,12 +215,12 @@ Plans:
   2. Original kernel/initrd are preserved in committed file
   3. Disk changes from committed state are visible after boot
   4. Commit shows verification progress before completion
-**Plans**: 3 plans (TBD)
+**Plans**: 3 plans
 
 Plans:
-- [ ] 16-01: Committed file format with vm-snapshot type
-- [ ] 16-02: Boot verification for committed files
-- [ ] 16-03: State restoration on boot
+- [ ] 16-01-PLAN.md - CommittedFileBooter class for vm-snapshot boot
+- [ ] 16-02-PLAN.md - Kernel/initrd preservation in committed files
+- [ ] 16-03-PLAN.md - CLI integration and verification
 
 #### Phase 17: CLI Integration
 **Goal**: Users can commit containers with a single CLI command.
@@ -230,7 +230,7 @@ Plans:
   1. User can run `pixelrts commit <container> <output.rts.png>` to create committed file
   2. User can specify `--snapshot <tag>` to commit a specific snapshot
   3. User can skip verification with `--no-verify` flag for faster commits
-**Plans**: 3 plans (TBD)
+**Plans**: 3 plans
 
 Plans:
 - [ ] 17-01: CLI commit command
@@ -245,7 +245,7 @@ Phases execute in numeric order: 15 - 16 - 17
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 15. Snapshot Export | v1.5 | 3/3 | Complete | 2026-03-09 |
-| 16. Boot from Committed | v1.5 | 0/3 | Not started | - |
+| 16. Boot from Committed | v1.5 | 0/3 | Ready to execute | - |
 | 17. CLI Integration | v1.5 | 0/3 | Not started | - |
 
 ---
