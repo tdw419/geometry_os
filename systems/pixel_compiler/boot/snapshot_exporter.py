@@ -32,13 +32,14 @@ Usage:
     )
 """
 
+import hashlib
 import logging
 import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, Tuple, Dict
 
 from .snapshot_committer import SnapshotCommitter, CommitResult, CommitProgress
 
@@ -51,6 +52,7 @@ class ExportStage(Enum):
     """Stages of the export pipeline."""
     IDLE = "idle"
     COMMITTING = "committing"
+    EXTRACTING_BOOT_FILES = "extracting_boot_files"
     ENCODING = "encoding"
     COMPLETE = "complete"
     FAILED = "failed"
@@ -176,6 +178,61 @@ class SnapshotExporter:
 
         logger.debug(f"Export progress: {stage.value} - {message or 'in progress'}")
 
+    # Maximum size for combined kernel/initrd (100MB)
+    MAX_BOOT_FILES_SIZE = 100 * 1024 * 1024
+
+    def _extract_original_boot_files(self) -> Tuple[Optional[bytes], Optional[bytes]]:
+        """
+        Extract original kernel/initrd from booted container via FUSE.
+
+        Uses boot_bridge._mount_helper to access the mounted filesystem
+        and discover the original kernel/initrd files that were used to boot.
+
+        Returns:
+            Tuple of (kernel_data, initrd_data). Either may be None if not found
+            or not accessible.
+        """
+        # Check if boot_bridge has mounted filesystem
+        if not hasattr(self.boot_bridge, '_mounted') or not self.boot_bridge._mounted:
+            logger.warning("Boot bridge not mounted - cannot extract boot files")
+            return None, None
+
+        if not hasattr(self.boot_bridge, '_mount_helper') or not self.boot_bridge._mount_helper:
+            logger.warning("No mount helper available - cannot extract boot files")
+            return None, None
+
+        mount_helper = self.boot_bridge._mount_helper
+
+        # Discover boot files from mounted filesystem
+        try:
+            kernel_path, initrd_path = mount_helper.discover_boot_files()
+        except Exception as e:
+            logger.warning(f"Failed to discover boot files: {e}")
+            return None, None
+
+        kernel_data = None
+        initrd_data = None
+
+        # Read kernel file if found
+        if kernel_path:
+            try:
+                with open(kernel_path, 'rb') as f:
+                    kernel_data = f.read()
+                logger.info(f"Extracted kernel: {len(kernel_data)} bytes from {kernel_path}")
+            except Exception as e:
+                logger.warning(f"Failed to read kernel from {kernel_path}: {e}")
+
+        # Read initrd file if found
+        if initrd_path:
+            try:
+                with open(initrd_path, 'rb') as f:
+                    initrd_data = f.read()
+                logger.info(f"Extracted initrd: {len(initrd_data)} bytes from {initrd_path}")
+            except Exception as e:
+                logger.warning(f"Failed to read initrd from {initrd_path}: {e}")
+
+        return kernel_data, initrd_data
+
     def _encode_to_rts(
         self,
         qcow2_path: Path,
@@ -219,6 +276,51 @@ class SnapshotExporter:
         with open(qcow2_path, 'rb') as f:
             qcow2_data = f.read()
 
+        # Extract original kernel/initrd from booted container
+        self._update_progress(
+            ExportStage.EXTRACTING_BOOT_FILES,
+            "Extracting original kernel/initrd...",
+            bytes_processed=file_size,
+            total_bytes=file_size
+        )
+
+        kernel_data, initrd_data = self._extract_original_boot_files()
+
+        # Check if boot files are too large
+        boot_files_size = (len(kernel_data) if kernel_data else 0) + (len(initrd_data) if initrd_data else 0)
+        if boot_files_size > self.MAX_BOOT_FILES_SIZE:
+            logger.warning(
+                f"Boot files too large ({boot_files_size} bytes > {self.MAX_BOOT_FILES_SIZE}), "
+                "skipping kernel/initrd preservation"
+            )
+            kernel_data = None
+            initrd_data = None
+
+        # Build combined data: qcow2 + kernel + initrd
+        # Store offsets in metadata so decoder knows where each piece is
+        combined_data = bytearray(qcow2_data)
+        offsets: Dict[str, Dict[str, Any]] = {}
+
+        if kernel_data:
+            kernel_offset = len(combined_data)
+            combined_data.extend(kernel_data)
+            offsets["kernel"] = {
+                "offset": kernel_offset,
+                "size": len(kernel_data),
+                "sha256": hashlib.sha256(kernel_data).hexdigest()
+            }
+            logger.info(f"Kernel stored at offset {kernel_offset}, size {len(kernel_data)}")
+
+        if initrd_data:
+            initrd_offset = len(combined_data)
+            combined_data.extend(initrd_data)
+            offsets["initrd"] = {
+                "offset": initrd_offset,
+                "size": len(initrd_data),
+                "sha256": hashlib.sha256(initrd_data).hexdigest()
+            }
+            logger.info(f"Initrd stored at offset {initrd_offset}, size {len(initrd_data)}")
+
         self._update_progress(
             ExportStage.ENCODING,
             f"Encoding to PixelRTS format...",
@@ -232,14 +334,17 @@ class SnapshotExporter:
             "snapshot_tag": snapshot_tag,
             "source_format": "qcow2",
             "created_at": datetime.now().isoformat(),
-            "original_size": file_size
+            "disk_size": len(qcow2_data),
+            "offsets": offsets,
+            "has_kernel": kernel_data is not None,
+            "has_initrd": initrd_data is not None,
         }
 
-        # Create encoder in standard mode for qcow2 binary data
+        # Create encoder in standard mode for combined binary data
         encoder = PixelRTSEncoder(mode="standard")
 
         # Encode to PNG
-        png_data = encoder.encode(qcow2_data, metadata=metadata)
+        png_data = encoder.encode(bytes(combined_data), metadata=metadata)
 
         # Write output file
         with open(output_path, 'wb') as f:
