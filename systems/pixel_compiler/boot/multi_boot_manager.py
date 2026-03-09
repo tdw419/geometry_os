@@ -1036,16 +1036,17 @@ class MultiBootManager:
 
         return snapshot_manager.list_snapshots()
 
-    def restore_snapshot(self, name: str, tag: str) -> SnapshotResult:
+    def restore_snapshot(self, name: str, tag: str) -> RestoreResult:
         """
-        Restore a container to a snapshot.
+        Restore a container to a snapshot with identity preservation.
 
         Args:
             name: Container name
             tag: Snapshot tag to restore
 
         Returns:
-            SnapshotResult with success status
+            RestoreResult with success status, identity preservation status,
+            and network reconnection tracking
 
         Raises:
             ValueError: If container doesn't exist or isn't running
@@ -1059,15 +1060,56 @@ class MultiBootManager:
                 f"Container '{name}' is not running (state: {info.state.value})"
             )
 
+        # Store pre-restore state for identity verification
+        pre_restore_state = info.state
+        pre_restore_name = info.name
+        pre_restore_vnc_port = info.resources.vnc_port if info.resources else None
+
         snapshot_manager = self._get_snapshot_manager(name)
         if not snapshot_manager:
-            return SnapshotResult(
+            return RestoreResult(
                 success=False,
-                tag=tag,
+                container_name=name,
+                snapshot_tag=tag,
+                identity_preserved=False,
+                pre_restore_state=pre_restore_state,
+                post_restore_state=info.state,
                 error_message="Could not get snapshot manager for container"
             )
 
-        return snapshot_manager.restore_snapshot(tag)
+        # Perform restore via VMSnapshotManager
+        result = snapshot_manager.restore_snapshot(tag)
+
+        # Determine identity preservation (name and VNC port unchanged)
+        post_restore_name = info.name
+        post_restore_vnc_port = info.resources.vnc_port if info.resources else None
+
+        identity_preserved = (
+            post_restore_name == pre_restore_name and
+            post_restore_vnc_port == pre_restore_vnc_port
+        )
+
+        # Determine network reconnection status
+        # None if using fallback, True/False if using virtual network
+        if info.network_fallback:
+            network_reconnected = None
+        else:
+            network_reconnected = result.success
+
+        # Post-restore state is still RUNNING (QEMU process is alive even on restore failure)
+        post_restore_state = ContainerState.RUNNING
+
+        return RestoreResult(
+            success=result.success,
+            container_name=name,
+            snapshot_tag=tag,
+            identity_preserved=identity_preserved,
+            network_reconnected=network_reconnected,
+            pre_restore_state=pre_restore_state,
+            post_restore_state=post_restore_state,
+            error_message=result.error_message,
+            restore_progress=result.restore_progress
+        )
 
     def delete_snapshot(self, name: str, tag: str) -> SnapshotResult:
         """
