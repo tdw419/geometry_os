@@ -534,7 +534,7 @@ class SnapshotExporter:
 
                 verified, verification_error = self._verify_export(
                     output_path=output_path,
-                    expected_disk_size=commit_result.disk_size,
+                    expected_disk_size=commit_result.size_bytes,
                     commit_result=commit_result
                 )
 
