@@ -72,19 +72,34 @@ If everything else fails, users must be able to:
   - Exit codes: 0=identical, 1=different, 2=missing, 3=invalid
   - JSON export with --json flag
 
-## Current Milestone: v1.2 Network Boot
+✓ **NETWORK-01**: User can boot PixelRTS containers over network via PXE — v1.2
+  - `pixelrts serve <file.png>` command
+  - Proxy DHCP mode on port 4011
+  - TFTP server for legacy PXE boot
 
-**Goal:** Boot PixelRTS containers over network (PXE/NBD) with delta updates
+✓ **NETWORK-02**: NBD block export for .rts.png files — v1.2
+  - nbdkit Python plugin with range decoding
+  - Memory-efficient serving of large containers
 
-**Target features:**
-- PXE boot server for network booting .rts.png files
-- NBD (Network Block Device) serving containers
-- Delta-based OS updates (download only changed bytes)
+✓ **NETWORK-03**: HTTP boot via iPXE for faster transfers — v1.2
+  - HTTPBootServer with byte-range support
+  - Chainload from TFTP to HTTP
 
-### Active (v1.2)
+✓ **DELTA-01**: Delta manifest generation between versions — v1.2
+  - `pixelrts delta <old.png> <new.png>` command
+  - SHA-256 checksums per region
 
-- [ ] **NETWORK-01**: Boot PixelRTS containers over network (PXE/NBD)
-- [ ] **NETWORK-02**: Delta-based OS updates (download only changed bytes)
+✓ **DELTA-02**: Delta patch application — v1.2
+  - `pixelrts patch <base.png> <manifest.json>` command
+  - `pixelrts update <file.png> --server <url>` for remote updates
+
+✓ **DELTA-03**: Delta server integration — v1.2
+  - /delta/list and /delta/<file>.json endpoints
+  - DeltaHTTPHandler wired to HTTPBootServer
+
+## Current Milestone: None (v1.2 shipped)
+
+**Next:** Run `/gsd:new-milestone` to start v1.3
 
 ### Future
 
@@ -109,6 +124,12 @@ If everything else fails, users must be able to:
 - 1 phase, 4 plans completed
 - CLI command: diff
 - 23 tests passing
+
+**Shipped v1.2 (2026-03-09):**
+- 4 phases (6, 7, 8, 8.1), 10 plans completed
+- CLI commands: serve, delta, patch, update
+- 425 tests passing
+- Network boot (PXE/NBD), HTTP boot, delta updates
 
 **Tech Stack:**
 - Python 3.12+
@@ -147,6 +168,12 @@ If everything else fails, users must be able to:
 | scipy.ndimage.label for regions | Connected component detection | ✓ Good |
 | RGBA channel mapping via (byte_idx % 4) | Simple channel extraction | ✓ Good |
 | Output limited to 20 regions | Prevent terminal flood | ✓ Good |
+| Proxy DHCP mode (port 4011) | Avoid DHCP conflicts | ✓ Good |
+| Range decoding in decoder class | Memory-efficient serving | ✓ Good |
+| Async orchestrator pattern | Service coordination | ✓ Good |
+| Handler interface `handle(path, headers, writer) -> bool` | Clean extensibility | ✓ Good |
+| ByteFetcher protocol | Remote region fetching | ✓ Good |
+| Decode/encode cycle for checksums | Data integrity | ✓ Good |
 
 ---
-*Last updated: 2026-03-08 — v1.2 milestone started*
+*Last updated: 2026-03-09 — v1.2 shipped*
