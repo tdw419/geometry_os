@@ -13,7 +13,7 @@
 
 ## Current Status
 
-**Milestone v1.7 Vision Integrity in progress.** Phase 21 plans created.
+**Milestone v1.7 Vision Integrity in progress.** Phase 22 plans created.
 
 ---
 
@@ -79,7 +79,7 @@ Plans:
 **Plans**: 1
 
 Plans:
-- [ ] 22-01: CLI verify command implementation
+- [ ] 22-01-PLAN.md — Add pixelrts verify CLI command with --json and --verbose flags
 
 ## Progress
 
@@ -94,4 +94,4 @@ Phases execute in numeric order: 19 → 20 → 21 → 22
 | 22. CLI Integration | v1.7 | 0/1 | Not started | - |
 
 ---
-*Last updated: 2026-03-09 — Phase 21 plans created*
+*Last updated: 2026-03-09 — Phase 22 plans created*
