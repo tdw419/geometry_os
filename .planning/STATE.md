@@ -5,29 +5,29 @@
 See: .planning/PROJECT.md (updated 2026-03-08)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** Phase 8 - Delta Updates
+**Current focus:** v1.2 Network Boot - COMPLETE
 
 ## Current Position
 
-Phase: 8 of 8 (Delta Updates)
-Plan: 2 of 3 (Delta Patcher)
-Status: In progress
-Last activity: 2026-03-09 — Completed 08-02-PLAN.md (Delta Patcher)
+Phase: 8 of 8 (Delta Updates) - COMPLETE
+Plan: 3 of 3 (Delta Server Integration)
+Status: Milestone Complete
+Last activity: 2026-03-09 — Completed v1.2 Network Boot milestone
 
-Progress: [██████████████░░░░░░░░] 67% (8/12 plans in v1.2)
+Progress: [████████████████████] 100% (11/11 plans in v1.2)
 
 ## Performance Metrics
 
 **v1.2 Velocity:**
-- Plans completed: 8
-- Duration: ~55 min (13 + 9 + 8 + 5 + 5 + 4 + 11)
-- Tests: 323 passing (28 + 59 + 53 + 44 + 58 + 29 + 28 + 24)
+- Plans completed: 11 (3 + 3 + 3 + 2 for Phase 8)
+- Duration: ~75 min total
+- Tests: 392 passing (28 + 59 + 53 + 44 + 58 + 29 + 28 + 24 + 17 + 28 + 24)
 
 **Cumulative:**
 - v1.0: 22 plans
 - v1.1: 4 plans
-- v1.2: 8 plans (Phase 8 in progress)
-- Total: 34 plans
+- v1.2: 11 plans
+- Total: 37 plans
 
 ## Accumulated Context
 
@@ -85,6 +85,12 @@ Key decisions archived in `.planning/milestones/`:
 - Atomic in-place patching via temp file + rename
 - Checksum validation on by default, --skip-validation available
 
+**08-03 Decisions:**
+- HTTP required for delta server (--delta without --http logs warning)
+- Atomic manifest generation before server startup
+- Bytes transferred tracking in HTTPByteFetcher
+- Stem-based manifest naming ({container_stem}.json)
+
 ### Pending Todos
 
 None.
@@ -98,8 +104,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-09T01:29:06Z
-Stopped at: Completed 08-02-PLAN.md (Delta Patcher)
+Last session: 2026-03-09T02:30:00Z
+Stopped at: Completed v1.2 Network Boot milestone
 Resume file: None
 
 **CLI Commands Available (v1.0 + v1.1 + v1.2):**
@@ -108,16 +114,18 @@ Resume file: None
 - `pixelrts install <file.png> <target>` - Install .rts.png to disk image
 - `pixelrts catalog` - Launch visual catalog server
 - `pixelrts diff <old.png> <new.png>` - Visual diff comparison
-- `pixelrts delta <old.png> <new.png>` - Generate delta manifest (Phase 8)
+- `pixelrts delta <old.png> <new.png>` - Generate delta manifest
   - `-o/--output` - Output manifest file (default: stdout)
   - `-q/--quiet` - Suppress summary output
-- `pixelrts patch <base.png> <manifest.json>` - Apply delta manifest (Phase 8)
+- `pixelrts patch <base.png> <manifest.json>` - Apply delta manifest
   - `-o/--output` - Output file (default: in-place)
   - `--skip-validation` - Skip checksum validation
   - `-q/--quiet` - Suppress success output
+- `pixelrts update <file.png> --server <url>` - Update via delta from server
+  - `--force` - Force update despite checksum mismatch
+  - `--skip-validation` - Skip checksum validation
 - `pixelrts serve <file.png>` - Start network boot services
   - `--http` - Enable HTTP boot for faster transfers
   - `--http-port PORT` - Custom HTTP port (default: 8080)
-
-**Planned Commands (v1.2):**
-- HTTP region fetcher for `pixelrts patch` (Phase 8 Plan 3)
+  - `--delta` - Enable delta manifest serving
+  - `--delta-from <old.png>` - Generate initial delta from old version

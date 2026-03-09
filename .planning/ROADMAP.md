@@ -4,7 +4,7 @@
 
 - **v1.0 PixelRTS Boot** -- Phases 1-4 (shipped 2026-03-08)
 - **v1.1 Visual Diff** -- Phase 5 (shipped 2026-03-08)
-- **v1.2 Network Boot** -- Phases 6-8 (in progress)
+- **v1.2 Network Boot** -- Phases 6-8 (shipped 2026-03-09)
 
 ## Phases
 
@@ -35,7 +35,7 @@ See: `.planning/milestones/v1.1-ROADMAP.md` for full details.
 
 </details>
 
-## v1.2 Network Boot (In Progress)
+## v1.2 Network Boot (Complete)
 
 **Milestone Goal:** Boot PixelRTS containers over network (PXE/NBD) with bandwidth-efficient delta updates.
 
@@ -98,9 +98,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 08-01-PLAN.md -- Delta Manifest Generation
-- [ ] 08-02-PLAN.md -- Delta Patch Application
-- [ ] 08-03-PLAN.md -- Delta Server Integration
+- [x] 08-01-PLAN.md -- Delta Manifest Generation
+- [x] 08-02-PLAN.md -- Delta Patch Application
+- [x] 08-03-PLAN.md -- Delta Server Integration
 
 ## Progress
 
@@ -116,8 +116,8 @@ Phases execute in numeric order: 6 -> 7 -> 8
 | 5. Visual Diff Engine | v1.1 | 4/4 | Complete | 2026-03-08 |
 | 6. NBD Server + PXE Boot | v1.2 | 3/3 | Complete | 2026-03-08 |
 | 7. HTTP Boot via iPXE | v1.2 | 3/3 | Complete | 2026-03-08 |
-| 8. Delta Updates | v1.2 | 0/3 | Not started | - |
+| 8. Delta Updates | v1.2 | 3/3 | Complete | 2026-03-09 |
 
 ---
 
-*Next: `/gsd:execute-phase 8`*
+*Next: `/gsd:complete-milestone` (v1.2 complete)*

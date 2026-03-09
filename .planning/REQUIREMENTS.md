@@ -1,8 +1,9 @@
 # Requirements: v1.2 Network Boot
 
 **Milestone:** v1.2 Network Boot
-**Status:** Active
+**Status:** Complete
 **Created:** 2026-03-08
+**Completed:** 2026-03-09
 
 ## Requirements
 
@@ -27,9 +28,9 @@
 
 ### Delta Updates (DELTA)
 
-- [ ] **DELTA-01**: User can generate delta manifest between two .rts.png versions
-- [ ] **DELTA-02**: Client can apply delta patch to update local copy
-- [ ] **DELTA-03**: Delta transfer leverages existing PixelRTSDiffer infrastructure
+- [x] **DELTA-01**: User can generate delta manifest between two .rts.png versions
+- [x] **DELTA-02**: Client can apply delta patch to update local copy
+- [x] **DELTA-03**: Delta transfer leverages existing PixelRTSDiffer infrastructure
 
 ## Future Requirements
 
@@ -58,9 +59,9 @@
 | NBD-03 | 6 | Complete |
 | HTTP-01 | 7 | Complete |
 | HTTP-02 | 7 | Complete |
-| DELTA-01 | 8 | Pending |
-| DELTA-02 | 8 | Pending |
-| DELTA-03 | 8 | Pending |
+| DELTA-01 | 8 | Complete |
+| DELTA-02 | 8 | Complete |
+| DELTA-03 | 8 | Complete |
 
 ---
 
