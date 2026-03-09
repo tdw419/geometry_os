@@ -990,6 +990,7 @@ def cmd_serve(args):
     Starts all network boot services:
     - DHCP proxy (port 4011) for PXE boot info
     - TFTP server (port 69) for boot files
+    - HTTP server (port 8080) for faster boot file transfers (optional)
     - NBD server (port 10809) for root filesystem
 
     Exit codes:
@@ -1022,7 +1023,9 @@ def cmd_serve(args):
         server = PixelRTSServer(
             rts_png_path=rts_file,
             interface=args.interface,
-            verbose=args.verbose
+            verbose=args.verbose,
+            enable_http=getattr(args, 'http', False),
+            http_port=getattr(args, 'http_port', 8080)
         )
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -1479,6 +1482,17 @@ Examples:
         '--verbose', '-v',
         action='store_true',
         help='Enable verbose output'
+    )
+    serve_parser.add_argument(
+        '--http',
+        action='store_true',
+        help='Enable HTTP boot for faster transfers (chainloads iPXE)'
+    )
+    serve_parser.add_argument(
+        '--http-port',
+        type=int,
+        default=8080,
+        help='HTTP server port (default: 8080)'
     )
     serve_parser.set_defaults(func=cmd_serve)
 
