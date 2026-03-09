@@ -4,20 +4,20 @@
 
 ### Core
 
-- [ ] **EPHEM-01**: User can boot container with `--ephemeral` flag
-- [ ] **EPHEM-02**: Changes are discarded on container exit
-- [ ] **EPHEM-03**: Original .rts.png file remains unchanged
+- [x] **EPHEM-01**: User can boot container with `--ephemeral` flag
+- [x] **EPHEM-02**: Changes are discarded on container exit
+- [x] **EPHEM-03**: Original .rts.png file remains unchanged
 
 ### Integration
 
-- [ ] **EPHEM-04**: Works with all boot types (bootable, vm-snapshot)
-- [ ] **EPHEM-05**: Works with multi-container boot
-- [ ] **EPHEM-06**: `pixelrts ps` shows ephemeral containers with indicator
+- [x] **EPHEM-04**: Works with all boot types (bootable, vm-snapshot)
+- [x] **EPHEM-05**: Works with multi-container boot
+- [x] **EPHEM-06**: `pixelrts ps` shows ephemeral containers with indicator
 
 ### Safety
 
-- [ ] **EPHEM-07**: Temp files cleaned up on exit (normal or crash)
-- [ ] **EPHEM-08**: User can save ephemeral changes with `pixelrts commit`
+- [x] **EPHEM-07**: Temp files cleaned up on exit (normal or crash)
+- [x] **EPHEM-08**: User can save ephemeral changes with `pixelrts commit`
 
 ## Out of Scope
 
@@ -31,14 +31,15 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| EPHEM-01 | 18 | Pending |
-| EPHEM-02 | 18 | Pending |
-| EPHEM-03 | 18 | Pending |
-| EPHEM-04 | 18 | Pending |
-| EPHEM-05 | 18 | Pending |
-| EPHEM-06 | 18 | Pending |
-| EPHEM-07 | 18 | Pending |
-| EPHEM-08 | 18 | Pending |
+| EPHEM-01 | 18 | Complete |
+| EPHEM-02 | 18 | Complete |
+| EPHEM-03 | 18 | Complete |
+| EPHEM-04 | 18 | Complete |
+| EPHEM-05 | 18 | Complete |
+| EPHEM-06 | 18 | Complete |
+| EPHEM-07 | 18 | Complete |
+| EPHEM-08 | 18 | Complete |
 
 ---
 *Created: 2026-03-09*
+*Completed: 2026-03-09*
