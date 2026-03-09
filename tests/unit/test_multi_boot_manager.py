@@ -1202,3 +1202,317 @@ class TestOrderedBoot:
         assert alpine.role == ContainerRole.HELPER
         assert ubuntu.role == ContainerRole.PRIMARY
         assert debian.role == ContainerRole.HELPER
+
+
+# Virtual Network Integration Tests
+
+class TestVirtualNetworkIntegration:
+    """Tests for virtual network integration in MultiBootManager."""
+
+    def test_boot_all_with_socket_mcast_mode(self, manager):
+        """Test that boot_all accepts network_mode='socket_mcast' parameter."""
+        import inspect
+        sig = inspect.signature(manager.boot_all)
+        params = sig.parameters
+        assert 'network_mode' in params, "boot_all should have network_mode parameter"
+        assert params['network_mode'].default == "user", "network_mode default should be 'user'"
+
+    def test_boot_all_with_custom_socket_config(self, manager):
+        """Test that custom socket config can be passed to boot_all."""
+        from systems.pixel_compiler.boot.virtual_network import VirtualNetworkConfig
+        import inspect
+        sig = inspect.signature(manager.boot_all)
+        params = sig.parameters
+        assert 'socket_config' in params, "boot_all should have socket_config parameter"
+
+    def test_container_info_has_network_fallback_field(self):
+        """Test that ContainerInfo has network_fallback field."""
+        info = ContainerInfo(
+            name="test",
+            path=Path("/fake/test.rts.png"),
+        )
+        assert hasattr(info, 'network_fallback')
+        assert info.network_fallback is False  # Default value
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_boot_all_passes_network_mode_to_bridge(self, mock_bridge_class, manager):
+        """Test that network_mode is passed through to BootBridge."""
+        from systems.pixel_compiler.integration.qemu_boot import NetworkMode
+
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900,
+                pid=12345,
+            )
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        # Boot with socket_mcast mode
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png"],
+            network_mode="socket_mcast",
+        )
+
+        # Verify BootBridge was called
+        assert mock_bridge_class.called
+        # Get the kwargs from the call
+        call_kwargs = mock_bridge_class.call_args[1]
+        assert call_kwargs.get('network_mode') == NetworkMode.SOCKET_MCAST
+
+
+class TestNetworkFallback:
+    """Tests for graceful network fallback behavior."""
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.VirtualNetwork')
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_fallback_on_network_unavailable(
+        self, mock_bridge_class, mock_vn_class, manager
+    ):
+        """Test that when VirtualNetwork fails, falls back to USER mode."""
+        from systems.pixel_compiler.integration.qemu_boot import NetworkMode
+
+        # Mock VirtualNetwork to be unavailable
+        mock_vn = Mock()
+        mock_vn.is_available.return_value = False
+        mock_vn_class.return_value = mock_vn
+
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900,
+                pid=12345,
+            )
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        # Boot with socket_mcast mode (should fall back to user)
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png"],
+            network_mode="socket_mcast",
+        )
+
+        # Boot should still succeed
+        assert result.success is True
+        assert result.success_count == 1
+
+        # Verify fallback to USER mode
+        call_kwargs = mock_bridge_class.call_args[1]
+        assert call_kwargs.get('network_mode') == NetworkMode.USER
+
+        # Verify network_fallback flag is set
+        assert result.containers[0].network_fallback is True
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.VirtualNetwork')
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_boot_succeeds_with_network_fallback(
+        self, mock_bridge_class, mock_vn_class, manager
+    ):
+        """Test that boot succeeds even when network setup fails."""
+        from systems.pixel_compiler.boot.virtual_network import NetworkSetupError
+
+        # Mock VirtualNetwork to raise NetworkSetupError
+        mock_vn_class.side_effect = NetworkSetupError("Network setup failed")
+
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900,
+                pid=12345,
+            )
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        # Boot should succeed despite network error
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png"],
+            network_mode="socket_mcast",
+        )
+
+        assert result.success is True
+        assert result.containers[0].state == ContainerState.RUNNING
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.VirtualNetwork')
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_network_fallback_flag_set(self, mock_bridge_class, mock_vn_class, manager):
+        """Test that network_fallback flag is True when fallback occurs."""
+        from systems.pixel_compiler.boot.virtual_network import NetworkSetupError
+
+        # Mock VirtualNetwork to raise error
+        mock_vn_class.side_effect = NetworkSetupError("Cannot create socket")
+
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900,
+                pid=12345,
+            )
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png"],
+            network_mode="socket_mcast",
+        )
+
+        # Check network_fallback flag
+        assert result.containers[0].network_fallback is True
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_default_network_mode_is_user(self, mock_bridge_class, manager):
+        """Test that default network mode is isolated USER mode."""
+        from systems.pixel_compiler.integration.qemu_boot import NetworkMode
+
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900,
+                pid=12345,
+            )
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        # Boot without specifying network_mode
+        result = manager.boot_all(["/fake/alpine.rts.png"])
+
+        # Verify USER mode is used
+        call_kwargs = mock_bridge_class.call_args[1]
+        assert call_kwargs.get('network_mode') == NetworkMode.USER
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_user_mode_never_falls_back(self, mock_bridge_class, manager):
+        """Test that USER mode never sets network_fallback flag."""
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900,
+                pid=12345,
+            )
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        # Boot with explicit USER mode
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png"],
+            network_mode="user",
+        )
+
+        # network_fallback should remain False
+        assert result.containers[0].network_fallback is False
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.VirtualNetwork')
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_socket_mcast_available_uses_socket_mcast(
+        self, mock_bridge_class, mock_vn_class, manager
+    ):
+        """Test that when VirtualNetwork is available, SOCKET_MCAST is used."""
+        from systems.pixel_compiler.integration.qemu_boot import NetworkMode
+
+        # Mock VirtualNetwork to be available
+        mock_vn = Mock()
+        mock_vn.is_available.return_value = True
+        mock_vn_class.return_value = mock_vn
+
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900,
+                pid=12345,
+            )
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png"],
+            network_mode="socket_mcast",
+        )
+
+        # Verify SOCKET_MCAST mode is used
+        call_kwargs = mock_bridge_class.call_args[1]
+        assert call_kwargs.get('network_mode') == NetworkMode.SOCKET_MCAST
+
+        # network_fallback should be False (no fallback occurred)
+        assert result.containers[0].network_fallback is False
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.VirtualNetwork')
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_fallback_with_multiple_containers(
+        self, mock_bridge_class, mock_vn_class, manager
+    ):
+        """Test fallback works correctly with multiple containers."""
+        from systems.pixel_compiler.boot.virtual_network import NetworkSetupError
+        from systems.pixel_compiler.integration.qemu_boot import NetworkMode
+
+        # Mock VirtualNetwork to raise error
+        mock_vn_class.side_effect = NetworkSetupError("Network unavailable")
+
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            vnc_display = kwargs.get('vnc_display', 0)
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900 + vnc_display,
+                pid=1000 + vnc_display,
+            )
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png", "/fake/ubuntu.rts.png"],
+            network_mode="socket_mcast",
+        )
+
+        # All containers should boot successfully with fallback
+        assert result.success is True
+        assert result.success_count == 2
+
+        # All containers should have network_fallback=True
+        for container in result.containers:
+            assert container.network_fallback is True
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.VirtualNetwork')
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_network_fallback_in_to_dict(
+        self, mock_bridge_class, mock_vn_class, manager
+    ):
+        """Test that network_fallback is included in to_dict()."""
+        from systems.pixel_compiler.boot.virtual_network import NetworkSetupError
+
+        # Mock VirtualNetwork to raise error
+        mock_vn_class.side_effect = NetworkSetupError("Network error")
+
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900,
+                pid=12345,
+            )
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png"],
+            network_mode="socket_mcast",
+        )
+
+        # Check to_dict includes network_fallback
+        container_dict = result.containers[0].to_dict()
+        assert 'network_fallback' in container_dict
+        assert container_dict['network_fallback'] is True
