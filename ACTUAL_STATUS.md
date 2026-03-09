@@ -10,6 +10,7 @@
 **1. Vector Kernel (v2.0 - Swarm Powered):**
 ✅ `vector_kernel/kernel.py`: Pure mathematical OS kernel.
 ✅ `systems/visual_shell/swarm/`: Production-ready distributed intelligence.
+✅ `systems/visual_shell/geoasm/`: Neural Assembly Language (GeoASM v1.0).
 ✅ Connects to `VectorSiliconSimulator` (Shared Memory).
 ✅ Runs at 60Hz Quantum Loop.
 

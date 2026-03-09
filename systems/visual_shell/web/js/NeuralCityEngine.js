@@ -74,6 +74,13 @@ class NeuralCityEngine {
 
         // Ripple Renderer for Tectonic Physics (Phase 28)
         this.rippleRenderer = null;
+
+        // Saccade Controller for Mind's Eye (Phase 28)
+        this.saccadeController = null;
+
+        // The spatial root for all city elements
+        this.world = new PIXI.Container();
+        this.world.name = 'neural_city_world';
     }
 
     /**
@@ -97,6 +104,12 @@ class NeuralCityEngine {
         if (typeof RippleRenderer !== 'undefined' && this.config.app) {
             this.rippleRenderer = new RippleRenderer(this.config.app, this.particleLayer);
             console.log('[Engine] RippleRenderer initialized');
+        }
+
+        // Initialize Saccade Controller (Phase 28)
+        if (typeof SaccadeController !== 'undefined') {
+            this.saccadeController = new SaccadeController(this);
+            console.log('[Engine] SaccadeController initialized');
         }
 
         // Connect telemetry bus
@@ -162,6 +175,9 @@ class NeuralCityEngine {
         } else if (response.type === 'TECTONIC_RIPPLE') {
             // Route TECTONIC_RIPPLE messages to ripple renderer (Phase 28)
             this._handleTectonicRipple(response);
+        } else if (response.type === 'CAMERA_SACCADE') {
+            // Route CAMERA_SACCADE messages to saccade controller (Phase 28)
+            this._handleCameraSaccade(response);
         }
     }
 
@@ -188,6 +204,17 @@ class NeuralCityEngine {
     _handleTectonicRipple(data) {
         if (this.rippleRenderer) {
             this.rippleRenderer.emitRipple(data);
+        }
+    }
+
+    /**
+     * Handle CAMERA_SACCADE messages from WebSocket.
+     * @param {Object} data - Saccade data {x, y, z, duration}
+     * @private
+     */
+    _handleCameraSaccade(data) {
+        if (this.saccadeController) {
+            this.saccadeController.saccadeTo(data);
         }
     }
 
@@ -590,10 +617,11 @@ class NeuralCityEngine {
 
         // Add to app stage
         if (this.config.container) {
-            this.config.container.addChild(this.staticLayer);
-            this.config.container.addChild(this.dynamicLayer);
-            this.config.container.addChild(this.saccadicLayer);
-            this.config.container.addChild(this.particleLayer);
+            this.config.container.addChild(this.world);
+            this.world.addChild(this.staticLayer);
+            this.world.addChild(this.dynamicLayer);
+            this.world.addChild(this.saccadicLayer);
+            this.world.addChild(this.particleLayer);
         }
     }
 
@@ -1216,6 +1244,11 @@ class NeuralCityEngine {
             // Update ripple animations (Phase 28)
             if (this.rippleRenderer) {
                 this.rippleRenderer.update();
+            }
+
+            // Update camera saccades (Phase 28)
+            if (this.saccadeController) {
+                this.saccadeController.update();
             }
 
             // Update City Mesh uniforms (time, camera)

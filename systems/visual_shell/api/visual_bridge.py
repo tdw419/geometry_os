@@ -909,6 +909,18 @@ class MultiVmStreamer:
         }
         self._dispatch_event(msg)
 
+    def emit_camera_saccade(self, x: float, y: float, z: float, duration_ms: int = 1000) -> None:
+        """Emit CAMERA_SACCADE event to move the visual viewport."""
+        msg = {
+            "type": "CAMERA_SACCADE",
+            "x": x,
+            "y": y,
+            "z": z,
+            "duration": duration_ms,
+            "timestamp": time.time()
+        }
+        self._dispatch_event(msg)
+
     # ========================================================================
     # ATTENTION_UPDATE Emission (Task 9.2: Glass Box Introspection)
     # ========================================================================

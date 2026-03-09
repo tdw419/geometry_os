@@ -10,6 +10,7 @@ import logging
 from typing import Optional, Any
 from .gravity_engine import GravityEngine
 from .file_watcher import FileEvent
+from .saccade_controller import SaccadeController
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,7 @@ class TectonicPhysics:
     def __init__(self, gravity_engine: GravityEngine, visual_bridge: Optional[Any] = None):
         self.engine = gravity_engine
         self.visual_bridge = visual_bridge
+        self.saccade_controller = SaccadeController(visual_bridge)
         
         # Physics Parameters
         self.expansion_force = 2000.0
@@ -48,6 +50,13 @@ class TectonicPhysics:
                     force=self.expansion_force,
                     radius=self.expansion_radius
                 )
+            
+            # Trigger Saccade (Attention shift)
+            self.saccade_controller.request_saccade(
+                orb["x"], orb["y"], orb["z"],
+                force=self.expansion_force
+            )
+
         elif event.event_type == "deleted":
             logger.info(f"🕳️  Void collapse: {event.file_path}")
             self.engine.emit_ripple(
@@ -62,3 +71,13 @@ class TectonicPhysics:
                     force=self.collapse_force,
                     radius=self.collapse_radius
                 )
+            
+            # Trigger Saccade
+            self.saccade_controller.request_saccade(
+                orb["x"], orb["y"], orb["z"],
+                force=self.collapse_force
+            )
+
+    def update(self):
+        """Update internal physics controllers."""
+        self.saccade_controller.update()

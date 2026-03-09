@@ -703,15 +703,31 @@ Ensure task numbering continues correctly.
         self.log("Tectonic gravity engine started")
         while self.running:
             try:
+                # Update Tectonic Updater (handles physics/saccade queue)
+                if self.tectonic_updater:
+                    self.tectonic_updater.update()
+
                 self.gravity_engine.update()
                 updates = self.gravity_engine.get_updates()
-                if self.compositor and updates:
-                    self.compositor.send_thought({
-                        "type": "GRAVITY_UPDATE",
-                        "updates": updates[:10], # Cap for bandwidth
-                        "timestamp": time.time()
-                    }, msg_type="Tectonic")
-                time.sleep(1.0) # 10Hz simulation update
+                ripples = self.gravity_engine.get_ripples()
+
+                if self.compositor:
+                    if updates:
+                        self.compositor.send_thought({
+                            "type": "GRAVITY_UPDATE",
+                            "updates": updates[:10], # Cap for bandwidth
+                            "timestamp": time.time()
+                        }, msg_type="Tectonic")
+                    
+                    if ripples:
+                        for ripple in ripples:
+                            self.compositor.send_thought({
+                                "type": "TECTONIC_RIPPLE",
+                                **ripple,
+                                "timestamp": time.time()
+                            }, msg_type="Tectonic")
+
+                time.sleep(1.0) # 1Hz simulation update (can be faster if needed)
             except Exception as e:
                 logger.error(f"Gravity loop error: {e}")
                 time.sleep(5)

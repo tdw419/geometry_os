@@ -66,6 +66,10 @@ class TectonicUpdater:
         # 3. Update gravity engine mass
         self.gravity_engine.update_mass(delta.file_path, delta.delta_mass)
 
+    def update(self):
+        """Update the Tectonic pipeline (physics, etc.)."""
+        self._physics.update()
+
     def _decay_loop(self):
         """Periodically apply mass decay."""
         while self._running:

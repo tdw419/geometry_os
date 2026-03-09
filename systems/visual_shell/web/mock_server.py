@@ -11,6 +11,7 @@ Features:
 """
 
 import json
+import os
 import asyncio
 import websockets
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -204,9 +205,15 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         elif path == '/workflow_monitor.html':
             self._handle_static_file('workflow_monitor.html', 'text/html')
         elif path.endswith('.js'):
-            self._handle_static_file(path[1:], 'application/javascript')
+            # Extract just the filename for JS files in this directory
+            filename = os.path.basename(path)
+            self._handle_static_file(filename, 'application/javascript')
         elif path.endswith('.css'):
-            self._handle_static_file(path[1:], 'text/css')
+            filename = os.path.basename(path)
+            self._handle_static_file(filename, 'text/css')
+        elif path.endswith('.html'):
+            filename = os.path.basename(path)
+            self._handle_static_file(filename, 'text/html')
         # Health check
         elif path == '/health':
             self._handle_health_check()

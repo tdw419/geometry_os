@@ -3,7 +3,7 @@
 change:
   name: geoasm-instruction-set
   title: GeoASM - Neural Assembly Language for PixelBrain
-  status: proposed
+  status: completed
   created: 2026-03-09
 
   scope:
@@ -31,25 +31,25 @@ change:
     - id: M1
       name: Core Components
       tasks: [task-1.1, task-2.1, task-3.1]
-      status: pending
+      status: completed
       description: Register file, instruction encoding, and assembler
 
     - id: M2
       name: Execution Engine
       tasks: [task-4.1, task-5.1]
-      status: pending
+      status: completed
       description: Executor and pipeline integration
 
     - id: M3
       name: Visual Feedback
       tasks: [task-6.1]
-      status: pending
+      status: completed
       description: Visual bridge for thought pulses
 
     - id: M4
       name: E2E Validation
       tasks: [task-7.1]
-      status: pending
+      status: completed
       description: Demo script and integration tests
 
   metrics:
