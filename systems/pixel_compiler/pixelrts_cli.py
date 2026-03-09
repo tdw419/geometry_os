@@ -1768,6 +1768,11 @@ def cmd_commit(args):
         print("Use 'pixelrts ps' to list running containers", file=sys.stderr)
         return 1
 
+    # Check if this is an ephemeral container and show informational message
+    is_ephemeral = getattr(container, 'is_ephemeral', False) or container.get('is_ephemeral', False)
+    if is_ephemeral and not args.quiet:
+        print(f"Note: Committing ephemeral container '{container_name}'")
+
     # Get BootBridge from running container
     boot_bridge = container.get('boot_bridge')
     if not boot_bridge:
