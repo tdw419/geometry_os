@@ -10,6 +10,7 @@ import asyncio
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock, AsyncMock
 from dataclasses import dataclass
+from datetime import datetime
 
 from systems.pixel_compiler.boot.multi_boot_manager import (
     MultiBootManager,
@@ -24,6 +25,12 @@ from systems.pixel_compiler.boot.resource_allocator import (
     ResourceExhaustedError,
 )
 from systems.pixel_compiler.boot.boot_bridge import BootResult
+from systems.pixel_compiler.boot.vm_snapshot import (
+    VMSnapshotMetadata,
+    SnapshotResult,
+    SnapshotInfo,
+    SnapshotState,
+)
 
 
 # Fixtures
@@ -1516,3 +1523,242 @@ class TestNetworkFallback:
         container_dict = result.containers[0].to_dict()
         assert 'network_fallback' in container_dict
         assert container_dict['network_fallback'] is True
+
+
+# ========================================
+# Snapshot Tests
+# ========================================
+
+
+class TestContainerInfoSnapshots:
+    """Tests for ContainerInfo snapshot field."""
+
+    def test_container_info_has_snapshots_field(self):
+        """Test ContainerInfo has snapshots field."""
+        info = ContainerInfo(
+            name="test",
+            path=Path("/path/to/test.rts.png"),
+        )
+        assert hasattr(info, 'snapshots')
+        assert info.snapshots == []
+
+    def test_container_info_to_dict_includes_snapshots(self):
+        """Test ContainerInfo.to_dict() includes snapshots."""
+        metadata = VMSnapshotMetadata(
+            snapshot_id="vmsnap_test_pre-update_20240101_120000",
+            tag="pre-update",
+            container_name="test",
+            created_at=datetime(2024, 1, 1, 12, 0, 0),
+            state=SnapshotState.COMPLETE,
+            vm_memory="2G",
+            description="Before update",
+        )
+        info = ContainerInfo(
+            name="test",
+            path=Path("/path/to/test.rts.png"),
+            snapshots=[metadata],
+        )
+        d = info.to_dict()
+        assert 'snapshots' in d
+        assert len(d['snapshots']) == 1
+        assert d['snapshots'][0]['tag'] == "pre-update"
+
+    def test_container_info_snapshots_default_empty(self):
+        """Test ContainerInfo snapshots default to empty list."""
+        info = ContainerInfo(
+            name="test",
+            path=Path("/path/to/test.rts.png"),
+        )
+        assert info.snapshots == []
+
+
+class TestMultiBootManagerSnapshotMethods:
+    """Tests for MultiBootManager snapshot methods."""
+
+    def test_create_snapshot_raises_for_nonexistent_container(self, manager):
+        """Test create_snapshot raises for nonexistent container."""
+        with pytest.raises(ValueError, match="does not exist"):
+            manager.create_snapshot("nonexistent", "snap1")
+
+    def test_create_snapshot_raises_for_non_running_container(self, manager):
+        """Test create_snapshot raises for non-running container."""
+        # Create a container in IDLE state
+        info = ContainerInfo(
+            name="idle-container",
+            path=Path("/fake/idle.rts.png"),
+            state=ContainerState.IDLE,
+        )
+        manager._containers["idle-container"] = info
+
+        with pytest.raises(ValueError, match="is not running"):
+            manager.create_snapshot("idle-container", "snap1")
+
+    @patch.object(MultiBootManager, '_get_snapshot_manager')
+    def test_create_snapshot_delegates_to_manager(self, mock_get_manager, manager):
+        """Test create_snapshot delegates to VMSnapshotManager."""
+        # Setup running container
+        info = ContainerInfo(
+            name="running-container",
+            path=Path("/fake/running.rts.png"),
+            state=ContainerState.RUNNING,
+        )
+        manager._containers["running-container"] = info
+
+        # Mock snapshot manager
+        mock_snapshot_manager = Mock()
+        expected_result = SnapshotResult(
+            success=True,
+            tag="snap1",
+            metadata=VMSnapshotMetadata(
+                snapshot_id="test-id",
+                tag="snap1",
+                container_name="running-container",
+                created_at=datetime.now(),
+                state=SnapshotState.COMPLETE,
+                vm_memory="2G",
+            )
+        )
+        mock_snapshot_manager.create_snapshot.return_value = expected_result
+        mock_get_manager.return_value = mock_snapshot_manager
+
+        result = manager.create_snapshot("running-container", "snap1", "test snapshot")
+
+        assert result.success is True
+        assert result.tag == "snap1"
+        mock_snapshot_manager.create_snapshot.assert_called_once_with(
+            "snap1", description="test snapshot"
+        )
+
+    @patch.object(MultiBootManager, '_get_snapshot_manager')
+    def test_create_snapshot_appends_metadata_on_success(self, mock_get_manager, manager):
+        """Test create_snapshot appends metadata to container info on success."""
+        # Setup running container
+        info = ContainerInfo(
+            name="running-container",
+            path=Path("/fake/running.rts.png"),
+            state=ContainerState.RUNNING,
+        )
+        manager._containers["running-container"] = info
+
+        # Mock snapshot manager
+        metadata = VMSnapshotMetadata(
+            snapshot_id="test-id",
+            tag="snap1",
+            container_name="running-container",
+            created_at=datetime.now(),
+            state=SnapshotState.COMPLETE,
+            vm_memory="2G",
+        )
+        mock_snapshot_manager = Mock()
+        mock_snapshot_manager.create_snapshot.return_value = SnapshotResult(
+            success=True,
+            tag="snap1",
+            metadata=metadata,
+        )
+        mock_get_manager.return_value = mock_snapshot_manager
+
+        manager.create_snapshot("running-container", "snap1")
+
+        assert len(info.snapshots) == 1
+        assert info.snapshots[0].tag == "snap1"
+
+    def test_list_container_snapshots_raises_for_nonexistent(self, manager):
+        """Test list_container_snapshots raises for nonexistent container."""
+        with pytest.raises(ValueError, match="does not exist"):
+            manager.list_container_snapshots("nonexistent")
+
+    def test_list_container_snapshots_raises_for_non_running(self, manager):
+        """Test list_container_snapshots raises for non-running container."""
+        info = ContainerInfo(
+            name="stopped-container",
+            path=Path("/fake/stopped.rts.png"),
+            state=ContainerState.STOPPED,
+        )
+        manager._containers["stopped-container"] = info
+
+        with pytest.raises(ValueError, match="is not running"):
+            manager.list_container_snapshots("stopped-container")
+
+    @patch.object(MultiBootManager, '_get_snapshot_manager')
+    def test_list_container_snapshots_delegates_to_manager(self, mock_get_manager, manager):
+        """Test list_container_snapshots delegates to VMSnapshotManager."""
+        # Setup running container
+        info = ContainerInfo(
+            name="running-container",
+            path=Path("/fake/running.rts.png"),
+            state=ContainerState.RUNNING,
+        )
+        manager._containers["running-container"] = info
+
+        # Mock snapshot manager
+        expected_snapshots = [
+            SnapshotInfo(id=1, tag="snap1", size="1.5 GB", date="2024-01-01 12:00:00", vm_clock="00:01:00.000"),
+            SnapshotInfo(id=2, tag="snap2", size="2.0 GB", date="2024-01-02 12:00:00", vm_clock="00:02:00.000"),
+        ]
+        mock_snapshot_manager = Mock()
+        mock_snapshot_manager.list_snapshots.return_value = expected_snapshots
+        mock_get_manager.return_value = mock_snapshot_manager
+
+        result = manager.list_container_snapshots("running-container")
+
+        assert len(result) == 2
+        assert result[0].tag == "snap1"
+        assert result[1].tag == "snap2"
+
+    @patch.object(MultiBootManager, '_get_snapshot_manager')
+    def test_restore_snapshot_delegates_to_manager(self, mock_get_manager, manager):
+        """Test restore_snapshot delegates to VMSnapshotManager."""
+        # Setup running container
+        info = ContainerInfo(
+            name="running-container",
+            path=Path("/fake/running.rts.png"),
+            state=ContainerState.RUNNING,
+        )
+        manager._containers["running-container"] = info
+
+        # Mock snapshot manager
+        mock_snapshot_manager = Mock()
+        mock_snapshot_manager.restore_snapshot.return_value = SnapshotResult(
+            success=True,
+            tag="snap1",
+        )
+        mock_get_manager.return_value = mock_snapshot_manager
+
+        result = manager.restore_snapshot("running-container", "snap1")
+
+        assert result.success is True
+        mock_snapshot_manager.restore_snapshot.assert_called_once_with("snap1")
+
+    @patch.object(MultiBootManager, '_get_snapshot_manager')
+    def test_delete_snapshot_removes_from_tracking(self, mock_get_manager, manager):
+        """Test delete_snapshot removes snapshot from tracking on success."""
+        # Setup running container with snapshot
+        metadata = VMSnapshotMetadata(
+            snapshot_id="test-id",
+            tag="snap1",
+            container_name="running-container",
+            created_at=datetime.now(),
+            state=SnapshotState.COMPLETE,
+            vm_memory="2G",
+        )
+        info = ContainerInfo(
+            name="running-container",
+            path=Path("/fake/running.rts.png"),
+            state=ContainerState.RUNNING,
+            snapshots=[metadata],
+        )
+        manager._containers["running-container"] = info
+
+        # Mock snapshot manager
+        mock_snapshot_manager = Mock()
+        mock_snapshot_manager.delete_snapshot.return_value = SnapshotResult(
+            success=True,
+            tag="snap1",
+        )
+        mock_get_manager.return_value = mock_snapshot_manager
+
+        result = manager.delete_snapshot("running-container", "snap1")
+
+        assert result.success is True
+        assert len(info.snapshots) == 0
+
