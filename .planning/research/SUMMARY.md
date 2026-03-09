@@ -1,159 +1,198 @@
 # Project Research Summary
 
-**Project:** PixelRTS Commit-to-File (v1.5)
-**Domain:** VM Snapshot Persistence to Portable Container Format
+**Project:** Vision Integrity Verification for PixelRTS
+**Domain:** PNG-based OS container integrity verification
 **Researched:** 2026-03-09
-**Confidence:** HIGH
+**Confidence:** MEDIUM-HIGH
 
 ## Executive Summary
 
-Commit-to-file enables exporting a running VM's state (memory + disk changes) to a new portable `.rts.png` file. This bridges the gap between QEMU's internal snapshots (embedded in qcow2 files) and PixelRTS's portable PNG containers. The core technical challenge is extracting QEMU's internal snapshot format into a standalone, portable representation that can be encoded via the existing PixelRTSEncoder.
+Vision Integrity adds cryptographic verification and corruption detection to PixelRTS PNG container files, enabling users to verify that OS images haven't been tampered with or corrupted. This is a security-focused feature that extends the existing PixelRTS system with integrity guarantees.
 
-The recommended approach uses `qemu-img convert -l <snapshot_tag>` to extract internal snapshots to standalone qcow2 files, then encodes via the existing Hilbert curve mapping infrastructure. This leverages existing components (VMSnapshotManager, BootBridge, PixelRTSEncoder) with minimal modifications, using composition over inheritance for the new SnapshotCommitter orchestrator.
+The recommended approach is a **minimal addition architecture**: only one new dependency (cryptography>=46.0.0 for Ed25519 signatures), leveraging existing SHA256 hashing, Reed-Solomon error correction, and PIL image handling. The architecture follows a **verification chain pattern** with composable VerificationStep classes that allow partial success reporting and early termination on critical failures.
 
-Key risks include memory state size explosion (4GB VM = 4GB PNG), snapshot format incompatibility between QEMU versions, and state inconsistency if the VM continues running during commit. These are mitigated through streaming encoding, VM pause during commit, and clear format versioning in PNG metadata.
+Key risks include confusing PNG's built-in CRC with data integrity (they serve different purposes), false positives in tampering detection (entropy-based detection needs tuning), and key management complexity for signature verification. Mitigation: clear separation of structure vs. semantic verification, conservative anomaly thresholds, and a simple keyring approach initially.
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new dependencies required. The commit-to-file feature uses stdlib only (`subprocess`, `tempfile`, `shutil`, `pathlib`, `dataclasses`, `logging`) plus `qemu-img` (already required for VM operations).
+The stack addition is minimal. Vision Integrity primarily leverages existing validated components with one cryptographic addition:
 
 **Core technologies:**
-- **qemu-img convert -s/-l**: Extract internal QEMU snapshots to standalone qcow2 files
-- **tempfile.TemporaryDirectory**: Safe intermediate storage with automatic cleanup
-- **PixelRTSEncoder (existing)**: Encode binary qcow2 to .rts.png with Hilbert curve mapping
-- **VMSnapshotManager (existing)**: Create/list QEMU internal snapshots via monitor commands
-- **BootBridge (existing)**: Orchestrates FUSE mount + QEMU boot, provides VMSnapshotManager access
+- `cryptography>=46.0.0` — Ed25519 signature verification — industry-standard, maintained by PyCA, pure Python option
+- `reedsolo>=1.7.0` (existing) — Corruption detection via Reed-Solomon error correction — already integrated, reuse for integrity reporting
+- `Pillow>=10.0.0` (existing) — PNG chunk extraction and visual comparison — no new dependencies needed
+- `hashlib` (stdlib, existing) — SHA256 hash computation — already integrated in PixelRTSMetadata
+
+**What NOT to add:**
+- No pycryptodome (redundant with cryptography)
+- No opencv (PIL + numpy sufficient)
+- No alternative hashes (SHA256 already standardized)
 
 ### Expected Features
 
 **Must have (table stakes):**
-- Export snapshot to new file (COMMIT-01) - "I made changes, save them" is fundamental
-- Boot from committed file (COMMIT-02) - Committed file should boot like original
-- Progress visibility (COMMIT-03) - User sees commit progress, not a frozen CLI
+- PNG structure validation — verify valid PNG signature and chunk structure
+- Hash verification — confirm decoded data matches metadata hash
+- Clear pass/fail output — human-readable CLI output with specific failure reasons
+- Corruption detection — report Reed-Solomon detected errors
 
 **Should have (differentiators):**
-- One-command commit workflow - Single CLI call, no manual steps
-- Incremental commits - Only save delta from base (smaller files)
-- Snapshot chaining - Track parent/child relationships
+- Visual/data consistency check — detect if visual pixels differ from encoded data
+- Cryptographic signatures — Ed25519 signature verification for tampering detection
+- Segment-specific verification — verify individual regions (kernel, initrd, disk) independently
+- JSON output — machine-parseable results for automation
 
 **Defer (v2+):**
-- Compressed commits - Leverage existing compression module for smaller files
-- Ephemeral boot from snapshot - Boot with changes discarded on stop
-- Visual diff before commit - Leverage existing `pixelrts diff`
+- Real-time monitoring — continuous integrity watching
+- Auto-repair — attempt to fix corrupted segments
+- Remote attestation — network-based verification protocol
+- Multi-signature support — require multiple keys
 
 ### Architecture Approach
 
-The architecture follows a layered pipeline: CLI Layer -> Coordination Layer (SnapshotCommitter) -> Boot Layer (VMSnapshotManager, BootBridge) -> Encoding Layer (qemu-img, PixelRTSEncoder). A new SnapshotCommitter class orchestrates the commit pipeline by composing existing components rather than extending them.
+The architecture uses a **verification chain pattern** with composable steps, each responsible for a specific verification domain. A central `VisionIntegrityVerifier` orchestrates the pipeline, while `VerificationContext` provides shared state and lazy data access.
 
 **Major components:**
-1. **SnapshotCommitter (NEW)** - Orchestrates: snapshot -> extract -> encode -> persist metadata
-2. **VMSnapshotManager (existing)** - Create internal QEMU snapshots via `savevm` monitor command
-3. **qemu-img convert (external)** - Extract snapshot from qcow2 with `-l snapshot_name` flag
-4. **PixelRTSEncoder (existing)** - Encode binary data to .rts.png with Hilbert curve mapping
+1. **VisionIntegrityVerifier** — Main orchestrator that runs verification steps in sequence, supports strict mode (stop on first failure)
+2. **VerificationContext** — Shared state abstraction with lazy decoding, metadata access, and cached results
+3. **StructureVerifier** — PNG signature validation, chunk structure verification, metadata consistency
+4. **ConsistencyVerifier** — Hash verification using existing PixelRTSDecoder, visual vs encoded data comparison
+5. **SegmentIntegrityChecker** — Region-specific verification using decode_range() for efficiency
+6. **SignatureVerifier** — Ed25519 signature validation against data hash
+
+**Key patterns:**
+- **VerificationStep** abstract base class with composable steps
+- **Result aggregation** with per-component status and CLI formatting
+- **Lazy decoding** via VerificationContext to avoid redundant work
+- **Integration with existing components** — PixelRTSDecoder, PixelRTSMetadata, infinite_map_integrity patterns
 
 ### Critical Pitfalls
 
-1. **Internal Snapshot Format Incompatibility** - QEMU's `savevm` snapshots are NOT portable between versions/hosts. Use `qemu-img convert -l` to export to standalone format before encoding.
+1. **Don't duplicate PNG's built-in CRC** — PNG chunks have CRC32 for transport integrity. This is separate from semantic data integrity. Distinguish: CRC catches file corruption, hash verification catches data tampering. Both are needed, don't confuse them.
 
-2. **Memory State Size Explosion** - 4GB VM = ~4GB PNG, exceeding practical limits. Implement streaming encoding, set memory limits (recommend 2GB max initially), and pre-validate size.
+2. **Distinguish corruption from tampering** — Reed-Solomon errors indicate random corruption (bit flips, disk errors). Hash mismatches and signature failures indicate intentional modification. Different root causes, different user responses.
 
-3. **Snapshot State Inconsistency** - VM continues running during export = corrupted snapshot. Pause VM with `stop` monitor command before export, resume with `cont` after.
+3. **Key management complexity** — Ed25519 signatures require key distribution. Start simple: embedded public key in CLI for verification, environment variable for custom keys. Defer keyring files and remote key fetch to v2.
 
-4. **PixelRTS v2 Format Compatibility** - VM snapshots don't map cleanly to kernel/initrd/disk boot flow. Define new container type ("vm-snapshot" vs "bootable") in tEXt metadata, create separate `pixelrts restore` command.
+4. **False positives in tampering detection** — Entropy analysis can flag legitimate high-entropy regions (compressed data, encryption) as suspicious. Use conservative thresholds and clear "anomaly" vs "failure" distinction.
 
-5. **VMSnapshotManager Integration Conflicts** - Committed files are external artifacts that don't fit existing metadata model. Extend SnapshotMetadata with `committed_path` field, dual-source listing.
+5. **Performance at scale** — Full decode of 1GB container takes ~5s. Use range-based verification for segments, lazy decoding, and consider parallel verification of independent checks.
 
 ## Implications for Roadmap
 
 Based on research, suggested phase structure:
 
-### Phase 1: Core Export Infrastructure
-**Rationale:** Must establish correct export format before any encoding work. Size constraints and consistency guarantees must be validated upfront.
-**Delivers:** Function to extract internal QEMU snapshot to standalone qcow2, streaming encoding support, VM pause/resume during commit
-**Addresses:** COMMIT-01 (basic commit export)
-**Avoids:** Pitfalls 1 (format incompatibility), 2 (size explosion), 4 (state inconsistency)
+### Phase 1: Core Verification Infrastructure
+**Rationale:** Foundation needed before any verification logic — establishes patterns and data flow
+**Delivers:** VerificationContext, VerificationStep base, VerificationResult with CLI formatting
+**Addresses:** Table stakes feature of clear pass/fail output
+**Avoids:** Anti-pattern of monolithic verifier (enables composability from start)
+**Research needed:** No — standard patterns from infinite_map_integrity.py
 
-### Phase 2: Format Integration
-**Rationale:** Must define format extension before implementing full pipeline. Ensures committed files are distinguishable from bootable containers.
-**Delivers:** Extended PixelRTS format spec with "vm-snapshot" container type, separate restore path
-**Uses:** PixelRTSEncoder with updated metadata schema
-**Implements:** Format versioning in PNG tEXt chunks
-**Avoids:** Pitfall 3 (format compatibility breakage)
+### Phase 2: Basic Verifiers (Structure + Consistency)
+**Rationale:** First actual verification capability — minimal viable feature
+**Delivers:** StructureVerifier for PNG validation, ConsistencyVerifier for hash matching
+**Uses:** Existing PixelRTSDecoder.decode(), PixelRTSMetadata.hash_data()
+**Implements:** Architecture components StructureVerifier and ConsistencyVerifier
+**Addresses:** Table stakes features (PNG structure, hash verification)
+**Avoids:** Duplicate decoding anti-pattern (reuses existing decoder)
+**Research needed:** No — well-documented PNG structure, existing hash code
 
-### Phase 3: SnapshotCommitter Pipeline
-**Rationale:** Orchestrator class that composes existing components. Depends on Phase 1 extract function and Phase 2 format definition.
-**Delivers:** `SnapshotCommitter.commit(tag, output_path)` method, full pipeline orchestration
-**Uses:** VMSnapshotManager, qemu-img extract wrapper, PixelRTSEncoder, SnapshotStorage
-**Addresses:** COMMIT-01 (basic commit), COMMIT-03 (progress visibility)
+### Phase 3: Segment Integrity
+**Rationale:** Enables efficient verification of large containers without full decode
+**Delivers:** SegmentIntegrityChecker with range-based verification
+**Uses:** Existing PixelRTSDecoder.decode_range() for partial extraction
+**Implements:** Architecture component SegmentIntegrityChecker
+**Addresses:** Differentiator feature of segment-specific verification
+**Avoids:** Performance pitfall at scale (range decode is ~1ms vs ~5s for 1GB)
+**Research needed:** Minimal — decode_range() already exists, just need to wire it up
 
-### Phase 4: CLI Integration
-**Rationale:** User-facing command depends on complete pipeline. Must extend metadata model for dual-source listing.
-**Delivers:** `pixelrts commit <container> <tag> --output <file>` command, `pixelrts restore` command
-**Uses:** MultiBootManager, SnapshotCommitter
-**Addresses:** COMMIT-02 (boot from committed), one-command workflow differentiator
-**Avoids:** Pitfall 5 (VMSnapshotManager integration conflicts)
+### Phase 4: Cryptographic Signatures
+**Rationale:** Security feature for tampering detection — highest-value differentiator
+**Delivers:** SignatureVerifier with Ed25519 validation, basic key management
+**Uses:** cryptography>=46.0.0 (new dependency), signature from PNG tEXt chunk
+**Implements:** Architecture component SignatureVerifier
+**Addresses:** Differentiator feature of cryptographic signatures
+**Avoids:** Key management complexity pitfall (start with embedded key + env var)
+**Research needed:** Yes — key storage approach needs validation during implementation
 
-### Phase 5: Verification & Polish
-**Rationale:** Cross-host restore testing, signature verification, error recovery cleanup. Often overlooked but critical for production.
-**Delivers:** Cross-host restore tests, checksum verification, signature support, cleanup on failure
-**Addresses:** COMMIT-02 (boot verification), security requirements
+### Phase 5: CLI Integration
+**Rationale:** User-facing interface to verification capabilities
+**Delivers:** `pixelrts verify <file>` command with human-readable and JSON output
+**Uses:** All verification components from phases 1-4
+**Addresses:** Table stakes feature of clear pass/fail output
+**Research needed:** No — standard CLI patterns from pixelrts_cli.py
+
+### Phase 6: Boot Integration (Optional)
+**Rationale:** Pre-boot verification for security-sensitive use cases
+**Delivers:** verify_integrity flag in BootBridge.boot()
+**Uses:** VisionIntegrityVerifier, raises BootError on failure
+**Addresses:** Security use case of verified boot
+**Research needed:** Minimal — integration point already identified in boot_bridge.py
 
 ### Phase Ordering Rationale
 
-- Phase 1 comes first because format extraction is foundational - everything else depends on correct export
-- Phase 2 defines the contract before implementation to avoid format breakage
-- Phase 3 implements the core logic once infrastructure and format are settled
-- Phase 4 exposes functionality to users once pipeline is proven
-- Phase 5 validates end-to-end functionality before release
+- **Dependencies first:** Phase 1 establishes patterns that all other phases use
+- **Incremental value:** Each phase after Phase 1 delivers usable verification capability
+- **Leverage existing:** Phases 2-3 reuse existing decoder infrastructure, minimizing new code
+- **Security last in chain:** Phase 4 adds security layer after basic verification works
+- **User-facing last:** Phase 5 makes all verification accessible after components are stable
 
 ### Research Flags
 
 Phases likely needing deeper research during planning:
-- **Phase 2:** Format spec extension needs careful design - review PIXELRTS_V2_SPEC.md for extension points
-- **Phase 5:** Cross-host restore compatibility - may need QEMU version detection logic
+- **Phase 4 (Cryptographic Signatures):** Key management approach needs validation — where to store public keys, how to handle key rotation, signature chunk naming convention (suggest: PixelRTS-Sig)
+- **Phase 3 (Segment Integrity):** Metadata format for segment definitions may need extension if current format insufficient
 
 Phases with standard patterns (skip research-phase):
-- **Phase 1:** Well-documented qemu-img convert workflow
-- **Phase 3:** Standard composition pattern, existing codebase patterns are clear
-- **Phase 4:** Standard CLI integration, existing `pixelrts` commands provide templates
+- **Phase 1 (Core Infrastructure):** Well-documented chain-of-responsibility pattern, reference infinite_map_integrity.py
+- **Phase 2 (Basic Verifiers):** PNG structure well-documented, hash verification code exists
+- **Phase 5 (CLI Integration):** Standard CLI patterns, existing pixelrts_cli.py provides reference
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | stdlib only + qemu-img, verified with QEMU docs and existing codebase |
-| Features | MEDIUM | Based on codebase patterns and QEMU docs; FUSE-only containers may need special handling |
-| Architecture | HIGH | Existing components well-documented, composition pattern is clear |
-| Pitfalls | HIGH | QEMU snapshot portability is well-documented issue, size limits are calculable |
+| Stack | HIGH | Verified from official PyPI and cryptography.io documentation |
+| Features | MEDIUM | Inferred from domain knowledge and existing codebase analysis |
+| Architecture | HIGH | Based on codebase analysis of pixel_compiler/ and existing patterns |
+| Pitfalls | MEDIUM | Inferred from domain expertise and common integrity verification challenges |
 
-**Overall confidence:** HIGH
+**Overall confidence:** MEDIUM-HIGH
 
 ### Gaps to Address
 
-- **FUSE-only containers:** Current direct kernel boot from FUSE may not support QEMU snapshots without a qcow2 disk. Need to verify during Phase 1 if temporary qcow2 is required.
-- **Streaming encoding limits:** PixelRTSEncoder currently loads data in memory. Need to verify streaming support or implement chunked processing for large VMs.
-- **Cross-host QEMU version compatibility:** Even with proper export format, QEMU version differences may cause restore issues. Document minimum QEMU version requirements.
+1. **Key storage approach:** STACK.md identifies this as an open question. During Phase 4 planning, decide: embedded key vs. keyring file vs. environment variable. Recommendation: Start with embedded + env var override for simplicity.
+
+2. **Signature chunk naming:** Open question from STACK.md. Suggest `PixelRTS-Sig` during Phase 4 implementation.
+
+3. **Visual preview format:** ARCHITECTURE.md mentions comparing to "visual preview" but format not defined. During Phase 2, determine if existing convention exists or needs definition.
+
+4. **Segment metadata format:** Phase 3 needs to verify that current metadata format supports segment definitions. If not, extend format.
+
+5. **Performance benchmarks:** ARCHITECTURE.md provides estimates but actual benchmarks needed during implementation. Add benchmark tests to Phase 2.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- QEMU Official Docs - VM Snapshots (qemu.org/docs/master/system/images.html) - savevm/loadvm commands
-- QEMU Official Docs - qemu-img (qemu.org/docs/master/tools/qemu-img.html) - convert command with -s/-l option
-- Existing codebase: `vm_snapshot.py` - VMSnapshotManager patterns
-- Existing codebase: `pixelrts_v2_core.py` - PixelRTSEncoder usage
-- Existing codebase: `boot_bridge.py` - BootBridge integration
-- Existing codebase: `snapshot_storage.py` - SnapshotMetadata persistence pattern
+- cryptography library documentation — https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ed25519/
+- cryptography PyPI — https://pypi.org/project/cryptography/
+- Existing codebase analysis — `/home/jericho/zion/projects/geometry_os/geometry_os/systems/pixel_compiler/`
 
 ### Secondary (MEDIUM confidence)
-- Codebase: `12-RESEARCH.md` - Phase 12 research on QEMU snapshots
-- PROJECT.md: v1.4 validated features context
-- PixelRTS v2 Specification (`docs/PIXELRTS_V2_SPEC.md`)
+- reedsolo documentation — https://pypi.org/project/reedsolo/
+- PIL PNG handling — https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#png
+- Pattern reference — `infinite_map_integrity.py` (ChecksumCalculator, IntegrityScanner)
+- Decoder reference — `pixelrts_v2_core.py` (PixelRTSDecoder, PixelRTSMetadata)
 
-### Tertiary (LOW confidence)
-- None - all findings grounded in codebase or official documentation
+### Tertiary (inferred from domain knowledge)
+- Expected features table — inferred from standard integrity verification tools
+- Critical pitfalls — inferred from common integrity verification challenges
+- Key management complexity — inferred from cryptographic system design experience
 
 ---
 *Research completed: 2026-03-09*
 *Ready for roadmap: yes*
+*Note: Features and Pitfalls researchers failed due to rate limits — findings inferred from successful research*
