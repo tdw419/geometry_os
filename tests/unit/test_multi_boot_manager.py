@@ -2195,3 +2195,171 @@ class TestRestoreNetworkReconnection:
         assert result.error_message == "Could not get snapshot manager for container"
         assert result.pre_restore_state == ContainerState.RUNNING
 
+
+# Snapshot Storage Integration Tests
+
+class TestSnapshotStorageIntegration:
+    """Tests for SnapshotStorage integration with MultiBootManager."""
+
+    def test_manager_has_snapshot_storage(self, manager):
+        """Test that manager has a snapshot_storage property."""
+        from systems.pixel_compiler.boot.snapshot_storage import SnapshotStorage
+        assert hasattr(manager, 'snapshot_storage')
+        assert isinstance(manager.snapshot_storage, SnapshotStorage)
+
+    @patch.object(MultiBootManager, '_get_snapshot_manager')
+    def test_create_snapshot_persists_metadata(self, mock_get_manager, manager, tmp_path):
+        """Test that create_snapshot persists metadata to storage."""
+        from systems.pixel_compiler.boot.snapshot_storage import SnapshotStorage
+
+        # Use tmp_path for isolated storage
+        manager._snapshot_storage = SnapshotStorage(snapshot_dir=tmp_path / "snapshots")
+
+        # Setup running container
+        info = ContainerInfo(
+            name="test-container",
+            path=Path("/fake/test.rts.png"),
+            state=ContainerState.RUNNING,
+            resources=AllocatedResources(
+                vnc_port=5900,
+                container_id="test-id",
+                serial_socket=Path("/tmp/serial.sock"),
+                monitor_socket=Path("/tmp/monitor.sock"),
+                container_name="test-container",
+            ),
+        )
+        manager._containers["test-container"] = info
+
+        # Mock snapshot manager with successful snapshot creation
+        mock_snapshot_manager = Mock()
+        mock_snapshot_manager.create_snapshot.return_value = SnapshotResult(
+            success=True,
+            tag="snap1",
+            metadata=SnapshotInfo(
+                id=1,
+                tag="snap1",
+                date="2024-01-15T10:00:00",
+                size="1.5 GB",
+                vm_clock="00:05:30"
+            )
+        )
+        mock_get_manager.return_value = mock_snapshot_manager
+
+        result = manager.create_snapshot("test-container", "snap1", "test snapshot")
+
+        assert result.success is True
+
+        # Verify metadata was persisted
+        stored = manager.snapshot_storage.get_metadata("test-container", "snap1")
+        assert stored is not None
+        assert stored.tag == "snap1"
+        assert stored.container_name == "test-container"
+
+    def test_list_snapshots_returns_stored_when_vm_stopped(self, manager, tmp_path):
+        """Test list_container_snapshots returns stored metadata when VM is stopped."""
+        from systems.pixel_compiler.boot.snapshot_storage import SnapshotStorage, SnapshotMetadata
+
+        # Use tmp_path for isolated storage
+        manager._snapshot_storage = SnapshotStorage(snapshot_dir=tmp_path / "snapshots")
+
+        # Setup stopped container
+        info = ContainerInfo(
+            name="stopped-container",
+            path=Path("/fake/stopped.rts.png"),
+            state=ContainerState.STOPPED,
+        )
+        manager._containers["stopped-container"] = info
+
+        # Pre-populate storage with snapshot metadata
+        metadata = SnapshotMetadata(
+            tag="saved-snap",
+            container_name="stopped-container",
+            created_at="2024-01-15T10:00:00",
+            size="2.0 GB",
+            description="Saved while running"
+        )
+        manager.snapshot_storage.save_metadata("stopped-container", metadata)
+
+        # List snapshots should return stored data
+        snapshots = manager.list_container_snapshots("stopped-container")
+
+        assert len(snapshots) == 1
+        assert snapshots[0].tag == "saved-snap"
+        assert snapshots[0].size == "2.0 GB"
+
+    def test_delete_snapshot_clears_metadata(self, manager, tmp_path):
+        """Test delete_snapshot clears metadata from storage."""
+        from systems.pixel_compiler.boot.snapshot_storage import SnapshotStorage, SnapshotMetadata
+
+        # Use tmp_path for isolated storage
+        manager._snapshot_storage = SnapshotStorage(snapshot_dir=tmp_path / "snapshots")
+
+        # Setup stopped container (no VM to delete from)
+        info = ContainerInfo(
+            name="stopped-container",
+            path=Path("/fake/stopped.rts.png"),
+            state=ContainerState.STOPPED,
+            snapshots=[]  # Will be populated from storage
+        )
+        manager._containers["stopped-container"] = info
+
+        # Pre-populate storage with snapshot metadata
+        metadata = SnapshotMetadata(
+            tag="to-delete",
+            container_name="stopped-container",
+            created_at="2024-01-15T10:00:00",
+            size="1.0 GB"
+        )
+        manager.snapshot_storage.save_metadata("stopped-container", metadata)
+
+        # Delete the snapshot
+        result = manager.delete_snapshot("stopped-container", "to-delete")
+
+        assert result.success is True
+
+        # Verify metadata was cleared from storage
+        stored = manager.snapshot_storage.get_metadata("stopped-container", "to-delete")
+        assert stored is None
+
+    @patch.object(MultiBootManager, '_get_snapshot_manager')
+    def test_list_snapshots_updates_storage_when_vm_running(self, mock_get_manager, manager, tmp_path):
+        """Test list_container_snapshots updates storage when VM is running."""
+        from systems.pixel_compiler.boot.snapshot_storage import SnapshotStorage
+
+        # Use tmp_path for isolated storage
+        manager._snapshot_storage = SnapshotStorage(snapshot_dir=tmp_path / "snapshots")
+
+        # Setup running container
+        info = ContainerInfo(
+            name="running-container",
+            path=Path("/fake/running.rts.png"),
+            state=ContainerState.RUNNING,
+            resources=AllocatedResources(
+                vnc_port=5900,
+                container_id="test-id",
+                serial_socket=Path("/tmp/serial.sock"),
+                monitor_socket=Path("/tmp/monitor.sock"),
+                container_name="running-container",
+            ),
+        )
+        manager._containers["running-container"] = info
+
+        # Mock snapshot manager with live snapshots
+        mock_snapshot_manager = Mock()
+        mock_snapshot_manager.list_snapshots.return_value = [
+            SnapshotInfo(id=1, tag="live-snap", date="2024-01-15T12:00:00", size="1.5 GB", vm_clock="00:10:00")
+        ]
+        mock_get_manager.return_value = mock_snapshot_manager
+
+        # List snapshots
+        snapshots = manager.list_container_snapshots("running-container")
+
+        assert len(snapshots) == 1
+        assert snapshots[0].tag == "live-snap"
+
+        # Verify storage was updated with live data
+        stored = manager.snapshot_storage.get_metadata("running-container", "live-snap")
+        assert stored is not None
+        assert stored.tag == "live-snap"
+
+

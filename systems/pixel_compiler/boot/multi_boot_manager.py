@@ -1071,9 +1071,10 @@ class MultiBootManager:
         # Convert SnapshotMetadata to SnapshotInfo-compatible objects
         # We create simple objects with matching attributes
         converted = []
-        for metadata in stored_snapshots:
+        for i, metadata in enumerate(stored_snapshots):
             # Create a SnapshotInfo-like object from metadata
             snap_info = SnapshotInfo(
+                id=i,  # Use index as ID for stored snapshots
                 tag=metadata.tag,
                 date=metadata.created_at,
                 size=metadata.size,
