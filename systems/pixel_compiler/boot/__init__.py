@@ -10,11 +10,14 @@ Key Classes:
     - BootResult: Data class for boot operation results
     - BootProgress: Visual progress display for boot operations
     - ProgressStage: Enum for boot progress stages
+    - ResourceAllocator: VNC port and socket path allocation for multi-boot
+    - AllocatedResources: Container for allocated boot resources
 """
 
 from .mount_helper import MountHelper, MountError
 from .boot_bridge import BootBridge, BootResult
 from .boot_progress import BootProgress, ProgressStage
+from .resource_allocator import ResourceAllocator, AllocatedResources, ResourceExhaustedError, InvalidNameError
 
 __all__ = [
     "MountHelper",
@@ -23,4 +26,8 @@ __all__ = [
     "BootResult",
     "BootProgress",
     "ProgressStage",
+    "ResourceAllocator",
+    "AllocatedResources",
+    "ResourceExhaustedError",
+    "InvalidNameError",
 ]
