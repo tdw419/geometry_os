@@ -2,17 +2,17 @@
 
 ## Milestones
 
-- ✅ **v1.0 MVP** - Phases 1-4 (shipped 2026-03-08)
-- ✅ **v1.1 Visual Diff** - Phase 5 (shipped 2026-03-08)
-- ✅ **v1.2 Network Boot** - Phases 6-8.1 (shipped 2026-03-09)
-- ✅ **v1.3 Multi-Boot** - Phases 9-11 (shipped 2026-03-09)
-- ✅ **v1.4 Live Snapshots** - Phases 12-14 (shipped 2026-03-09)
-- 🚧 **v1.5 Commit to File** - Phases 15-17 (in progress)
+- **v1.0 MVP** - Phases 1-4 (shipped 2026-03-08)
+- **v1.1 Visual Diff** - Phase 5 (shipped 2026-03-08)
+- **v1.2 Network Boot** - Phases 6-8.1 (shipped 2026-03-09)
+- **v1.3 Multi-Boot** - Phases 9-11 (shipped 2026-03-09)
+- **v1.4 Live Snapshots** - Phases 12-14 (shipped 2026-03-09)
+- **v1.5 Commit to File** - Phases 15-17 (in progress)
 
 ## Phases
 
 <details>
-<summary>✅ v1.0 MVP (Phases 1-4) - SHIPPED 2026-03-08</summary>
+<summary>v1.0 MVP (Phases 1-4) - SHIPPED 2026-03-08</summary>
 
 ### Phase 1: Vision Analysis
 **Goal**: Users can visually verify what OS a container contains before booting.
@@ -63,7 +63,7 @@ Plans:
 </details>
 
 <details>
-<summary>✅ v1.1 Visual Diff (Phase 5) - SHIPPED 2026-03-08</summary>
+<summary>v1.1 Visual Diff (Phase 5) - SHIPPED 2026-03-08</summary>
 
 ### Phase 5: Visual Diff
 **Goal**: Users can compare two .rts.png files and see visual byte-level differences.
@@ -78,7 +78,7 @@ Plans:
 </details>
 
 <details>
-<summary>✅ v1.2 Network Boot (Phases 6-8.1) - SHIPPED 2026-03-09</summary>
+<summary>v1.2 Network Boot (Phases 6-8.1) - SHIPPED 2026-03-09</summary>
 
 ### Phase 6: PXE Boot
 **Goal**: Users can boot containers over network via PXE.
@@ -119,7 +119,7 @@ Plans:
 </details>
 
 <details>
-<summary>✅ v1.3 Multi-Boot (Phases 9-11) - SHIPPED 2026-03-09</summary>
+<summary>v1.3 Multi-Boot (Phases 9-11) - SHIPPED 2026-03-09</summary>
 
 ### Phase 9: Multi-Container Boot
 **Goal**: Users can boot multiple containers simultaneously.
@@ -154,7 +154,7 @@ Plans:
 </details>
 
 <details>
-<summary>✅ v1.4 Live Snapshots (Phases 12-14) - SHIPPED 2026-03-09</summary>
+<summary>v1.4 Live Snapshots (Phases 12-14) - SHIPPED 2026-03-09</summary>
 
 ### Phase 12: VM Snapshots
 **Goal**: Users can create and restore snapshots of running containers.
@@ -186,7 +186,7 @@ Plans:
 
 </details>
 
-### 🚧 v1.5 Commit to File (In Progress)
+### v1.5 Commit to File (In Progress)
 
 **Milestone Goal:** Users can commit running containers to new portable .rts.png files that preserve all disk and memory state.
 
@@ -197,14 +197,14 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. User can export a running container's snapshot to a standalone qcow2 file
   2. VM pauses during export and resumes after completion
-  3. Export shows progress through stages (snapshot → extract → encode)
+  3. Export shows progress through stages (snapshot - extract - encode)
   4. Large memory states (>1GB) are handled without memory exhaustion
-**Plans**: 3 plans (TBD)
+**Plans**: 3 plans
 
 Plans:
-- [ ] 15-01: qemu-img extract wrapper for snapshot export
-- [ ] 15-02: VM pause/resume during commit
-- [ ] 15-03: Streaming encoding for large states
+- [ ] 15-01-PLAN.md - QemuImgWrapper for qemu-img extract operations
+- [ ] 15-02-PLAN.md - SnapshotCommitter with VM pause/resume orchestration
+- [ ] 15-03-PLAN.md - SnapshotExporter with PixelRTS encoding and progress
 
 #### Phase 16: Boot from Committed
 **Goal**: Committed .rts.png files boot correctly with preserved state.
@@ -240,11 +240,11 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 15 → 16 → 17
+Phases execute in numeric order: 15 - 16 - 17
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 15. Snapshot Export | v1.5 | 0/3 | Not started | - |
+| 15. Snapshot Export | v1.5 | 0/3 | Ready to execute | - |
 | 16. Boot from Committed | v1.5 | 0/3 | Not started | - |
 | 17. CLI Integration | v1.5 | 0/3 | Not started | - |
 
