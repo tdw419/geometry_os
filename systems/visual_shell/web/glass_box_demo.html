@@ -105,6 +105,7 @@
         .thought-item.dna_synthesis { border-left-color: #f0f; }
         .thought-item.heuristic { border-left-color: #88f; }
         .thought-item.checkpoint { border-left-color: #f80; }
+        .thought-item.kernel_rewrite { border-left-color: #f50; }
         .thought-type {
             font-weight: bold;
             color: #fff;
@@ -221,6 +222,10 @@
                     <div class="legend-item">
                         <div class="legend-color" style="background: #f80;"></div>
                         <span>Checkpoint</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f50;"></div>
+                        <span>Kernel Rewrite</span>
                     </div>
                 </div>
 
@@ -366,7 +371,7 @@
         });
 
         testBtn.addEventListener('click', () => {
-            const types = ['task_start', 'task_complete', 'gvn', 'dna_synthesis', 'heuristic', 'checkpoint'];
+            const types = ['task_start', 'task_complete', 'gvn', 'dna_synthesis', 'heuristic', 'checkpoint', 'kernel_rewrite'];
             const type = types[Math.floor(Math.random() * types.length)];
             const contents = [
                 'Optimizing loop in render_pass',
@@ -374,7 +379,8 @@
                 'GVN eliminated 23 redundant loads',
                 'DNA synthesis: 3 new tasks generated',
                 'Heuristic: uncommitted files detected',
-                'Task complete: 15.3s'
+                'Task complete: 15.3s',
+                'Kernel rewrite: optimized hilbert_d2xy (2.3x speedup)'
             ];
             const content = contents[Math.floor(Math.random() * contents.length)];
 

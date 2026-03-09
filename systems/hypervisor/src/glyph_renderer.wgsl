@@ -271,6 +271,8 @@ const GLYPH_DRAW_CIRCLE: u32 = 0x05u;
 const GLYPH_FILL_CIRCLE: u32 = 0x06u;
 const GLYPH_DRAW_LINE: u32 = 0x07u;
 const GLYPH_THOUGHT_RENDER: u32 = 0x08u;
+const GLYPH_TOKEN_RENDER: u32 = 0x09u;
+const GLYPH_KERNEL_REWRITE: u32 = 0xCCu;  // Kernel rewrite visualization (Self-Rewriting Kernel)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // THOUGHT RENDER TYPES AND CONSTANTS
@@ -484,6 +486,48 @@ fn render_thought_geometric(glyph: Glyph) {
     }
 }
 
+// Render a high-frequency token thought (Mind's Eye)
+// Opcode 0xCD
+fn render_token(glyph: Glyph) {
+    let dim = uniforms.resolution;
+
+    // Tokens use a faster pulse frequency
+    let pulse = 0.7 + 0.3 * sin(uniforms.time * 12.0);
+    let final_color = vec4<f32>(glyph.color.rgb * pulse, glyph.color.a * pulse);
+
+    let px = u32(clamp(glyph.x, 0.0, f32(dim - 1u)));
+    let py = u32(clamp(glyph.y, 0.0, f32(dim - 1u)));
+    let hilbert_idx = xy_to_hilbert(px, py, dim);
+
+    pixel_buffer[hilbert_idx] = color_to_u32(final_color);
+    textureStore(canvas, vec2<i32>(i32(px), i32(py)), final_color);
+}
+
+// Render a kernel rewrite event (Self-Rewriting Kernel visualization)
+// Opcode 0xCC - Visualizes when the daemon rewrites native kernels
+fn render_kernel_rewrite(glyph: Glyph) {
+    let dim = uniforms.resolution;
+
+    // Kernel rewrites pulse with orange/red color to indicate active optimization
+    // Fast pulse to draw attention to rewrite events
+    let pulse = 0.5 + 0.5 * sin(uniforms.time * 3.0);
+
+    // Orange-red color for kernel rewrites
+    let rewrite_color = vec4<f32>(1.0, 0.3 * pulse, 0.0, 1.0);
+
+    let px = u32(clamp(glyph.x, 0.0, f32(dim - 1u)));
+    let py = u32(clamp(glyph.y, 0.0, f32(dim - 1u)));
+    let hilbert_idx = xy_to_hilbert(px, py, dim);
+
+    // Blend with existing content for visual continuity
+    let existing_packed = pixel_buffer[hilbert_idx];
+    let existing_color = u32_to_color(existing_packed);
+    let blended = blend_colors_f32(rewrite_color, existing_color);
+
+    pixel_buffer[hilbert_idx] = color_to_u32(blended);
+    textureStore(canvas, vec2<i32>(i32(px), i32(py)), blended);
+}
+
 // Command structure for the dispatcher
 struct GlyphCommand {
     opcode: u32,    // Command opcode (GLYPH_* constants)
@@ -554,6 +598,18 @@ fn execute_command(cmd: GlyphCommand) {
             );
             render_thought(thought_glyph);
         }
+        case GLYPH_TOKEN_RENDER: {
+            let token_glyph = Glyph(
+                cmd.opcode,
+                f32(cmd.x),
+                f32(cmd.y),
+                f32(cmd.width),
+                f32(cmd.height),
+                unpack_color_to_f32(cmd.color),
+                vec4<f32>(0.0, 0.0, 1.0, 0.0)
+            );
+            render_token(token_glyph);
+        }
         default: {
             // Ignore unknown opcode
         }
@@ -588,6 +644,12 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
             // Full thought rendering with type-based color mapping,
             // age-based pulse effects, and Hilbert curve coordinates
             render_thought(glyph);
+        }
+        case 0xCDu: { // TOKEN_RENDER (opcode 0xCD)
+            render_token(glyph);
+        }
+        case 0xCCu: { // KERNEL_REWRITE (opcode 0xCC)
+            render_kernel_rewrite(glyph);
         }
         default: {} // SET_COLOR (0xC0) is handled as state by the caller
     }
