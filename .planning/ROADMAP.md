@@ -202,9 +202,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 15-01-PLAN.md - QemuImgWrapper for qemu-img extract operations
-- [ ] 15-02-PLAN.md - SnapshotCommitter with VM pause/resume orchestration
-- [ ] 15-03-PLAN.md - SnapshotExporter with PixelRTS encoding and progress
+- [x] 15-01-PLAN.md - QemuImgWrapper for qemu-img extract operations
+- [x] 15-02-PLAN.md - SnapshotCommitter with VM pause/resume orchestration
+- [x] 15-03-PLAN.md - SnapshotExporter with PixelRTS encoding and progress
 
 #### Phase 16: Boot from Committed
 **Goal**: Committed .rts.png files boot correctly with preserved state.
@@ -244,7 +244,7 @@ Phases execute in numeric order: 15 - 16 - 17
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 15. Snapshot Export | v1.5 | 0/3 | Ready to execute | - |
+| 15. Snapshot Export | v1.5 | 3/3 | Complete | 2026-03-09 |
 | 16. Boot from Committed | v1.5 | 0/3 | Not started | - |
 | 17. CLI Integration | v1.5 | 0/3 | Not started | - |
 

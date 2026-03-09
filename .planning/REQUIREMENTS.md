@@ -7,9 +7,9 @@
 
 ### Commit
 
-- [ ] **COMMIT-01**: User can commit running container to new .rts.png file
-- [ ] **COMMIT-02**: Committed file preserves all disk changes from original
-- [ ] **COMMIT-03**: Committed file includes VM memory state
+- [x] **COMMIT-01**: User can commit running container to new .rts.png file
+- [x] **COMMIT-02**: Committed file preserves all disk changes from original
+- [x] **COMMIT-03**: Committed file includes VM memory state
 - [ ] **COMMIT-04**: Commit shows progress (snapshot → export → encode → verify)
 
 ### Boot from Committed
@@ -37,9 +37,9 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| COMMIT-01 | Phase 15 | Pending |
-| COMMIT-02 | Phase 15 | Pending |
-| COMMIT-03 | Phase 15 | Pending |
+| COMMIT-01 | Phase 15 | Complete |
+| COMMIT-02 | Phase 15 | Complete |
+| COMMIT-03 | Phase 15 | Complete |
 | COMMIT-04 | Phase 16 | Pending |
 | BOOT-COMMIT-01 | Phase 16 | Pending |
 | BOOT-COMMIT-02 | Phase 16 | Pending |
