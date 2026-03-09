@@ -102,6 +102,23 @@ Plans:
 - [x] 08-02-PLAN.md -- Delta Patch Application
 - [x] 08-03-PLAN.md -- Delta Server Integration
 
+### Phase 8.1: Wire Delta HTTP Handler (Gap Closure)
+
+**Goal**: Wire DeltaHTTPHandler to HTTPBootServer so /delta/ endpoints work.
+
+**Depends on**: Phase 8
+
+**Gap Closure**: Fixes integration gap from v1.2 audit
+
+**Success Criteria** (what must be TRUE):
+1. HTTPBootServer has register_handler() method for custom path handlers
+2. DeltaHTTPHandler is registered when --delta flag is used
+3. /delta/list returns JSON list of available manifests
+4. /delta/<file>.json returns manifest content
+5. pixelrts update command successfully fetches manifest from server
+
+**Plans:** 1 plan
+
 ## Progress
 
 **Execution Order:**
@@ -117,6 +134,7 @@ Phases execute in numeric order: 6 -> 7 -> 8
 | 6. NBD Server + PXE Boot | v1.2 | 3/3 | Complete | 2026-03-08 |
 | 7. HTTP Boot via iPXE | v1.2 | 3/3 | Complete | 2026-03-08 |
 | 8. Delta Updates | v1.2 | 3/3 | Complete | 2026-03-09 |
+| 8.1. Wire Delta HTTP Handler | v1.2 | 0/1 | Not started | - |
 
 ---
 
