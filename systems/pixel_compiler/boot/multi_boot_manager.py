@@ -240,6 +240,7 @@ class MultiBootManager:
         cmdline: Optional[str] = None,
         memory: str = "2G",
         cpus: int = 2,
+        is_primary: bool = False,
     ) -> ContainerInfo:
         """
         Boot a single container.
@@ -251,6 +252,7 @@ class MultiBootManager:
             cmdline: Optional kernel command line
             memory: Memory allocation (default: "2G")
             cpus: Number of CPUs (default: 2)
+            is_primary: Whether this container is the primary (default: False)
 
         Returns:
             ContainerInfo with boot result
@@ -263,11 +265,12 @@ class MultiBootManager:
             if name in self._containers:
                 return self._containers[name]
 
-            # Create container info
+            # Create container info with role
             info = ContainerInfo(
                 name=name,
                 path=path,
                 state=ContainerState.BOOTING,
+                role=ContainerRole.PRIMARY if is_primary else ContainerRole.HELPER,
             )
             self._containers[name] = info
 
@@ -347,6 +350,7 @@ class MultiBootManager:
         memory: str = "2G",
         cpus: int = 2,
         cleanup_on_failure: bool = True,
+        primary: Optional[str] = None,
     ) -> MultiBootResult:
         """
         Boot multiple containers concurrently.
@@ -360,6 +364,7 @@ class MultiBootManager:
             memory: Memory allocation per container (default: "2G")
             cpus: Number of CPUs per container (default: 2)
             cleanup_on_failure: Stop successful containers if any boot fails (default: True)
+            primary: Name of the primary container (starts first, stops last)
 
         Returns:
             MultiBootResult with success status and container info
@@ -385,7 +390,10 @@ class MultiBootManager:
         # Create async tasks for concurrent boot
         async def _boot_all_async():
             tasks = [
-                self._boot_single(path, cmdline, memory, cpus)
+                self._boot_single(
+                    path, cmdline, memory, cpus,
+                    is_primary=(self._get_container_name(path) == primary) if primary else False
+                )
                 for path in validated_paths
             ]
             return await asyncio.gather(*tasks)
