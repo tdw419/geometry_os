@@ -30,6 +30,7 @@ Usage:
         booter.stop()  # Cleans up temp file, original unchanged
 """
 
+import atexit
 import logging
 import tempfile
 import shutil
@@ -173,6 +174,9 @@ class EphemeralBooter:
 
         # Mark as ephemeral
         self.is_ephemeral = True
+
+        # Register cleanup with atexit for crash/process exit handling
+        atexit.register(self._cleanup_temp_dir)
 
         logger.info(f"EphemeralBooter initialized for {self._original_path}")
         logger.info(f"Container type: {self._container_type.value}")
@@ -322,6 +326,10 @@ class EphemeralBooter:
 
         # Clean up temp directory
         self._cleanup_temp_dir()
+
+        # Unregister from atexit since we've cleaned up explicitly
+        atexit.unregister(self._cleanup_temp_dir)
+
         self._cleaned_up = True
 
     def _cleanup_temp_dir(self) -> None:
