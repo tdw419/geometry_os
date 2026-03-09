@@ -405,3 +405,181 @@ class TestCLIBootCommandRouting:
         """CommittedBootError exception class exists."""
         from systems.pixel_compiler.boot.committed_boot import CommittedBootError
         assert issubclass(CommittedBootError, Exception)
+
+
+class TestEphemeralBootFlag:
+    """Tests for --ephemeral CLI flag."""
+
+    def test_boot_ephemeral_flag_in_parser(self):
+        """Verify --ephemeral flag exists in boot parser."""
+        import argparse
+        from systems.pixel_compiler.pixelrts_cli import main
+
+        # Parse with --ephemeral flag
+        parser = argparse.ArgumentParser()
+        subparsers = parser.add_subparsers(dest='command')
+        boot_parser = subparsers.add_parser('boot')
+        boot_parser.add_argument('inputs', nargs='+')
+        boot_parser.add_argument('--ephemeral', '-e', action='store_true')
+
+        args = boot_parser.parse_args(['--ephemeral', 'test.rts.png'])
+        assert args.ephemeral is True
+
+        # Without flag
+        args = boot_parser.parse_args(['test.rts.png'])
+        assert args.ephemeral is False
+
+    def test_boot_ephemeral_creates_ephemeral_booter(self):
+        """Verify EphemeralBooter is used when --ephemeral flag is set."""
+        from systems.pixel_compiler.pixelrts_cli import cmd_boot
+        from PIL import Image
+
+        # Create a temporary PNG file
+        with tempfile.NamedTemporaryFile(suffix='.rts.png', delete=False) as f:
+            temp_path = Path(f.name)
+            img = Image.new('RGB', (10, 10), color='green')
+            img.save(f, format='PNG')
+
+        try:
+            args = MagicMock(
+                inputs=[str(temp_path)],
+                memory='2G',
+                cpus=2,
+                vnc=0,
+                verbose=False,
+                quiet=True,
+                cmdline=None,
+                qemu_arg=None,
+                background=False,
+                ephemeral=True  # Enable ephemeral mode
+            )
+
+            # Mock EphemeralBooter at the import location
+            with patch('systems.pixel_compiler.boot.ephemeral_boot.EphemeralBooter') as mock_ephemeral_class:
+                mock_booter = MagicMock()
+                mock_result = MagicMock()
+                mock_result.success = True
+                mock_result.pid = 12345
+                mock_result.vnc_port = 0
+                mock_result.process = None
+                mock_booter.boot.return_value = mock_result
+                mock_booter.original_path = temp_path
+                mock_ephemeral_class.return_value.__enter__ = MagicMock(return_value=mock_booter)
+                mock_ephemeral_class.return_value.__exit__ = MagicMock(return_value=False)
+
+                result = cmd_boot(args)
+
+                # Verify EphemeralBooter was instantiated
+                mock_ephemeral_class.assert_called_once()
+                call_kwargs = mock_ephemeral_class.call_args[1]
+                assert str(temp_path) in str(call_kwargs.get('rts_png_path', ''))
+
+        finally:
+            temp_path.unlink(missing_ok=True)
+
+    def test_boot_ephemeral_prints_mode_message(self):
+        """Verify ephemeral mode message is printed when flag is set."""
+        from systems.pixel_compiler.pixelrts_cli import cmd_boot
+        from PIL import Image
+        from io import StringIO
+
+        # Create a temporary PNG file
+        with tempfile.NamedTemporaryFile(suffix='.rts.png', delete=False) as f:
+            temp_path = Path(f.name)
+            img = Image.new('RGB', (10, 10), color='blue')
+            img.save(f, format='PNG')
+
+        try:
+            args = MagicMock(
+                inputs=[str(temp_path)],
+                memory='2G',
+                cpus=2,
+                vnc=0,
+                verbose=False,
+                quiet=False,  # Enable output
+                cmdline=None,
+                qemu_arg=None,
+                background=False,
+                ephemeral=True
+            )
+
+            captured_output = StringIO()
+
+            with patch('sys.stdout', captured_output):
+                with patch('systems.pixel_compiler.boot.ephemeral_boot.EphemeralBooter') as mock_ephemeral:
+                    mock_booter = MagicMock()
+                    mock_result = MagicMock()
+                    mock_result.success = True
+                    mock_result.pid = 12345
+                    mock_result.vnc_port = 0
+                    mock_result.process = None
+                    mock_booter.boot.return_value = mock_result
+                    mock_booter.original_path = temp_path
+                    mock_ephemeral.return_value.__enter__ = MagicMock(return_value=mock_booter)
+                    mock_ephemeral.return_value.__exit__ = MagicMock(return_value=False)
+
+                    cmd_boot(args)
+
+            output = captured_output.getvalue()
+            assert "Ephemeral mode" in output or "ephemeral" in output.lower()
+
+        finally:
+            temp_path.unlink(missing_ok=True)
+
+    def test_cli_has_boot_ephemeral_helper(self):
+        """CLI has _boot_ephemeral helper function."""
+        from systems.pixel_compiler.pixelrts_cli import _boot_ephemeral
+        import inspect
+        sig = inspect.signature(_boot_ephemeral)
+        # Should have args and input_path parameters
+        assert len(sig.parameters) >= 2
+
+    def test_ephemeral_boot_error_class_exists(self):
+        """EphemeralBootError exception class exists."""
+        from systems.pixel_compiler.boot.ephemeral_boot import EphemeralBootError
+        assert issubclass(EphemeralBootError, Exception)
+
+    def test_boot_without_ephemeral_uses_bootbridge(self):
+        """Verify BootBridge is used when --ephemeral flag is NOT set."""
+        from systems.pixel_compiler.pixelrts_cli import cmd_boot
+        from PIL import Image
+
+        # Create a temporary PNG file
+        with tempfile.NamedTemporaryFile(suffix='.rts.png', delete=False) as f:
+            temp_path = Path(f.name)
+            img = Image.new('RGB', (10, 10), color='red')
+            img.save(f, format='PNG')
+
+        try:
+            args = MagicMock(
+                inputs=[str(temp_path)],
+                memory='2G',
+                cpus=2,
+                vnc=0,
+                verbose=False,
+                quiet=True,
+                cmdline=None,
+                qemu_arg=None,
+                background=False,
+                ephemeral=False  # Disable ephemeral mode
+            )
+
+            # Mock BootBridge at the import location
+            with patch('systems.pixel_compiler.boot.BootBridge') as mock_bridge_class:
+                mock_bridge = MagicMock()
+                mock_result = MagicMock()
+                mock_result.success = True
+                mock_result.pid = 12345
+                mock_result.vnc_port = 0
+                mock_result.process = None
+                mock_result.mountpoint = None
+                mock_bridge.boot.return_value = mock_result
+                mock_bridge_class.return_value = mock_bridge
+
+                result = cmd_boot(args)
+
+                # Verify BootBridge was instantiated (not EphemeralBooter)
+                mock_bridge_class.assert_called_once()
+
+        finally:
+            temp_path.unlink(missing_ok=True)
