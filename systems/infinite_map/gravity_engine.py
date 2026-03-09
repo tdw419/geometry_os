@@ -10,16 +10,28 @@ import os
 from typing import Dict, Any, List, Tuple
 
 class GravityEngine:
-    def __init__(self, bounds: Tuple[int, int] = (1024, 1024)):
+    def __init__(
+        self,
+        bounds: Tuple[int, int] = (1024, 1024),
+        use_quadtree: bool = True,
+        quadtree_threshold: int = 50,
+        theta: float = 0.5
+    ):
         self.bounds = bounds
         self.orbs: Dict[str, Dict[str, Any]] = {}
-        
+
         # Physics Constants
         self.k_spring = 0.05    # Attractive force strength
         self.k_repel = 1000.0   # Repulsive force strength
         self.friction = 0.9     # Velocity damping
         self.dt = 0.1           # Simulation timestep
-        
+
+        # Barnes-Hut acceleration for O(N log N) scaling
+        self.use_quadtree = use_quadtree
+        self.quadtree_threshold = quadtree_threshold  # Use quadtree when N > threshold
+        self.theta = theta  # Barnes-Hut opening angle
+        self._quadtree = None  # Built each frame
+
         # Performance Tracking
         self.last_update = time.time()
 
@@ -40,26 +52,42 @@ class GravityEngine:
                 self.orbs[path_a]["links"].append(path_b)
 
     def update(self):
-        """Perform one iteration of the physics simulation."""
+        """Advance the simulation by one timestep."""
+        n_orbs = len(self.orbs)
+
+        if n_orbs == 0:
+            return
+
+        # Choose algorithm based on orb count
+        if self.use_quadtree and n_orbs > self.quadtree_threshold:
+            self._update_quadtree()
+        else:
+            self._update_direct()
+
+        self.last_update = time.time()
+
+    def _update_direct(self):
+        """O(N^2) direct force calculation (for small N)."""
         paths = list(self.orbs.keys())
         n = len(paths)
-        if n < 2: return
-        
+        if n < 2:
+            return
+
         # Extract positions and velocities into NumPy arrays for batch processing
         pos = np.array([self.orbs[p]["pos"] for p in paths])
         vel = np.array([self.orbs[p]["vel"] for p in paths])
         mass = np.array([self.orbs[p]["mass"] for p in paths])
-        
+
         forces = np.zeros_like(pos)
-        
+
         # 1. Calculate Repulsive Forces (All-pairs)
         for i in range(n):
             diff = pos[i] - pos
-            dist_sq = np.sum(diff**2, axis=1) + 0.01 # Avoid div by zero
+            dist_sq = np.sum(diff**2, axis=1) + 0.01  # Avoid div by zero
             # Coulomb-like repulsion: F = k / r^2
             repel = (self.k_repel / dist_sq)[:, np.newaxis] * diff
             forces[i] += np.sum(repel, axis=0)
-            
+
         # 2. Calculate Attractive Forces (Links)
         for i, path in enumerate(paths):
             for linked_path in self.orbs[path]["links"]:
@@ -69,22 +97,68 @@ class GravityEngine:
                     # Hooke's Law: F = k * r
                     forces[i] += self.k_spring * diff
                     forces[j] -= self.k_spring * diff
-                    
+
         # 3. Apply Update (Euler Integration)
         # a = F / m
         accel = forces / mass[:, np.newaxis]
         vel = (vel + accel * self.dt) * self.friction
         pos = pos + vel * self.dt
-        
+
         # Constrain to bounds
         pos = np.clip(pos, [0, 0], self.bounds)
-        
+
         # Update internal state
         for i, path in enumerate(paths):
             self.orbs[path]["pos"] = pos[i]
             self.orbs[path]["vel"] = vel[i]
-            
-        self.last_update = time.time()
+
+    def _update_quadtree(self):
+        """O(N log N) Barnes-Hut force calculation (for large N)."""
+        from .quadtree import QuadTree
+
+        # Build quadtree
+        self._quadtree = QuadTree(self.bounds[0], self.bounds[1], theta=self.theta)
+
+        for path, orb in self.orbs.items():
+            self._quadtree.insert(
+                orb["pos"][0],
+                orb["pos"][1],
+                orb["mass"],
+                {"path": path}
+            )
+
+        # Calculate forces using quadtree
+        for path, orb in self.orbs.items():
+            x, y = orb["pos"]
+
+            # Repulsive force from quadtree approximation
+            fx, fy = self._quadtree.calculate_force(x, y, self.theta, self.k_repel)
+
+            # Handle case where force calculation returns None (empty tree)
+            if fx is None:
+                fx, fy = 0.0, 0.0
+
+            # Add spring forces for linked orbs (direct, not approximated)
+            for linked_path in orb["links"]:
+                if linked_path in self.orbs:
+                    other = self.orbs[linked_path]
+                    diff = orb["pos"] - other["pos"]
+                    dist = np.sqrt(np.sum(diff ** 2))
+                    if dist < 1.0:
+                        dist = 1.0
+                    force = -self.k_spring * dist
+                    force_dir = diff / dist
+                    fx += force * force_dir[0]
+                    fy += force * force_dir[1]
+
+            # Integrate
+            accel = np.array([fx, fy]) / orb["mass"]
+            orb["vel"] = (orb["vel"] + accel * self.dt) * self.friction
+            orb["pos"] = orb["pos"] + orb["vel"] * self.dt
+
+            # Boundary constraints
+            orb["pos"][0] = np.clip(orb["pos"][0], 0, self.bounds[0])
+            orb["pos"][1] = np.clip(orb["pos"][1], 0, self.bounds[1])
 
     def get_updates(self) -> List[Dict[str, Any]]:
         """Return changed positions for the compositor."""
