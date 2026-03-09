@@ -10,24 +10,24 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 7 of 8 (HTTP Boot via iPXE)
-Plan: 02 of 3 (HTTP Boot Server)
-Status: In progress
-Last activity: 2026-03-09 — Completed 07-02-PLAN.md
+Plan: 03 of 3 (HTTP Boot Integration)
+Status: Phase complete
+Last activity: 2026-03-09 — Completed 07-03-PLAN.md
 
-Progress: [███████░░░░░░░░░░░░░] 50% (5/8 plans in v1.2)
+Progress: [████████░░░░░░░░░░░░] 75% (6/8 plans in v1.2)
 
 ## Performance Metrics
 
 **v1.2 Velocity:**
-- Plans completed: 5
-- Duration: ~35 min (13 + 9 + 8 + 5)
-- Tests: 242 passing (28 + 59 + 53 + 44 + 58)
+- Plans completed: 6
+- Duration: ~40 min (13 + 9 + 8 + 5 + 5)
+- Tests: 271 passing (28 + 59 + 53 + 44 + 58 + 29)
 
 **Cumulative:**
 - v1.0: 22 plans
 - v1.1: 4 plans
-- v1.2: 5 plans (Phase 7 in progress)
-- Total: 31 plans
+- v1.2: 6 plans (Phase 7 complete)
+- Total: 32 plans
 
 ## Accumulated Context
 
@@ -68,6 +68,12 @@ Key decisions archived in `.planning/milestones/`:
 - Parse multiple ranges but use first range for simplicity
 - Accept-Ranges: bytes header to advertise range support
 
+**07-03 Decisions:**
+- Opt-in HTTP boot via --http flag (backward compatible)
+- Graceful degradation if HTTP fails (continue TFTP-only)
+- Service order: TFTP -> DHCP -> HTTP -> NBD
+- Unified boot directory (HTTP serves from tftp_root)
+
 ### Pending Todos
 
 None.
@@ -81,8 +87,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-09T00:17:42Z
-Stopped at: Completed 07-02-PLAN.md (HTTP Boot Server)
+Last session: 2026-03-09T00:25:00Z
+Stopped at: Completed 07-03-PLAN.md (HTTP Boot Integration)
 Resume file: None
 
 **CLI Commands Available (v1.0 + v1.1 + v1.2):**
@@ -92,6 +98,8 @@ Resume file: None
 - `pixelrts catalog` - Launch visual catalog server
 - `pixelrts diff <old.png> <new.png>` - Visual diff comparison
 - `pixelrts serve <file.png>` - Start network boot services (NEW in v1.2)
+  - `--http` - Enable HTTP boot for faster transfers
+  - `--http-port PORT` - Custom HTTP port (default: 8080)
 
 **Planned Commands (v1.2):**
 - `pixelrts delta <old.png> <new.png>` - Generate delta manifest (Phase 8)
