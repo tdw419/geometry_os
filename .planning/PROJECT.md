@@ -433,6 +433,17 @@ If everything else fails, users must be able to:
 | Range-based decode for segment verification | ~5000x speedup | ✓ Good |
 | Run all verifiers in sequence | Complete picture on failure | ✓ Good |
 
+## Current Milestone: v1.8 Network Boot Substrate
+
+**Goal:** Enable distributed Geometry OS nodes to discover peers and sync tectonic state across the mesh.
+
+**Target features:**
+- UDP multicast peer discovery (MeshBroadcaster)
+- Peer registry with health tracking (PeerRegistry)
+- WebSocket tectonic sync (TectonicSync)
+- Unified NetworkBoot orchestrator
+- CLI command for mesh status
+
 ---
 *Last updated: 2026-03-09 after v1.7 milestone*
 

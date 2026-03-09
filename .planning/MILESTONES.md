@@ -1,5 +1,31 @@
 # Project Milestones: PixelRTS
 
+## v1.7 Vision Integrity (Shipped: 2026-03-09)
+
+**Delivered:** File integrity verification with cryptographic signatures and unified CLI command.
+
+**Phases completed:** 19-22 (7 plans total)
+
+**Key accomplishments:**
+
+- VerificationStep composable pattern for reusable verification steps
+- StructureVerifier for PNG structure validation
+- ConsistencyVerifier for SHA256 hash verification
+- SegmentIntegrityChecker with range-based decode (~5000x faster)
+- SignatureVerifier for Ed25519 cryptographic signatures
+- FileSigner for signing .rts.png files
+- `pixelrts verify` CLI command with --json and --verbose flags
+
+**Stats:**
+
+- 4 phases (19-22), 7 plans
+- Timeline: Mar 9, 2026 (1 session)
+- 88 tests passing
+
+**Git tag:** v1.7
+
+---
+
 ## v1.6 Ephemeral Boot (Shipped: 2026-03-09)
 
 **Delivered:** Boot containers with `--ephemeral` flag to discard changes on exit. Complete ephemeral lifecycle with crash cleanup and commit support.
