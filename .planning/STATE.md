@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 Phase: 10 of 11 (Boot Ordering Dependencies)
 Plan: 3 of 3 in current phase
 Status: Phase complete
-Last activity: 2026-03-09 — Completed 10-04 Boot Progress Visibility
+Last activity: 2026-03-09 — Completed 10-03 Ordered Shutdown Implementation
 
 Progress: [███░░░░░░░] 3/3 plans in Phase 10
 
@@ -53,6 +53,7 @@ Key decisions archived in `.planning/milestones/`:
 **v1.4 Decisions:**
 - **10-01:** ContainerRole enum (PRIMARY/HELPER) for ordered boot, default HELPER role, --primary CLI flag
 - **10-02:** Ordered boot pattern (primary first, wait for RUNNING, helpers concurrently), primary failure aborts helpers, backward compatible concurrent boot when no primary
+- **10-03:** Ordered shutdown pattern (helpers first, primary last), stop_all_ordered() method, CLI uses ordered shutdown when --primary specified
 - **10-04:** Progress callback pattern for ordered boot visibility (primary_start, primary_ready, helpers_start, helper_ready), callback only for ordered boot
 
 ### Pending Todos
