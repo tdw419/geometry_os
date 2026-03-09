@@ -1178,6 +1178,58 @@ def cmd_delta(args):
         return 1
 
 
+def cmd_patch(args):
+    """
+    Handle patch command - Apply delta manifest to update a file.
+
+    Applies a delta manifest to a base .rts.png file, validating
+    checksums and applying byte-level patches.
+    """
+    from systems.pixel_compiler.delta_manifest import DeltaManifest
+    from systems.pixel_compiler.delta_patch import apply_delta_patch, PatchError
+
+    try:
+        # Load the manifest
+        manifest = DeltaManifest.load(args.manifest)
+
+        # Apply the patch
+        output_path = apply_delta_patch(
+            base_path=args.base,
+            manifest=manifest,
+            output_path=args.output,
+            validate_checksums=not args.skip_validation
+        )
+
+        # Print success message
+        if not args.quiet:
+            print(f"Patch applied successfully: {output_path}")
+            print(f"  Regions applied: {len(manifest.regions)}")
+            print(f"  Old size: {manifest.old_size:,} bytes")
+            print(f"  New size: {manifest.new_size:,} bytes")
+
+        return 0
+
+    except PatchError as e:
+        # Handle patch-specific errors
+        if e.region_index is not None:
+            print(f"Error in region {e.region_index}: {e.message}", file=sys.stderr)
+        else:
+            print(f"Error: {e.message}", file=sys.stderr)
+        return 1
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 2
+    except ValueError as e:
+        print(f"Error: Invalid manifest format - {e}", file=sys.stderr)
+        return 3
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 4
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -1193,6 +1245,7 @@ Commands:
   catalog      Launch visual catalog server for browsing .rts.png files
   diff         Compare two .rts.png files and show differences
   delta        Generate delta manifest between two versions
+  patch        Apply delta manifest to update a file
   benchmark    Run performance benchmarks
   dashboard    Generate performance dashboard
   info         Display information about .rts.png file
@@ -1219,6 +1272,9 @@ Examples:
   pixelrts diff old.rts.png new.rts.png --json
   pixelrts delta old.rts.png new.rts.png -o manifest.json
   pixelrts delta old.rts.png new.rts.png --quiet
+  pixelrts patch base.rts.png manifest.json
+  pixelrts patch base.rts.png manifest.json -o updated.rts.png
+  pixelrts patch base.rts.png manifest.json --skip-validation
   pixelrts analyze image.rts.png --method edges --edge-method sobel
   pixelrts analyze image.rts.png --method all --output results.json
   pixelrts execute fibonacci.rts.png --function fib --arguments 10
@@ -1598,6 +1654,41 @@ Examples:
     )
     delta_parser.set_defaults(func=cmd_delta)
 
+    # Patch command (apply delta manifest)
+    patch_parser = subparsers.add_parser(
+        'patch',
+        help='Apply delta manifest to update a file',
+        description='Apply a delta manifest to a base .rts.png file to update it'
+    )
+    patch_parser.add_argument(
+        'base',
+        help='Base .rts.png file to patch'
+    )
+    patch_parser.add_argument(
+        'manifest',
+        help='Delta manifest JSON file'
+    )
+    patch_parser.add_argument(
+        '-o', '--output',
+        help='Output file path (default: patch in-place)'
+    )
+    patch_parser.add_argument(
+        '--skip-validation',
+        action='store_true',
+        help='Skip checksum validation (faster but less safe)'
+    )
+    patch_parser.add_argument(
+        '-q', '--quiet',
+        action='store_true',
+        help='Suppress success output'
+    )
+    patch_parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help='Enable verbose output'
+    )
+    patch_parser.set_defaults(func=cmd_patch)
+
     args = parser.parse_args()
 
     if not args.command:
@@ -1614,6 +1705,7 @@ Examples:
         'catalog': cmd_catalog,
         'diff': cmd_diff,
         'delta': cmd_delta,
+        'patch': cmd_patch,
         'benchmark': cmd_benchmark,
         'dashboard': cmd_dashboard,
         'info': cmd_info,
