@@ -680,6 +680,20 @@ class QemuBoot:
         elif self.config.network_mode == NetworkMode.BRIDGE:
             args.append("-nic")
             args.append("bridge,br=br0")
+        elif self.config.network_mode == NetworkMode.SOCKET_MCAST:
+            # Multicast socket networking (no root required)
+            socket_config = self.config.socket_config or VirtualNetworkConfig()
+            vn = VirtualNetwork(config=socket_config)
+            args.extend(vn.build_netdev_args(device_id="net0"))
+        elif self.config.network_mode == NetworkMode.SOCKET_STREAM:
+            # Point-to-point socket networking (no root required)
+            # For stream mode, we use a listen/connect pattern
+            # By default, first VM listens, others connect
+            raise NotImplementedError(
+                "SOCKET_STREAM networking mode is not yet implemented. "
+                "Use SOCKET_MCAST for mesh networking where all containers "
+                "join the same multicast group."
+            )
 
         return args
 
