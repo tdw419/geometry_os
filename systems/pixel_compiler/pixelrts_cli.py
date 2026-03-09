@@ -1025,7 +1025,8 @@ def cmd_serve(args):
             interface=args.interface,
             verbose=args.verbose,
             enable_http=getattr(args, 'http', False),
-            http_port=getattr(args, 'http_port', 8080)
+            http_port=getattr(args, 'http_port', 8080),
+            enable_delta=getattr(args, 'delta', False)
         )
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -1221,6 +1222,137 @@ def cmd_patch(args):
         return 2
     except ValueError as e:
         print(f"Error: Invalid manifest format - {e}", file=sys.stderr)
+        return 3
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 4
+
+
+def cmd_update(args):
+    """
+    Handle update command - Update local .rts.png file via delta patch.
+
+    Fetches delta manifest from server and applies only changed regions,
+    minimizing bandwidth usage compared to full file download.
+    """
+    import urllib.request
+    import urllib.error
+    import hashlib
+    from pathlib import Path
+
+    from systems.pixel_compiler.delta_manifest import DeltaManifest
+    from systems.pixel_compiler.delta_patch import (
+        DeltaPatcher,
+        PatchError,
+        HTTPByteFetcher,
+        apply_delta_patch
+    )
+    from systems.pixel_compiler.pixelrts_v2_core import PixelRTSDecoder
+
+    rts_file = Path(args.file)
+    server_url = args.server.rstrip('/')
+
+    # Validate local file exists
+    if not rts_file.exists():
+        print(f"Error: File not found: {args.file}", file=sys.stderr)
+        return 2
+
+    if not str(rts_file).endswith('.rts.png'):
+        print(f"Error: File must be a .rts.png file: {args.file}", file=sys.stderr)
+        return 1
+
+    # Fetch manifest from server
+    manifest_url = f"{server_url}/delta/{rts_file.name}.json"
+
+    if not args.quiet:
+        print(f"Fetching manifest from: {manifest_url}")
+
+    try:
+        request = urllib.request.Request(manifest_url)
+        with urllib.request.urlopen(request, timeout=30) as response:
+            if response.status != 200:
+                print(f"Error: Server returned status {response.status}", file=sys.stderr)
+                return 3
+            manifest_data = response.read().decode('utf-8')
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            print(f"Error: No delta manifest found for {rts_file.name}", file=sys.stderr)
+            print("The server may not have delta updates enabled.", file=sys.stderr)
+        else:
+            print(f"Error: HTTP error {e.code}: {e.reason}", file=sys.stderr)
+        return 3
+    except urllib.error.URLError as e:
+        print(f"Error: Failed to connect to server: {e.reason}", file=sys.stderr)
+        return 3
+
+    # Parse manifest
+    try:
+        manifest = DeltaManifest.from_json(manifest_data)
+    except Exception as e:
+        print(f"Error: Failed to parse manifest: {e}", file=sys.stderr)
+        return 3
+
+    if not args.quiet:
+        print(f"Manifest retrieved:")
+        print(f"  Regions: {len(manifest.regions)}")
+        print(f"  Old size: {manifest.old_size:,} bytes")
+        print(f"  New size: {manifest.new_size:,} bytes")
+
+    # Check if update needed via checksum
+    with open(rts_file, 'rb') as f:
+        local_png_data = f.read()
+
+    decoder = PixelRTSDecoder()
+    local_data = decoder.decode(local_png_data)
+    local_checksum = hashlib.sha256(local_data).hexdigest()
+
+    if local_checksum == manifest.new_checksum:
+        if not args.quiet:
+            print("Local file is already up to date.")
+        return 0
+
+    if local_checksum != manifest.old_checksum:
+        print("Warning: Local file checksum doesn't match manifest's old_checksum.", file=sys.stderr)
+        if not args.force:
+            print("Use --force to update anyway.", file=sys.stderr)
+            return 1
+
+    # Create HTTP byte fetcher for remote regions
+    file_url = f"{server_url}/{rts_file.name}"
+    fetcher = HTTPByteFetcher(file_url)
+
+    # Apply the patch
+    try:
+        output_path = apply_delta_patch(
+            base_path=str(rts_file),
+            manifest=manifest,
+            output_path=args.output,
+            byte_fetcher=fetcher,
+            validate_checksums=not args.skip_validation
+        )
+
+        if not args.quiet:
+            print(f"Update applied successfully: {output_path}")
+            print(f"  Regions applied: {len(manifest.regions)}")
+            print(f"  Bytes transferred: {fetcher.bytes_fetched:,}")
+            full_size = manifest.new_size
+            if full_size > 0:
+                savings = 100 * (1 - fetcher.bytes_fetched / full_size)
+                print(f"  Bandwidth saved: {savings:.1f}%")
+
+        return 0
+
+    except PatchError as e:
+        if e.region_index is not None:
+            print(f"Error in region {e.region_index}: {e.message}", file=sys.stderr)
+        else:
+            print(f"Error: {e.message}", file=sys.stderr)
+        return 1
+    except urllib.error.URLError as e:
+        print(f"Error: Failed to fetch region data: {e.reason}", file=sys.stderr)
         return 3
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -1591,10 +1723,15 @@ Examples:
         help='Enable HTTP boot for faster transfers (chainloads iPXE)'
     )
     serve_parser.add_argument(
-        '--http-port',
-        type=int,
-        default=8080,
-        help='HTTP server port (default: 8080)'
+        '--delta',
+        action='store_true',
+        help='Enable delta update support (serves /delta/* endpoints)'
+    )
+    serve_parser.add_argument(
+        '--delta-from',
+        type=str,
+        default=None,
+        help='Generate initial delta from this file (for remote updates)'
     )
     serve_parser.set_defaults(func=cmd_serve)
 
@@ -1689,6 +1826,50 @@ Examples:
     )
     patch_parser.set_defaults(func=cmd_patch)
 
+    # Update command (update local file via delta)
+    update_parser = subparsers.add_parser(
+        'update',
+        help='Update local .rts.png file via delta patch',
+        description='Fetch delta manifest from server and apply only changed regions to minimize bandwidth'
+    )
+    update_parser.add_argument(
+        'file',
+        help='Local .rts.png file to update'
+    )
+    update_parser.add_argument(
+        '--server', '-s',
+        type=str,
+        default='http://localhost:8080',
+        help='Server URL for delta updates (e.g., http://localhost:8080)'
+    )
+    update_parser.add_argument(
+        '-o', '--output',
+        type=str,
+        default=None,
+        help='Output file path (default: patch in-place)'
+    )
+    update_parser.add_argument(
+        '--force', '-f',
+        action='store_true',
+        help='Force update even if file unchanged'
+    )
+    update_parser.add_argument(
+        '--skip-validation',
+        action='store_true',
+        help='Skip checksum validation'
+    )
+    update_parser.add_argument(
+        '-q', '--quiet',
+        action='store_true',
+        help='Suppress progress output'
+    )
+    update_parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help='Enable verbose output'
+    )
+    update_parser.set_defaults(func=cmd_update)
+
     args = parser.parse_args()
 
     if not args.command:
@@ -1706,6 +1887,7 @@ Examples:
         'diff': cmd_diff,
         'delta': cmd_delta,
         'patch': cmd_patch,
+        'update': cmd_update,
         'benchmark': cmd_benchmark,
         'dashboard': cmd_dashboard,
         'info': cmd_info,

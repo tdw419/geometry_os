@@ -5,6 +5,8 @@ Applies delta manifests to update local .rts.png copies.
 
 import hashlib
 import tempfile
+import urllib.request
+import urllib.error
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Protocol
@@ -47,6 +49,76 @@ class ByteFetcher(Protocol):
             The requested bytes
         """
         ...
+
+
+class HTTPByteFetcher:
+    """
+    Fetches byte ranges from an HTTP server using Range requests.
+
+    Implements the ByteFetcher protocol for remote region fetching.
+    """
+
+    def __init__(self, base_url: str):
+        """
+        Initialize the HTTP byte fetcher.
+
+        Args:
+            base_url: Base URL for the remote file (e.g., http://host:8080/file.rts.png)
+        """
+        self.base_url = base_url.rstrip('/')
+        self._bytes_fetched = 0
+
+    def fetch_region(self, offset: int, length: int) -> bytes:
+        """
+        Fetch a byte range from the remote server.
+
+        Uses HTTP Range header for efficient partial downloads.
+
+        Args:
+            offset: Byte offset to start from
+            length: Number of bytes to fetch
+
+        Returns:
+            The requested bytes
+
+        Raises:
+            urllib.error.URLError: If the request fails
+            ValueError: If server doesn't support ranges
+        """
+        # Build Range header
+        end = offset + length - 1
+        range_header = f"bytes={offset}-{end}"
+
+        request = urllib.request.Request(self.base_url)
+        request.add_header('Range', range_header)
+
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                # Check for 206 Partial Content
+                if response.status == 206:
+                    data = response.read()
+                    self._bytes_fetched += len(data)
+                    return data
+                elif response.status == 200:
+                    # Server doesn't support ranges, returned full file
+                    data = response.read()
+                    # Extract the requested range
+                    result = data[offset:offset + length]
+                    self._bytes_fetched += len(result)
+                    return result
+                else:
+                    raise ValueError(f"Unexpected HTTP status: {response.status}")
+        except urllib.error.URLError as e:
+            raise urllib.error.URLError(f"Failed to fetch range {offset}-{end}: {e}")
+
+    @property
+    def bytes_fetched(self) -> int:
+        """Total bytes fetched so far."""
+        return self._bytes_fetched
+
+    def reset_bytes_count(self) -> None:
+        """Reset the bytes fetched counter."""
+        self._bytes_fetched = 0
 
 
 class DeltaPatcher:
