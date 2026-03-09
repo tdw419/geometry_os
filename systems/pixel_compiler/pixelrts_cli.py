@@ -1485,13 +1485,17 @@ def cmd_snapshot_list(args):
                 })
             print(json.dumps(snapshot_list, indent=2))
         else:
-            # Table format
+            # Table format with improved alignment for timestamp-based names
             print(f"Snapshots for container '{container_name}':")
-            print(f"{'TAG':<20} {'ID':<12} {'SIZE':<12} {'DATE'}")
-            print(f"{'-'*20} {'-'*12} {'-'*12} {'-'*30}")
+            print(f"{'TAG':<25} {'SIZE':<12} {'DATE':<20} {'VM CLOCK'}")
+            print(f"{'-'*25} {'-'*12} {'-'*20} {'-'*15}")
             for snap in snapshots:
-                date_str = str(snap.date) if snap.date else "-"
-                print(f"{snap.tag:<20} {snap.id:<12} {snap.size:<12} {date_str}")
+                date_str = str(snap.date)[:19] if snap.date else "-"
+                vm_clock_str = str(snap.vm_clock) if snap.vm_clock else "-"
+                print(f"{snap.tag:<25} {snap.size:<12} {date_str:<20} {vm_clock_str}")
+
+            if args.verbose:
+                print(f"\nTotal: {len(snapshots)} snapshot(s)")
 
         return 0
 
