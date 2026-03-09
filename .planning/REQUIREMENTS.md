@@ -75,10 +75,10 @@
 | SYNC-04 | Phase 23 | Complete |
 | ORCH-01 | Phase 23 | Complete |
 | ORCH-02 | Phase 23 | Complete |
-| ORCH-03 | Phase 24 | Pending |
-| CLI-01 | Phase 24 | Pending |
-| CLI-02 | Phase 24 | Pending |
-| CLI-03 | Phase 24 | Pending |
+| ORCH-03 | Phase 24 | Complete |
+| CLI-01 | Phase 24 | Complete |
+| CLI-02 | Phase 24 | Complete |
+| CLI-03 | Phase 24 | Complete |
 
 **Coverage:**
 - v1.8 requirements: 16 total

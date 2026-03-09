@@ -54,7 +54,7 @@ Plans:
 **Plans**: 1
 
 Plans:
-- [ ] 24-01: Add pixelrts mesh CLI commands
+- [x] 24-01: Add pixelrts mesh CLI commands
 
 ## Progress
 
@@ -64,7 +64,7 @@ Phases execute in numeric order: 23 → 24
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 23. Core Mesh | v1.8 | 4/4 | Complete | 2026-03-09 |
-| 24. CLI Integration | v1.8 | 0/1 | Not started | - |
+| 24. CLI Integration | v1.8 | 1/1 | Complete | 2026-03-09 |
 
 ---
-*Last updated: 2026-03-09 — v1.8 milestone started*
+*Last updated: 2026-03-09 — v1.8 milestone complete*
