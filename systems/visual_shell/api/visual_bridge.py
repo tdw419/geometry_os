@@ -29,7 +29,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
-from logger_config import get_logger
+try:
+    from logger_config import get_logger
+except ImportError:
+    from .logger_config import get_logger
 
 
 # Global instances
