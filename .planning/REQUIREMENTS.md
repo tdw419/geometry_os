@@ -22,8 +22,8 @@
 
 ### HTTP Boot (HTTP)
 
-- [ ] **HTTP-01**: iPXE chainload enables HTTP boot for faster transfers
-- [ ] **HTTP-02**: HTTP server serves kernel/initrd with byte-range support
+- [x] **HTTP-01**: iPXE chainload enables HTTP boot for faster transfers
+- [x] **HTTP-02**: HTTP server serves kernel/initrd with byte-range support
 
 ### Delta Updates (DELTA)
 
@@ -56,8 +56,8 @@
 | NBD-01 | 6 | Complete |
 | NBD-02 | 6 | Complete |
 | NBD-03 | 6 | Complete |
-| HTTP-01 | 7 | Pending |
-| HTTP-02 | 7 | Pending |
+| HTTP-01 | 7 | Complete |
+| HTTP-02 | 7 | Complete |
 | DELTA-01 | 8 | Pending |
 | DELTA-02 | 8 | Pending |
 | DELTA-03 | 8 | Pending |

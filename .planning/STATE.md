@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-08)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** Phase 7 - HTTP Boot via iPXE
+**Current focus:** Phase 8 - Delta Updates
 
 ## Current Position
 
-Phase: 7 of 8 (HTTP Boot via iPXE)
-Plan: 03 of 3 (HTTP Boot Integration)
-Status: Phase complete
-Last activity: 2026-03-09 — Completed 07-03-PLAN.md
+Phase: 8 of 8 (Delta Updates)
+Plan: Not started
+Status: Phase 7 complete, ready to plan Phase 8
+Last activity: 2026-03-08 — Phase 7 HTTP Boot via iPXE complete
 
-Progress: [████████░░░░░░░░░░░░] 75% (6/8 plans in v1.2)
+Progress: [████████████░░░░░░░░░░] 50% (6/12 plans in v1.2)
 
 ## Performance Metrics
 
