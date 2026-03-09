@@ -70,13 +70,13 @@ Plans:
   2. Helper containers wait until primary is running before starting
   3. Shutdown reverses boot order (helpers stop first, primary last)
   4. User can observe boot order progress in CLI output
-**Plans:** 4 plans
+**Plans:** 4 plans (complete)
 
 Plans:
-- [ ] 10-01-PLAN.md — Container role designation (primary/helper enum, --primary CLI flag)
-- [ ] 10-02-PLAN.md — Boot dependency ordering with wait logic (primary first, helpers wait)
-- [ ] 10-03-PLAN.md — Reverse-order graceful shutdown (stop_all_ordered)
-- [ ] 10-04-PLAN.md — Boot progress visibility (progress_callback, CLI output)
+- [x] 10-01-PLAN.md — Container role designation (primary/helper enum, --primary CLI flag)
+- [x] 10-02-PLAN.md — Boot dependency ordering with wait logic (primary first, helpers wait)
+- [x] 10-03-PLAN.md — Reverse-order graceful shutdown (stop_all_ordered)
+- [x] 10-04-PLAN.md — Boot progress visibility (progress_callback, CLI output)
 
 ### Phase 11: Virtual Networking
 **Goal**: Containers can communicate with each other without root privileges
@@ -86,12 +86,12 @@ Plans:
   1. Containers can ping/connect to each other over virtual network
   2. Networking works without root or CAP_NET_ADMIN privileges
   3. Network setup failure falls back gracefully to isolated mode
-**Plans**: 3 plans
+**Plans:** 3 plans
 
 Plans:
-- [ ] 11-01: VirtualNetwork with QEMU socket netdev
-- [ ] 11-02: NetworkMode enum extension (SOCKET_MCAST, SOCKET_STREAM)
-- [ ] 11-03: Graceful degradation on network failure
+- [ ] 11-01-PLAN.md — VirtualNetwork class with QEMU socket netdev (multicast mesh)
+- [ ] 11-02-PLAN.md — NetworkMode enum extension (SOCKET_MCAST, SOCKET_STREAM)
+- [ ] 11-03-PLAN.md — Graceful degradation on network failure with fallback to USER mode
 
 ## Progress
 
@@ -110,9 +110,9 @@ Phases execute in numeric order: 9 -> 10 -> 11
 | 8. Delta Updates | v1.2 | 3/3 | Complete | 2026-03-09 |
 | 8.1. Wire Delta HTTP Handler | v1.2 | 1/1 | Complete | 2026-03-09 |
 | 9. Core Multi-Boot Infrastructure | v1.3 | 5/5 | Complete | 2026-03-09 |
-| 10. Boot Ordering & Dependencies | v1.3 | 0/4 | Not started | - |
+| 10. Boot Ordering & Dependencies | v1.3 | 4/4 | Complete | 2026-03-09 |
 | 11. Virtual Networking | v1.3 | 0/3 | Not started | - |
 
 ---
 
-*Next: `/gsd:execute-phase 10` to execute Boot Ordering & Dependencies*
+*Next: `/gsd:execute-phase 11` to execute Virtual Networking*
