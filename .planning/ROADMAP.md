@@ -64,8 +64,8 @@ Plans:
 **Plans**: 2
 
 Plans:
-- [ ] 21-01-PLAN.md — Signature verification with SignatureVerifier
-- [ ] 21-02-PLAN.md — File signing with FileSigner
+- [x] 21-01-PLAN.md — Signature verification with SignatureVerifier
+- [x] 21-02-PLAN.md — File signing with FileSigner
 
 #### Phase 22: CLI Integration
 **Goal**: Users can verify files via unified CLI command
@@ -90,7 +90,7 @@ Phases execute in numeric order: 19 → 20 → 21 → 22
 |-------|-----------|----------------|--------|-----------|
 | 19. Basic Verification | v1.7 | 2/2 | Complete | 2026-03-09 |
 | 20. Segment Integrity | v1.7 | 1/1 | Complete | 2026-03-09 |
-| 21. Cryptographic Signatures | v1.7 | 0/2 | Not started | - |
+| 21. Cryptographic Signatures | v1.7 | 2/2 | Complete | 2026-03-09 |
 | 22. CLI Integration | v1.7 | 0/1 | Not started | - |
 
 ---

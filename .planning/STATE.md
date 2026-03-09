@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-03-09)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** Phase 21 - Cryptographic Signatures (In progress)
+**Current focus:** Phase 21 - Cryptographic Signatures (Complete)
 
 ## Current Position
 
 Phase: 21 of 22 (Cryptographic Signatures)
-Plan: 2 of 2 in current phase
-Status: In progress
-Last activity: 2026-03-09 - Completed 21-02 FileSigner
+Plan: 2 of 2 complete
+Status: Complete
+Last activity: 2026-03-09 - Phase 21 complete (SignatureVerifier + FileSigner)
 
 Progress: [██████████████████████░░] 97% (71/72 plans across all milestones)
 
