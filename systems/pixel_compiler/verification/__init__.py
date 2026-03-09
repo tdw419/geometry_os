@@ -38,6 +38,7 @@ from .context import VerificationContext
 
 # Import verifiers for convenience
 from .structure_verifier import StructureVerifier
+from .consistency_verifier import ConsistencyVerifier
 
 __all__ = [
     # Result types
@@ -50,4 +51,5 @@ __all__ = [
     "VerificationContext",
     # Verifiers
     "StructureVerifier",
+    "ConsistencyVerifier",
 ]
