@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 ## Current Position
 
 Phase: 1 of N (18-ephemeral-boot)
-Plan: 3 of 8 complete
+Plan: 6 of 8 complete
 Status: In progress
-Last activity: 2026-03-09 — Completed 18-03-PLAN.md
+Last activity: 2026-03-09 — Completed 18-06-PLAN.md
 
-Progress: [████████████████████████░] 98% (52/53 plans across all milestones)
+Progress: [████████████████████████░] 98% (55/56 plans across all milestones)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 52
+- Total plans completed: 55
 - Average duration: ~14 min
-- Total execution time: ~12 hours
+- Total execution time: ~12.5 hours
 
 **By Milestone:**
 
@@ -35,7 +35,7 @@ Progress: [███████████████████████
 | v1.5 Phases 15-17 | 9 | ~2.5 hrs | ~17 min |
 
 **Recent Trend:**
-- Last 5 plans: ~10 min per plan
+- Last 5 plans: ~6 min per plan
 - Trend: Accelerating
 
 *Updated after each plan completion*
@@ -51,7 +51,7 @@ Key decisions archived in `.planning/milestones/` and PROJECT.md:
 - v1.3: ContainerRole enum, ordered boot/shutdown, VirtualNetwork class
 - v1.4: VMSnapshotManager, linear timeout scaling, SnapshotMetadata, dual-source listing
 - v1.5: qemu-img convert -l for snapshot extraction, VM pause/resume guarantee, combined data encoding with offset metadata, ContainerType enum for vm-snapshot detection, CLI boot auto-routing, binary kernel/initrd extraction with hash verification
-- v1.6: ContainerInfo.is_ephemeral field for ephemeral container tracking with state persistence, EphemeralBooter wrapper with temp file management, MultiBootManager.boot_all() ephemeral parameter for concurrent ephemeral boot, --ephemeral CLI flag with _boot_ephemeral helper
+- v1.6: ContainerInfo.is_ephemeral field for ephemeral container tracking with state persistence, EphemeralBooter wrapper with temp file management, MultiBootManager.boot_all() ephemeral parameter for concurrent ephemeral boot, --ephemeral CLI flag with _boot_ephemeral helper, atexit cleanup for crash recovery with signal handler delegation
 
 ### Pending Todos
 
@@ -63,8 +63,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-09 15:28 UTC
-Stopped at: Completed 18-03-PLAN.md
+Last session: 2026-03-09 15:36 UTC
+Stopped at: Completed 18-06-PLAN.md
 Resume file: None
 
 ---
