@@ -34,8 +34,12 @@ Usage:
 """
 
 import os
+import urllib.request
+import logging
 from pathlib import Path
 from typing import Optional, List, Dict, Any
+
+logger = logging.getLogger(__name__)
 
 
 class PXEConfig:
@@ -64,6 +68,13 @@ class PXEConfig:
         "libcom32.c32",    # com32 support (optional)
         "libutil.c32",     # Utility functions (optional)
     ]
+
+    # iPXE boot file for HTTP chainloading (Phase 7)
+    # Standard iPXE UNDI driver - allows HTTP boot instead of TFTP
+    IPXE_BOOT_FILE = "undionly.kpxe"
+
+    # URL for downloading undionly.kpxe from iPXE CDN
+    IPXE_DOWNLOAD_URL = "https://boot.ipxe.org/undionly.kpxe"
 
     def __init__(
         self,
@@ -303,6 +314,135 @@ cp /usr/lib/syslinux/modules/bios/ldlinux.c32 /srv/tftp/
         # Normalize MAC format
         mac = client_mac.lower().replace("-", ":").replace(".", ":")
         return "01-" + mac.replace(":", "-")
+
+    def generate_ipxe_chainload_config(
+        self,
+        server_ip: str,
+        http_port: int = 8080,
+        nbd_port: int = 10809
+    ) -> str:
+        """
+        Generate pxelinux.cfg/default that chainloads iPXE for HTTP boot.
+
+        This enables the chainload flow:
+        1. Client PXE boots -> receives undionly.kpxe via TFTP (slow)
+        2. iPXE loads -> fetches boot.ipxe via HTTP (fast)
+        3. HTTP boot script -> loads kernel/initrd via HTTP (fast)
+
+        Using HTTP for kernel/initrd transfer is significantly faster than TFTP,
+        especially for large files (50-200MB kernel+initrd).
+
+        Args:
+            server_ip: HTTP server IP address
+            http_port: HTTP server port (default: 8080)
+            nbd_port: NBD server port (default: 10809)
+
+        Returns:
+            pxelinux.cfg/default content that loads iPXE
+
+        Example output:
+            DEFAULT ipxe
+            TIMEOUT 50
+            PROMPT 0
+
+            LABEL ipxe
+                KERNEL undionly.kpxe
+        """
+        config = f"""DEFAULT ipxe
+TIMEOUT {self.timeout}
+PROMPT 0
+
+LABEL ipxe
+    KERNEL {self.IPXE_BOOT_FILE}
+"""
+        return config
+
+    def get_ipxe_boot_files(self) -> List[str]:
+        """
+        Get list of iPXE boot files needed for HTTP chainload.
+
+        Returns:
+            List containing "undionly.kpxe"
+
+        Note:
+            undionly.kpxe is the standard iPXE UNDI driver that works
+            with most network cards. It can be downloaded from:
+            https://boot.ipxe.org/undionly.kpxe
+        """
+        return [self.IPXE_BOOT_FILE]
+
+    @classmethod
+    def get_ipxe_boot_file_url(cls) -> str:
+        """
+        Get the URL for downloading undionly.kpxe from iPXE CDN.
+
+        Returns:
+            URL string: "https://boot.ipxe.org/undionly.kpxe"
+        """
+        return cls.IPXE_DOWNLOAD_URL
+
+    @classmethod
+    def ensure_ipxe_boot_files(cls, tftp_root: Path) -> bool:
+        """
+        Ensure undionly.kpxe is available in the TFTP root directory.
+
+        Checks if the file exists, and if not, attempts to download it
+        from the iPXE CDN. This is a best-effort download - if it fails,
+        the user must manually place undionly.kpxe in the TFTP root.
+
+        Args:
+            tftp_root: Path to TFTP root directory
+
+        Returns:
+            True if file is available (existing or downloaded), False otherwise
+
+        Example:
+            >>> from pathlib import Path
+            >>> PXEConfig.ensure_ipxe_boot_files(Path("/srv/tftp"))
+            True
+        """
+        tftp_root = Path(tftp_root)
+        ipxe_file = tftp_root / cls.IPXE_BOOT_FILE
+
+        # Check if file already exists
+        if ipxe_file.exists() and ipxe_file.stat().st_size > 0:
+            logger.debug(f"iPXE boot file already exists: {ipxe_file}")
+            return True
+
+        # Ensure directory exists
+        tftp_root.mkdir(parents=True, exist_ok=True)
+
+        # Attempt download
+        logger.info(f"Downloading iPXE boot file from {cls.IPXE_DOWNLOAD_URL}")
+        if cls._download_file(cls.IPXE_DOWNLOAD_URL, ipxe_file):
+            logger.info(f"Successfully downloaded {cls.IPXE_BOOT_FILE}")
+            return True
+        else:
+            logger.warning(
+                f"Failed to download {cls.IPXE_BOOT_FILE}. "
+                f"Please manually download from {cls.IPXE_DOWNLOAD_URL} "
+                f"and place in {tftp_root}"
+            )
+            return False
+
+    @staticmethod
+    def _download_file(url: str, dest: Path) -> bool:
+        """
+        Download a file from URL to destination path.
+
+        Args:
+            url: Source URL
+            dest: Destination path
+
+        Returns:
+            True if download succeeded, False otherwise
+        """
+        try:
+            urllib.request.urlretrieve(url, dest)
+            return True
+        except Exception as e:
+            logger.debug(f"Download failed: {e}")
+            return False
 
     def __repr__(self) -> str:
         return f"PXEConfig(kernel={self.kernel}, initrd={self.initrd})"
