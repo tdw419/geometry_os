@@ -1013,6 +1013,15 @@ class MultiBootManager:
             info.snapshots.append(result.metadata)
             self._save_state()
 
+            # Persist metadata to storage
+            try:
+                stored_metadata = SnapshotMetadata.from_snapshot_info(
+                    result.metadata, name, description
+                )
+                self._snapshot_storage.save_metadata(name, stored_metadata)
+            except Exception as e:
+                logger.warning(f"Failed to persist snapshot metadata: {e}")
+
         return result
 
     def list_container_snapshots(self, name: str) -> List[SnapshotInfo]:
