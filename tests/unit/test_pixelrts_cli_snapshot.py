@@ -916,3 +916,199 @@ class TestPixelRTSCliSnapshotSubprocess:
         assert result.returncode == 0, f"Help should return 0, got {result.returncode}"
         assert 'container' in result.stdout.lower(), "Help should mention 'container' argument"
         assert 'tag' in result.stdout.lower(), "Help should mention 'tag' argument"
+
+
+class TestCmdSnapshotCreateTimestamp:
+    """Tests for timestamp-based snapshot naming."""
+
+    def test_creates_timestamp_tag_when_not_provided(self):
+        """Test that timestamp tag is generated when not provided."""
+        mock_manager = MagicMock()
+        mock_manager.create_snapshot.return_value = SnapshotResult(
+            success=True,
+            tag="snap-20240115-143000",
+            metadata=VMSnapshotMetadata(
+                snapshot_id="test-id",
+                tag="snap-20240115-143000",
+                container_name="alpine",
+                created_at=None,
+                state=SnapshotState.COMPLETE,
+                vm_memory="2G",
+                description="",
+            )
+        )
+
+        args = MagicMock(
+            container="alpine",
+            tag=None,  # No tag provided
+            description="",
+            verbose=True,
+            quiet=False
+        )
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
+            MockManager.return_value = mock_manager
+
+            result = cmd_snapshot_create(args)
+
+            assert result == 0
+            # Verify tag was set to timestamp format
+            call_args = mock_manager.create_snapshot.call_args
+            tag = call_args.kwargs['tag']
+            assert tag.startswith("snap-")
+            assert len(tag) == len("snap-20240115-143000")  # Expected format
+
+    def test_uses_provided_tag(self):
+        """Test that provided tag is used."""
+        mock_manager = MagicMock()
+        mock_manager.create_snapshot.return_value = SnapshotResult(
+            success=True,
+            tag="my-custom-tag",
+        )
+
+        args = MagicMock(
+            container="alpine",
+            tag="my-custom-tag",  # Tag provided
+            description="",
+            verbose=False,
+            quiet=True
+        )
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
+            MockManager.return_value = mock_manager
+
+            result = cmd_snapshot_create(args)
+
+            assert result == 0
+            call_args = mock_manager.create_snapshot.call_args
+            assert call_args.kwargs['tag'] == "my-custom-tag"
+
+
+class TestCmdSnapshots:
+    """Tests for the global snapshots command."""
+
+    def test_snapshots_lists_all_containers(self):
+        """Test that snapshots command lists from all containers."""
+        from systems.pixel_compiler.pixelrts_cli import cmd_snapshots
+
+        mock_manager = MagicMock()
+
+        # Mock storage
+        mock_storage = MagicMock()
+        mock_storage.list_containers.return_value = ["alpine", "ubuntu"]
+        mock_manager.snapshot_storage = mock_storage
+
+        # Mock snapshot listing
+        snap1 = MagicMock(tag="snap1", id="1", size="1.0 GB", date="2024-01-15", vm_clock="00:01:00")
+        snap2 = MagicMock(tag="snap2", id="2", size="2.0 GB", date="2024-01-16", vm_clock="00:02:00")
+        mock_manager.list_container_snapshots.side_effect = [
+            [snap1],  # alpine
+            [snap2],  # ubuntu
+        ]
+
+        args = MagicMock(json=False, verbose=False, quiet=False)
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
+            MockManager.return_value = mock_manager
+
+            result = cmd_snapshots(args)
+
+            assert result == 0
+            assert mock_storage.list_containers.called
+
+    def test_snapshots_json_output(self, capsys):
+        """Test JSON output format."""
+        from systems.pixel_compiler.pixelrts_cli import cmd_snapshots
+
+        mock_manager = MagicMock()
+
+        mock_storage = MagicMock()
+        mock_storage.list_containers.return_value = ["alpine"]
+        mock_manager.snapshot_storage = mock_storage
+
+        snap = MagicMock(tag="snap1", id="1", size="1.0 GB", date="2024-01-15", vm_clock="00:01:00")
+        mock_manager.list_container_snapshots.return_value = [snap]
+
+        args = MagicMock(json=True, verbose=False, quiet=False)
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
+            MockManager.return_value = mock_manager
+
+            result = cmd_snapshots(args)
+
+            assert result == 0
+            captured = capsys.readouterr()
+            assert '"container"' in captured.out
+            assert '"snap1"' in captured.out
+
+    def test_snapshots_empty_output(self, capsys):
+        """Test empty output when no snapshots."""
+        from systems.pixel_compiler.pixelrts_cli import cmd_snapshots
+
+        mock_manager = MagicMock()
+
+        mock_storage = MagicMock()
+        mock_storage.list_containers.return_value = []
+        mock_manager.snapshot_storage = mock_storage
+
+        args = MagicMock(json=False, verbose=False, quiet=False)
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
+            MockManager.return_value = mock_manager
+
+            result = cmd_snapshots(args)
+
+            assert result == 0
+            captured = capsys.readouterr()
+            assert "No snapshots found" in captured.out
+
+
+class TestCmdSnapshotListEnhanced:
+    """Tests for enhanced snapshot list command."""
+
+    def test_list_shows_total_in_verbose(self, capsys):
+        """Test that verbose mode shows total count."""
+        mock_manager = MagicMock()
+
+        snap = MagicMock(tag="snap-20240115-143000", id="1", size="1.0 GB", date="2024-01-15 14:30:00", vm_clock="00:01:00")
+        mock_manager.list_container_snapshots.return_value = [snap, snap]
+
+        args = MagicMock(
+            container="alpine",
+            json=False,
+            verbose=True,
+            quiet=False
+        )
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
+            MockManager.return_value = mock_manager
+
+            result = cmd_snapshot_list(args)
+
+            assert result == 0
+            captured = capsys.readouterr()
+            assert "Total: 2" in captured.out
+
+    def test_list_shows_vm_clock(self, capsys):
+        """Test that table shows VM clock column."""
+        mock_manager = MagicMock()
+
+        snap = MagicMock(tag="snap-20240115-143000", id="1", size="1.0 GB", date="2024-01-15 14:30:00", vm_clock="00:15:30.000")
+        mock_manager.list_container_snapshots.return_value = [snap]
+
+        args = MagicMock(
+            container="alpine",
+            json=False,
+            verbose=False,
+            quiet=False
+        )
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
+            MockManager.return_value = mock_manager
+
+            result = cmd_snapshot_list(args)
+
+            assert result == 0
+            captured = capsys.readouterr()
+            assert "VM CLOCK" in captured.out
+            assert "00:15:30.000" in captured.out
