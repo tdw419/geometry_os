@@ -346,6 +346,42 @@ class QuadTree:
         bounds = BoundingBox(0, 0, self.width, self.height)
         self.root = QuadNode(bounds, self.capacity)
 
+    def get_visible_nodes(self, camera_x: float, camera_y: float, zoom: float,
+                         min_pixels: float = 4.0) -> List[QuadNode]:
+        """
+        Get nodes visible at current zoom level for LOD rendering.
+
+        Args:
+            camera_x, camera_y: Camera center position
+            zoom: Zoom level (higher = more detail)
+            min_pixels: Minimum node size in pixels before subdividing
+
+        Returns:
+            List of QuadNodes to render at this LOD
+        """
+        visible = []
+        self._collect_visible_nodes(self.root, camera_x, camera_y, zoom, min_pixels, visible)
+        return visible
+
+    def _collect_visible_nodes(self, node: QuadNode, cx: float, cy: float,
+                               zoom: float, min_pixels: float, result: List[QuadNode]):
+        """Recursively collect visible nodes."""
+        if node.total_mass == 0:
+            return
+
+        # Calculate node size in screen pixels
+        screen_size = node.bounds.width * zoom
+
+        # If node is small enough on screen or is a leaf, use it
+        if screen_size < min_pixels or not node.is_subdivided():
+            result.append(node)
+            return
+
+        # Check which children are visible (in camera frustum)
+        for child in node.children:
+            if child and child.total_mass > 0:
+                self._collect_visible_nodes(child, cx, cy, zoom, min_pixels, result)
+
 
 if __name__ == "__main__":
     # Quick demo
