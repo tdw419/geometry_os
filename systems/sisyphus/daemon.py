@@ -26,6 +26,11 @@ from datetime import datetime
 
 from .native_hilbert import NativeHilbertLUT
 from .compositor_bridge import CompositorBridge
+from .token_rasterizer import TokenRasterizer
+from ..infinite_map.gravity_engine import GravityEngine
+from .performance_monitor import PerformanceMonitor
+from .kernel_rewriter import KernelRewriter
+from .hot_swap_manager import HotSwapManager
 
 # Setup logging
 logging.basicConfig(
@@ -275,7 +280,15 @@ class Task:
         return self.description
 
 class SisyphusDaemon:
-    def __init__(self, state_file=".loop/STATE_V4.md", session_dir=None, force_clean=False, auto_commit=False, enable_heartbeat=True):
+    def __init__(
+        self,
+        state_file=".loop/STATE_V4.md",
+        session_dir=None,
+        force_clean=False,
+        auto_commit=False,
+        enable_heartbeat=True,
+        enable_self_rewriting=False
+    ):
         self.state_file = Path(state_file)
         self.project_dir = Path(__file__).parent.parent.parent.resolve()
         self.log_dir = Path(".loop/logs/v4")
@@ -306,6 +319,22 @@ class SisyphusDaemon:
         # Compositor connection with heartbeat
         self.enable_heartbeat = enable_heartbeat
         self.compositor = CompositorBridge() if enable_heartbeat else None
+
+        # Phase 5: Mind's Eye & Tectonic
+        self.token_rasterizer = TokenRasterizer(self.compositor)
+        self.gravity_engine = GravityEngine()
+        self._gravity_thread: Optional[threading.Thread] = None
+
+        # Self-rewriting components
+        self.enable_self_rewriting = enable_self_rewriting
+        if enable_self_rewriting:
+            self.performance_monitor = PerformanceMonitor()
+            self.kernel_rewriter = KernelRewriter()
+            self.hot_swap_manager = HotSwapManager()
+            self._last_hot_spot_check = 0
+            self._hot_spot_check_interval = 300  # 5 minutes
+        else:
+            self.performance_monitor = None
 
     def _save_task_checkpoint(self, task_id: int, task_name: str, extra_state: Dict[str, Any] = None):
         """Save current task state to checkpoint."""
@@ -616,6 +645,58 @@ Ensure task numbering continues correctly.
 
         return result
 
+    def detect_kernel_hot_spots(self) -> List:
+        """Detect performance hot spots in native kernels."""
+        if not self.enable_self_rewriting:
+            return []
+
+        return self.performance_monitor.detect_hot_spots(
+            threshold_calls=500,
+            threshold_time_ms=1.0
+        )
+
+    def propose_kernel_rewrite(self) -> Optional[Task]:
+        """Create a task proposal for kernel optimization."""
+        if not self.enable_self_rewriting:
+            return None
+
+        hot_spots = self.detect_kernel_hot_spots()
+        if not hot_spots:
+            return None
+
+        top_hot_spot = hot_spots[0]
+
+        # Create a task for the optimization
+        task = Task(
+            number=0,  # Will be assigned
+            name=f"Optimize {top_hot_spot.function_name}",
+            description=f"Hot-spot detected: {top_hot_spot.call_count} calls, "
+                       f"{top_hot_spot.avg_time_ms:.2f}ms avg. "
+                       f"Location: {top_hot_spot.source_file}:{top_hot_spot.source_line}",
+            verification=f"Profile {top_hot_spot.function_name} after optimization - "
+                       f"should show < {top_hot_spot.avg_time_ms * 0.5:.2f}ms avg"
+        )
+
+        return task
+
+    def _gravity_loop(self):
+        """Background thread for Tectonic gravity simulation."""
+        self.log("Tectonic gravity engine started")
+        while self.running:
+            try:
+                self.gravity_engine.update()
+                updates = self.gravity_engine.get_updates()
+                if self.compositor and updates:
+                    self.compositor.send_thought({
+                        "type": "GRAVITY_UPDATE",
+                        "updates": updates[:10], # Cap for bandwidth
+                        "timestamp": time.time()
+                    }, msg_type="Tectonic")
+                time.sleep(1.0) # 10Hz simulation update
+            except Exception as e:
+                logger.error(f"Gravity loop error: {e}")
+                time.sleep(5)
+
     def run(self):
         self.log("--- SISYPHUS V4 DAEMON STARTING ---")
 
@@ -629,6 +710,10 @@ Ensure task numbering continues correctly.
             self.compositor.connect()
             self.compositor.start_heartbeat_loop()
             self.log("Compositor heartbeat monitoring enabled")
+
+        # Start Tectonic engine
+        self._gravity_thread = threading.Thread(target=self._gravity_loop, daemon=True)
+        self._gravity_thread.start()
 
         try:
             while self.running:
