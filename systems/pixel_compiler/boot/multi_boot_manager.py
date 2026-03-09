@@ -39,6 +39,7 @@ from pathlib import Path
 from typing import Optional, Dict, List, Union, Any
 
 from .boot_bridge import BootBridge, BootResult
+from .ephemeral_boot import EphemeralBooter
 from .resource_allocator import (
     ResourceAllocator,
     AllocatedResources,
@@ -364,6 +365,7 @@ class MultiBootManager:
         is_primary: bool = False,
         network_mode: str = "user",
         socket_config: Optional[VirtualNetworkConfig] = None,
+        ephemeral: bool = False,
     ) -> ContainerInfo:
         """
         Boot a single container.
@@ -378,6 +380,7 @@ class MultiBootManager:
             is_primary: Whether this container is the primary (default: False)
             network_mode: Network mode - "user" (isolated) or "socket_mcast" (mesh)
             socket_config: Optional VirtualNetworkConfig for socket networking
+            ephemeral: Boot in ephemeral mode - changes discarded on stop (default: False)
 
         Returns:
             ContainerInfo with boot result
@@ -396,6 +399,7 @@ class MultiBootManager:
                 path=path,
                 state=ContainerState.BOOTING,
                 role=ContainerRole.PRIMARY if is_primary else ContainerRole.HELPER,
+                is_ephemeral=ephemeral,
             )
             self._containers[name] = info
 
@@ -431,15 +435,28 @@ class MultiBootManager:
             # VNC display = port - 5900
             vnc_display = resources.vnc_port - 5900
 
-            bridge = BootBridge(
-                rts_png_path=path,
-                memory=memory,
-                cpus=cpus,
-                vnc_display=vnc_display,
-                verbose=False,
-                network_mode=bridge_network_mode,
-                socket_config=bridge_socket_config,
-            )
+            if ephemeral:
+                # Use EphemeralBooter for ephemeral mode
+                bridge = EphemeralBooter(
+                    rts_png_path=path,
+                    memory=memory,
+                    cpus=cpus,
+                    vnc_display=vnc_display,
+                    verbose=False,
+                    network_mode=bridge_network_mode,
+                    socket_config=bridge_socket_config,
+                )
+                logger.info(f"Booting {name} in ephemeral mode")
+            else:
+                bridge = BootBridge(
+                    rts_png_path=path,
+                    memory=memory,
+                    cpus=cpus,
+                    vnc_display=vnc_display,
+                    verbose=False,
+                    network_mode=bridge_network_mode,
+                    socket_config=bridge_socket_config,
+                )
 
             # Run synchronous boot in executor for async compatibility
             loop = asyncio.get_event_loop()
@@ -531,6 +548,7 @@ class MultiBootManager:
         progress_callback: Optional[callable] = None,
         network_mode: str = "user",
         socket_config: Optional[VirtualNetworkConfig] = None,
+        ephemeral: bool = False,
     ) -> List[ContainerInfo]:
         """
         Boot containers in order: primary first, then helpers.
@@ -550,6 +568,7 @@ class MultiBootManager:
                               Events: "primary_start", "primary_ready", "helpers_start", "helper_ready"
             network_mode: Network mode - "user" (isolated) or "socket_mcast" (mesh)
             socket_config: Optional VirtualNetworkConfig for socket networking
+            ephemeral: Boot in ephemeral mode - changes discarded on stop (default: False)
 
         Returns:
             List of ContainerInfo for all containers
@@ -575,6 +594,7 @@ class MultiBootManager:
             primary_info = await self._boot_single(
                 primary_path, cmdline, memory, cpus, is_primary=True,
                 network_mode=network_mode, socket_config=socket_config,
+                ephemeral=ephemeral,
             )
             container_infos.append(primary_info)
 
@@ -603,6 +623,7 @@ class MultiBootManager:
                 self._boot_single(
                     path, cmdline, memory, cpus, is_primary=False,
                     network_mode=network_mode, socket_config=socket_config,
+                    ephemeral=ephemeral,
                 )
                 for path in helper_paths
             ]
@@ -628,6 +649,7 @@ class MultiBootManager:
         progress_callback: Optional[callable] = None,
         network_mode: str = "user",
         socket_config: Optional[VirtualNetworkConfig] = None,
+        ephemeral: bool = False,
     ) -> MultiBootResult:
         """
         Boot multiple containers concurrently.
@@ -647,6 +669,7 @@ class MultiBootManager:
                               Events: "primary_start", "primary_ready", "helpers_start", "helper_ready"
             network_mode: Network mode - "user" (isolated) or "socket_mcast" (mesh, default: "user")
             socket_config: Optional VirtualNetworkConfig for socket networking
+            ephemeral: Boot in ephemeral mode - changes discarded on stop (default: False)
 
         Returns:
             MultiBootResult with success status and container info
@@ -682,6 +705,7 @@ class MultiBootManager:
                     progress_callback=progress_callback,
                     network_mode=network_mode,
                     socket_config=socket_config,
+                    ephemeral=ephemeral,
                 )
             else:
                 # Concurrent Boot (existing behavior)
@@ -691,6 +715,7 @@ class MultiBootManager:
                         is_primary=False,
                         network_mode=network_mode,
                         socket_config=socket_config,
+                        ephemeral=ephemeral,
                     )
                     for path in validated_paths
                 ]
