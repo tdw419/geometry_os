@@ -25,6 +25,12 @@ from systems.pixel_compiler.boot.vm_snapshot import (
     SnapshotInfo,
     SnapshotState,
     VMSnapshotMetadata,
+    RestoreProgress,
+    RestoreState,
+)
+from systems.pixel_compiler.boot.multi_boot_manager import (
+    RestoreResult,
+    ContainerState,
 )
 
 
@@ -267,10 +273,12 @@ class TestCmdSnapshotRestore:
         args.tag = "test-tag"
         args.quiet = True
         args.verbose = False
+        args.wait = 0
 
-        mock_result = SnapshotResult(
+        mock_result = RestoreResult(
             success=True,
-            tag="test-tag",
+            container_name="test-container",
+            snapshot_tag="test-tag",
         )
 
         with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
@@ -288,10 +296,12 @@ class TestCmdSnapshotRestore:
         args.tag = "test-tag"
         args.quiet = True
         args.verbose = False
+        args.wait = 0
 
-        mock_result = SnapshotResult(
+        mock_result = RestoreResult(
             success=False,
-            tag="test-tag",
+            container_name="test-container",
+            snapshot_tag="test-tag",
             error_message="Snapshot not found"
         )
 
@@ -318,8 +328,13 @@ class TestCmdSnapshotRestore:
         args.tag = "restore-tag"
         args.quiet = True
         args.verbose = False
+        args.wait = 0
 
-        mock_result = SnapshotResult(success=True, tag="restore-tag")
+        mock_result = RestoreResult(
+            success=True,
+            container_name="restore-container",
+            snapshot_tag="restore-tag"
+        )
 
         with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
             mock_manager = MagicMock()
@@ -332,6 +347,451 @@ class TestCmdSnapshotRestore:
                 name="restore-container",
                 tag="restore-tag"
             )
+
+
+class TestCmdSnapshotRestoreEnhanced:
+    """Test cases for enhanced cmd_snapshot_restore function with verbose output."""
+
+    def test_restore_success_shows_identity_preserved(self):
+        """Test verbose output shows identity preservation status."""
+        args = MagicMock()
+        args.container = "test-container"
+        args.tag = "test-tag"
+        args.quiet = False
+        args.verbose = True
+        args.wait = 0
+
+        mock_result = RestoreResult(
+            success=True,
+            container_name="test-container",
+            snapshot_tag="test-tag",
+            identity_preserved=True,
+        )
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
+            mock_manager = MagicMock()
+            MockManager.return_value = mock_manager
+            mock_manager.restore_snapshot.return_value = mock_result
+            mock_manager.list_containers.return_value = []
+
+            old_stdout = sys.stdout
+            sys.stdout = StringIO()
+
+            try:
+                result = cmd_snapshot_restore(args)
+                output = sys.stdout.getvalue()
+            finally:
+                sys.stdout = old_stdout
+
+            assert result == 0, "Should return 0 on success"
+            assert "Identity preserved: Yes" in output, "Should show identity preserved status"
+
+    def test_restore_success_shows_network_status(self):
+        """Test verbose output shows network reconnection status."""
+        args = MagicMock()
+        args.container = "test-container"
+        args.tag = "test-tag"
+        args.quiet = False
+        args.verbose = True
+        args.wait = 0
+
+        mock_result = RestoreResult(
+            success=True,
+            container_name="test-container",
+            snapshot_tag="test-tag",
+            network_reconnected=True,
+        )
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
+            mock_manager = MagicMock()
+            MockManager.return_value = mock_manager
+            mock_manager.restore_snapshot.return_value = mock_result
+            mock_manager.list_containers.return_value = []
+
+            old_stdout = sys.stdout
+            sys.stdout = StringIO()
+
+            try:
+                result = cmd_snapshot_restore(args)
+                output = sys.stdout.getvalue()
+            finally:
+                sys.stdout = old_stdout
+
+            assert result == 0, "Should return 0 on success"
+            assert "Network reconnected: Yes" in output, "Should show network status"
+
+    def test_restore_failure_shows_progress_state(self):
+        """Test verbose output shows failure state on error."""
+        from datetime import datetime
+
+        args = MagicMock()
+        args.container = "test-container"
+        args.tag = "test-tag"
+        args.quiet = False
+        args.verbose = True
+        args.wait = 0
+
+        mock_progress = RestoreProgress(
+            state=RestoreState.LOADING,
+            tag="test-tag",
+            started_at=datetime.now(),
+            error_message="Load failed"
+        )
+
+        mock_result = RestoreResult(
+            success=False,
+            container_name="test-container",
+            snapshot_tag="test-tag",
+            error_message="Snapshot not found",
+            restore_progress=mock_progress,
+        )
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
+            mock_manager = MagicMock()
+            MockManager.return_value = mock_manager
+            mock_manager.restore_snapshot.return_value = mock_result
+
+            old_stderr = sys.stderr
+            sys.stderr = StringIO()
+
+            try:
+                result = cmd_snapshot_restore(args)
+                output = sys.stderr.getvalue()
+            finally:
+                sys.stderr = old_stderr
+
+            assert result == 1, "Should return 1 on failure"
+            assert "loading" in output.lower(), "Should show failure state"
+
+    def test_restore_uses_restore_result(self):
+        """Test that command uses RestoreResult type from multi_boot_manager."""
+        args = MagicMock()
+        args.container = "test-container"
+        args.tag = "test-tag"
+        args.quiet = True
+        args.verbose = False
+        args.wait = 0
+
+        # Create a RestoreResult (not SnapshotResult)
+        mock_result = RestoreResult(
+            success=True,
+            container_name="test-container",
+            snapshot_tag="test-tag",
+            identity_preserved=True,
+            network_reconnected=True,
+        )
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
+            mock_manager = MagicMock()
+            MockManager.return_value = mock_manager
+            mock_manager.restore_snapshot.return_value = mock_result
+
+            result = cmd_snapshot_restore(args)
+
+            # Verify the result has RestoreResult fields
+            assert hasattr(mock_result, 'identity_preserved'), "Should have identity_preserved field"
+            assert hasattr(mock_result, 'network_reconnected'), "Should have network_reconnected field"
+            assert result == 0, "Should return 0 on success"
+
+    def test_restore_wait_flag(self):
+        """Test --wait flag delays completion."""
+        args = MagicMock()
+        args.container = "test-container"
+        args.tag = "test-tag"
+        args.quiet = False
+        args.verbose = True
+        args.wait = 0.1  # Small wait for fast test
+
+        mock_result = RestoreResult(
+            success=True,
+            container_name="test-container",
+            snapshot_tag="test-tag",
+        )
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
+            mock_manager = MagicMock()
+            MockManager.return_value = mock_manager
+            mock_manager.restore_snapshot.return_value = mock_result
+            mock_manager.list_containers.return_value = []
+
+            old_stdout = sys.stdout
+            sys.stdout = StringIO()
+
+            try:
+                result = cmd_snapshot_restore(args)
+                output = sys.stdout.getvalue()
+            finally:
+                sys.stdout = old_stdout
+
+            assert result == 0, "Should return 0 on success"
+            assert "Waiting" in output, "Should show wait message"
+
+
+class TestCmdSnapshotRestoreVerbose:
+    """Test cases for verbose output in cmd_snapshot_restore."""
+
+    def test_verbose_shows_pre_restore_state(self):
+        """Test verbose shows container state before restore."""
+        args = MagicMock()
+        args.container = "test-container"
+        args.tag = "test-tag"
+        args.quiet = False
+        args.verbose = True
+        args.wait = 0
+
+        mock_container = MagicMock()
+        mock_container.name = "test-container"
+        mock_container.state = ContainerState.RUNNING
+        mock_container.resources = MagicMock()
+        mock_container.resources.vnc_port = 5900
+
+        mock_result = RestoreResult(
+            success=True,
+            container_name="test-container",
+            snapshot_tag="test-tag",
+        )
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
+            mock_manager = MagicMock()
+            MockManager.return_value = mock_manager
+            mock_manager.restore_snapshot.return_value = mock_result
+            mock_manager.list_containers.return_value = [mock_container]
+
+            old_stdout = sys.stdout
+            sys.stdout = StringIO()
+
+            try:
+                result = cmd_snapshot_restore(args)
+                output = sys.stdout.getvalue()
+            finally:
+                sys.stdout = old_stdout
+
+            assert result == 0, "Should return 0 on success"
+            assert "Container state:" in output, "Should show container state"
+            assert "VNC port:" in output, "Should show VNC port"
+
+    def test_verbose_shows_duration(self):
+        """Test verbose shows restore duration."""
+        from datetime import datetime, timedelta
+
+        args = MagicMock()
+        args.container = "test-container"
+        args.tag = "test-tag"
+        args.quiet = False
+        args.verbose = True
+        args.wait = 0
+
+        started = datetime.now() - timedelta(seconds=2)
+        completed = datetime.now()
+
+        mock_progress = RestoreProgress(
+            state=RestoreState.COMPLETE,
+            tag="test-tag",
+            started_at=started,
+            completed_at=completed,
+        )
+
+        mock_result = RestoreResult(
+            success=True,
+            container_name="test-container",
+            snapshot_tag="test-tag",
+            restore_progress=mock_progress,
+        )
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
+            mock_manager = MagicMock()
+            MockManager.return_value = mock_manager
+            mock_manager.restore_snapshot.return_value = mock_result
+            mock_manager.list_containers.return_value = []
+
+            old_stdout = sys.stdout
+            sys.stdout = StringIO()
+
+            try:
+                result = cmd_snapshot_restore(args)
+                output = sys.stdout.getvalue()
+            finally:
+                sys.stdout = old_stdout
+
+            assert result == 0, "Should return 0 on success"
+            assert "Duration:" in output, "Should show duration"
+
+    def test_verbose_shows_vm_state(self):
+        """Test verbose shows pre-restore VM state from progress."""
+        from datetime import datetime
+
+        args = MagicMock()
+        args.container = "test-container"
+        args.tag = "test-tag"
+        args.quiet = False
+        args.verbose = True
+        args.wait = 0
+
+        mock_progress = RestoreProgress(
+            state=RestoreState.COMPLETE,
+            tag="test-tag",
+            started_at=datetime.now(),
+            pre_restore_vm_state="running",
+        )
+
+        mock_result = RestoreResult(
+            success=True,
+            container_name="test-container",
+            snapshot_tag="test-tag",
+            restore_progress=mock_progress,
+        )
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
+            mock_manager = MagicMock()
+            MockManager.return_value = mock_manager
+            mock_manager.restore_snapshot.return_value = mock_result
+            mock_manager.list_containers.return_value = []
+
+            old_stdout = sys.stdout
+            sys.stdout = StringIO()
+
+            try:
+                result = cmd_snapshot_restore(args)
+                output = sys.stdout.getvalue()
+            finally:
+                sys.stdout = old_stdout
+
+            assert result == 0, "Should return 0 on success"
+            assert "Pre-restore VM state:" in output, "Should show pre-restore VM state"
+
+
+class TestCmdSnapshotRestoreErrorHandling:
+    """Test cases for error handling in cmd_snapshot_restore."""
+
+    def test_container_not_found_error(self):
+        """Test clear error message for container not found."""
+        args = MagicMock()
+        args.container = "nonexistent"
+        args.tag = "test-tag"
+        args.quiet = False
+        args.verbose = False
+        args.wait = 0
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
+            mock_manager = MagicMock()
+            MockManager.return_value = mock_manager
+            mock_manager.restore_snapshot.side_effect = ValueError(
+                "Container 'nonexistent' does not exist"
+            )
+
+            old_stderr = sys.stderr
+            sys.stderr = StringIO()
+
+            try:
+                result = cmd_snapshot_restore(args)
+                output = sys.stderr.getvalue()
+            finally:
+                sys.stderr = old_stderr
+
+            assert result == 1, "Should return 1 on error"
+            assert "[ERROR]" in output, "Should show error prefix"
+            assert "nonexistent" in output, "Should mention container name"
+
+    def test_restore_shows_failure_state(self):
+        """Test shows which state failed in verbose mode."""
+        from datetime import datetime
+
+        args = MagicMock()
+        args.container = "test-container"
+        args.tag = "test-tag"
+        args.quiet = False
+        args.verbose = True
+        args.wait = 0
+
+        mock_progress = RestoreProgress(
+            state=RestoreState.VERIFYING,
+            tag="test-tag",
+            started_at=datetime.now(),
+        )
+
+        mock_result = RestoreResult(
+            success=False,
+            container_name="test-container",
+            snapshot_tag="test-tag",
+            error_message="VM not responsive",
+            restore_progress=mock_progress,
+        )
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
+            mock_manager = MagicMock()
+            MockManager.return_value = mock_manager
+            mock_manager.restore_snapshot.return_value = mock_result
+
+            old_stderr = sys.stderr
+            sys.stderr = StringIO()
+
+            try:
+                result = cmd_snapshot_restore(args)
+                output = sys.stderr.getvalue()
+            finally:
+                sys.stderr = old_stderr
+
+            assert result == 1, "Should return 1 on failure"
+            assert "verifying" in output.lower(), "Should show failure state"
+
+    def test_restore_handles_value_error(self):
+        """Test ValueError handled gracefully."""
+        args = MagicMock()
+        args.container = "test-container"
+        args.tag = "test-tag"
+        args.quiet = False
+        args.verbose = False
+        args.wait = 0
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
+            mock_manager = MagicMock()
+            MockManager.return_value = mock_manager
+            mock_manager.restore_snapshot.side_effect = ValueError(
+                "Container is not running"
+            )
+
+            old_stderr = sys.stderr
+            sys.stderr = StringIO()
+
+            try:
+                result = cmd_snapshot_restore(args)
+                output = sys.stderr.getvalue()
+            finally:
+                sys.stderr = old_stderr
+
+            assert result == 1, "Should return 1 on error"
+            assert "[ERROR]" in output, "Should show error prefix"
+
+    def test_restore_handles_snapshot_error(self):
+        """Test SnapshotError handled gracefully."""
+        from systems.pixel_compiler.boot.vm_snapshot import SnapshotError
+
+        args = MagicMock()
+        args.container = "test-container"
+        args.tag = "test-tag"
+        args.quiet = False
+        args.verbose = False
+        args.wait = 0
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager:
+            mock_manager = MagicMock()
+            MockManager.return_value = mock_manager
+            mock_manager.restore_snapshot.side_effect = SnapshotError(
+                "QEMU monitor not available"
+            )
+
+            old_stderr = sys.stderr
+            sys.stderr = StringIO()
+
+            try:
+                result = cmd_snapshot_restore(args)
+                output = sys.stderr.getvalue()
+            finally:
+                sys.stderr = old_stderr
+
+            assert result == 1, "Should return 1 on error"
+            assert "[ERROR]" in output, "Should show error prefix"
+            assert "Snapshot operation failed" in output, "Should mention snapshot error"
 
 
 class TestCmdSnapshotDelete:
