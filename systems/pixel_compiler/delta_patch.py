@@ -96,7 +96,11 @@ class DeltaPatcher:
             with open(path, 'rb') as f:
                 data = f.read()
             actual = self._compute_sha256(data)
-            return actual == expected
+            if actual != expected:
+                raise PatchError(
+                    f"File checksum mismatch: expected {expected[:16]}..., got {actual[:16]}..."
+                )
+            return True
         except FileNotFoundError:
             raise PatchError(f"File not found: {path}")
         except IOError as e:
@@ -178,14 +182,23 @@ class DeltaPatcher:
         Raises:
             PatchError: If patching fails (checksum mismatch, I/O error, etc.)
         """
-        # Read base file
+        from systems.pixel_compiler.pixelrts_v2_core import PixelRTSDecoder, PixelRTSEncoder
+
+        # Read base file (PNG bytes)
         try:
             with open(base_path, 'rb') as f:
-                base_data = f.read()
+                base_png_bytes = f.read()
         except FileNotFoundError:
             raise PatchError(f"Base file not found: {base_path}")
         except IOError as e:
             raise PatchError(f"Failed to read base file: {e}")
+
+        # Decode PNG to get raw data bytes
+        try:
+            decoder = PixelRTSDecoder()
+            base_data = decoder.decode(base_png_bytes)
+        except Exception as e:
+            raise PatchError(f"Failed to decode base file: {e}")
 
         # Validate base file matches expected old checksum
         if self.validate_checksums:
@@ -264,6 +277,15 @@ class DeltaPatcher:
         # Determine output path
         final_output_path = output_path if output_path else base_path
 
+        # Encode output data back to PNG
+        try:
+            encoder = PixelRTSEncoder()
+            # Get metadata from decoder if available
+            metadata = decoder.get_metadata() if decoder else {}
+            output_png_bytes = encoder.encode(bytes(output_data), metadata=metadata)
+        except Exception as e:
+            raise PatchError(f"Failed to encode output file: {e}")
+
         # Write output atomically (use temp file for in-place)
         if output_path is None:
             # In-place patching - use temp file for atomicity
@@ -276,7 +298,7 @@ class DeltaPatcher:
                 delete=False
             ) as tmp_file:
                 tmp_path = tmp_file.name
-                tmp_file.write(bytes(output_data))
+                tmp_file.write(output_png_bytes)
 
             # Atomic rename
             import os
@@ -284,7 +306,7 @@ class DeltaPatcher:
         else:
             # Write to new file
             with open(final_output_path, 'wb') as f:
-                f.write(bytes(output_data))
+                f.write(output_png_bytes)
 
         return final_output_path
 
