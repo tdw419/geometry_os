@@ -2433,3 +2433,166 @@ class TestSnapshotStorageIntegration:
         assert stored.tag == "live-snap"
 
 
+# ========================================
+# Ephemeral Multi-Boot Tests
+# ========================================
+
+class TestEphemeralMultiBoot:
+    """Tests for ephemeral multi-boot functionality."""
+
+    def test_boot_all_ephemeral_parameter(self, manager):
+        """Test boot_all accepts ephemeral parameter."""
+        import inspect
+        sig = inspect.signature(manager.boot_all)
+        params = list(sig.parameters.keys())
+        assert 'ephemeral' in params, f'ephemeral not in {params}'
+        # Check default is False
+        assert sig.parameters['ephemeral'].default is False
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.EphemeralBooter')
+    def test_boot_all_ephemeral_creates_ephemeral_booter(self, mock_ephemeral_class, manager):
+        """Test EphemeralBooter is used when ephemeral=True."""
+        # Mock EphemeralBooter
+        mock_booter = Mock()
+        mock_booter.boot.return_value = BootResult(
+            success=True,
+            vnc_port=5900,
+            pid=12345,
+        )
+        mock_ephemeral_class.return_value = mock_booter
+
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png"],
+            ephemeral=True,
+        )
+
+        # Verify EphemeralBooter was created
+        assert mock_ephemeral_class.called
+        assert result.success is True
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_boot_all_non_ephemeral_uses_boot_bridge(self, mock_bridge_class, manager):
+        """Test BootBridge is used when ephemeral=False (default)."""
+        mock_bridge = Mock()
+        mock_bridge.boot.return_value = BootResult(
+            success=True,
+            vnc_port=5900,
+            pid=12345,
+        )
+        mock_bridge_class.return_value = mock_bridge
+
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png"],
+            ephemeral=False,
+        )
+
+        # Verify BootBridge was created
+        assert mock_bridge_class.called
+        assert result.success is True
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.EphemeralBooter')
+    def test_boot_all_ephemeral_container_info_tracking(self, mock_ephemeral_class, manager):
+        """Test ContainerInfo.is_ephemeral is set correctly for ephemeral containers."""
+        mock_booter = Mock()
+        mock_booter.boot.return_value = BootResult(
+            success=True,
+            vnc_port=5900,
+            pid=12345,
+        )
+        mock_ephemeral_class.return_value = mock_booter
+
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png", "/fake/ubuntu.rts.png"],
+            ephemeral=True,
+        )
+
+        assert result.success is True
+        assert len(result.containers) == 2
+
+        # All containers should have is_ephemeral=True
+        for container in result.containers:
+            assert container.is_ephemeral is True, \
+                f"Container {container.name} should have is_ephemeral=True"
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_boot_all_non_ephemeral_container_info_tracking(self, mock_bridge_class, manager):
+        """Test ContainerInfo.is_ephemeral is False for non-ephemeral containers."""
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            vnc_display = kwargs.get('vnc_display', 0)
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900 + vnc_display,
+                pid=1000 + vnc_display,
+            )
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png", "/fake/ubuntu.rts.png"],
+            ephemeral=False,
+        )
+
+        assert result.success is True
+        assert len(result.containers) == 2
+
+        # All containers should have is_ephemeral=False
+        for container in result.containers:
+            assert container.is_ephemeral is False, \
+                f"Container {container.name} should have is_ephemeral=False"
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.EphemeralBooter')
+    def test_boot_all_ephemeral_with_primary(self, mock_ephemeral_class, manager):
+        """Test ephemeral boot works with primary parameter."""
+        def create_mock_booter(*args, **kwargs):
+            mock = Mock()
+            vnc_display = kwargs.get('vnc_display', 0)
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900 + vnc_display,
+                pid=1000 + vnc_display,
+            )
+            return mock
+
+        mock_ephemeral_class.side_effect = create_mock_booter
+
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png", "/fake/ubuntu.rts.png"],
+            primary="alpine.rts",
+            ephemeral=True,
+        )
+
+        assert result.success is True
+        assert len(result.containers) == 2
+
+        # All should be ephemeral
+        for container in result.containers:
+            assert container.is_ephemeral is True
+
+        # Primary should have PRIMARY role
+        alpine = next(c for c in result.containers if c.name == "alpine.rts")
+        assert alpine.role == ContainerRole.PRIMARY
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.EphemeralBooter')
+    def test_boot_all_ephemeral_to_dict_includes_flag(self, mock_ephemeral_class, manager):
+        """Test ContainerInfo.to_dict() includes is_ephemeral for ephemeral containers."""
+        mock_booter = Mock()
+        mock_booter.boot.return_value = BootResult(
+            success=True,
+            vnc_port=5900,
+            pid=12345,
+        )
+        mock_ephemeral_class.return_value = mock_booter
+
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png"],
+            ephemeral=True,
+        )
+
+        assert result.success is True
+        container_dict = result.containers[0].to_dict()
+        assert 'is_ephemeral' in container_dict
+        assert container_dict['is_ephemeral'] is True
+
+
