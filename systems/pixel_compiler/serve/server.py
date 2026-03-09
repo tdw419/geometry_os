@@ -56,6 +56,7 @@ class ServerStatus:
     tftp_running: bool = False
     nbd_running: bool = False
     http_running: bool = False
+    delta_enabled: bool = False
     clients_served: int = 0
     bytes_transferred: int = 0
     errors: List[str] = field(default_factory=list)
@@ -81,7 +82,8 @@ class PixelRTSServer:
         interface: Optional[str] = None,
         verbose: bool = False,
         enable_http: bool = False,
-        http_port: int = HTTP_PORT
+        http_port: int = HTTP_PORT,
+        enable_delta: bool = False
     ):
         """
         Initialize the PixelRTS server.
@@ -92,6 +94,7 @@ class PixelRTSServer:
             verbose: Enable verbose logging
             enable_http: Enable HTTP boot for faster transfers (chainloads iPXE)
             http_port: HTTP server port (default: 8080)
+            enable_delta: Enable delta update support (serves /delta/* endpoints)
         """
         self.rts_png_path = Path(rts_png_path).resolve()
         self.interface_override = interface
@@ -105,10 +108,14 @@ class PixelRTSServer:
         self._tftp_server = None
         self._nbd_process: Optional[subprocess.Popen] = None
         self._http_server = None
+        self._delta_server = None
 
         # HTTP boot options
         self._enable_http = enable_http
         self._http_port = http_port
+
+        # Delta update options
+        self._enable_delta = enable_delta
 
         # Runtime state
         self._running = False
@@ -458,6 +465,26 @@ or provided separately.
                 self._http_server = None
                 self.status.errors.append(f"HTTP server failed to start: {e}")
 
+        # Start Delta server (if enabled, requires HTTP)
+        if self._enable_delta:
+            from systems.pixel_compiler.serve.delta_server import DeltaServer
+
+            if not self._http_server:
+                logger.warning("Delta server requires HTTP server. Skipping delta.")
+                self.status.errors.append("Delta server requires HTTP server")
+            else:
+                try:
+                    self._delta_server = DeltaServer(
+                        container_path=str(self.rts_png_path),
+                        http_root=str(tftp_root)
+                    )
+                    self.status.delta_enabled = True
+                    logger.info("Delta server initialized")
+                except Exception as e:
+                    logger.warning(f"Failed to initialize delta server: {e}")
+                    self._delta_server = None
+                    self.status.errors.append(f"Delta server failed: {e}")
+
         # Start NBD server (via nbdkit subprocess)
         try:
             await self._start_nbd_server()
@@ -546,6 +573,16 @@ or provided separately.
             self._http_server = None
             self.status.http_running = False
             logger.info("HTTP server stopped")
+
+        # Clean up Delta server
+        if self._delta_server:
+            try:
+                self._delta_server.clear_cache()
+            except Exception as e:
+                logger.warning(f"Error cleaning up delta server: {e}")
+            self._delta_server = None
+            self.status.delta_enabled = False
+            logger.info("Delta server stopped")
 
         # Stop DHCP proxy
         if self._dhcp_proxy:
@@ -650,6 +687,7 @@ or provided separately.
         print(f"  DHCP Proxy: port {DHCP_PROXY_PORT} ({'running' if self.status.dhcp_running else 'not started'})")
         print(f"  TFTP Server: port {TFTP_PORT} ({'running' if self.status.tftp_running else 'not started'})")
         print(f"  HTTP Server: port {self._http_port} ({'running' if self.status.http_running else 'not started'})")
+        print(f"  Delta Server: {'enabled' if self.status.delta_enabled else 'disabled'}")
         print(f"  NBD Server: port {NBD_PORT} ({'running' if self.status.nbd_running else 'not started'})")
         print("\nPress Ctrl+C to stop")
         print("=" * 60 + "\n")
@@ -662,6 +700,35 @@ or provided separately.
             callback: Async function to call with progress updates
         """
         self._progress_callback = callback
+
+    async def generate_delta(self, old_version_path: str, version_tag: Optional[str] = None) -> Optional[str]:
+        """
+        Generate a delta manifest for the current container against an old version.
+
+        Args:
+            old_version_path: Path to the old .rts.png file to diff against
+            version_tag: Optional tag for the manifest
+
+        Returns:
+            Path to the generated manifest file, or None if delta server not enabled
+
+        Raises:
+            RuntimeError: If delta server is not enabled
+            FileNotFoundError: If old_version_path doesn't exist
+        """
+        if not self._delta_server:
+            raise RuntimeError("Delta server not enabled. Start with --delta flag.")
+
+        # Run manifest generation in thread pool to avoid blocking
+        loop = asyncio.get_event_loop()
+        manifest_path = await loop.run_in_executor(
+            None,
+            self._delta_server.generate_manifest_for_version,
+            old_version_path,
+            version_tag
+        )
+
+        return manifest_path
 
     def __repr__(self) -> str:
         status = "running" if self._running else "stopped"
