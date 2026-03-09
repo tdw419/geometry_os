@@ -43,18 +43,24 @@ try:
         QemuBoot,
         QemuConfig,
         VMStatus,
+        NetworkMode,
     )
+    from systems.pixel_compiler.boot.virtual_network import VirtualNetworkConfig
 except ImportError:
     try:
         from pixel_compiler.integration.qemu_boot import (
             QemuBoot,
             QemuConfig,
             VMStatus,
+            NetworkMode,
         )
+        from pixel_compiler.boot.virtual_network import VirtualNetworkConfig
     except ImportError:
         QemuBoot = None
         QemuConfig = None
         VMStatus = None
+        NetworkMode = None
+        VirtualNetworkConfig = None
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -127,6 +133,8 @@ class BootBridge:
         cpus: int = 2,
         vnc_display: int = 0,
         verbose: bool = False,
+        network_mode: Optional[Any] = None,
+        socket_config: Optional[Any] = None,
     ):
         """
         Initialize BootBridge.
@@ -137,12 +145,16 @@ class BootBridge:
             cpus: Number of CPU cores (default: 2)
             vnc_display: VNC display number (default: 0, port 5900)
             verbose: Whether to show visual progress during boot (default: False)
+            network_mode: Network mode for QEMU (NetworkMode enum, default: USER)
+            socket_config: VirtualNetworkConfig for socket networking (optional)
         """
         self.rts_png_path = Path(rts_png_path).resolve()
         self.memory = memory
         self.cpus = cpus
         self.vnc_display = vnc_display
         self.verbose = verbose
+        self.network_mode = network_mode
+        self.socket_config = socket_config
 
         # Create progress display
         self._progress = BootProgress(verbose=verbose)
@@ -247,6 +259,8 @@ class BootBridge:
                 serial_enabled=True,
                 monitor_enabled=True,
                 enable_kvm=True,  # DIRECT-03: KVM for <10% overhead
+                network_mode=self.network_mode if self.network_mode else NetworkMode.USER,
+                socket_config=self.socket_config,
             )
 
             # Add extra QEMU args if provided

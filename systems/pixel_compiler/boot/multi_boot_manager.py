@@ -45,6 +45,12 @@ from .resource_allocator import (
     ResourceExhaustedError,
     InvalidNameError,
 )
+from .virtual_network import (
+    VirtualNetwork,
+    VirtualNetworkConfig,
+    NetworkSetupError,
+)
+from systems.pixel_compiler.integration.qemu_boot import NetworkMode
 
 # Default state file path
 DEFAULT_STATE_FILE = Path("/tmp/pixelrts/containers.json")
@@ -97,6 +103,7 @@ class ContainerInfo:
         resources: Allocated resources (VNC port, sockets)
         boot_result: BootResult from BootBridge (if booted)
         error_message: Error description if state is ERROR
+        network_fallback: True if virtual network failed and fell back to USER mode
     """
     name: str
     path: Path
@@ -105,6 +112,7 @@ class ContainerInfo:
     resources: Optional[AllocatedResources] = None
     boot_result: Optional[BootResult] = None
     error_message: Optional[str] = None
+    network_fallback: bool = False
 
     def __post_init__(self):
         """Set default role after initialization."""
@@ -124,6 +132,7 @@ class ContainerInfo:
             "monitor_socket": str(self.resources.monitor_socket) if self.resources else None,
             "pid": self.boot_result.pid if self.boot_result else None,
             "error_message": self.error_message,
+            "network_fallback": self.network_fallback,
         }
 
 
@@ -241,6 +250,8 @@ class MultiBootManager:
         memory: str = "2G",
         cpus: int = 2,
         is_primary: bool = False,
+        network_mode: str = "user",
+        socket_config: Optional[VirtualNetworkConfig] = None,
     ) -> ContainerInfo:
         """
         Boot a single container.
@@ -253,6 +264,8 @@ class MultiBootManager:
             memory: Memory allocation (default: "2G")
             cpus: Number of CPUs (default: 2)
             is_primary: Whether this container is the primary (default: False)
+            network_mode: Network mode - "user" (isolated) or "socket_mcast" (mesh)
+            socket_config: Optional VirtualNetworkConfig for socket networking
 
         Returns:
             ContainerInfo with boot result
@@ -281,6 +294,27 @@ class MultiBootManager:
 
             logger.info(f"Booting {name} with VNC port {resources.vnc_port}")
 
+            # Determine network mode with graceful fallback
+            bridge_network_mode = NetworkMode.USER  # Default to isolated USER mode
+            bridge_socket_config = None
+
+            if network_mode == "socket_mcast":
+                try:
+                    vn = VirtualNetwork(config=socket_config)
+                    if vn.is_available():
+                        bridge_network_mode = NetworkMode.SOCKET_MCAST
+                        bridge_socket_config = socket_config or VirtualNetworkConfig()
+                        logger.info(f"Virtual network enabled for {name} (SOCKET_MCAST)")
+                    else:
+                        logger.warning(f"Virtual network unavailable for {name}, falling back to USER mode")
+                        info.network_fallback = True
+                except NetworkSetupError as e:
+                    logger.warning(f"Virtual network setup failed for {name}: {e}, falling back to USER mode")
+                    info.network_fallback = True
+                except Exception as e:
+                    logger.warning(f"Unexpected error setting up virtual network for {name}: {e}, falling back to USER mode")
+                    info.network_fallback = True
+
             # Create BootBridge with allocated VNC display
             # VNC display = port - 5900
             vnc_display = resources.vnc_port - 5900
@@ -291,6 +325,8 @@ class MultiBootManager:
                 cpus=cpus,
                 vnc_display=vnc_display,
                 verbose=False,
+                network_mode=bridge_network_mode,
+                socket_config=bridge_socket_config,
             )
 
             # Run synchronous boot in executor for async compatibility
@@ -381,6 +417,8 @@ class MultiBootManager:
         cpus: int,
         primary_timeout: float = 30.0,
         progress_callback: Optional[callable] = None,
+        network_mode: str = "user",
+        socket_config: Optional[VirtualNetworkConfig] = None,
     ) -> List[ContainerInfo]:
         """
         Boot containers in order: primary first, then helpers.
@@ -398,6 +436,8 @@ class MultiBootManager:
             progress_callback: Optional callback for progress updates.
                               Signature: callback(event_type: str, data: Any) -> None
                               Events: "primary_start", "primary_ready", "helpers_start", "helper_ready"
+            network_mode: Network mode - "user" (isolated) or "socket_mcast" (mesh)
+            socket_config: Optional VirtualNetworkConfig for socket networking
 
         Returns:
             List of ContainerInfo for all containers
@@ -421,7 +461,8 @@ class MultiBootManager:
             if progress_callback:
                 progress_callback("primary_start", primary_name)
             primary_info = await self._boot_single(
-                primary_path, cmdline, memory, cpus, is_primary=True
+                primary_path, cmdline, memory, cpus, is_primary=True,
+                network_mode=network_mode, socket_config=socket_config,
             )
             container_infos.append(primary_info)
 
@@ -447,7 +488,10 @@ class MultiBootManager:
             if progress_callback:
                 progress_callback("helpers_start", [self._get_container_name(p) for p in helper_paths])
             helper_tasks = [
-                self._boot_single(path, cmdline, memory, cpus, is_primary=False)
+                self._boot_single(
+                    path, cmdline, memory, cpus, is_primary=False,
+                    network_mode=network_mode, socket_config=socket_config,
+                )
                 for path in helper_paths
             ]
             helper_infos = await asyncio.gather(*helper_tasks)
@@ -470,6 +514,8 @@ class MultiBootManager:
         cleanup_on_failure: bool = True,
         primary: Optional[str] = None,
         progress_callback: Optional[callable] = None,
+        network_mode: str = "user",
+        socket_config: Optional[VirtualNetworkConfig] = None,
     ) -> MultiBootResult:
         """
         Boot multiple containers concurrently.
@@ -487,6 +533,8 @@ class MultiBootManager:
             progress_callback: Optional callback for progress updates (only for ordered boot).
                               Signature: callback(event_type: str, data: Any) -> None
                               Events: "primary_start", "primary_ready", "helpers_start", "helper_ready"
+            network_mode: Network mode - "user" (isolated) or "socket_mcast" (mesh, default: "user")
+            socket_config: Optional VirtualNetworkConfig for socket networking
 
         Returns:
             MultiBootResult with success status and container info
@@ -520,13 +568,17 @@ class MultiBootManager:
                     memory=memory,
                     cpus=cpus,
                     progress_callback=progress_callback,
+                    network_mode=network_mode,
+                    socket_config=socket_config,
                 )
             else:
                 # Concurrent Boot (existing behavior)
                 tasks = [
                     self._boot_single(
                         path, cmdline, memory, cpus,
-                        is_primary=False
+                        is_primary=False,
+                        network_mode=network_mode,
+                        socket_config=socket_config,
                     )
                     for path in validated_paths
                 ]
