@@ -59,6 +59,8 @@ from collections import defaultdict
 import logging
 import platform
 
+from systems.pixel_compiler.boot.virtual_network import VirtualNetwork, VirtualNetworkConfig
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -139,6 +141,8 @@ class NetworkMode(Enum):
     USER = "user"
     TAP = "tap"
     BRIDGE = "bridge"
+    SOCKET_MCAST = "socket_mcast"  # Multicast mesh networking (no root)
+    SOCKET_STREAM = "socket_stream"  # Point-to-point socket (no root)
 
 
 @dataclass
@@ -159,6 +163,7 @@ class QemuConfig:
     network_port_forward: Dict[int, int] = field(default_factory=dict)
     drives: List[Dict[str, Any]] = field(default_factory=list)
     extra_args: List[str] = field(default_factory=list)
+    socket_config: Optional[VirtualNetworkConfig] = None
 
     def __post_init__(self):
         """Set defaults based on architecture."""
@@ -185,6 +190,7 @@ class QemuConfig:
             "network_port_forward": self.network_port_forward,
             "drives": self.drives,
             "extra_args": self.extra_args,
+            "socket_config": self.socket_config.__dict__ if self.socket_config else None,
         }
 
 
