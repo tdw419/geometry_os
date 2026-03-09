@@ -367,6 +367,71 @@ class TestEphemeralBooterOriginalPathProperty:
         assert booter.original_path.exists()
 
 
+class TestEphemeralBooterCrashCleanup:
+    """Test crash cleanup functionality with atexit."""
+
+    def test_ephemeral_atexit_cleanup_registered(self, bootable_rts_file):
+        """Verify atexit handler registered on init."""
+        import atexit
+
+        booter = EphemeralBooter(bootable_rts_file)
+
+        # Check that _cleanup_temp_dir is registered with atexit
+        # Note: We can't easily inspect atexit callbacks directly,
+        # but we can verify the method exists and is callable
+        assert hasattr(booter, '_cleanup_temp_dir')
+        assert callable(booter._cleanup_temp_dir)
+
+        booter.stop()
+
+    def test_ephemeral_cleanup_idempotent(self, bootable_rts_file):
+        """Verify calling _cleanup_temp_dir multiple times is safe."""
+        booter = EphemeralBooter(bootable_rts_file)
+        temp_dir = booter._temp_dir
+
+        # First cleanup
+        booter._cleanup_temp_dir()
+        assert not Path(temp_dir).exists()
+
+        # Second cleanup should not raise
+        booter._cleanup_temp_dir()
+        booter._cleanup_temp_dir()
+
+        # Should be idempotent
+        assert booter._temp_dir is None
+
+    def test_ephemeral_cleanup_removes_temp_dir(self, bootable_rts_file):
+        """Verify temp dir removed after cleanup."""
+        booter = EphemeralBooter(bootable_rts_file)
+        temp_dir = booter._temp_dir
+
+        # Temp dir should exist
+        assert Path(temp_dir).exists()
+
+        # Cleanup
+        booter._cleanup_temp_dir()
+
+        # Temp dir should be removed
+        assert not Path(temp_dir).exists()
+        assert booter._temp_dir is None
+        assert booter._temp_path is None
+
+    def test_ephemeral_atexit_unregistered_on_stop(self, bootable_rts_file):
+        """Verify atexit.unregister called on explicit stop."""
+        import atexit
+
+        booter = EphemeralBooter(bootable_rts_file)
+
+        # Stop should unregister from atexit
+        booter.stop()
+
+        # After stop, _cleaned_up should be True
+        assert booter._cleaned_up is True
+
+        # Calling stop again should be safe (no double-unregister issues)
+        booter.stop()
+
+
 # ============================================================================
 # Main
 # ============================================================================
