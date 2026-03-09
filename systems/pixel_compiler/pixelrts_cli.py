@@ -1504,7 +1504,9 @@ def cmd_snapshot_list(args):
 def cmd_snapshot_restore(args):
     """Handle snapshot restore command - Restore a container from a snapshot."""
     from systems.pixel_compiler.boot import MultiBootManager
-    from systems.pixel_compiler.boot.vm_snapshot import SnapshotError
+    from systems.pixel_compiler.boot.multi_boot_manager import RestoreResult
+    from systems.pixel_compiler.boot.vm_snapshot import SnapshotError, RestoreState
+    import time
 
     manager = MultiBootManager()
     container_name = args.container
@@ -1513,25 +1515,106 @@ def cmd_snapshot_restore(args):
     if args.verbose:
         print(f"Restoring container '{container_name}' to snapshot '{tag}'...")
 
+        # Show container state before restore
+        try:
+            containers = manager.list_containers()
+            container_info = next((c for c in containers if c.name == container_name), None)
+            if container_info:
+                print(f"  Container state: {container_info.state.value}")
+                if container_info.resources and container_info.resources.vnc_port:
+                    print(f"  VNC port: {container_info.resources.vnc_port}")
+        except Exception:
+            pass  # Silently ignore if container info not available
+
     try:
         result = manager.restore_snapshot(name=container_name, tag=tag)
 
         if result.success:
             if not args.quiet:
-                print(f"Container '{container_name}' restored to snapshot '{tag}'")
+                if HAS_CLICK:
+                    click.secho(f"[OK] Container '{container_name}' restored to snapshot '{tag}'", fg='green')
+                else:
+                    print(f"[OK] Container '{container_name}' restored to snapshot '{tag}'")
+
+            # Verbose output for identity preservation and network status
+            if args.verbose:
+                # Identity preservation status
+                if result.identity_preserved:
+                    print(f"  Identity preserved: Yes")
+                else:
+                    print(f"  Identity preserved: No (WARNING: name or ports changed)")
+
+                # Network reconnection status
+                if result.network_reconnected is None:
+                    print(f"  Network reconnected: Using fallback mode")
+                elif result.network_reconnected:
+                    print(f"  Network reconnected: Yes")
+                else:
+                    print(f"  Network reconnected: No")
+
+                # State transition
+                pre_state = result.pre_restore_state.value if result.pre_restore_state else "unknown"
+                post_state = result.post_restore_state.value if result.post_restore_state else "unknown"
+                print(f"  State transition: {pre_state} -> {post_state}")
+
+                # Show restore progress details if available
+                if result.restore_progress:
+                    progress = result.restore_progress
+                    if hasattr(progress, 'pre_restore_vm_state') and progress.pre_restore_vm_state:
+                        print(f"  Pre-restore VM state: {progress.pre_restore_vm_state}")
+                    if hasattr(progress, 'completed_at') and progress.completed_at:
+                        duration = (progress.completed_at - progress.started_at).total_seconds()
+                        print(f"  Duration: {duration:.2f}s")
+
+            # Wait for VM to stabilize if requested
+            wait_time = getattr(args, 'wait', 0)
+            if wait_time > 0:
+                if args.verbose:
+                    print(f"  Waiting {wait_time}s for VM to stabilize...")
+                time.sleep(wait_time)
+
+                # Re-check container state after wait
+                try:
+                    containers = manager.list_containers()
+                    container_info = next((c for c in containers if c.name == container_name), None)
+                    if container_info and args.verbose:
+                        print(f"  Post-wait state: {container_info.state.value}")
+                except Exception:
+                    pass
+
             return 0
         else:
-            print(f"Error: Failed to restore snapshot: {result.error_message}", file=sys.stderr)
+            if HAS_CLICK:
+                click.secho(f"[FAIL] Failed to restore snapshot", fg='red', file=sys.stderr)
+            else:
+                print(f"[FAIL] Failed to restore snapshot", file=sys.stderr)
+            print(f"  Error: {result.error_message}", file=sys.stderr)
+
+            # Show failure state in verbose mode
+            if args.verbose and result.restore_progress:
+                progress = result.restore_progress
+                if hasattr(progress, 'state'):
+                    print(f"  Failed at state: {progress.state.value}", file=sys.stderr)
+
             return 1
 
     except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
+        if HAS_CLICK:
+            click.secho(f"[ERROR] {e}", fg='red', file=sys.stderr)
+        else:
+            print(f"[ERROR] {e}", file=sys.stderr)
         return 1
     except SnapshotError as e:
-        print(f"Error: Snapshot operation failed: {e}", file=sys.stderr)
+        if HAS_CLICK:
+            click.secho(f"[ERROR] Snapshot operation failed: {e}", fg='red', file=sys.stderr)
+        else:
+            print(f"[ERROR] Snapshot operation failed: {e}", file=sys.stderr)
         return 1
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        if HAS_CLICK:
+            click.secho(f"[ERROR] {e}", fg='red', file=sys.stderr)
+        else:
+            print(f"[ERROR] {e}", file=sys.stderr)
         if args.verbose:
             import traceback
             traceback.print_exc()
@@ -2359,6 +2442,8 @@ Examples:
     snapshot_restore_parser.add_argument('tag', help='Snapshot tag to restore')
     snapshot_restore_parser.add_argument('-q', '--quiet', action='store_true', help='Suppress output')
     snapshot_restore_parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
+    snapshot_restore_parser.add_argument('-w', '--wait', type=float, default=0,
+                                          help='Wait N seconds after restore for VM to stabilize (default: 0)')
     snapshot_restore_parser.set_defaults(func=cmd_snapshot_restore)
 
     # snapshot delete
