@@ -1028,29 +1028,60 @@ class MultiBootManager:
         """
         List snapshots for a container.
 
+        If the VM is running, returns live snapshots from VMSnapshotManager
+        and updates stored metadata with live info.
+
+        If the VM is not running, returns stored metadata from SnapshotStorage
+        converted to SnapshotInfo-compatible format.
+
         Args:
             name: Container name
 
         Returns:
-            List of SnapshotInfo objects
+            List of SnapshotInfo objects (or compatible objects from storage)
 
         Raises:
-            ValueError: If container doesn't exist or isn't running
+            ValueError: If container doesn't exist
         """
         info = self._containers.get(name)
         if not info:
             raise ValueError(f"Container '{name}' does not exist")
 
-        if info.state != ContainerState.RUNNING:
-            raise ValueError(
-                f"Container '{name}' is not running (state: {info.state.value})"
+        # If VM is running, get live snapshots and update storage
+        if info.state == ContainerState.RUNNING:
+            snapshot_manager = self._get_snapshot_manager(name)
+            if not snapshot_manager:
+                return []
+
+            live_snapshots = snapshot_manager.list_snapshots()
+
+            # Update stored metadata with live info
+            for snap in live_snapshots:
+                try:
+                    stored_metadata = SnapshotMetadata.from_snapshot_info(snap, name)
+                    self._snapshot_storage.save_metadata(name, stored_metadata)
+                except Exception as e:
+                    logger.warning(f"Failed to update stored metadata: {e}")
+
+            return live_snapshots
+
+        # VM is not running - return stored metadata
+        stored_snapshots = self._snapshot_storage.list_snapshots(name)
+
+        # Convert SnapshotMetadata to SnapshotInfo-compatible objects
+        # We create simple objects with matching attributes
+        converted = []
+        for metadata in stored_snapshots:
+            # Create a SnapshotInfo-like object from metadata
+            snap_info = SnapshotInfo(
+                tag=metadata.tag,
+                date=metadata.created_at,
+                size=metadata.size,
+                vm_clock=metadata.vm_clock or "0"
             )
+            converted.append(snap_info)
 
-        snapshot_manager = self._get_snapshot_manager(name)
-        if not snapshot_manager:
-            return []
-
-        return snapshot_manager.list_snapshots()
+        return converted
 
     def restore_snapshot(self, name: str, tag: str) -> RestoreResult:
         """
