@@ -1,5 +1,61 @@
 # Project Milestones: PixelRTS
 
+## v1.6 Ephemeral Boot (Shipped: 2026-03-09)
+
+**Delivered:** Boot containers with `--ephemeral` flag to discard changes on exit. Complete ephemeral lifecycle with crash cleanup and commit support.
+
+**Phases completed:** 18 (8 plans total)
+
+**Key accomplishments:**
+
+- EphemeralBooter wraps BootBridge/CommittedFileBooter with temp file management
+- Delegation pattern: boot() and stop() delegate to inner booter
+- Temp file lifecycle: copy on init, cleanup on stop/exit
+- Crash safety via atexit registration + signal handlers
+- ContainerInfo.is_ephemeral field with state serialization
+- CLI --ephemeral flag routes to _boot_ephemeral() helper
+- ps command shows [E] indicator for ephemeral containers
+- commit command can save ephemeral changes to new file
+- Multi-container ephemeral boot with boot_all() integration
+
+**Stats:**
+
+- 1 phase (18), 8 plans
+- Timeline: Mar 9, 2026 (1 session)
+- 33 tests passing (22 EphemeralBooter + 6 CLI + 5 multi-boot)
+- 1 gap fixed during audit (multi-container ephemeral wiring)
+
+**Git tag:** v1.6
+
+---
+
+## v1.5 Commit to File (Shipped: 2026-03-09)
+
+**Delivered:** Commit running container state to new .rts.png file with VM pause/resume and combined encoding.
+
+**Phases completed:** 15-17 (9 plans total)
+
+**Key accomplishments:**
+
+- SnapshotExporter with PixelRTS v2 encoding
+- qemu-img convert -l for snapshot extraction
+- SnapshotCommitter orchestrates VM pause/resume during commit
+- ExportStage enum for progress tracking
+- CommittedFileBooter for vm-snapshot type
+- Combined data encoding (qcow2 + kernel + initrd)
+- Binary extraction with hash verification
+- CLI boot auto-detection routing
+
+**Stats:**
+
+- 3 phases (15, 16, 17), 9 plans
+- Timeline: Mar 9, 2026 (1 session)
+- 88 tests passing
+
+**Git tag:** v1.5
+
+---
+
 ## v1.4 Live Snapshots (Shipped: 2026-03-09)
 
 **Delivered:** Create and restore snapshots of running containers with persistent metadata storage.

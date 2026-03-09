@@ -215,11 +215,43 @@ If everything else fails, users must be able to:
 ✓ **CLI-COMMIT-03**: `--no-verify` flag — v1.5
   - Skips boot verification for faster commits
 
+### Validated (v1.6)
+
+✓ **EPHEM-01**: Boot container with `--ephemeral` flag — v1.6
+  - EphemeralBooter class with temp file management
+  - `pixelrts boot --ephemeral file.rts.png`
+
+✓ **EPHEM-02**: Changes discarded on exit — v1.6
+  - Temp copy used for boot, original unchanged
+  - Cleanup on stop() or context exit
+
+✓ **EPHEM-03**: Original .rts.png file unchanged — v1.6
+  - original_path property preserves original
+  - Temp file in /tmp/pixelrts-ephemeral-*
+
+✓ **EPHEM-04**: Works with all boot types — v1.6
+  - Container type detection (bootable, vm-snapshot)
+  - Delegation to BootBridge/CommittedFileBooter
+
+✓ **EPHEM-05**: Multi-container ephemeral boot — v1.6
+  - boot_all() ephemeral parameter
+  - CLI passes flag to MultiBootManager
+
+✓ **EPHEM-06**: `pixelrts ps` shows [E] indicator — v1.6
+  - EPHEM column in table output
+  - is_ephemeral field in JSON
+
+✓ **EPHEM-07**: Crash cleanup via atexit — v1.6
+  - atexit.register(_cleanup_temp_dir)
+  - Signal handler delegation
+
+✓ **EPHEM-08**: Commit saves ephemeral changes — v1.6
+  - `pixelrts commit <ephemeral-container> <output>`
+  - Informational message shown
+
 ### Future
 
 - [ ] **VISION-02**: Vision model can detect tampering or corruption
-- [ ] **EPHEM-01**: Ephemeral boot from snapshot (changes discarded)
-- [ ] **COMMIT-01**: Persist snapshot to new .rts.png file
 
 ### Out of Scope
 
@@ -337,8 +369,13 @@ If everything else fails, users must be able to:
 | ContainerType enum (BOOTABLE, VM_SNAPSHOT) | Clean boot routing | ✓ Good |
 | CLI boot auto-detection | Seamless user experience | ✓ Good |
 | Binary kernel/initrd extraction with offsets | No external file dependencies | ✓ Good |
+| EphemeralBooter delegation pattern | Clean separation, reusable | ✓ Good |
+| Temp copy on init, cleanup on stop | Simple lifecycle management | ✓ Good |
+| atexit + signal handler cleanup | Crash recovery | ✓ Good |
+| ContainerInfo.is_ephemeral field | State tracking | ✓ Good |
+| ps [E] indicator | Visual identification | ✓ Good |
 
 ---
-*Last updated: 2026-03-09 — v1.5 Commit to File started*
+*Last updated: 2026-03-09 — v1.6 Ephemeral Boot complete*
 
 

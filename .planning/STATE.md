@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-09)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** v1.6 Ephemeral Boot — temporary containers with no persistence
+**Current focus:** Ready for next milestone
 
 ## Current Position
 
-Phase: 18
-Plan: 8/8 complete
-Status: Phase verified
-Last activity: 2026-03-09 — Phase 18 Ephemeral Boot complete
+Phase: —
+Plan: —
+Status: Milestone v1.6 complete. Ready for next milestone.
+Last activity: 2026-03-09 — Milestone v1.6 Ephemeral Boot shipped
 
-Progress: [████████████████████████] 100% (58/58 plans across all milestones)
+Progress: [████████████████████████] 100% (66/66 plans across all milestones)
 
 ## Performance Metrics
 
@@ -33,6 +33,7 @@ Progress: [███████████████████████
 | v1.3 Phases 9-11 | 12 | ~3 hrs | ~15 min |
 | v1.4 Phases 12-14 | 10 | ~2.5 hrs | ~15 min |
 | v1.5 Phases 15-17 | 9 | ~2.5 hrs | ~17 min |
+| v1.6 Phase 18 | 8 | ~2 hrs | ~15 min |
 
 **Recent Trend:**
 - Last 5 plans: ~6 min per plan
@@ -63,8 +64,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-09 15:38 UTC
-Stopped at: Completed 18-05-PLAN.md
+Last session: 2026-03-09 16:30 UTC
+Stopped at: Milestone v1.6 shipped
 Resume file: None
 
 ---
