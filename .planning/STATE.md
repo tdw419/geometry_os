@@ -45,6 +45,7 @@ Key decisions archived in `.planning/milestones/`:
 - Composition pattern: MultiBootManager wraps BootBridge instances
 - **09-01:** VNC port range 5900-5999 (100 ports), thread-safe allocation, UUID5 deterministic IDs
 - **09-02:** asyncio.gather for concurrent boot, run_in_executor for sync-to-async bridge, ContainerState enum for lifecycle
+- **09-03:** Compensating transaction cleanup on partial failure, cleanup_on_failure=True by default, resources released on boot failure
 - **09-04:** State file at /tmp/pixelrts/containers.json, table output with NAME/STATE/VNC/PID columns
 
 ### Pending Todos
