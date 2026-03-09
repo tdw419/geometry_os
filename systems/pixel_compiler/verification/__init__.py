@@ -14,28 +14,25 @@ Verifiers:
 - StructureVerifier: PNG structure validation
 - ConsistencyVerifier: SHA256 hash verification
 - SegmentIntegrityChecker: Per-segment hash verification
-- SignatureVerifier: Ed25519 cryptographic signature verification
+
+Signing:
+- FileSigner: Ed25519 signing for PixelRTS files
 
 Usage:
     from systems.pixel_compiler.verification import (
         VerificationStep,
         VerificationResult,
         VerificationContext,
-        SignatureVerifier
+        FileSigner
     )
 
     # Create context
     context = VerificationContext(Path("file.rts.png"))
 
-    # Run signature verification
-    verifier = SignatureVerifier()
-    result = verifier.verify(context)
-
-    # Check result
-    if result.is_pass():
-        print("Verification passed!")
-    else:
-        print(result.format_cli())
+    # Sign a file
+    private_key, _ = FileSigner.generate_keypair()
+    signer = FileSigner(private_key)
+    signer.sign_file(Path("boot.rts.png"))
 """
 
 from .result import VerificationStatus, StepResult, VerificationResult
@@ -46,7 +43,9 @@ from .context import VerificationContext
 from .structure_verifier import StructureVerifier
 from .consistency_verifier import ConsistencyVerifier
 from .segment_integrity_checker import SegmentIntegrityChecker
-from .signature_verifier import SignatureVerifier
+
+# Import signing utilities
+from .file_signer import FileSigner
 
 __all__ = [
     # Result types
@@ -61,5 +60,6 @@ __all__ = [
     "StructureVerifier",
     "ConsistencyVerifier",
     "SegmentIntegrityChecker",
-    "SignatureVerifier",
+    # Signing
+    "FileSigner",
 ]
