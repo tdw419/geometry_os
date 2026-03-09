@@ -1,144 +1,192 @@
 /**
- * ThoughtVisualizer - Real-time thought visualization on Hilbert curve.
- * 
- * Maps Sisyphus daemon thoughts to geometric patterns in the browser.
+ * ThoughtVisualizer - PixiJS renderer for THOUGHT_PULSE glyphs.
+ *
+ * Renders LLM token generation as visible pulses on the Visual Shell.
+ * Each glyph fades over time, creating a "thought trail" effect.
+ *
+ * Opcode 0xCE (THOUGHT_RENDER) - Cyan pulse for code discovery.
  */
 
+// Opcode color mapping
+const OPCODE_COLORS = {
+    0xCE: '#00FFFF',  // Cyan - THOUGHT_RENDER (code discovery)
+    0xD6: '#00FFFF',  // THOUGHT_PULSE alias
+    0xD0: '#FF00FF',  // Magenta - EMBED
+    0xD1: '#FFFF00',  // Yellow - ATTEND
+    0xD2: '#FF8000',  // Orange - PROJECT
+    0xD3: '#00FF00',  // Green - SAMPLE
+};
+
+const GLYPH_LIFETIME_MS = 3000;  // 3 seconds
+const GLYPH_START_SIZE = 32;
+const GLYPH_END_SIZE = 8;
+
 class ThoughtVisualizer {
-    constructor(canvasId, order = 8) {
-        this.canvas = document.getElementById(canvasId);
-        if (!this.canvas) {
-            console.error(`Canvas element #${canvasId} not found.`);
-            return;
+    /**
+     * Create a new ThoughtVisualizer.
+     *
+     * @param {Object} app - PixiJS application (or mock for tests)
+     * @param {Object} container - Container to add glyphs to (defaults to app.stage)
+     */
+    constructor(app, container = null) {
+        this.app = app;
+        this.container = container || (app && app.stage ? app.stage : null);
+        this.glyphs = [];
+
+        // Register for ticker updates (if available)
+        if (this.app && this.app.ticker && typeof this.app.ticker.add === 'function') {
+            this.app.ticker.add((ticker) => {
+                this.update(ticker.deltaMS);
+            });
         }
-        this.ctx = this.canvas.getContext('2d');
-        this.order = order;
-        this.gridSize = 2 ** order;
-        this.hilbert = new HilbertLUTBuilder(order);
-        
-        this.thoughts = []; // Active thoughts
-        this.maxThoughts = 1000;
-        this.thoughtLifespan = 5000; // ms
-        
-        this.ws = null;
-        this.connected = false;
-        
-        // Semantic Color Palette (Matching Python)
-        this.colors = {
-            "task_start": "rgba(0, 255, 255, 1)",    // Cyan
-            "task_complete": "rgba(0, 255, 0, 1)", // Green
-            "task_failure": "rgba(255, 0, 0, 1)",  // Red
-            "gvn": "rgba(255, 255, 0, 1)",           // Yellow
-            "dna_synthesis": "rgba(255, 0, 255, 1)", // Magenta
-            "heuristic": "rgba(128, 128, 255, 1)",     // Light Blue
-            "checkpoint": "rgba(255, 128, 0, 1)",    // Orange
-            "default": "rgba(200, 200, 200, 1)"        // Gray
-        };
     }
 
-    connect(url = "ws://localhost:3002/ws/v1/thoughts") {
-        console.log(`Connecting to Thought Stream: ${url}`);
-        this.ws = new WebSocket(url);
-        
-        this.ws.onopen = () => {
-            this.connected = true;
-            console.log("Connected to Glass Box Thought Stream.");
-        };
-        
-        this.ws.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (data.msg_type === "Thought") {
-                    this.addThought(data.payload);
-                }
-            } catch (e) {
-                console.error("Failed to parse thought:", e);
-            }
-        };
-        
-        this.ws.onclose = () => {
-            this.connected = false;
-            console.log("Disconnected from Thought Stream. Reconnecting in 5s...");
-            setTimeout(() => this.connect(url), 5000);
-        };
-    }
+    /**
+     * Emit a thought pulse glyph.
+     *
+     * @param {Object} data - Pulse data from WebSocket
+     * @param {string} data.type - Message type ("THOUGHT_PULSE")
+     * @param {number} data.opcode - GeoASM opcode (0xCE)
+     * @param {number} data.token_id - Generated token
+     * @param {number} data.x - Screen X position
+     * @param {number} data.y - Screen Y position
+     * @param {number} data.intensity - Visual intensity (0-1)
+     * @returns {Object} The created glyph
+     */
+    emitThoughtPulse(data) {
+        const {
+            opcode = 0xCE,
+            token_id = 0,
+            x = 0,
+            y = 0,
+            intensity = 1.0
+        } = data;
 
-    addThought(thought) {
-        const type = thought.type || "default";
-        const content = thought.content || thought.task_name || "";
-        
-        // Calculate Hilbert coordinates
-        // Using a hash of the content for stable position
-        const hash = this._hashString(content);
-        const index = hash % (this.gridSize * this.gridSize);
-        const [x, y] = this.hilbert.indexToPixel(index);
-        
-        this.thoughts.push({
-            type,
-            content,
-            x, y,
+        // Get color for opcode
+        const color = this._opcodeToColor(opcode);
+
+        // Create graphics object - use PIXI if available, otherwise mock
+        let graphics;
+        if (typeof PIXI !== 'undefined' && PIXI.Graphics) {
+            graphics = new PIXI.Graphics();
+            graphics.circle(0, 0, GLYPH_START_SIZE * intensity);
+            graphics.fill({ color: color, alpha: intensity });
+        } else {
+            // Mock for testing
+            graphics = {
+                alpha: 1.0,
+                x: 0,
+                y: 0,
+                scale: { set: () => {} },
+                destroy: () => {}
+            };
+        }
+
+        // Position
+        graphics.x = x;
+        graphics.y = y;
+
+        // Add to container
+        if (this.container && typeof this.container.addChild === 'function') {
+            this.container.addChild(graphics);
+        }
+
+        // Track glyph for animation
+        const glyph = {
+            graphics,
+            token_id,
+            color,
             startTime: Date.now(),
-            color: this.colors[type] || this.colors["default"]
-        });
-        
-        if (this.thoughts.length > this.maxThoughts) {
-            this.thoughts.shift();
-        }
+            lifetime: GLYPH_LIFETIME_MS,
+            startSize: GLYPH_START_SIZE * intensity,
+            endSize: GLYPH_END_SIZE
+        };
+
+        this.glyphs.push(glyph);
+
+        return glyph;
     }
 
-    _hashString(str) {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            hash = ((hash << 5) - hash) + str.charCodeAt(i);
-            hash |= 0; // Convert to 32bit integer
-        }
-        return Math.abs(hash);
-    }
-
-    render() {
+    /**
+     * Update glyph animations (called every frame).
+     *
+     * @param {number} deltaMs - Milliseconds since last frame
+     */
+    update(deltaMs) {
         const now = Date.now();
-        const { ctx, canvas, gridSize } = this;
-        
-        // Clear canvas
-        ctx.fillStyle = "rgba(0, 0, 0, 0.1)"; // Slight trail effect
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        const scaleX = canvas.width / gridSize;
-        const scaleY = canvas.height / gridSize;
-        
-        // Filter out expired thoughts
-        this.thoughts = this.thoughts.filter(t => now - t.startTime < this.thoughtLifespan);
-        
-        // Draw active thoughts
-        this.thoughts.forEach(t => {
-            const age = now - t.startTime;
-            const lifePercent = 1.0 - (age / this.thoughtLifespan);
-            const pulse = 0.5 + 0.5 * Math.sin(now / 200);
-            
-            ctx.beginPath();
-            ctx.arc(t.x * scaleX, t.y * scaleY, 3 + 5 * pulse * lifePercent, 0, Math.PI * 2);
-            ctx.fillStyle = t.color.replace('1)', `${lifePercent})`);
-            ctx.fill();
-            
-            // Add a glow effect for high-priority thoughts
-            if (t.type === "task_failure" || t.type === "gvn") {
-                ctx.shadowBlur = 10 * lifePercent;
-                ctx.shadowColor = t.color;
-            } else {
-                ctx.shadowBlur = 0;
+        const toRemove = [];
+
+        for (const glyph of this.glyphs) {
+            const elapsed = now - glyph.startTime;
+            const progress = Math.min(1.0, elapsed / glyph.lifetime);
+
+            if (progress >= 1.0) {
+                toRemove.push(glyph);
+                continue;
             }
-        });
-        
-        requestAnimationFrame(() => this.render());
+
+            // Ease-out fade
+            const alpha = 1.0 - Math.pow(progress, 2);
+            const scale = 1.0 - (progress * 0.5);
+
+            glyph.graphics.alpha = alpha;
+            if (glyph.graphics.scale && typeof glyph.graphics.scale.set === 'function') {
+                glyph.graphics.scale.set(scale);
+            }
+        }
+
+        // Remove faded glyphs
+        for (const glyph of toRemove) {
+            if (this.container && typeof this.container.removeChild === 'function') {
+                this.container.removeChild(glyph.graphics);
+            }
+            if (typeof glyph.graphics.destroy === 'function') {
+                glyph.graphics.destroy();
+            }
+            const idx = this.glyphs.indexOf(glyph);
+            if (idx >= 0) {
+                this.glyphs.splice(idx, 1);
+            }
+        }
     }
 
-    start() {
-        this.connect();
-        this.render();
+    /**
+     * Convert opcode to hex color string.
+     *
+     * @param {number} opcode - GeoASM opcode
+     * @returns {string} Hex color (#RRGGBB)
+     */
+    _opcodeToColor(opcode) {
+        return OPCODE_COLORS[opcode] || '#FFFFFF';
+    }
+
+    /**
+     * Clear all active glyphs.
+     */
+    clear() {
+        for (const glyph of this.glyphs) {
+            if (this.container && typeof this.container.removeChild === 'function') {
+                this.container.removeChild(glyph.graphics);
+            }
+            if (typeof glyph.graphics.destroy === 'function') {
+                glyph.graphics.destroy();
+            }
+        }
+        this.glyphs = [];
+    }
+
+    /**
+     * Get count of active glyphs.
+     */
+    get count() {
+        return this.glyphs.length;
     }
 }
 
-// Export for browser
+// Export for both CommonJS and ES modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { ThoughtVisualizer };
+}
 if (typeof window !== 'undefined') {
     window.ThoughtVisualizer = ThoughtVisualizer;
 }
