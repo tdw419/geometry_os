@@ -5,29 +5,29 @@
 See: .planning/PROJECT.md (updated 2026-03-08)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** v1.2 Network Boot - COMPLETE
+**Current focus:** v1.2 Network Boot - Gap Closure
 
 ## Current Position
 
-Phase: 8 of 8 (Delta Updates) - COMPLETE
-Plan: 3 of 3 (Delta Server Integration)
-Status: Milestone Complete
-Last activity: 2026-03-09 — Completed v1.2 Network Boot milestone
+Phase: 8.1 of 8.1 (Wire Delta HTTP Handler) - COMPLETE
+Plan: 1 of 1 (Wire DeltaHTTPHandler to HTTPBootServer)
+Status: Gap Closure Complete
+Last activity: 2026-03-09 — Completed 08.1-01 wire-delta-http-handler
 
-Progress: [████████████████████] 100% (11/11 plans in v1.2)
+Progress: [████████████████████] 100% (12/12 plans in v1.2)
 
 ## Performance Metrics
 
 **v1.2 Velocity:**
-- Plans completed: 11 (3 + 3 + 3 + 2 for Phase 8)
-- Duration: ~75 min total
-- Tests: 392 passing (28 + 59 + 53 + 44 + 58 + 29 + 28 + 24 + 17 + 28 + 24)
+- Plans completed: 12 (3 + 3 + 3 + 2 + 1 for Phase 8.1 gap closure)
+- Duration: ~80 min total
+- Tests: 425 passing (28 + 59 + 53 + 44 + 58 + 29 + 28 + 24 + 17 + 28 + 24 + 33)
 
 **Cumulative:**
 - v1.0: 22 plans
 - v1.1: 4 plans
-- v1.2: 11 plans
-- Total: 37 plans
+- v1.2: 12 plans
+- Total: 38 plans
 
 ## Accumulated Context
 
@@ -91,6 +91,11 @@ Key decisions archived in `.planning/milestones/`:
 - Bytes transferred tracking in HTTPByteFetcher
 - Stem-based manifest naming ({container_stem}.json)
 
+**08.1-01 Decisions:**
+- Handler interface uses handle(path, headers, writer) -> bool pattern
+- Custom handlers checked before static file serving for override capability
+- DeltaHTTPHandler registered at /delta/ prefix
+
 ### Pending Todos
 
 None.
@@ -104,8 +109,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-09T02:30:00Z
-Stopped at: Completed v1.2 Network Boot milestone
+Last session: 2026-03-09T02:31:12Z
+Stopped at: Completed 08.1-01 wire-delta-http-handler
 Resume file: None
 
 **CLI Commands Available (v1.0 + v1.1 + v1.2):**
