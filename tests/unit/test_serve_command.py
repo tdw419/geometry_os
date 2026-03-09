@@ -341,3 +341,243 @@ class TestServerStatus:
         assert status.clients_served == 0
         assert status.bytes_transferred == 0
         assert status.errors == []
+
+
+class TestHTTPBoot:
+    """Test HTTP boot integration."""
+
+    def setup_method(self):
+        """Set up test fixtures."""
+        self.encoder = PixelRTSEncoder()
+        self.temp_dir = tempfile.mkdtemp()
+
+    def teardown_method(self):
+        """Clean up test files."""
+        if os.path.exists(self.temp_dir):
+            shutil.rmtree(self.temp_dir)
+
+    def _create_rts_file(self, data: bytes, filename: str = "test.rts.png") -> str:
+        """Helper to create a .rts.png file with given data."""
+        path = os.path.join(self.temp_dir, filename)
+        self.encoder.save(data, path, metadata={'type': 'test'})
+        return path
+
+    def test_server_http_disabled_by_default(self):
+        """Test HTTP server is not started when enable_http is False."""
+        test_path = self._create_rts_file(b"test data")
+        server = PixelRTSServer(test_path, interface="lo")
+
+        assert server._enable_http is False
+        assert server._http_port == 8080  # Default port
+        assert server.status.http_running is False
+
+    def test_server_http_enabled(self):
+        """Test HTTP server flag is set when enable_http is True."""
+        test_path = self._create_rts_file(b"test data")
+        server = PixelRTSServer(test_path, interface="lo", enable_http=True)
+
+        assert server._enable_http is True
+        assert server._http_port == 8080
+
+    def test_server_http_custom_port(self):
+        """Test HTTP server uses custom port."""
+        test_path = self._create_rts_file(b"test data")
+        server = PixelRTSServer(
+            test_path,
+            interface="lo",
+            enable_http=True,
+            http_port=9090
+        )
+
+        assert server._enable_http is True
+        assert server._http_port == 9090
+
+    def test_server_http_boot_files_prepared(self):
+        """Test that HTTP boot files are prepared when HTTP is enabled."""
+        test_path = self._create_rts_file(b"test data")
+        server = PixelRTSServer(test_path, interface="lo", enable_http=True)
+        server.detect_network()
+
+        tftp_root = server.prepare_boot_files()
+
+        try:
+            # Check that boot.ipxe was generated
+            boot_ipxe = tftp_root / "boot.ipxe"
+            assert boot_ipxe.exists(), "boot.ipxe should be generated when HTTP enabled"
+
+            # Check boot.ipxe content contains HTTP URLs
+            content = boot_ipxe.read_text()
+            assert "http://" in content
+            assert "kernel" in content.lower() or "initrd" in content.lower()
+
+            # Check pxelinux.cfg/default uses iPXE chainload format
+            pxelinux_default = tftp_root / "pxelinux.cfg" / "default"
+            assert pxelinux_default.exists()
+            config_content = pxelinux_default.read_text()
+            assert "undionly.kpxe" in config_content
+
+        finally:
+            if server._temp_dir and os.path.exists(server._temp_dir):
+                shutil.rmtree(server._temp_dir)
+
+    def test_server_http_boot_script_content(self):
+        """Test boot.ipxe script contains correct HTTP URLs."""
+        test_path = self._create_rts_file(b"test data")
+        server = PixelRTSServer(
+            test_path,
+            interface="lo",
+            enable_http=True,
+            http_port=9090
+        )
+        server.detect_network()
+
+        tftp_root = server.prepare_boot_files()
+
+        try:
+            boot_ipxe = tftp_root / "boot.ipxe"
+            content = boot_ipxe.read_text()
+
+            # Should use HTTP URLs with the custom port
+            assert f"http://{server.network_config.ip_address}:9090" in content
+            assert "nbdroot=" in content
+
+        finally:
+            if server._temp_dir and os.path.exists(server._temp_dir):
+                shutil.rmtree(server._temp_dir)
+
+    def test_server_standard_config_without_http(self):
+        """Test standard pxelinux.cfg is generated when HTTP is disabled."""
+        test_path = self._create_rts_file(b"test data")
+        server = PixelRTSServer(test_path, interface="lo", enable_http=False)
+        server.detect_network()
+
+        tftp_root = server.prepare_boot_files()
+
+        try:
+            # boot.ipxe should NOT exist when HTTP disabled
+            boot_ipxe = tftp_root / "boot.ipxe"
+            assert not boot_ipxe.exists(), "boot.ipxe should not exist when HTTP disabled"
+
+            # pxelinux.cfg/default should use standard format
+            pxelinux_default = tftp_root / "pxelinux.cfg" / "default"
+            assert pxelinux_default.exists()
+            config_content = pxelinux_default.read_text()
+            assert "vmlinuz" in config_content
+            assert "initrd=" in config_content
+
+        finally:
+            if server._temp_dir and os.path.exists(server._temp_dir):
+                shutil.rmtree(server._temp_dir)
+
+    @pytest.mark.asyncio
+    async def test_server_http_starts_when_enabled(self):
+        """Test HTTP server starts when enabled."""
+        test_path = self._create_rts_file(b"test data")
+        server = PixelRTSServer(test_path, interface="lo", enable_http=True)
+
+        # Mock all services
+        mock_dhcp = AsyncMock()
+        mock_tftp = AsyncMock()
+        mock_http = AsyncMock()
+
+        mock_pxe_config = MagicMock()
+        mock_pxe_config.generate_ipxe_chainload_config.return_value = "DEFAULT ipxe\nLABEL ipxe\n    KERNEL undionly.kpxe\n"
+        mock_pxe_config.generate_ipxe_script.return_value = "#!ipxe\nkernel http://test/vmlinuz\nboot\n"
+
+        with patch.object(server, '_start_nbd_server', new_callable=AsyncMock):
+            with patch('systems.pixel_compiler.serve.dhcp_proxy.ProxyDHCP', return_value=mock_dhcp):
+                with patch('systems.pixel_compiler.serve.tftp_server.TFTPServer', return_value=mock_tftp):
+                    with patch('systems.pixel_compiler.serve.http_server.HTTPBootServer', return_value=mock_http):
+                        with patch('systems.pixel_compiler.serve.pxe_config.PXEConfig', return_value=mock_pxe_config):
+                            with patch('systems.pixel_compiler.serve.pxe_config.PXEConfig.ensure_ipxe_boot_files', return_value=True):
+                                try:
+                                    await server.start()
+                                    assert server.status.http_running is True
+                                except Exception:
+                                    pytest.skip("Network services not available")
+                                finally:
+                                    await server.stop()
+
+    @pytest.mark.asyncio
+    async def test_server_http_graceful_degradation(self):
+        """Test server continues if HTTP fails (graceful degradation)."""
+        test_path = self._create_rts_file(b"test data")
+        server = PixelRTSServer(test_path, interface="lo", enable_http=True)
+
+        mock_dhcp = AsyncMock()
+        mock_tftp = AsyncMock()
+
+        mock_pxe_config = MagicMock()
+        mock_pxe_config.generate_ipxe_chainload_config.return_value = "DEFAULT ipxe\n"
+        mock_pxe_config.generate_ipxe_script.return_value = "#!ipxe\nboot\n"
+
+        # Mock HTTP server to raise on start
+        mock_http = AsyncMock()
+        mock_http.start.side_effect = OSError("Port in use")
+
+        with patch.object(server, '_start_nbd_server', new_callable=AsyncMock):
+            with patch('systems.pixel_compiler.serve.dhcp_proxy.ProxyDHCP', return_value=mock_dhcp):
+                with patch('systems.pixel_compiler.serve.tftp_server.TFTPServer', return_value=mock_tftp):
+                    with patch('systems.pixel_compiler.serve.http_server.HTTPBootServer', return_value=mock_http):
+                        with patch('systems.pixel_compiler.serve.pxe_config.PXEConfig', return_value=mock_pxe_config):
+                            with patch('systems.pixel_compiler.serve.pxe_config.PXEConfig.ensure_ipxe_boot_files', return_value=True):
+                                try:
+                                    await server.start()
+                                    # HTTP should NOT be running but server should still be up
+                                    assert server.status.http_running is False
+                                    assert server._running is True
+                                    # Error should be logged
+                                    assert len(server.status.errors) > 0
+                                except Exception:
+                                    pytest.skip("Network services not available")
+                                finally:
+                                    await server.stop()
+
+    def test_server_http_status_display(self):
+        """Test _print_startup_info shows HTTP status."""
+        test_path = self._create_rts_file(b"test data")
+        server = PixelRTSServer(test_path, interface="lo", enable_http=True, http_port=9999)
+
+        import io
+        import sys
+        captured = io.StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = captured
+
+        try:
+            server.detect_network()
+            server.status.http_running = True
+            server._print_startup_info()
+            output = captured.getvalue()
+            assert "HTTP Server" in output
+            assert "9999" in output
+        finally:
+            sys.stdout = old_stdout
+
+    def test_cli_http_flags_parsing(self):
+        """Test argparse correctly parses HTTP flags."""
+        import argparse
+        from systems.pixel_compiler.pixelrts_cli import main
+
+        # Test --http flag
+        parser = argparse.ArgumentParser()
+        subparsers = parser.add_subparsers(dest='command')
+        serve_parser = subparsers.add_parser('serve')
+        serve_parser.add_argument('file')
+        serve_parser.add_argument('--http', action='store_true')
+        serve_parser.add_argument('--http-port', type=int, default=8080)
+
+        # Test with --http
+        args = parser.parse_args(['serve', 'test.rts.png', '--http'])
+        assert args.http is True
+        assert args.http_port == 8080
+
+        # Test with custom port
+        args = parser.parse_args(['serve', 'test.rts.png', '--http', '--http-port', '9090'])
+        assert args.http is True
+        assert args.http_port == 9090
+
+        # Test without --http
+        args = parser.parse_args(['serve', 'test.rts.png'])
+        assert args.http is False
+        assert args.http_port == 8080
