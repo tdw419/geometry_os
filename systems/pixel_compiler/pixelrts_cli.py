@@ -779,6 +779,7 @@ def _boot_multiple(args, input_paths):
             cleanup_on_failure=True,  # Clean up successful containers if any fail
             primary=args.primary,
             progress_callback=print_progress if args.primary else None,  # Only for ordered boot
+            network_mode=args.network,
         )
 
         # Print results
@@ -803,6 +804,12 @@ def _boot_multiple(args, input_paths):
 
             if result.cleanup_performed:
                 print(f"\nNote: Cleaned up {result.success_count} containers due to partial failure")
+
+            # Display network fallback warning if any containers fell back
+            fallback_containers = [c for c in result.containers if c.network_fallback]
+            if fallback_containers:
+                print(f"\nWarning: {len(fallback_containers)} container(s) fell back to isolated networking")
+                print("         (Virtual network setup failed - using USER mode instead)")
 
         # Handle background mode
         if args.background:
@@ -1833,6 +1840,9 @@ Examples:
                             help='Enable verbose output')
     boot_parser.add_argument('--primary', '-p',
                             help='Name of primary container (starts first, stops last)')
+    boot_parser.add_argument('--network', type=str, default='user',
+                            choices=['user', 'socket_mcast'],
+                            help='Network mode: user (isolated) or socket_mcast (mesh, default: user)')
 
     # Install command (install .rts.png files to disk)
     install_parser = subparsers.add_parser(
