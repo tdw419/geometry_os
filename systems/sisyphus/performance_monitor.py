@@ -54,6 +54,18 @@ class PerformanceMonitor:
         with self._lock:
             return dict(self._call_counts)
 
+    @property
+    def call_times(self) -> Dict[str, float]:
+        """Get a copy of call times in ms (thread-safe)."""
+        with self._lock:
+            return dict(self._call_times)
+
+    @property
+    def source_locations(self) -> Dict[str, Tuple[str, int]]:
+        """Get a copy of source locations (thread-safe)."""
+        with self._lock:
+            return dict(self._source_locations)
+
     def register_function(self, name: str, file: str, line: int) -> None:
         """
         Register a function's source location.
