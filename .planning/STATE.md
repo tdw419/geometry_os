@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-09)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** v1.7 Vision Integrity — detect tampering and corruption
+**Current focus:** Phase 19 - Basic Verification
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-09 — Milestone v1.7 Vision Integrity started
+Phase: 19 of 22 (Basic Verification)
+Plan: 0 of 2 in current phase
+Status: Ready to plan
+Last activity: 2026-03-09 — Roadmap created for v1.7 Vision Integrity
 
-Progress: [████████████████████████] 100% (66/66 plans across all milestones)
+Progress: [████████████████████░░░░] 91% (66/72 plans across all milestones)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 54
+- Total plans completed: 66
 - Average duration: ~14 min
-- Total execution time: ~12.5 hours
+- Total execution time: ~15.5 hours
 
 **By Milestone:**
 
@@ -54,6 +54,10 @@ Key decisions archived in `.planning/milestones/` and PROJECT.md:
 - v1.5: qemu-img convert -l for snapshot extraction, VM pause/resume guarantee, combined data encoding with offset metadata, ContainerType enum for vm-snapshot detection, CLI boot auto-routing, binary kernel/initrd extraction with hash verification
 - v1.6: ContainerInfo.is_ephemeral field for ephemeral container tracking with state persistence, EphemeralBooter wrapper with temp file management, MultiBootManager.boot_all() ephemeral parameter for concurrent ephemeral boot, --ephemeral CLI flag with _boot_ephemeral helper, atexit cleanup for crash recovery with signal handler delegation, ps EPHEM column with [E] indicator for ephemeral container identification, commit command ephemeral handling with informational messaging
 
+**v1.7 Decisions:**
+- Phase 19: Verification infrastructure uses composable VerificationStep pattern
+- Phase 21: Ed25519 signatures with embedded public key + env var override
+
 ### Pending Todos
 
 None.
@@ -64,8 +68,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-09 16:30 UTC
-Stopped at: Milestone v1.6 shipped
+Last session: 2026-03-09
+Stopped at: Roadmap created, ready to plan Phase 19
 Resume file: None
 
 ---
