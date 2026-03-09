@@ -293,6 +293,23 @@ class VMSnapshotManager:
 
         return True
 
+    def _get_vm_status(self) -> Optional[str]:
+        """
+        Get current VM status via 'info status' command.
+
+        Returns:
+            VM status string ('running', 'paused', etc.) or None on error
+        """
+        try:
+            response = self.qemu_boot.send_monitor_command("info status")
+            # Parse: "VM status: running" or "VM status: paused"
+            for line in response.split('\n'):
+                if 'VM status:' in line:
+                    return line.split(':')[1].strip().lower()
+            return None
+        except Exception:
+            return None
+
     def _generate_snapshot_id(self, tag: str) -> str:
         """
         Generate unique snapshot ID.
@@ -460,58 +477,107 @@ class VMSnapshotManager:
             tag: Snapshot tag to restore
 
         Returns:
-            SnapshotResult with success status
+            SnapshotResult with success status and restore_progress tracking
         """
-        # Validate tag
-        self._validate_tag(tag)
+        started_at = datetime.now()
 
-        # Check if VM is running
-        if not self._is_vm_running():
-            return SnapshotResult(
-                success=False,
-                tag=tag,
-                error_message="VM is not running or monitor socket is not available"
-            )
-
-        # Verify snapshot exists
-        snapshots = self.list_snapshots()
-        snapshot_tags = [s.tag for s in snapshots]
-
-        if tag not in snapshot_tags:
-            return SnapshotResult(
-                success=False,
-                tag=tag,
-                error_message=f"Snapshot '{tag}' not found. Available: {snapshot_tags}"
-            )
+        # Initialize progress tracking
+        progress = RestoreProgress(
+            state=RestoreState.PENDING,
+            tag=tag,
+            started_at=started_at
+        )
 
         try:
+            # Validate tag
+            progress.state = RestoreState.VALIDATING
+            self._validate_tag(tag)
+
+            # Check if VM is running
+            if not self._is_vm_running():
+                progress.state = RestoreState.FAILED
+                progress.error_message = "VM is not running or monitor socket is not available"
+                progress.completed_at = datetime.now()
+                return SnapshotResult(
+                    success=False,
+                    tag=tag,
+                    error_message=progress.error_message,
+                    restore_progress=progress
+                )
+
+            # Get pre-restore VM state for reporting
+            pre_restore_state = self._get_vm_status()
+            progress.pre_restore_vm_state = pre_restore_state
+
+            # Verify snapshot exists
+            snapshots = self.list_snapshots()
+            snapshot_tags = [s.tag for s in snapshots]
+
+            if tag not in snapshot_tags:
+                progress.state = RestoreState.FAILED
+                progress.error_message = f"Snapshot '{tag}' not found. Available: {snapshot_tags}"
+                progress.completed_at = datetime.now()
+                return SnapshotResult(
+                    success=False,
+                    tag=tag,
+                    error_message=progress.error_message,
+                    restore_progress=progress
+                )
+
             # Send loadvm command
+            progress.state = RestoreState.LOADING
             command = f"loadvm {tag}"
             logger.info(f"Restoring VM to snapshot '{tag}'")
 
             response = self.qemu_boot.send_monitor_command(command)
 
-            logger.info(f"VM restored to snapshot '{tag}' successfully")
+            # Verify VM is still responsive after restore
+            progress.state = RestoreState.VERIFYING
+            post_restore_state = self._get_vm_status()
+
+            if post_restore_state is None:
+                progress.state = RestoreState.FAILED
+                progress.error_message = "VM is not responsive after restore"
+                progress.completed_at = datetime.now()
+                return SnapshotResult(
+                    success=False,
+                    tag=tag,
+                    error_message=progress.error_message,
+                    restore_progress=progress
+                )
+
+            # Restore complete
+            progress.state = RestoreState.COMPLETE
+            progress.completed_at = datetime.now()
+
+            logger.info(f"VM restored to snapshot '{tag}' successfully (pre: {pre_restore_state}, post: {post_restore_state})")
             return SnapshotResult(
                 success=True,
-                tag=tag
+                tag=tag,
+                restore_progress=progress
             )
 
         except RuntimeError as e:
-            error_msg = f"Failed to restore snapshot: {e}"
-            logger.error(error_msg)
+            progress.state = RestoreState.FAILED
+            progress.error_message = f"Failed to restore snapshot: {e}"
+            progress.completed_at = datetime.now()
+            logger.error(progress.error_message)
             return SnapshotResult(
                 success=False,
                 tag=tag,
-                error_message=error_msg
+                error_message=progress.error_message,
+                restore_progress=progress
             )
         except Exception as e:
-            error_msg = f"Unexpected error restoring snapshot: {e}"
-            logger.error(error_msg)
+            progress.state = RestoreState.FAILED
+            progress.error_message = f"Unexpected error restoring snapshot: {e}"
+            progress.completed_at = datetime.now()
+            logger.error(progress.error_message)
             return SnapshotResult(
                 success=False,
                 tag=tag,
-                error_message=error_msg
+                error_message=progress.error_message,
+                restore_progress=progress
             )
 
     def delete_snapshot(self, tag: str) -> SnapshotResult:
