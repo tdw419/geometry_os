@@ -14,6 +14,7 @@ Verifiers:
 - StructureVerifier: PNG structure validation
 - ConsistencyVerifier: SHA256 hash verification
 - SegmentIntegrityChecker: Per-segment hash verification
+- SignatureVerifier: Ed25519 cryptographic signature verification
 
 Signing:
 - FileSigner: Ed25519 signing for PixelRTS files
@@ -43,6 +44,7 @@ from .context import VerificationContext
 from .structure_verifier import StructureVerifier
 from .consistency_verifier import ConsistencyVerifier
 from .segment_integrity_checker import SegmentIntegrityChecker
+from .signature_verifier import SignatureVerifier
 
 # Import signing utilities
 from .file_signer import FileSigner
@@ -60,6 +62,7 @@ __all__ = [
     "StructureVerifier",
     "ConsistencyVerifier",
     "SegmentIntegrityChecker",
+    "SignatureVerifier",
     # Signing
     "FileSigner",
 ]
