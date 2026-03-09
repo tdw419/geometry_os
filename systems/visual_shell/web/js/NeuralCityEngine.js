@@ -1,26 +1,21 @@
 /**
-<<<<<<< HEAD
  * NeuralCityEngine - Main controller for Neural City visualization.
  *
  * Orchestrates TelemetryBus, CityOrchestrator, and PixiJS rendering.
  * Creates a living urban landscape representing agent cognition,
  * metabolism, and system state.
-=======
- * NeuralCityEngine - PixiJS v8 based rendering engine for Geometry OS.
  *
- * This engine handles the high-frequency visualization of guest memory
- * as "Window Particles" on an infinite desktop, including real-time
- * diagnostic overlays (vCPU, IO activity).
+ * Also handles high-frequency visualization of guest memory as "Window Particles"
+ * on an infinite desktop, including real-time diagnostic overlays (vCPU, IO activity).
  *
  * Phase 7: FFI Bridge Integration for CV/Analysis
->>>>>>> acf84183548 (feat(ffi): integrate FFI Bridge with Visual Shell for CV/Analysis)
  */
 
 class NeuralCityEngine {
-<<<<<<< HEAD
     constructor(config = {}) {
         this.config = {
             wsUrl: config.wsUrl || 'ws://localhost:8768',
+            ffiUrl: config.ffiUrl || `ws://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:3002/ws/v1/ffi`,
             app: config.app || null,
             container: config.container || null,
             cityConfig: config.cityConfig || {},
@@ -66,23 +61,6 @@ class NeuralCityEngine {
 
         // Neural Pulse System (Phase 27)
         this.neuralPulseSystem = null;
-=======
-    constructor(app) {
-        this.app = app; // PIXI.Application (v8)
-        this.windows = new Map();
-        this.bridgeUrl = `ws://${window.location.hostname}:3002/ws/v1/memory/`;
-        this.orchUrl = `ws://${window.location.hostname}:3002/ws/v1/orchestrator`;
-        this.ffiUrl = `ws://${window.location.hostname}:3002/ws/v1/ffi`;
-
-        // Order 11 = 2048x2048
-        this.hilbert = new HilbertCurve(11);
-
-        // World container for all organisms (infinite canvas)
-        this.world = new PIXI.Container();
-        this.app.stage.addChild(this.world);
-
-        this.orchestratorWs = null;
-        this.isOrchestratorConnected = false;
 
         // FFI Bridge for CV/Analysis
         this.ffiWs = null;
@@ -90,53 +68,50 @@ class NeuralCityEngine {
         this.ffiFunctions = [];
         this.pendingFFIRequests = new Map();
         this.nextFFIRequestId = 1;
->>>>>>> acf84183548 (feat(ffi): integrate FFI Bridge with Visual Shell for CV/Analysis)
+
+        // Thought Visualizer for PixelBrain (Phase 2, Task 6.3)
+        this.thoughtVisualizer = null;
     }
 
     /**
      * Start the Neural City engine.
      * Initializes render layers, connects telemetry, starts render loop.
      */
-<<<<<<< HEAD
     async start() {
         console.log('NeuralCityEngine starting...');
-=======
-    connectOrchestrator() {
-        console.log(`[Engine] Connecting to orchestrator: ${this.orchUrl}`);
-        this.orchestratorWs = new WebSocket(this.orchUrl);
-
-        this.orchestratorWs.onmessage = (event) => {
-            const state = JSON.parse(event.data);
-            if (state.type === 'orchestrator_state') {
-                this.syncOrganisms(state.organisms);
-            }
-        };
->>>>>>> acf84183548 (feat(ffi): integrate FFI Bridge with Visual Shell for CV/Analysis)
 
         this._setupOrchestratorCallbacks();
         this._setupTelemetryHandlers();
         this._createRenderLayers();
 
-<<<<<<< HEAD
+        // Initialize Thought Visualizer (Phase 2, Task 6.3)
+        if (typeof ThoughtVisualizer !== 'undefined' && this.config.app) {
+            this.thoughtVisualizer = new ThoughtVisualizer(this.config.app, this.particleLayer);
+            console.log('[Engine] ThoughtVisualizer initialized');
+        }
+
         // Connect telemetry bus
         try {
             await this.telemetryBus.connect();
         } catch (e) {
             console.warn('TelemetryBus connection failed, running in standalone mode:', e);
-=======
-        this.orchestratorWs.onclose = () => {
-            this.isOrchestratorConnected = false;
-            console.warn("[Engine] Orchestrator disconnected, retrying...");
-            setTimeout(() => this.connectOrchestrator(), 2000);
-        };
+        }
+
+        // Setup Live Tile Manager
+        this._setupLiveTileManager();
+
+        this.running = true;
+        this._startRenderLoop();
+
+        console.log('NeuralCityEngine started');
     }
 
     /**
      * Connect to the FFI Bridge for CV/Analysis operations.
      */
     connectFFI() {
-        console.log(`[Engine] Connecting to FFI Bridge: ${this.ffiUrl}`);
-        this.ffiWs = new WebSocket(this.ffiUrl);
+        console.log(`[Engine] Connecting to FFI Bridge: ${this.config.ffiUrl}`);
+        this.ffiWs = new WebSocket(this.config.ffiUrl);
 
         this.ffiWs.onmessage = (event) => {
             const response = JSON.parse(event.data);
@@ -172,6 +147,22 @@ class NeuralCityEngine {
             }
         } else if (response.type === 'error') {
             console.error('[Engine] FFI error:', response.error);
+        } else if (response.type === 'THOUGHT_PULSE') {
+            // Route THOUGHT_PULSE messages to visualizer (Phase 2, Task 6.3)
+            this._handleThoughtPulse(response);
+        }
+    }
+
+    /**
+     * Handle THOUGHT_PULSE messages from WebSocket.
+     * Routes to ThoughtVisualizer for glyph rendering.
+     *
+     * @param {Object} data - Pulse data from WebSocket
+     * @private
+     */
+    _handleThoughtPulse(data) {
+        if (this.thoughtVisualizer) {
+            this.thoughtVisualizer.emitThoughtPulse(data);
         }
     }
 
@@ -224,8 +215,9 @@ class NeuralCityEngine {
      * @returns {Promise} - Analysis result
      */
     async analyzeMemory(vmId, operation = 'mean') {
+        const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
         const response = await fetch(
-            `http://${window.location.hostname}:3002/ffi/analyze/memory/${vmId}?operation=${operation}`
+            `http://${hostname}:3002/ffi/analyze/memory/${vmId}?operation=${operation}`
         );
         return response.json();
     }
@@ -235,29 +227,6 @@ class NeuralCityEngine {
      */
     getFFIFunctions() {
         return this.ffiFunctions;
-    }
-
-    /**
-     * Synchronize local windows with orchestrator state.
-     */
-    syncOrganisms(organisms) {
-        const currentIds = new Set(organisms.map(o => o.id));
-        
-        // 1. Remove dead organisms
-        for (const vmId of this.windows.keys()) {
-            if (!currentIds.has(vmId)) {
-                this.removeVmWindow(vmId);
-            }
->>>>>>> acf84183548 (feat(ffi): integrate FFI Bridge with Visual Shell for CV/Analysis)
-        }
-
-        // Setup Live Tile Manager
-        this._setupLiveTileManager();
-
-        this.running = true;
-        this._startRenderLoop();
-
-        console.log('NeuralCityEngine started');
     }
 
     /**
