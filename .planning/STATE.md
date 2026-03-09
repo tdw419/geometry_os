@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-03-09)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** Ready for next milestone
+**Current focus:** v1.7 Vision Integrity — detect tampering and corruption
 
 ## Current Position
 
-Phase: —
+Phase: Not started (defining requirements)
 Plan: —
-Status: Milestone v1.6 complete. Ready for next milestone.
-Last activity: 2026-03-09 — Milestone v1.6 Ephemeral Boot shipped
+Status: Defining requirements
+Last activity: 2026-03-09 — Milestone v1.7 Vision Integrity started
 
 Progress: [████████████████████████] 100% (66/66 plans across all milestones)
 

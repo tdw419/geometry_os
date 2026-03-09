@@ -249,9 +249,13 @@ If everything else fails, users must be able to:
   - `pixelrts commit <ephemeral-container> <output>`
   - Informational message shown
 
-### Future
+### Active (v1.7)
 
 - [ ] **VISION-02**: Vision model can detect tampering or corruption
+
+### Future
+
+(None planned)
 
 ### Out of Scope
 
@@ -376,6 +380,6 @@ If everything else fails, users must be able to:
 | ps [E] indicator | Visual identification | ✓ Good |
 
 ---
-*Last updated: 2026-03-09 — v1.6 Ephemeral Boot complete*
+*Last updated: 2026-03-09 — v1.7 Vision Integrity started*
 
 
