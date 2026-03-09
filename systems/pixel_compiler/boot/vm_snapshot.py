@@ -58,6 +58,16 @@ class SnapshotState(Enum):
     DELETING = "deleting"
 
 
+class RestoreState(Enum):
+    """State of a restore operation."""
+    PENDING = "pending"
+    VALIDATING = "validating"
+    LOADING = "loading"
+    VERIFYING = "verifying"
+    COMPLETE = "complete"
+    FAILED = "failed"
+
+
 @dataclass
 class VMSnapshotMetadata:
     """Metadata for a VM snapshot."""
@@ -99,12 +109,35 @@ class VMSnapshotMetadata:
 
 
 @dataclass
+class RestoreProgress:
+    """Progress tracking for restore operations."""
+    state: RestoreState
+    tag: str
+    started_at: datetime
+    completed_at: Optional[datetime] = None
+    error_message: Optional[str] = None
+    pre_restore_vm_state: Optional[str] = None  # 'running', 'paused', etc.
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for serialization."""
+        return {
+            "state": self.state.value,
+            "tag": self.tag,
+            "started_at": self.started_at.isoformat(),
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "error_message": self.error_message,
+            "pre_restore_vm_state": self.pre_restore_vm_state,
+        }
+
+
+@dataclass
 class SnapshotResult:
     """Result of a snapshot operation."""
     success: bool
     tag: str
     metadata: Optional[VMSnapshotMetadata] = None
     error_message: Optional[str] = None
+    restore_progress: Optional[RestoreProgress] = None
 
 
 @dataclass
