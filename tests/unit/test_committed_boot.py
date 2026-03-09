@@ -276,9 +276,13 @@ class TestBootFlow(unittest.TestCase):
         mock_img.__enter__ = Mock(return_value=mock_img)
         mock_img.__exit__ = Mock(return_value=False)
 
-        # Mock PixelRTSDecoder
+        # Mock PixelRTSDecoder with proper metadata (no kernel/initrd)
         mock_decoder = MagicMock()
         mock_decoder.decode.return_value = b"fake qcow2 data"
+        mock_decoder.get_metadata.return_value = {
+            "disk_size": 15,  # Length of "fake qcow2 data"
+            "offsets": {},  # No kernel/initrd
+        }
 
         # Mock QemuBoot
         mock_process = MagicMock()
@@ -334,8 +338,13 @@ class TestBootFlow(unittest.TestCase):
         mock_img.__enter__ = Mock(return_value=mock_img)
         mock_img.__exit__ = Mock(return_value=False)
 
+        # Mock PixelRTSDecoder with proper metadata (no kernel/initrd)
         mock_decoder = MagicMock()
         mock_decoder.decode.return_value = b"fake qcow2 data"
+        mock_decoder.get_metadata.return_value = {
+            "disk_size": 15,
+            "offsets": {},  # No kernel/initrd
+        }
 
         booter = CommittedFileBooter(self.temp_path)
 
@@ -587,6 +596,442 @@ class TestCommittedFileMetadata(unittest.TestCase):
         self.assertEqual(d["snapshot_tag"], "test-snap")
         self.assertEqual(d["source_format"], "qcow2")
         self.assertEqual(d["disk_size"], 1073741824)
+
+
+class TestKernelInitrdExtraction(unittest.TestCase):
+    """Tests for _extract_kernel and _extract_initrd methods."""
+
+    def setUp(self):
+        """Create temp file for each test."""
+        self.temp_file = tempfile.NamedTemporaryFile(suffix='.rts.png', delete=False)
+        self.temp_file.write(b"fake png content")
+        self.temp_file.close()
+        self.temp_path = Path(self.temp_file.name)
+        self.output_dir = Path(tempfile.mkdtemp(prefix="test_extract_"))
+
+    def tearDown(self):
+        """Clean up temp files."""
+        self.temp_path.unlink(missing_ok=True)
+        shutil.rmtree(self.output_dir, ignore_errors=True)
+
+    def test_extract_kernel_success(self):
+        """Extracts kernel bytes using offset metadata."""
+        booter = CommittedFileBooter(self.temp_path)
+
+        # Create mock decoded data with kernel at offset 100
+        kernel_data = b"KERNEL_BINARY_DATA_HERE_12345678"
+        combined_data = b"Q" * 100 + kernel_data + b"I" * 50  # qcow2 + kernel + initrd
+
+        # Set up mock decoded state
+        booter._decoded_data = combined_data
+        booter._decoded_metadata = {
+            "disk_size": 100,
+            "offsets": {
+                "kernel": {
+                    "offset": 100,
+                    "size": len(kernel_data),
+                }
+            }
+        }
+
+        kernel_path = booter._extract_kernel(self.output_dir)
+
+        self.assertIsNotNone(kernel_path)
+        self.assertEqual(kernel_path, self.output_dir / "kernel")
+        self.assertTrue(kernel_path.exists())
+
+        # Verify content
+        with open(kernel_path, 'rb') as f:
+            self.assertEqual(f.read(), kernel_data)
+
+    def test_extract_initrd_success(self):
+        """Extracts initrd bytes using offset metadata."""
+        booter = CommittedFileBooter(self.temp_path)
+
+        # Create mock decoded data with initrd at offset 150
+        initrd_data = b"INITRD_BINARY_DATA_HERE_87654321"
+        combined_data = b"Q" * 100 + b"K" * 50 + initrd_data
+
+        # Set up mock decoded state
+        booter._decoded_data = combined_data
+        booter._decoded_metadata = {
+            "disk_size": 100,
+            "offsets": {
+                "initrd": {
+                    "offset": 150,
+                    "size": len(initrd_data),
+                }
+            }
+        }
+
+        initrd_path = booter._extract_initrd(self.output_dir)
+
+        self.assertIsNotNone(initrd_path)
+        self.assertEqual(initrd_path, self.output_dir / "initrd")
+        self.assertTrue(initrd_path.exists())
+
+        # Verify content
+        with open(initrd_path, 'rb') as f:
+            self.assertEqual(f.read(), initrd_data)
+
+    def test_extract_kernel_hash_mismatch(self):
+        """Raises error on kernel hash mismatch."""
+        import hashlib
+        from systems.pixel_compiler.boot.committed_boot import CommittedBootError
+
+        booter = CommittedFileBooter(self.temp_path)
+
+        kernel_data = b"KERNEL_BINARY_DATA"
+        combined_data = b"Q" * 100 + kernel_data
+
+        booter._decoded_data = combined_data
+        booter._decoded_metadata = {
+            "disk_size": 100,
+            "offsets": {
+                "kernel": {
+                    "offset": 100,
+                    "size": len(kernel_data),
+                    "sha256": "wrong_hash_value_here",
+                }
+            }
+        }
+
+        with self.assertRaises(CommittedBootError) as ctx:
+            booter._extract_kernel(self.output_dir)
+
+        self.assertIn("Kernel hash mismatch", str(ctx.exception))
+
+    def test_extract_initrd_hash_mismatch(self):
+        """Raises error on initrd hash mismatch."""
+        from systems.pixel_compiler.boot.committed_boot import CommittedBootError
+
+        booter = CommittedFileBooter(self.temp_path)
+
+        initrd_data = b"INITRD_BINARY_DATA"
+        combined_data = b"Q" * 100 + initrd_data
+
+        booter._decoded_data = combined_data
+        booter._decoded_metadata = {
+            "disk_size": 100,
+            "offsets": {
+                "initrd": {
+                    "offset": 100,
+                    "size": len(initrd_data),
+                    "sha256": "wrong_hash_value_here",
+                }
+            }
+        }
+
+        with self.assertRaises(CommittedBootError) as ctx:
+            booter._extract_initrd(self.output_dir)
+
+        self.assertIn("Initrd hash mismatch", str(ctx.exception))
+
+    def test_extract_kernel_no_kernel_stored(self):
+        """Returns None when offsets has no kernel."""
+        booter = CommittedFileBooter(self.temp_path)
+
+        booter._decoded_data = b"some data"
+        booter._decoded_metadata = {
+            "disk_size": 100,
+            "offsets": {}  # No kernel
+        }
+
+        result = booter._extract_kernel(self.output_dir)
+
+        self.assertIsNone(result)
+
+    def test_extract_initrd_no_initrd_stored(self):
+        """Returns None when offsets has no initrd."""
+        booter = CommittedFileBooter(self.temp_path)
+
+        booter._decoded_data = b"some data"
+        booter._decoded_metadata = {
+            "disk_size": 100,
+            "offsets": {}  # No initrd
+        }
+
+        result = booter._extract_initrd(self.output_dir)
+
+        self.assertIsNone(result)
+
+    def test_extract_kernel_no_decoded_data(self):
+        """Returns None when no decoded data available."""
+        booter = CommittedFileBooter(self.temp_path)
+
+        # No decoded data set
+        booter._decoded_data = None
+        booter._decoded_metadata = None
+
+        result = booter._extract_kernel(self.output_dir)
+
+        self.assertIsNone(result)
+
+    def test_extract_initrd_no_decoded_data(self):
+        """Returns None when no decoded data available."""
+        booter = CommittedFileBooter(self.temp_path)
+
+        # No decoded data set
+        booter._decoded_data = None
+        booter._decoded_metadata = None
+
+        result = booter._extract_initrd(self.output_dir)
+
+        self.assertIsNone(result)
+
+    def test_extract_kernel_hash_verification_success(self):
+        """Verifies kernel hash when correct hash provided."""
+        import hashlib
+
+        booter = CommittedFileBooter(self.temp_path)
+
+        kernel_data = b"KERNEL_BINARY_DATA"
+        combined_data = b"Q" * 100 + kernel_data
+        expected_hash = hashlib.sha256(kernel_data).hexdigest()
+
+        booter._decoded_data = combined_data
+        booter._decoded_metadata = {
+            "disk_size": 100,
+            "offsets": {
+                "kernel": {
+                    "offset": 100,
+                    "size": len(kernel_data),
+                    "sha256": expected_hash,
+                }
+            }
+        }
+
+        kernel_path = booter._extract_kernel(self.output_dir)
+
+        # Should succeed without raising
+        self.assertIsNotNone(kernel_path)
+
+        # Verify content
+        with open(kernel_path, 'rb') as f:
+            self.assertEqual(f.read(), kernel_data)
+
+    def test_extract_initrd_hash_verification_success(self):
+        """Verifies initrd hash when correct hash provided."""
+        import hashlib
+
+        booter = CommittedFileBooter(self.temp_path)
+
+        initrd_data = b"INITRD_BINARY_DATA"
+        combined_data = b"Q" * 100 + initrd_data
+        expected_hash = hashlib.sha256(initrd_data).hexdigest()
+
+        booter._decoded_data = combined_data
+        booter._decoded_metadata = {
+            "disk_size": 100,
+            "offsets": {
+                "initrd": {
+                    "offset": 100,
+                    "size": len(initrd_data),
+                    "sha256": expected_hash,
+                }
+            }
+        }
+
+        initrd_path = booter._extract_initrd(self.output_dir)
+
+        # Should succeed without raising
+        self.assertIsNotNone(initrd_path)
+
+        # Verify content
+        with open(initrd_path, 'rb') as f:
+            self.assertEqual(f.read(), initrd_data)
+
+
+class TestExtractQcow2Trim(unittest.TestCase):
+    """Tests for extract_qcow2 disk_size trimming."""
+
+    def setUp(self):
+        """Create temp file for each test."""
+        self.temp_file = tempfile.NamedTemporaryFile(suffix='.rts.png', delete=False)
+        self.temp_file.write(b"fake png content")
+        self.temp_file.close()
+        self.temp_path = Path(self.temp_file.name)
+
+    def tearDown(self):
+        """Clean up temp file."""
+        self.temp_path.unlink(missing_ok=True)
+
+    def test_extract_qcow2_trims_to_disk_size(self):
+        """Trims decoded data to disk_size bytes."""
+        # Mock decoder that returns combined data
+        mock_decoder = MagicMock()
+        # Combined data: qcow2 (100 bytes) + kernel (50 bytes) + initrd (30 bytes)
+        combined_data = b"Q" * 100 + b"K" * 50 + b"I" * 30
+        mock_decoder.decode.return_value = combined_data
+        mock_decoder.get_metadata.return_value = {
+            "disk_size": 100,
+            "offsets": {
+                "kernel": {"offset": 100, "size": 50},
+                "initrd": {"offset": 150, "size": 30}
+            }
+        }
+
+        booter = CommittedFileBooter(self.temp_path)
+
+        with patch('systems.pixel_compiler.pixelrts_v2_core.PixelRTSDecoder', return_value=mock_decoder):
+            result_path = booter.extract_qcow2(self.temp_path)
+
+            # Should be trimmed to disk_size (100 bytes)
+            with open(result_path, 'rb') as f:
+                content = f.read()
+                self.assertEqual(len(content), 100)
+                self.assertEqual(content, b"Q" * 100)
+
+            # Verify decoder and metadata stored
+            self.assertEqual(booter._decoder, mock_decoder)
+            self.assertEqual(booter._decoded_metadata["disk_size"], 100)
+            self.assertEqual(booter._decoded_data, combined_data)
+
+    def test_extract_qcow2_no_disk_size_metadata(self):
+        """Uses full decoded data when no disk_size metadata."""
+        mock_decoder = MagicMock()
+        full_data = b"Q" * 100
+        mock_decoder.decode.return_value = full_data
+        mock_decoder.get_metadata.return_value = {}  # No disk_size
+
+        booter = CommittedFileBooter(self.temp_path)
+
+        with patch('systems.pixel_compiler.pixelrts_v2_core.PixelRTSDecoder', return_value=mock_decoder):
+            result_path = booter.extract_qcow2(self.temp_path)
+
+            # Should use full data
+            with open(result_path, 'rb') as f:
+                content = f.read()
+                self.assertEqual(len(content), 100)
+                self.assertEqual(content, full_data)
+
+
+class TestBootUsesExtractedFiles(unittest.TestCase):
+    """Tests for boot() using extracted kernel/initrd."""
+
+    def setUp(self):
+        """Create temp file for each test."""
+        self.temp_file = tempfile.NamedTemporaryFile(suffix='.rts.png', delete=False)
+        self.temp_file.write(b"fake png content")
+        self.temp_file.close()
+        self.temp_path = Path(self.temp_file.name)
+
+    def tearDown(self):
+        """Clean up temp file."""
+        self.temp_path.unlink(missing_ok=True)
+
+    def test_boot_uses_extracted_kernel_initrd(self):
+        """boot() passes extracted kernel/initrd to QemuBoot."""
+        # Mock container type detection
+        mock_img = MagicMock()
+        mock_img.text = {"type": "vm-snapshot"}
+        mock_img.__enter__ = Mock(return_value=mock_img)
+        mock_img.__exit__ = Mock(return_value=False)
+
+        # Mock decoder with combined data
+        kernel_data = b"KERNEL"
+        initrd_data = b"INITRD"
+        qcow2_data = b"QCOW2DATA"
+        combined_data = qcow2_data + kernel_data + initrd_data
+
+        mock_decoder = MagicMock()
+        mock_decoder.decode.return_value = combined_data
+        mock_decoder.get_metadata.return_value = {
+            "disk_size": len(qcow2_data),
+            "offsets": {
+                "kernel": {"offset": len(qcow2_data), "size": len(kernel_data)},
+                "initrd": {"offset": len(qcow2_data) + len(kernel_data), "size": len(initrd_data)}
+            }
+        }
+
+        # Mock QemuBoot
+        mock_process = MagicMock()
+        mock_process.pid = 12345
+
+        mock_qemu = MagicMock()
+        mock_qemu.boot.return_value = mock_process
+        mock_qemu.get_status.return_value = {
+            "vnc_port": 5900,
+            "serial_socket": "/tmp/serial.sock",
+        }
+
+        booter = CommittedFileBooter(self.temp_path)
+
+        with patch('PIL.Image.open', return_value=mock_img), \
+             patch('systems.pixel_compiler.pixelrts_v2_core.PixelRTSDecoder', return_value=mock_decoder), \
+             patch('systems.pixel_compiler.integration.qemu_boot.QemuBoot', return_value=mock_qemu), \
+             patch('systems.pixel_compiler.integration.qemu_boot.QemuConfig'), \
+             patch('systems.pixel_compiler.integration.qemu_boot.NetworkMode'):
+
+            result = booter.boot()
+
+            self.assertTrue(result.success)
+            # Verify boot was called with kernel and initrd
+            mock_qemu.boot.assert_called_once()
+            call_kwargs = mock_qemu.boot.call_args[1]
+            self.assertIn('kernel', call_kwargs)
+            self.assertIn('initrd', call_kwargs)
+
+    def test_full_roundtrip(self):
+        """Full roundtrip: extract qcow2, kernel, initrd from combined data."""
+        # Create mock combined data as SnapshotExporter would create
+        qcow2_data = b"QCOW2_BINARY_DATA_" * 10  # 190 bytes
+        kernel_data = b"KERNEL_BINARY_DATA" * 5    # 95 bytes
+        initrd_data = b"INITRD_BINARY_DATA" * 4    # 76 bytes
+
+        combined_data = qcow2_data + kernel_data + initrd_data
+        disk_size = len(qcow2_data)
+        kernel_offset = disk_size
+        initrd_offset = kernel_offset + len(kernel_data)
+
+        # Mock container type
+        mock_img = MagicMock()
+        mock_img.text = {"type": "vm-snapshot"}
+        mock_img.__enter__ = Mock(return_value=mock_img)
+        mock_img.__exit__ = Mock(return_value=False)
+
+        # Mock decoder
+        mock_decoder = MagicMock()
+        mock_decoder.decode.return_value = combined_data
+        mock_decoder.get_metadata.return_value = {
+            "disk_size": disk_size,
+            "offsets": {
+                "kernel": {
+                    "offset": kernel_offset,
+                    "size": len(kernel_data),
+                },
+                "initrd": {
+                    "offset": initrd_offset,
+                    "size": len(initrd_data),
+                }
+            }
+        }
+
+        booter = CommittedFileBooter(self.temp_path)
+
+        with patch('PIL.Image.open', return_value=mock_img), \
+             patch('systems.pixel_compiler.pixelrts_v2_core.PixelRTSDecoder', return_value=mock_decoder):
+
+            # Extract qcow2 first
+            qcow2_path = booter.extract_qcow2(self.temp_path)
+
+            # Verify qcow2 trimmed correctly
+            with open(qcow2_path, 'rb') as f:
+                extracted_qcow2 = f.read()
+                self.assertEqual(len(extracted_qcow2), disk_size)
+                self.assertEqual(extracted_qcow2, qcow2_data)
+
+            # Extract kernel
+            kernel_path = booter._extract_kernel(qcow2_path.parent)
+            self.assertIsNotNone(kernel_path)
+            with open(kernel_path, 'rb') as f:
+                self.assertEqual(f.read(), kernel_data)
+
+            # Extract initrd
+            initrd_path = booter._extract_initrd(qcow2_path.parent)
+            self.assertIsNotNone(initrd_path)
+            with open(initrd_path, 'rb') as f:
+                self.assertEqual(f.read(), initrd_data)
 
 
 if __name__ == '__main__':
