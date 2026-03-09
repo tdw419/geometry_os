@@ -32,6 +32,9 @@ from ..infinite_map.tectonic_updater import TectonicUpdater
 from .performance_monitor import PerformanceMonitor
 from .kernel_rewriter import KernelRewriter
 from .hot_swap_manager import HotSwapManager
+from .entropy_mapper import EntropyMapper
+from .goal_synthesizer import GoalSynthesizer
+from .speculative_optimizer import SpeculativeOptimizer
 
 # Setup logging
 logging.basicConfig(
@@ -289,7 +292,8 @@ class SisyphusDaemon:
         auto_commit=False,
         enable_heartbeat=True,
         enable_self_rewriting=False,
-        enable_tectonic=False
+        enable_tectonic=False,
+        performance_monitor: Optional[PerformanceMonitor] = None
     ):
         self.state_file = Path(state_file)
         self.project_dir = Path(__file__).parent.parent.parent.resolve()
@@ -352,8 +356,19 @@ class SisyphusDaemon:
             self.hot_swap_manager = HotSwapManager(visual_bridge=self.visual_bridge)
             self._last_hot_spot_check = 0
             self._hot_spot_check_interval = 300  # 5 minutes
+        elif performance_monitor is not None:
+            self.performance_monitor = performance_monitor
         else:
             self.performance_monitor = None
+
+        # Intrinsic Curiosity Engine components
+        if self.performance_monitor is not None:
+            self.entropy_mapper = EntropyMapper(self.performance_monitor)
+        else:
+            self.entropy_mapper = None
+        self.goal_synthesizer = GoalSynthesizer(min_entropy_score=0.1)
+        self.speculative_optimizer = SpeculativeOptimizer()
+        self._curiosity_enabled = True
 
     def _save_task_checkpoint(self, task_id: int, task_name: str, extra_state: Dict[str, Any] = None):
         """Save current task state to checkpoint."""
@@ -697,6 +712,81 @@ Ensure task numbering continues correctly.
         )
 
         return task
+
+    def generate_autonomous_goals(self) -> List[Dict[str, Any]]:
+        """
+        Generate autonomous goals from entropy analysis.
+
+        This is the core of intrinsic curiosity - the system
+        generates its own improvement goals without human input.
+
+        Returns:
+            List of goal dictionaries suitable for task queue
+        """
+        if not self._curiosity_enabled:
+            return []
+
+        if self.entropy_mapper is None:
+            return []
+
+        # Map entropy across codebase
+        spots = self.entropy_mapper.map_entropy()
+
+        # Synthesize goals from entropy
+        goals = self.goal_synthesizer.synthesize_batch(spots)
+
+        # Convert to task format
+        return [g.to_task_dict() for g in goals]
+
+    def get_structural_health(self) -> float:
+        """
+        Get current structural health score (PAS).
+
+        Returns:
+            Score from 0.0 (unhealthy) to 1.0 (healthy)
+        """
+        if self.entropy_mapper is None:
+            return 1.0  # No data means no imbalance
+        return self.entropy_mapper.compute_structural_health()
+
+    async def run_curiosity_cycle(self) -> Dict[str, Any]:
+        """
+        Run one cycle of intrinsic curiosity.
+
+        This method:
+        1. Maps entropy across the codebase
+        2. Generates autonomous goals
+        3. Returns results for logging/display
+
+        Returns:
+            Dict with health_score, goals_generated, and spots_found
+        """
+        if self.entropy_mapper is None:
+            return {
+                "health_score": 1.0,
+                "goals_generated": 0,
+                "spots_found": 0,
+                "cold_spots": 0,
+                "hot_spots": 0,
+                "top_goals": []
+            }
+
+        spots = self.entropy_mapper.map_entropy()
+        health = self.entropy_mapper.compute_structural_health()
+        goals = self.goal_synthesizer.synthesize_batch(spots)
+
+        result = {
+            "health_score": health,
+            "goals_generated": len(goals),
+            "spots_found": len(spots),
+            "cold_spots": len([s for s in spots if s.entropy_type == "cold"]),
+            "hot_spots": len([s for s in spots if s.entropy_type == "hot"]),
+            "top_goals": [g.to_task_dict() for g in goals[:5]]
+        }
+
+        logger.info(f"[Curiosity] Health: {health:.2f}, Goals: {len(goals)}, Spots: {len(spots)}")
+
+        return result
 
     def _gravity_loop(self):
         """Background thread for Tectonic gravity simulation."""
