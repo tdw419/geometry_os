@@ -134,7 +134,7 @@ Phases execute in numeric order: 6 -> 7 -> 8
 | 6. NBD Server + PXE Boot | v1.2 | 3/3 | Complete | 2026-03-08 |
 | 7. HTTP Boot via iPXE | v1.2 | 3/3 | Complete | 2026-03-08 |
 | 8. Delta Updates | v1.2 | 3/3 | Complete | 2026-03-09 |
-| 8.1. Wire Delta HTTP Handler | v1.2 | 0/1 | Not started | - |
+| 8.1. Wire Delta HTTP Handler | v1.2 | 1/1 | Complete | 2026-03-09 |
 
 ---
 
