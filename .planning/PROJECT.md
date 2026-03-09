@@ -97,9 +97,20 @@ If everything else fails, users must be able to:
   - /delta/list and /delta/<file>.json endpoints
   - DeltaHTTPHandler wired to HTTPBootServer
 
-## Current Milestone: None (v1.2 shipped)
+## Current Milestone: v1.3 Multi-Boot
 
-**Next:** Run `/gsd:new-milestone` to start v1.3
+**Goal:** Boot multiple PixelRTS containers simultaneously with network connectivity
+
+**Target features:**
+- Simultaneous boot of multiple containers
+- Primary + helper container pattern
+- Network connectivity between containers
+- CLI multi-boot interface
+
+### Active (v1.3)
+
+- [ ] **MULTI-01**: Boot multiple containers simultaneously
+- [ ] **MULTI-02**: Network connectivity between containers
 
 ### Future
 

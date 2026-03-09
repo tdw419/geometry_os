@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-09)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** v1.2 Network Boot - COMPLETE
+**Current focus:** v1.3 Multi-Boot - Defining requirements
 
 ## Current Position
 
-Phase: —
+Phase: Not started (defining requirements)
 Plan: —
-Status: Milestone Complete
-Last activity: 2026-03-09 — v1.2 shipped
+Status: Defining requirements
+Last activity: 2026-03-09 — Milestone v1.3 started
 
-Progress: [████████████████████] 100% (v1.2 complete)
+Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (v1.3 not started)
 
 ## Performance Metrics
 

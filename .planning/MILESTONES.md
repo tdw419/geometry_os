@@ -1,5 +1,30 @@
 # Project Milestones: PixelRTS
 
+## v1.2 Network Boot (Shipped: 2026-03-09)
+
+**Delivered:** PXE/NBD network boot with HTTP chainload and delta updates.
+
+**Phases completed:** 6-8.1 (10 plans total)
+
+**Key accomplishments:**
+
+- `pixelrts serve <file.png>` command for network boot services
+- Proxy DHCP mode (port 4011) without conflicting with existing DHCP
+- NBD block export via nbdkit Python plugin with range decoding
+- HTTP boot via iPXE chainload for faster transfers
+- Delta manifest generation and patch application
+- `/delta/` HTTP endpoints for bandwidth-efficient updates
+
+**Stats:**
+
+- 4 phases (6, 7, 8, 8.1), 10 plans
+- Timeline: Mar 8-9, 2026
+- 425 tests passing
+
+**Git tag:** v1.2
+
+---
+
 ## v1.1 Visual Diff (Shipped: 2026-03-08)
 
 **Delivered:** Visual byte-level comparison for .rts.png files with Hilbert space visualization.
@@ -51,4 +76,4 @@
 
 ---
 
-*Last milestone: v1.1 (2026-03-08)*
+*Last milestone: v1.2 (2026-03-09)*
