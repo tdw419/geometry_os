@@ -10,24 +10,24 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 8 of 8 (Delta Updates)
-Plan: Not started
-Status: Phase 7 complete, ready to plan Phase 8
-Last activity: 2026-03-08 — Phase 7 HTTP Boot via iPXE complete
+Plan: 1 of 3 (Delta Manifest)
+Status: In progress
+Last activity: 2026-03-09 — Completed 08-01-PLAN.md (Delta Manifest)
 
-Progress: [████████████░░░░░░░░░░] 50% (6/12 plans in v1.2)
+Progress: [█████████████░░░░░░░░░] 58% (7/12 plans in v1.2)
 
 ## Performance Metrics
 
 **v1.2 Velocity:**
-- Plans completed: 6
-- Duration: ~40 min (13 + 9 + 8 + 5 + 5)
-- Tests: 271 passing (28 + 59 + 53 + 44 + 58 + 29)
+- Plans completed: 7
+- Duration: ~44 min (13 + 9 + 8 + 5 + 5 + 4)
+- Tests: 299 passing (28 + 59 + 53 + 44 + 58 + 29 + 28)
 
 **Cumulative:**
 - v1.0: 22 plans
 - v1.1: 4 plans
-- v1.2: 6 plans (Phase 7 complete)
-- Total: 32 plans
+- v1.2: 7 plans (Phase 8 in progress)
+- Total: 33 plans
 
 ## Accumulated Context
 
@@ -74,6 +74,11 @@ Key decisions archived in `.planning/milestones/`:
 - Service order: TFTP -> DHCP -> HTTP -> NBD
 - Unified boot directory (HTTP serves from tftp_root)
 
+**08-01 Decisions:**
+- Gap merging threshold: 64 bytes to balance region count vs. download efficiency
+- Include both old_checksum and new_checksum per region for client validation
+- Default to stdout for piping, -o flag for file output
+
 ### Pending Todos
 
 None.
@@ -87,8 +92,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-09T00:25:00Z
-Stopped at: Completed 07-03-PLAN.md (HTTP Boot Integration)
+Last session: 2026-03-09T01:15:10Z
+Stopped at: Completed 08-01-PLAN.md (Delta Manifest)
 Resume file: None
 
 **CLI Commands Available (v1.0 + v1.1 + v1.2):**
@@ -97,9 +102,12 @@ Resume file: None
 - `pixelrts install <file.png> <target>` - Install .rts.png to disk image
 - `pixelrts catalog` - Launch visual catalog server
 - `pixelrts diff <old.png> <new.png>` - Visual diff comparison
-- `pixelrts serve <file.png>` - Start network boot services (NEW in v1.2)
+- `pixelrts delta <old.png> <new.png>` - Generate delta manifest (NEW in Phase 8)
+  - `-o/--output` - Output manifest file (default: stdout)
+  - `-q/--quiet` - Suppress summary output
+- `pixelrts serve <file.png>` - Start network boot services
   - `--http` - Enable HTTP boot for faster transfers
   - `--http-port PORT` - Custom HTTP port (default: 8080)
 
 **Planned Commands (v1.2):**
-- `pixelrts delta <old.png> <new.png>` - Generate delta manifest (Phase 8)
+- `pixelrts patch` - Apply delta manifest to update file (Phase 8 Plan 2)
