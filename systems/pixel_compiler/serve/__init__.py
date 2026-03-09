@@ -47,24 +47,27 @@ Usage:
 
 from .nbd_plugin import PixelRTSPlugin
 from .dhcp_proxy import ProxyDHCP, DHCPConfig, DHCPPacket
-from .tftp_server import TFTPServer, TFTPTransfer
+from .http_server import HTTPBootServer, HTTPConfig
+from .progress import ServeProgress, ClientTracker, ClientInfo, BootStage
 from .pxe_config import PXEConfig
 from .server import PixelRTSServer, NetworkConfig, ServerStatus
-from .progress import ServeProgress, ClientTracker, ClientInfo, BootStage
+from .tftp_server import TFTPServer, TFTPTransfer
 
 __all__ = [
-    'PixelRTSPlugin',
-    'ProxyDHCP',
+    'BootStage',
+    'ClientInfo',
+    'ClientTracker',
     'DHCPConfig',
     'DHCPPacket',
+    'HTTPBootServer',
+    'HTTPConfig',
+    'NetworkConfig',
+    'PXEConfig',
+    'PixelRTSPlugin',
+    'PixelRTSServer',
+    'ProxyDHCP',
+    'ServeProgress',
+    'ServerStatus',
     'TFTPServer',
     'TFTPTransfer',
-    'PXEConfig',
-    'PixelRTSServer',
-    'NetworkConfig',
-    'ServerStatus',
-    'ServeProgress',
-    'ClientTracker',
-    'ClientInfo',
-    'BootStage',
 ]
