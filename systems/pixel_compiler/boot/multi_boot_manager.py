@@ -51,6 +51,7 @@ from .virtual_network import (
     NetworkSetupError,
 )
 from .vm_snapshot import VMSnapshotManager, VMSnapshotMetadata, SnapshotResult, SnapshotInfo, SnapshotError, RestoreProgress
+from .snapshot_storage import SnapshotStorage, SnapshotMetadata
 from systems.pixel_compiler.integration.qemu_boot import NetworkMode
 
 # Default state file path
@@ -252,6 +253,7 @@ class MultiBootManager:
         self._bridges: Dict[str, BootBridge] = {}
         self._lock = asyncio.Lock()
         self._state_file = Path(state_file) if state_file else DEFAULT_STATE_FILE
+        self._snapshot_storage = SnapshotStorage()
 
         # Load existing state from file
         self._load_state()
@@ -332,6 +334,11 @@ class MultiBootManager:
             logger.debug(f"Saved state for {len(containers_data)} containers to {self._state_file}")
         except Exception as e:
             logger.warning(f"Failed to save state file: {e}")
+
+    @property
+    def snapshot_storage(self) -> SnapshotStorage:
+        """Get the snapshot storage instance."""
+        return self._snapshot_storage
 
     def _get_container_name(self, path: Union[str, Path]) -> str:
         """
