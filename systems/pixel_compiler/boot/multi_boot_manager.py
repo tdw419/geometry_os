@@ -114,12 +114,14 @@ class MultiBootResult:
         success_count: Number of successfully booted containers
         failure_count: Number of failed containers
         error_messages: List of error messages for failed containers
+        cleanup_performed: Whether cleanup was performed on partial failure
     """
     success: bool
     containers: List[ContainerInfo] = field(default_factory=list)
     success_count: int = 0
     failure_count: int = 0
     error_messages: List[str] = field(default_factory=list)
+    cleanup_performed: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
@@ -129,6 +131,7 @@ class MultiBootResult:
             "failure_count": self.failure_count,
             "containers": [c.to_dict() for c in self.containers],
             "error_messages": self.error_messages,
+            "cleanup_performed": self.cleanup_performed,
         }
 
 
@@ -282,6 +285,7 @@ class MultiBootManager:
         cmdline: Optional[str] = None,
         memory: str = "2G",
         cpus: int = 2,
+        cleanup_on_failure: bool = True,
     ) -> MultiBootResult:
         """
         Boot multiple containers concurrently.
@@ -294,6 +298,7 @@ class MultiBootManager:
             cmdline: Optional kernel command line (applied to all)
             memory: Memory allocation per container (default: "2G")
             cpus: Number of CPUs per container (default: 2)
+            cleanup_on_failure: Stop successful containers if any boot fails (default: True)
 
         Returns:
             MultiBootResult with success status and container info
@@ -353,12 +358,23 @@ class MultiBootManager:
             if c.error_message
         ]
 
+        # Cleanup on partial failure (compensating transaction)
+        cleanup_performed = False
+        if failure_count > 0 and cleanup_on_failure and success_count > 0:
+            logger.info(f"Partial failure detected, cleaning up {success_count} successful containers")
+            cleaned = self._cleanup_successful_containers(container_infos)
+            cleanup_performed = True
+            logger.info(f"Cleaned up {cleaned} containers")
+            # Recalculate success_count after cleanup
+            success_count = sum(1 for c in container_infos if c.state == ContainerState.RUNNING)
+
         result = MultiBootResult(
             success=(failure_count == 0 and success_count > 0),
             containers=container_infos,
             success_count=success_count,
             failure_count=failure_count,
             error_messages=error_messages,
+            cleanup_performed=cleanup_performed,
         )
 
         logger.info(
@@ -431,6 +447,30 @@ class MultiBootManager:
         else:
             info.state = ContainerState.STOPPED
             return True
+
+    def _cleanup_successful_containers(self, container_infos: List[ContainerInfo]) -> int:
+        """
+        Stop and cleanup containers that booted successfully during a partial failure.
+
+        This implements a compensating transaction pattern - when boot_all fails
+        partway through, we need to clean up any containers that did start
+        to avoid orphaned processes.
+
+        Args:
+            container_infos: List of ContainerInfo from the boot operation
+
+        Returns:
+            Number of containers that were successfully cleaned up
+        """
+        cleaned = 0
+        for info in container_infos:
+            if info.state == ContainerState.RUNNING:
+                logger.info(f"Cleaning up container {info.name} due to partial boot failure")
+                if self.stop(info.name):
+                    cleaned += 1
+                else:
+                    logger.error(f"Failed to cleanup container {info.name}")
+        return cleaned
 
     def stop_all(self) -> Dict[str, bool]:
         """
