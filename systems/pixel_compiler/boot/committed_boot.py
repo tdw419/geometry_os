@@ -388,6 +388,113 @@ class CommittedFileBooter:
         except Exception as e:
             raise RuntimeError(f"Failed to extract qcow2: {e}")
 
+    def _extract_kernel(self, output_dir: Path) -> Optional[Path]:
+        """
+        Extract kernel bytes from committed file using offset metadata.
+
+        The kernel is stored at a specific offset in the combined binary payload
+        (after the qcow2 disk data). This method extracts those bytes to a temp file.
+
+        Args:
+            output_dir: Directory to write extracted kernel file
+
+        Returns:
+            Path to extracted kernel file, or None if no kernel stored
+
+        Raises:
+            CommittedBootError: If kernel hash verification fails
+        """
+        import hashlib
+
+        if not self._decoded_data or not self._decoded_metadata:
+            logger.warning("No decoded data available - call extract_qcow2 first")
+            return None
+
+        offsets = self._decoded_metadata.get("offsets", {})
+        kernel_info = offsets.get("kernel")
+
+        if not kernel_info:
+            logger.info("No kernel stored in committed file")
+            return None
+
+        offset = kernel_info["offset"]
+        size = kernel_info["size"]
+
+        # Extract kernel bytes from combined data
+        kernel_data = self._decoded_data[offset:offset + size]
+
+        # Verify hash if present
+        expected_hash = kernel_info.get("sha256")
+        if expected_hash:
+            actual_hash = hashlib.sha256(kernel_data).hexdigest()
+            if actual_hash != expected_hash:
+                raise CommittedBootError(
+                    f"Kernel hash mismatch: expected {expected_hash}, got {actual_hash}"
+                )
+            logger.info(f"Kernel hash verified: {actual_hash[:16]}...")
+
+        # Write to temp file
+        kernel_path = output_dir / "kernel"
+        with open(kernel_path, 'wb') as f:
+            f.write(kernel_data)
+
+        logger.info(f"Extracted kernel: {size} bytes to {kernel_path}")
+        return kernel_path
+
+    def _extract_initrd(self, output_dir: Path) -> Optional[Path]:
+        """
+        Extract initrd bytes from committed file using offset metadata.
+
+        The initrd is stored at a specific offset in the combined binary payload
+        (after the qcow2 disk data and optionally after kernel). This method
+        extracts those bytes to a temp file.
+
+        Args:
+            output_dir: Directory to write extracted initrd file
+
+        Returns:
+            Path to extracted initrd file, or None if no initrd stored
+
+        Raises:
+            CommittedBootError: If initrd hash verification fails
+        """
+        import hashlib
+
+        if not self._decoded_data or not self._decoded_metadata:
+            logger.warning("No decoded data available - call extract_qcow2 first")
+            return None
+
+        offsets = self._decoded_metadata.get("offsets", {})
+        initrd_info = offsets.get("initrd")
+
+        if not initrd_info:
+            logger.info("No initrd stored in committed file")
+            return None
+
+        offset = initrd_info["offset"]
+        size = initrd_info["size"]
+
+        # Extract initrd bytes from combined data
+        initrd_data = self._decoded_data[offset:offset + size]
+
+        # Verify hash if present
+        expected_hash = initrd_info.get("sha256")
+        if expected_hash:
+            actual_hash = hashlib.sha256(initrd_data).hexdigest()
+            if actual_hash != expected_hash:
+                raise CommittedBootError(
+                    f"Initrd hash mismatch: expected {expected_hash}, got {actual_hash}"
+                )
+            logger.info(f"Initrd hash verified: {actual_hash[:16]}...")
+
+        # Write to temp file
+        initrd_path = output_dir / "initrd"
+        with open(initrd_path, 'wb') as f:
+            f.write(initrd_data)
+
+        logger.info(f"Extracted initrd: {size} bytes to {initrd_path}")
+        return initrd_path
+
     def boot(
         self,
         cmdline: Optional[str] = None,
