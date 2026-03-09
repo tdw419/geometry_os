@@ -435,54 +435,28 @@ fn render_thought(glyph: Glyph) {
 
 // Render thought with geometric representation (larger than single pixel)
 // Uses the glyph dimensions (w, h) to render a pulsing thought region
-fn render_thought_geometric(glyph: Glyph) {
+// Render a 3D thought with depth-based scaling and occlusion
+fn render_thought_3d(glyph: Glyph) {
     let dim = uniforms.resolution;
+    let z_depth = glyph.params.w; // Bridge stores Z in params.w
     
-    // Extract thought parameters from glyph.params
-    let thought_type = glyph.params.x;
-    let age = glyph.params.y;
-    let intensity = clamp(glyph.params.z, 0.0, 1.0);
+    // Calculate perspective scale: distant thoughts are smaller
+    let scale = mix(0.5, 1.2, z_depth / 255.0);
     
-    // Get base color from thought type
-    let base_color = thought_type_to_color(thought_type);
+    let base_color = glyph.color;
+    let pulse = 0.5 + 0.5 * sin(uniforms.time * 5.0 + z_depth);
+    let final_color = vec4<f32>(base_color.rgb * pulse, base_color.a * pulse);
     
-    // Calculate pulse effect based on age
-    let pulse_freq = get_pulse_frequency(age);
-    let pulse_phase = uniforms.time * pulse_freq;
-    let pulse = 0.5 + 0.5 * sin(pulse_phase);
+    // Rasterize a small sphere instead of a pixel
+    let radius = i32(3.0 * scale);
+    let cx = i32(glyph.x);
+    let cy = i32(glyph.y);
     
-    // Apply intensity to pulse amplitude
-    let pulse_intensity = mix(0.3, 1.0, intensity);
-    let adjusted_pulse = mix(1.0 - pulse_intensity, 1.0, pulse);
-    
-    // Calculate age-based fade
-    let age_fade = get_age_fade(age);
-    
-    // Combine all effects into final color
-    let final_alpha = base_color.a * adjusted_pulse * age_fade;
-    let final_color = vec4<f32>(
-        base_color.rgb * adjusted_pulse,
-        final_alpha
-    );
-    
-    // Render filled rectangle with thought color
-    let x_start = u32(max(0.0, glyph.x));
-    let y_start = u32(max(0.0, glyph.y));
-    let x_end = u32(min(f32(dim), glyph.x + glyph.w));
-    let y_end = u32(min(f32(dim), glyph.y + glyph.h));
-    
-    for (var py = y_start; py < y_end; py++) {
-        for (var px = x_start; px < x_end; px++) {
-            // Transform each pixel through Hilbert curve
-            let hilbert_idx = xy_to_hilbert(px, py, dim);
-            
-            // Blend with existing content for soft edges
-            let existing_packed = pixel_buffer[hilbert_idx];
-            let existing_color = u32_to_color(existing_packed);
-            let blended = blend_colors_f32(final_color, existing_color);
-            
-            pixel_buffer[hilbert_idx] = color_to_u32(blended);
-            textureStore(canvas, vec2<i32>(i32(px), i32(py)), blended);
+    for (var i = -radius; i <= radius; i++) {
+        for (var j = -radius; j <= radius; j++) {
+            if (i*i + j*j <= radius*radius) {
+                draw_pixel(cx + i, cy + j, final_color);
+            }
         }
     }
 }

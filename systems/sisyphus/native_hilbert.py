@@ -40,7 +40,26 @@ class NativeHilbertLUT:
                     ctypes.c_int
                 ]
                 self.lib.hilbert_xy2d.restype = ctypes.c_uint32
-                logger.info(f"Loaded native Hilbert library from {lib_path}")
+
+                # 3D Hilbert (The Holographic Substrate)
+                self.lib.hilbert_d2xyz.argtypes = [
+                    ctypes.c_int, 
+                    ctypes.c_uint64, 
+                    ctypes.POINTER(ctypes.c_int), 
+                    ctypes.POINTER(ctypes.c_int),
+                    ctypes.POINTER(ctypes.c_int)
+                ]
+                self.lib.hilbert_d2xyz.restype = None
+
+                self.lib.hilbert_xyz2d.argtypes = [
+                    ctypes.c_int, 
+                    ctypes.c_int, 
+                    ctypes.c_int,
+                    ctypes.c_int
+                ]
+                self.lib.hilbert_xyz2d.restype = ctypes.c_uint64
+
+                logger.info(f"Loaded native Hilbert library (2D/3D) from {lib_path}")
             else:
                 logger.warning(f"Native Hilbert library not found at {lib_path}, falling back to slow Python.")
         except Exception as e:
@@ -75,6 +94,32 @@ class NativeHilbertLUT:
         finally:
             duration_ms = (time.perf_counter() - start) * 1000
             self._record_call("xy2d", duration_ms)
+
+    def d2xyz(self, n, d):
+        """Map 1D distance 'd' to 3D coordinates (x, y, z)."""
+        start = time.perf_counter()
+        try:
+            if self.lib:
+                x = ctypes.c_int()
+                y = ctypes.c_int()
+                z = ctypes.c_int()
+                self.lib.hilbert_d2xyz(n, d, ctypes.byref(x), ctypes.byref(y), ctypes.byref(z))
+                return x.value, y.value, z.value
+            return 0, 0, 0 # 3D Python fallback TODO
+        finally:
+            duration_ms = (time.perf_counter() - start) * 1000
+            self._record_call("d2xyz", duration_ms)
+
+    def xyz2d(self, n, x, y, z):
+        """Map 3D coordinates (x, y, z) to 1D distance 'd'."""
+        start = time.perf_counter()
+        try:
+            if self.lib:
+                return self.lib.hilbert_xyz2d(n, x, y, z)
+            return 0 # 3D Python fallback TODO
+        finally:
+            duration_ms = (time.perf_counter() - start) * 1000
+            self._record_call("xyz2d", duration_ms)
 
     def _rot(self, n, x, y, rx, ry):
         if ry == 0:

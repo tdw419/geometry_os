@@ -7,11 +7,15 @@
 extern "C" {
 #endif
 
-// Map 1D distance 'd' to 2D coordinates (x, y) on a Hilbert curve of order 'n' (grid size 2^n)
+// 2D Hilbert Curve
 void hilbert_d2xy(int n, uint32_t d, int *x, int *y);
-
-// Map 2D coordinates (x, y) to 1D distance 'd' on a Hilbert curve of order 'n'
 uint32_t hilbert_xy2d(int n, int x, int y);
+
+// 3D Hilbert Curve (The Holographic Substrate)
+// n: grid size (must be power of 2)
+// d: 1D distance (0 to n^3 - 1)
+void hilbert_d2xyz(int n, uint64_t d, int *x, int *y, int *z);
+uint64_t hilbert_xyz2d(int n, int x, int y, int z);
 
 #ifdef __cplusplus
 }

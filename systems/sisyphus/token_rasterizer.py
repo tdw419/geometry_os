@@ -33,6 +33,7 @@ class TokenRasterizer:
         # Token chain tracking for semantic proximity lines
         self._prev_token_x: Optional[int] = None
         self._prev_token_y: Optional[int] = None
+        self._prev_token_z: Optional[int] = None
         self._prev_token_color: Optional[tuple] = None
 
     def _hash_token(self, token: str) -> int:
@@ -57,55 +58,63 @@ class TokenRasterizer:
             return "comment"
         return "identifier"
 
-    def _emit_token_link(self, curr_x: int, curr_y: int, curr_color: tuple):
-        """Emit a TOKEN_LINK command connecting previous token to current."""
-        if self._prev_token_x is None or self._prev_token_y is None:
+    def _emit_token_link(self, curr_x: int, curr_y: int, curr_z: int, curr_color: tuple):
+        """Emit a TOKEN_LINK command connecting previous token to current in 3D."""
+        if self._prev_token_x is None or self._prev_token_y is None or self._prev_token_z is None:
             return  # No previous token to link from
 
         link_data = {
-            "type": "TOKEN_LINK",
+            "type": "TOKEN_LINK_3D",
             "prev_x": self._prev_token_x,
             "prev_y": self._prev_token_y,
+            "prev_z": self._prev_token_z,
             "curr_x": curr_x,
             "curr_y": curr_y,
-            "delta_x": curr_x - self._prev_token_x,
-            "delta_y": curr_y - self._prev_token_y,
+            "curr_z": curr_z,
             "color": self._prev_token_color or (0.5, 0.5, 0.5, 0.3),
             "timestamp": time.time()
         }
 
-        self.bridge.send_thought(link_data, msg_type="TokenLink")
+        self.bridge.send_thought(link_data, msg_type="TokenLink3D")
 
     def process_token(self, token: str):
-        """Rasterize a single token into the Hilbert space and stream it."""
+        """Rasterize a single token into the 3D Hilbert space and stream it."""
         h_idx = self._hash_token(token)
         t_type = self._infer_token_type(token)
         color = self.type_colors.get(t_type, self.type_colors["default"])
 
-        # Convert to 2D for the bridge
-        x, y = self.hilbert.d2xy(self.grid_size, h_idx)
+        # Convert to 3D for the bridge
+        x, y, z = self.hilbert.d2xyz(self.grid_size, h_idx)
+        
+        # Semantic Z-axis: Abstraction depth
+        # Logic/Keywords are "Higher" (abstract), Identifiers are "Lower" (concrete)
+        z_depth = z
+        if t_type in ["keyword", "logic"]:
+            z_depth = min(255, z + 100)
 
         # Emit TOKEN_LINK if we have a previous token
-        self._emit_token_link(x, y, color)
+        self._emit_token_link(x, y, z_depth, color)
 
         # Update previous token tracking
         self._prev_token_x = x
         self._prev_token_y = y
+        self._prev_token_z = z_depth
         self._prev_token_color = color
 
         thought_data = {
-            "type": "TOKEN_RENDER",
+            "type": "TOKEN_RENDER_3D",
             "content": token,
             "token_type": t_type,
             "hilbert_index": h_idx,
             "x": x,
             "y": y,
+            "z": z_depth,
             "color": color,
             "timestamp": time.time()
         }
 
-        # Stream via Glass Box bridge (Opcode 0xCE handled by WGSL)
-        self.bridge.send_thought(thought_data, msg_type="Token")
+        # Stream via Glass Box bridge (Opcode 0xCD handled by WGSL)
+        self.bridge.send_thought(thought_data, msg_type="Token3D")
 
     def stream_from_lm_studio(self, prompt: str, url: str = "http://localhost:1234/v1/completions"):
         """Stream a prompt completion from LM Studio and rasterize each token."""
