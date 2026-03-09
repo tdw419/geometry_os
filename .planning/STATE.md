@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-09)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** Phase 9 - Core Multi-Boot Infrastructure
+**Current focus:** Phase 9 Complete - Core Multi-Boot Infrastructure
 
 ## Current Position
 
 Phase: 9 of 11 (Core Multi-Boot Infrastructure)
-Plan: 4 of 5 in current phase
-Status: In progress
-Last activity: 2026-03-09 — Completed 09-04 PS Command
+Plan: 5 of 5 in current phase
+Status: Phase complete
+Last activity: 2026-03-09 — Completed 09-05 CLI Multi-File Boot
 
-Progress: [██████░░░░] 80% (4/5 plans in Phase 9)
+Progress: [███████░░░] 100% (5/5 plans in Phase 9)
 
 ## Performance Metrics
 
@@ -27,8 +27,8 @@ Progress: [██████░░░░] 80% (4/5 plans in Phase 9)
 - v1.0: 22 plans
 - v1.1: 4 plans
 - v1.2: 10 plans
-- v1.3: 4 plans (in progress)
-- Total: 40 plans
+- v1.3: 5 plans (complete)
+- Total: 41 plans
 
 ## Accumulated Context
 
@@ -47,6 +47,7 @@ Key decisions archived in `.planning/milestones/`:
 - **09-02:** asyncio.gather for concurrent boot, run_in_executor for sync-to-async bridge, ContainerState enum for lifecycle
 - **09-03:** Compensating transaction cleanup on partial failure, cleanup_on_failure=True by default, resources released on boot failure
 - **09-04:** State file at /tmp/pixelrts/containers.json, table output with NAME/STATE/VNC/PID columns
+- **09-05:** CLI multi-file boot via nargs='+', exit code 0 on partial success, cleanup_on_failure default True
 
 ### Pending Todos
 
@@ -59,11 +60,12 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: Completed 09-04 PS Command plan
+Stopped at: Completed 09-05 CLI Multi-File Boot plan (Phase 9 complete)
 
-**CLI Commands Available (v1.0 + v1.1 + v1.2):**
+**CLI Commands Available (v1.0 + v1.1 + v1.2 + v1.3):**
 - `pixelrts analyze <file.png>` - Vision analysis and verification
-- `pixelrts boot <file.png>` - Boot .rts.png files with QEMU
+- `pixelrts boot <file.png...>` - Boot .rts.png files with QEMU (supports multiple files)
+  - Multi-file: `pixelrts boot a.rts.png b.rts.png c.rts.png` - concurrent boot
 - `pixelrts install <file.png> <target>` - Install .rts.png to disk image
 - `pixelrts catalog` - Launch visual catalog server
 - `pixelrts diff <old.png> <new.png>` - Visual diff comparison
@@ -74,8 +76,6 @@ Stopped at: Completed 09-04 PS Command plan
   - `--http` - Enable HTTP boot for faster transfers
   - `--delta` - Enable delta manifest serving
   - `--delta-from <old.png>` - Generate initial delta
-
-**v1.3 Commands Added:**
 - `pixelrts ps` - List running containers (NAME, STATE, VNC, PID)
   - `--json` - Output as JSON
   - `--state-file <path>` - Custom state file path
