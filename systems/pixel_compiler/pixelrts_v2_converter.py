@@ -253,6 +253,83 @@ def generate_boot_script(
     return output_path
 
 
+def handle_geoasm_mode(args, input_path: Path, output_path: Path) -> int:
+    """
+    Handle GeoASM mode conversion.
+
+    Args:
+        args: Parsed command line arguments
+        input_path: Input .geoasm file path
+        output_path: Output .rts.png file path
+
+    Returns:
+        Exit code (0 for success, non-zero for error)
+    """
+    try:
+        from systems.pixel_compiler.geoasm_cartridge import GeoASMCartridgeWriter
+    except ImportError as e:
+        print(f"Error: GeoASM module not available: {e}", file=sys.stderr)
+        print("Make sure the geoasm_cartridge module is installed.", file=sys.stderr)
+        return 1
+
+    # Read GeoASM source
+    if args.verbose:
+        print(f"Reading GeoASM source: {input_path}")
+
+    try:
+        with open(input_path, 'r') as f:
+            source = f.read()
+    except IOError as e:
+        print(f"Error: Failed to read input file: {e}", file=sys.stderr)
+        return 1
+
+    # Create cartridge writer
+    try:
+        writer = GeoASMCartridgeWriter(lossless=True)
+    except Exception as e:
+        print(f"Error: Failed to initialize GeoASM writer: {e}", file=sys.stderr)
+        return 1
+
+    # Create cartridge
+    try:
+        if args.verbose:
+            print("Assembling and encoding GeoASM program...")
+
+        metadata = writer.create_cartridge(
+            source=source,
+            output_path=str(output_path),
+            name=args.name,
+            version=args.version or "1.0",
+            description=args.description,
+            grid_size=args.grid_size,
+        )
+
+        if args.verbose:
+            print("Encoding complete.")
+
+    except SyntaxError as e:
+        print(f"Error: Invalid GeoASM syntax: {e}", file=sys.stderr)
+        return 1
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: Failed to create cartridge: {e}", file=sys.stderr)
+        return 1
+
+    # Print summary
+    print(f"Successfully created: {output_path}")
+    print(f"\nSummary:")
+    print(f"  Input:  {input_path}")
+    print(f"  Output: {output_path}")
+    print(f"  Mode:   geoasm")
+    print(f"  Instructions: {metadata.get('instruction_count', 'unknown')}")
+    print(f"  Grid:   {metadata.get('grid_size', 'unknown')}x{metadata.get('grid_size', 'unknown')}")
+    print(f"  Hash:   {metadata.get('sha256', 'unknown')}")
+
+    return 0
+
+
 def validate_grid_size(value: str) -> int:
     """Validate grid size is power of 2."""
     ivalue = int(value)
@@ -302,9 +379,9 @@ Examples:
 
     parser.add_argument(
         '--mode',
-        choices=['standard', 'code'],
+        choices=['standard', 'code', 'geoasm'],
         default='standard',
-        help='Encoding mode (default: standard)'
+        help='Encoding mode (default: standard, geoasm for GeoASM assembly)'
     )
 
     parser.add_argument(
@@ -393,6 +470,12 @@ Examples:
 
     args = parser.parse_args()
 
+    # Auto-detect geoasm mode from file extension
+    input_path = Path(args.input)
+    if input_path.suffix.lower() == '.geoasm' and args.mode == 'standard':
+        args.mode = 'geoasm'
+        print(f"Auto-detected geoasm mode from .geoasm extension")
+
     # Handle parallel batch processing mode
     if args.parallel:
         from pixelrts_parallel import ParallelPixelRTSEncoder
@@ -462,6 +545,10 @@ Examples:
     output_path = Path(args.output)
     if not output_path.suffix == '.png':
         print(f"Warning: Output file should have .png extension (recommended: .rts.png)")
+
+    # Handle geoasm mode
+    if args.mode == 'geoasm':
+        return handle_geoasm_mode(args, input_path, output_path)
 
     # Read input data
     if args.verbose:
