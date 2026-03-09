@@ -10,24 +10,24 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 7 of 8 (HTTP Boot via iPXE)
-Plan: 01 of 3 (iPXE Chainload Configuration)
+Plan: 02 of 3 (HTTP Boot Server)
 Status: In progress
-Last activity: 2026-03-09 — Completed 07-01-PLAN.md
+Last activity: 2026-03-09 — Completed 07-02-PLAN.md
 
-Progress: [███████░░░░░░░░░░░░░] 38% (4/8 plans in v1.2)
+Progress: [███████░░░░░░░░░░░░░] 50% (5/8 plans in v1.2)
 
 ## Performance Metrics
 
 **v1.2 Velocity:**
-- Plans completed: 4
-- Duration: ~30 min (13 + 9 + 8)
-- Tests: 184 passing (28 + 59 + 53 + 44)
+- Plans completed: 5
+- Duration: ~35 min (13 + 9 + 8 + 5)
+- Tests: 242 passing (28 + 59 + 53 + 44 + 58)
 
 **Cumulative:**
 - v1.0: 22 plans
 - v1.1: 4 plans
-- v1.2: 4 plans (Phase 7 in progress)
-- Total: 30 plans
+- v1.2: 5 plans (Phase 7 in progress)
+- Total: 31 plans
 
 ## Accumulated Context
 
@@ -62,6 +62,12 @@ Key decisions archived in `.planning/milestones/`:
 - Best-effort download with user fallback if CDN fails
 - Class constants for IPXE_BOOT_FILE and IPXE_DOWNLOAD_URL
 
+**07-02 Decisions:**
+- Use raw asyncio instead of aiohttp for consistency with TFTPServer
+- Support both GET and HEAD requests
+- Parse multiple ranges but use first range for simplicity
+- Accept-Ranges: bytes header to advertise range support
+
 ### Pending Todos
 
 None.
@@ -75,8 +81,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-09T00:20:45Z
-Stopped at: Completed 07-01-PLAN.md (iPXE Chainload Configuration)
+Last session: 2026-03-09T00:17:42Z
+Stopped at: Completed 07-02-PLAN.md (HTTP Boot Server)
 Resume file: None
 
 **CLI Commands Available (v1.0 + v1.1 + v1.2):**
