@@ -54,6 +54,7 @@ class ExportStage(Enum):
     COMMITTING = "committing"
     EXTRACTING_BOOT_FILES = "extracting_boot_files"
     ENCODING = "encoding"
+    VERIFYING = "verifying"
     COMPLETE = "complete"
     FAILED = "failed"
 
@@ -89,6 +90,8 @@ class ExportResult:
     error_message: Optional[str] = None
     progress: Optional[ExportProgress] = None
     snapshot_tag: Optional[str] = None
+    verified: bool = False
+    verification_error: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""
@@ -98,7 +101,9 @@ class ExportResult:
             "size_bytes": self.size_bytes,
             "error_message": self.error_message,
             "progress": self.progress.to_dict() if self.progress else None,
-            "snapshot_tag": self.snapshot_tag
+            "snapshot_tag": self.snapshot_tag,
+            "verified": self.verified,
+            "verification_error": self.verification_error
         }
 
 
@@ -362,11 +367,83 @@ class SnapshotExporter:
         logger.info(f"Encoded to {output_path} ({output_size} bytes)")
         return output_size
 
+    def _verify_export(
+        self,
+        output_path: Path,
+        expected_disk_size: int,
+        commit_result: CommitResult
+    ) -> Tuple[bool, Optional[str]]:
+        """
+        Verify the exported .rts.png file.
+
+        Verification steps:
+        1. Decode the PNG to verify it's valid
+        2. Check metadata is present and correct
+        3. Verify disk size matches
+        4. If kernel/initrd stored, verify their hashes
+
+        Args:
+            output_path: Path to the exported .rts.png file
+            expected_disk_size: Expected disk size from commit result
+            commit_result: The commit result with disk size info
+
+        Returns:
+            Tuple of (verified, error_message). error_message is None if verification passed.
+        """
+        # Import PixelRTSDecoder
+        try:
+            from systems.pixel_compiler.pixelrts_v2_core import PixelRTSDecoder
+        except ImportError:
+            try:
+                from pixel_compiler.pixelrts_v2_core import PixelRTSDecoder
+            except ImportError:
+                logger.warning("PixelRTSDecoder not available for verification")
+                return False, "PixelRTSDecoder not available"
+
+        try:
+            # Read PNG data
+            with open(output_path, 'rb') as f:
+                png_data = f.read()
+
+            # Decode to verify it's valid
+            decoder = PixelRTSDecoder()
+            decoded_data = decoder.decode(png_data)
+
+            # Get metadata from decoder
+            metadata = decoder._metadata if hasattr(decoder, '_metadata') else None
+
+            # Verify disk size
+            if len(decoded_data) < expected_disk_size:
+                return False, f"Decoded data too small: {len(decoded_data)} < {expected_disk_size}"
+
+            # Verify kernel/initrd hashes if present in metadata
+            if metadata and "offsets" in metadata:
+                for name in ["kernel", "initrd"]:
+                    if name in metadata["offsets"]:
+                        offset_info = metadata["offsets"][name]
+                        stored_hash = offset_info.get("sha256")
+                        if stored_hash:
+                            start = offset_info["offset"]
+                            end = start + offset_info["size"]
+                            if end <= len(decoded_data):
+                                actual_hash = hashlib.sha256(decoded_data[start:end]).hexdigest()
+                                if actual_hash != stored_hash:
+                                    return False, f"{name} hash mismatch"
+                            else:
+                                return False, f"{name} offset exceeds decoded data size"
+
+            logger.info(f"Export verification passed for {output_path}")
+            return True, None
+
+        except Exception as e:
+            return False, f"Verification error: {e}"
+
     def export(
         self,
         output_path: Path,
         tag: Optional[str] = None,
-        timeout: int = 600
+        timeout: int = 600,
+        verify: bool = True
     ) -> ExportResult:
         """
         Export the current VM state to a .rts.png file.
@@ -376,13 +453,14 @@ class SnapshotExporter:
         2. Create SnapshotCommitter with boot_bridge
         3. Call committer.commit() to extract qcow2
         4. Encode via PixelRTSEncoder
-        5. Write output to output_path
+        5. Verify the exported file (if verify=True)
         6. Cleanup temp files
 
         Args:
             output_path: Path for the output .rts.png file
             tag: Optional snapshot tag (auto-generated if None)
             timeout: Timeout for commit operation in seconds
+            verify: Whether to verify the exported file (default: True)
 
         Returns:
             ExportResult with success status and details
@@ -407,6 +485,8 @@ class SnapshotExporter:
 
         temp_dir = None
         commit_result: Optional[CommitResult] = None
+        verified = False
+        verification_error = None
 
         try:
             # Step 1: Create temp directory for intermediate files
@@ -443,7 +523,36 @@ class SnapshotExporter:
                 snapshot_tag=commit_result.snapshot_tag
             )
 
-            # Step 5: Update progress to complete
+            # Step 5: Verify the exported file
+            if verify:
+                self._update_progress(
+                    ExportStage.VERIFYING,
+                    "Verifying committed file...",
+                    bytes_processed=output_size,
+                    total_bytes=output_size
+                )
+
+                verified, verification_error = self._verify_export(
+                    output_path=output_path,
+                    expected_disk_size=commit_result.disk_size,
+                    commit_result=commit_result
+                )
+
+                if verified:
+                    self._update_progress(
+                        ExportStage.VERIFYING,
+                        "Verification complete",
+                        bytes_processed=output_size,
+                        total_bytes=output_size
+                    )
+                else:
+                    logger.warning(f"Verification failed: {verification_error}")
+                    # Don't fail the export, just log warning
+            else:
+                verified = False
+                verification_error = "Verification skipped"
+
+            # Step 6: Update progress to complete
             self._update_progress(
                 ExportStage.COMPLETE,
                 f"Export complete: {output_size} bytes",
@@ -460,7 +569,9 @@ class SnapshotExporter:
                 output_path=output_path,
                 size_bytes=output_size,
                 progress=self._progress,
-                snapshot_tag=commit_result.snapshot_tag
+                snapshot_tag=commit_result.snapshot_tag,
+                verified=verified,
+                verification_error=verification_error
             )
 
         except Exception as e:
