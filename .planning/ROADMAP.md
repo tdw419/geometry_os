@@ -2,11 +2,15 @@
 
 ## Milestones
 
-- **v1.0 PixelRTS Boot** — Phases 1-4 (shipped 2026-03-08)
-- **v1.1 Visual Diff** — Phase 5 (shipped 2026-03-08)
-- **v1.2 Network Boot** — Phases 6-8.1 (shipped 2026-03-09)
+- ✅ **v1.0 PixelRTS Boot** — Phases 1-4 (shipped 2026-03-08)
+- ✅ **v1.1 Visual Diff** — Phase 5 (shipped 2026-03-08)
+- ✅ **v1.2 Network Boot** — Phases 6-8.1 (shipped 2026-03-09)
+- 🚧 **v1.3 Multi-Boot** — Phases 9-11 (in progress)
 
 ## v1.2 Network Boot (Complete)
+
+<details>
+<summary>✅ v1.2 Network Boot (Phases 6-8.1) - SHIPPED 2026-03-09</summary>
 
 **Milestone Goal:** Boot PixelRTS containers over network (PXE/NBD) with bandwidth-efficient delta updates.
 
@@ -30,7 +34,69 @@
 **Gap Closure**: Fixes integration gap from v1.2 audit
 **Plans:** 1 plan (complete)
 
+</details>
+
+---
+
+## 🚧 v1.3 Multi-Boot (In Progress)
+
+**Milestone Goal:** Boot multiple PixelRTS containers simultaneously with network connectivity
+
+### Phase 9: Core Multi-Boot Infrastructure
+**Goal**: Users can boot multiple containers simultaneously with automatic resource allocation
+**Depends on**: Phase 8.1 (existing boot infrastructure)
+**Requirements**: MULTI-01, MULTI-02, MULTI-03, STATUS-01, STATUS-02
+**Success Criteria** (what must be TRUE):
+  1. User can run `pixelrts boot a.rts.png b.rts.png` and both containers start
+  2. Each container gets unique VNC port and socket path (no conflicts)
+  3. If one container fails to boot, already-started containers are cleaned up
+  4. User can run `pixelrts ps` to see running containers with name, VNC port, state
+  5. Status shows container states (launching/running/stopped)
+**Plans**: 5 plans
+
+Plans:
+- [ ] 09-01: MultiBootManager with concurrent boot orchestration
+- [ ] 09-02: ResourceAllocator for VNC ports and socket paths
+- [ ] 09-03: Cleanup on partial failure
+- [ ] 09-04: CLI multi-path argument parsing
+- [ ] 09-05: `pixelrts ps` status command
+
+### Phase 10: Boot Ordering & Dependencies
+**Goal**: Users can designate primary/helper containers with ordered startup and shutdown
+**Depends on**: Phase 9 (multi-boot foundation)
+**Requirements**: ORDER-01, ORDER-02, ORDER-03
+**Success Criteria** (what must be TRUE):
+  1. User can designate one container as primary (starts first)
+  2. Helper containers wait until primary is running before starting
+  3. Shutdown reverses boot order (helpers stop first, primary last)
+  4. User can observe boot order progress in CLI output
+**Plans**: 4 plans
+
+Plans:
+- [ ] 10-01: Container role designation (primary/helper)
+- [ ] 10-02: Boot dependency ordering with wait logic
+- [ ] 10-03: Reverse-order graceful shutdown
+- [ ] 10-04: Boot progress visibility
+
+### Phase 11: Virtual Networking
+**Goal**: Containers can communicate with each other without root privileges
+**Depends on**: Phase 10 (ordered multi-boot)
+**Requirements**: NET-01, NET-02
+**Success Criteria** (what must be TRUE):
+  1. Containers can ping/connect to each other over virtual network
+  2. Networking works without root or CAP_NET_ADMIN privileges
+  3. Network setup failure falls back gracefully to isolated mode
+**Plans**: 3 plans
+
+Plans:
+- [ ] 11-01: VirtualNetwork with QEMU socket netdev
+- [ ] 11-02: NetworkMode enum extension (SOCKET_MCAST, SOCKET_STREAM)
+- [ ] 11-03: Graceful degradation on network failure
+
 ## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 9 → 10 → 11
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -43,7 +109,10 @@
 | 7. HTTP Boot via iPXE | v1.2 | 3/3 | Complete | 2026-03-08 |
 | 8. Delta Updates | v1.2 | 3/3 | Complete | 2026-03-09 |
 | 8.1. Wire Delta HTTP Handler | v1.2 | 1/1 | Complete | 2026-03-09 |
+| 9. Core Multi-Boot Infrastructure | v1.3 | 0/5 | Not started | - |
+| 10. Boot Ordering & Dependencies | v1.3 | 0/4 | Not started | - |
+| 11. Virtual Networking | v1.3 | 0/3 | Not started | - |
 
 ---
 
-*Next: `/gsd:new-milestone` to start v1.3*
+*Next: `/gsd:plan-phase 9` to start Core Multi-Boot Infrastructure*

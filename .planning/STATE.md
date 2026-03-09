@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-09)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** v1.3 Multi-Boot - Defining requirements
+**Current focus:** Phase 9 - Core Multi-Boot Infrastructure
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-09 — Milestone v1.3 started
+Phase: 9 of 11 (Core Multi-Boot Infrastructure)
+Plan: 0 of 5 in current phase
+Status: Ready to plan
+Last activity: 2026-03-08 — Roadmap created for v1.3 Multi-Boot milestone
 
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (v1.3 not started)
+Progress: [░░░░░░░░░░] 0% (v1.3 not started)
 
 ## Performance Metrics
 
@@ -38,6 +38,11 @@ Key decisions archived in `.planning/milestones/`:
 - v1.1: scipy regions, RGBA channel mapping, diff command
 - v1.2: Proxy DHCP, range decoding, async orchestrator, handler pattern, ByteFetcher
 
+**v1.3 Decisions (from research):**
+- QEMU socket netdev over TAP/bridge (no root required)
+- asyncio subprocess orchestration (no external dependencies)
+- Composition pattern: MultiBootManager wraps BootBridge instances
+
 ### Pending Todos
 
 None.
@@ -48,8 +53,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-09
-Stopped at: v1.2 milestone shipped
+Last session: 2026-03-08
+Stopped at: Roadmap created, ready to begin Phase 9 planning
 
 **CLI Commands Available (v1.0 + v1.1 + v1.2):**
 - `pixelrts analyze <file.png>` - Vision analysis and verification
@@ -64,3 +69,10 @@ Stopped at: v1.2 milestone shipped
   - `--http` - Enable HTTP boot for faster transfers
   - `--delta` - Enable delta manifest serving
   - `--delta-from <old.png>` - Generate initial delta
+
+**v1.3 Will Add:**
+- `pixelrts boot a.png b.png c.png` - Multi-container boot
+- `pixelrts ps` - List running containers
+
+---
+*State updated: 2026-03-08*
