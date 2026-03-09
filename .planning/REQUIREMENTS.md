@@ -7,10 +7,10 @@
 
 ### Snapshot Creation
 
-- [ ] **SNAP-01**: User can create snapshot of running container
-- [ ] **SNAP-02**: Snapshot captures full container state (memory, disk, network)
-- [ ] **SNAP-03**: Snapshot creation is fast (< 5 seconds for 2GB container)
-- [ ] **SNAP-04**: Multiple snapshots per container supported
+- [x] **SNAP-01**: User can create snapshot of running container
+- [x] **SNAP-02**: Snapshot captures full container state (memory, disk, network)
+- [x] **SNAP-03**: Snapshot creation is fast (< 5 seconds for 2GB container)
+- [x] **SNAP-04**: Multiple snapshots per container supported
 
 ### Snapshot Restore
 
@@ -43,10 +43,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SNAP-01 | Phase 12 | Pending |
-| SNAP-02 | Phase 12 | Pending |
-| SNAP-03 | Phase 12 | Pending |
-| SNAP-04 | Phase 12 | Pending |
+| SNAP-01 | Phase 12 | Complete |
+| SNAP-02 | Phase 12 | Complete |
+| SNAP-03 | Phase 12 | Complete |
+| SNAP-04 | Phase 12 | Complete |
 | RESTORE-01 | Phase 13 | Pending |
 | RESTORE-02 | Phase 13 | Pending |
 | RESTORE-03 | Phase 13 | Pending |
@@ -61,6 +61,7 @@
 - v1.4 requirements: 13 total
 - Mapped to phases: 13
 - Unmapped: 0 ✓
+- Complete: 4/13 (31%)
 
 ---
-*Requirements defined: 2026-03-09*
+*Requirements updated: 2026-03-09*
