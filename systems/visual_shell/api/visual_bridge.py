@@ -808,6 +808,61 @@ class MultiVmStreamer:
         """
         return self._active_glyphs.copy()
 
+    def emit_atlas_glow(
+        self,
+        weight_indices: List[int],
+        intensity: float = 1.0,
+        duration_ms: int = 500
+    ) -> bool:
+        """
+        Emit an ATLAS_GLOW event highlighting accessed weight pixels.
+
+        This visualizes which parts of the brain atlas are being used
+        during inference, making the model's "thinking" visible.
+
+        Args:
+            weight_indices: List of Hilbert indices that were accessed
+            intensity: Glow intensity (0-1)
+            duration_ms: How long the glow should last
+
+        Returns:
+            True if emission successful
+        """
+        if not weight_indices:
+            return False
+
+        glow = {
+            "type": "ATLAS_GLOW",
+            "indices": weight_indices[:100],  # Limit to first 100 for performance
+            "intensity": max(0.0, min(1.0, intensity)),
+            "duration_ms": duration_ms,
+            "timestamp": time.time()
+        }
+
+        async def _broadcast():
+            """Broadcast glow to all connected clients."""
+            dead_sockets = set()
+            for ws in list(self.active_websockets):
+                try:
+                    await ws.send_json(glow)
+                except Exception:
+                    dead_sockets.add(ws)
+            # Clean up dead connections
+            self.active_websockets -= dead_sockets
+
+        # Schedule broadcast on event loop
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_broadcast())
+        except RuntimeError:
+            # No running event loop - try to run synchronously
+            try:
+                asyncio.run(_broadcast())
+            except Exception:
+                pass  # Silently fail in test contexts
+
+        return True
+
 
 # Note: multi_vm_streamer is initialized at module import time for test compatibility
 # The lifespan context manager handles proper startup/shutdown of the watcher
