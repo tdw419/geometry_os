@@ -1,0 +1,184 @@
+"""
+GeoASM Cartridge Reader
+
+Reads GeoASM neural assembly programs from .rts.png containers
+with metadata verification.
+"""
+
+import numpy as np
+from pathlib import Path
+from typing import List, Dict, Any
+
+from systems.visual_shell.geoasm import Instruction
+from systems.pixel_compiler.geoasm_encoder import GeoASMEncoder
+
+
+class GeoASMCartridgeReader:
+    """
+    Reads .rts.png cartridges and extracts GeoASM programs.
+
+    The reader:
+    - Loads PNG image and extracts pixels in row-major order
+    - Decodes pixels to instructions using GeoASMEncoder
+    - Loads metadata from sidecar .meta.json file
+    - Verifies program hash against metadata
+    """
+
+    def __init__(self, lossless: bool = True):
+        """
+        Initialize cartridge reader.
+
+        Args:
+            lossless: Use lossless decoding (should match writer encoding)
+        """
+        self.encoder = GeoASMEncoder(lossless=lossless)
+
+    def read_cartridge(self, cartridge_path: str) -> List[Instruction]:
+        """
+        Read .rts.png cartridge and extract program.
+
+        Args:
+            cartridge_path: Path to .rts.png cartridge file
+
+        Returns:
+            List of decoded Instructions
+
+        Raises:
+            FileNotFoundError: If cartridge file doesn't exist
+        """
+        path = Path(cartridge_path)
+        if not path.exists():
+            raise FileNotFoundError(f"Cartridge not found: {cartridge_path}")
+
+        # Load PNG image
+        image = self._load_png(cartridge_path)
+
+        # Get metadata to know instruction count
+        metadata = self.read_metadata(cartridge_path)
+        instruction_count = metadata.get('instruction_count', 0)
+
+        # Extract pixels in row-major order
+        pixels = self._extract_pixels(image, instruction_count)
+
+        # Decode pixels to instructions
+        instructions = self.encoder.decode_program(pixels)
+
+        return instructions
+
+    def read_metadata(self, cartridge_path: str) -> Dict[str, Any]:
+        """
+        Read metadata from sidecar .meta.json file.
+
+        Args:
+            cartridge_path: Path to .rts.png cartridge file
+
+        Returns:
+            Metadata dictionary
+
+        Raises:
+            FileNotFoundError: If metadata file doesn't exist
+        """
+        meta_path = Path(cartridge_path + '.meta.json')
+        if not meta_path.exists():
+            raise FileNotFoundError(f"Metadata not found: {meta_path}")
+
+        import json
+        with open(meta_path, 'r') as f:
+            return json.load(f)
+
+    def verify_hash(self, cartridge_path: str) -> bool:
+        """
+        Verify program hash against metadata.
+
+        Args:
+            cartridge_path: Path to .rts.png cartridge file
+
+        Returns:
+            True if hash matches, False otherwise
+        """
+        import hashlib
+
+        try:
+            # Read instructions
+            instructions = self.read_cartridge(cartridge_path)
+
+            # Calculate hash from raw bytes
+            program_bytes = b''.join(inst.to_bytes() for inst in instructions)
+            calculated_hash = hashlib.sha256(program_bytes).hexdigest()
+
+            # Get expected hash from metadata
+            metadata = self.read_metadata(cartridge_path)
+            expected_hash = metadata.get('sha256', '')
+
+            return calculated_hash == expected_hash
+        except (FileNotFoundError, KeyError):
+            return False
+
+    def _load_png(self, cartridge_path: str) -> np.ndarray:
+        """
+        Load PNG image as numpy array.
+
+        Args:
+            cartridge_path: Path to PNG file
+
+        Returns:
+            Image array (height, width, 4) in RGBA format
+        """
+        # Try PIL first (more commonly available)
+        try:
+            from PIL import Image
+            img = Image.open(cartridge_path)
+
+            # Ensure RGBA mode
+            if img.mode != 'RGBA':
+                img = img.convert('RGBA')
+
+            return np.array(img)
+        except ImportError:
+            pass
+
+        # Fallback to pypng
+        try:
+            import png
+            reader = png.Reader(filename=cartridge_path)
+            width, height, rows, metadata = reader.read()
+
+            # Convert to numpy array
+            # pypng returns rows as iterators of flat values
+            image = np.zeros((height, width, 4), dtype=np.uint8)
+
+            for y, row in enumerate(rows):
+                # Each row is flat list of RGBA values
+                for x in range(width):
+                    image[y, x, 0] = row[x * 4]      # R
+                    image[y, x, 1] = row[x * 4 + 1]  # G
+                    image[y, x, 2] = row[x * 4 + 2]  # B
+                    image[y, x, 3] = row[x * 4 + 3]  # A
+
+            return image
+        except ImportError:
+            raise ImportError("Need PIL or pypng for PNG reading")
+
+    def _extract_pixels(self, image: np.ndarray, instruction_count: int) -> np.ndarray:
+        """
+        Extract pixels from image in row-major order.
+
+        Args:
+            image: Image array (height, width, 4)
+            instruction_count: Number of instructions to extract
+
+        Returns:
+            Pixel array (N, 4) where N = instruction_count
+        """
+        height, width, _ = image.shape
+        pixels = []
+
+        for i in range(instruction_count):
+            if i >= height * width:
+                break
+
+            x = i % width
+            y = i // width
+            pixels.append(image[y, x])
+
+        return np.array(pixels, dtype=np.uint8)
