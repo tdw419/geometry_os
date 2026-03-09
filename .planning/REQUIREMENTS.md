@@ -13,14 +13,14 @@
 
 ### Cryptographic
 
-- [ ] **CRYPTO-01**: User can verify Ed25519 cryptographic signature against embedded public key
-- [ ] **CRYPTO-02**: User can sign a .rts.png file with private key (adds signature chunk)
+- [x] **CRYPTO-01**: User can verify Ed25519 cryptographic signature against embedded public key
+- [x] **CRYPTO-02**: User can sign a .rts.png file with private key (adds signature chunk)
 
 ### CLI
 
-- [ ] **CLI-01**: `pixelrts verify <file.png>` command with pass/fail exit code
-- [ ] **CLI-02**: JSON output via `--json` flag for scripting
-- [ ] **CLI-03**: Verbose output via `--verbose` flag showing each verification step
+- [x] **CLI-01**: `pixelrts verify <file.png>` command with pass/fail exit code
+- [x] **CLI-02**: JSON output via `--json` flag for scripting
+- [x] **CLI-03**: Verbose output via `--verbose` flag showing each verification step
 
 ## Future Requirements
 
@@ -53,11 +53,11 @@
 | VERIFY-01 | Phase 19 | Complete |
 | VERIFY-02 | Phase 19 | Complete |
 | VERIFY-03 | Phase 20 | Complete |
-| CRYPTO-01 | Phase 21 | Pending |
-| CRYPTO-02 | Phase 21 | Pending |
-| CLI-01 | Phase 22 | Pending |
-| CLI-02 | Phase 22 | Pending |
-| CLI-03 | Phase 22 | Pending |
+| CRYPTO-01 | Phase 21 | Complete |
+| CRYPTO-02 | Phase 21 | Complete |
+| CLI-01 | Phase 22 | Complete |
+| CLI-02 | Phase 22 | Complete |
+| CLI-03 | Phase 22 | Complete |
 
 **Coverage:**
 - v1.7 requirements: 8 total
