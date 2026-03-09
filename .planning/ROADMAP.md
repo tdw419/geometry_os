@@ -215,12 +215,13 @@ Plans:
   2. Original kernel/initrd are preserved in committed file
   3. Disk changes from committed state are visible after boot
   4. Commit shows verification progress before completion
-**Plans**: 3 plans
+**Plans**: 4 plans (3 complete + 1 gap closure)
 
 Plans:
-- [ ] 16-01-PLAN.md - CommittedFileBooter class for vm-snapshot boot
-- [ ] 16-02-PLAN.md - Kernel/initrd preservation in committed files
-- [ ] 16-03-PLAN.md - CLI integration and verification
+- [x] 16-01-PLAN.md - CommittedFileBooter class for vm-snapshot boot
+- [x] 16-02-PLAN.md - Kernel/initrd preservation in committed files
+- [x] 16-03-PLAN.md - CLI integration and verification
+- [ ] 16-04-PLAN.md - Gap closure: Fix kernel/initrd extraction from committed files
 
 #### Phase 17: CLI Integration
 **Goal**: Users can commit containers with a single CLI command.
@@ -245,7 +246,7 @@ Phases execute in numeric order: 15 - 16 - 17
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 15. Snapshot Export | v1.5 | 3/3 | Complete | 2026-03-09 |
-| 16. Boot from Committed | v1.5 | 0/3 | Ready to execute | - |
+| 16. Boot from Committed | v1.5 | 3/4 | Gap closure pending | - |
 | 17. CLI Integration | v1.5 | 0/3 | Not started | - |
 
 ---
