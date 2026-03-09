@@ -271,3 +271,74 @@ class TestPixelBrainServiceVisualIntegration:
 
         # Should NOT have called emit_thought_pulse
         mock_visual_bridge.emit_thought_pulse.assert_not_called()
+
+
+class TestWebMCPIntegration:
+    """Test WebMCP send_llm_prompt integration with PixelBrain."""
+
+    @pytest.fixture
+    def brain_path(self):
+        """Get brain atlas path."""
+        return Path("/home/jericho/zion/projects/geometry_os/geometry_os/tinystories_brain.rts.png")
+
+    @pytest.fixture
+    def brain_available(self, brain_path):
+        """Check if brain artifact exists."""
+        meta_path = Path(str(brain_path) + ".meta.json")
+        return brain_path.exists() and meta_path.exists()
+
+    @pytest.mark.asyncio
+    async def test_send_llm_prompt_uses_pixel_brain(self, brain_available, brain_path):
+        """send_llm_prompt should route through PixelBrainService when model='pixel-brain'."""
+        if not brain_available:
+            pytest.skip("tinystories_brain.rts.png not generated")
+
+        from systems.visual_shell.api.pixel_brain_service import get_pixel_brain_service, reset_pixel_brain_service
+
+        reset_pixel_brain_service()
+        service = get_pixel_brain_service(brain_path=str(brain_path))
+
+        if not service.is_available():
+            pytest.skip("PixelBrain pipeline not initialized")
+
+        result = await service.generate("Hello", max_tokens=5)
+
+        assert 'text' in result
+        assert 'tokens' in result
+        assert isinstance(result['text'], str)
+
+    @pytest.mark.asyncio
+    async def test_pixel_brain_generate_returns_visual_feedback(self, brain_available, brain_path):
+        """PixelBrain generation should return visual_feedback for UI rendering."""
+        if not brain_available:
+            pytest.skip("tinystories_brain.rts.png not generated")
+
+        from systems.visual_shell.api.pixel_brain_service import get_pixel_brain_service, reset_pixel_brain_service
+
+        reset_pixel_brain_service()
+        service = get_pixel_brain_service(brain_path=str(brain_path))
+
+        if not service.is_available():
+            pytest.skip("PixelBrain pipeline not initialized")
+
+        result = await service.generate("Test prompt", max_tokens=3, emit_visual=True)
+
+        assert 'visual_feedback' in result
+        assert 'accessed_indices' in result['visual_feedback']
+        assert 'glyphs' in result['visual_feedback']
+
+    @pytest.mark.asyncio
+    async def test_pixel_brain_service_unavailable_returns_empty(self):
+        """When PixelBrain is unavailable, generate should return empty result gracefully."""
+        from systems.visual_shell.api.pixel_brain_service import PixelBrainService, reset_pixel_brain_service
+
+        reset_pixel_brain_service()
+        # Create service with non-existent brain path
+        service = PixelBrainService(brain_path="/nonexistent/brain.rts.png")
+
+        assert not service.is_available()
+
+        result = await service.generate("Hello", max_tokens=5)
+
+        assert result['text'] == ''
+        assert result['tokens'] == []

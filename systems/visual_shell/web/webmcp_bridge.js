@@ -1244,6 +1244,9 @@ class WebMCPBridge {
     /** @type {WebSocket|null} */
     #a2aSocket = null;
 
+    /** @type {WebSocket|null} */
+    #pixelBrainSocket = null;
+
     /** @type {Map<string, {resolve: Function, reject: Function}>} */
     #pendingA2ARequests = new Map();
 
@@ -3942,6 +3945,99 @@ class WebMCPBridge {
         });
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // PixelBrain WebSocket Connection (Phase 3: Cognitive Core)
+    // ─────────────────────────────────────────────────────────────
+
+    /** @type {Map<string, {resolve: Function, reject: Function}>} */
+    #pendingPixelBrainRequests = new Map();
+
+    /**
+     * Connect to the PixelBrain WebSocket backend
+     * @returns {Promise<WebSocket>}
+     */
+    #connectPixelBrainSocket() {
+        return new Promise((resolve, reject) => {
+            if (this.#pixelBrainSocket?.readyState === WebSocket.OPEN) {
+                resolve(this.#pixelBrainSocket);
+                return;
+            }
+
+            const ws = new WebSocket('ws://localhost:3002/ws/v1/pixel_brain');
+
+            ws.onopen = () => {
+                this.#pixelBrainSocket = ws;
+
+                // Set up message handler
+                ws.onmessage = (event) => {
+                    try {
+                        const response = JSON.parse(event.data);
+                        // Handle response to pending request
+                        if (response.request_id && this.#pendingPixelBrainRequests.has(response.request_id)) {
+                            const { resolve: res, reject: rej } = this.#pendingPixelBrainRequests.get(response.request_id);
+                            this.#pendingPixelBrainRequests.delete(response.request_id);
+
+                            if (response.type === 'complete') {
+                                res(response);
+                            } else if (response.type === 'error') {
+                                rej(new Error(response.error || 'PixelBrain generation failed'));
+                            } else {
+                                res(response);
+                            }
+                        }
+                    } catch (parseErr) {
+                        console.warn('🧠 PixelBrain: Failed to parse response:', parseErr);
+                    }
+                };
+
+                resolve(ws);
+            };
+
+            ws.onerror = () => {
+                reject(new Error('PixelBrain backend not running at ws://localhost:3002/ws/v1/pixel_brain'));
+            };
+
+            // 5 second timeout
+            setTimeout(() => {
+                if (ws.readyState !== WebSocket.OPEN) {
+                    ws.close();
+                    reject(new Error('PixelBrain backend connection timeout'));
+                }
+            }, 5000);
+        });
+    }
+
+    /**
+     * Send PixelBrain generation request and wait for response
+     * @param {Object} params - Generation parameters
+     * @returns {Promise<Object>}
+     */
+    async #sendPixelBrainRequest(params) {
+        const ws = await this.#connectPixelBrainSocket();
+
+        const requestId = `pb_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        return new Promise((resolve, reject) => {
+            this.#pendingPixelBrainRequests.set(requestId, { resolve, reject });
+
+            ws.send(JSON.stringify({
+                type: 'generate',
+                request_id: requestId,
+                prompt: params.prompt,
+                max_tokens: params.max_tokens || 32,
+                temperature: params.temperature || 1.0
+            }));
+
+            // 60 second timeout for generation
+            setTimeout(() => {
+                if (this.#pendingPixelBrainRequests.has(requestId)) {
+                    this.#pendingPixelBrainRequests.delete(requestId);
+                    reject(new Error('PixelBrain generation timeout'));
+                }
+            }, 60000);
+        });
+    }
+
     async #registerTriggerEvolution() {
         const tool = {
             name: 'trigger_evolution',
@@ -4118,10 +4214,12 @@ class WebMCPBridge {
         const tool = {
             name: 'send_llm_prompt',
             description:
-                'Send a prompt to LM Studio for AI-to-AI communication. ' +
-                'This enables the host AI to delegate reasoning, analysis, or ' +
-                'generation tasks to a local LLM running in LM Studio. ' +
-                'The LM Studio server must be running on localhost:1234.',
+                'Send a prompt to an LLM for AI-to-AI communication. ' +
+                'Supports both LM Studio (external) and PixelBrain (native GPU inference). ' +
+                'Use model="pixel-brain" or use_pixel_brain=true to route through ' +
+                'the native PixelBrain inference pipeline for visual feedback integration. ' +
+                'LM Studio requires server running on localhost:1234. ' +
+                'PixelBrain requires visual_bridge.py running on localhost:3002.',
             inputSchema: {
                 type: 'object',
                 properties: {
@@ -4131,7 +4229,7 @@ class WebMCPBridge {
                     },
                     model: {
                         type: 'string',
-                        description: 'Model identifier (default: "local")',
+                        description: 'Model identifier: "local" for LM Studio, "pixel-brain" for native inference',
                         default: 'local'
                     },
                     temperature: {
@@ -4143,12 +4241,17 @@ class WebMCPBridge {
                     },
                     max_tokens: {
                         type: 'number',
-                        description: 'Maximum tokens to generate (default: 2048)',
+                        description: 'Maximum tokens to generate (default: 2048 for LM Studio, 256 for PixelBrain)',
                         default: 2048
                     },
                     system_prompt: {
                         type: 'string',
-                        description: 'Optional system prompt to provide context'
+                        description: 'Optional system prompt to provide context (LM Studio only)'
+                    },
+                    use_pixel_brain: {
+                        type: 'boolean',
+                        description: 'Force use of PixelBrain native inference (alternative to model="pixel-brain")',
+                        default: false
                     }
                 },
                 required: ['prompt']
@@ -4167,7 +4270,8 @@ class WebMCPBridge {
         model = 'local',
         temperature = 0.7,
         max_tokens = 2048,
-        system_prompt
+        system_prompt,
+        use_pixel_brain = false
     }) {
         this.#trackCall('send_llm_prompt');
 
@@ -4189,15 +4293,46 @@ class WebMCPBridge {
             };
         }
 
+        // Track latency
+        const startTime = Date.now();
+
+        // Check if we should use PixelBrain native inference
+        if (model === 'pixel-brain' || use_pixel_brain) {
+            try {
+                const result = await this.#sendPixelBrainRequest({
+                    prompt: prompt,
+                    max_tokens: Math.min(max_tokens, 256), // PixelBrain has smaller context
+                    temperature: temperature
+                });
+
+                const latencyMs = Date.now() - startTime;
+
+                return {
+                    success: true,
+                    response: result.text || '',
+                    model: 'pixel-brain',
+                    tokensUsed: {
+                        prompt: 0, // PixelBrain doesn't track this separately
+                        completion: result.tokens?.length || 0,
+                        total: result.tokens?.length || 0
+                    },
+                    latencyMs: latencyMs,
+                    visual_feedback: result.visual_feedback || {}
+                };
+
+            } catch (err) {
+                // Fall back to LM Studio if PixelBrain fails
+                console.warn('🧠 PixelBrain failed, falling back to LM Studio:', err.message);
+                // Continue to LM Studio fallback below
+            }
+        }
+
         // Build messages array
         const messages = [];
         if (system_prompt && typeof system_prompt === 'string' && system_prompt.trim().length > 0) {
             messages.push({ role: 'system', content: system_prompt });
         }
         messages.push({ role: 'user', content: prompt });
-
-        // Track latency
-        const startTime = Date.now();
 
         try {
             // POST to LM Studio OpenAI-compatible endpoint (with circuit breaker)

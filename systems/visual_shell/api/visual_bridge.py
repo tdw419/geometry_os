@@ -1032,6 +1032,162 @@ async def broadcast_token_endpoint(token_data: dict):
 
 
 # ============================================================================
+# PixelBrain Native Inference API (Phase 3: Cognitive Core)
+# ============================================================================
+
+# Active PixelBrain connections for streaming visual feedback
+active_pixel_brain_connections: Set[WebSocket] = set()
+
+
+@app.websocket("/ws/v1/pixel_brain")
+async def websocket_pixel_brain(websocket: WebSocket):
+    """
+    WebSocket endpoint for PixelBrain native LLM inference.
+
+    Protocol:
+    - Client sends: {"type": "generate", "prompt": "...", "max_tokens": 50, "request_id": "..."}
+    - Server streams: {"type": "token", "token_id": N, "text": "...", "visual_feedback": {...}}
+    - Server sends final: {"type": "complete", "text": "...", "tokens": [...], "visual_feedback": {...}}
+    """
+    await websocket.accept()
+    active_pixel_brain_connections.add(websocket)
+
+    try:
+        # Send connection confirmation
+        await websocket.send_text(json.dumps({
+            "type": "connected",
+            "message": "PixelBrain native inference ready",
+            "timestamp": time.time()
+        }))
+
+        while True:
+            message = await websocket.receive_text()
+            try:
+                data = json.loads(message)
+            except json.JSONDecodeError:
+                await websocket.send_text(json.dumps({
+                    "type": "error",
+                    "error": "Invalid JSON"
+                }))
+                continue
+
+            msg_type = data.get("type")
+
+            if msg_type == "generate":
+                await _handle_pixel_brain_generate(websocket, data)
+            elif msg_type == "ping":
+                await websocket.send_text(json.dumps({"type": "pong"}))
+            else:
+                await websocket.send_text(json.dumps({
+                    "type": "error",
+                    "error": f"Unknown message type: {msg_type}"
+                }))
+
+    except WebSocketDisconnect:
+        pass
+    finally:
+        active_pixel_brain_connections.discard(websocket)
+
+
+async def _handle_pixel_brain_generate(websocket: WebSocket, data: dict):
+    """Handle PIXEL_BRAIN_GENERATE WebSocket request."""
+    from systems.visual_shell.api.pixel_brain_service import get_pixel_brain_service, reset_pixel_brain_service
+
+    request_id = data.get("request_id")
+    prompt = data.get("prompt", "")
+    max_tokens = data.get("max_tokens", 32)
+    temperature = data.get("temperature", 1.0)
+
+    # Get the PixelBrain service
+    service = get_pixel_brain_service(visual_bridge=None)
+
+    if not service.is_available():
+        await websocket.send_text(json.dumps({
+            "type": "error",
+            "request_id": request_id,
+            "error": "PixelBrain service not available (pipeline not initialized)",
+            "error_code": "SERVICE_UNAVAILABLE"
+        }))
+        return
+
+    try:
+        # Run generation
+        result = await service.generate(
+            prompt=prompt,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            emit_visual=True
+        )
+
+        # Send completion message
+        response = {
+            "type": "complete",
+            "request_id": request_id,
+            "text": result.get("text", ""),
+            "tokens": result.get("tokens", []),
+            "visual_feedback": result.get("visual_feedback", {})
+        }
+        await websocket.send_text(json.dumps(response))
+
+    except Exception as e:
+        await websocket.send_text(json.dumps({
+            "type": "error",
+            "request_id": request_id,
+            "error": str(e),
+            "error_code": "GENERATION_FAILED"
+        }))
+
+
+@app.post("/pixel_brain/generate")
+async def pixel_brain_generate_http(request: dict):
+    """
+    HTTP endpoint for PixelBrain generation (non-streaming).
+
+    Request body:
+    {
+        "prompt": "Once upon a time",
+        "max_tokens": 32,
+        "temperature": 1.0
+    }
+    """
+    from systems.visual_shell.api.pixel_brain_service import get_pixel_brain_service
+
+    prompt = request.get("prompt", "")
+    max_tokens = request.get("max_tokens", 32)
+    temperature = request.get("temperature", 1.0)
+
+    service = get_pixel_brain_service()
+
+    if not service.is_available():
+        return {
+            "success": False,
+            "error": "PixelBrain service not available",
+            "error_code": "SERVICE_UNAVAILABLE"
+        }
+
+    try:
+        result = await service.generate(
+            prompt=prompt,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            emit_visual=False
+        )
+
+        return {
+            "success": True,
+            "text": result.get("text", ""),
+            "tokens": result.get("tokens", [])
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "error_code": "GENERATION_FAILED"
+        }
+
+
+# ============================================================================
 # FFI Bridge API Endpoints (Phase 7: CV/Analysis Integration)
 # ============================================================================
 
