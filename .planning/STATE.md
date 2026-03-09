@@ -7,11 +7,11 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 
 ## Current Position
 Phase: 12 of 14 (snapshot-creation)
-Plan: 01 of 04 complete
+Plan: 02 of 04 complete
 Status: In progress
-Last activity: 2026-03-09 — Completed 12-01-PLAN.md
+Last activity: 2026-03-09 — Completed 12-02-PLAN.md
 
-Progress: [█████████░] 91% (42/46 plans complete)
+Progress: [█████████░] 93% (43/46 plans complete)
 
 ## Accumulated Context
 
@@ -23,6 +23,7 @@ Key decisions archived in `.planning/milestones/`:
 - v1.3: ContainerRole enum, ordered boot pattern, ordered shutdown, progress callbacks, VirtualNetwork class, NetworkMode extension, graceful fallback
 - v1.4 (in progress):
   - 12-01: VMSnapshotManager uses QemuBoot.send_monitor_command(), linear timeout scaling (2GB=5s)
+  - 12-02: BootBridge delegates snapshot operations to VMSnapshotManager, raises SnapshotError when not booted
 
 ### Pending Todos
 None.
@@ -31,8 +32,8 @@ None.
 None.
 
 ## Session Continuity
-Last session: 2026-03-09T07:57:33Z
-Stopped at: Completed 12-01-PLAN.md
+Last session: 2026-03-09T08:06:12Z
+Stopped at: Completed 12-02-PLAN.md
 Resume file: None
 
 ---
