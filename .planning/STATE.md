@@ -3,13 +3,13 @@
 ## Project Reference
 See: .planning/PROJECT.md (updated 2026-03-09)
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** v1.4 Live Snapshots
+**Current focus:** v1.4 Live Snapshots — COMPLETE
 
 ## Current Position
 Phase: 14 of 14 (snapshot-management)
-Plan: 03 of 03 (cli-snapshot-enhancements)
-Status: Phase complete
-Last activity: 2026-03-09 — Completed 14-03 CLI Snapshot Enhancements
+Plan: 03 of 03 (all complete)
+Status: Milestone complete
+Last activity: 2026-03-09 — Completed v1.4 Live Snapshots milestone
 
 Progress: [██████████] 100% (53/53 plans: 50 complete + 3 new)
 

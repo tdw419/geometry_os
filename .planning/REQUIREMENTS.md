@@ -20,15 +20,15 @@
 
 ### Snapshot Management
 
-- [ ] **MGMT-01**: User can list all snapshots with `pixelrts snapshots`
-- [ ] **MGMT-02**: User can delete snapshot with `pixelrts snapshot rm <name>`
-- [ ] **MGMT-03**: Snapshots stored in standard location (/tmp/pixelrts/snapshots)
+- [x] **MGMT-01**: User can list all snapshots with `pixelrts snapshots`
+- [x] **MGMT-02**: User can delete snapshot with `pixelrts snapshot rm <name>`
+- [x] **MGMT-03**: Snapshots stored in standard location (/tmp/pixelrts/snapshots)
 
 ### CLI Integration
 
-- [ ] **CLI-01**: `pixelrts snapshot create <container>` command
-- [ ] **CLI-02**: `pixelrts snapshot restore <container> <snapshot>` command
-- [ ] **CLI-03**: Snapshot names are timestamp-based by default
+- [x] **CLI-01**: `pixelrts snapshot create <container>` command
+- [x] **CLI-02**: `pixelrts snapshot restore <container> <snapshot>` command
+- [x] **CLI-03**: Snapshot names are timestamp-based by default
 
 ## Out of Scope
 
@@ -50,18 +50,18 @@
 | RESTORE-01 | Phase 13 | Complete |
 | RESTORE-02 | Phase 13 | Complete |
 | RESTORE-03 | Phase 13 | Complete |
-| MGMT-01 | Phase 14 | Pending |
-| MGMT-02 | Phase 14 | Pending |
-| MGMT-03 | Phase 14 | Pending |
-| CLI-01 | Phase 14 | Pending |
-| CLI-02 | Phase 14 | Pending |
-| CLI-03 | Phase 14 | Pending |
+| MGMT-01 | Phase 14 | Complete |
+| MGMT-02 | Phase 14 | Complete |
+| MGMT-03 | Phase 14 | Complete |
+| CLI-01 | Phase 14 | Complete |
+| CLI-02 | Phase 14 | Complete |
+| CLI-03 | Phase 14 | Complete |
 
 **Coverage:**
 - v1.4 requirements: 13 total
 - Mapped to phases: 13
 - Unmapped: 0 ✓
-- Complete: 7/13 (54%)
+- Complete: 13/13 (100%)
 
 ---
 *Requirements updated: 2026-03-09*

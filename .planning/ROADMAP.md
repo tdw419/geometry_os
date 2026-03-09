@@ -46,7 +46,7 @@ Plans:
 - [x] 13-02-PLAN.md — RestoreResult with identity preservation and network reconnection
 - [x] 13-03-PLAN.md — CLI restore command with verbose feedback
 
-### Phase 14: Snapshot Management
+### Phase 14: Snapshot Management ✓
 **Goal**: Users can list, delete, and manage snapshots
 **Depends on**: Phase 13 (snapshot restore)
 **Requirements**: MGMT-01, MGMT-02, MGMT-03, CLI-01, CLI-02, CLI-03
@@ -55,11 +55,12 @@ Plans:
   2. User can delete snapshots with `pixelrts snapshot delete <container> <tag>`
   3. Snapshot storage is managed (auto-cleanup of old snapshots)
 **Plans:** 3 plans
+**Completed:** 2026-03-09
 
 Plans:
-- [ ] 14-01-PLAN.md — SnapshotStorage class with metadata management
-- [ ] 14-02-PLAN.md — Snapshot listing and deletion operations
-- [ ] 14-03-PLAN.md — CLI commands for snapshot management
+- [x] 14-01-PLAN.md — SnapshotStorage class with metadata management
+- [x] 14-02-PLAN.md — Snapshot listing and deletion operations
+- [x] 14-03-PLAN.md — CLI commands for snapshot management
 
 ## Progress
 
@@ -67,8 +68,8 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 12. Snapshot Creation | v1.4 | 4/4 | Complete | 2026-03-09 |
 | 13. Snapshot Restore | v1.4 | 3/3 | Complete | 2026-03-09 |
-| 14. Snapshot Management | v1.4 | 0/3 | Not started | - |
+| 14. Snapshot Management | v1.4 | 3/3 | Complete | 2026-03-09 |
 
 ---
 
-*Next: `/gsd:plan-phase 14` to plan Snapshot Management*
+*Next: `/gsd:complete-milestone` to archive v1.4*
