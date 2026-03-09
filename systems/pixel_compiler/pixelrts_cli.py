@@ -715,22 +715,156 @@ def cmd_blueprint_analyze(args):
     return 0
 
 
-def cmd_boot(args):
-    """Handle boot command - Boot .rts.png files with QEMU."""
-    from systems.pixel_compiler.boot import BootBridge, BootResult
+def _boot_multiple(args, input_paths):
+    """Boot multiple .rts.png files concurrently with unique VNC ports.
 
-    input_path = Path(args.input)
+    Args:
+        args: Parsed argparse arguments
+        input_paths: List of Path objects to .rts.png files
 
-    if not input_path.exists():
-        print(f"Error: Input file not found: {args.input}", file=sys.stderr)
-        return 1
+    Returns:
+        Exit code (0 on any success, 1 on total failure)
+    """
+    from systems.pixel_compiler.boot import MultiBootManager
 
-    if not input_path.is_file():
-        print(f"Error: Input path is not a file: {args.input}", file=sys.stderr)
+    # Validate all input files exist
+    valid_paths = []
+    for path in input_paths:
+        if not path.exists():
+            print(f"Error: Input file not found: {path}", file=sys.stderr)
+            continue
+        if not path.is_file():
+            print(f"Error: Input path is not a file: {path}", file=sys.stderr)
+            continue
+        valid_paths.append(path)
+
+    if not valid_paths:
+        print("Error: No valid input files to boot", file=sys.stderr)
         return 1
 
     if args.verbose:
-        print(f"Booting: {args.input}")
+        print(f"Booting {len(valid_paths)} containers concurrently...")
+        print(f"Memory per container: {args.memory}")
+        print(f"CPUs per container: {args.cpus}")
+
+    try:
+        # Create MultiBootManager for concurrent boot
+        manager = MultiBootManager()
+
+        # Boot all containers concurrently
+        result = manager.boot_all(
+            paths=valid_paths,
+            cmdline=args.cmdline,
+            memory=args.memory,
+            cpus=args.cpus,
+            cleanup_on_failure=True,  # Clean up successful containers if any fail
+        )
+
+        # Print results
+        if not args.quiet:
+            print(f"\n{'='*50}")
+            print(f"Boot Results: {result.success_count}/{len(valid_paths)} succeeded")
+            print(f"{'='*50}")
+
+            for info in result.containers:
+                if info.state.value == "running":
+                    vnc_port = info.resources.vnc_port if info.resources else None
+                    pid = info.boot_result.pid if info.boot_result else None
+                    print(f"  [OK] {info.name}")
+                    if vnc_port:
+                        print(f"       VNC: :{vnc_port - 5900} (port {vnc_port})")
+                    if pid:
+                        print(f"       PID: {pid}")
+                else:
+                    print(f"  [FAIL] {info.name}")
+                    if info.error_message:
+                        print(f"         Error: {info.error_message}")
+
+            if result.cleanup_performed:
+                print(f"\nNote: Cleaned up {result.success_count} containers due to partial failure")
+
+        # Handle background mode
+        if args.background:
+            if not args.quiet:
+                print(f"\nRunning {result.success_count} container(s) in background.")
+                print("Use 'pixelrts ps' to list running containers.")
+            return 0
+
+        # Wait for containers
+        if not args.quiet and result.success_count > 0:
+            print("\nContainers running. Press Ctrl+C to stop all...")
+
+        # Set up signal handler for graceful shutdown
+        shutdown_requested = False
+
+        def handle_shutdown(signum, frame):
+            nonlocal shutdown_requested
+            shutdown_requested = True
+            if not args.quiet:
+                print("\nShutdown requested, stopping all containers...")
+
+        original_sigint = signal.signal(signal.SIGINT, handle_shutdown)
+        original_sigterm = signal.signal(signal.SIGTERM, handle_shutdown)
+
+        try:
+            if not args.quiet and result.success_count > 0:
+                # Wait for signal
+                while not shutdown_requested:
+                    signal.pause()
+        finally:
+            # Restore original signal handlers
+            signal.signal(signal.SIGINT, original_sigint)
+            signal.signal(signal.SIGTERM, original_sigterm)
+
+            # Clean up all containers
+            if not args.quiet:
+                print("Stopping all containers...")
+            manager.stop_all()
+
+        # Return 0 on any success (per plan requirement), 1 on total failure
+        return 0 if result.success_count > 0 else 1
+
+    except ImportError as e:
+        print(f"Error: Required module not available: {e}", file=sys.stderr)
+        print("Ensure systems.pixel_compiler.boot is properly installed.", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
+def cmd_boot(args):
+    """Handle boot command - Boot .rts.png files with QEMU.
+
+    Supports both single-file and multi-file boot:
+    - Single: pixelrts boot file.rts.png
+    - Multi:  pixelrts boot a.rts.png b.rts.png c.rts.png
+    """
+    from systems.pixel_compiler.boot import BootBridge, BootResult, MultiBootManager
+
+    # Get list of input files
+    input_paths = [Path(p) for p in args.inputs]
+
+    # Multi-file boot path
+    if len(input_paths) > 1:
+        return _boot_multiple(args, input_paths)
+
+    # Single-file boot path (original behavior)
+    input_path = input_paths[0]
+
+    if not input_path.exists():
+        print(f"Error: Input file not found: {input_path}", file=sys.stderr)
+        return 1
+
+    if not input_path.is_file():
+        print(f"Error: Input path is not a file: {input_path}", file=sys.stderr)
+        return 1
+
+    if args.verbose:
+        print(f"Booting: {input_path}")
         print(f"Memory: {args.memory}")
         print(f"CPUs: {args.cpus}")
         print(f"VNC display: {args.vnc}")
@@ -1651,7 +1785,8 @@ Examples:
         help='Boot .rts.png files with QEMU',
         description='Boot operating systems from PixelRTS containers in a single command'
     )
-    boot_parser.add_argument('input', help='Input .rts.png file to boot')
+    boot_parser.add_argument('inputs', nargs='+', metavar='input',
+                            help='Input .rts.png file(s) to boot (supports multiple files)')
     boot_parser.add_argument('--memory', '-m', default='2G',
                             help='Memory allocation (default: 2G)')
     boot_parser.add_argument('--cpus', '-c', type=int, default=2,
