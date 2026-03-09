@@ -219,6 +219,39 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self._handle_api_agents_status()
         elif path == '/api/changes/active':
             self._handle_api_changes_active()
+        # Meta-Prompter APIs
+        elif path == '/api/meta_prompter/stats':
+            self._handle_meta_prompter_stats()
+        elif path == '/api/meta_prompter/history':
+            self._handle_meta_prompter_history(params)
+        else:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b'Not Found')
+
+    def do_OPTIONS(self):
+        """Handle OPTIONS requests for CORS."""
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+
+    def do_POST(self):
+        """Handle POST requests."""
+        parsed = urlparse(self.path)
+        path = parsed.path
+
+        # CORS headers
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+
+        if path == '/api/meta_prompter/config':
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
+            self._handle_meta_prompter_update_config(post_data)
         else:
             self.send_response(404)
             self.end_headers()
@@ -444,6 +477,70 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/json')
         self.end_headers()
         self.wfile.write(json.dumps(changes_data).encode())
+
+    def _handle_meta_prompter_stats(self):
+        """Handle meta-prompter stats endpoint."""
+        # Try to read actual stats if they exist
+        stats = {
+            'total_prompts': 0,
+            'success_rate': 0.0,
+            'last_mutation': 'none',
+            'is_active': True
+        }
+        
+        try:
+            import json
+            import os
+            tracking_file = os.path.expanduser('~/zion/projects/geometry_os/geometry_os/.geometry/meta_prompter_tracking.json')
+            if os.path.exists(tracking_file):
+                with open(tracking_file, 'r') as f:
+                    data = json.load(f)
+                    completed = data.get('completed', [])
+                    if completed:
+                        stats['total_prompts'] = len(completed)
+                        successes = sum(1 for o in completed if o.get('final_status') == 'success')
+                        stats['success_rate'] = successes / len(completed)
+                        stats['last_mutation'] = 'attention_layer_0' # Mock mutation
+        except Exception as e:
+            print(f"Error reading meta-prompter stats: {e}")
+
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps(stats).encode())
+
+    def _handle_meta_prompter_history(self, params):
+        """Handle meta-prompter history endpoint."""
+        limit = int(params.get('limit', [10])[0])
+        history = []
+        
+        try:
+            import json
+            import os
+            tracking_file = os.path.expanduser('~/zion/projects/geometry_os/geometry_os/.geometry/meta_prompter_tracking.json')
+            if os.path.exists(tracking_file):
+                with open(tracking_file, 'r') as f:
+                    data = json.load(f)
+                    history = data.get('completed', [])[-limit:]
+        except Exception as e:
+            print(f"Error reading meta-prompter history: {e}")
+
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps({'history': history, 'count': len(history)}).encode())
+
+    def _handle_meta_prompter_update_config(self, post_data):
+        """Handle meta-prompter config update."""
+        try:
+            config = json.loads(post_data.decode('utf-8'))
+            print(f"Updating meta-prompter config: {config}")
+            # In mock mode, we just return success
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'success': True, 'config': config}).encode())
+        except Exception as e:
+            self.send_response(500)
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': str(e)}).encode())
 
 
 class WebSocketServer:

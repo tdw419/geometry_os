@@ -896,6 +896,19 @@ class MultiVmStreamer:
         }
         self._dispatch_event(msg)
 
+    def emit_tectonic_ripple(self, x: float, y: float, z: float, force: float, radius: float) -> None:
+        """Emit TECTONIC_RIPPLE event for visual expansion/collapse waves."""
+        msg = {
+            "type": "TECTONIC_RIPPLE",
+            "x": x,
+            "y": y,
+            "z": z,
+            "force": force,
+            "radius": radius,
+            "timestamp": time.time()
+        }
+        self._dispatch_event(msg)
+
     # ========================================================================
     # ATTENTION_UPDATE Emission (Task 9.2: Glass Box Introspection)
     # ========================================================================

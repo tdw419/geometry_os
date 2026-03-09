@@ -89,7 +89,7 @@ Phases execute in numeric order: 19 → 20 → 21 → 22
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 19. Basic Verification | v1.7 | 0/2 | Not started | - |
-| 20. Segment Integrity | v1.7 | 0/1 | Not started | - |
+| 20. Segment Integrity | v1.7 | 1/1 | ✓ Complete | 2026-03-09 |
 | 21. Cryptographic Signatures | v1.7 | 0/2 | Not started | - |
 | 22. CLI Integration | v1.7 | 0/1 | Not started | - |
 

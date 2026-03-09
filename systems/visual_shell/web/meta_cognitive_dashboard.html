@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Observatory | Geometry OS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Grotesk:wght@300;400;500;700&family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Deep ocean void palette */
+            --void-black: #03070a;
+            --void-deep: #070d14;
+            --void-surface: #0c1520;
+            --void-elevated: #111c2a;
+
+            /* Bioluminescent accents */
+            --neural-cyan: #00f5d4;
+            --neural-cyan-dim: #00a896;
+            --neural-magenta: #f72585;
+            --neural-violet: #7b2cbf;
+            --neural-amber: #ffbe0b;
+            --neural-green: #06ffa5;
+
+            /* Text hierarchy */
+            --text-primary: #e8f4f8;
+            --text-secondary: #7a9ba8;
+            --text-tertiary: #3d5a6a;
+            --text-muted: #1e3a4a;
+
+            /* Gradients */
+            --gradient-neural: linear-gradient(135deg, var(--neural-cyan) 0%, var(--neural-violet) 50%, var(--neural-magenta) 100%);
+            --gradient-void: linear-gradient(180deg, var(--void-deep) 0%, var(--void-black) 100%);
+
+            /* Timing */
+            --pulse-duration: 2s;
+            --fade-duration: 0.3s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', -apple-system, sans-serif;
+            background: var(--void-black);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background mesh */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(0, 245, 212, 0.03) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(123, 44, 191, 0.03) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(247, 37, 133, 0.02) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: -1;
+            animation: meshPulse 15s ease-in-out infinite;
+        }
+
+        @keyframes meshPulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        /* Scanline overlay */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 245, 212, 0.01) 2px,
+                rgba(0, 245, 212, 0.01) 4px
+            );
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.3;
+        }
+
+        /* Layout */
+        .observatory {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            grid-template-rows: auto 1fr;
+            min-height: 100vh;
+            gap: 1px;
+            background: var(--text-tertiary);
+        }
+
+        /* Header */
+        .observatory-header {
+            grid-column: 1 / -1;
+            background: var(--void-deep);
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 245, 212, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .observatory-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--gradient-neural);
+            opacity: 0.6;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: baseline;
+            gap: 16px;
+        }
+
+        .header-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            background: var(--gradient-neural);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+            letter-spacing: 0.1em;
+        }
+
+        .header-status {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .status-node {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(0, 245, 212, 0.05);
+            border: 1px solid rgba(0, 245, 212, 0.2);
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--neural-cyan);
+            box-shadow: 0 0 12px var(--neural-cyan);
+            animation: statusPulse 2s ease-in-out infinite;
+        }
+
+        .status-indicator.warning {
+            background: var(--neural-amber);
+            box-shadow: 0 0 12px var(--neural-amber);
+        }
+
+        .status-indicator.offline {
+            background: var(--neural-magenta);
+            box-shadow: 0 0 12px var(--neural-magenta);
+            animation: none;
+        }
+
+        @keyframes statusPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        /* Main content area */
+        .neural-display {
+            background: var(--void-deep);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Brain visualization container */
+        .brain-viewport {
+            flex: 1;
+            min-height: 500px;
+            position: relative;
+            overflow: hidden;
+            background:
+                radial-gradient(ellipse at center, rgba(0, 245, 212, 0.02) 0%, transparent 70%),
+                var(--void-black);
+        }
+
+        .brain-viewport::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border: 1px solid rgba(0, 245, 212, 0.1);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Corner decorations */
+        .corner-mark {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--neural-cyan);
+            opacity: 0.4;
+            z-index: 20;
+        }
+
+        .corner-mark.tl { top: 12px; left: 12px; border-right: none; border-bottom: none; }
+        .corner-mark.tr { top: 12px; right: 12px; border-left: none; border-bottom: none; }
+        .corner-mark.bl { bottom: 12px; left: 12px; border-right: none; border-top: none; }
+        .corner-mark.br { bottom: 12px; right: 12px; border-left: none; border-top: none; }
+
+        .brain-atlas {
+            width: 1024px;
+            height: 1024px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.4;
+            filter: grayscale(0.3) contrast(1.3);
+            mix-blend-mode: screen;
+            transition: opacity 0.5s ease;
+        }
+
+        .brain-atlas:hover {
+            opacity: 0.6;
+        }
+
+        /* Viewport overlay info */
+        .viewport-info {
+            position: absolute;
+            top: 20px;
+            left: 50px;
+            z-index: 30;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+        }
+
+        .viewport-label {
+            color: var(--neural-cyan);
+            font-weight: 500;
+        }
+
+        /* Fitness bar at bottom of viewport */
+        .neurotransmitter-track {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 48px;
+            background: linear-gradient(0deg, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            gap: 16px;
+            z-index: 20;
+        }
+
+        .neuro-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            min-width: 140px;
+        }
+
+        .neuro-track {
+            flex: 1;
+            height: 6px;
+            background: rgba(0, 245, 212, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .neuro-fill {
+            height: 100%;
+            background: var(--gradient-neural);
+            border-radius: 3px;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .neuro-fill::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 20px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+            animation: shimmer 2s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+
+        .neuro-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--neural-cyan);
+            min-width: 60px;
+            text-align: right;
+        }
+
+        /* Sidebar */
+        .control-panel {
+            background: var(--void-surface);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-section {
+            padding: 20px;
+            border-bottom: 1px solid rgba(0, 245, 212, 0.05);
+        }
+
+        .panel-section:last-child {
+            border-bottom: none;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: var(--neural-cyan);
+            font-weight: 500;
+        }
+
+        .section-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            padding: 2px 8px;
+            background: rgba(0, 245, 212, 0.1);
+            border-radius: 2px;
+            color: var(--text-secondary);
+        }
+
+        /* Stats grid */
+        .stats-array {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .stat-node {
+            background: var(--void-elevated);
+            padding: 16px;
+            border-radius: 4px;
+            border-left: 2px solid var(--neural-cyan);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .stat-node:hover {
+            transform: translateX(4px);
+            box-shadow: -4px 0 20px rgba(0, 245, 212, 0.1);
+        }
+
+        .stat-node::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, var(--neural-cyan), transparent);
+            opacity: 0.3;
+        }
+
+        .stat-node.highlight {
+            border-left-color: var(--neural-magenta);
+        }
+
+        .stat-node.highlight::before {
+            background: linear-gradient(90deg, var(--neural-magenta), transparent);
+        }
+
+        .stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-tertiary);
+        }
+
+        /* History list */
+        .history-stream {
+            max-height: 200px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--neural-cyan-dim) var(--void-elevated);
+        }
+
+        .history-stream::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .history-stream::-webkit-scrollbar-track {
+            background: var(--void-elevated);
+        }
+
+        .history-stream::-webkit-scrollbar-thumb {
+            background: var(--neural-cyan-dim);
+            border-radius: 2px;
+        }
+
+        .history-entry {
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(0, 245, 212, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            animation: fadeSlideIn 0.3s ease;
+        }
+
+        @keyframes fadeSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .history-prompt {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .history-status.success {
+            background: rgba(6, 255, 165, 0.15);
+            color: var(--neural-green);
+            border: 1px solid rgba(6, 255, 165, 0.3);
+        }
+
+        .history-status.failure {
+            background: rgba(247, 37, 133, 0.15);
+            color: var(--neural-magenta);
+            border: 1px solid rgba(247, 37, 133, 0.3);
+        }
+
+        .history-status.pending {
+            background: rgba(255, 190, 11, 0.15);
+            color: var(--neural-amber);
+            border: 1px solid rgba(255, 190, 11, 0.3);
+        }
+
+        /* Thought log */
+        .thought-stream {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1.8;
+            max-height: 250px;
+            overflow-y: auto;
+            background: var(--void-black);
+            border: 1px solid rgba(0, 245, 212, 0.1);
+            border-radius: 4px;
+            padding: 12px;
+            color: var(--neural-cyan);
+        }
+
+        .thought-stream::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .thought-stream::-webkit-scrollbar-track {
+            background: var(--void-black);
+        }
+
+        .thought-stream::-webkit-scrollbar-thumb {
+            background: var(--neural-cyan-dim);
+            border-radius: 2px;
+        }
+
+        .thought-entry {
+            animation: thoughtAppear 0.2s ease;
+            padding-left: 12px;
+            border-left: 2px solid transparent;
+            transition: border-color 0.2s ease;
+        }
+
+        .thought-entry:hover {
+            border-left-color: var(--neural-cyan);
+        }
+
+        @keyframes thoughtAppear {
+            from {
+                opacity: 0;
+                transform: translateX(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .thought-time {
+            color: var(--text-tertiary);
+        }
+
+        .thought-token {
+            color: var(--neural-magenta);
+            font-weight: 500;
+        }
+
+        /* Empty state */
+        .empty-state {
+            color: var(--text-tertiary);
+            font-style: italic;
+            font-size: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        /* Config controls */
+        .config-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .config-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .config-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            min-width: 100px;
+        }
+
+        .config-input {
+            flex: 1;
+            background: var(--void-black);
+            border: 1px solid rgba(0, 245, 212, 0.2);
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-primary);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .config-input:focus {
+            outline: none;
+            border-color: var(--neural-cyan);
+            box-shadow: 0 0 0 3px rgba(0, 245, 212, 0.1);
+        }
+
+        .config-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .config-btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 10px 20px;
+            background: transparent;
+            border: 1px solid var(--neural-cyan);
+            color: var(--neural-cyan);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .config-btn:hover {
+            background: var(--neural-cyan);
+            color: var(--void-black);
+            box-shadow: 0 0 20px rgba(0, 245, 212, 0.3);
+        }
+
+        .config-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .observatory {
+                grid-template-columns: 1fr;
+            }
+
+            .control-panel {
+                max-height: 50vh;
+                overflow-y: auto;
+            }
+        }
+
+        /* Loading state */
+        .loading-pulse {
+            animation: loadingPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes loadingPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        /* WebMCP ready indicator */
+        .webmcp-ready .status-indicator.webmcp {
+            animation: webmcpReady 1s ease-in-out infinite;
+        }
+
+        @keyframes webmcpReady {
+            0%, 100% { box-shadow: 0 0 12px var(--neural-cyan); }
+            50% { box-shadow: 0 0 24px var(--neural-cyan), 0 0 48px var(--neural-cyan); }
+        }
+    </style>
+</head>
+<body>
+    <div class="observatory">
+        <!-- Header -->
+        <header class="observatory-header">
+            <div class="header-brand">
+                <h1 class="header-title">Neural Observatory</h1>
+                <span class="header-subtitle">Geometry OS // Meta-Cognitive Interface v2.0</span>
+            </div>
+            <div class="header-status">
+                <div class="status-node" id="webmcp-status">
+                    <div class="status-indicator webmcp offline"></div>
+                    <span>WebMCP</span>
+                </div>
+                <div class="status-node">
+                    <div class="status-indicator"></div>
+                    <span>PixelBrain GPU</span>
+                </div>
+                <div class="status-node">
+                    <div class="status-indicator"></div>
+                    <span>Evolution Active</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main neural display -->
+        <main class="neural-display">
+            <div class="brain-viewport" id="brain-container">
+                <!-- Corner marks -->
+                <div class="corner-mark tl"></div>
+                <div class="corner-mark tr"></div>
+                <div class="corner-mark bl"></div>
+                <div class="corner-mark br"></div>
+
+                <!-- Viewport info -->
+                <div class="viewport-info">
+                    <span class="viewport-label">VIEWPORT:</span> tinystories_brain.rts.png // 1024x1024 // COGNITIVE ATLAS
+                </div>
+
+                <!-- Brain atlas image -->
+                <img src="../../../tinystories_brain.rts.png" class="brain-atlas" id="brain-atlas" alt="Cognitive Atlas">
+
+                <!-- Neurotransmitter track -->
+                <div class="neurotransmitter-track">
+                    <span class="neuro-label">Prompt Fitness // Dopamine</span>
+                    <div class="neuro-track">
+                        <div class="neuro-fill" id="fitness-bar" style="width: 0%"></div>
+                    </div>
+                    <span class="neuro-value" id="fitness-value">0%</span>
+                </div>
+            </div>
+        </main>
+
+        <!-- Control panel sidebar -->
+        <aside class="control-panel">
+            <!-- Statistics -->
+            <section class="panel-section">
+                <div class="section-header">
+                    <h2 class="section-title">System Metrics</h2>
+                    <span class="section-badge" id="metrics-badge">LIVE</span>
+                </div>
+                <div class="stats-array">
+                    <div class="stat-node">
+                        <div class="stat-value" id="total-prompts">0</div>
+                        <div class="stat-label">Total Prompts</div>
+                    </div>
+                    <div class="stat-node highlight">
+                        <div class="stat-value" id="success-rate">0%</div>
+                        <div class="stat-label">Success Rate</div>
+                    </div>
+                    <div class="stat-node">
+                        <div class="stat-value" id="last-mutation">--</div>
+                        <div class="stat-label">Last Mutation</div>
+                    </div>
+                    <div class="stat-node">
+                        <div class="stat-value" id="active-status">ACTIVE</div>
+                        <div class="stat-label">System Status</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Configuration -->
+            <section class="panel-section">
+                <div class="section-header">
+                    <h2 class="section-title">Evolution Config</h2>
+                </div>
+                <div class="config-grid">
+                    <div class="config-row">
+                        <label class="config-label">Reward Wt</label>
+                        <input type="number" class="config-input" id="reward-weight" value="1.0" step="0.1" min="0">
+                    </div>
+                    <div class="config-row">
+                        <label class="config-label">Punish Wt</label>
+                        <input type="number" class="config-input" id="punish-weight" value="0.5" step="0.1" min="0">
+                    </div>
+                    <div class="config-row">
+                        <label class="config-label">Batch Size</label>
+                        <input type="number" class="config-input" id="batch-size" value="10" min="1" max="100">
+                    </div>
+                    <button class="config-btn" id="update-config-btn">Apply Configuration</button>
+                </div>
+            </section>
+
+            <!-- Recent prompts -->
+            <section class="panel-section">
+                <div class="section-header">
+                    <h2 class="section-title">Recent Prompts</h2>
+                    <span class="section-badge" id="history-count">0</span>
+                </div>
+                <div class="history-stream" id="history-list">
+                    <div class="empty-state">Awaiting prompt generation...</div>
+                </div>
+            </section>
+
+            <!-- Thought stream -->
+            <section class="panel-section">
+                <div class="section-header">
+                    <h2 class="section-title">Thought Stream</h2>
+                    <span class="section-badge">0xCE</span>
+                </div>
+                <div class="thought-stream" id="thought-log">
+                    <div class="thought-entry">> Awaiting THOUGHT_PULSE events...</div>
+                </div>
+            </section>
+        </aside>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://pixijs.download/v8.1.1/pixi.min.js"></script>
+    <script src="ThoughtVisualizer.js"></script>
+    <script src="webmcp_bridge.js"></script>
+    <script>
+        /**
+         * Neural Observatory Dashboard Controller
+         */
+        class NeuralObservatory {
+            constructor() {
+                this.app = null;
+                this.visualizer = null;
+                this.ws = null;
+                this.statsInterval = null;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 10;
+                this.webmcpBridge = null;
+            }
+
+            async init() {
+                await this.initPixi();
+                this.initWebSocket();
+                this.initConfigControls();
+                this.startPolling();
+                this.initWebMCP();
+                this.checkWebMCP();
+            }
+
+            async initPixi() {
+                const container = document.getElementById('brain-container');
+                const width = container.clientWidth;
+                const height = container.clientHeight - 48; // Account for neurotransmitter track
+
+                this.app = new PIXI.Application();
+                await this.app.init({
+                    width: width,
+                    height: height,
+                    background: 'transparent',
+                    antialias: true
+                });
+
+                // Position canvas over the atlas
+                const canvas = this.app.canvas;
+                canvas.style.position = 'absolute';
+                canvas.style.top = '0';
+                canvas.style.left = '0';
+                canvas.style.zIndex = '5';
+                container.appendChild(canvas);
+
+                this.visualizer = new ThoughtVisualizer(this.app);
+
+                // Handle resize
+                window.addEventListener('resize', () => this.handleResize());
+            }
+
+            initWebMCP() {
+                // Initialize WebMCP Bridge in Mock Mode for standalone dashboard
+                if (typeof WebMCPBridge !== 'undefined') {
+                    this.webmcpBridge = new WebMCPBridge(this.app, { allowMock: true });
+                    console.log('🔌 Neural Observatory: WebMCP Bridge initialized (Mock Mode)');
+                }
+            }
+
+            handleResize() {
+                const container = document.getElementById('brain-container');
+                const width = container.clientWidth;
+                const height = container.clientHeight - 48;
+
+                if (this.app && this.app.renderer) {
+                    this.app.renderer.resize(width, height);
+                }
+            }
+
+            initWebSocket() {
+                const wsUrl = 'ws://localhost:8765';
+
+                try {
+                    this.ws = new WebSocket(wsUrl);
+
+                    this.ws.onopen = () => {
+                        console.log('🧠 Neural Observatory: WebSocket connected');
+                        this.reconnectAttempts = 0;
+                        this.logThought('system', 'WebSocket connected to PixelBrain');
+                    };
+
+                    this.ws.onmessage = (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+
+                            if (data.type === 'THOUGHT_PULSE' || data.opcode === 0xCE || data.opcode === 0xD6) {
+                                // Map position to viewport
+                                const container = document.getElementById('brain-container');
+                                const mappedData = {
+                                    ...data,
+                                    x: (data.x || Math.random() * container.clientWidth),
+                                    y: (data.y || Math.random() * (container.clientHeight - 48))
+                                };
+
+                                this.visualizer.emitThoughtPulse(mappedData);
+                                this.logThought(data.token_id || 0, data.intensity || 1.0);
+                            }
+                        } catch (e) {
+                            console.warn('WebSocket parse error:', e);
+                        }
+                    };
+
+                    this.ws.onclose = () => {
+                        console.log('🧠 Neural Observatory: WebSocket disconnected');
+                        this.logThought('system', 'WebSocket disconnected - reconnecting...');
+
+                        // Attempt reconnect
+                        if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                            this.reconnectAttempts++;
+                            setTimeout(() => this.initWebSocket(), 2000 * this.reconnectAttempts);
+                        }
+                    };
+
+                    this.ws.onerror = (err) => {
+                        console.warn('WebSocket error:', err);
+                    };
+
+                } catch (e) {
+                    console.error('Failed to create WebSocket:', e);
+                }
+            }
+
+            initConfigControls() {
+                const btn = document.getElementById('update-config-btn');
+                btn.addEventListener('click', () => this.updateConfig());
+            }
+
+            async updateConfig() {
+                const config = {
+                    reward_weight: parseFloat(document.getElementById('reward-weight').value) || 1.0,
+                    punish_weight: parseFloat(document.getElementById('punish-weight').value) || 0.5,
+                    batch_size: parseInt(document.getElementById('batch-size').value) || 10
+                };
+
+                try {
+                    const response = await fetch('/api/meta_prompter/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(config)
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        console.log('Config updated:', result);
+                        this.logThought('config', `Evolution config updated: ${JSON.stringify(config)}`);
+                    }
+                } catch (e) {
+                    console.warn('Config update failed:', e);
+                }
+            }
+
+            startPolling() {
+                this.pollStats();
+                this.statsInterval = setInterval(() => this.pollStats(), 3000);
+            }
+
+            async pollStats() {
+                try {
+                    // Fetch stats
+                    const statsRes = await fetch('/api/meta_prompter/stats');
+                    if (statsRes.ok) {
+                        const stats = await statsRes.json();
+                        this.updateStats(stats);
+                    }
+
+                    // Fetch history
+                    const historyRes = await fetch('/api/meta_prompter/history?limit=10');
+                    if (historyRes.ok) {
+                        const historyData = await historyRes.json();
+                        this.updateHistory(historyData.history);
+                    }
+                } catch (e) {
+                    // Silently fail - server might not be running
+                }
+            }
+
+            updateStats(stats) {
+                // Animate numbers
+                this.animateValue('total-prompts', stats.total_prompts || 0);
+
+                const rate = ((stats.success_rate || 0) * 100).toFixed(1);
+                document.getElementById('success-rate').textContent = rate + '%';
+
+                // Update fitness bar
+                document.getElementById('fitness-bar').style.width = rate + '%';
+                document.getElementById('fitness-value').textContent = rate + '%';
+
+                // Mutation info
+                const mutation = stats.last_mutation || 'none';
+                document.getElementById('last-mutation').textContent = mutation.length > 12
+                    ? mutation.substring(0, 12) + '...'
+                    : mutation;
+
+                // Status
+                const status = stats.is_active ? 'ACTIVE' : 'IDLE';
+                document.getElementById('active-status').textContent = status;
+            }
+
+            animateValue(elementId, newValue) {
+                const el = document.getElementById(elementId);
+                const current = parseInt(el.textContent) || 0;
+
+                if (current !== newValue) {
+                    el.textContent = newValue;
+                    el.classList.add('loading-pulse');
+                    setTimeout(() => el.classList.remove('loading-pulse'), 500);
+                }
+            }
+
+            updateHistory(history) {
+                const container = document.getElementById('history-list');
+                const badge = document.getElementById('history-count');
+
+                if (!history || history.length === 0) {
+                    container.innerHTML = '<div class="empty-state">Awaiting prompt generation...</div>';
+                    badge.textContent = '0';
+                    return;
+                }
+
+                badge.textContent = history.length;
+
+                container.innerHTML = history.slice().reverse().map(item => {
+                    const prompt = item.prompt || 'Unknown prompt';
+                    const status = item.final_status || 'pending';
+                    const truncated = prompt.length > 35 ? prompt.substring(0, 35) + '...' : prompt;
+
+                    return `
+                        <div class="history-entry">
+                            <span class="history-prompt">${truncated}</span>
+                            <span class="history-status ${status}">${status}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            logThought(tokenId, intensity = 1.0) {
+                const log = document.getElementById('thought-log');
+                const entry = document.createElement('div');
+                entry.className = 'thought-entry';
+
+                const time = new Date().toLocaleTimeString('en-US', {
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+
+                if (tokenId === 'system') {
+                    entry.innerHTML = `<span class="thought-time">[${time}]</span> <span style="color: var(--neural-amber)">SYSTEM</span>`;
+                } else if (tokenId === 'config') {
+                    entry.innerHTML = `<span class="thought-time">[${time}]</span> <span style="color: var(--neural-violet)">CONFIG</span>`;
+                } else {
+                    entry.innerHTML = `<span class="thought-time">[${time}]</span> THOUGHT_PULSE: token=<span class="thought-token">${tokenId}</span> intensity=${intensity.toFixed(2)}`;
+                }
+
+                log.insertBefore(entry, log.firstChild);
+
+                // Keep log manageable
+                while (log.children.length > 50) {
+                    log.removeChild(log.lastChild);
+                }
+            }
+
+            checkWebMCP() {
+                // Check if WebMCP is available
+                const checkReady = () => {
+                    if (window.navigator && window.navigator.modelContext) {
+                        const statusEl = document.getElementById('webmcp-status');
+                        const indicator = statusEl.querySelector('.status-indicator');
+                        indicator.classList.remove('offline');
+                        statusEl.querySelector('span:last-child').textContent = 'WebMCP Ready';
+                        document.body.classList.add('webmcp-ready');
+                    }
+                };
+
+                // Check immediately and after a delay
+                checkReady();
+                setTimeout(checkReady, 2000);
+
+                // Also listen for the event
+                window.addEventListener('webmcp-ready', checkReady);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            window.observatory = new NeuralObservatory();
+            window.observatory.init();
+        });
+    </script>
+</body>
+</html>

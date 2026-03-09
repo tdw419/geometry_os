@@ -330,17 +330,19 @@ class SisyphusDaemon:
         # Tectonic real-time gravity
         self.enable_tectonic = enable_tectonic
         self.tectonic_updater = None
+        
+        # Shared visual bridge for real-time desktop feedback
+        from systems.visual_shell.api.visual_bridge import multi_vm_streamer
+        self.visual_bridge = multi_vm_streamer
+
         if enable_tectonic:
             # Use project_dir as watch path
             self.tectonic_updater = TectonicUpdater(
                 self.gravity_engine,
                 watch_path=str(self.project_dir),
-                decay_interval=10.0
+                decay_interval=10.0,
+                visual_bridge=self.visual_bridge
             )
-
-        # Shared visual bridge for real-time desktop feedback
-        from systems.visual_shell.api.visual_bridge import multi_vm_streamer
-        self.visual_bridge = multi_vm_streamer
 
         # Self-rewriting components
         self.enable_self_rewriting = enable_self_rewriting

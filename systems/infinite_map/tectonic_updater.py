@@ -7,12 +7,13 @@ Makes the Tectonic map "alive" - files drift toward you as you use them.
 
 import threading
 import time
-from typing import Optional
+from typing import Optional, Any
 from pathlib import Path
 
 from .gravity_engine import GravityEngine
 from .file_watcher import FileWatcher, FileEvent
 from .mass_integrator import MassIntegrator
+from .tectonic_physics import TectonicPhysics
 
 
 class TectonicUpdater:
@@ -22,15 +23,17 @@ class TectonicUpdater:
     Pipeline:
     1. FileWatcher detects file changes
     2. MassIntegrator converts events to mass deltas
-    3. GravityEngine updates orb masses
-    4. Files drift in real-time on the Glass Box
+    3. TectonicPhysics applies physical impulses (ripples)
+    4. GravityEngine updates orb masses and positions
+    5. Files drift in real-time on the Glass Box
     """
 
     def __init__(
         self,
         gravity_engine: GravityEngine,
         watch_path: str,
-        decay_interval: float = 5.0
+        decay_interval: float = 5.0,
+        visual_bridge: Optional[Any] = None
     ):
         """
         Initialize the Tectonic updater.
@@ -39,22 +42,28 @@ class TectonicUpdater:
             gravity_engine: The GravityEngine to update
             watch_path: Directory path to watch for changes
             decay_interval: Seconds between mass decay cycles
+            visual_bridge: Optional VisualBridge for physical feedback
         """
         self.gravity_engine = gravity_engine
         self.watch_path = watch_path
         self.decay_interval = decay_interval
+        self.visual_bridge = visual_bridge
 
         self._watcher = FileWatcher(watch_path)
         self._integrator = MassIntegrator()
+        self._physics = TectonicPhysics(gravity_engine, visual_bridge=visual_bridge)
         self._running = False
         self._decay_thread: Optional[threading.Thread] = None
 
     def _on_file_event(self, event: FileEvent):
         """Handle file events from the watcher."""
-        # Process event to get mass delta
+        # 1. Apply physical impulses (expansion waves/void collapse)
+        self._physics.handle_event(event)
+
+        # 2. Process event to get mass delta
         delta = self._integrator.process_event(event)
 
-        # Update gravity engine
+        # 3. Update gravity engine mass
         self.gravity_engine.update_mass(delta.file_path, delta.delta_mass)
 
     def _decay_loop(self):

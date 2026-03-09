@@ -2015,6 +2015,11 @@ class WebMCPBridge {
             await this.#registerNarrativePublishThought();
             await this.#registerNarrativeSteer();
 
+            // Meta-Prompter Tools (Self-Optimizing Cognition)
+            await this.#registerMetaPrompterGetStats();
+            await this.#registerMetaPrompterGetHistory();
+            await this.#registerMetaPrompterUpdateConfig();
+
             // Publish OS context alongside tools
             await this.#publishContext();
 
@@ -12675,6 +12680,102 @@ else:
         await navigator.modelContext.registerTool(tool, handler);
         this.#registeredTools.push(tool.name);
         console.log(`📖 WebMCP Tool Registered: ${tool.name}`);
+    }
+
+    /**
+     * META-PROMPTER TOOLS
+     * Expose meta-cognitive stats and history to WebMCP agents.
+     */
+
+    async #registerMetaPrompterGetStats() {
+        const tool = {
+            name: 'meta_prompter_get_stats',
+            description: 'Get statistics about the Self-Optimizing Meta-Prompter, including success rates and evolution status.',
+            inputSchema: {
+                type: 'object',
+                properties: {}
+            }
+        };
+
+        const handler = async () => {
+            const app = window.geometryOSApp;
+            if (!app) return { error: 'Geometry OS application not available' };
+
+            // In a real implementation, this would fetch from the Python backend
+            // For the dashboard, we use a mock/cached version if real one unavailable
+            try {
+                const response = await fetch('/api/meta_prompter/stats');
+                if (response.ok) return await response.json();
+            } catch (e) {
+                // Fallback to internal app state if available
+            }
+
+            return {
+                total_prompts: app.metaPrompter?.totalPrompts || 0,
+                success_rate: app.metaPrompter?.successRate || 0,
+                last_mutation: app.metaPrompter?.lastMutation || 'none',
+                is_active: true
+            };
+        };
+
+        await navigator.modelContext.registerTool(tool, handler);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerMetaPrompterGetHistory() {
+        const tool = {
+            name: 'meta_prompter_get_history',
+            description: 'Get the history of meta-prompts and their recorded outcomes.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    limit: { type: 'number', default: 10, description: 'Number of history entries to return' }
+                }
+            }
+        };
+
+        const handler = async ({ limit = 10 }) => {
+            try {
+                const response = await fetch(`/api/meta_prompter/history?limit=${limit}`);
+                if (response.ok) return await response.json();
+            } catch (e) {}
+
+            return { history: [], count: 0 };
+        };
+
+        await navigator.modelContext.registerTool(tool, handler);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerMetaPrompterUpdateConfig() {
+        const tool = {
+            name: 'meta_prompter_update_config',
+            description: 'Update the configuration of the meta-prompter (mutation rates, thresholds).',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    reward_weight: { type: 'number', description: 'Weight for successful outcomes' },
+                    punish_weight: { type: 'number', description: 'Weight for failed outcomes' },
+                    batch_size: { type: 'number', description: 'Number of outcomes before evolution' }
+                }
+            }
+        };
+
+        const handler = async (config) => {
+            try {
+                const response = await fetch('/api/meta_prompter/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                if (response.ok) return await response.json();
+            } catch (e) {}
+
+            return { success: false, error: 'Failed to update config' };
+        };
+
+        await navigator.modelContext.registerTool(tool, handler);
+        this.#registeredTools.push(tool.name);
     }
 
 }

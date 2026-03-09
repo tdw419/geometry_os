@@ -71,6 +71,9 @@ class NeuralCityEngine {
 
         // Thought Visualizer for PixelBrain (Phase 2, Task 6.3)
         this.thoughtVisualizer = null;
+
+        // Ripple Renderer for Tectonic Physics (Phase 28)
+        this.rippleRenderer = null;
     }
 
     /**
@@ -88,6 +91,12 @@ class NeuralCityEngine {
         if (typeof ThoughtVisualizer !== 'undefined' && this.config.app) {
             this.thoughtVisualizer = new ThoughtVisualizer(this.config.app, this.particleLayer);
             console.log('[Engine] ThoughtVisualizer initialized');
+        }
+
+        // Initialize Ripple Renderer (Phase 28)
+        if (typeof RippleRenderer !== 'undefined' && this.config.app) {
+            this.rippleRenderer = new RippleRenderer(this.config.app, this.particleLayer);
+            console.log('[Engine] RippleRenderer initialized');
         }
 
         // Connect telemetry bus
@@ -150,6 +159,9 @@ class NeuralCityEngine {
         } else if (response.type === 'THOUGHT_PULSE') {
             // Route THOUGHT_PULSE messages to visualizer (Phase 2, Task 6.3)
             this._handleThoughtPulse(response);
+        } else if (response.type === 'TECTONIC_RIPPLE') {
+            // Route TECTONIC_RIPPLE messages to ripple renderer (Phase 28)
+            this._handleTectonicRipple(response);
         }
     }
 
@@ -163,6 +175,19 @@ class NeuralCityEngine {
     _handleThoughtPulse(data) {
         if (this.thoughtVisualizer) {
             this.thoughtVisualizer.emitThoughtPulse(data);
+        }
+    }
+
+    /**
+     * Handle TECTONIC_RIPPLE messages from WebSocket.
+     * Routes to RippleRenderer for wave/collapse rendering.
+     *
+     * @param {Object} data - Ripple data from WebSocket
+     * @private
+     */
+    _handleTectonicRipple(data) {
+        if (this.rippleRenderer) {
+            this.rippleRenderer.emitRipple(data);
         }
     }
 
@@ -1186,6 +1211,11 @@ class NeuralCityEngine {
             // Update neural pulse effects (Phase 27)
             if (this.neuralPulseSystem) {
                 this.neuralPulseSystem.update();
+            }
+
+            // Update ripple animations (Phase 28)
+            if (this.rippleRenderer) {
+                this.rippleRenderer.update();
             }
 
             // Update City Mesh uniforms (time, camera)

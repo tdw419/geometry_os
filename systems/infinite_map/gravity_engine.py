@@ -33,6 +33,9 @@ class GravityEngine:
         self.quadtree_threshold = quadtree_threshold
         self.theta = theta
 
+        # Momentary physical impulses (Expansion waves / Void collapse)
+        self.ripples: List[Dict[str, Any]] = []
+
         # Performance Tracking
         self.last_update = time.time()
 
@@ -50,6 +53,31 @@ class GravityEngine:
             "links": []
         }
 
+    def get_orb(self, file_path: str) -> Optional[Dict[str, Any]]:
+        """Get the current state of an orb."""
+        if file_path in self.orbs:
+            data = self.orbs[file_path]
+            return {
+                "x": float(data["pos"][0]),
+                "y": float(data["pos"][1]),
+                "z": float(data["pos"][2]),
+                "mass": float(data["mass"]),
+                "velocity": float(np.linalg.norm(data["vel"]))
+            }
+        return None
+
+    def emit_ripple(self, x: float, y: float, z: float, force: float, radius: float):
+        """
+        Emit a momentary physical impulse (ripple) at a 3D location.
+        force: positive for repulsion (expansion), negative for attraction (collapse).
+        """
+        self.ripples.append({
+            "pos": np.array([x, y, z], dtype=np.float32),
+            "force": force,
+            "radius": radius,
+            "timestamp": time.time()
+        })
+
     def link_orbs(self, path_a: str, path_b: str):
         """Create an attractive spring between two orbs in 3D."""
         if path_a in self.orbs and path_b in self.orbs:
@@ -59,7 +87,7 @@ class GravityEngine:
     def update(self):
         """Advance the 3D simulation by one timestep."""
         n_orbs = len(self.orbs)
-        if n_orbs < 2:
+        if n_orbs < 2 and not self.ripples:
             return
 
         # Choose algorithm based on particle count and settings
@@ -68,6 +96,8 @@ class GravityEngine:
         else:
             self._update_direct()
 
+        # Clear one-shot ripples after update
+        self.ripples.clear()
         self.last_update = time.time()
 
     def _update_direct(self):
@@ -104,7 +134,22 @@ class GravityEngine:
         z_diff = target_z - pos[:, 2]
         forces[:, 2] += self.k_layer * z_diff
 
-        # 4. Integration
+        # 4. Ripple Forces (Momentary Impulses)
+        for ripple in self.ripples:
+            diff = pos - ripple["pos"]
+            dist_sq = np.sum(diff**2, axis=1) + 0.01
+            dist = np.sqrt(dist_sq)
+            
+            # Mask orbs within radius
+            mask = dist < ripple["radius"]
+            if np.any(mask):
+                # Force magnitude decays with distance (inverse square)
+                magnitude = ripple["force"] / dist_sq
+                # Apply force in direction of diff (repulsion if force > 0)
+                ripple_forces = magnitude[:, np.newaxis] * diff
+                forces[mask] += ripple_forces[mask]
+
+        # 5. Integration
         accel = forces / mass[:, np.newaxis]
         vel = (vel + accel * self.dt) * self.friction
         pos = pos + vel * self.dt
@@ -161,7 +206,19 @@ class GravityEngine:
         z_diff = target_z - pos[:, 2]
         forces[:, 2] += self.k_layer * z_diff
 
-        # 5. Integration
+        # 5. Ripple Forces (Full 3D)
+        for ripple in self.ripples:
+            diff = pos - ripple["pos"]
+            dist_sq = np.sum(diff**2, axis=1) + 0.01
+            dist = np.sqrt(dist_sq)
+            
+            mask = dist < ripple["radius"]
+            if np.any(mask):
+                magnitude = ripple["force"] / dist_sq
+                ripple_forces = magnitude[:, np.newaxis] * diff
+                forces[mask] += ripple_forces[mask]
+
+        # 6. Integration
         accel = forces / mass[:, np.newaxis]
         vel = (vel + accel * self.dt) * self.friction
         pos = pos + vel * self.dt
@@ -186,6 +243,19 @@ class GravityEngine:
                 "velocity": float(np.linalg.norm(data["vel"]))
             })
         return updates
+
+    def get_ripples(self) -> List[Dict[str, Any]]:
+        """Return active physical ripples for visual rendering."""
+        return [
+            {
+                "x": float(r["pos"][0]),
+                "y": float(r["pos"][1]),
+                "z": float(r["pos"][2]),
+                "force": float(r["force"]),
+                "radius": float(r["radius"])
+            }
+            for r in self.ripples
+        ]
 
     def update_mass(self, file_path: str, delta: float):
         if file_path in self.orbs:

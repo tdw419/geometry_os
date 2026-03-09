@@ -496,8 +496,10 @@ team:
     - Full offline operation (no external APIs)
     - All 30+ tests passing
 
-  reference_docs:
-    - docs/plans/2026-03-08-pixel-brain-inference.md
+    - docs/plans/2026-03-09-pixel-brain-inference.md
+    - docs/plans/2026-03-08-pixel-brain-visual-shell.md
+    - docs/plans/2026-03-09-pixel-brain-cognitive-core.md
+    - docs/plans/2026-03-09-geoasm-instruction-set.md    - docs/plans/2026-03-08-pixel-brain-inference.md
     - docs/plans/2026-03-08-pixel-brain-visual-shell.md
     - docs/plans/2026-03-09-pixel-brain-cognitive-core.md
     - systems/visual_shell/wgsl/pixel_brain_embed.wgsl

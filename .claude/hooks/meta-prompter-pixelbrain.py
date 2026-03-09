@@ -22,6 +22,7 @@ import sys
 import os
 from pathlib import Path
 from datetime import datetime
+import asyncio
 
 # Add project to path
 PROJECT_DIR = Path("/home/jericho/zion/projects/geometry_os/geometry_os")
@@ -31,8 +32,10 @@ HISTORY_DIR = Path.home() / ".claude/projects/-home-jericho-zion-projects-geomet
 LOG_FILE = PROJECT_DIR / ".claude/hooks/meta-prompter-pixelbrain.log"
 PROMPT_STATE_FILE = PROJECT_DIR / ".geometry/meta_prompter_state.json"
 
-# Global evolution hook instance (lazy loaded)
+# Global instances (lazy loaded)
 _evolution_hook = None
+_pixelbrain_service = None
+
 
 def log(message: str):
     """Log to file for debugging."""
@@ -79,19 +82,30 @@ def save_prompt_state(prompt: str, event: str):
     except Exception as e:
         log(f"Could not save prompt state: {e}")
 
+
 def extract_history(history_file: Path, lines: int = 30) -> str:
     """Extract readable conversation from JSONL."""
     import subprocess
 
-    # Use jq to parse JSONL efficiently
+    # Handle nested content structure (tool_results have content arrays with text objects)
     cmd = f'''tail -{lines} "{history_file}" 2>/dev/null | jq -r '
         select(.type == "user" or .type == "assistant") |
         if .type == "user" then
             "USER: " + (
                 if (.message.content | type) == "string" then
-                    .message.content[0:500]
+                    .message.content[0:300]
                 elif (.message.content | type) == "array" then
-                    (.message.content | map(select(.type == "text") | .text)[0] // "")[0:500]
+                    # Handle tool_result with nested content
+                    (.message.content | map(
+                        if .type == "text" then
+                            .text[0:300]
+                        elif .type == "tool_result" then
+                            # Tool result - get first text if available
+                            ((.content | type) == "array" and (.content[0].text // ""))[0:100]
+                        else
+                            ""
+                        end
+                    ) | join(" "))[0:300]
                 else
                     ""
                 end
@@ -99,66 +113,86 @@ def extract_history(history_file: Path, lines: int = 30) -> str:
         else
             "ASSISTANT: " + (
                 if (.message.content | type) == "string" then
-                    .message.content[0:500]
+                    .message.content[0:300]
                 elif (.message.content | type) == "array" then
-                    (.message.content | map(select(.type == "text") | .text)[0] // "")[0:500]
+                    (.message.content | map(select(.type == "text") | .text)[0] // "")[0:300]
                 else
                     ""
                 end
             )
         end
-    ' 2>/dev/null | grep -v "^null$" | head -20'''
+    ' 2>/dev/null | grep -v "^null$" | grep -v "^USER: $" | head -15'''
 
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     return result.stdout.strip()
 
-def get_pixel_brain_service():
-    """Get or initialize PixelBrain service."""
+
+class MockVisualBridge:
+    """Mock visual bridge for standalone hook execution.
+
+    When the Visual Bridge server is running, we could connect to it.
+    For now, this provides logging of visual events.
+    """
+
+    def emit_thought_pulse(self, token_id: int, position: tuple, intensity: float = 1.0) -> bool:
+        log(f"THOUGHT_PULSE: token={token_id}, pos={position}, intensity={intensity}")
+        return True
+
+    def emit_atlas_glow(self, coords: list, intensity: float = 1.0) -> bool:
+        log(f"ATLAS_GLOW: {len(coords)} coords, intensity={intensity}")
+        return True
+
+
+async def get_pixelbrain_with_visuals():
+    """Get PixelBrain service with visual feedback capability."""
+    global _pixelbrain_service
+
+    if _pixelbrain_service is not None:
+        return _pixelbrain_service
+
     try:
         from systems.visual_shell.api.pixel_brain_service import get_pixel_brain_service
-        return get_pixel_brain_service()
-    except ImportError as e:
-        log(f"PixelBrain not available: {e}")
-        return None
+
+        # Try to get existing service (may not have visual bridge)
+        service = get_pixel_brain_service()
+
+        if service.is_available():
+            # Attach mock visual bridge for logging
+            if service.visual_bridge is None:
+                service.visual_bridge = MockVisualBridge()
+                log("Attached MockVisualBridge for event logging")
+
+            _pixelbrain_service = service
+            return service
+        else:
+            log("PixelBrain pipeline not available")
+            return None
+
     except Exception as e:
         log(f"PixelBrain init error: {e}")
         return None
 
+
 async def analyze_with_pixel_brain(context: str, history: str) -> str | None:
     """Use PixelBrain to analyze and generate next prompt."""
 
-    service = get_pixel_brain_service()
+    service = await get_pixelbrain_with_visuals()
     if service is None:
         log("PixelBrain service unavailable, falling back to CLI")
         return None
 
-    prompt = f"""You are a meta-cognitive assistant analyzing a Claude Code session.
-Your job is to determine what the NEXT prompt should be.
+    # Short prompt for faster inference (TinyStories-33M is small)
+    prompt = f"""What should happen next in this session?
 
-CONTEXT: {context}
+Context: {context[:200]}
+Recent: {history[:500]}
 
-PROJECT: Geometry OS - an autonomous visual computing system with neural event buses,
-swarm guilds, evolution daemon, and visual shell.
-
-RECENT CONVERSATION:
-{history}
-
-YOUR TASK:
-1. Analyze what just happened
-2. Determine the logical next step
-3. Output ONLY a single prompt (no markdown, no quotes, no explanation)
-
-OUTPUT RULES:
-- Output a prompt if there's a clear next step
-- Output "WAIT" if the session should pause for human
-- Output "STUCK: reason" if there's a problem
-
-Be concise. Maximum 2 sentences for the prompt."""
+Output ONE short prompt or WAIT or STUCK:"""
 
     try:
         result = await service.generate(
             prompt=prompt,
-            max_tokens=100,
+            max_tokens=20,  # Fewer tokens = faster
             temperature=0.7,
             emit_visual=True  # Emit THOUGHT_PULSE glyphs!
         )
@@ -166,6 +200,24 @@ Be concise. Maximum 2 sentences for the prompt."""
     except Exception as e:
         log(f"PixelBrain generation error: {e}")
         return None
+
+
+def is_valid_prompt(text: str) -> bool:
+    """Check if the generated text is a valid prompt (not garbage)."""
+    if not text or len(text) < 3:
+        return False
+
+    # Check for repetitive garbage (e.g., "!!!!!!!!" or "aaaa")
+    if len(set(text)) < 3:
+        return False
+
+    # Check for mostly punctuation
+    alpha_ratio = sum(c.isalpha() or c.isspace() for c in text) / len(text)
+    if alpha_ratio < 0.5:
+        return False
+
+    return True
+
 
 def analyze_with_cli_fallback(context: str, history: str) -> str | None:
     """Fallback to CLI if PixelBrain unavailable."""
@@ -189,6 +241,7 @@ Output ONLY a single prompt (max 2 sentences) or "WAIT" or "STUCK: reason"."""
     except Exception as e:
         log(f"CLI fallback error: {e}")
         return None
+
 
 async def main():
     # Read hook input from stdin
@@ -219,7 +272,6 @@ async def main():
     if transcript_path and Path(transcript_path).exists():
         history_file = Path(transcript_path)
     else:
-        # Find most recent JSONL
         history_files = sorted(
             HISTORY_DIR.glob("*.jsonl"),
             key=lambda p: p.stat().st_mtime,
@@ -242,13 +294,25 @@ async def main():
     # Try PixelBrain first, then CLI fallback
     next_prompt = await analyze_with_pixel_brain(context, history)
 
-    if next_prompt is None:
-        log("PixelBrain unavailable, using CLI fallback")
+    # Validate PixelBrain output - fall back to CLI if garbage
+    if next_prompt is None or not is_valid_prompt(next_prompt):
+        if next_prompt:
+            log(f"PixelBrain produced invalid output: {next_prompt[:50]}")
+        log("Using CLI fallback")
         next_prompt = analyze_with_cli_fallback(context, history)
 
     if not next_prompt:
-        log("No prompt generated")
-        sys.exit(0)
+        log("No prompt generated - using sensible default")
+        # Provide a sensible default prompt based on context
+        if "idle" in context.lower():
+            # Session is idle - check for obvious next steps
+            next_prompt = "check git status and continue with any pending work"
+        elif "completed a turn" in context.lower():
+            # Just finished something - suggest verification
+            next_prompt = "run tests to verify recent changes work correctly"
+        else:
+            # Generic fallback
+            next_prompt = "what should we work on next?"
 
     log(f"Generated prompt: {next_prompt}")
 
@@ -275,6 +339,6 @@ async def main():
         print(next_prompt)
         sys.exit(0)
 
+
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())
