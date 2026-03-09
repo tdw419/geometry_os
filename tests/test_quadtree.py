@@ -121,6 +121,19 @@ class TestQuadTree:
         assert "near.py" in paths
         assert "far.py" not in paths
 
+    def test_quadtree_clear(self):
+        """Test QuadTree.clear() removes all particles."""
+        from systems.infinite_map.quadtree import QuadTree
+
+        tree = QuadTree(width=1024, height=1024)
+        tree.insert(500, 500, 1.0, {"path": "test.py"})
+        assert tree.root.total_mass == 1.0
+
+        tree.clear()
+        assert tree.root.total_mass == 0.0
+        nearby = tree.find_nearby(500, 500, radius=100)
+        assert len(nearby) == 0
+
 
 class TestBarnesHutApproximation:
     """Tests for Barnes-Hut force approximation."""
@@ -145,6 +158,66 @@ class TestBarnesHutApproximation:
             tree.insert(900 + i, 900 + i, 1.0, {"cluster": "far"})
         approx_count = tree.count_approximations(100, 100, theta=0.5)
         assert approx_count >= 1
+
+    def test_calculate_force_single_particle(self):
+        """Test force calculation with single particle."""
+        from systems.infinite_map.quadtree import QuadTree
+
+        tree = QuadTree(width=1000, height=1000)
+        tree.insert(100, 100, 1.0, {"id": "test"})
+
+        # Force on particle at origin
+        fx, fy = tree.calculate_force(0, 0, k_repel=1.0, theta=0.5)
+
+        # Should point away from (100, 100)
+        assert fx != 0 or fy != 0
+
+    def test_calculate_force_multiple_particles(self):
+        """Test force calculation with multiple particles."""
+        from systems.infinite_map.quadtree import QuadTree
+
+        tree = QuadTree(width=1000, height=1000)
+
+        # Create a cluster of particles
+        tree.insert(100, 100, 1.0, {"id": 1})
+        tree.insert(110, 100, 1.0, {"id": 2})
+        tree.insert(100, 110, 1.0, {"id": 3})
+
+        # Force on particle at origin
+        fx, fy = tree.calculate_force(0, 0, k_repel=1.0, theta=0.5)
+
+        # Force should be non-zero
+        assert fx != 0 or fy != 0
+
+    def test_no_self_force(self):
+        """Test that particle doesn't exert force on itself."""
+        from systems.infinite_map.quadtree import QuadTree
+
+        tree = QuadTree(width=1000, height=1000)
+        tree.insert(500, 500, 1.0, {"id": "test"})
+
+        # Force on particle at its own location
+        fx, fy = tree.calculate_force(500, 500, k_repel=1.0, theta=0.5)
+
+        # Should be zero (no self-force)
+        assert fx == 0.0
+        assert fy == 0.0
+
+    def test_force_direction(self):
+        """Test that repulsive force points away from mass."""
+        from systems.infinite_map.quadtree import QuadTree
+
+        tree = QuadTree(width=1000, height=1000)
+
+        # Particle at (100, 0)
+        tree.insert(100, 0, 1.0, {"id": "test"})
+
+        # Force on particle at origin should point left (negative x)
+        fx, fy = tree.calculate_force(0, 0, k_repel=1.0, theta=0.5)
+
+        # Repulsive force should push away from (100, 0)
+        # So force on (0, 0) should be in negative x direction
+        assert fx < 0
 
 
 class TestQuadrantAssignment:

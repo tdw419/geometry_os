@@ -7,13 +7,15 @@ import numpy as np
 import time
 import json
 import os
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
+from systems.infinite_map.quadtree import QuadTree
 
 class GravityEngine:
     def __init__(
         self,
         bounds: Tuple[int, int, int] = (1024, 1024, 256),
-        use_octree: bool = False, # Quadtree is 2D, Octree pending
+        use_quadtree: bool = True,
+        quadtree_threshold: int = 50,
         theta: float = 0.5
     ):
         self.bounds = bounds
@@ -26,9 +28,10 @@ class GravityEngine:
         self.friction = 0.85    # Velocity damping (increased for stability)
         self.dt = 0.1           # Simulation timestep
 
-        # Octree acceleration (Future Task 50.1)
-        self.use_octree = use_octree
-        self.theta = theta  
+        # Quadtree acceleration (Barnes-Hut)
+        self.use_quadtree = use_quadtree
+        self.quadtree_threshold = quadtree_threshold
+        self.theta = theta
 
         # Performance Tracking
         self.last_update = time.time()
@@ -59,10 +62,9 @@ class GravityEngine:
         if n_orbs < 2:
             return
 
-        # Choose algorithm
-        if self.use_octree:
-            # self._update_octree() # Pending Task 50.1
-            self._update_direct()
+        # Choose algorithm based on particle count and settings
+        if self.use_quadtree and n_orbs > self.quadtree_threshold:
+            self._update_quadtree()
         else:
             self._update_direct()
 
@@ -72,7 +74,7 @@ class GravityEngine:
         """O(N^2) direct force calculation in 3D."""
         paths = list(self.orbs.keys())
         n = len(paths)
-        
+
         # Extract batch arrays
         pos = np.array([self.orbs[p]["pos"] for p in paths])
         vel = np.array([self.orbs[p]["vel"] for p in paths])
@@ -115,6 +117,63 @@ class GravityEngine:
             self.orbs[path]["pos"] = pos[i]
             self.orbs[path]["vel"] = vel[i]
 
+    def _update_quadtree(self):
+        """O(N log N) Barnes-Hut force calculation using quadtree for XY plane."""
+        paths = list(self.orbs.keys())
+        n = len(paths)
+
+        # Extract batch arrays
+        pos = np.array([self.orbs[p]["pos"] for p in paths])
+        vel = np.array([self.orbs[p]["vel"] for p in paths])
+        mass = np.array([self.orbs[p]["mass"] for p in paths])
+        target_z = np.array([self.orbs[p]["target_z"] for p in paths])
+
+        forces = np.zeros_like(pos)
+
+        # 1. Build quadtree from XY positions
+        # Use mass=1.0 for each particle to match direct calculation behavior
+        # (direct calc doesn't weight by mass in repulsion)
+        quadtree = QuadTree(width=self.bounds[0], height=self.bounds[1], theta=self.theta)
+        for i, path in enumerate(paths):
+            x, y = pos[i][0], pos[i][1]
+            # Use uniform mass=1.0 to match direct calculation
+            quadtree.insert(x, y, mass=1.0, data={"path": path, "idx": i})
+
+        # 2. Repulsive Forces using Barnes-Hut (XY plane only)
+        for i in range(n):
+            x, y = pos[i][0], pos[i][1]
+            force_2d = quadtree.calculate_force(x, y, theta=self.theta, k_repel=self.k_repel)
+            if force_2d is not None:
+                fx, fy = force_2d
+                forces[i][0] += fx
+                forces[i][1] += fy
+
+        # 3. Attractive Forces (3D Springs) - direct calculation
+        for i, path in enumerate(paths):
+            for linked_path in self.orbs[path]["links"]:
+                if linked_path in self.orbs:
+                    j = paths.index(linked_path)
+                    diff = pos[j] - pos[i]
+                    forces[i] += self.k_spring * diff
+                    forces[j] -= self.k_spring * diff
+
+        # 4. Z-Axis Layer Affinity (Restoring Force)
+        z_diff = target_z - pos[:, 2]
+        forces[:, 2] += self.k_layer * z_diff
+
+        # 5. Integration
+        accel = forces / mass[:, np.newaxis]
+        vel = (vel + accel * self.dt) * self.friction
+        pos = pos + vel * self.dt
+
+        # Constrain to 3D bounds
+        pos = np.clip(pos, [0, 0, 0], self.bounds)
+
+        # Update internal state
+        for i, path in enumerate(paths):
+            self.orbs[path]["pos"] = pos[i]
+            self.orbs[path]["vel"] = vel[i]
+
     def get_updates(self) -> List[Dict[str, Any]]:
         """Return changed 3D positions for the compositor."""
         updates = []
@@ -144,12 +203,12 @@ if __name__ == "__main__":
     engine.add_orb("kernel.rs", 100, 100, 0, 5000, target_z=0)      # Layer 0: Foundation
     engine.add_orb("app.py", 110, 110, 128, 2000, target_z=128)    # Layer 128: Logic
     engine.add_orb("readme.md", 500, 500, 255, 1000, target_z=255) # Layer 255: Concept
-    
+
     engine.link_orbs("kernel.rs", "app.py")
-    
+
     for i in range(20):
         engine.update()
         updates = engine.get_updates()
         print(f"Step {i}: kernel.z={updates[0]['z']:.1f}, app.z={updates[1]['z']:.1f}, doc.z={updates[2]['z']:.1f}")
-    
+
     print("3D Gravity Simulation Complete.")

@@ -24,7 +24,7 @@ class TestGravityEngineQuadtreeMode:
 
         # Add few orbs - should use direct O(N^2)
         for i in range(5):
-            engine.add_orb(f"file_{i}.py", i * 100, i * 100, 1024)
+            engine.add_orb(f"file_{i}.py", i * 100, i * 100, 128, size=100)
 
         engine.update()
         # No exception = success
@@ -37,7 +37,7 @@ class TestGravityEngineQuadtreeMode:
         for i in range(100):
             x = (i * 73) % 1024
             y = (i * 97) % 1024
-            engine.add_orb(f"file_{i}.py", x, y, 1024)
+            engine.add_orb(f"file_{i}.py", x, y, 128, size=100)
 
         engine.update()
         # No exception = success
@@ -46,14 +46,14 @@ class TestGravityEngineQuadtreeMode:
         """Test quadtree forces are within 15% of direct calculation."""
         # Create two engines with same configuration
         engine_direct = GravityEngine(use_quadtree=False)
-        engine_quadtree = GravityEngine(use_quadtree=True, theta=0.5)
+        engine_quadtree = GravityEngine(use_quadtree=True, theta=0.5, quadtree_threshold=10)
 
         # Add same orbs to both
         for i in range(50):
             x = (i * 73) % 1024
             y = (i * 97) % 1024
-            engine_direct.add_orb(f"file_{i}.py", x, y, 1024)
-            engine_quadtree.add_orb(f"file_{i}.py", x, y, 1024)
+            engine_direct.add_orb(f"file_{i}.py", x, y, 128, size=100)
+            engine_quadtree.add_orb(f"file_{i}.py", x, y, 128, size=100)
 
         # Run one update
         engine_direct.update()
@@ -81,16 +81,16 @@ class TestGravityEnginePerformance:
         # Direct O(N^2) calculation
         engine_direct = GravityEngine(use_quadtree=False)
         for i in range(N):
-            engine_direct.add_orb(f"file_{i}.py", (i * 73) % 1024, (i * 97) % 1024, 1024)
+            engine_direct.add_orb(f"file_{i}.py", (i * 73) % 1024, (i * 97) % 1024, 128, size=100)
 
         start_direct = time.time()
         engine_direct.update()
         time_direct = time.time() - start_direct
 
         # Quadtree O(N log N) calculation
-        engine_quad = GravityEngine(use_quadtree=True, theta=0.5)
+        engine_quad = GravityEngine(use_quadtree=True, theta=0.5, quadtree_threshold=10)
         for i in range(N):
-            engine_quad.add_orb(f"file_{i}.py", (i * 73) % 1024, (i * 97) % 1024, 1024)
+            engine_quad.add_orb(f"file_{i}.py", (i * 73) % 1024, (i * 97) % 1024, 128, size=100)
 
         start_quad = time.time()
         engine_quad.update()
