@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 ## Current Position
 
 Phase: 1 of N (18-ephemeral-boot)
-Plan: 2 of N
+Plan: 1 of 2 complete
 Status: In progress
-Last activity: 2026-03-09 — Completed 18-02-PLAN.md
+Last activity: 2026-03-09 — Completed 18-01-PLAN.md
 
 Progress: [████████████████████████░] 98% (51/52 plans across all milestones)
 
@@ -51,7 +51,7 @@ Key decisions archived in `.planning/milestones/` and PROJECT.md:
 - v1.3: ContainerRole enum, ordered boot/shutdown, VirtualNetwork class
 - v1.4: VMSnapshotManager, linear timeout scaling, SnapshotMetadata, dual-source listing
 - v1.5: qemu-img convert -l for snapshot extraction, VM pause/resume guarantee, combined data encoding with offset metadata, ContainerType enum for vm-snapshot detection, CLI boot auto-routing, binary kernel/initrd extraction with hash verification
-- v1.6: ContainerInfo.is_ephemeral field for ephemeral container tracking with state persistence
+- v1.6: ContainerInfo.is_ephemeral field for ephemeral container tracking with state persistence, EphemeralBooter wrapper with temp file management
 
 ### Pending Todos
 
@@ -63,8 +63,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-09 15:10 UTC
-Stopped at: Completed 18-02-PLAN.md
+Last session: 2026-03-09 15:16 UTC
+Stopped at: Completed 18-01-PLAN.md
 Resume file: None
 
 ---
