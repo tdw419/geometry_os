@@ -780,6 +780,7 @@ def _boot_multiple(args, input_paths):
             primary=args.primary,
             progress_callback=print_progress if args.primary else None,  # Only for ordered boot
             network_mode=args.network,
+            ephemeral=getattr(args, 'ephemeral', False),
         )
 
         # Print results
