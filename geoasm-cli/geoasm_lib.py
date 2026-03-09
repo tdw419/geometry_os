@@ -667,7 +667,8 @@ class GlyphSubstrate:
     """
     Python implementation of Hilbert-indexed pixel buffer for file visualization.
 
-    Uses the native Hilbert library if available, falls back to Python implementation.
+    Uses the native Hilbert library if available, falls back to HilbertEngine,
+    then to inline Python implementation.
     """
 
     def __init__(self, order: int = 8):
@@ -681,7 +682,14 @@ class GlyphSubstrate:
         self.n = 1 << order  # Grid size (2^order)
         self.buffer = [0] * (self.n * self.n)
 
-        # Try to use native Hilbert library
+        # Initialize HilbertEngine (always available for property access)
+        try:
+            from systems.evolution.HilbertEngine import HilbertEngine
+            self._hilbert_engine = HilbertEngine()
+        except ImportError:
+            self._hilbert_engine = None
+
+        # Try to use native Hilbert library for faster operations
         try:
             from systems.sisyphus.native_hilbert import NativeHilbertLUT
             self._hilbert = NativeHilbertLUT()
@@ -690,16 +698,25 @@ class GlyphSubstrate:
             self._hilbert = None
             self._use_native = False
 
+    @property
+    def hilbert_engine(self):
+        """Return the HilbertEngine instance if available."""
+        return self._hilbert_engine
+
     def xy2d(self, x: int, y: int) -> int:
         """Convert 2D coordinates to Hilbert distance."""
         if self._use_native:
             return self._hilbert.xy2d(self.n, x, y)
+        if self._hilbert_engine:
+            return self._hilbert_engine.xy2d(self.n, x, y)
         return self._xy2d_python(x, y)
 
     def d2xy(self, d: int) -> tuple:
         """Convert Hilbert distance to 2D coordinates."""
         if self._use_native:
             return self._hilbert.d2xy(self.n, d)
+        if self._hilbert_engine:
+            return self._hilbert_engine.d2xy(self.n, d)
         return self._d2xy_python(d)
 
     def _rot(self, n, x, y, rx, ry):
