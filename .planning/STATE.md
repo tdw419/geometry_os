@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 ## Current Position
 
 Phase: 21 of 22 (Cryptographic Signatures)
-Plan: 1 of ? in current phase
+Plan: 2 of 2 in current phase
 Status: In progress
-Last activity: 2026-03-09 - Completed 21-01 SignatureVerifier
+Last activity: 2026-03-09 - Completed 21-02 FileSigner
 
-Progress: [█████████████████████░░░] 96% (70/72 plans across all milestones)
+Progress: [██████████████████████░░] 97% (71/72 plans across all milestones)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 70
+- Total plans completed: 71
 - Average duration: ~14 min
-- Total execution time: ~16.3 hours
+- Total execution time: ~16.4 hours
 
 **By Milestone:**
 
@@ -34,7 +34,7 @@ Progress: [█████████████████████░░
 | v1.4 Phases 12-14 | 10 | ~2.5 hrs | ~15 min |
 | v1.5 Phases 15-17 | 9 | ~2.5 hrs | ~17 min |
 | v1.6 Phase 18 | 8 | ~2 hrs | ~15 min |
-| v1.7 Phases 19-21 | 4 | ~13 min | ~3 min |
+| v1.7 Phases 19-21 | 5 | ~17 min | ~3 min |
 
 **Recent Trend:**
 - Last 5 plans: ~3 min per plan
@@ -60,6 +60,7 @@ Key decisions archived in `.planning/milestones/` and PROJECT.md:
 - Phase 19-02: ConsistencyVerifier for SHA256 hash verification with SKIP for missing metadata, truncated hash display in PASS details
 - Phase 20-01: SegmentIntegrityChecker with per-segment verification via decode_range(), optional segment_name param, metadata offsets/hashes pattern
 - Phase 21-01: SignatureVerifier for Ed25519 verification, sign SHA256 hash (32 bytes) not full data, SKIP for unsigned files, PIXELRTS_PUBLIC_KEY env var override
+- Phase 21-02: FileSigner for Ed25519 signing, PKCS8 PEM format for private keys, self-contained signatures with embedded public key
 
 ### Pending Todos
 
@@ -72,7 +73,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: Completed 21-01 SignatureVerifier
+Stopped at: Completed 21-02 FileSigner
 Resume file: None
 
 ---
