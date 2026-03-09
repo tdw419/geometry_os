@@ -13,7 +13,7 @@
 
 ## Current Status
 
-**Milestone v1.7 Vision Integrity started.** Ready for Phase 19 planning.
+**Milestone v1.7 Vision Integrity in progress.** Phase 21 plans created.
 
 ---
 
@@ -64,8 +64,8 @@ Plans:
 **Plans**: 2
 
 Plans:
-- [ ] 21-01: Signature verification
-- [ ] 21-02: File signing
+- [ ] 21-01-PLAN.md — Signature verification with SignatureVerifier
+- [ ] 21-02-PLAN.md — File signing with FileSigner
 
 #### Phase 22: CLI Integration
 **Goal**: Users can verify files via unified CLI command
@@ -88,10 +88,10 @@ Phases execute in numeric order: 19 → 20 → 21 → 22
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 19. Basic Verification | v1.7 | 0/2 | Not started | - |
-| 20. Segment Integrity | v1.7 | 1/1 | ✓ Complete | 2026-03-09 |
+| 19. Basic Verification | v1.7 | 2/2 | Complete | 2026-03-09 |
+| 20. Segment Integrity | v1.7 | 1/1 | Complete | 2026-03-09 |
 | 21. Cryptographic Signatures | v1.7 | 0/2 | Not started | - |
 | 22. CLI Integration | v1.7 | 0/1 | Not started | - |
 
 ---
-*Last updated: 2026-03-09 — v1.7 Vision Integrity roadmap created*
+*Last updated: 2026-03-09 — Phase 21 plans created*
