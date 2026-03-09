@@ -7,11 +7,11 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 
 ## Current Position
 Phase: 11 of 11 (Virtual Networking)
-Plan: 1 of ? in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-03-09 — Completed 11-01: VirtualNetwork class
+Last activity: 2026-03-09 — Completed 11-02: NetworkMode socket integration
 
-Progress: [█░░░░░░░░░░] Phase 11 started
+Progress: [██░░░░░░░░░] Phase 11: 2/3 plans complete
 
 ## Performance Metrics
 **v1.2 Velocity:**
@@ -29,8 +29,8 @@ Progress: [█░░░░░░░░░░] Phase 11 started
 - v1.2: 10 plans
 - v1.3: 5 plans (complete)
 - v1.4: 4 plans (complete)
-- v1.5: 1 plan (in progress)
-- Total: 50 plans
+- v1.5: 2 plans (in progress)
+- Total: 51 plans
 
 ## Accumulated Context
 
@@ -55,6 +55,7 @@ Key decisions archived in `.planning/milestones/`:
 - **10-04:** Progress callback pattern for ordered boot visibility (primary_start, primary_ready, helpers_start, helper_ready), callback only for ordered boot
 **v1.5 Decisions:**
 - **11-01:** VirtualNetwork class for QEMU socket netdev with multicast, default mcast 230.0.0.1:1234, no root required, virtio-net-pci device
+- **11-02:** Extended NetworkMode enum with SOCKET_MCAST and SOCKET_STREAM, integrated VirtualNetwork into QemuBoot, SOCKET_STREAM stubbed as NotImplementedError
 
 ### Pending Todos
 None.
@@ -64,7 +65,7 @@ None.
 
 ## Session Continuity
 Last session: 2026-03-09
-Stopped at: Completed 11-01-PLAN.md (VirtualNetwork class)
+Stopped at: Completed 11-02-PLAN.md (NetworkMode socket integration)
 
 **CLI Commands Available (v1.0 + v1.1 + v1.2 + v1.3 + v1.4):**
 - `pixelrts analyze <file.png>` - Vision analysis and verification
