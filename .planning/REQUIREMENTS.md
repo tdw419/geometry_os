@@ -14,9 +14,9 @@
 
 ### Snapshot Restore
 
-- [ ] **RESTORE-01**: User can restore container to snapshot state
-- [ ] **RESTORE-02**: Restore preserves container identity (name, VNC port)
-- [ ] **RESTORE-03**: Restore handles running container (stop, restore, restart)
+- [x] **RESTORE-01**: User can restore container to snapshot state
+- [x] **RESTORE-02**: Restore preserves container identity (name, VNC port)
+- [x] **RESTORE-03**: Restore handles running container (stop, restore, restart)
 
 ### Snapshot Management
 
@@ -47,9 +47,9 @@
 | SNAP-02 | Phase 12 | Complete |
 | SNAP-03 | Phase 12 | Complete |
 | SNAP-04 | Phase 12 | Complete |
-| RESTORE-01 | Phase 13 | Pending |
-| RESTORE-02 | Phase 13 | Pending |
-| RESTORE-03 | Phase 13 | Pending |
+| RESTORE-01 | Phase 13 | Complete |
+| RESTORE-02 | Phase 13 | Complete |
+| RESTORE-03 | Phase 13 | Complete |
 | MGMT-01 | Phase 14 | Pending |
 | MGMT-02 | Phase 14 | Pending |
 | MGMT-03 | Phase 14 | Pending |
@@ -61,7 +61,7 @@
 - v1.4 requirements: 13 total
 - Mapped to phases: 13
 - Unmapped: 0 ✓
-- Complete: 4/13 (31%)
+- Complete: 7/13 (54%)
 
 ---
 *Requirements updated: 2026-03-09*

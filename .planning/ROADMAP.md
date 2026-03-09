@@ -30,7 +30,7 @@ Plans:
 - [x] 12-03-PLAN.md — MultiBootManager snapshot coordination
 - [x] 12-04-PLAN.md — CLI `snapshot` command
 
-### Phase 13: Snapshot Restore
+### Phase 13: Snapshot Restore ✓
 **Goal**: Users can restore containers to a previous snapshot state
 **Depends on**: Phase 12 (snapshot creation)
 **Requirements**: RESTORE-01, RESTORE-02, RESTORE-03
@@ -39,11 +39,12 @@ Plans:
   2. Container state matches snapshot state after restore
   3. Network connections are re-established after restore
 **Plans:** 3 plans
+**Completed:** 2026-03-09
 
 Plans:
-- [ ] 13-01-PLAN.md — Restore operation via `loadvm` command
-- [ ] 13-02-PLAN.md — State validation after restore
-- [ ] 13-03-PLAN.md — CLI `restore` command
+- [x] 13-01-PLAN.md — Enhanced restore_snapshot with progress tracking and validation
+- [x] 13-02-PLAN.md — RestoreResult with identity preservation and network reconnection
+- [x] 13-03-PLAN.md — CLI restore command with verbose feedback
 
 ### Phase 14: Snapshot Management
 **Goal**: Users can list, delete, and manage snapshots
@@ -65,9 +66,9 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 12. Snapshot Creation | v1.4 | 4/4 | Complete | 2026-03-09 |
-| 13. Snapshot Restore | v1.4 | 0/3 | Not started | - |
+| 13. Snapshot Restore | v1.4 | 3/3 | Complete | 2026-03-09 |
 | 14. Snapshot Management | v1.4 | 0/3 | Not started | - |
 
 ---
 
-*Next: `/gsd:plan-phase 13` to plan Snapshot Restore*
+*Next: `/gsd:plan-phase 14` to plan Snapshot Management*
