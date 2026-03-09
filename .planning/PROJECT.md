@@ -97,20 +97,38 @@ If everything else fails, users must be able to:
   - /delta/list and /delta/<file>.json endpoints
   - DeltaHTTPHandler wired to HTTPBootServer
 
-## Current Milestone: v1.3 Multi-Boot
+### Validated (v1.3)
 
-**Goal:** Boot multiple PixelRTS containers simultaneously with network connectivity
+✓ **MULTI-01**: Boot multiple containers simultaneously — v1.3
+  - `pixelrts boot a.rts.png b.rts.png` command
+  - MultiBootManager with concurrent boot orchestration
+  - ResourceAllocator for VNC ports and socket paths
 
-**Target features:**
-- Simultaneous boot of multiple containers
-- Primary + helper container pattern
-- Network connectivity between containers
-- CLI multi-boot interface
+✓ **MULTI-02**: Network connectivity between containers — v1.3
+  - VirtualNetwork class for QEMU socket netdev
+  - NetworkMode.SOCKET_MCAST for multicast mesh
+  - Graceful fallback to USER mode on failure
 
-### Active (v1.3)
+✓ **ORDER-01**: Primary/helper container designation — v1.3
+  - ContainerRole enum (PRIMARY/HELPER)
+  - --primary CLI flag
+  - Ordered boot with primary first, helpers wait
 
-- [ ] **MULTI-01**: Boot multiple containers simultaneously
-- [ ] **MULTI-02**: Network connectivity between containers
+✓ **ORDER-02**: Ordered shutdown — v1.3
+  - stop_all_ordered() for reverse-order shutdown
+  - Helpers stop first, primary last
+
+✓ **ORDER-03**: Boot progress visibility — v1.3
+  - progress_callback for ordered boot events
+  - CLI output shows boot order progress
+
+✓ **STATUS-01**: Container status command — v1.3
+  - `pixelrts ps` shows running containers
+  - Table output with NAME/STATE/VNC/PID columns
+
+✓ **STATUS-02**: Container state tracking — v1.3
+  - ContainerState enum (IDLE/LAUNCHING/RUNNING/STOPPED/ERROR)
+  - State file at /tmp/pixelrts/containers.json
 
 ### Future
 
@@ -136,11 +154,12 @@ If everything else fails, users must be able to:
 - CLI command: diff
 - 23 tests passing
 
-**Shipped v1.2 (2026-03-09):**
-- 4 phases (6, 7, 8, 8.1), 10 plans completed
-- CLI commands: serve, delta, patch, update
-- 425 tests passing
-- Network boot (PXE/NBD), HTTP boot, delta updates
+**Shipped v1.3 (2026-03-09):**
+- 3 phases (9, 10, 11), 12 plans completed
+- CLI commands: boot (multi), ps
+- 62+ tests passing (multi_boot_manager, 28+ tests passing (virtual_network)
+- Multi-container boot with ordered primary/helper pattern
+- Virtual networking without root privileges
 
 **Tech Stack:**
 - Python 3.12+
@@ -168,7 +187,7 @@ If everything else fails, users must be able to:
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Use existing PixelRTS v2 format | Leverage invested work, maintain compatibility | ✓ Good |
+| use existing PixelRTS v2 format | Leverage invested work, maintain compatibility | ✓ Good |
 | FUSE filesystem for direct boot | Clean integration with existing tools | ✓ Good |
 | Vision model for verification | Unique advantage of visual format | ✓ Good |
 | Phase 1: Vision analysis first | Demonstrates core differentiator | ✓ Good |
@@ -185,6 +204,23 @@ If everything else fails, users must be able to:
 | Handler interface `handle(path, headers, writer) -> bool` | Clean extensibility | ✓ Good |
 | ByteFetcher protocol | Remote region fetching | ✓ Good |
 | Decode/encode cycle for checksums | Data integrity | ✓ Good |
+| VNC port range 5900-5999 (100 ports) | Thread-safe allocation, UUID5 deterministic IDs | ✓ Good |
+| asyncio.gather for concurrent boot | Parallel startup efficiency | ✓ Good |
+| run_in_executor for sync-to-async bridge | Clean async integration | ✓ Good |
+| ContainerState enum for lifecycle | Clear state machine | ✓ Good |
+| Compensating transaction cleanup | Atomic cleanup on failure | ✓ Good |
+| cleanup_on_failure=True by default | Safe default | ✓ Good |
+| State file at /tmp/pixelrts/containers.json | Persistent state | ✓ Good |
+| table output with NAME/STATE/VNC/PID columns | Clear status display | ✓ Good |
+| CLI multi-file boot via nargs='+' | Intuitive UX | ✓ Good |
+| ContainerRole enum (PRIMARY/HELPER) | Clear ordered boot semantics | ✓ Good |
+| Ordered boot pattern (primary first, helpers wait) | Predictable startup order | ✓ Good |
+| Ordered shutdown pattern (helpers first, primary last) | Graceful teardown | ✓ Good |
+| Progress callback for ordered boot visibility | User feedback | ✓ Good |
+| VirtualNetwork class with QEMU socket netdev | No-root networking | ✓ Good |
+| NetworkMode enum extension (SOCKET_MCAST, SOCKET_STREAM) | Flexible network modes | ✓ Good |
+| Graceful network fallback to USER mode | Robust error handling | ✓ Good |
 
 ---
-*Last updated: 2026-03-09 — v1.2 shipped*
+*Last updated: 2026-03-09 — v1.3 shipped*
+
