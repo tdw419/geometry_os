@@ -6,7 +6,7 @@ function call counts and durations.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 from threading import Lock
 import time
 
@@ -40,12 +40,13 @@ class PerformanceMonitor:
     may benefit from optimization via the Self-Rewriting Kernel.
     """
 
-    def __init__(self):
+    def __init__(self, visual_bridge: Optional[Any] = None):
         """Initialize the monitor with thread-safe data structures."""
         self._lock = Lock()
         self._call_counts: Dict[str, int] = {}
         self._call_times: Dict[str, float] = {}  # total time in ms
         self._source_locations: Dict[str, Tuple[str, int]] = {}
+        self.visual_bridge = visual_bridge
 
     @property
     def call_counts(self) -> Dict[str, int]:
@@ -76,6 +77,10 @@ class PerformanceMonitor:
         with self._lock:
             self._call_counts[function_name] = self._call_counts.get(function_name, 0) + 1
             self._call_times[function_name] = self._call_times.get(function_name, 0.0) + duration_ms
+            
+            # Highlight extreme hot spots in the UI
+            if duration_ms > 100.0 and self.visual_bridge:
+                self.visual_bridge.emit_kernel_hotspot(function_name, duration_ms)
 
     def detect_hot_spots(
         self,

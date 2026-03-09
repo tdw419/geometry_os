@@ -7,5 +7,23 @@
     "vocab": 50257,
     "dim": 64,
     "layers": 8
-  }
+  },
+  "evolution_history": [
+    {
+      "cycle": 1,
+      "timestamp": "2026-03-09T11:52:38.624205",
+      "sector": "embeddings",
+      "rate": 0.01,
+      "type": "gaussian"
+    },
+    {
+      "cycle": 2,
+      "timestamp": "2026-03-09T11:56:56.585895",
+      "sector": "layer_7_ffn",
+      "rate": 0.005,
+      "type": "guided_grammar",
+      "hypothesis": "affects_syntax_not_vocabulary"
+    }
+  ],
+  "last_mutation": "cycle_1_embedding"
 }

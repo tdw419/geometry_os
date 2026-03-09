@@ -68,7 +68,7 @@ OPCODES = {
     0xCC: ("PANEL_TITLE", 2, "Set panel title bar"),
     0xCD: ("PANEL_BORDER", 1, "Draw panel border"),
     0xCE: ("HEATMAP_CELL", 3, "Draw heatmap cell"),
-    0xCF: ("DRAW_PIXEL", 2, "Draw pixel"),
+    0xDF: ("KERNEL_REWRITE", 2, "Highlight kernel rewrite event"),
     # Neural Extension Opcodes (PixelBrain)
     0xD0: ("EMBED", 2, "Lookup token embedding from weight atlas"),
     0xD1: ("ATTEND", 2, "Self-attention via WGSL kernel"),

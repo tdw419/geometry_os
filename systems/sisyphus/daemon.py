@@ -338,12 +338,16 @@ class SisyphusDaemon:
                 decay_interval=10.0
             )
 
+        # Shared visual bridge for real-time desktop feedback
+        from systems.visual_shell.api.visual_bridge import multi_vm_streamer
+        self.visual_bridge = multi_vm_streamer
+
         # Self-rewriting components
         self.enable_self_rewriting = enable_self_rewriting
         if enable_self_rewriting:
-            self.performance_monitor = PerformanceMonitor()
+            self.performance_monitor = PerformanceMonitor(visual_bridge=self.visual_bridge)
             self.kernel_rewriter = KernelRewriter()
-            self.hot_swap_manager = HotSwapManager()
+            self.hot_swap_manager = HotSwapManager(visual_bridge=self.visual_bridge)
             self._last_hot_spot_check = 0
             self._hot_spot_check_interval = 300  # 5 minutes
         else:

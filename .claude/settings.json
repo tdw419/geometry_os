@@ -3,17 +3,29 @@
     "Stop": [
       {
         "matcher": "",
-        "hooks": [".claude/hooks/meta-prompter.sh"]
+        "hooks": [".claude/hooks/meta-prompter-pixelbrain.py"]
       }
     ],
     "Notification": [
       {
         "matcher": "idle_prompt",
-        "hooks": [".claude/hooks/meta-prompter.sh"]
+        "hooks": [".claude/hooks/meta-prompter-pixelbrain.py"]
       },
       {
         "matcher": "permission_prompt",
-        "hooks": [".claude/hooks/meta-prompter.sh"]
+        "hooks": [".claude/hooks/meta-prompter-pixelbrain.py"]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [".claude/hooks/track-tool-outcome.py"]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "",
+        "hooks": [".claude/hooks/track-tool-outcome.py"]
       }
     ]
   }

@@ -851,17 +851,50 @@ class MultiVmStreamer:
             self.active_websockets -= dead_sockets
 
         # Schedule broadcast on event loop
+        self._dispatch_event(glow)
+        return True
+
+    def _dispatch_event(self, event: Dict[str, Any]) -> None:
+        """Helper to dispatch an event to all connected WebSocket clients."""
+        async def _broadcast():
+            dead_sockets = set()
+            for ws in list(self.active_websockets):
+                try:
+                    await ws.send_json(event)
+                except Exception:
+                    dead_sockets.add(ws)
+            self.active_websockets -= dead_sockets
+
         try:
             loop = asyncio.get_running_loop()
             loop.create_task(_broadcast())
         except RuntimeError:
-            # No running event loop - try to run synchronously
             try:
                 asyncio.run(_broadcast())
             except Exception:
-                pass  # Silently fail in test contexts
+                pass
 
-        return True
+    def emit_kernel_hotspot(self, function_name: str, duration_ms: float) -> None:
+        """Emit KERNEL_HOTSPOT event to highlight performance bottlenecks."""
+        msg = {
+            "type": "KERNEL_HOTSPOT",
+            "function": function_name,
+            "duration": duration_ms,
+            "opcode": 0xDA, # ANALYZE_HOT_PATHS
+            "timestamp": time.time()
+        }
+        self._dispatch_event(msg)
+
+    def emit_kernel_rewrite(self, function_name: str, speedup: float) -> None:
+        """Emit KERNEL_REWRITE event to highlight self-modification."""
+        msg = {
+            "type": "KERNEL_REWRITE",
+            "function": function_name,
+            "speedup": speedup,
+            "opcode": 0xDF, # KERNEL_REWRITE
+            "timestamp": time.time()
+        }
+        self._dispatch_event(msg)
 
     # ========================================================================
     # ATTENTION_UPDATE Emission (Task 9.2: Glass Box Introspection)

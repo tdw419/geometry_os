@@ -8,9 +8,10 @@ This is critical infrastructure for self-modifying code.
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Any
 import re
 import shutil
+import time
 
 from systems.sisyphus.kernel_rewriter import RewriteProposal
 
@@ -34,16 +35,19 @@ class HotSwapManager:
     - Supports rollback to any previous state
     """
 
-    def __init__(self, backup_dir: str = ".loop/hot_swap_backups"):
+    def __init__(self, backup_dir: str = ".loop/hot_swap_backups", visual_bridge: Optional[Any] = None):
         """
-        Initialize the hot-swap manager.
+        Initialize the manager.
 
         Args:
-            backup_dir: Directory to store backup files
+            backup_dir: Directory to store file backups
+            visual_bridge: Optional VisualBridge for real-time feedback
         """
         self.backup_dir = Path(backup_dir)
         self.backup_dir.mkdir(parents=True, exist_ok=True)
-        self._applied_rewrites: List[AppliedRewrite] = []
+        self.history: List[AppliedRewrite] = []
+        self.visual_bridge = visual_bridge
+
 
     def create_backup(self, file_path: str) -> str:
         """
@@ -115,7 +119,14 @@ class HotSwapManager:
                 applied_at=datetime.now(),
                 rolled_back=False
             )
-            self._applied_rewrites.append(applied)
+            self.history.append(applied)
+            
+            # Emit visual feedback
+            if self.visual_bridge:
+                self.visual_bridge.emit_kernel_rewrite(
+                    proposal.original_function,
+                    proposal.expected_speedup
+                )
 
             return True
 
@@ -194,7 +205,7 @@ class HotSwapManager:
             shutil.copy2(backup, target)
 
             # Mark any affected rewrites as rolled back
-            for applied in self._applied_rewrites:
+            for applied in self.history:
                 if applied.backup_path == backup_path and not applied.rolled_back:
                     applied.rolled_back = True
 
@@ -210,7 +221,7 @@ class HotSwapManager:
         Returns:
             List of AppliedRewrite objects that are still active
         """
-        return [r for r in self._applied_rewrites if not r.rolled_back]
+        return [r for r in self.history if not r.rolled_back]
 
     def get_all_rewrites(self) -> List[AppliedRewrite]:
         """
@@ -219,8 +230,8 @@ class HotSwapManager:
         Returns:
             List of all AppliedRewrite objects
         """
-        return self._applied_rewrites.copy()
+        return self.history.copy()
 
     def clear_history(self) -> None:
         """Clear the rewrite history (does not delete backup files)."""
-        self._applied_rewrites.clear()
+        self.history.clear()

@@ -13,7 +13,6 @@ set -euo pipefail
 
 PROJECT_DIR="/home/jericho/zion/projects/geometry_os/geometry_os"
 HISTORY_DIR="$HOME/.claude/projects/-home-jericho-zion-projects-geometry-os-geometry-os"
-HOOK_SCRIPT="$PROJECT_DIR/.claude/hooks/meta-analyzer-prompt.txt"
 
 # Parse hook input
 INPUT=$(cat)
@@ -44,10 +43,9 @@ case "$EVENT" in
                 ;;
             permission_prompt)
                 CONTEXT="The main Claude session is waiting for permission approval."
-                # Could auto-approve here if desired
                 ;;
             *)
-                CONTEXT="The main Claude session triggered a notification: $NOTIFICATION_TYPE"
+                CONTEXT="The main Claude session triggered notification: $NOTIFICATION_TYPE"
                 ;;
         esac
         ;;
@@ -57,84 +55,113 @@ case "$EVENT" in
         ;;
 esac
 
-# Find the most recent conversation history file
-LATEST_HISTORY=$(find "$HISTORY_DIR" -name "*.jsonl" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+# Use the current session's transcript if available, otherwise find most recent
+if [[ -n "$TRANSCRIPT_PATH" && -f "$TRANSCRIPT_PATH" ]]; then
+    HISTORY_FILE="$TRANSCRIPT_PATH"
+else
+    HISTORY_FILE=$(find "$HISTORY_DIR" -name "*.jsonl" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+fi
 
-if [[ -z "$LATEST_HISTORY" ]]; then
-    log "No history files found in $HISTORY_DIR"
+if [[ -z "$HISTORY_FILE" || ! -f "$HISTORY_FILE" ]]; then
+    log "No history files found"
     exit 0
 fi
 
-log "Using history: $LATEST_HISTORY"
+log "Using history: $HISTORY_FILE"
 
-# Read the last N turns from history (simplified - just get last 50 lines)
-# In production, you'd parse the JSONL properly
-RECENT_HISTORY=$(tail -50 "$LATEST_HISTORY" 2>/dev/null | jq -s '.' 2>/dev/null || echo "[]")
+# Extract readable conversation from JSONL
+# This handles both string content and array content formats
+extract_history() {
+    local file="$1"
+    local lines="${2:-30}"
+
+    tail -"$lines" "$file" 2>/dev/null | jq -r '
+        select(.type == "user" or .type == "assistant") |
+        if .type == "user" then
+            "USER: " + (
+                if (.message.content | type) == "string" then
+                    .message.content[0:500]
+                elif (.message.content | type) == "array" then
+                    (.message.content | map(select(.type == "text") | .text)[0] // "")[0:500]
+                else
+                    ""
+                end
+            )
+        else
+            "ASSISTANT: " + (
+                if (.message.content | type) == "string" then
+                    .message.content[0:500]
+                elif (.message.content | type) == "array" then
+                    (.message.content | map(select(.type == "text") | .text)[0] // "")[0:500]
+                else
+                    ""
+                end
+            )
+        end
+    ' 2>/dev/null | grep -v "^null$" | head -20
+}
+
+RECENT_HISTORY=$(extract_history "$HISTORY_FILE" 50)
+
+if [[ -z "$RECENT_HISTORY" ]]; then
+    log "Could not extract history"
+    exit 0
+fi
 
 # Build the analyzer prompt
-ANALYZER_PROMPT=$(cat << ANALYZER_EOF
+ANALYZER_PROMPT=$(cat << 'ANALYZER_EOF'
 You are a meta-cognitive assistant analyzing a Claude Code session.
+Your job is to determine what the NEXT prompt should be.
 
-CONTEXT: $CONTEXT
+CONTEXT: ANALYZER_CONTEXT_PLACEHOLDER
 
-PROJECT: Geometry OS - an autonomous visual computing system with neural event buses, swarm guilds, evolution daemon, and visual shell.
+PROJECT: Geometry OS - an autonomous visual computing system.
 
-RECENT CONVERSATION HISTORY (last turns from $LATEST_HISTORY):
-$(tail -20 "$LATEST_HISTORY" 2>/dev/null | while read -r line; do
-    echo "$line" | jq -r '.message.content // .message.text // empty' 2>/dev/null | head -c 500
-    echo ""
-done)
-
-CURRENT WORKING DIRECTORY: $PROJECT_DIR
+RECENT CONVERSATION:
+ANALYZER_HISTORY_PLACEHOLDER
 
 YOUR TASK:
-1. Analyze what just happened in the session
-2. Determine what the logical next step should be
-3. Output a SINGLE prompt that should be fed to the main session
+1. Analyze what just happened
+2. Determine the logical next step
+3. Output ONLY a single prompt (no markdown, no quotes, no explanation)
 
-OUTPUT FORMAT:
-- If you have a next prompt, output ONLY the prompt text (no markdown, no explanation)
-- If the session should wait for human input, output: WAIT
-- If the session seems stuck and needs human intervention, output: STUCK: [reason]
+OUTPUT RULES:
+- Output a prompt if there's a clear next step
+- Output "WAIT" if the session should pause for human
+- Output "STUCK: reason" if there's a problem
 
-GUIDELINES:
-- Prompts should be specific and actionable
-- Consider the project's active systems (NEB, Swarm, Evolution Daemon, Visual Shell)
-- Check for failing tests, incomplete features, or obvious next steps
-- Don't repeat what was just done
-- Be helpful but not verbose
+Be concise. Maximum 2 sentences for the prompt.
 ANALYZER_EOF
 )
 
-# Spawn secondary Claude session to analyze
-log "Spawning secondary Claude session for analysis..."
+# Replace placeholders
+ANALYZER_PROMPT="${ANALYZER_PROMPT/ANALYZER_CONTEXT_PLACEHOLDER/$CONTEXT}"
+ANALYZER_PROMPT="${ANALYZER_PROMPT/ANALYZER_HISTORY_PLACEHOLDER/$RECENT_HISTORY}"
+
+log "Spawning secondary Claude session..."
 
 # Use claude --print for non-interactive output
-# The --dangerously-skip-permissions allows it to run without blocking
-NEXT_PROMPT=$(claude --print --dangerously-skip-permissions "$ANALYZER_PROMPT" 2>/dev/null | head -c 2000)
+NEXT_PROMPT=$(claude --print --dangerously-skip-permissions "$ANALYZER_PROMPT" 2>/dev/null | head -c 1000 || echo "")
 
-log "Secondary session response: $NEXT_PROMPT"
+log "Response: $NEXT_PROMPT"
 
 # Handle the response
 case "$NEXT_PROMPT" in
     WAIT*)
-        log "Secondary session says: WAIT"
-        exit 0  # No prompt, let session idle
+        log "Secondary says: WAIT"
+        exit 0
         ;;
     STUCK:*)
         REASON="${NEXT_PROMPT#STUCK: }"
-        log "Secondary session says: STUCK - $REASON"
-        # Could send notification here
-        echo "Meta-analyzer detected issue: $REASON" >&2
+        log "Secondary says: STUCK - $REASON"
         exit 0
         ;;
     "")
-        log "Secondary session returned empty response"
+        log "Empty response"
         exit 0
         ;;
     *)
-        # We have a prompt! Feed it to the main session via stdout
-        log "Feeding prompt to main session: $NEXT_PROMPT"
+        log "Feeding prompt: $NEXT_PROMPT"
         echo "$NEXT_PROMPT"
         exit 0
         ;;

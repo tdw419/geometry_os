@@ -613,6 +613,16 @@ fn execute_command(cmd: GlyphCommand) {
             );
             render_token(token_glyph);
         }
+        case 0xDFu: { // KERNEL_REWRITE
+            // Pulsing orange visual for kernel modification
+            let dim = uniforms.resolution;
+            let idx = xy_to_hilbert(u32(glyph.x), u32(glyph.y), dim);
+            
+            let pulse = 0.5 + 0.5 * sin(uniforms.time * 5.0);
+            let rewrite_color = vec4<f32>(1.0, 0.4 * pulse, 0.0, 1.0);
+            
+            pixel_buffer[idx] = color_to_u32(rewrite_color);
+        }
         default: {
             // Ignore unknown opcode
         }
