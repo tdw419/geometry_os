@@ -6,5 +6,6 @@ distributed state synchronization.
 """
 
 from .peer_registry import NodeBeacon, Peer, PeerRegistry
+from .tectonic_sync import TectonicSync, SyncMessage
 
-__all__ = ["NodeBeacon", "Peer", "PeerRegistry"]
+__all__ = ["NodeBeacon", "Peer", "PeerRegistry", "TectonicSync", "SyncMessage"]
