@@ -372,6 +372,74 @@ class MultiBootManager:
             await asyncio.sleep(poll_interval)
         return True
 
+    async def _boot_ordered(
+        self,
+        paths: List[Path],
+        primary_name: str,
+        cmdline: Optional[str],
+        memory: str,
+        cpus: int,
+        primary_timeout: float = 30.0,
+    ) -> List[ContainerInfo]:
+        """
+        Boot containers in order: primary first, then helpers.
+
+        This method ensures the primary container (e.g., database, service mesh)
+        is fully running before helper containers start.
+
+        Args:
+            paths: List of paths to .rts.png files
+            primary_name: Name of the primary container
+            cmdline: Optional kernel command line
+            memory: Memory allocation per container
+            cpus: Number of CPUs per container
+            primary_timeout: Timeout for primary to reach RUNNING (default: 30.0)
+
+        Returns:
+            List of ContainerInfo for all containers
+        """
+        container_infos = []
+
+        # Separate primary and helpers
+        primary_path = None
+        helper_paths = []
+
+        for path in paths:
+            name = self._get_container_name(path)
+            if name == primary_name:
+                primary_path = path
+            else:
+                helper_paths.append(path)
+
+        # Boot primary first
+        if primary_path:
+            logger.info(f"Booting primary container: {primary_name}")
+            primary_info = await self._boot_single(
+                primary_path, cmdline, memory, cpus, is_primary=True
+            )
+            container_infos.append(primary_info)
+
+            # Wait for primary to be running
+            if primary_info.state != ContainerState.ERROR:
+                logger.info(f"Waiting for primary {primary_name} to reach RUNNING state...")
+                primary_ready = await self._wait_for_running(primary_info, timeout=primary_timeout)
+
+                if not primary_ready:
+                    logger.error(f"Primary {primary_name} failed to start, aborting helper boot")
+                    return container_infos
+
+        # Boot helpers concurrently
+        if helper_paths:
+            logger.info(f"Booting {len(helper_paths)} helper containers...")
+            helper_tasks = [
+                self._boot_single(path, cmdline, memory, cpus, is_primary=False)
+                for path in helper_paths
+            ]
+            helper_infos = await asyncio.gather(*helper_tasks)
+            container_infos.extend(helper_infos)
+
+        return container_infos
+
     def boot_all(
         self,
         paths: List[Union[str, Path]],
