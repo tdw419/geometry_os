@@ -1,0 +1,11 @@
+{
+  "type": "pixel-brain",
+  "model_id": "roneneldan/TinyStories-1M",
+  "encoding": "float16",
+  "geoasm": "\n; PixelBrain roneneldan/TinyStories-1M Orchestration\n; Native Geometry OS Inference\n\n.config\n  model_id \"roneneldan/TinyStories-1M\"\n  vocab_size 50257\n  hidden_dim 64\n  layers 8\n\n.main\n  ; Cognitive Loop\n  0xD4                  ; LLM_PROMPT (Await user intent)\n  0xD0 R1, R2           ; EMBED (Lookup token R1 into hidden R2)\n  \n  LOOP 8\n    0xD1 R2, R2         ; ATTEND (Self-Attention)\n    0xD2 R2, R2         ; PROJECT (FFN)\n  ENDLOOP\n  \n  0xD3 R2, R3           ; SAMPLE (Logits R2 to Token R3)\n  0xD6 R3               ; THOUGHT_PULSE (Visual feedback)\n  JMP .main\n        ",
+  "config": {
+    "vocab": 50257,
+    "dim": 64,
+    "layers": 8
+  }
+}

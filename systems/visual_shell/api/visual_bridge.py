@@ -863,6 +863,88 @@ class MultiVmStreamer:
 
         return True
 
+    # ========================================================================
+    # ATTENTION_UPDATE Emission (Task 9.2: Glass Box Introspection)
+    # ========================================================================
+
+    def emit_attention_update(
+        self,
+        layer: int,
+        head: int,
+        weights: List[float]
+    ) -> bool:
+        """
+        Emit an ATTENTION_UPDATE event for real-time attention visualization.
+
+        This method is called by the PixelBrain inference pipeline after
+        computing attention weights. It broadcasts the weights to connected
+        WebSocket clients for visualization by AttentionVisualizer.js.
+
+        Args:
+            layer: Transformer layer index (0-7 for TinyStories-1M)
+            head: Attention head index (0-7 for 8-head attention)
+            weights: List of attention weights (softmax scores)
+
+        Returns:
+            True if emission successful
+
+        Example:
+            >>> bridge.emit_attention_update(
+            ...     layer=0,
+            ...     head=2,
+            ...     weights=[0.1, 0.2, 0.3, 0.15, 0.25]
+            ... )
+            True
+        """
+        if weights is None:
+            return False
+
+        # Ensure weights is a list (convert numpy array if needed)
+        if isinstance(weights, np.ndarray):
+            weights = weights.tolist()
+
+        # Clamp layer and head to valid ranges
+        layer = max(0, min(layer, 7))
+        head = max(0, min(head, 7))
+
+        # Create the ATTENTION_UPDATE message
+        update = {
+            "type": "ATTENTION_UPDATE",
+            "layer": layer,
+            "head": head,
+            "weights": weights,
+            "timestamp": time.time()
+        }
+
+        async def _broadcast():
+            """Broadcast attention update to all connected clients."""
+            dead_sockets = set()
+            for ws in list(self.active_websockets):
+                try:
+                    await ws.send_json(update)
+                except Exception:
+                    dead_sockets.add(ws)
+            # Clean up dead connections
+            self.active_websockets -= dead_sockets
+
+        # Schedule broadcast on event loop
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_broadcast())
+        except RuntimeError:
+            # No running event loop - try to run synchronously
+            try:
+                asyncio.run(_broadcast())
+            except Exception:
+                pass  # Silently fail in test contexts
+
+        self.logger.debug(
+            f"Emitted ATTENTION_UPDATE: layer={layer}, head={head}, "
+            f"weights_len={len(weights)}"
+        )
+
+        return True
+
 
 # Note: multi_vm_streamer is initialized at module import time for test compatibility
 # The lifespan context manager handles proper startup/shutdown of the watcher

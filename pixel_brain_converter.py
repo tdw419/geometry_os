@@ -25,7 +25,7 @@ except ImportError:
     from systems.pixel_compiler.pixelrts_v2_core import HilbertCurve, PixelRTSMetadata, PixelRTSEncoder
 
 class PixelBrainConverter:
-    def __init__(self, model_id, grid_size=1024):
+    def __init__(self, model_id, grid_size=2048):
         print(f"🧠 Initializing PixelBrain for {model_id}...")
         self.model_id = model_id
         self.grid_size = grid_size
@@ -92,6 +92,13 @@ class PixelBrainConverter:
                     self._pack_to_atlas(atlas_data, state_dict[key], cursor)
                     cursor += state_dict[key].numel()
 
+        # 3. LM Head
+        lm_head = state_dict.get('lm_head.weight', state_dict.get('model.embed_tokens.weight'))
+        if lm_head is not None:
+            print(f"  └─ Folding LM Head: {lm_head.shape}")
+            self._pack_to_atlas(atlas_data, lm_head, cursor)
+            cursor += lm_head.numel()
+
         return bytes(atlas_data)
 
     def _pack_to_atlas(self, atlas_data, tensor, cursor_offset):
@@ -102,17 +109,18 @@ class PixelBrainConverter:
         norm = ((flat - flat.min()) / (flat.max() - flat.min() + 1e-8) * 255).astype(np.uint8)
 
         for i, val in enumerate(norm):
-            idx = (cursor_offset + i)
-            if idx >= len(self.lut):
-                break
-            x, y = self.lut[idx]
-            # Map to RGBA (using same value for RGB, A=255)
-            pixel_base = (y * self.grid_size + x) * 4
-            atlas_data[pixel_base] = val     # R
-            atlas_data[pixel_base + 1] = val # G
-            atlas_data[pixel_base + 2] = val # B
-            atlas_data[pixel_base + 3] = 255 # A
+            abs_float_idx = (cursor_offset + i)
+            pixel_idx = abs_float_idx // 4
+            channel = abs_float_idx % 4
 
+            if pixel_idx >= len(self.lut):
+                if i % 100000 == 0:
+                    print(f"  ⚠️ Atlas full at cursor={cursor_offset}, remaining={len(flat)-i}")
+                break
+
+            x, y = self.lut[pixel_idx]
+            pixel_base = (y * self.grid_size + x) * 4
+            atlas_data[pixel_base + channel] = val
     def create_brain_atlas_float16(self, model) -> np.ndarray:
         """
         Map transformer layers to 2D Hilbert space with float16 precision.
@@ -169,13 +177,16 @@ class PixelBrainConverter:
             flat = np.array(tensor).flatten().astype(np.float16)
 
         for i, val in enumerate(flat):
-            idx = cursor + i
-            if idx >= len(self.lut):
-                print(f"  ⚠️ Atlas full at cursor={cursor}, remaining={len(flat)-i}")
+            abs_float_idx = cursor + i
+            pixel_idx = abs_float_idx // 4
+            channel = abs_float_idx % 4
+            
+            if pixel_idx >= len(self.lut):
+                if i % 100000 == 0:
+                    print(f"  ⚠️ Atlas full at cursor={cursor}, remaining={len(flat)-i}")
                 break
 
-            x, y = self.lut[idx]
-            channel = idx % 4
+            x, y = self.lut[pixel_idx]
             atlas[y, x, channel] = val
 
         return cursor + len(flat)

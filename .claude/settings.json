@@ -1,0 +1,20 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [".claude/hooks/meta-prompter.sh"]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "idle_prompt",
+        "hooks": [".claude/hooks/meta-prompter.sh"]
+      },
+      {
+        "matcher": "permission_prompt",
+        "hooks": [".claude/hooks/meta-prompter.sh"]
+      }
+    ]
+  }
+}

@@ -103,9 +103,9 @@ class ThoughtSerializer:
 
             # Parse delta from content (format: link_prevx_prevy_deltax_deltay)
             parts = glyph.content.split('_')
-            if len(parts) >= 4:
-                dx = int(parts[2])
-                dy = int(parts[3])
+            if len(parts) >= 5:
+                dx = int(parts[3])
+                dy = int(parts[4])
             else:
                 dx, dy = 0, 0
 
