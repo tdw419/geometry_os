@@ -130,11 +130,54 @@ If everything else fails, users must be able to:
   - ContainerState enum (IDLE/LAUNCHING/RUNNING/STOPPED/ERROR)
   - State file at /tmp/pixelrts/containers.json
 
-### Active (v1.4)
+### Validated (v1.4)
 
-- [ ] **SNAP-01**: Create snapshot of running container
-- [ ] **SNAP-02**: Restore container to snapshot state
-- [ ] **SNAP-03**: List and manage snapshots
+✓ **SNAP-01**: Create snapshot of running container — v1.4
+  - VMSnapshotManager with QEMU savevm command
+  - Dynamic timeout based on VM memory size
+
+✓ **SNAP-02**: Snapshot captures full container state — v1.4
+  - QEMU savevm captures memory, CPU, device state
+  - Linear timeout scaling (2GB = 5s baseline)
+
+✓ **SNAP-03**: Snapshot creation is fast — v1.4
+  - Timeout formula: (memory_gb / 2) * 5 seconds
+
+✓ **SNAP-04**: Multiple snapshots per container — v1.4
+  - No limit on snapshots per container
+  - Tracked in ContainerInfo.snapshots
+
+✓ **RESTORE-01**: Restore container to snapshot state — v1.4
+  - VMSnapshotManager.restore_snapshot() with QEMU loadvm
+
+✓ **RESTORE-02**: Restore preserves container identity — v1.4
+  - RestoreResult.identity_preserved tracks name/VNC port
+
+✓ **RESTORE-03**: Restore handles running container — v1.4
+  - VM stays running through restore
+  - Post-restore verification
+
+✓ **MGMT-01**: List all snapshots — v1.4
+  - `pixelrts snapshots` lists across all containers
+
+✓ **MGMT-02**: Delete snapshot — v1.4
+  - `pixelrts snapshot delete <container> <tag>`
+
+✓ **MGMT-03**: Snapshots stored in standard location — v1.4
+  - /tmp/pixelrts/snapshots/<container>/metadata.json
+
+✓ **CLI-SNAP-01**: `pixelrts snapshot create <container>` — v1.4
+  - Timestamp-based default naming
+
+✓ **CLI-SNAP-02**: `pixelrts snapshot restore <container> <tag>` — v1.4
+  - Verbose output with identity/network status
+
+✓ **CLI-SNAP-03**: Timestamp-based naming — v1.4
+  - Format: snap-YYYYMMDD-HHMMSS
+
+### Active
+
+(None — ready for next milestone)
 
 ### Future
 
@@ -168,6 +211,13 @@ If everything else fails, users must be able to:
 - 62+ tests passing (multi_boot_manager, 28+ tests passing (virtual_network)
 - Multi-container boot with ordered primary/helper pattern
 - Virtual networking without root privileges
+
+**Shipped v1.4 (2026-03-09):**
+- 3 phases (12, 13, 14), 10 plans completed
+- CLI commands: snapshot (create/restore/list/delete), snapshots
+- 162 tests passing (snapshot functionality)
+- Live VM snapshots via QEMU monitor commands
+- Persistent metadata storage for stopped VMs
 
 **Tech Stack:**
 - Python 3.12+
@@ -228,17 +278,17 @@ If everything else fails, users must be able to:
 | VirtualNetwork class with QEMU socket netdev | No-root networking | ✓ Good |
 | NetworkMode enum extension (SOCKET_MCAST, SOCKET_STREAM) | Flexible network modes | ✓ Good |
 | Graceful network fallback to USER mode | Robust error handling | ✓ Good |
-
-## Current Milestone: v1.4 Live Snapshots
-
-**Goal:** Create and restore snapshots of running containers
-
-**Target features:**
-- Live snapshot creation while container is running
-- Restore container to previous snapshot state
-- Snapshot management (list, delete)
+| VMSnapshotManager via QemuBoot.send_monitor_command() | Reuse existing socket infrastructure | ✓ Good |
+| Linear timeout scaling: (memory_gb / 2) * 5 | SNAP-03 requirement for fast snapshots | ✓ Good |
+| RestoreState enum for progress tracking | Clear state machine for restore | ✓ Good |
+| RestoreResult dataclass with identity_preserved | Verify container identity after restore | ✓ Good |
+| SnapshotMetadata separate from VMSnapshotMetadata | Persistence needs differ from runtime | ✓ Good |
+| JSON per-container storage at /tmp/pixelrts/snapshots/ | Human-readable, easy to debug | ✓ Good |
+| Dual-source listing (VM or storage) | List snapshots even when VM stopped | ✓ Good |
+| Timestamp-based naming: snap-YYYYMMDD-HHMMSS | Consistent, sortable snapshot names | ✓ Good |
+| Global `pixelrts snapshots` command | Easy listing across all containers | ✓ Good |
 
 ---
-*Last updated: 2026-03-09 — v1.4 started*
+*Last updated: 2026-03-09 — v1.4 Live Snapshots shipped*
 
 

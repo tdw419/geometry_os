@@ -1,5 +1,60 @@
 # Project Milestones: PixelRTS
 
+## v1.4 Live Snapshots (Shipped: 2026-03-09)
+
+**Delivered:** Create and restore snapshots of running containers with persistent metadata storage.
+
+**Phases completed:** 12-14 (10 plans total)
+
+**Key accomplishments:**
+
+- VMSnapshotManager wraps QEMU monitor commands (savevm, loadvm, delvm)
+- Dynamic timeout scaling based on VM memory size (2GB = 5s baseline)
+- RestoreState enum for progress tracking (PENDING → VALIDATING → LOADING → VERIFYING → COMPLETE)
+- RestoreResult with identity preservation and network reconnection tracking
+- SnapshotStorage for persistent metadata at /tmp/pixelrts/snapshots/
+- Dual-source listing (live from VM when running, stored when stopped)
+- Timestamp-based naming: snap-YYYYMMDD-HHMMSS
+- Global `pixelrts snapshots` command to list across all containers
+
+**Stats:**
+
+- 3 phases (12, 13, 14), 10 plans
+- Timeline: Mar 9, 2026 (1 session)
+- 162 tests passing (77 vm_snapshot + 11 storage + 42 cli + 9 bridge + 23 manager)
+- ~7,648 lines added
+
+**Git tag:** v1.4
+
+---
+
+## v1.3 Multi-Boot (Shipped: 2026-03-09)
+
+**Delivered:** Boot and manage multiple containers simultaneously with ordered boot/shutdown and virtual networking.
+
+**Phases completed:** 9-11 (12 plans total)
+
+**Key accomplishments:**
+
+- MultiBootManager for concurrent container orchestration
+- ContainerRole enum (PRIMARY/HELPER) with ordered boot pattern
+- VirtualNetwork class for QEMU socket netdev without root
+- NetworkMode.SOCKET_MCAST for multicast mesh networking
+- Graceful network fallback to USER mode on failure
+- Ordered shutdown (helpers first, primary last)
+- `pixelrts ps` status command with table output
+- ContainerState enum and persistent state tracking
+
+**Stats:**
+
+- 3 phases (9, 10, 11), 12 plans
+- Timeline: Mar 9, 2026 (1 session)
+- 90+ tests passing (multi_boot_manager, virtual_network)
+
+**Git tag:** v1.3
+
+---
+
 ## v1.2 Network Boot (Shipped: 2026-03-09)
 
 **Delivered:** PXE/NBD network boot with HTTP chainload and delta updates.
@@ -48,8 +103,6 @@
 
 **Git range:** Phase 5 start → Phase 5 complete
 
-**What's next:** Network boot (PXE/NBD), delta updates
-
 ---
 
 ## v1.0 PixelRTS Boot (Shipped: 2026-03-08)
@@ -76,4 +129,4 @@
 
 ---
 
-*Last milestone: v1.2 (2026-03-09)*
+*Last milestone: v1.4 (2026-03-09)*
