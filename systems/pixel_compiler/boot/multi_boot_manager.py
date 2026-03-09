@@ -419,14 +419,18 @@ class MultiBootManager:
             )
             container_infos.append(primary_info)
 
-            # Wait for primary to be running
-            if primary_info.state != ContainerState.ERROR:
-                logger.info(f"Waiting for primary {primary_name} to reach RUNNING state...")
-                primary_ready = await self._wait_for_running(primary_info, timeout=primary_timeout)
+            # Check if primary failed to boot
+            if primary_info.state == ContainerState.ERROR:
+                logger.error(f"Primary {primary_name} failed to boot, aborting helper boot")
+                return container_infos
 
-                if not primary_ready:
-                    logger.error(f"Primary {primary_name} failed to start, aborting helper boot")
-                    return container_infos
+            # Wait for primary to be running
+            logger.info(f"Waiting for primary {primary_name} to reach RUNNING state...")
+            primary_ready = await self._wait_for_running(primary_info, timeout=primary_timeout)
+
+            if not primary_ready:
+                logger.error(f"Primary {primary_name} failed to start, aborting helper boot")
+                return container_infos
 
         # Boot helpers concurrently
         if helper_paths:

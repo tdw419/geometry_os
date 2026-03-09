@@ -881,3 +881,176 @@ class TestIntegrationScenarios:
         call_kwargs = mock_bridge_class.call_args[1]
         assert call_kwargs['memory'] == "4G"
         assert call_kwargs['cpus'] == 4
+
+
+# Ordered Boot Tests
+
+class TestOrderedBoot:
+    """Tests for ordered boot behavior with primary container."""
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_boot_all_ordered_primary_first(
+        self, mock_bridge_class, manager
+    ):
+        """Test that primary container boots before helpers in ordered mode."""
+        boot_order = []
+
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            vnc_display = kwargs.get('vnc_display', 0)
+
+            # Track boot order
+            def track_boot(*boot_args, **boot_kwargs):
+                boot_order.append(kwargs.get('rts_png_path', 'unknown'))
+                return BootResult(
+                    success=True,
+                    vnc_port=5900 + vnc_display,
+                    pid=1000 + vnc_display,
+                )
+            mock.boot.side_effect = track_boot
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png", "/fake/ubuntu.rts.png"],
+            primary="alpine.rts"
+        )
+
+        assert result.success is True
+        assert len(result.containers) == 2
+
+        # Verify primary (alpine) was booted first
+        assert boot_order[0].name == "alpine.rts.png"
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_boot_all_ordered_waits_for_primary(
+        self, mock_bridge_class, manager
+    ):
+        """Test that helpers wait for primary to reach RUNNING state."""
+        wait_called = [False]
+
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            vnc_display = kwargs.get('vnc_display', 0)
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900 + vnc_display,
+                pid=1000 + vnc_display,
+            )
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        # Patch _wait_for_running to verify it's called
+        original_wait = manager._wait_for_running
+
+        async def mock_wait(container_info, timeout=30.0, poll_interval=0.5):
+            wait_called[0] = True
+            return await original_wait(container_info, timeout, poll_interval)
+
+        with patch.object(manager, '_wait_for_running', side_effect=mock_wait):
+            result = manager.boot_all(
+                ["/fake/alpine.rts.png", "/fake/ubuntu.rts.png"],
+                primary="alpine.rts"
+            )
+
+        assert result.success is True
+        assert wait_called[0] is True, "_wait_for_running should be called for primary"
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_boot_all_ordered_primary_failure_aborts_helpers(
+        self, mock_bridge_class, manager
+    ):
+        """Test that helpers are NOT booted if primary fails."""
+        boot_count = [0]
+
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            # Track boot calls
+            def track_boot(*boot_args, **boot_kwargs):
+                boot_count[0] += 1
+                return BootResult(
+                    success=False,
+                    error_message="Primary boot failed",
+                )
+            mock.boot.side_effect = track_boot
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png", "/fake/ubuntu.rts.png"],
+            primary="alpine.rts"
+        )
+
+        # Only primary should have been attempted (helpers should not boot)
+        assert boot_count[0] == 1, "Only primary should be booted on failure"
+        assert result.success is False
+        assert len(result.containers) == 1
+        # Verify only primary container exists
+        assert result.containers[0].name == "alpine.rts"
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_boot_all_without_primary_is_concurrent(
+        self, mock_bridge_class, manager
+    ):
+        """Test that without primary parameter, all containers boot concurrently (existing behavior)."""
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            vnc_display = kwargs.get('vnc_display', 0)
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900 + vnc_display,
+                pid=1000 + vnc_display,
+            )
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        # Without primary, should use concurrent boot
+        result = manager.boot_all([
+            "/fake/alpine.rts.png",
+            "/fake/ubuntu.rts.png",
+        ])
+
+        assert result.success is True
+        assert result.success_count == 2
+        # All should have HELPER role (no primary designated)
+        for container in result.containers:
+            assert container.role == ContainerRole.HELPER
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_boot_ordered_primary_has_primary_role(
+        self, mock_bridge_class, manager
+    ):
+        """Test that primary container gets PRIMARY role and helpers get HELPER."""
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            vnc_display = kwargs.get('vnc_display', 0)
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900 + vnc_display,
+                pid=1000 + vnc_display,
+            )
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png", "/fake/ubuntu.rts.png", "/fake/debian.rts.png"],
+            primary="ubuntu.rts"
+        )
+
+        assert result.success is True
+        assert len(result.containers) == 3
+
+        # Find containers by name
+        alpine = next((c for c in result.containers if c.name == "alpine.rts"), None)
+        ubuntu = next((c for c in result.containers if c.name == "ubuntu.rts"), None)
+        debian = next((c for c in result.containers if c.name == "debian.rts"), None)
+
+        # Verify roles
+        assert alpine.role == ContainerRole.HELPER
+        assert ubuntu.role == ContainerRole.PRIMARY
+        assert debian.role == ContainerRole.HELPER
