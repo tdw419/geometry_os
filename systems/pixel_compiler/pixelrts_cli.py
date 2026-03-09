@@ -1637,9 +1637,102 @@ def cmd_snapshot_create(args):
 
 def cmd_commit(args):
     """Handle commit command - Commit a running container to a .rts.png file."""
-    # Placeholder - will be fully implemented in Task 2
-    print("Error: cmd_commit not yet implemented", file=sys.stderr)
-    return 1
+    from systems.pixel_compiler.boot import MultiBootManager
+    from systems.pixel_compiler.boot.snapshot_exporter import SnapshotExporter, ExportStage
+
+    container_name = args.container
+    output_path = Path(args.output)
+
+    # Validate output path has .rts.png extension
+    if not str(output_path).endswith('.rts.png'):
+        print(f"Error: Output path must end with .rts.png", file=sys.stderr)
+        return 1
+
+    # Look up container in MultiBootManager
+    manager = MultiBootManager()
+    container = manager.get_container(container_name)
+
+    if not container:
+        print(f"Error: Container '{container_name}' not found", file=sys.stderr)
+        print("Use 'pixelrts ps' to list running containers", file=sys.stderr)
+        return 1
+
+    # Get BootBridge from running container
+    boot_bridge = container.get('boot_bridge')
+    if not boot_bridge:
+        print(f"Error: Container '{container_name}' has no boot_bridge", file=sys.stderr)
+        return 1
+
+    if args.verbose:
+        print(f"Committing container '{container_name}' to {output_path}...")
+
+    # Progress callback for export stages
+    def on_progress(progress):
+        if args.quiet:
+            return
+        stage_name = progress.stage.value
+        message = progress.message or ""
+        if progress.stage == ExportStage.COMMITTING:
+            print(f"Committing: {message}")
+        elif progress.stage == ExportStage.EXTRACTING_BOOT_FILES:
+            print(f"Extracting boot files: {message}")
+        elif progress.stage == ExportStage.ENCODING:
+            if "complete" in message.lower():
+                print(f"Encoding: {message}")
+        elif progress.stage == ExportStage.VERIFYING:
+            print(f"Verifying: {message}")
+        elif progress.stage == ExportStage.COMPLETE:
+            pass  # Final success message printed below
+        elif progress.stage == ExportStage.FAILED:
+            print(f"Failed: {message}", file=sys.stderr)
+
+    # Create SnapshotExporter and run export
+    try:
+        exporter = SnapshotExporter(boot_bridge, progress_callback=on_progress)
+
+        if not args.quiet:
+            print(f"Starting commit operation...")
+
+        result = exporter.export(
+            output_path=output_path,
+            tag=args.snapshot,
+            timeout=args.timeout,
+            verify=not args.no_verify
+        )
+
+        if result.success:
+            if not args.quiet:
+                # Format size nicely
+                size_bytes = result.size_bytes
+                if size_bytes >= 1024 * 1024 * 1024:
+                    size_str = f"{size_bytes / (1024 * 1024 * 1024):.2f} GB"
+                elif size_bytes >= 1024 * 1024:
+                    size_str = f"{size_bytes / (1024 * 1024):.2f} MB"
+                elif size_bytes >= 1024:
+                    size_str = f"{size_bytes / 1024:.2f} KB"
+                else:
+                    size_str = f"{size_bytes} bytes"
+
+                print(f"Commit successful!")
+                print(f"  Output: {result.output_path}")
+                print(f"  Size: {size_str}")
+                if result.snapshot_tag:
+                    print(f"  Snapshot: {result.snapshot_tag}")
+                if result.verified:
+                    print(f"  Verified: Yes")
+                elif args.no_verify:
+                    print(f"  Verified: Skipped")
+            return 0
+        else:
+            print(f"Error: Commit failed: {result.error_message}", file=sys.stderr)
+            return 1
+
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
 
 
 def cmd_snapshot_list(args):
