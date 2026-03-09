@@ -191,6 +191,11 @@ class CommittedFileBooter:
         self._qemu: Optional[Any] = None  # QemuBoot instance
         self._booted = False
 
+        # Decoded state (populated by extract_qcow2)
+        self._decoder: Optional[Any] = None  # PixelRTSDecoder instance
+        self._decoded_metadata: Optional[Dict[str, Any]] = None
+        self._decoded_data: Optional[bytes] = None
+
         # Validate file exists
         if not self.rts_png_path.exists():
             raise FileNotFoundError(f"Committed file not found: {rts_png_path}")
@@ -350,9 +355,25 @@ class CommittedFileBooter:
             with open(rts_png_path, 'rb') as f:
                 png_data = f.read()
 
-            # Decode to get qcow2 bytes
+            # Decode to get binary data
             decoder = PixelRTSDecoder()
-            qcow2_data = decoder.decode(png_data)
+            decoded_data = decoder.decode(png_data)
+
+            # Store decoder and metadata for later extraction of kernel/initrd
+            self._decoder = decoder
+            self._decoded_metadata = decoder.get_metadata()
+            self._decoded_data = decoded_data
+
+            # Trim to disk_size bytes (combined data includes qcow2 + kernel + initrd)
+            # disk_size in metadata indicates the size of the qcow2 portion
+            if self._decoded_metadata and "disk_size" in self._decoded_metadata:
+                disk_size = self._decoded_metadata["disk_size"]
+                qcow2_data = decoded_data[:disk_size]
+                logger.info(f"Trimmed qcow2 data to {disk_size} bytes (from {len(decoded_data)} total)")
+            else:
+                # No disk_size metadata - use all decoded data
+                qcow2_data = decoded_data
+                logger.info(f"No disk_size metadata, using full decoded data ({len(decoded_data)} bytes)")
 
             # Write to temp file
             output_path = output_dir / f"{rts_png_path.stem}.qcow2"
