@@ -33,7 +33,7 @@ import asyncio
 import os
 import logging
 from dataclasses import dataclass
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Any
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -82,6 +82,7 @@ class HTTPBootServer:
         self._server: Optional[asyncio.Server] = None
         self._running = False
         self._active_connections: int = 0
+        self._custom_handlers: List[Tuple[str, Any]] = []
 
     def set_root_dir(self, path: str) -> None:
         """
@@ -100,6 +101,24 @@ class HTTPBootServer:
             raise ValueError(f"Path is not a directory: {path}")
         self._root_dir = new_root.resolve()
         logger.info(f"HTTP root directory set to: {self._root_dir}")
+
+    def register_handler(self, path_prefix: str, handler: Any) -> None:
+        """
+        Register a custom handler for paths matching a prefix.
+
+        Custom handlers are checked before static file serving, allowing
+        dynamic endpoints to override file paths.
+
+        Args:
+            path_prefix: URL prefix to match (e.g., '/delta/')
+            handler: Handler object with async handle(path, headers, writer) -> bool method
+
+        The handler interface:
+            - handler.handle(path: str, headers: dict, writer: StreamWriter) -> bool
+            - Returns True if request was handled, False to fall through to static files
+        """
+        self._custom_handlers.append((path_prefix, handler))
+        logger.info(f"Registered custom handler for {path_prefix}")
 
     async def start(self) -> None:
         """
@@ -281,7 +300,14 @@ class HTTPBootServer:
             headers: Request headers
             writer: Stream writer for response
         """
-        # Resolve file path
+        # Check custom handlers first
+        for prefix, handler in self._custom_handlers:
+            if path.startswith(prefix):
+                handled = await handler.handle(path, headers, writer)
+                if handled:
+                    return
+
+        # Fall through to static file serving
         try:
             file_path = self._resolve_path(path)
         except ValueError as e:
