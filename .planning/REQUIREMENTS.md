@@ -10,13 +10,13 @@
 - [x] **COMMIT-01**: User can commit running container to new .rts.png file
 - [x] **COMMIT-02**: Committed file preserves all disk changes from original
 - [x] **COMMIT-03**: Committed file includes VM memory state
-- [ ] **COMMIT-04**: Commit shows progress (snapshot → export → encode → verify)
+- [x] **COMMIT-04**: Commit shows progress (snapshot → export → encode → verify)
 
 ### Boot from Committed
 
-- [ ] **BOOT-COMMIT-01**: Committed file boots with existing `pixelrts boot` command
-- [ ] **BOOT-COMMIT-02**: Committed file preserves original kernel/initrd
-- [ ] **BOOT-COMMIT-03**: Changes from committed state are visible after boot
+- [x] **BOOT-COMMIT-01**: Committed file boots with existing `pixelrts boot` command
+- [x] **BOOT-COMMIT-02**: Committed file preserves original kernel/initrd
+- [x] **BOOT-COMMIT-03**: Changes from committed state are visible after boot
 
 ### CLI
 
@@ -40,10 +40,10 @@
 | COMMIT-01 | Phase 15 | Complete |
 | COMMIT-02 | Phase 15 | Complete |
 | COMMIT-03 | Phase 15 | Complete |
-| COMMIT-04 | Phase 16 | Pending |
-| BOOT-COMMIT-01 | Phase 16 | Pending |
-| BOOT-COMMIT-02 | Phase 16 | Pending |
-| BOOT-COMMIT-03 | Phase 16 | Pending |
+| COMMIT-04 | Phase 16 | Complete |
+| BOOT-COMMIT-01 | Phase 16 | Complete |
+| BOOT-COMMIT-02 | Phase 16 | Complete |
+| BOOT-COMMIT-03 | Phase 16 | Complete |
 | CLI-COMMIT-01 | Phase 17 | Pending |
 | CLI-COMMIT-02 | Phase 17 | Pending |
 | CLI-COMMIT-03 | Phase 17 | Pending |
