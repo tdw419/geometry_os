@@ -467,7 +467,7 @@ or provided separately.
 
         # Start Delta server (if enabled, requires HTTP)
         if self._enable_delta:
-            from systems.pixel_compiler.serve.delta_server import DeltaServer
+            from systems.pixel_compiler.serve.delta_server import DeltaServer, DeltaHTTPHandler
 
             if not self._http_server:
                 logger.warning("Delta server requires HTTP server. Skipping delta.")
@@ -478,8 +478,13 @@ or provided separately.
                         container_path=str(self.rts_png_path),
                         http_root=str(tftp_root)
                     )
+
+                    # Wire the handler to HTTP server
+                    delta_handler = DeltaHTTPHandler(self._delta_server)
+                    self._http_server.register_handler('/delta/', delta_handler)
+
                     self.status.delta_enabled = True
-                    logger.info("Delta server initialized")
+                    logger.info("Delta server initialized with /delta/ endpoints")
                 except Exception as e:
                     logger.warning(f"Failed to initialize delta server: {e}")
                     self._delta_server = None
