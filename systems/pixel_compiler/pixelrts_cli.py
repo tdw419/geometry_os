@@ -3029,6 +3029,19 @@ Examples:
     )
     commit_parser.set_defaults(func=cmd_commit)
 
+    # Verify command
+    verify_parser = subparsers.add_parser(
+        'verify',
+        help='Verify .rts.png file integrity and authenticity',
+        description='Runs all verification checks: structure, hash consistency, segment integrity, and signature.'
+    )
+    verify_parser.add_argument('input', help='Input .rts.png file to verify')
+    verify_parser.add_argument('--json', action='store_true',
+                              help='Output results in JSON format for machine parsing')
+    verify_parser.add_argument('-v', '--verbose', action='store_true',
+                              help='Show detailed step-by-step verification output')
+    verify_parser.set_defaults(func=cmd_verify)
+
     args = parser.parse_args()
 
     if not args.command:
@@ -3057,7 +3070,8 @@ Examples:
         'analyze': cmd_analyze,
         'execute': cmd_execute,
         'vision': cmd_vision,
-        'blueprint': lambda args: _dispatch_blueprint(args)
+        'blueprint': lambda args: _dispatch_blueprint(args),
+        'verify': cmd_verify,
     }
 
     handler = handlers.get(args.command)
