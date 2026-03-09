@@ -5,9 +5,15 @@ Provides network serving capabilities for PixelRTS containers:
 - NBD server plugin for nbdkit
 - Proxy DHCP server for PXE boot (port 4011)
 - TFTP server for boot file transfer (port 69)
-- PXE configuration generator
+- PXE configuration generator with iPXE chainload support
 - Unified server orchestrator
 - Rich progress display
+
+iPXE Chainloading (Phase 7):
+    For faster HTTP boot, use iPXE chainloading:
+    1. Client PXE boots -> receives undionly.kpxe via TFTP
+    2. iPXE loads -> fetches boot.ipxe via HTTP
+    3. HTTP boot script -> loads kernel/initrd via HTTP (much faster than TFTP)
 
 Usage:
     # Simple one-command serving
