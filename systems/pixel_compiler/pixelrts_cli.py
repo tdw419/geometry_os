@@ -1404,9 +1404,17 @@ def cmd_snapshot_create(args):
     """Handle snapshot create command - Create a VM snapshot."""
     from systems.pixel_compiler.boot import MultiBootManager
     from systems.pixel_compiler.boot.vm_snapshot import SnapshotError
+    from datetime import datetime
 
     manager = MultiBootManager()
     container_name = args.container
+
+    # Generate timestamp-based tag if not provided
+    if not args.tag:
+        args.tag = datetime.now().strftime("snap-%Y%m%d-%H%M%S")
+        if args.verbose:
+            print(f"Generated snapshot tag: {args.tag}")
+
     tag = args.tag
 
     if args.verbose:
@@ -2414,7 +2422,8 @@ Examples:
         description='Create a snapshot of a running container'
     )
     snapshot_create_parser.add_argument('container', help='Container name')
-    snapshot_create_parser.add_argument('tag', help='Snapshot tag (alphanumeric, dash, underscore)')
+    snapshot_create_parser.add_argument('tag', nargs='?', default=None,
+                                        help='Snapshot tag (default: snap-YYYYMMDD-HHMMSS)')
     snapshot_create_parser.add_argument('-d', '--description', default='', help='Snapshot description')
     snapshot_create_parser.add_argument('-q', '--quiet', action='store_true', help='Suppress output')
     snapshot_create_parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
