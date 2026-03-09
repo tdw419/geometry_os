@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 ## Current Position
 
 Phase: 9 of 11 (Core Multi-Boot Infrastructure)
-Plan: 2 of 5 in current phase
+Plan: 4 of 5 in current phase
 Status: In progress
-Last activity: 2026-03-09 — Completed 09-02 MultiBootManager
+Last activity: 2026-03-09 — Completed 09-04 PS Command
 
-Progress: [████░░░░░░] 40% (2/5 plans in Phase 9)
+Progress: [██████░░░░] 80% (4/5 plans in Phase 9)
 
 ## Performance Metrics
 
@@ -27,7 +27,8 @@ Progress: [████░░░░░░] 40% (2/5 plans in Phase 9)
 - v1.0: 22 plans
 - v1.1: 4 plans
 - v1.2: 10 plans
-- Total: 36 plans
+- v1.3: 4 plans (in progress)
+- Total: 40 plans
 
 ## Accumulated Context
 
@@ -44,6 +45,7 @@ Key decisions archived in `.planning/milestones/`:
 - Composition pattern: MultiBootManager wraps BootBridge instances
 - **09-01:** VNC port range 5900-5999 (100 ports), thread-safe allocation, UUID5 deterministic IDs
 - **09-02:** asyncio.gather for concurrent boot, run_in_executor for sync-to-async bridge, ContainerState enum for lifecycle
+- **09-04:** State file at /tmp/pixelrts/containers.json, table output with NAME/STATE/VNC/PID columns
 
 ### Pending Todos
 
@@ -56,7 +58,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: Completed 09-02 MultiBootManager plan
+Stopped at: Completed 09-04 PS Command plan
 
 **CLI Commands Available (v1.0 + v1.1 + v1.2):**
 - `pixelrts analyze <file.png>` - Vision analysis and verification
@@ -72,9 +74,10 @@ Stopped at: Completed 09-02 MultiBootManager plan
   - `--delta` - Enable delta manifest serving
   - `--delta-from <old.png>` - Generate initial delta
 
-**v1.3 Will Add:**
-- `pixelrts boot a.png b.png c.png` - Multi-container boot
-- `pixelrts ps` - List running containers
+**v1.3 Commands Added:**
+- `pixelrts ps` - List running containers (NAME, STATE, VNC, PID)
+  - `--json` - Output as JSON
+  - `--state-file <path>` - Custom state file path
 
 ---
 *State updated: 2026-03-09*
