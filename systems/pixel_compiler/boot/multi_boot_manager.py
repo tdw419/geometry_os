@@ -486,14 +486,25 @@ class MultiBootManager:
 
         # Create async tasks for concurrent boot
         async def _boot_all_async():
-            tasks = [
-                self._boot_single(
-                    path, cmdline, memory, cpus,
-                    is_primary=(self._get_container_name(path) == primary) if primary else False
+            if primary:
+                # Ordered Boot: primary first, then helpers
+                return await self._boot_ordered(
+                    paths=validated_paths,
+                    primary_name=primary,
+                    cmdline=cmdline,
+                    memory=memory,
+                    cpus=cpus,
                 )
-                for path in validated_paths
-            ]
-            return await asyncio.gather(*tasks)
+            else:
+                # Concurrent Boot (existing behavior)
+                tasks = [
+                    self._boot_single(
+                        path, cmdline, memory, cpus,
+                        is_primary=False
+                    )
+                    for path in validated_paths
+                ]
+                return await asyncio.gather(*tasks)
 
         # Run the async boot operations
         try:
