@@ -2409,6 +2409,9 @@ Examples:
     boot_parser.add_argument('--network', type=str, default='user',
                             choices=['user', 'socket_mcast'],
                             help='Network mode: user (isolated) or socket_mcast (mesh, default: user)')
+    boot_parser.add_argument('--ephemeral', '-e',
+                            action='store_true',
+                            help='Boot in ephemeral mode - changes are discarded on exit')
 
     # Install command (install .rts.png files to disk)
     install_parser = subparsers.add_parser(
