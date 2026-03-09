@@ -2,15 +2,15 @@
 
 ## Milestones
 
-- ✅ **v1.0 PixelRTS Boot** — Phases 1-4 (shipped 2026-03-08)
-- ✅ **v1.1 Visual Diff** — Phase 5 (shipped 2026-03-08)
-- ✅ **v1.2 Network Boot** — Phases 6-8.1 (shipped 2026-03-09)
-- 🚧 **v1.3 Multi-Boot** — Phases 9-11 (in progress)
+- **v1.0 PixelRTS Boot** — Phases 1-4 (shipped 2026-03-08)
+- **v1.1 Visual Diff** — Phase 5 (shipped 2026-03-08)
+- **v1.2 Network Boot** — Phases 6-8.1 (shipped 2026-03-09)
+- **v1.3 Multi-Boot** — Phases 9-11 (in progress)
 
 ## v1.2 Network Boot (Complete)
 
 <details>
-<summary>✅ v1.2 Network Boot (Phases 6-8.1) - SHIPPED 2026-03-09</summary>
+<summary>v1.2 Network Boot (Phases 6-8.1) - SHIPPED 2026-03-09</summary>
 
 **Milestone Goal:** Boot PixelRTS containers over network (PXE/NBD) with bandwidth-efficient delta updates.
 
@@ -38,7 +38,7 @@
 
 ---
 
-## 🚧 v1.3 Multi-Boot (In Progress)
+## v1.3 Multi-Boot (In Progress)
 
 **Milestone Goal:** Boot multiple PixelRTS containers simultaneously with network connectivity
 
@@ -52,14 +52,14 @@
   3. If one container fails to boot, already-started containers are cleaned up
   4. User can run `pixelrts ps` to see running containers with name, VNC port, state
   5. Status shows container states (launching/running/stopped)
-**Plans**: 5 plans
+**Plans:** 5 plans
 
 Plans:
-- [ ] 09-01: MultiBootManager with concurrent boot orchestration
-- [ ] 09-02: ResourceAllocator for VNC ports and socket paths
-- [ ] 09-03: Cleanup on partial failure
-- [ ] 09-04: CLI multi-path argument parsing
-- [ ] 09-05: `pixelrts ps` status command
+- [ ] 09-01-PLAN.md — ResourceAllocator for VNC ports and socket paths
+- [ ] 09-02-PLAN.md — MultiBootManager with concurrent boot orchestration
+- [ ] 09-03-PLAN.md — Cleanup on partial failure (compensating transactions)
+- [ ] 09-04-PLAN.md — `pixelrts ps` status command
+- [ ] 09-05-PLAN.md — CLI multi-file boot support
 
 ### Phase 10: Boot Ordering & Dependencies
 **Goal**: Users can designate primary/helper containers with ordered startup and shutdown
@@ -96,7 +96,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 9 → 10 → 11
+Phases execute in numeric order: 9 -> 10 -> 11
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -109,10 +109,10 @@ Phases execute in numeric order: 9 → 10 → 11
 | 7. HTTP Boot via iPXE | v1.2 | 3/3 | Complete | 2026-03-08 |
 | 8. Delta Updates | v1.2 | 3/3 | Complete | 2026-03-09 |
 | 8.1. Wire Delta HTTP Handler | v1.2 | 1/1 | Complete | 2026-03-09 |
-| 9. Core Multi-Boot Infrastructure | v1.3 | 0/5 | Not started | - |
+| 9. Core Multi-Boot Infrastructure | v1.3 | 0/5 | Planned | - |
 | 10. Boot Ordering & Dependencies | v1.3 | 0/4 | Not started | - |
 | 11. Virtual Networking | v1.3 | 0/3 | Not started | - |
 
 ---
 
-*Next: `/gsd:plan-phase 9` to start Core Multi-Boot Infrastructure*
+*Next: `/gsd:execute-phase 9` to execute Core Multi-Boot Infrastructure*
