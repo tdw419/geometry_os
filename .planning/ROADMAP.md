@@ -52,14 +52,14 @@
   3. If one container fails to boot, already-started containers are cleaned up
   4. User can run `pixelrts ps` to see running containers with name, VNC port, state
   5. Status shows container states (launching/running/stopped)
-**Plans:** 5 plans
+**Plans:** 5 plans (complete)
 
 Plans:
-- [ ] 09-01-PLAN.md — ResourceAllocator for VNC ports and socket paths
-- [ ] 09-02-PLAN.md — MultiBootManager with concurrent boot orchestration
-- [ ] 09-03-PLAN.md — Cleanup on partial failure (compensating transactions)
-- [ ] 09-04-PLAN.md — `pixelrts ps` status command
-- [ ] 09-05-PLAN.md — CLI multi-file boot support
+- [x] 09-01-PLAN.md — ResourceAllocator for VNC ports and socket paths
+- [x] 09-02-PLAN.md — MultiBootManager with concurrent boot orchestration
+- [x] 09-03-PLAN.md — Cleanup on partial failure (compensating transactions)
+- [x] 09-04-PLAN.md — `pixelrts ps` status command
+- [x] 09-05-PLAN.md — CLI multi-file boot support
 
 ### Phase 10: Boot Ordering & Dependencies
 **Goal**: Users can designate primary/helper containers with ordered startup and shutdown
@@ -70,13 +70,13 @@ Plans:
   2. Helper containers wait until primary is running before starting
   3. Shutdown reverses boot order (helpers stop first, primary last)
   4. User can observe boot order progress in CLI output
-**Plans**: 4 plans
+**Plans:** 4 plans
 
 Plans:
-- [ ] 10-01: Container role designation (primary/helper)
-- [ ] 10-02: Boot dependency ordering with wait logic
-- [ ] 10-03: Reverse-order graceful shutdown
-- [ ] 10-04: Boot progress visibility
+- [ ] 10-01-PLAN.md — Container role designation (primary/helper enum, --primary CLI flag)
+- [ ] 10-02-PLAN.md — Boot dependency ordering with wait logic (primary first, helpers wait)
+- [ ] 10-03-PLAN.md — Reverse-order graceful shutdown (stop_all_ordered)
+- [ ] 10-04-PLAN.md — Boot progress visibility (progress_callback, CLI output)
 
 ### Phase 11: Virtual Networking
 **Goal**: Containers can communicate with each other without root privileges
@@ -115,4 +115,4 @@ Phases execute in numeric order: 9 -> 10 -> 11
 
 ---
 
-*Next: `/gsd:execute-phase 9` to execute Core Multi-Boot Infrastructure*
+*Next: `/gsd:execute-phase 10` to execute Boot Ordering & Dependencies*
