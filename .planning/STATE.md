@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-09)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** Phase 9 Complete - Core Multi-Boot Infrastructure
+**Current focus:** Phase 10 - Boot Ordering Dependencies
 
 ## Current Position
 
-Phase: 9 of 11 (Core Multi-Boot Infrastructure)
-Plan: 5 of 5 in current phase
-Status: Phase complete
-Last activity: 2026-03-09 — Completed 09-05 CLI Multi-File Boot
+Phase: 10 of 11 (Boot Ordering Dependencies)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-03-09 — Completed 10-01 Container Role Enum
 
-Progress: [███████░░░] 100% (5/5 plans in Phase 9)
+Progress: [█░░░░░░░░░] 1/3 plans in Phase 10
 
 ## Performance Metrics
 
@@ -28,7 +28,8 @@ Progress: [███████░░░] 100% (5/5 plans in Phase 9)
 - v1.1: 4 plans
 - v1.2: 10 plans
 - v1.3: 5 plans (complete)
-- Total: 41 plans
+- v1.4: 1 plan (in progress)
+- Total: 42 plans
 
 ## Accumulated Context
 
@@ -49,6 +50,9 @@ Key decisions archived in `.planning/milestones/`:
 - **09-04:** State file at /tmp/pixelrts/containers.json, table output with NAME/STATE/VNC/PID columns
 - **09-05:** CLI multi-file boot via nargs='+', exit code 0 on partial success, cleanup_on_failure default True
 
+**v1.4 Decisions:**
+- **10-01:** ContainerRole enum (PRIMARY/HELPER) for ordered boot, default HELPER role, --primary CLI flag
+
 ### Pending Todos
 
 None.
@@ -60,12 +64,13 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: Completed 09-05 CLI Multi-File Boot plan (Phase 9 complete)
+Stopped at: Completed 10-01 Container Role Enum plan
 
-**CLI Commands Available (v1.0 + v1.1 + v1.2 + v1.3):**
+**CLI Commands Available (v1.0 + v1.1 + v1.2 + v1.3 + v1.4):**
 - `pixelrts analyze <file.png>` - Vision analysis and verification
 - `pixelrts boot <file.png...>` - Boot .rts.png files with QEMU (supports multiple files)
   - Multi-file: `pixelrts boot a.rts.png b.rts.png c.rts.png` - concurrent boot
+  - `--primary/-p <name>` - Designate primary container (starts first, stops last)
 - `pixelrts install <file.png> <target>` - Install .rts.png to disk image
 - `pixelrts catalog` - Launch visual catalog server
 - `pixelrts diff <old.png> <new.png>` - Visual diff comparison
