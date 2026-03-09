@@ -837,9 +837,13 @@ def _boot_multiple(args, input_paths):
             signal.signal(signal.SIGINT, original_sigint)
             signal.signal(signal.SIGTERM, original_sigterm)
 
-            # Clean up all containers
+            # Clean up all containers in reverse order
             if not args.quiet:
-                print("Stopping all containers...")
+                if args.primary and result.success_count > 1:
+                    print("\nStopping containers in reverse order...")
+                    print("  [1/2] Stopping helper containers...")
+                else:
+                    print("\nStopping all containers...")
             manager.stop_all()
 
         # Return 0 on any success (per plan requirement), 1 on total failure
