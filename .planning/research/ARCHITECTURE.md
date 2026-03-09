@@ -1,555 +1,333 @@
-# Architecture Patterns: Multi-Container Boot
+# Architecture Research
 
-**Domain:** Multi-container boot orchestration for PixelRTS
-**Researched:** 2026-03-08
+**Domain:** PixelRTS Commit-to-File
+**Researched:** 2026-03-09
 **Confidence:** HIGH
 
-## Current Architecture (Single Container)
-
-### BootBridge Flow
+## System Overview
 
 ```
-pixelrts boot container.rts.png
-         |
-         v
-+------------------+
-|    BootBridge    |  <- Orchestrates FUSE + QEMU
-+--------+---------+
-         |
-    +----+----+--------------------+
-    |         |                    |
-    v         v                    v
-+-------+  +-------+          +-------+
-| FUSE  |  | QEMU  |          | VNC   |
-| Mount |  | Boot  |          | Display|
-+-------+  +-------+          +-------+
-    |         |
-    v         v
-+-------+  +-------+
-|Kernel |  | VM    |
-|Initrd |  | Process|
-+-------+  +-------+
+                                    COMMIT-TO-FILE ARCHITECTURE
+                                    ============================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              CLI LAYER                                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────┐                                                        │
+│  │ pixelrts commit │ ──→ Creates .rts.png snapshot file from running VM     │
+│  └────────┬────────┘                                                        │
+└───────────┼─────────────────────────────────────────────────────────────────┘
+            │
+            ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         COORDINATION LAYER                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌────────────────────┐      ┌─────────────────────────────────────────┐   │
+│  │  MultiBootManager  │ ──→  │  NEW: SnapshotCommitter                 │   │
+│  │  (existing)        │      │  - Orchestrates commit pipeline         │   │
+│  │  - owns BootBridge │      │  - Calls VMSnapshotManager              │   │
+│  │  - manages VMs     │      │  - Calls qemu-img convert               │   │
+│  └────────┬───────────┘      │  - Calls PixelRTSEncoder                │   │
+│           │                  └─────────────────────────────────────────┘   │
+└───────────┼─────────────────────────────────────────────────────────────────┘
+            │
+            ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           BOOT LAYER                                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌────────────────────┐      ┌─────────────────────────────────────────┐   │
+│  │    BootBridge      │ ──→  │     VMSnapshotManager (existing)        │   │
+│  │  - owns QemuBoot   │      │     - create_snapshot() → savevm        │   │
+│  │  - owns MountHelper│      │     - list_snapshots() → info snapshots │   │
+│  │  - create_snapshot │      │     - SnapshotResult with metadata      │   │
+│  └────────┬───────────┘      └─────────────────────────────────────────┘   │
+│           │                                                                  │
+│           ▼                                                                  │
+│  ┌────────────────────┐      ┌─────────────────────────────────────────┐   │
+│  │     QemuBoot       │ ──→  │     QEMU Monitor Commands               │   │
+│  │  - send_monitor_   │      │     - savevm <tag>  (internal snapshot) │   │
+│  │    command()       │      │     - info snapshots (list internal)    │   │
+│  │  - boot/stop       │      │                                          │   │
+│  └────────────────────┘      └─────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────────┘
+            │
+            ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         ENCODING LAYER                                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌────────────────────┐      ┌─────────────────────────────────────────┐   │
+│  │  qemu-img convert  │ ──→  │     PixelRTSEncoder (existing)          │   │
+│  │  -l snapshot_name  │      │     - encode(data, metadata)            │   │
+│  │  -O qcow2          │      │     - Hilbert curve mapping             │   │
+│  │  → extracted.qcow2 │      │     - PNG tEXt chunks for metadata      │   │
+│  └────────┬───────────┘      └─────────────────────────────────────────┘   │
+│           │                                                                  │
+│           ▼                                                                  │
+│  ┌────────────────────┐                                                     │
+│  │  Output: .rts.png  │  ← New snapshot file with embedded qcow2 data      │
+│  └────────────────────┘                                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Existing Components
+## Component Responsibilities
 
-| Component | File | Responsibility |
-|-----------|------|----------------|
-| **BootBridge** | `boot/boot_bridge.py` | Orchestrates FUSE mount + QEMU boot for single container |
-| **MountHelper** | `boot/mount_helper.py` | FUSE filesystem lifecycle management |
-| **QemuBoot** | `integration/qemu_boot.py` | QEMU process management, VNC, serial |
-| **BootResult** | `boot/boot_bridge.py` | Data class for boot operation results |
-| **BootProgress** | `boot/boot_progress.py` | Visual progress display |
-| **pixelrts CLI** | `pixelrts_cli.py` | Command-line entry point |
+| Component | Responsibility | Existing/New |
+|-----------|----------------|--------------|
+| **CLI (`pixelrts commit`)** | Parse arguments, invoke MultiBootManager | NEW |
+| **SnapshotCommitter** | Orchestrate: snapshot → extract → encode | NEW |
+| **VMSnapshotManager** | Create internal QEMU snapshots via monitor | EXISTING |
+| **BootBridge** | Provide access to QemuBoot + VMSnapshotManager | EXISTING |
+| **QemuBoot** | Execute qemu-img commands, manage QEMU process | EXISTING (extend) |
+| **PixelRTSEncoder** | Encode binary data to .rts.png format | EXISTING |
+| **SnapshotStorage** | Persist snapshot metadata to JSON | EXISTING |
 
-## Proposed Multi-Container Architecture
+## Commit Pipeline Flow
 
-### Overview
-
-```
-pixelrts boot webapp.rts.png db.rts.png cache.rts.png --network mynet
-         |
-         v
-+----------------------+
-|  MultiBootManager    |  <- NEW: Orchestrates multiple BootBridges
-+----------+-----------+
-           |
-    +------+------+--------------+
-    |             |              |
-    v             v              v
-+--------+   +--------+    +--------+
-|Bridge 1|   |Bridge 2|    |Bridge 3|
-|(webapp)|   |  (db)  |    |(cache) |
-+---+----+   +---+----+    +---+----+
-    |            |             |
-    v            v             v
-+-------+   +-------+     +-------+
-| VM 1  |   | VM 2  |     | VM 3  |
-+---+---+   +---+---+     +---+---+
-    |            |             |
-    +------------+-------------+
-                 |
-                 v
-         +---------------+
-         | VirtualNetwork|  <- NEW: Inter-VM networking
-         +---------------+
-```
-
-### Component Architecture
+### Data Flow
 
 ```
-+-----------------------------------------------------------------------+
-|                        Multi-Boot Orchestration Layer                 |
-|  +-----------------------------------------------------------------+  |
-|  |                     MultiBootManager                             |  |
-|  |  - Manages multiple BootBridge instances                         |  |
-|  |  - Coordinates parallel boot sequencing                          |  |
-|  |  - Handles aggregate status and health                           |  |
-|  +----------------------------+------------------------------------+  |
-|                               |                                       |
-+-------------------------------|---------------------------------------+
-                                |
-        +-----------------------+-----------------------+
-        |                       |                       |
-+-------v-------+       +-------v-------+       +-------v-------+
-| BootBridge 1  |       | BootBridge 2  |       | BootBridge N  |
-| (existing,    |       | (existing,    |       | (existing,    |
-|  unchanged)   |       |  unchanged)   |       |  unchanged)   |
-+---------------+       +---------------+       +---------------+
-        |                       |                       |
-        v                       v                       v
-+---------------+       +---------------+       +---------------+
-| QemuBoot 1    |       | QemuBoot 2    |       | QemuBoot N    |
-| (modified for |       | (modified for |       | (modified for |
-|  network)     |       |  network)     |       |  network)     |
-+-------+-------+       +-------+-------+       +-------+-------+
-        |                       |                       |
-        +-----------------------+-----------------------+
-                                |
-                                v
-+-----------------------------------------------------------------------+
-|                        Virtual Network Layer                           |
-|  +---------------------+  +---------------------+  +---------------+  |
-|  |  VirtualNetwork     |  |  NetworkNamespace   |  |  PortManager  |  |
-|  |  (QEMU user/netdev) |  |  (optional: netns)  |  |  (VNC, serial)|  |
-|  +----------+----------+  +----------+----------+  +-------+-------+  |
-+-------------|---------------------------|-------------------|----------+
-              |                           |                   |
-              v                           v                   v
-+-----------------------------------------------------------------------+
-|                        Host System Layer                               |
-|  - /dev/kvm (KVM acceleration)                                       |
-|  - /dev/net/tun (TAP devices, if needed)                             |
-|  - Network bridges (optional)                                         |
-+-----------------------------------------------------------------------+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                        COMMIT PIPELINE                                    │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  1. CREATE INTERNAL SNAPSHOT                                             │
+│     ┌─────────────┐     ┌─────────────────┐     ┌──────────────────┐    │
+│     │ Running VM  │ ──→ │ savevm <tag>    │ ──→ │ Internal snapshot│    │
+│     │ (qcow2)     │     │ via monitor     │     │ embedded in qcow2│    │
+│     └─────────────┘     └─────────────────┘     └──────────────────┘    │
+│                                                                          │
+│  2. EXTRACT SNAPSHOT TO SEPARATE FILE                                    │
+│     ┌──────────────────┐     ┌─────────────────────────────────────┐    │
+│     │ qemu-img convert │ ──→ │ Extract snapshot to separate qcow2  │    │
+│     │ -l <tag>         │     │ -l snapshot_name source.qcow2 out   │    │
+│     │ -O qcow2         │     │                                     │    │
+│     └──────────────────┘     └─────────────────────────────────────┘    │
+│                                                                          │
+│  3. ENCODE TO PIXELRTS                                                   │
+│     ┌─────────────────┐     ┌─────────────────────────────────────┐    │
+│     │ Read qcow2 file │ ──→ │ PixelRTSEncoder.encode(data, meta)  │    │
+│     │ as binary       │     │ → .rts.png with Hilbert encoding    │    │
+│     └─────────────────┘     └─────────────────────────────────────┘    │
+│                                                                          │
+│  4. PERSIST METADATA                                                     │
+│     ┌─────────────────┐     ┌─────────────────────────────────────┐    │
+│     │ SnapshotMetadata│ ──→ │ SnapshotStorage.save_metadata()     │    │
+│     │ (tag, date, etc)│     │ → /tmp/pixelrts/snapshots/...       │    │
+│     └─────────────────┘     └─────────────────────────────────────┘    │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
-## New Components
+### Key Integration Points
 
-### 1. MultiBootManager
+| Integration Point | Existing Component | New Integration |
+|-------------------|-------------------|-----------------|
+| Create snapshot | `VMSnapshotManager.create_snapshot()` | Called by SnapshotCommitter |
+| Extract snapshot | `qemu-img convert -l <tag>` | NEW: Add to QemuBoot or SnapshotCommitter |
+| Encode to PNG | `PixelRTSEncoder.encode()` | Called by SnapshotCommitter |
+| Store metadata | `SnapshotStorage.save_metadata()` | Called by SnapshotCommitter |
+| CLI command | `pixelrts snapshot` (existing) | NEW: `pixelrts commit` |
 
-**Location:** `systems/pixel_compiler/boot/multi_boot_manager.py`
+## Integration with Existing Architecture
 
-**Responsibilities:**
-- Accept multiple RTS paths and orchestrate parallel boot
-- Manage BootBridge instances lifecycle
-- Allocate resources (VNC displays, serial sockets, network ports)
-- Coordinate boot sequencing (dependencies, startup order)
-- Provide aggregate status and health monitoring
+### Existing Components (No Modification)
+
+1. **VMSnapshotManager** (`systems/pixel_compiler/boot/vm_snapshot.py`)
+   - Already provides `create_snapshot(tag)` → `savevm`
+   - Already provides `list_snapshots()` → `info snapshots`
+   - Returns `SnapshotResult` with `VMSnapshotMetadata`
+
+2. **BootBridge** (`systems/pixel_compiler/boot/boot_bridge.py`)
+   - Already exposes `_snapshot_manager` property
+   - Already has `create_snapshot(tag)` method
+   - Composition: wraps QemuBoot + MountHelper
+
+3. **PixelRTSEncoder** (`systems/pixel_compiler/pixelrts_v2_core.py`)
+   - Already provides `encode(data, metadata, grid_size)`
+   - Returns PNG bytes with Hilbert-encoded data
+   - Metadata stored in tEXt chunks
+
+4. **SnapshotStorage** (`systems/pixel_compiler/boot/snapshot_storage.py`)
+   - Already provides `save_metadata(container, metadata)`
+   - Persists to `/tmp/pixelrts/snapshots/<container>/metadata.json`
+
+### New Components
+
+1. **SnapshotCommitter** (`systems/pixel_compiler/boot/snapshot_committer.py`)
+   ```python
+   class SnapshotCommitter:
+       """Orchestrates commit pipeline: snapshot → extract → encode"""
+
+       def __init__(self, boot_bridge: BootBridge):
+           self.bridge = boot_bridge
+
+       def commit(self, tag: str, output_path: Path) -> CommitResult:
+           # 1. Create internal snapshot
+           snap_result = self.bridge.create_snapshot(tag)
+
+           # 2. Extract snapshot to qcow2
+           qcow2_path = self._extract_snapshot(tag)
+
+           # 3. Encode to .rts.png
+           rts_png = self._encode_to_rts(qcow2_path, output_path)
+
+           # 4. Persist metadata
+           self._save_metadata(tag, rts_png)
+
+           return CommitResult(success=True, path=rts_png)
+   ```
+
+2. **qemu-img extract wrapper** (in QemuBoot or SnapshotCommitter)
+   ```python
+   def extract_snapshot(self, tag: str, output_path: Path) -> Path:
+       """Extract internal snapshot to separate qcow2 file."""
+       cmd = [
+           "qemu-img", "convert",
+           "-l", tag,                    # Snapshot parameter
+           "-O", "qcow2",                # Output format
+           str(self.image_path),         # Source qcow2
+           str(output_path)              # Output file
+       ]
+       subprocess.run(cmd, check=True)
+       return output_path
+   ```
+
+3. **CLI Command** (`pixelrts_v2/tools/pixelrts.py`)
+   ```python
+   def cmd_commit(self, container: str, tag: str, output: str) -> int:
+       """Commit snapshot to .rts.png file."""
+       # Get BootBridge from MultiBootManager
+       bridge = self.manager.get_container(container)
+       committer = SnapshotCommitter(bridge)
+       result = committer.commit(tag, Path(output))
+       # ...
+   ```
+
+## Recommended Build Order
+
+Based on dependencies and existing architecture:
+
+### Phase 1: qemu-img Extract Wrapper
+**Files:** Extend `QemuBoot` or create new module
+**Dependencies:** None (standalone)
+**Deliverable:** Function to extract internal snapshot to separate qcow2
+
+```
+qemu-img convert -l <snapshot_name> -O qcow2 source.qcow2 output.qcow2
+```
+
+### Phase 2: SnapshotCommitter Class
+**Files:** `systems/pixel_compiler/boot/snapshot_committer.py`
+**Dependencies:** Phase 1, existing VMSnapshotManager, PixelRTSEncoder
+**Deliverable:** `commit()` method that orchestrates full pipeline
+
+### Phase 3: CLI Integration
+**Files:** `pixelrts_v2/tools/pixelrts.py`
+**Dependencies:** Phase 2, MultiBootManager
+**Deliverable:** `pixelrts commit <container> <tag> --output <file>`
+
+### Phase 4: Metadata Enhancement
+**Files:** `SnapshotStorage`, `SnapshotMetadata`
+**Dependencies:** Phase 2
+**Deliverable:** Track committed snapshot files, file paths, checksums
+
+## Architectural Patterns
+
+### Pattern 1: Composition Over Inheritance
+
+**What:** SnapshotCommitter composes existing components rather than extending them.
+**When:** Always - minimizes changes to existing tested code.
+**Trade-offs:** Slightly more indirection, but better testability and isolation.
+
+```python
+# GOOD: Composition
+class SnapshotCommitter:
+    def __init__(self, bridge: BootBridge):
+        self.bridge = bridge  # Use existing interface
+
+    def commit(self, tag: str, output: Path):
+        self.bridge.create_snapshot(tag)  # Delegates to VMSnapshotManager
+        # ...
+
+# BAD: Inheritance
+class BootBridgeWithCommit(BootBridge):
+    def commit(self, tag: str, output: Path):
+        # Duplicates logic, harder to test
+```
+
+### Pattern 2: Pipeline with Result Types
+
+**What:** Each pipeline stage returns a typed result object.
+**When:** Multi-step operations with potential failure points.
+**Trade-offs:** More boilerplate, but explicit error handling.
 
 ```python
 @dataclass
-class MultiBootConfig:
-    """Configuration for multi-container boot."""
-    containers: List[Path]  # List of .rts.png paths
-    network_name: Optional[str] = "pixelrts_net"
-    base_vnc_display: int = 0
-    base_serial_port: int = 0
-    parallel_boot: bool = True  # Boot all simultaneously
-    boot_timeout: int = 120  # Seconds to wait for all boots
-    auto_stop: bool = True  # Stop all on first failure
-
-@dataclass
-class ContainerSpec:
-    """Specification for a single container in the group."""
-    path: Path
-    name: str  # Human-readable name
-    memory: str = "2G"
-    cpus: int = 2
-    vnc_display: Optional[int] = None  # Auto-allocated if None
-    serial_socket: Optional[Path] = None  # Auto-allocated if None
-    network_alias: Optional[str] = None  # DNS name in virtual network
-    depends_on: List[str] = field(default_factory=list)  # Container names
-    environment: Dict[str, str] = field(default_factory=dict)
-
-@dataclass
-class MultiBootResult:
-    """Result of multi-container boot operation."""
+class CommitResult:
     success: bool
-    containers: Dict[str, BootResult]  # name -> BootResult
-    network_info: Optional[NetworkInfo] = None
+    snapshot_path: Optional[Path] = None
+    qcow2_path: Optional[Path] = None
+    rts_png_path: Optional[Path] = None
     error_message: Optional[str] = None
-    failed_containers: List[str] = field(default_factory=list)
-
-class MultiBootManager:
-    """
-    Orchestrates boot of multiple PixelRTS containers with networking.
-
-    Example:
-        manager = MultiBootManager()
-        result = manager.boot([
-            ContainerSpec(path="webapp.rts.png", name="web"),
-            ContainerSpec(path="db.rts.png", name="db", depends_on=["web"]),
-        ])
-
-        if result.success:
-            # All containers running
-            for name, bridge in manager.bridges.items():
-                print(f"{name}: VNC :{bridge.vnc_display}")
-    """
-
-    def __init__(self, config: Optional[MultiBootConfig] = None):
-        self.config = config or MultiBootConfig()
-        self._bridges: Dict[str, BootBridge] = {}
-        self._network: Optional[VirtualNetwork] = None
-        self._resource_allocator = ResourceAllocator()
-
-    def boot(self, specs: List[ContainerSpec]) -> MultiBootResult:
-        """Boot all containers with dependency ordering."""
-
-    def stop(self, container_name: Optional[str] = None) -> None:
-        """Stop specific container or all containers."""
-
-    def get_status(self) -> Dict[str, Dict[str, Any]]:
-        """Get status of all containers."""
-
-    def get_bridge(self, name: str) -> Optional[BootBridge]:
-        """Get BootBridge for a specific container."""
+    metadata: Optional[VMSnapshotMetadata] = None
 ```
 
-### 2. VirtualNetwork
+### Pattern 3: Temp File Management
 
-**Location:** `systems/pixel_compiler/boot/virtual_network.py`
-
-**Responsibilities:**
-- Create isolated network for inter-container communication
-- Manage QEMU user-mode networking with socket-based interconnect
-- Optionally create TAP/bridge for more advanced networking
-- Provide DNS-like name resolution between containers
+**What:** Use temp directory for intermediate qcow2, clean up after encoding.
+**When:** Pipeline produces intermediate artifacts.
+**Trade-offs:** Requires cleanup logic, but avoids polluting workspace.
 
 ```python
-@dataclass
-class NetworkConfig:
-    """Virtual network configuration."""
-    name: str = "pixelrts_net"
-    subnet: str = "10.0.2.0/24"
-    gateway: str = "10.0.2.1"
-    enable_dns: bool = True  # Simple DNS via /etc/hosts style
-    mode: NetworkMode = NetworkMode.USER  # USER, TAP, BRIDGE
-
-@dataclass
-class NetworkInfo:
-    """Information about the virtual network."""
-    config: NetworkConfig
-    containers: Dict[str, ContainerNetworkInfo]  # name -> info
-
-@dataclass
-class ContainerNetworkInfo:
-    """Network info for a single container."""
-    ip_address: str
-    mac_address: str
-    aliases: List[str]
-    exposed_ports: Dict[int, int]  # guest_port -> host_port
-
-class VirtualNetwork:
-    """
-    Manages virtual networking between containers.
-
-    Uses QEMU's built-in user-mode networking by default, which provides:
-    - Isolated network for containers
-    - Port forwarding to host
-    - Basic inter-container communication via socket forwarding
-
-    For more advanced networking, can use TAP devices.
-    """
-
-    def __init__(self, config: Optional[NetworkConfig] = None):
-        self.config = config or NetworkConfig()
-        self._containers: Dict[str, ContainerNetworkInfo] = {}
-
-    def add_container(
-        self,
-        name: str,
-        aliases: Optional[List[str]] = None
-    ) -> ContainerNetworkInfo:
-        """Register a container in the network."""
-
-    def get_qemu_net_args(self, container_name: str) -> List[str]:
-        """Get QEMU -netdev/-device arguments for a container."""
-
-    def get_port_forward_args(
-        self,
-        container_name: str,
-        guest_port: int
-    ) -> Tuple[int, List[str]]:
-        """Allocate host port and return QEMU port forward args."""
-```
-
-### 3. ResourceAllocator
-
-**Location:** `systems/pixel_compiler/boot/resource_allocator.py`
-
-**Responsibilities:**
-- Allocate VNC display numbers (avoiding conflicts)
-- Allocate serial socket paths
-- Allocate network ports for forwarding
-- Track and release resources on cleanup
-
-```python
-@dataclass
-class AllocatedResources:
-    """Resources allocated for a container."""
-    vnc_display: int
-    vnc_port: int
-    serial_socket: Path
-    monitor_socket: Path
-    forwarded_ports: Dict[int, int]  # guest_port -> host_port
-
-class ResourceAllocator:
-    """
-    Allocates host resources for multiple containers.
-
-    Ensures no conflicts between:
-    - VNC display numbers (5900+N)
-    - Serial socket paths
-    - Port forwards
-    """
-
-    def __init__(self, base_vnc: int = 0, base_port: int = 10000):
-        self._base_vnc = base_vnc
-        self._base_port = base_port
-        self._allocated_vnc: Set[int] = set()
-        self._allocated_ports: Set[int] = set()
-
-    def allocate(self, name: str, port_forwards: List[int] = None) -> AllocatedResources:
-        """Allocate resources for a container."""
-
-    def release(self, resources: AllocatedResources) -> None:
-        """Release allocated resources."""
-```
-
-## Integration Points with Existing BootBridge
-
-### BootBridge Modifications (Minimal)
-
-The existing BootBridge remains largely unchanged. New parameters added for multi-container support:
-
-```python
-class BootBridge:
-    def __init__(
-        self,
-        rts_png_path: Union[str, Path],
-        memory: str = "2G",
-        cpus: int = 2,
-        vnc_display: int = 0,
-        verbose: bool = False,
-        # NEW PARAMETERS for multi-container
-        network_config: Optional[NetworkConfig] = None,
-        port_forwards: Optional[Dict[int, int]] = None,
-        container_name: Optional[str] = None,
-    ):
-```
-
-### QemuBoot Modifications
-
-Extend `_build_network_args()` to support multi-container networking:
-
-```python
-def _build_network_args(self) -> List[str]:
-    """Build network configuration arguments."""
-    args = []
-
-    if self.config.network_mode == NetworkMode.USER:
-        # Existing user-mode logic
-        net_config = "user"
-
-        # NEW: Multi-container interconnect
-        if self._network_config:
-            # Use socket-based interconnect for container-to-container
-            net_config += f",net=/{self._network_config.subnet}"
-
-        # Add port forwards (existing + new from VirtualNetwork)
-        for host_port, guest_port in self.config.network_port_forward.items():
-            net_config += f",hostfwd=tcp::{host_port}-:{guest_port}"
-
-        args.extend(["-nic", net_config])
-```
-
-### CLI Integration
-
-Extend `pixelrts boot` command in `pixelrts_cli.py`:
-
-```python
-def cmd_boot(args):
-    """Handle boot command with multi-container support."""
-
-    if len(args.containers) == 1:
-        # Single container: use existing BootBridge directly
-        bridge = BootBridge(args.containers[0], ...)
-        result = bridge.boot()
-    else:
-        # Multiple containers: use MultiBootManager
-        manager = MultiBootManager()
-        specs = [ContainerSpec(path=p, name=p.stem) for p in args.containers]
-        result = manager.boot(specs)
-```
-
-## Data Flow
-
-### Multi-Container Boot Sequence
-
-```
-1. CLI Parse
-   pixelrts boot web.rts.png db.rts.png --network mynet
-         |
-         v
-2. MultiBootManager.boot([ContainerSpec(...), ContainerSpec(...)])
-         |
-         +---> VirtualNetwork.add_container("web")
-         |     VirtualNetwork.add_container("db")
-         |
-         +---> ResourceAllocator.allocate("web") -> AllocatedResources
-         |     ResourceAllocator.allocate("db") -> AllocatedResources
-         |
-         v
-3. Dependency Ordering (topological sort)
-         |
-         v
-4. Parallel Boot (Phase 1: independent containers)
-   +--------------------------------------------------+
-   |  BootBridge("web.rts.png", vnc_display=0, ...)  |  <- Parallel
-   |  BootBridge("db.rts.png", vnc_display=1, ...)   |  <- Parallel
-   +--------------------------------------------------+
-         |
-         v
-5. Sequential Boot (Phase 2: dependent containers)
-   - Wait for dependencies
-   - Start containers with depends_on
-         |
-         v
-6. Return MultiBootResult
-   {
-     success: True,
-     containers: {
-       "web": BootResult(vnc_port=5900, ...),
-       "db": BootResult(vnc_port=5901, ...)
-     },
-     network_info: NetworkInfo(...)
-   }
-```
-
-## Patterns to Follow
-
-### Pattern 1: Composition over Inheritance
-
-**What:** MultiBootManager composes multiple BootBridge instances rather than extending BootBridge.
-
-**When:** Always - this is the core design principle.
-
-**Example:**
-```python
-class MultiBootManager:
-    def __init__(self):
-        self._bridges: Dict[str, BootBridge] = {}  # Composition
-
-    def boot(self, specs: List[ContainerSpec]) -> MultiBootResult:
-        for spec in specs:
-            self._bridges[spec.name] = BootBridge(spec.path, ...)
-```
-
-### Pattern 2: Resource Allocation before Boot
-
-**What:** Allocate all resources (VNC, ports, sockets) before starting any container.
-
-**When:** Always - prevents partial failures leaving orphaned resources.
-
-**Example:**
-```python
-def boot(self, specs: List[ContainerSpec]) -> MultiBootResult:
-    # Phase 1: Allocate all resources
-    allocations = {}
-    for spec in specs:
-        allocations[spec.name] = self._resource_allocator.allocate(spec.name)
-
-    try:
-        # Phase 2: Boot all containers
-        for spec in specs:
-            self._boot_single(spec, allocations[spec.name])
-    except Exception:
-        # Phase 3: Cleanup on failure
-        self._cleanup_all()
-        raise
-```
-
-### Pattern 3: Graceful Degradation
-
-**What:** If networking setup fails, containers still boot with isolated networking.
-
-**When:** When VirtualNetwork setup fails (missing TAP, permissions, etc.).
-
-**Example:**
-```python
-def boot(self, specs: List[ContainerSpec]) -> MultiBootResult:
-    try:
-        self._network = VirtualNetwork()
-    except NetworkSetupError:
-        logger.warning("Virtual network setup failed, using isolated mode")
-        self._network = None  # Each container gets its own user network
+def commit(self, tag: str, output: Path) -> CommitResult:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        qcow2_path = Path(tmpdir) / f"{tag}.qcow2"
+        self._extract_snapshot(tag, qcow2_path)
+        # qcow2_path auto-cleaned when exiting context
+        return self._encode_to_rts(qcow2_path, output)
 ```
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Modifying BootBridge for Multi-Container
+### Anti-Pattern 1: Modifying Running VM Disk
 
-**What:** Adding multi-container logic directly into BootBridge.
+**What people do:** Try to copy qcow2 while VM is running.
+**Why it's wrong:** Corrupts disk image, undefined behavior.
+**Do this instead:** Use `savevm` to create consistent internal snapshot, then extract with `qemu-img convert -l`.
 
-**Why bad:** Violates single responsibility, makes single-container boot more complex.
+### Anti-Pattern 2: Skipping Internal Snapshot
 
-**Instead:** Use MultiBootManager as orchestrator; BootBridge stays focused on single container.
+**What people do:** Try to read qcow2 directly without `savevm`.
+**Why it's wrong:** Inconsistent state, may miss in-memory changes.
+**Do this instead:** Always create internal snapshot first with `VMSnapshotManager.create_snapshot()`.
 
-### Anti-Pattern 2: Global State for Resource Tracking
+### Anti-Pattern 3: Large Temp Files in /tmp
 
-**What:** Using global variables to track allocated VNC displays.
+**What people do:** Extract multi-GB qcow2 to /tmp without cleanup.
+**Why it's wrong:** Fills up temp partition, crashes system.
+**Do this instead:** Use `tempfile.TemporaryDirectory()` context manager for auto-cleanup, or allow configurable temp location.
 
-**Why bad:** Makes testing hard, causes issues with multiple MultiBootManager instances.
+### Anti-Pattern 4: Blocking CLI on Long Operations
 
-**Instead:** Use ResourceAllocator instance per MultiBootManager.
+**What people do:** Synchronous commit with no progress feedback.
+**Why it's wrong:** User thinks CLI is hung for multi-GB snapshots.
+**Do this instead:** Show progress: "Creating snapshot...", "Extracting...", "Encoding...".
 
-### Anti-Pattern 3: Blocking Boot for All Containers
+## File Size Considerations
 
-**What:** Waiting for each container to fully boot before starting the next.
+| VM Memory | Internal Snapshot Size | Extracted qcow2 | .rts.png Size | Time Estimate |
+|-----------|----------------------|-----------------|---------------|---------------|
+| 512M | ~500MB | ~500MB | ~500MB | ~5s |
+| 2G | ~2GB | ~2GB | ~2GB | ~15s |
+| 8G | ~8GB | ~8GB | ~8GB | ~60s |
 
-**Why bad:** Slow boot times for independent containers.
-
-**Instead:** Boot independent containers in parallel, only wait for dependencies.
-
-## Scalability Considerations
-
-| Concern | At 2 containers | At 10 containers | At 50 containers |
-|---------|-----------------|------------------|------------------|
-| **VNC Displays** | Sequential allocation (0, 1) | Sequential allocation (0-9) | Need display pooling or VNC proxy |
-| **Port Forwards** | Direct allocation | Direct allocation | Need dynamic port range |
-| **Memory** | 4-8GB host | 20-40GB host | Need memory limits per container |
-| **Boot Time** | ~2s parallel | ~2-3s parallel | Need staged boot with limits |
-| **Network** | User-mode QEMU | User-mode QEMU | Need bridge or SDN |
-
-## Suggested Build Order
-
-### Phase 1: Core Infrastructure (No Networking)
-1. **ResourceAllocator** - Port and display allocation
-2. **ContainerSpec/MultiBootResult** - Data structures
-3. **MultiBootManager (basic)** - Boot multiple containers without interconnect
-
-### Phase 2: Virtual Networking
-4. **NetworkConfig/NetworkInfo** - Network data structures
-5. **VirtualNetwork** - Basic user-mode networking
-6. **QemuBoot network extensions** - Multi-container netdev args
-
-### Phase 3: CLI Integration
-7. **CLI multi-container parsing** - Handle multiple paths
-8. **Dependency ordering** - Topological sort for depends_on
-9. **Aggregate status display** - Show all container statuses
-
-### Phase 4: Advanced Features
-10. **Health checks** - Wait for containers to be "ready"
-11. **TAP/Bridge networking** - Alternative to user-mode
-12. **Compose file support** - YAML specification format
+**Note:** PixelRTS encoding adds minimal overhead (<1%) but requires sufficient RAM for Hilbert LUT generation.
 
 ## Sources
 
-- Existing BootBridge implementation: `/systems/pixel_compiler/boot/boot_bridge.py`
-- Existing QemuBoot implementation: `/systems/pixel_compiler/integration/qemu_boot.py`
-- Existing MountHelper implementation: `/systems/pixel_compiler/boot/mount_helper.py`
-- Existing PixelRTSServer (network boot): `/systems/pixel_compiler/serve/server.py`
-- Existing pixelrts CLI: `/systems/pixel_compiler/pixelrts_cli.py`
-- Test patterns: `/systems/pixel_compiler/tests/test_boot_bridge.py`
+- [QEMU qemu-img Documentation](https://www.qemu.org/docs/master/tools/qemu-img.html) - Confirmed `-l SNAPSHOT_PARAM` option for snapshot extraction
+- Existing codebase: `vm_snapshot.py`, `boot_bridge.py`, `pixelrts_v2_core.py`, `snapshot_storage.py`
+
+---
+*Architecture research for: PixelRTS Commit-to-File*
+*Researched: 2026-03-09*

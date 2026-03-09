@@ -1,164 +1,159 @@
 # Project Research Summary
 
-**Project:** PixelRTS v1.3 Multi-Container Boot
-**Domain:** Multi-VM Orchestration with Virtual Networking
-**Researched:** 2026-03-08
+**Project:** PixelRTS Commit-to-File (v1.5)
+**Domain:** VM Snapshot Persistence to Portable Container Format
+**Researched:** 2026-03-09
 **Confidence:** HIGH
 
 ## Executive Summary
 
-PixelRTS v1.3 extends the existing vision-based OS boot system to support simultaneous multi-container boot with inter-VM networking. This follows established patterns from Kubernetes sidecars and Docker Compose, adapted for QEMU-based VM orchestration rather than container runtimes. The key innovation is using QEMU's native socket netdev (multicast and stream modes) to create VM meshes without requiring root privileges or complex TAP/bridge setup.
+Commit-to-file enables exporting a running VM's state (memory + disk changes) to a new portable `.rts.png` file. This bridges the gap between QEMU's internal snapshots (embedded in qcow2 files) and PixelRTS's portable PNG containers. The core technical challenge is extracting QEMU's internal snapshot format into a standalone, portable representation that can be encoded via the existing PixelRTSEncoder.
 
-The recommended architecture is **composition-based**: a new `MultiBootManager` orchestrates multiple existing `BootBridge` instances, with a `VirtualNetwork` component managing QEMU socket-based interconnect. This preserves the proven single-container boot flow while adding multi-container coordination. The critical design decision is using asyncio for concurrent process management rather than external orchestration tools (libvirt, Docker SDK, supervisord) - all of which are overkill for single-host multi-VM scenarios.
+The recommended approach uses `qemu-img convert -l <snapshot_tag>` to extract internal snapshots to standalone qcow2 files, then encodes via the existing Hilbert curve mapping infrastructure. This leverages existing components (VMSnapshotManager, BootBridge, PixelRTSEncoder) with minimal modifications, using composition over inheritance for the new SnapshotCommitter orchestrator.
 
-Key risks include: (1) resource exhaustion from unbounded parallel boot, (2) network race conditions when VMs start before the mesh is ready, and (3) cascade failures when one VM fails affecting the entire group. Mitigation requires resource allocation before boot, phased startup with dependency ordering, and graceful degradation when networking fails.
+Key risks include memory state size explosion (4GB VM = 4GB PNG), snapshot format incompatibility between QEMU versions, and state inconsistency if the VM continues running during commit. These are mitigated through streaming encoding, VM pause during commit, and clear format versioning in PNG metadata.
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new Python packages required for v1.3 multi-container boot. The extension uses Python 3.12+ stdlib (`asyncio`) and existing QEMU 8.0+ features (socket netdev). This is a deliberate architectural choice to avoid heavy dependencies.
+No new dependencies required. The commit-to-file feature uses stdlib only (`subprocess`, `tempfile`, `shutil`, `pathlib`, `dataclasses`, `logging`) plus `qemu-img` (already required for VM operations).
 
-**Core technologies for multi-container:**
-- **asyncio (stdlib):** Concurrent subprocess orchestration - native async/await for non-blocking QEMU process management, zero new dependencies
-- **QEMU Socket Netdev (8.0+):** VM-to-VM networking without root - multicast for mesh (`-netdev socket,mcast=`), stream for point-to-point (`-netdev stream,reconnect-ms=`)
-- **NetworkMode enum extension:** Add SOCKET_MCAST, SOCKET_STREAM, SOCKET_DGRAM to existing enum in `QemuBoot`
-
-**What NOT to add:**
-- libvirt Python bindings - heavy C dependency, requires libvirtd daemon, overkill for single-host
-- Docker/Podman SDK - wrong abstraction (we boot OS images in VMs, not container images)
-- TAP/bridge networking - requires root or CAP_NET_ADMIN, complex cleanup, security exposure
-- VDE (Virtual Distributed Ethernet) - unmaintained since 2015, complex setup
+**Core technologies:**
+- **qemu-img convert -s/-l**: Extract internal QEMU snapshots to standalone qcow2 files
+- **tempfile.TemporaryDirectory**: Safe intermediate storage with automatic cleanup
+- **PixelRTSEncoder (existing)**: Encode binary qcow2 to .rts.png with Hilbert curve mapping
+- **VMSnapshotManager (existing)**: Create/list QEMU internal snapshots via monitor commands
+- **BootBridge (existing)**: Orchestrates FUSE mount + QEMU boot, provides VMSnapshotManager access
 
 ### Expected Features
 
 **Must have (table stakes):**
-- **Simultaneous boot:** `pixelrts boot a.png b.png c.png` boots all in parallel - users expect multi-VM to "just work"
-- **Network connectivity:** VMs can communicate via virtual network - isolated boot is useless for multi-container
-- **Container discovery:** VMs find each other by name (DNS-like or /etc/hosts) - required for service-to-service communication
-- **Boot ordering:** Primary boots first, helpers wait; or explicit `depends_on` - matches Docker Compose expectations
-- **Status visibility:** `pixelrts ps` shows running containers - users need to know what's running
-- **Graceful shutdown:** Stop helpers before primary (reverse boot order) - matches Kubernetes sidecar lifecycle
+- Export snapshot to new file (COMMIT-01) - "I made changes, save them" is fundamental
+- Boot from committed file (COMMIT-02) - Committed file should boot like original
+- Progress visibility (COMMIT-03) - User sees commit progress, not a frozen CLI
 
-**Should have (competitive):**
-- **One-command multi-boot:** `pixelrts boot-group group.yaml` with declarative config - minimal friction
-- **Auto-network setup:** Zero-config networking - PixelRTS creates virtual network automatically
-- **Health-aware startup:** Wait for primary to be "healthy" before helpers start - `service_healthy` condition pattern
+**Should have (differentiators):**
+- One-command commit workflow - Single CLI call, no manual steps
+- Incremental commits - Only save delta from base (smaller files)
+- Snapshot chaining - Track parent/child relationships
 
 **Defer (v2+):**
-- Hot-add helpers - complex live state management
-- Coordinated snapshots - atomic state capture across VMs is complex
-- Visual topology view - UI work, not core functionality
-- Distributed multi-host - out of scope for single-host boot
+- Compressed commits - Leverage existing compression module for smaller files
+- Ephemeral boot from snapshot - Boot with changes discarded on stop
+- Visual diff before commit - Leverage existing `pixelrts diff`
 
 ### Architecture Approach
 
-The architecture extends existing components via composition, not modification. `MultiBootManager` is the new orchestration layer managing multiple `BootBridge` instances. `VirtualNetwork` handles QEMU socket netdev configuration. `ResourceAllocator` prevents port/VNC conflicts.
+The architecture follows a layered pipeline: CLI Layer -> Coordination Layer (SnapshotCommitter) -> Boot Layer (VMSnapshotManager, BootBridge) -> Encoding Layer (qemu-img, PixelRTSEncoder). A new SnapshotCommitter class orchestrates the commit pipeline by composing existing components rather than extending them.
 
 **Major components:**
-1. **MultiBootManager:** Orchestrates multiple BootBridge instances, handles dependency ordering via topological sort, provides aggregate status
-2. **VirtualNetwork:** Manages QEMU socket netdev (mcast/stream), allocates IPs, provides container name resolution
-3. **ResourceAllocator:** Allocates VNC displays, serial sockets, port forwards; prevents conflicts between containers
-4. **QemuFleet (asyncio):** Concurrent boot/stop with `asyncio.gather()`, per-VM events for coordination
-
-**Key patterns:**
-- **Composition over inheritance:** MultiBootManager composes BootBridge instances; BootBridge stays focused on single container
-- **Resource allocation before boot:** Allocate all resources before starting any VM to prevent partial failures leaving orphaned resources
-- **Graceful degradation:** If VirtualNetwork setup fails, containers still boot with isolated networking
+1. **SnapshotCommitter (NEW)** - Orchestrates: snapshot -> extract -> encode -> persist metadata
+2. **VMSnapshotManager (existing)** - Create internal QEMU snapshots via `savevm` monitor command
+3. **qemu-img convert (external)** - Extract snapshot from qcow2 with `-l snapshot_name` flag
+4. **PixelRTSEncoder (existing)** - Encode binary data to .rts.png with Hilbert curve mapping
 
 ### Critical Pitfalls
 
-1. **Unbounded parallel boot** — Without limits, booting 50+ VMs exhausts memory/ports. Mitigation: max concurrent limit (10), `asyncio.Semaphore`, staged boot for large groups.
-2. **Network race conditions** — VMs may try to communicate before mesh is established. Mitigation: Primary must be "running" before helpers join; use `asyncio.Event` for boot completion signaling.
-3. **Cascade failure** — If one VM fails, entire group appears broken. Mitigation: Configurable failure policy (fail group vs continue degraded), individual container restart.
-4. **Resource leaks on failure** — Partial boot leaves allocated VNC displays/ports orphaned. Mitigation: Cleanup in `finally` blocks, ResourceAllocator.release() on any exception.
-5. **Using TAP/bridge instead of socket** — Requires root, complex cleanup, security exposure. Mitigation: Use QEMU socket netdev - works unprivileged.
+1. **Internal Snapshot Format Incompatibility** - QEMU's `savevm` snapshots are NOT portable between versions/hosts. Use `qemu-img convert -l` to export to standalone format before encoding.
+
+2. **Memory State Size Explosion** - 4GB VM = ~4GB PNG, exceeding practical limits. Implement streaming encoding, set memory limits (recommend 2GB max initially), and pre-validate size.
+
+3. **Snapshot State Inconsistency** - VM continues running during export = corrupted snapshot. Pause VM with `stop` monitor command before export, resume with `cont` after.
+
+4. **PixelRTS v2 Format Compatibility** - VM snapshots don't map cleanly to kernel/initrd/disk boot flow. Define new container type ("vm-snapshot" vs "bootable") in tEXt metadata, create separate `pixelrts restore` command.
+
+5. **VMSnapshotManager Integration Conflicts** - Committed files are external artifacts that don't fit existing metadata model. Extend SnapshotMetadata with `committed_path` field, dual-source listing.
 
 ## Implications for Roadmap
 
-Based on research, suggested phase structure for v1.3:
+Based on research, suggested phase structure:
 
-### Phase 1: Core Infrastructure (No Networking)
-**Rationale:** Foundation layer - resource management and basic multi-boot without interconnect reduces initial complexity
-**Delivers:** Ability to boot multiple containers simultaneously with isolated (user-mode) networking
-**Addresses:** Simultaneous boot, status visibility, graceful shutdown, individual control
-**Avoids:** Pitfall 1 (unbounded parallel) via ResourceAllocator with configurable limits
-**Components:** `MultiBootConfig`, `ContainerSpec`, `MultiBootResult` dataclasses; `ResourceAllocator` class; basic `MultiBootManager`
+### Phase 1: Core Export Infrastructure
+**Rationale:** Must establish correct export format before any encoding work. Size constraints and consistency guarantees must be validated upfront.
+**Delivers:** Function to extract internal QEMU snapshot to standalone qcow2, streaming encoding support, VM pause/resume during commit
+**Addresses:** COMMIT-01 (basic commit export)
+**Avoids:** Pitfalls 1 (format incompatibility), 2 (size explosion), 4 (state inconsistency)
 
-### Phase 2: Virtual Networking
-**Rationale:** Networking is complex; build on stable multi-boot foundation
-**Delivers:** VM-to-VM communication via QEMU socket netdev (multicast for mesh, stream for point-to-point)
-**Uses:** asyncio, QEMU socket netdev, extended NetworkMode enum
-**Implements:** `VirtualNetwork`, `NetworkConfig`, `NetworkInfo` classes; extend `QemuBoot._build_network_args()`
-**Avoids:** Pitfall 2 (network race conditions) via boot event signaling; Pitfall 5 (TAP/bridge) by using socket netdev
-**Components:** `VirtualNetwork` class, extend `NetworkMode` enum, extend `QemuConfig` fields
+### Phase 2: Format Integration
+**Rationale:** Must define format extension before implementing full pipeline. Ensures committed files are distinguishable from bootable containers.
+**Delivers:** Extended PixelRTS format spec with "vm-snapshot" container type, separate restore path
+**Uses:** PixelRTSEncoder with updated metadata schema
+**Implements:** Format versioning in PNG tEXt chunks
+**Avoids:** Pitfall 3 (format compatibility breakage)
 
-### Phase 3: CLI Integration & Dependency Ordering
-**Rationale:** User-facing features depend on stable infrastructure
-**Delivers:** `pixelrts boot a.png b.png c.png`, `pixelrts boot-group group.yaml`, `depends_on` ordering, aggregate status display
-**Uses:** YAML config parsing, topological sort for dependencies
-**Implements:** CLI argument parsing for multiple paths, boot-group YAML format, health-aware startup
-**Avoids:** Pitfall 3 (cascade failure) via configurable failure policies per container
-**Components:** Extend `pixelrts_cli.py`, add `boot-group` subcommand, add `BootGroupSpec` YAML schema
+### Phase 3: SnapshotCommitter Pipeline
+**Rationale:** Orchestrator class that composes existing components. Depends on Phase 1 extract function and Phase 2 format definition.
+**Delivers:** `SnapshotCommitter.commit(tag, output_path)` method, full pipeline orchestration
+**Uses:** VMSnapshotManager, qemu-img extract wrapper, PixelRTSEncoder, SnapshotStorage
+**Addresses:** COMMIT-01 (basic commit), COMMIT-03 (progress visibility)
 
-### Phase 4: Polish & Edge Cases
-**Rationale:** Production readiness after core features complete
-**Delivers:** Graceful degradation (network fails -> isolated mode), error recovery, performance tuning, scale testing
-**Addresses:** Scale limits (10+ VMs), cleanup on crash, resource exhaustion handling, shared storage
-**Avoids:** Pitfall 4 (resource leaks) via comprehensive cleanup paths
-**Components:** Error handling improvements, scale testing, documentation
+### Phase 4: CLI Integration
+**Rationale:** User-facing command depends on complete pipeline. Must extend metadata model for dual-source listing.
+**Delivers:** `pixelrts commit <container> <tag> --output <file>` command, `pixelrts restore` command
+**Uses:** MultiBootManager, SnapshotCommitter
+**Addresses:** COMMIT-02 (boot from committed), one-command workflow differentiator
+**Avoids:** Pitfall 5 (VMSnapshotManager integration conflicts)
+
+### Phase 5: Verification & Polish
+**Rationale:** Cross-host restore testing, signature verification, error recovery cleanup. Often overlooked but critical for production.
+**Delivers:** Cross-host restore tests, checksum verification, signature support, cleanup on failure
+**Addresses:** COMMIT-02 (boot verification), security requirements
 
 ### Phase Ordering Rationale
 
-- **Dependencies:** Resource allocation must exist before multi-boot; multi-boot must exist before networking; networking must exist before dependency ordering
-- **Architecture:** Composition pattern allows building MultiBootManager after BootBridge is stable; VirtualNetwork is optional layer
-- **Risk mitigation:** Phase 1 establishes resource cleanup patterns; Phase 2 adds network-specific cleanup; Phase 3 adds user-facing error handling
+- Phase 1 comes first because format extraction is foundational - everything else depends on correct export
+- Phase 2 defines the contract before implementation to avoid format breakage
+- Phase 3 implements the core logic once infrastructure and format are settled
+- Phase 4 exposes functionality to users once pipeline is proven
+- Phase 5 validates end-to-end functionality before release
 
 ### Research Flags
 
 Phases likely needing deeper research during planning:
-- **Phase 2 (Networking):** QEMU socket netdev behavior under load - multicast reliability at 10+ VMs, stream reconnection edge cases, buffer sizes
-- **Phase 4 (Polish):** Scale limits on typical hardware - practical max VMs, memory per VM, port exhaustion thresholds
+- **Phase 2:** Format spec extension needs careful design - review PIXELRTS_V2_SPEC.md for extension points
+- **Phase 5:** Cross-host restore compatibility - may need QEMU version detection logic
 
 Phases with standard patterns (skip research-phase):
-- **Phase 1 (Infrastructure):** asyncio subprocess patterns are well-documented stdlib, resource allocation is straightforward
-- **Phase 3 (CLI):** YAML parsing (PyYAML), topological sort are standard algorithms with clear implementations
+- **Phase 1:** Well-documented qemu-img convert workflow
+- **Phase 3:** Standard composition pattern, existing codebase patterns are clear
+- **Phase 4:** Standard CLI integration, existing `pixelrts` commands provide templates
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | asyncio and QEMU socket netdev are mature, well-documented; zero new external dependencies |
-| Features | HIGH | Based on Kubernetes sidecar and Docker Compose patterns from official documentation |
-| Architecture | HIGH | Composition pattern is proven; existing BootBridge provides stable foundation |
-| Pitfalls | MEDIUM | Based on general multi-container patterns; PixelRTS-specific integration needs validation |
+| Stack | HIGH | stdlib only + qemu-img, verified with QEMU docs and existing codebase |
+| Features | MEDIUM | Based on codebase patterns and QEMU docs; FUSE-only containers may need special handling |
+| Architecture | HIGH | Existing components well-documented, composition pattern is clear |
+| Pitfalls | HIGH | QEMU snapshot portability is well-documented issue, size limits are calculable |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **VM health detection:** How to know when a VM is "ready" for dependents to start? Options: (1) guest agent, (2) TCP port probing, (3) serial console output parsing. Defer decision to Phase 3 implementation.
-- **Scale limits:** What's the practical max VMs on typical hardware (16GB RAM, 8 cores)? Need benchmarking during Phase 4.
-- **Shared storage:** How do containers share files? QEMU 9p/virtfs or host directory mount via FUSE in guest. Defer to post-v1.3 if needed.
+- **FUSE-only containers:** Current direct kernel boot from FUSE may not support QEMU snapshots without a qcow2 disk. Need to verify during Phase 1 if temporary qcow2 is required.
+- **Streaming encoding limits:** PixelRTSEncoder currently loads data in memory. Need to verify streaming support or implement chunked processing for large VMs.
+- **Cross-host QEMU version compatibility:** Even with proper export format, QEMU version differences may cause restore issues. Document minimum QEMU version requirements.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- QEMU Invocation Documentation (https://www.qemu.org/docs/master/system/invocation.html) - Socket netdev options
-- Python asyncio subprocess (https://docs.python.org/3/library/asyncio-subprocess.html) - Concurrent process management
-- Kubernetes Sidecar Containers (https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/) - Primary/helper lifecycle pattern
-- Docker Compose Networking (https://docs.docker.com/compose/networking/) - Service discovery patterns
-- Docker Compose Startup Order (https://docs.docker.com/compose/startup-order/) - depends_on with conditions
+- QEMU Official Docs - VM Snapshots (qemu.org/docs/master/system/images.html) - savevm/loadvm commands
+- QEMU Official Docs - qemu-img (qemu.org/docs/master/tools/qemu-img.html) - convert command with -s/-l option
+- Existing codebase: `vm_snapshot.py` - VMSnapshotManager patterns
+- Existing codebase: `pixelrts_v2_core.py` - PixelRTSEncoder usage
+- Existing codebase: `boot_bridge.py` - BootBridge integration
+- Existing codebase: `snapshot_storage.py` - SnapshotMetadata persistence pattern
 
 ### Secondary (MEDIUM confidence)
-- QEMU Networking Wiki (https://wiki.qemu.org/Documentation/Networking) - General patterns (some outdated, verified with official docs)
-- Existing BootBridge (`/systems/pixel_compiler/boot/boot_bridge.py`) - Proven single-container patterns to compose
-- Existing QemuBoot (`/systems/pixel_compiler/integration/qemu_boot.py`) - Extension point for NetworkMode
+- Codebase: `12-RESEARCH.md` - Phase 12 research on QEMU snapshots
+- PROJECT.md: v1.4 validated features context
+- PixelRTS v2 Specification (`docs/PIXELRTS_V2_SPEC.md`)
 
-### Tertiary (context)
-- Existing pixelrts CLI (`/systems/pixel_compiler/pixelrts_cli.py`) - CLI patterns to extend
-- Existing PixelRTSServer (`/systems/pixel_compiler/serve/server.py`) - Async server patterns
+### Tertiary (LOW confidence)
+- None - all findings grounded in codebase or official documentation
 
 ---
-*Research completed: 2026-03-08*
+*Research completed: 2026-03-09*
 *Ready for roadmap: yes*
