@@ -175,18 +175,45 @@ If everything else fails, users must be able to:
 ✓ **CLI-SNAP-03**: Timestamp-based naming — v1.4
   - Format: snap-YYYYMMDD-HHMMSS
 
-### Active (v1.5)
+### Validated (v1.5)
 
-- [ ] **COMMIT-01**: Commit running container to new .rts.png file
-- [ ] **COMMIT-02**: Committed file preserves disk changes
-- [ ] **COMMIT-03**: Committed file includes VM memory state
-- [ ] **COMMIT-04**: Commit shows progress
-- [ ] **BOOT-COMMIT-01**: Committed file boots with existing command
-- [ ] **BOOT-COMMIT-02**: Committed file preserves kernel/initrd
-- [ ] **BOOT-COMMIT-03**: Changes visible after boot
-- [ ] **CLI-COMMIT-01**: `pixelrts commit <container> <output>` command
-- [ ] **CLI-COMMIT-02**: `--snapshot <tag>` flag
-- [ ] **CLI-COMMIT-03**: `--no-verify` flag
+✓ **COMMIT-01**: Commit running container to new .rts.png file — v1.5
+  - `pixelrts commit <container> <output.rts.png>` command
+  - SnapshotExporter with PixelRTS encoding
+
+✓ **COMMIT-02**: Committed file preserves disk changes — v1.5
+  - `qemu-img convert -l <snapshot_tag>` extraction
+  - QemuImgWrapper for snapshot extraction
+
+✓ **COMMIT-03**: Committed file includes VM memory state — v1.5
+  - SnapshotCommitter with VM pause/resume orchestration
+  - VMSnapshotManager.create_snapshot() integration
+
+✓ **COMMIT-04**: Commit shows progress — v1.5
+  - ExportStage enum (COMMITTING, ENCODING, VERIFYING, COMPLETE, FAILED)
+  - Progress callback with stage tracking
+
+✓ **BOOT-COMMIT-01**: Committed file boots with existing command — v1.5
+  - CommittedFileBooter for vm-snapshot type
+  - CLI boot command auto-detection routing
+
+✓ **BOOT-COMMIT-02**: Committed file preserves kernel/initrd — v1.5
+  - Combined data encoding with offset metadata
+  - _extract_kernel() / _extract_initrd() methods
+
+✓ **BOOT-COMMIT-03**: Changes visible after boot — v1.5
+  - disk_size trimming for qcow2 extraction
+  - Binary extraction with hash verification
+
+✓ **CLI-COMMIT-01**: `pixelrts commit <container> <output>` command — v1.5
+  - cmd_commit() with container validation via MultiBootManager
+  - 11 unit tests for commit command
+
+✓ **CLI-COMMIT-02**: `--snapshot <tag>` flag — v1.5
+  - Passes specific snapshot tag to exporter
+
+✓ **CLI-COMMIT-03**: `--no-verify` flag — v1.5
+  - Skips boot verification for faster commits
 
 ### Future
 
@@ -227,6 +254,14 @@ If everything else fails, users must be able to:
 - 162 tests passing (snapshot functionality)
 - Live VM snapshots via QEMU monitor commands
 - Persistent metadata storage for stopped VMs
+
+**Shipped v1.5 (2026-03-09):**
+- 3 phases (15, 16, 17), 9 plans completed
+- CLI command: commit
+- 88+ tests passing (commit functionality)
+- Complete container lifecycle: boot → modify → commit → boot again
+- VM pause/resume during commit for state consistency
+- Combined data encoding with offset metadata
 
 **Tech Stack:**
 - Python 3.12+
@@ -296,6 +331,12 @@ If everything else fails, users must be able to:
 | Dual-source listing (VM or storage) | List snapshots even when VM stopped | ✓ Good |
 | Timestamp-based naming: snap-YYYYMMDD-HHMMSS | Consistent, sortable snapshot names | ✓ Good |
 | Global `pixelrts snapshots` command | Easy listing across all containers | ✓ Good |
+| qemu-img convert -l for snapshot extraction | Preserves disk state at snapshot time | ✓ Good |
+| VM pause/resume during commit | State consistency guarantee | ✓ Good |
+| Combined data encoding (qcow2 + kernel + initrd) | Single-file portability | ✓ Good |
+| ContainerType enum (BOOTABLE, VM_SNAPSHOT) | Clean boot routing | ✓ Good |
+| CLI boot auto-detection | Seamless user experience | ✓ Good |
+| Binary kernel/initrd extraction with offsets | No external file dependencies | ✓ Good |
 
 ---
 *Last updated: 2026-03-09 — v1.5 Commit to File started*

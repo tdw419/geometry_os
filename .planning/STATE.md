@@ -5,40 +5,38 @@
 See: .planning/PROJECT.md (updated 2026-03-09)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** v1.5 Commit to File (Phases 15-17)
+**Current focus:** Ready for next milestone
 
 ## Current Position
 
-Phase: 17 of 17 (CLI Integration)
-Plan: 2 of 2 in current phase
-Status: Complete
-Last activity: 2026-03-09 — Phase 17 CLI Integration complete, verified
+Phase: —
+Plan: —
+Status: Milestone v1.5 complete
+Last activity: 2026-03-09 — v1.5 Commit to File shipped
 
 Progress: [████████████████████████] 100% (50/50 plans across all milestones)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 48
-- Average duration: ~15 min
-- Total execution time: ~11.8 hours
+- Total plans completed: 50
+- Average duration: ~14 min
+- Total execution time: ~12 hours
 
-**By Phase:**
+**By Milestone:**
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
+| Milestone | Plans | Total | Avg/Plan |
+|----------|-------|-------|----------|
 | v1.0 Phases 1-4 | 22 | ~5.5 hrs | ~15 min |
 | v1.1 Phase 5 | 4 | ~1 hr | ~15 min |
 | v1.2 Phases 6-8.1 | 12 | ~3 hrs | ~15 min |
 | v1.3 Phases 9-11 | 12 | ~3 hrs | ~15 min |
 | v1.4 Phases 12-14 | 10 | ~2.5 hrs | ~15 min |
-| v1.5 Phase 15 | 3 | ~45 min | ~15 min |
-| v1.5 Phase 16 | 4 | ~53 min | ~13 min |
-| v1.5 Phase 17 | 2 | ~10 min | ~5 min |
+| v1.5 Phases 15-17 | 9 | ~2.5 hrs | ~17 min |
 
 **Recent Trend:**
-- Last 5 plans: Consistent ~12 min per plan
-- Trend: Stable
+- Last 5 plans: ~10 min per plan
+- Trend: Accelerating
 
 *Updated after each plan completion*
 
@@ -52,20 +50,20 @@ Key decisions archived in `.planning/milestones/` and PROJECT.md:
 - v1.2: Proxy DHCP, range decoding, async orchestrator, handler pattern
 - v1.3: ContainerRole enum, ordered boot/shutdown, VirtualNetwork class
 - v1.4: VMSnapshotManager, linear timeout scaling, SnapshotMetadata, dual-source listing
-- v1.5: QemuImgWrapper for qemu-img convert -l snapshot extraction, SnapshotCommitter with VM pause/resume guarantee, SnapshotExporter with progress tracking and PixelRTS encoding, CommittedFileBooter with vm-snapshot container detection, qcow2 extraction boot, kernel/initrd preservation with combined data encoding and offset metadata, CLI boot command with auto-detection routing and verification callback, binary kernel/initrd extraction with hash verification from committed files, CLI commit command with container validation, --snapshot/--no-verify flags, progress output (Phase 17 verified)
+- v1.5: qemu-img convert -l for snapshot extraction, VM pause/resume guarantee, combined data encoding with offset metadata, ContainerType enum for vm-snapshot detection, CLI boot auto-routing, binary kernel/initrd extraction with hash verification
 
 ### Pending Todos
 
-None yet for v1.5.
+None.
 
 ### Blockers/Concerns
 
-None yet.
+None.
 
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: Phase 17 CLI Integration complete, verified
+Stopped at: Milestone v1.5 complete
 Resume file: None
 
 ---
