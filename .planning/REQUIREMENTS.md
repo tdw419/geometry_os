@@ -20,9 +20,9 @@
 
 ### CLI
 
-- [ ] **CLI-COMMIT-01**: `pixelrts commit <container> <output.rts.png>` command
-- [ ] **CLI-COMMIT-02**: `--snapshot <tag>` flag to commit specific snapshot
-- [ ] **CLI-COMMIT-03**: `--no-verify` flag to skip boot verification
+- [x] **CLI-COMMIT-01**: `pixelrts commit <container> <output.rts.png>` command
+- [x] **CLI-COMMIT-02**: `--snapshot <tag>` flag to commit specific snapshot
+- [x] **CLI-COMMIT-03**: `--no-verify` flag to skip boot verification
 
 ## Out of Scope
 
@@ -44,9 +44,9 @@
 | BOOT-COMMIT-01 | Phase 16 | Complete |
 | BOOT-COMMIT-02 | Phase 16 | Complete |
 | BOOT-COMMIT-03 | Phase 16 | Complete |
-| CLI-COMMIT-01 | Phase 17 | Pending |
-| CLI-COMMIT-02 | Phase 17 | Pending |
-| CLI-COMMIT-03 | Phase 17 | Pending |
+| CLI-COMMIT-01 | Phase 17 | Complete |
+| CLI-COMMIT-02 | Phase 17 | Complete |
+| CLI-COMMIT-03 | Phase 17 | Complete |
 
 ---
 *Last updated: 2026-03-09*

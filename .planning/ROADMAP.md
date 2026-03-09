@@ -7,7 +7,7 @@
 - **v1.2 Network Boot** - Phases 6-8.1 (shipped 2026-03-09)
 - **v1.3 Multi-Boot** - Phases 9-11 (shipped 2026-03-09)
 - **v1.4 Live Snapshots** - Phases 12-14 (shipped 2026-03-09)
-- **v1.5 Commit to File** - Phases 15-17 (in progress)
+- **v1.5 Commit to File** - Phases 15-17 (shipped 2026-03-09)
 
 ## Phases
 
@@ -234,8 +234,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 17-01-PLAN.md - CLI commit command with --snapshot and --no-verify flags
-- [ ] 17-02-PLAN.md - End-to-end verification checkpoint
+- [x] 17-01-PLAN.md - CLI commit command with --snapshot and --no-verify flags
+- [x] 17-02-PLAN.md - End-to-end verification checkpoint
 
 ## Progress
 
@@ -246,7 +246,7 @@ Phases execute in numeric order: 15 - 16 - 17
 |-------|-----------|----------------|--------|-----------|
 | 15. Snapshot Export | v1.5 | 3/3 | Complete | 2026-03-09 |
 | 16. Boot from Committed | v1.5 | 4/4 | Complete | 2026-03-09 |
-| 17. CLI Integration | v1.5 | 0/2 | Not started | - |
+| 17. CLI Integration | v1.5 | 2/2 | Complete | 2026-03-09 |
 
 ---
 *Last updated: 2026-03-09*
