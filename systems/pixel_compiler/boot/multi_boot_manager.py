@@ -289,6 +289,7 @@ class MultiBootManager:
                     role=ContainerRole(data.get('role')) if data.get('role') else None,
                     error_message=data.get('error_message'),
                     network_fallback=data.get('network_fallback', False),
+                    is_ephemeral=data.get('is_ephemeral', False),
                 )
 
                 # Reconstruct resources if present
