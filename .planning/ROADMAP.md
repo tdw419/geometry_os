@@ -231,12 +231,11 @@ Plans:
   1. User can run `pixelrts commit <container> <output.rts.png>` to create committed file
   2. User can specify `--snapshot <tag>` to commit a specific snapshot
   3. User can skip verification with `--no-verify` flag for faster commits
-**Plans**: 3 plans
+**Plans**: 2 plans
 
 Plans:
-- [ ] 17-01: CLI commit command
-- [ ] 17-02: Snapshot selection flag
-- [ ] 17-03: Verification skip flag
+- [ ] 17-01-PLAN.md - CLI commit command with --snapshot and --no-verify flags
+- [ ] 17-02-PLAN.md - End-to-end verification checkpoint
 
 ## Progress
 
@@ -247,7 +246,7 @@ Phases execute in numeric order: 15 - 16 - 17
 |-------|-----------|----------------|--------|-----------|
 | 15. Snapshot Export | v1.5 | 3/3 | Complete | 2026-03-09 |
 | 16. Boot from Committed | v1.5 | 4/4 | Complete | 2026-03-09 |
-| 17. CLI Integration | v1.5 | 0/3 | Not started | - |
+| 17. CLI Integration | v1.5 | 0/2 | Not started | - |
 
 ---
 *Last updated: 2026-03-09*
