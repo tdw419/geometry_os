@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-03-09)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** Ready for next milestone
+**Current focus:** v1.6 Ephemeral Boot — temporary containers with no persistence
 
 ## Current Position
 
 Phase: —
 Plan: —
-Status: Milestone v1.5 complete
-Last activity: 2026-03-09 — v1.5 Commit to File shipped
+Status: Defining requirements
+Last activity: 2026-03-09 — Milestone v1.6 started
 
 Progress: [████████████████████████] 100% (50/50 plans across all milestones)
 

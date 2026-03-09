@@ -11,9 +11,21 @@
 
 ## Current Status
 
-**Milestone v1.5 complete.** Ready for next milestone planning.
+**Milestone v1.6: Ephemeral Boot**
 
-See `.planning/milestones/` for archived milestone details.
+### Phase 18: Ephemeral Boot
+
+**Goal**: Users can boot containers with `--ephemeral` flag to discard changes on exit.
+**Requirements**: EPHEM-01, EPHEM-02, EPHEM-03, EPHEM-04, EPHEM-05, EPHEM-06, EPHEM-07, EPHEM-08
+**Success criteria**:
+1. `pixelrts boot --ephemeral file.rts.png` starts container
+2. Changes made inside container are NOT written to original file
+3. Container exits cleanly with no leftover temp files
+4. `pixelrts ps` shows `[E]` indicator for ephemeral containers
+5. Ephemeral works with multi-boot
+6. Ephemeral works with vm-snapshot type
+7. Crash cleanup removes temp files
+8. `pixelrts commit` can save ephemeral changes before exit
 
 ---
 

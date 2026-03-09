@@ -1,52 +1,44 @@
-# Requirements: PixelRTS v1.5 Commit to File
+# Requirements: v1.6 Ephemeral Boot
 
-**Defined:** 2026-03-09
-**Core Value:** Booting an OS should be as visual and intuitive as opening an image file.
+## Requirements
 
-## v1.5 Requirements
+### Core
 
-### Commit
+- [ ] **EPHEM-01**: User can boot container with `--ephemeral` flag
+- [ ] **EPHEM-02**: Changes are discarded on container exit
+- [ ] **EPHEM-03**: Original .rts.png file remains unchanged
 
-- [x] **COMMIT-01**: User can commit running container to new .rts.png file
-- [x] **COMMIT-02**: Committed file preserves all disk changes from original
-- [x] **COMMIT-03**: Committed file includes VM memory state
-- [x] **COMMIT-04**: Commit shows progress (snapshot → export → encode → verify)
+### Integration
 
-### Boot from Committed
+- [ ] **EPHEM-04**: Works with all boot types (bootable, vm-snapshot)
+- [ ] **EPHEM-05**: Works with multi-container boot
+- [ ] **EPHEM-06**: `pixelrts ps` shows ephemeral containers with indicator
 
-- [x] **BOOT-COMMIT-01**: Committed file boots with existing `pixelrts boot` command
-- [x] **BOOT-COMMIT-02**: Committed file preserves original kernel/initrd
-- [x] **BOOT-COMMIT-03**: Changes from committed state are visible after boot
+### Safety
 
-### CLI
-
-- [x] **CLI-COMMIT-01**: `pixelrts commit <container> <output.rts.png>` command
-- [x] **CLI-COMMIT-02**: `--snapshot <tag>` flag to commit specific snapshot
-- [x] **CLI-COMMIT-03**: `--no-verify` flag to skip boot verification
+- [ ] **EPHEM-07**: Temp files cleaned up on exit (normal or crash)
+- [ ] **EPHEM-08**: User can save ephemeral changes with `pixelrts commit`
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Live migration to file | Pause required for consistency |
-| In-place commit | Data loss risk, breaks immutability |
-| Multi-container atomic commit | Complex coordination |
-| Cloud provider integration | Local focus per PROJECT.md |
+| Persistent snapshots of ephemeral | Use commit instead |
+| Network isolation for ephemeral | Works with existing networking |
+| Ephemeral install | Contradicts ephemeral nature |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| COMMIT-01 | Phase 15 | Complete |
-| COMMIT-02 | Phase 15 | Complete |
-| COMMIT-03 | Phase 15 | Complete |
-| COMMIT-04 | Phase 16 | Complete |
-| BOOT-COMMIT-01 | Phase 16 | Complete |
-| BOOT-COMMIT-02 | Phase 16 | Complete |
-| BOOT-COMMIT-03 | Phase 16 | Complete |
-| CLI-COMMIT-01 | Phase 17 | Complete |
-| CLI-COMMIT-02 | Phase 17 | Complete |
-| CLI-COMMIT-03 | Phase 17 | Complete |
+| EPHEM-01 | 18 | Pending |
+| EPHEM-02 | 18 | Pending |
+| EPHEM-03 | 18 | Pending |
+| EPHEM-04 | 18 | Pending |
+| EPHEM-05 | 18 | Pending |
+| EPHEM-06 | 18 | Pending |
+| EPHEM-07 | 18 | Pending |
+| EPHEM-08 | 18 | Pending |
 
 ---
-*Last updated: 2026-03-09*
+*Created: 2026-03-09*
