@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from systems.pixel_compiler.boot.multi_boot_manager import (
     MultiBootManager,
     ContainerState,
+    ContainerRole,
     ContainerInfo,
     MultiBootResult,
 )
@@ -89,6 +90,22 @@ class TestContainerState:
         """Test that all expected states are defined."""
         states = list(ContainerState)
         assert len(states) == 5
+
+
+# ContainerRole Tests
+
+class TestContainerRole:
+    """Tests for ContainerRole enum."""
+
+    def test_role_values(self):
+        """Test that ContainerRole has expected values."""
+        assert ContainerRole.PRIMARY.value == "primary"
+        assert ContainerRole.HELPER.value == "helper"
+
+    def test_all_roles_defined(self):
+        """Test that all expected roles are defined."""
+        roles = list(ContainerRole)
+        assert len(roles) == 2
 
 
 # ContainerInfo Tests
@@ -348,6 +365,85 @@ class TestBootAll:
         result = manager.boot_all([])
         assert result.success is False  # No containers to boot
         assert result.success_count == 0
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_boot_all_with_primary(
+        self, mock_bridge_class, manager
+    ):
+        """Test boot_all with primary parameter sets role correctly."""
+        mock_bridge = Mock()
+        mock_bridge.boot.return_value = BootResult(success=True, vnc_port=5900, pid=12345)
+        mock_bridge_class.return_value = mock_bridge
+
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png"],
+            primary="alpine.rts"
+        )
+
+        assert result.success is True
+        assert len(result.containers) == 1
+        # Verify primary container has PRIMARY role
+        assert result.containers[0].role == ContainerRole.PRIMARY
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_boot_all_primary_sets_role(
+        self, mock_bridge_class, manager
+    ):
+        """Test that primary container has PRIMARY role and others have HELPER."""
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            vnc_display = kwargs.get('vnc_display', 0)
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900 + vnc_display,
+                pid=1000 + vnc_display,
+            )
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png", "/fake/ubuntu.rts.png"],
+            primary="ubuntu.rts"
+        )
+
+        assert result.success is True
+        assert len(result.containers) == 2
+
+        # Find containers by name
+        alpine = next(c for c in result.containers if c.name == "alpine.rts")
+        ubuntu = next(c for c in result.containers if c.name == "ubuntu.rts")
+
+        # Verify roles
+        assert alpine.role == ContainerRole.HELPER
+        assert ubuntu.role == ContainerRole.PRIMARY
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_boot_all_without_primary_all_helpers(
+        self, mock_bridge_class, manager
+    ):
+        """Test that without primary parameter, all containers are HELPER."""
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            vnc_display = kwargs.get('vnc_display', 0)
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900 + vnc_display,
+                pid=1000 + vnc_display,
+            )
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        result = manager.boot_all([
+            "/fake/alpine.rts.png",
+            "/fake/ubuntu.rts.png",
+        ])
+
+        assert result.success is True
+        # Verify all containers have HELPER role
+        for container in result.containers:
+            assert container.role == ContainerRole.HELPER
 
 
 # MultiBootManager.list_containers Tests
