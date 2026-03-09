@@ -11,6 +11,11 @@ from systems.pixel_compiler.boot.virtual_network import (
     VirtualNetworkConfig,
     NetworkSetupError,
 )
+from systems.pixel_compiler.integration.qemu_boot import (
+    NetworkMode,
+    QemuBoot,
+    QemuConfig,
+)
 
 
 class TestVirtualNetworkConfig:
@@ -183,3 +188,106 @@ class TestNetworkSetupError:
     def test_exception_inheritance(self):
         """NetworkSetupError inherits from Exception."""
         assert issubclass(NetworkSetupError, Exception)
+
+
+class TestNetworkModeExtension:
+    """Tests for extended NetworkMode enum with socket modes."""
+
+    def test_socket_mcast_exists(self):
+        """NetworkMode.SOCKET_MCAST exists."""
+        assert hasattr(NetworkMode, 'SOCKET_MCAST')
+
+    def test_socket_stream_exists(self):
+        """NetworkMode.SOCKET_STREAM exists."""
+        assert hasattr(NetworkMode, 'SOCKET_STREAM')
+
+    def test_socket_mcast_value(self):
+        """SOCKET_MCAST has correct value."""
+        assert NetworkMode.SOCKET_MCAST.value == "socket_mcast"
+
+    def test_socket_stream_value(self):
+        """SOCKET_STREAM has correct value."""
+        assert NetworkMode.SOCKET_STREAM.value == "socket_stream"
+
+
+class TestQemuBootSocketIntegration:
+    """Tests for QemuBoot integration with socket networking."""
+
+    def test_build_network_args_socket_mcast(self):
+        """SOCKET_MCAST mode returns socket mcast args."""
+        config = QemuConfig(network_mode=NetworkMode.SOCKET_MCAST)
+        qb = QemuBoot.__new__(QemuBoot)
+        qb.config = config
+        args = qb._build_network_args()
+
+        assert isinstance(args, list)
+        assert len(args) > 0
+
+    def test_build_network_args_socket_mcast_contains_mcast(self):
+        """SOCKET_MCAST args contain mcast address."""
+        config = QemuConfig(network_mode=NetworkMode.SOCKET_MCAST)
+        qb = QemuBoot.__new__(QemuBoot)
+        qb.config = config
+        args = qb._build_network_args()
+
+        # Should contain mcast specification
+        args_str = ' '.join(args)
+        assert 'mcast=' in args_str
+        assert '230.0.0.1:1234' in args_str
+
+    def test_build_network_args_with_custom_socket_config(self):
+        """Custom socket_config is respected."""
+        custom_config = VirtualNetworkConfig(
+            mcast_addr="239.1.2.3",
+            mcast_port=9999
+        )
+        config = QemuConfig(
+            network_mode=NetworkMode.SOCKET_MCAST,
+            socket_config=custom_config
+        )
+        qb = QemuBoot.__new__(QemuBoot)
+        qb.config = config
+        args = qb._build_network_args()
+
+        # Should contain custom mcast address
+        args_str = ' '.join(args)
+        assert 'mcast=239.1.2.3:9999' in args_str
+
+    def test_socket_stream_raises_not_implemented(self):
+        """SOCKET_STREAM mode raises NotImplementedError."""
+        config = QemuConfig(network_mode=NetworkMode.SOCKET_STREAM)
+        qb = QemuBoot.__new__(QemuBoot)
+        qb.config = config
+
+        with pytest.raises(NotImplementedError) as exc_info:
+            qb._build_network_args()
+
+        assert "not yet implemented" in str(exc_info.value).lower()
+        assert "SOCKET_MCAST" in str(exc_info.value)
+
+    def test_socket_mcast_generates_netdev_args(self):
+        """SOCKET_MCAST generates -netdev arguments."""
+        config = QemuConfig(network_mode=NetworkMode.SOCKET_MCAST)
+        qb = QemuBoot.__new__(QemuBoot)
+        qb.config = config
+        args = qb._build_network_args()
+
+        assert "-netdev" in args
+        # Find the netdev argument
+        netdev_idx = args.index("-netdev")
+        netdev_value = args[netdev_idx + 1]
+        assert "socket" in netdev_value
+        assert "mcast=" in netdev_value
+
+    def test_socket_mcast_generates_device_args(self):
+        """SOCKET_MCAST generates -device arguments."""
+        config = QemuConfig(network_mode=NetworkMode.SOCKET_MCAST)
+        qb = QemuBoot.__new__(QemuBoot)
+        qb.config = config
+        args = qb._build_network_args()
+
+        assert "-device" in args
+        # Find the device argument
+        device_idx = args.index("-device")
+        device_value = args[device_idx + 1]
+        assert "virtio-net-pci" in device_value
