@@ -31,6 +31,7 @@ Architecture:
 """
 
 import asyncio
+import json
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
@@ -44,6 +45,9 @@ from .resource_allocator import (
     ResourceExhaustedError,
     InvalidNameError,
 )
+
+# Default state file path
+DEFAULT_STATE_FILE = Path("/tmp/pixelrts/containers.json")
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -156,18 +160,47 @@ class MultiBootManager:
         >>> manager.stop_all()
     """
 
-    def __init__(self, resource_allocator: Optional[ResourceAllocator] = None):
+    def __init__(
+        self,
+        resource_allocator: Optional[ResourceAllocator] = None,
+        state_file: Optional[Union[str, Path]] = None,
+    ):
         """
         Initialize MultiBootManager.
 
         Args:
             resource_allocator: Optional custom ResourceAllocator instance.
                                If not provided, a new one is created.
+            state_file: Optional path to state file for persistence.
+                       If not provided, uses /tmp/pixelrts/containers.json.
         """
         self._allocator = resource_allocator or ResourceAllocator()
         self._containers: Dict[str, ContainerInfo] = {}
         self._bridges: Dict[str, BootBridge] = {}
         self._lock = asyncio.Lock()
+        self._state_file = Path(state_file) if state_file else DEFAULT_STATE_FILE
+
+    def _save_state(self) -> None:
+        """
+        Save container state to state file.
+
+        Writes all container information to the state file as JSON,
+        enabling external tools like `pixelrts ps` to query container state.
+        """
+        try:
+            # Ensure parent directory exists
+            self._state_file.parent.mkdir(parents=True, exist_ok=True)
+
+            # Convert containers to list of dicts
+            containers_data = [c.to_dict() for c in self._containers.values()]
+
+            # Write to file
+            with open(self._state_file, 'w') as f:
+                json.dump(containers_data, f, indent=2)
+
+            logger.debug(f"Saved state for {len(containers_data)} containers to {self._state_file}")
+        except Exception as e:
+            logger.warning(f"Failed to save state file: {e}")
 
     def _get_container_name(self, path: Union[str, Path]) -> str:
         """
@@ -255,6 +288,10 @@ class MultiBootManager:
                     info.state = ContainerState.ERROR
                     info.error_message = boot_result.error_message
                     logger.error(f"Container {name} boot failed: {boot_result.error_message}")
+                    # Release resources on boot failure
+                    if info.resources:
+                        self._allocator.release(info.resources)
+                        info.resources = None
 
             return info
 
@@ -276,6 +313,10 @@ class MultiBootManager:
             async with self._lock:
                 info.state = ContainerState.ERROR
                 info.error_message = str(e)
+                # Release resources on unexpected error
+                if info.resources:
+                    self._allocator.release(info.resources)
+                    info.resources = None
             logger.error(f"Unexpected error booting {name}: {e}")
             return info
 
@@ -381,6 +422,9 @@ class MultiBootManager:
             f"Boot complete: {success_count} succeeded, {failure_count} failed"
         )
 
+        # Save state to file
+        self._save_state()
+
         return result
 
     def list_containers(self) -> List[ContainerInfo]:
@@ -438,6 +482,9 @@ class MultiBootManager:
                 info.state = ContainerState.STOPPED
                 del self._bridges[name]
                 logger.info(f"Container {name} stopped")
+
+                # Save state after successful stop
+                self._save_state()
                 return True
 
             except Exception as e:
@@ -446,6 +493,8 @@ class MultiBootManager:
                 return False
         else:
             info.state = ContainerState.STOPPED
+            # Save state even for already-stopped containers
+            self._save_state()
             return True
 
     def _cleanup_successful_containers(self, container_infos: List[ContainerInfo]) -> int:
@@ -522,6 +571,8 @@ class MultiBootManager:
 
         if stopped_names:
             logger.info(f"Cleared {len(stopped_names)} stopped containers")
+            # Save state after clearing
+            self._save_state()
 
         return len(stopped_names)
 
