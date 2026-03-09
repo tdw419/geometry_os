@@ -50,7 +50,7 @@ Plans:
 **Plans**: 1
 
 Plans:
-- [ ] 20-01: Segment integrity checker with range decode
+- [x] 20-01: Segment integrity checker with range decode
 
 #### Phase 21: Cryptographic Signatures
 **Goal**: Users can verify and create Ed25519 cryptographic signatures

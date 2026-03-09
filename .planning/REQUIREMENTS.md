@@ -9,7 +9,7 @@
 
 - [x] **VERIFY-01**: User can verify PNG structure integrity (valid PNG, readable chunks)
 - [x] **VERIFY-02**: User can verify hash consistency (metadata SHA256 matches decoded data)
-- [ ] **VERIFY-03**: User can verify kernel/initrd/disk segment integrity via range decode
+- [x] **VERIFY-03**: User can verify kernel/initrd/disk segment integrity via range decode
 
 ### Cryptographic
 
@@ -52,7 +52,7 @@
 |-------------|-------|--------|
 | VERIFY-01 | Phase 19 | Complete |
 | VERIFY-02 | Phase 19 | Complete |
-| VERIFY-03 | Phase 20 | Pending |
+| VERIFY-03 | Phase 20 | Complete |
 | CRYPTO-01 | Phase 21 | Pending |
 | CRYPTO-02 | Phase 21 | Pending |
 | CLI-01 | Phase 22 | Pending |
