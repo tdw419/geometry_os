@@ -7,11 +7,11 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 
 ## Current Position
 Phase: 14 of 14 (snapshot-management)
-Plan: 01 of 03 (snapshot-storage)
+Plan: 02 of 03 (snapshot-storage-integration)
 Status: In progress
-Last activity: 2026-03-09 — Completed 14-01 Snapshot Storage
+Last activity: 2026-03-09 — Completed 14-02 Snapshot Storage Integration
 
-Progress: [█████████░] 95% (51/53 plans: 48 complete + 5 new)
+Progress: [█████████░] 96% (52/53 plans: 49 complete + 5 new)
 
 ## Accumulated Context
 
@@ -30,6 +30,7 @@ Key decisions archived in `.planning/milestones/`:
   - 13-02: RestoreResult dataclass with identity_preserved, network_reconnected, pre/post state tracking
   - 13-03: CLI restore with --verbose (identity/network status), --wait flag for VM stabilization
   - 14-01: SnapshotMetadata dataclass for persistence, SnapshotStorage with JSON per-container storage, graceful corruption handling
+  - 14-02: MultiBootManager integrates SnapshotStorage, dual-source listing (live when running, stored when stopped), always-delete-from-storage pattern
 
 ### Pending Todos
 None.
@@ -38,8 +39,8 @@ None.
 None.
 
 ## Session Continuity
-Last session: 2026-03-09T09:43:22Z
-Stopped at: Completed 14-01-PLAN.md
+Last session: 2026-03-09T09:51:53Z
+Stopped at: Completed 14-02-PLAN.md
 Resume file: None
 
 ---
