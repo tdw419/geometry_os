@@ -72,6 +72,18 @@ class ContainerState(Enum):
     ERROR = "error"
 
 
+class ContainerRole(Enum):
+    """
+    Role of a container in multi-boot operations.
+
+    Roles:
+        PRIMARY: Primary container (starts first, stops last)
+        HELPER: Helper container (starts after primary, stops before primary)
+    """
+    PRIMARY = "primary"
+    HELPER = "helper"
+
+
 @dataclass
 class ContainerInfo:
     """
@@ -81,6 +93,7 @@ class ContainerInfo:
         name: Container name (derived from .rts.png filename)
         path: Path to the .rts.png file
         state: Current lifecycle state
+        role: Container role (PRIMARY or HELPER)
         resources: Allocated resources (VNC port, sockets)
         boot_result: BootResult from BootBridge (if booted)
         error_message: Error description if state is ERROR
@@ -88,9 +101,15 @@ class ContainerInfo:
     name: str
     path: Path
     state: ContainerState = ContainerState.IDLE
+    role: 'ContainerRole' = None
     resources: Optional[AllocatedResources] = None
     boot_result: Optional[BootResult] = None
     error_message: Optional[str] = None
+
+    def __post_init__(self):
+        """Set default role after initialization."""
+        if self.role is None:
+            self.role = ContainerRole.HELPER
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
@@ -98,6 +117,7 @@ class ContainerInfo:
             "name": self.name,
             "path": str(self.path),
             "state": self.state.value,
+            "role": self.role.value,
             "vnc_port": self.resources.vnc_port if self.resources else None,
             "container_id": self.resources.container_id if self.resources else None,
             "serial_socket": str(self.resources.serial_socket) if self.resources else None,
