@@ -569,32 +569,19 @@ class CommittedFileBooter:
                 except ImportError:
                     raise RuntimeError("QemuBoot not available")
 
-            # Step 6: Determine kernel/initrd
-            # For vm-snapshot, we need to extract from the qcow2 or use stored paths
-            # This is a simplified implementation - in production, we might use
-            # guestfish or similar to extract kernel/initrd from the qcow2
-            kernel_path = None
-            initrd_path = None
+            # Step 6: Extract kernel/initrd from committed file
+            # The extract_qcow2() call above populates _decoded_data and _decoded_metadata
+            # Now use those to extract kernel/initrd from the binary payload
+            kernel_path = self._extract_kernel(Path(self._temp_dir))
+            initrd_path = self._extract_initrd(Path(self._temp_dir))
 
-            if metadata.original_kernel:
-                kernel_path = Path(metadata.original_kernel)
-                if not kernel_path.exists():
-                    logger.warning(f"Original kernel not found: {kernel_path}")
-                    kernel_path = None
-
-            if metadata.original_initrd:
-                initrd_path = Path(metadata.original_initrd)
-                if not initrd_path.exists():
-                    logger.warning(f"Original initrd not found: {initrd_path}")
-                    initrd_path = None
-
+            # Log warnings if kernel/initrd not available
             if not kernel_path:
-                # Try to extract from qcow2 using guestfish (simplified)
-                # For now, log warning and attempt boot without explicit kernel
                 logger.warning(
-                    "No kernel available. Attempting boot from qcow2 disk directly. "
-                    "This requires the disk to have a bootable bootloader."
+                    "No kernel in committed file. Boot may fail or use disk bootloader."
                 )
+            if not initrd_path:
+                logger.info("No initrd in committed file. Boot may use kernel-only mode.")
 
             # Step 7: Create QEMU configuration
             qemu_config = QemuConfig(
