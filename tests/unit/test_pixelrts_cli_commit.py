@@ -411,3 +411,186 @@ class TestCommitProgressOutput:
 
             assert result == 0
 
+
+class TestCommitEphemeralContainer:
+    """Tests for commit command with ephemeral containers."""
+
+    def test_commit_ephemeral_container_saves_changes(self):
+        """Commit from ephemeral container works the same as regular container."""
+        from systems.pixel_compiler.pixelrts_cli import cmd_commit
+        from systems.pixel_compiler.boot.snapshot_exporter import ExportResult
+
+        args = MagicMock(
+            container="ephemeral-container",
+            output="/tmp/output.rts.png",
+            snapshot=None,
+            no_verify=False,
+            timeout=600,
+            quiet=True,
+            verbose=False
+        )
+
+        mock_result = ExportResult(
+            success=True,
+            output_path=Path("/tmp/output.rts.png"),
+            size_bytes=1024 * 1024
+        )
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager, \
+             patch('systems.pixel_compiler.boot.snapshot_exporter.SnapshotExporter') as MockExporter:
+
+            mock_manager = MagicMock()
+            # Ephemeral container has is_ephemeral=True
+            mock_container = {
+                'boot_bridge': MagicMock(),
+                'is_ephemeral': True
+            }
+            mock_manager.get_container.return_value = mock_container
+            MockManager.return_value = mock_manager
+
+            mock_exporter_instance = MagicMock()
+            mock_exporter_instance.export.return_value = mock_result
+            MockExporter.return_value = mock_exporter_instance
+
+            result = cmd_commit(args)
+
+            # Commit should succeed
+            assert result == 0
+            # Export should have been called
+            mock_exporter_instance.export.assert_called_once()
+
+    def test_commit_ephemeral_shows_info_message(self):
+        """Commit command shows informational message for ephemeral containers."""
+        from systems.pixel_compiler.pixelrts_cli import cmd_commit
+        from systems.pixel_compiler.boot.snapshot_exporter import ExportResult
+        from io import StringIO
+
+        args = MagicMock(
+            container="ephemeral-container",
+            output="/tmp/output.rts.png",
+            snapshot=None,
+            no_verify=False,
+            timeout=600,
+            quiet=False,  # Not quiet - should show message
+            verbose=False
+        )
+
+        mock_result = ExportResult(
+            success=True,
+            output_path=Path("/tmp/output.rts.png"),
+            size_bytes=1024 * 1024
+        )
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager, \
+             patch('systems.pixel_compiler.boot.snapshot_exporter.SnapshotExporter') as MockExporter, \
+             patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+
+            mock_manager = MagicMock()
+            mock_container = {
+                'boot_bridge': MagicMock(),
+                'is_ephemeral': True
+            }
+            mock_manager.get_container.return_value = mock_container
+            MockManager.return_value = mock_manager
+
+            mock_exporter_instance = MagicMock()
+            mock_exporter_instance.export.return_value = mock_result
+            MockExporter.return_value = mock_exporter_instance
+
+            result = cmd_commit(args)
+
+            output = mock_stdout.getvalue()
+            # Should show the ephemeral note
+            assert "Note: Committing ephemeral container 'ephemeral-container'" in output
+            assert result == 0
+
+    def test_commit_ephemeral_no_message_when_quiet(self):
+        """Commit command does not show ephemeral note when quiet=True."""
+        from systems.pixel_compiler.pixelrts_cli import cmd_commit
+        from systems.pixel_compiler.boot.snapshot_exporter import ExportResult
+        from io import StringIO
+
+        args = MagicMock(
+            container="ephemeral-container",
+            output="/tmp/output.rts.png",
+            snapshot=None,
+            no_verify=False,
+            timeout=600,
+            quiet=True,  # Quiet mode - should not show message
+            verbose=False
+        )
+
+        mock_result = ExportResult(
+            success=True,
+            output_path=Path("/tmp/output.rts.png"),
+            size_bytes=1024 * 1024
+        )
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager, \
+             patch('systems.pixel_compiler.boot.snapshot_exporter.SnapshotExporter') as MockExporter, \
+             patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+
+            mock_manager = MagicMock()
+            mock_container = {
+                'boot_bridge': MagicMock(),
+                'is_ephemeral': True
+            }
+            mock_manager.get_container.return_value = mock_container
+            MockManager.return_value = mock_manager
+
+            mock_exporter_instance = MagicMock()
+            mock_exporter_instance.export.return_value = mock_result
+            MockExporter.return_value = mock_exporter_instance
+
+            result = cmd_commit(args)
+
+            output = mock_stdout.getvalue()
+            # Should NOT show the ephemeral note when quiet
+            assert "Note: Committing ephemeral" not in output
+            assert result == 0
+
+    def test_commit_non_ephemeral_no_message(self):
+        """Commit command does not show ephemeral note for regular containers."""
+        from systems.pixel_compiler.pixelrts_cli import cmd_commit
+        from systems.pixel_compiler.boot.snapshot_exporter import ExportResult
+        from io import StringIO
+
+        args = MagicMock(
+            container="regular-container",
+            output="/tmp/output.rts.png",
+            snapshot=None,
+            no_verify=False,
+            timeout=600,
+            quiet=False,
+            verbose=False
+        )
+
+        mock_result = ExportResult(
+            success=True,
+            output_path=Path("/tmp/output.rts.png"),
+            size_bytes=1024 * 1024
+        )
+
+        with patch('systems.pixel_compiler.boot.MultiBootManager') as MockManager, \
+             patch('systems.pixel_compiler.boot.snapshot_exporter.SnapshotExporter') as MockExporter, \
+             patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+
+            mock_manager = MagicMock()
+            # Regular container - is_ephemeral is False or not present
+            mock_container = {
+                'boot_bridge': MagicMock(),
+                'is_ephemeral': False
+            }
+            mock_manager.get_container.return_value = mock_container
+            MockManager.return_value = mock_manager
+
+            mock_exporter_instance = MagicMock()
+            mock_exporter_instance.export.return_value = mock_result
+            MockExporter.return_value = mock_exporter_instance
+
+            result = cmd_commit(args)
+
+            output = mock_stdout.getvalue()
+            # Should NOT show the ephemeral note for regular containers
+            assert "Note: Committing ephemeral" not in output
+            assert result == 0
