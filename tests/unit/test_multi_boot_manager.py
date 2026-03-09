@@ -1575,6 +1575,76 @@ class TestContainerInfoSnapshots:
         assert info.snapshots == []
 
 
+class TestContainerInfoEphemeral:
+    """Tests for ContainerInfo is_ephemeral field."""
+
+    def test_container_info_ephemeral_default_false(self):
+        """Test ContainerInfo has is_ephemeral=False by default."""
+        info = ContainerInfo(
+            name="test",
+            path=Path("/path/to/test.rts.png"),
+        )
+        assert info.is_ephemeral is False
+
+    def test_container_info_ephemeral_to_dict(self):
+        """Test to_dict() includes is_ephemeral field."""
+        info = ContainerInfo(
+            name="ephemeral-test",
+            path=Path("/path/to/test.rts.png"),
+            is_ephemeral=True,
+        )
+        d = info.to_dict()
+        assert 'is_ephemeral' in d
+        assert d['is_ephemeral'] is True
+
+    def test_container_info_ephemeral_round_trip(self):
+        """Test is_ephemeral preserved through serialization round-trip."""
+        # Create ContainerInfo with is_ephemeral=True
+        original = ContainerInfo(
+            name="ephemeral-rt",
+            path=Path("/path/to/test.rts.png"),
+            state=ContainerState.RUNNING,
+            is_ephemeral=True,
+        )
+
+        # Serialize to dict
+        d = original.to_dict()
+
+        # Create new ContainerInfo from dict values
+        restored = ContainerInfo(
+            name=d['name'],
+            path=Path(d['path']),
+            state=ContainerState(d['state']),
+            is_ephemeral=d['is_ephemeral'],
+        )
+
+        # Verify is_ephemeral preserved
+        assert restored.is_ephemeral is True
+
+    def test_load_state_with_ephemeral_flag(self, tmp_path):
+        """Test state file with is_ephemeral=True loads correctly."""
+        import json
+        from systems.pixel_compiler.boot.multi_boot_manager import MultiBootManager
+
+        # Create a mock state file with ephemeral container
+        state_data = [{
+            'name': 'eph-test',
+            'path': '/tmp/test.rts.png',
+            'state': 'running',
+            'role': 'primary',
+            'is_ephemeral': True
+        }]
+        state_file = tmp_path / "containers.json"
+        state_file.write_text(json.dumps(state_data))
+
+        # Create manager with custom state file
+        manager = MultiBootManager(state_file=state_file)
+        containers = manager.list_containers()
+
+        assert len(containers) == 1
+        assert containers[0].is_ephemeral is True
+
+
 class TestMultiBootManagerSnapshotMethods:
     """Tests for MultiBootManager snapshot methods."""
 
