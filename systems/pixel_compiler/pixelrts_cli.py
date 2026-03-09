@@ -2372,6 +2372,125 @@ def cmd_verify(args):
         return 1
 
 
+def cmd_mesh_status(args):
+    """
+    Handle mesh status command - Show mesh network status.
+
+    Displays node information and peer status. If --json flag is set,
+    outputs machine-parseable JSON. Otherwise shows human-readable table.
+    """
+    import json
+
+    from systems.network_boot.network_boot import NetworkBoot
+
+    # Create a reference instance for status display
+    # In production, this would connect to a running daemon
+    nb = NetworkBoot()
+
+    status = nb.get_status()
+
+    if args.json:
+        print(json.dumps(status, indent=2))
+        return 0
+
+    # Human-readable output
+    print(f"Node ID:    {status['node_id']}")
+    print(f"Hostname:   {status['hostname']}")
+    print(f"Running:    {'Yes' if status['running'] else 'No'}")
+    print(f"Peers:      {status['peer_count']} known, {status['active_peers']} active")
+
+    if args.verbose:
+        print()
+        print("Peer Details:")
+        if nb.registry.get_peer_count() == 0:
+            print("  No peers discovered")
+        else:
+            for node_id, peer in nb.registry.peers.items():
+                sync_status = "connected" if peer.sync_active else "discovered"
+                print(f"  - {node_id}: {peer.beacon.hostname} ({sync_status})")
+
+    return 0
+
+
+def cmd_mesh_discover(args):
+    """
+    Handle mesh discover command - Trigger immediate peer discovery.
+
+    Broadcasts a discovery beacon and listens for peer responses
+    for the specified timeout duration.
+    """
+    import asyncio
+    import json
+
+    from systems.network_boot.network_boot import NetworkBoot
+
+    async def run_discovery():
+        nb = NetworkBoot()
+
+        print(f"Broadcasting discovery beacon...")
+        await nb.broadcaster.start()
+
+        # Broadcast discovery beacon
+        await nb.broadcaster.broadcast_beacon(orb_count=0)
+
+        discovered = []
+        start_time = asyncio.get_event_loop().time()
+
+        # Listen for peer beacons
+        while (asyncio.get_event_loop().time() - start_time) < args.timeout:
+            beacon = await nb.broadcaster.receive_beacon(timeout=1.0)
+            if beacon:
+                discovered.append(beacon)
+                if not args.json:
+                    print(f"  Discovered: {beacon.node_id} ({beacon.hostname})")
+
+        nb.broadcaster.stop()
+        return discovered
+
+    try:
+        discovered = asyncio.run(run_discovery())
+
+        if args.json:
+            result = {
+                "discovered_count": len(discovered),
+                "peers": [b.to_dict() for b in discovered],
+                "timeout": args.timeout
+            }
+            print(json.dumps(result, indent=2))
+        else:
+            print(f"\nDiscovery complete: {len(discovered)} peer(s) found")
+
+        return 0
+
+    except Exception as e:
+        print(f"Error: Discovery failed: {e}", file=sys.stderr)
+        return 1
+
+
+def _dispatch_mesh(args):
+    """Dispatch mesh subcommands to their handlers."""
+    if not args.mesh_command:
+        # Show mesh help if no subcommand provided
+        import argparse
+        parser = argparse.ArgumentParser(prog='pixelrts mesh')
+        subparsers = parser.add_subparsers(dest='mesh_command', help='Mesh command to run')
+        subparsers.add_parser('status', help='Show mesh network status')
+        subparsers.add_parser('discover', help='Trigger immediate peer discovery')
+        parser.print_help()
+        return 1
+
+    mesh_handlers = {
+        'status': cmd_mesh_status,
+        'discover': cmd_mesh_discover
+    }
+
+    handler = mesh_handlers.get(args.mesh_command)
+    if handler:
+        return handler(args)
+
+    return 1
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -3042,6 +3161,48 @@ Examples:
                               help='Show detailed step-by-step verification output')
     verify_parser.set_defaults(func=cmd_verify)
 
+    # Mesh networking commands
+    mesh_parser = subparsers.add_parser(
+        'mesh',
+        help='Mesh network operations'
+    )
+    mesh_subparsers = mesh_parser.add_subparsers(dest='mesh_command', help='Mesh commands')
+
+    # mesh status
+    mesh_status_parser = mesh_subparsers.add_parser(
+        'status',
+        help='Show mesh network status'
+    )
+    mesh_status_parser.add_argument(
+        '--json',
+        action='store_true',
+        help='Output as JSON'
+    )
+    mesh_status_parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help='Show detailed peer information'
+    )
+    mesh_status_parser.set_defaults(func=cmd_mesh_status)
+
+    # mesh discover
+    mesh_discover_parser = mesh_subparsers.add_parser(
+        'discover',
+        help='Trigger immediate peer discovery'
+    )
+    mesh_discover_parser.add_argument(
+        '--json',
+        action='store_true',
+        help='Output as JSON'
+    )
+    mesh_discover_parser.add_argument(
+        '--timeout',
+        type=float,
+        default=5.0,
+        help='Discovery timeout in seconds (default: 5.0)'
+    )
+    mesh_discover_parser.set_defaults(func=cmd_mesh_discover)
+
     args = parser.parse_args()
 
     if not args.command:
@@ -3072,6 +3233,7 @@ Examples:
         'vision': cmd_vision,
         'blueprint': lambda args: _dispatch_blueprint(args),
         'verify': cmd_verify,
+        'mesh': lambda args: _dispatch_mesh(args),
     }
 
     handler = handlers.get(args.command)
