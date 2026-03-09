@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 ## Current Position
 
 Phase: 9 of 11 (Core Multi-Boot Infrastructure)
-Plan: 0 of 5 in current phase
-Status: Ready to plan
-Last activity: 2026-03-08 — Roadmap created for v1.3 Multi-Boot milestone
+Plan: 1 of 5 in current phase
+Status: In progress
+Last activity: 2026-03-09 — Completed 09-01 ResourceAllocator
 
-Progress: [░░░░░░░░░░] 0% (v1.3 not started)
+Progress: [██░░░░░░░░] 20% (1/5 plans in Phase 9)
 
 ## Performance Metrics
 
@@ -42,6 +42,7 @@ Key decisions archived in `.planning/milestones/`:
 - QEMU socket netdev over TAP/bridge (no root required)
 - asyncio subprocess orchestration (no external dependencies)
 - Composition pattern: MultiBootManager wraps BootBridge instances
+- **09-01:** VNC port range 5900-5999 (100 ports), thread-safe allocation, UUID5 deterministic IDs
 
 ### Pending Todos
 
@@ -53,8 +54,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-08
-Stopped at: Roadmap created, ready to begin Phase 9 planning
+Last session: 2026-03-09
+Stopped at: Completed 09-01 ResourceAllocator plan
 
 **CLI Commands Available (v1.0 + v1.1 + v1.2):**
 - `pixelrts analyze <file.png>` - Vision analysis and verification
@@ -75,4 +76,4 @@ Stopped at: Roadmap created, ready to begin Phase 9 planning
 - `pixelrts ps` - List running containers
 
 ---
-*State updated: 2026-03-08*
+*State updated: 2026-03-09*
