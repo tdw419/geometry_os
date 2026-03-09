@@ -8,6 +8,7 @@ detected by the PerformanceMonitor.
 from dataclasses import dataclass
 from typing import Optional
 import re
+import requests
 
 from systems.sisyphus.performance_monitor import HotSpot
 
@@ -175,3 +176,44 @@ Return only the optimized Rust code in a markdown code block."""
             expected_speedup=expected_speedup,
             confidence=confidence
         )
+
+    def generate_optimized_code(
+        self,
+        hot_spot: HotSpot,
+        model: str = "local-model",
+        max_tokens: int = 1000
+    ) -> str:
+        """
+        Generate optimized code using LM Studio.
+
+        Args:
+            hot_spot: The performance hot spot to optimize
+            model: Model name (ignored for LM Studio)
+            max_tokens: Maximum tokens to generate
+
+        Returns:
+            Extracted code block from LLM response, or "" on failure
+        """
+        prompt = self.generate_optimization_prompt(hot_spot)
+
+        try:
+            response = requests.post(
+                f"{self.lm_studio_url}/v1/completions",
+                json={
+                    "prompt": prompt,
+                    "max_tokens": max_tokens,
+                    "temperature": 0.3,  # Low temperature for code
+                    "stop": ["```"]  # Stop at code block end
+                },
+                timeout=30
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                text = data.get("choices", [{}])[0].get("text", "")
+                return self.extract_code_block(text, language="rust")
+
+        except requests.RequestException:
+            pass  # Silently fail - return empty string
+
+        return ""

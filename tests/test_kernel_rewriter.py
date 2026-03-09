@@ -1,5 +1,7 @@
 # tests/test_kernel_rewriter.py
 import pytest
+import responses
+import requests
 from systems.sisyphus.kernel_rewriter import KernelRewriter, RewriteProposal
 from systems.sisyphus.performance_monitor import HotSpot
 
@@ -72,3 +74,59 @@ fn hilbert_d2xy_optimized(n: u32, d: u32) -> (u32, u32) {
 
 if __name__ == "__main__":
     pytest.main([__file__])
+
+
+class TestKernelRewriterLLM:
+    """Tests for LM Studio API integration."""
+
+    def test_generate_with_lm_studio(self):
+        """Test generating code via LM Studio API."""
+        rewriter = KernelRewriter()
+
+        # Mock LM Studio response
+        mock_response = {
+            "choices": [{
+                "text": "```rust\nfn optimized() -> i32 { 42 }\n```"
+            }]
+        }
+
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                responses.POST,
+                "http://localhost:1234/v1/completions",
+                json=mock_response,
+                status=200
+            )
+
+            hot_spot = HotSpot(
+                function_name="test_func",
+                call_count=1000,
+                total_time_ms=100.0,
+                avg_time_ms=0.1
+            )
+
+            code = rewriter.generate_optimized_code(hot_spot)
+
+            assert "fn optimized" in code
+
+    def test_generate_handles_connection_error(self):
+        """Test graceful handling when LM Studio is unavailable."""
+        rewriter = KernelRewriter()
+
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                responses.POST,
+                "http://localhost:1234/v1/completions",
+                body=requests.ConnectionError("Connection refused")
+            )
+
+            hot_spot = HotSpot(
+                function_name="test_func",
+                call_count=1000,
+                total_time_ms=100.0,
+                avg_time_ms=0.1
+            )
+
+            code = rewriter.generate_optimized_code(hot_spot)
+
+            assert code == ""  # Empty string on failure
