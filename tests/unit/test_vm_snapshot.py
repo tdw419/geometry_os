@@ -22,6 +22,8 @@ from systems.pixel_compiler.boot.vm_snapshot import (
     VMSnapshotManager,
     SnapshotError,
     SnapshotState,
+    RestoreState,
+    RestoreProgress,
     VMSnapshotMetadata,
     SnapshotResult,
     SnapshotInfo,
@@ -739,9 +741,12 @@ class TestRestoreSnapshot:
 
         mock_qemu._process = mock_process
         mock_qemu._monitor_socket = mock_socket
+        # Order: info status (pre), info snapshots, loadvm, info status (post)
         mock_qemu.send_monitor_command.side_effect = [
+            "VM status: running",
             "ID  TAG               VM SIZE                DATE     VM CLOCK\n1   restore-test      2 GB        2024-01-15 14:30:00   00:01:23.456",
-            "OK"
+            "OK",
+            "VM status: running"
         ]
 
         manager = VMSnapshotManager(mock_qemu, "test")
@@ -769,13 +774,16 @@ class TestRestoreSnapshot:
         assert "not found" in result.error_message.lower()
 
     def test_restore_snapshot_invalid_tag(self):
-        """Test restoring with invalid tag raises SnapshotError."""
+        """Test restoring with invalid tag returns failure result."""
         mock_qemu = Mock()
         manager = VMSnapshotManager(mock_qemu, "test")
 
-        # Invalid tag raises SnapshotError
-        with pytest.raises(SnapshotError, match="Invalid snapshot tag"):
-            manager.restore_snapshot("invalid tag!")
+        # Invalid tag now returns failure result instead of raising
+        result = manager.restore_snapshot("invalid tag!")
+        assert result.success is False
+        assert result.restore_progress is not None
+        assert result.restore_progress.state == RestoreState.FAILED
+        assert "invalid snapshot tag" in result.restore_progress.error_message.lower()
 
 
 class TestDeleteSnapshot:
@@ -819,3 +827,310 @@ class TestDeleteSnapshot:
         # Invalid tag raises SnapshotError
         with pytest.raises(SnapshotError, match="Invalid snapshot tag"):
             manager.delete_snapshot("invalid tag!")
+
+
+class TestRestoreState:
+    """Tests for RestoreState enum."""
+
+    def test_state_values(self):
+        """Verify all state values are correct."""
+        assert RestoreState.PENDING.value == "pending"
+        assert RestoreState.VALIDATING.value == "validating"
+        assert RestoreState.LOADING.value == "loading"
+        assert RestoreState.VERIFYING.value == "verifying"
+        assert RestoreState.COMPLETE.value == "complete"
+        assert RestoreState.FAILED.value == "failed"
+
+    def test_state_count(self):
+        """Verify we have all expected states."""
+        states = list(RestoreState)
+        assert len(states) == 6
+
+
+class TestRestoreProgress:
+    """Tests for RestoreProgress dataclass."""
+
+    def test_progress_creation(self):
+        """Test creating progress with required fields."""
+        progress = RestoreProgress(
+            state=RestoreState.PENDING,
+            tag="test-restore",
+            started_at=datetime(2024, 1, 15, 14, 30, 0)
+        )
+        assert progress.state == RestoreState.PENDING
+        assert progress.tag == "test-restore"
+        assert progress.started_at == datetime(2024, 1, 15, 14, 30, 0)
+        assert progress.completed_at is None
+        assert progress.error_message is None
+        assert progress.pre_restore_vm_state is None
+
+    def test_progress_to_dict(self):
+        """Test serialization to dictionary."""
+        progress = RestoreProgress(
+            state=RestoreState.COMPLETE,
+            tag="test-restore",
+            started_at=datetime(2024, 1, 15, 14, 30, 0),
+            completed_at=datetime(2024, 1, 15, 14, 31, 0),
+            error_message=None,
+            pre_restore_vm_state="running"
+        )
+        result = progress.to_dict()
+
+        assert result["state"] == "complete"
+        assert result["tag"] == "test-restore"
+        assert result["started_at"] == "2024-01-15T14:30:00"
+        assert result["completed_at"] == "2024-01-15T14:31:00"
+        assert result["error_message"] is None
+        assert result["pre_restore_vm_state"] == "running"
+
+    def test_progress_optional_fields(self):
+        """Test that optional fields are handled correctly."""
+        progress = RestoreProgress(
+            state=RestoreState.FAILED,
+            tag="test-restore",
+            started_at=datetime(2024, 1, 15, 14, 30, 0),
+            completed_at=datetime(2024, 1, 15, 14, 30, 30),
+            error_message="Snapshot not found"
+        )
+        assert progress.error_message == "Snapshot not found"
+        assert progress.pre_restore_vm_state is None
+
+    def test_progress_to_dict_with_none_completed_at(self):
+        """Test to_dict handles None completed_at."""
+        progress = RestoreProgress(
+            state=RestoreState.LOADING,
+            tag="test-restore",
+            started_at=datetime(2024, 1, 15, 14, 30, 0)
+        )
+        result = progress.to_dict()
+        assert result["completed_at"] is None
+
+
+class TestRestoreSnapshotValidation:
+    """Tests for restore_snapshot validation."""
+
+    def test_restore_validates_tag(self):
+        """Test restore with invalid tag returns failure result."""
+        mock_qemu = Mock()
+        manager = VMSnapshotManager(mock_qemu, "test")
+
+        # Invalid tag now returns failure result instead of raising
+        result = manager.restore_snapshot("invalid tag!")
+        assert result.success is False
+        assert result.restore_progress is not None
+        assert result.restore_progress.state == RestoreState.FAILED
+        assert "invalid snapshot tag" in result.restore_progress.error_message.lower()
+
+    def test_restore_validates_vm_running(self):
+        """Test restore fails when VM is not running."""
+        mock_qemu = Mock()
+        mock_qemu._process = None
+        manager = VMSnapshotManager(mock_qemu, "test")
+
+        result = manager.restore_snapshot("test-snapshot")
+
+        assert result.success is False
+        assert "not running" in result.error_message.lower()
+        assert result.restore_progress is not None
+        assert result.restore_progress.state == RestoreState.FAILED
+
+    def test_restore_validates_snapshot_exists(self):
+        """Test restore fails when snapshot does not exist."""
+        mock_qemu = Mock()
+        mock_process = Mock()
+        mock_process.poll.return_value = None
+        mock_socket = Mock()
+        mock_socket.exists.return_value = True
+
+        mock_qemu._process = mock_process
+        mock_qemu._monitor_socket = mock_socket
+        mock_qemu.send_monitor_command.return_value = "No snapshots"
+
+        manager = VMSnapshotManager(mock_qemu, "test")
+        result = manager.restore_snapshot("nonexistent")
+
+        assert result.success is False
+        assert "not found" in result.error_message.lower()
+        assert result.restore_progress is not None
+        assert result.restore_progress.state == RestoreState.FAILED
+
+    def test_restore_includes_progress(self):
+        """Test restore result includes restore_progress."""
+        mock_qemu = Mock()
+        mock_process = Mock()
+        mock_process.poll.return_value = None
+        mock_socket = Mock()
+        mock_socket.exists.return_value = True
+
+        mock_qemu._process = mock_process
+        mock_qemu._monitor_socket = mock_socket
+        # Order: info status (pre), info snapshots, loadvm, info status (post)
+        mock_qemu.send_monitor_command.side_effect = [
+            "VM status: running",
+            "ID  TAG               VM SIZE                DATE     VM CLOCK\n1   test-snap         2 GB        2024-01-15 14:30:00   00:01:23.456",
+            "OK",
+            "VM status: running"
+        ]
+
+        manager = VMSnapshotManager(mock_qemu, "test")
+        result = manager.restore_snapshot("test-snap")
+
+        assert result.success is True
+        assert result.restore_progress is not None
+        assert result.restore_progress.state == RestoreState.COMPLETE
+        assert result.restore_progress.tag == "test-snap"
+
+
+class TestGetVmStatus:
+    """Tests for _get_vm_status method."""
+
+    def test_get_vm_status_running(self):
+        """Test parsing 'VM status: running'."""
+        mock_qemu = Mock()
+        mock_process = Mock()
+        mock_process.poll.return_value = None
+        mock_socket = Mock()
+        mock_socket.exists.return_value = True
+
+        mock_qemu._process = mock_process
+        mock_qemu._monitor_socket = mock_socket
+        mock_qemu.send_monitor_command.return_value = "VM status: running"
+
+        manager = VMSnapshotManager(mock_qemu, "test")
+        status = manager._get_vm_status()
+
+        assert status == "running"
+
+    def test_get_vm_status_paused(self):
+        """Test parsing 'VM status: paused'."""
+        mock_qemu = Mock()
+        mock_process = Mock()
+        mock_process.poll.return_value = None
+        mock_socket = Mock()
+        mock_socket.exists.return_value = True
+
+        mock_qemu._process = mock_process
+        mock_qemu._monitor_socket = mock_socket
+        mock_qemu.send_monitor_command.return_value = "VM status: paused"
+
+        manager = VMSnapshotManager(mock_qemu, "test")
+        status = manager._get_vm_status()
+
+        assert status == "paused"
+
+    def test_get_vm_status_error(self):
+        """Test _get_vm_status returns None on error."""
+        mock_qemu = Mock()
+        mock_process = Mock()
+        mock_process.poll.return_value = None
+        mock_socket = Mock()
+        mock_socket.exists.return_value = True
+
+        mock_qemu._process = mock_process
+        mock_qemu._monitor_socket = mock_socket
+        mock_qemu.send_monitor_command.side_effect = RuntimeError("Connection lost")
+
+        manager = VMSnapshotManager(mock_qemu, "test")
+        status = manager._get_vm_status()
+
+        assert status is None
+
+
+class TestRestoreProgressStates:
+    """Tests for restore progress state transitions."""
+
+    def test_restore_progress_transitions(self):
+        """Test progress goes through expected states on success."""
+        mock_qemu = Mock()
+        mock_process = Mock()
+        mock_process.poll.return_value = None
+        mock_socket = Mock()
+        mock_socket.exists.return_value = True
+
+        mock_qemu._process = mock_process
+        mock_qemu._monitor_socket = mock_socket
+        # Order: info status (pre), info snapshots, loadvm, info status (post)
+        mock_qemu.send_monitor_command.side_effect = [
+            "VM status: running",
+            "ID  TAG               VM SIZE                DATE     VM CLOCK\n1   test-snap         2 GB        2024-01-15 14:30:00   00:01:23.456",
+            "OK",
+            "VM status: running"
+        ]
+
+        manager = VMSnapshotManager(mock_qemu, "test")
+        result = manager.restore_snapshot("test-snap")
+
+        assert result.success is True
+        assert result.restore_progress.state == RestoreState.COMPLETE
+        assert result.restore_progress.completed_at is not None
+        assert result.restore_progress.pre_restore_vm_state == "running"
+
+    def test_restore_failure_includes_error(self):
+        """Test failed restore has error_message in progress."""
+        mock_qemu = Mock()
+        mock_process = Mock()
+        mock_process.poll.return_value = None
+        mock_socket = Mock()
+        mock_socket.exists.return_value = True
+
+        mock_qemu._process = mock_process
+        mock_qemu._monitor_socket = mock_socket
+        mock_qemu.send_monitor_command.return_value = "No snapshots"
+
+        manager = VMSnapshotManager(mock_qemu, "test")
+        result = manager.restore_snapshot("nonexistent")
+
+        assert result.success is False
+        assert result.restore_progress.state == RestoreState.FAILED
+        assert result.restore_progress.error_message is not None
+        assert "not found" in result.restore_progress.error_message.lower()
+
+    def test_restore_success_complete_state(self):
+        """Test successful restore has COMPLETE state."""
+        mock_qemu = Mock()
+        mock_process = Mock()
+        mock_process.poll.return_value = None
+        mock_socket = Mock()
+        mock_socket.exists.return_value = True
+
+        mock_qemu._process = mock_process
+        mock_qemu._monitor_socket = mock_socket
+        # Order: info status (pre), info snapshots, loadvm, info status (post)
+        mock_qemu.send_monitor_command.side_effect = [
+            "VM status: paused",
+            "ID  TAG               VM SIZE                DATE     VM CLOCK\n1   restore-me        2 GB        2024-01-15 14:30:00   00:01:23.456",
+            "OK",
+            "VM status: running"
+        ]
+
+        manager = VMSnapshotManager(mock_qemu, "test")
+        result = manager.restore_snapshot("restore-me")
+
+        assert result.success is True
+        assert result.restore_progress.state == RestoreState.COMPLETE
+        assert result.restore_progress.pre_restore_vm_state == "paused"
+
+    def test_restore_fails_on_unresponsive_vm(self):
+        """Test restore fails when VM is not responsive after restore."""
+        mock_qemu = Mock()
+        mock_process = Mock()
+        mock_process.poll.return_value = None
+        mock_socket = Mock()
+        mock_socket.exists.return_value = True
+
+        mock_qemu._process = mock_process
+        mock_qemu._monitor_socket = mock_socket
+        # Order: info status (pre), info snapshots, loadvm, info status (post) returns None
+        mock_qemu.send_monitor_command.side_effect = [
+            "VM status: running",
+            "ID  TAG               VM SIZE                DATE     VM CLOCK\n1   test-snap         2 GB        2024-01-15 14:30:00   00:01:23.456",
+            "OK",
+            None  # VM not responsive after restore
+        ]
+
+        manager = VMSnapshotManager(mock_qemu, "test")
+        result = manager.restore_snapshot("test-snap")
+
+        assert result.success is False
+        assert result.restore_progress.state == RestoreState.FAILED
+        assert "not responsive" in result.restore_progress.error_message.lower()
