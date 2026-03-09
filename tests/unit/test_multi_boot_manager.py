@@ -272,7 +272,7 @@ class TestBootAll:
     def test_boot_all_partial_failure(
         self, mock_bridge_class, manager
     ):
-        """Test booting with some containers failing."""
+        """Test booting with some containers failing - successful containers are cleaned up."""
         call_count = [0]
 
         def create_mock_bridge(*args, **kwargs):
@@ -300,9 +300,15 @@ class TestBootAll:
         ])
 
         assert result.success is False  # Not all succeeded
-        assert result.success_count == 1
+        # After cleanup, success_count should be 0 (cleanup was performed)
+        assert result.success_count == 0
         assert result.failure_count == 1
         assert len(result.error_messages) == 1
+        # Verify cleanup was performed
+        assert result.cleanup_performed is True
+        # Verify the successful container was stopped
+        assert all(c.state == ContainerState.STOPPED or c.state == ContainerState.ERROR
+                   for c in result.containers)
 
     @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
     def test_boot_all_assigns_unique_resources(
@@ -536,6 +542,148 @@ class TestUtilityMethods:
 
 
 # Resource Exhaustion Tests
+
+class TestCleanupOnPartialFailure:
+    """Tests for cleanup behavior on partial boot failure."""
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_cleanup_on_partial_failure(self, mock_bridge_class, manager):
+        """Test that successful containers are cleaned up when any container fails."""
+        call_count = [0]
+        stop_calls = []
+
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            call_count[0] += 1
+            # First succeeds, second fails
+            if call_count[0] == 1:
+                mock.boot.return_value = BootResult(
+                    success=True,
+                    vnc_port=5900,
+                    pid=12345,
+                )
+                mock.stop = Mock()
+            else:
+                mock.boot.return_value = BootResult(
+                    success=False,
+                    error_message="Kernel not found",
+                )
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        result = manager.boot_all([
+            "/fake/alpine.rts.png",
+            "/fake/ubuntu.rts.png",
+        ])
+
+        # Verify cleanup was performed
+        assert result.cleanup_performed is True
+        # Verify no containers are running after cleanup
+        assert manager.get_running_count() == 0
+        # Verify the successful container was stopped
+        alpine = manager.get_container("alpine.rts")
+        assert alpine.state == ContainerState.STOPPED
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_no_cleanup_when_all_succeed(self, mock_bridge_class, manager):
+        """Test that cleanup is not performed when all containers boot successfully."""
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            vnc_display = kwargs.get('vnc_display', 0)
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900 + vnc_display,
+                pid=1000 + vnc_display,
+            )
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        result = manager.boot_all([
+            "/fake/alpine.rts.png",
+            "/fake/ubuntu.rts.png",
+        ])
+
+        # Verify cleanup was NOT performed
+        assert result.cleanup_performed is False
+        # Verify both containers are still running
+        assert result.success_count == 2
+        assert manager.get_running_count() == 2
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_no_cleanup_when_disabled(self, mock_bridge_class, manager):
+        """Test that cleanup can be disabled with cleanup_on_failure=False."""
+        call_count = [0]
+
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            call_count[0] += 1
+            # First succeeds, second fails
+            if call_count[0] == 1:
+                mock.boot.return_value = BootResult(
+                    success=True,
+                    vnc_port=5900,
+                    pid=12345,
+                )
+            else:
+                mock.boot.return_value = BootResult(
+                    success=False,
+                    error_message="Kernel not found",
+                )
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png", "/fake/ubuntu.rts.png"],
+            cleanup_on_failure=False,
+        )
+
+        # Verify cleanup was NOT performed
+        assert result.cleanup_performed is False
+        # Verify the successful container is still running
+        assert result.success_count == 1
+        assert manager.get_running_count() == 1
+        alpine = manager.get_container("alpine.rts")
+        assert alpine.state == ContainerState.RUNNING
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_cleanup_releases_resources(self, mock_bridge_class, manager, resource_allocator):
+        """Test that cleanup releases allocated resources back to the pool."""
+        call_count = [0]
+
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            call_count[0] += 1
+            # First succeeds, second fails
+            if call_count[0] == 1:
+                mock.boot.return_value = BootResult(
+                    success=True,
+                    vnc_port=5900,
+                    pid=12345,
+                )
+            else:
+                mock.boot.return_value = BootResult(
+                    success=False,
+                    error_message="Kernel not found",
+                )
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        initial_available = resource_allocator.get_available_count()
+
+        result = manager.boot_all([
+            "/fake/alpine.rts.png",
+            "/fake/ubuntu.rts.png",
+        ])
+
+        # Verify cleanup was performed
+        assert result.cleanup_performed is True
+        # Verify resources were released back to the pool
+        assert resource_allocator.get_available_count() == initial_available
+
 
 class TestResourceExhaustion:
     """Tests for resource exhaustion handling."""
