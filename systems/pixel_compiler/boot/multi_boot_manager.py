@@ -1162,6 +1162,9 @@ class MultiBootManager:
         """
         Delete a snapshot from a container.
 
+        Tries to delete from VM if running, and always deletes from storage.
+        Considers success if either VM deletion or storage deletion succeeded.
+
         Args:
             name: Container name
             tag: Snapshot tag to delete
@@ -1170,33 +1173,42 @@ class MultiBootManager:
             SnapshotResult with success status
 
         Raises:
-            ValueError: If container doesn't exist or isn't running
+            ValueError: If container doesn't exist
         """
         info = self._containers.get(name)
         if not info:
             raise ValueError(f"Container '{name}' does not exist")
 
-        if info.state != ContainerState.RUNNING:
-            raise ValueError(
-                f"Container '{name}' is not running (state: {info.state.value})"
-            )
+        vm_delete_success = False
+        vm_error_message = None
 
-        snapshot_manager = self._get_snapshot_manager(name)
-        if not snapshot_manager:
-            return SnapshotResult(
-                success=False,
-                tag=tag,
-                error_message="Could not get snapshot manager for container"
-            )
+        # Try to delete from VM if running
+        if info.state == ContainerState.RUNNING:
+            snapshot_manager = self._get_snapshot_manager(name)
+            if snapshot_manager:
+                vm_result = snapshot_manager.delete_snapshot(tag)
+                vm_delete_success = vm_result.success
+                vm_error_message = vm_result.error_message
 
-        result = snapshot_manager.delete_snapshot(tag)
+        # Always delete from storage
+        storage_delete_success = self._snapshot_storage.delete_metadata(name, tag)
 
-        # Remove from tracking on successful delete
-        if result.success:
+        # Update ContainerInfo.snapshots list
+        if storage_delete_success:
             info.snapshots = [s for s in info.snapshots if s.tag != tag]
             self._save_state()
 
-        return result
+        # Success if either VM or storage deletion succeeded
+        overall_success = vm_delete_success or storage_delete_success
+
+        if overall_success:
+            return SnapshotResult(success=True, tag=tag)
+        else:
+            return SnapshotResult(
+                success=False,
+                tag=tag,
+                error_message=vm_error_message or f"Snapshot '{tag}' not found in storage"
+            )
 
     def __repr__(self) -> str:
         """String representation."""
