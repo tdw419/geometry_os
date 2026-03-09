@@ -28,6 +28,7 @@ from .native_hilbert import NativeHilbertLUT
 from .compositor_bridge import CompositorBridge
 from .token_rasterizer import TokenRasterizer
 from ..infinite_map.gravity_engine import GravityEngine
+from ..infinite_map.tectonic_updater import TectonicUpdater
 from .performance_monitor import PerformanceMonitor
 from .kernel_rewriter import KernelRewriter
 from .hot_swap_manager import HotSwapManager
@@ -287,7 +288,8 @@ class SisyphusDaemon:
         force_clean=False,
         auto_commit=False,
         enable_heartbeat=True,
-        enable_self_rewriting=False
+        enable_self_rewriting=False,
+        enable_tectonic=False
     ):
         self.state_file = Path(state_file)
         self.project_dir = Path(__file__).parent.parent.parent.resolve()
@@ -324,6 +326,17 @@ class SisyphusDaemon:
         self.token_rasterizer = TokenRasterizer(self.compositor)
         self.gravity_engine = GravityEngine()
         self._gravity_thread: Optional[threading.Thread] = None
+
+        # Tectonic real-time gravity
+        self.enable_tectonic = enable_tectonic
+        self.tectonic_updater = None
+        if enable_tectonic:
+            # Use project_dir as watch path
+            self.tectonic_updater = TectonicUpdater(
+                self.gravity_engine,
+                watch_path=str(self.project_dir),
+                decay_interval=10.0
+            )
 
         # Self-rewriting components
         self.enable_self_rewriting = enable_self_rewriting
@@ -715,6 +728,11 @@ Ensure task numbering continues correctly.
         self._gravity_thread = threading.Thread(target=self._gravity_loop, daemon=True)
         self._gravity_thread.start()
 
+        # Start Tectonic updater if enabled
+        if self.enable_tectonic and self.tectonic_updater:
+            self.tectonic_updater.start()
+            self.log("Tectonic real-time gravity enabled")
+
         try:
             while self.running:
                 tasks = self.get_tasks()
@@ -744,6 +762,9 @@ Ensure task numbering continues correctly.
                 time.sleep(2)
         finally:
             # Cleanup
+            if self.tectonic_updater:
+                self.tectonic_updater.stop()
+                self.log("Tectonic updater stopped")
             if self.compositor:
                 self.compositor.stop_heartbeat_loop()
                 self.compositor.disconnect()
