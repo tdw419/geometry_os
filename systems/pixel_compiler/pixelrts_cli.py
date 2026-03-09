@@ -1231,6 +1231,70 @@ def cmd_patch(args):
         return 4
 
 
+def cmd_ps(args):
+    """
+    Handle ps command - List running containers.
+
+    Shows a formatted table with container NAME, STATE, VNC port, and PID.
+    Reads from state file (default: /tmp/pixelrts/containers.json).
+    """
+    import json
+
+    state_file = Path(args.state_file)
+
+    if not state_file.exists():
+        if args.json:
+            print("[]")
+        else:
+            print("No containers found.")
+            print(f"State file: {state_file}")
+        return 0
+
+    try:
+        with open(state_file, 'r') as f:
+            containers = json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid state file: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error reading state file: {e}", file=sys.stderr)
+        return 1
+
+    if args.json:
+        print(json.dumps(containers, indent=2))
+        return 0
+
+    if not containers:
+        print("No containers found.")
+        return 0
+
+    # Format table output
+    # Column widths
+    name_width = max(len(c.get('name', 'N/A')) for c in containers)
+    name_width = max(name_width, 4)  # Minimum width for "NAME"
+
+    state_width = max(len(c.get('state', 'N/A')) for c in containers)
+    state_width = max(state_width, 5)  # Minimum width for "STATE"
+
+    # Header
+    print(f"{'NAME':<{name_width}}  {'STATE':<{state_width}}  {'VNC':>6}  {'PID':>7}")
+    print(f"{'-'*name_width}  {'-'*state_width}  {'-'*6}  {'-'*7}")
+
+    # Rows
+    for c in containers:
+        name = c.get('name', 'N/A')
+        state = c.get('state', 'N/A')
+        vnc_port = c.get('vnc_port', '-')
+        pid = c.get('pid', '-')
+
+        vnc_str = str(vnc_port) if vnc_port else '-'
+        pid_str = str(pid) if pid else '-'
+
+        print(f"{name:<{name_width}}  {state:<{state_width}}  {vnc_str:>6}  {pid_str:>7}")
+
+    return 0
+
+
 def cmd_update(args):
     """
     Handle update command - Update local .rts.png file via delta patch.
@@ -1375,6 +1439,7 @@ Commands:
   install      Install .rts.png files to disk image (with verification)
   serve        Start network boot server (DHCP, TFTP, NBD)
   catalog      Launch visual catalog server for browsing .rts.png files
+  ps           List running containers with state, VNC port, and PID
   diff         Compare two .rts.png files and show differences
   delta        Generate delta manifest between two versions
   patch        Apply delta manifest to update a file
@@ -1870,6 +1935,25 @@ Examples:
     )
     update_parser.set_defaults(func=cmd_update)
 
+    # PS command (list running containers)
+    ps_parser = subparsers.add_parser(
+        'ps',
+        help='List running containers',
+        description='Show running PixelRTS containers with their state, VNC port, and PID'
+    )
+    ps_parser.add_argument(
+        '--json',
+        action='store_true',
+        help='Output as JSON'
+    )
+    ps_parser.add_argument(
+        '--state-file',
+        type=str,
+        default='/tmp/pixelrts/containers.json',
+        help='Path to state file (default: /tmp/pixelrts/containers.json)'
+    )
+    ps_parser.set_defaults(func=cmd_ps)
+
     args = parser.parse_args()
 
     if not args.command:
@@ -1888,6 +1972,7 @@ Examples:
         'delta': cmd_delta,
         'patch': cmd_patch,
         'update': cmd_update,
+        'ps': cmd_ps,
         'benchmark': cmd_benchmark,
         'dashboard': cmd_dashboard,
         'info': cmd_info,
