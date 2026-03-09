@@ -380,6 +380,7 @@ class MultiBootManager:
         memory: str,
         cpus: int,
         primary_timeout: float = 30.0,
+        progress_callback: Optional[callable] = None,
     ) -> List[ContainerInfo]:
         """
         Boot containers in order: primary first, then helpers.
@@ -394,6 +395,9 @@ class MultiBootManager:
             memory: Memory allocation per container
             cpus: Number of CPUs per container
             primary_timeout: Timeout for primary to reach RUNNING (default: 30.0)
+            progress_callback: Optional callback for progress updates.
+                              Signature: callback(event_type: str, data: Any) -> None
+                              Events: "primary_start", "primary_ready", "helpers_start", "helper_ready"
 
         Returns:
             List of ContainerInfo for all containers
@@ -414,6 +418,8 @@ class MultiBootManager:
         # Boot primary first
         if primary_path:
             logger.info(f"Booting primary container: {primary_name}")
+            if progress_callback:
+                progress_callback("primary_start", primary_name)
             primary_info = await self._boot_single(
                 primary_path, cmdline, memory, cpus, is_primary=True
             )
@@ -432,15 +438,26 @@ class MultiBootManager:
                 logger.error(f"Primary {primary_name} failed to start, aborting helper boot")
                 return container_infos
 
+            if progress_callback:
+                progress_callback("primary_ready", primary_name)
+
         # Boot helpers concurrently
         if helper_paths:
             logger.info(f"Booting {len(helper_paths)} helper containers...")
+            if progress_callback:
+                progress_callback("helpers_start", [self._get_container_name(p) for p in helper_paths])
             helper_tasks = [
                 self._boot_single(path, cmdline, memory, cpus, is_primary=False)
                 for path in helper_paths
             ]
             helper_infos = await asyncio.gather(*helper_tasks)
             container_infos.extend(helper_infos)
+
+            # Report each helper that completed
+            if progress_callback:
+                for info in helper_infos:
+                    if info.state == ContainerState.RUNNING:
+                        progress_callback("helper_ready", info.name)
 
         return container_infos
 
@@ -452,6 +469,7 @@ class MultiBootManager:
         cpus: int = 2,
         cleanup_on_failure: bool = True,
         primary: Optional[str] = None,
+        progress_callback: Optional[callable] = None,
     ) -> MultiBootResult:
         """
         Boot multiple containers concurrently.
@@ -466,6 +484,9 @@ class MultiBootManager:
             cpus: Number of CPUs per container (default: 2)
             cleanup_on_failure: Stop successful containers if any boot fails (default: True)
             primary: Name of the primary container (starts first, stops last)
+            progress_callback: Optional callback for progress updates (only for ordered boot).
+                              Signature: callback(event_type: str, data: Any) -> None
+                              Events: "primary_start", "primary_ready", "helpers_start", "helper_ready"
 
         Returns:
             MultiBootResult with success status and container info
@@ -498,6 +519,7 @@ class MultiBootManager:
                     cmdline=cmdline,
                     memory=memory,
                     cpus=cpus,
+                    progress_callback=progress_callback,
                 )
             else:
                 # Concurrent Boot (existing behavior)
@@ -679,6 +701,48 @@ class MultiBootManager:
 
         for name in list(self._bridges.keys()):
             results[name] = self.stop(name)
+
+        return results
+
+    def stop_all_ordered(self) -> Dict[str, bool]:
+        """
+        Stop all containers in reverse boot order (helpers first, primary last).
+
+        This ensures the primary container remains available until all
+        helper containers have shut down cleanly.
+
+        Returns:
+            Dict mapping container names to stop success status
+
+        Example:
+            >>> results = manager.stop_all_ordered()
+            >>> for name, success in results.items():
+            ...     print(f"{name}: {'stopped' if success else 'failed'}")
+        """
+        logger.info(f"Stopping all containers in order ({len(self._bridges)} running)")
+
+        # Separate primary and helpers
+        primary_name = None
+        helper_names = []
+
+        for name, info in self._containers.items():
+            if info.role == ContainerRole.PRIMARY and info.state == ContainerState.RUNNING:
+                primary_name = name
+            elif info.state == ContainerState.RUNNING:
+                helper_names.append(name)
+
+        results = {}
+
+        # Stop helpers first (concurrently is fine)
+        if helper_names:
+            logger.info(f"Stopping {len(helper_names)} helper containers...")
+            for name in helper_names:
+                results[name] = self.stop(name)
+
+        # Stop primary last
+        if primary_name:
+            logger.info(f"Stopping primary container: {primary_name}")
+            results[primary_name] = self.stop(primary_name)
 
         return results
 
