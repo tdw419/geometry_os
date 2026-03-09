@@ -746,6 +746,8 @@ def _boot_multiple(args, input_paths):
         print(f"Booting {len(valid_paths)} containers concurrently...")
         print(f"Memory per container: {args.memory}")
         print(f"CPUs per container: {args.cpus}")
+        if args.primary:
+            print(f"Primary container: {args.primary}")
 
     try:
         # Create MultiBootManager for concurrent boot
@@ -758,6 +760,7 @@ def _boot_multiple(args, input_paths):
             memory=args.memory,
             cpus=args.cpus,
             cleanup_on_failure=True,  # Clean up successful containers if any fail
+            primary=args.primary,
         )
 
         # Print results
@@ -1803,6 +1806,8 @@ Examples:
                             help='Suppress progress output')
     boot_parser.add_argument('-v', '--verbose', action='store_true',
                             help='Enable verbose output')
+    boot_parser.add_argument('--primary', '-p',
+                            help='Name of primary container (starts first, stops last)')
 
     # Install command (install .rts.png files to disk)
     install_parser = subparsers.add_parser(
