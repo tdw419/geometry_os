@@ -2274,6 +2274,104 @@ def cmd_update(args):
         return 4
 
 
+def cmd_verify(args):
+    """
+    Handle verify command - Verify .rts.png file integrity and authenticity.
+
+    Runs all verification checks: structure, hash consistency, segment integrity,
+    and signature. Provides unified interface with --json and --verbose flags.
+    """
+    from datetime import datetime
+
+    from systems.pixel_compiler.verification import (
+        VerificationContext,
+        VerificationResult,
+        VerificationStatus,
+        StructureVerifier,
+        ConsistencyVerifier,
+        SegmentIntegrityChecker,
+        SignatureVerifier
+    )
+
+    input_path = Path(args.input)
+
+    # Validate input file exists and is a file
+    if not input_path.exists():
+        print(f"Error: Input file not found: {args.input}", file=sys.stderr)
+        return 1
+
+    if not input_path.is_file():
+        print(f"Error: Input path is not a file: {args.input}", file=sys.stderr)
+        return 1
+
+    try:
+        # Create verification context
+        context = VerificationContext(input_path)
+
+        # Run all verifiers in sequence (do not stop on first failure)
+        verifiers = [
+            StructureVerifier(),
+            ConsistencyVerifier(),
+            SegmentIntegrityChecker(),
+            SignatureVerifier()
+        ]
+
+        steps = []
+        for verifier in verifiers:
+            try:
+                step_result = verifier.verify(context)
+                steps.append(step_result)
+            except Exception as e:
+                # If a verifier throws an exception, create a FAIL result
+                from systems.pixel_compiler.verification import StepResult
+                steps.append(StepResult(
+                    step_name=verifier.name,
+                    status=VerificationStatus.FAIL,
+                    message=f"Verifier error: {e}",
+                    details={"error": str(e)},
+                    duration_ms=0.0
+                ))
+
+        # Determine overall status
+        # FAIL if any step has status FAIL
+        # WARNING if any step has status WARNING (but no FAIL)
+        # PASS otherwise (all PASS or SKIP)
+        overall_status = VerificationStatus.PASS
+
+        for step in steps:
+            if step.status == VerificationStatus.FAIL:
+                overall_status = VerificationStatus.FAIL
+                break
+            elif step.status == VerificationStatus.WARNING:
+                overall_status = VerificationStatus.WARNING
+
+        # Build verification result
+        result = VerificationResult(
+            overall_status=overall_status,
+            steps=steps,
+            file_path=str(input_path),
+            timestamp=datetime.now()
+        )
+
+        # Output handling
+        if args.json:
+            print(result.to_json(indent=2))
+        else:
+            print(result.format_cli(verbose=args.verbose))
+
+        # Exit codes: 0 for PASS or WARNING (CI-compatible), 1 for FAIL
+        if overall_status == VerificationStatus.FAIL:
+            return 1
+        return 0
+
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
