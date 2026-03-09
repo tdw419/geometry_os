@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-09)
 
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** Phase 21 - Cryptographic Signatures (Complete)
+**Current focus:** Phase 22 - CLI Integration (Complete)
 
 ## Current Position
 
-Phase: 21 of 22 (Cryptographic Signatures)
-Plan: 2 of 2 complete
+Phase: 22 of 22 (CLI Integration)
+Plan: 1 of 1 complete
 Status: Complete
-Last activity: 2026-03-09 - Phase 21 complete (SignatureVerifier + FileSigner)
+Last activity: 2026-03-09 - Phase 22 complete (pixelrts verify CLI command)
 
-Progress: [██████████████████████░░] 97% (71/72 plans across all milestones)
+Progress: [████████████████████████] 100% (72/72 plans across all milestones)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 71
+- Total plans completed: 72
 - Average duration: ~14 min
-- Total execution time: ~16.4 hours
+- Total execution time: ~16.5 hours
 
 **By Milestone:**
 
@@ -34,10 +34,10 @@ Progress: [██████████████████████░
 | v1.4 Phases 12-14 | 10 | ~2.5 hrs | ~15 min |
 | v1.5 Phases 15-17 | 9 | ~2.5 hrs | ~17 min |
 | v1.6 Phase 18 | 8 | ~2 hrs | ~15 min |
-| v1.7 Phases 19-21 | 5 | ~17 min | ~3 min |
+| v1.7 Phases 19-22 | 6 | ~21 min | ~3.5 min |
 
 **Recent Trend:**
-- Last 5 plans: ~3 min per plan
+- Last 6 plans: ~3.5 min per plan
 - Trend: Accelerating
 
 *Updated after each plan completion*
@@ -61,6 +61,7 @@ Key decisions archived in `.planning/milestones/` and PROJECT.md:
 - Phase 20-01: SegmentIntegrityChecker with per-segment verification via decode_range(), optional segment_name param, metadata offsets/hashes pattern
 - Phase 21-01: SignatureVerifier for Ed25519 verification, sign SHA256 hash (32 bytes) not full data, SKIP for unsigned files, PIXELRTS_PUBLIC_KEY env var override
 - Phase 21-02: FileSigner for Ed25519 signing, PKCS8 PEM format for private keys, self-contained signatures with embedded public key
+- Phase 22-01: Unified pixelrts verify CLI command composing all verifiers, --json for machine-parseable output, --verbose for step details, exit code 0 for PASS/WARNING and 1 for FAIL
 
 ### Pending Todos
 
@@ -73,7 +74,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: Completed 21-02 FileSigner
+Stopped at: Completed 22-01 CLI verify command (Phase 22 complete)
 Resume file: None
 
 ---
