@@ -10,24 +10,24 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 ## Current Position
 
 Phase: 7 of 8 (HTTP Boot via iPXE)
-Plan: Not started
-Status: Phase 6 complete, ready to plan Phase 7
-Last activity: 2026-03-08 — Phase 6 NBD Server + PXE Boot complete
+Plan: 01 of 3 (iPXE Chainload Configuration)
+Status: In progress
+Last activity: 2026-03-09 — Completed 07-01-PLAN.md
 
-Progress: [██████░░░░░░░░░░░░░░] 37% (3/8 plans in v1.2)
+Progress: [███████░░░░░░░░░░░░░] 38% (4/8 plans in v1.2)
 
 ## Performance Metrics
 
 **v1.2 Velocity:**
-- Plans completed: 3
-- Duration: ~22 min (13 + 9)
-- Tests: 140 passing (28 + 59 + 53)
+- Plans completed: 4
+- Duration: ~30 min (13 + 9 + 8)
+- Tests: 184 passing (28 + 59 + 53 + 44)
 
 **Cumulative:**
 - v1.0: 22 plans
 - v1.1: 4 plans
-- v1.2: 3 plans (Phase 6 complete)
-- Total: 29 plans
+- v1.2: 4 plans (Phase 7 in progress)
+- Total: 30 plans
 
 ## Accumulated Context
 
@@ -57,6 +57,11 @@ Key decisions archived in `.planning/milestones/`:
 - Rich library optional with graceful degradation
 - Exit codes: 1=invalid file, 2=port in use, 3=network failed, 4=service failed
 
+**07-01 Decisions:**
+- Use urllib.request for undionly.kpxe download (no new dependencies)
+- Best-effort download with user fallback if CDN fails
+- Class constants for IPXE_BOOT_FILE and IPXE_DOWNLOAD_URL
+
 ### Pending Todos
 
 None.
@@ -70,8 +75,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-08T23:29:22Z
-Stopped at: Completed 06-03-PLAN.md (Unified Serve Command)
+Last session: 2026-03-09T00:20:45Z
+Stopped at: Completed 07-01-PLAN.md (iPXE Chainload Configuration)
 Resume file: None
 
 **CLI Commands Available (v1.0 + v1.1 + v1.2):**
