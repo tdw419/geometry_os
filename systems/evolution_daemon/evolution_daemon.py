@@ -456,8 +456,15 @@ class EvolutionDaemon:
         self.radio_broadcaster: Optional['NarrativeBroadcaster'] = None
         self._radio_broadcast_task = None
 
+        # Hooks system - extensible evolution targets
+        self._hooks: Dict[str, List[Callable]] = {}
+        self._mutation_targets: Dict[str, Dict[str, Any]] = {}
+
         # Register tool callbacks for Z.ai function calling
         self._register_tools()
+
+        # Register brain evolution hook
+        self._register_brain_hook()
 
     def _register_tools(self):
         """Register VFS and Visual tools for Z.ai function calling"""
@@ -471,6 +478,86 @@ class EvolutionDaemon:
         self.zai.register_tool_callback("visual_place_tile", self._tool_visual_place_tile)
         self.zai.register_tool_callback("visual_get_state", self._tool_visual_get_state)
         self.zai.register_tool_callback("render_visual_layout", self._tool_render_visual_layout)
+
+    def _register_brain_hook(self):
+        """Register brain evolution hook during initialization."""
+        try:
+            from systems.evolution_daemon.evolution_hooks.brain_evolution_hook import register_hook
+            if register_hook(daemon=self):
+                logger.info("Brain evolution hook registered successfully")
+        except Exception as e:
+            logger.warning(f"Brain evolution hook registration failed: {e}")
+
+    def register_hook(self, hook_type: str, callback: Callable) -> None:
+        """Register a hook callback for evolution events.
+
+        Args:
+            hook_type: Type of hook (e.g., 'evolution_cycle', 'pre_evolution', 'post_evolution')
+            callback: Async function to call when hook is triggered
+        """
+        if hook_type not in self._hooks:
+            self._hooks[hook_type] = []
+        self._hooks[hook_type].append(callback)
+        logger.info(f"Registered hook: {hook_type} -> {callback.__name__}")
+
+    async def trigger_hooks(self, hook_type: str, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Trigger all hooks of a given type.
+
+        Args:
+            hook_type: Type of hook to trigger
+            data: Data to pass to hook callbacks
+
+        Returns:
+            List of results from all hook callbacks
+        """
+        results = []
+        hooks = self._hooks.get(hook_type, [])
+
+        for callback in hooks:
+            try:
+                result = await callback(data)
+                results.append(result)
+            except Exception as e:
+                logger.error(f"Hook {callback.__name__} failed: {e}")
+                results.append({"error": str(e)})
+
+        return results
+
+    def register_mutation_target(
+        self,
+        name: str,
+        mutate_fn: Callable,
+        evaluate_fn: Callable,
+        sector: str = "general"
+    ) -> None:
+        """Register a mutation target for evolution.
+
+        Args:
+            name: Unique name for this mutation target
+            mutate_fn: Function that applies mutation
+            evaluate_fn: Function that evaluates fitness
+            sector: Sector category (e.g., 'cognitive', 'visual', 'system')
+        """
+        self._mutation_targets[name] = {
+            "mutate_fn": mutate_fn,
+            "evaluate_fn": evaluate_fn,
+            "sector": sector,
+            "mutations_applied": 0
+        }
+        logger.info(f"Registered mutation target: {name} (sector: {sector})")
+
+    def get_mutation_target(self, name: str) -> Optional[Dict[str, Any]]:
+        """Get a mutation target by name."""
+        return self._mutation_targets.get(name)
+
+    def list_mutation_targets(self, sector: Optional[str] = None) -> List[str]:
+        """List all mutation targets, optionally filtered by sector."""
+        if sector is None:
+            return list(self._mutation_targets.keys())
+        return [
+            name for name, target in self._mutation_targets.items()
+            if target["sector"] == sector
+        ]
 
     async def _tool_read_file(self, path: str) -> dict:
         """Tool: Read file from codebase"""

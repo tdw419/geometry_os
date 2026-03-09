@@ -44,3 +44,43 @@ class TestBrainMutations:
         fitness = evaluate_brain_fitness("nonexistent.rts.png", ["test"])
         assert isinstance(fitness, float)
         assert 0 <= fitness <= 1
+
+
+class TestBrainEvolutionHook:
+    """Test brain evolution hook integration."""
+
+    def test_register_hook_exists(self):
+        """register_hook should exist."""
+        from systems.evolution_daemon.evolution_hooks.brain_evolution_hook import register_hook
+        assert callable(register_hook)
+
+    def test_brain_evolution_hook_class_exists(self):
+        """BrainEvolutionHook class should exist."""
+        from systems.evolution_daemon.evolution_hooks.brain_evolution_hook import BrainEvolutionHook
+        hook = BrainEvolutionHook()
+        assert hook is not None
+        assert hasattr(hook, 'on_evolution_cycle')
+
+    def test_hook_has_mutation_history(self):
+        """Hook should track mutation history."""
+        from systems.evolution_daemon.evolution_hooks.brain_evolution_hook import BrainEvolutionHook
+        hook = BrainEvolutionHook()
+        assert hasattr(hook, 'mutation_history')
+        assert isinstance(hook.mutation_history, list)
+
+    def test_hook_has_test_prompts(self):
+        """Hook should have default test prompts."""
+        from systems.evolution_daemon.evolution_hooks.brain_evolution_hook import BrainEvolutionHook
+        hook = BrainEvolutionHook()
+        assert hasattr(hook, 'test_prompts')
+        assert len(hook.test_prompts) > 0
+
+    def test_hook_get_mutation_stats(self):
+        """Hook should provide mutation statistics."""
+        from systems.evolution_daemon.evolution_hooks.brain_evolution_hook import BrainEvolutionHook
+        hook = BrainEvolutionHook()
+        stats = hook.get_mutation_stats()
+        assert isinstance(stats, dict)
+        assert 'total' in stats
+
+
