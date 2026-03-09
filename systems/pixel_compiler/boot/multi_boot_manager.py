@@ -860,6 +860,157 @@ class MultiBootManager:
 
         return len(stopped_names)
 
+    # ========================================
+    # Snapshot Methods
+    # ========================================
+
+    def create_snapshot(
+        self,
+        name: str,
+        tag: str,
+        description: str = ""
+    ) -> SnapshotResult:
+        """
+        Create a snapshot of a running container.
+
+        Args:
+            name: Container name
+            tag: Snapshot tag (alphanumeric, dash, underscore only)
+            description: Optional snapshot description
+
+        Returns:
+            SnapshotResult with success status and metadata
+
+        Raises:
+            ValueError: If container doesn't exist or isn't running
+        """
+        info = self._containers.get(name)
+        if not info:
+            raise ValueError(f"Container '{name}' does not exist")
+
+        if info.state != ContainerState.RUNNING:
+            raise ValueError(
+                f"Container '{name}' is not running (state: {info.state.value})"
+            )
+
+        snapshot_manager = self._get_snapshot_manager(name)
+        if not snapshot_manager:
+            return SnapshotResult(
+                success=False,
+                tag=tag,
+                error_message="Could not get snapshot manager for container"
+            )
+
+        result = snapshot_manager.create_snapshot(tag, description=description)
+
+        # Track successful snapshots
+        if result.success and result.metadata:
+            info.snapshots.append(result.metadata)
+            self._save_state()
+
+        return result
+
+    def list_container_snapshots(self, name: str) -> List[SnapshotInfo]:
+        """
+        List snapshots for a container.
+
+        Args:
+            name: Container name
+
+        Returns:
+            List of SnapshotInfo objects
+
+        Raises:
+            ValueError: If container doesn't exist or isn't running
+        """
+        info = self._containers.get(name)
+        if not info:
+            raise ValueError(f"Container '{name}' does not exist")
+
+        if info.state != ContainerState.RUNNING:
+            raise ValueError(
+                f"Container '{name}' is not running (state: {info.state.value})"
+            )
+
+        snapshot_manager = self._get_snapshot_manager(name)
+        if not snapshot_manager:
+            return []
+
+        return snapshot_manager.list_snapshots()
+
+    def restore_snapshot(self, name: str, tag: str) -> SnapshotResult:
+        """
+        Restore a container to a snapshot.
+
+        Args:
+            name: Container name
+            tag: Snapshot tag to restore
+
+        Returns:
+            SnapshotResult with success status
+
+        Raises:
+            ValueError: If container doesn't exist or isn't running
+        """
+        info = self._containers.get(name)
+        if not info:
+            raise ValueError(f"Container '{name}' does not exist")
+
+        if info.state != ContainerState.RUNNING:
+            raise ValueError(
+                f"Container '{name}' is not running (state: {info.state.value})"
+            )
+
+        snapshot_manager = self._get_snapshot_manager(name)
+        if not snapshot_manager:
+            return SnapshotResult(
+                success=False,
+                tag=tag,
+                error_message="Could not get snapshot manager for container"
+            )
+
+        return snapshot_manager.restore_snapshot(tag)
+
+    def delete_snapshot(self, name: str, tag: str) -> SnapshotResult:
+        """
+        Delete a snapshot from a container.
+
+        Args:
+            name: Container name
+            tag: Snapshot tag to delete
+
+        Returns:
+            SnapshotResult with success status
+
+        Raises:
+            ValueError: If container doesn't exist or isn't running
+        """
+        info = self._containers.get(name)
+        if not info:
+            raise ValueError(f"Container '{name}' does not exist")
+
+        if info.state != ContainerState.RUNNING:
+            raise ValueError(
+                f"Container '{name}' is not running (state: {info.state.value})"
+            )
+
+        snapshot_manager = self._get_snapshot_manager(name)
+        if not snapshot_manager:
+            return SnapshotResult(
+                success=False,
+                tag=tag,
+                error_message="Could not get snapshot manager for container"
+            )
+
+        result = snapshot_manager.delete_snapshot(tag)
+
+        # Remove from tracking on successful delete
+        if result.success:
+            info.snapshots = [s for s in info.snapshots if s.tag != tag]
+            self._save_state()
+
+        return result
+
     def __repr__(self) -> str:
         """String representation."""
         running = self.get_running_count()
