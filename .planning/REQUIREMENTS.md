@@ -1,0 +1,69 @@
+# Requirements: PixelRTS v1.3 Multi-Boot
+
+**Defined:** 2026-03-09
+**Core Value:** Booting an OS should be as visual and intuitive as opening an image file.
+
+## v1.3 Requirements
+
+### Core Multi-Boot
+
+- [ ] **MULTI-01**: User can boot multiple containers with single CLI command (`pixelrts boot a.rts.png b.rts.png`)
+- [ ] **MULTI-02**: System allocates unique VNC ports and socket paths per container
+- [ ] **MULTI-03**: Partial boot failure triggers cleanup of already-started containers
+
+### Boot Ordering
+
+- [ ] **ORDER-01**: User can designate primary container (starts first, stops last)
+- [ ] **ORDER-02**: Helper containers wait for primary to launch before starting
+- [ ] **ORDER-03**: Shutdown reverses boot order (helpers stop first, primary last)
+
+### Networking
+
+- [ ] **NET-01**: Containers can communicate with each other via QEMU socket networking
+- [ ] **NET-02**: No root privileges required for inter-container networking
+
+### Status & Management
+
+- [ ] **STATUS-01**: User can view running containers with `pixelrts ps`
+- [ ] **STATUS-02**: Status shows container name, VNC port, and state (launching/running/stopped)
+
+## Future Requirements
+
+- [ ] **MULTI-04**: Boot group configuration via YAML file
+- [ ] **ORDER-04**: Health-aware startup (wait for primary to be "ready")
+- [ ] **NET-03**: Container name → IP discovery via /etc/hosts injection
+- [ ] **STATUS-03**: Individual container control (start/stop/restart)
+- [ ] **STATUS-04**: Catalog multi-select boot UI
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| TAP/bridge networking | Requires root, socket netdev is simpler |
+| Live migration | Complex, not needed for multi-boot use case |
+| Distributed multi-host | Single-machine focus |
+| Full orchestration (K8s-style) | Use Docker/Kubernetes for that |
+| Shared memory between VMs | Advanced feature, defer |
+
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| MULTI-01 | TBD | Pending |
+| MULTI-02 | TBD | Pending |
+| MULTI-03 | TBD | Pending |
+| ORDER-01 | TBD | Pending |
+| ORDER-02 | TBD | Pending |
+| ORDER-03 | TBD | Pending |
+| NET-01 | TBD | Pending |
+| NET-02 | TBD | Pending |
+| STATUS-01 | TBD | Pending |
+| STATUS-02 | TBD | Pending |
+
+**Coverage:**
+- v1.3 requirements: 10 total
+- Mapped to phases: 0
+- Unmapped: 10 ⚠️
+
+---
+*Requirements defined: 2026-03-09*
