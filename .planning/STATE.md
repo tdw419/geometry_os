@@ -3,15 +3,15 @@
 ## Project Reference
 See: .planning/PROJECT.md (updated 2026-03-09)
 **Core value:** Booting an OS should be as visual and intuitive as opening an image file.
-**Current focus:** Phase 11 in progress - Virtual Networking
+**Current focus:** Phase 11 complete - Virtual Networking
 
 ## Current Position
 Phase: 11 of 11 (Virtual Networking)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-03-09 — Completed 11-02: NetworkMode socket integration
+Plan: 3 of 3 in current phase
+Status: Phase complete
+Last activity: 2026-03-09 — Completed 11-03: MultiBootManager virtual network integration
 
-Progress: [██░░░░░░░░░] Phase 11: 2/3 plans complete
+Progress: [██████████] Phase 11: 3/3 plans complete
 
 ## Performance Metrics
 **v1.2 Velocity:**
@@ -29,8 +29,8 @@ Progress: [██░░░░░░░░░] Phase 11: 2/3 plans complete
 - v1.2: 10 plans
 - v1.3: 5 plans (complete)
 - v1.4: 4 plans (complete)
-- v1.5: 2 plans (in progress)
-- Total: 51 plans
+- v1.5: 3 plans (complete)
+- Total: 52 plans
 
 ## Accumulated Context
 
@@ -56,6 +56,7 @@ Key decisions archived in `.planning/milestones/`:
 **v1.5 Decisions:**
 - **11-01:** VirtualNetwork class for QEMU socket netdev with multicast, default mcast 230.0.0.1:1234, no root required, virtio-net-pci device
 - **11-02:** Extended NetworkMode enum with SOCKET_MCAST and SOCKET_STREAM, integrated VirtualNetwork into QemuBoot, SOCKET_STREAM stubbed as NotImplementedError
+- **11-03:** Graceful network fallback in MultiBootManager, network_fallback flag in ContainerInfo, --network CLI option, default USER mode preserved
 
 ### Pending Todos
 None.
@@ -65,15 +66,17 @@ None.
 
 ## Session Continuity
 Last session: 2026-03-09
-Stopped at: Completed 11-02-PLAN.md (NetworkMode socket integration)
+Stopped at: Completed 11-03-PLAN.md (MultiBootManager virtual network integration)
 
-**CLI Commands Available (v1.0 + v1.1 + v1.2 + v1.3 + v1.4):**
+**CLI Commands Available (v1.0 + v1.1 + v1.2 + v1.3 + v1.4 + v1.5):**
 - `pixelrts analyze <file.png>` - Vision analysis and verification
 - `pixelrts boot <file.png...>` - Boot .rts.png files with QEMU (supports multiple files)
   - Multi-file: `pixelrts boot a.rts.png b.rts.png c.rts.png` - concurrent boot
   - `--primary/-p <name>` - Designate primary container (starts first, stops last)
+  - `--network {user,socket_mcast}` - Network mode (default: user/isolated)
   - When using --primary: shows boot order progress (primary first, helpers wait, primary ready)
   - Ordered shutdown: helpers stop first, primary last
+  - Fallback warning: displays if virtual network setup fails
 
 ---
 *State updated: 2026-03-09*
