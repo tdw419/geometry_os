@@ -932,6 +932,15 @@ def cmd_boot(args):
             if args.verbose:
                 print(f"Container type detection failed: {e}")
 
+        # Handle ephemeral mode
+        if getattr(args, 'ephemeral', False):
+            from systems.pixel_compiler.boot.ephemeral_boot import EphemeralBooter
+
+            if not args.quiet:
+                print("Ephemeral mode: Changes will be discarded on exit")
+
+            return _boot_ephemeral(args, input_path)
+
         # Use existing BootBridge for regular containers
         bridge = BootBridge(
             rts_png_path=str(input_path),
@@ -1117,6 +1126,108 @@ def _boot_committed(args, input_path):
         return 1
     except Exception as e:
         print(f"Error booting committed file: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
+def _boot_ephemeral(args, input_path):
+    """Boot a container in ephemeral mode using EphemeralBooter.
+
+    In ephemeral mode, all changes are discarded on exit. The original
+    file remains untouched as EphemeralBooter works on a temp copy.
+    """
+    from systems.pixel_compiler.boot.ephemeral_boot import EphemeralBooter, EphemeralBootError
+
+    try:
+        # Create EphemeralBooter with options
+        booter = EphemeralBooter(
+            rts_png_path=str(input_path),
+            memory=args.memory,
+            cpus=args.cpus,
+            vnc_display=args.vnc,
+            verbose=not args.quiet and (args.verbose or sys.stdout.isatty()),
+        )
+
+        # Build extra QEMU args if provided
+        extra_qemu_args = []
+        if args.qemu_arg:
+            extra_qemu_args.extend(args.qemu_arg)
+
+        # Perform boot with context manager for automatic cleanup
+        with booter:
+            result = booter.boot(
+                cmdline=args.cmdline,
+                extra_qemu_args=extra_qemu_args if extra_qemu_args else None,
+            )
+
+            if not result.success:
+                print(f"Ephemeral boot failed: {result.error_message}", file=sys.stderr)
+                return 1
+
+            # Print success info
+            if not args.quiet:
+                print(f"\nEphemeral boot successful!")
+                print(f"  PID: {result.pid}")
+                if result.vnc_port:
+                    print(f"  VNC: :{result.vnc_port} (port {5900 + result.vnc_port})")
+                print(f"  Original preserved at: {booter.original_path}")
+
+            # Handle background mode
+            if args.background:
+                if not args.quiet:
+                    print(f"\nRunning in background. PID: {result.pid}")
+                    print("Use 'kill {pid}' or Ctrl+C to stop.".format(pid=result.pid))
+                    print("Note: Temp files will be cleaned up when process exits.")
+                # Don't wait - return success immediately
+                return 0
+
+            # Wait for QEMU process
+            if not args.quiet:
+                print("\nWaiting for QEMU... (Ctrl+C to stop)")
+                print("Changes will be discarded when VM exits.")
+
+            # Set up signal handler for graceful shutdown
+            shutdown_requested = False
+
+            def handle_shutdown(signum, frame):
+                nonlocal shutdown_requested
+                shutdown_requested = True
+                if not args.quiet:
+                    print("\nShutdown requested, stopping VM...")
+
+            original_sigint = signal.signal(signal.SIGINT, handle_shutdown)
+            original_sigterm = signal.signal(signal.SIGTERM, handle_shutdown)
+
+            try:
+                # Wait for the process to complete or signal
+                if result.process:
+                    exit_code = result.process.wait()
+                    if not args.quiet:
+                        print(f"\nQEMU exited with code: {exit_code}")
+                else:
+                    # No process reference, just wait for signal
+                    while not shutdown_requested:
+                        signal.pause()
+            finally:
+                # Restore original signal handlers
+                signal.signal(signal.SIGINT, original_sigint)
+                signal.signal(signal.SIGTERM, original_sigterm)
+
+            # Return 130 for SIGINT (128 + 2), otherwise exit code
+            if shutdown_requested:
+                return 130
+            return exit_code if result.process else 0
+
+    except EphemeralBootError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except ImportError as e:
+        print(f"Error: EphemeralBooter not available: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error booting in ephemeral mode: {e}", file=sys.stderr)
         if args.verbose:
             import traceback
             traceback.print_exc()
