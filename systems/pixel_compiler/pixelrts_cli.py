@@ -1135,6 +1135,49 @@ def cmd_diff(args):
         return 1
 
 
+def cmd_delta(args):
+    """
+    Handle delta command - Generate delta manifest between two versions.
+
+    Generates a JSON manifest describing byte-level changes between
+    two .rts.png file versions, including checksums and byte ranges.
+    """
+    from systems.pixel_compiler.delta_manifest import generate_delta_manifest
+
+    try:
+        # Generate the manifest
+        manifest = generate_delta_manifest(args.old, args.new)
+
+        # Output to file or stdout
+        if args.output:
+            manifest.save(args.output)
+            if not args.quiet:
+                print(f"Delta manifest saved to: {args.output}")
+                print(f"  Regions: {len(manifest.regions)}")
+                print(f"  Changed: {manifest.compression_ratio}%")
+                print(f"  Old size: {manifest.old_size:,} bytes")
+                print(f"  New size: {manifest.new_size:,} bytes")
+        else:
+            # Output to stdout
+            print(manifest.to_json())
+
+        # Return 0 if identical, 1 if different (for scripting)
+        return 0 if manifest.compression_ratio == 0 else 1
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 2
+    except ValueError as e:
+        print(f"Error: Invalid file format - {e}", file=sys.stderr)
+        return 3
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -1149,6 +1192,7 @@ Commands:
   serve        Start network boot server (DHCP, TFTP, NBD)
   catalog      Launch visual catalog server for browsing .rts.png files
   diff         Compare two .rts.png files and show differences
+  delta        Generate delta manifest between two versions
   benchmark    Run performance benchmarks
   dashboard    Generate performance dashboard
   info         Display information about .rts.png file
@@ -1173,6 +1217,8 @@ Examples:
   pixelrts catalog --no-browser
   pixelrts diff old.rts.png new.rts.png
   pixelrts diff old.rts.png new.rts.png --json
+  pixelrts delta old.rts.png new.rts.png -o manifest.json
+  pixelrts delta old.rts.png new.rts.png --quiet
   pixelrts analyze image.rts.png --method edges --edge-method sobel
   pixelrts analyze image.rts.png --method all --output results.json
   pixelrts execute fibonacci.rts.png --function fib --arguments 10
@@ -1522,6 +1568,36 @@ Examples:
     )
     diff_parser.set_defaults(func=cmd_diff)
 
+    # Delta command (generate delta manifest)
+    delta_parser = subparsers.add_parser(
+        'delta',
+        help='Generate delta manifest between two versions',
+        description='Generate a JSON manifest describing byte-level changes between two .rts.png file versions'
+    )
+    delta_parser.add_argument(
+        'old',
+        help='Original .rts.png file'
+    )
+    delta_parser.add_argument(
+        'new',
+        help='New/modified .rts.png file'
+    )
+    delta_parser.add_argument(
+        '-o', '--output',
+        help='Output manifest file (default: stdout)'
+    )
+    delta_parser.add_argument(
+        '-q', '--quiet',
+        action='store_true',
+        help='Suppress summary output'
+    )
+    delta_parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help='Enable verbose output'
+    )
+    delta_parser.set_defaults(func=cmd_delta)
+
     args = parser.parse_args()
 
     if not args.command:
@@ -1537,6 +1613,7 @@ Examples:
         'serve': cmd_serve,
         'catalog': cmd_catalog,
         'diff': cmd_diff,
+        'delta': cmd_delta,
         'benchmark': cmd_benchmark,
         'dashboard': cmd_dashboard,
         'info': cmd_info,
