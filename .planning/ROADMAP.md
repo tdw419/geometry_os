@@ -35,8 +35,8 @@
 **Plans**: 2
 
 Plans:
-- [ ] 19-01: Verification infrastructure and structure validation
-- [ ] 19-02: Hash consistency verification
+- [x] 19-01: Verification infrastructure and structure validation
+- [x] 19-02: Hash consistency verification
 
 #### Phase 20: Segment Integrity
 **Goal**: Users can verify individual segments (kernel, initrd, disk) without full decode

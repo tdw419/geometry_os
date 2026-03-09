@@ -7,8 +7,8 @@
 
 ### Core Verification
 
-- [ ] **VERIFY-01**: User can verify PNG structure integrity (valid PNG, readable chunks)
-- [ ] **VERIFY-02**: User can verify hash consistency (metadata SHA256 matches decoded data)
+- [x] **VERIFY-01**: User can verify PNG structure integrity (valid PNG, readable chunks)
+- [x] **VERIFY-02**: User can verify hash consistency (metadata SHA256 matches decoded data)
 - [ ] **VERIFY-03**: User can verify kernel/initrd/disk segment integrity via range decode
 
 ### Cryptographic
@@ -50,8 +50,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VERIFY-01 | Phase 19 | Pending |
-| VERIFY-02 | Phase 19 | Pending |
+| VERIFY-01 | Phase 19 | Complete |
+| VERIFY-02 | Phase 19 | Complete |
 | VERIFY-03 | Phase 20 | Pending |
 | CRYPTO-01 | Phase 21 | Pending |
 | CRYPTO-02 | Phase 21 | Pending |
