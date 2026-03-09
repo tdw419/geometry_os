@@ -1,35 +1,42 @@
 import ctypes
 import os
 import logging
+import time
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from systems.sisyphus.performance_monitor import PerformanceMonitor
 
 logger = logging.getLogger(__name__)
 
 class NativeHilbertLUT:
-    def __init__(self, lib_path=None):
+    def __init__(self, lib_path=None, performance_monitor: Optional["PerformanceMonitor"] = None):
+        self._performance_monitor = performance_monitor
+
         if lib_path is None:
             # Default to the location relative to this file
             # File is at systems/sisyphus/native_hilbert.py
             # Library is at systems/native/libhilbert.so
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             lib_path = os.path.join(base_dir, "native", "libhilbert.so")
-        
+
         self.lib = None
         try:
             if os.path.exists(lib_path):
                 self.lib = ctypes.CDLL(lib_path)
                 # Define argtypes and restype for hilbert_d2xy(int n, uint32_t d, int *x, int *y)
                 self.lib.hilbert_d2xy.argtypes = [
-                    ctypes.c_int, 
-                    ctypes.c_uint32, 
-                    ctypes.POINTER(ctypes.c_int), 
+                    ctypes.c_int,
+                    ctypes.c_uint32,
+                    ctypes.POINTER(ctypes.c_int),
                     ctypes.POINTER(ctypes.c_int)
                 ]
                 self.lib.hilbert_d2xy.restype = None
-                
+
                 # Define argtypes and restype for hilbert_xy2d(int n, int x, int y)
                 self.lib.hilbert_xy2d.argtypes = [
-                    ctypes.c_int, 
-                    ctypes.c_int, 
+                    ctypes.c_int,
+                    ctypes.c_int,
                     ctypes.c_int
                 ]
                 self.lib.hilbert_xy2d.restype = ctypes.c_uint32
@@ -39,20 +46,35 @@ class NativeHilbertLUT:
         except Exception as e:
             logger.error(f"Failed to load native Hilbert library: {e}. Falling back to slow Python.")
 
+    def _record_call(self, func_name: str, duration_ms: float) -> None:
+        """Record a call to the performance monitor if available."""
+        if self._performance_monitor:
+            self._performance_monitor.record_call(func_name, duration_ms)
+
     def d2xy(self, n, d):
-        if self.lib:
-            x = ctypes.c_int()
-            y = ctypes.c_int()
-            self.lib.hilbert_d2xy(n, d, ctypes.byref(x), ctypes.byref(y))
-            return x.value, y.value
-        else:
-            return self._d2xy_python(n, d)
+        start = time.perf_counter()
+        try:
+            if self.lib:
+                x = ctypes.c_int()
+                y = ctypes.c_int()
+                self.lib.hilbert_d2xy(n, d, ctypes.byref(x), ctypes.byref(y))
+                return x.value, y.value
+            else:
+                return self._d2xy_python(n, d)
+        finally:
+            duration_ms = (time.perf_counter() - start) * 1000
+            self._record_call("d2xy", duration_ms)
 
     def xy2d(self, n, x, y):
-        if self.lib:
-            return self.lib.hilbert_xy2d(n, x, y)
-        else:
-            return self._xy2d_python(n, x, y)
+        start = time.perf_counter()
+        try:
+            if self.lib:
+                return self.lib.hilbert_xy2d(n, x, y)
+            else:
+                return self._xy2d_python(n, x, y)
+        finally:
+            duration_ms = (time.perf_counter() - start) * 1000
+            self._record_call("xy2d", duration_ms)
 
     def _rot(self, n, x, y, rx, ry):
         if ry == 0:
