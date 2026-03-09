@@ -1400,6 +1400,188 @@ def cmd_patch(args):
         return 4
 
 
+def cmd_snapshot_create(args):
+    """Handle snapshot create command - Create a VM snapshot."""
+    from systems.pixel_compiler.boot import MultiBootManager
+    from systems.pixel_compiler.boot.vm_snapshot import SnapshotError
+
+    manager = MultiBootManager()
+    container_name = args.container
+    tag = args.tag
+
+    if args.verbose:
+        print(f"Creating snapshot '{tag}' for container '{container_name}'...")
+
+    try:
+        result = manager.create_snapshot(
+            name=container_name,
+            tag=tag,
+            description=args.description or ""
+        )
+
+        if result.success:
+            if not args.quiet:
+                print(f"Snapshot '{tag}' created successfully")
+                if result.metadata:
+                    print(f"  ID: {result.metadata.snapshot_id}")
+                    print(f"  State: {result.metadata.state.value}")
+            return 0
+        else:
+            print(f"Error: Failed to create snapshot: {result.error_message}", file=sys.stderr)
+            return 1
+
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except SnapshotError as e:
+        print(f"Error: Snapshot operation failed: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
+def cmd_snapshot_list(args):
+    """Handle snapshot list command - List VM snapshots for a container."""
+    from systems.pixel_compiler.boot import MultiBootManager
+    from systems.pixel_compiler.boot.vm_snapshot import SnapshotError
+
+    manager = MultiBootManager()
+    container_name = args.container
+
+    if args.verbose:
+        print(f"Listing snapshots for container '{container_name}'...")
+
+    try:
+        snapshots = manager.list_container_snapshots(container_name)
+
+        if not snapshots:
+            if not args.quiet:
+                print(f"No snapshots found for container '{container_name}'")
+            return 0
+
+        # Format output
+        if args.json:
+            import json
+            snapshot_list = []
+            for snap in snapshots:
+                snapshot_list.append({
+                    "tag": snap.tag,
+                    "id": snap.id,
+                    "size": snap.size,
+                    "date": str(snap.date) if snap.date else None,
+                    "vm_clock": str(snap.vm_clock) if snap.vm_clock else None,
+                })
+            print(json.dumps(snapshot_list, indent=2))
+        else:
+            # Table format
+            print(f"Snapshots for container '{container_name}':")
+            print(f"{'TAG':<20} {'ID':<12} {'SIZE':<12} {'DATE'}")
+            print(f"{'-'*20} {'-'*12} {'-'*12} {'-'*30}")
+            for snap in snapshots:
+                date_str = str(snap.date) if snap.date else "-"
+                print(f"{snap.tag:<20} {snap.id:<12} {snap.size:<12} {date_str}")
+
+        return 0
+
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except SnapshotError as e:
+        print(f"Error: Snapshot operation failed: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
+def cmd_snapshot_restore(args):
+    """Handle snapshot restore command - Restore a container from a snapshot."""
+    from systems.pixel_compiler.boot import MultiBootManager
+    from systems.pixel_compiler.boot.vm_snapshot import SnapshotError
+
+    manager = MultiBootManager()
+    container_name = args.container
+    tag = args.tag
+
+    if args.verbose:
+        print(f"Restoring container '{container_name}' to snapshot '{tag}'...")
+
+    try:
+        result = manager.restore_snapshot(name=container_name, tag=tag)
+
+        if result.success:
+            if not args.quiet:
+                print(f"Container '{container_name}' restored to snapshot '{tag}'")
+            return 0
+        else:
+            print(f"Error: Failed to restore snapshot: {result.error_message}", file=sys.stderr)
+            return 1
+
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except SnapshotError as e:
+        print(f"Error: Snapshot operation failed: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
+def cmd_snapshot_delete(args):
+    """Handle snapshot delete command - Delete a VM snapshot."""
+    from systems.pixel_compiler.boot import MultiBootManager
+    from systems.pixel_compiler.boot.vm_snapshot import SnapshotError
+
+    manager = MultiBootManager()
+    container_name = args.container
+    tag = args.tag
+
+    # Confirm deletion unless --force
+    if not args.force:
+        response = input(f"Delete snapshot '{tag}' from container '{container_name}'? [y/N] ")
+        if response.lower() != 'y':
+            print("Aborted.")
+            return 1
+
+    if args.verbose:
+        print(f"Deleting snapshot '{tag}' from container '{container_name}'...")
+
+    try:
+        result = manager.delete_snapshot(name=container_name, tag=tag)
+
+        if result.success:
+            if not args.quiet:
+                print(f"Snapshot '{tag}' deleted from container '{container_name}'")
+            return 0
+        else:
+            print(f"Error: Failed to delete snapshot: {result.error_message}", file=sys.stderr)
+            return 1
+
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except SnapshotError as e:
+        print(f"Error: Snapshot operation failed: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
 def cmd_ps(args):
     """
     Handle ps command - List running containers.
