@@ -130,9 +130,17 @@ If everything else fails, users must be able to:
   - ContainerState enum (IDLE/LAUNCHING/RUNNING/STOPPED/ERROR)
   - State file at /tmp/pixelrts/containers.json
 
+### Active (v1.4)
+
+- [ ] **SNAP-01**: Create snapshot of running container
+- [ ] **SNAP-02**: Restore container to snapshot state
+- [ ] **SNAP-03**: List and manage snapshots
+
 ### Future
 
 - [ ] **VISION-02**: Vision model can detect tampering or corruption
+- [ ] **EPHEM-01**: Ephemeral boot from snapshot (changes discarded)
+- [ ] **COMMIT-01**: Persist snapshot to new .rts.png file
 
 ### Out of Scope
 
@@ -221,6 +229,16 @@ If everything else fails, users must be able to:
 | NetworkMode enum extension (SOCKET_MCAST, SOCKET_STREAM) | Flexible network modes | ✓ Good |
 | Graceful network fallback to USER mode | Robust error handling | ✓ Good |
 
+## Current Milestone: v1.4 Live Snapshots
+
+**Goal:** Create and restore snapshots of running containers
+
+**Target features:**
+- Live snapshot creation while container is running
+- Restore container to previous snapshot state
+- Snapshot management (list, delete)
+
 ---
-*Last updated: 2026-03-09 — v1.3 shipped*
+*Last updated: 2026-03-09 — v1.4 started*
+
 
