@@ -50,7 +50,7 @@ from .virtual_network import (
     VirtualNetworkConfig,
     NetworkSetupError,
 )
-from .vm_snapshot import VMSnapshotManager, VMSnapshotMetadata, SnapshotResult, SnapshotInfo, SnapshotError
+from .vm_snapshot import VMSnapshotManager, VMSnapshotMetadata, SnapshotResult, SnapshotInfo, SnapshotError, RestoreProgress
 from systems.pixel_compiler.integration.qemu_boot import NetworkMode
 
 # Default state file path
@@ -169,6 +169,46 @@ class MultiBootResult:
             "containers": [c.to_dict() for c in self.containers],
             "error_messages": self.error_messages,
             "cleanup_performed": self.cleanup_performed,
+        }
+
+
+@dataclass
+class RestoreResult:
+    """
+    Result of a container restore operation.
+
+    Attributes:
+        success: Whether the restore succeeded
+        container_name: Name of the container
+        snapshot_tag: Tag of the restored snapshot
+        identity_preserved: Whether container identity (name, ports) was preserved
+        network_reconnected: Whether network was re-established (None if not applicable)
+        pre_restore_state: Container state before restore
+        post_restore_state: Container state after restore
+        error_message: Error description if restore failed
+        restore_progress: Detailed progress from VMSnapshotManager
+    """
+    success: bool
+    container_name: str
+    snapshot_tag: str
+    identity_preserved: bool = True
+    network_reconnected: Optional[bool] = None
+    pre_restore_state: Optional[ContainerState] = None
+    post_restore_state: Optional[ContainerState] = None
+    error_message: Optional[str] = None
+    restore_progress: Optional[Any] = None  # RestoreProgress from vm_snapshot
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for serialization."""
+        return {
+            "success": self.success,
+            "container_name": self.container_name,
+            "snapshot_tag": self.snapshot_tag,
+            "identity_preserved": self.identity_preserved,
+            "network_reconnected": self.network_reconnected,
+            "pre_restore_state": self.pre_restore_state.value if self.pre_restore_state else None,
+            "post_restore_state": self.post_restore_state.value if self.post_restore_state else None,
+            "error_message": self.error_message,
         }
 
 
