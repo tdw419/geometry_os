@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 ## Current Position
 
 Phase: 16 of 17 (Boot from Committed)
-Plan: 3 of 3 in current phase
+Plan: 4 of 4 in current phase (gap closure)
 Status: Phase complete
-Last activity: 2026-03-09 — Completed 16-03-PLAN.md (CLI Integration and Verification)
+Last activity: 2026-03-09 — Completed 16-04-PLAN.md (Fix Kernel/Initrd Extraction from Committed Files)
 
-Progress: [██████████████████░░] 92% (47/50 plans across all milestones)
+Progress: [██████████████████░░] 94% (48/50 plans across all milestones)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 47
+- Total plans completed: 48
 - Average duration: ~15 min
-- Total execution time: ~11.6 hours
+- Total execution time: ~11.8 hours
 
 **By Phase:**
 
@@ -33,7 +33,7 @@ Progress: [██████████████████░░] 92% (47
 | v1.3 Phases 9-11 | 12 | ~3 hrs | ~15 min |
 | v1.4 Phases 12-14 | 10 | ~2.5 hrs | ~15 min |
 | v1.5 Phase 15 | 3 | ~45 min | ~15 min |
-| v1.5 Phase 16 | 3 | ~39 min | ~13 min |
+| v1.5 Phase 16 | 4 | ~53 min | ~13 min |
 
 **Recent Trend:**
 - Last 5 plans: Consistent ~12 min per plan
@@ -51,7 +51,7 @@ Key decisions archived in `.planning/milestones/` and PROJECT.md:
 - v1.2: Proxy DHCP, range decoding, async orchestrator, handler pattern
 - v1.3: ContainerRole enum, ordered boot/shutdown, VirtualNetwork class
 - v1.4: VMSnapshotManager, linear timeout scaling, SnapshotMetadata, dual-source listing
-- v1.5: QemuImgWrapper for qemu-img convert -l snapshot extraction, SnapshotCommitter with VM pause/resume guarantee, SnapshotExporter with progress tracking and PixelRTS encoding, CommittedFileBooter with vm-snapshot container detection and qcow2 extraction boot, kernel/initrd preservation with combined data encoding and offset metadata, CLI boot command with auto-detection routing and verification callback
+- v1.5: QemuImgWrapper for qemu-img convert -l snapshot extraction, SnapshotCommitter with VM pause/resume guarantee, SnapshotExporter with progress tracking and PixelRTS encoding, CommittedFileBooter with vm-snapshot container detection and qcow2 extraction boot, kernel/initrd preservation with combined data encoding and offset metadata, CLI boot command with auto-detection routing and verification callback, binary kernel/initrd extraction with hash verification from committed files
 
 ### Pending Todos
 
@@ -64,7 +64,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: Completed 16-03-PLAN.md (CLI Integration and Verification)
+Stopped at: Completed 16-04-PLAN.md (Fix Kernel/Initrd Extraction from Committed Files)
 Resume file: None
 
 ---
