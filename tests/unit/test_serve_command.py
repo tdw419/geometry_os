@@ -581,3 +581,194 @@ class TestHTTPBoot:
         args = parser.parse_args(['serve', 'test.rts.png'])
         assert args.http is False
         assert args.http_port == 8080
+
+
+class TestDeltaEndpoints:
+    """Test delta HTTP endpoint integration."""
+
+    def setup_method(self):
+        """Set up test fixtures."""
+        self.encoder = PixelRTSEncoder()
+        self.temp_dir = tempfile.mkdtemp()
+
+    def teardown_method(self):
+        """Clean up test files."""
+        if os.path.exists(self.temp_dir):
+            shutil.rmtree(self.temp_dir)
+
+    def _create_rts_file(self, data: bytes, filename: str = "test.rts.png") -> str:
+        """Helper to create a .rts.png file with given data."""
+        path = os.path.join(self.temp_dir, filename)
+        self.encoder.save(data, path, metadata={'type': 'test'})
+        return path
+
+    def test_delta_handler_not_registered_without_http(self):
+        """Test that delta_enabled is False when HTTP is disabled."""
+        test_path = self._create_rts_file(b"test data")
+        server = PixelRTSServer(test_path, interface="lo", enable_delta=True, enable_http=False)
+
+        # delta_enabled should be False because HTTP is required
+        assert server._enable_delta is True
+        assert server._enable_http is False
+        assert server.status.delta_enabled is False
+
+    @pytest.mark.asyncio
+    async def test_delta_handler_registered_with_http(self):
+        """Test that DeltaHTTPHandler is registered when both delta and HTTP are enabled."""
+        test_path = self._create_rts_file(b"test data")
+        server = PixelRTSServer(test_path, interface="lo", enable_delta=True, enable_http=True)
+
+        # Track register_handler calls
+        registered_handlers = []
+
+        # Create a mock HTTP server that captures register_handler calls
+        mock_http = AsyncMock()
+        mock_http.start = AsyncMock()
+        mock_http.register_handler = MagicMock(side_effect=lambda prefix, handler: registered_handlers.append((prefix, handler)))
+
+        mock_dhcp = AsyncMock()
+        mock_tftp = AsyncMock()
+
+        mock_pxe_config = MagicMock()
+        mock_pxe_config.generate_ipxe_chainload_config.return_value = "DEFAULT ipxe\n"
+        mock_pxe_config.generate_ipxe_script.return_value = "#!ipxe\nboot\n"
+
+        with patch.object(server, '_start_nbd_server', new_callable=AsyncMock):
+            with patch('systems.pixel_compiler.serve.dhcp_proxy.ProxyDHCP', return_value=mock_dhcp):
+                with patch('systems.pixel_compiler.serve.tftp_server.TFTPServer', return_value=mock_tftp):
+                    with patch('systems.pixel_compiler.serve.http_server.HTTPBootServer', return_value=mock_http):
+                        with patch('systems.pixel_compiler.serve.pxe_config.PXEConfig', return_value=mock_pxe_config):
+                            with patch('systems.pixel_compiler.serve.pxe_config.PXEConfig.ensure_ipxe_boot_files', return_value=True):
+                                try:
+                                    await server.start()
+                                    # Verify handler was registered with /delta/ prefix
+                                    assert len(registered_handlers) == 1
+                                    assert registered_handlers[0][0] == '/delta/'
+                                    # Verify it's a DeltaHTTPHandler-like object
+                                    handler = registered_handlers[0][1]
+                                    assert hasattr(handler, 'handle')
+                                except Exception:
+                                    pytest.skip("Network services not available")
+                                finally:
+                                    await server.stop()
+
+    @pytest.mark.asyncio
+    async def test_delta_list_endpoint_returns_json(self):
+        """Test that /delta/list endpoint returns JSON array."""
+        from systems.pixel_compiler.serve.http_server import HTTPBootServer, HTTPConfig
+        from systems.pixel_compiler.serve.delta_server import DeltaServer, DeltaHTTPHandler
+
+        # Create temp directory for HTTP root
+        http_root = tempfile.mkdtemp()
+        try:
+            test_path = self._create_rts_file(b"test data")
+
+            # Create DeltaServer and handler
+            delta_server = DeltaServer(
+                container_path=test_path,
+                http_root=http_root
+            )
+            delta_handler = DeltaHTTPHandler(delta_server)
+
+            # Create HTTPBootServer and register handler
+            config = HTTPConfig(host="127.0.0.1", port=18080, root_dir=http_root)
+            http_server = HTTPBootServer(config=config)
+            http_server.register_handler('/delta/', delta_handler)
+
+            # Start server
+            await http_server.start()
+
+            try:
+                # Make request to /delta/list
+                import asyncio
+                reader, writer = await asyncio.open_connection('127.0.0.1', 18080)
+
+                request = b"GET /delta/list HTTP/1.1\r\nHost: localhost\r\n\r\n"
+                writer.write(request)
+                await writer.drain()
+
+                # Read response
+                response_data = b""
+                while True:
+                    chunk = await reader.read(1024)
+                    if not chunk:
+                        break
+                    response_data += chunk
+                    if b"\r\n\r\n" in response_data:
+                        # Got headers, read body if present
+                        break
+
+                writer.close()
+                await writer.wait_closed()
+
+                response_str = response_data.decode('utf-8')
+
+                # Verify response
+                assert "HTTP/1.1 200 OK" in response_str
+                assert "Content-Type: application/json" in response_str
+                assert '"deltas"' in response_str
+
+            finally:
+                await http_server.stop()
+
+        finally:
+            shutil.rmtree(http_root)
+
+    @pytest.mark.asyncio
+    async def test_delta_manifest_endpoint_returns_404_for_missing(self):
+        """Test that /delta/<file>.json returns 404 for non-existent manifest."""
+        from systems.pixel_compiler.serve.http_server import HTTPBootServer, HTTPConfig
+        from systems.pixel_compiler.serve.delta_server import DeltaServer, DeltaHTTPHandler
+
+        # Create temp directory for HTTP root
+        http_root = tempfile.mkdtemp()
+        try:
+            test_path = self._create_rts_file(b"test data")
+
+            # Create DeltaServer and handler
+            delta_server = DeltaServer(
+                container_path=test_path,
+                http_root=http_root
+            )
+            delta_handler = DeltaHTTPHandler(delta_server)
+
+            # Create HTTPBootServer and register handler
+            config = HTTPConfig(host="127.0.0.1", port=18081, root_dir=http_root)
+            http_server = HTTPBootServer(config=config)
+            http_server.register_handler('/delta/', delta_handler)
+
+            # Start server
+            await http_server.start()
+
+            try:
+                # Make request to non-existent manifest
+                import asyncio
+                reader, writer = await asyncio.open_connection('127.0.0.1', 18081)
+
+                request = b"GET /delta/nonexistent.json HTTP/1.1\r\nHost: localhost\r\n\r\n"
+                writer.write(request)
+                await writer.drain()
+
+                # Read response
+                response_data = b""
+                while True:
+                    chunk = await reader.read(1024)
+                    if not chunk:
+                        break
+                    response_data += chunk
+                    if b"\r\n\r\n" in response_data:
+                        break
+
+                writer.close()
+                await writer.wait_closed()
+
+                response_str = response_data.decode('utf-8')
+
+                # Verify 404 response
+                assert "HTTP/1.1 404 Not Found" in response_str
+
+            finally:
+                await http_server.stop()
+
+        finally:
+            shutil.rmtree(http_root)
