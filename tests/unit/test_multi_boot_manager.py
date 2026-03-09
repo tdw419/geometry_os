@@ -566,6 +566,154 @@ class TestStop:
         # After stop, should be released
         assert resource_allocator.get_available_count() == initial_available
 
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_stop_all_ordered_helpers_first(
+        self, mock_bridge_class, manager
+    ):
+        """Test that stop_all_ordered stops helpers before primary."""
+        stop_order = []
+
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            vnc_display = kwargs.get('vnc_display', 0)
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900 + vnc_display,
+                pid=1000 + vnc_display,
+            )
+
+            # Track stop order
+            def track_stop():
+                # Get container name from the rts_png_path
+                path = kwargs.get('rts_png_path', 'unknown')
+                stop_order.append(path.stem if hasattr(path, 'stem') else str(path))
+            mock.stop.side_effect = track_stop
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        # Boot with primary
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png", "/fake/ubuntu.rts.png"],
+            primary="ubuntu.rts"
+        )
+
+        assert result.success is True
+
+        # Stop with ordered shutdown
+        manager.stop_all_ordered()
+
+        # Verify primary (ubuntu) was stopped last
+        assert stop_order[-1] == "ubuntu.rts", f"Primary should be stopped last, got: {stop_order}"
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_stop_all_ordered_primary_last(
+        self, mock_bridge_class, manager
+    ):
+        """Test that primary is stopped after all helpers."""
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            vnc_display = kwargs.get('vnc_display', 0)
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900 + vnc_display,
+                pid=1000 + vnc_display,
+            )
+            mock.stop.return_value = None
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        # Boot with multiple helpers and one primary
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png", "/fake/ubuntu.rts.png", "/fake/debian.rts.png"],
+            primary="ubuntu.rts"
+        )
+
+        assert result.success is True
+        assert len(result.containers) == 3
+
+        # Stop with ordered shutdown
+        results = manager.stop_all_ordered()
+
+        # Verify all were stopped
+        assert len(results) == 3
+        assert all(results.values())
+
+        # Verify all containers are stopped
+        for container in manager.list_containers():
+            assert container.state == ContainerState.STOPPED
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_stop_all_ordered_no_primary(
+        self, mock_bridge_class, manager
+    ):
+        """Test stop_all_ordered when no primary is designated (all helpers)."""
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            vnc_display = kwargs.get('vnc_display', 0)
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900 + vnc_display,
+                pid=1000 + vnc_display,
+            )
+            mock.stop.return_value = None
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        # Boot without primary (all helpers)
+        result = manager.boot_all([
+            "/fake/alpine.rts.png",
+            "/fake/ubuntu.rts.png",
+        ])
+
+        assert result.success is True
+
+        # Stop with ordered shutdown
+        results = manager.stop_all_ordered()
+
+        # Verify all were stopped
+        assert len(results) == 2
+        assert all(results.values())
+
+    @patch('systems.pixel_compiler.boot.multi_boot_manager.BootBridge')
+    def test_stop_all_ordered_returns_results(
+        self, mock_bridge_class, manager
+    ):
+        """Test that stop_all_ordered returns Dict[str, bool] like stop_all."""
+        def create_mock_bridge(*args, **kwargs):
+            mock = Mock()
+            vnc_display = kwargs.get('vnc_display', 0)
+            mock.boot.return_value = BootResult(
+                success=True,
+                vnc_port=5900 + vnc_display,
+                pid=1000 + vnc_display,
+            )
+            mock.stop.return_value = None
+            return mock
+
+        mock_bridge_class.side_effect = create_mock_bridge
+
+        # Boot with primary
+        result = manager.boot_all(
+            ["/fake/alpine.rts.png", "/fake/ubuntu.rts.png"],
+            primary="ubuntu.rts"
+        )
+
+        assert result.success is True
+
+        # Stop with ordered shutdown
+        results = manager.stop_all_ordered()
+
+        # Verify return type
+        assert isinstance(results, dict)
+        assert all(isinstance(k, str) for k in results.keys())
+        assert all(isinstance(v, bool) for v in results.values())
+
+        # Verify all stopped successfully
+        assert all(results.values())
+
 
 # MultiBootManager Utility Method Tests
 
