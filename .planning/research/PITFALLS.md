@@ -222,14 +222,14 @@ Common user experience mistakes in this domain.
 
 Things that appear complete but are missing critical pieces.
 
-- [ ] **Vision analysis:** Often missing confidence threshold calibration — verify with diverse test set, track false positive/negative rates
-- [ ] **FUSE filesystem:** Often missing proper error propagation — verify all syscalls return appropriate errno codes
-- [ ] **Installer:** Often missing bootloader verification — verify installed system actually boots before declaring success
-- [ ] **Visual catalog:** Often missing cache invalidation — verify thumbnails update when containers change
-- [ ] **Security validation:** Often missing steganography detection — verify PNG chunks are scanned for anomalies
-- [ ] **Performance:** Often missing scale testing — verify with 1000+ containers, not just 10
-- [ ] **Error handling:** Often missing specific error messages — verify every error path has actionable message
-- [ ] **Certificate handling:** Often missing expiration checks — verify Secure Boot certificates are checked
+- [ ] **Vision analysis:** Often missing confidence threshold calibration -- verify with diverse test set, track false positive/negative rates
+- [ ] **FUSE filesystem:** Often missing proper error propagation -- verify all syscalls return appropriate errno codes
+- [ ] **Installer:** Often missing bootloader verification -- verify installed system actually boots before declaring success
+- [ ] **Visual catalog:** Often missing cache invalidation -- verify thumbnails update when containers change
+- [ ] **Security validation:** Often missing steganography detection -- verify PNG chunks are scanned for anomalies
+- [ ] **Performance:** Often missing scale testing -- verify with 1000+ containers, not just 10
+- [ ] **Error handling:** Often missing specific error messages -- verify every error path has actionable message
+- [ ] **Certificate handling:** Often missing expiration checks -- verify Secure Boot certificates are checked
 
 ## Recovery Strategies
 
@@ -578,4 +578,311 @@ NBD protocol was designed for single-client scenarios (disk over network). Serve
 ---
 *Pitfalls research for: Network Boot (PXE/NBD) and Delta Updates*
 *Context: Adding to existing PixelRTS boot system*
+*Researched: 2026-03-08*
+
+---
+
+# MILESTONE: Multi-Container Boot (v1.3)
+
+**Domain:** Simultaneous Multi-VM Boot with Networking
+**Context:** Adding multi-container boot to existing single-container PixelRTS boot system
+**Researched:** 2026-03-08
+**Confidence:** MEDIUM (based on QEMU patterns and existing PixelRTS architecture; integration specifics need validation)
+
+---
+
+## Critical Pitfalls
+
+### Pitfall 13: Resource Contention During Simultaneous Boot
+
+**What goes wrong:**
+When booting multiple QEMU VMs simultaneously, host resources (RAM, CPU, disk I/O) become saturated. Boot times degrade from seconds to minutes, or VMs fail with OOM/timeout errors. The boot progress appears "stuck" because all VMs are fighting for the same resources.
+
+**Why it happens:**
+Each QEMU instance allocates its configured memory immediately at boot (not lazily). Boot is CPU-intensive (kernel decompression, init). Developers assume "my machine has 32GB, 4x 4GB VMs will be fine" without accounting for host overhead, page tables, KVM overhead, and the boot spike.
+
+**How to avoid:**
+- **Stagger boot starts** with configurable delay (e.g., 5-10 seconds between VM launches)
+- **Calculate total resource budget** before launching: sum of all VM RAM + 20% overhead < host available
+- **Use memory ballooning** to allow dynamic memory adjustment after boot
+- **Set CPU limits per VM** with `-smp` and consider CPU pinning for predictable performance
+- **Implement boot priority** so primary container boots first, helpers follow
+
+**Warning signs:**
+- Boot time increases proportionally with VM count
+- Host becomes sluggish during multi-boot
+- VMs report kernel panic or init timeout
+- `dmesg` shows OOM killer activity
+
+**Phase to address:** Phase 1 (Multi-Boot Infrastructure)
+
+---
+
+### Pitfall 14: Partial Boot Failure Leaves Zombie Processes
+
+**What goes wrong:**
+Container 1 boots successfully, Container 2 fails during init, Container 3 was never started. The system is now in an inconsistent state with orphaned QEMU processes, leaked sockets, and no clear path to clean up. User sees "boot failed" but doesn't know what's running.
+
+**Why it happens:**
+Single-container boot has simple cleanup (one process). Multi-container boot needs compensating transactions for each launched VM. Developers often handle the happy path but skip proper partial failure cleanup because "it's complex."
+
+**How to avoid:**
+- **Implement compensating cleanup pattern**: For each successful VM launch, register a cleanup action
+- **Use atomic multi-boot semantics**: Either all VMs boot successfully, or all are cleaned up
+- **Track VM state in a MultiBootState object**: `{vm_id, status, pid, cleanup_actions}`
+- **Signal handler registration**: SIGTERM/SIGINT trigger cleanup of all running VMs
+- **atexit handler**: Ensure cleanup even if Python process crashes
+
+**Warning signs:**
+- After failed boot, `ps aux | grep qemu` shows orphaned processes
+- Socket files remain in temp directories after "failed" boot
+- Subsequent boot attempts fail with "port already in use" or "socket exists"
+- Memory usage grows with each boot attempt (leaks)
+
+**Phase to address:** Phase 1 (Multi-Boot Infrastructure)
+
+---
+
+### Pitfall 15: Network Namespace Isolation Breaks Inter-VM Communication
+
+**What goes wrong:**
+Developer sets up network namespace for isolation, then discovers VMs can't reach each other. Or VMs can reach each other but can't reach external network. Or network works but DNS fails inside containers.
+
+**Why it happens:**
+Network namespaces completely isolate network stacks. Connecting namespaces requires veth pairs or bridges. DNS resolution typically uses host's `/etc/resolv.conf` which isn't available inside namespace. Developers often underestimate namespace complexity.
+
+**How to avoid:**
+- **Use QEMU user-mode networking for simple cases**: `-nic user` provides NAT without namespace complexity
+- **For inter-VM communication, use a shared bridge**: Create bridge on host, connect all VM TAP devices to it
+- **Use socket-based networking for minimal setup**: `-nic socket,listen=:1234` / `-nic socket,connect=:1234`
+- **Document network topology clearly**: Draw the diagram before implementing
+- **Test connectivity explicitly**: After boot, verify VMs can ping each other before proceeding
+
+**Warning signs:**
+- `ping` between VMs times out
+- `dig` or `nslookup` fails inside VM
+- VMs can reach each other but not internet
+- Network configuration works in dev but fails in production
+
+**Phase to address:** Phase 2 (Inter-VM Networking)
+
+---
+
+### Pitfall 16: VNC Display Collision When Multiplexing
+
+**What goes wrong:**
+Each QEMU VM needs a VNC display. Developer hardcodes `:0` for all VMs, or uses sequential ports that collide with existing VNC sessions. User can't connect to individual VM displays, or connects to wrong VM.
+
+**Why it happens:**
+VNC display numbers (`:0`, `:1`, etc.) map to ports 5900+n. Developers forget that other VNC servers might be running, or that previous PixelRTS sessions didn't clean up properly. The `vnc_display` field in QemuConfig defaults to 0.
+
+**How to avoid:**
+- **Allocate VNC displays dynamically**: Use a port allocator that checks availability
+- **Start from high display numbers**: Use `:100+` to avoid collision with common VNC sessions
+- **Include VM ID in display**: `vnc_display = 100 + vm_id` ensures uniqueness within multi-boot
+- **Track allocated displays**: Store in MultiBootState for cleanup and reporting
+- **Provide display info to user**: Print "VM 1: VNC available on port 6001" at boot
+
+**Warning signs:**
+- `qemu: could not open VNC display :0: Address already in use`
+- User connects to VNC but sees wrong VM
+- VNC connection fails randomly between runs
+- Port scanning shows orphaned VNC listeners
+
+**Phase to address:** Phase 1 (Multi-Boot Infrastructure)
+
+---
+
+### Pitfall 17: Monitor Socket Collision Prevents VM Management
+
+**What goes wrong:**
+Each QEMU VM needs a monitor socket for management (screenshots, input, status). When multiple VMs use the same socket path, second VM fails to start with "socket already exists." Or worse, management commands go to wrong VM.
+
+**Why it happens:**
+The existing `qemu_boot.py` uses `temp_dir / "monitor.sock"` -- a single fixed path. When launching multiple VMs with the same temp directory (or even different temp dirs with same prefix pattern), sockets collide.
+
+**How to avoid:**
+- **Include VM ID in socket paths**: `monitor-{vm_id}.sock`, `serial-{vm_id}.sock`
+- **Create per-VM temp directories**: `{temp_base}/vm_{vm_id}/` isolates all VM files
+- **Verify socket doesn't exist before launch**: Clean up orphaned sockets
+- **Track all socket paths in MultiBootState**: Enables cleanup and management API
+- **Use abstract socket namespace on Linux**: `@pixelrts-vm-{vm_id}` avoids filesystem entirely
+
+**Warning signs:**
+- `Address already in use` errors during multi-boot
+- `take_screenshot()` returns data from wrong VM
+- `get_status()` shows one VM's status for all VMs
+- Socket files persist after VM termination
+
+**Phase to address:** Phase 1 (Multi-Boot Infrastructure)
+
+---
+
+### Pitfall 18: Race Condition in Sequential Boot Startup
+
+**What goes wrong:**
+Developer launches VMs sequentially but checks status before all VMs have started. Status shows "partial" state that confuses user. Or VM 1 boots so fast that VM 2 hasn't started yet when user tries to connect to both.
+
+**Why it happens:**
+`subprocess.Popen()` returns immediately. VM boot takes seconds to minutes. The "multi-boot started" event fires before all VMs are actually running. Existing single-VM code assumes "boot() returns => VM running" which isn't true for multi-VM.
+
+**How to avoid:**
+- **Distinguish "launch started" from "boot complete"**: Two-phase status tracking
+- **Implement boot completion detection**: Check serial console for login prompt, or use QMP `query-status`
+- **Aggregate status across VMs**: MultiBootStatus with per-VM substates
+- **Provide intermediate progress**: "Launching VM 2 of 4..." during startup phase
+- **Define success criteria explicitly**: All VMs running? Or all VMs reachable?
+
+**Warning signs:**
+- User sees "boot complete" but VMs aren't reachable
+- Status shows "running" for VMs that are still booting
+- Management operations fail with "VM not ready"
+- Tests pass locally but fail in CI (timing differences)
+
+**Phase to address:** Phase 1 (Multi-Boot Infrastructure)
+
+---
+
+## Technical Debt Patterns (Multi-Boot)
+
+| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
+|----------|-------------------|----------------|-----------------|
+| Share temp directory across VMs | Less directory management | Socket collisions, cleanup complexity | Never - each VM needs isolated temp |
+| Sequential boot, no stagger | Simpler implementation | Resource contention, slow multi-boot | Only for 2 VMs with small memory |
+| Skip partial failure cleanup | Faster happy path | Zombie processes, leaked resources | Never in production |
+| Hardcode VNC display numbers | No port allocation code | Collisions, unmanageable at scale | Only for single-VM dev testing |
+| Trust all VMs boot successfully | Skip error handling | Inconsistent state, hard to debug | Never |
+| Single network mode for all VMs | Simpler config | Can't support primary+helper patterns | Only if all VMs need identical networking |
+
+---
+
+## Integration Gotchas (Multi-Boot)
+
+| Integration | Common Mistake | Correct Approach |
+|-------------|----------------|------------------|
+| Existing QemuBoot class | Reuse single instance for all VMs | Create new QemuBoot instance per VM with unique config |
+| BootManager | Assume boot() is synchronous for multi-boot | Track per-VM boot state separately |
+| Progress reporting | Single progress bar for all VMs | Per-VM progress with aggregated summary |
+| Error messages | Generic "multi-boot failed" | Identify which VM failed and why |
+| Cleanup | Stop only on explicit user action | Register cleanup for all exit paths (signal, exception, normal) |
+| Network setup | Configure each VM network independently | Design network topology, then configure each VM's role |
+
+---
+
+## Performance Traps (Multi-Boot)
+
+| Trap | Symptoms | Prevention | When It Breaks |
+|------|----------|------------|----------------|
+| Simultaneous boot of 4+ VMs | Host OOM, boot times 10x normal | Stagger launches, limit concurrent boots | >3 VMs or >50% host RAM |
+| Shared disk image for all VMs | Disk I/O bottleneck, slow boot | Copy-on-write overlays, separate images | >2 VMs sharing same image |
+| No CPU limits per VM | Host CPU 100%, slow UI | Set `-smp` with appropriate limits | Any multi-VM scenario |
+| Monitor socket polling | High CPU in management code | Event-driven monitoring via QMP | Continuous status checking |
+| Per-VM temp dirs not cleaned | Disk space exhaustion | Cleanup on VM stop, periodic garbage collection | Long-running multi-boot sessions |
+
+---
+
+## Security Mistakes (Multi-Boot)
+
+| Mistake | Risk | Prevention |
+|---------|------|------------|
+| Inter-VM network without firewall | Compromised VM can attack others | Use separate network segments, firewall rules |
+| Shared FUSE mount across VMs | One VM can corrupt data for all | Per-VM FUSE mounts or read-only shared |
+| Root-running QEMU processes | Privilege escalation via VM | Run QEMU as unprivileged user, use KVM permissions |
+| Unauthenticated VNC access | Anyone can view/control VMs | VNC password, localhost binding, or SSH tunnel |
+| Leaked temp directories | Sensitive data persists | Secure deletion on cleanup, restricted permissions |
+| No resource limits | DoS via resource exhaustion | cgroups, ulimits, per-VM quotas |
+
+---
+
+## UX Pitfalls (Multi-Boot)
+
+| Pitfall | User Impact | Better Approach |
+|---------|-------------|-----------------|
+| No indication which VM failed | User doesn't know what to fix | "VM 'helper' failed: timeout waiting for kernel" |
+| Single status for multi-boot | Can't tell individual VM states | Status matrix showing per-VM state |
+| No way to interact with specific VM | All-or-nothing management | Per-VM commands: `stop vm2`, `console vm1` |
+| Silent partial failure | System in unknown state | Explicit "partial boot" state with recovery options |
+| VNC info not provided | User can't connect to VM displays | Print VNC ports: "VM 1: VNC at :5901, VM 2: VNC at :5902" |
+| No boot ordering indication | User confused about dependencies | Show boot order: "Booting primary... then helper1, helper2" |
+
+---
+
+## "Looks Done But Isn't" Checklist (Multi-Boot)
+
+- [ ] **Partial failure cleanup:** Often missing -- verify `ps aux` is clean after failed boot, check temp dirs
+- [ ] **Socket collision handling:** Often hardcoded -- verify 5 concurrent multi-boots work without collision
+- [ ] **Resource budgeting:** Often skipped -- verify `sum(vm.memory) + 20% < host.available` check exists
+- [ ] **Per-VM status tracking:** Often aggregated -- verify each VM has independent status
+- [ ] **Network isolation:** Often "works on my machine" -- verify VMs can/cannot reach each other as designed
+- [ ] **Signal handling:** Often missing -- verify Ctrl+C cleans up all VMs, not just current operation
+- [ ] **Stagger timing:** Often immediate -- verify boot delay between VMs is configurable
+- [ ] **Display/monitor multiplexing:** Often collision-prone -- verify unique ports per VM
+
+---
+
+## Recovery Strategies (Multi-Boot)
+
+| Pitfall | Recovery Cost | Recovery Steps |
+|---------|---------------|----------------|
+| Zombie QEMU processes | LOW | `pkill -f qemu-system`, clean temp dirs |
+| Socket collision | LOW | Remove stale socket files, reconfigure ports |
+| OOM during boot | MEDIUM | Reduce VM memory, stagger boots, add swap |
+| Network namespace mess | HIGH | Recreate network topology, may need host reboot |
+| Partial boot state | MEDIUM | Stop all VMs, clean up, restart from scratch |
+| Resource leak over time | MEDIUM | Restart PixelRTS process, periodic cleanup daemon |
+
+---
+
+## Pitfall-to-Phase Mapping (Multi-Boot)
+
+| Pitfall | Prevention Phase | Verification |
+|---------|------------------|--------------|
+| Resource Contention | Phase 1 (Infrastructure) | Boot 4 VMs with 80% host RAM, verify no OOM |
+| Partial Failure Cleanup | Phase 1 (Infrastructure) | Kill VM 2 during boot, verify all VMs cleaned |
+| Network Namespace | Phase 2 (Networking) | Verify VMs can ping each other, verify external access |
+| VNC Collision | Phase 1 (Infrastructure) | Run 3 multi-boots concurrently, verify unique VNC ports |
+| Monitor Socket Collision | Phase 1 (Infrastructure) | Verify each VM has unique monitor socket |
+| Boot Race Condition | Phase 1 (Infrastructure) | Verify status is accurate during and after boot |
+
+---
+
+## Phase-Specific Research Flags (Multi-Boot)
+
+| Phase | Likely Needs Deeper Research |
+|-------|------------------------------|
+| Phase 1 (Infrastructure) | QMP (QEMU Machine Protocol) for robust status monitoring |
+| Phase 2 (Networking) | Bridge vs socket networking for primary+helper pattern |
+| Phase 3 (CLI Integration) | Multi-boot progress display patterns (Rich Live? custom?) |
+| Phase 4 (Testing) | How to test partial failure scenarios reliably |
+
+---
+
+## Existing Code Integration Points
+
+The following existing PixelRTS components need modification for multi-boot:
+
+| Component | Current State | Multi-Boot Change Needed |
+|-----------|--------------|--------------------------|
+| `QemuBoot` | Single VM per instance | Accept `vm_id` parameter, use in socket paths |
+| `QemuConfig.vnc_display` | Defaults to 0 | Allocate dynamically, include `vm_id` |
+| `BootManager` | Single boot flow | Track multiple VM states, aggregate status |
+| `BootProgress` | Single progress | Per-VM progress, multi-line display |
+| Temp directory | Single temp dir | Per-VM subdirectories |
+
+---
+
+## Sources (Multi-Boot)
+
+- QEMU Documentation: https://www.qemu.org/docs/master/system/
+- QEMU VNC Options: https://www.qemu.org/docs/master/system/invocation.html#hxref-2d-vnc
+- QEMU Monitor Protocol (QMP): https://www.qemu.org/docs/master/interop/qmp.html
+- Linux Network Namespaces: https://man7.org/linux/man-pages/man7/network_namespaces.7.html
+- QEMU Socket Networking: https://wiki.qemu.org/Documentation/Networking#Socket
+- Multi-VM Manager Pattern: `/systems/infinite_map_rs/src/multi_vm_manager.rs` (existing Rust implementation)
+- Single-VM QemuBoot: `/systems/pixel_compiler/integration/qemu_boot.py`
+- Boot Progress: `/systems/pixel_compiler/pixelrts_boot.py`
+
+---
+*Pitfalls research for: Multi-Container Boot (v1.3)*
+*Context: Adding to existing single-container PixelRTS boot system*
 *Researched: 2026-03-08*

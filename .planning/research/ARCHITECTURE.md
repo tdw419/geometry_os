@@ -1,788 +1,555 @@
-# Architecture Research
+# Architecture Patterns: Multi-Container Boot
 
-**Domain:** PixelRTS v2 Expansion (Vision, FUSE, Installer, Catalog, Network Boot)
-**Researched:** 2026-02-11 (Updated: 2026-03-08 for Network Boot)
+**Domain:** Multi-container boot orchestration for PixelRTS
+**Researched:** 2026-03-08
 **Confidence:** HIGH
 
-## Standard Architecture
+## Current Architecture (Single Container)
 
-### System Overview
+### BootBridge Flow
+
+```
+pixelrts boot container.rts.png
+         |
+         v
++------------------+
+|    BootBridge    |  <- Orchestrates FUSE + QEMU
++--------+---------+
+         |
+    +----+----+--------------------+
+    |         |                    |
+    v         v                    v
++-------+  +-------+          +-------+
+| FUSE  |  | QEMU  |          | VNC   |
+| Mount |  | Boot  |          | Display|
++-------+  +-------+          +-------+
+    |         |
+    v         v
++-------+  +-------+
+|Kernel |  | VM    |
+|Initrd |  | Process|
++-------+  +-------+
+```
+
+### Existing Components
+
+| Component | File | Responsibility |
+|-----------|------|----------------|
+| **BootBridge** | `boot/boot_bridge.py` | Orchestrates FUSE mount + QEMU boot for single container |
+| **MountHelper** | `boot/mount_helper.py` | FUSE filesystem lifecycle management |
+| **QemuBoot** | `integration/qemu_boot.py` | QEMU process management, VNC, serial |
+| **BootResult** | `boot/boot_bridge.py` | Data class for boot operation results |
+| **BootProgress** | `boot/boot_progress.py` | Visual progress display |
+| **pixelrts CLI** | `pixelrts_cli.py` | Command-line entry point |
+
+## Proposed Multi-Container Architecture
+
+### Overview
+
+```
+pixelrts boot webapp.rts.png db.rts.png cache.rts.png --network mynet
+         |
+         v
++----------------------+
+|  MultiBootManager    |  <- NEW: Orchestrates multiple BootBridges
++----------+-----------+
+           |
+    +------+------+--------------+
+    |             |              |
+    v             v              v
++--------+   +--------+    +--------+
+|Bridge 1|   |Bridge 2|    |Bridge 3|
+|(webapp)|   |  (db)  |    |(cache) |
++---+----+   +---+----+    +---+----+
+    |            |             |
+    v            v             v
++-------+   +-------+     +-------+
+| VM 1  |   | VM 2  |     | VM 3  |
++---+---+   +---+---+     +---+---+
+    |            |             |
+    +------------+-------------+
+                 |
+                 v
+         +---------------+
+         | VirtualNetwork|  <- NEW: Inter-VM networking
+         +---------------+
+```
+
+### Component Architecture
 
 ```
 +-----------------------------------------------------------------------+
-|                        Presentation Layer                             |
+|                        Multi-Boot Orchestration Layer                 |
+|  +-----------------------------------------------------------------+  |
+|  |                     MultiBootManager                             |  |
+|  |  - Manages multiple BootBridge instances                         |  |
+|  |  - Coordinates parallel boot sequencing                          |  |
+|  |  - Handles aggregate status and health                           |  |
+|  +----------------------------+------------------------------------+  |
+|                               |                                       |
++-------------------------------|---------------------------------------+
+                                |
+        +-----------------------+-----------------------+
+        |                       |                       |
++-------v-------+       +-------v-------+       +-------v-------+
+| BootBridge 1  |       | BootBridge 2  |       | BootBridge N  |
+| (existing,    |       | (existing,    |       | (existing,    |
+|  unchanged)   |       |  unchanged)   |       |  unchanged)   |
++---------------+       +---------------+       +---------------+
+        |                       |                       |
+        v                       v                       v
++---------------+       +---------------+       +---------------+
+| QemuBoot 1    |       | QemuBoot 2    |       | QemuBoot N    |
+| (modified for |       | (modified for |       | (modified for |
+|  network)     |       |  network)     |       |  network)     |
++-------+-------+       +-------+-------+       +-------+-------+
+        |                       |                       |
+        +-----------------------+-----------------------+
+                                |
+                                v
 +-----------------------------------------------------------------------+
+|                        Virtual Network Layer                           |
 |  +---------------------+  +---------------------+  +---------------+  |
-|  |  Visual Catalog     |  |  Installer UI       |  |  CLI Tools    |  |
-|  |  (Thumbnail Gallery)|  |  (Progress Display) |  |  (boot, etc)  |  |
-|  +---------+-----------+  +----------+----------+  +-------+-------+  |
-+------------|---------------------------|-------------------|----------+
-             |                           |                   |
-+------------|---------------------------|-------------------|----------+
-|            v                           v                   v          |
-|                    Integration / Orchestration Layer                 |
-|  +---------------------+  +---------------------+  +---------------+  |
-|  |  Vision Pipeline    |  |  FUSE Bridge        |  |  Installer    |  |
-|  |  (Analyzer + VLM)   |  |  (Virtual Files)    |  |  (Extractor)  |  |
+|  |  VirtualNetwork     |  |  NetworkNamespace   |  |  PortManager  |  |
+|  |  (QEMU user/netdev) |  |  (optional: netns)  |  |  (VNC, serial)|  |
 |  +----------+----------+  +----------+----------+  +-------+-------+  |
 +-------------|---------------------------|-------------------|----------+
               |                           |                   |
               v                           v                   v
 +-----------------------------------------------------------------------+
-|                        Core PixelRTS v2 Layer                         |
-|  +---------------------+  +---------------------+  +---------------+  |
-|  |  Encoder/Decoder    |  |  Registry Manager   |  |  Metadata     |  |
-|  |  (Hilbert + PNG)    |  |  (Catalog Storage)  |  |  (tEXt chunks)|  |
-|  +---------------------+  +---------------------+  +---------------+  |
-+-----------------------------------------------------------------------+
-                                |
-                                v
-+-----------------------------------------------------------------------+
-|                        Storage Layer                                  |
-|  +---------------------+  +---------------------+  +---------------+  |
-|  |  .rts.png Files     |  |  .meta.json         |  |  SQLite       |  |
-|  |  (PNG Containers)   |  |  (Sidecar Metadata) |  |  (Registry)   |  |
-|  +---------------------+  +---------------------+  +---------------+  |
+|                        Host System Layer                               |
+|  - /dev/kvm (KVM acceleration)                                       |
+|  - /dev/net/tun (TAP devices, if needed)                             |
+|  - Network bridges (optional)                                         |
 +-----------------------------------------------------------------------+
 ```
 
-### Network Boot Extension (NEW)
+## New Components
 
-```
-+------------------------------------------------------------------+
-|                    Network Boot Layer (NEW)                       |
-+------------------------------------------------------------------+
-                                |
-        +-----------------------+-----------------------+
-        |                       |                       |
-+-------v-------+       +-------v-------+       +-------v-------+
-| PXEServer     |       | NBDServer     |       | DeltaServer   |
-| (DHCP+TFTP)   |       | (Block Dev)   |       | (Diff-based   |
-|               |       |               |       |  updates)     |
-+---------------+       +---------------+       +---------------+
-        |                       |                       |
-+-------v-----------------------v-----------------------v--------+
-|                    Network Boot Core                            |
-|  - NetworkBootManager: Orchestrates PXE + NBD services         |
-|  - ClientRegistry: Tracks connected boot clients               |
-|  - LeaseManager: DHCP lease tracking                           |
-+----------------------------------------------------------------+
-                                |
-        +-----------------------+-----------------------+
-        |                       |                       |
-+-------v-------+       +-------v-------+       +-------v-------+
-| BootBridge    |       | PixelRTS      |       | PixelRTSDiff  |
-| (existing)    |       | Decoder       |       | (existing)    |
-|               |       | (existing)    |       |               |
-+---------------+       +---------------+       +---------------+
-```
+### 1. MultiBootManager
 
-### Component Responsibilities
+**Location:** `systems/pixel_compiler/boot/multi_boot_manager.py`
 
-| Component | Responsibility | Typical Implementation | Communicates With |
-|-----------|----------------|------------------------|-------------------|
-| **Vision Analyzer** | Extract visual features from PNG, prepare for VLM analysis | `PixelRTSVisionAnalyzer` class | Vision Model Client, Pattern Detector |
-| **Vision Model Client** | Interface to Claude/VLM APIs for image understanding | API client with retry logic | Vision Analyzer, Installer |
-| **FUSE Bridge** | Present .rts.png contents as virtual filesystem (kernel/initrd) | FUSE filesystem using `fusepy` | QEMU, boot loaders, shell tools |
-| **Installer Engine** | Extract and write OS to disk with progress tracking | Threaded extractor with callbacks | Vision Analyzer, FUSE Bridge |
-| **Visual Catalog** | Display thumbnail gallery with spatial layout | GUI using PyQt/Tk or TUI | Registry Manager, Vision Analyzer |
-| **Registry Manager** | Store and query cartridge metadata | SQLite + JSON indexing | All components |
-| **PXEServer** (NEW) | DHCP discovery + TFTP boot file serving | Python sockets, scapy for DHCP | NetworkBootManager |
-| **NBDServer** (NEW) | Export PixelRTS as network block device | NBD protocol implementation | PixelRTSDecoder, NetworkBootManager |
-| **DeltaServer** (NEW) | Serve byte-level OS updates | FastAPI HTTP server | PixelRTSDiffer, NetworkBootManager |
-
-## Recommended Project Structure
-
-```
-systems/pixel_compiler/
-+-- network/                      # NEW: Network boot infrastructure
-|   +-- __init__.py
-|   +-- pxe_server.py             # PXEServer: DHCP + TFTP
-|   +-- nbd_server.py             # NBDServer: Block device export
-|   +-- delta_server.py           # DeltaServer: Delta updates
-|   +-- delta_engine.py           # DeltaEngine: Patch compute/apply
-|   +-- network_boot_manager.py   # NetworkBootManager: Orchestrator
-|   +-- ipxe_config.py            # BootConfig: iPXE templates
-|   +-- client_registry.py        # ClientRegistry: Connected clients
-|   +-- tests/
-|       +-- test_pxe_server.py
-|       +-- test_nbd_server.py
-|       +-- test_delta_engine.py
-|       +-- test_network_boot_manager.py
-+-- vision/                    # Vision analysis pipeline
-|   +-- __init__.py
-|   +-- analyzer.py           # PixelRTSVisionAnalyzer (exists)
-|   +-- vlm_client.py         # Claude/VLM API client
-|   +-- prompts.py            # Analysis prompt templates
-|   +-- findings.py           # Response parsing
-+-- fuse/                      # FUSE filesystem bridge
-|   +-- __init__.py
-|   +-- rts_filesystem.py     # Main FUSE operations
-|   +-- container.py          # PNG container handler
-|   +-- mount.py              # Mount/unmount CLI
-|   +-- boot_integration.py   # QEMU integration
-+-- installer/                 # Installation engine
-|   +-- __init__.py
-|   +-- engine.py             # Main installer logic
-|   +-- progress.py           # Progress tracking
-|   +-- visualizer.py         # Visual progress display
-|   +-- disk.py               # Disk operations
-+-- catalog/                   # Visual catalog manager
-|   +-- __init__.py
-|   +-- gallery.py            # Thumbnail browser
-|   +-- spatial_layout.py     # Spatial arrangement engine
-|   +-- launcher.py           # Boot-from-catalog handler
-+-- boot/                      # Boot infrastructure (existing)
-|   +-- __init__.py
-|   +-- boot_bridge.py        # MODIFY: Add network boot mode
-|   +-- mount_helper.py       # KEEP: Used by local boot
-|   +-- boot_progress.py      # EXTEND: Add network stages
-+-- install/                   # Install infrastructure (existing)
-|   +-- __init__.py
-|   +-- install_engine.py     # KEEP: Used for local install
-|   +-- disk_writer.py        # KEEP: Chunked I/O utility
-+-- integration/               # QEMU integration (existing)
-|   +-- qemu_boot.py          # EXTEND: Add network boot params
-+-- rts_registry_manager.py   # Existing registry backend
-```
-
-### Structure Rationale
-
-- **network/**: New top-level directory for network boot components, follows existing patterns (boot/, install/, catalog/)
-- **vision/**: Isolated because vision analysis is optional (API key required). Can be mocked for testing.
-- **fuse/**: Platform-specific (Linux FUSE). Clear boundary for portability concerns.
-- **installer/**: Potentially dangerous (disk writes). Isolated for security and testing.
-- **catalog/**: UI component that depends on other modules. Placed last in dependency order.
-- **boot/**: Existing, minimal changes - BootBridge gains optional network mode
-- **integration/**: QEMU integration extended for NBD boot parameters
-
-## Architectural Patterns
-
-### Pattern 1: Provider Interface for Vision Models
-
-**What:** Abstract interface for multiple vision model providers (Claude, LM Studio, local VLMs).
-
-**When to use:** When you need to support multiple VLM backends or mock for testing.
-
-**Trade-offs:** Adds abstraction layer (extra code) but enables flexibility and testing.
-
-**Example:**
-```python
-from abc import ABC, abstractmethod
-from typing import Dict, Any
-
-class VisionModelProvider(ABC):
-    """Abstract interface for vision model providers."""
-
-    @abstractmethod
-    def analyze(self, image_b64: str, prompt: str) -> str:
-        """Analyze image and return text response."""
-        pass
-
-    @abstractmethod
-    def build_kernel_prompt(self, metadata: Dict[str, Any]) -> str:
-        """Build prompt for kernel version detection."""
-        pass
-
-class ClaudeVisionProvider(VisionModelProvider):
-    """Claude API implementation."""
-
-    def __init__(self, api_key: str):
-        self.api_key = api_key
-
-    def analyze(self, image_b64: str, prompt: str) -> str:
-        # Anthropic API call
-        pass
-
-class MockVisionProvider(VisionModelProvider):
-    """Mock for testing without API calls."""
-
-    def analyze(self, image_b64: str, prompt: str) -> str:
-        return '{"kernel_version": "6.6.0", "distro": "Alpine"}'
-```
-
-### Pattern 2: Lazy FUSE Mount
-
-**What:** Mount FUSE filesystem only when first accessed, unmount after idle timeout.
-
-**When to use:** When you want to present .rts.png as always available but avoid resource overhead.
-
-**Trade-offs:** Adds complexity (mount/unmount lifecycle) but improves UX and resource usage.
-
-**Example:**
-```python
-class LazyFUSEMount:
-    """Lazy-mounting FUSE filesystem."""
-
-    def __init__(self, rts_path: str, mountpoint: str, idle_timeout: int = 300):
-        self.rts_path = rts_path
-        self.mountpoint = mountpoint
-        self.idle_timeout = idle_timeout
-        self._mount_thread = None
-        self._last_access = None
-
-    def __enter__(self):
-        """Mount on context entry."""
-        self._ensure_mounted()
-        return self.mountpoint
-
-    def __exit__(self, *args):
-        """Schedule unmount after timeout."""
-        self._schedule_unmount()
-
-    def _ensure_mounted(self):
-        """Mount if not already mounted."""
-        if not self._is_mounted():
-            self._mount_thread = threading.Thread(
-                target=self._mount_forever,
-                daemon=True
-            )
-            self._mount_thread.start()
-```
-
-### Pattern 3: Progress Callback Chain
-
-**What:** Chain of progress observers for visual installer feedback.
-
-**When to use:** When multiple components need progress updates (UI, logger, metrics).
-
-**Trade-offs:** More complex than single callback but enables multiple observers.
-
-**Example:**
-```python
-class ProgressChain:
-    """Chain multiple progress observers."""
-
-    def __init__(self):
-        self.observers = []
-
-    def add_observer(self, observer):
-        """Add progress observer (callable with progress, message)."""
-        self.observers.append(observer)
-
-    def update(self, progress: float, message: str):
-        """Notify all observers."""
-        for observer in self.observers:
-            try:
-                observer(progress, message)
-            except Exception:
-                pass  # Don't let one observer break others
-
-class VisualProgressObserver:
-    """Visual progress bar for installer."""
-
-    def __call__(self, progress: float, message: str):
-        # Update progress bar
-        pass
-```
-
-### Pattern 4: Layered Server Architecture (NEW)
-
-**What:** Network boot uses layered services where each layer handles a specific protocol (DHCP -> TFTP -> NBD/HTTP).
-
-**When to use:** Network boot requires multiple protocols that must work together.
-
-**Trade-offs:**
-- Pros: Clean separation, testable layers, can run services independently
-- Cons: More files, need to coordinate startup/shutdown
-
-```
-NetworkBootManager
-    |
-    +-- PXEServer (DHCP:67, TFTP:69)
-    |       |
-    |       +-- Handles client discovery
-    |       +-- Serves iPXE binary
-    |       +-- Generates boot configuration
-    |
-    +-- NBDServer (TCP:10809)
-    |       |
-    |       +-- Exports PixelRTS as block device
-    |       +-- Uses PixelRTSDecoder for on-demand decode
-    |
-    +-- DeltaServer (HTTP:8081)
-            |
-            +-- Serves delta manifests
-            +-- Applies delta patches
-```
-
-### Pattern 5: Stream-On-Demand Decoding (NEW)
-
-**What:** NBD server decodes PixelRTS data on-demand rather than pre-decoding entire image.
-
-**When to use:** Large images where full decode would waste memory/bandwidth.
-
-**Trade-offs:**
-- Pros: Low memory footprint, fast startup, supports larger images
-- Cons: Slightly higher latency per block, decoder must support seeking
+**Responsibilities:**
+- Accept multiple RTS paths and orchestrate parallel boot
+- Manage BootBridge instances lifecycle
+- Allocate resources (VNC displays, serial sockets, network ports)
+- Coordinate boot sequencing (dependencies, startup order)
+- Provide aggregate status and health monitoring
 
 ```python
-class NBDServer:
-    def read_block(self, offset: int, length: int) -> bytes:
-        # Decode only the requested region
-        # Uses Hilbert coordinate mapping to find PNG region
-        return self.decoder.decode_range(offset, length)
+@dataclass
+class MultiBootConfig:
+    """Configuration for multi-container boot."""
+    containers: List[Path]  # List of .rts.png paths
+    network_name: Optional[str] = "pixelrts_net"
+    base_vnc_display: int = 0
+    base_serial_port: int = 0
+    parallel_boot: bool = True  # Boot all simultaneously
+    boot_timeout: int = 120  # Seconds to wait for all boots
+    auto_stop: bool = True  # Stop all on first failure
+
+@dataclass
+class ContainerSpec:
+    """Specification for a single container in the group."""
+    path: Path
+    name: str  # Human-readable name
+    memory: str = "2G"
+    cpus: int = 2
+    vnc_display: Optional[int] = None  # Auto-allocated if None
+    serial_socket: Optional[Path] = None  # Auto-allocated if None
+    network_alias: Optional[str] = None  # DNS name in virtual network
+    depends_on: List[str] = field(default_factory=list)  # Container names
+    environment: Dict[str, str] = field(default_factory=dict)
+
+@dataclass
+class MultiBootResult:
+    """Result of multi-container boot operation."""
+    success: bool
+    containers: Dict[str, BootResult]  # name -> BootResult
+    network_info: Optional[NetworkInfo] = None
+    error_message: Optional[str] = None
+    failed_containers: List[str] = field(default_factory=list)
+
+class MultiBootManager:
+    """
+    Orchestrates boot of multiple PixelRTS containers with networking.
+
+    Example:
+        manager = MultiBootManager()
+        result = manager.boot([
+            ContainerSpec(path="webapp.rts.png", name="web"),
+            ContainerSpec(path="db.rts.png", name="db", depends_on=["web"]),
+        ])
+
+        if result.success:
+            # All containers running
+            for name, bridge in manager.bridges.items():
+                print(f"{name}: VNC :{bridge.vnc_display}")
+    """
+
+    def __init__(self, config: Optional[MultiBootConfig] = None):
+        self.config = config or MultiBootConfig()
+        self._bridges: Dict[str, BootBridge] = {}
+        self._network: Optional[VirtualNetwork] = None
+        self._resource_allocator = ResourceAllocator()
+
+    def boot(self, specs: List[ContainerSpec]) -> MultiBootResult:
+        """Boot all containers with dependency ordering."""
+
+    def stop(self, container_name: Optional[str] = None) -> None:
+        """Stop specific container or all containers."""
+
+    def get_status(self) -> Dict[str, Dict[str, Any]]:
+        """Get status of all containers."""
+
+    def get_bridge(self, name: str) -> Optional[BootBridge]:
+        """Get BootBridge for a specific container."""
 ```
 
-### Pattern 6: Delta-First Updates (NEW)
+### 2. VirtualNetwork
 
-**What:** Check for delta updates before full download, apply byte-level patches.
+**Location:** `systems/pixel_compiler/boot/virtual_network.py`
 
-**When to use:** OS updates where only small portions change.
+**Responsibilities:**
+- Create isolated network for inter-container communication
+- Manage QEMU user-mode networking with socket-based interconnect
+- Optionally create TAP/bridge for more advanced networking
+- Provide DNS-like name resolution between containers
 
-**Trade-offs:**
-- Pros: 90%+ bandwidth savings for small changes, fast updates
-- Cons: Requires delta manifest generation, patch application overhead
+```python
+@dataclass
+class NetworkConfig:
+    """Virtual network configuration."""
+    name: str = "pixelrts_net"
+    subnet: str = "10.0.2.0/24"
+    gateway: str = "10.0.2.1"
+    enable_dns: bool = True  # Simple DNS via /etc/hosts style
+    mode: NetworkMode = NetworkMode.USER  # USER, TAP, BRIDGE
 
+@dataclass
+class NetworkInfo:
+    """Information about the virtual network."""
+    config: NetworkConfig
+    containers: Dict[str, ContainerNetworkInfo]  # name -> info
+
+@dataclass
+class ContainerNetworkInfo:
+    """Network info for a single container."""
+    ip_address: str
+    mac_address: str
+    aliases: List[str]
+    exposed_ports: Dict[int, int]  # guest_port -> host_port
+
+class VirtualNetwork:
+    """
+    Manages virtual networking between containers.
+
+    Uses QEMU's built-in user-mode networking by default, which provides:
+    - Isolated network for containers
+    - Port forwarding to host
+    - Basic inter-container communication via socket forwarding
+
+    For more advanced networking, can use TAP devices.
+    """
+
+    def __init__(self, config: Optional[NetworkConfig] = None):
+        self.config = config or NetworkConfig()
+        self._containers: Dict[str, ContainerNetworkInfo] = {}
+
+    def add_container(
+        self,
+        name: str,
+        aliases: Optional[List[str]] = None
+    ) -> ContainerNetworkInfo:
+        """Register a container in the network."""
+
+    def get_qemu_net_args(self, container_name: str) -> List[str]:
+        """Get QEMU -netdev/-device arguments for a container."""
+
+    def get_port_forward_args(
+        self,
+        container_name: str,
+        guest_port: int
+    ) -> Tuple[int, List[str]]:
+        """Allocate host port and return QEMU port forward args."""
 ```
-Current Image: alpine-v1.rts.png
-Target Image:  alpine-v2.rts.png
 
-1. Client requests delta manifest from DeltaServer
-2. DeltaServer uses PixelRTSDiffer to compute changed regions
-3. Client downloads only changed byte ranges
-4. DeltaEngine applies patches to local image
+### 3. ResourceAllocator
+
+**Location:** `systems/pixel_compiler/boot/resource_allocator.py`
+
+**Responsibilities:**
+- Allocate VNC display numbers (avoiding conflicts)
+- Allocate serial socket paths
+- Allocate network ports for forwarding
+- Track and release resources on cleanup
+
+```python
+@dataclass
+class AllocatedResources:
+    """Resources allocated for a container."""
+    vnc_display: int
+    vnc_port: int
+    serial_socket: Path
+    monitor_socket: Path
+    forwarded_ports: Dict[int, int]  # guest_port -> host_port
+
+class ResourceAllocator:
+    """
+    Allocates host resources for multiple containers.
+
+    Ensures no conflicts between:
+    - VNC display numbers (5900+N)
+    - Serial socket paths
+    - Port forwards
+    """
+
+    def __init__(self, base_vnc: int = 0, base_port: int = 10000):
+        self._base_vnc = base_vnc
+        self._base_port = base_port
+        self._allocated_vnc: Set[int] = set()
+        self._allocated_ports: Set[int] = set()
+
+    def allocate(self, name: str, port_forwards: List[int] = None) -> AllocatedResources:
+        """Allocate resources for a container."""
+
+    def release(self, resources: AllocatedResources) -> None:
+        """Release allocated resources."""
+```
+
+## Integration Points with Existing BootBridge
+
+### BootBridge Modifications (Minimal)
+
+The existing BootBridge remains largely unchanged. New parameters added for multi-container support:
+
+```python
+class BootBridge:
+    def __init__(
+        self,
+        rts_png_path: Union[str, Path],
+        memory: str = "2G",
+        cpus: int = 2,
+        vnc_display: int = 0,
+        verbose: bool = False,
+        # NEW PARAMETERS for multi-container
+        network_config: Optional[NetworkConfig] = None,
+        port_forwards: Optional[Dict[int, int]] = None,
+        container_name: Optional[str] = None,
+    ):
+```
+
+### QemuBoot Modifications
+
+Extend `_build_network_args()` to support multi-container networking:
+
+```python
+def _build_network_args(self) -> List[str]:
+    """Build network configuration arguments."""
+    args = []
+
+    if self.config.network_mode == NetworkMode.USER:
+        # Existing user-mode logic
+        net_config = "user"
+
+        # NEW: Multi-container interconnect
+        if self._network_config:
+            # Use socket-based interconnect for container-to-container
+            net_config += f",net=/{self._network_config.subnet}"
+
+        # Add port forwards (existing + new from VirtualNetwork)
+        for host_port, guest_port in self.config.network_port_forward.items():
+            net_config += f",hostfwd=tcp::{host_port}-:{guest_port}"
+
+        args.extend(["-nic", net_config])
+```
+
+### CLI Integration
+
+Extend `pixelrts boot` command in `pixelrts_cli.py`:
+
+```python
+def cmd_boot(args):
+    """Handle boot command with multi-container support."""
+
+    if len(args.containers) == 1:
+        # Single container: use existing BootBridge directly
+        bridge = BootBridge(args.containers[0], ...)
+        result = bridge.boot()
+    else:
+        # Multiple containers: use MultiBootManager
+        manager = MultiBootManager()
+        specs = [ContainerSpec(path=p, name=p.stem) for p in args.containers]
+        result = manager.boot(specs)
 ```
 
 ## Data Flow
 
-### Vision Analysis Flow
+### Multi-Container Boot Sequence
 
 ```
-[User selects .rts.png]
+1. CLI Parse
+   pixelrts boot web.rts.png db.rts.png --network mynet
          |
          v
-[PixelRTSVisionAnalyzer loads PNG]
+2. MultiBootManager.boot([ContainerSpec(...), ContainerSpec(...)])
+         |
+         +---> VirtualNetwork.add_container("web")
+         |     VirtualNetwork.add_container("db")
+         |
+         +---> ResourceAllocator.allocate("web") -> AllocatedResources
+         |     ResourceAllocator.allocate("db") -> AllocatedResources
          |
          v
-[generate_entropy_overlay() -> creates visualization]
+3. Dependency Ordering (topological sort)
          |
          v
-[prepare_for_vision_model() -> resize + base64]
+4. Parallel Boot (Phase 1: independent containers)
+   +--------------------------------------------------+
+   |  BootBridge("web.rts.png", vnc_display=0, ...)  |  <- Parallel
+   |  BootBridge("db.rts.png", vnc_display=1, ...)   |  <- Parallel
+   +--------------------------------------------------+
          |
          v
-[VlmClient.analyze() -> Claude API call]
+5. Sequential Boot (Phase 2: dependent containers)
+   - Wait for dependencies
+   - Start containers with depends_on
          |
          v
-[parse_vision_findings() -> structured JSON]
-         |
-         v
-[generate_findings_overlay() -> annotated PNG]
-         |
-         v
-[Display results: version, distro, architecture, anomalies]
+6. Return MultiBootResult
+   {
+     success: True,
+     containers: {
+       "web": BootResult(vnc_port=5900, ...),
+       "db": BootResult(vnc_port=5901, ...)
+     },
+     network_info: NetworkInfo(...)
+   }
 ```
 
-### FUSE Boot Flow
+## Patterns to Follow
 
-```
-[User: boot_os alpine.rts.png]
-         |
-         v
-[InstallerEngine extracts kernel/initrd from PNG]
-         |
-         v
-[FUSERtsFilesystem.mount(mountpoint)]
-         |
-         v
-[QEMU reads /mount/vmlinuz via FUSE]
-         |
-         v
-[HilbertLUT translates file offset -> PNG pixels]
-         |
-         v
-[RGBA bytes extracted from PNG image]
-         |
-         v
-[QEMU boots kernel from virtual file]
-         |
-         v
-[After boot, FUSE unmounts automatically]
-```
+### Pattern 1: Composition over Inheritance
 
-### Installer Progress Flow
+**What:** MultiBootManager composes multiple BootBridge instances rather than extending BootBridge.
 
-```
-[User: install_os alpine.rts.png /dev/sda]
-         |
-         v
-[InstallerEngine.start()]
-         |
-         v
-[ProgressChain.add_observer(VisualProgressObserver)]
-         |
-         v
-[Analyzer: Vision analysis -> verify OS type]
-         | update(0.1, "Verifying OS type...")
-[Extractor: Decode PNG -> get kernel + initrd]
-         | update(0.4, "Extracting kernel...")
-[DiskWriter: Write kernel to disk]
-         | update(0.7, "Writing to /dev/sda...")
-[DiskWriter: Write initrd to disk]
-         | update(0.9, "Writing filesystem...")
-[Bootloader: Install GRUB/Syslinux]
-         | update(1.0, "Installation complete!")
-[Cleanup: Unmount, close files]
-```
+**When:** Always - this is the core design principle.
 
-### Catalog Boot Flow
-
-```
-[User launches visual catalog]
-         |
-         v
-[CatalogGallery.scan_directory() -> find all .rts.png]
-         |
-         v
-[For each file: generate thumbnail via VisionAnalyzer]
-         |
-         v
-[SpatialLayout.arrange() -> organize by similarity/type]
-         |
-         v
-[User double-clicks thumbnail]
-         |
-         v
-[CatalogLauncher.boot_selected()]
-         |
-         v
-[FUSERtsFilesystem.mount() -> present as /mnt/rts]
-         |
-         v
-[QEMU boots: -kernel /mnt/rts/kernel -initrd /mnt/rts/initrd]
-         |
-         v
-[After boot, catalog updates status: "Last booted: now"]
-```
-
-### Network Boot Flow (NEW)
-
-```
-[Client powers on]
-    |
-    v
-[PXE ROM broadcasts DHCPDISCOVER]
-    |
-    v
-[PXEServer responds with DHCPOFFER + boot filename]
-    |
-    v
-[Client requests iPXE via TFTP]
-    |
-    v
-[PXEServer serves ipxe.krn + boot script]
-    |
-    v
-[iPXE configures network, connects to NBDServer]
-    |
-    v
-[NBDServer exports PixelRTS image as block device]
-    |
-    v
-[Client boots kernel from NBD block device]
-    |
-    v
-[OS running, uses PixelRTS rootfs over NBD]
-```
-
-### Delta Update Flow (NEW)
-
-```
-[Client has alpine-v1.rts.png installed]
-    |
-    v
-[Client polls DeltaServer for updates]
-    |
-    v
-[DeltaServer checks manifest, returns delta info]
-    |
-    v
-[DeltaEngine computes changed regions using PixelRTSDiffer]
-    |
-    v
-[DeltaServer returns byte-level patches]
-    |
-    v
-[Client DeltaEngine applies patches to local image]
-    |
-    v
-[Verify hash, reboot into updated system]
-```
-
-### Key Data Flows Summary
-
-1. **Boot Request Flow:** Client PXE -> PXEServer (DHCP+TFTP) -> NBDServer (block export) -> Client kernel
-2. **Delta Request Flow:** Client -> DeltaServer (manifest) -> DeltaEngine (diff) -> Client (patch apply)
-3. **Block Read Flow:** NBD client -> NBDServer -> PixelRTSDecoder -> PNG region decode -> NBD client
-
-## Scaling Considerations
-
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| 1-50 cartridges | Single-process, in-memory thumbnails, SQLite catalog |
-| 50-500 cartridges | Thumbnail caching on disk, async vision analysis, catalog indexing |
-| 500+ cartridges | Background thumbnail generation, pagination, search indexing, distributed cache |
-
-### Network Boot Scaling (NEW)
-
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| 1-10 clients | Single-process Python, built-in PXE+NBD |
-| 10-100 clients | Async NBD (asyncio), separate TFTP process |
-| 100+ clients | Dedicated dnsmasq for DHCP, multiple NBD workers |
-
-### Scaling Priorities
-
-1. **First bottleneck:** Vision analysis is slow (API latency). Mitigation: Cache results, parallel analysis, background generation.
-2. **Second bottleneck:** PNG decoding for many thumbnails. Mitigation: Thumbnail cache, lazy loading, downsized previews.
-3. **Third bottleneck (NEW):** DHCP/TFTP single-threaded. Fix: Use dnsmasq or async TFTP.
-4. **Fourth bottleneck (NEW):** NBD decode latency. Fix: Block caching, pre-decode hot regions.
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Blocking Vision API Calls on UI Thread
-
-**What people do:** Call `VlmClient.analyze()` directly in button click handler.
-
-**Why it's wrong:** Freezes UI during API call (seconds to minutes).
-
-**Do this instead:** Run vision analysis in background thread, show loading spinner, update UI when complete.
-
+**Example:**
 ```python
-# BAD
-def on_button_click():
-    result = vlm_client.analyze(img_b64, prompt)  # Blocks!
-    update_ui(result)
+class MultiBootManager:
+    def __init__(self):
+        self._bridges: Dict[str, BootBridge] = {}  # Composition
 
-# GOOD
-def on_button_click():
-    show_loading_spinner()
-    threading.Thread(
-        target=lambda: update_ui(vlm_client.analyze(img_b64, prompt)),
-        daemon=True
-    ).start()
+    def boot(self, specs: List[ContainerSpec]) -> MultiBootResult:
+        for spec in specs:
+            self._bridges[spec.name] = BootBridge(spec.path, ...)
 ```
 
-### Anti-Pattern 2: Holding FUSE Mount Open Indefinitely
+### Pattern 2: Resource Allocation before Boot
 
-**What people do:** Mount FUSE and never unmount, leaking mounts.
+**What:** Allocate all resources (VNC, ports, sockets) before starting any container.
 
-**Why it's wrong:** Exhausts system resources, prevents cleanup, locks files.
+**When:** Always - prevents partial failures leaving orphaned resources.
 
-**Do this instead:** Use context managers or atexit handlers to ensure unmount.
-
+**Example:**
 ```python
-# BAD
-fuse_mount = mount_rts(path)  # Never unmounted!
+def boot(self, specs: List[ContainerSpec]) -> MultiBootResult:
+    # Phase 1: Allocate all resources
+    allocations = {}
+    for spec in specs:
+        allocations[spec.name] = self._resource_allocator.allocate(spec.name)
 
-# GOOD
-with mount_rts(path) as mountpoint:
-    use_mount(mountpoint)
-# Automatically unmounted
+    try:
+        # Phase 2: Boot all containers
+        for spec in specs:
+            self._boot_single(spec, allocations[spec.name])
+    except Exception:
+        # Phase 3: Cleanup on failure
+        self._cleanup_all()
+        raise
 ```
 
-### Anti-Pattern 3: Tight Coupling Between Installer and Vision
+### Pattern 3: Graceful Degradation
 
-**What people do:** Installer directly calls Claude API, hard to test.
+**What:** If networking setup fails, containers still boot with isolated networking.
 
-**Why it's wrong:** Can't test installer without API key, slow tests.
+**When:** When VirtualNetwork setup fails (missing TAP, permissions, etc.).
 
-**Do this instead:** Use provider interface, inject mock for testing.
-
-### Anti-Pattern 4: Pre-Decoding Entire Image for NBD (NEW)
-
-**What people do:** Decode entire PixelRTS to disk before serving via NBD.
-
-**Why it's wrong:** Wastes disk space (2x), slow startup for large images, defeats streaming purpose.
-
-**Do this instead:** Implement on-demand decoding in NBDServer.read_block().
-
-### Anti-Pattern 5: Full Image Transfer for Updates (NEW)
-
-**What people do:** Download entire new .rts.png for OS updates.
-
-**Why it's wrong:** 1GB download for 50MB of actual changes.
-
-**Do this instead:** Use DeltaEngine to compute and transfer only changed byte ranges.
-
-### Anti-Pattern 6: Running as Root for DHCP (NEW)
-
-**What people do:** Run entire PixelRTS server as root to bind DHCP port 67.
-
-**Why it's wrong:** Security risk, unnecessary privilege escalation.
-
-**Do this instead:**
-- Use CAP_NET_RAW capability on Linux
-- Or use dnsmasq as DHCP proxy
-- Or use port 4011 (PXE port) with relay agent
-
-### Anti-Pattern 7: Tightly Coupled Network Services (NEW)
-
-**What people do:** Mix DHCP, TFTP, NBD code in single file.
-
-**Why it's wrong:** Hard to test, hard to debug, can't run services independently.
-
-**Do this instead:** Separate classes for each protocol, NetworkBootManager orchestrates.
-
-## Integration Points
-
-### External Services
-
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| **Claude API** | HTTP client with retry, async support | Needs API key in env/config |
-| **LM Studio** | Local HTTP API (localhost:1234) | No auth required, fallback |
-| **QEMU** | Subprocess with -kernel/-initrd pointing to FUSE mount | FUSE must be mounted before QEMU start |
-| **dnsmasq** (NEW) | Alternative to built-in PXEServer | Can proxy DHCP for existing networks |
-| **iPXE** (NEW) | Bootloader for network boot | Embedded in PXE ROM or chainloaded |
-
-### Internal Boundaries
-
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| **Vision <-> VLM Client** | Provider interface | Enables multiple backends |
-| **Installer <-> FUSE** | Context manager | Ensures cleanup |
-| **Catalog <-> Registry** | SQLite queries | Read-heavy, add caching |
-| **Installer <-> Vision** | Callback/observer | Async progress updates |
-| **NetworkBootManager <-> PXEServer** (NEW) | Direct method calls | Same process, orchestrated lifecycle |
-| **NetworkBootManager <-> NBDServer** (NEW) | Direct method calls | Same process, shared decoder |
-| **NBDServer <-> PixelRTSDecoder** (NEW) | Function calls | Decoder instance per-server |
-| **DeltaServer <-> PixelRTSDiffer** (NEW) | Function calls | Uses existing diff engine |
-| **DeltaServer <-> CatalogServer** (NEW) | REST API | Optional: list available images |
-
-### BootBridge Integration (NEW)
-
+**Example:**
 ```python
-# Existing local boot
-bridge = BootBridge("alpine.rts.png")
-result = bridge.boot()  # FUSE mount + QEMU
-
-# NEW: Network boot mode
-bridge = BootBridge("alpine.rts.png", mode="network")
-result = bridge.boot()  # NBD export + QEMU with -drive file=nbd:localhost:10809
+def boot(self, specs: List[ContainerSpec]) -> MultiBootResult:
+    try:
+        self._network = VirtualNetwork()
+    except NetworkSetupError:
+        logger.warning("Virtual network setup failed, using isolated mode")
+        self._network = None  # Each container gets its own user network
 ```
 
-## Build Order Implications
+## Anti-Patterns to Avoid
 
-### Dependencies
+### Anti-Pattern 1: Modifying BootBridge for Multi-Container
 
-```
-1. Core PixelRTS v2 (DONE)
-   +-- Encoder/Decoder
-   +-- Registry Manager
-   +-- Metadata handling
+**What:** Adding multi-container logic directly into BootBridge.
 
-2. Vision Pipeline (Phase 1)
-   +-- VisionAnalyzer (exists, needs enhancement)
-   +-- VLM Client (NEW)
-   +-- Prompt templates (NEW)
+**Why bad:** Violates single responsibility, makes single-container boot more complex.
 
-3. FUSE Bridge (Phase 2)
-   +-- RTSFilesystem (exists, needs adaptation for boot)
-   +-- Mount helpers (NEW)
-   +-- QEMU integration (NEW)
+**Instead:** Use MultiBootManager as orchestrator; BootBridge stays focused on single container.
 
-4. Installer Engine (Phase 3)
-   +-- Extractor (exists in pixelrts_v2_extractor.py)
-   +-- Progress tracking (NEW)
-   +-- Visual feedback (NEW)
+### Anti-Pattern 2: Global State for Resource Tracking
 
-5. Visual Catalog (Phase 4)
-   +-- Thumbnail generation (uses VisionAnalyzer)
-   +-- Spatial layout (NEW)
-   +-- Boot launcher (uses FUSE + QEMU)
+**What:** Using global variables to track allocated VNC displays.
 
-6. Network Boot (Phase 5) - NEW
-   +-- NBDServer (NEW)
-   +-- PXEServer (NEW)
-   +-- NetworkBootManager (NEW)
-   +-- DeltaEngine + DeltaServer (NEW)
-```
+**Why bad:** Makes testing hard, causes issues with multiple MultiBootManager instances.
 
-### Recommended Build Order
+**Instead:** Use ResourceAllocator instance per MultiBootManager.
 
-**Phase 1: Vision Analysis (Foundational)**
-- Rationale: Demonstrates PixelRTS unique advantage, informs all other components
-- Builds on: Existing PixelRTSVisionAnalyzer
-- Outputs: Kernel version detection, OS identification, tamper detection
+### Anti-Pattern 3: Blocking Boot for All Containers
 
-**Phase 2: FUSE Bridge (Enables Direct Boot)**
-- Rationale: Removes extraction step, enables "one-command boot"
-- Builds on: Existing RTSFilesystem (systems/rts_fuse/)
-- Outputs: Virtual /kernel and /initrd files from PNG
+**What:** Waiting for each container to fully boot before starting the next.
 
-**Phase 3: Installer Engine (User Value)**
-- Rationale: Enables OS installation, practical use case
-- Builds on: VisionAnalyzer (verification), FUSE (access), extractor (writing)
-- Outputs: Visual installer with progress tracking
+**Why bad:** Slow boot times for independent containers.
 
-**Phase 4: Visual Catalog (Complete Experience)**
-- Rationale: Delivers on "visual OS" promise, spatial UI
-- Builds on: All previous components
-- Outputs: Thumbnail gallery, spatial layout, one-click boot
+**Instead:** Boot independent containers in parallel, only wait for dependencies.
 
-**Phase 5: Network Boot (NEW)**
-- Rationale: Enables diskless boot, centralized OS management, delta updates
-- Builds on: PixelRTSDecoder (streaming), PixelRTSDiffer (delta), BootBridge (boot orchestration)
-- Outputs: PXE boot server, NBD block export, delta update system
+## Scalability Considerations
 
-**Network Boot Sub-phases:**
+| Concern | At 2 containers | At 10 containers | At 50 containers |
+|---------|-----------------|------------------|------------------|
+| **VNC Displays** | Sequential allocation (0, 1) | Sequential allocation (0-9) | Need display pooling or VNC proxy |
+| **Port Forwards** | Direct allocation | Direct allocation | Need dynamic port range |
+| **Memory** | 4-8GB host | 20-40GB host | Need memory limits per container |
+| **Boot Time** | ~2s parallel | ~2-3s parallel | Need staged boot with limits |
+| **Network** | User-mode QEMU | User-mode QEMU | Need bridge or SDN |
 
-1. **NBD Server Foundation**
-   - `systems/pixel_compiler/network/nbd_server.py` - Core NBD protocol
-   - `systems/pixel_compiler/network/tests/test_nbd_server.py` - Protocol tests
-   - Modify `PixelRTSDecoder` to support range decoding
-   - Deliverable: Can export PixelRTS as NBD block device, mountable via nbd-client
+## Suggested Build Order
 
-2. **PXE Boot Infrastructure**
-   - `systems/pixel_compiler/network/pxe_server.py` - DHCP + TFTP
-   - `systems/pixel_compiler/network/ipxe_config.py` - Boot script templates
-   - `systems/pixel_compiler/network/tests/test_pxe_server.py` - PXE tests
-   - Deliverable: Can PXE boot a client that connects to NBD server
+### Phase 1: Core Infrastructure (No Networking)
+1. **ResourceAllocator** - Port and display allocation
+2. **ContainerSpec/MultiBootResult** - Data structures
+3. **MultiBootManager (basic)** - Boot multiple containers without interconnect
 
-3. **Network Boot Manager**
-   - `systems/pixel_compiler/network/network_boot_manager.py` - Orchestrator
-   - `systems/pixel_compiler/network/client_registry.py` - Client tracking
-   - Extend `BootBridge` with network mode
-   - Deliverable: Single `pixelrts serve --network-boot alpine.rts.png` command
+### Phase 2: Virtual Networking
+4. **NetworkConfig/NetworkInfo** - Network data structures
+5. **VirtualNetwork** - Basic user-mode networking
+6. **QemuBoot network extensions** - Multi-container netdev args
 
-4. **Delta Updates**
-   - `systems/pixel_compiler/network/delta_engine.py` - Patch compute/apply
-   - `systems/pixel_compiler/network/delta_server.py` - HTTP delta API
-   - `systems/pixel_compiler/network/tests/test_delta_engine.py` - Delta tests
-   - Deliverable: Can update installed OS with only changed bytes
+### Phase 3: CLI Integration
+7. **CLI multi-container parsing** - Handle multiple paths
+8. **Dependency ordering** - Topological sort for depends_on
+9. **Aggregate status display** - Show all container statuses
 
-**Why this order:**
-1. Vision first: Unique differentiator, validates technical approach
-2. FUSE second: Enables all subsequent "direct from PNG" workflows
-3. Installer third: First practical application using vision + FUSE
-4. Catalog fourth: Polished experience combining all features
-5. Network boot fifth: Extends existing boot/install capabilities to network
+### Phase 4: Advanced Features
+10. **Health checks** - Wait for containers to be "ready"
+11. **TAP/Bridge networking** - Alternative to user-mode
+12. **Compose file support** - YAML specification format
 
 ## Sources
 
-### FUSE Filesystems
-- [A hand-holding guide to writing FUSE filesystems in Python (Gunnar Wolf, 2024)](https://gwolf.org/2024/10/started-a-guide-to-writing-fuse-filesystems-in-python.html)
-- [explosive.fuse Python Package](https://pypi.org/project/explosive.fuse/)
-- [Building a virtual filesystem in Python using FUSE (DevGenius, 2025)](https://blog.devgenius.io/building-a-virtual-file-system-in-python-using-fuse-956f140c55b6)
-- [Google mount-zip Project](https://github.com/google/mount-zip)
-
-### Network Boot (NEW)
-- NBD protocol: https://github.com/NetworkBlockDevice/nbd/blob/master/doc/proto.md
-- PXE specification: Intel PXE specification
-- iPXE integration: https://ipxe.org/
-
-### Existing Codebase
-- `/home/jericho/zion/projects/geometry_os/geometry_os/systems/pixel_compiler/pixelrts_vision_analyzer.py`
-- `/home/jericho/zion/projects/geometry_os/geometry_os/systems/pixel_compiler/infinite_map_fuse.py`
-- `/home/jericho/zion/projects/geometry_os/geometry_os/systems/rts_fuse/filesystem.py`
-- `/home/jericho/zion/projects/geometry_os/geometry_os/systems/pixel_compiler/boot/boot_bridge.py`
-- `/home/jericho/zion/projects/geometry_os/geometry_os/systems/pixel_compiler/install/install_engine.py`
-- `/home/jericho/zion/projects/geometry_os/geometry_os/systems/pixel_compiler/pixelrts_diff.py`
-- `/home/jericho/zion/projects/geometry_os/geometry_os/systems/pixel_compiler/catalog/catalog_server.py`
-- `/home/jericho/zion/projects/geometry_os/geometry_os/.planning/codebase/ARCHITECTURE.md`
-- `/home/jericho/zion/projects/geometry_os/geometry_os/.planning/PROJECT.md`
-
----
-*Architecture research for: PixelRTS v2 Expansion including Network Boot*
-*Researched: 2026-02-11 (Updated: 2026-03-08 for Network Boot)*
+- Existing BootBridge implementation: `/systems/pixel_compiler/boot/boot_bridge.py`
+- Existing QemuBoot implementation: `/systems/pixel_compiler/integration/qemu_boot.py`
+- Existing MountHelper implementation: `/systems/pixel_compiler/boot/mount_helper.py`
+- Existing PixelRTSServer (network boot): `/systems/pixel_compiler/serve/server.py`
+- Existing pixelrts CLI: `/systems/pixel_compiler/pixelrts_cli.py`
+- Test patterns: `/systems/pixel_compiler/tests/test_boot_bridge.py`
