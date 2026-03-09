@@ -743,11 +743,28 @@ def _boot_multiple(args, input_paths):
         return 1
 
     if args.verbose:
-        print(f"Booting {len(valid_paths)} containers concurrently...")
+        print(f"Booting {len(valid_paths)} containers...")
+        if args.primary:
+            print(f"Ordered boot: primary='{args.primary}' starts first")
+            print(f"Shutdown order: helpers stop first, primary stops last")
         print(f"Memory per container: {args.memory}")
         print(f"CPUs per container: {args.cpus}")
-        if args.primary:
-            print(f"Primary container: {args.primary}")
+
+    # Define progress callback for ordered boot
+    def print_progress(event_type: str, data):
+        """Print boot progress updates."""
+        if args.quiet:
+            return
+
+        if event_type == "primary_start":
+            print(f"[1/2] Booting primary: {data}")
+        elif event_type == "primary_ready":
+            print(f"[1/2] Primary ready: {data}")
+        elif event_type == "helpers_start":
+            count = len(data) if isinstance(data, list) else 1
+            print(f"[2/2] Booting {count} helper container(s)...")
+        elif event_type == "helper_ready":
+            print(f"  - Helper ready: {data}")
 
     try:
         # Create MultiBootManager for concurrent boot
@@ -761,6 +778,7 @@ def _boot_multiple(args, input_paths):
             cpus=args.cpus,
             cleanup_on_failure=True,  # Clean up successful containers if any fail
             primary=args.primary,
+            progress_callback=print_progress if args.primary else None,  # Only for ordered boot
         )
 
         # Print results
