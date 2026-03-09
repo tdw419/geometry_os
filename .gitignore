@@ -25,6 +25,7 @@ debug/
 __pycache__/
 *.pyc
 *.pyo
+debug_regex.py
 
 # Coverage
 .coverage
@@ -90,3 +91,4 @@ systems/infinite_map_rs/target/
 .loop/state/
 .loop/*.archive
 .geometry/clones/
+debug_regex.py
