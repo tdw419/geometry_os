@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 ## Current Position
 
 Phase: 1 of N (18-ephemeral-boot)
-Plan: 5 of 8 complete
+Plan: 7 of 8 complete
 Status: In progress
-Last activity: 2026-03-09 — Completed 18-05-PLAN.md
+Last activity: 2026-03-09 — Completed 18-07-PLAN.md
 
-Progress: [████████████████████████░] 98% (54/55 plans across all milestones)
+Progress: [████████████████████████░] 98% (56/57 plans across all milestones)
 
 ## Performance Metrics
 
@@ -51,7 +51,7 @@ Key decisions archived in `.planning/milestones/` and PROJECT.md:
 - v1.3: ContainerRole enum, ordered boot/shutdown, VirtualNetwork class
 - v1.4: VMSnapshotManager, linear timeout scaling, SnapshotMetadata, dual-source listing
 - v1.5: qemu-img convert -l for snapshot extraction, VM pause/resume guarantee, combined data encoding with offset metadata, ContainerType enum for vm-snapshot detection, CLI boot auto-routing, binary kernel/initrd extraction with hash verification
-- v1.6: ContainerInfo.is_ephemeral field for ephemeral container tracking with state persistence, EphemeralBooter wrapper with temp file management, MultiBootManager.boot_all() ephemeral parameter for concurrent ephemeral boot, --ephemeral CLI flag with _boot_ephemeral helper, atexit cleanup for crash recovery with signal handler delegation, ps EPHEM column with [E] indicator for ephemeral container identification
+- v1.6: ContainerInfo.is_ephemeral field for ephemeral container tracking with state persistence, EphemeralBooter wrapper with temp file management, MultiBootManager.boot_all() ephemeral parameter for concurrent ephemeral boot, --ephemeral CLI flag with _boot_ephemeral helper, atexit cleanup for crash recovery with signal handler delegation, ps EPHEM column with [E] indicator for ephemeral container identification, commit command ephemeral handling with informational messaging
 
 ### Pending Todos
 
