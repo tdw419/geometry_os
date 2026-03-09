@@ -50,6 +50,7 @@ from .virtual_network import (
     VirtualNetworkConfig,
     NetworkSetupError,
 )
+from .vm_snapshot import VMSnapshotManager, VMSnapshotMetadata, SnapshotResult, SnapshotInfo, SnapshotError
 from systems.pixel_compiler.integration.qemu_boot import NetworkMode
 
 # Default state file path
@@ -104,6 +105,7 @@ class ContainerInfo:
         boot_result: BootResult from BootBridge (if booted)
         error_message: Error description if state is ERROR
         network_fallback: True if virtual network failed and fell back to USER mode
+        snapshots: List of snapshot metadata for this container
     """
     name: str
     path: Path
@@ -113,6 +115,7 @@ class ContainerInfo:
     boot_result: Optional[BootResult] = None
     error_message: Optional[str] = None
     network_fallback: bool = False
+    snapshots: List[VMSnapshotMetadata] = field(default_factory=list)
 
     def __post_init__(self):
         """Set default role after initialization."""
@@ -133,6 +136,7 @@ class ContainerInfo:
             "pid": self.boot_result.pid if self.boot_result else None,
             "error_message": self.error_message,
             "network_fallback": self.network_fallback,
+            "snapshots": [s.to_dict() for s in self.snapshots],
         }
 
 
@@ -667,6 +671,30 @@ class MultiBootManager:
             ContainerInfo if found, None otherwise
         """
         return self._containers.get(name)
+
+    def _get_snapshot_manager(self, name: str) -> Optional[VMSnapshotManager]:
+        """
+        Get VMSnapshotManager for a container.
+
+        Args:
+            name: Container name
+
+        Returns:
+            VMSnapshotManager if container has a running bridge, None otherwise
+        """
+        bridge = self._bridges.get(name)
+        if not bridge:
+            return None
+
+        # Get the QemuBoot instance from the bridge
+        qemu_boot = getattr(bridge, '_qemu_boot', None)
+        if not qemu_boot:
+            return None
+
+        try:
+            return VMSnapshotManager(qemu_boot, name)
+        except ValueError:
+            return None
 
     def stop(self, name: str) -> bool:
         """

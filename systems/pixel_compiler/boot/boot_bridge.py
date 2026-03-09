@@ -36,6 +36,7 @@ from typing import Optional, Dict, Any, List, Union
 
 from .mount_helper import MountHelper, MountError
 from .boot_progress import BootProgress, ProgressStage
+from .vm_snapshot import VMSnapshotManager, SnapshotResult, SnapshotInfo, SnapshotError
 
 # Import QemuBoot from integration module
 try:
@@ -402,6 +403,94 @@ class BootBridge:
             status["qemu_status"] = self._qemu.get_status()
 
         return status
+
+    @property
+    def _snapshot_manager(self) -> Optional[VMSnapshotManager]:
+        """
+        Get VMSnapshotManager for snapshot operations.
+
+        Returns:
+            VMSnapshotManager instance if VM is booted, None otherwise
+        """
+        if not self._booted or self._qemu is None:
+            return None
+        return VMSnapshotManager(self._qemu, container_name=self.rts_png_path.stem)
+
+    def create_snapshot(
+        self,
+        tag: str,
+        description: str = "",
+        timeout: Optional[float] = None
+    ) -> SnapshotResult:
+        """
+        Create a VM snapshot.
+
+        Args:
+            tag: Unique snapshot tag (alphanumeric, dash, underscore only)
+            description: Optional description for the snapshot
+            timeout: Optional timeout override (calculated from memory if not provided)
+
+        Returns:
+            SnapshotResult with success status and metadata
+
+        Raises:
+            SnapshotError: If VM is not booted
+        """
+        manager = self._snapshot_manager
+        if manager is None:
+            raise SnapshotError("Cannot create snapshot: VM is not booted")
+        return manager.create_snapshot(tag, description=description, timeout=timeout)
+
+    def list_snapshots(self) -> List[SnapshotInfo]:
+        """
+        List all VM snapshots.
+
+        Returns:
+            List of SnapshotInfo objects
+
+        Raises:
+            SnapshotError: If VM is not booted
+        """
+        manager = self._snapshot_manager
+        if manager is None:
+            raise SnapshotError("Cannot list snapshots: VM is not booted")
+        return manager.list_snapshots()
+
+    def restore_snapshot(self, tag: str) -> SnapshotResult:
+        """
+        Restore VM to a snapshot.
+
+        Args:
+            tag: Snapshot tag to restore
+
+        Returns:
+            SnapshotResult with success status
+
+        Raises:
+            SnapshotError: If VM is not booted
+        """
+        manager = self._snapshot_manager
+        if manager is None:
+            raise SnapshotError("Cannot restore snapshot: VM is not booted")
+        return manager.restore_snapshot(tag)
+
+    def delete_snapshot(self, tag: str) -> SnapshotResult:
+        """
+        Delete a VM snapshot.
+
+        Args:
+            tag: Snapshot tag to delete
+
+        Returns:
+            SnapshotResult with success status
+
+        Raises:
+            SnapshotError: If VM is not booted
+        """
+        manager = self._snapshot_manager
+        if manager is None:
+            raise SnapshotError("Cannot delete snapshot: VM is not booted")
+        return manager.delete_snapshot(tag)
 
     def __enter__(self) -> 'BootBridge':
         """Context manager entry."""
