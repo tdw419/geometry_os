@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 DHCP_PROXY_PORT = 4011
 TFTP_PORT = 69
 NBD_PORT = 10809
+HTTP_PORT = 8080
 
 
 @dataclass
@@ -54,6 +55,7 @@ class ServerStatus:
     dhcp_running: bool = False
     tftp_running: bool = False
     nbd_running: bool = False
+    http_running: bool = False
     clients_served: int = 0
     bytes_transferred: int = 0
     errors: List[str] = field(default_factory=list)
@@ -77,7 +79,9 @@ class PixelRTSServer:
         self,
         rts_png_path: str,
         interface: Optional[str] = None,
-        verbose: bool = False
+        verbose: bool = False,
+        enable_http: bool = False,
+        http_port: int = HTTP_PORT
     ):
         """
         Initialize the PixelRTS server.
@@ -86,6 +90,8 @@ class PixelRTSServer:
             rts_png_path: Path to the .rts.png container file
             interface: Optional network interface override (auto-detect if None)
             verbose: Enable verbose logging
+            enable_http: Enable HTTP boot for faster transfers (chainloads iPXE)
+            http_port: HTTP server port (default: 8080)
         """
         self.rts_png_path = Path(rts_png_path).resolve()
         self.interface_override = interface
@@ -98,6 +104,11 @@ class PixelRTSServer:
         self._dhcp_proxy = None
         self._tftp_server = None
         self._nbd_process: Optional[subprocess.Popen] = None
+        self._http_server = None
+
+        # HTTP boot options
+        self._enable_http = enable_http
+        self._http_port = http_port
 
         # Runtime state
         self._running = False
@@ -294,10 +305,36 @@ class PixelRTSServer:
         from systems.pixel_compiler.serve.pxe_config import PXEConfig
 
         pxe_config = PXEConfig()
-        config_content = pxe_config.generate_default_config(
-            server_ip=self.network_config.ip_address,
-            nbd_port=NBD_PORT
-        )
+
+        # Check if HTTP boot is enabled
+        if self._enable_http:
+            # Ensure undionly.kpxe is available for iPXE chainload
+            PXEConfig.ensure_ipxe_boot_files(tftp_root)
+
+            # Generate iPXE chainload config for pxelinux.cfg/default
+            config_content = pxe_config.generate_ipxe_chainload_config(
+                server_ip=self.network_config.ip_address,
+                http_port=self._http_port,
+                nbd_port=NBD_PORT
+            )
+
+            # Generate boot.ipxe script for HTTP boot
+            boot_ipxe_content = pxe_config.generate_ipxe_script(
+                server_ip=self.network_config.ip_address,
+                http_port=self._http_port,
+                nbd_port=NBD_PORT
+            )
+
+            # Write boot.ipxe to tftp_root (served via HTTP)
+            boot_ipxe_file = tftp_root / "boot.ipxe"
+            boot_ipxe_file.write_text(boot_ipxe_content)
+            logger.info(f"Generated boot.ipxe for HTTP boot: {boot_ipxe_file}")
+        else:
+            # Standard TFTP-only config
+            config_content = pxe_config.generate_default_config(
+                server_ip=self.network_config.ip_address,
+                nbd_port=NBD_PORT
+            )
 
         config_file = pxelinux_cfg / "default"
         config_file.write_text(config_content)
@@ -337,7 +374,8 @@ or provided separately.
         Services are started in order:
         1. TFTP server (for boot files)
         2. DHCP proxy (for PXE boot info)
-        3. NBD server (for root filesystem)
+        3. HTTP server (for HTTP boot, if enabled)
+        4. NBD server (for root filesystem)
 
         Raises:
             OSError: If ports are already in use
@@ -399,6 +437,27 @@ or provided separately.
                 )
             raise
 
+        # Start HTTP server (if enabled)
+        if self._enable_http:
+            from systems.pixel_compiler.serve.http_server import HTTPBootServer, HTTPConfig
+
+            http_config = HTTPConfig(
+                host=self.network_config.ip_address,
+                port=self._http_port,
+                root_dir=str(tftp_root)
+            )
+            self._http_server = HTTPBootServer(config=http_config)
+            try:
+                await self._http_server.start()
+                self.status.http_running = True
+                logger.info(f"HTTP server started on port {self._http_port}")
+            except OSError as e:
+                # Graceful degradation: continue with TFTP-only mode
+                logger.warning(f"Failed to start HTTP server: {e}")
+                logger.warning("Continuing with TFTP-only mode")
+                self._http_server = None
+                self.status.errors.append(f"HTTP server failed to start: {e}")
+
         # Start NBD server (via nbdkit subprocess)
         try:
             await self._start_nbd_server()
@@ -407,6 +466,8 @@ or provided separately.
         except Exception as e:
             await self._tftp_server.stop()
             await self._dhcp_proxy.stop()
+            if self._http_server:
+                await self._http_server.stop()
             raise RuntimeError(f"Failed to start NBD server: {e}")
 
         self._running = True
@@ -475,6 +536,16 @@ or provided separately.
             self._nbd_process = None
             self.status.nbd_running = False
             logger.info("NBD server stopped")
+
+        # Stop HTTP server
+        if self._http_server:
+            try:
+                await self._http_server.stop()
+            except Exception as e:
+                logger.warning(f"Error stopping HTTP server: {e}")
+            self._http_server = None
+            self.status.http_running = False
+            logger.info("HTTP server stopped")
 
         # Stop DHCP proxy
         if self._dhcp_proxy:
@@ -578,6 +649,7 @@ or provided separately.
         print("\nServices:")
         print(f"  DHCP Proxy: port {DHCP_PROXY_PORT} ({'running' if self.status.dhcp_running else 'not started'})")
         print(f"  TFTP Server: port {TFTP_PORT} ({'running' if self.status.tftp_running else 'not started'})")
+        print(f"  HTTP Server: port {self._http_port} ({'running' if self.status.http_running else 'not started'})")
         print(f"  NBD Server: port {NBD_PORT} ({'running' if self.status.nbd_running else 'not started'})")
         print("\nPress Ctrl+C to stop")
         print("=" * 60 + "\n")
