@@ -272,6 +272,7 @@ const GLYPH_FILL_CIRCLE: u32 = 0x06u;
 const GLYPH_DRAW_LINE: u32 = 0x07u;
 const GLYPH_THOUGHT_RENDER: u32 = 0x08u;
 const GLYPH_TOKEN_RENDER: u32 = 0x09u;
+const GLYPH_TOKEN_LINK: u32 = 0x0Au;      // Semantic proximity line between tokens
 const GLYPH_KERNEL_REWRITE: u32 = 0xCCu;  // Kernel rewrite visualization (Self-Rewriting Kernel)
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -503,6 +504,34 @@ fn render_token(glyph: Glyph) {
     textureStore(canvas, vec2<i32>(i32(px), i32(py)), final_color);
 }
 
+// Render a semantic proximity line between consecutive tokens (Mind's Eye)
+// Opcode 0x0A (GLYPH_TOKEN_LINK)
+// Draws a faint, fading arc connecting tokens in the reasoning chain
+fn render_token_link(glyph: Glyph) {
+    let dim = uniforms.resolution;
+
+    // Extract line parameters
+    // glyph.x, glyph.y = start position (previous token)
+    // glyph.w, glyph.h = end position offset (current token relative to start)
+    let x1 = i32(clamp(glyph.x, 0.0, f32(dim - 1u)));
+    let y1 = i32(clamp(glyph.y, 0.0, f32(dim - 1u)));
+    let x2 = i32(clamp(glyph.x + glyph.w, 0.0, f32(dim - 1u)));
+    let y2 = i32(clamp(glyph.y + glyph.h, 0.0, f32(dim - 1u)));
+
+    // Calculate line color with fade based on age
+    // Use params.y for age (like thoughts)
+    let age = glyph.params.y;
+    let age_fade = get_age_fade(age);
+
+    // Line color: faint version of the token color
+    // Lower alpha for subtle "connection" effect
+    let line_alpha = 0.3 * age_fade * glyph.color.a;
+    let line_color = vec4<f32>(glyph.color.rgb * 0.8, line_alpha);
+
+    // Draw the connecting line using existing Bresenham implementation
+    draw_line(x1, y1, x2, y2, line_color);
+}
+
 // Render a kernel rewrite event (Self-Rewriting Kernel visualization)
 // Opcode 0xCC - Visualizes when the daemon rewrites native kernels
 fn render_kernel_rewrite(glyph: Glyph) {
@@ -647,6 +676,9 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         }
         case 0xCDu: { // TOKEN_RENDER (opcode 0xCD)
             render_token(glyph);
+        }
+        case 0x0Au: { // TOKEN_LINK (opcode 0x0A)
+            render_token_link(glyph);
         }
         case 0xCCu: { // KERNEL_REWRITE (opcode 0xCC)
             render_kernel_rewrite(glyph);
