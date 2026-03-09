@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 ## Current Position
 
 Phase: 17 of 17 (CLI Integration)
-Plan: 0 of 3 in current phase
-Status: Ready to plan
-Last activity: 2026-03-09 — Phase 16 Boot from Committed complete, verified
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-03-09 — Completed 17-01-PLAN.md (Commit CLI Command)
 
-Progress: [██████████████████████░] 96% (48/50 plans across all milestones)
+Progress: [███████████████████████░] 98% (49/50 plans across all milestones)
 
 ## Performance Metrics
 
@@ -34,6 +34,7 @@ Progress: [██████████████████████░
 | v1.4 Phases 12-14 | 10 | ~2.5 hrs | ~15 min |
 | v1.5 Phase 15 | 3 | ~45 min | ~15 min |
 | v1.5 Phase 16 | 4 | ~53 min | ~13 min |
+| v1.5 Phase 17 | 1 | ~7 min | ~7 min |
 
 **Recent Trend:**
 - Last 5 plans: Consistent ~12 min per plan
@@ -51,7 +52,7 @@ Key decisions archived in `.planning/milestones/` and PROJECT.md:
 - v1.2: Proxy DHCP, range decoding, async orchestrator, handler pattern
 - v1.3: ContainerRole enum, ordered boot/shutdown, VirtualNetwork class
 - v1.4: VMSnapshotManager, linear timeout scaling, SnapshotMetadata, dual-source listing
-- v1.5: QemuImgWrapper for qemu-img convert -l snapshot extraction, SnapshotCommitter with VM pause/resume guarantee, SnapshotExporter with progress tracking and PixelRTS encoding, CommittedFileBooter with vm-snapshot container detection, qcow2 extraction boot, kernel/initrd preservation with combined data encoding and offset metadata, CLI boot command with auto-detection routing and verification callback, binary kernel/initrd extraction with hash verification from committed files (Phase 16 verified)
+- v1.5: QemuImgWrapper for qemu-img convert -l snapshot extraction, SnapshotCommitter with VM pause/resume guarantee, SnapshotExporter with progress tracking and PixelRTS encoding, CommittedFileBooter with vm-snapshot container detection, qcow2 extraction boot, kernel/initrd preservation with combined data encoding and offset metadata, CLI boot command with auto-detection routing and verification callback, binary kernel/initrd extraction with hash verification from committed files, CLI commit command with container validation and progress output (Phase 17-01 complete)
 
 ### Pending Todos
 
@@ -64,7 +65,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: Completed 16-04-PLAN.md (Fix Kernel/Initrd Extraction from Committed Files)
+Stopped at: Completed 17-01-PLAN.md (Commit CLI Command)
 Resume file: None
 
 ---
