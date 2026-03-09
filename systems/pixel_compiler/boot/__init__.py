@@ -16,6 +16,8 @@ Key Classes:
     - ContainerInfo: Information about a booted container
     - ContainerState: Lifecycle state enum for containers
     - MultiBootResult: Result of a multi-boot operation
+    - EphemeralBooter: Temporary boot with automatic cleanup (changes discarded)
+    - EphemeralBootError: Exception for ephemeral boot errors
 """
 
 from .mount_helper import MountHelper, MountError
@@ -28,6 +30,7 @@ from .multi_boot_manager import (
     ContainerState,
     MultiBootResult,
 )
+from .ephemeral_boot import EphemeralBooter, EphemeralBootError
 
 __all__ = [
     "MountHelper",
@@ -44,4 +47,6 @@ __all__ = [
     "ContainerInfo",
     "ContainerState",
     "MultiBootResult",
+    "EphemeralBooter",
+    "EphemeralBootError",
 ]
