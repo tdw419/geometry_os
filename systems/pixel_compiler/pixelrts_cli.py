@@ -1791,6 +1791,7 @@ Commands:
   serve        Start network boot server (DHCP, TFTP, NBD)
   catalog      Launch visual catalog server for browsing .rts.png files
   ps           List running containers with state, VNC port, and PID
+  snapshot     VM snapshot commands (create, list, restore, delete)
   diff         Compare two .rts.png files and show differences
   delta        Generate delta manifest between two versions
   patch        Apply delta manifest to update a file
@@ -1816,6 +1817,10 @@ Examples:
   pixelrts catalog
   pixelrts catalog --port 8080 --paths /path/to/images
   pixelrts catalog --no-browser
+  pixelrts snapshot create alpine before-update -d "Pre-update snapshot"
+  pixelrts snapshot list alpine
+  pixelrts snapshot restore alpine before-update
+  pixelrts snapshot delete alpine before-update --force
   pixelrts diff old.rts.png new.rts.png
   pixelrts diff old.rts.png new.rts.png --json
   pixelrts delta old.rts.png new.rts.png -o manifest.json
@@ -2311,6 +2316,64 @@ Examples:
     )
     ps_parser.set_defaults(func=cmd_ps)
 
+    # Snapshot command group
+    snapshot_parser = subparsers.add_parser(
+        'snapshot',
+        help='VM snapshot commands',
+        description='Manage VM snapshots (create, list, restore, delete)'
+    )
+    snapshot_subparsers = snapshot_parser.add_subparsers(dest='snapshot_command', help='Snapshot command to run')
+
+    # snapshot create
+    snapshot_create_parser = snapshot_subparsers.add_parser(
+        'create',
+        help='Create a VM snapshot',
+        description='Create a snapshot of a running container'
+    )
+    snapshot_create_parser.add_argument('container', help='Container name')
+    snapshot_create_parser.add_argument('tag', help='Snapshot tag (alphanumeric, dash, underscore)')
+    snapshot_create_parser.add_argument('-d', '--description', default='', help='Snapshot description')
+    snapshot_create_parser.add_argument('-q', '--quiet', action='store_true', help='Suppress output')
+    snapshot_create_parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
+    snapshot_create_parser.set_defaults(func=cmd_snapshot_create)
+
+    # snapshot list
+    snapshot_list_parser = snapshot_subparsers.add_parser(
+        'list',
+        help='List VM snapshots',
+        description='List snapshots for a container'
+    )
+    snapshot_list_parser.add_argument('container', help='Container name')
+    snapshot_list_parser.add_argument('--json', action='store_true', help='Output as JSON')
+    snapshot_list_parser.add_argument('-q', '--quiet', action='store_true', help='Suppress output')
+    snapshot_list_parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
+    snapshot_list_parser.set_defaults(func=cmd_snapshot_list)
+
+    # snapshot restore
+    snapshot_restore_parser = snapshot_subparsers.add_parser(
+        'restore',
+        help='Restore VM from snapshot',
+        description='Restore a container to a snapshot'
+    )
+    snapshot_restore_parser.add_argument('container', help='Container name')
+    snapshot_restore_parser.add_argument('tag', help='Snapshot tag to restore')
+    snapshot_restore_parser.add_argument('-q', '--quiet', action='store_true', help='Suppress output')
+    snapshot_restore_parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
+    snapshot_restore_parser.set_defaults(func=cmd_snapshot_restore)
+
+    # snapshot delete
+    snapshot_delete_parser = snapshot_subparsers.add_parser(
+        'delete',
+        help='Delete VM snapshot',
+        description='Delete a snapshot from a container'
+    )
+    snapshot_delete_parser.add_argument('container', help='Container name')
+    snapshot_delete_parser.add_argument('tag', help='Snapshot tag to delete')
+    snapshot_delete_parser.add_argument('-f', '--force', action='store_true', help='Skip confirmation prompt')
+    snapshot_delete_parser.add_argument('-q', '--quiet', action='store_true', help='Suppress output')
+    snapshot_delete_parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
+    snapshot_delete_parser.set_defaults(func=cmd_snapshot_delete)
+
     args = parser.parse_args()
 
     if not args.command:
@@ -2325,11 +2388,12 @@ Examples:
         'install': cmd_install,
         'serve': cmd_serve,
         'catalog': cmd_catalog,
+        'ps': cmd_ps,
+        'snapshot': lambda args: _dispatch_snapshot(args),
         'diff': cmd_diff,
         'delta': cmd_delta,
         'patch': cmd_patch,
         'update': cmd_update,
-        'ps': cmd_ps,
         'benchmark': cmd_benchmark,
         'dashboard': cmd_dashboard,
         'info': cmd_info,
@@ -2366,6 +2430,34 @@ def _dispatch_blueprint(args):
     }
 
     handler = blueprint_handlers.get(args.blueprint_command)
+    if handler:
+        return handler(args)
+
+    return 1
+
+
+def _dispatch_snapshot(args):
+    """Dispatch snapshot subcommands to their handlers."""
+    if not args.snapshot_command:
+        # Show snapshot help if no subcommand provided
+        import argparse
+        parser = argparse.ArgumentParser(prog='pixelrts snapshot')
+        subparsers = parser.add_subparsers(dest='snapshot_command', help='Snapshot command to run')
+        subparsers.add_parser('create', help='Create a VM snapshot')
+        subparsers.add_parser('list', help='List VM snapshots for a container')
+        subparsers.add_parser('restore', help='Restore a container from a snapshot')
+        subparsers.add_parser('delete', help='Delete a VM snapshot')
+        parser.print_help()
+        return 1
+
+    snapshot_handlers = {
+        'create': cmd_snapshot_create,
+        'list': cmd_snapshot_list,
+        'restore': cmd_snapshot_restore,
+        'delete': cmd_snapshot_delete
+    }
+
+    handler = snapshot_handlers.get(args.snapshot_command)
     if handler:
         return handler(args)
 
