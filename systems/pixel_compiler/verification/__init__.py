@@ -10,19 +10,25 @@ Key Components:
 - VerificationStatus: Enum for pass/fail/warning/skip
 - VerificationContext: Shared state and lazy data access
 
+Verifiers:
+- StructureVerifier: PNG structure validation
+- ConsistencyVerifier: SHA256 hash verification
+- SegmentIntegrityChecker: Per-segment hash verification
+- SignatureVerifier: Ed25519 cryptographic signature verification
+
 Usage:
     from systems.pixel_compiler.verification import (
         VerificationStep,
         VerificationResult,
         VerificationContext,
-        StructureVerifier
+        SignatureVerifier
     )
 
     # Create context
     context = VerificationContext(Path("file.rts.png"))
 
-    # Run verification
-    verifier = StructureVerifier()
+    # Run signature verification
+    verifier = SignatureVerifier()
     result = verifier.verify(context)
 
     # Check result
@@ -40,6 +46,7 @@ from .context import VerificationContext
 from .structure_verifier import StructureVerifier
 from .consistency_verifier import ConsistencyVerifier
 from .segment_integrity_checker import SegmentIntegrityChecker
+from .signature_verifier import SignatureVerifier
 
 __all__ = [
     # Result types
@@ -54,4 +61,5 @@ __all__ = [
     "StructureVerifier",
     "ConsistencyVerifier",
     "SegmentIntegrityChecker",
+    "SignatureVerifier",
 ]
