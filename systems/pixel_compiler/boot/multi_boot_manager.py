@@ -213,6 +213,64 @@ class MultiBootManager:
         self._lock = asyncio.Lock()
         self._state_file = Path(state_file) if state_file else DEFAULT_STATE_FILE
 
+        # Load existing state from file
+        self._load_state()
+
+    def _load_state(self) -> None:
+        """
+        Load container state from state file.
+
+        Reads container information from the state file and populates
+        the _containers dict. This allows CLI commands to query
+        containers booted by other processes.
+        """
+        if not self._state_file.exists():
+            logger.debug(f"State file {self._state_file} does not exist, starting fresh")
+            return
+
+        try:
+            with open(self._state_file, 'r') as f:
+                containers_data = json.load(f)
+
+            for data in containers_data:
+                name = data.get('name')
+                if not name:
+                    continue
+
+                # Create ContainerInfo from dict
+                info = ContainerInfo(
+                    name=name,
+                    path=Path(data.get('path', '')),
+                    state=ContainerState(data.get('state', 'idle')),
+                    role=ContainerRole(data.get('role')) if data.get('role') else None,
+                    error_message=data.get('error_message'),
+                    network_fallback=data.get('network_fallback', False),
+                )
+
+                # Reconstruct resources if present
+                if data.get('vnc_port'):
+                    info.resources = AllocatedResources(
+                        vnc_port=data['vnc_port'],
+                        container_id=data.get('container_id', name),
+                        serial_socket=Path(data['serial_socket']) if data.get('serial_socket') else None,
+                        monitor_socket=Path(data['monitor_socket']) if data.get('monitor_socket') else None,
+                    )
+
+                # Load snapshots if present
+                if data.get('snapshots'):
+                    from .vm_snapshot import VMSnapshotMetadata
+                    for snap_data in data['snapshots']:
+                        try:
+                            info.snapshots.append(VMSnapshotMetadata.from_dict(snap_data))
+                        except Exception as e:
+                            logger.warning(f"Failed to load snapshot metadata: {e}")
+
+                self._containers[name] = info
+
+            logger.debug(f"Loaded state for {len(self._containers)} containers from {self._state_file}")
+        except Exception as e:
+            logger.warning(f"Failed to load state file: {e}")
+
     def _save_state(self) -> None:
         """
         Save container state to state file.
@@ -686,8 +744,8 @@ class MultiBootManager:
         if not bridge:
             return None
 
-        # Get the QemuBoot instance from the bridge
-        qemu_boot = getattr(bridge, '_qemu_boot', None)
+        # Get the QemuBoot instance from the bridge (BootBridge stores it as _qemu)
+        qemu_boot = getattr(bridge, '_qemu', None)
         if not qemu_boot:
             return None
 
