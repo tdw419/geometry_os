@@ -9,11 +9,11 @@
 - **v1.4 Live Snapshots** - Phases 12-14 (shipped 2026-03-09)
 - **v1.5 Commit to File** - Phases 15-17 (shipped 2026-03-09) — [Archive](milestones/v1.5-ROADMAP.md)
 - **v1.6 Ephemeral Boot** - Phase 18 (shipped 2026-03-09) — [Archive](milestones/v1.6-ROADMAP.md)
-- **v1.7 Vision Integrity** - Phases 19-22 (in progress)
+- **v1.7 Vision Integrity** - Phases 19-22 (shipped 2026-03-09)
 
 ## Current Status
 
-**Milestone v1.7 Vision Integrity in progress.** Phase 22 plans created.
+**Milestone v1.7 Vision Integrity complete.** All 8 requirements satisfied.
 
 ---
 
@@ -79,7 +79,7 @@ Plans:
 **Plans**: 1
 
 Plans:
-- [ ] 22-01-PLAN.md — Add pixelrts verify CLI command with --json and --verbose flags
+- [x] 22-01-PLAN.md — Add pixelrts verify CLI command with --json and --verbose flags
 
 ## Progress
 
@@ -91,7 +91,7 @@ Phases execute in numeric order: 19 → 20 → 21 → 22
 | 19. Basic Verification | v1.7 | 2/2 | Complete | 2026-03-09 |
 | 20. Segment Integrity | v1.7 | 1/1 | Complete | 2026-03-09 |
 | 21. Cryptographic Signatures | v1.7 | 2/2 | Complete | 2026-03-09 |
-| 22. CLI Integration | v1.7 | 0/1 | Not started | - |
+| 22. CLI Integration | v1.7 | 1/1 | Complete | 2026-03-09 |
 
 ---
-*Last updated: 2026-03-09 — Phase 22 plans created*
+*Last updated: 2026-03-09 — v1.7 milestone complete*
