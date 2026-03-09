@@ -343,6 +343,35 @@ class MultiBootManager:
             logger.error(f"Unexpected error booting {name}: {e}")
             return info
 
+    async def _wait_for_running(
+        self,
+        container_info: ContainerInfo,
+        timeout: float = 30.0,
+        poll_interval: float = 0.5,
+    ) -> bool:
+        """
+        Wait for container to reach RUNNING state.
+
+        Args:
+            container_info: ContainerInfo to monitor
+            timeout: Maximum time to wait in seconds (default: 30.0)
+            poll_interval: Time between state checks in seconds (default: 0.5)
+
+        Returns:
+            True if container reached RUNNING, False on timeout or ERROR
+        """
+        start_time = asyncio.get_event_loop().time()
+        while container_info.state != ContainerState.RUNNING:
+            elapsed = asyncio.get_event_loop().time() - start_time
+            if elapsed >= timeout:
+                logger.warning(f"Timeout waiting for {container_info.name} to reach RUNNING")
+                return False
+            if container_info.state == ContainerState.ERROR:
+                logger.error(f"Container {container_info.name} entered ERROR state")
+                return False
+            await asyncio.sleep(poll_interval)
+        return True
+
     def boot_all(
         self,
         paths: List[Union[str, Path]],
