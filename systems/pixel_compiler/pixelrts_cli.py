@@ -877,6 +877,9 @@ def cmd_boot(args):
     Supports both single-file and multi-file boot:
     - Single: pixelrts boot file.rts.png
     - Multi:  pixelrts boot a.rts.png b.rts.png c.rts.png
+
+    Also supports booting committed VM snapshots:
+    - Committed: pixelrts boot committed.rts.png (auto-detected vm-snapshot type)
     """
     from systems.pixel_compiler.boot import BootBridge, BootResult, MultiBootManager
 
@@ -887,7 +890,7 @@ def cmd_boot(args):
     if len(input_paths) > 1:
         return _boot_multiple(args, input_paths)
 
-    # Single-file boot path (original behavior)
+    # Single-file boot path
     input_path = input_paths[0]
 
     if not input_path.exists():
@@ -905,7 +908,31 @@ def cmd_boot(args):
         print(f"VNC display: {args.vnc}")
 
     try:
-        # Create BootBridge with options
+        # Detect container type to route to appropriate booter
+        try:
+            from systems.pixel_compiler.boot.committed_boot import (
+                CommittedFileBooter,
+                ContainerType,
+            )
+            container_type = CommittedFileBooter.detect_container_type(input_path)
+
+            if container_type == ContainerType.VM_SNAPSHOT:
+                # Use CommittedFileBooter for vm-snapshot files
+                if not args.quiet:
+                    print(f"Detected committed VM snapshot: {input_path}")
+
+                return _boot_committed(args, input_path)
+
+        except ImportError as e:
+            # CommittedFileBooter not available, fall back to BootBridge
+            if args.verbose:
+                print(f"CommittedFileBooter not available ({e}), using BootBridge")
+        except Exception as e:
+            # Detection failed, log warning and continue with BootBridge
+            if args.verbose:
+                print(f"Container type detection failed: {e}")
+
+        # Use existing BootBridge for regular containers
         bridge = BootBridge(
             rts_png_path=str(input_path),
             memory=args.memory,
@@ -994,6 +1021,102 @@ def cmd_boot(args):
         return 1
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
+def _boot_committed(args, input_path):
+    """Boot a committed VM snapshot file using CommittedFileBooter."""
+    from systems.pixel_compiler.boot.committed_boot import (
+        CommittedFileBooter,
+        CommittedBootError,
+    )
+
+    try:
+        # Create CommittedFileBooter with options
+        booter = CommittedFileBooter(
+            rts_png_path=str(input_path),
+            memory=args.memory,
+            cpus=args.cpus,
+            vnc_display=args.vnc,
+            verbose=not args.quiet and (args.verbose or sys.stdout.isatty()),
+        )
+
+        # Build extra QEMU args if provided
+        extra_qemu_args = []
+        if args.qemu_arg:
+            extra_qemu_args.extend(args.qemu_arg)
+
+        # Perform boot
+        with booter:
+            result = booter.boot(
+                cmdline=args.cmdline,
+                extra_qemu_args=extra_qemu_args if extra_qemu_args else None,
+            )
+
+            if not result.success:
+                print(f"Committed boot failed: {result.error_message}", file=sys.stderr)
+                return 1
+
+            # Print success info
+            if not args.quiet:
+                print(f"\nCommitted VM booted successfully!")
+                print(f"  PID: {result.pid}")
+                if result.vnc_port:
+                    print(f"  VNC: :{result.vnc_port} (port {5900 + result.vnc_port})")
+
+            # Handle background mode
+            if args.background:
+                if not args.quiet:
+                    print(f"\nRunning in background. PID: {result.pid}")
+                    print("Use 'kill {pid}' or Ctrl+C to stop.".format(pid=result.pid))
+                # Don't wait - return success immediately
+                # Note: temp files will be cleaned up when process exits
+                return 0
+
+            # Wait for QEMU process
+            if not args.quiet:
+                print("\nWaiting for QEMU... (Ctrl+C to stop)")
+
+            # Set up signal handler for graceful shutdown
+            shutdown_requested = False
+
+            def handle_shutdown(signum, frame):
+                nonlocal shutdown_requested
+                shutdown_requested = True
+                if not args.quiet:
+                    print("\nShutdown requested, stopping VM...")
+
+            original_sigint = signal.signal(signal.SIGINT, handle_shutdown)
+            original_sigterm = signal.signal(signal.SIGTERM, handle_shutdown)
+
+            try:
+                # Wait for the process to complete or signal
+                if result.process:
+                    exit_code = result.process.wait()
+                    if not args.quiet:
+                        print(f"\nQEMU exited with code: {exit_code}")
+                else:
+                    # No process reference, just wait for signal
+                    while not shutdown_requested:
+                        signal.pause()
+            finally:
+                # Restore original signal handlers
+                signal.signal(signal.SIGINT, original_sigint)
+                signal.signal(signal.SIGTERM, original_sigterm)
+
+            # Return 130 for SIGINT (128 + 2), otherwise exit code
+            if shutdown_requested:
+                return 130
+            return exit_code if result.process else 0
+
+    except ImportError as e:
+        print(f"Error: CommittedFileBooter not available: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error booting committed file: {e}", file=sys.stderr)
         if args.verbose:
             import traceback
             traceback.print_exc()

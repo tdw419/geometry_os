@@ -46,6 +46,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+class CommittedBootError(Exception):
+    """Exception for committed file boot errors."""
+    pass
+
+
 class ContainerType(Enum):
     """Types of containers that can be detected in .rts.png files."""
     BOOTABLE = "bootable"      # Standard bootable container (FUSE mount)
