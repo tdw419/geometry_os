@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 ## Current Position
 
 Phase: 10 of 11 (Boot Ordering Dependencies)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-03-09 — Completed 10-01 Container Role Enum
+Last activity: 2026-03-09 — Completed 10-02 Ordered Boot Implementation
 
-Progress: [█░░░░░░░░░] 1/3 plans in Phase 10
+Progress: [██░░░░░░░░] 2/3 plans in Phase 10
 
 ## Performance Metrics
 
@@ -28,8 +28,8 @@ Progress: [█░░░░░░░░░] 1/3 plans in Phase 10
 - v1.1: 4 plans
 - v1.2: 10 plans
 - v1.3: 5 plans (complete)
-- v1.4: 1 plan (in progress)
-- Total: 42 plans
+- v1.4: 2 plans (in progress)
+- Total: 43 plans
 
 ## Accumulated Context
 
@@ -52,6 +52,7 @@ Key decisions archived in `.planning/milestones/`:
 
 **v1.4 Decisions:**
 - **10-01:** ContainerRole enum (PRIMARY/HELPER) for ordered boot, default HELPER role, --primary CLI flag
+- **10-02:** Ordered boot pattern (primary first, wait for RUNNING, helpers concurrently), primary failure aborts helpers, backward compatible concurrent boot when no primary
 
 ### Pending Todos
 
@@ -64,7 +65,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: Completed 10-01 Container Role Enum plan
+Stopped at: Completed 10-02 Ordered Boot Implementation plan
 
 **CLI Commands Available (v1.0 + v1.1 + v1.2 + v1.3 + v1.4):**
 - `pixelrts analyze <file.png>` - Vision analysis and verification
