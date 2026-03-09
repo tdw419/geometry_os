@@ -840,11 +840,14 @@ def _boot_multiple(args, input_paths):
             # Clean up all containers in reverse order
             if not args.quiet:
                 if args.primary and result.success_count > 1:
-                    print("\nStopping containers in reverse order...")
-                    print("  [1/2] Stopping helper containers...")
+                    print("\nStopping containers (helpers first, primary last)...")
                 else:
                     print("\nStopping all containers...")
-            manager.stop_all()
+            # Use ordered shutdown when primary was specified
+            if args.primary:
+                manager.stop_all_ordered()
+            else:
+                manager.stop_all()
 
         # Return 0 on any success (per plan requirement), 1 on total failure
         return 0 if result.success_count > 0 else 1
