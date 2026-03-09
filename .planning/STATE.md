@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 ## Current Position
 
 Phase: 16 of 17 (Boot from Committed)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-03-09 — Completed 16-01-PLAN.md (CommittedFileBooter)
+Last activity: 2026-03-09 — Completed 16-02-PLAN.md (Preserve Original Kernel/Initrd in Commit)
 
-Progress: [█████████████████░░░] 90% (45/50 plans across all milestones)
+Progress: [██████████████████░░] 92% (46/50 plans across all milestones)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 45
+- Total plans completed: 46
 - Average duration: ~15 min
-- Total execution time: ~11.2 hours
+- Total execution time: ~11.4 hours
 
 **By Phase:**
 
@@ -33,10 +33,10 @@ Progress: [█████████████████░░░] 90% (45
 | v1.3 Phases 9-11 | 12 | ~3 hrs | ~15 min |
 | v1.4 Phases 12-14 | 10 | ~2.5 hrs | ~15 min |
 | v1.5 Phase 15 | 3 | ~45 min | ~15 min |
-| v1.5 Phase 16 | 1 | ~12 min | ~12 min |
+| v1.5 Phase 16 | 2 | ~24 min | ~12 min |
 
 **Recent Trend:**
-- Last 5 plans: Consistent ~15 min per plan
+- Last 5 plans: Consistent ~12 min per plan
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -51,7 +51,7 @@ Key decisions archived in `.planning/milestones/` and PROJECT.md:
 - v1.2: Proxy DHCP, range decoding, async orchestrator, handler pattern
 - v1.3: ContainerRole enum, ordered boot/shutdown, VirtualNetwork class
 - v1.4: VMSnapshotManager, linear timeout scaling, SnapshotMetadata, dual-source listing
-- v1.5: QemuImgWrapper for qemu-img convert -l snapshot extraction, SnapshotCommitter with VM pause/resume guarantee, SnapshotExporter with progress tracking and PixelRTS encoding, CommittedFileBooter with vm-snapshot container detection and qcow2 extraction boot
+- v1.5: QemuImgWrapper for qemu-img convert -l snapshot extraction, SnapshotCommitter with VM pause/resume guarantee, SnapshotExporter with progress tracking and PixelRTS encoding, CommittedFileBooter with vm-snapshot container detection and qcow2 extraction boot, kernel/initrd preservation with combined data encoding and offset metadata
 
 ### Pending Todos
 
@@ -64,7 +64,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-09
-Stopped at: Completed 16-01-PLAN.md (CommittedFileBooter)
+Stopped at: Completed 16-02-PLAN.md (Preserve Original Kernel/Initrd in Commit)
 Resume file: None
 
 ---
