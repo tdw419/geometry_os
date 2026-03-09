@@ -1400,6 +1400,66 @@ def cmd_patch(args):
         return 4
 
 
+def cmd_snapshots(args):
+    """Handle snapshots command - List all snapshots across all containers."""
+    from systems.pixel_compiler.boot import MultiBootManager
+
+    manager = MultiBootManager()
+
+    if args.verbose:
+        print("Listing all snapshots...")
+
+    try:
+        # Get all containers with snapshots
+        storage = manager.snapshot_storage
+        containers = storage.list_containers()
+
+        if not containers:
+            if not args.quiet:
+                print("No snapshots found.")
+            return 0
+
+        all_snapshots = []
+
+        for container in containers:
+            snapshots = manager.list_container_snapshots(container)
+            for snap in snapshots:
+                all_snapshots.append((container, snap))
+
+        if args.json:
+            import json
+            result = []
+            for container, snap in all_snapshots:
+                result.append({
+                    "container": container,
+                    "tag": snap.tag,
+                    "id": snap.id,
+                    "size": snap.size,
+                    "date": str(snap.date) if snap.date else None,
+                    "vm_clock": str(snap.vm_clock) if snap.vm_clock else None,
+                })
+            print(json.dumps(result, indent=2))
+        else:
+            # Table format
+            print(f"{'CONTAINER':<15} {'TAG':<25} {'SIZE':<12} {'DATE'}")
+            print(f"{'-'*15} {'-'*25} {'-'*12} {'-'*30}")
+            for container, snap in all_snapshots:
+                date_str = str(snap.date)[:19] if snap.date else "-"
+                print(f"{container:<15} {snap.tag:<25} {snap.size:<12} {date_str}")
+
+            if args.verbose:
+                print(f"\nTotal: {len(all_snapshots)} snapshot(s) in {len(containers)} container(s)")
+
+        return 0
+
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
 def cmd_snapshot_create(args):
     """Handle snapshot create command - Create a VM snapshot."""
     from systems.pixel_compiler.boot import MultiBootManager
@@ -2411,6 +2471,17 @@ Examples:
     )
     ps_parser.set_defaults(func=cmd_ps)
 
+    # Snapshots command (list all across containers)
+    snapshots_parser = subparsers.add_parser(
+        'snapshots',
+        help='List all snapshots across containers',
+        description='List all snapshots from all containers'
+    )
+    snapshots_parser.add_argument('--json', action='store_true', help='Output as JSON')
+    snapshots_parser.add_argument('-q', '--quiet', action='store_true', help='Suppress output')
+    snapshots_parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
+    snapshots_parser.set_defaults(func=cmd_snapshots)
+
     # Snapshot command group
     snapshot_parser = subparsers.add_parser(
         'snapshot',
@@ -2487,6 +2558,7 @@ Examples:
         'serve': cmd_serve,
         'catalog': cmd_catalog,
         'ps': cmd_ps,
+        'snapshots': cmd_snapshots,
         'snapshot': lambda args: _dispatch_snapshot(args),
         'diff': cmd_diff,
         'delta': cmd_delta,
