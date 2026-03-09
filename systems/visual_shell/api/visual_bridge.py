@@ -603,6 +603,8 @@ class MultiVmStreamer:
         self.watcher = OrchestratorWatcher()
         self.active_websockets: Set[WebSocket] = set()
         self.logger = get_logger(f"{__name__}.MultiVmStreamer")
+        # Track active thought glyphs for PixelBrain visualization
+        self._active_glyphs: List[Dict[str, Any]] = []
 
     async def start(self):
         """Start the orchestrator watcher."""
@@ -686,6 +688,87 @@ class MultiVmStreamer:
         if vm_id not in self.streamers:
             self.streamers[vm_id] = MemoryStreamer(vm_id)
         return self.streamers[vm_id]
+
+    # ========================================================================
+    # THOUGHT_PULSE Emission (Task 4: PixelBrain Visual Feedback)
+    # ========================================================================
+
+    def emit_thought_pulse(
+        self,
+        token_id: int,
+        position: tuple,
+        intensity: float = 1.0
+    ) -> bool:
+        """
+        Emit a THOUGHT_PULSE (0xCE) glyph for LLM output visualization.
+
+        This method is called by the PixelBrain inference pipeline when
+        generating tokens. Each emitted glyph creates a visual pulse on
+        the Visual Shell that can be rendered by the PixiJS frontend.
+
+        Args:
+            token_id: The generated token ID (e.g., from tokenizer)
+            position: (x, y) screen position for the glyph
+            intensity: Pulse brightness (0-1, affects visual intensity)
+
+        Returns:
+            True if emission successful
+
+        Example:
+            >>> bridge.emit_thought_pulse(
+            ...     token_id=15496,  # "Hello"
+            ...     position=(100, 100),
+            ...     intensity=1.0
+            ... )
+            True
+        """
+        # Create thought glyph with THOUGHT_RENDER opcode (0xCE)
+        glyph = {
+            "opcode": 0xCE,  # THOUGHT_RENDER - triggers pulse effect in WGSL shader
+            "token_id": token_id,
+            "x": position[0],
+            "y": position[1],
+            "intensity": max(0.0, min(1.0, intensity)),  # Clamp to [0, 1]
+            "timestamp": time.time()
+        }
+
+        # Add to active glyphs list
+        self._active_glyphs.append(glyph)
+
+        # Log emission for debugging
+        self.logger.debug(
+            f"Emitted THOUGHT_PULSE: token={token_id}, "
+            f"pos=({position[0]}, {position[1]}), "
+            f"intensity={intensity:.2f}"
+        )
+
+        return True
+
+    def has_active_glyphs(self) -> bool:
+        """
+        Check if there are active thought glyphs.
+
+        Returns:
+            True if there are pending glyphs to render
+        """
+        return len(self._active_glyphs) > 0
+
+    def get_active_glyphs(self) -> List[Dict[str, Any]]:
+        """
+        Get list of active thought glyphs.
+
+        Returns a copy of the internal glyphs list to prevent
+        external mutation.
+
+        Returns:
+            List of glyph dictionaries, each containing:
+            - opcode: 0xCE (THOUGHT_RENDER)
+            - token_id: The token that was generated
+            - x, y: Screen position
+            - intensity: Visual intensity (0-1)
+            - timestamp: Unix timestamp of emission
+        """
+        return self._active_glyphs.copy()
 
 
 # Note: multi_vm_streamer is initialized at module import time for test compatibility
