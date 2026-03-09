@@ -2117,8 +2117,8 @@ def cmd_ps(args):
     state_width = max(state_width, 5)  # Minimum width for "STATE"
 
     # Header
-    print(f"{'NAME':<{name_width}}  {'STATE':<{state_width}}  {'VNC':>6}  {'PID':>7}")
-    print(f"{'-'*name_width}  {'-'*state_width}  {'-'*6}  {'-'*7}")
+    print(f"{'NAME':<{name_width}}  {'STATE':<{state_width}}  {'EPHEM':>5}  {'VNC':>6}  {'PID':>7}")
+    print(f"{'-'*name_width}  {'-'*state_width}  {'-'*5}  {'-'*6}  {'-'*7}")
 
     # Rows
     for c in containers:
@@ -2126,11 +2126,13 @@ def cmd_ps(args):
         state = c.get('state', 'N/A')
         vnc_port = c.get('vnc_port', '-')
         pid = c.get('pid', '-')
+        is_ephemeral = c.get('is_ephemeral', False)
 
         vnc_str = str(vnc_port) if vnc_port else '-'
         pid_str = str(pid) if pid else '-'
+        ephem_str = '[E]' if is_ephemeral else ''
 
-        print(f"{name:<{name_width}}  {state:<{state_width}}  {vnc_str:>6}  {pid_str:>7}")
+        print(f"{name:<{name_width}}  {state:<{state_width}}  {ephem_str:>5}  {vnc_str:>6}  {pid_str:>7}")
 
     return 0
 
