@@ -109,7 +109,7 @@ Phases execute in numeric order: 9 -> 10 -> 11
 | 7. HTTP Boot via iPXE | v1.2 | 3/3 | Complete | 2026-03-08 |
 | 8. Delta Updates | v1.2 | 3/3 | Complete | 2026-03-09 |
 | 8.1. Wire Delta HTTP Handler | v1.2 | 1/1 | Complete | 2026-03-09 |
-| 9. Core Multi-Boot Infrastructure | v1.3 | 0/5 | Planned | - |
+| 9. Core Multi-Boot Infrastructure | v1.3 | 5/5 | Complete | 2026-03-09 |
 | 10. Boot Ordering & Dependencies | v1.3 | 0/4 | Not started | - |
 | 11. Virtual Networking | v1.3 | 0/3 | Not started | - |
 

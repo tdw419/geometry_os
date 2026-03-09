@@ -7,9 +7,9 @@
 
 ### Core Multi-Boot
 
-- [ ] **MULTI-01**: User can boot multiple containers with single CLI command (`pixelrts boot a.rts.png b.rts.png`)
-- [ ] **MULTI-02**: System allocates unique VNC ports and socket paths per container
-- [ ] **MULTI-03**: Partial boot failure triggers cleanup of already-started containers
+- [x] **MULTI-01**: User can boot multiple containers with single CLI command (`pixelrts boot a.rts.png b.rts.png`) — Complete (Phase 9)
+- [x] **MULTI-02**: System allocates unique VNC ports and socket paths per container — Complete (Phase 9)
+- [x] **MULTI-03**: Partial boot failure triggers cleanup of already-started containers — Complete (Phase 9)
 
 ### Boot Ordering
 
