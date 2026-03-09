@@ -1635,6 +1635,13 @@ def cmd_snapshot_create(args):
         return 1
 
 
+def cmd_commit(args):
+    """Handle commit command - Commit a running container to a .rts.png file."""
+    # Placeholder - will be fully implemented in Task 2
+    print("Error: cmd_commit not yet implemented", file=sys.stderr)
+    return 1
+
+
 def cmd_snapshot_list(args):
     """Handle snapshot list command - List VM snapshots for a container."""
     from systems.pixel_compiler.boot import MultiBootManager
@@ -2070,6 +2077,7 @@ Commands:
   catalog      Launch visual catalog server for browsing .rts.png files
   ps           List running containers with state, VNC port, and PID
   snapshot     VM snapshot commands (create, list, restore, delete)
+  commit       Commit a running container to .rts.png file
   diff         Compare two .rts.png files and show differences
   delta        Generate delta manifest between two versions
   patch        Apply delta manifest to update a file
@@ -2666,6 +2674,48 @@ Examples:
     snapshot_delete_parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
     snapshot_delete_parser.set_defaults(func=cmd_snapshot_delete)
 
+    # Commit command
+    commit_parser = subparsers.add_parser(
+        'commit',
+        help='Commit a running container to a .rts.png file',
+        description='Commit a running container to a portable .rts.png file that preserves disk and memory state'
+    )
+    commit_parser.add_argument(
+        'container',
+        help='Name of the running container to commit (use "pixelrts ps" to list)'
+    )
+    commit_parser.add_argument(
+        'output',
+        help='Output path for the committed .rts.png file'
+    )
+    commit_parser.add_argument(
+        '--snapshot',
+        metavar='TAG',
+        help='Tag of specific snapshot to commit (default: auto-create)'
+    )
+    commit_parser.add_argument(
+        '--no-verify',
+        action='store_true',
+        help='Skip verification of the committed file'
+    )
+    commit_parser.add_argument(
+        '--timeout',
+        type=int,
+        default=600,
+        help='Timeout for commit operation in seconds (default: 600)'
+    )
+    commit_parser.add_argument(
+        '-q', '--quiet',
+        action='store_true',
+        help='Suppress progress output'
+    )
+    commit_parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help='Enable verbose output'
+    )
+    commit_parser.set_defaults(func=cmd_commit)
+
     args = parser.parse_args()
 
     if not args.command:
@@ -2683,6 +2733,7 @@ Examples:
         'ps': cmd_ps,
         'snapshots': cmd_snapshots,
         'snapshot': lambda args: _dispatch_snapshot(args),
+        'commit': cmd_commit,
         'diff': cmd_diff,
         'delta': cmd_delta,
         'patch': cmd_patch,
