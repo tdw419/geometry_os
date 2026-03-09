@@ -175,9 +175,18 @@ If everything else fails, users must be able to:
 ✓ **CLI-SNAP-03**: Timestamp-based naming — v1.4
   - Format: snap-YYYYMMDD-HHMMSS
 
-### Active
+### Active (v1.5)
 
-(None — ready for next milestone)
+- [ ] **COMMIT-01**: Commit running container to new .rts.png file
+- [ ] **COMMIT-02**: Committed file preserves disk changes
+- [ ] **COMMIT-03**: Committed file includes VM memory state
+- [ ] **COMMIT-04**: Commit shows progress
+- [ ] **BOOT-COMMIT-01**: Committed file boots with existing command
+- [ ] **BOOT-COMMIT-02**: Committed file preserves kernel/initrd
+- [ ] **BOOT-COMMIT-03**: Changes visible after boot
+- [ ] **CLI-COMMIT-01**: `pixelrts commit <container> <output>` command
+- [ ] **CLI-COMMIT-02**: `--snapshot <tag>` flag
+- [ ] **CLI-COMMIT-03**: `--no-verify` flag
 
 ### Future
 
@@ -289,6 +298,6 @@ If everything else fails, users must be able to:
 | Global `pixelrts snapshots` command | Easy listing across all containers | ✓ Good |
 
 ---
-*Last updated: 2026-03-09 — v1.4 Live Snapshots shipped*
+*Last updated: 2026-03-09 — v1.5 Commit to File started*
 
 
