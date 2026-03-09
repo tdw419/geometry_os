@@ -272,6 +272,218 @@ const GLYPH_FILL_CIRCLE: u32 = 0x06u;
 const GLYPH_DRAW_LINE: u32 = 0x07u;
 const GLYPH_THOUGHT_RENDER: u32 = 0x08u;
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// THOUGHT RENDER TYPES AND CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Thought type constants (encoded in glyph.params.x)
+const THOUGHT_TYPE_MEMORY: f32 = 0.0;      // Past experiences, stored knowledge
+const THOUGHT_TYPE_CONCEPT: f32 = 1.0;     // Abstract ideas, patterns
+const THOUGHT_TYPE_EMOTION: f32 = 2.0;     // Affective states, feelings
+const THOUGHT_TYPE_GOAL: f32 = 3.0;        // Objectives, intentions
+const THOUGHT_TYPE_QUERY: f32 = 4.0;       // Questions, searches
+const THOUGHT_TYPE_RESPONSE: f32 = 5.0;    // Answers, outputs
+const THOUGHT_TYPE_REFLECTION: f32 = 6.0;  // Self-analysis, meta-cognition
+const THOUGHT_TYPE_DEFAULT: f32 = 7.0;     // Unclassified thoughts
+
+// Age thresholds for pulse behavior (in seconds)
+const THOUGHT_AGE_FRESH: f32 = 1.0;        // Very new thought (< 1s)
+const THOUGHT_AGE_RECENT: f32 = 5.0;       // Recent thought (1-5s)
+const THOUGHT_AGE_MATURE: f32 = 30.0;      // Mature thought (5-30s)
+const THOUGHT_AGE_OLD: f32 = 60.0;         // Old thought (> 60s, begins fading)
+
+// Pulse frequency multipliers by age
+const PULSE_FREQ_FRESH: f32 = 8.0;         // Fast pulse for new thoughts
+const PULSE_FREQ_RECENT: f32 = 4.0;        // Medium-fast pulse
+const PULSE_FREQ_MATURE: f32 = 2.0;        // Slow pulse
+const PULSE_FREQ_OLD: f32 = 0.5;           // Very slow pulse for old thoughts
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// THOUGHT TYPE TO COLOR MAPPING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Map thought type to a distinct color
+// Each type gets a unique hue to enable visual differentiation
+fn thought_type_to_color(thought_type: f32) -> vec4<f32> {
+    // Use integer comparison for type matching
+    let t = floor(thought_type + 0.5);  // Round to nearest integer
+    
+    if (t == THOUGHT_TYPE_MEMORY) {
+        // Memory: Deep blue - stable, stored, foundational
+        return vec4<f32>(0.2, 0.4, 0.9, 1.0);
+    } else if (t == THOUGHT_TYPE_CONCEPT) {
+        // Concept: Green - growth, patterns, abstraction
+        return vec4<f32>(0.2, 0.8, 0.4, 1.0);
+    } else if (t == THOUGHT_TYPE_EMOTION) {
+        // Emotion: Warm orange-red - passion, feeling
+        return vec4<f32>(0.9, 0.4, 0.2, 1.0);
+    } else if (t == THOUGHT_TYPE_GOAL) {
+        // Goal: Golden yellow - aspiration, target
+        return vec4<f32>(0.95, 0.85, 0.2, 1.0);
+    } else if (t == THOUGHT_TYPE_QUERY) {
+        // Query: Cyan - curiosity, searching
+        return vec4<f32>(0.2, 0.85, 0.9, 1.0);
+    } else if (t == THOUGHT_TYPE_RESPONSE) {
+        // Response: Magenta - output, answer
+        return vec4<f32>(0.85, 0.3, 0.85, 1.0);
+    } else if (t == THOUGHT_TYPE_REFLECTION) {
+        // Reflection: Purple - introspection, depth
+        return vec4<f32>(0.6, 0.3, 0.85, 1.0);
+    } else {
+        // Default: Gray-white - neutral, unclassified
+        return vec4<f32>(0.7, 0.7, 0.75, 1.0);
+    }
+}
+
+// Calculate pulse frequency based on thought age
+// Newer thoughts pulse faster, older thoughts pulse slower and eventually fade
+fn get_pulse_frequency(age: f32) -> f32 {
+    if (age < THOUGHT_AGE_FRESH) {
+        // Fresh: Fast pulsing, high energy
+        return PULSE_FREQ_FRESH;
+    } else if (age < THOUGHT_AGE_RECENT) {
+        // Recent: Medium-fast pulsing
+        // Linear interpolation between fresh and recent frequencies
+        let t = (age - THOUGHT_AGE_FRESH) / (THOUGHT_AGE_RECENT - THOUGHT_AGE_FRESH);
+        return mix(PULSE_FREQ_FRESH, PULSE_FREQ_RECENT, t);
+    } else if (age < THOUGHT_AGE_MATURE) {
+        // Mature: Slow pulsing
+        let t = (age - THOUGHT_AGE_RECENT) / (THOUGHT_AGE_MATURE - THOUGHT_AGE_RECENT);
+        return mix(PULSE_FREQ_RECENT, PULSE_FREQ_MATURE, t);
+    } else {
+        // Old: Very slow pulsing
+        let t = min((age - THOUGHT_AGE_MATURE) / THOUGHT_AGE_OLD, 1.0);
+        return mix(PULSE_FREQ_MATURE, PULSE_FREQ_OLD, t);
+    }
+}
+
+// Calculate alpha fade based on age
+// Thoughts gradually fade as they age beyond the mature threshold
+fn get_age_fade(age: f32) -> f32 {
+    if (age < THOUGHT_AGE_MATURE) {
+        // Young thoughts are fully visible
+        return 1.0;
+    } else if (age < THOUGHT_AGE_OLD) {
+        // Aging thoughts begin to fade
+        let t = (age - THOUGHT_AGE_MATURE) / (THOUGHT_AGE_OLD - THOUGHT_AGE_MATURE);
+        return mix(1.0, 0.5, t);
+    } else {
+        // Old thoughts fade significantly
+        // Exponential decay beyond old threshold
+        let excess_age = age - THOUGHT_AGE_OLD;
+        return 0.5 * exp(-excess_age * 0.02);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// THOUGHT RENDER IMPLEMENTATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Render a thought with type-based coloring, age-based pulse effects,
+// and Hilbert curve coordinate transformation for spatial locality.
+//
+// Glyph.params layout:
+//   x = thought_type (0-7, see THOUGHT_TYPE_* constants)
+//   y = age (in seconds since thought creation)
+//   z = intensity (0.0-1.0, affects brightness/size)
+//   w = reserved for future use
+fn render_thought(glyph: Glyph) {
+    let dim = uniforms.resolution;
+    
+    // Extract thought parameters from glyph.params
+    let thought_type = glyph.params.x;
+    let age = glyph.params.y;
+    let intensity = clamp(glyph.params.z, 0.0, 1.0);
+    
+    // Get base color from thought type
+    let base_color = thought_type_to_color(thought_type);
+    
+    // Calculate pulse effect based on age
+    let pulse_freq = get_pulse_frequency(age);
+    let pulse_phase = uniforms.time * pulse_freq;
+    let pulse = 0.5 + 0.5 * sin(pulse_phase);
+    
+    // Apply intensity to pulse amplitude
+    let pulse_intensity = mix(0.3, 1.0, intensity);
+    let adjusted_pulse = mix(1.0 - pulse_intensity, 1.0, pulse);
+    
+    // Calculate age-based fade
+    let age_fade = get_age_fade(age);
+    
+    // Combine all effects into final color
+    let final_alpha = base_color.a * adjusted_pulse * age_fade;
+    let final_color = vec4<f32>(
+        base_color.rgb * adjusted_pulse,
+        final_alpha
+    );
+    
+    // Transform to Hilbert curve coordinates for spatial locality
+    // This preserves cache coherence when rendering neural patterns
+    let px = u32(clamp(glyph.x, 0.0, f32(dim - 1u)));
+    let py = u32(clamp(glyph.y, 0.0, f32(dim - 1u)));
+    let hilbert_idx = xy_to_hilbert(px, py, dim);
+    
+    // Write to Hilbert-indexed pixel buffer for efficient neural access
+    pixel_buffer[hilbert_idx] = color_to_u32(final_color);
+    
+    // Also render to canvas for direct visualization
+    textureStore(canvas, vec2<i32>(i32(px), i32(py)), final_color);
+}
+
+// Render thought with geometric representation (larger than single pixel)
+// Uses the glyph dimensions (w, h) to render a pulsing thought region
+fn render_thought_geometric(glyph: Glyph) {
+    let dim = uniforms.resolution;
+    
+    // Extract thought parameters from glyph.params
+    let thought_type = glyph.params.x;
+    let age = glyph.params.y;
+    let intensity = clamp(glyph.params.z, 0.0, 1.0);
+    
+    // Get base color from thought type
+    let base_color = thought_type_to_color(thought_type);
+    
+    // Calculate pulse effect based on age
+    let pulse_freq = get_pulse_frequency(age);
+    let pulse_phase = uniforms.time * pulse_freq;
+    let pulse = 0.5 + 0.5 * sin(pulse_phase);
+    
+    // Apply intensity to pulse amplitude
+    let pulse_intensity = mix(0.3, 1.0, intensity);
+    let adjusted_pulse = mix(1.0 - pulse_intensity, 1.0, pulse);
+    
+    // Calculate age-based fade
+    let age_fade = get_age_fade(age);
+    
+    // Combine all effects into final color
+    let final_alpha = base_color.a * adjusted_pulse * age_fade;
+    let final_color = vec4<f32>(
+        base_color.rgb * adjusted_pulse,
+        final_alpha
+    );
+    
+    // Render filled rectangle with thought color
+    let x_start = u32(max(0.0, glyph.x));
+    let y_start = u32(max(0.0, glyph.y));
+    let x_end = u32(min(f32(dim), glyph.x + glyph.w));
+    let y_end = u32(min(f32(dim), glyph.y + glyph.h));
+    
+    for (var py = y_start; py < y_end; py++) {
+        for (var px = x_start; px < x_end; px++) {
+            // Transform each pixel through Hilbert curve
+            let hilbert_idx = xy_to_hilbert(px, py, dim);
+            
+            // Blend with existing content for soft edges
+            let existing_packed = pixel_buffer[hilbert_idx];
+            let existing_color = u32_to_color(existing_packed);
+            let blended = blend_colors_f32(final_color, existing_color);
+            
+            pixel_buffer[hilbert_idx] = color_to_u32(blended);
+            textureStore(canvas, vec2<i32>(i32(px), i32(py)), blended);
+        }
+    }
+}
+
 // Command structure for the dispatcher
 struct GlyphCommand {
     opcode: u32,    // Command opcode (GLYPH_* constants)
@@ -330,25 +542,22 @@ fn execute_command(cmd: GlyphCommand) {
             draw_line(cmd.x, cmd.y, cmd.width, cmd.height, color_f32);
         }
         case GLYPH_THOUGHT_RENDER: {
-            render_thought_geometric(cmd);
+            // Convert GlyphCommand to Glyph format for thought rendering
+            let thought_glyph = Glyph(
+                cmd.opcode,
+                f32(cmd.x),
+                f32(cmd.y),
+                f32(cmd.width),
+                f32(cmd.height),
+                unpack_color_to_f32(cmd.color),
+                vec4<f32>(f32(cmd.width), 0.0, 1.0, 0.0) // type from width, age=0, intensity=1
+            );
+            render_thought(thought_glyph);
         }
         default: {
             // Ignore unknown opcode
         }
     }
-}
-
-fn render_thought_geometric(cmd: GlyphCommand) {
-    let dim = uniforms.resolution;
-    let idx = xy_to_hilbert(u32(cmd.x), u32(cmd.y), dim);
-    
-    // Apply pulse effect: alpha fades over time
-    let color_f32 = unpack_color_to_f32(cmd.color);
-    let pulse = 0.5 + 0.5 * sin(uniforms.time * 5.0);
-    let final_color = vec4<f32>(color_f32.rgb, color_f32.a * pulse);
-    
-    // Write to Hilbert-indexed VRAM
-    pixel_buffer[idx] = color_to_u32(final_color);
 }
 
 // Main rendering entry point
@@ -375,12 +584,10 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                 textureStore(canvas, vec2<u32>(px, py), glyph.color);
             }
         }
-        case 0xCEu: { // THOUGHT_RENDER (Direct buffer access)
-            let dim = uniforms.resolution;
-            let idx = xy_to_hilbert(u32(glyph.x), u32(glyph.y), dim);
-            let pulse = 0.5 + 0.5 * sin(uniforms.time * 5.0);
-            let final_color = vec4<f32>(glyph.color.rgb, glyph.color.a * pulse);
-            pixel_buffer[idx] = color_to_u32(final_color);
+        case 0xCEu: { // THOUGHT_RENDER (opcode 0xCE)
+            // Full thought rendering with type-based color mapping,
+            // age-based pulse effects, and Hilbert curve coordinates
+            render_thought(glyph);
         }
         default: {} // SET_COLOR (0xC0) is handled as state by the caller
     }
