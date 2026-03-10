@@ -14,13 +14,71 @@
 
 ## Current Status
 
-**Milestone v1.8 Network Boot Substrate in progress.** Core components implemented, CLI integration pending.
+**Milestone v1.9 Distributed Boot in progress.** Remote boot, migration, and load balancing.
 
 ---
 
 ## Phases
 
-### v1.8 Network Boot Substrate
+### v1.9 Distributed Boot
+
+**Milestone Goal:** Boot containers on remote peers and migrate workloads across the mesh
+
+#### Phase 25: Remote Boot Protocol
+**Goal**: Boot containers on remote peers via mesh
+**Depends on**: Phase 24 (CLI integration)
+**Requirements**: DIST-01, DIST-02, DIST-03, DIST-04, DIST-05
+**Success Criteria** (what must be TRUE):
+  1. `pixelrts boot --peer <hostname> file.rts.png` boots on remote node
+  2. Boot progress streams back to caller
+  3. VNC port forwarded for console access
+  4. Remote boot failures propagate to caller
+**Plans**: 4 (to be created)
+
+Plans:
+- [ ] 25-01: RemoteBootClient for initiating remote boots
+- [ ] 25-02: RemoteBootServer for handling boot requests
+- [ ] 25-03: BootProgress streaming protocol
+- [ ] 25-04: CLI integration for remote boot
+
+#### Phase 26: Container Migration
+**Goal**: Migrate running containers between peers
+**Depends on**: Phase 25
+**Requirements**: MIGR-01, MIGR-02, MIGR-03, MIGR-04, MIGR-05
+**Success Criteria** (what must be TRUE):
+  1. `pixelrts migrate <container> <target>` initiates migration
+  2. VM memory state transferred via mesh
+  3. Container resumes on target with preserved state
+  4. VNC connection re-established automatically
+**Plans**: 5 (to be created)
+
+Plans:
+- [ ] 26-01: ContainerCheckpoint for state capture
+- [ ] 26-02: StateTransfer for mesh transfer
+- [ ] 26-03: ContainerRestore on target peer
+- [ ] 26-04: NetworkReconnection after migration
+- [ ] 26-05: CLI integration for migration
+
+#### Phase 27: Load Balancing
+**Goal**: Automatic container placement based on peer capacity
+**Depends on**: Phase 26
+**Requirements**: LB-01, LB-02, LB-03, LB-04
+**Success Criteria** (what must be TRUE):
+  1. `pixelrts boot --auto-place file.rts.png` selects best peer
+  2. Peer metrics exchanged via mesh
+  3. Overloaded peers trigger automatic migration
+  4. Dashboard shows cluster-wide resource usage
+**Plans**: 4 (to be created)
+
+Plans:
+- [ ] 27-01: PeerResourceMonitor for capacity tracking
+- [ ] 27-02: CapacityRouter for boot routing
+- [ ] 27-03: OverloadDetector for migration triggers
+- [ ] 27-04: Cluster dashboard integration
+
+---
+
+### v1.8 Network Boot Substrate (Complete)
 
 **Milestone Goal:** Distributed Geometry OS nodes can discover peers and sync tectonic state
 

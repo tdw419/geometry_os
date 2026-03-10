@@ -1,89 +1,59 @@
-# Requirements: Network Boot Substrate
+# Requirements: Distributed Boot
 
-**Defined:** 2026-03-09
-**Core Value:** Distributed Geometry OS nodes can discover peers and share tectonic state
+**Defined:** 2026-03-10
+**Core Value:** Boot containers on remote peers and migrate workloads across the mesh
 
-## v1.8 Requirements
+## v1.9 Requirements
 
-### Peer Discovery
+### Remote Boot Protocol
 
-- [x] **PEER-01**: Node can broadcast presence via UDP multicast
-- [x] **PEER-02**: Node can receive peer beacons from mesh
-- [x] **PEER-03**: Node can track discovered peers with metadata (hostname, bounds, orb_count)
+- [ ] **DIST-01**: User can boot container on remote peer via CLI
+- [ ] **DIST-02**: Boot progress streams back to caller
+- [ ] **DIST-03**: VNC port forwarded for console access
+- [ ] **DIST-04**: Remote boot failures propagate to caller
+- [ ] **DIST-05**: Remote boot cancellation support
 
-### Peer Registry
+### Container Migration
 
-- [x] **REG-01**: Registry tracks peer beacons with timestamps
-- [x] **REG-02**: Registry removes stale peers (timeout-based cleanup)
-- [x] **REG-03**: Registry provides active peer list
+- [ ] **MIGR-01**: Checkpoint running container state
+- [ ] **MIGR-02**: Transfer state to target peer
+- [ ] **MIGR-03**: Restore container on target peer
+- [ ] **MIGR-04**: Network reconnection after migration
+- [ ] **MIGR-05**: Migration progress tracking
 
-### Tectonic Sync
+### Load Balancing
 
-- [x] **SYNC-01**: Node can accept WebSocket connections from peers
-- [x] **SYNC-02**: Node can connect to peer WebSocket servers
-- [x] **SYNC-03**: Orb position updates sync across mesh
-- [x] **SYNC-04**: Ripple events sync across mesh
-
-### Orchestration
-
-- [x] **ORCH-01**: NetworkBoot orchestrates broadcaster, registry, sync
-- [x] **ORCH-02**: NetworkBoot connects to GravityEngine for state sync
-- [ ] **ORCH-03**: NetworkBoot provides status via CLI command
-
-### CLI Integration
-
-- [ ] **CLI-01**: `pixelrts mesh status` shows peer count and active connections
-- [ ] **CLI-02**: `pixelrts mesh discover` triggers immediate peer discovery
-- [ ] **CLI-03**: JSON output via `--json` flag
-
-## Future Requirements
-
-### Advanced Mesh
-
-- **MESH-01**: Peer authentication via Ed25519 signatures
-- **MESH-02**: Encrypted peer communication
-- **MESH-03**: Mesh-wide boot orchestration (coordinate container startup)
-
-### Distributed Boot
-
-- **DIST-01**: Boot container on remote peer
-- **DIST-02**: Container migration between peers
-- **DIST-03**: Load balancing across mesh
+- [ ] **LB-01**: Peer resource reporting (CPU, memory, disk)
+- [ ] **LB-02**: Capacity-aware boot routing
+- [ ] **LB-03**: Overload detection triggers migration
+- [ ] **LB-04**: Cluster-wide resource dashboard
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| WAN/Internet mesh | LAN focus first |
-| Peer-to-peer file transfer | Use existing NBD/HTTP |
-| Consensus protocols | Simple sync sufficient |
-| Mesh routing | Direct connections only |
+| Cross-WAN migration | LAN focus first |
+| Live migration with zero downtime | Checkpoint/restore sufficient |
+| GPU workload migration | Complex, defer to v2.0 |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PEER-01 | Phase 23 | Complete |
-| PEER-02 | Phase 23 | Complete |
-| PEER-03 | Phase 23 | Complete |
-| REG-01 | Phase 23 | Complete |
-| REG-02 | Phase 23 | Complete |
-| REG-03 | Phase 23 | Complete |
-| SYNC-01 | Phase 23 | Complete |
-| SYNC-02 | Phase 23 | Complete |
-| SYNC-03 | Phase 23 | Complete |
-| SYNC-04 | Phase 23 | Complete |
-| ORCH-01 | Phase 23 | Complete |
-| ORCH-02 | Phase 23 | Complete |
-| ORCH-03 | Phase 24 | Complete |
-| CLI-01 | Phase 24 | Complete |
-| CLI-02 | Phase 24 | Complete |
-| CLI-03 | Phase 24 | Complete |
-
-**Coverage:**
-- v1.8 requirements: 16 total
-- Mapped to phases: 16
-- Unmapped: 0 ✓
+| DIST-01 | Phase 25 | Pending |
+| DIST-02 | Phase 25 | Pending |
+| DIST-03 | Phase 25 | Pending |
+| DIST-04 | Phase 25 | Pending |
+| DIST-05 | Phase 25 | Pending |
+| MIGR-01 | Phase 26 | Pending |
+| MIGR-02 | Phase 26 | Pending |
+| MIGR-03 | Phase 26 | Pending |
+| MIGR-04 | Phase 26 | Pending |
+| MIGR-05 | Phase 26 | Pending |
+| LB-01 | Phase 27 | Pending |
+| LB-02 | Phase 27 | Pending |
+| LB-03 | Phase 27 | Pending |
+| LB-04 | Phase 27 | Pending |
 
 ---
-*Requirements defined: 2026-03-09*
+*Requirements defined: 2026-03-10*
