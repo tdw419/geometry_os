@@ -123,9 +123,7 @@ class TestTectonicsE2E:
             consensus.record_pulse(event)
 
         # Create proposal synchronously
-        proposal = asyncio.get_event_loop().run_until_complete(
-            consensus._create_proposal()
-        )
+        proposal = asyncio.run(consensus._create_proposal())
 
         assert proposal is not None
         assert len(proposal.bonds) > 0
@@ -148,9 +146,7 @@ class TestTectonicsE2E:
             consensus.record_pulse(event)
 
         # Create proposal
-        proposal = asyncio.get_event_loop().run_until_complete(
-            consensus._create_proposal()
-        )
+        proposal = asyncio.run(consensus._create_proposal())
 
         assert proposal is not None
 
@@ -228,9 +224,7 @@ class TestTectonicsE2E:
                 consensus.record_pulse(event)
 
         # 3. Create proposal
-        proposal = asyncio.get_event_loop().run_until_complete(
-            consensus._create_proposal()
-        )
+        proposal = asyncio.run(consensus._create_proposal())
         assert proposal is not None
 
         # 4. Get top bonds
