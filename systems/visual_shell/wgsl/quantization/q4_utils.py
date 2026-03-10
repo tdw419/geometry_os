@@ -1,6 +1,10 @@
 import numpy as np
 from typing import Dict, Union
 
+# Q4_0 Format Constants
+Q4_BLOCK_SIZE = 32  # Number of weights per block
+Q4_ZERO_POINT = 8.0  # Zero point for 4-bit signed representation
+
 
 def q4_dequantize_block(packed_weights: np.ndarray, scale: np.float16) -> np.ndarray:
     """
@@ -23,14 +27,14 @@ def q4_dequantize_block(packed_weights: np.ndarray, scale: np.float16) -> np.nda
     scale_f32 = np.float32(scale)
 
     # Unpack 4-bit weights (2 per byte)
-    weights_4bit = np.zeros(32, dtype=np.uint8)
+    weights_4bit = np.zeros(Q4_BLOCK_SIZE, dtype=np.uint8)
     for i in range(16):
         byte = packed_weights[i]
         weights_4bit[i * 2] = byte >> 4             # High 4 bits
         weights_4bit[i * 2 + 1] = byte & 0xF       # Low 4 bits
 
     # Apply dequantization formula
-    dequantized = scale_f32 * (weights_4bit.astype(np.float32) - 8.0)
+    dequantized = scale_f32 * (weights_4bit.astype(np.float32) - Q4_ZERO_POINT)
 
     return dequantized
 
@@ -51,8 +55,8 @@ def q4_quantize_block(values: np.ndarray) -> Dict[str, Union[np.float16, np.ndar
     can be represented in the range [-8*scale, 7*scale].
     """
     # Validate input
-    if len(values) != 32:
-        raise ValueError(f"values must be length 32, got {len(values)}")
+    if len(values) != Q4_BLOCK_SIZE:
+        raise ValueError(f"values must be length {Q4_BLOCK_SIZE}, got {len(values)}")
 
     # Calculate scale to fit all values in the representable range
     max_val = np.max(np.abs(values))
@@ -67,7 +71,7 @@ def q4_quantize_block(values: np.ndarray) -> Dict[str, Union[np.float16, np.ndar
 
     # Quantize values to 4-bit integers
     # Apply reverse formula: weight_4bit = round(value / scale) + 8
-    quantized_weights = np.round(values / np.float32(scale_f16)) + 8
+    quantized_weights = np.round(values / np.float32(scale_f16)) + Q4_ZERO_POINT
 
     # Clip to valid range [0, 15]
     quantized_weights = np.clip(quantized_weights, 0, 15).astype(np.uint8)
@@ -84,25 +88,3 @@ def q4_quantize_block(values: np.ndarray) -> Dict[str, Union[np.float16, np.ndar
         'scale': scale_f16,
         'packed_weights': packed_weights
     }
-
-
-def create_test_block() -> tuple:
-    """
-    Create a test Q4_0 block for demonstration.
-
-    Returns:
-        Tuple of (packed_weights, scale) for testing
-    """
-    # Use a simple repeating pattern
-    scale = np.float16(2.0)
-
-    # Create weights: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, ...]
-    weights_4bit = np.arange(32, dtype=np.uint8) % 16
-
-    # Pack into bytes
-    packed_weights = np.zeros(16, dtype=np.uint8)
-    for i in range(0, 32, 2):
-        byte = (weights_4bit[i] << 4) | weights_4bit[i + 1]
-        packed_weights[i // 2] = byte
-
-    return packed_weights, scale
