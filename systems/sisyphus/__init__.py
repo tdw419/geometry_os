@@ -9,6 +9,7 @@ Components:
 - Evolution: Self-improvement through code generation
 - Memory Management: Intelligent resource optimization
 - FFI Bridge: Native code integration layer
+- Unified Glass Bridge: Multi-stream daemon visualization
 """
 
 __version__ = "1.0.0"
@@ -25,4 +26,31 @@ try:
 except ImportError:
     EvolutionEngine = None
 
-__all__ = ["Guardian", "EvolutionEngine", "__version__"]
+try:
+    from .unified_glass_bridge import (
+        UnifiedGlassBridge,
+        StreamType,
+        TransportType,
+        StreamMessage,
+        MultiStreamStats,
+        create_unified_bridge_for_daemon,
+    )
+except ImportError:
+    UnifiedGlassBridge = None
+    StreamType = None
+    TransportType = None
+    StreamMessage = None
+    MultiStreamStats = None
+    create_unified_bridge_for_daemon = None
+
+__all__ = [
+    "Guardian",
+    "EvolutionEngine",
+    "UnifiedGlassBridge",
+    "StreamType",
+    "TransportType",
+    "StreamMessage",
+    "MultiStreamStats",
+    "create_unified_bridge_for_daemon",
+    "__version__",
+]

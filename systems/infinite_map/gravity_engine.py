@@ -261,6 +261,11 @@ class GravityEngine:
         if file_path in self.orbs:
             self.orbs[file_path]["mass"] = max(0.1, self.orbs[file_path]["mass"] + delta)
 
+    def set_mass(self, file_path: str, mass: float):
+        """Set an orb's mass directly."""
+        if file_path in self.orbs:
+            self.orbs[file_path]["mass"] = max(0.1, mass)
+
     def set_target_z(self, file_path: str, target_z: float):
         """Shift an orb to a new semantic layer."""
         if file_path in self.orbs:

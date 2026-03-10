@@ -45,6 +45,24 @@ HOT_GOAL_TEMPLATES = [
     }
 ]
 
+COGNITIVE_GOAL_TEMPLATES = [
+    {
+        "goal_type": "brain_fine_tuning",
+        "priority_base": 0.85,
+        "rationale_template": "Brain quality drift detected in {sector} (Fitness: {fitness:.2f}). Mutate weight atlas to restore coherence."
+    },
+    {
+        "goal_type": "shader_evolution",
+        "priority_base": 0.75,
+        "rationale_template": "WGSL shader performance bottleneck in {shader_type}. Speculative rewrite to improve inference throughput."
+    },
+    {
+        "goal_type": "cognitive_restoration",
+        "priority_base": 0.95,
+        "rationale_template": "Critical coherence failure (Fitness: {fitness:.2f}). Emergency weight reset or sector mutation required."
+    }
+]
+
 
 @dataclass(order=False)
 class AutonomousGoal:
@@ -185,6 +203,78 @@ class GoalSynthesizer:
         all_goals.sort()
 
         return all_goals
+
+    def synthesize_from_brain_metrics(
+        self,
+        fitness_score: float,
+        latency_ms: float,
+        hot_sectors: List[str]
+    ) -> List[AutonomousGoal]:
+        """
+        Synthesize cognitive goals from brain performance/quality metrics.
+
+        Args:
+            fitness_score: Brain fitness score (0.0 to 1.0)
+            latency_ms: Average inference latency in ms
+            hot_sectors: List of brain sectors with highest attention weight/error
+
+        Returns:
+            List of brain-related AutonomousGoal objects
+        """
+        goals: List[AutonomousGoal] = []
+        created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        # 1. Check for Quality Drift
+        if fitness_score < 0.6:
+            template = next(t for t in COGNITIVE_GOAL_TEMPLATES if t["goal_type"] == "cognitive_restoration")
+            rationale = template["rationale_template"].format(fitness=fitness_score)
+            priority = 0.95 + (1.0 - fitness_score) * 0.05
+            
+            goals.append(AutonomousGoal(
+                goal_id=self._generate_goal_id(),
+                goal_type="cognitive_restoration",
+                target="tinystories_brain.rts.png",
+                rationale=rationale,
+                priority=min(1.0, priority),
+                entropy_score=1.0 - fitness_score,
+                created_at=created_at,
+                metrics={"fitness": fitness_score, "latency": latency_ms}
+            ))
+        elif fitness_score < 0.9:
+            # Regular fine-tuning
+            template = next(t for t in COGNITIVE_GOAL_TEMPLATES if t["goal_type"] == "brain_fine_tuning")
+            sector = hot_sectors[0] if hot_sectors else "attention_layer_0"
+            rationale = template["rationale_template"].format(sector=sector, fitness=fitness_score)
+            
+            goals.append(AutonomousGoal(
+                goal_id=self._generate_goal_id(),
+                goal_type="brain_fine_tuning",
+                target=f"brain_atlas:{sector}",
+                rationale=rationale,
+                priority=0.85,
+                entropy_score=0.9 - fitness_score,
+                created_at=created_at,
+                metrics={"fitness": fitness_score, "sector": sector}
+            ))
+
+        # 2. Check for Performance Issues
+        if latency_ms > 200.0:  # Threshold for "slow" inference
+            template = next(t for t in COGNITIVE_GOAL_TEMPLATES if t["goal_type"] == "shader_evolution")
+            shader_type = "attention.wgsl" if latency_ms > 500.0 else "ffn.wgsl"
+            rationale = template["rationale_template"].format(shader_type=shader_type)
+            
+            goals.append(AutonomousGoal(
+                goal_id=self._generate_goal_id(),
+                goal_type="shader_evolution",
+                target=f"shaders/{shader_type}",
+                rationale=rationale,
+                priority=0.80,
+                entropy_score=min(1.0, (latency_ms - 200) / 800),
+                created_at=created_at,
+                metrics={"latency": latency_ms, "shader": shader_type}
+            ))
+
+        return goals
 
     def synthesize_from_health_score(
         self,

@@ -27,6 +27,7 @@ from datetime import datetime
 from .native_hilbert import NativeHilbertLUT
 from .compositor_bridge import CompositorBridge
 from .token_rasterizer import TokenRasterizer
+from .unified_glass_bridge import UnifiedGlassBridge, StreamType, TransportType
 from ..infinite_map.gravity_engine import GravityEngine
 from ..infinite_map.tectonic_updater import TectonicUpdater
 from .performance_monitor import PerformanceMonitor
@@ -35,6 +36,14 @@ from .hot_swap_manager import HotSwapManager
 from .entropy_mapper import EntropyMapper
 from .goal_synthesizer import GoalSynthesizer
 from .speculative_optimizer import SpeculativeOptimizer
+
+# Brain Evolution Integration
+try:
+    from ..evolution_daemon.evolution_hooks.brain_evolution_hook import BrainEvolutionHook
+    from ..evolution_daemon.brain_mutations import evaluate_brain_fitness
+    BRAIN_EVOLUTION_AVAILABLE = True
+except ImportError:
+    BRAIN_EVOLUTION_AVAILABLE = False
 
 # Setup logging
 logging.basicConfig(
@@ -293,12 +302,20 @@ class SisyphusDaemon:
         enable_heartbeat=True,
         enable_self_rewriting=False,
         enable_tectonic=False,
+        enable_brain_evolution=False,
         performance_monitor: Optional[PerformanceMonitor] = None
     ):
         self.state_file = Path(state_file)
         self.project_dir = Path(__file__).parent.parent.parent.resolve()
         self.log_dir = Path(".loop/logs/v4")
         self.log_dir.mkdir(parents=True, exist_ok=True)
+
+        # Brain Evolution integration
+        self.enable_brain_evolution = enable_brain_evolution and BRAIN_EVOLUTION_AVAILABLE
+        self.brain_hook = None
+        if self.enable_brain_evolution:
+            self.brain_hook = BrainEvolutionHook()
+            logger.info("Brain Evolution enabled in Sisyphus v4")
 
         # Determine session dir if not provided
         if not session_dir:
@@ -325,6 +342,13 @@ class SisyphusDaemon:
         # Compositor connection with heartbeat
         self.enable_heartbeat = enable_heartbeat
         self.compositor = CompositorBridge() if enable_heartbeat else None
+
+        # Unified Glass Box Bridge for multi-stream output
+        self.unified_bridge = UnifiedGlassBridge(
+            enable_socket=enable_heartbeat,
+            enable_shm=True,
+            enable_http=True
+        )
 
         # Phase 5: Mind's Eye & Tectonic
         self.token_rasterizer = TokenRasterizer(self.compositor)
@@ -606,14 +630,12 @@ Ensure task numbering continues correctly.
         self.log(f"Starting Task {task.number}: {task.name}")
         self.mark_task_state(task, TaskState.IN_PROGRESS)
 
-        # Stream thought to Glass Box
-        if self.compositor:
-            self.compositor.send_thought({
-                "type": "TASK_START",
-                "task_id": task.number,
-                "task_name": task.name,
-                "timestamp": time.time()
-            })
+        # Stream thought to Glass Box via unified bridge
+        self.unified_bridge.stream_thought("TASK_START", {
+            "task_id": task.number,
+            "task_name": task.name,
+            "description": task.description[:100] if task.description else ""
+        })
 
         # Save checkpoint at task start
         self._save_task_checkpoint(task.number, task.name)
@@ -633,14 +655,11 @@ Ensure task numbering continues correctly.
                 self.mark_task_state(task, TaskState.COMPLETE)
                 self.log(f"✓ Task {task.number} complete ({duration:.1f}s)")
                 
-                # Stream success thought
-                if self.compositor:
-                    self.compositor.send_thought({
-                        "type": "TASK_COMPLETE",
-                        "task_id": task.number,
-                        "duration": duration,
-                        "timestamp": time.time()
-                    })
+                # Stream success thought via unified bridge
+                self.unified_bridge.stream_thought("TASK_COMPLETE", {
+                    "task_id": task.number,
+                    "duration": duration
+                })
                 
                 # Clear checkpoint on successful completion
                 self.checkpoint_manager.clear_checkpoint()
@@ -650,14 +669,12 @@ Ensure task numbering continues correctly.
                 self.mark_task_state(task, TaskState.FAILED)
                 self.log(f"✗ Task {task.number} failed ({duration:.1f}s) - see {task_log}")
                 
-                # Stream failure thought
-                if self.compositor:
-                    self.compositor.send_thought({
-                        "type": "TASK_FAILURE",
-                        "task_id": task.number,
-                        "error": "Subprocess exit non-zero",
-                        "timestamp": time.time()
-                    })
+                # Stream failure thought via unified bridge
+                self.unified_bridge.stream_thought("TASK_FAILURE", {
+                    "task_id": task.number,
+                    "error": "Subprocess exit non-zero",
+                    "log_file": str(task_log)
+                })
 
         except Exception as e:
             self.log(f"Error running task {task.number}: {e}")
@@ -713,6 +730,24 @@ Ensure task numbering continues correctly.
 
         return task
 
+    def stream_llm_tokens(self, tokens: List[str], token_types: Optional[List[str]] = None):
+        """
+        Stream LLM tokens to Glass Box via unified bridge.
+
+        Args:
+            tokens: List of token strings to stream
+            token_types: Optional list of token types (keyword, string, etc.)
+        """
+        for i, token in enumerate(tokens):
+            token_type = token_types[i] if token_types and i < len(token_types) else None
+            self.unified_bridge.stream_token(token, token_type=token_type or "identifier")
+
+    def get_multi_stream_stats(self) -> Dict[str, Any]:
+        """Get statistics from the unified bridge."""
+        return self.unified_bridge.get_stats()
+
+        return task
+
     def generate_autonomous_goals(self) -> List[Dict[str, Any]]:
         """
         Generate autonomous goals from entropy analysis.
@@ -726,17 +761,36 @@ Ensure task numbering continues correctly.
         if not self._curiosity_enabled:
             return []
 
-        if self.entropy_mapper is None:
-            return []
+        all_goals = []
 
-        # Map entropy across codebase
-        spots = self.entropy_mapper.map_entropy()
+        # 1. Standard Codebase Entropy
+        if self.entropy_mapper is not None:
+            spots = self.entropy_mapper.map_entropy()
+            code_goals = self.goal_synthesizer.synthesize_batch(spots)
+            all_goals.extend(code_goals)
 
-        # Synthesize goals from entropy
-        goals = self.goal_synthesizer.synthesize_batch(spots)
+        # 2. Cognitive Brain Entropy
+        if self.enable_brain_evolution:
+            # Evaluate current brain fitness (simplified for goal generation)
+            try:
+                # Use a default prompt set for quick evaluation
+                fitness = evaluate_brain_fitness("tinystories_brain.rts.png", ["Once upon a time"])
+                # In a real scenario, we'd track latency from actual inference runs
+                latency = 150.0 # Placeholder
+                brain_goals = self.goal_synthesizer.synthesize_from_brain_metrics(
+                    fitness_score=fitness,
+                    latency_ms=latency,
+                    hot_sectors=["attention_layer_0"] # Placeholder
+                )
+                all_goals.extend(brain_goals)
+            except Exception as e:
+                logger.error(f"Failed to generate cognitive goals: {e}")
+
+        # Sort all goals by priority
+        all_goals.sort()
 
         # Convert to task format
-        return [g.to_task_dict() for g in goals]
+        return [g.to_task_dict() for g in all_goals]
 
     def get_structural_health(self) -> float:
         """
@@ -789,8 +843,8 @@ Ensure task numbering continues correctly.
         return result
 
     def _gravity_loop(self):
-        """Background thread for Tectonic gravity simulation."""
-        self.log("Tectonic gravity engine started")
+        """Background thread for Tectonic gravity simulation with unified bridge."""
+        self.log("Tectonic gravity engine started (unified bridge mode)")
         while self.running:
             try:
                 # Update Tectonic Updater (handles physics/saccade queue)
@@ -801,21 +855,27 @@ Ensure task numbering continues correctly.
                 updates = self.gravity_engine.get_updates()
                 ripples = self.gravity_engine.get_ripples()
 
-                if self.compositor:
-                    if updates:
-                        self.compositor.send_thought({
-                            "type": "GRAVITY_UPDATE",
-                            "updates": updates[:10], # Cap for bandwidth
-                            "timestamp": time.time()
-                        }, msg_type="Tectonic")
-                    
-                    if ripples:
-                        for ripple in ripples:
-                            self.compositor.send_thought({
-                                "type": "TECTONIC_RIPPLE",
-                                **ripple,
-                                "timestamp": time.time()
-                            }, msg_type="Tectonic")
+                # Use unified bridge for multi-stream output
+                if updates:
+                    self.unified_bridge.stream_gravity(updates[:10])
+
+                if ripples:
+                    for ripple in ripples:
+                        self.unified_bridge.stream_ripple(
+                            x=ripple.get("x", 0),
+                            y=ripple.get("y", 0),
+                            z=ripple.get("z", 0),
+                            force=ripple.get("force", 0),
+                            radius=ripple.get("radius", 0)
+                        )
+
+                # Periodic telemetry broadcast (every 5 cycles)
+                if int(time.time()) % 5 == 0:
+                    self.unified_bridge.stream_telemetry({
+                        "orb_count": len(self.gravity_engine.orbs),
+                        "ripple_count": len(ripples),
+                        "gravity_health": 1.0
+                    })
 
                 time.sleep(1.0) # 1Hz simulation update (can be faster if needed)
             except Exception as e:
@@ -829,6 +889,12 @@ Ensure task numbering continues correctly.
         checkpoint = self._handle_existing_checkpoint()
         if checkpoint:
             self.log(f"Resuming from checkpoint: task {checkpoint.get('task_id')}")
+
+        # Connect unified bridge for multi-stream output
+        if self.unified_bridge.connect():
+            self.log("Unified Glass Box Bridge connected")
+        else:
+            self.log("Warning: Unified bridge connection failed")
 
         # Start compositor heartbeat if enabled
         if self.enable_heartbeat and self.compositor:
@@ -881,3 +947,6 @@ Ensure task numbering continues correctly.
                 self.compositor.stop_heartbeat_loop()
                 self.compositor.disconnect()
                 self.log("Compositor connection closed")
+            # Disconnect unified bridge
+            self.unified_bridge.disconnect()
+            self.log("Unified Glass Box Bridge disconnected")
