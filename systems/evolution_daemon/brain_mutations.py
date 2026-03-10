@@ -140,66 +140,42 @@ def evaluate_brain_fitness(
     criteria: str = "coherence"
 ) -> float:
     """
-    Evaluate brain fitness on test cases.
+    Evaluate brain fitness using benchmark suite.
+
+    Now uses the benchmark module for more meaningful evaluation.
 
     Args:
         brain_path: Path to brain atlas
         test_prompts: Test prompts to evaluate
-        criteria: Fitness criteria
+        criteria: Fitness criteria (default: coherence)
 
     Returns:
         Fitness score (0-1)
     """
     try:
-        from systems.visual_shell.wgsl.pixel_brain_pipeline import PixelBrainPipeline
         from systems.visual_shell.api.pixel_brain_service import get_pixel_brain_service
+        from systems.evolution_daemon.brain_benchmarks import run_benchmark_suite
 
         service = get_pixel_brain_service()
 
         if not service.is_available():
+            logger.debug("PixelBrain service not available for fitness evaluation")
             return 0.0
 
-        # Run test prompts and evaluate outputs
-        total_score = 0.0
-
+        # Generate completions for all test prompts
+        completions = []
         for prompt in test_prompts:
             result = service.generate(prompt, max_tokens=10)
-            text = result.get('text', '')
+            completions.append(result.get('text', ''))
 
-            # Simple coherence check
-            score = _evaluate_coherence(text)
-            total_score += score
+        # Run benchmark suite on completions
+        results = run_benchmark_suite(completions)
 
-        return total_score / len(test_prompts)
+        return results.get('avg_coherence', 0.0)
 
     except Exception as e:
         logger.error(f"Fitness evaluation failed: {e}")
         return 0.0
-
-
-def _evaluate_coherence(text: str) -> float:
-    """Simple coherence evaluation."""
-    if not text or len(text) < 5:
-        return 0.0
-
-    # Check for basic coherence signals
-    score = 0.5
-
-    # Has spaces (word-like)
-    if ' ' in text:
-        score += 0.1
-
-    # Has common words
-    common = ['the', 'a', 'is', 'was', 'to', 'and']
-    for word in common:
-        if word in text.lower():
-            score += 0.05
-
-    # Not all same character
-    if len(set(text)) > 3:
-        score += 0.1
-
-    return min(1.0, score)
 
 
 # Evolution Daemon Integration

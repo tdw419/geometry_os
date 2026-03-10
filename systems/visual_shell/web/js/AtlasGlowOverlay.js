@@ -11,7 +11,7 @@
 // Default glow color (cyan for neural activity)
 const DEFAULT_GLOW_COLOR = 0x00FFFF;
 
-class AtlasGlowOverlay {
+export class AtlasGlowOverlay {
     /**
      * Create a new AtlasGlowOverlay.
      *

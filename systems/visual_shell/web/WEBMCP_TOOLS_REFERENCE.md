@@ -2,7 +2,7 @@
 
 Complete reference for all WebMCP tools available in Geometry OS Web Edition.
 
-**Total Tools: 98** | **Version: 2.2.0** | **Updated: 2026-02-15**
+**Total Tools: 109** | **Version: 2.4.0** | **Updated: March 9, 2026**
 
 ---
 
@@ -21,6 +21,9 @@ Complete reference for all WebMCP tools available in Geometry OS Web Edition.
    - [Phase M: AI PM Integration (5 tools)](#phase-m-ai-pm-integration)
    - [Phase N: AI-Assisted IDE Tools (4 tools)](#phase-n-ai-assisted-ide-tools)
    - [Phase O: AI PM Autonomous Tools (5 tools)](#phase-o-ai-pm-autonomous-tools)
+   - [Phase T: GeoASM Neural Assembly (4 tools)](#phase-t-geoasm-neural-assembly)
+   - [Phase S: Saccadic Optimization (3 tools)](#phase-s-saccadic-optimization)
+   - [Phase U: Tectonic Negotiation (4 tools)](#phase-u-tectonic-negotiation)
 3. [Usage Examples](#usage-examples)
 4. [Error Handling](#error-handling)
 
@@ -1008,6 +1011,140 @@ if (result.success) {
 
 ---
 
+### Phase T: GeoASM Neural Assembly
+
+Tools for assembling, disassembling, and executing GeoASM neural code.
+
+| Tool | Description |
+|------|-------------|
+| `geoasm_assemble` | Source code -> hex opcodes |
+| `geoasm_disassemble` | Hex opcodes -> source code |
+| `geoasm_execute` | Execute code on backend VM |
+| `geoasm_get_state` | Current VM state |
+
+#### geoasm_assemble
+
+Assemble GeoASM source code into executable hex opcodes.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `source` | string | Yes | GeoASM source code |
+
+#### geoasm_disassemble
+
+Disassemble hex opcodes back into GeoASM source code.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `opcodes` | string | Yes | Hexadecimal opcodes |
+
+#### geoasm_execute
+
+Execute GeoASM code on the backend virtual machine.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `opcodes` | string | Yes | Hexadecimal opcodes |
+| `cycles` | number | No | Max cycles to execute |
+
+#### geoasm_get_state
+
+Get the current state of the GeoASM virtual machine.
+
+**Returns:**
+```json
+{
+    "registers": [0, 0, 0, 0, 0, 0, 0, 0],
+    "pc": 0,
+    "memory_size": 1024,
+    "status": "idle"
+}
+```
+
+---
+
+### Phase S: Saccadic Optimization
+
+Tools for optimizing camera movement and viewport transitions using saccadic triggers.
+
+| Tool | Description |
+|------|-------------|
+| `saccadic_set_target` | Trigger camera jump |
+| `saccadic_get_stats` | Performance metrics |
+| `saccadic_configure` | Manager settings |
+
+#### saccadic_set_target
+
+Trigger a saccadic camera jump to a target coordinate.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `x` | number | Yes | Target X coordinate |
+| `y` | number | Yes | Target Y coordinate |
+| `zoom` | number | No | Target zoom level |
+
+#### saccadic_get_stats
+
+Get performance metrics for saccadic transitions.
+
+**Returns:**
+```json
+{
+    "avg_transition_time_ms": 12.5,
+    "cache_hit_rate": 0.98,
+    "total_jumps": 156
+}
+```
+
+#### saccadic_configure
+
+Configure the saccadic optimization manager.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `velocity_threshold` | number | No | Min velocity for jump |
+| `cache_size` | number | No | Saccadic cache size |
+
+### Phase U: Tectonic Negotiation
+
+Tools for multi-agent spatial negotiation and tectonic alignment.
+
+| Tool | Description |
+|------|-------------|
+| `tectonic_claim` | Submit a tectonic claim for a tile |
+| `tectonic_bid` | Submit a counter-bid on an existing claim |
+| `tectonic_settle` | Trigger settlement of a tectonic claim |
+| `tectonic_subscribe` | Subscribe to tectonic settlement notifications |
+
+#### tectonic_claim
+
+Submit a tectonic claim for a tile on the map.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `tile` | array | Yes | [x, y] coordinates |
+| `purpose` | string | Yes | Purpose of the claim |
+| `bid` | number | Yes | Amount to bid for the tile |
+| `agent_id` | string | Yes | ID of the agent making the claim |
+
+**Example:**
+```javascript
+await navigator.modelContext.callTool('tectonic_claim', {
+    tile: [42, 17],
+    purpose: 'Code Palace',
+    bid: 100,
+    agent_id: 'architect_agent'
+});
+```
+
+---
+
 ## Usage Examples
 
 ### Complete Workflow: Navigate and Build
@@ -1136,6 +1273,19 @@ if (!result.success) {
 ---
 
 ## Changelog
+
+### v2.4.0 (2026-03-09)
+- Added Phase U: Tectonic Negotiation (4 tools)
+- tectonic_claim, tectonic_bid, tectonic_settle, tectonic_subscribe
+- Integrated 3-phase auction system with force-directed resolution
+- Total tools: 109
+
+### v2.3.0 (2026-03-09)
+- Added Phase T: GeoASM Neural Assembly (4 tools)
+- Added Phase S: Saccadic Optimization (3 tools)
+- geoasm_assemble, geoasm_disassemble, geoasm_execute, geoasm_get_state
+- saccadic_set_target, saccadic_get_stats, saccadic_configure
+- Total tools: 105
 
 ### v2.2.0 (2026-02-15)
 - Added Phase O: AI PM Autonomous Tools (5 tools)

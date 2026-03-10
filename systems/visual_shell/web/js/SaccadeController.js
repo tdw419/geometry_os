@@ -5,7 +5,7 @@
  * using smooth ease-in-out interpolation.
  */
 
-class SaccadeController {
+export class SaccadeController {
     constructor(engine) {
         this.engine = engine;
         this.app = engine.config.app;

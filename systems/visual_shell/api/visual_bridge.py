@@ -1447,6 +1447,9 @@ async def websocket_ffi(websocket: WebSocket):
     await websocket.accept()
     logger = get_logger(f"{__name__}.ws_ffi")
 
+    # Add to visual broadcast list so engine receives visual events (Task 9.2)
+    multi_vm_streamer.active_websockets.add(websocket)
+
     if not ffi_bridge or not ffi_bridge._loaded:
         await websocket.send_json({"type": "error", "error": "FFI Bridge not initialized"})
         await websocket.close()

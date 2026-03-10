@@ -2372,6 +2372,145 @@ def cmd_verify(args):
         return 1
 
 
+def cmd_brain_status(args):
+    """
+    Handle brain status command - Show brain evolution status and mutation history.
+
+    Displays mutation statistics and recent evolution activity. If --json flag is set,
+    outputs machine-parseable JSON. Otherwise shows human-readable summary.
+    """
+    import json
+    import os
+
+    brain_path = args.brain
+
+    # Check if brain file exists
+    search_paths = [
+        brain_path,
+        f"systems/visual_shell/brains/{brain_path}",
+        f"brains/{brain_path}",
+        f".geometry/brains/{brain_path}"
+    ]
+
+    found_path = None
+    for path in search_paths:
+        if os.path.exists(path):
+            found_path = path
+            break
+
+    try:
+        from systems.evolution_daemon.evolution_hooks.brain_evolution_hook import BrainEvolutionHook
+
+        hook = BrainEvolutionHook(brain_path=brain_path)
+        stats = hook.get_mutation_stats()
+
+        if args.json:
+            output = {
+                "brain_path": found_path or brain_path,
+                "found": found_path is not None,
+                "stats": stats
+            }
+            print(json.dumps(output, indent=2))
+        else:
+            print(f"Brain Atlas: {found_path or brain_path}")
+            print(f"Status: {'Available' if found_path else 'Not Found'}")
+            print()
+
+            if stats["total"] == 0:
+                print("No mutations recorded yet.")
+                print()
+                print("Run 'pixelrts brain evolve' to trigger evolution.")
+            else:
+                print("Mutation Statistics:")
+                print(f"  Total Mutations:  {stats['total']}")
+                print(f"  Kept:             {stats['kept']}")
+                print(f"  Reverted:         {stats['reverted']}")
+                print(f"  Keep Rate:        {stats['keep_rate']*100:.1f}%")
+                if stats['avg_improvement'] > 0:
+                    print(f"  Avg Improvement:  {stats['avg_improvement']:.4f}")
+                print()
+                print(f"Sectors Mutated: {', '.join(stats['sectors_mutated'])}")
+
+        return 0
+
+    except ImportError as e:
+        print(f"Error: Brain evolution module not available: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: Failed to get brain status: {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_brain_evolve(args):
+    """
+    Handle brain evolve command - Trigger a brain evolution cycle.
+
+    Runs a single evolution cycle on the specified brain atlas sector,
+    evaluating fitness and keeping only beneficial mutations.
+    """
+    import asyncio
+    import json
+
+    brain_path = args.brain
+    sector = args.sector
+    mutation_rate = args.rate if args.rate > 0 else 0.01
+
+    try:
+        from systems.evolution_daemon.evolution_hooks.brain_evolution_hook import BrainEvolutionHook
+
+        hook = BrainEvolutionHook(
+            brain_path=brain_path,
+            mutation_rate=mutation_rate
+        )
+
+        async def run_evolution():
+            cycle_data = {
+                'evolve_brain': True,
+                'cycle_number': 1,
+                'sector': sector
+            }
+
+            result = await hook.on_evolution_cycle(cycle_data)
+            return result
+
+        result = asyncio.run(run_evolution())
+
+        if args.json:
+            output = {
+                "brain_path": brain_path,
+                "result": result
+            }
+            print(json.dumps(output, indent=2))
+        else:
+            if result.get('skipped'):
+                print(f"Evolution skipped: {result.get('reason', 'unknown')}")
+            elif result.get('error'):
+                print(f"Evolution failed: {result['error']}")
+            elif result.get('success'):
+                print("Evolution cycle completed:")
+                print(f"  Mutation Type:  {result.get('mutation_type', 'unknown')}")
+                if result.get('sector'):
+                    print(f"  Sector:         {result['sector']}")
+                if 'fitness_before' in result:
+                    print(f"  Fitness Before: {result['fitness_before']:.4f}")
+                if 'fitness_after' in result:
+                    print(f"  Fitness After:  {result['fitness_after']:.4f}")
+                if 'improvement' in result:
+                    print(f"  Improvement:    {result['improvement']:+.4f}")
+                print(f"  Kept:           {'Yes' if result.get('kept') else 'No'}")
+            else:
+                print(f"Evolution result: {result}")
+
+        return 0 if result.get('success') or result.get('skipped') else 1
+
+    except ImportError as e:
+        print(f"Error: Brain evolution module not available: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: Evolution failed: {e}", file=sys.stderr)
+        return 1
+
+
 def cmd_mesh_status(args):
     """
     Handle mesh status command - Show mesh network status.
@@ -3203,6 +3342,52 @@ Examples:
     )
     mesh_discover_parser.set_defaults(func=cmd_mesh_discover)
 
+    # Brain evolution commands
+    brain_parser = subparsers.add_parser(
+        'brain',
+        help='Brain evolution operations'
+    )
+    brain_subparsers = brain_parser.add_subparsers(dest='brain_command', help='Brain commands')
+
+    # brain status
+    brain_status_parser = brain_subparsers.add_parser(
+        'status',
+        help='Show brain evolution status and mutation history'
+    )
+    brain_status_parser.add_argument(
+        '--brain',
+        default='tinystories_brain.rts.png',
+        help='Brain atlas path'
+    )
+    brain_status_parser.add_argument(
+        '--json',
+        action='store_true',
+        help='Output as JSON'
+    )
+    brain_status_parser.set_defaults(func=cmd_brain_status)
+
+    # brain evolve
+    brain_evolve_parser = brain_subparsers.add_parser(
+        'evolve',
+        help='Trigger a brain evolution cycle'
+    )
+    brain_evolve_parser.add_argument(
+        '--brain',
+        default='tinystories_brain.rts.png',
+        help='Brain atlas path'
+    )
+    brain_evolve_parser.add_argument(
+        '--sector',
+        help='Specific sector to mutate (embeddings, attention_layer_0, etc.)'
+    )
+    brain_evolve_parser.add_argument(
+        '--rate',
+        type=float,
+        default=0.0,
+        help='Mutation rate (0.0-1.0)'
+    )
+    brain_evolve_parser.set_defaults(func=cmd_brain_evolve)
+
     args = parser.parse_args()
 
     if not args.command:
@@ -3234,6 +3419,7 @@ Examples:
         'blueprint': lambda args: _dispatch_blueprint(args),
         'verify': cmd_verify,
         'mesh': lambda args: _dispatch_mesh(args),
+        'brain': lambda args: _dispatch_brain(args),
     }
 
     handler = handlers.get(args.command)
@@ -3291,6 +3477,30 @@ def _dispatch_snapshot(args):
     }
 
     handler = snapshot_handlers.get(args.snapshot_command)
+    if handler:
+        return handler(args)
+
+    return 1
+
+
+def _dispatch_brain(args):
+    """Dispatch brain subcommands to their handlers."""
+    if not args.brain_command:
+        # Show brain help if no subcommand provided
+        import argparse
+        parser = argparse.ArgumentParser(prog='pixelrts brain')
+        subparsers = parser.add_subparsers(dest='brain_command', help='Brain command to run')
+        subparsers.add_parser('status', help='Show brain evolution status and mutation history')
+        subparsers.add_parser('evolve', help='Trigger a brain evolution cycle')
+        parser.print_help()
+        return 1
+
+    brain_handlers = {
+        'status': cmd_brain_status,
+        'evolve': cmd_brain_evolve
+    }
+
+    handler = brain_handlers.get(args.brain_command)
     if handler:
         return handler(args)
 

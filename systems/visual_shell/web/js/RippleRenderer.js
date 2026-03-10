@@ -5,7 +5,7 @@
  * and imploding orange rings for void collapse (deletion).
  */
 
-class RippleRenderer {
+export class RippleRenderer {
     constructor(app, layer) {
         this.app = app;
         this.layer = layer;

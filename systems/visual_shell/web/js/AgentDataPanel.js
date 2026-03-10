@@ -10,7 +10,7 @@
  * - Substrate View: RTS texture preview of the agent's code
  * - Communication Log: Inbound/outbound messages with direction arrows
  */
-class AgentDataPanel {
+export class AgentDataPanel {
     constructor() {
         this.data = {
             stability: { pas: 1.0, state: 'stable' },

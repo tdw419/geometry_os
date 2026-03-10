@@ -118,11 +118,11 @@ class GeoASMCartridgeWriter:
 
     def _create_image(self, pixels: np.ndarray, grid_size: int) -> np.ndarray:
         """
-        Create image array with pixel placement.
+        Create image array with Hilbert-ordered pixel placement.
 
         Args:
             pixels: Instruction pixels (n, 4)
-            grid_size: Grid dimensions
+            grid_size: Grid dimensions (must be power of 2)
 
         Returns:
             Image array (grid_size, grid_size, 4)
@@ -130,16 +130,49 @@ class GeoASMCartridgeWriter:
         # Create empty image
         image = np.zeros((grid_size, grid_size, 4), dtype=np.uint8)
 
-        # Place pixels in row-major order
-        n_pixels = len(pixels)
+        # Place pixels using Hilbert curve
         for i, pixel in enumerate(pixels):
             if i >= grid_size * grid_size:
                 break
-            x = i % grid_size
-            y = i // grid_size
+            
+            x, y = self._index_to_hilbert(i, grid_size)
             image[y, x] = pixel
 
         return image
+
+    def _index_to_hilbert(self, index: int, n: int) -> tuple:
+        """
+        Convert 1D index to 2D Hilbert coordinates.
+        
+        Args:
+            index: Hilbert index
+            n: Grid size (power of 2)
+            
+        Returns:
+            (x, y) coordinates
+        """
+        x = 0
+        y = 0
+        t = index
+        s = 1
+        while s < n:
+            rx = 1 & (t // 2)
+            ry = 1 & (t ^ rx)
+            x, y = self._hilbert_rot(s, x, y, rx, ry)
+            x += s * rx
+            y += s * ry
+            t //= 4
+            s *= 2
+        return x, y
+
+    def _hilbert_rot(self, n: int, x: int, y: int, rx: int, ry: int) -> tuple:
+        """Rotate/flip quadrant for Hilbert curve."""
+        if ry == 0:
+            if rx == 1:
+                x = n - 1 - x
+                y = n - 1 - y
+            return y, x
+        return x, y
 
     def _save_png(self, image: np.ndarray, output_path: str) -> None:
         """Save image as PNG."""

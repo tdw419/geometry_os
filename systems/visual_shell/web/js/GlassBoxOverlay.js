@@ -9,7 +9,10 @@
  * - Control actions via AgentController
  * - Configurable width
  */
-class GlassBoxOverlay {
+import { AgentDataPanel } from './AgentDataPanel.js';
+import { AgentController } from './AgentController.js';
+
+export class GlassBoxOverlay {
     constructor(config = {}) {
         this.config = {
             width: config.width || 400,

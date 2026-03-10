@@ -164,7 +164,7 @@ class NeuralPulse {
 /**
  * NeuralPulseSystem - Manages pulse creation, animation, and rendering.
  */
-class NeuralPulseSystem {
+export class NeuralPulseSystem {
     /**
      * @param {Object} config - System configuration
      * @param {Object} config.app - PIXI Application instance (optional)

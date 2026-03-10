@@ -11,7 +11,7 @@ const BAR_WIDTH = 20;  // Width of probability bars
 const BAR_MAX_HEIGHT = 100;  // Maximum height of probability bars
 const BAR_SPACING = 4;  // Spacing between bars
 
-class AttentionVisualizer {
+export class AttentionVisualizer {
     /**
      * Create a new AttentionVisualizer.
      *

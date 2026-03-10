@@ -7,7 +7,7 @@
  * Task 3: Create AgentController with 4 actions
  * Task 5: Add Clone button for substrate cloning
  */
-class AgentController {
+export class AgentController {
     constructor(config = {}) {
         this.config = {
             ...config

@@ -24,7 +24,7 @@ const ROLE_TO_DISTRICT = {
     'hypervisor': 'substrate'
 };
 
-class CityOrchestrator {
+export class CityOrchestrator {
     constructor(config = {}) {
         this.config = {
             centerRadius: 200,

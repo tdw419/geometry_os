@@ -91,7 +91,7 @@ class LiveTile {
 /**
  * LiveTileManager - Manages live tile instances via WebSocket bridge.
  */
-class LiveTileManager {
+export class LiveTileManager {
     constructor(wsUrl = 'ws://localhost:8768') {
         this.wsUrl = wsUrl;
         this.ws = null;

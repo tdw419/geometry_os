@@ -21,7 +21,7 @@ const GLYPH_LIFETIME_MS = 3000;  // 3 seconds
 const GLYPH_START_SIZE = 32;
 const GLYPH_END_SIZE = 8;
 
-class ThoughtVisualizer {
+export class ThoughtVisualizer {
     /**
      * Create a new ThoughtVisualizer.
      *

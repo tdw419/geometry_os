@@ -4,7 +4,7 @@
  * Provides a pub/sub interface for real-time telemetry data from the
  * Evolution Daemon, with WebSocket integration for live updates.
  */
-class TelemetryBus {
+export class TelemetryBus {
     constructor(wsUrl = 'ws://localhost:8768') {
         this.wsUrl = wsUrl;
         this.ws = null;

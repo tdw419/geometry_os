@@ -236,12 +236,13 @@ class PixelBrainPipeline:
         )
         logger.info(f"Created attention output buffer: {attention_buffer_size} bytes")
 
-        # 6. KV-Cache (Dummy for now as it's not used in current shaders)
+        # 6. KV-Cache Texture (1024x1024 RGBA32Float)
         self.textures["kv_cache"] = self.device.create_texture(
-            size=(64, 64, 1), # Small dummy size
-            usage=wgpu.TextureUsage.TEXTURE_BINDING,
+            size=(MAX_SEQ_LEN, 1024, 1),
+            usage=wgpu.TextureUsage.STORAGE_BINDING | wgpu.TextureUsage.TEXTURE_BINDING,
             format=wgpu.TextureFormat.rgba32float,
         )
+        logger.info(f"Created KV-Cache texture: {MAX_SEQ_LEN}x1024")
 
     def _create_pipelines(self):
         """Compile WGSL shaders into pipelines."""
@@ -261,11 +262,62 @@ class PixelBrainPipeline:
         self.pipelines["embed"] = create_comp_pipeline("pixel_brain_embed")
         self.pipelines["attend"] = create_comp_pipeline("pixel_brain_attention")
         self.pipelines["project"] = create_comp_pipeline("pixel_brain_project")
+        self.pipelines["kv_append"] = create_comp_pipeline("kv_append")
 
         # Sample shader has multiple entry points
         self.pipelines["sample_logits"] = create_comp_pipeline("pixel_brain_sample", "compute_logits")
         self.pipelines["sample_greedy"] = create_comp_pipeline("pixel_brain_sample", "sample_greedy")
         self.pipelines["sample_stochastic"] = create_comp_pipeline("pixel_brain_sample", "sample")
+
+    def kv_append_gpu(self, layer: int, position: int, hidden: np.ndarray, kv_type: int = 0):
+        """
+        Append a vector (K or V) to the persistent GPU KV-cache.
+        
+        Args:
+            layer: Transformer layer (0-7)
+            position: Sequence position (0-1023)
+            hidden: Vector data (64-dim)
+            kv_type: 0 for Key, 1 for Value
+        """
+        if not self._wgpu_initialized:
+            return
+
+        # 1. Update temporary vector buffer (reuse RNG buffer or similar, or create new)
+        # Better: Hidden state buffer R2 is usually where the vector is.
+        # But for this API, we upload from CPU for now.
+        temp_buffer = self.device.create_buffer(
+            size=hidden.nbytes, 
+            usage=wgpu.BufferUsage.STORAGE | wgpu.BufferUsage.COPY_DST
+        )
+        self.device.queue.write_buffer(temp_buffer, 0, hidden.astype(np.float32))
+
+        # 2. Update KV Config
+        # struct KVConfig { layer_idx: u32, position: u32, kv_type: u32, _pad: u32 }
+        config_data = np.array([layer, position, kv_type, 0], dtype=np.uint32)
+        config_buffer = self.device.create_buffer(size=16, usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST)
+        self.device.queue.write_buffer(config_buffer, 0, config_data)
+
+        # 3. Create bind group
+        bind_group = self.device.create_bind_group(
+            layout=self.pipelines["kv_append"].get_bind_group_layout(0),
+            entries=[
+                {"binding": 0, "resource": {"buffer": config_buffer, "offset": 0, "size": 16}},
+                {"binding": 1, "resource": {"buffer": temp_buffer, "offset": 0, "size": temp_buffer.size}},
+                {"binding": 2, "resource": self.textures["kv_cache"].create_view()},
+            ],
+        )
+
+        # 4. Dispatch
+        encoder = self.device.create_command_encoder()
+        pass_compute = encoder.begin_compute_pass()
+        pass_compute.set_pipeline(self.pipelines["kv_append"])
+        pass_compute.set_bind_group(0, bind_group)
+        pass_compute.dispatch_workgroups(1) # 16 threads in one workgroup
+        pass_compute.end()
+        self.device.queue.submit([encoder.finish()])
+
+        logger.debug(f"KV_APPEND: layer={layer} pos={position} type={'K' if kv_type==0 else 'V'}")
+
 
     def embed_token(self, token_id: int, position: int = 0) -> np.ndarray:
         """

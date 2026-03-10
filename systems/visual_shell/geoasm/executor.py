@@ -171,9 +171,30 @@ class Executor:
         logger.debug(f"LAYER: now at layer {self.current_layer}")
 
     def _exec_kv_append(self, inst: Instruction) -> None:
-        """KV_APPEND R6: Update KV-cache."""
-        # Future: implement KV-cache management
-        logger.debug(f"KV_APPEND: position={self.position}")
+        """KV_APPEND R2, #0: Update KV-cache (0=K, 1=V)."""
+        # Vector must be in R2, R3, or R4
+        try:
+            hidden = self.registers.get_vector(inst.rs)
+        except ValueError:
+            # Fallback for scalar registers (not recommended but for robustness)
+            hidden = np.zeros(64, dtype=np.float32)
+            hidden[0] = self.registers.get(inst.rs)
+
+        kv_type = inst.imm
+
+        # Call pipeline KV append
+        if hasattr(self.pipeline, 'kv_append_gpu'):
+            self.pipeline.kv_append_gpu(
+                layer=self.current_layer,
+                position=self.position,
+                hidden=hidden,
+                kv_type=kv_type
+            )
+        
+        logger.debug(
+            f"KV_APPEND: R{inst.rs} as {'K' if kv_type==0 else 'V'} "
+            f"(layer={self.current_layer}, pos={self.position})"
+        )
 
     def _exec_thought_pulse(self, inst: Instruction) -> None:
         """THOUGHT_PULSE R5: Emit visual glyph."""

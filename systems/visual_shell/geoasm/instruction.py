@@ -74,7 +74,8 @@ class Instruction:
         elif self.opcode == Opcode.LAYER:
             return f"LAYER #{self.imm}"
         elif self.opcode == Opcode.KV_APPEND:
-            return f"KV_APPEND R{self.rs}"
+            type_name = "K" if self.imm == 0 else "V"
+            return f"KV_APPEND R{self.rs}, #{self.imm} ({type_name})"
         elif self.opcode == Opcode.THOUGHT_PULSE:
             return f"THOUGHT_PULSE R{self.rs}"
         else:
@@ -107,9 +108,9 @@ def LAYER(layer_idx: int) -> Instruction:
     return Instruction(Opcode.LAYER, imm=layer_idx)
 
 
-def KV_APPEND(ctrl_reg: int = 6) -> Instruction:
-    """Create KV_APPEND instruction."""
-    return Instruction(Opcode.KV_APPEND, rs=ctrl_reg)
+def KV_APPEND(vector_reg: int, kv_type: int = 0) -> Instruction:
+    """Create KV_APPEND instruction: vector_reg → cache[type] (0=K, 1=V)."""
+    return Instruction(Opcode.KV_APPEND, rs=vector_reg, imm=kv_type)
 
 
 def THOUGHT_PULSE(token_reg: int) -> Instruction:

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Geometry OS Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 16px;
+            padding: 16px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .panel {
+            background: #1a1a2e;
+            border: 1px solid #2a2a4a;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .panel h2 {
+            color: #00f0ff;
+            margin-bottom: 12px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        .stat {
+            background: #0f0f1a;
+            padding: 12px;
+            border-radius: 4px;
+        }
+        .stat-label {
+            font-size: 10px;
+            color: #6a6a8a;
+            text-transform: uppercase;
+        }
+        .stat-value {
+            font-size: 24px;
+            color: #00f0ff;
+            font-weight: bold;
+        }
+        .agent-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .agent-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #2a2a4a;
+        }
+        .agent-item:last-child { border-bottom: none; }
+        .agent-name { color: #fff; }
+        .agent-wins { color: #00ff88; }
+        .agent-budget { color: #ff6b35; font-size: 12px; }
+        .district-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        .district-card {
+            background: #0f0f1a;
+            padding: 12px;
+            border-radius: 4px;
+            border-left: 3px solid;
+        }
+        .district-card.high-cohesion { border-color: #00f0ff; }
+        .district-card.low-cohesion { border-color: #4a4a4a; }
+        .district-card.conflict { border-color: #ff3333; }
+        .district-name { font-weight: bold; margin-bottom: 4px; }
+        .district-stats { font-size: 11px; color: #6a6a8a; }
+        .heatmap-container {
+            width: 100%;
+            aspect-ratio: 1;
+            background: #0f0f1a;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #3a3a4a;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-connected { background: #00ff88; }
+        .status-disconnected { background: #ff3333; }
+        .header {
+            padding: 16px;
+            text-align: center;
+            border-bottom: 1px solid #2a2a4a;
+        }
+        .header h1 {
+            font-size: 24px;
+            background: linear-gradient(90deg, #00f0ff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .connection-status {
+            font-size: 12px;
+            color: #6a6a8a;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>GEOMETRY OS</h1>
+        <div class="connection-status">
+            <span class="status-indicator" id="status-dot"></span>
+            <span id="connection-text">Connecting...</span>
+        </div>
+    </div>
+
+    <div class="dashboard">
+        <!-- System Stats -->
+        <div class="panel">
+            <h2>System Stats</h2>
+            <div class="stats-grid">
+                <div class="stat">
+                    <div class="stat-label">Agents</div>
+                    <div class="stat-value" id="agent-count">0</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Districts</div>
+                    <div class="stat-value" id="district-count">0</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Claims</div>
+                    <div class="stat-value" id="claim-count">0</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Settlements</div>
+                    <div class="stat-value" id="settlement-count">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Agents -->
+        <div class="panel">
+            <h2>Top Agents</h2>
+            <div class="agent-list" id="agent-list">
+                <div style="color: #3a3a4a; text-align: center; padding: 20px;">
+                    No agents connected
+                </div>
+            </div>
+        </div>
+
+        <!-- Districts -->
+        <div class="panel" style="grid-column: span 2;">
+            <h2>Neural Districts</h2>
+            <div class="district-grid" id="district-grid">
+                <div style="color: #3a3a4a; text-align: center; padding: 20px; grid-column: span 3;">
+                    No districts formed
+                </div>
+            </div>
+        </div>
+
+        <!-- Heatmap -->
+        <div class="panel" style="grid-column: span 2;">
+            <h2>Territory Heatmap</h2>
+            <div class="heatmap-container" id="heatmap">
+                [Visualization Loading...]
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const statusDot = document.getElementById('status-dot');
+        const connectionText = document.getElementById('connection-text');
+        const agentCount = document.getElementById('agent-count');
+        const districtCount = document.getElementById('district-count');
+        const claimCount = document.getElementById('claim-count');
+        const settlementCount = document.getElementById('settlement-count');
+        const agentList = document.getElementById('agent-list');
+        const districtGrid = document.getElementById('district-grid');
+
+        let ws = null;
+
+        function connect() {
+            ws = new WebSocket('ws://localhost:8773');
+
+            ws.onopen = () => {
+                statusDot.className = 'status-indicator status-connected';
+                connectionText.textContent = 'Connected to District Server';
+                ws.send(JSON.stringify({type: 'get_districts'}));
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+
+            ws.onclose = () => {
+                statusDot.className = 'status-indicator status-disconnected';
+                connectionText.textContent = 'Disconnected - Reconnecting...';
+                setTimeout(connect, 3000);
+            };
+
+            ws.onerror = () => {
+                statusDot.className = 'status-indicator status-disconnected';
+                connectionText.textContent = 'Connection failed - Retrying...';
+                setTimeout(connect, 3000);
+            };
+        }
+
+        function handleMessage(data) {
+            if (data.type === 'districts') {
+                updateDistricts(data.districts);
+            } else if (data.type === 'district_formed') {
+                addDistrict(data.district);
+            } else if (data.type === 'stats') {
+                updateStats(data);
+            }
+        }
+
+        function updateDistricts(districts) {
+            districtCount.textContent = districts.length;
+
+            districtGrid.innerHTML = districts.map(d => `
+                <div class="district-card ${d.state?.toLowerCase() || 'low-cohesion'}">
+                    <div class="district-name">${d.name || d.plate_id}</div>
+                    <div class="district-stats">
+                        ${d.agents?.length || 0} agents |
+                        Cohesion: ${((d.cohesion || 0) * 100).toFixed(0)}%
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addDistrict(district) {
+            districtCount.textContent = parseInt(districtCount.textContent) + 1;
+        }
+
+        function updateStats(stats) {
+            if (stats.agent_count) agentCount.textContent = stats.agent_count;
+            if (stats.claim_count) claimCount.textContent = stats.claim_count;
+            if (stats.settlement_count) settlementCount.textContent = stats.settlement_count;
+            if (stats.top_agents) {
+                agentList.innerHTML = stats.top_agents.map(a => `
+                    <div class="agent-item">
+                        <span class="agent-name">${a.id}</span>
+                        <span class="agent-wins">${a.wins} wins</span>
+                        <span class="agent-budget">${a.budget}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Start connection
+        connect();
+
+        // Periodic stats update
+        setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({type: 'get_stats'}));
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

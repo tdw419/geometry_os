@@ -11,7 +11,19 @@
  * Phase 7: FFI Bridge Integration for CV/Analysis
  */
 
-class NeuralCityEngine {
+import { TelemetryBus } from './TelemetryBus.js';
+import { CityOrchestrator } from './CityOrchestrator.js';
+import { InstancedCityMesh } from './InstancedCityMesh.js';
+import { GlassBoxOverlay } from './GlassBoxOverlay.js';
+import { LiveTileManager } from './LiveTileManager.js';
+import { ThoughtVisualizer } from './ThoughtVisualizer.js';
+import { AttentionVisualizer } from './AttentionVisualizer.js';
+import { AtlasGlowOverlay } from './AtlasGlowOverlay.js';
+import { NeuralPulseSystem } from './NeuralPulseSystem.js';
+import { RippleRenderer } from './RippleRenderer.js';
+import { SaccadeController } from './SaccadeController.js';
+
+export class NeuralCityEngine {
     constructor(config = {}) {
         this.config = {
             wsUrl: config.wsUrl || 'ws://localhost:8768',
@@ -72,6 +84,12 @@ class NeuralCityEngine {
         // Thought Visualizer for PixelBrain (Phase 2, Task 6.3)
         this.thoughtVisualizer = null;
 
+        // Attention Visualizer for Glass Box (Task 9.2)
+        this.attentionVisualizer = null;
+
+        // Atlas Glow Overlay for weight inspection (Task 4)
+        this.atlasGlow = null;
+
         // Ripple Renderer for Tectonic Physics (Phase 28)
         this.rippleRenderer = null;
 
@@ -98,6 +116,18 @@ class NeuralCityEngine {
         if (typeof ThoughtVisualizer !== 'undefined' && this.config.app) {
             this.thoughtVisualizer = new ThoughtVisualizer(this.config.app, this.particleLayer);
             console.log('[Engine] ThoughtVisualizer initialized');
+        }
+
+        // Initialize Attention Visualizer (Task 9.2)
+        if (typeof AttentionVisualizer !== 'undefined' && this.config.app) {
+            this.attentionVisualizer = new AttentionVisualizer(this.config.app, this.particleLayer);
+            console.log('[Engine] AttentionVisualizer initialized');
+        }
+
+        // Initialize Atlas Glow Overlay (Task 4)
+        if (typeof AtlasGlowOverlay !== 'undefined' && this.config.app) {
+            this.atlasGlow = new AtlasGlowOverlay(this.config.app, { atlasSize: 1024 });
+            console.log('[Engine] AtlasGlowOverlay initialized');
         }
 
         // Initialize Ripple Renderer (Phase 28)
@@ -172,6 +202,16 @@ class NeuralCityEngine {
         } else if (response.type === 'THOUGHT_PULSE') {
             // Route THOUGHT_PULSE messages to visualizer (Phase 2, Task 6.3)
             this._handleThoughtPulse(response);
+        } else if (response.type === 'ATTENTION_UPDATE') {
+            // Route ATTENTION_UPDATE to AttentionVisualizer (Task 9.2)
+            if (this.attentionVisualizer) {
+                this.attentionVisualizer.renderAttention(response);
+            }
+        } else if (response.type === 'ATLAS_GLOW') {
+            // Route ATLAS_GLOW to AtlasGlowOverlay (Task 4)
+            if (this.atlasGlow) {
+                this.atlasGlow.handleGlow(response);
+            }
         } else if (response.type === 'TECTONIC_RIPPLE') {
             // Route TECTONIC_RIPPLE messages to ripple renderer (Phase 28)
             this._handleTectonicRipple(response);

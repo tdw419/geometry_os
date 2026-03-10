@@ -161,7 +161,7 @@ class GeoASMCartridgeReader:
 
     def _extract_pixels(self, image: np.ndarray, instruction_count: int) -> np.ndarray:
         """
-        Extract pixels from image in row-major order.
+        Extract pixels from image in Hilbert-ordered placement.
 
         Args:
             image: Image array (height, width, 4)
@@ -173,12 +173,46 @@ class GeoASMCartridgeReader:
         height, width, _ = image.shape
         pixels = []
 
+        # Hilbert extraction
         for i in range(instruction_count):
             if i >= height * width:
                 break
 
-            x = i % width
-            y = i // width
+            x, y = self._index_to_hilbert(i, width)
             pixels.append(image[y, x])
 
         return np.array(pixels, dtype=np.uint8)
+
+    def _index_to_hilbert(self, index: int, n: int) -> tuple:
+        """
+        Convert 1D index to 2D Hilbert coordinates.
+        
+        Args:
+            index: Hilbert index
+            n: Grid size (power of 2)
+            
+        Returns:
+            (x, y) coordinates
+        """
+        x = 0
+        y = 0
+        t = index
+        s = 1
+        while s < n:
+            rx = 1 & (t // 2)
+            ry = 1 & (t ^ rx)
+            x, y = self._hilbert_rot(s, x, y, rx, ry)
+            x += s * rx
+            y += s * ry
+            t //= 4
+            s *= 2
+        return x, y
+
+    def _hilbert_rot(self, n: int, x: int, y: int, rx: int, ry: int) -> tuple:
+        """Rotate/flip quadrant for Hilbert curve."""
+        if ry == 0:
+            if rx == 1:
+                x = n - 1 - x
+                y = n - 1 - y
+            return y, x
+        return x, y
