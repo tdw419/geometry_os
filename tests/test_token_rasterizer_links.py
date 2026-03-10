@@ -48,7 +48,7 @@ class TestTokenChainTracking:
         assert second_calls >= first_calls + 2
 
     def test_link_contains_previous_position(self):
-        """Test TOKEN_LINK contains previous token position."""
+        """Test TOKEN_LINK_3D contains previous token position."""
         rasterizer = TokenRasterizer()
         mock_bridge = Mock()
         rasterizer.bridge = mock_bridge
@@ -56,9 +56,9 @@ class TestTokenChainTracking:
         rasterizer.process_token("alpha")
         rasterizer.process_token("beta")
 
-        # Check that a TOKEN_LINK was sent
+        # Check that a TOKEN_LINK_3D was sent
         calls = mock_bridge.send_thought.call_args_list
-        link_calls = [c for c in calls if c[0][0].get("type") == "TOKEN_LINK"]
+        link_calls = [c for c in calls if c[0][0].get("type") == "TOKEN_LINK_3D"]
 
         assert len(link_calls) >= 1
 
@@ -77,7 +77,7 @@ class TestTokenChainTracking:
         rasterizer.process_token("first_token")
 
         calls = mock_bridge.send_thought.call_args_list
-        link_calls = [c for c in calls if c[0][0].get("type") == "TOKEN_LINK"]
+        link_calls = [c for c in calls if c[0][0].get("type") == "TOKEN_LINK_3D"]
 
         assert len(link_calls) == 0
 
@@ -96,7 +96,7 @@ class TestTokenLinkColors:
         rasterizer.process_token("value") # identifier - white
 
         calls = mock_bridge.send_thought.call_args_list
-        link_calls = [c for c in calls if c[0][0].get("type") == "TOKEN_LINK"]
+        link_calls = [c for c in calls if c[0][0].get("type") == "TOKEN_LINK_3D"]
 
         if len(link_calls) >= 1:
             link_data = link_calls[0][0][0]
