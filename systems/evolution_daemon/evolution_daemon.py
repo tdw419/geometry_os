@@ -33,6 +33,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import traceback
 
+# NumPy for brain atlas manipulation
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except ImportError:
+    HAS_NUMPY = False
+    np = None
+
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -402,7 +410,7 @@ class EvolutionDaemon:
     6. Visualizes progress on the PixiJS map
     """
 
-    def __init__(self, api_key: Optional[str] = None, ws_url: str = "ws://localhost:8765"):
+    def __init__(self, api_key: Optional[str] = None, ws_url: str = "ws://localhost:8765", brain_atlas: np.ndarray = None):
         # Initialize Z.ai Integration (our new brain)
         self.zai = ZAIIntegration(api_key=api_key) if HAS_ZAI else None
         self.vfs = VirtualFileSystem()
@@ -410,6 +418,12 @@ class EvolutionDaemon:
         # Visual interface (WebMCP connection to PixiJS)
         self.webmcp = WebMCPClient(ws_url=ws_url)
         self.visual_connected = False
+
+        # Weight mutation support for brain evolution
+        self.brain_atlas = brain_atlas
+        self.weight_mutator = None
+        if brain_atlas is not None:
+            self._init_weight_mutator()
 
         # Optional: Timeline tracking (if append-only components available)
         if HAS_APPEND_ONLY:
@@ -504,6 +518,146 @@ class EvolutionDaemon:
             logger.info("Brain evolution hook registered successfully")
         except Exception as e:
             logger.warning(f"Brain evolution hook registration failed: {e}")
+
+    def _init_weight_mutator(self):
+        """Initialize weight mutation capability."""
+        if not HAS_NUMPY:
+            logger.warning("NumPy not available, skipping weight mutator initialization")
+            return
+
+        if self.brain_atlas is None:
+            logger.debug("No brain atlas provided, weight mutator not initialized")
+            return
+
+        try:
+            from systems.evolution_daemon.weight_mutator import WeightMutator
+            self.weight_mutator = WeightMutator(self.brain_atlas)
+            logger.info(f"Weight mutator initialized with atlas shape {self.brain_atlas.shape}")
+        except ImportError:
+            logger.warning("WeightMutator not available")
+            self.weight_mutator = None
+        except Exception as e:
+            logger.error(f"Failed to initialize weight mutator: {e}")
+            self.weight_mutator = None
+
+    def propose_weight_mutation(
+        self,
+        sector: str,
+        mutation_type: str,
+        intensity: float,
+        reason: str
+    ) -> dict:
+        """
+        Propose a mutation to the brain's weight atlas.
+
+        Args:
+            sector: Named sector (e.g., "attention_layer_0", "embeddings")
+            mutation_type: "radiation", "crossover", "noise"
+            intensity: 0-1 scale
+            reason: Why this mutation is proposed
+
+        Returns:
+            {"status": "proposed"|"applied"|"rejected", "mutation_id": str, ...}
+        """
+        if self.weight_mutator is None:
+            return {
+                "status": "rejected",
+                "reason": "Weight mutator not initialized"
+            }
+
+        # Resolve sector to Hilbert bounds
+        bounds = self._resolve_sector_bounds(sector)
+        if bounds is None:
+            return {
+                "status": "rejected",
+                "reason": f"Unknown sector: {sector}"
+            }
+
+        # Build mutation config
+        config = {
+            "hilbert_start": bounds["start"],
+            "hilbert_end": bounds["end"],
+            "mutation_type": mutation_type,
+            "intensity": intensity
+        }
+
+        # Add source sector for crossover
+        if mutation_type == "crossover":
+            # Select a random source sector (different from target)
+            all_sectors = list(self._get_sector_mapping().keys())
+            all_sectors.remove(sector)
+            if all_sectors:
+                source_sector = np.random.choice(all_sectors)
+                source_bounds = self._resolve_sector_bounds(source_sector)
+                config["source_sector"] = source_bounds["start"]
+
+        try:
+            # Apply mutation
+            mutated_atlas, record = self.weight_mutator.mutate_sector(config)
+
+            # Update daemon's brain atlas reference
+            self.brain_atlas = mutated_atlas
+
+            # Reinitialize weight mutator with new atlas
+            self.weight_mutator = WeightMutator(self.brain_atlas)
+
+            logger.info(
+                f"Weight mutation applied: sector={sector}, type={mutation_type}, "
+                f"id={record.mutation_id}, reason={reason}"
+            )
+
+            return {
+                "status": "applied",
+                "mutation_id": record.mutation_id,
+                "sector": sector,
+                "mutation_type": mutation_type,
+                "intensity": intensity,
+                "pixels_affected": record.pixels_affected,
+                "reason": reason
+            }
+
+        except Exception as e:
+            logger.error(f"Weight mutation failed: {e}")
+            return {
+                "status": "rejected",
+                "reason": str(e)
+            }
+
+    def _resolve_sector_bounds(self, sector: str) -> Optional[dict]:
+        """Map sector name to Hilbert bounds."""
+        sector_mapping = self._get_sector_mapping()
+
+        if sector not in sector_mapping:
+            logger.warning(f"Unknown sector: {sector}")
+            return None
+
+        return sector_mapping[sector]
+
+    def _get_sector_mapping(self) -> Dict[str, Dict[str, int]]:
+        """
+        Get mapping of sector names to Hilbert bounds.
+
+        This is a simplified mapping for a 64x64 atlas (4096 total indices).
+        Adjust based on actual brain architecture.
+        """
+        if self.brain_atlas is None:
+            return {}
+
+        grid_size = self.brain_atlas.shape[0]  # Assuming square atlas
+        total_indices = grid_size * grid_size
+
+        # Simple sector划分 - adjust based on actual model architecture
+        sectors = {
+            "embeddings": {"start": 0, "end": total_indices // 8},
+            "attention_layer_0": {"start": total_indices // 8, "end": total_indices // 4},
+            "attention_layer_1": {"start": total_indices // 4, "end": 3 * total_indices // 8},
+            "ffn_layer_0": {"start": 3 * total_indices // 8, "end": total_indices // 2},
+            "ffn_layer_1": {"start": total_indices // 2, "end": 5 * total_indices // 8},
+            "lm_head": {"start": 5 * total_indices // 8, "end": 3 * total_indices // 4},
+            "output": {"start": 3 * total_indices // 4, "end": total_indices}
+        }
+
+        return sectors
 
     def register_hook(self, hook_type: str, callback: Callable) -> None:
         """Register a hook callback for evolution events.
