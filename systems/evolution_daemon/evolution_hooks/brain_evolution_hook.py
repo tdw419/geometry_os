@@ -72,6 +72,15 @@ class BrainEvolutionHook:
             "She went to the"
         ]
 
+        # Visual bridge for emitting visual feedback
+        self.visual_bridge = None
+        try:
+            from systems.visual_shell.api.visual_bridge import VisualBridgeClient
+            self.visual_bridge = VisualBridgeClient()
+            logger.info("Connected to visual bridge for brain evolution feedback")
+        except ImportError:
+            logger.debug("Visual bridge not available for brain evolution")
+
     async def on_evolution_cycle(self, cycle_data: Dict[str, Any]) -> Dict[str, Any]:
         """Called during each evolution cycle.
 
@@ -190,6 +199,23 @@ class BrainEvolutionHook:
         else:
             # Save mutated atlas
             self._save_brain_atlas()
+
+            # Emit visual feedback for kept mutation
+            if self.visual_bridge:
+                try:
+                    # Emit atlas glow for the mutated sector
+                    indices = self._get_sector_indices(sector)
+                    self.visual_bridge.emit_atlas_glow(indices, intensity=0.8)
+                    logger.debug(f"Emitted atlas glow for sector {sector}")
+
+                    # Emit thought pulse for the improvement
+                    self.visual_bridge.emit_thought_pulse(
+                        token_id=hash(sector) % 50257,
+                        position=(100, 100),
+                        intensity=min(1.0, improvement + 0.5)
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to emit visual feedback: {e}")
 
         # Record mutation
         record = MutationRecord(
@@ -311,6 +337,27 @@ class BrainEvolutionHook:
 
         x_start, x_end, y_start, y_end = bounds
         self._brain_atlas[y_start:y_end, x_start:x_end] = backup
+
+    def _get_sector_indices(self, sector: str) -> List[int]:
+        """Get pixel indices for a sector (for glow effect)."""
+        from systems.evolution_daemon.brain_mutations import _get_sector_bounds
+
+        bounds = _get_sector_bounds(sector)
+        if bounds is None:
+            return []
+
+        x_start, x_end, y_start, y_end = bounds
+        # Return center indices for glow effect
+        center_x = (x_start + x_end) // 2
+        center_y = (y_start + y_end) // 2
+        # Return indices in a small grid around center
+        indices = []
+        for dy in range(-2, 3):
+            for dx in range(-2, 3):
+                idx = (center_y + dy) * 1024 + (center_x + dx)
+                if 0 <= idx < 1024 * 1024:
+                    indices.append(idx)
+        return indices
 
     def get_mutation_stats(self) -> Dict[str, Any]:
         """Get statistics about mutation history."""
