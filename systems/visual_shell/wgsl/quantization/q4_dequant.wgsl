@@ -97,28 +97,31 @@ fn dequantize_q4_block(quant_data: array<u32>, block_start: u32, output: ptr<fun
      */
 
     // Extract fp16 scale from first 2 bytes
-    let scale_bytes = array<u32, 1u>();
-    scale_bytes[0u] = quant_data[block_start];
-
-    // Reconstruct scale from two bytes
-    let scale_bits = (scale_bytes[0u] >> 16u) & 65535u;
+    // The scale is stored as little-endian fp16 in bytes 0-1
+    let scale_word = quant_data[block_start];
+    let scale_bits = scale_word & 0xFFFFu;
     let scale = unpackFloat16(scale_bits);
 
     // Process each 4-bit weight
     var output_array = *output;
 
     // Each byte contains 2 weights (high and low nibble)
+    // Weights start at byte 2 (after the 2-byte scale)
     for (var i: u32 = 0u; i < 16u; i++) {
-        let byte_idx = i + 1u; // Skip scale bytes (bytes 0-1)
+        // byte_idx is absolute byte index from block start
+        let byte_idx = 2u + i;
 
         // High nibble (first 4 bits of byte)
         let high_nibble = unpack_nibble(quant_data, byte_idx, true);
-        let high_weight = scale * f32(high_nibble - 8i);
+        let high_weight = scale * f32(i32(high_nibble) - 8);
         output_array[i * 2u] = high_weight;
 
         // Low nibble (second 4 bits of byte)
         let low_nibble = unpack_nibble(quant_data, byte_idx, false);
-        let low_weight = scale * f32(low_nibble - 8i);
+        let low_weight = scale * f32(i32(low_nibble) - 8);
         output_array[i * 2u + 1u] = low_weight;
     }
+
+    // Write results back through the output pointer
+    *output = output_array;
 }

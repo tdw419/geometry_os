@@ -91,20 +91,23 @@ def test_dequantize_q4_block_function():
     # Check function signature
     assert "fn dequantize_q4_block(quant_data: array<u32>, block_start: u32, output: ptr<function, array<f32, 32>>)" in code
 
-    # Check implementation details
-    assert "scale_bytes = array<u32, 1u>()" in code
-    assert "scale_bits = (scale_bytes[0u] >> 16u) & 65535u" in code
+    # Check scale extraction implementation (fixed version)
+    assert "scale_word = quant_data[block_start]" in code
+    assert "scale_bits = scale_word & 0xFFFFu" in code
     assert "scale = unpackFloat16(scale_bits)" in code
 
-    # Check dequantization formula
-    assert "scale * f32(high_nibble - 8i)" in code
-    assert "scale * f32(low_nibble - 8i)" in code
+    # Check dequantization formula with proper type conversion
+    assert "scale * f32(i32(high_nibble) - 8)" in code
+    assert "scale * f32(i32(low_nibble) - 8)" in code
 
     # Check loop processing all 16 bytes
     assert "for (var i: u32 = 0u; i < 16u; i++)" in code
-    assert "byte_idx = i + 1u" in code
+    assert "byte_idx = 2u + i" in code
     assert "high_nibble = unpack_nibble(quant_data, byte_idx, true)" in code
     assert "low_nibble = unpack_nibble(quant_data, byte_idx, false)" in code
+
+    # Check writeback to output pointer (critical fix)
+    assert "*output = output_array" in code
 
 
 def test_shader_comments():
