@@ -52,7 +52,13 @@ except ImportError:
     VisualBridgeClient = None
 
 # Import Z.ai Integration (our new intelligence layer)
-from zai_agent_integration import ZAIIntegration, ZHIPU_AVAILABLE
+try:
+    from zai_agent_integration import ZAIIntegration, ZHIPU_AVAILABLE
+    HAS_ZAI = True
+except ImportError:
+    HAS_ZAI = False
+    ZAIIntegration = None
+    ZHIPU_AVAILABLE = False
 
 # Import Append-Only Computer components
 try:
@@ -398,7 +404,7 @@ class EvolutionDaemon:
 
     def __init__(self, api_key: Optional[str] = None, ws_url: str = "ws://localhost:8765"):
         # Initialize Z.ai Integration (our new brain)
-        self.zai = ZAIIntegration(api_key=api_key)
+        self.zai = ZAIIntegration(api_key=api_key) if HAS_ZAI else None
         self.vfs = VirtualFileSystem()
 
         # Visual interface (WebMCP connection to PixiJS)
@@ -464,10 +470,15 @@ class EvolutionDaemon:
         self._register_tools()
 
         # Register brain evolution hook
+        self._brain_hook = None  # Set by _register_brain_hook
         self._register_brain_hook()
 
     def _register_tools(self):
         """Register VFS and Visual tools for Z.ai function calling"""
+        if not HAS_ZAI or self.zai is None:
+            logger.debug("Z.ai not available, skipping tool registration")
+            return
+
         # Code tools
         self.zai.register_tool_callback("read_file", self._tool_read_file)
         self.zai.register_tool_callback("write_file", self._tool_write_file)
@@ -482,9 +493,15 @@ class EvolutionDaemon:
     def _register_brain_hook(self):
         """Register brain evolution hook during initialization."""
         try:
-            from systems.evolution_daemon.evolution_hooks.brain_evolution_hook import register_hook
-            if register_hook(daemon=self):
-                logger.info("Brain evolution hook registered successfully")
+            from systems.evolution_daemon.evolution_hooks.brain_evolution_hook import (
+                BrainEvolutionHook,
+                register_hook
+            )
+            # Create hook instance and store reference
+            self._brain_hook = BrainEvolutionHook()
+            # Register with daemon's hook system
+            self.register_hook('evolution_cycle', self._brain_hook.on_evolution_cycle)
+            logger.info("Brain evolution hook registered successfully")
         except Exception as e:
             logger.warning(f"Brain evolution hook registration failed: {e}")
 
