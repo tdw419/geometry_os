@@ -90,4 +90,4 @@
 - [x] 44. **Tectonic: File Gravity Engine**: Create `systems/infinite_map/gravity_engine.py` to track file access and relationship-based positioning. **Verification**: Mock access events; verify position updates in logs.
 
 - [x] 45. **Daemon Integration: Multi-Stream Broadcaster**: Extend daemon to route thoughts, tokens, and gravity updates via unified bridge. **Verification**: Run daemon; verify multi-stream output in Glass Box.
-- [→] 46. **Cognitive Evolution Verification**: Run Sisyphus with `--brain` and verify that `SisyphusCritic` correctly grades PixelBrain outputs and that `CognitiveRouter` escalates to LM Studio for evaluation. - **Verification**: Check evolution.log for '[Cognitive Audit]' entries and verify 'COMMIT'/'REVERT' decisions are present.
+- [[x]] 46. **Cognitive Evolution Verification**: Run Sisyphus with `--brain` and verify that `SisyphusCritic` correctly grades PixelBrain outputs and that `CognitiveRouter` escalates to LM Studio for evaluation. - **Verification**: Check evolution.log for '[Cognitive Audit]' entries and verify 'COMMIT'/'REVERT' decisions are present.
