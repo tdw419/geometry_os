@@ -925,6 +925,39 @@ class MultiVmStreamer:
     # ATTENTION_UPDATE Emission (Task 9.2: Glass Box Introspection)
     # ========================================================================
 
+    def _calculate_attention_entropy(self, weights: List[float]) -> float:
+        """
+        Calculate entropy of attention distribution.
+
+        Args:
+            weights: List of attention weights (softmax scores)
+
+        Returns:
+            Entropy in bits (0 = focused, log2(n) = uniform)
+        """
+        # Handle numpy arrays
+        if isinstance(weights, np.ndarray):
+            weights = weights.tolist()
+
+        if not weights or len(weights) == 0:
+            return 0.0
+
+        # Filter out zero values to avoid log(0)
+        non_zero_weights = [w for w in weights if w > 0]
+        if not non_zero_weights:
+            return 0.0
+
+        # Calculate probabilities
+        total = sum(non_zero_weights)
+        probabilities = [w / total for w in non_zero_weights]
+
+        # Calculate entropy: H = -sum(p * log2(p))
+        entropy = 0.0
+        for p in probabilities:
+            entropy -= p * np.log2(p)
+
+        return entropy
+
     def emit_attention_update(
         self,
         layer: int,
@@ -965,13 +998,19 @@ class MultiVmStreamer:
         layer = max(0, min(layer, 7))
         head = max(0, min(head, 7))
 
+        # Calculate max_weight and entropy
+        max_weight = max(weights)
+        entropy = self._calculate_attention_entropy(weights)
+
         # Create the ATTENTION_UPDATE message
         update = {
             "type": "ATTENTION_UPDATE",
+            "timestamp": time.time(),
             "layer": layer,
             "head": head,
             "weights": weights,
-            "timestamp": time.time()
+            "max_weight": max_weight,
+            "entropy": entropy
         }
 
         async def _broadcast():
