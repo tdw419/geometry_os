@@ -14,10 +14,16 @@ import requests
 from unittest.mock import AsyncMock, patch
 
 # Skip all tests if WordPress not available
+def _wordpress_available():
+    try:
+        return requests.get("http://localhost:8080/", timeout=2).status_code == 200
+    except:
+        return False
+
 pytestmark = pytest.mark.skipif(
-    requests.get("http://localhost:8080/", timeout=2).status_code != 200,
+    not _wordpress_available(),
     reason="WordPress not running at localhost:8080"
-) if True else pytest.mark.live
+)
 
 
 class TestWordPressAPI:
