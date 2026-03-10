@@ -41,6 +41,8 @@ from .speculative_optimizer import SpeculativeOptimizer
 try:
     from ..evolution_daemon.evolution_hooks.brain_evolution_hook import BrainEvolutionHook
     from ..evolution_daemon.brain_mutations import evaluate_brain_fitness
+    from .critic import SisyphusCritic
+    from ..cognitive.cognitive_router import get_cognitive_router
     BRAIN_EVOLUTION_AVAILABLE = True
 except ImportError:
     BRAIN_EVOLUTION_AVAILABLE = False
@@ -271,10 +273,10 @@ class GitCommitHook:
             }
 
 class TaskState(Enum):
-    PENDING = "[ ]"
-    IN_PROGRESS = "[→]"
-    COMPLETE = "[x]"
-    FAILED = "[!]"
+    PENDING = " "
+    IN_PROGRESS = "→"
+    COMPLETE = "x"
+    FAILED = "!"
 
 @dataclass
 class Task:
@@ -313,8 +315,12 @@ class SisyphusDaemon:
         # Brain Evolution integration
         self.enable_brain_evolution = enable_brain_evolution and BRAIN_EVOLUTION_AVAILABLE
         self.brain_hook = None
+        self.critic = None
+        self.router = None
         if self.enable_brain_evolution:
             self.brain_hook = BrainEvolutionHook()
+            self.critic = SisyphusCritic()
+            self.router = get_cognitive_router()
             logger.info("Brain Evolution enabled in Sisyphus v4")
 
         # Determine session dir if not provided
@@ -583,45 +589,69 @@ class SisyphusDaemon:
     def generate_tasks(self):
         self.log("🎉 Harvesting DNA from history for new prompts...")
 
-        # First, collect heuristic tasks from codebase scan
+        # 1. Collect heuristic tasks from codebase scan
         heuristic_tasks = self._generate_heuristic_tasks()
         heuristic_task_text = "\n".join(f"- {t}" for t in heuristic_tasks) if heuristic_tasks else ""
 
+        # 2. Collect autonomous goals from entropy/brain analysis
+        autonomous_goals = self.generate_autonomous_goals()
+        # Convert to task string format if not already
+        autonomous_task_text = ""
+        if autonomous_goals:
+            # We need to map them to the state file format
+            # generate_autonomous_goals returns task dicts
+            autonomous_task_text = "\n".join(f"- [ ] {g['number']}. **{g['name']}**: {g['description']} - **Verification**: {g.get('verification', 'Check metrics')}" for g in autonomous_goals)
+
         try:
-            # First, check if script exists
+            # 3. DNA from recent sessions
             extractor_script = self.project_dir / "scripts/session_dna_extractor.py"
-            if not extractor_script.exists():
-                self.log(f"Extractor script missing at {extractor_script}")
-                
-            dna_output = subprocess.check_output(
-                ["python3", str(extractor_script), str(self.session_dir)],
-                stderr=subprocess.STDOUT, text=True
-            )
+            dna_output = ""
+            if extractor_script.exists():
+                dna_output = subprocess.check_output(
+                    ["python3", str(extractor_script), str(self.session_dir)],
+                    stderr=subprocess.STDOUT, text=True
+                )
             
             prompt = f"""You are the Sisyphus Evolution Daemon (v4).
 Recent Session DNA:
 {dna_output}
 
 Heuristic Tasks (from codebase scan):
-{heuristic_tasks}
+{heuristic_task_text}
 
-Combine both sources to create diverse, actionable tasks. Priority heuristic tasks over DNA tasks when there are TODO/FIXME or uncommitted files present.
+Autonomous Goals (from Entropy/Brain analysis):
+{autonomous_task_text}
+
+Combine these sources to create diverse, actionable tasks. Prioritize Autonomous Goals and Heuristic tasks.
 
 Each task must:
-1. Address failures, uncommitted states from the DNA or heuristics.
+1. Address failures, uncommitted states, or cognitive drift.
 2. Include concrete Verification Steps.
 3. Advance the Native Glyph Shell architecture.
 
 Format: '- [ ] N. **Task Name**: Description - **Verification**: Step'
-Ensure task numbering continues correctly.
+Ensure task numbering continues correctly from the last task in the state file.
 """
             
             # Use pi -p to generate
             gen_log = self.log_dir / f"generate_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-            with open(gen_log, 'w') as f:
-                subprocess.run(["pi", "-p", prompt], stdout=f, stderr=subprocess.STDOUT)
+            result = subprocess.run(["pi", "-p", prompt], capture_output=True, text=True)
             
-            self.log("✓ New tasks added to state file.")
+            with open(gen_log, 'w') as f:
+                f.write(result.stdout)
+            
+            if result.returncode == 0 and result.stdout.strip():
+                new_tasks = []
+                for line in result.stdout.strip().split("\n"):
+                    if re.match(r"^- \[ \]", line):
+                        new_tasks.append(line)
+                
+                if new_tasks:
+                    with open(self.state_file, 'a') as f:
+                        f.write("\n" + "\n".join(new_tasks) + "\n")
+                    self.log(f"✓ {len(new_tasks)} new tasks added to state file.")
+                else:
+                    self.log("WARNING: LLM generated no tasks in the correct format.")
             
         except Exception as e:
             self.log(f"Failed to generate tasks: {e}")
@@ -771,18 +801,44 @@ Ensure task numbering continues correctly.
 
         # 2. Cognitive Brain Entropy
         if self.enable_brain_evolution:
-            # Evaluate current brain fitness (simplified for goal generation)
+            # Evaluate current brain fitness with "Tech Lead" oversight
             try:
-                # Use a default prompt set for quick evaluation
-                fitness = evaluate_brain_fitness("tinystories_brain.rts.png", ["Once upon a time"])
-                # In a real scenario, we'd track latency from actual inference runs
-                latency = 150.0 # Placeholder
+                # 1. Get sample output from current brain
+                # (Assuming a simplified 'generate' on brain_hook for now)
+                sample_prompt = "Once upon a time in Geometry OS"
+                from systems.visual_shell.api.pixel_brain_service import get_pixel_brain_service
+                brain = get_pixel_brain_service()
+                
+                # Perform a quick inference run
+                import asyncio
+                # Check if we're in an async loop or need a runner
+                try:
+                    loop = asyncio.get_event_loop()
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                
+                # Sample the current brain
+                sample_result = loop.run_until_complete(brain.generate(sample_prompt, max_tokens=20))
+                sample_output = sample_result.get('text', '')
+                
+                # 2. Grade the output via SisyphusCritic (Escalates to LM Studio)
+                grade = loop.run_until_complete(self.critic.grade_mutation(sample_prompt, sample_output))
+                fitness = grade.get('score', 0.5)
+                
+                # 3. Monitor performance hotspots (WGPU latency)
+                latency = sample_result.get('latency_ms', 150.0)
+                
+                # 4. Synthesize cognitive goals
                 brain_goals = self.goal_synthesizer.synthesize_from_brain_metrics(
                     fitness_score=fitness,
                     latency_ms=latency,
-                    hot_sectors=["attention_layer_0"] # Placeholder
+                    hot_sectors=["attention_layer_0"] # Default sector
                 )
                 all_goals.extend(brain_goals)
+                
+                logger.info(f"[Cognitive Audit] Fitness: {fitness:.2f} (Critic: {grade.get('decision')})")
+                
             except Exception as e:
                 logger.error(f"Failed to generate cognitive goals: {e}")
 

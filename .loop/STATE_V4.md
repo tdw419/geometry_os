@@ -81,12 +81,13 @@
 
 - [x] 40. **Complete Glass Box E2E Test Coverage**: Enhanced `tests/test_glass_box_e2e.py` with 22 tests covering: (a) WebSocket client mock receiving thoughts, (b) Multi-thought burst handling (10/100 thoughts, performance <1s), (c) Connection drop/reconnect simulation with backoff, (d) Edge cases (empty payloads, Unicode, large payloads), (e) Full lifecycle integration tests. - **Verification**: Run `python3 -m pytest tests/test_glass_box_e2e.py -v` - **22 passed**. **COMPLETED**.
 
-- [[→]] 41. **Mind's Eye: Token-to-Hilbert Rasterizer**: Create `systems/sisyphus/token_rasterizer.py` that: (a) Connects to LM Studio streaming API (localhost:1234), (b) Maps each generated token to a Hilbert coordinate based on token hash, (c) Assigns color based on token type, (d) Streams to Glass Box via compositor bridge. **Verification**: Run with dummy token stream; verify Hilbert coordinates are stable.
+- [x] 41. **Mind's Eye: Token-to-Hilbert Rasterizer**: Create `systems/sisyphus/token_rasterizer.py` that: (a) Connects to LM Studio streaming API (localhost:1234), (b) Maps each generated token to a Hilbert coordinate based on token hash, (c) Assigns color based on token type, (d) Streams to Glass Box via compositor bridge. **Verification**: Run with dummy token stream; verify Hilbert coordinates are stable.
 
-- [[→]] 42. **Mind's Eye: WGSL Token Shader**: Extend `glyph_renderer.wgsl` with TOKEN_RENDER (opcode 0xCD). Implement fading glyphs and semantic proximity lines. **Verification**: Run cargo check; verify shader compilation.
+- [x] 42. **Mind's Eye: WGSL Token Shader**: Extend `glyph_renderer.wgsl` with TOKEN_RENDER (opcode 0xCD). Implement fading glyphs and semantic proximity lines. **Verification**: Run cargo check; verify shader compilation.
 
-- [[→]] 43. **Mind's Eye: Browser Visualization**: Create `systems/visual_shell/web/minds_eye.html` with WebSocket connection to /ws/v1/tokens. **Verification**: Open in browser; verify real-time token display.
+- [x] 43. **Mind's Eye: Browser Visualization**: Create `systems/visual_shell/web/minds_eye.html` with WebSocket connection to /ws/v1/tokens. **Verification**: Open in browser; verify real-time token display.
 
-- [[→]] 44. **Tectonic: File Gravity Engine**: Create `systems/infinite_map/gravity_engine.py` to track file access and relationship-based positioning. **Verification**: Mock access events; verify position updates in logs.
+- [x] 44. **Tectonic: File Gravity Engine**: Create `systems/infinite_map/gravity_engine.py` to track file access and relationship-based positioning. **Verification**: Mock access events; verify position updates in logs.
 
-- [[→]] 45. **Daemon Integration: Multi-Stream Broadcaster**: Extend daemon to route thoughts, tokens, and gravity updates via unified bridge. **Verification**: Run daemon; verify multi-stream output in Glass Box.
+- [x] 45. **Daemon Integration: Multi-Stream Broadcaster**: Extend daemon to route thoughts, tokens, and gravity updates via unified bridge. **Verification**: Run daemon; verify multi-stream output in Glass Box.
+- [→] 46. **Cognitive Evolution Verification**: Run Sisyphus with `--brain` and verify that `SisyphusCritic` correctly grades PixelBrain outputs and that `CognitiveRouter` escalates to LM Studio for evaluation. - **Verification**: Check evolution.log for '[Cognitive Audit]' entries and verify 'COMMIT'/'REVERT' decisions are present.
