@@ -1966,6 +1966,29 @@ class WebMCPBridge {
             await this.#registerSpriteMove();
             await this.#registerSpriteRemove();
 
+            // Phase T: GeoASM Neural Assembly
+            await this.#registerGeoasmAssemble();
+            await this.#registerGeoasmDisassemble();
+            await this.#registerGeoasmExecute();
+            await this.#registerGeoasmGetState();
+
+            // Phase S: Saccadic Optimization Tools
+            await this.#registerSaccadicSetTarget();
+            await this.#registerSaccadicGetStats();
+            await this.#registerSaccadicConfigure();
+
+            // Phase U: Tectonic Negotiation Tools
+            await this.#registerTectonicClaim();
+            await this.#registerTectonicBid();
+            await this.#registerTectonicSettle();
+            await this.#registerTectonicSubscribe();
+
+            // Phase 49: District Coalescence Tools
+            await this.#registerDistrictList();
+            await this.#registerDistrictForm();
+            await this.#registerDistrictRender();
+            await this.#registerDistrictSubscribe();
+
             // Phase P tools - Pyodide In-Browser Python Execution
             await this.#registerPyodideRun();
             await this.#registerPyodideLoadPackage();
@@ -4220,11 +4243,10 @@ class WebMCPBridge {
             name: 'send_llm_prompt',
             description:
                 'Send a prompt to an LLM for AI-to-AI communication. ' +
-                'Supports both LM Studio (external) and PixelBrain (native GPU inference). ' +
-                'Use model="pixel-brain" or use_pixel_brain=true to route through ' +
-                'the native PixelBrain inference pipeline for visual feedback integration. ' +
-                'LM Studio requires server running on localhost:1234. ' +
-                'PixelBrain requires visual_bridge.py running on localhost:3002.',
+                'DEFAULT: Uses PixelBrain (native GPU inference) first, falls back to LM Studio. ' +
+                'Use model="lmstudio" to skip PixelBrain and go directly to LM Studio. ' +
+                'PixelBrain requires visual_bridge.py running on localhost:3002. ' +
+                'LM Studio requires server running on localhost:1234.',
             inputSchema: {
                 type: 'object',
                 properties: {
@@ -4234,8 +4256,8 @@ class WebMCPBridge {
                     },
                     model: {
                         type: 'string',
-                        description: 'Model identifier: "local" for LM Studio, "pixel-brain" for native inference',
-                        default: 'local'
+                        description: 'Model identifier: "pixel-brain" (default) for native inference, "lmstudio" for LM Studio',
+                        default: 'pixel-brain'
                     },
                     temperature: {
                         type: 'number',
@@ -4301,8 +4323,11 @@ class WebMCPBridge {
         // Track latency
         const startTime = Date.now();
 
-        // Check if we should use PixelBrain native inference
-        if (model === 'pixel-brain' || use_pixel_brain) {
+        // Cognitive Bus: Default to PixelBrain, fallback to LM Studio
+        // Only skip PixelBrain if explicitly requested model === 'lmstudio' or model === 'local'
+        const shouldUsePixelBrain = (model !== 'lmstudio' && model !== 'local') || use_pixel_brain;
+
+        if (shouldUsePixelBrain) {
             try {
                 const result = await this.#sendPixelBrainRequest({
                     prompt: prompt,
@@ -8041,6 +8066,41 @@ class WebMCPBridge {
         });
     }
 
+    async #callGeoasmBridge(action, params) {
+        const wsUrl = 'ws://localhost:8771';
+
+        return new Promise((resolve, reject) => {
+            const ws = new WebSocket(wsUrl);
+            const timeout = setTimeout(() => {
+                if (ws.readyState !== WebSocket.CLOSED) {
+                    ws.close();
+                }
+                reject(new Error('GeoASM bridge connection timeout. Is geoasm_server.py running on port 8771?'));
+            }, 10000);
+
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ action, ...params }));
+            };
+
+            ws.onmessage = (event) => {
+                clearTimeout(timeout);
+                try {
+                    const response = JSON.parse(event.data);
+                    ws.close();
+                    resolve(response);
+                } catch (e) {
+                    ws.close();
+                    reject(e);
+                }
+            };
+
+            ws.onerror = (error) => {
+                clearTimeout(timeout);
+                reject(new Error('GeoASM bridge connection failed. Start with: python systems/visual_shell/web/geoasm_server.py'));
+            };
+        });
+    }
+
     // ─────────────────────────────────────────────────────────────
     // Phase Shotcut: VM Control Tools
     // ─────────────────────────────────────────────────────────────
@@ -11333,6 +11393,422 @@ class WebMCPBridge {
         };
         await navigator.modelContext.registerTool(tool);
         this.#registeredTools.push(tool.name);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Phase Q: GeoASM Tools
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerGeoasmAssemble() {
+        const tool = {
+            name: 'geoasm_assemble',
+            description: 'Assemble GeoASM source code into hex opcodes.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    source: { type: 'string', description: 'GeoASM source code to assemble.' }
+                },
+                required: ['source']
+            },
+            execute: async (params) => {
+                return await this.#callGeoasmBridge('assemble', params);
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerGeoasmDisassemble() {
+        const tool = {
+            name: 'geoasm_disassemble',
+            description: 'Disassemble hex opcodes into GeoASM source code.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    hex: { type: 'string', description: 'Hex opcodes to disassemble.' }
+                },
+                required: ['hex']
+            },
+            execute: async (params) => {
+                return await this.#callGeoasmBridge('disassemble', params);
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerGeoasmExecute() {
+        const tool = {
+            name: 'geoasm_execute',
+            description: 'Execute GeoASM code (source or hex) on the backend VM.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    source: { type: 'string', description: 'GeoASM source code (optional if hex is provided).' },
+                    hex: { type: 'string', description: 'Hex opcodes (optional if source is provided).' },
+                    steps: { type: 'number', description: 'Maximum number of steps to execute (default: 100).' }
+                }
+            },
+            execute: async (params) => {
+                return await this.#callGeoasmBridge('execute', params);
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerGeoasmGetState() {
+        const tool = {
+            name: 'geoasm_get_state',
+            description: 'Query the current state of the GeoASM VM.',
+            inputSchema: {
+                type: 'object',
+                properties: {}
+            },
+            execute: async (params) => {
+                return await this.#callGeoasmBridge('get_state', params);
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Phase S: Saccadic Optimization Tools
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerSaccadicSetTarget() {
+        const tool = {
+            name: 'saccadic_set_target',
+            description: 'Trigger a saccadic camera jump to a specific (x, y) coordinate.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    x: { type: 'number', description: 'Target X world coordinate.' },
+                    y: { type: 'number', description: 'Target Y world coordinate.' }
+                },
+                required: ['x', 'y']
+            },
+            execute: async (params) => {
+                if (window.tectonicManager && typeof window.tectonicManager.setTarget === 'function') {
+                    window.tectonicManager.setTarget(params.x, params.y);
+                    return { success: true, message: `Saccade target set to (${params.x}, ${params.y})` };
+                } else {
+                    return { success: false, error: 'TectonicSaccadicManager not available in current context.' };
+                }
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerSaccadicGetStats() {
+        const tool = {
+            name: 'saccadic_get_stats',
+            description: 'Get performance metrics and state from the TectonicSaccadicManager.',
+            inputSchema: {
+                type: 'object',
+                properties: {}
+            },
+            execute: async (params) => {
+                if (window.tectonicManager && typeof window.tectonicManager.getStats === 'function') {
+                    return { success: true, stats: window.tectonicManager.getStats() };
+                } else {
+                    return { success: false, error: 'TectonicSaccadicManager not available.' };
+                }
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerSaccadicConfigure() {
+        const tool = {
+            name: 'saccadic_configure',
+            description: 'Update the configuration of the TectonicSaccadicManager.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    enableSaccadic: { type: 'boolean' },
+                    enableSmoothLOD: { type: 'boolean' },
+                    enablePrefetch: { type: 'boolean' },
+                    enableQualityScaling: { type: 'boolean' },
+                    enableFocusTracking: { type: 'boolean' },
+                    enableVergence: { type: 'boolean' }
+                }
+            },
+            execute: async (params) => {
+                if (window.tectonicManager) {
+                    Object.assign(window.tectonicManager.config, params);
+                    if (typeof window.tectonicManager._initializeSubsystems === 'function') {
+                        window.tectonicManager._initializeSubsystems();
+                    }
+                    return { success: true, config: window.tectonicManager.config };
+                } else {
+                    return { success: false, error: 'TectonicSaccadicManager not available.' };
+                }
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Phase U: Tectonic Negotiation Tools
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerTectonicClaim() {
+        const tool = {
+            name: 'tectonic_claim',
+            description: 'Submit a tectonic claim for a tile on the map.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    tile: { type: 'array', items: { type: 'number' }, minItems: 2, maxItems: 2, description: '[x, y] coordinates' },
+                    purpose: { type: 'string', description: 'Purpose of the claim (e.g., "Code Palace")' },
+                    bid: { type: 'number', description: 'Amount to bid for the tile' },
+                    agent_id: { type: 'string', description: 'ID of the agent making the claim' }
+                },
+                required: ['tile', 'purpose', 'bid', 'agent_id']
+            },
+            execute: async (params) => {
+                return await this.#callTectonicBridge('claim', params);
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerTectonicBid() {
+        const tool = {
+            name: 'tectonic_bid',
+            description: 'Submit a counter-bid on an existing tectonic claim.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    claim_id: { type: 'string', description: 'ID of the claim to bid on' },
+                    amount: { type: 'number', description: 'Amount to bid' },
+                    agent_id: { type: 'string', description: 'ID of the agent making the bid' }
+                },
+                required: ['claim_id', 'amount', 'agent_id']
+            },
+            execute: async (params) => {
+                return await this.#callTectonicBridge('bid', params);
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerTectonicSettle() {
+        const tool = {
+            name: 'tectonic_settle',
+            description: 'Trigger settlement of a tectonic claim.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    claim_id: { type: 'string', description: 'ID of the claim to settle' }
+                },
+                required: ['claim_id']
+            },
+            execute: async (params) => {
+                return await this.#callTectonicBridge('settle', params);
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerTectonicSubscribe() {
+        const tool = {
+            name: 'tectonic_subscribe',
+            description: 'Subscribe to tectonic settlement notifications.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    claim_id: { type: 'string', description: 'Optional ID of specific claim to watch' }
+                }
+            },
+            execute: async (params) => {
+                return await this.#callTectonicBridge('subscribe', params);
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #callTectonicBridge(action, params) {
+        const wsUrl = 'ws://localhost:8772';
+
+        return new Promise((resolve, reject) => {
+            const ws = new WebSocket(wsUrl);
+            const timeout = setTimeout(() => {
+                if (ws.readyState !== WebSocket.CLOSED) {
+                    ws.close();
+                }
+                reject(new Error('Tectonic bridge connection timeout. Is tectonic_server.py running?'));
+            }, 10000);
+
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ action, ...params }));
+            };
+
+            ws.onmessage = (event) => {
+                clearTimeout(timeout);
+                try {
+                    const response = JSON.parse(event.data);
+                    ws.close();
+                    resolve(response);
+                } catch (e) {
+                    ws.close();
+                    reject(e);
+                }
+            };
+
+            ws.onerror = () => {
+                clearTimeout(timeout);
+                ws.close();
+                reject(new Error('Tectonic bridge connection failed.'));
+            };
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Phase 49: District Coalescence Tools
+    // ─────────────────────────────────────────────────────────────
+
+    async #registerDistrictList() {
+        const tool = {
+            name: 'district_list',
+            description: 'Get all current districts (tectonic plates) formed from agent clustering.',
+            inputSchema: {
+                type: 'object',
+                properties: {}
+            },
+            execute: async (params) => {
+                return await this.#callDistrictBridge('get_districts', params);
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerDistrictForm() {
+        const tool = {
+            name: 'district_form',
+            description: 'Form districts from agent data by clustering agents based on vector similarity.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    agents: {
+                        type: 'object',
+                        description: 'Object mapping agent IDs to their data (vector, budget)',
+                        additionalProperties: {
+                            type: 'object',
+                            properties: {
+                                vector: {
+                                    type: 'array',
+                                    items: { type: 'number' },
+                                    description: 'Agent embedding vector (64-dim)'
+                                },
+                                budget: {
+                                    type: 'number',
+                                    description: 'Agent budget (default: 0)'
+                                }
+                            }
+                        }
+                    }
+                },
+                required: ['agents']
+            },
+            execute: async (params) => {
+                return await this.#callDistrictBridge('form_districts', params);
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerDistrictRender() {
+        const tool = {
+            name: 'district_render',
+            description: 'Render current districts as a heatmap image and return as base64 PNG.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    width: {
+                        type: 'number',
+                        description: 'Canvas width in pixels (default: 256)'
+                    },
+                    height: {
+                        type: 'number',
+                        description: 'Canvas height in pixels (default: 256)'
+                    }
+                }
+            },
+            execute: async (params) => {
+                return await this.#callDistrictBridge('render_heatmap', params);
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #registerDistrictSubscribe() {
+        const tool = {
+            name: 'district_subscribe',
+            description: 'Subscribe to district change notifications.',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    district_id: {
+                        type: 'string',
+                        description: 'Optional ID of specific district to watch'
+                    }
+                }
+            },
+            execute: async (params) => {
+                return await this.#callDistrictBridge('subscribe_district', params);
+            }
+        };
+        await navigator.modelContext.registerTool(tool);
+        this.#registeredTools.push(tool.name);
+    }
+
+    async #callDistrictBridge(action, params) {
+        const wsUrl = 'ws://localhost:8773';
+
+        return new Promise((resolve, reject) => {
+            const ws = new WebSocket(wsUrl);
+            const timeout = setTimeout(() => {
+                if (ws.readyState !== WebSocket.CLOSED) {
+                    ws.close();
+                }
+                reject(new Error('District bridge connection timeout. Is district_server.py running?'));
+            }, 10000);
+
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ action, ...params }));
+            };
+
+            ws.onmessage = (event) => {
+                clearTimeout(timeout);
+                try {
+                    const response = JSON.parse(event.data);
+                    ws.close();
+                    resolve(response);
+                } catch (e) {
+                    ws.close();
+                    reject(e);
+                }
+            };
+
+            ws.onerror = () => {
+                clearTimeout(timeout);
+                ws.close();
+                reject(new Error('District bridge connection failed.'));
+            };
+        });
     }
 
     // ─────────────────────────────────────────────────────────────
