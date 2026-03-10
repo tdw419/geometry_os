@@ -33,7 +33,7 @@ class TestGeoASMSemanticEncoder:
         project_pixel = self.encoder.encode_instruction(PROJECT(0, 1))
         sample_pixel = self.encoder.encode_instruction(SAMPLE(0, 1))
         layer_pixel = self.encoder.encode_instruction(LAYER(0))
-        kv_pixel = self.encoder.encode_instruction(KV_APPEND())
+        kv_pixel = self.encoder.encode_instruction(KV_APPEND(0))
         pulse_pixel = self.encoder.encode_instruction(THOUGHT_PULSE(0))
 
         # ATTEND should have highest red
@@ -48,7 +48,7 @@ class TestGeoASMSemanticEncoder:
         """LAYER (0xD4) should have the lowest red value (0.3 heat)."""
         layer_pixel = self.encoder.encode_instruction(LAYER(0))
         embed_pixel = self.encoder.encode_instruction(EMBED(0, 1))
-        kv_pixel = self.encoder.encode_instruction(KV_APPEND())
+        kv_pixel = self.encoder.encode_instruction(KV_APPEND(0))
         pulse_pixel = self.encoder.encode_instruction(THOUGHT_PULSE(0))
 
         # LAYER should have lowest red
@@ -64,7 +64,7 @@ class TestGeoASMSemanticEncoder:
             Opcode.THOUGHT_PULSE: self.encoder.encode_instruction(THOUGHT_PULSE(0)),
             Opcode.SAMPLE: self.encoder.encode_instruction(SAMPLE(0, 1)),
             Opcode.EMBED: self.encoder.encode_instruction(EMBED(0, 1)),
-            Opcode.KV_APPEND: self.encoder.encode_instruction(KV_APPEND()),
+            Opcode.KV_APPEND: self.encoder.encode_instruction(KV_APPEND(0)),
             Opcode.LAYER: self.encoder.encode_instruction(LAYER(0)),
         }
 

@@ -45,6 +45,38 @@ class TestBrainMutations:
         assert isinstance(fitness, float)
         assert 0 <= fitness <= 1
 
+    def test_evaluate_brain_fitness_uses_benchmarks(self):
+        """Fitness evaluation should use benchmark suite."""
+        from systems.evolution_daemon.brain_mutations import evaluate_brain_fitness
+        from unittest.mock import patch, MagicMock
+
+        # Mock the pixel brain service and benchmark module
+        with patch('systems.visual_shell.api.pixel_brain_service.get_pixel_brain_service') as mock_service:
+            mock_instance = MagicMock()
+            mock_service.return_value = mock_instance
+            mock_instance.is_available.return_value = True
+            mock_instance.generate.return_value = {'text': 'Once upon a time there was a little dog.'}
+
+            fitness = evaluate_brain_fitness("tinystories_brain.rts.png", ["test prompt"])
+
+            # Should have called generate for the prompt
+            mock_instance.generate.assert_called()
+
+    def test_evaluate_brain_fitness_handles_unavailable_service(self):
+        """Fitness evaluation handles unavailable service gracefully."""
+        from systems.evolution_daemon.brain_mutations import evaluate_brain_fitness
+        from unittest.mock import patch, MagicMock
+
+        with patch('systems.visual_shell.api.pixel_brain_service.get_pixel_brain_service') as mock_service:
+            mock_instance = MagicMock()
+            mock_service.return_value = mock_instance
+            mock_instance.is_available.return_value = False
+
+            fitness = evaluate_brain_fitness("tinystories_brain.rts.png", ["test"])
+
+            # Should return 0.0 when service unavailable
+            assert fitness == 0.0
+
 
 class TestBrainEvolutionHook:
     """Test brain evolution hook integration."""
