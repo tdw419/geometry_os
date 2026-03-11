@@ -2,28 +2,69 @@
 """
 x86_64 Instruction Decoder for Geometry OS
 
-Decodes x86_64 binary instructions into an intermediate representation (IR)
-for binary translation and analysis.
+A modular decoder for x86_64 binary instructions, supporting:
+- REX prefix decoding with W/R/X/B bit extraction
+- ModR/M byte decoding with SIB detection and RIP-relative addressing
+- SIB byte decoding with scale factor calculation
+- Full instruction decoding for common opcodes
 
-Architecture:
-    - Supports 32-bit and 64-bit modes
-    - Handles REX prefixes for extended registers (R8-R15)
-    - Decodes ModR/M and SIB addressing modes
-    - Recognizes common instruction categories
-
-Usage:
-    decoder = X86InstructionDecoder(is_64bit=True)
-    instructions = decoder.decode(binary_data, address=0x1000)
-    for instr in instructions:
-        print(f"{instr.address:08X}: {instr.mnemonic} {', '.join(str(op) for op in instr.operands)}")
+Architecture Constants:
+    REX_PREFIX_MIN (0x40): Minimum REX prefix value
+    REX_PREFIX_MAX (0x4F): Maximum REX prefix value
+    REX_W_BIT (0x08): REX.W bit mask (64-bit operand)
+    REX_R_BIT (0x04): REX.R bit mask (register extension)
+    REX_X_BIT (0x02): REX.X bit mask (index extension)
+    REX_B_BIT (0x01): REX.B bit mask (base extension)
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict, InitVar
+from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
 from typing import List, Optional, Union, Dict, Any
+
+
+# =============================================================================
+# Constants
+# =============================================================================
+
+# REX prefix range
+REX_PREFIX_MIN = 0x40
+REX_PREFIX_MAX = 0x4F
+
+# REX bit masks
+REX_W_BIT = 0x08  # 64-bit operand size
+REX_R_BIT = 0x04  # ModRM reg extension
+REX_X_BIT = 0x02  # SIB index extension
+REX_B_BIT = 0x01  # ModRM r/m or SIB base extension
+
+# ModR/M bit masks
+MODRM_MOD_MASK = 0xC0  # bits 7-6
+MODRM_REG_MASK = 0x38  # bits 5-3
+MODRM_RM_MASK = 0x07   # bits 2-0
+
+# SIB bit masks
+SIB_SCALE_MASK = 0xC0  # bits 7-6
+SIB_INDEX_MASK = 0x38  # bits 5-3
+SIB_BASE_MASK = 0x07   # bits 2-0
+
+# Register name tables (32-bit mode)
+REG32_NAMES = ('EAX', 'ECX', 'EDX', 'EBX', 'ESP', 'EBP', 'ESI', 'EDI')
+REG32_EXT_NAMES = ('R8D', 'R9D', 'R10D', 'R11D', 'R12D', 'R13D', 'R14D', 'R15D')
+
+# Register name tables (64-bit mode)
+REG64_NAMES = ('RAX', 'RCX', 'RDX', 'RBX', 'RSP', 'RBP', 'RSI', 'RDI')
+REG64_EXT_NAMES = ('R8', 'R9', 'R10', 'R11', 'R12', 'R13', 'R14', 'R15')
+
+# 8-bit registers
+REG8_NAMES = ('AL', 'CL', 'DL', 'BL', 'AH', 'CH', 'DH', 'BH')
+REG8_REX_NAMES = ('AL', 'CL', 'DL', 'BL', 'SPL', 'BPL', 'SIL', 'DIL')
+REG8_EXT_NAMES = ('R8B', 'R9B', 'R10B', 'R11B', 'R12B', 'R13B', 'R14B', 'R15B')
+
+# 16-bit registers
+REG16_NAMES = ('AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI')
+REG16_EXT_NAMES = ('R8W', 'R9W', 'R10W', 'R11W', 'R12W', 'R13W', 'R14W', 'R15W')
 
 
 # =============================================================================
@@ -31,7 +72,7 @@ from typing import List, Optional, Union, Dict, Any
 # =============================================================================
 
 class OperandType(Enum):
-    """Types of instruction operands."""
+    """Classification of instruction operand types."""
     REGISTER = auto()
     MEMORY = auto()
     IMMEDIATE = auto()
@@ -41,7 +82,7 @@ class OperandType(Enum):
 
 
 class InstructionCategory(Enum):
-    """Categories of x86_64 instructions."""
+    """Classification of instruction categories."""
     DATA_TRANSFER = auto()
     ARITHMETIC = auto()
     LOGICAL = auto()
@@ -55,31 +96,7 @@ class InstructionCategory(Enum):
 
 
 # =============================================================================
-# Register Tables
-# =============================================================================
-
-# 8-bit registers (without REX, with REX)
-REGS_8BIT = ['AL', 'CL', 'DL', 'BL', 'AH', 'CH', 'DH', 'BH']
-REGS_8BIT_REX = ['AL', 'CL', 'DL', 'BL', 'SPL', 'BPL', 'SIL', 'DIL']
-
-# 16-bit registers
-REGS_16BIT = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI']
-
-# 32-bit registers
-REGS_32BIT = ['EAX', 'ECX', 'EDX', 'EBX', 'ESP', 'EBP', 'ESI', 'EDI']
-
-# 64-bit registers
-REGS_64BIT = ['RAX', 'RCX', 'RDX', 'RBX', 'RSP', 'RBP', 'RSI', 'RDI']
-
-# Extended registers (R8-R15)
-REGS_64BIT_EXT = ['R8', 'R9', 'R10', 'R11', 'R12', 'R13', 'R14', 'R15']
-REGS_32BIT_EXT = ['R8D', 'R9D', 'R10D', 'R11D', 'R12D', 'R13D', 'R14D', 'R15D']
-REGS_16BIT_EXT = ['R8W', 'R9W', 'R10W', 'R11W', 'R12W', 'R13W', 'R14W', 'R15W']
-REGS_8BIT_EXT = ['R8B', 'R9B', 'R10B', 'R11B', 'R12B', 'R13B', 'R14B', 'R15B']
-
-
-# =============================================================================
-# Dataclasses
+# Data Classes
 # =============================================================================
 
 @dataclass
@@ -87,16 +104,21 @@ class REXPrefix:
     """
     x86_64 REX prefix structure.
     
-    REX prefixes (0x40-0x4F) extend register addressing and operand sizes
-    in 64-bit mode.
+    The REX prefix (0x40-0x4F) extends register addressing and operand sizes
+    in 64-bit mode. Each bit enables a specific extension:
+    
+    - W (bit 3): 64-bit operand size override
+    - R (bit 2): Extends ModRM reg field to 4 bits (R8-R15)
+    - X (bit 1): Extends SIB index field to 4 bits
+    - B (bit 0): Extends ModRM r/m or SIB base field to 4 bits
     
     Attributes:
-        present: Whether a REX prefix was found
+        present: Whether this is a valid REX prefix byte
         raw: The raw byte value
-        W: 64-bit operand size (1 = 64-bit, 0 = default)
-        R: ModRM reg extension (adds bit 3)
-        X: SIB index extension (adds bit 3)
-        B: ModRM r/m or SIB base extension (adds bit 3)
+        W: 64-bit operand size flag
+        R: Register extension flag
+        X: Index extension flag
+        B: Base extension flag
     """
     present: bool = False
     raw: int = 0
@@ -111,21 +133,16 @@ class REXPrefix:
         return self.raw if self.present else 0
 
     def __int__(self) -> int:
+        """Allow conversion to integer."""
         return self.value
 
     def __str__(self) -> str:
+        """Human-readable representation."""
         if not self.present:
             return "not present"
-        bits = ""
-        if self.W:
-            bits += "W"
-        if self.R:
-            bits += "R"
-        if self.X:
-            bits += "X"
-        if self.B:
-            bits += "B"
-        return f"<REX prefix 0x{self.raw:02X} flags={bits if bits else 'none'}>"
+        bits = "".join(bit for bit, flag in [("W", self.W), ("R", self.R), 
+                                              ("X", self.X), ("B", self.B)] if flag)
+        return f"<REX prefix 0x{self.raw:02X} flags={bits or 'none'}>"
 
 
 @dataclass
@@ -133,23 +150,24 @@ class ModRM:
     """
     x86 ModR/M byte representation.
     
-    The ModR/M byte specifies addressing mode and registers for most instructions.
-    
-    Bit layout: [mod:2][reg:3][r/m:3]
+    The ModR/M byte specifies addressing mode and operands:
+    - mod (bits 7-6): Addressing mode (register direct, memory indirect, etc.)
+    - reg (bits 5-3): Register operand or opcode extension
+    - r/m (bits 2-0): Register/memory operand
     
     Attributes:
-        mod: Mode field (0-3): 0=indirect, 1=disp8, 2=disp32, 3=register direct
-        reg: Register field (0-7), extended by REX.R
-        rm: R/M field (0-7), extended by REX.B
+        mod: Mode field (0-3)
+        reg: Register field (0-7)
+        rm: Register/memory field (0-7)
         raw: The raw byte value
-        is_64bit: Whether decoding in 64-bit mode
-        rex: Associated REX prefix for extended register access
+        is_64bit: Operating in 64-bit mode
+        rex: Optional REX prefix for register extension
     """
     mod: int = 0
     reg: int = 0
     rm: int = 0
     raw: int = 0
-    is_64bit: bool = True
+    is_64bit: bool = False
     rex: Optional[REXPrefix] = None
 
     @property
@@ -172,8 +190,7 @@ class ModRM:
         if self.mod == 2:
             return 4
         if self.mod == 0 and self.rm == 5:
-            # RIP-relative in 64-bit, or disp32-only in 32-bit
-            return 4
+            return 4  # RIP-relative in 64-bit, or disp32 in 32-bit
         return 0
 
     @property
@@ -181,70 +198,66 @@ class ModRM:
         """Check if ModR/M specifies RIP-relative addressing (mod=00, rm=101, 64-bit)."""
         return self.is_64bit and self.mod == 0 and self.rm == 5
 
+    def _get_reg_name(self, reg_num: int, is_rm: bool = False) -> str:
+        """Get register name considering REX prefix and mode."""
+        # Check for RIP-relative first
+        if is_rm and self.is_rip_relative:
+            return 'RIP'
+        
+        # Calculate extended register number
+        ext_num = reg_num
+        if self.rex and self.rex.present:
+            if is_rm and self.rex.B:
+                ext_num |= 0x08
+            elif not is_rm and self.rex.R:
+                ext_num |= 0x08
+        
+        # Select name table based on mode and extension
+        if ext_num >= 8:
+            return REG64_EXT_NAMES[ext_num - 8]
+        else:
+            if self.is_64bit:
+                return REG64_NAMES[reg_num]
+            return REG32_NAMES[reg_num]
+
     @property
     def reg_name(self) -> str:
-        """Get register name for the 'reg' field, considering mode and REX prefix."""
-        # Determine base register set based on mode
-        if self.is_64bit:
-            base_names = REGS_64BIT
-            ext_names = REGS_64BIT_EXT
-        else:
-            base_names = REGS_32BIT
-            ext_names = REGS_32BIT_EXT
-
-        # Check for REX.R extension
-        if self.rex and self.rex.present and self.rex.R:
-            return ext_names[self.reg]
-        return base_names[self.reg]
+        """Register name for the 'reg' field."""
+        return self._get_reg_name(self.reg, is_rm=False)
 
     @property
     def rm_name(self) -> str:
-        """Get register name for the 'rm' field, considering mode and REX prefix."""
-        # RIP-relative special case
-        if self.is_rip_relative:
-            return 'RIP'
-
-        # Determine base register set based on mode
-        if self.is_64bit:
-            base_names = REGS_64BIT
-            ext_names = REGS_64BIT_EXT
-        else:
-            base_names = REGS_32BIT
-            ext_names = REGS_32BIT_EXT
-
-        # Check for REX.B extension
-        if self.rex and self.rex.present and self.rex.B:
-            return ext_names[self.rm]
-        return base_names[self.rm]
+        """Register name for the 'rm' field."""
+        return self._get_reg_name(self.rm, is_rm=True)
 
     def __str__(self) -> str:
-        parts = [f"ModRM(0x{self.raw:02X}", f"mod={self.mod}", f"reg={self.reg_name}", f"rm={self.rm_name}"]
+        """Human-readable representation."""
+        parts = [f"mod={self.mod}", f"reg={self.reg_name}", f"rm={self.rm_name}"]
         if self.has_sib:
-            parts.append("SIB")
+            parts.append("[SIB]")
         if self.is_rip_relative:
-            parts.append("RIP-rel")
-        if self.disp_size:
-            parts.append(f"disp{self.disp_size * 8}")
-        return " ".join(parts) + ")"
+            parts.append("[RIP-rel disp32]")
+        return f"<ModRM 0x{self.raw:02X} {' '.join(parts)}>"
 
 
-@dataclass
+@dataclass  
 class SIB:
     """
     x86_64 SIB (Scale-Index-Base) byte structure.
     
-    The SIB byte provides scaled indexed addressing modes.
-    
-    Bit layout: [scale:2][index:3][base:3]
+    The SIB byte provides complex addressing modes:
+    - scale (bits 7-6): Multiplier for index (1, 2, 4, 8)
+    - index (bits 5-3): Index register (0-7), 4 = no index
+    - base (bits 2-0): Base register (0-7), 5 with mod=0 = disp32 only
     
     Attributes:
-        scale: Scale factor (1, 2, 4, 8)
-        index: Index register field (0-7), extended by REX.X
-        base: Base register field (0-7), extended by REX.B
+        scale: Scale factor (1, 2, 4, or 8)
+        index: Index register field (0-7)
+        base: Base register field (0-7)
         raw: The raw byte value
-        mod: Associated ModR/M mod field
-        rex: Associated REX prefix
-        is_64bit: Whether decoding in 64-bit mode
+        mod: ModR/M mod field for context
+        rex: Optional REX prefix for register extension
+        is_64bit: Operating in 64-bit mode
     """
     scale: int = 1
     index: int = 0
@@ -253,33 +266,10 @@ class SIB:
     mod: int = 0
     rex: Optional[REXPrefix] = None
     is_64bit: bool = False
-    # Override parameters (InitVar - use same names as tests expect)
-    index_name: InitVar[Optional[str]] = None
-    base_name: InitVar[Optional[str]] = None
-    has_index: InitVar[Optional[bool]] = None
-    has_base: InitVar[Optional[bool]] = None
-    # Internal storage for overrides
-    _overrides: Dict[str, Any] = field(default_factory=dict, repr=False, init=False)
-
-    def __post_init__(self, index_name, base_name, has_index, has_base):
-        """Store override values from InitVar fields."""
-        if index_name is not None:
-            self._overrides['index_name'] = index_name
-        if base_name is not None:
-            self._overrides['base_name'] = base_name
-        if has_index is not None:
-            self._overrides['has_index'] = has_index
-        if has_base is not None:
-            self._overrides['has_base'] = has_base
-
-    @property
-    def scale_field(self) -> int:
-        """Return the raw scale field (0-3)."""
-        return {1: 0, 2: 1, 4: 2, 8: 3}.get(self.scale, 0)
 
     @property
     def scale_factor(self) -> int:
-        """Return the actual numeric scale factor (1, 2, 4, 8). Alias for scale."""
+        """Return the scale factor (alias for scale for backward compatibility)."""
         return self.scale
 
     @property
@@ -293,112 +283,70 @@ class SIB:
     @property
     def base_reg(self) -> int:
         """Return base register number including REX.B extension."""
-        base_val = self.base
+        base = self.base
         if self.rex and self.rex.present and self.rex.B:
-            base_val |= 0x08
-        return base_val
+            base |= 0x08
+        return base
 
-    def _compute_has_index(self) -> bool:
-        """Internal: compute has_index from index field."""
+    @property
+    def has_index(self) -> bool:
+        """Check if there is an index register (index != 4)."""
         return self.index != 4
 
-    def _compute_has_base(self) -> bool:
-        """Internal: compute has_base from mod and base fields."""
-        return not (self.mod == 0 and self.base == 5)
+    @property
+    def has_base(self) -> bool:
+        """Check if there is a base register (base != 5 or mod != 0)."""
+        return not (self.base == 5 and self.mod == 0)
 
-    def _compute_index_name(self) -> str:
-        """Internal: compute index_name from fields."""
-        if not self._compute_has_index():
+    @property
+    def index_name(self) -> str:
+        """Name of the index register, or 'none' if no index."""
+        if not self.has_index:
             return "none"
-
+        
         if self.is_64bit:
-            base_names = REGS_64BIT
-            ext_names = REGS_64BIT_EXT
+            names = REG64_NAMES
+            ext_names = REG64_EXT_NAMES
         else:
-            base_names = REGS_32BIT
-            ext_names = REGS_32BIT_EXT
-
+            names = REG32_NAMES
+            ext_names = REG32_EXT_NAMES
+            
         if self.rex and self.rex.present and self.rex.X:
             return ext_names[self.index]
-        return base_names[self.index]
+        return names[self.index]
 
-    def _compute_base_name(self) -> str:
-        """Internal: compute base_name from fields."""
-        if not self._compute_has_base():
+    @property
+    def base_name(self) -> str:
+        """Name of the base register, or 'none' if no base."""
+        if not self.has_base:
             return "none"
-
+            
         if self.is_64bit:
-            base_names = REGS_64BIT
-            ext_names = REGS_64BIT_EXT
+            names = REG64_NAMES
+            ext_names = REG64_EXT_NAMES
         else:
-            base_names = REGS_32BIT
-            ext_names = REGS_32BIT_EXT
-
+            names = REG32_NAMES
+            ext_names = REG32_EXT_NAMES
+            
         if self.rex and self.rex.present and self.rex.B:
             return ext_names[self.base]
-        return base_names[self.base]
-
-    @property
-    def computed_has_index(self) -> bool:
-        """Check if there is a valid index register (index != 4). Uses override if set."""
-        if 'has_index' in self._overrides:
-            return self._overrides['has_index']
-        return self._compute_has_index()
-
-    @property
-    def computed_has_base(self) -> bool:
-        """Check if there is a valid base register (not mod=0, base=5). Uses override if set."""
-        if 'has_base' in self._overrides:
-            return self._overrides['has_base']
-        return self._compute_has_base()
-
-    @property
-    def computed_index_name(self) -> str:
-        """Get the index register name, or 'none' if no index. Uses override if set."""
-        if 'index_name' in self._overrides:
-            return self._overrides['index_name']
-        return self._compute_index_name()
-
-    @property
-    def computed_base_name(self) -> str:
-        """Get the base register name, or 'none' if no base. Uses override if set."""
-        if 'base_name' in self._overrides:
-            return self._overrides['base_name']
-        return self._compute_base_name()
-
-    # Backward compatibility - alias properties to computed versions
-    has_index = property(lambda self: self.computed_has_index)
-    has_base = property(lambda self: self.computed_has_base)
-    index_name = property(lambda self: self.computed_index_name)
-    base_name = property(lambda self: self.computed_base_name)
-
-    def get_has_index(self) -> bool:
-        """Get has_index, using override if set, otherwise computed value."""
-        return self.computed_has_index
-
-    def get_has_base(self) -> bool:
-        """Get has_base, using override if set, otherwise computed value."""
-        return self.computed_has_base
-
-    def get_index_name(self) -> str:
-        """Get index_name, using override if set, otherwise computed value."""
-        return self.computed_index_name
-
-    def get_base_name(self) -> str:
-        """Get base_name, using override if set, otherwise computed value."""
-        return self.computed_base_name
+        return names[self.base]
 
     def __str__(self) -> str:
-        parts = [f"SIB(0x{self.raw:02X}"]
-
+        """Human-readable representation."""
+        parts = [f"scale={self.scale}"]
+        
+        if self.has_index:
+            parts.append(f"index={self.index_name}")
+        else:
+            parts.append("no-index")
+            
         if self.has_base:
             parts.append(f"base={self.base_name}")
-        if self.has_index:
-            parts.append(f"index={self.index_name}*{self.scale_factor}")
-        elif not self.has_base:
-            parts.append("disp32")
-
-        return " ".join(parts) + ")"
+        else:
+            parts.append("disp32-only")
+            
+        return f"<SIB 0x{self.raw:02X} {' '.join(parts)}>"
 
 
 @dataclass
@@ -407,35 +355,36 @@ class Operand:
     Instruction operand representation.
     
     Attributes:
-        type: The type of operand (register, memory, immediate, etc.)
-        value: The operand value (register name, immediate value, etc.)
+        type: The operand type classification
+        value: Immediate value or register name
         size: Operand size in bits
         reg: Register number (if applicable)
-        base: Base register for memory operands
-        index: Index register for memory operands
-        scale: Scale factor for indexed memory operands
-        displacement: Displacement value for memory operands
+        base: Base register for memory operand
+        index: Index register for memory operand
+        scale: Scale factor for memory operand
+        displacement: Displacement value for memory operand
     """
     type: OperandType = OperandType.NONE
-    value: Union[int, str, None] = None
+    value: Union[int, str] = 0
     size: int = 0
     reg: Optional[int] = None
-    base: Optional[Union[int, str]] = None
-    index: Optional[Union[int, str]] = None
+    base: Optional[int] = None
+    index: Optional[int] = None
     scale: Optional[int] = None
     displacement: Optional[int] = None
 
     def __str__(self) -> str:
+        """String representation of operand."""
         if self.type == OperandType.REGISTER:
             return str(self.value) if self.value else "?"
-
+        
         if self.type == OperandType.IMMEDIATE:
             if isinstance(self.value, int):
                 if self.value >= 10 or self.value < 0:
                     return f"0x{self.value:X}"
                 return str(self.value)
-            return str(self.value)
-
+            return str(self.value) if self.value else "?"
+        
         if self.type == OperandType.MEMORY:
             parts = []
             if self.base:
@@ -445,16 +394,16 @@ class Operand:
                 parts.append(f"{self.index}{scale_str}")
             if self.displacement:
                 if self.displacement > 0:
-                    parts.append(f"+0x{self.displacement:X}")
+                    parts.append(f"0x{self.displacement:X}")
                 else:
                     parts.append(f"-0x{-self.displacement:X}")
             return f"[{' + '.join(parts) if parts else 'mem'}]"
-
+        
         if self.type in (OperandType.RELATIVE, OperandType.LABEL):
             if isinstance(self.value, int):
                 return f"0x{self.value:X}"
             return str(self.value) if self.value else "?"
-
+        
         return str(self.value) if self.value is not None else "?"
 
 
@@ -464,15 +413,15 @@ class Instruction:
     Decoded instruction representation.
     
     Attributes:
-        address: The address where this instruction is located
+        address: The instruction's address in memory
         mnemonic: The instruction mnemonic (MOV, ADD, etc.)
         opcodes: List of opcode bytes
         operands: List of instruction operands
-        category: The instruction category
+        category: Instruction category classification
         length: Total instruction length in bytes
-        rex: REX prefix data
-        modrm: ModR/M byte data
-        sib: SIB byte data
+        rex: REX prefix, if present
+        modrm: ModR/M byte, if present
+        sib: SIB byte, if present
         prefix: Legacy prefix bytes
     """
     address: int = 0
@@ -485,49 +434,36 @@ class Instruction:
     modrm: Optional[ModRM] = None
     sib: Optional[SIB] = None
     prefix: bytes = b""
-
+    
     @property
     def rex_prefix(self) -> int:
-        """Return REX prefix byte value (for backward compatibility)."""
+        """Raw REX prefix value (for backward compatibility)."""
         return self.rex.value if self.rex else 0
 
-    @property
-    def opcode(self) -> int:
-        """Return the primary opcode byte."""
-        return self.opcodes[0] if self.opcodes else 0
-
-    @property
-    def size(self) -> int:
-        """Return instruction length (alias for length)."""
-        return self.length
-
     def to_dict(self) -> Dict[str, Any]:
-        """Convert instruction to dictionary for JSON serialization."""
+        """Convert instruction to dictionary representation."""
         return {
             'address': self.address,
             'mnemonic': self.mnemonic,
-            'opcode': self.opcode,
-            'opcodes': [f'0x{b:02X}' for b in self.opcodes],
+            'opcodes': self.opcodes,
             'operands': [
                 {
                     'type': op.type.name,
-                    'value': str(op.value) if not isinstance(op.value, int) else op.value,
+                    'value': op.value,
                     'size': op.size
                 }
                 for op in self.operands
             ],
-            'size': self.size,
-            'length': self.length,
             'category': self.category.name,
-            'prefix': self.prefix.hex() if self.prefix else '',
-            'rex_prefix': f'0x{self.rex_prefix:02X}' if self.rex_prefix else None,
+            'length': self.length,
+            'rex': self.rex_prefix,
+            'prefix': self.prefix.hex() if self.prefix else None
         }
 
     def __str__(self) -> str:
-        ops = ", ".join(str(op) for op in self.operands)
-        if ops:
-            return f"{self.mnemonic} {ops}"
-        return self.mnemonic
+        """String representation of instruction."""
+        ops = ", ".join(str(op) for op in self.operands) if self.operands else ""
+        return f"{self.address:08X}: {self.mnemonic} {ops}".strip()
 
 
 # =============================================================================
@@ -536,7 +472,7 @@ class Instruction:
 
 def decode_rex_prefix(byte: int) -> REXPrefix:
     """
-    Decode REX prefix (0x40-0x4F).
+    Decode a REX prefix byte (0x40-0x4F).
     
     Args:
         byte: The byte to decode
@@ -544,58 +480,65 @@ def decode_rex_prefix(byte: int) -> REXPrefix:
     Returns:
         REXPrefix dataclass with decoded fields
     """
-    if 0x40 <= byte <= 0x4F:
+    if REX_PREFIX_MIN <= byte <= REX_PREFIX_MAX:
         return REXPrefix(
             present=True,
             raw=byte,
-            W=bool(byte & 0x08),
-            R=bool(byte & 0x04),
-            X=bool(byte & 0x02),
-            B=bool(byte & 0x01)
+            W=bool(byte & REX_W_BIT),
+            R=bool(byte & REX_R_BIT),
+            X=bool(byte & REX_X_BIT),
+            B=bool(byte & REX_B_BIT)
         )
     return REXPrefix(present=False, raw=byte)
 
 
 def decode_modrm(byte: int, is_64bit: bool = False, rex: Optional[REXPrefix] = None) -> ModRM:
     """
-    Decode ModR/M byte.
+    Decode a ModR/M byte.
     
     Args:
         byte: The ModR/M byte to decode
-        is_64bit: Whether decoding in 64-bit mode
-        rex: Associated REX prefix for extended registers
+        is_64bit: Whether operating in 64-bit mode
+        rex: Optional REX prefix for register extension
         
     Returns:
         ModRM dataclass with decoded fields
     """
     return ModRM(
-        mod=(byte >> 6) & 0x03,
-        reg=(byte >> 3) & 0x07,
-        rm=byte & 0x07,
+        mod=(byte & MODRM_MOD_MASK) >> 6,
+        reg=(byte & MODRM_REG_MASK) >> 3,
+        rm=byte & MODRM_RM_MASK,
         raw=byte,
         is_64bit=is_64bit,
         rex=rex
     )
 
 
-def decode_sib(byte: int, mod: int = 0, rex: Optional[REXPrefix] = None, is_64bit: bool = False) -> SIB:
+def decode_sib(
+    byte: int, 
+    mod: int = 0, 
+    rex: Optional[REXPrefix] = None,
+    is_64bit: bool = False
+) -> SIB:
     """
-    Decode SIB byte.
+    Decode a SIB byte.
     
     Args:
         byte: The SIB byte to decode
-        mod: Associated ModR/M mod field
-        rex: Associated REX prefix
-        is_64bit: Whether decoding in 64-bit mode
+        mod: The ModR/M mod field value for context
+        rex: Optional REX prefix for register extension
+        is_64bit: Whether operating in 64-bit mode
         
     Returns:
         SIB dataclass with decoded fields
     """
-    scale_field = (byte >> 6) & 0x03
+    scale_field = (byte & SIB_SCALE_MASK) >> 6
+    scale_factor = 1 << scale_field
+    
     return SIB(
-        scale=1 << scale_field,  # Convert field to factor
-        index=(byte >> 3) & 0x07,
-        base=byte & 0x07,
+        scale=scale_factor,
+        index=(byte & SIB_INDEX_MASK) >> 3,
+        base=byte & SIB_BASE_MASK,
         raw=byte,
         mod=mod,
         rex=rex,
@@ -610,26 +553,29 @@ def get_effective_address(
     disp: int = 0
 ) -> int:
     """
-    Calculate effective address based on SIB and values.
+    Calculate effective address from SIB byte components.
+    
+    The effective address is calculated as:
+        base + (index * scale) + displacement
     
     Args:
-        sib: Decoded SIB byte
-        base_val: Base register value
-        index_val: Index register value
+        sib: The SIB byte structure
+        base_val: Value of the base register
+        index_val: Value of the index register
         disp: Displacement value
         
     Returns:
-        Calculated effective address
+        The calculated effective address
     """
-    addr = disp
-
+    result = disp
+    
     if sib.has_base:
-        addr += base_val
-
+        result += base_val
+        
     if sib.has_index:
-        addr += index_val * sib.scale_factor
-
-    return addr & 0xFFFFFFFFFFFFFFFF  # Mask to 64-bit
+        result += index_val * sib.scale
+        
+    return result & 0xFFFFFFFFFFFFFFFF  # Mask to 64 bits
 
 
 def decode_binary_file(path: str, base_address: int = 0) -> List[Instruction]:
@@ -643,179 +589,140 @@ def decode_binary_file(path: str, base_address: int = 0) -> List[Instruction]:
     Returns:
         List of decoded instructions
     """
-    decoder = X86InstructionDecoder(is_64bit=True, default_address=base_address)
-
     with open(path, 'rb') as f:
         data = f.read()
-
+    decoder = X86InstructionDecoder()
     return decoder.decode(data, address=base_address)
 
 
 # =============================================================================
-# Opcode Tables
-# =============================================================================
-
-# One-byte opcodes that take no operands
-OPCODES_NO_OPERANDS = {
-    0x90: ('NOP', InstructionCategory.DATA_TRANSFER),
-    0xC3: ('RET', InstructionCategory.CONTROL_TRANSFER),
-    0xCB: ('RETF', InstructionCategory.CONTROL_TRANSFER),
-    0xF4: ('HLT', InstructionCategory.SYSTEM),
-    0xFA: ('CLI', InstructionCategory.SYSTEM),
-    0xFB: ('STI', InstructionCategory.SYSTEM),
-    0xCC: ('INT3', InstructionCategory.SYSTEM),
-    0x9C: ('PUSHF', InstructionCategory.STACK),
-    0x9D: ('POPF', InstructionCategory.STACK),
-    0xA4: ('MOVSB', InstructionCategory.STRING),
-    0xA5: ('MOVSW', InstructionCategory.STRING),  # or MOVSD
-    0xAA: ('STOSB', InstructionCategory.STRING),
-    0xAB: ('STOSW', InstructionCategory.STRING),  # or STOSD
-    0xAC: ('LODSB', InstructionCategory.STRING),
-    0xAD: ('LODSW', InstructionCategory.STRING),  # or LODSD
-    0xAE: ('SCASB', InstructionCategory.STRING),
-    0xAF: ('SCASW', InstructionCategory.STRING),  # or SCASD
-    0xA6: ('CMPSB', InstructionCategory.STRING),
-    0xA7: ('CMPSW', InstructionCategory.STRING),  # or CMPSD
-}
-
-# One-byte opcodes with immediate/relative operands
-OPCODES_WITH_IMM = {
-    # MOV rax, imm64 / r32, imm32 (B8-BF)
-    **{op: ('MOV', InstructionCategory.DATA_TRANSFER) for op in range(0xB8, 0xC0)},
-    # PUSH imm32 (68)
-    0x68: ('PUSH', InstructionCategory.STACK),
-    # PUSH imm8 (6A)
-    0x6A: ('PUSH', InstructionCategory.STACK),
-    # JMP rel8 (EB)
-    0xEB: ('JMP', InstructionCategory.CONTROL_TRANSFER),
-    # JMP rel32 (E9)
-    0xE9: ('JMP', InstructionCategory.CONTROL_TRANSFER),
-    # CALL rel32 (E8)
-    0xE8: ('CALL', InstructionCategory.CONTROL_TRANSFER),
-    # ADD/SUB/CMP EAX, imm32
-    0x05: ('ADD', InstructionCategory.ARITHMETIC),
-    0x2D: ('SUB', InstructionCategory.ARITHMETIC),
-    0x3D: ('CMP', InstructionCategory.COMPARISON),
-    # ADD/SUB/CMP AL, imm8
-    0x04: ('ADD', InstructionCategory.ARITHMETIC),
-    0x2C: ('SUB', InstructionCategory.ARITHMETIC),
-    0x3C: ('CMP', InstructionCategory.COMPARISON),
-}
-
-# Conditional jump opcodes (Jcc rel8)
-CONDITIONAL_JUMPS = {
-    0x70: 'JO',
-    0x71: 'JNO',
-    0x72: 'JB',
-    0x73: 'JNB',
-    0x74: 'JZ',
-    0x75: 'JNZ',
-    0x76: 'JBE',
-    0x77: 'JA',
-    0x78: 'JS',
-    0x79: 'JNS',
-    0x7A: 'JP',
-    0x7B: 'JNP',
-    0x7C: 'JL',
-    0x7D: 'JGE',
-    0x7E: 'JLE',
-    0x7F: 'JG',
-}
-
-# PUSH/POP register opcodes (50-5F)
-PUSH_REG_BASE = 0x50
-POP_REG_BASE = 0x58
-
-# MOV opcodes with ModR/M
-MOV_OPCODES = {
-    0x88: ('MOV', 'r8', 'r/m8'),
-    0x89: ('MOV', 'r32/64', 'r/m32/64'),
-    0x8A: ('MOV', 'r/m8', 'r8'),
-    0x8B: ('MOV', 'r/m32/64', 'r32/64'),
-    0x8D: ('LEA', 'r32/64', 'm'),
-}
-
-# MOV with moffs (A0-A3)
-MOFFS_OPCODES = {
-    0xA0: ('MOV', 'AL', 'moffs8'),
-    0xA1: ('MOV', 'EAX/RAX', 'moffs32/64'),
-    0xA2: ('MOV', 'moffs8', 'AL'),
-    0xA3: ('MOV', 'moffs32/64', 'EAX/RAX'),
-}
-
-# RET with imm16
-RET_IMM_OPCODE = 0xC2
-
-# Legacy prefixes
-LEGACY_PREFIXES = {
-    0xF0: 'LOCK',
-    0xF2: 'REPNE',
-    0xF3: 'REP',
-    0x2E: 'CS',
-    0x36: 'SS',
-    0x3E: 'DS',
-    0x26: 'ES',
-    0x64: 'FS',
-    0x65: 'GS',
-    0x66: 'OperandSize',
-    0x67: 'AddressSize',
-}
-
-
-# =============================================================================
-# Main Decoder Class
+# Instruction Decoder Class
 # =============================================================================
 
 class X86InstructionDecoder:
     """
     Main x86_64 instruction decoder class.
     
-    Decodes x86_64 binary instructions into an intermediate representation.
+    Supports linear sweep decoding of x86_64 instructions including:
+    - REX prefixes
+    - Legacy prefixes (LOCK, REP, etc.)
+    - ModR/M and SIB addressing
+    - Common opcodes (MOV, ADD, SUB, JMP, CALL, RET, PUSH, POP)
     
     Attributes:
-        is_64bit: Whether to decode in 64-bit mode
-        default_address: Default base address for decoding
+        is_64bit: Operating in 64-bit mode
+        default_address: Default starting address for decoding
     """
+
+    # Opcode tables for common instructions
+    _OPCODE_TABLE_1BYTE: Dict[int, tuple] = {
+        # PUSH r64 (50-5F)
+        **{op: ("PUSH", InstructionCategory.STACK) for op in range(0x50, 0x58)},
+        # POP r64 (58-5F)
+        **{op: ("POP", InstructionCategory.STACK) for op in range(0x58, 0x60)},
+        # JMP rel8
+        0xEB: ("JMP", InstructionCategory.CONTROL_TRANSFER),
+        # JMP rel32
+        0xE9: ("JMP", InstructionCategory.CONTROL_TRANSFER),
+        # CALL rel32
+        0xE8: ("CALL", InstructionCategory.CONTROL_TRANSFER),
+        # RET
+        0xC3: ("RET", InstructionCategory.CONTROL_TRANSFER),
+        # RET imm16
+        0xC2: ("RET", InstructionCategory.CONTROL_TRANSFER),
+        # MOV r64, imm64 (B8-BF)
+        **{op: ("MOV", InstructionCategory.DATA_TRANSFER) for op in range(0xB8, 0xC0)},
+        # MOV AL/EAX/RAX, moffs
+        0xA0: ("MOV", InstructionCategory.DATA_TRANSFER),
+        0xA1: ("MOV", InstructionCategory.DATA_TRANSFER),
+        # ADD EAX, imm32 / ADD AL, imm8
+        0x05: ("ADD", InstructionCategory.ARITHMETIC),
+        0x04: ("ADD", InstructionCategory.ARITHMETIC),
+        # SUB EAX, imm32 / SUB AL, imm8
+        0x2D: ("SUB", InstructionCategory.ARITHMETIC),
+        0x2C: ("SUB", InstructionCategory.ARITHMETIC),
+        # CMP EAX, imm32 / CMP AL, imm8
+        0x3D: ("CMP", InstructionCategory.COMPARISON),
+        0x3C: ("CMP", InstructionCategory.COMPARISON),
+        # PUSH imm32 / imm8
+        0x68: ("PUSH", InstructionCategory.STACK),
+        0x6A: ("PUSH", InstructionCategory.STACK),
+        # Conditional jumps (Jcc rel8)
+        0x70: ("JO", InstructionCategory.CONTROL_TRANSFER),
+        0x71: ("JNO", InstructionCategory.CONTROL_TRANSFER),
+        0x72: ("JB", InstructionCategory.CONTROL_TRANSFER),
+        0x73: ("JNB", InstructionCategory.CONTROL_TRANSFER),
+        0x74: ("JZ", InstructionCategory.CONTROL_TRANSFER),
+        0x75: ("JNZ", InstructionCategory.CONTROL_TRANSFER),
+        0x76: ("JBE", InstructionCategory.CONTROL_TRANSFER),
+        0x77: ("JA", InstructionCategory.CONTROL_TRANSFER),
+        0x78: ("JS", InstructionCategory.CONTROL_TRANSFER),
+        0x79: ("JNS", InstructionCategory.CONTROL_TRANSFER),
+        0x7A: ("JP", InstructionCategory.CONTROL_TRANSFER),
+        0x7B: ("JNP", InstructionCategory.CONTROL_TRANSFER),
+        0x7C: ("JL", InstructionCategory.CONTROL_TRANSFER),
+        0x7D: ("JGE", InstructionCategory.CONTROL_TRANSFER),
+        0x7E: ("JLE", InstructionCategory.CONTROL_TRANSFER),
+        0x7F: ("JG", InstructionCategory.CONTROL_TRANSFER),
+        # MOV with ModR/M
+        0x88: ("MOV", InstructionCategory.DATA_TRANSFER),
+        0x89: ("MOV", InstructionCategory.DATA_TRANSFER),
+        0x8A: ("MOV", InstructionCategory.DATA_TRANSFER),
+        0x8B: ("MOV", InstructionCategory.DATA_TRANSFER),
+        # NOP
+        0x90: ("NOP", InstructionCategory.UNKNOWN),
+    }
 
     def __init__(self, is_64bit: bool = True, default_address: int = 0):
         """
-        Initialize decoder.
+        Initialize the decoder.
         
         Args:
-            is_64bit: Whether to decode in 64-bit mode (default True)
-            default_address: Default base address (default 0)
+            is_64bit: Whether to decode in 64-bit mode
+            default_address: Default starting address for decoding
         """
         self.is_64bit = is_64bit
         self.default_address = default_address
-        self.current_address = 0
 
     def decode(self, data: bytes, address: Optional[int] = None) -> List[Instruction]:
         """
         Decode a stream of bytes into instructions.
         
+        Performs linear sweep decoding from the start of the data.
+        
         Args:
-            data: Raw bytes to decode
+            data: Bytes to decode
             address: Starting address (uses default_address if None)
             
         Returns:
             List of decoded instructions
         """
-        if address is None:
-            address = self.default_address
-
-        self.current_address = address
+        start_addr = address if address is not None else self.default_address
         instructions: List[Instruction] = []
         offset = 0
-
+        current_addr = start_addr
+        
         while offset < len(data):
-            instr = self._decode_single(data, offset, self.current_address + offset)
-            if instr:
-                instructions.append(instr)
-                offset += instr.length
-            else:
-                # Unknown byte, skip it
-                offset += 1
-
+            instr, consumed = self._decode_single(data, offset, current_addr)
+            if instr is None or consumed == 0:
+                # Emit placeholder for undecodable byte
+                if offset < len(data):
+                    instr = Instruction(
+                        address=current_addr,
+                        mnemonic="DB",
+                        opcodes=[data[offset]],
+                        operands=[Operand(type=OperandType.IMMEDIATE, value=data[offset], size=8)],
+                        category=InstructionCategory.UNKNOWN,
+                        length=1
+                    )
+                    instructions.append(instr)
+                    offset += 1
+                    current_addr += 1
+                break
+            instructions.append(instr)
+            offset += consumed
+            current_addr += consumed
+            
         return instructions
 
     def decode_single(self, data: bytes, address: int = 0) -> Optional[Instruction]:
@@ -823,400 +730,331 @@ class X86InstructionDecoder:
         Decode a single instruction at the given address.
         
         Args:
-            data: Raw bytes containing the instruction
+            data: Bytes to decode
             address: Starting address
             
         Returns:
-            Decoded instruction or None if unable to decode
+            Decoded instruction or None if decoding fails
         """
-        return self._decode_single(data, 0, address)
-
-    def _decode_single(self, data: bytes, offset: int, address: int) -> Optional[Instruction]:
-        """Internal single instruction decoder."""
-        if offset >= len(data):
-            return None
-
-        instr = Instruction(address=address)
-        byte_offset = 0
-
-        # Parse legacy prefixes
-        prefixes = []
-        while offset + byte_offset < len(data):
-            byte = data[offset + byte_offset]
-            if byte in LEGACY_PREFIXES:
-                prefixes.append(byte)
-                byte_offset += 1
-            else:
-                break
-        instr.prefix = bytes(prefixes)
-
-        # Parse REX prefix
-        if offset + byte_offset < len(data):
-            byte = data[offset + byte_offset]
-            rex = decode_rex_prefix(byte)
-            if rex.present:
-                instr.rex = rex
-                byte_offset += 1
-
-        # Get primary opcode
-        if offset + byte_offset >= len(data):
-            return None
-
-        opcode = data[offset + byte_offset]
-        instr.opcodes.append(opcode)
-        byte_offset += 1
-
-        # Decode based on opcode
-        decoded = False
-
-        # No operand opcodes
-        if opcode in OPCODES_NO_OPERANDS:
-            instr.mnemonic, instr.category = OPCODES_NO_OPERANDS[opcode]
-            decoded = True
-
-        # Conditional jumps
-        elif opcode in CONDITIONAL_JUMPS:
-            instr.mnemonic = CONDITIONAL_JUMPS[opcode]
-            instr.category = InstructionCategory.CONTROL_TRANSFER
-            if offset + byte_offset < len(data):
-                rel8 = data[offset + byte_offset]
-                # Sign extend
-                if rel8 & 0x80:
-                    rel8 = rel8 - 256
-                # Store raw relative offset, not computed target
-                instr.operands.append(Operand(OperandType.LABEL, rel8, size=8))
-                byte_offset += 1
-            decoded = True
-
-        # PUSH/POP register
-        elif PUSH_REG_BASE <= opcode <= PUSH_REG_BASE + 7:
-            reg_num = opcode - PUSH_REG_BASE
-            reg_name = self._get_register(reg_num, 64, instr.rex_prefix if instr.rex else 0)
-            instr.mnemonic = 'PUSH'
-            instr.category = InstructionCategory.STACK
-            instr.operands.append(Operand(OperandType.REGISTER, reg_name, size=64))
-            decoded = True
-
-        elif POP_REG_BASE <= opcode <= POP_REG_BASE + 7:
-            reg_num = opcode - POP_REG_BASE
-            reg_name = self._get_register(reg_num, 64, instr.rex_prefix if instr.rex else 0)
-            instr.mnemonic = 'POP'
-            instr.category = InstructionCategory.STACK
-            instr.operands.append(Operand(OperandType.REGISTER, reg_name, size=64))
-            decoded = True
-
-        # MOV r64, imm64 / r32, imm32 (B8-BF)
-        elif 0xB8 <= opcode <= 0xBF:
-            reg_num = opcode - 0xB8
-            operand_size = 64 if (instr.rex and instr.rex.W) or self.is_64bit else 32
-            reg_name = self._get_register(reg_num, operand_size, instr.rex_prefix if instr.rex else 0)
-            instr.mnemonic = 'MOV'
-            instr.category = InstructionCategory.DATA_TRANSFER
-
-            # Check for REX.B extension
-            if instr.rex and instr.rex.B:
-                reg_num |= 0x08
-                reg_name = self._get_register(reg_num, operand_size, instr.rex_prefix if instr.rex else 0)
-
-            instr.operands.append(Operand(OperandType.REGISTER, reg_name, size=operand_size))
-
-            # Read immediate (32-bit zero-extended or 64-bit)
-            imm_size = 8 if (instr.rex and instr.rex.W) else 4
-            if offset + byte_offset + imm_size <= len(data):
-                imm = int.from_bytes(data[offset + byte_offset:offset + byte_offset + imm_size], 'little')
-                instr.operands.append(Operand(OperandType.IMMEDIATE, imm, size=imm_size * 8))
-                byte_offset += imm_size
-            decoded = True
-
-        # PUSH imm32 (68)
-        elif opcode == 0x68:
-            instr.mnemonic = 'PUSH'
-            instr.category = InstructionCategory.STACK
-            if offset + byte_offset + 4 <= len(data):
-                imm = int.from_bytes(data[offset + byte_offset:offset + byte_offset + 4], 'little')
-                instr.operands.append(Operand(OperandType.IMMEDIATE, imm, size=32))
-                byte_offset += 4
-            decoded = True
-
-        # PUSH imm8 (6A)
-        elif opcode == 0x6A:
-            instr.mnemonic = 'PUSH'
-            instr.category = InstructionCategory.STACK
-            if offset + byte_offset < len(data):
-                imm = data[offset + byte_offset]
-                # Sign extend to 64-bit
-                if imm & 0x80:
-                    imm = imm - 256
-                instr.operands.append(Operand(OperandType.IMMEDIATE, imm, size=8))
-                byte_offset += 1
-            decoded = True
-
-        # JMP rel8 (EB)
-        elif opcode == 0xEB:
-            instr.mnemonic = 'JMP'
-            instr.category = InstructionCategory.CONTROL_TRANSFER
-            if offset + byte_offset < len(data):
-                rel8 = data[offset + byte_offset]
-                if rel8 & 0x80:
-                    rel8 = rel8 - 256
-                # Store raw relative offset, not computed target
-                instr.operands.append(Operand(OperandType.RELATIVE, rel8, size=8))
-                byte_offset += 1
-            decoded = True
-
-        # JMP rel32 (E9)
-        elif opcode == 0xE9:
-            instr.mnemonic = 'JMP'
-            instr.category = InstructionCategory.CONTROL_TRANSFER
-            if offset + byte_offset + 4 <= len(data):
-                rel32 = int.from_bytes(data[offset + byte_offset:offset + byte_offset + 4], 'little', signed=True)
-                # Store raw relative offset, not computed target
-                instr.operands.append(Operand(OperandType.RELATIVE, rel32, size=32))
-                byte_offset += 4
-            decoded = True
-
-        # CALL rel32 (E8)
-        elif opcode == 0xE8:
-            instr.mnemonic = 'CALL'
-            instr.category = InstructionCategory.CONTROL_TRANSFER
-            if offset + byte_offset + 4 <= len(data):
-                rel32 = int.from_bytes(data[offset + byte_offset:offset + byte_offset + 4], 'little', signed=True)
-                # Store raw relative offset, not computed target
-                instr.operands.append(Operand(OperandType.RELATIVE, rel32, size=32))
-                byte_offset += 4
-            decoded = True
-
-        # RET imm16 (C2)
-        elif opcode == RET_IMM_OPCODE:
-            instr.mnemonic = 'RET'
-            instr.category = InstructionCategory.CONTROL_TRANSFER
-            if offset + byte_offset + 2 <= len(data):
-                imm16 = int.from_bytes(data[offset + byte_offset:offset + byte_offset + 2], 'little')
-                instr.operands.append(Operand(OperandType.IMMEDIATE, imm16, size=16))
-                byte_offset += 2
-            decoded = True
-
-        # ADD/SUB/CMP EAX, imm32
-        elif opcode in (0x05, 0x2D, 0x3D):
-            op_map = {0x05: 'ADD', 0x2D: 'SUB', 0x3D: 'CMP'}
-            cat_map = {0x05: InstructionCategory.ARITHMETIC, 0x2D: InstructionCategory.ARITHMETIC,
-                       0x3D: InstructionCategory.COMPARISON}
-            instr.mnemonic = op_map[opcode]
-            instr.category = cat_map[opcode]
-            reg_name = 'RAX' if self.is_64bit else 'EAX'
-            instr.operands.append(Operand(OperandType.REGISTER, reg_name, size=64 if self.is_64bit else 32))
-            if offset + byte_offset + 4 <= len(data):
-                imm = int.from_bytes(data[offset + byte_offset:offset + byte_offset + 4], 'little')
-                instr.operands.append(Operand(OperandType.IMMEDIATE, imm, size=32))
-                byte_offset += 4
-            decoded = True
-
-        # ADD/SUB/CMP AL, imm8
-        elif opcode in (0x04, 0x2C, 0x3C):
-            op_map = {0x04: 'ADD', 0x2C: 'SUB', 0x3C: 'CMP'}
-            cat_map = {0x04: InstructionCategory.ARITHMETIC, 0x2C: InstructionCategory.ARITHMETIC,
-                       0x3C: InstructionCategory.COMPARISON}
-            instr.mnemonic = op_map[opcode]
-            instr.category = cat_map[opcode]
-            instr.operands.append(Operand(OperandType.REGISTER, 'AL', size=8))
-            if offset + byte_offset < len(data):
-                imm = data[offset + byte_offset]
-                instr.operands.append(Operand(OperandType.IMMEDIATE, imm, size=8))
-                byte_offset += 1
-            decoded = True
-
-        # MOV with ModR/M
-        elif opcode in MOV_OPCODES:
-            instr.mnemonic, _, _ = MOV_OPCODES[opcode]
-            if instr.mnemonic == 'LEA':
-                instr.category = InstructionCategory.DATA_TRANSFER
-            else:
-                instr.category = InstructionCategory.DATA_TRANSFER
-
-            if offset + byte_offset < len(data):
-                modrm_byte = data[offset + byte_offset]
-                rex_prefix = instr.rex if instr.rex else None
-                if not rex_prefix:
-                    rex_prefix = REXPrefix(present=False)
-                instr.modrm = decode_modrm(modrm_byte, self.is_64bit, rex_prefix)
-                instr.modrm = ModRM(modrm_byte >> 6 & 3, modrm_byte >> 3 & 7, modrm_byte & 7,
-                                    modrm_byte, self.is_64bit, rex_prefix)
-                byte_offset += 1
-
-                # Determine operand size
-                if instr.rex and instr.rex.W:
-                    op_size = 64
-                elif opcode in (0x88, 0x8A):
-                    op_size = 8
-                else:
-                    op_size = 32 if not self.is_64bit else 64
-
-                # Handle SIB
-                if instr.modrm.has_sib and offset + byte_offset < len(data):
-                    sib_byte = data[offset + byte_offset]
-                    instr.sib = decode_sib(sib_byte, instr.modrm.mod, rex_prefix, self.is_64bit)
-                    byte_offset += 1
-
-                # Handle displacement
-                if instr.modrm.disp_size > 0:
-                    disp_size = instr.modrm.disp_size
-                    if offset + byte_offset + disp_size <= len(data):
-                        disp = int.from_bytes(data[offset + byte_offset:offset + byte_offset + disp_size], 'little',
-                                              signed=(disp_size == 1))
-                        byte_offset += disp_size
-
-                # Create operands based on ModR/M
-                reg_name = self._get_register(instr.modrm.reg, op_size, rex_prefix.raw if rex_prefix.present else 0)
-
-                if instr.modrm.mod == 3:
-                    # Register direct
-                    rm_name = self._get_register(instr.modrm.rm, op_size, rex_prefix.raw if rex_prefix.present else 0)
-                    instr.operands.append(Operand(OperandType.REGISTER, reg_name, size=op_size))
-                    instr.operands.append(Operand(OperandType.REGISTER, rm_name, size=op_size))
-                else:
-                    # Memory operand
-                    instr.operands.append(Operand(OperandType.REGISTER, reg_name, size=op_size))
-                    mem_op = Operand(OperandType.MEMORY, '[mem]', size=op_size)
-                    if instr.sib:
-                        mem_op.base = instr.sib.base_name if instr.sib.has_base else None
-                        mem_op.index = instr.sib.index_name if instr.sib.has_index else None
-                        mem_op.scale = instr.sib.scale_factor if instr.sib.has_index else None
-                    instr.operands.append(mem_op)
-
-            decoded = True
-
-        # MOV with moffs
-        elif opcode in MOFFS_OPCODES:
-            instr.mnemonic = 'MOV'
-            instr.category = InstructionCategory.DATA_TRANSFER
-
-            moffs_size = 8 if self.is_64bit else 4
-            if opcode in (0xA0, 0xA1):
-                # Load from moffs
-                if opcode == 0xA0:
-                    instr.operands.append(Operand(OperandType.REGISTER, 'AL', size=8))
-                else:
-                    reg_name = 'RAX' if self.is_64bit else 'EAX'
-                    instr.operands.append(Operand(OperandType.REGISTER, reg_name, size=64 if self.is_64bit else 32))
-
-                if offset + byte_offset + moffs_size <= len(data):
-                    moffs = int.from_bytes(data[offset + byte_offset:offset + byte_offset + moffs_size], 'little')
-                    instr.operands.append(Operand(OperandType.MEMORY, '[mem]', size=8 if opcode == 0xA0 else 32,
-                                                  displacement=moffs))
-                    byte_offset += moffs_size
-            else:
-                # Store to moffs
-                if opcode == 0xA2:
-                    instr.operands.append(Operand(OperandType.MEMORY, '[mem]', size=8))
-                    if offset + byte_offset + moffs_size <= len(data):
-                        moffs = int.from_bytes(data[offset + byte_offset:offset + byte_offset + moffs_size], 'little')
-                        instr.operands[-1].displacement = moffs
-                        byte_offset += moffs_size
-                    instr.operands.append(Operand(OperandType.REGISTER, 'AL', size=8))
-                else:
-                    reg_name = 'RAX' if self.is_64bit else 'EAX'
-                    instr.operands.append(Operand(OperandType.MEMORY, '[mem]', size=64 if self.is_64bit else 32))
-                    if offset + byte_offset + moffs_size <= len(data):
-                        moffs = int.from_bytes(data[offset + byte_offset:offset + byte_offset + moffs_size], 'little')
-                        instr.operands[-1].displacement = moffs
-                        byte_offset += moffs_size
-                    instr.operands.append(Operand(OperandType.REGISTER, reg_name, size=64 if self.is_64bit else 32))
-
-            decoded = True
-
-        # Unknown opcode - create placeholder
-        if not decoded:
-            instr.mnemonic = f'DB'
-            instr.category = InstructionCategory.UNKNOWN
-            instr.operands.append(Operand(OperandType.IMMEDIATE, opcode, size=8))
-
-        instr.length = byte_offset
+        instr, _ = self._decode_single(data, 0, address)
         return instr
 
-    def _get_register(self, reg_num: int, size: int, rex: int = 0) -> str:
+    def _decode_single(
+        self, 
+        data: bytes, 
+        offset: int, 
+        address: int
+    ) -> tuple[Optional[Instruction], int]:
         """
-        Get register name based on number, size, and REX prefix.
+        Internal method to decode a single instruction.
+        
+        Args:
+            data: Byte buffer
+            offset: Current offset in buffer
+            address: Current address
+            
+        Returns:
+            Tuple of (instruction, bytes consumed) or (None, 0) on failure
+        """
+        if offset >= len(data):
+            return None, 0
+
+        start_offset = offset
+        start_address = address
+        legacy_prefix = b""
+
+        # Parse prefixes
+        rex, offset, address, legacy_prefix = self._parse_prefixes(data, offset, address)
+        
+        # Get opcode
+        if offset >= len(data):
+            return None, 0
+            
+        opcode = data[offset]
+        opcodes = [opcode]
+        offset += 1
+        address += 1
+
+        # Look up instruction
+        mnemonic, category = self._OPCODE_TABLE_1BYTE.get(
+            opcode, 
+            ("UNKNOWN", InstructionCategory.UNKNOWN)
+        )
+
+        # Parse operands based on opcode
+        modrm = None
+        sib = None
+        operands: List[Operand] = []
+        
+        # Handle specific opcode patterns
+        if 0xB8 <= opcode <= 0xBF:
+            # MOV r64/32, imm64/32
+            reg_num = opcode - 0xB8
+            imm_size = 8 if (rex and rex.W) else 4
+            
+            if rex and rex.B:
+                reg_num |= 0x08
+                
+            reg_name = self._get_register(reg_num, 64 if (rex and rex.W) else 32)
+            operands.append(Operand(type=OperandType.REGISTER, value=reg_name, 
+                                    size=64 if (rex and rex.W) else 32, reg=reg_num))
+            
+            if offset + imm_size <= len(data):
+                imm = int.from_bytes(data[offset:offset + imm_size], 'little')
+                operands.append(Operand(type=OperandType.IMMEDIATE, value=imm, size=imm_size * 8))
+                offset += imm_size
+                address += imm_size
+                
+        elif 0x50 <= opcode <= 0x57:
+            # PUSH r64
+            reg_num = opcode - 0x50
+            if rex and rex.B:
+                reg_num |= 0x08
+            reg_name = self._get_register(reg_num, 64)
+            operands.append(Operand(type=OperandType.REGISTER, value=reg_name, size=64, reg=reg_num))
+            
+        elif 0x58 <= opcode <= 0x5F:
+            # POP r64
+            reg_num = opcode - 0x58
+            if rex and rex.B:
+                reg_num |= 0x08
+            reg_name = self._get_register(reg_num, 64)
+            operands.append(Operand(type=OperandType.REGISTER, value=reg_name, size=64, reg=reg_num))
+            
+        elif opcode == 0xEB:
+            # JMP rel8
+            if offset < len(data):
+                rel8 = data[offset]
+                if rel8 >= 0x80:
+                    rel8 = rel8 - 256  # Sign extend
+                operands.append(Operand(type=OperandType.RELATIVE, value=rel8, size=8))
+                offset += 1
+                address += 1
+                
+        elif opcode == 0xE9:
+            # JMP rel32
+            if offset + 4 <= len(data):
+                rel32 = int.from_bytes(data[offset:offset + 4], 'little', signed=True)
+                operands.append(Operand(type=OperandType.RELATIVE, value=rel32, size=32))
+                offset += 4
+                address += 4
+                
+        elif opcode == 0xE8:
+            # CALL rel32
+            if offset + 4 <= len(data):
+                rel32 = int.from_bytes(data[offset:offset + 4], 'little', signed=True)
+                operands.append(Operand(type=OperandType.RELATIVE, value=rel32, size=32))
+                offset += 4
+                address += 4
+                
+        elif opcode == 0xC3:
+            # RET (no operands)
+            pass
+            
+        elif opcode == 0xC2:
+            # RET imm16
+            if offset + 2 <= len(data):
+                imm16 = int.from_bytes(data[offset:offset + 2], 'little')
+                operands.append(Operand(type=OperandType.IMMEDIATE, value=imm16, size=16))
+                offset += 2
+                address += 2
+                
+        elif opcode in (0x05, 0x2D, 0x3D):
+            # ADD/SUB/CMP EAX, imm32
+            reg_name = 'RAX' if self.is_64bit else 'EAX'
+            operands.append(Operand(type=OperandType.REGISTER, value=reg_name, 
+                                    size=64 if self.is_64bit else 32))
+            if offset + 4 <= len(data):
+                imm32 = int.from_bytes(data[offset:offset + 4], 'little')
+                operands.append(Operand(type=OperandType.IMMEDIATE, value=imm32, size=32))
+                offset += 4
+                address += 4
+                
+        elif opcode in (0x04, 0x2C, 0x3C):
+            # ADD/SUB/CMP AL, imm8
+            operands.append(Operand(type=OperandType.REGISTER, value='AL', size=8))
+            if offset < len(data):
+                operands.append(Operand(type=OperandType.IMMEDIATE, value=data[offset], size=8))
+                offset += 1
+                address += 1
+                
+        elif opcode == 0x68:
+            # PUSH imm32
+            if offset + 4 <= len(data):
+                imm32 = int.from_bytes(data[offset:offset + 4], 'little')
+                operands.append(Operand(type=OperandType.IMMEDIATE, value=imm32, size=32))
+                offset += 4
+                address += 4
+                
+        elif opcode == 0x6A:
+            # PUSH imm8
+            if offset < len(data):
+                imm8 = data[offset]
+                operands.append(Operand(type=OperandType.IMMEDIATE, value=imm8, size=8))
+                offset += 1
+                address += 1
+                
+        elif opcode in range(0x70, 0x80):
+            # Jcc rel8 (conditional jumps)
+            if offset < len(data):
+                rel8 = data[offset]
+                if rel8 >= 0x80:
+                    rel8 = rel8 - 256  # Sign extend
+                operands.append(Operand(type=OperandType.LABEL, value=rel8, size=8))
+                offset += 1
+                address += 1
+                
+        elif opcode in (0x88, 0x89, 0x8A, 0x8B):
+            # MOV with ModR/M
+            if offset < len(data):
+                modrm = decode_modrm(data[offset], self.is_64bit, rex)
+                offset += 1
+                address += 1
+                
+                # Parse SIB if needed
+                if modrm.has_sib:
+                    if offset < len(data):
+                        sib = decode_sib(data[offset], modrm.mod, rex, self.is_64bit)
+                        offset += 1
+                        address += 1
+                        
+                # Parse displacement
+                disp_size = modrm.disp_size
+                if disp_size > 0 and offset + disp_size <= len(data):
+                    offset += disp_size
+                    address += disp_size
+                    
+                # Add register operands
+                operands.append(Operand(type=OperandType.REGISTER, value=modrm.reg_name, size=64))
+                operands.append(Operand(type=OperandType.REGISTER, value=modrm.rm_name, size=64))
+                
+        elif opcode in (0xA0, 0xA1):
+            # MOV AL/EAX/RAX, moffs
+            reg_name = 'AL' if opcode == 0xA0 else ('RAX' if self.is_64bit else 'EAX')
+            operands.append(Operand(type=OperandType.REGISTER, value=reg_name, 
+                                    size=8 if opcode == 0xA0 else (64 if self.is_64bit else 32)))
+            moffs_size = 8 if self.is_64bit else 4
+            if offset + moffs_size <= len(data):
+                moffs = int.from_bytes(data[offset:offset + moffs_size], 'little')
+                operands.append(Operand(type=OperandType.MEMORY, displacement=moffs))
+                offset += moffs_size
+                address += moffs_size
+
+        consumed = offset - start_offset
+        
+        instr = Instruction(
+            address=start_address,
+            mnemonic=mnemonic,
+            opcodes=opcodes,
+            operands=operands,
+            category=category,
+            length=consumed,
+            rex=rex,
+            modrm=modrm,
+            sib=sib,
+            prefix=legacy_prefix
+        )
+        
+        return instr, consumed
+
+    def _parse_prefixes(
+        self, 
+        data: bytes, 
+        offset: int, 
+        address: int
+    ) -> tuple[Optional[REXPrefix], int, int, bytes]:
+        """
+        Parse instruction prefixes including REX.
+        
+        Args:
+            data: Byte buffer
+            offset: Current offset
+            address: Current address
+            
+        Returns:
+            Tuple of (REX prefix or None, new offset, new address, legacy prefix bytes)
+        """
+        rex = None
+        legacy_prefix = b""
+        
+        while offset < len(data):
+            byte = data[offset]
+            
+            # Check for REX prefix
+            if REX_PREFIX_MIN <= byte <= REX_PREFIX_MAX:
+                rex = decode_rex_prefix(byte)
+                offset += 1
+                address += 1
+                continue
+                
+            # Check for legacy prefixes
+            if byte in (0xF0, 0xF2, 0xF3, 0x66, 0x67, 0x26, 0x2E, 0x36, 0x3E, 0x64, 0x65):
+                legacy_prefix += bytes([byte])
+                offset += 1
+                address += 1
+                continue
+                
+            break
+            
+        return rex, offset, address, legacy_prefix
+
+    def _get_register(self, reg_num: int, size: int, rex_value: int = 0) -> str:
+        """
+        Get register name for a register number and size.
         
         Args:
             reg_num: Register number (0-15)
             size: Register size in bits (8, 16, 32, 64)
-            rex: REX prefix byte (0 if no REX)
+            rex_value: REX prefix value (0 if no REX)
             
         Returns:
             Register name string
         """
-        # Handle extended registers (R8-R15)
-        is_extended = reg_num >= 8 or (rex & 0x41)  # REX.B or REX.R
-        actual_reg = reg_num & 0x07
-
+        base_reg = reg_num & 0x07
+        is_extended = reg_num >= 8 or (rex_value & 0x41)  # REX.B or REX.R
+        
         if size == 8:
-            if rex & 0x40:  # Any REX prefix changes 8-bit register mapping
-                if reg_num >= 8:
-                    return REGS_8BIT_EXT[actual_reg]
-                return REGS_8BIT_REX[actual_reg]
-            if reg_num >= 8:
-                return REGS_8BIT_EXT[actual_reg]
-            return REGS_8BIT[actual_reg]
-
+            # Special handling for 8-bit registers
+            if rex_value & 0x40:  # Any REX prefix changes 8-bit register mapping
+                if is_extended:
+                    return REG8_EXT_NAMES[base_reg]
+                return REG8_REX_NAMES[base_reg]
+            if is_extended:
+                return REG8_EXT_NAMES[base_reg]
+            return REG8_NAMES[base_reg]
+            
         if size == 16:
-            if reg_num >= 8:
-                return REGS_16BIT_EXT[actual_reg]
-            return REGS_16BIT[actual_reg]
-
+            if is_extended:
+                return REG16_EXT_NAMES[base_reg]
+            return REG16_NAMES[base_reg]
+            
         if size == 32:
-            if reg_num >= 8:
-                return REGS_32BIT_EXT[actual_reg]
-            return REGS_32BIT[actual_reg]
-
+            if is_extended:
+                return REG32_EXT_NAMES[base_reg]
+            return REG32_NAMES[base_reg]
+            
         if size == 64:
-            if reg_num >= 8:
-                return REGS_64BIT_EXT[actual_reg]
-            return REGS_64BIT[actual_reg]
-
-        return f"R{reg_num}"
+            if is_extended:
+                return REG64_EXT_NAMES[base_reg]
+            return REG64_NAMES[base_reg]
+            
+        return f"r{reg_num}"
 
     def print_disassembly(self, instructions: List[Instruction]) -> str:
         """
-        Format instructions as disassembly output.
+        Print formatted disassembly output.
         
         Args:
-            instructions: List of instructions to format
+            instructions: List of instructions to print
             
         Returns:
             Formatted disassembly string
         """
         lines = []
         for instr in instructions:
-            bytes_str = ' '.join(f'{b:02X}' for b in instr.opcodes)
-            ops_str = ', '.join(str(op) for op in instr.operands)
-            if ops_str:
-                line = f"{instr.address:08X}: {bytes_str:<12} {instr.mnemonic} {ops_str}"
-            else:
-                line = f"{instr.address:08X}: {bytes_str:<12} {instr.mnemonic}"
+            ops = ", ".join(str(op) for op in instr.operands) if instr.operands else ""
+            line = f"{instr.address:08X}: {instr.mnemonic}"
+            if ops:
+                line += f" {ops}"
             lines.append(line)
-        return '\n'.join(lines)
-
-
-# =============================================================================
-# Module Exports
-# =============================================================================
-
-__all__ = [
-    # Enums
-    'OperandType',
-    'InstructionCategory',
-    # Dataclasses
-    'REXPrefix',
-    'ModRM',
-    'SIB',
-    'Operand',
-    'Instruction',
-    # Functions
-    'decode_rex_prefix',
-    'decode_modrm',
-    'decode_sib',
-    'get_effective_address',
-    'decode_binary_file',
-    # Classes
-    'X86InstructionDecoder',
-]
+        return "\n".join(lines)
