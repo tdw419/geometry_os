@@ -2,6 +2,7 @@
 """detect_event.py - Event detection for session rotation"""
 
 import os
+import argparse
 from pathlib import Path
 
 def get_token_usage() -> int:
@@ -42,41 +43,68 @@ def get_token_usage() -> int:
     return max_tokens
 
 
-def detect_errors(handoff_file: Path) -> bool:
-    """Check handoff for error indicators."""
-    if not handoff_file.exists():
-        return False
-    content = handoff_file.read_text().lower()
+def detect_errors(handoff_file: Path, log_file: Path = None) -> bool:
+    """Check handoff and log for error indicators."""
     error_patterns = ["stuck", "blocked", "error:", "failed", "cannot proceed", "infinite loop"]
-    return any(p in content for p in error_patterns)
+    
+    if handoff_file.exists():
+        content = handoff_file.read_text().lower()
+        if any(p in content for p in error_patterns):
+            return True
+            
+    if log_file and log_file.exists():
+        # Check last 50 lines of log
+        try:
+            with open(log_file, 'r') as f:
+                lines = f.readlines()[-50:]
+                content = "".join(lines).lower()
+                if any(p in content for p in error_patterns):
+                    return True
+        except Exception:
+            pass
+            
+    return False
 
 
-def detect_completion(handoff_file: Path) -> bool:
-    """Check for completion signals."""
-    if not handoff_file.exists():
-        return False
-    content = handoff_file.read_text().lower()
-    return "task complete" in content
+def detect_completion(handoff_file: Path, log_file: Path = None) -> bool:
+    """Check for completion signals in handoff or log."""
+    if handoff_file.exists():
+        if "task complete" in handoff_file.read_text().lower():
+            return True
+            
+    if log_file and log_file.exists():
+        # Check last 20 lines of log
+        try:
+            with open(log_file, 'r') as f:
+                lines = f.readlines()[-20:]
+                content = "".join(lines).lower()
+                if "task complete" in content:
+                    return True
+        except Exception:
+            pass
+            
+    return False
 
 
 def main():
-    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--pid", type=int)
     parser.add_argument("--handoff", type=str, required=True)
+    parser.add_argument("--log", type=str)
     parser.add_argument("--token-limit", type=int, default=150000)
     parser.add_argument("--no-token-check", action="store_true")
     args = parser.parse_args()
 
     handoff = Path(args.handoff)
+    log = Path(args.log) if args.log else None
 
     # 1. Check completion signal (highest priority)
-    if detect_completion(handoff):
+    if detect_completion(handoff, log):
         print("complete")
         return
 
     # 2. Check for explicit error patterns
-    if detect_errors(handoff):
+    if detect_errors(handoff, log):
         print("error")
         return
 

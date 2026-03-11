@@ -9,7 +9,8 @@ echo
 
 # Check if orchestrator process is running
 ORCH_PID=$(pgrep -f "orchestrator.sh" | head -1)
-CHILD_PID=$(pgrep -f " --print" | head -1)
+CHILD_PID=$(pgrep -f "claude --" | grep -v "dangerously-skip-permissions" | head -1)
+[ -z "$CHILD_PID" ] && CHILD_PID=$(pgrep -f "claude --dangerously" | head -1)
 
 if [ -n "$ORCH_PID" ]; then
     echo "Status: RUNNING"

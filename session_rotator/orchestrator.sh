@@ -45,12 +45,12 @@ while [ $SESSION_COUNT -lt $MAX_SESSIONS ]; do
   fi
 
   # Launch session (unbuffered for real-time logging)
-  stdbuf -oL -eL "$CLI_COMMAND" --print "$PROMPT" > "$SESSION_DIR/logs/session_$SESSION_COUNT.log" 2>&1 &
+  stdbuf -oL -eL "$CLI_COMMAND" --dangerously-skip-permissions --print "$PROMPT" > "$SESSION_DIR/logs/session_$SESSION_COUNT.log" 2>&1 &
   CLAUDE_PID=$!
 
   # Monitor for events
   while kill -0 $CLAUDE_PID 2>/dev/null; do
-    EVENT=$(python3 "$SCRIPT_DIR/detect_event.py" --handoff "$HANDOFF_FILE" --token-limit "$TOKEN_LIMIT" --no-token-check)
+    EVENT=$(python3 "$SCRIPT_DIR/detect_event.py" --handoff "$HANDOFF_FILE" --log "$SESSION_DIR/logs/session_$SESSION_COUNT.log" --token-limit "$TOKEN_LIMIT" --no-token-check)
 
     case "$EVENT" in
       "rotate")
@@ -59,12 +59,12 @@ while [ $SESSION_COUNT -lt $MAX_SESSIONS ]; do
         break
         ;;
       "complete")
-        echo "Task complete - exiting orchestrator"
+        echo "Task complete detected during session - exiting orchestrator"
         kill $CLAUDE_PID 2>/dev/null || true
         cleanup
         ;;
       "error")
-        echo "Error detected - rotating session"
+        echo "Error detected during session - rotating"
         kill $CLAUDE_PID
         break
         ;;
@@ -74,6 +74,16 @@ while [ $SESSION_COUNT -lt $MAX_SESSIONS ]; do
 
   wait $CLAUDE_PID 2>/dev/null || true
   CLAUDE_PID=""
+
+  # Post-mortem event detection
+  FINAL_EVENT=$(python3 "$SCRIPT_DIR/detect_event.py" --handoff "$HANDOFF_FILE" --log "$SESSION_DIR/logs/session_$SESSION_COUNT.log" --no-token-check)
+  if [ "$FINAL_EVENT" == "complete" ]; then
+    echo "=== Task Complete (verified in logs) ==="
+    SESSION_COUNT=$((SESSION_COUNT + 1))
+    echo "{\"session_count\": $SESSION_COUNT, \"status\": \"complete\"}" > "$SESSION_DIR/state.json"
+    exit 0
+  fi
+
   SESSION_COUNT=$((SESSION_COUNT + 1))
 
   # Save state
