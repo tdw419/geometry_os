@@ -989,7 +989,7 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
                 return
 
             duration = time.time() - start_time
-            if process.returncode == 1:
+            if process.returncode == 0:
                 self.mark_task_state(task, TaskState.COMPLETE)
                 self.log(f"✓ Task {task.number} complete ({duration:.1f}s)")
 
