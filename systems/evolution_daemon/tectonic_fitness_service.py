@@ -21,6 +21,7 @@ Usage:
 
 import asyncio
 import logging
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -69,6 +70,14 @@ class TectonicConfig:
     crossover_rate: float = 0.3      # Probability of crossover
     target_improvement: float = 0.20 # 20% IPC improvement goal
 
+    # v14: Natural Selection (Auto-Rewind)
+    auto_rewind: bool = True         # Automatically rewind on crash/regression
+    git_commit_trials: bool = True   # Create atomic [TECTONIC-TRIAL] commits
+    regression_threshold: float = 0.05  # 5% fitness drop = regression
+
+    # Genetic Ledger
+    ledger_path: Path = field(default_factory=lambda: PROJECT_ROOT / ".geometry" / "mutations.tsv")
+
     # Safety constraints
     max_shader_size: int = 50000     # Max characters in shader
     required_tests: list[str] = field(default_factory=lambda: [
@@ -87,6 +96,8 @@ class TectonicFitnessService:
     3. Measures IPC and other performance metrics
     4. Validates RISC-V compliance
     5. Returns fitness scores
+    6. Logs results to a persistent mutation ledger (.geometry/mutations.tsv)
+    7. v14: Auto-rewinds on crash or regression via git reset --hard
     """
 
     def __init__(self, config: TectonicConfig | None = None):
@@ -98,6 +109,125 @@ class TectonicFitnessService:
         self.baseline_score: FitnessScore | None = None
         self.mutation_history: dict[str, FitnessScore] = {}
         self.generation_scores: list[list[FitnessScore]] = []
+
+        # v14: Initialize Genetic Ledger
+        self.config.ledger_path.parent.mkdir(parents=True, exist_ok=True)
+        self._initialize_ledger()
+
+    def _initialize_ledger(self) -> None:
+        """Initialize the mutations.tsv ledger with headers if it doesn't exist."""
+        if not self.config.ledger_path.exists():
+            headers = ["commit", "pas_score", "ipc", "fitness", "status", "description", "timestamp"]
+            with open(self.config.ledger_path, "w") as f:
+                f.write("\t".join(headers) + "\n")
+            logger.info(f"Initialized mutation ledger at {self.config.ledger_path}")
+
+    def _get_current_commit(self) -> str:
+        """Get the current short git commit hash."""
+        try:
+            return subprocess.check_output(
+                ["git", "rev-parse", "--short", "HEAD"],
+                cwd=str(PROJECT_ROOT),
+                stderr=subprocess.DEVNULL,
+                text=True
+            ).strip()
+        except Exception:
+            return "unknown"
+
+    def _log_to_ledger(self, score: FitnessScore, status: str, pas_score: float = 0.0) -> None:
+        """Log a mutation result to the TSV ledger."""
+        commit = self._get_current_commit()
+
+        row = [
+            commit,
+            f"{pas_score:.2f}",
+            f"{score.ipc:.6f}",
+            f"{score.fitness:.6f}",
+            status,
+            score.mutation_id,
+            score.timestamp
+        ]
+
+        try:
+            with open(self.config.ledger_path, "a") as f:
+                f.write("\t".join(row) + "\n")
+            logger.info(f"Logged to ledger: {score.mutation_id} -> {status}")
+        except Exception as e:
+            logger.error(f"Failed to write to ledger: {e}")
+
+    def _commit_trial(self, mutation_id: str, shader_code: str) -> bool:
+        """
+        Create an atomic [TECTONIC-TRIAL] commit for benchmarking.
+        This creates a "fork point" that can be rewound if mutation fails.
+        """
+        if not self.config.git_commit_trials:
+            return True
+
+        try:
+            # Write shader to disk
+            self.shader_path.write_text(shader_code)
+
+            # Stage the change
+            subprocess.run(
+                ["git", "add", str(self.shader_path)],
+                cwd=str(PROJECT_ROOT),
+                check=True,
+                capture_output=True
+            )
+
+            # Create trial commit
+            subprocess.run(
+                ["git", "commit", "-m", f"[TECTONIC-TRIAL] {mutation_id}"],
+                cwd=str(PROJECT_ROOT),
+                check=True,
+                capture_output=True
+            )
+
+            logger.info(f"Created trial commit for {mutation_id}")
+            return True
+
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to create trial commit: {e.stderr.decode() if e.stderr else str(e)}")
+            return False
+
+    def _rewind_mutation(self) -> bool:
+        """
+        Rewind the last [TECTONIC-TRIAL] commit via git reset --hard.
+        Only rewinds if the last commit is a trial commit (safety guard).
+        """
+        if not self.config.auto_rewind:
+            logger.warning("Auto-rewind disabled, skipping reset")
+            return False
+
+        try:
+            # Check if last commit is a trial commit
+            result = subprocess.run(
+                ["git", "log", "-1", "--pretty=%s"],
+                cwd=str(PROJECT_ROOT),
+                capture_output=True,
+                text=True,
+                check=True
+            )
+
+            last_msg = result.stdout.strip()
+            if "[TECTONIC-TRIAL]" not in last_msg:
+                logger.warning(f"Last commit is not a trial: {last_msg}")
+                return False
+
+            # Perform hard reset
+            subprocess.run(
+                ["git", "reset", "--hard", "HEAD~1"],
+                cwd=str(PROJECT_ROOT),
+                check=True,
+                capture_output=True
+            )
+
+            logger.info(f"✅ Rewound trial commit: {last_msg}")
+            return True
+
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to rewind: {e.stderr.decode() if e.stderr else str(e)}")
+            return False
 
     async def initialize(self) -> bool:
         """Initialize the fitness service and establish baseline."""
@@ -118,7 +248,9 @@ class TectonicFitnessService:
     async def benchmark_shader(
         self,
         mutation_id: str,
-        shader_code: str
+        shader_code: str,
+        apply_to_disk: bool = False,
+        pas_score: float = 0.95
     ) -> FitnessScore:
         """
         Benchmark a shader mutation.
@@ -126,11 +258,18 @@ class TectonicFitnessService:
         Args:
             mutation_id: Unique identifier for this mutation
             shader_code: WGSL shader source code
+            apply_to_disk: If True, create trial commit and auto-rewind on failure
+            pas_score: Phase Alignment Stability score (default 0.95)
 
         Returns:
             FitnessScore with IPC and correctness metrics
         """
         logger.info(f"Benchmarking mutation: {mutation_id}")
+
+        # v14: Create trial commit if apply_to_disk is enabled
+        if apply_to_disk and self.config.git_commit_trials:
+            if not self._commit_trial(mutation_id, shader_code):
+                logger.error(f"Failed to create trial commit for {mutation_id}")
 
         score = FitnessScore(
             mutation_id=mutation_id,
@@ -143,11 +282,17 @@ class TectonicFitnessService:
         # Step 1: Syntax validation
         if not self._validate_syntax(shader_code):
             score.errors.append("Shader syntax validation failed")
+            self._log_to_ledger(score, "crash", pas_score=0.0)
+            if apply_to_disk and self.config.auto_rewind:
+                self._rewind_mutation()
             return score
 
         # Step 2: Size check
         if len(shader_code) > self.config.max_shader_size:
             score.errors.append(f"Shader exceeds max size: {len(shader_code)} > {self.config.max_shader_size}")
+            self._log_to_ledger(score, "crash", pas_score=0.0)
+            if apply_to_disk and self.config.auto_rewind:
+                self._rewind_mutation()
             return score
 
         # Step 3: Run IPC benchmark
@@ -157,6 +302,9 @@ class TectonicFitnessService:
             score.latency_ms = latency
         except Exception as e:
             score.errors.append(f"IPC benchmark failed: {e}")
+            self._log_to_ledger(score, "crash", pas_score=0.0)
+            if apply_to_disk and self.config.auto_rewind:
+                self._rewind_mutation()
             return score
 
         # Step 4: Run correctness tests
@@ -166,11 +314,28 @@ class TectonicFitnessService:
                 score.errors.append("RISC-V compliance tests failed")
         except Exception as e:
             score.errors.append(f"Correctness tests failed: {e}")
+            self._log_to_ledger(score, "crash", pas_score=0.0)
+            if apply_to_disk and self.config.auto_rewind:
+                self._rewind_mutation()
             return score
 
         # Record score
         self.mutation_history[mutation_id] = score
         logger.info(f"Mutation {mutation_id}: IPC={score.ipc:.4f}, Correct={score.correctness}, Fitness={score.fitness:.4f}")
+
+        # v14: Determine status and log to ledger
+        if not score.correctness:
+            status = "crash"
+        elif self.baseline_score and score.fitness < self.baseline_score.fitness * (1 - self.config.regression_threshold):
+            status = "discard"  # Regression
+        else:
+            status = "keep"
+
+        self._log_to_ledger(score, status, pas_score=pas_score)
+
+        # v14: Auto-rewind on regression
+        if status in ("crash", "discard") and apply_to_disk and self.config.auto_rewind:
+            self._rewind_mutation()
 
         return score
 
