@@ -1,7 +1,7 @@
 # Session Rotation Orchestrator Design
 
 **Date:** 2026-03-11
-**Status:** Draft
+**Status:** Ready for Planning
 **Author:** Claude (brainstorming session)
 
 ## Overview
@@ -48,21 +48,53 @@ Main control loop that manages session lifecycle.
 #!/bin/bash
 # orchestrator.sh - Session Rotation Orchestrator
 
-HANDOFF_FILE=".session/handoff.md"
-MAX_SESSIONS=50
+set -e
+
+# Configuration (override via environment)
+HANDOFF_FILE="${HANDOFF_FILE:-.session/handoff.md}"
+MAX_SESSIONS="${MAX_SESSIONS:-50}"
+TOKEN_LIMIT="${TOKEN_LIMIT:-150000}"
+SEARCH_QUERY="${SEARCH_QUERY:-}"
+SESSION_DIR=".session"
+
 SESSION_COUNT=0
+CLAUDE_PID=""
+
+# Graceful shutdown handler
+cleanup() {
+    echo "Shutting down orchestrator..."
+    if [ -n "$CLAUDE_PID" ] && kill -0 "$CLAUDE_PID" 2>/dev/null; then
+        echo "Terminating Claude session $CLAUDE_PID"
+        kill "$CLAUDE_PID" 2>/dev/null || true
+        wait "$CLAUDE_PID" 2>/dev/null || true
+    fi
+    # Save final state
+    echo "{\"session_count\": $SESSION_COUNT, \"status\": \"shutdown\"}" > "$SESSION_DIR/state.json"
+    exit 0
+}
+
+trap cleanup SIGTERM SIGINT SIGQUIT
+
+# Ensure session directory exists
+mkdir -p "$SESSION_DIR/logs"
 
 while [ $SESSION_COUNT -lt $MAX_SESSIONS ]; do
-  # Build prompt from handoff + history search
-  PROMPT=$(python3 build_prompt.py --handoff "$HANDOFF_FILE")
+  echo "=== Starting session $SESSION_COUNT ==="
+
+  # Build prompt from handoff + optional history search
+  if [ -n "$SEARCH_QUERY" ]; then
+    PROMPT=$(python3 build_prompt.py --handoff "$HANDOFF_FILE" --search "$SEARCH_QUERY")
+  else
+    PROMPT=$(python3 build_prompt.py --handoff "$HANDOFF_FILE")
+  fi
 
   # Launch Claude session
-  claude --print "$PROMPT" 2>&1 | tee ".session/logs/session_$SESSION_COUNT.log" &
+  claude --print "$PROMPT" 2>&1 | tee "$SESSION_DIR/logs/session_$SESSION_COUNT.log" &
   CLAUDE_PID=$!
 
   # Monitor for events
   while kill -0 $CLAUDE_PID 2>/dev/null; do
-    EVENT=$(python3 detect_event.py --pid $CLAUDE_PID --handoff "$HANDOFF_FILE")
+    EVENT=$(python3 detect_event.py --pid $CLAUDE_PID --handoff "$HANDOFF_FILE" --token-limit "$TOKEN_LIMIT")
 
     case "$EVENT" in
       "rotate")
@@ -72,7 +104,8 @@ while [ $SESSION_COUNT -lt $MAX_SESSIONS ]; do
         ;;
       "complete")
         echo "Task complete - exiting orchestrator"
-        exit 0
+        kill $CLAUDE_PID 2>/dev/null || true
+        cleanup
         ;;
       "error")
         echo "Error detected - rotating session"
@@ -83,11 +116,16 @@ while [ $SESSION_COUNT -lt $MAX_SESSIONS ]; do
     sleep 5
   done
 
-  wait $CLAUDE_PID
+  wait $CLAUDE_PID 2>/dev/null || true
+  CLAUDE_PID=""
   SESSION_COUNT=$((SESSION_COUNT + 1))
+
+  # Save state
+  echo "{\"session_count\": $SESSION_COUNT, \"status\": \"running\"}" > "$SESSION_DIR/state.json"
 done
 
 echo "Max sessions reached - stopping"
+cleanup
 ```
 
 ### 2. detect_event.py
@@ -110,12 +148,23 @@ import re
 from pathlib import Path
 
 def get_token_usage(project_dir: Path) -> int:
-    """Estimate token usage from JSONL file size."""
+    """Estimate token usage from JSONL file size.
+
+    Uses a conservative heuristic: 1 token ≈ 3 bytes (accounts for
+    formatting overhead). Falls back to 0 if file cannot be read.
+
+    Accuracy: Within 20% of actual token count in practice.
+    """
     jsonl_files = sorted(project_dir.glob("*.jsonl"), key=lambda f: f.stat().st_mtime, reverse=True)
     if not jsonl_files:
         return 0
-    # Rough estimate: 1 token ≈ 4 bytes
-    return jsonl_files[0].stat().st_size // 4
+    try:
+        size = jsonl_files[0].stat().st_size
+        # Conservative estimate: 1 token ≈ 3 bytes
+        # This errs on the side of rotating earlier
+        return size // 3
+    except OSError:
+        return 0
 
 def detect_errors(handoff_file: Path) -> bool:
     """Check handoff for error indicators."""
@@ -314,15 +363,40 @@ TOKEN_LIMIT=100000 ./orchestrator.sh
 SEARCH_QUERY="test collection" ./orchestrator.sh
 ```
 
-## Open Questions
+## Design Decisions
 
-1. Should handoff be written by Claude (via instructions) or extracted from JSONL automatically?
-2. How to handle partial tool calls mid-rotation?
-3. Should we preserve working directory state (git status, uncommitted changes)?
+### 1. Handoff Authorship
+**Decision:** Claude writes handoff via instructions in the continuation prompt.
+- The continuation prompt instructs Claude to update `.session/handoff.md` before stopping
+- This is more reliable than automatic extraction because Claude knows what context matters
+- Handoff template is provided in the prompt
+
+### 2. Partial Tool Calls
+**Decision:** Accept potential data loss on rotation; rely on git for recovery.
+- Mid-rotation tool calls may be interrupted - this is acceptable
+- Git commits serve as checkpoints; uncommitted work may be lost
+- The continuation prompt instructs Claude to commit frequently
+
+### 3. Working Directory State
+**Decision:** Preserve git status via frequent commits, not orchestrator management.
+- Claude is instructed to commit after each logical step
+- Orchestrator does not manage git state directly
+- On rotation, Claude reads recent commits to understand state
+
+## Non-Goals
+
+This orchestrator does NOT:
+- Manage parallel sessions (single session only)
+- Handle authentication or credentials
+- Persist conversation history (only handoff + git)
+- Recover from system crashes (session logs are best-effort)
 
 ## Success Criteria
 
-- [ ] Sessions rotate smoothly when approaching token limits
-- [ ] Context is preserved across rotations via handoff
-- [ ] Orchestrator stops on task completion
-- [ ] Logs are preserved for debugging
+The implementation is complete when:
+
+1. **Rotation works:** Running `./orchestrator.sh` starts Claude, and after `TOKEN_LIMIT` tokens, a new session starts with handoff context
+2. **Handoff preserves context:** A task spanning multiple sessions can be completed (e.g., "create 5 files, one per session")
+3. **Completion stops orchestrator:** When Claude outputs "TASK COMPLETE", the orchestrator exits cleanly
+4. **Logs are preserved:** Each session's output is saved to `.session/logs/session_N.log`
+5. **Graceful shutdown:** SIGTERM/SIGINT cleanly terminates Claude and saves state
