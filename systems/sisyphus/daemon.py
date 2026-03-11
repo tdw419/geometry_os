@@ -512,6 +512,11 @@ class SisyphusDaemon:
         else:
             self.performance_monitor = None
 
+        # Generation failure tracking for exponential backoff
+        self._generation_failures = 0
+        self._last_generation_failure = 0
+        self._max_backoff_seconds = 300  # Max 5 minute backoff
+
         # Intrinsic Curiosity Engine components
         if self.performance_monitor is not None:
             self.entropy_mapper = EntropyMapper(self.performance_monitor)
@@ -722,6 +727,15 @@ class SisyphusDaemon:
     def generate_tasks(self):
         self.log("🎉 Harvesting DNA from history for new prompts...")
 
+        # Check exponential backoff - if we've failed recently, wait
+        if self._generation_failures > 0:
+            backoff = min(2 ** self._generation_failures, self._max_backoff_seconds)
+            time_since_failure = time.time() - self._last_generation_failure
+            if time_since_failure < backoff:
+                wait_remaining = int(backoff - time_since_failure)
+                self.log(f"[Backoff] Waiting {wait_remaining}s before retry (failures: {self._generation_failures})")
+                time.sleep(wait_remaining)
+
         # 1. Collect heuristic tasks from codebase scan
         heuristic_tasks = self._generate_heuristic_tasks()
         heuristic_task_text = "\n".join(f"- {t}" for t in heuristic_tasks) if heuristic_tasks else "No critical heuristics detected."
@@ -733,6 +747,16 @@ class SisyphusDaemon:
             autonomous_task_text = "\n".join(f"- [ ] **{g.get('goal_type', 'Goal')}**: {g.get('rationale', 'No rationale')} (ID: {g.get('goal_id')}) - **Verification**: Check fitness/performance metrics" for g in autonomous_goals)
         else:
             autonomous_task_text = "No autonomous goals generated."
+
+        # Determine last task number
+        tasks = self.get_tasks()
+        last_num = tasks[-1].number if tasks else 0
+
+        # Check if router is available
+        if not self.router:
+            self.log("No Cognitive Router available. Using heuristic fallback...")
+            self._use_heuristic_fallback(heuristic_tasks, autonomous_goals, last_num)
+            return
 
         try:
             # 3. DNA from recent sessions
@@ -746,10 +770,6 @@ class SisyphusDaemon:
                     )
                 except Exception as e:
                     self.log(f"DNA extraction failed: {e}")
-
-            # 4. Determine last task number
-            tasks = self.get_tasks()
-            last_num = tasks[-1].number if tasks else 0
 
             prompt = f"""You are the Sisyphus Evolution Daemon (v4) for Geometry OS.
 Generate new evolution tasks based on the following context:
@@ -787,6 +807,11 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
             self.log(f"Requesting new tasks from Cognitive Tech Lead (Last task: #{last_num})...")
             response = loop.run_until_complete(self.router.generate(prompt, complexity=0.8, max_tokens=1000))
 
+            # Check for error response from router
+            if response.startswith("[Error:"):
+                self.log(f"Cognitive Router failed: {response}")
+                raise Exception(response)
+
             gen_log = self.log_dir / f"generate_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
             with open(gen_log, 'w') as f:
                 f.write(response)
@@ -801,11 +826,59 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
                     with open(self.state_file, 'a') as f:
                         f.write("\n" + "\n".join(new_tasks) + "\n")
                     self.log(f"✓ {len(new_tasks)} new tasks added to state file.")
+                    # Reset failure counter on success
+                    self._generation_failures = 0
                 else:
-                    self.log("WARNING: Tech Lead generated no tasks in the correct format. Check log.")
+                    self.log("WARNING: Tech Lead generated no tasks in the correct format. Using fallback.")
+                    self._use_heuristic_fallback(heuristic_tasks, autonomous_goals, last_num)
 
         except Exception as e:
             self.log(f"Failed to generate tasks: {e}")
+            # Track failure for exponential backoff
+            self._generation_failures += 1
+            self._last_generation_failure = time.time()
+            # Use heuristic fallback
+            self._use_heuristic_fallback(heuristic_tasks, autonomous_goals, last_num)
+
+    def _use_heuristic_fallback(self, heuristic_tasks: list[str], autonomous_goals: list[dict], last_num: int) -> None:
+        """
+        Fallback task generation when cognitive engines are unavailable.
+
+        Uses heuristic tasks and autonomous goals directly without AI generation.
+        """
+        self.log("Using heuristic/autonomous fallback for task generation...")
+        new_tasks = []
+
+        # Convert heuristic tasks to state file format
+        task_num = last_num + 1
+        for ht in heuristic_tasks[:5]:  # Max 5 heuristic tasks
+            task_line = f"- [ ] {task_num}. **Heuristic Task**: {ht} - **Verification**: Run relevant tests"
+            new_tasks.append(task_line)
+            task_num += 1
+
+        # Convert autonomous goals to state file format
+        for goal in autonomous_goals[:5]:  # Max 5 autonomous goals
+            goal_type = goal.get('goal_type', 'Goal')
+            rationale = goal.get('rationale', 'No rationale')
+            task_line = f"- [ ] {task_num}. **{goal_type}**: {rationale} - **Verification**: Check fitness/performance metrics"
+            new_tasks.append(task_line)
+            task_num += 1
+
+        # If no tasks from either source, add a generic maintenance task
+        if not new_tasks:
+            task_line = f"- [ ] {task_num}. **System Maintenance**: Review evolution.log for recent patterns and identify improvement opportunities - **Verification**: Confirm log review completed"
+            new_tasks.append(task_line)
+
+        if new_tasks:
+            with open(self.state_file, 'a') as f:
+                f.write("\n" + "\n".join(new_tasks) + "\n")
+            self.log(f"✓ {len(new_tasks)} fallback tasks added to state file.")
+            # Reset failure counter since we successfully added tasks
+            self._generation_failures = 0
+        else:
+            self.log("ERROR: No fallback tasks could be generated. Sleeping before retry.")
+            self._generation_failures += 1
+            self._last_generation_failure = time.time()
 
     def run_task(self, task: Task):
         self.log(f"Starting Task {task.number}: {task.name}")
@@ -1228,6 +1301,12 @@ Generate 5-10 diverse tasks that advance the Native Glyph Shell and fix any dete
                 pending_tasks = [t for t in tasks if t.state == TaskState.PENDING]
 
                 if not pending_tasks:
+                    # Safety check: if we've failed too many times, pause longer
+                    if self._generation_failures >= 5:
+                        self.log(f"⚠️  Generation has failed {self._generation_failures} times. Pausing for 60s...")
+                        time.sleep(60)
+                        # Don't immediately retry - let the backoff logic work
+
                     if not tasks:
                         self.log("State file empty or no tasks found. Triggering generation...")
                         self.generate_tasks()
