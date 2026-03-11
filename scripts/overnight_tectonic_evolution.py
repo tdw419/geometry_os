@@ -55,7 +55,8 @@ class OvernightEvolutionRunner:
             generations=20,          # 5 mutations per gen * 20 = 100
             population_size=5,
             auto_rewind=True,
-            git_commit_trials=True
+            git_commit_trials=True,
+            target_improvement=10.0  # 1000% target to ensure we use the full budget
         )
         self.tectonic_stage = TectonicStage(config=self.config)
         self.fracture_detector = FractureDetector()

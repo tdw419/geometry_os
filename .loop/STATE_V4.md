@@ -313,7 +313,7 @@
 
 - [!] 207. **Heuristic Task**: Commit Untracked Files: 4 untracked files in project root. Review and commit relevant files, add others to .gitignore. - **Verification**: Run relevant tests
 - [✓] 208. **Heuristic Task**: Batch Commit Modified Files: 10 modified files need commits. Group by feature and commit with descriptive messages. - **Verification**: Run relevant tests
-- [ ] 209. **Heuristic Task**: Fix Test Collection Errors: 7 test files have collection errors. Add missing imports or skip conditions. - **Verification**: Run relevant tests
-- [ ] 210. **Heuristic Task**: Address TODO Comment: Found in systems/visual_shell/electron/node_modules/@electron/rebuild/node_modules/node-gyp/gyp/pylib/packaging/metadata.py. Review and implement or document. - **Verification**: Run relevant tests
-- [ ] 211. **Heuristic Task**: Improve Coverage: TOTAL has <50% coverage. Add tests for uncovered branches. - **Verification**: Run relevant tests
-- [ ] 212. **cognitive_restoration**: Critical brain fitness collapse (Fitness: 0.50). Emergency weight sector restoration required. - **Verification**: Check fitness/performance metrics
+- [!] 209. **Heuristic Task**: Fix Test Collection Errors: 7 test files have collection errors. Add missing imports or skip conditions. - **Verification**: Run relevant tests
+- [x] 210. **Heuristic Task**: Address TODO Comment: Found in systems/visual_shell/electron/node_modules/@electron/rebuild/node_modules/node-gyp/gyp/pylib/packaging/metadata.py. Review and implement or document. - **Verification**: Run relevant tests
+- [!] 211. **Heuristic Task**: Improve Coverage: TOTAL has <50% coverage. Add tests for uncovered branches. - **Verification**: Run relevant tests
+- [!] 212. **cognitive_restoration**: Critical brain fitness collapse (Fitness: 0.50). Emergency weight sector restoration required. - **Verification**: Check fitness/performance metrics

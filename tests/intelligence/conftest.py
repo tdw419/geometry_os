@@ -19,4 +19,7 @@ def pytest_collection_modifyitems(config, items):
     if not INTELLIGENCE_AVAILABLE:
         skip_reason = "systems.intelligence.core module not available"
         for item in items:
-            item.add_marker(pytest.mark.skip(reason=skip_reason))
+            # Only skip tests in this directory (tests/intelligence/)
+            item_path = str(item.fspath if hasattr(item, 'fspath') else item.path)
+            if "tests/intelligence/" in item_path or "tests\\intelligence\\" in item_path:
+                item.add_marker(pytest.mark.skip(reason=skip_reason))

@@ -15,8 +15,11 @@ except ImportError:
 
 
 def pytest_collection_modifyitems(config, items):
-    """Skip tests if visual_shell module not available."""
+    """Skip tests in this directory if visual_shell module not available."""
     if not VISUAL_SHELL_AVAILABLE:
         skip_reason = "systems.visual_shell.swarm.worker_agent module not available"
         for item in items:
-            item.add_marker(pytest.mark.skip(reason=skip_reason))
+            # Only skip tests in this directory (tests/system/)
+            item_path = str(item.fspath if hasattr(item, 'fspath') else item.path)
+            if "tests/system/" in item_path or "tests\\system\\" in item_path:
+                item.add_marker(pytest.mark.skip(reason=skip_reason))
