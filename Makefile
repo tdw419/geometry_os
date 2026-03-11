@@ -84,7 +84,6 @@ test-python: ## Run Python tests (incremental via pytest cache)
 	python3 -m pytest $(TEST_DIR) \
 		--tb=short \
 		--strict-markers \
-		--cache-clear=no \
 		-x \
 		$(PYTEST_ARGS) \
 		$(PYTEST_EXTRA)

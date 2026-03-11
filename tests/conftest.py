@@ -65,8 +65,48 @@ if testing_framework.exists():
 
 
 def pytest_collection_modifyitems(session, config, items):
-    """Hook to clean up memory after collection."""
+    """Hook to clean up memory after collection and apply auto-skips."""
     # Force garbage collection after collection to free temporary objects
+    gc.collect()
+
+    # Auto-skip tests based on markers and environment
+    skip_cuda = pytest.mark.skip(reason="CUDA not available")
+    skip_gpu = pytest.mark.skip(reason="GPU not available")
+    skip_network = pytest.mark.skip(reason="Network not available")
+
+    # Check availability
+    has_cuda = False
+    has_gpu = False
+    has_network = False
+
+    try:
+        import torch
+
+        has_cuda = torch.cuda.is_available()
+        has_gpu = has_cuda or (
+            hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+        )
+    except ImportError:
+        pass
+
+    try:
+        import socket
+
+        socket.create_connection(("8.8.8.8", 53), timeout=1)
+        has_network = True
+    except OSError:
+        pass
+
+    # Apply skips
+    for item in items:
+        if "requires_cuda" in item.keywords and not has_cuda:
+            item.add_marker(skip_cuda)
+        elif "requires_gpu" in item.keywords and not has_gpu:
+            item.add_marker(skip_gpu)
+        elif "requires_network" in item.keywords and not has_network:
+            item.add_marker(skip_network)
+
+    # Clean up memory after collection
     gc.collect()
 
 
@@ -425,47 +465,5 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 
 
 # ============================================================================
-# AUTO-SKIP DECORATORS
+# AUTO-SKIP DECORATORS (merged into pytest_collection_modifyitems above)
 # ============================================================================
-
-
-def pytest_collection_modifyitems(config, items):
-    """Auto-skip tests based on markers and environment."""
-    skip_cuda = pytest.mark.skip(reason="CUDA not available")
-    skip_gpu = pytest.mark.skip(reason="GPU not available")
-    skip_network = pytest.mark.skip(reason="Network not available")
-
-    # Check availability
-    has_cuda = False
-    has_gpu = False
-    has_network = False
-
-    try:
-        import torch
-
-        has_cuda = torch.cuda.is_available()
-        has_gpu = has_cuda or (
-            hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
-        )
-    except ImportError:
-        pass
-
-    try:
-        import socket
-
-        socket.create_connection(("8.8.8.8", 53), timeout=1)
-        has_network = True
-    except OSError:
-        pass
-
-    # Apply skips
-    for item in items:
-        if "requires_cuda" in item.keywords and not has_cuda:
-            item.add_marker(skip_cuda)
-        elif "requires_gpu" in item.keywords and not has_gpu:
-            item.add_marker(skip_gpu)
-        elif "requires_network" in item.keywords and not has_network:
-            item.add_marker(skip_network)
-
-    # Clean up memory after collection
-    gc.collect()
