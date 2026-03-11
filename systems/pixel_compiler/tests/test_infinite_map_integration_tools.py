@@ -25,11 +25,11 @@ from systems.pixel_compiler.infinite_map_integration import (
     MigrationProgress,
     MigrationTool,
     # Enums
-    TestCategory,
+    IntegrationTestCategory,
     # Dataclasses
-    TestResult,
-    TestStatus,
-    TestSuite,
+    IntegrationTestResult,
+    IntegrationTestStatus,
+    IntegrationTestSuite,
 )
 
 # ============================================================================
@@ -37,37 +37,37 @@ from systems.pixel_compiler.infinite_map_integration import (
 # ============================================================================
 
 class TestTestCategory:
-    """Tests for TestCategory enum."""
+    """Tests for IntegrationTestCategory enum."""
 
     def test_categories_exist(self):
         """Test that all categories are defined."""
-        assert TestCategory.BOOT.value == "boot"
-        assert TestCategory.FILESYSTEM.value == "filesystem"
-        assert TestCategory.PERFORMANCE.value == "performance"
-        assert TestCategory.RELIABILITY.value == "reliability"
-        assert TestCategory.SECURITY.value == "security"
-        assert TestCategory.STRESS.value == "stress"
+        assert IntegrationTestCategory.BOOT.value == "boot"
+        assert IntegrationTestCategory.FILESYSTEM.value == "filesystem"
+        assert IntegrationTestCategory.PERFORMANCE.value == "performance"
+        assert IntegrationTestCategory.RELIABILITY.value == "reliability"
+        assert IntegrationTestCategory.SECURITY.value == "security"
+        assert IntegrationTestCategory.STRESS.value == "stress"
 
     def test_category_count(self):
         """Test category count."""
-        assert len(TestCategory) == 6
+        assert len(IntegrationTestCategory) == 6
 
 
 class TestTestStatus:
-    """Tests for TestStatus enum."""
+    """Tests for IntegrationTestStatus enum."""
 
     def test_statuses_exist(self):
         """Test that all statuses are defined."""
-        assert TestStatus.PENDING.value == "pending"
-        assert TestStatus.RUNNING.value == "running"
-        assert TestStatus.PASSED.value == "passed"
-        assert TestStatus.FAILED.value == "failed"
-        assert TestStatus.SKIPPED.value == "skipped"
-        assert TestStatus.ERROR.value == "error"
+        assert IntegrationTestStatus.PENDING.value == "pending"
+        assert IntegrationTestStatus.RUNNING.value == "running"
+        assert IntegrationTestStatus.PASSED.value == "passed"
+        assert IntegrationTestStatus.FAILED.value == "failed"
+        assert IntegrationTestStatus.SKIPPED.value == "skipped"
+        assert IntegrationTestStatus.ERROR.value == "error"
 
     def test_status_count(self):
         """Test status count."""
-        assert len(TestStatus) == 6
+        assert len(IntegrationTestStatus) == 6
 
 
 class TestHealthCheckStatus:
@@ -89,31 +89,31 @@ class TestHealthCheckStatus:
 # ============================================================================
 
 class TestTestResult:
-    """Tests for TestResult dataclass."""
+    """Tests for IntegrationTestResult dataclass."""
 
     def test_creation(self):
-        """Test TestResult creation."""
-        result = TestResult(
+        """Test IntegrationTestResult creation."""
+        result = IntegrationTestResult(
             name="test_example",
-            category=TestCategory.FILESYSTEM,
-            status=TestStatus.PASSED,
+            category=IntegrationTestCategory.FILESYSTEM,
+            status=IntegrationTestStatus.PASSED,
             duration_ms=100.5,
             message="Test passed",
             details={"files": 10},
         )
         assert result.name == "test_example"
-        assert result.category == TestCategory.FILESYSTEM
-        assert result.status == TestStatus.PASSED
+        assert result.category == IntegrationTestCategory.FILESYSTEM
+        assert result.status == IntegrationTestStatus.PASSED
         assert result.duration_ms == 100.5
         assert result.message == "Test passed"
         assert result.details == {"files": 10}
 
     def test_default_values(self):
         """Test default values."""
-        result = TestResult(
+        result = IntegrationTestResult(
             name="test",
-            category=TestCategory.BOOT,
-            status=TestStatus.PENDING,
+            category=IntegrationTestCategory.BOOT,
+            status=IntegrationTestStatus.PENDING,
             duration_ms=0,
         )
         assert result.message == ""
@@ -122,10 +122,10 @@ class TestTestResult:
 
     def test_to_dict(self):
         """Test to_dict conversion."""
-        result = TestResult(
+        result = IntegrationTestResult(
             name="test_example",
-            category=TestCategory.FILESYSTEM,
-            status=TestStatus.PASSED,
+            category=IntegrationTestCategory.FILESYSTEM,
+            status=IntegrationTestStatus.PASSED,
             duration_ms=100.5,
             message="Test passed",
             details={"files": 10},
@@ -141,11 +141,11 @@ class TestTestResult:
 
 
 class TestTestSuite:
-    """Tests for TestSuite dataclass."""
+    """Tests for IntegrationTestSuite dataclass."""
 
     def test_creation(self):
-        """Test TestSuite creation."""
-        suite = TestSuite(name="Example Suite")
+        """Test IntegrationTestSuite creation."""
+        suite = IntegrationTestSuite(name="Example Suite")
         assert suite.name == "Example Suite"
         assert suite.results == []
         assert suite.start_time is None
@@ -153,59 +153,59 @@ class TestTestSuite:
 
     def test_passed_count(self):
         """Test passed count."""
-        suite = TestSuite(
+        suite = IntegrationTestSuite(
             name="Test Suite",
             results=[
-                TestResult("t1", TestCategory.FILESYSTEM, TestStatus.PASSED, 10),
-                TestResult("t2", TestCategory.FILESYSTEM, TestStatus.PASSED, 10),
-                TestResult("t3", TestCategory.FILESYSTEM, TestStatus.FAILED, 10),
+                IntegrationTestResult("t1", IntegrationTestCategory.FILESYSTEM, IntegrationTestStatus.PASSED, 10),
+                IntegrationTestResult("t2", IntegrationTestCategory.FILESYSTEM, IntegrationTestStatus.PASSED, 10),
+                IntegrationTestResult("t3", IntegrationTestCategory.FILESYSTEM, IntegrationTestStatus.FAILED, 10),
             ],
         )
         assert suite.passed == 2
 
     def test_failed_count(self):
         """Test failed count."""
-        suite = TestSuite(
+        suite = IntegrationTestSuite(
             name="Test Suite",
             results=[
-                TestResult("t1", TestCategory.FILESYSTEM, TestStatus.PASSED, 10),
-                TestResult("t2", TestCategory.FILESYSTEM, TestStatus.FAILED, 10),
-                TestResult("t3", TestCategory.FILESYSTEM, TestStatus.FAILED, 10),
+                IntegrationTestResult("t1", IntegrationTestCategory.FILESYSTEM, IntegrationTestStatus.PASSED, 10),
+                IntegrationTestResult("t2", IntegrationTestCategory.FILESYSTEM, IntegrationTestStatus.FAILED, 10),
+                IntegrationTestResult("t3", IntegrationTestCategory.FILESYSTEM, IntegrationTestStatus.FAILED, 10),
             ],
         )
         assert suite.failed == 2
 
     def test_skipped_count(self):
         """Test skipped count."""
-        suite = TestSuite(
+        suite = IntegrationTestSuite(
             name="Test Suite",
             results=[
-                TestResult("t1", TestCategory.FILESYSTEM, TestStatus.PASSED, 10),
-                TestResult("t2", TestCategory.FILESYSTEM, TestStatus.SKIPPED, 10),
-                TestResult("t3", TestCategory.FILESYSTEM, TestStatus.SKIPPED, 10),
+                IntegrationTestResult("t1", IntegrationTestCategory.FILESYSTEM, IntegrationTestStatus.PASSED, 10),
+                IntegrationTestResult("t2", IntegrationTestCategory.FILESYSTEM, IntegrationTestStatus.SKIPPED, 10),
+                IntegrationTestResult("t3", IntegrationTestCategory.FILESYSTEM, IntegrationTestStatus.SKIPPED, 10),
             ],
         )
         assert suite.skipped == 2
 
     def test_total_count(self):
         """Test total count."""
-        suite = TestSuite(
+        suite = IntegrationTestSuite(
             name="Test Suite",
             results=[
-                TestResult("t1", TestCategory.FILESYSTEM, TestStatus.PASSED, 10),
-                TestResult("t2", TestCategory.FILESYSTEM, TestStatus.FAILED, 10),
+                IntegrationTestResult("t1", IntegrationTestCategory.FILESYSTEM, IntegrationTestStatus.PASSED, 10),
+                IntegrationTestResult("t2", IntegrationTestCategory.FILESYSTEM, IntegrationTestStatus.FAILED, 10),
             ],
         )
         assert suite.total == 2
 
     def test_duration_ms(self):
         """Test duration calculation."""
-        suite = TestSuite(
+        suite = IntegrationTestSuite(
             name="Test Suite",
             results=[
-                TestResult("t1", TestCategory.FILESYSTEM, TestStatus.PASSED, 100),
-                TestResult("t2", TestCategory.FILESYSTEM, TestStatus.PASSED, 200),
-                TestResult("t3", TestCategory.FILESYSTEM, TestStatus.PASSED, 300),
+                IntegrationTestResult("t1", IntegrationTestCategory.FILESYSTEM, IntegrationTestStatus.PASSED, 100),
+                IntegrationTestResult("t2", IntegrationTestCategory.FILESYSTEM, IntegrationTestStatus.PASSED, 200),
+                IntegrationTestResult("t3", IntegrationTestCategory.FILESYSTEM, IntegrationTestStatus.PASSED, 300),
             ],
         )
         assert suite.duration_ms == 600
@@ -215,10 +215,10 @@ class TestTestSuite:
         start = datetime(2025, 1, 1, 10, 0, 0)
         end = datetime(2025, 1, 1, 10, 1, 0)
 
-        suite = TestSuite(
+        suite = IntegrationTestSuite(
             name="Test Suite",
             results=[
-                TestResult("t1", TestCategory.FILESYSTEM, TestStatus.PASSED, 100),
+                IntegrationTestResult("t1", IntegrationTestCategory.FILESYSTEM, IntegrationTestStatus.PASSED, 100),
             ],
             start_time=start,
             end_time=end,
@@ -430,10 +430,10 @@ class TestIntegrationTester:
         def passing_test():
             return True, "Success", {"key": "value"}
 
-        result = tester.run_test("test_pass", TestCategory.FILESYSTEM, passing_test, suite)
+        result = tester.run_test("test_pass", IntegrationTestCategory.FILESYSTEM, passing_test, suite)
 
         assert result.name == "test_pass"
-        assert result.status == TestStatus.PASSED
+        assert result.status == IntegrationTestStatus.PASSED
         assert result.message == "Success"
         assert result.details == {"key": "value"}
         assert len(suite.results) == 1
@@ -446,10 +446,10 @@ class TestIntegrationTester:
         def failing_test():
             return False, "Failure", {"error": "bad"}
 
-        result = tester.run_test("test_fail", TestCategory.FILESYSTEM, failing_test, suite)
+        result = tester.run_test("test_fail", IntegrationTestCategory.FILESYSTEM, failing_test, suite)
 
         assert result.name == "test_fail"
-        assert result.status == TestStatus.FAILED
+        assert result.status == IntegrationTestStatus.FAILED
         assert result.message == "Failure"
         assert result.details == {"error": "bad"}
 
@@ -461,10 +461,10 @@ class TestIntegrationTester:
         def error_test():
             raise ValueError("Test error")
 
-        result = tester.run_test("test_error", TestCategory.FILESYSTEM, error_test, suite)
+        result = tester.run_test("test_error", IntegrationTestCategory.FILESYSTEM, error_test, suite)
 
         assert result.name == "test_error"
-        assert result.status == TestStatus.ERROR
+        assert result.status == IntegrationTestStatus.ERROR
         assert "Test error" in result.message
 
     def test_run_test_without_suite(self, temp_image):
@@ -474,9 +474,9 @@ class TestIntegrationTester:
         def passing_test():
             return True, "Success", {}
 
-        result = tester.run_test("test_no_suite", TestCategory.FILESYSTEM, passing_test)
+        result = tester.run_test("test_no_suite", IntegrationTestCategory.FILESYSTEM, passing_test)
 
-        assert result.status == TestStatus.PASSED
+        assert result.status == IntegrationTestStatus.PASSED
         assert len(tester.suites) == 0
 
     def test_test_image_load(self, temp_image):
@@ -502,12 +502,12 @@ class TestIntegrationTester:
         tester = IntegrationTester(temp_image)
 
         suite1 = tester.create_suite("Suite 1")
-        suite1.results.append(TestResult("t1", TestCategory.FILESYSTEM, TestStatus.PASSED, 10))
-        suite1.results.append(TestResult("t2", TestCategory.FILESYSTEM, TestStatus.FAILED, 10))
+        suite1.results.append(IntegrationTestResult("t1", IntegrationTestCategory.FILESYSTEM, IntegrationTestStatus.PASSED, 10))
+        suite1.results.append(IntegrationTestResult("t2", IntegrationTestCategory.FILESYSTEM, IntegrationTestStatus.FAILED, 10))
 
         suite2 = tester.create_suite("Suite 2")
-        suite2.results.append(TestResult("t3", TestCategory.FILESYSTEM, TestStatus.PASSED, 10))
-        suite2.results.append(TestResult("t4", TestCategory.FILESYSTEM, TestStatus.SKIPPED, 10))
+        suite2.results.append(IntegrationTestResult("t3", IntegrationTestCategory.FILESYSTEM, IntegrationTestStatus.PASSED, 10))
+        suite2.results.append(IntegrationTestResult("t4", IntegrationTestCategory.FILESYSTEM, IntegrationTestStatus.SKIPPED, 10))
 
         summary = tester.get_summary()
 
@@ -992,9 +992,9 @@ class TestIntegrationIntegration:
         def error_test():
             raise RuntimeError("Test error")
 
-        tester.run_test("passing", TestCategory.FILESYSTEM, pass_test, suite)
-        tester.run_test("failing", TestCategory.FILESYSTEM, fail_test, suite)
-        tester.run_test("error", TestCategory.FILESYSTEM, error_test, suite)
+        tester.run_test("passing", IntegrationTestCategory.FILESYSTEM, pass_test, suite)
+        tester.run_test("failing", IntegrationTestCategory.FILESYSTEM, fail_test, suite)
+        tester.run_test("error", IntegrationTestCategory.FILESYSTEM, error_test, suite)
 
         assert suite.total == 3
         assert suite.passed == 1

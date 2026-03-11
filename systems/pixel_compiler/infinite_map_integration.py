@@ -55,6 +55,10 @@ class IntegrationTestCategory(Enum):
     STRESS = "stress"
 
 
+# Alias for backwards compatibility
+TestCategory = IntegrationTestCategory
+
+
 class IntegrationTestStatus(Enum):
     """Status of a test."""
     PENDING = "pending"
@@ -63,6 +67,10 @@ class IntegrationTestStatus(Enum):
     FAILED = "failed"
     SKIPPED = "skipped"
     ERROR = "error"
+
+
+# Alias for backwards compatibility
+TestStatus = IntegrationTestStatus
 
 
 @dataclass
@@ -142,40 +150,40 @@ class IntegrationTester:
 
     def __init__(self, image_path: str):
         self.image_path = Path(image_path)
-        self.suites: list[TestSuite] = []
-        self._current_suite: TestSuite | None = None
+        self.suites: list[IntegrationTestSuite] = []
+        self._current_suite: IntegrationTestSuite | None = None
 
-    def create_suite(self, name: str) -> TestSuite:
+    def create_suite(self, name: str) -> IntegrationTestSuite:
         """Create a new test suite."""
-        suite = TestSuite(name=name)
+        suite = IntegrationTestSuite(name=name)
         self.suites.append(suite)
         return suite
 
     def run_test(
         self,
         name: str,
-        category: TestCategory,
+        category: IntegrationTestCategory,
         test_func: Callable[[], tuple[bool, str, dict[str, Any]]],
-        suite: TestSuite | None = None
-    ) -> TestResult:
+        suite: IntegrationTestSuite | None = None
+    ) -> IntegrationTestResult:
         """Run a single test."""
         start_time = time.perf_counter()
-        status = TestStatus.PENDING
+        status = IntegrationTestStatus.PENDING
         message = ""
         details = {}
 
         try:
-            status = TestStatus.RUNNING
+            status = IntegrationTestStatus.RUNNING
             passed, message, details = test_func()
-            status = TestStatus.PASSED if passed else TestStatus.FAILED
+            status = IntegrationTestStatus.PASSED if passed else IntegrationTestStatus.FAILED
         except Exception as e:
-            status = TestStatus.ERROR
+            status = IntegrationTestStatus.ERROR
             message = str(e)
             logger.error(f"Test {name} error: {e}")
         finally:
             duration_ms = (time.perf_counter() - start_time) * 1000
 
-        result = TestResult(
+        result = IntegrationTestResult(
             name=name,
             category=category,
             status=status,
@@ -314,22 +322,22 @@ class IntegrationTester:
         except Exception as e:
             return False, f"Performance test failed: {e}", {}
 
-    def run_all_tests(self) -> TestSuite:
+    def run_all_tests(self) -> IntegrationTestSuite:
         """Run all integration tests."""
         suite = self.create_suite("Full Integration Suite")
         suite.start_time = datetime.now()
 
         # Filesystem tests
-        self.run_test("image_load", TestCategory.FILESYSTEM, self.test_image_load, suite)
-        self.run_test("vat_integrity", TestCategory.FILESYSTEM, self.test_vat_integrity, suite)
-        self.run_test("file_read", TestCategory.FILESYSTEM, self.test_file_read, suite)
+        self.run_test("image_load", IntegrationTestCategory.FILESYSTEM, self.test_image_load, suite)
+        self.run_test("vat_integrity", IntegrationTestCategory.FILESYSTEM, self.test_vat_integrity, suite)
+        self.run_test("file_read", IntegrationTestCategory.FILESYSTEM, self.test_file_read, suite)
 
         # Reliability tests
-        self.run_test("checksum_validation", TestCategory.RELIABILITY, self.test_checksum_validation, suite)
-        self.run_test("snapshot_create", TestCategory.RELIABILITY, self.test_snapshot_create, suite)
+        self.run_test("checksum_validation", IntegrationTestCategory.RELIABILITY, self.test_checksum_validation, suite)
+        self.run_test("snapshot_create", IntegrationTestCategory.RELIABILITY, self.test_snapshot_create, suite)
 
         # Performance tests
-        self.run_test("performance_read", TestCategory.PERFORMANCE, self.test_performance_read, suite)
+        self.run_test("performance_read", IntegrationTestCategory.PERFORMANCE, self.test_performance_read, suite)
 
         suite.end_time = datetime.now()
         return suite
@@ -808,7 +816,7 @@ class IntegrationCLI:
         print(f"{'='*60}")
 
         for result in suite.results:
-            status_icon = "✓" if result.status == TestStatus.PASSED else "✗"
+            status_icon = "✓" if result.status == IntegrationTestStatus.PASSED else "✗"
             print(f"  {status_icon} {result.name}: {result.status.value} ({result.duration_ms:.2f}ms)")
             if result.message:
                 print(f"      {result.message}")

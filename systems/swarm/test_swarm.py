@@ -14,7 +14,7 @@ logger = logging.getLogger("swarm_test_runner")
 
 
 @dataclass
-class TestResult:
+class SwarmTestResult:
     """Result of a single test."""
     name: str
     passed: bool

@@ -1,6 +1,7 @@
 import pytest
 from pathlib import Path
 from detect_event import get_token_usage, detect_errors, detect_completion
+import subprocess
 
 def test_get_token_usage_empty_dir(tmp_path):
     """Returns 0 when no JSONL files exist."""
@@ -59,3 +60,36 @@ def test_detect_completion_not_found(tmp_path):
     handoff.write_text("Still working on the task")
     result = detect_completion(handoff)
     assert result is False
+
+
+def test_detect_event_cli_continue(tmp_path):
+    """CLI outputs 'continue' when no triggers."""
+    handoff = tmp_path / "handoff.md"
+    handoff.write_text("Working on task")
+    result = subprocess.run(
+        ["python3", "session_rotator/detect_event.py", "--handoff", str(handoff)],
+        capture_output=True, text=True, cwd="."
+    )
+    assert result.stdout.strip() == "continue"
+
+
+def test_detect_event_cli_complete(tmp_path):
+    """CLI outputs 'complete' when task is done."""
+    handoff = tmp_path / "handoff.md"
+    handoff.write_text("TASK COMPLETE")
+    result = subprocess.run(
+        ["python3", "session_rotator/detect_event.py", "--handoff", str(handoff)],
+        capture_output=True, text=True, cwd="."
+    )
+    assert result.stdout.strip() == "complete"
+
+
+def test_detect_event_cli_error(tmp_path):
+    """CLI outputs 'error' when stuck keyword found."""
+    handoff = tmp_path / "handoff.md"
+    handoff.write_text("I am stuck")
+    result = subprocess.run(
+        ["python3", "session_rotator/detect_event.py", "--handoff", str(handoff)],
+        capture_output=True, text=True, cwd="."
+    )
+    assert result.stdout.strip() == "error"

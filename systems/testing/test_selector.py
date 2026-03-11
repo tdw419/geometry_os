@@ -1,6 +1,6 @@
 # systems/testing/test_selector.py
 """
-TestSelector: Intelligently select tests to run.
+ActiveTestSelector: Intelligently select tests to run.
 
 Selection strategies:
 - changed_files: Select tests covering modified files
@@ -22,12 +22,12 @@ class CoverageInfo:
     total_lines: int
 
 
-class TestSelector:
+class ActiveTestSelector:
     """
     Intelligently select tests to run based on context.
 
     Usage:
-        selector = TestSelector(project_root="/path/to/project")
+        selector = ActiveTestSelector(project_root="/path/to/project")
 
         # Select tests for changed files
         tests = selector.select_for_changes(["src/main.py"])
