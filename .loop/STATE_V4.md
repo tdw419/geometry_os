@@ -233,8 +233,8 @@
 - [!] 155. **Improve Error Handling**: Refactor error handling across the system to ensure that errors are caught, logged, and handled gracefully, without causing system crashes - **Verification**: Simulate error conditions in various parts of the application and verify proper response.
 - [x] 156. **Security Audit**: Conduct a thorough security audit of the entire codebase to identify and mitigate potential vulnerabilities, including both known and unknown issues - **Verification**: Perform penetration testing with ethical hackers and review their findings for remediation.
 
-- [→] 157. **Commit Untracked Files**: Review and commit relevant files, add others to .gitignore - **Verification**: Check if all untracked files are accounted for and committed.
-- [ ] 158. **Batch Commit Modified Files**: Group by feature and commit with descriptive messages - **Verification**: Ensure commits are grouped logically and messages accurately reflect changes.
+- [!] 157. **Commit Untracked Files**: Review and commit relevant files, add others to .gitignore - **Verification**: Check if all untracked files are accounted for and committed.
+- [→] 158. **Batch Commit Modified Files**: Group by feature and commit with descriptive messages - **Verification**: Ensure commits are grouped logically and messages accurately reflect changes.
 - [ ] 159. **Fix Test Collection Errors**: Add missing imports or skip conditions in test files - **Verification**: Run tests to confirm all collection errors are resolved.
 - [ ] 160. **Address TODO Comment**: Review the TODO comment in systems/visual_shell/electron/node_modules/node-gyp/gyp/pylib/packaging/metadata.py and either implement or document - **Verification**: Ensure the comment is resolved or documented appropriately.
 - [ ] 161. **Improve Coverage**: Add tests for uncovered branches in systems/hypervisor/__init__.py to increase coverage above 50% - **Verification**: Run tests and verify coverage has increased.
