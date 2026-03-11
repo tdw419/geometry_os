@@ -234,10 +234,10 @@
 - [x] 156. **Security Audit**: Conduct a thorough security audit of the entire codebase to identify and mitigate potential vulnerabilities, including both known and unknown issues - **Verification**: Perform penetration testing with ethical hackers and review their findings for remediation.
 
 - [!] 157. **Commit Untracked Files**: Review and commit relevant files, add others to .gitignore - **Verification**: Check if all untracked files are accounted for and committed.
-- [→] 158. **Batch Commit Modified Files**: Group by feature and commit with descriptive messages - **Verification**: Ensure commits are grouped logically and messages accurately reflect changes.
-- [ ] 159. **Fix Test Collection Errors**: Add missing imports or skip conditions in test files - **Verification**: Run tests to confirm all collection errors are resolved.
-- [ ] 160. **Address TODO Comment**: Review the TODO comment in systems/visual_shell/electron/node_modules/node-gyp/gyp/pylib/packaging/metadata.py and either implement or document - **Verification**: Ensure the comment is resolved or documented appropriately.
-- [ ] 161. **Improve Coverage**: Add tests for uncovered branches in systems/hypervisor/__init__.py to increase coverage above 50% - **Verification**: Run tests and verify coverage has increased.
+- [x] 158. **Batch Commit Modified Files**: Group by feature and commit with descriptive messages - **Verification**: Ensure commits are grouped logically and messages accurately reflect changes.
+- [x] 159. **Fix Test Collection Errors**: Add missing imports or skip conditions in test files - **Verification**: Run tests to confirm all collection errors are resolved.
+- [x] 160. **Address TODO Comment**: Review the TODO comment in systems/visual_shell/electron/node_modules/node-gyp/gyp/pylib/packaging/metadata.py and either implement or document - **Verification**: Ensure the comment is resolved or documented appropriately.
+- [→] 161. **Improve Coverage**: Add tests for uncovered branches in systems/hypervisor/__init__.py to increase coverage above 50% - **Verification**: Run tests and verify coverage has increased.
 - [ ] 162. **Optimize Performance**: Identify and optimize performance bottlenecks in the visual shell rendering engine - **Verification**: Measure performance before and after optimization.
 - [ ] 163. **Enhance User Interface**: Design and implement a new feature to improve user interaction with the glyph editor - **Verification**: Test the new feature for usability and functionality.
 - [ ] 164. **Refactor Codebase**: Refactor redundant or poorly structured code in systems/visual_shell/electron to improve readability and maintainability - **Verification**: Review the refactored code for clarity and adherence to standards.
