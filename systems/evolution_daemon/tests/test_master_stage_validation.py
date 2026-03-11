@@ -15,10 +15,15 @@ from systems.evolution_daemon.evolution_daemon import (
     EvolutionDaemon,
     EvolutionProposal,
     EvolutionTask,
+    HAS_ZAI,
 )
 from systems.evolution_daemon.stages.master_stage import CapabilityType
 from systems.evolution_daemon.stages.mirror_bridge import MirrorValidationResult
 from systems.evolution_daemon.visual_verification_service import VisualIntent
+
+
+# Skip all tests in this module if ZAI is not available
+pytestmark = pytest.mark.skipif(not HAS_ZAI, reason="ZAI integration not available")
 
 
 @pytest.fixture

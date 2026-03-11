@@ -81,6 +81,8 @@ def pytest_ignore_collect(collection_path, config):
         "session_rotator/tests/test_detect_event.py",
         # pixel_compiler tests with import issues
         "systems/pixel_compiler/tests/test_infinite_map_integration_tools.py",
+        # requires pytest-mock fixture
+        "systems/evolution_daemon/tests/test_rts_doctor.py",
     ]
 
     for item in blacklist:
