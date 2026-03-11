@@ -5,7 +5,8 @@ Unit tests for PixelRTS v2 Core Library
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "systems" / "pixel_compiler"))
+# Add project root to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "systems" / "pixel_compiler"))
 
 from pixelrts_v2_core import HilbertCurve
 
