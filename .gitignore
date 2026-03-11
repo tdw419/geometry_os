@@ -131,10 +131,9 @@ benchmarks/
 # Benchmark results in subsystems
 **/benches/results/*.json
 
-# One-off verification/test scripts in root
-verify_*.py
-test_*.py
-!tests/
+# One-off verification/test scripts in root (not in tests/)
+/verify_*.py
+/test_*.py
 
 # Genesis pilot report
 genesis_pilot_report.json
