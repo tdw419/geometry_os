@@ -2046,9 +2046,9 @@ impl<'a> Renderer<'a> {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.02,
-                            g: 0.02,
-                            b: 0.02,
+                            r: 0.05,  // Visible dark teal - confirms render pipeline
+                            g: 0.10,  // works (not black, matches Geometry OS theme)
+                            b: 0.12,
                             a: 1.0,
                         }),
                         store: wgpu::StoreOp::Store,

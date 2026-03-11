@@ -13,3 +13,12 @@ def get_token_usage(project_dir: Path) -> int:
         return size // 3  # Conservative: 1 token ≈ 3 bytes
     except OSError:
         return 0
+
+
+def detect_errors(handoff_file: Path) -> bool:
+    """Check handoff for error indicators."""
+    if not handoff_file.exists():
+        return False
+    content = handoff_file.read_text().lower()
+    error_patterns = ["stuck", "blocked", "error:", "failed", "cannot proceed"]
+    return any(p in content for p in error_patterns)
