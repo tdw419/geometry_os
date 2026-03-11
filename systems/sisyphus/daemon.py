@@ -8,6 +8,13 @@ Replaces shell scripts with native Python daemon that:
 5. Heartbeat monitoring for compositor socket connection
 """
 
+import sys
+from pathlib import Path
+
+# Project root setup (this file is at systems/sisyphus/daemon.py)
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
 import hashlib
 import json
 import logging
@@ -21,25 +28,25 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from ..infinite_map.gravity_engine import GravityEngine
-from ..infinite_map.tectonic_updater import TectonicUpdater
-from .compositor_bridge import CompositorBridge
-from .entropy_mapper import EntropyMapper
-from .goal_synthesizer import GoalSynthesizer
-from .hot_swap_manager import HotSwapManager
-from .kernel_rewriter import KernelRewriter
-from .native_hilbert import NativeHilbertLUT
-from .performance_monitor import PerformanceMonitor
-from .speculative_optimizer import SpeculativeOptimizer
-from .token_rasterizer import TokenRasterizer
-from .unified_glass_bridge import UnifiedGlassBridge
+from systems.infinite_map.gravity_engine import GravityEngine
+from systems.infinite_map.tectonic_updater import TectonicUpdater
+from systems.sisyphus.compositor_bridge import CompositorBridge
+from systems.sisyphus.entropy_mapper import EntropyMapper
+from systems.sisyphus.goal_synthesizer import GoalSynthesizer
+from systems.sisyphus.hot_swap_manager import HotSwapManager
+from systems.sisyphus.kernel_rewriter import KernelRewriter
+from systems.sisyphus.native_hilbert import NativeHilbertLUT
+from systems.sisyphus.performance_monitor import PerformanceMonitor
+from systems.sisyphus.speculative_optimizer import SpeculativeOptimizer
+from systems.sisyphus.token_rasterizer import TokenRasterizer
+from systems.sisyphus.unified_glass_bridge import UnifiedGlassBridge
 
 # Brain Evolution Integration
 try:
-    from ..cognitive.cognitive_router import get_cognitive_router
-    from ..evolution_daemon.brain_mutations import evaluate_brain_fitness
-    from ..evolution_daemon.evolution_hooks.brain_evolution_hook import BrainEvolutionHook
-    from .critic import SisyphusCritic
+    from systems.cognitive.cognitive_router import get_cognitive_router
+    from systems.evolution_daemon.brain_mutations import evaluate_brain_fitness
+    from systems.evolution_daemon.evolution_hooks.brain_evolution_hook import BrainEvolutionHook
+    from systems.sisyphus.critic import SisyphusCritic
     BRAIN_EVOLUTION_AVAILABLE = True
 except ImportError:
     BRAIN_EVOLUTION_AVAILABLE = False
