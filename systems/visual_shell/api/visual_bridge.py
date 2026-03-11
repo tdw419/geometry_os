@@ -75,6 +75,17 @@ async def lifespan(app: FastAPI):
     _init_ffi_bridge()
     logger.info("FFI Bridge initialized")
 
+    # Auto-connect PixelBrain for Neural City atlas glow visualization
+    try:
+        from systems.visual_shell.api.pixel_brain_service import get_pixel_brain_service
+        service = get_pixel_brain_service(visual_bridge=multi_vm_streamer)
+        if service.is_available():
+            logger.info("PixelBrain auto-connected for Neural City visualization")
+        else:
+            logger.info("PixelBrain not available (brain atlas not found)")
+    except Exception as e:
+        logger.warning(f"Could not auto-connect PixelBrain: {e}")
+
     # Startup: Start the orchestrator watcher if not already running
     if not multi_vm_streamer.watcher.running:
         await multi_vm_streamer.start()
