@@ -511,7 +511,7 @@ git add session_rotator/build_prompt.py session_rotator/tests/test_build_prompt.
 git commit -m "feat: add CLI to build_prompt.py with tests"
 ```
 
-### Task 8: Test build_prompt.py - History Search (Optional)
+### Task 8: Test build_prompt.py - History Search and Integration
 
 **Files:**
 - Modify: `session_rotator/tests/test_build_prompt.py`
@@ -539,6 +539,9 @@ Expected: FAIL with "ImportError: cannot import name 'search_history'"
 - [ ] **Step 3: Write minimal implementation**
 
 ```python
+# Add to session_rotator/build_prompt.py (at top of file with other imports)
+import json
+
 # Add to session_rotator/build_prompt.py
 def search_history(query: str, limit: int = 5) -> list[str]:
     """Search recent conversation history for relevant context."""
@@ -546,24 +549,32 @@ def search_history(query: str, limit: int = 5) -> list[str]:
     if not claude_home.exists():
         return []
 
-    project_dirs = sorted(claude_home.iterdir(), key=lambda d: d.stat().st_mtime, reverse=True)
+    try:
+        project_dirs = sorted(claude_home.iterdir(), key=lambda d: d.stat().st_mtime, reverse=True)
+    except (PermissionError, OSError):
+        return []
 
     results = []
     for project_dir in project_dirs[:1]:
-        jsonl_files = sorted(project_dir.glob("*.jsonl"), key=lambda f: f.stat().st_mtime, reverse=True)
+        try:
+            jsonl_files = sorted(project_dir.glob("*.jsonl"), key=lambda f: f.stat().st_mtime, reverse=True)
+        except (PermissionError, OSError):
+            continue
         for jsonl_file in jsonl_files[:1]:
-            import json
-            for line in jsonl_file.read_text().splitlines()[-50:]:
-                try:
-                    obj = json.loads(line)
-                    msg = obj.get("message", {})
-                    content = msg.get("content", "")
-                    if isinstance(content, list):
-                        content = " ".join(b.get("text", "") for b in content if isinstance(b, dict))
-                    if query.lower() in content.lower():
-                        results.append(content[:500])
-                except (json.JSONDecodeError, KeyError, AttributeError):
-                    continue
+            try:
+                for line in jsonl_file.read_text().splitlines()[-50:]:
+                    try:
+                        obj = json.loads(line)
+                        msg = obj.get("message", {})
+                        content = msg.get("content", "")
+                        if isinstance(content, list):
+                            content = " ".join(b.get("text", "") for b in content if isinstance(b, dict))
+                        if query.lower() in content.lower():
+                            results.append(content[:500])
+                    except (json.JSONDecodeError, KeyError, AttributeError):
+                        continue
+            except (OSError, PermissionError):
+                continue
 
     return results[:limit]
 ```
@@ -573,11 +584,30 @@ def search_history(query: str, limit: int = 5) -> list[str]:
 Run: `cd session_rotator && python -m pytest tests/test_build_prompt.py -v`
 Expected: All PASS
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Update main() to call search_history()**
+
+```python
+# Replace the placeholder in main() with actual search_history call
+# In main(), replace the placeholder section with:
+
+    if args.search:
+        history = search_history(args.search)
+        if history:
+            prompt_parts.append("\n## Relevant History\n")
+            for h in history:
+                prompt_parts.append(f"- {h[:200]}...\n")
+```
+
+- [ ] **Step 6: Run all tests to verify integration**
+
+Run: `cd session_rotator && python -m pytest tests/test_build_prompt.py -v`
+Expected: All PASS
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add session_rotator/build_prompt.py session_rotator/tests/test_build_prompt.py
-git commit -m "feat: add search_history function with test"
+git commit -m "feat: add search_history function and integrate with main()"
 ```
 
 ---
