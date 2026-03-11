@@ -125,7 +125,12 @@ class TectonicStage:
                 generation_scores = []
                 for i, code in enumerate(variants):
                     mutation_id = f"shift-gen{gen:02d}-var{i:02d}"
-                    score = await self.fitness_service.benchmark_shader(mutation_id, code)
+                    # v14: Use apply_to_disk=True for trial commits and auto-rewind
+                    score = await self.fitness_service.benchmark_shader(
+                        mutation_id, 
+                        code, 
+                        apply_to_disk=True
+                    )
                     generation_scores.append((code, score))
 
                 # Select best of generation
