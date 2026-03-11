@@ -30,8 +30,8 @@ except ImportError:
     TRANSFORMERS_AVAILABLE = False
     AutoTokenizer = None  # type: ignore
 
-# Default brain path
-DEFAULT_BRAIN_PATH = "/home/jericho/zion/projects/geometry_os/geometry_os/tinystories_brain.rts.png"
+# Default brain path - FP16 GPT-Neo-125M with working attention
+DEFAULT_BRAIN_PATH = "/home/jericho/zion/projects/geometry_os/geometry_os/gpt_neo_125m_brain_fp16.rts.png"
 
 # Singleton instance
 _pixel_brain_service_instance: Optional["PixelBrainService"] = None

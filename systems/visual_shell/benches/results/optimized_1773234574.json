@@ -1,0 +1,106 @@
+{
+  "timestamp": 1773234574.6598122,
+  "numba_enabled": true,
+  "results": [
+    {
+      "name": "color_blend_packed",
+      "iterations": 1000,
+      "avg_time_us": 0.150072,
+      "p50_us": 0.14,
+      "p95_us": 0.169,
+      "target_us": 0.5,
+      "passed": true,
+      "category": "color"
+    },
+    {
+      "name": "color_blend_batch_10k",
+      "iterations": 1000,
+      "avg_time_us": 30.126468,
+      "p50_us": 28.942,
+      "p95_us": 41.388,
+      "target_us": 100.0,
+      "passed": true,
+      "category": "color"
+    },
+    {
+      "name": "hilbert_d2xy_jit",
+      "iterations": 1000,
+      "avg_time_us": 0.137437,
+      "p50_us": 0.136,
+      "p95_us": 0.152,
+      "target_us": 0.5,
+      "passed": true,
+      "category": "hilbert"
+    },
+    {
+      "name": "hilbert_d2xy_lut",
+      "iterations": 1000,
+      "avg_time_us": 0.188523,
+      "p50_us": 0.182,
+      "p95_us": 0.224,
+      "target_us": 0.2,
+      "passed": true,
+      "category": "hilbert"
+    },
+    {
+      "name": "premultiply_numba",
+      "iterations": 1000,
+      "avg_time_us": 35.251062,
+      "p50_us": 34.905,
+      "p95_us": 40.661,
+      "target_us": 500.0,
+      "passed": true,
+      "category": "pixel"
+    },
+    {
+      "name": "rgba_to_bgra_numba",
+      "iterations": 1000,
+      "avg_time_us": 33.940529000000005,
+      "p50_us": 33.557,
+      "p95_us": 38.596,
+      "target_us": 200.0,
+      "passed": true,
+      "category": "pixel"
+    },
+    {
+      "name": "region_batch_1000",
+      "iterations": 1000,
+      "avg_time_us": 1.506313,
+      "p50_us": 1.447,
+      "p95_us": 1.777,
+      "target_us": 50.0,
+      "passed": true,
+      "category": "foveated"
+    },
+    {
+      "name": "region_batch_10k",
+      "iterations": 1000,
+      "avg_time_us": 5.51367,
+      "p50_us": 5.443,
+      "p95_us": 5.851,
+      "target_us": 100.0,
+      "passed": true,
+      "category": "foveated"
+    },
+    {
+      "name": "pipeline_100_cells",
+      "iterations": 1000,
+      "avg_time_us": 20.779148,
+      "p50_us": 20.549,
+      "p95_us": 21.557,
+      "target_us": 200.0,
+      "passed": true,
+      "category": "pipeline"
+    },
+    {
+      "name": "pipeline_1000_cells",
+      "iterations": 1000,
+      "avg_time_us": 213.549096,
+      "p50_us": 213.175,
+      "p95_us": 219.092,
+      "target_us": 1500.0,
+      "passed": true,
+      "category": "pipeline"
+    }
+  ]
+}

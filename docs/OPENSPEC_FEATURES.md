@@ -179,7 +179,32 @@ evolution:
 
 ### Overview
 
-The Visual Shell provides topological rendering of thought geometry with advanced accessibility features.
+The Visual Shell provides topological rendering of thought geometry with advanced accessibility features, including the Native Glyph Shell (G-Shell) for state-native terminal operations.
+
+### Native Glyph Shell (G-Shell)
+
+The G-Shell is a state-native terminal that bridges standard Linux shell workflows with Geometry OS's spatial/AI-native architecture.
+
+**Key Features:**
+- **AI Context Injection** - Terminal state automatically visible to AI assistants
+- **Geometry OS Commands** - `g` prefix commands for spatial operations
+- **GNB Synchronization** - Terminal screen exported to Geometric Neural Buffer
+- **GPU-Accelerated Rendering** - WGSL compute shaders for glyph rendering
+
+**Performance Optimizations:**
+- Numba JIT compilation (27.8x average speedup)
+- Packed integer color representation
+- Pre-computed Hilbert curve lookup tables
+- Parallel batch processing
+
+**Shell Variants:**
+| Variant | File | Purpose |
+|---------|------|---------|
+| Standard | `geos_terminal.py` | Basic PTY wrapper |
+| Native | `native_geos_terminal.py` | State-native with GNB |
+| Enhanced | `enhanced_glyph_shell.py` | UI with command palette |
+
+**Documentation:** [docs/NATIVE_GLYPH_SHELL.md](NATIVE_GLYPH_SHELL.md)
 
 ### Features
 

@@ -1,0 +1,106 @@
+{
+  "timestamp": 1773234610.854496,
+  "numba_enabled": true,
+  "results": [
+    {
+      "name": "color_blend_packed",
+      "iterations": 1000,
+      "avg_time_us": 0.153047,
+      "p50_us": 0.144,
+      "p95_us": 0.174,
+      "target_us": 0.5,
+      "passed": true,
+      "category": "color"
+    },
+    {
+      "name": "color_blend_batch_10k",
+      "iterations": 1000,
+      "avg_time_us": 30.945078000000002,
+      "p50_us": 30.143,
+      "p95_us": 38.398,
+      "target_us": 100.0,
+      "passed": true,
+      "category": "color"
+    },
+    {
+      "name": "hilbert_d2xy_jit",
+      "iterations": 1000,
+      "avg_time_us": 0.140203,
+      "p50_us": 0.138,
+      "p95_us": 0.157,
+      "target_us": 0.5,
+      "passed": true,
+      "category": "hilbert"
+    },
+    {
+      "name": "hilbert_d2xy_lut",
+      "iterations": 1000,
+      "avg_time_us": 0.18690299999999999,
+      "p50_us": 0.18,
+      "p95_us": 0.22,
+      "target_us": 0.2,
+      "passed": true,
+      "category": "hilbert"
+    },
+    {
+      "name": "premultiply_numba",
+      "iterations": 1000,
+      "avg_time_us": 35.709857,
+      "p50_us": 35.285,
+      "p95_us": 39.824,
+      "target_us": 500.0,
+      "passed": true,
+      "category": "pixel"
+    },
+    {
+      "name": "rgba_to_bgra_numba",
+      "iterations": 1000,
+      "avg_time_us": 35.294733,
+      "p50_us": 34.775,
+      "p95_us": 40.072,
+      "target_us": 200.0,
+      "passed": true,
+      "category": "pixel"
+    },
+    {
+      "name": "region_batch_1000",
+      "iterations": 1000,
+      "avg_time_us": 1.49801,
+      "p50_us": 1.504,
+      "p95_us": 1.615,
+      "target_us": 50.0,
+      "passed": true,
+      "category": "foveated"
+    },
+    {
+      "name": "region_batch_10k",
+      "iterations": 1000,
+      "avg_time_us": 5.7212950000000005,
+      "p50_us": 5.674,
+      "p95_us": 5.966,
+      "target_us": 100.0,
+      "passed": true,
+      "category": "foveated"
+    },
+    {
+      "name": "pipeline_100_cells",
+      "iterations": 1000,
+      "avg_time_us": 21.419527,
+      "p50_us": 21.325,
+      "p95_us": 21.946,
+      "target_us": 200.0,
+      "passed": true,
+      "category": "pipeline"
+    },
+    {
+      "name": "pipeline_1000_cells",
+      "iterations": 1000,
+      "avg_time_us": 217.99003299999998,
+      "p50_us": 217.144,
+      "p95_us": 223.504,
+      "target_us": 1500.0,
+      "passed": true,
+      "category": "pipeline"
+    }
+  ]
+}

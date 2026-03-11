@@ -16,7 +16,59 @@ This file provides guidance to agents when working with code in this repository.
 | `CONTRIBUTING.md` | Coding standards, naming conventions |
 | `ACTUAL_STATUS.md` | Current implementation status |
 | `SKILLS.md` | AI skills index for agents |
+| `CODE_REVIEW_PROCESS.md` | Regular code review cycle and tracking |
 | `memory/MEMORY.md` | System memory and architecture index |
+
+---
+
+## Code Review Cycle
+
+**Purpose**: Maintain code quality and prevent entropy through regular, systematic code reviews.
+
+### Quick Commands
+
+```bash
+# Initialize review system (first time)
+python3 scripts/code_review.py --init
+
+# List scheduled reviews
+python3 scripts/code_review.py --list
+
+# Run scheduled review
+python3 scripts/code_review.py --scheduled --area <area>
+
+# Check adherence
+python3 scripts/code_review.py --adherence
+
+# Run entropy scan
+python3 scripts/code_review.py --entropy
+```
+
+### Review Schedule
+
+| Frequency | Areas |
+|-----------|-------|
+| Weekly (Mon) | Core Systems, Visual Shell, Pixel Systems, Testing |
+| Bi-Weekly (Thu) | Rust Components, Documentation, Configuration |
+| Monthly (1st Mon) | Security Audit, Performance |
+
+### Review Tracking
+
+Reviews are tracked in `.geometry/reviews/`:
+- `schedule.json` - Review schedule and history
+- `pending/` - Pending review requests
+- `completed/` - Completed review reports
+- `metrics/adherence.json` - Review adherence metrics
+
+### CI Integration
+
+GitHub Actions workflow `.github/workflows/code-review-cycle.yml`:
+- Checks schedule every Monday and Thursday
+- Runs overdue reviews automatically
+- Generates weekly reports
+- Creates issues for critical findings
+
+See `CODE_REVIEW_PROCESS.md` for full documentation.
 
 ## Current Specs (OpenSpec)
 

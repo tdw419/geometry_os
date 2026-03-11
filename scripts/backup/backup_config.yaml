@@ -1,0 +1,115 @@
+# Geometry OS Backup Configuration
+# =================================
+# This file defines what to backup and how
+
+# Backup destination settings
+destination:
+  # Local backup directory (required)
+  local: ~/.local/share/geometry-backup/archives
+  
+  # Optional: Remote backup via rsync (uncomment to enable)
+  # remote: user@backup-server:/backups/geometry_os
+  
+  # Optional: External drive mount point (uncomment to enable)
+  # external: /media/backup-drive/geometry_os
+
+# What to backup
+sources:
+  # Main repository
+  - path: /home/jericho/zion/projects/geometry_os/geometry_os
+    name: geometry_os_main
+    type: git
+    priority: critical
+    # Exclude patterns for this source
+    exclude:
+      - "*.pyc"
+      - "__pycache__"
+      - ".venv"
+      - "node_modules"
+      - "*.rts.png.f16"
+      - "htmlcov"
+      - ".coverage"
+      - "coverage.json"
+      - "*.log"
+  
+  # Parent directory with other versions (lighter backup)
+  - path: /home/jericho/zion/projects/geometry_os
+    name: geometry_os_parent
+    type: directory
+    priority: normal
+    exclude:
+      - "*.zip"
+      - "*/node_modules"
+      - "*/.venv"
+      - "*/__pycache__"
+      - "*.pyc"
+
+# Critical data patterns (always backed up, even in incremental)
+critical_patterns:
+  - "**/memory/*.md"
+  - "**/openspec/**/*.md"
+  - "**/openspec/**/*.yaml"
+  - "**/data/**/*"
+  - "**/*.spec.md"
+  - "**/AGENTS.md"
+  - "**/SKILLS.md"
+
+# Backup retention settings
+retention:
+  # Number of daily backups to keep
+  daily: 7
+  # Number of weekly backups to keep
+  weekly: 4
+  # Number of monthly backups to keep
+  monthly: 6
+
+# Backup schedule (for cron/systemd)
+schedule:
+  # Full backup day (1=Monday, 7=Sunday)
+  full_backup_day: 7  # Sunday
+  # Incremental backup frequency (hours)
+  incremental_hours: 6
+
+# Verification settings
+verification:
+  # Verify backup integrity after creation
+  enabled: true
+  # Test restore to temporary location
+  test_restore: true
+  # Maximum age before warning (hours)
+  max_age_hours: 24
+
+# Compression settings
+compression:
+  # Compression algorithm (gzip, zstd, xz)
+  algorithm: zstd
+  # Compression level (1-19 for zstd, 1-9 for gzip/xz)
+  level: 6
+
+# Logging
+logging:
+  # Log file location
+  path: ~/.local/share/geometry-backup/logs
+  # Log level (DEBUG, INFO, WARNING, ERROR)
+  level: INFO
+  # Keep logs for N days
+  retention_days: 30
+
+# Notifications (optional)
+notifications:
+  # Enable notifications
+  enabled: false
+  # Command to run on backup completion
+  # Example for desktop notification:
+  # on_success: notify-send "Backup Complete" "Geometry OS backup finished successfully"
+  # on_failure: notify-send "Backup Failed" "Geometry OS backup encountered errors"
+  on_success: ""
+  on_failure: ""
+
+# Pre/post backup hooks
+hooks:
+  # Commands to run before backup
+  pre_backup:
+    - "git fetch --all"  # Update git remotes info
+  # Commands to run after successful backup
+  post_backup: []

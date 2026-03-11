@@ -1,0 +1,10 @@
+[Unit]
+Description=Geometry OS Daily Backup Timer
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+Unit=geometry-os-backup.service
+
+[Install]
+WantedBy=timers.target

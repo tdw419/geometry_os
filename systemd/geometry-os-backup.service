@@ -1,0 +1,13 @@
+[Unit]
+Description=Geometry OS Backup Service
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/jericho/zion/projects/geometry_os/geometry_os/scripts/backup_system.sh --full
+User=jericho
+Environment=BACKUP_ROOT=/backup/geometry_os
+Environment=RETENTION_DAYS=30
+
+[Install]
+WantedBy=multi-user.target

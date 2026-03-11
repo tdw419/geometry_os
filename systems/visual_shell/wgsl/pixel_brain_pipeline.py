@@ -685,12 +685,21 @@ fn hilbert_d2xy(d: u32, n: u32) -> vec2<u32> {
         k_sector = sectors.get(f"layer_{layer}_attn_k_proj_w", {})
         v_sector = sectors.get(f"layer_{layer}_attn_v_proj_w", {})
         o_sector = sectors.get(f"layer_{layer}_attn_out_proj_w", {})
+
+        # Get bias starts
+        q_b_sector = sectors.get(f"layer_{layer}_attn_q_proj_b", {})
+        k_b_sector = sectors.get(f"layer_{layer}_attn_k_proj_b", {})
+        v_b_sector = sectors.get(f"layer_{layer}_attn_v_proj_b", {})
         o_b_sector = sectors.get(f"layer_{layer}_attn_out_proj_b", {})
 
         q_start = q_sector.get("start", 0)
         k_start = k_sector.get("start", q_start + HIDDEN_DIM * HIDDEN_DIM)
         v_start = v_sector.get("start", k_start + HIDDEN_DIM * HIDDEN_DIM)
         o_start = o_sector.get("start", v_start + HIDDEN_DIM * HIDDEN_DIM)
+
+        q_b_start = q_b_sector.get("start", 0)
+        k_b_start = k_b_sector.get("start", 0)
+        v_b_start = v_b_sector.get("start", 0)
         o_b_start = o_b_sector.get("start", 0)
 
         # Get LayerNorm parameter starts
@@ -700,12 +709,13 @@ fn hilbert_d2xy(d: u32, n: u32) -> vec2<u32> {
         ln_b_start = ln_b_sector.get("start", 0)
 
         # struct AttentionConfig { layer_idx, position, atlas_size, weights_start (Q),
-        #                           k_start, v_start, o_start, o_b_start, seq_len,
-        #                           ln_w_start, ln_b_start, _pad1 }
+        #                           k_start, v_start, o_start, q_b_start, k_b_start,
+        #                           v_b_start, o_b_start, seq_len, ln_w_start, ln_b_start, _pad }
         config_data = np.array([layer, position, atlas_size, q_start, k_start, v_start,
-                                o_start, o_b_start, position + 1, ln_w_start, ln_b_start, 0],
+                                o_start, q_b_start, k_b_start, v_b_start, o_b_start,
+                                position + 1, ln_w_start, ln_b_start, 0],
                                dtype=np.uint32)
-        config_buffer = self.device.create_buffer(size=48, usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST)
+        config_buffer = self.device.create_buffer(size=60, usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST)
         self.device.queue.write_buffer(config_buffer, 0, config_data)
 
         atlas_resource = {"binding": 0, "resource": self.textures["atlas"].create_view()}

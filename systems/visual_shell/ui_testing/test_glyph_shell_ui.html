@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Glyph Shell - User Testing</title>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-yellow: #d29922;
+            --accent-red: #f85149;
+            --accent-purple: #a371f7;
+            --border-color: #30363d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            padding: 2rem 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--text-secondary);
+        }
+
+        .progress-bar {
+            background: var(--bg-tertiary);
+            border-radius: 999px;
+            height: 8px;
+            margin: 1.5rem auto;
+            max-width: 400px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .task-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .task-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .task-difficulty {
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .difficulty-trivial { background: var(--accent-green); color: #000; }
+        .difficulty-easy { background: var(--accent-blue); color: #000; }
+        .difficulty-medium { background: var(--accent-yellow); color: #000; }
+        .difficulty-hard { background: var(--accent-purple); color: #fff; }
+        .difficulty-expert { background: var(--accent-red); color: #fff; }
+
+        .task-description {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .task-instructions {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        .task-instructions strong {
+            color: var(--accent-blue);
+        }
+
+        .success-criteria {
+            margin-bottom: 1rem;
+        }
+
+        .success-criteria h4 {
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .criteria-list {
+            list-style: none;
+        }
+
+        .criteria-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0;
+            color: var(--text-secondary);
+        }
+
+        .criteria-list li.completed {
+            color: var(--accent-green);
+        }
+
+        .criteria-list li .checkbox {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .criteria-list li.completed .checkbox {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .criteria-list li.completed .checkbox::after {
+            content: '✓';
+            color: #000;
+            font-size: 12px;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-green);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            filter: brightness(1.1);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+        }
+
+        .btn-hint {
+            background: transparent;
+            color: var(--accent-yellow);
+            border: 1px solid var(--accent-yellow);
+        }
+
+        .btn-hint:hover {
+            background: var(--accent-yellow);
+            color: #000;
+        }
+
+        .timer {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 1.25rem;
+        }
+
+        .timer.warning {
+            color: var(--accent-yellow);
+        }
+
+        .timer.overtime {
+            color: var(--accent-red);
+        }
+
+        .hint-box {
+            background: rgba(210, 153, 34, 0.1);
+            border: 1px solid var(--accent-yellow);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .hint-box.visible {
+            display: block;
+        }
+
+        .hint-box h4 {
+            color: var(--accent-yellow);
+            margin-bottom: 0.5rem;
+        }
+
+        .feedback-form {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .feedback-form h3 {
+            margin-bottom: 1rem;
+        }
+
+        .rating-stars {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .rating-stars button {
+            background: transparent;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: all 0.2s;
+        }
+
+        .rating-stars button:hover,
+        .rating-stars button.selected {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .form-group textarea {
+            width: 100%;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: var(--text-primary);
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .results-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .summary-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .summary-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .summary-card .label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .summary-card.success .value { color: var(--accent-green); }
+        .summary-card.warning .value { color: var(--accent-yellow); }
+        .summary-card.info .value { color: var(--accent-blue); }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .task-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .task-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧪 Enhanced Glyph Shell - User Testing</h1>
+            <p>Help us improve the user interface by completing these tasks</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+            <p id="progressText">Task 0 of 0</p>
+        </header>
+
+        <main id="mainContent">
+            <!-- Welcome Screen -->
+            <section id="welcomeScreen">
+                <div class="task-card">
+                    <h2>Welcome to the User Testing Session</h2>
+                    <p style="color: var(--text-secondary); margin: 1rem 0;">
+                        You'll be asked to complete several tasks using the Enhanced Glyph Shell.
+                        We'll measure how long each task takes and collect your feedback.
+                    </p>
+
+                    <h3 style="margin: 1.5rem 0 1rem;">What to expect:</h3>
+                    <ul style="margin-left: 1.5rem; color: var(--text-secondary);">
+                        <li>Read each task carefully</li>
+                        <li>Complete it as you naturally would</li>
+                        <li>Use hints if you get stuck</li>
+                        <li>Provide honest feedback</li>
+                    </ul>
+
+                    <h3 style="margin: 1.5rem 0 1rem;">Keyboard shortcuts to know:</h3>
+                    <ul style="margin-left: 1.5rem; color: var(--text-secondary);">
+                        <li><kbd style="background: var(--bg-tertiary); padding: 0.25rem 0.5rem; border-radius: 4px;">Ctrl+P</kbd> - Open command palette</li>
+                        <li><kbd style="background: var(--bg-tertiary); padding: 0.25rem 0.5rem; border-radius: 4px;">?</kbd> - Show keyboard shortcuts</li>
+                        <li><kbd style="background: var(--bg-tertiary); padding: 0.25rem 0.5rem; border-radius: 4px;">Ctrl+H</kbd> - Toggle history</li>
+                    </ul>
+
+                    <div class="task-actions">
+                        <button class="btn btn-primary" onclick="startTesting()">
+                            Start Testing →
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Task Screen -->
+            <section id="taskScreen" class="hidden">
+                <div class="task-card">
+                    <div class="task-header">
+                        <div>
+                            <div class="task-title" id="taskTitle">Task Title</div>
+                            <div class="task-description" id="taskDescription">Task description</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span class="task-difficulty" id="taskDifficulty">EASY</span>
+                            <div class="timer" id="taskTimer">00:00</div>
+                        </div>
+                    </div>
+
+                    <div class="task-instructions">
+                        <strong>Your task:</strong>
+                        <p id="taskInstructions">Instructions here</p>
+                    </div>
+
+                    <div class="success-criteria">
+                        <h4>Success Criteria</h4>
+                        <ul class="criteria-list" id="criteriaList">
+                            <!-- Criteria items will be inserted here -->
+                        </ul>
+                    </div>
+
+                    <div class="hint-box" id="hintBox">
+                        <h4>💡 Hint</h4>
+                        <p id="hintText">Hint text here</p>
+                    </div>
+
+                    <div class="task-actions">
+                        <button class="btn btn-primary" onclick="completeTask()">
+                            ✓ Mark Complete
+                        </button>
+                        <button class="btn btn-secondary" onclick="skipTask()">
+                            Skip Task
+                        </button>
+                        <button class="btn btn-hint" id="hintButton" onclick="showHint()">
+                            Show Hint
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Feedback Screen -->
+            <section id="feedbackScreen" class="hidden">
+                <div class="feedback-form">
+                    <h3>📝 Task Feedback</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                        How easy was this task to complete?
+                    </p>
+
+                    <div class="rating-stars" id="ratingStars">
+                        <button onclick="setRating(1)" data-rating="1">⭐</button>
+                        <button onclick="setRating(2)" data-rating="2">⭐</button>
+                        <button onclick="setRating(3)" data-rating="3">⭐</button>
+                        <button onclick="setRating(4)" data-rating="4">⭐</button>
+                        <button onclick="setRating(5)" data-rating="5">⭐</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="feedbackComments">Any comments about this task? (optional)</label>
+                        <textarea id="feedbackComments" placeholder="What worked well? What was confusing?"></textarea>
+                    </div>
+
+                    <div class="task-actions">
+                        <button class="btn btn-primary" onclick="submitFeedback()">
+                            Continue →
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Screen -->
+            <section id="resultsScreen" class="hidden">
+                <div class="task-card">
+                    <h2>🎉 Testing Complete!</h2>
+                    <p style="color: var(--text-secondary); margin: 1rem 0;">
+                        Thank you for participating! Here's a summary of your session:
+                    </p>
+
+                    <div class="results-summary" id="resultsSummary">
+                        <!-- Results will be inserted here -->
+                    </div>
+
+                    <h3 style="margin: 2rem 0 1rem;">Final Feedback</h3>
+                    <div class="form-group">
+                        <label for="overallFeedback">Any final thoughts about the Enhanced Glyph Shell?</label>
+                        <textarea id="overallFeedback" placeholder="What did you like? What could be improved?"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="overallRating">Overall satisfaction (1-5)</label>
+                        <div class="rating-stars" id="overallRatingStars">
+                            <button onclick="setOverallRating(1)" data-rating="1">⭐</button>
+                            <button onclick="setOverallRating(2)" data-rating="2">⭐</button>
+                            <button onclick="setOverallRating(3)" data-rating="3">⭐</button>
+                            <button onclick="setOverallRating(4)" data-rating="4">⭐</button>
+                            <button onclick="setOverallRating(5)" data-rating="5">⭐</button>
+                        </div>
+                    </div>
+
+                    <div class="task-actions">
+                        <button class="btn btn-primary" onclick="submitFinalFeedback()">
+                            Submit & Finish
+                        </button>
+                        <button class="btn btn-secondary" onclick="downloadResults()">
+                            📥 Download Results
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Test tasks (matching Python backend)
+        const tasks = [
+            {
+                id: 'discover-spawn',
+                name: 'Discover Spawn Command',
+                description: 'Find the command to spawn a new terminal tile',
+                instructions: 'You need to create a new terminal tile. Find and execute the command to do this.',
+                difficulty: 'easy',
+                expectedTime: 15,
+                successCriteria: [
+                    'Opened command palette or help',
+                    'Executed "g spawn" command'
+                ],
+                hints: [
+                    'Try pressing Ctrl+P to see available commands',
+                    'The command palette shows all available commands',
+                    'Look for a command related to creating or spawning terminals'
+                ]
+            },
+            {
+                id: 'discover-map',
+                name: 'Discover Map Navigation',
+                description: 'Find how to pan the Infinite Map',
+                instructions: 'You want to move the map view to coordinates (100, 200). Find and execute the command.',
+                difficulty: 'easy',
+                expectedTime: 15,
+                successCriteria: [
+                    'Found map navigation command',
+                    'Executed "g map 100 200" or similar'
+                ],
+                hints: [
+                    'Commands starting with "g" are Geometry OS specific',
+                    'The command palette can help you find commands'
+                ]
+            },
+            {
+                id: 'use-shortcuts',
+                name: 'Use Keyboard Shortcuts',
+                description: 'Demonstrate keyboard shortcut usage',
+                instructions: 'Clear the screen using a keyboard shortcut, then open the help overlay.',
+                difficulty: 'trivial',
+                expectedTime: 5,
+                successCriteria: [
+                    'Pressed Ctrl+L or equivalent to clear',
+                    'Pressed ? or opened help overlay'
+                ],
+                hints: [
+                    'Press ? to see all keyboard shortcuts',
+                    'Ctrl+L clears the screen in most terminals'
+                ]
+            },
+            {
+                id: 'navigate-palette',
+                name: 'Navigate Command Palette',
+                description: 'Use the command palette to find and execute a command',
+                instructions: 'Open the command palette, search for "status", and execute it.',
+                difficulty: 'easy',
+                expectedTime: 10,
+                successCriteria: [
+                    'Opened palette with Ctrl+P',
+                    'Searched for "status"',
+                    'Executed status command'
+                ],
+                hints: [
+                    'Use arrow keys to navigate the palette',
+                    'Press Enter to select a command'
+                ]
+            },
+            {
+                id: 'multi-step',
+                name: 'Multi-Step Workflow',
+                description: 'Complete a multi-step operation',
+                instructions: 'Spawn a terminal, pan the map to (50, 50), then check the system status.',
+                difficulty: 'hard',
+                expectedTime: 45,
+                successCriteria: [
+                    'Spawned terminal with "g spawn"',
+                    'Panned map with "g map 50 50"',
+                    'Checked system status'
+                ],
+                hints: [
+                    'Break it down into individual steps',
+                    'Use the command palette for each step'
+                ]
+            }
+        ];
+
+        // State
+        let currentTaskIndex = 0;
+        let taskStartTime = 0;
+        let timerInterval = null;
+        let currentRating = 0;
+        let overallRating = 0;
+        let hintsUsed = 0;
+        let sessionResults = {
+            tasks: [],
+            startTime: Date.now(),
+            endTime: null
+        };
+
+        // Functions
+        function startTesting() {
+            document.getElementById('welcomeScreen').classList.add('hidden');
+            document.getElementById('taskScreen').classList.remove('hidden');
+            currentTaskIndex = 0;
+            showTask(currentTaskIndex);
+        }
+
+        function showTask(index) {
+            const task = tasks[index];
+
+            document.getElementById('taskTitle').textContent = task.name;
+            document.getElementById('taskDescription').textContent = task.description;
+            document.getElementById('taskInstructions').textContent = task.instructions;
+
+            const difficultyEl = document.getElementById('taskDifficulty');
+            difficultyEl.textContent = task.difficulty.toUpperCase();
+            difficultyEl.className = 'task-difficulty difficulty-' + task.difficulty;
+
+            // Success criteria
+            const criteriaList = document.getElementById('criteriaList');
+            criteriaList.innerHTML = '';
+            task.successCriteria.forEach((criteria, i) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span class="checkbox" onclick="toggleCriteria(${i})"></span>
+                    <span>${criteria}</span>
+                `;
+                criteriaList.appendChild(li);
+            });
+
+            // Reset UI
+            document.getElementById('hintBox').classList.remove('visible');
+            document.getElementById('hintButton').disabled = false;
+            hintsUsed = 0;
+
+            // Update progress
+            const progress = (index / tasks.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('progressText').textContent = `Task ${index + 1} of ${tasks.length}`;
+
+            // Start timer
+            taskStartTime = Date.now();
+            startTimer(task.expectedTime);
+        }
+
+        function startTimer(expectedSeconds) {
+            clearInterval(timerInterval);
+            const timerEl = document.getElementById('taskTimer');
+
+            timerInterval = setInterval(() => {
+                const elapsed = (Date.now() - taskStartTime) / 1000;
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = Math.floor(elapsed % 60);
+                timerEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+                // Color coding
+                timerEl.classList.remove('warning', 'overtime');
+                if (elapsed > expectedSeconds * 1.5) {
+                    timerEl.classList.add('overtime');
+                } else if (elapsed > expectedSeconds) {
+                    timerEl.classList.add('warning');
+                }
+            }, 100);
+        }
+
+        function showHint() {
+            const task = tasks[currentTaskIndex];
+            if (hintsUsed < task.hints.length) {
+                document.getElementById('hintText').textContent = task.hints[hintsUsed];
+                document.getElementById('hintBox').classList.add('visible');
+                hintsUsed++;
+
+                if (hintsUsed >= task.hints.length) {
+                    document.getElementById('hintButton').disabled = true;
+                }
+            }
+        }
+
+        function toggleCriteria(index) {
+            const items = document.querySelectorAll('#criteriaList li');
+            items[index].classList.toggle('completed');
+        }
+
+        function completeTask() {
+            clearInterval(timerInterval);
+
+            const elapsed = (Date.now() - taskStartTime) / 1000;
+            const task = tasks[currentTaskIndex];
+            const criteriaMet = document.querySelectorAll('#criteriaList li.completed').length;
+
+            sessionResults.tasks.push({
+                taskId: task.id,
+                taskName: task.name,
+                status: 'completed',
+                timeOnTask: elapsed,
+                expectedTime: task.expectedTime,
+                hintsUsed: hintsUsed,
+                criteriaMet: criteriaMet,
+                totalCriteria: task.successCriteria.length
+            });
+
+            // Show feedback form
+            document.getElementById('taskScreen').classList.add('hidden');
+            document.getElementById('feedbackScreen').classList.remove('hidden');
+            currentRating = 0;
+            updateRatingStars();
+        }
+
+        function skipTask() {
+            clearInterval(timerInterval);
+
+            const elapsed = (Date.now() - taskStartTime) / 1000;
+            const task = tasks[currentTaskIndex];
+
+            sessionResults.tasks.push({
+                taskId: task.id,
+                taskName: task.name,
+                status: 'skipped',
+                timeOnTask: elapsed,
+                hintsUsed: hintsUsed,
+                criteriaMet: 0,
+                totalCriteria: task.successCriteria.length
+            });
+
+            nextTask();
+        }
+
+        function setRating(rating) {
+            currentRating = rating;
+            updateRatingStars();
+        }
+
+        function updateRatingStars() {
+            const buttons = document.querySelectorAll('#ratingStars button');
+            buttons.forEach((btn, i) => {
+                btn.classList.toggle('selected', i < currentRating);
+            });
+        }
+
+        function submitFeedback() {
+            const comments = document.getElementById('feedbackComments').value;
+
+            if (sessionResults.tasks.length > 0) {
+                sessionResults.tasks[sessionResults.tasks.length - 1].rating = currentRating;
+                sessionResults.tasks[sessionResults.tasks.length - 1].comments = comments;
+            }
+
+            document.getElementById('feedbackComments').value = '';
+            nextTask();
+        }
+
+        function nextTask() {
+            currentTaskIndex++;
+
+            if (currentTaskIndex >= tasks.length) {
+                showResults();
+            } else {
+                document.getElementById('feedbackScreen').classList.add('hidden');
+                document.getElementById('taskScreen').classList.remove('hidden');
+                showTask(currentTaskIndex);
+            }
+        }
+
+        function showResults() {
+            sessionResults.endTime = Date.now();
+
+            document.getElementById('feedbackScreen').classList.add('hidden');
+            document.getElementById('taskScreen').classList.add('hidden');
+            document.getElementById('resultsScreen').classList.remove('hidden');
+
+            // Update progress to 100%
+            document.getElementById('progressFill').style.width = '100%';
+            document.getElementById('progressText').textContent = 'Testing Complete';
+
+            // Calculate summary
+            const completed = sessionResults.tasks.filter(t => t.status === 'completed').length;
+            const skipped = sessionResults.tasks.filter(t => t.status === 'skipped').length;
+            const avgTime = sessionResults.tasks.reduce((sum, t) => sum + t.timeOnTask, 0) / sessionResults.tasks.length;
+            const avgRating = sessionResults.tasks.filter(t => t.rating).reduce((sum, t) => sum + t.rating, 0) / Math.max(1, sessionResults.tasks.filter(t => t.rating).length);
+
+            const summary = document.getElementById('resultsSummary');
+            summary.innerHTML = `
+                <div class="summary-card success">
+                    <div class="value">${completed}</div>
+                    <div class="label">Tasks Completed</div>
+                </div>
+                <div class="summary-card warning">
+                    <div class="value">${skipped}</div>
+                    <div class="label">Tasks Skipped</div>
+                </div>
+                <div class="summary-card info">
+                    <div class="value">${avgTime.toFixed(1)}s</div>
+                    <div class="label">Avg Time per Task</div>
+                </div>
+                <div class="summary-card ${avgRating >= 4 ? 'success' : avgRating >= 3 ? 'warning' : ''}">
+                    <div class="value">${avgRating.toFixed(1)}</div>
+                    <div class="label">Average Rating</div>
+                </div>
+            `;
+        }
+
+        function setOverallRating(rating) {
+            overallRating = rating;
+            const buttons = document.querySelectorAll('#overallRatingStars button');
+            buttons.forEach((btn, i) => {
+                btn.classList.toggle('selected', i < overallRating);
+            });
+        }
+
+        function submitFinalFeedback() {
+            sessionResults.overallFeedback = document.getElementById('overallFeedback').value;
+            sessionResults.overallRating = overallRating;
+
+            // In a real implementation, this would send to the server
+            console.log('Session results:', sessionResults);
+
+            alert('Thank you for your feedback! Your results have been recorded.');
+
+            // Option to restart
+            if (confirm('Start a new testing session?')) {
+                location.reload();
+            }
+        }
+
+        function downloadResults() {
+            sessionResults.overallFeedback = document.getElementById('overallFeedback').value;
+            sessionResults.overallRating = overallRating;
+
+            const dataStr = JSON.stringify(sessionResults, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `glyph-shell-test-${Date.now()}.json`;
+            a.click();
+
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

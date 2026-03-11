@@ -5,6 +5,82 @@ All notable changes to Geometry OS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelogs.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.3] - 2026-03-11
+
+### Added - Native Glyph Shell Documentation
+
+- **docs/NATIVE_GLYPH_SHELL.md**: Comprehensive Native Glyph Shell (G-Shell) documentation
+  - Shell variants: Standard G-Shell, Native State-Shell, Enhanced UI Shell
+  - Architecture overview with PTY wrapper diagram
+  - Core features: AI context injection, Geometry OS commands, GNB sync
+  - Performance optimizations:
+    - Numba JIT compilation (27.8x average speedup)
+    - Packed integer color representation
+    - Pre-computed lookup tables
+    - Parallel batch processing
+  - WGSL GPU renderer documentation:
+    - Glyph command opcodes (0x00-0x07)
+    - Compute shader entry points
+    - Performance targets
+  - Configuration guide (YAML and environment variables)
+  - Complete API reference
+  - Troubleshooting section
+
+### Documented Features
+
+The following Native Glyph Shell features are now documented:
+
+| Feature | Description | Performance |
+|---------|-------------|-------------|
+| Numba-accelerated operations | JIT-compiled hot paths | 27.8x avg speedup |
+| Packed color blending | Integer-based color ops | 4.5x faster |
+| Hilbert curve optimization | Cached LUT + JIT | 6.5x faster |
+| Alpha premultiplication | Parallel pixel ops | 303x faster |
+| Foveated rendering | Batch classification | 2.8x faster |
+| WGSL glyph renderer | GPU compute shaders | 60 FPS @ 10K+ glyphs |
+
+### Changed - Documentation Organization
+
+- Updated DOCUMENTATION_INDEX.md with Native Glyph Shell documentation link
+- Added Native Glyph Shell to Visual Shell system documentation section
+
+## [4.0.3] - 2026-03-11
+
+### Added - Native Glyph Shell Documentation
+
+- **docs/NATIVE_GLYPH_SHELL.md**: Comprehensive Native Glyph Shell (G-Shell) documentation
+  - Performance optimizations overview (27.8x average speedup)
+  - Detailed API reference with 20+ code examples
+  - AI context injection guide (Gemini, Claude)
+  - GNB state synchronization documentation
+  - Training program overview
+  - Installation and quick start guide
+  - Keyboard navigation reference
+  - Performance tuning guidelines
+  - Troubleshooting section
+  - Integration examples
+  - Future roadmap
+
+### Documented Features
+
+- **Hilbert Curve Mapping**: 87x faster batch operations with pre-computed lookup tables
+- **Alpha Premultiplication**: 303x faster with Numba JIT compilation
+- **Foveated Rendering**: 2.8x faster batch classification, 50%+ GPU reduction
+- **Color Blending**: 4.5x faster with packed integer representation
+- **Training Program**: 7 modules, 2-4 hours, interactive tutorial
+- **AI Integration**: Seamless context injection for AI assistants
+- **GNB Sync**: Real-time state export to ASCII Scene Graph
+
+### Performance Metrics Documented
+
+| Module | Operation | Speedup | Status |
+|--------|-----------|---------|--------|
+| Hilbert | Batch 1000 | 87x | ✅ Production |
+| Pixel | Premultiply (Numba) | 303x | ✅ Production |
+| Foveated | Batch 10K | 2.8x | ✅ Production |
+| Color | Single blend | 4.5x | ✅ Production |
+| Pipeline | 100 cells | 6.7x | ✅ Production |
+
 ## [4.0.2] - 2026-03-11
 
 ### Added - New System Documentation

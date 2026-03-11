@@ -1,0 +1,233 @@
+name: Code Review Cycle
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # Monday 9 AM - Weekly review check
+    - cron: '0 9 * * 4'  # Thursday 9 AM - Biweekly review check
+  workflow_dispatch:
+    inputs:
+      area:
+        description: 'Review area to run'
+        required: false
+        default: ''
+      full-scan:
+        description: 'Run full entropy scan'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  check-schedule:
+    runs-on: ubuntu-latest
+    outputs:
+      has-overdue: ${{ steps.check.outputs.has-overdue }}
+      overdue-areas: ${{ steps.check.outputs.overdue-areas }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Initialize review system
+        run: |
+          python3 scripts/code_review.py --init
+      
+      - name: Check review schedule
+        id: check
+        run: |
+          python3 scripts/code_review.py --adherence > adherence-report.txt
+          cat adherence-report.txt
+          
+          # Check for overdue reviews
+          if grep -q "OVERDUE REVIEWS" adherence-report.txt; then
+            echo "has-overdue=true" >> $GITHUB_OUTPUT
+            # Extract overdue areas
+            grep -A 10 "OVERDUE REVIEWS" adherence-report.txt | grep "Run:" | sed 's/.*--area /"area": "/' | sed 's/$/",/' > overdue-areas.json || echo "[]" > overdue-areas.json
+            echo "overdue-areas=$(cat overdue-areas.json)" >> $GITHUB_OUTPUT
+          else
+            echo "has-overdue=false" >> $GITHUB_OUTPUT
+            echo "overdue-areas=[]" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Upload adherence report
+        uses: actions/upload-artifact@v4
+        with:
+          name: adherence-report
+          path: adherence-report.txt
+
+  run-entropy-scan:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.full-scan == 'true' || github.event_name == 'schedule' && (github.event.schedule == '0 9 * * 1') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Run entropy scan
+        id: entropy
+        run: |
+          python3 scripts/code_review.py --entropy > entropy-report.txt
+          cat entropy-report.txt
+          
+          # Extract issue count for badge
+          TOTAL_ISSUES=$(grep "Total Issues:" entropy-report.txt | awk '{print $3}')
+          echo "total-issues=$TOTAL_ISSUES" >> $GITHUB_OUTPUT
+      
+      - name: Upload entropy report
+        uses: actions/upload-artifact@v4
+        with:
+          name: entropy-report
+          path: entropy-report.txt
+
+  run-scheduled-review:
+    runs-on: ubuntu-latest
+    needs: check-schedule
+    if: ${{ needs.check-schedule.outputs.has-overdue == 'true' || github.event.inputs.area != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Run overdue reviews
+        run: |
+          # If specific area requested, run that
+          if [ -n "${{ github.event.inputs.area }}" ]; then
+            python3 scripts/code_review.py --scheduled --area "${{ github.event.inputs.area }}"
+          else
+            # Run all overdue reviews
+            python3 scripts/code_review.py --adherence | grep "Run:" | while read line; do
+              AREA=$(echo "$line" | sed 's/.*--area //')
+              echo "Running review for: $AREA"
+              python3 scripts/code_review.py --scheduled --area "$AREA" || true
+            done
+          fi
+      
+      - name: Upload review reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-reports
+          path: .geometry/reviews/completed/*.md
+          if-no-files-found: ignore
+
+  generate-weekly-report:
+    runs-on: ubuntu-latest
+    needs: [check-schedule, run-entropy-scan]
+    if: always() && github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: reports
+      
+      - name: Generate weekly summary
+        run: |
+          echo "# 📊 Weekly Code Review Summary" > weekly-summary.md
+          echo "" >> weekly-summary.md
+          echo "**Date:** $(date '+%Y-%m-%d')" >> weekly-summary.md
+          echo "" >> weekly-summary.md
+          
+          echo "## Adherence Status" >> weekly-summary.md
+          if [ -f reports/adherence-report/adherence-report.txt ]; then
+            cat reports/adherence-report/adherence-report.txt >> weekly-summary.md
+          fi
+          
+          echo "" >> weekly-summary.md
+          echo "## Entropy Scan Results" >> weekly-summary.md
+          if [ -f reports/entropy-report/entropy-report.txt ]; then
+            cat reports/entropy-report/entropy-report.txt >> weekly-summary.md
+          fi
+          
+          cat weekly-summary.md
+      
+      - name: Create issue if critical issues found
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Check for critical issues
+            let hasCritical = false;
+            const reportsDir = 'reports/review-reports';
+            
+            if (fs.existsSync(reportsDir)) {
+              const files = fs.readdirSync(reportsDir);
+              for (const file of files) {
+                if (file.endsWith('.md')) {
+                  const content = fs.readFileSync(`${reportsDir}/${file}`, 'utf8');
+                  if (content.includes('Critical (0)\nNone') === false && content.includes('Critical (')) {
+                    hasCritical = true;
+                    break;
+                  }
+                }
+              }
+            }
+            
+            if (hasCritical) {
+              // Check if issue already exists
+              const issues = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                labels: 'code-review,critical'
+              });
+              
+              if (issues.data.length === 0) {
+                await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: '🚨 Critical Issues Found in Code Review',
+                  body: 'Critical issues were detected in the latest automated code review.\n\nPlease check the [workflow run](' + process.env.GITHUB_SERVER_URL + '/' + process.env.GITHUB_REPOSITORY + '/actions/runs/' + process.env.GITHUB_RUN_ID + ') for details.',
+                  labels: ['code-review', 'critical']
+                });
+              }
+            }
+
+  update-metrics-badge:
+    runs-on: ubuntu-latest
+    needs: [check-schedule]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Generate metrics
+        id: metrics
+        run: |
+          python3 scripts/code_review.py --init 2>/dev/null || true
+          python3 scripts/code_review.py --adherence 2>/dev/null > adherence-output.txt || echo "No metrics yet"
+          
+          # Extract adherence rate
+          ADHERENCE=$(grep "Adherence Rate:" adherence-output.txt | awk '{print $3}' | tr -d '%' || echo "0")
+          echo "adherence=$ADHERENCE" >> $GITHUB_OUTPUT
+          
+          # Create badge JSON
+          if [ -n "$ADHERENCE" ] && [ "$ADHERENCE" != "0" ]; then
+            COLOR="brightgreen"
+            if [ "$ADHERENCE" -lt 80 ]; then COLOR="yellow"; fi
+            if [ "$ADHERENCE" -lt 60 ]; then COLOR="orange"; fi
+            if [ "$ADHERENCE" -lt 40 ]; then COLOR="red"; fi
+            
+            echo "{\"schemaVersion\": 1, \"label\": \"Review Adherence\", \"message\": \"${ADHERENCE}%\", \"color\": \"$COLOR\"}" > badge.json
+            echo "badge-generated=true" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Upload badge
+        if: steps.metrics.outputs.badge-generated == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-badge
+          path: badge.json

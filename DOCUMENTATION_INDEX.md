@@ -17,9 +17,10 @@
 ### For New Users
 1. [README.md](README.md) - Understand the project
 2. [QUICKSTART.md](QUICKSTART.md) - Run your first demo
-3. [docs/USER_ADOPTION_GUIDE.md](docs/USER_ADOPTION_GUIDE.md) - Complete onboarding guide
-4. [CONTRIBUTING.md](CONTRIBUTING.md) - Coding standards
-5. [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Solve common issues
+3. [docs/training/README.md](docs/training/README.md) - **Native Glyph Shell Training Program** (2-4 hours)
+4. [docs/USER_ADOPTION_GUIDE.md](docs/USER_ADOPTION_GUIDE.md) - Complete onboarding guide
+5. [CONTRIBUTING.md](CONTRIBUTING.md) - Coding standards
+6. [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Solve common issues
 
 ### For Developers
 1. [AGENTS.md](AGENTS.md) - Project-specific guidance
@@ -78,6 +79,51 @@
 
 - **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Problem resolution
   - Common issues and solutions
+
+## 🎓 Training Program
+
+### Native Glyph Shell Training
+A comprehensive 2-4 hour training program for new users:
+
+- **[docs/training/README.md](docs/training/README.md)** - Training program overview
+- **[docs/training/TRAINING_GUIDE.md](docs/training/TRAINING_GUIDE.md)** - Instructor guide
+
+#### Training Modules
+| Module | Duration | Description |
+|--------|----------|-------------|
+| [Module 1: Introduction](docs/training/modules/module_01_introduction.md) | 30 min | Core concepts, first commands |
+| [Module 2: Basic Operations](docs/training/modules/module_02_basic_operations.md) | 45 min | Glyph syntax, navigation |
+| [Module 3: Process Management](docs/training/modules/module_03_process_management.md) | 45 min | Process lifecycle, monitoring |
+| [Module 4: Advanced Features](docs/training/modules/module_04_advanced_features.md) | 60 min | Scripting, integration |
+| [Module 5: Customization](docs/training/modules/module_05_customization.md) | 30 min | Themes, shortcuts, workflow |
+
+#### Hands-On Exercises
+- [Exercise 1: First Commands](docs/training/exercises/exercise_01_first_commands.md)
+- [Exercise 2: Navigation](docs/training/exercises/exercise_02_navigation.md)
+- [Exercise 3: Process Management](docs/training/exercises/exercise_03_process_mgmt.md)
+- [Exercise 4: Scripting](docs/training/exercises/exercise_04_scripting.md)
+- [Exercise 5: Integration](docs/training/exercises/exercise_05_integration.md)
+
+#### Assessments
+- [Pre-Assessment](docs/training/assessments/pre_assessment.md) - Evaluate starting knowledge
+- [Skills Checklist](docs/training/assessments/skills_checklist.md) - Track progress
+- [Practical Exam](docs/training/assessments/practical_exam.md) - Demonstrate skills
+- [Post-Assessment](docs/training/assessments/post_assessment.md) - Measure learning outcomes
+
+#### Resources
+- [Quick Reference](docs/training/resources/quick_reference.md) - Essential commands
+- [Keyboard Shortcuts](docs/training/resources/keyboard_shortcuts.md) - All shortcuts
+- [Troubleshooting Guide](docs/training/resources/troubleshooting_guide.md) - Common issues
+- [Glossary](docs/training/resources/glossary.md) - Term definitions
+- [Feedback Survey](docs/training/resources/feedback_survey.py) - Provide feedback
+
+#### Training Effectiveness Metrics
+| Metric | Target | Status |
+|--------|--------|--------|
+| Completion Rate | >85% | Tracked via post-assessment |
+| Knowledge Gain | >50% improvement | Pre/post comparison |
+| User Satisfaction | >4.0/5.0 | Survey scores |
+| Time to Proficiency | <4 hours | Self-reported |
   - Diagnostic procedures
   - Error message reference
   - Debug mode instructions
@@ -108,6 +154,12 @@
 - **[memory/evolution_daemon_v13.md](memory/evolution_daemon_v13.md)** - v13 architecture
 
 #### Visual Shell
+- **[docs/NATIVE_GLYPH_SHELL.md](docs/NATIVE_GLYPH_SHELL.md)** - Native Glyph Shell (G-Shell) documentation
+  - Shell variants (Standard, Native, Enhanced)
+  - Numba-accelerated operations (27.8x speedup)
+  - WGSL GPU renderer
+  - Performance optimization guide
+  - API reference
 - **[docs/SEMANTIC_GEOMETRIC_TERMINAL.md](docs/SEMANTIC_GEOMETRIC_TERMINAL.md)** - Terminal system
 - **[docs/ASCII_DESKTOP_CONTROL.md](docs/ASCII_DESKTOP_CONTROL.md)** - Desktop control
 - **[docs/render_monitor.md](docs/render_monitor.md)** - Rendering monitor

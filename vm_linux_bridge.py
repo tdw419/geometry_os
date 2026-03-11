@@ -97,14 +97,53 @@ class HostBridge(VMLinuxBridge):
     """
     Execute commands on the host machine (for testing/development).
     This is the original behavior of map_terminal.py.
+    
+    SECURITY WARNING: This bridge uses shell=True for command execution.
+    Only use with trusted input. For production, use QEMUBridge or WGPUBridge.
+    Commands should be sanitized before passing to this method.
     """
 
+    # Characters that are commonly used in command injection attacks
+    _DANGEROUS_CHARS = {';', '&', '|', '`', '$', '(', ')', '<', '>', '\n', '\r'}
+    
     def __init__(self):
         self._ready = True
         self._vm_type = "host"
 
+    def _validate_command(self, command: str) -> tuple[bool, str]:
+        """
+        Validate command for potential injection attacks.
+        
+        Returns:
+            Tuple of (is_safe, error_message)
+        """
+        if not command or not command.strip():
+            return False, "Empty command"
+        
+        # Check for dangerous characters
+        found_dangerous = set(command) & self._DANGEROUS_CHARS
+        if found_dangerous:
+            return False, f"Command contains potentially dangerous characters: {found_dangerous}"
+        
+        return True, ""
+
     async def execute(self, command: str, timeout: int = 30) -> CommandResult:
-        """Execute command on host via subprocess."""
+        """
+        Execute command on host via subprocess.
+        
+        SECURITY: Commands are validated for injection patterns.
+        For complex commands, consider using execute_safe() instead.
+        """
+        # Validate command for security
+        is_safe, error = self._validate_command(command)
+        if not is_safe:
+            return CommandResult(
+                stdout="",
+                stderr=f"Security: {error}. Use execute_safe() for complex commands.",
+                exit_code=-1,
+                duration_ms=0
+            )
+        
         start_time = time.time()
 
         try:
@@ -131,6 +170,76 @@ class HostBridge(VMLinuxBridge):
                 stderr="Command timed out",
                 exit_code=-1,
                 duration_ms=timeout * 1000
+            )
+        except Exception as e:
+            return CommandResult(
+                stdout="",
+                stderr=str(e),
+                exit_code=-1,
+                duration_ms=0
+            )
+    
+    async def execute_safe(self, program: str, args: list, timeout: int = 30) -> CommandResult:
+        """
+        Execute command safely using list arguments (no shell=True).
+        
+        This is the recommended method for executing commands with user input.
+        
+        Args:
+            program: The program to execute (e.g., 'ls', 'cat')
+            args: List of arguments (e.g., ['-la', '/home'])
+            timeout: Timeout in seconds
+            
+        Returns:
+            CommandResult with stdout, stderr, exit_code
+        """
+        import shlex
+        
+        start_time = time.time()
+        
+        # Validate program name (alphanumeric, dash, underscore only)
+        if not all(c.isalnum() or c in '-_./' for c in program):
+            return CommandResult(
+                stdout="",
+                stderr=f"Security: Invalid program name: {program}",
+                exit_code=-1,
+                duration_ms=0
+            )
+        
+        # Build command list safely
+        cmd = [program] + [str(arg) for arg in args]
+        
+        try:
+            result = subprocess.run(
+                cmd,  # List, not string - no shell interpretation
+                shell=False,  # SECURITY: Never use shell=True with user input
+                capture_output=True,
+                text=True,
+                timeout=timeout
+            )
+            
+            duration_ms = int((time.time() - start_time) * 1000)
+            
+            return CommandResult(
+                stdout=result.stdout,
+                stderr=result.stderr,
+                exit_code=result.returncode,
+                duration_ms=duration_ms
+            )
+            
+        except subprocess.TimeoutExpired:
+            return CommandResult(
+                stdout="",
+                stderr="Command timed out",
+                exit_code=-1,
+                duration_ms=timeout * 1000
+            )
+        except FileNotFoundError:
+            return CommandResult(
+                stdout="",
+                stderr=f"Program not found: {program}",
+                exit_code=-1,
+                duration_ms=0
             )
         except Exception as e:
             return CommandResult(

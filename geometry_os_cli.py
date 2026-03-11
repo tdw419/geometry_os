@@ -458,6 +458,45 @@ def cmd_serve(args):
     return 0
 
 
+@handle_errors(recoverable=True, default_return=1)
+def cmd_shell(args):
+    """Start Geometry OS Shell (G-Shell)."""
+    print("=" * 60)
+    print("GEOMETRY OS SHELL")
+    print("=" * 60)
+    
+    import subprocess
+    from pathlib import Path
+    
+    if args.native:
+        shell_path = Path(__file__).parent / "systems" / "visual_shell" / "native_geos_terminal.py"
+        mode = "Native (RGBA/Hilbert)"
+    else:
+        shell_path = Path(__file__).parent / "systems" / "visual_shell" / "geos_terminal.py"
+        mode = "Hybrid (ASCII/GNB)"
+    
+    if not shell_path.exists():
+        print(f"\n❌ {mode} Shell script not found")
+        print(f"   Expected: {shell_path}")
+        return 1
+    
+    print(f"\nLaunching G-Shell ({mode})...")
+    if args.native:
+        print("AI Context: Image-Native (.rts.png)")
+    else:
+        print("AI Context: .geometry/gnb_state.ascii")
+    print("-" * 60)
+    
+    try:
+        os.execvpe("python3", ["python3", str(shell_path)], os.environ)
+    except Exception as e:
+        logger.error(f"Failed to launch G-Shell: {e}")
+        print(f"\n❌ G-Shell failed: {e}")
+        return 1
+    
+    return 0
+
+
 def main():
     """Main entry point with comprehensive error handling."""
     parser = argparse.ArgumentParser(
@@ -500,6 +539,10 @@ def main():
     p_serve.add_argument("--district", action="store_true", help="Start district server")
     p_serve.add_argument("--tectonic", action="store_true", help="Start tectonic server")
     
+    # shell
+    p_shell = subparsers.add_parser("shell", help="Start Geometry OS Shell")
+    p_shell.add_argument("--native", action="store_true", help="Launch v2 Native Shell (RGBA/Hilbert)")
+    
     args = parser.parse_args()
     
     if args.command is None:
@@ -514,6 +557,7 @@ def main():
         "evolve": cmd_evolve,
         "demo": cmd_demo,
         "serve": cmd_serve,
+        "shell": cmd_shell,
     }
     
     # Execute command with global error handling

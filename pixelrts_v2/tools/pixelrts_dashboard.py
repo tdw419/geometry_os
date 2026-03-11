@@ -9,11 +9,15 @@ Flask-based web UI for PixelRTS v2 operations:
 
 Author: PixelRTS v2 Implementation
 Date: 2026-02-09
+
+SECURITY: Set PIXELRTS_SECRET_KEY environment variable in production!
 """
 
 import io
+import os
 import sys
 import base64
+import secrets
 from pathlib import Path
 from typing import Optional, Dict, Any
 
@@ -53,8 +57,21 @@ def create_app(config: Optional[Dict[str, Any]] = None) -> Flask:
                 static_folder='static')
 
     # Default configuration
+    # SECURITY: Secret key must be set via PIXELRTS_SECRET_KEY env var in production
+    # For development, a random key is generated (sessions won't persist across restarts)
+    secret_key = os.environ.get('PIXELRTS_SECRET_KEY')
+    if not secret_key:
+        if os.environ.get('FLASK_ENV') == 'production':
+            raise RuntimeError(
+                "PIXELRTS_SECRET_KEY environment variable must be set in production. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        # Development: generate a random key (sessions won't persist)
+        secret_key = secrets.token_hex(32)
+        print("⚠️ WARNING: Using random SECRET_KEY. Set PIXELRTS_SECRET_KEY for production.")
+    
     default_config = {
-        'SECRET_KEY': 'pixelrts-dev-key-change-in-production',
+        'SECRET_KEY': secret_key,
         'MAX_CONTENT_LENGTH': 16 * 1024 * 1024,  # 16MB max upload
         'UPLOAD_FOLDER': '/tmp/pixelrts_uploads',
         'ALLOWED_EXTENSIONS': {'png', 'rts', 'bin', 'wasm'},

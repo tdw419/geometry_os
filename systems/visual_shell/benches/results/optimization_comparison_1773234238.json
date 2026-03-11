@@ -1,0 +1,95 @@
+{
+  "timestamp": 1773234238.1679645,
+  "comparisons": [
+    {
+      "name": "color_blend_single",
+      "baseline_us": 0.6047279999999999,
+      "optimized_us": 0.707442,
+      "speedup": 0.8548092988541816,
+      "baseline_passed": true,
+      "optimized_passed": true,
+      "target_us": 1.0
+    },
+    {
+      "name": "color_blend_batch_1000",
+      "baseline_us": 33.805154,
+      "optimized_us": 33.644194000000006,
+      "speedup": 1.0047841835652236,
+      "baseline_passed": true,
+      "optimized_passed": true,
+      "target_us": 100.0
+    },
+    {
+      "name": "hilbert_d2xy_single",
+      "baseline_us": 0.763652,
+      "optimized_us": 0.17638800000000002,
+      "speedup": 4.329387486677097,
+      "baseline_passed": true,
+      "optimized_passed": true,
+      "target_us": 1.0
+    },
+    {
+      "name": "hilbert_d2xy_batch_1000",
+      "baseline_us": 2909.529176,
+      "optimized_us": 7.641952,
+      "speedup": 380.7311503657704,
+      "baseline_passed": false,
+      "optimized_passed": true,
+      "target_us": 500.0
+    },
+    {
+      "name": "premultiply_alpha_64k",
+      "baseline_us": 794.482858,
+      "optimized_us": 1529.303594,
+      "speedup": 0.5195063041223716,
+      "baseline_passed": true,
+      "optimized_passed": false,
+      "target_us": 1000.0
+    },
+    {
+      "name": "premultiply_inplace_64k",
+      "baseline_us": 0.037354,
+      "optimized_us": 158.911372,
+      "speedup": 0.00023506184315116226,
+      "baseline_passed": true,
+      "optimized_passed": true,
+      "target_us": 500.0
+    },
+    {
+      "name": "rgba_to_bgra_64k",
+      "baseline_us": 51.379878,
+      "optimized_us": 54.964366,
+      "speedup": 0.9347852388582086,
+      "baseline_passed": true,
+      "optimized_passed": true,
+      "target_us": 200.0
+    },
+    {
+      "name": "rgba_to_bgra_inplace_64k",
+      "baseline_us": 0.037164,
+      "optimized_us": 43.064004000000004,
+      "speedup": 0.0008629945325102608,
+      "baseline_passed": true,
+      "optimized_passed": true,
+      "target_us": 100.0
+    },
+    {
+      "name": "foveated_classify_1000",
+      "baseline_us": 5.528578,
+      "optimized_us": 5.411752000000001,
+      "speedup": 1.0215874637270888,
+      "baseline_passed": true,
+      "optimized_passed": true,
+      "target_us": 50.0
+    },
+    {
+      "name": "glyph_cache_lookup_100",
+      "baseline_us": 2.22029,
+      "optimized_us": 18.580866,
+      "speedup": 0.11949335407725344,
+      "baseline_passed": true,
+      "optimized_passed": true,
+      "target_us": 50.0
+    }
+  ]
+}

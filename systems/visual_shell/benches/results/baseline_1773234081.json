@@ -1,0 +1,104 @@
+{
+  "timestamp": 1773234081.2017143,
+  "results": [
+    {
+      "name": "color_blend_baseline",
+      "iterations": 500,
+      "avg_time_us": 0.653346,
+      "p50_us": 0.645,
+      "p95_us": 0.689,
+      "target_us": 1.0,
+      "passed": true
+    },
+    {
+      "name": "color_blend_optimized",
+      "iterations": 500,
+      "avg_time_us": 0.742244,
+      "p50_us": 0.724,
+      "p95_us": 0.808,
+      "target_us": 0.5,
+      "passed": false
+    },
+    {
+      "name": "color_blend_numpy_1000",
+      "iterations": 500,
+      "avg_time_us": 45.292324,
+      "p50_us": 31.315,
+      "p95_us": 34.444,
+      "target_us": 100.0,
+      "passed": true
+    },
+    {
+      "name": "hilbert_d2xy_baseline",
+      "iterations": 500,
+      "avg_time_us": 0.919822,
+      "p50_us": 0.916,
+      "p95_us": 0.948,
+      "target_us": 1.0,
+      "passed": true
+    },
+    {
+      "name": "hilbert_d2xy_lut",
+      "iterations": 500,
+      "avg_time_us": 0.704472,
+      "p50_us": 0.702,
+      "p95_us": 0.729,
+      "target_us": 0.1,
+      "passed": false
+    },
+    {
+      "name": "premultiply_baseline",
+      "iterations": 500,
+      "avg_time_us": 10545.465286,
+      "p50_us": 10498.616,
+      "p95_us": 10904.902,
+      "target_us": 5000.0,
+      "passed": false
+    },
+    {
+      "name": "premultiply_optimized",
+      "iterations": 500,
+      "avg_time_us": 9248.30682,
+      "p50_us": 9347.496,
+      "p95_us": 9676.535,
+      "target_us": 2000.0,
+      "passed": false
+    },
+    {
+      "name": "premultiply_numpy",
+      "iterations": 500,
+      "avg_time_us": 803.9856920000001,
+      "p50_us": 802.419,
+      "p95_us": 818.797,
+      "target_us": 1000.0,
+      "passed": true
+    },
+    {
+      "name": "region_baseline",
+      "iterations": 500,
+      "avg_time_us": 0.144744,
+      "p50_us": 0.14,
+      "p95_us": 0.167,
+      "target_us": 0.5,
+      "passed": true
+    },
+    {
+      "name": "region_fast",
+      "iterations": 500,
+      "avg_time_us": 0.100734,
+      "p50_us": 0.098,
+      "p95_us": 0.115,
+      "target_us": 0.3,
+      "passed": true
+    },
+    {
+      "name": "region_batch_1000",
+      "iterations": 500,
+      "avg_time_us": 5.511228,
+      "p50_us": 5.489,
+      "p95_us": 5.7,
+      "target_us": 50.0,
+      "passed": true
+    }
+  ]
+}

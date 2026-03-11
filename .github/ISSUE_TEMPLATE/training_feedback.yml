@@ -1,0 +1,145 @@
+---
+name: Training Feedback
+about: Provide feedback on the Native Glyph Shell training program
+title: '[TRAINING] Feedback - '
+labels: training, feedback
+assignees: ''
+---
+
+## Training Program Feedback
+
+Thank you for completing the Native Glyph Shell training program! Your feedback helps us improve.
+
+### Overall Rating
+
+**How would you rate the training overall?** (1-5)
+[ ] 1 - Poor
+[ ] 2 - Fair
+[ ] 3 - Good
+[ ] 4 - Very Good
+[ ] 5 - Excellent
+
+### Completion Status
+
+- [ ] Completed all 5 modules
+- [ ] Completed some modules (which ones: _____)
+- [ ] Started but didn't finish
+- [ ] Browsed but didn't complete exercises
+
+### Module Ratings
+
+Rate each module (1-5, or N/A if not completed):
+
+| Module | Rating | Comments |
+|--------|--------|----------|
+| 1. Introduction | ___ | |
+| 2. Basic Operations | ___ | |
+| 3. Process Management | ___ | |
+| 4. Advanced Features | ___ | |
+| 5. Customization | ___ | |
+
+### Learning Outcomes
+
+**Before training, rate your confidence (1-5):** ___
+**After training, rate your confidence (1-5):** ___
+
+**Which skills did you learn well?** (check all that apply)
+- [ ] Shell navigation
+- [ ] Glyph commands
+- [ ] Process management
+- [ ] Scripting
+- [ ] Customization
+- [ ] Integration
+
+**Which topics need more coverage?**
+- [ ] Shell navigation
+- [ ] Glyph commands
+- [ ] Process management
+- [ ] Scripting
+- [ ] Customization
+- [ ] Integration
+- [ ] Other: _____________
+
+### Content Quality
+
+**Clarity of explanations** (1-5): ___
+**Quality of examples** (1-5): ___
+**Usefulness of exercises** (1-5): ___
+**Pacing** (1-5): ___
+
+### Technical Issues
+
+**Did you encounter technical issues?**
+- [ ] No issues
+- [ ] Minor issues (didn't affect completion)
+- [ ] Major issues (affected completion)
+
+**If yes, please describe:**
+```
+[Describe issues here]
+```
+
+### Suggestions
+
+**What would you add to the training?**
+```
+[Your suggestions]
+```
+
+**What would you change or remove?**
+```
+[Your suggestions]
+```
+
+**What additional topics should be covered?**
+```
+[Your suggestions]
+```
+
+### Future Use
+
+**How do you plan to use the Native Glyph Shell?** (check all that apply)
+- [ ] Daily development work
+- [ ] System administration
+- [ ] Data analysis/visualization
+- [ ] Process automation
+- [ ] Research/experimentation
+- [ ] Just exploring
+- [ ] Other: _____________
+
+**Would you recommend this training?** (0-10): ___
+
+**Would you like advanced training?** (Y/N): ___
+
+### Additional Comments
+
+**Any other feedback?**
+```
+[Your comments]
+```
+
+---
+
+### Optional Information
+
+**Background:** (check all that apply)
+- [ ] Beginner with command-line
+- [ ] Intermediate CLI user
+- [ ] Advanced CLI user
+- [ ] Developer
+- [ ] System administrator
+- [ ] Data scientist
+- [ ] Researcher
+- [ ] Student
+- [ ] Other: _____________
+
+**Time to complete training:** ___ hours
+
+**Learning path taken:**
+- [ ] Fast Track (2 hours)
+- [ ] Comprehensive (4 hours)
+- [ ] Self-paced
+
+---
+
+*Thank you for your feedback!*

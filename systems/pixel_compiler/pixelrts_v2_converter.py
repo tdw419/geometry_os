@@ -100,6 +100,74 @@ def save_sidecar_metadata(output_path: str, metadata: dict, encoder_metadata: di
     print(f"Sidecar metadata saved to: {meta_path}")
 
 
+class PixelRTSv2Converter:
+    """
+    Class-based interface for PixelRTS v2 conversion.
+    Matches the expected interface in universal_transpiler.py.
+    """
+
+    def __init__(
+        self,
+        input_path: str | Path,
+        output_path: str | Path,
+        mode: str = "standard"
+    ):
+        """
+        Initialize converter.
+
+        Args:
+            input_path: Path to input binary
+            output_path: Path to output .rts.png
+            mode: Encoding mode ("standard", "code", "geoasm", "rts")
+        """
+        self.input_path = Path(input_path)
+        self.output_path = Path(output_path)
+        
+        # Map 'rts' to 'standard' for compatibility with older code
+        self.mode = mode
+        encoder_mode = "standard" if mode in ["standard", "rts"] else mode
+        self.encoder = PixelRTSEncoder(mode=encoder_mode)
+
+    def convert(self) -> str:
+        """
+        Convert input file to .rts.png visual container.
+
+        Returns:
+            Path to the generated file as a string
+        """
+        if not self.input_path.exists():
+            raise FileNotFoundError(f"Input not found: {self.input_path}")
+
+        # Determine metadata based on input type
+        content_type = "wasm" if self.input_path.suffix == ".wasm" else "binary"
+        metadata = create_metadata_dict(
+            str(self.input_path),
+            content_type=content_type,
+            name=self.input_path.stem,
+            version="1.0",
+            description=f"Converted via PixelRTSv2Converter (mode={self.mode})"
+        )
+
+        with open(self.input_path, 'rb') as f:
+            data = f.read()
+
+        # Encode data
+        png_bytes = self.encoder.encode(data, metadata=metadata)
+
+        # Save output
+        with open(self.output_path, 'wb') as f:
+            f.write(png_bytes)
+
+        # Save sidecar metadata
+        save_sidecar_metadata(
+            str(self.output_path),
+            metadata,
+            self.encoder.get_metadata() or {}
+        )
+
+        return str(self.output_path)
+
+
 def generate_boot_script(
     png_path: str,
     metadata: dict,

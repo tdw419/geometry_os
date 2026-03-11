@@ -1,0 +1,94 @@
+{
+  "timestamp": 1773234481.9630334,
+  "numba_enabled": true,
+  "results": [
+    {
+      "name": "color_blend_single",
+      "baseline_us": 0.497819,
+      "optimized_us": 0.153667,
+      "speedup": 3.2395960095531247,
+      "target_us": 0.5,
+      "passed": true
+    },
+    {
+      "name": "color_blend_batch_10k",
+      "baseline_us": 124.750371,
+      "optimized_us": 30.086236,
+      "speedup": 4.146426658356333,
+      "target_us": 100.0,
+      "passed": true
+    },
+    {
+      "name": "hilbert_d2xy_single",
+      "baseline_us": 0.718639,
+      "optimized_us": 0.124518,
+      "speedup": 5.771366388795195,
+      "target_us": 0.5,
+      "passed": true
+    },
+    {
+      "name": "hilbert_d2xy_lut",
+      "baseline_us": 0.718639,
+      "optimized_us": 0.190733,
+      "speedup": 3.7677748475617747,
+      "target_us": 0.1,
+      "passed": false
+    },
+    {
+      "name": "premultiply_python",
+      "baseline_us": 10396.945749,
+      "optimized_us": 10396.945749,
+      "speedup": 1.0,
+      "target_us": 5000.0,
+      "passed": false
+    },
+    {
+      "name": "premultiply_numpy",
+      "baseline_us": 10396.945749,
+      "optimized_us": 788.6471210000001,
+      "speedup": 13.183267233406916,
+      "target_us": 1000.0,
+      "passed": true
+    },
+    {
+      "name": "premultiply_numba",
+      "baseline_us": 10396.945749,
+      "optimized_us": 39.561317,
+      "speedup": 262.80585524996553,
+      "target_us": 500.0,
+      "passed": true
+    },
+    {
+      "name": "region_single",
+      "baseline_us": 0.164026,
+      "optimized_us": 0.164026,
+      "speedup": 1.0,
+      "target_us": 0.5,
+      "passed": true
+    },
+    {
+      "name": "region_batch_10k",
+      "baseline_us": 15.525797,
+      "optimized_us": 5.594983,
+      "speedup": 2.774949807711659,
+      "target_us": 50.0,
+      "passed": true
+    },
+    {
+      "name": "rgba_to_bgra_64k",
+      "baseline_us": 54.115080999999996,
+      "optimized_us": 33.014985,
+      "speedup": 1.6391066359715138,
+      "target_us": 200.0,
+      "passed": true
+    },
+    {
+      "name": "pipeline_100_cells",
+      "baseline_us": 138.497096,
+      "optimized_us": 21.631880000000002,
+      "speedup": 6.402453046152252,
+      "target_us": 200.0,
+      "passed": true
+    }
+  ]
+}
