@@ -22,3 +22,11 @@ def detect_errors(handoff_file: Path) -> bool:
     content = handoff_file.read_text().lower()
     error_patterns = ["stuck", "blocked", "error:", "failed", "cannot proceed"]
     return any(p in content for p in error_patterns)
+
+
+def detect_completion(handoff_file: Path) -> bool:
+    """Check for completion signals."""
+    if not handoff_file.exists():
+        return False
+    content = handoff_file.read_text().lower()
+    return "task complete" in content

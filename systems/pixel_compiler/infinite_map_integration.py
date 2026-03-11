@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 # Test Framework
 # ============================================================================
 
-class TestCategory(Enum):
+class IntegrationTestCategory(Enum):
     """Categories of integration tests."""
     BOOT = "boot"
     FILESYSTEM = "filesystem"
@@ -55,7 +55,7 @@ class TestCategory(Enum):
     STRESS = "stress"
 
 
-class TestStatus(Enum):
+class IntegrationTestStatus(Enum):
     """Status of a test."""
     PENDING = "pending"
     RUNNING = "running"
@@ -66,11 +66,11 @@ class TestStatus(Enum):
 
 
 @dataclass
-class TestResult:
+class IntegrationTestResult:
     """Result of an integration test."""
     name: str
-    category: TestCategory
-    status: TestStatus
+    category: IntegrationTestCategory
+    status: IntegrationTestStatus
     duration_ms: float
     message: str = ""
     details: dict[str, Any] = field(default_factory=dict)
@@ -90,24 +90,24 @@ class TestResult:
 
 
 @dataclass
-class TestSuite:
+class IntegrationTestSuite:
     """Collection of test results."""
     name: str
-    results: list[TestResult] = field(default_factory=list)
+    results: list[IntegrationTestResult] = field(default_factory=list)
     start_time: datetime | None = None
     end_time: datetime | None = None
 
     @property
     def passed(self) -> int:
-        return sum(1 for r in self.results if r.status == TestStatus.PASSED)
+        return sum(1 for r in self.results if r.status == IntegrationTestStatus.PASSED)
 
     @property
     def failed(self) -> int:
-        return sum(1 for r in self.results if r.status == TestStatus.FAILED)
+        return sum(1 for r in self.results if r.status == IntegrationTestStatus.FAILED)
 
     @property
     def skipped(self) -> int:
-        return sum(1 for r in self.results if r.status == TestStatus.SKIPPED)
+        return sum(1 for r in self.results if r.status == IntegrationTestStatus.SKIPPED)
 
     @property
     def total(self) -> int:
