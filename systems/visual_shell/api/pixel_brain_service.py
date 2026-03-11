@@ -100,6 +100,21 @@ class PixelBrainService:
         self._initialize()
         self._initialized = True
 
+    def set_visual_bridge(self, visual_bridge: Optional["VisualBridge"]) -> None:
+        """
+        Set or update the visual bridge for atlas glow visualization.
+
+        This allows connecting the visual bridge after service initialization,
+        enabling the Neural City UI to see weight access during inference.
+
+        Args:
+            visual_bridge: VisualBridge instance (from get_multi_vm_streamer())
+        """
+        self.visual_bridge = visual_bridge
+        if self.pipeline:
+            self.pipeline.visual_bridge = visual_bridge
+        logger.info("PixelBrain visual bridge connected")
+
     def set_persona(self, monologue: str) -> None:
         """Set the active persona monologue for future generations."""
         self._active_persona_monologue = monologue
@@ -369,3 +384,26 @@ def reset_pixel_brain_service() -> None:
     """
     global _pixel_brain_service_instance
     _pixel_brain_service_instance = None
+
+
+def connect_visual_bridge_to_brain() -> bool:
+    """
+    Convenience function to connect the visual bridge to PixelBrain.
+
+    This enables atlas glow visualization in the Neural City UI during
+    inference. Call this after both the visual bridge and PixelBrain
+    service are initialized.
+
+    Returns:
+        True if connection successful, False otherwise
+    """
+    try:
+        from systems.visual_shell.api.visual_bridge import get_multi_vm_streamer
+        service = get_pixel_brain_service()
+        streamer = get_multi_vm_streamer()
+        service.set_visual_bridge(streamer)
+        logger.info("Visual bridge connected to PixelBrain for Neural City visualization")
+        return True
+    except Exception as e:
+        logger.warning(f"Failed to connect visual bridge to PixelBrain: {e}")
+        return False
