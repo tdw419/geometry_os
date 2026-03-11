@@ -113,12 +113,11 @@ python3 geometry_os_cli.py demo --agents 10 --rounds 50
 - ✅ Visual shell with real-time feedback
 - ✅ Distributed swarm intelligence
 - ✅ Cognitive systems with intent prediction
-- ✅ 11,000+ tests (with some collection errors)
+- ✅ 12,181 tests collecting cleanly (0 errors)
 - ✅ Solid Python infrastructure
 
 **What Needs Work:**
-- 🚧 Rust compositor is framework only
-- 🚧 Test collection errors need fixing
+- 🚧 Rust compositor MVP (window opens, needs rendering loop)
 - 🚧 Coverage below target
 
 ---
