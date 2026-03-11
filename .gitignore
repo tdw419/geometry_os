@@ -88,8 +88,8 @@ test_results_*.json
 # Deployment state
 .deployments/
 
-# Generated clones
-.geometry/clones/
+# Generated clones and geometry state
+.geometry/
 
 # Build stamps
 .build-python-stamp
@@ -113,3 +113,22 @@ package-lock.json
 
 # Visual VM (submodule with local changes)
 visual-vm
+
+# Demo outputs
+demo_large/
+demo_output/
+demo_output_large/
+demo_output_massive/
+demo_run/
+
+# Profiling results
+profiling_results/
+
+# Generated benchmarks
+benchmarks/
+
+# Genesis pilot report
+genesis_pilot_report.json
+
+# Test cartridge metadata
+test_cartridge.meta.json

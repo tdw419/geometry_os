@@ -95,9 +95,6 @@ GEOMETRIC_GOAL_TEMPLATES = [
         "rationale_template": "KV-cache texture access pattern causes cache misses. Implement rotary positional embedding for better locality."
     }
 ]
-        "rationale_template": "Critical coherence failure (Fitness: {fitness:.2f}). Emergency weight reset or sector mutation required."
-    }
-]
 
 
 @dataclass(order=False)

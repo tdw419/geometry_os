@@ -342,7 +342,19 @@ fn hilbert_d2xy(d: u32, n: u32) -> vec2<u32> {
     return block_output[weight_in_block];
                 """
                 final_code = final_code.replace("// [LOAD_WEIGHT_PLACEHOLDER]", q4_load_logic)
+            elif self.encoding == "float16":
+                # Float16: rg16float texture - 2 channels, each pixel = 2 weights
+                tex_load_logic = """
+    let pixel_idx = float_idx / 2u;
+    let channel = float_idx % 2u;
+    let coord = hilbert_d2xy(pixel_idx, ATLAS_SIZE);
+    let pixel = textureLoad(brain_atlas, coord, 0);
+    if (channel == 0u) { return pixel.r; }
+    return pixel.g;
+                """
+                final_code = final_code.replace("// [LOAD_WEIGHT_PLACEHOLDER]", tex_load_logic)
             else:
+                # uint8-normalized or other: rgba texture - 4 channels
                 tex_load_logic = """
     let pixel_idx = float_idx / 4u;
     let channel = float_idx % 4u;
