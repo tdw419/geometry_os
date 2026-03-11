@@ -231,6 +231,40 @@ On shutdown:
 - [ ] Web dashboard for monitoring
 - [ ] Slack/Discord notifications on rotation
 
+## Monitoring
+
+### Quick Check
+```bash
+./session_rotator/monitor.sh
+```
+
+Output:
+```
+=== Session Rotator Monitor ===
+Status: RUNNING
+Sessions rotated: 3
+
+=== Latest session output (last 20 lines) ===
+[session logs...]
+```
+
+### Follow Mode (Live)
+```bash
+./session_rotator/monitor.sh -f
+```
+
+### Manual Monitoring
+```bash
+# Watch state file
+watch -n 2 'cat .session/state.json | python3 -m json.tool'
+
+# Tail all logs
+tail -f .session/logs/*.log
+
+# Count sessions
+ls .session/logs/*.log | wc -l
+```
+
 ## Testing
 
 ```bash

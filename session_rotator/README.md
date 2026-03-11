@@ -19,11 +19,22 @@ Manages Claude Code CLI sessions with automatic rotation when context limits app
 | `SEARCH_QUERY` | (empty) | Optional history search term |
 | `HANDOFF_FILE` | .session/handoff.md | Path to handoff file |
 
+## Monitoring
+
+```bash
+# Quick status check
+./monitor.sh
+
+# Follow logs in real-time
+./monitor.sh -f
+```
+
 ## Files
 
 - `orchestrator.sh` - Main control loop
 - `detect_event.py` - Detect rotation triggers
 - `build_prompt.py` - Build continuation prompt
+- `monitor.sh` - Real-time monitoring
 
 ## Handoff Format
 
