@@ -35,3 +35,11 @@ def test_build_prompt_cli_no_handoff(tmp_path):
         capture_output=True, text=True, cwd="."
     )
     assert result.stdout.strip() == ""
+
+from build_prompt import search_history
+
+def test_search_history_empty(tmp_path, monkeypatch):
+    """Returns empty list when no history matches."""
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    result = search_history("nonexistent query")
+    assert result == []
