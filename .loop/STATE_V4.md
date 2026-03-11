@@ -309,3 +309,11 @@
 - [!] 204. **Enhance Test Coverage**: Expand test coverage for critical components of the Native Glyph Shell to ensure comprehensive testing and catch regressions early. - **Verification**: Run tests and review coverage reports.
 - [!] 205. **Improve Error Handling**: Refactor error handling in the Native Glyph Shell to provide more informative error messages and improve user experience during failures. - **Verification**: Test error handling under various scenarios and review feedback.
 - [!] 206. **Performance Profiling**: Use profiling tools to identify performance bottlenecks in the Native Glyph Shell and optimize them for better responsiveness and efficiency. - **Verification**: Compare performance before and after optimizations.
+
+
+- [ ] 207. **Heuristic Task**: Commit Untracked Files: 4 untracked files in project root. Review and commit relevant files, add others to .gitignore. - **Verification**: Run relevant tests
+- [ ] 208. **Heuristic Task**: Batch Commit Modified Files: 10 modified files need commits. Group by feature and commit with descriptive messages. - **Verification**: Run relevant tests
+- [ ] 209. **Heuristic Task**: Fix Test Collection Errors: 7 test files have collection errors. Add missing imports or skip conditions. - **Verification**: Run relevant tests
+- [ ] 210. **Heuristic Task**: Address TODO Comment: Found in systems/visual_shell/electron/node_modules/@electron/rebuild/node_modules/node-gyp/gyp/pylib/packaging/metadata.py. Review and implement or document. - **Verification**: Run relevant tests
+- [ ] 211. **Heuristic Task**: Improve Coverage: TOTAL has <50% coverage. Add tests for uncovered branches. - **Verification**: Run relevant tests
+- [ ] 212. **cognitive_restoration**: Critical brain fitness collapse (Fitness: 0.50). Emergency weight sector restoration required. - **Verification**: Check fitness/performance metrics
