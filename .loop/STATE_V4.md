@@ -296,5 +296,5 @@
 - [!] 192. **Optimize Performance**: Analyze and optimize the performance of key modules in the Native Glyph Shell. - **Verification**: Compare performance metrics before and after optimization.
 - [!] 193. **Create Backup System**: Establish a reliable backup system for all critical data and code repositories. - **Verification**: Test the backup process to ensure it functions correctly.
 - [!] 194. **User Training Program**: Develop and implement a user training program to help new users quickly understand and utilize the Native Glyph Shell. - **Verification**: Evaluate the effectiveness of the training program through feedback surveys.
-- [→] 195. **Code Review Cycle**: Implement a regular code review cycle to maintain code quality and prevent entropy. - **Verification**: Schedule initial reviews and track adherence to the process.
-- [ ] 196. **Community Engagement**: Engage with the development community to gather ideas, feedback, and contributions for future enhancements. - **Verification**: Monitor community channels and summarize key takeaways.
+- [!] 195. **Code Review Cycle**: Implement a regular code review cycle to maintain code quality and prevent entropy. - **Verification**: Schedule initial reviews and track adherence to the process.
+- [!] 196. **Community Engagement**: Engage with the development community to gather ideas, feedback, and contributions for future enhancements. - **Verification**: Monitor community channels and summarize key takeaways.
