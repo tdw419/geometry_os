@@ -148,6 +148,23 @@ except ImportError:
     NarrativeBroadcaster = None
     BroadcastSegment = None
 
+# ZAI Integration - AI-powered evolution
+try:
+    from systems.evolution_daemon.zai_bridge import ZAIIntegration
+    HAS_ZAI = True
+except ImportError:
+    HAS_ZAI = False
+    ZAIIntegration = None
+
+# Append-only storage components (optional)
+try:
+    from systems.evolution_daemon.append_only import TimelineManager, TilePlacementEngine
+    HAS_APPEND_ONLY = True
+except ImportError:
+    HAS_APPEND_ONLY = False
+    TimelineManager = None
+    TilePlacementEngine = None
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
