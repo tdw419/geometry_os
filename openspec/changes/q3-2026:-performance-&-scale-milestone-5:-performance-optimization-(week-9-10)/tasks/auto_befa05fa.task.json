@@ -1,0 +1,10 @@
+{
+  "task_id": "task-2",
+  "type": "implement",
+  "source": "",
+  "intent": "Compressed files load 2× faster",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}

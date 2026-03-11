@@ -1,0 +1,483 @@
+name: Benchmarks
+
+on:
+  # Trigger on push to main branches
+  push:
+    branches:
+      - main
+      - master
+      - develop
+    paths:
+      - 'geometry_os/**'
+      - 'benchmarks/**'
+      - '.github/workflows/benchmarks.yml'
+
+  # Trigger on pull requests
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+    paths:
+      - 'geometry_os/**'
+      - 'benchmarks/**'
+      - '.github/workflows/benchmarks.yml'
+
+  # Daily scheduled benchmarks at 2:00 AM UTC
+  schedule:
+    - cron: '0 2 * * *'
+
+  # Allow manual workflow dispatch
+  workflow_dispatch:
+    inputs:
+      benchmark_suite:
+        description: 'Benchmark suite to run'
+        required: false
+        type: choice
+        options:
+          - all
+          - pattern
+          - neural
+          - infinite-map
+          - wasm
+        default: 'all'
+      iterations:
+        description: 'Number of benchmark iterations'
+        required: false
+        type: number
+        default: 10
+      fail_on_regression:
+        description: 'Fail build on performance regression'
+        required: false
+        type: boolean
+        default: true
+      regression_threshold:
+        description: 'Regression threshold percentage'
+        required: false
+        type: number
+        default: 15
+
+env:
+  PYTHON_VERSION: '3.11'
+  BENCHMARK_RESULTS_DIR: 'benchmark_results'
+
+jobs:
+  # ============================================================================
+  # Setup and Preparation
+  # ============================================================================
+  setup:
+    name: Setup Benchmark Environment
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      should-run: ${{ steps.check-changes.outputs.should-run }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for benchmark-relevant changes
+        id: check-changes
+        run: |
+          # Always run on schedule or manual dispatch
+          if [[ "${{ github.event_name }}" == "schedule" ]] || \
+             [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "should-run=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Check for changes in relevant paths
+          changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} 2>/dev/null || echo "")
+
+          if echo "$changed_files" | grep -qE '(geometry_os/|benchmarks/|\.github/workflows/benchmarks)'; then
+            echo "should-run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should-run=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Python matrix
+        id: set-matrix
+        run: |
+          # Define Python versions to test
+          matrix='{"python-version": ["3.10", "3.11", "3.12"]}'
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
+  # ============================================================================
+  # Run Benchmarks
+  # ============================================================================
+  run-benchmarks:
+    name: Run Benchmarks (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    needs: setup
+    if: needs.setup.outputs.should-run == 'true'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Cache benchmark dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.cache/benchmark
+          key: ${{ runner.os }}-py${{ matrix.python-version }}-bench-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-py${{ matrix.python-version }}-bench-
+            ${{ runner.os }}-py${{ matrix.python-version }}-
+
+      - name: Install benchmark dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            pytest \
+            pytest-benchmark \
+            pytest-xdist \
+            numpy \
+            pillow \
+            psutil \
+            memory-profiler \
+            requests
+
+          # Install project dependencies if available
+          if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+          fi
+
+      - name: Download baseline results
+        id: download-baseline
+        continue-on-error: true
+        run: |
+          mkdir -p ${{ env.BENCHMARK_RESULTS_DIR }}
+
+          # Try to download baseline from artifact
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            # Download baseline from main branch artifact
+            gh run list \
+              --branch main \
+              --workflow benchmarks.yml \
+              --limit 1 \
+              --json databaseId \
+              -q '.[0].databaseId' > /tmp/run_id.txt || true
+
+            if [ -s /tmp/run_id.txt ]; then
+              run_id=$(cat /tmp/run_id.txt)
+              gh run download $run_id \
+                --dir ${{ env.BENCHMARK_RESULTS_DIR }}/baseline \
+                --pattern "benchmark-results-*" || true
+            fi
+          fi
+
+          # Also check for baseline file in repo
+          if [ -f "benchmarks/baseline_results.json" ]; then
+            cp benchmarks/baseline_results.json ${{ env.BENCHMARK_RESULTS_DIR }}/baseline.json
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run pattern detection benchmarks
+        if: |
+          github.event.inputs.benchmark_suite == 'all' ||
+          github.event.inputs.benchmark_suite == 'pattern' ||
+          github.event.inputs.benchmark_suite == ''
+        run: |
+          python scripts/run_ci_benchmarks.py \
+            --suite pattern \
+            --iterations ${{ github.event.inputs.iterations || 10 }} \
+            --output ${{ env.BENCHMARK_RESULTS_DIR }}/pattern_benchmark.json \
+            --format json
+
+      - name: Run neural pipeline benchmarks
+        if: |
+          github.event.inputs.benchmark_suite == 'all' ||
+          github.event.inputs.benchmark_suite == 'neural' ||
+          github.event.inputs.benchmark_suite == ''
+        run: |
+          python scripts/run_ci_benchmarks.py \
+            --suite neural \
+            --iterations ${{ github.event.inputs.iterations || 10 }} \
+            --output ${{ env.BENCHMARK_RESULTS_DIR }}/neural_benchmark.json \
+            --format json
+        continue-on-error: true
+
+      - name: Run infinite map benchmarks
+        if: |
+          github.event.inputs.benchmark_suite == 'all' ||
+          github.event.inputs.benchmark_suite == 'infinite-map' ||
+          github.event.inputs.benchmark_suite == ''
+        run: |
+          python scripts/run_ci_benchmarks.py \
+            --suite infinite-map \
+            --iterations ${{ github.event.inputs.iterations || 10 }} \
+            --output ${{ env.BENCHMARK_RESULTS_DIR }}/infinite_map_benchmark.json \
+            --format json
+        continue-on-error: true
+
+      - name: Run WASM benchmarks
+        if: |
+          github.event.inputs.benchmark_suite == 'all' ||
+          github.event.inputs.benchmark_suite == 'wasm' ||
+          github.event.inputs.benchmark_suite == ''
+        run: |
+          python scripts/run_ci_benchmarks.py \
+            --suite wasm \
+            --iterations ${{ github.event.inputs.iterations || 10 }} \
+            --output ${{ env.BENCHMARK_RESULTS_DIR }}/wasm_benchmark.json \
+            --format json
+        continue-on-error: true
+
+      - name: Aggregate benchmark results
+        id: aggregate
+        run: |
+          python scripts/run_ci_benchmarks.py \
+            --aggregate \
+            --input-dir ${{ env.BENCHMARK_RESULTS_DIR }} \
+            --output ${{ env.BENCHMARK_RESULTS_DIR }}/aggregated_results.json
+
+          # Create summary for job output
+          echo "results_file=${{ env.BENCHMARK_RESULTS_DIR }}/aggregated_results.json" >> $GITHUB_OUTPUT
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ matrix.python-version }}-${{ github.run_number }}
+          path: |
+            ${{ env.BENCHMARK_RESULTS_DIR }}/
+          retention-days: 90
+
+  # ============================================================================
+  # Analyze Results and Check for Regressions
+  # ============================================================================
+  analyze-results:
+    name: Analyze Benchmark Results
+    runs-on: ubuntu-latest
+    needs: run-benchmarks
+    if: always()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install analysis dependencies
+        run: |
+          pip install requests pyyaml
+
+      - name: Download all benchmark results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: benchmark-results-*
+          path: ./all_results
+          merge-multiple: false
+
+      - name: Analyze results and detect regressions
+        id: analyze
+        run: |
+          python scripts/run_ci_benchmarks.py \
+            --analyze \
+            --results-dir ./all_results \
+            --output ./analysis_report.json \
+            --regression-threshold ${{ github.event.inputs.regression_threshold || 15 }} \
+            --fail-on-regression ${{ github.event.inputs.fail_on_regression || true }}
+
+          # Extract analysis results
+          if [ -f "./analysis_report.json" ]; then
+            regressions=$(python -c "import json; d=json.load(open('./analysis_report.json')); print(d.get('regression_count', 0))")
+            echo "regressions=$regressions" >> $GITHUB_OUTPUT
+            echo "has_regressions=$( [ \"$regressions\" -gt 0 ] && echo 'true' || echo 'false' )" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate GitHub Summary
+        run: |
+          python scripts/run_ci_benchmarks.py \
+            --generate-summary \
+            --results ./analysis_report.json \
+            --output $GITHUB_STEP_SUMMARY
+
+      - name: Upload analysis report
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-analysis-${{ github.run_number }}
+          path: |
+            ./analysis_report.json
+          retention-days: 90
+
+  # ============================================================================
+  # Report Results on PR
+  # ============================================================================
+  report:
+    name: Report Benchmark Results
+    runs-on: ubuntu-latest
+    needs: [run-benchmarks, analyze-results]
+    if: |
+      always() &&
+      github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install requests pyyaml
+
+      - name: Download benchmark results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: benchmark-results-*
+          path: ./results
+
+      - name: Download analysis report
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-analysis-${{ github.run_number }}
+          path: ./analysis
+
+      - name: Generate PR comment
+        id: comment
+        run: |
+          python scripts/run_ci_benchmarks.py \
+            --generate-pr-comment \
+            --results ./analysis/analysis_report.json \
+            --output ./pr_comment.md \
+            --build-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          # Read comment content for GitHub script
+          if [ -f "./pr_comment.md" ]; then
+            # Escape for GitHub Actions
+            echo "comment_file=./pr_comment.md" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Post PR comment
+        uses: actions/github-script@v7
+        if: steps.comment.outputs.comment_file != ''
+        with:
+          script: |
+            const fs = require('fs');
+            const commentFile = '${{ steps.comment.outputs.comment_file }}';
+
+            if (fs.existsSync(commentFile)) {
+              const comment = fs.readFileSync(commentFile, 'utf8');
+
+              // Find existing benchmark comment
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+              });
+
+              const botComment = comments.find(c =>
+                c.user.type === 'Bot' &&
+                c.body.includes('## Performance Benchmark Results')
+              );
+
+              if (botComment) {
+                // Update existing comment
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: comment
+                });
+              } else {
+                // Create new comment
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: comment
+                });
+              }
+            }
+
+  # ============================================================================
+  # Store Baseline Results (on main branch)
+  # ============================================================================
+  store-baseline:
+    name: Store Baseline Results
+    runs-on: ubuntu-latest
+    needs: [run-benchmarks, analyze-results]
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
+      needs.analyze-results.outputs.has_regressions != 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download benchmark results
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-results-3.11-${{ github.run_number }}
+          path: ./results
+
+      - name: Update baseline file
+        run: |
+          mkdir -p benchmarks
+
+          # Copy latest results as baseline
+          if [ -f "./results/aggregated_results.json" ]; then
+            cp ./results/aggregated_results.json benchmarks/baseline_results.json
+            echo "Updated baseline_results.json"
+          fi
+
+      - name: Commit baseline
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add benchmarks/baseline_results.json || true
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update benchmark baseline [skip ci]"
+            git push
+          fi
+
+  # ============================================================================
+  # Fail Build on Regression (optional)
+  # ============================================================================
+  check-regression:
+    name: Check for Regressions
+    runs-on: ubuntu-latest
+    needs: analyze-results
+    if: |
+      github.event.inputs.fail_on_regression == 'true' ||
+      github.event.inputs.fail_on_regression == ''
+
+    steps:
+      - name: Check regression status
+        run: |
+          if [ "${{ needs.analyze-results.outputs.has_regressions }}" == "true" ]; then
+            echo "::error::Performance regression detected! See analysis report for details."
+            exit 1
+          else
+            echo "No performance regressions detected."
+          fi

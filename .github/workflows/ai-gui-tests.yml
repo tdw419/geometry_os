@@ -1,0 +1,77 @@
+name: AI GUI Control Tests
+
+on:
+  # Trigger on push to main branches
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'geometry_os/systems/visual_shell/web/**'
+      - 'run_ai_gui_tests.py'
+      - '.github/workflows/ai-gui-tests.yml'
+
+  # Trigger on pull requests
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - 'geometry_os/systems/visual_shell/web/**'
+      - 'run_ai_gui_tests.py'
+      - '.github/workflows/ai-gui-tests.yml'
+
+  # Allow manual workflow dispatch
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: 'Test suite to run'
+        required: true
+        type: choice
+        options:
+          - ai-gui
+        default: 'ai-gui'
+
+jobs:
+  ai-gui-control-tests:
+    name: AI GUI Control Integration Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache .venv
+        uses: actions/cache@v4
+        id: venv-cache
+        with:
+          path: .venv
+          key: ${{ runner.os }}-venv-${{ hashFiles('**/run_ai_gui_tests.py') }}
+
+      - name: Install dependencies
+        if: steps.venv-cache.outputs.cache-hit != 'true'
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/pip install playwright
+          .venv/bin/playwright install --with-deps
+
+      - name: Run AI GUI control integration tests
+        id: ai_gui_tests
+        run: |
+          .venv/bin/python run_ai_gui_tests.py
+        continue-on-error: false
+
+      - name: Upload test results (screenshot on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-gui-test-failure-${{ github.run_number }}
+          path: |
+            debug_*.png
+          retention-days: 30

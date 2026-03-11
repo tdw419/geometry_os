@@ -1,0 +1,4 @@
+- [ ] Check for `rts_rs` binary at `systems/rts_fuse/rts_rs/target/release/rts_rs`
+- [ ] Add `check_rts_driver_status()` method to `EvolutionDaemonV8`
+- [ ] Log status of High-Performance Driver availability
+- [ ] (Optional) Add `mount_brain()` intent handler

@@ -1,0 +1,100 @@
+[2026-03-08T04:27:59.931Z] [ERROR] WebGPU context lost in OpcodeDiscovery {"type":"gpu_context_loss","timestamp":"2026-03-08T04:27:59.931Z","reason":"destroyed","message":"Context was explicitly destroyed","lossCount":1,"component":"OpcodeDiscovery"}
+[2026-03-08T04:27:59.931Z] [ERROR] WebGPU context lost in SyscallManager {"type":"gpu_context_loss","timestamp":"2026-03-08T04:27:59.931Z","reason":"destroyed","message":"Context was explicitly destroyed","lossCount":1,"component":"SyscallManager"}
+[2026-03-08T04:27:59.931Z] [ERROR] Failed to log context loss to evolution log {"error":"Cannot read properties of null (reading 'thresholdAdjustment')"}
+Stack trace:
+    at Logger.error (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/Logger.js:83:92)
+    at SyscallManager._logContextLossToEvolution (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:1093:20)
+    at SyscallManager.handleContextLoss (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:1065:9)
+[2026-03-08T04:27:59.931Z] [ERROR] Context was explicitly destroyed, cannot recover
+[2026-03-08T04:27:59.931Z] [ERROR] Unrecoverable context loss, halting execution
+[2026-03-08T04:27:59.931Z] [ERROR] Failed to log system halt to evolution log {"error":"Cannot read properties of null (reading 'thresholdAdjustment')"}
+Stack trace:
+    at Logger.error (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/Logger.js:83:92)
+    at SyscallManager._handleUnrecoverableContextLoss (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:1118:20)
+    at SyscallManager.handleContextLoss (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:1069:13)
+[2026-03-08T04:27:59.931Z] [INFO] SystemLifecycle: Starting graceful shutdown...
+[2026-03-08T04:28:00.898Z] [INFO] BenchmarkRegressionDetector disposed
+[2026-03-08T04:28:00.898Z] [INFO] PatchManager disposed
+[2026-03-08T04:28:00.899Z] [INFO] Feature flag ENABLE_LLMOPTIMIZATION registered at address 0x7000
+[2026-03-08T04:28:00.899Z] [INFO] Feature flag ENABLE_AUTO_OPTIMIZATION registered at address 0x7001
+[2026-03-08T04:28:00.899Z] [INFO] Feature flag ENABLE_OPCODE_EXPANSION registered at address 0x7002
+[2026-03-08T04:28:00.899Z] [INFO] Feature flag ENABLE_CODE_QUALITY_IMPROVEMENT registered at address 0x7003
+[2026-03-08T04:28:00.899Z] [INFO] Feature flag ENABLE_MUTATION_TESTING registered at address 0x7004
+[2026-03-08T04:28:00.899Z] [ERROR] LLM API returned invalid response format (no retry) {"error":"Invalid response format from LLM API: response must contain a \"text\" field"}
+Stack trace:
+    at Logger.error (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/Logger.js:83:92)
+    at SyscallManager.callGeminiAPI (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:3768:28)
+    at SyscallManager.handleLLMPrompt (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:2166:28)
+    at /home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.test.js:282:13
+    at file:///home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/node_modules/@vitest/runner/dist/index.js:915:20
+[2026-03-08T04:28:00.900Z] [ERROR] Failed to handle LLM prompt {"operation":"llm_prompt","timestamp":"2026-03-08T04:28:00.900Z","error":"Invalid response format from LLM API: response must contain a \"text\" field","stack":"Error: Invalid response format from LLM API: response must contain a \"text\" field\n    at SyscallManager.callGeminiAPI (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:3759:27)\n    at SyscallManager.handleLLMPrompt (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:2166:28)\n    at /home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.test.js:282:13\n    at file:///home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/node_modules/@vitest/runner/dist/index.js:915:20"}
+Stack trace:
+    at Logger.error (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/Logger.js:83:92)
+    at SyscallManager.handleLLMPrompt (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:2201:20)
+    at /home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.test.js:282:13
+    at file:///home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/node_modules/@vitest/runner/dist/index.js:915:20
+[2026-03-08T04:28:00.900Z] [INFO] BenchmarkRegressionDetector disposed
+[2026-03-08T04:28:00.900Z] [INFO] PatchManager disposed
+[2026-03-08T04:28:00.901Z] [INFO] Feature flag ENABLE_LLMOPTIMIZATION registered at address 0x7000
+[2026-03-08T04:28:00.901Z] [INFO] Feature flag ENABLE_AUTO_OPTIMIZATION registered at address 0x7001
+[2026-03-08T04:28:00.901Z] [INFO] Feature flag ENABLE_OPCODE_EXPANSION registered at address 0x7002
+[2026-03-08T04:28:00.901Z] [INFO] Feature flag ENABLE_CODE_QUALITY_IMPROVEMENT registered at address 0x7003
+[2026-03-08T04:28:00.901Z] [INFO] Feature flag ENABLE_MUTATION_TESTING registered at address 0x7004
+[2026-03-08T04:28:00.902Z] [INFO] BenchmarkRegressionDetector disposed
+[2026-03-08T04:28:00.902Z] [INFO] PatchManager disposed
+[2026-03-08T04:28:00.902Z] [INFO] Feature flag ENABLE_LLMOPTIMIZATION registered at address 0x7000
+[2026-03-08T04:28:00.902Z] [INFO] Feature flag ENABLE_AUTO_OPTIMIZATION registered at address 0x7001
+[2026-03-08T04:28:00.902Z] [INFO] Feature flag ENABLE_OPCODE_EXPANSION registered at address 0x7002
+[2026-03-08T04:28:00.902Z] [INFO] Feature flag ENABLE_CODE_QUALITY_IMPROVEMENT registered at address 0x7003
+[2026-03-08T04:28:00.902Z] [INFO] Feature flag ENABLE_MUTATION_TESTING registered at address 0x7004
+[2026-03-08T04:28:00.903Z] [INFO] Consulting SelfImprovementDecisionEngine for LLM patch decision...
+[2026-03-08T04:28:00.903Z] [INFO] SelfImprovementDecisionEngine: Starting decision cycle 0
+[2026-03-08T04:28:00.903Z] [WARN] Insufficient confidence (0.26) for decision, skipping
+[2026-03-08T04:28:00.904Z] [INFO] Decision rationale logged to evolution log {"strategy":"N/A","score":"N/A","confidence":"0.261"}
+[2026-03-08T04:28:00.904Z] [INFO] Decision deferred: low_confidence
+[2026-03-08T04:28:00.904Z] [INFO] BenchmarkRegressionDetector disposed
+[2026-03-08T04:28:00.904Z] [INFO] PatchManager disposed
+[2026-03-08T04:28:00.904Z] [INFO] Feature flag ENABLE_LLMOPTIMIZATION registered at address 0x7000
+[2026-03-08T04:28:00.904Z] [INFO] Feature flag ENABLE_AUTO_OPTIMIZATION registered at address 0x7001
+[2026-03-08T04:28:00.904Z] [INFO] Feature flag ENABLE_OPCODE_EXPANSION registered at address 0x7002
+[2026-03-08T04:28:00.904Z] [INFO] Feature flag ENABLE_CODE_QUALITY_IMPROVEMENT registered at address 0x7003
+[2026-03-08T04:28:00.904Z] [INFO] Feature flag ENABLE_MUTATION_TESTING registered at address 0x7004
+[2026-03-08T04:28:00.905Z] [WARN] LLM API attempt 1/3 failed {"error":"LLM unavailable"}
+[2026-03-08T04:28:02.044Z] [WARN] LLM API attempt 2/3 failed {"error":"LLM unavailable"}
+[2026-03-08T04:28:04.161Z] [WARN] LLM API attempt 3/3 failed {"error":"LLM unavailable"}
+[2026-03-08T04:28:04.161Z] [ERROR] LLM API failed after all retries, falling back to auto-optimization {"error":{}}
+Stack trace:
+Error: LLM unavailable
+    at /home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.test.js:335:41
+    at file:///home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/node_modules/@vitest/runner/dist/index.js:1653:12)
+[2026-03-08T04:28:04.161Z] [INFO] LLM unavailable, using auto-optimization fallback
+[2026-03-08T04:28:04.161Z] [INFO] BenchmarkRegressionDetector disposed
+[2026-03-08T04:28:04.161Z] [INFO] PatchManager disposed
+[2026-03-08T04:28:04.162Z] [INFO] Feature flag ENABLE_LLMOPTIMIZATION registered at address 0x7000
+[2026-03-08T04:28:04.162Z] [INFO] Feature flag ENABLE_AUTO_OPTIMIZATION registered at address 0x7001
+[2026-03-08T04:28:04.162Z] [INFO] Feature flag ENABLE_OPCODE_EXPANSION registered at address 0x7002
+[2026-03-08T04:28:04.162Z] [INFO] Feature flag ENABLE_CODE_QUALITY_IMPROVEMENT registered at address 0x7003
+[2026-03-08T04:28:04.162Z] [INFO] Feature flag ENABLE_MUTATION_TESTING registered at address 0x7004
+[2026-03-08T04:28:04.263Z] [WARN] LLM API attempt 1/3 failed {"error":"Timeout"}
+[2026-03-08T04:28:05.507Z] [WARN] LLM API attempt 2/3 failed {"error":"Timeout"}
+[2026-03-08T04:28:07.709Z] [WARN] LLM API attempt 3/3 failed {"error":"Timeout"}
+[2026-03-08T04:28:07.710Z] [ERROR] LLM API failed after all retries, falling back to auto-optimization {"error":{}}
+Stack trace:
+Error: Timeout
+    at Timeout._onTimeout (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.test.js:353:41)
+    at listOnTimeout (node:internal/timers:605:17)
+    at processTimers (node:internal/timers:541:7)
+[2026-03-08T04:28:07.710Z] [INFO] LLM unavailable, using auto-optimization fallback
+[2026-03-08T04:28:07.710Z] [INFO] BenchmarkRegressionDetector disposed
+[2026-03-08T04:28:07.710Z] [INFO] PatchManager disposed
+[2026-03-08T04:28:07.711Z] [INFO] Feature flag ENABLE_LLMOPTIMIZATION registered at address 0x7000
+[2026-03-08T04:28:07.711Z] [INFO] Feature flag ENABLE_AUTO_OPTIMIZATION registered at address 0x7001
+[2026-03-08T04:28:07.711Z] [INFO] Feature flag ENABLE_OPCODE_EXPANSION registered at address 0x7002

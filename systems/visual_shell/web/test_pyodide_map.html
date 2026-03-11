@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry OS - Pyodide Map Integration</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background: #0a0a1a;
+            color: #00ccff;
+            font-family: 'Segoe UI', monospace;
+            padding: 20px;
+            margin: 0;
+        }
+        h1 { font-size: 1.4rem; margin-bottom: 10px; }
+        .layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            height: calc(100vh - 100px);
+        }
+        .sidebar {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        textarea {
+            background: #1a1a2e;
+            color: #00ff88;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+            resize: none;
+            flex: 1;
+        }
+        button {
+            background: linear-gradient(180deg, #1a3a4a 0%, #0a2a3a 100%);
+            color: #00ccff;
+            border: 1px solid #00ccff;
+            padding: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background: linear-gradient(180deg, #2a4a5a 0%, #1a3a4a 100%); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        #output {
+            background: #0a1a2a;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        #map-canvas {
+            background: #1a1a2e;
+            border-radius: 8px;
+        }
+        .status { font-size: 12px; color: #888; }
+        .status.ready { color: #00ff88; }
+        .status.error { color: #ff6666; }
+    </style>
+</head>
+<body>
+    <h1> Pyodide + PixiJS Map Integration</h1>
+    <div class="status" id="status">Loading Pyodide runtime...</div>
+
+    <div class="layout">
+        <div class="sidebar">
+            <label>Python Code:</label>
+            <textarea id="code" spellcheck="false"># Run Python on the map!
+import json
+
+# Generate some data for the map
+result = {
+    'type': 'heatmap',
+    'values': [[i * j for j in range(10)] for i in range(10)],
+    'label': 'Multiplication Table'
+}
+
+# Print for stdout capture
+print(f"Generated {len(result['values'])}x{len(result['values'][0])} matrix")
+
+result
+</textarea>
+            <button id="runBtn" disabled onclick="runPython()"> Run Python</button>
+            <button id="placeBtn" disabled onclick="runAndPlace()"> Run & Place Tile</button>
+            <div id="output"></div>
+        </div>
+        <canvas id="map-canvas"></canvas>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+    <script src="lib/pixi.min.js"></script>
+
+    <script type="module">
+        import { PyodideExecutor } from './pyodide_executor.js';
+        import { PyodideTileBridge } from './pyodide_tile_bridge.js';
+
+        let executor = null;
+        let bridge = null;
+        let app = null;
+        let map = null;
+
+        const statusEl = document.getElementById('status');
+        const outputEl = document.getElementById('output');
+        const runBtn = document.getElementById('runBtn');
+        const placeBtn = document.getElementById('placeBtn');
+        const codeEl = document.getElementById('code');
+
+        async function init() {
+            try {
+                // Initialize PixiJS
+                app = new PIXI.Application();
+                await app.init({
+                    canvas: document.getElementById('map-canvas'),
+                    width: 800,
+                    height: 600,
+                    backgroundColor: 0x1a1a2e
+                });
+
+                // Create mock map for demo
+                map = {
+                    config: { gridSize: 100 },
+                    writeTile: async (x, y, type, meta) => {
+                        console.log(` Tile placed at (${x}, ${y}):`, meta);
+                        // Draw a visual indicator
+                        const graphics = new PIXI.Graphics();
+                        graphics.rect(x * 100, y * 100, 98, 98);
+                        graphics.fill({ color: 0x00ccff, alpha: 0.3 });
+                        graphics.stroke({ color: 0x00ccff, width: 2 });
+                        app.stage.addChild(graphics);
+                        return true;
+                    }
+                };
+
+                // Initialize Pyodide
+                executor = new PyodideExecutor();
+                await executor.load();
+
+                // Create bridge
+                bridge = new PyodideTileBridge(map, executor);
+
+                statusEl.textContent = ` Ready - Python ${executor.getVersion().split(' ')[0]}`;
+                statusEl.className = 'status ready';
+                runBtn.disabled = false;
+                placeBtn.disabled = false;
+
+            } catch (error) {
+                statusEl.textContent = ` Error: ${error.message}`;
+                statusEl.className = 'status error';
+                console.error(error);
+            }
+        }
+
+        window.runPython = async function() {
+            const code = codeEl.value;
+            outputEl.textContent = 'Running...';
+
+            try {
+                const result = await executor.runPythonSafe(code);
+                outputEl.textContent = `Result: ${JSON.stringify(result.result, null, 2)}\n\nStdout:\n${result.stdout}\n\nStderr:\n${result.stderr}`;
+            } catch (error) {
+                outputEl.textContent = `Error: ${error.message}`;
+            }
+        };
+
+        window.runAndPlace = async function() {
+            const code = codeEl.value;
+            outputEl.textContent = 'Running and placing tile...';
+
+            try {
+                // Place at center of visible area
+                const result = await bridge.executeAndPlace(code, { x: 400, y: 300 });
+                outputEl.textContent = `Success: ${result.success}\nTile placed: ${result.tilePlaced}\nPosition: ${JSON.stringify(result.position)}\n\nStdout:\n${result.stdout}`;
+            } catch (error) {
+                outputEl.textContent = `Error: ${error.message}`;
+            }
+        };
+
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+# Geometry OS Local Configuration
+# ================================
+# Copy this file to config.local.yaml and modify as needed.
+# This file overrides values in config.yaml and is NOT committed to git.
+
+# Override debug mode for development
+debug_mode: true
+log_level: DEBUG
+
+# Local instance settings
+instance:
+  role: primary
+  # id: my-custom-instance-id  # Optional: set custom instance ID
+
+# Neural configuration for development
+neural:
+  # model_path: ./models/my_model.rts.png
+  inference_device: auto
+  batch_size: 1
+
+# Evolution settings for testing
+evolution:
+  enabled: true
+  check_interval_seconds: 30  # Faster for testing
+
+# Development network settings
+network:
+  api_port: 8080
+  webhook_port: 8081
+
+# Performance tuning
+performance:
+  slow_op_threshold_ms: 10.0  # Lower threshold for dev
+  profile_enabled: true

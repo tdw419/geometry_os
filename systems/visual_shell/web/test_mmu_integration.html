@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WGPU MMU Integration Test</title>
+    <style>
+        body {
+            background: #0a0a0a;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            margin: 0;
+        }
+        h1 {
+            color: #00ff00;
+            border-bottom: 2px solid #00ff00;
+            padding-bottom: 10px;
+        }
+        .test-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+        }
+        button {
+            background: #001100;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 12px 24px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #002200;
+            box-shadow: 0 0 10px #00ff00;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #results {
+            margin-top: 20px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 12px;
+            border: 1px solid;
+            font-size: 13px;
+        }
+        .test-result.pass {
+            border-color: #00ff00;
+            background: #001100;
+        }
+        .test-result.pass::before {
+            content: "[PASS] ";
+            color: #00ff00;
+            font-weight: bold;
+        }
+        .test-result.fail {
+            border-color: #ff0000;
+            background: #110000;
+            color: #ff0000;
+        }
+        .test-result.fail::before {
+            content: "[FAIL] ";
+            color: #ff0000;
+            font-weight: bold;
+        }
+        .test-result.skip {
+            border-color: #ffaa00;
+            background: #110000;
+            color: #ffaa00;
+        }
+        .test-result.skip::before {
+            content: "[SKIP] ";
+            color: #ffaa00;
+            font-weight: bold;
+        }
+        .test-details {
+            margin-top: 8px;
+            padding-left: 20px;
+            font-size: 11px;
+            color: #888;
+        }
+        .summary {
+            margin-top: 30px;
+            padding: 15px;
+            border: 2px solid #00ff00;
+            background: #001100;
+        }
+        .summary h2 {
+            margin: 0 0 10px 0;
+            color: #00ff00;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #111;
+            border: 1px solid #333;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #00aa00);
+            transition: width 0.3s;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .stat-box {
+            padding: 10px;
+            border: 1px solid #333;
+            text-align: center;
+        }
+        .stat-box .label {
+            font-size: 10px;
+            color: #666;
+        }
+        .stat-box .value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .stat-box.pass .value { color: #00ff00; }
+        .stat-box.fail .value { color: #ff0000; }
+        .stat-box.skip .value { color: #ffaa00; }
+        #log {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #333;
+            background: #000;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 11px;
+            color: #666;
+        }
+        .log-entry {
+            margin: 2px 0;
+        }
+        .log-entry.info { color: #00aaff; }
+        .log-entry.error { color: #ff0000; }
+        .log-entry.success { color: #00ff00; }
+    </style>
+</head>
+<body>
+    <h1>WGPU Linux Hypervisor - MMU Integration Tests</h1>
+
+    <div class="test-header">
+        <div>
+            <button id="runAllBtn" onclick="runAllTests()">Run All Tests</button>
+            <button id="runQuickBtn" onclick="runQuickTests()">Quick Tests</button>
+            <button id="clearBtn" onclick="clearResults()">Clear Results</button>
+        </div>
+        <div id="testCount" style="color: #666;">0 tests</div>
+    </div>
+
+    <div id="results"></div>
+
+    <div id="summary" style="display: none;">
+        <div class="summary">
+            <h2>Test Summary</h2>
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill" style="width: 0%;"></div>
+            </div>
+            <div class="stats">
+                <div class="stat-box pass">
+                    <div class="value" id="passCount">0</div>
+                    <div class="label">PASSED</div>
+                </div>
+                <div class="stat-box fail">
+                    <div class="value" id="failCount">0</div>
+                    <div class="label">FAILED</div>
+                </div>
+                <div class="stat-box skip">
+                    <div class="value" id="skipCount">0</div>
+                    <div class="label">SKIPPED</div>
+                </div>
+                <div class="stat-box">
+                    <div class="value" id="totalCount">0</div>
+                    <div class="label">TOTAL</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="log"></div>
+
+    <script type="module">
+        import { GPUExecutionSystem } from './gpu_execution_system.js';
+
+        // Test state
+        const testResults = {
+            pass: 0,
+            fail: 0,
+            skip: 0,
+            total: 0
+        };
+
+        // Logging
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        // Result display
+        function addResult(status, message, details = null) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test-result ${status}`;
+            div.textContent = message;
+
+            if (details) {
+                const detailDiv = document.createElement('div');
+                detailDiv.className = 'test-details';
+                detailDiv.textContent = details;
+                div.appendChild(detailDiv);
+            }
+
+            results.appendChild(div);
+
+            // Update stats
+            testResults.total++;
+            if (status === 'pass') testResults.pass++;
+            else if (status === 'fail') testResults.fail++;
+            else testResults.skip++;
+
+            updateSummary();
+        }
+
+        function updateSummary() {
+            document.getElementById('summary').style.display = 'block';
+            document.getElementById('passCount').textContent = testResults.pass;
+            document.getElementById('failCount').textContent = testResults.fail;
+            document.getElementById('skipCount').textContent = testResults.skip;
+            document.getElementById('totalCount').textContent = testResults.total;
+            document.getElementById('testCount').textContent = `${testResults.total} tests`;
+
+            const progress = testResults.total > 0 ? (testResults.pass / testResults.total) * 100 : 0;
+            document.getElementById('progressFill').style.width = `${progress}%`;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('summary').style.display = 'none';
+            document.getElementById('log').innerHTML = '';
+            testResults.pass = 0;
+            testResults.fail = 0;
+            testResults.skip = 0;
+            testResults.total = 0;
+            document.getElementById('testCount').textContent = '0 tests';
+        }
+
+        // Check WebGPU availability
+        async function checkWebGPU() {
+            if (!navigator.gpu) {
+                addResult('fail', 'WebGPU not supported', 'Browser does not support WebGPU');
+                return false;
+            }
+            log('WebGPU is available', 'success');
+            return true;
+        }
+
+        // Test 1: CSR Registers Presence
+        async function testCSRPresence() {
+            log('Running testCSRPresence...', 'info');
+            try {
+                const adapter = await navigator.gpu.requestAdapter();
+                const device = await adapter.requestDevice();
+                const gpu = new GPUExecutionSystem(device, {});
+                await gpu.initialize();
+                await gpu.deploy('data:text/plain,', 'test-csr');
+
+                const state = await gpu.readState('test-csr');
+
+                // Check for MMU CSR registers
+                const hasSatp = state.satp !== undefined;
+                const hasStvec = state.stvec !== undefined;
+                const hasSscratch = state.sscratch !== undefined;
+                const hasMode = state.mode !== undefined;
+
+                if (hasSatp && hasStvec && hasSscratch && hasMode) {
+                    addResult('pass', 'CSR registers present in CPU state',
+                        `satp=${state.satp}, stvec=${state.stvec}, sscratch=${state.sscratch}, mode=${state.mode}`);
+                    return true;
+                } else {
+                    const missing = [];
+                    if (!hasSatp) missing.push('satp');
+                    if (!hasStvec) missing.push('stvec');
+                    if (!hasSscratch) missing.push('sscratch');
+                    if (!hasMode) missing.push('mode');
+                    addResult('fail', 'CSR registers missing from CPU state',
+                        `Missing: ${missing.join(', ')}`);
+                    return false;
+                }
+            } catch (e) {
+                addResult('fail', 'CSR presence test error', e.message);
+                log(`Error: ${e.stack}`, 'error');
+                return false;
+            }
+        }
+
+        // Test 2: CSRRW Instruction
+        async function testCSRRWInstruction() {
+            log('Running testCSRRWInstruction...', 'info');
+            try {
+                // This test requires the shader to implement CSRRW
+                // For now, we'll skip with a message
+                addResult('skip', 'CSRRW instruction test',
+                    'Requires Task #2 completion (CSR instructions implementation)');
+                return null;
+            } catch (e) {
+                addResult('fail', 'CSRRW instruction test error', e.message);
+                return false;
+            }
+        }
+
+        // Test 3: Page Table Walk
+        async function testPageTableWalk() {
+            log('Running testPageTableWalk...', 'info');
+            try {
+                // This test requires the shader to implement Sv32 page table walker
+                addResult('skip', 'Page table walk test',
+                    'Requires Task #3 completion (Sv32 page table walker implementation)');
+                return null;
+            } catch (e) {
+                addResult('fail', 'Page table walk test error', e.message);
+                return false;
+            }
+        }
+
+        // Test 4: Full MMU Translation
+        async function testFullTranslation() {
+            log('Running testFullTranslation...', 'info');
+            try {
+                // This test requires full MMU integration with LOAD/STORE
+                addResult('skip', 'Full MMU translation test',
+                    'Requires Task #4 completion (MMU integration with LOAD/STORE)');
+                return null;
+            } catch (e) {
+                addResult('fail', 'Full MMU translation test error', e.message);
+                return false;
+            }
+        }
+
+        // Test 5: Extended CPU State
+        async function testExtendedCPUState() {
+            log('Running testExtendedCPUState...', 'info');
+            try {
+                const adapter = await navigator.gpu.requestAdapter();
+                const device = await adapter.requestDevice();
+                const gpu = new GPUExecutionSystem(device, {});
+                await gpu.initialize();
+                await gpu.deploy('data:text/plain,', 'test-state');
+
+                const state = await gpu.readState('test-state');
+
+                // Verify extended state is accessible
+                const checks = [
+                    { name: 'satp', value: state.satp, type: 'number' },
+                    { name: 'stvec', value: state.stvec, type: 'number' },
+                    { name: 'sscratch', value: state.sscratch, type: 'number' },
+                    { name: 'mode', value: state.mode, type: 'number' }
+                ];
+
+                const allValid = checks.every(c => typeof c.value === c.type);
+
+                if (allValid) {
+                    addResult('pass', 'Extended CPU state accessible from JS',
+                        `satp=${state.satp}, stvec=${state.stvec}, sscratch=${state.sscratch}, mode=${state.mode}`);
+                    return true;
+                } else {
+                    const invalid = checks.filter(c => typeof c.value !== c.type).map(c => c.name);
+                    addResult('fail', 'Extended CPU state not accessible',
+                        `Invalid types: ${invalid.join(', ')}`);
+                    return false;
+                }
+            } catch (e) {
+                addResult('fail', 'Extended CPU state test error', e.message);
+                return false;
+            }
+        }
+
+        // Test 6: M Extension Multiply
+        async function testMExtensionMultiply() {
+            log('Running testMExtensionMultiply...', 'info');
+            try {
+                addResult('skip', 'M extension multiply test',
+                    'Requires Task #7 completion (M extension multiply/divide instructions)');
+                return null;
+            } catch (e) {
+                addResult('fail', 'M extension multiply test error', e.message);
+                return false;
+            }
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            clearResults();
+            log('Starting full MMU integration test suite...', 'info');
+
+            const hasGPU = await checkWebGPU();
+            if (!hasGPU) return;
+
+            // Disable buttons during test run
+            document.getElementById('runAllBtn').disabled = true;
+            document.getElementById('runQuickBtn').disabled = true;
+
+            try {
+                await testCSRPresence();
+                await testCSRRWInstruction();
+                await testPageTableWalk();
+                await testFullTranslation();
+                await testExtendedCPUState();
+                await testMExtensionMultiply();
+
+                log('Test suite completed', 'success');
+            } catch (e) {
+                log(`Suite error: ${e.message}`, 'error');
+            } finally {
+                document.getElementById('runAllBtn').disabled = false;
+                document.getElementById('runQuickBtn').disabled = false;
+            }
+        }
+
+        // Run quick tests (non-skipped only)
+        async function runQuickTests() {
+            clearResults();
+            log('Starting quick MMU tests...', 'info');
+
+            const hasGPU = await checkWebGPU();
+            if (!hasGPU) return;
+
+            document.getElementById('runAllBtn').disabled = true;
+            document.getElementById('runQuickBtn').disabled = true;
+
+            try {
+                await testCSRPresence();
+                await testExtendedCPUState();
+
+                log('Quick tests completed', 'success');
+            } catch (e) {
+                log(`Suite error: ${e.message}`, 'error');
+            } finally {
+                document.getElementById('runAllBtn').disabled = false;
+                document.getElementById('runQuickBtn').disabled = false;
+            }
+        }
+
+        // Export for onclick handlers
+        window.runAllTests = runAllTests;
+        window.runQuickTests = runQuickTests;
+        window.clearResults = clearResults;
+
+        // Auto-run on page load for convenience
+        log('MMU Integration Test Suite loaded', 'info');
+        log('Click "Run All Tests" to begin', 'info');
+    </script>
+</body>
+</html>

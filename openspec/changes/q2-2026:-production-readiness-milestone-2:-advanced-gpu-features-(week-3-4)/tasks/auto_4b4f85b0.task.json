@@ -1,0 +1,10 @@
+{
+  "task_id": "task-3",
+  "type": "implement",
+  "source": "",
+  "intent": "Batch API processes 1000+ images in parallel",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}

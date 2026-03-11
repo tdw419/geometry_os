@@ -1,0 +1,10 @@
+{
+  "task_id": "task-1",
+  "type": "implement",
+  "source": "",
+  "intent": "WASM: WebAssembly, binary instruction format",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}

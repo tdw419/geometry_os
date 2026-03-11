@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Heatmap Overlay - Test Suite</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        #test-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #header {
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border-bottom: 2px solid #00ffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #header h1 {
+            font-size: 20px;
+            color: #00ffff;
+        }
+
+        #controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+        }
+
+        .btn.active {
+            background: rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        #main-area {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0a0a15;
+        }
+
+        #pixi-canvas {
+            border: 2px solid #333;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.1);
+        }
+
+        #sidebar {
+            width: 320px;
+            background: rgba(0, 0, 0, 0.7);
+            border-left: 1px solid #333;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .panel {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+
+        .panel h3 {
+            font-size: 14px;
+            color: #00ffff;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 12px;
+        }
+
+        .stat-label {
+            color: #888;
+        }
+
+        .stat-value {
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+        }
+
+        .log-entry {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            padding: 3px 0;
+            border-bottom: 1px solid #222;
+        }
+
+        .log-info { color: #888; }
+        .log-success { color: #00ff88; }
+        .log-warning { color: #ffaa00; }
+        .log-error { color: #ff4444; }
+
+        .mode-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .mode-btn {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #444;
+            color: #888;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .mode-btn:hover {
+            border-color: #00ffff;
+            color: #00ffff;
+        }
+
+        .mode-btn.active {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: #00ffff;
+            color: #00ffff;
+        }
+
+        #heatmap-legend {
+            margin-top: 10px;
+        }
+
+        .legend-gradient {
+            height: 20px;
+            background: linear-gradient(to right,
+                #0000ff, #00ffff, #00ff00, #ffff00, #ff0000);
+            border-radius: 3px;
+        }
+
+        .legend-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        .slider-container {
+            margin: 10px 0;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            margin-bottom: 5px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: #00ffff;
+        }
+
+        #test-patterns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .pattern-btn {
+            padding: 8px;
+            background: rgba(255, 100, 0, 0.1);
+            border: 1px solid #ff6600;
+            color: #ff6600;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+
+        .pattern-btn:hover {
+            background: rgba(255, 100, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div id="test-container">
+        <div id="header">
+            <h1>🧠 Neural Heatmap Overlay - Test Suite</h1>
+            <div id="controls">
+                <button class="btn" onclick="testRunner.runAllTests()">Run All Tests</button>
+                <button class="btn" onclick="testRunner.clearActivity()">Clear Activity</button>
+                <button class="btn" onclick="testRunner.toggleHeatmap()">Toggle Heatmap (H)</button>
+                <button class="btn" onclick="testRunner.cycleMode()">Cycle Mode (M)</button>
+            </div>
+        </div>
+
+        <div id="main-area">
+            <div id="canvas-container">
+                <canvas id="pixi-canvas"></canvas>
+            </div>
+
+            <div id="sidebar">
+                <div class="panel">
+                    <h3>Visualization Mode</h3>
+                    <div class="mode-selector">
+                        <button class="mode-btn active" data-mode="thermal" onclick="testRunner.setMode('thermal')">🔥 Thermal</button>
+                        <button class="mode-btn" data-mode="plasma" onclick="testRunner.setMode('plasma')">⚡ Plasma</button>
+                        <button class="mode-btn" data-mode="holographic" onclick="testRunner.setMode('holographic')">📺 Holographic</button>
+                        <button class="mode-btn" data-mode="contour" onclick="testRunner.setMode('contour')">📊 Contour</button>
+                    </div>
+                    <div id="heatmap-legend">
+                        <div class="legend-gradient"></div>
+                        <div class="legend-labels">
+                            <span>Low Entropy</span>
+                            <span>High Entropy</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>Intensity</h3>
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Opacity</span>
+                            <span id="opacity-value">70%</span>
+                        </div>
+                        <input type="range" id="opacity-slider" min="0" max="100" value="70" oninput="testRunner.setOpacity(this.value)">
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Decay Rate</span>
+                            <span id="decay-value">0.98</span>
+                        </div>
+                        <input type="range" id="decay-slider" min="90" max="100" value="98" oninput="testRunner.setDecay(this.value)">
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>Test Patterns</h3>
+                    <div id="test-patterns">
+                        <button class="pattern-btn" onclick="testRunner.patternRandom()">Random Spikes</button>
+                        <button class="pattern-btn" onclick="testRunner.patternCircle()">Circle</button>
+                        <button class="pattern-btn" onclick="testRunner.patternSpiral()">Spiral</button>
+                        <button class="pattern-btn" onclick="testRunner.patternWave()">Wave</button>
+                        <button class="pattern-btn" onclick="testRunner.patternGrid()">Grid</button>
+                        <button class="pattern-btn" onclick="testRunner.patternLayer()">Layer Bands</button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>Statistics</h3>
+                    <div class="stat-row">
+                        <span class="stat-label">Active Cells:</span>
+                        <span class="stat-value" id="stat-cells">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Total Activity:</span>
+                        <span class="stat-value" id="stat-activity">0.00</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">FPS:</span>
+                        <span class="stat-value" id="stat-fps">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Render Time:</span>
+                        <span class="stat-value" id="stat-render">0ms</span>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>Test Log</h3>
+                    <div id="test-log" style="max-height: 150px; overflow-y: auto;">
+                        <div class="log-entry log-info">[INFO] Test suite initialized</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load PixiJS -->
+    <script src="lib/pixi.min.js"></script>
+
+    <!-- Load heatmap modules -->
+    <script src="activity_tracker.js"></script>
+    <script src="layer_mapper.js"></script>
+    <script src="neural_heatmap_overlay.js"></script>
+
+    <script>
+        /**
+         * Test Runner for Neural Heatmap Overlay
+         */
+        class HeatmapTestRunner {
+            constructor() {
+                this.app = null;
+                this.overlay = null;
+                this.activityTracker = null;
+                this.testTile = null;
+                this.currentMode = 'thermal';
+                this.lastFrameTime = 0;
+                this.frameCount = 0;
+                this.fpsUpdateTime = 0;
+
+                this.init();
+            }
+
+            async init() {
+                this.log('Initializing PixiJS application...', 'info');
+
+                // Create PixiJS application
+                this.app = new PIXI.Application({
+                    view: document.getElementById('pixi-canvas'),
+                    width: 800,
+                    height: 600,
+                    backgroundColor: 0x0a0a15,
+                    antialias: true,
+                    resolution: window.devicePixelRatio || 1
+                });
+
+                // Create a mock InfiniteMap-like interface
+                const mockMap = {
+                    world: this.app.stage,
+                    config: { gridSize: 100 }
+                };
+
+                // Initialize heatmap overlay
+                try {
+                    this.overlay = new NeuralHeatmapOverlay(mockMap, {
+                        gridSize: 100,
+                        mode: 'thermal',
+                        visible: true,
+                        decayRate: 0.98
+                    });
+
+                    this.activityTracker = this.overlay.activityTracker;
+
+                    this.log('NeuralHeatmapOverlay initialized successfully', 'success');
+                    this.log('Press H to toggle, M to cycle modes', 'info');
+
+                    // Create a test tile sprite
+                    this.createTestTile();
+
+                    // Start animation loop
+                    this.app.ticker.add(() => this.update());
+                    this.app.ticker.start();
+
+                    // Setup keyboard controls
+                    this.setupKeyboard();
+
+                    // Start FPS counter
+                    this.startFpsCounter();
+
+                } catch (error) {
+                    this.log(`Initialization error: ${error.message}`, 'error');
+                    console.error(error);
+                }
+            }
+
+            createTestTile() {
+                // Create a test tile with gradient pattern
+                const graphics = new PIXI.Graphics();
+
+                // Draw a gradient-like pattern
+                const size = 400;
+                const colors = [0x000033, 0x000066, 0x003366, 0x006666, 0x006633, 0x003300];
+
+                for (let i = 0; i < 20; i++) {
+                    for (let j = 0; j < 20; j++) {
+                        const colorIndex = Math.floor((i + j) / 8) % colors.length;
+                        graphics.beginFill(colors[colorIndex]);
+                        graphics.drawRect(i * 20, j * 20, 20, 20);
+                        graphics.endFill();
+                    }
+                }
+
+                const texture = this.app.renderer.generateTexture(graphics);
+                this.testTile = new PIXI.Sprite(texture);
+                this.testTile.anchor.set(0.5);
+                this.testTile.x = 400;
+                this.testTile.y = 300;
+
+                this.app.stage.addChild(this.testTile);
+
+                this.log('Test tile created', 'success');
+            }
+
+            setupKeyboard() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.target.tagName === 'INPUT') return;
+
+                    switch (e.code) {
+                        case 'KeyH':
+                            this.toggleHeatmap();
+                            break;
+                        case 'KeyM':
+                            this.cycleMode();
+                            break;
+                        case 'KeyR':
+                            this.patternRandom();
+                            break;
+                        case 'KeyC':
+                            this.clearActivity();
+                            break;
+                    }
+                });
+            }
+
+            update() {
+                const now = performance.now();
+
+                // Update overlay
+                if (this.overlay) {
+                    const renderStart = now;
+                    this.overlay.update((now - this.lastFrameTime) / 1000);
+                    const renderTime = performance.now() - renderStart;
+
+                    // Update stats
+                    this.updateStats(renderTime);
+                }
+
+                this.lastFrameTime = now;
+            }
+
+            startFpsCounter() {
+                setInterval(() => {
+                    const fps = this.app.ticker.FPS;
+                    document.getElementById('stat-fps').textContent = fps.toFixed(1);
+                }, 500);
+            }
+
+            updateStats(renderTime) {
+                if (!this.activityTracker) return;
+
+                const stats = this.activityTracker.getStats();
+                document.getElementById('stat-cells').textContent = stats.activeCells;
+
+                // Calculate total activity
+                let totalActivity = 0;
+                for (const [key, value] of this.activityTracker.activity) {
+                    totalActivity += value;
+                }
+                document.getElementById('stat-activity').textContent = totalActivity.toFixed(2);
+                document.getElementById('stat-render').textContent = renderTime.toFixed(2) + 'ms';
+            }
+
+            // Control methods
+            toggleHeatmap() {
+                if (this.overlay) {
+                    this.overlay.visible = !this.overlay.visible;
+                    this.log(`Heatmap ${this.overlay.visible ? 'enabled' : 'disabled'}`, 'info');
+                }
+            }
+
+            setMode(mode) {
+                if (this.overlay) {
+                    this.overlay.setMode(mode);
+                    this.currentMode = mode;
+
+                    // Update UI
+                    document.querySelectorAll('.mode-btn').forEach(btn => {
+                        btn.classList.toggle('active', btn.dataset.mode === mode);
+                    });
+
+                    this.log(`Mode changed to: ${mode}`, 'info');
+                }
+            }
+
+            cycleMode() {
+                const modes = ['thermal', 'plasma', 'holographic', 'contour'];
+                const currentIndex = modes.indexOf(this.currentMode);
+                const nextMode = modes[(currentIndex + 1) % modes.length];
+                this.setMode(nextMode);
+            }
+
+            setOpacity(value) {
+                if (this.overlay) {
+                    this.overlay.setOpacity(value / 100);
+                    document.getElementById('opacity-value').textContent = value + '%';
+                }
+            }
+
+            setDecay(value) {
+                if (this.activityTracker) {
+                    this.activityTracker.decayRate = value / 100;
+                    document.getElementById('decay-value').textContent = (value / 100).toFixed(2);
+                }
+            }
+
+            clearActivity() {
+                if (this.activityTracker) {
+                    this.activityTracker.clear();
+                    this.log('Activity cleared', 'info');
+                }
+            }
+
+            // Test patterns
+            patternRandom() {
+                this.log('Generating random spikes pattern...', 'info');
+                const count = 20;
+                for (let i = 0; i < count; i++) {
+                    const x = Math.random() * 400 + 200;
+                    const y = Math.random() * 300 + 150;
+                    const intensity = Math.random() * 0.5 + 0.5;
+                    this.activityTracker.recordActivity(x, y, intensity);
+                }
+                this.log(`Created ${count} random spikes`, 'success');
+            }
+
+            patternCircle() {
+                this.log('Generating circle pattern...', 'info');
+                const cx = 400, cy = 300, radius = 100;
+                for (let angle = 0; angle < Math.PI * 2; angle += 0.1) {
+                    const x = cx + Math.cos(angle) * radius;
+                    const y = cy + Math.sin(angle) * radius;
+                    this.activityTracker.recordActivity(x, y, 0.8);
+                }
+                this.log('Circle pattern created', 'success');
+            }
+
+            patternSpiral() {
+                this.log('Generating spiral pattern...', 'info');
+                const cx = 400, cy = 300;
+                for (let i = 0; i < 500; i++) {
+                    const angle = i * 0.1;
+                    const radius = i * 0.2;
+                    const x = cx + Math.cos(angle) * radius;
+                    const y = cy + Math.sin(angle) * radius;
+                    this.activityTracker.recordActivity(x, y, 0.6);
+                }
+                this.log('Spiral pattern created', 'success');
+            }
+
+            patternWave() {
+                this.log('Generating wave pattern...', 'info');
+                for (let x = 200; x < 600; x += 10) {
+                    const y = 300 + Math.sin(x * 0.05) * 80;
+                    this.activityTracker.recordActivity(x, y, 0.7);
+                }
+                this.log('Wave pattern created', 'success');
+            }
+
+            patternGrid() {
+                this.log('Generating grid pattern...', 'info');
+                for (let x = 250; x < 550; x += 50) {
+                    for (let y = 200; y < 400; y += 50) {
+                        this.activityTracker.recordActivity(x, y, 0.5);
+                    }
+                }
+                this.log('Grid pattern created', 'success');
+            }
+
+            patternLayer() {
+                this.log('Generating layer band pattern...', 'info');
+                for (let i = 0; i < 10; i++) {
+                    const y = 150 + i * 30;
+                    for (let x = 200; x < 600; x += 10) {
+                        this.activityTracker.recordActivity(x, y, 0.3 + (i % 3) * 0.2);
+                    }
+                }
+                this.log('Layer band pattern created', 'success');
+            }
+
+            runAllTests() {
+                this.log('Running all tests...', 'info');
+
+                const tests = [
+                    { name: 'Activity Tracker', fn: () => this.testActivityTracker() },
+                    { name: 'Layer Mapper', fn: () => this.testLayerMapper() },
+                    { name: 'Mode Switching', fn: () => this.testModeSwitching() },
+                    { name: 'Performance', fn: () => this.testPerformance() }
+                ];
+
+                let passed = 0;
+                tests.forEach(test => {
+                    try {
+                        test.fn();
+                        passed++;
+                        this.log(`✓ ${test.name}: PASSED`, 'success');
+                    } catch (error) {
+                        this.log(`✗ ${test.name}: FAILED - ${error.message}`, 'error');
+                    }
+                });
+
+                this.log(`Tests complete: ${passed}/${tests.length} passed`, passed === tests.length ? 'success' : 'warning');
+            }
+
+            testActivityTracker() {
+                if (!this.activityTracker) throw new Error('ActivityTracker not initialized');
+
+                // Test record and retrieve
+                this.activityTracker.clear();
+                this.activityTracker.recordActivity(100, 100, 0.5);
+                const activity = this.activityTracker.getActivityAt(100, 100);
+                if (activity !== 0.5) throw new Error('Activity recording failed');
+
+                // Test decay
+                this.activityTracker.update(1.0);
+                const decayed = this.activityTracker.getActivityAt(100, 100);
+                if (decayed >= 0.5) throw new Error('Decay not working');
+
+                return true;
+            }
+
+            testLayerMapper() {
+                if (typeof LayerMapper === 'undefined') {
+                    throw new Error('LayerMapper not loaded');
+                }
+
+                const mapper = new LayerMapper({ gridSize: 256 });
+                if (mapper.gridSize !== 256) throw new Error('GridSize not set');
+
+                return true;
+            }
+
+            testModeSwitching() {
+                if (!this.overlay) throw new Error('Overlay not initialized');
+
+                const modes = ['thermal', 'plasma', 'holographic', 'contour'];
+                modes.forEach(mode => {
+                    this.overlay.setMode(mode);
+                    if (this.overlay.currentMode !== mode) {
+                        throw new Error(`Mode ${mode} not set`);
+                    }
+                });
+
+                return true;
+            }
+
+            testPerformance() {
+                const startTime = performance.now();
+                const iterations = 1000;
+
+                for (let i = 0; i < iterations; i++) {
+                    this.activityTracker.recordActivity(
+                        Math.random() * 800,
+                        Math.random() * 600,
+                        Math.random()
+                    );
+                }
+
+                const elapsed = performance.now() - startTime;
+                const opsPerSec = (iterations / elapsed) * 1000;
+
+                if (opsPerSec < 10000) {
+                    throw new Error(`Performance too low: ${opsPerSec.toFixed(0)} ops/sec`);
+                }
+
+                this.log(`Performance: ${opsPerSec.toFixed(0)} ops/sec`, 'info');
+                return true;
+            }
+
+            log(message, type = 'info') {
+                const logContainer = document.getElementById('test-log');
+                const entry = document.createElement('div');
+                entry.className = `log-entry log-${type}`;
+                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                logContainer.appendChild(entry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+        }
+
+        // Initialize test runner when page loads
+        let testRunner;
+        document.addEventListener('DOMContentLoaded', () => {
+            testRunner = new HeatmapTestRunner();
+        });
+    </script>
+</body>
+</html>

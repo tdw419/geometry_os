@@ -1,0 +1,338 @@
+"""
+Tests for Container Migration (Phase 26)
+
+Tests the checkpoint, transfer, and restore containers across the mesh.
+"""
+
+from unittest.mock import AsyncMock, Mock
+
+import pytest
+
+from systems.network_boot.container_migration import (
+    CheckpointManager,
+    MigrationConfig,
+    MigrationCoordinator,
+    MigrationState,
+    MigrationStatus,
+    RestoreManager,
+    TransferManager,
+    create_migration_coordinator,
+)
+
+
+class TestMigrationConfig:
+    """Tests for MigrationConfig dataclass."""
+
+    def test_default_config(self):
+        config = MigrationConfig()
+        assert config.checkpoint_timeout == 300.0
+        assert config.transfer_timeout == 600.0
+        assert config.compression is True
+        assert config.verify_checksum is True
+        assert config.cleanup_source is True
+        assert config.reconnect_network is True
+        assert config.preserve_vnc is True
+
+        assert config.compression_level == 6
+
+    def test_custom_config(self):
+        config = MigrationConfig(
+            container_id="test-123",
+            target_peer="node2.local",
+            compression=False,
+        )
+        assert config.container_id == "test-123"
+        assert config.target_peer == "node2.local"
+        assert not config.compression
+        assert config.compression_level == 6
+
+
+class TestMigrationState:
+    """Tests for MigrationState dataclass."""
+
+    def test_default_state(self):
+        state = MigrationState()
+        assert state.status == "pending"
+        assert state.progress == 0.0
+        assert state.bytes_transferred == 0
+        assert state.bytes_total == 0
+
+    def test_state_with_error(self):
+        state = MigrationState(
+            status="failed",
+            error="test error",
+        )
+        assert state.error == "test error"
+        assert state.status == MigrationStatus.FAILED
+
+    def test_state_with_end_time(self):
+        from systems.network_boot.container_migration import _calculate_elapsed_time
+        # Test that elapsed_time is calculated correctly when end_time is set
+        state = MigrationState(
+            status="completed",
+            start_time=1234567890.0,
+            end_time=1234567891.0,
+        )
+        _calculate_elapsed_time(state)
+
+        assert state.elapsed_time == 1.0
+
+
+class TestCheckpointManager:
+    """Tests for CheckpointManager."""
+
+    @pytest.fixture
+    def checkpoint_manager(self, tmp_path):
+        return CheckpointManager(checkpoint_dir=str(tmp_path / "checkpoints"))
+
+    def test_list_checkpoints_empty(self, checkpoint_manager):
+        assert checkpoint_manager.list_checkpoints() == []
+
+    @pytest.mark.asyncio
+    async def test_create_checkpoint(self, checkpoint_manager):
+        state = await checkpoint_manager.create_checkpoint(
+            container_id="container-1",
+            container_name="test-container",
+            vnc_port=5901,
+            memory_size_mb=1024,
+        )
+        assert state.checkpoint_id is not None
+        assert state.source_container is not None
+        assert state.source_container["id"] == "container-1"
+
+    @pytest.mark.asyncio
+    async def test_finalize_checkpoint(self, checkpoint_manager, tmp_path):
+        state = await checkpoint_manager.create_checkpoint(
+            container_id="container-1",
+            container_name="test-container",
+            vnc_port=5901,
+            memory_size_mb=1024,
+        )
+        # Finalize checkpoint
+        checkpoint_path = tmp_path / "test.qcow2"
+        checkpoint_path.write_bytes(b"test checkpoint data")
+        result = await checkpoint_manager.finalize_checkpoint(
+            state.checkpoint_id,
+            str(checkpoint_path),
+        )
+        assert result is True
+        updated = checkpoint_manager.get_checkpoint(state.checkpoint_id)
+        assert updated.checkpoint_path == str(checkpoint_path)
+
+    @pytest.mark.asyncio
+    async def test_cancel_checkpoint(self, checkpoint_manager):
+        state = await checkpoint_manager.create_checkpoint(
+            container_id="container-1",
+            container_name="test-container",
+            vnc_port=5901,
+            memory_size_mb=1024,
+        )
+        result = await checkpoint_manager.cancel_checkpoint(state.checkpoint_id)
+        assert result is True
+        updated = checkpoint_manager.get_checkpoint(state.checkpoint_id)
+        assert updated.status == MigrationStatus.CANCELLED
+
+    @pytest.mark.asyncio
+    async def test_delete_checkpoint(self, checkpoint_manager, tmp_path):
+        state = await checkpoint_manager.create_checkpoint(
+            container_id="container-1",
+            container_name="test-container",
+            vnc_port=5901,
+            memory_size_mb=1024,
+        )
+        checkpoint_path = tmp_path / "checkpoints" / f"{state.checkpoint_id}.qcow2"
+        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+        checkpoint_path.write_bytes(b"test")
+        state.checkpoint_path = str(checkpoint_path)
+        result = await checkpoint_manager.delete_checkpoint(state.checkpoint_id)
+        assert result is True
+        assert checkpoint_manager.get_checkpoint(state.checkpoint_id) is None
+
+
+class TestTransferManager:
+    """Tests for TransferManager."""
+
+    @pytest.fixture
+    def transfer_manager(self):
+        return TransferManager(chunk_size=1024)
+
+    @pytest.mark.asyncio
+    async def test_transfer_checkpoint(self, transfer_manager, tmp_path):
+        # Create a checkpoint state with a file
+        state = MigrationState(
+            checkpoint_id="cp-test",
+            status=MigrationStatus.TRANSFERRING,
+        )
+        checkpoint_path = tmp_path / "test.qcow2"
+        checkpoint_path.write_bytes(b"x" * 5000)
+        state.checkpoint_path = str(checkpoint_path)
+        result = await transfer_manager.transfer_checkpoint(state)
+        assert result is True
+        assert state.bytes_transferred == 5000
+        assert state.bytes_total == 5000
+        assert state.progress == 1.0
+        assert state.status == MigrationStatus.TRANSFERRED
+
+    @pytest.mark.asyncio
+    async def test_transfer_missing_file(self, transfer_manager):
+        state = MigrationState(
+            checkpoint_id="cp-missing",
+            checkpoint_path="/nonexistent/file.qcow2",
+        )
+        result = await transfer_manager.transfer_checkpoint(state)
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_cancel_transfer(self, transfer_manager):
+        state = MigrationState(checkpoint_id="cp-cancel")
+        transfer_manager._transfers["cp-cancel"] = state
+        result = await transfer_manager.cancel_transfer("cp-cancel")
+        assert result is True
+        assert state.status == MigrationStatus.CANCELLED
+
+
+class TestRestoreManager:
+    """Tests for RestoreManager."""
+
+    @pytest.fixture
+    def restore_manager(self, tmp_path):
+        return RestoreManager(restore_dir=str(tmp_path / "restore"))
+
+    def test_receive_chunk(self, restore_manager):
+        result = restore_manager.receive_chunk("cp-1", 0, b"data0")
+        assert result is True
+        result = restore_manager.receive_chunk("cp-1", 1, b"data1")
+        assert result is True
+        chunks = restore_manager._received_chunks["cp-1"]
+        assert len(chunks) == 2
+
+    def test_is_checkpoint_complete(self, restore_manager):
+        restore_manager.receive_chunk("cp-2", 0, b"data0")
+        restore_manager.receive_chunk("cp-2", 1, b"data1")
+        assert restore_manager.is_checkpoint_complete("cp-2", 2) is True
+        assert restore_manager.is_checkpoint_complete("cp-2", 3) is False
+
+    @pytest.mark.asyncio
+    async def test_restore_checkpoint(self, restore_manager):
+        # Setup received chunks
+        restore_manager.receive_chunk("cp-restore", 0, b"chunk0")
+        restore_manager.receive_chunk("cp-restore", 1, b"chunk1")
+        state = await restore_manager.restore_checkpoint("cp-restore")
+        assert state.status == MigrationStatus.COMPLETED
+        assert state.target_container is not None
+        assert "restored-cp-restore" in state.target_container["name"]
+
+    @pytest.mark.asyncio
+    async def test_restore_with_boot_manager(self, tmp_path):
+        # Mock boot manager
+        boot_manager = Mock()
+        boot_result = Mock()
+        boot_result.success = True
+        boot_manager.boot = AsyncMock(return_value=boot_result)
+        mock_container = Mock()
+        mock_container.name = "restored-cp-boot"
+        mock_container.vnc_port = 5902
+        boot_manager.get_container = Mock(return_value=mock_container)
+        restore_manager = RestoreManager(
+            boot_manager=boot_manager,
+            restore_dir=str(tmp_path / "restore"),
+        )
+        # Setup chunks
+        restore_manager.receive_chunk("cp-boot", 0, b"test")
+        state = await restore_manager.restore_checkpoint("cp-boot")
+        assert state.status == MigrationStatus.COMPLETED
+        assert state.target_container["vnc_port"] == 5902
+        boot_manager.boot.assert_called_once()
+
+
+class TestMigrationCoordinator:
+    """Tests for MigrationCoordinator."""
+
+    @pytest.fixture
+    def coordinator(self, tmp_path):
+        checkpoint_manager = CheckpointManager(
+            checkpoint_dir=str(tmp_path / "checkpoints")
+        )
+        transfer_manager = TransferManager()
+        restore_manager = RestoreManager(
+            restore_dir=str(tmp_path / "restore")
+        )
+        return MigrationCoordinator(
+            checkpoint_manager,
+            transfer_manager,
+            restore_manager,
+        )
+
+    @pytest.mark.asyncio
+    async def test_full_migration(self, coordinator):
+        progress_events = []
+
+        def progress_callback(migration_id, progress, status):
+            progress_events.append((progress, status))
+
+        state = await coordinator.migrate(
+            container_id="container-1",
+            container_name="test-container",
+            vnc_port=5901,
+            memory_size=1024,
+            target_peer="node2.local",
+            progress_callback=progress_callback,
+        )
+        assert state.status == MigrationStatus.COMPLETED
+        assert state.progress == 1.0
+        assert state.target_container is not None
+        assert len(progress_events) > 0
+
+    @pytest.mark.asyncio
+    async def test_migration_with_cleanup(self, coordinator):
+        # Mock boot manager
+        mock_boot_manager = Mock()
+        mock_container = Mock()
+        mock_container.name = "test-container"
+        mock_boot_manager.get_container = Mock(return_value=mock_container)
+        mock_boot_manager.stop = AsyncMock()
+        coordinator.boot_manager = mock_boot_manager
+        config = MigrationConfig(cleanup_source=True)
+        state = await coordinator.migrate(
+            container_id="container-1",
+            container_name="test-container",
+            vnc_port=5901,
+            memory_size=1024,
+            target_peer="node2.local",
+            config=config,
+        )
+        assert state.status == MigrationStatus.COMPLETED
+        mock_boot_manager.stop.assert_called_once_with("test-container")
+
+    @pytest.mark.asyncio
+    async def test_cancel_migration(self, coordinator):
+        state = await coordinator.migrate(
+            container_id="container-1",
+            container_name="test-container",
+            vnc_port=5901,
+            memory_size=1024,
+            target_peer="node2.local",
+        )
+        # Can't cancel completed migration
+        result = await coordinator.cancel_migration(state.checkpoint_id)
+        assert result is False
+
+    def test_list_migrations(self, coordinator):
+        migrations = coordinator.list_migrations()
+        assert isinstance(migrations, list)
+        assert len(migrations) == 0
+
+
+class TestCreateMigrationCoordinator:
+    """Tests for create_migration_coordinator convenience function."""
+
+    def test_create_coordinator(self):
+        coordinator = create_migration_coordinator()
+        assert coordinator.checkpoint_manager is not None
+        assert coordinator.transfer_manager is not None
+        assert coordinator.restore_manager is not None
+        assert coordinator.boot_manager is None
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

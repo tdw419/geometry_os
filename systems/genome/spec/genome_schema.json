@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Geometry OS Genome Schema",
+  "description": "Schema for genetic program representations",
+  "type": "object",
+  "required": ["version", "genes", "regulatory_regions"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Genome schema version"
+    },
+    "genes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "name", "sequence"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["function", "struct", "enum", "trait", "impl", "module", "constant"]
+          },
+          "name": { "type": "string" },
+          "sequence": { "type": "string" },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "type"],
+              "properties": {
+                "name": { "type": "string" },
+                "type": { "type": "string" },
+                "default": {}
+              }
+            }
+          },
+          "return_type": { "type": "string" },
+          "body": { "type": "object" },
+          "fields": { "type": "array" },
+          "methods": { "type": "array", "items": { "type": "string" } },
+          "annotations": { "type": "array", "items": { "type": "string" } },
+          "documentation": { "type": "string" }
+        }
+      }
+    },
+    "regulatory_regions": {
+      "type": "object",
+      "properties": {
+        "promoters": { "type": "array", "items": { "type": "string" } },
+        "enhancers": { "type": "array", "items": { "type": "string" } },
+        "suppressors": { "type": "array", "items": { "type": "string" } },
+        "conditional": { "type": "array" }
+      }
+    },
+    "author": { "type": "string" },
+    "description": { "type": "string" },
+    "created_at": { "type": "string" },
+    "generation": { "type": "integer" },
+    "fitness_score": { "type": "number" }
+  }
+}

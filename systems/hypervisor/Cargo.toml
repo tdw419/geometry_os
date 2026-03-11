@@ -1,0 +1,18 @@
+[package]
+name = "geometry-hypervisor"
+version = "0.1.0"
+edition = "2021"
+description = "Geometry OS Hypervisor - Network Boot Loader with SHA256 validation"
+
+[dependencies]
+sha2 = "0.10"
+hex = "0.4"
+tokio-tungstenite = "0.26"
+futures-util = "0.3"
+tokio = { version = "1.50", features = ["rt-multi-thread", "macros"] }
+thiserror = "2.0"
+url = "2.5"
+
+[lib]
+name = "geometry_hypervisor"
+path = "src/lib.rs"

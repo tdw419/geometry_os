@@ -1,0 +1,7 @@
+{
+  "task_id": "auto-c1b2c093",
+  "type": "analyze_system",
+  "source": "/home/jericho/zion/projects/geometry_os/geometry_os/openspec/changes/archive/2026-01-19-add-linux-host-cartridge",
+  "intent": "Verify `apps/linux/tiny_core.iso` availability",
+  "auto_generated": true
+}

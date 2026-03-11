@@ -1,0 +1,24 @@
+/**
+ * Research Import Admin Styles
+ */
+
+#import-status-container .card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+#import-status-message {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+#import-details pre {
+    background: #f9f9f9;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}

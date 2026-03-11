@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>AI Evolution Experiment</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #0f0;
+            padding: 20px;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            border: 1px solid #333;
+            padding: 15px;
+            background: #111;
+        }
+
+        h2 {
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        .log {
+            height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .log div {
+            margin-bottom: 4px;
+            border-bottom: 1px solid #222;
+        }
+
+        .accepted {
+            color: #8f8;
+        }
+
+        .rejected {
+            color: #f88;
+        }
+
+        button {
+            background: #222;
+            color: #ddd;
+            border: 1px solid #555;
+            padding: 10px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 5px;
+        }
+
+        button:hover {
+            background: #333;
+        }
+
+        .stat {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .label {
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧬 AI Evolution Control Center</h1>
+
+    <div class="dashboard">
+        <div class="panel">
+            <h2>Evolution Control</h2>
+            <button onclick="experiment.runGeneration('optimize')">🧬 Propose Optimization (Smart Agent)</button>
+            <button onclick="experiment.runGeneration('break')">🧨 Propose Syntax Error (Bad Model)</button>
+            <button onclick="experiment.runGeneration('infinite')">♾️ Propose Infinite Loop (Bug)</button>
+            <button onclick="experiment.runGeneration('slow')">🐢 Propose Slow Code (Performance Regression)</button>
+
+            <div style="margin-top: 20px;">
+                <div class="label">Current Generation</div>
+                <div id="genDisplay" class="stat">0</div>
+            </div>
+            <div style="margin-top: 10px;">
+                <div class="label">Last Action Duration</div>
+                <div id="durDisplay" class="stat">0ms</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Genealogy Log</h2>
+            <div id="log" class="log">Waiting for evolution start...</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { EvolutionExperiment } from './evolution_experiment.js';
+
+        const experiment = new EvolutionExperiment();
+        window.experiment = experiment; // Expose to UI
+
+        // Hook runGeneration to update UI
+        const originalRun = experiment.runGeneration.bind(experiment);
+        experiment.runGeneration = async (type) => {
+            const logEl = document.getElementById('log');
+            logEl.innerHTML = `<div>[Agent] Considering mutation: ${type}...</div>` + logEl.innerHTML;
+
+            const result = await originalRun(type);
+
+            document.getElementById('genDisplay').innerText = result.id;
+            document.getElementById('durDisplay').innerText = result.duration;
+
+            const icon = result.accepted ? '✅' : '🛡️';
+            const cls = result.accepted ? 'accepted' : 'rejected';
+
+            const entry = `
+                <div class="${cls}">
+                    <strong>Gen ${result.id}</strong> ${icon} 
+                    ${result.accepted ? 'ACCEPTED' : 'REJECTED'}: ${result.reason}
+                    <br><small>${result.diff}</small>
+                </div>
+            `;
+            logEl.innerHTML = entry + logEl.innerHTML;
+        };
+
+    </script>
+</body>
+
+</html>

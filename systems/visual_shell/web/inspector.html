@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry OS | Memory Graph Inspector</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: #050505; color: #fff;
+            font-family: 'Outfit', sans-serif;
+            overflow: hidden;
+        }
+        #canvas-container { width: 100%; height: 100%; }
+        .overlay {
+            position: absolute; top: 20px; left: 20px;
+            pointer-events: none;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 20px; border-radius: 12px;
+            border-left: 4px solid #00FF9D;
+            backdrop-filter: blur(10px);
+        }
+        h1 { margin: 0; font-size: 1.2rem; letter-spacing: 2px; color: #00FF9D; }
+        .stats { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; margin-top: 10px; color: #888; }
+        .legend { margin-top: 15px; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 5px; font-size: 0.7rem; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div class="overlay">
+        <h1>NEURAL MEMORY GRAPH</h1>
+        <div class="stats" id="stats">SYNCING WITH SUBSTRATE...</div>
+        <div class="legend" id="legend"></div>
+    </div>
+
+    <script>
+        const API_BASE = "http://localhost:8080/api";
+        const CAT_COLORS = {
+            "CODE_GENERATION": 0x00FF9D,
+            "ARCHITECTURE": 0x00D1FF,
+            "DEBUGGING": 0xFF4D4D,
+            "RESEARCH": 0xFFD100,
+            "OPTIMIZATION": 0xA04DFF,
+            "PLANNING": 0xFF8C00
+        };
+
+        const app = new PIXI.Application({
+            resizeTo: window,
+            antialias: true,
+            backgroundAlpha: 0,
+        });
+        document.getElementById('canvas-container').appendChild(app.view);
+
+        const nodeContainer = new PIXI.Container();
+        const linkLayer = new PIXI.Graphics();
+        app.stage.addChild(linkLayer);
+        app.stage.addChild(nodeContainer);
+
+        let nodes = [];
+        let links = [];
+        let simulation;
+
+        async function fetchGraph() {
+            try {
+                const response = await fetch(`${API_BASE}/memory/graph`);
+                const data = await response.json();
+                updateGraph(data.nodes, data.links);
+                document.getElementById('stats').innerText = `PATTERNS: ${data.nodes.length} | LINKS: ${data.links.length}`;
+            } catch (e) {
+                console.error("Failed to fetch graph", e);
+            }
+        }
+
+        function updateGraph(newNodes, newLinks) {
+            nodes = newNodes;
+            links = newLinks;
+
+            // Simple d3-force simulation
+            if (simulation) simulation.stop();
+            
+            simulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links).id(d => d.id).distance(100))
+                .force("charge", d3.forceManyBody().strength(-200))
+                .force("center", d3.forceCenter(window.innerWidth / 2, window.innerHeight / 2))
+                .on("tick", render);
+
+            // Rebuild node visuals
+            nodeContainer.removeChildren();
+            nodes.forEach(node => {
+                const circle = new PIXI.Graphics();
+                const color = CAT_COLORS[node.label] || 0xCCCCCC;
+                circle.beginFill(color);
+                circle.drawCircle(0, 0, 5 + (node.val / 10));
+                circle.endFill();
+                
+                // Add glow
+                circle.filters = [new PIXI.BlurFilter(2)];
+                
+                node.gfx = circle;
+                nodeContainer.addChild(circle);
+            });
+        }
+
+        function render() {
+            linkLayer.clear();
+            linkLayer.lineStyle(1, 0x333333, 0.4);
+            links.forEach(link => {
+                linkLayer.moveTo(link.source.x, link.source.y);
+                linkLayer.lineTo(link.target.x, link.target.y);
+            });
+
+            nodes.forEach(node => {
+                if (node.gfx) {
+                    node.gfx.x = node.x;
+                    node.gfx.y = node.y;
+                }
+            });
+        }
+
+        // Initialize Legend
+        const legend = document.getElementById('legend');
+        Object.entries(CAT_COLORS).forEach(([cat, col]) => {
+            const item = document.createElement('div');
+            item.className = 'legend-item';
+            item.innerHTML = `<div class="dot" style="background: #${col.toString(16).padStart(6, '0')}"></div>${cat}`;
+            legend.appendChild(item);
+        });
+
+        fetchGraph();
+        setInterval(fetchGraph, 5000); // Polling for substrate shifts
+        
+        window.addEventListener('resize', () => {
+            app.renderer.resize(window.innerWidth, window.innerHeight);
+            if (simulation) {
+                simulation.force("center", d3.forceCenter(window.innerWidth / 2, window.innerHeight / 2));
+                simulation.alpha(0.3).restart();
+            }
+        });
+    </script>
+</body>
+</html>

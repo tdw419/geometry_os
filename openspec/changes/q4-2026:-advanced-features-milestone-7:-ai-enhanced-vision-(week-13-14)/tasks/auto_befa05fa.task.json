@@ -1,0 +1,10 @@
+{
+  "task_id": "task-2",
+  "type": "implement",
+  "source": "",
+  "intent": "OCR extracts text with 98%+ accuracy",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}

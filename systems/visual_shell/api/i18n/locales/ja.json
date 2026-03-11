@@ -1,0 +1,218 @@
+{
+  "window": {
+    "buttons": {
+      "close": "閉じる",
+      "minimize": "最小化",
+      "maximize": "最大化",
+      "restore": "元に戻す"
+    },
+    "title": {
+      "default": "無題のウィンドウ",
+      "main": "メインウィンドウ",
+      "tools": "ツール",
+      "terminal": "ターミナル",
+      "settings": "設定"
+    },
+    "states": {
+      "normal": "通常",
+      "minimized": "最小化",
+      "maximized": "最大化",
+      "dragging": "ドラッグ中",
+      "closing": "閉じています"
+    }
+  },
+  "panel": {
+    "title_bar": {
+      "default": "パネル",
+      "focused": "アクティブパネル"
+    },
+    "resize": {
+      "top": "上からサイズ変更",
+      "bottom": "下からサイズ変更",
+      "left": "左からサイズ変更",
+      "right": "右からサイズ変更",
+      "top_left": "左上からサイズ変更",
+      "top_right": "右上からサイズ変更",
+      "bottom_left": "左下からサイズ変更",
+      "bottom_right": "右下からサイズ変更"
+    },
+    "actions": {
+      "snap_to_grid": "グリッドにスナップ",
+      "snap_enabled": "スナップ有効",
+      "snap_disabled": "スナップ無効"
+    }
+  },
+  "notifications": {
+    "system": {
+      "initialized": "システムが正常に初期化されました！",
+      "error": "システムエラーが発生しました",
+      "warning": "警告",
+      "info": "情報"
+    },
+    "window": {
+      "created": "ウィンドウを作成しました: {title}",
+      "closed": "ウィンドウを閉じました: {title}",
+      "focused": "ウィンドウをフォーカスしました: {title}"
+    },
+    "renderer": {
+      "switched": "レンダラーを{type}に切り替えました",
+      "native_enabled": "ネイティブレンダラーが有効になりました",
+      "pixijs_deprecated": "PixiJSレンダラーは非推奨です"
+    }
+  },
+  "errors": {
+    "window": {
+      "not_found": "ウィンドウが見つかりません: {id}",
+      "already_exists": "ウィンドウは既に存在します: {id}",
+      "invalid_state": "無効なウィンドウ状態: {state}"
+    },
+    "renderer": {
+      "unknown_type": "不明なレンダラータイプ: {type}",
+      "initialization_failed": "レンダラーの初期化に失敗しました",
+      "frame_failed": "フレームレンダリングに失敗しました"
+    },
+    "localization": {
+      "not_found": "翻訳が見つかりません: {key}",
+      "missing_variable": "翻訳に変数がありません: {variable}",
+      "unsupported_language": "サポートされていない言語: {code}"
+    },
+    "file": {
+      "not_found": "ファイルが見つかりません: {path}",
+      "load_failed": "ファイルの読み込みに失敗しました: {path}",
+      "save_failed": "ファイルの保存に失敗しました: {path}"
+    }
+  },
+  "menu": {
+    "file": {
+      "label": "ファイル",
+      "new": "新規",
+      "open": "開く...",
+      "save": "保存",
+      "save_as": "名前を付けて保存...",
+      "close": "閉じる"
+    },
+    "edit": {
+      "label": "編集",
+      "undo": "元に戻す",
+      "redo": "やり直し",
+      "cut": "切り取り",
+      "copy": "コピー",
+      "paste": "貼り付け",
+      "select_all": "すべて選択"
+    },
+    "view": {
+      "label": "表示",
+      "zoom_in": "拡大",
+      "zoom_out": "縮小",
+      "reset_zoom": "ズームをリセット",
+      "fullscreen": "フルスクリーン切り替え"
+    },
+    "window": {
+      "label": "ウィンドウ",
+      "minimize_all": "すべて最小化",
+      "restore_all": "すべて復元",
+      "cascade": "ウィンドウを重ねて表示",
+      "tile": "ウィンドウを並べて表示"
+    },
+    "help": {
+      "label": "ヘルプ",
+      "about": "このアプリについて",
+      "documentation": "ドキュメント",
+      "shortcuts": "キーボードショートカット",
+      "report_bug": "バグを報告"
+    }
+  },
+  "dialogs": {
+    "confirm": {
+      "close_window": "このウィンドウを閉じてよろしいですか？",
+      "unsaved_changes": "未保存の変更があります。続行しますか？",
+      "delete_item": "このアイテムを削除してよろしいですか？"
+    },
+    "buttons": {
+      "ok": "OK",
+      "cancel": "キャンセル",
+      "yes": "はい",
+      "no": "いいえ",
+      "apply": "適用",
+      "save": "保存",
+      "discard": "破棄"
+    }
+  },
+  "settings": {
+    "language": {
+      "label": "言語",
+      "current": "現在の言語: {language}",
+      "change": "言語を変更"
+    },
+    "renderer": {
+      "label": "レンダラー",
+      "native": "ネイティブ（推奨）",
+      "pixijs": "PixiJS（非推奨）",
+      "auto": "自動"
+    },
+    "appearance": {
+      "label": "外観",
+      "theme": "テーマ",
+      "theme_light": "ライト",
+      "theme_dark": "ダーク",
+      "grid_size": "グリッドサイズ",
+      "snap_threshold": "スナップのしきい値"
+    },
+    "performance": {
+      "label": "パフォーマンス",
+      "fps_target": "目標FPS",
+      "quality": "品質",
+      "quality_low": "低",
+      "quality_medium": "中",
+      "quality_high": "高"
+    }
+  },
+  "tooltips": {
+    "window": {
+      "drag": "ドラッグしてウィンドウを移動",
+      "resize": "ドラッグしてウィンドウのサイズを変更",
+      "close": "ウィンドウを閉じる",
+      "minimize": "ウィンドウを最小化",
+      "maximize": "ウィンドウを最大化"
+    },
+    "panel": {
+      "snap": "グリッドへのスナップを有効/無効にする",
+      "focus": "クリックしてパネルをフォーカス"
+    }
+  },
+  "accessibility": {
+    "window": {
+      "focused": "ウィンドウ{title}がフォーカスされています",
+      "minimized": "ウィンドウ{title}が最小化されています",
+      "maximized": "ウィンドウ{title}が最大化されています"
+    },
+    "button": {
+      "close": "{title}の閉じるボタン",
+      "minimize": "{title}の最小化ボタン",
+      "maximize": "{title}の最大化ボタン"
+    }
+  },
+  "debug": {
+    "renderer": {
+      "fps": "FPS: {value}",
+      "frame_time": "フレーム時間: {ms}ms",
+      "entity_count": "エンティティ: {count}",
+      "panel_count": "パネル: {count}"
+    },
+    "memory": {
+      "used": "使用メモリ: {mb}MB",
+      "available": "利用可能メモリ: {mb}MB"
+    }
+  },
+  "common": {
+    "loading": "読み込み中...",
+    "saving": "保存中...",
+    "processing": "処理中...",
+    "ready": "準備完了",
+    "error": "エラー",
+    "success": "成功",
+    "cancel": "キャンセル",
+    "retry": "再試行",
+    "refresh": "更新"
+  }
+}

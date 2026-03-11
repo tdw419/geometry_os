@@ -1,0 +1,22 @@
+# fibonacci.geoscript
+# "Generating the golden spiral"
+
+# Initial values
+# x1 = 0, x2 = 1
+paint(0, 0, CRIMSON) # x1
+paint(1, 0, CRIMSON) # x2
+
+# Loop: Start of the iterative sequence
+# This uses spatial recurrence to compute next terms
+paint(2, 0, PURPLE)  # LOOP_START
+
+# Body:
+paint(3, 0, AZURE)   # x3 = x1 + x2
+paint(4, 0, CRIMSON) # x1 = x2 (Shift)
+paint(5, 0, CRIMSON) # x2 = x3 (Shift)
+
+# Output current term
+paint(6, 0, LIME_GREEN) # PRINT x2
+
+# Back edge: Spiral return
+paint(7, 0, VIOLET)  # LOOP_END / RETURN TO 2

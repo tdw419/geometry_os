@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A2A Integration Tests</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #000000;
+            color: #00ff88;
+            font-family: 'Courier New', Courier, monospace;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 {
+            color: #00ffff;
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+        .test-section {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .test-section h2 {
+            margin-top: 0;
+            color: #00ffff;
+            border-bottom: 1px solid #00ff88;
+            padding-bottom: 10px;
+        }
+        .test-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 12px;
+            margin: 8px 0;
+            background: rgba(0, 255, 136, 0.05);
+            border-radius: 4px;
+            border-left: 3px solid #666;
+        }
+        .test-item.pass {
+            border-left-color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+        }
+        .test-item.fail {
+            border-left-color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+        }
+        .test-item.pending {
+            border-left-color: #ffaa00;
+            background: rgba(255, 170, 0, 0.1);
+        }
+        .test-item.running {
+            border-left-color: #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+        }
+        .test-status {
+            font-size: 24px;
+            margin-right: 15px;
+            min-width: 30px;
+            text-align: center;
+        }
+        .test-status.pass { color: #00ff88; }
+        .test-status.fail { color: #ff4444; }
+        .test-status.pending { color: #ffaa00; }
+        .test-status.running { color: #00ffff; animation: pulse 1s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .test-content { flex: 1; }
+        .test-name { font-weight: bold; color: #ffffff; margin-bottom: 4px; }
+        .test-details { font-size: 12px; color: #aaa; margin-top: 4px; }
+        button {
+            background: #222;
+            color: #00ff88;
+            border: 1px solid #00ff88;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: inherit;
+            font-size: 14px;
+            border-radius: 4px;
+        }
+        button:hover { background: #00ff88; color: #000; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        pre {
+            background: #111;
+            padding: 10px;
+            overflow-x: auto;
+            font-size: 12px;
+            border-radius: 4px;
+            border: 1px solid #333;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .summary {
+            font-size: 18px;
+            padding: 20px;
+            background: #111;
+            margin-top: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            margin: 0 5px;
+        }
+        .status-pending { background: #333; color: #fff; }
+        .status-running { background: #003366; color: #00ffff; }
+        .status-passed { background: #003300; color: #00ff00; }
+        .status-failed { background: #330000; color: #ff0000; }
+        .agent-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .agent-card {
+            background: #111;
+            border: 1px solid #333;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .agent-card.a2a-enabled {
+            border-color: #00ff88;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        label {
+            display: inline-block;
+            min-width: 150px;
+            color: #00ffff;
+        }
+        input, select, textarea {
+            background: #111;
+            color: #00ff88;
+            border: 1px solid #333;
+            padding: 5px 10px;
+            font-family: inherit;
+            border-radius: 4px;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤝 A2A Integration Tests</h1>
+        <p class="subtitle">Test agent spawning with A2A protocol, client registration, and integration</p>
+
+        <div class="test-section">
+            <h2>Prerequisites Check</h2>
+            <div id="prereq-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>A2A Helper Methods Tests</h2>
+            <div id="helper-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Spawn Agent with A2A</h2>
+            <div id="spawn-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>A2A Client Registration Tests</h2>
+            <div id="registration-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Integration Validation Tests</h2>
+            <div id="integration-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Interactive Test Panel</h2>
+            <div class="grid">
+                <div>
+                    <h3>Spawn Test Agent</h3>
+                    <div class="input-group">
+                        <label>Agent Type:</label>
+                        <select id="test-agent-type">
+                            <option value="monitor">monitor</option>
+                            <option value="executor">executor</option>
+                            <option value="evolver">evolver</option>
+                            <option value="analyzer">analyzer</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Region X:</label>
+                        <input type="number" id="test-region-x" value="0">
+                    </div>
+                    <div class="input-group">
+                        <label>Region Y:</label>
+                        <input type="number" id="test-region-y" value="0">
+                    </div>
+                    <div class="input-group">
+                        <label>Region Width:</label>
+                        <input type="number" id="test-region-width" value="100">
+                    </div>
+                    <div class="input-group">
+                        <label>Region Height:</label>
+                        <input type="number" id="test-region-height" value="100">
+                    </div>
+                    <div class="input-group">
+                        <label>A2A Enabled:</label>
+                        <input type="checkbox" id="test-a2a-enabled" checked>
+                    </div>
+                    <button onclick="spawnTestAgent()">Spawn Agent</button>
+                    <div id="spawn-result"></div>
+                </div>
+                <div>
+                    <h3>Agent Registry</h3>
+                    <div id="agent-registry" class="agent-list">
+                        <p style="color:#666">No agents spawned yet</p>
+                    </div>
+                    <button onclick="refreshAgentList()">Refresh List</button>
+                    <button onclick="clearAllAgents()">Clear All</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>A2A Communication Test</h2>
+            <div class="grid">
+                <div>
+                    <h3>Send Message to Agent</h3>
+                    <div class="input-group">
+                        <label>Target Agent ID:</label>
+                        <input type="text" id="msg-target-agent" placeholder="agent-001" style="width: 200px;">
+                    </div>
+                    <div class="input-group">
+                        <label>Message Type:</label>
+                        <select id="msg-type">
+                            <option value="task_request">task_request</option>
+                            <option value="task_update">task_update</option>
+                            <option value="status_update">status_update</option>
+                            <option value="coordination_request">coordination_request</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Content (JSON):</label>
+                        <textarea id="msg-content" rows="3" style="width:100%">{"task": "test_scan"}</textarea>
+                    </div>
+                    <button onclick="sendTestMessage()">Send Message</button>
+                    <div id="msg-result"></div>
+                </div>
+                <div>
+                    <h3>Discover Agents</h3>
+                    <div class="input-group">
+                        <label>Filter by Type:</label>
+                        <select id="discover-type">
+                            <option value="">(all)</option>
+                            <option value="monitor">monitor</option>
+                            <option value="executor">executor</option>
+                            <option value="evolver">evolver</option>
+                            <option value="analyzer">analyzer</option>
+                        </select>
+                    </div>
+                    <button onclick="discoverAgents()">Discover</button>
+                    <div id="discover-result"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="summary">
+            <strong>Test Summary:</strong>
+            <span id="summary-text">Run tests to see results</span>
+        </div>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="runAllTests()">▶ Run All Tests</button>
+            <button onclick="location.reload()">↻ Reload Page</button>
+        </div>
+    </div>
+
+    <script>
+        // Test state
+        const results = { passed: 0, failed: 0, pending: 0, running: 0 };
+        const spawnedAgents = [];
+
+        // Update summary display
+        function updateSummary() {
+            document.getElementById('summary-text').innerHTML =
+                `<span class="status-badge status-passed">${results.passed} passed</span>` +
+                `<span class="status-badge status-failed">${results.failed} failed</span>` +
+                `<span class="status-badge status-pending">${results.pending} pending</span>` +
+                `<span class="status-badge status-running">${results.running} running</span>`;
+        }
+
+        // Add test result to container
+        function addResult(containerId, testName, status, details = '') {
+            const container = document.getElementById(containerId);
+            const item = document.createElement('div');
+            item.className = `test-item ${status}`;
+
+            const statusIcon = {
+                pass: '✓',
+                fail: '✗',
+                pending: '○',
+                running: '◌'
+            }[status] || '?';
+
+            item.innerHTML = `
+                <div class="test-status ${status}">${statusIcon}</div>
+                <div class="test-content">
+                    <div class="test-name">${testName}</div>
+                    ${details ? `<div class="test-details">${details}</div>` : ''}
+                </div>
+            `;
+            container.appendChild(item);
+
+            // Update counters
+            results[status === 'pass' ? 'passed' : status === 'fail' ? 'failed' : status === 'running' ? 'running' : 'pending']++;
+            updateSummary();
+
+            return status === 'pass';
+        }
+
+        // Clear test container
+        function clearContainer(containerId) {
+            document.getElementById(containerId).innerHTML = '';
+        }
+
+        // ===== Prerequisites Tests =====
+        async function testPrerequisites() {
+            const container = 'prereq-results';
+            clearContainer(container);
+
+            // Test 1: WebMCP API available
+            const webmcpAvailable = typeof navigator !== 'undefined' && 'modelContext' in navigator;
+            addResult(container, 'WebMCP API available',
+                webmcpAvailable ? 'pass' : 'pending',
+                webmcpAvailable ? 'navigator.modelContext detected' : 'Chrome 146+ required');
+
+            // Test 2: WebMCP Bridge loaded
+            const bridgeReady = typeof window.webmcpBridge !== 'undefined';
+            addResult(container, 'WebMCP Bridge loaded',
+                bridgeReady ? 'pass' : 'fail',
+                bridgeReady ? 'window.webmcpBridge available' : 'webmcp_bridge.js not loaded');
+
+            if (!bridgeReady) {
+                addResult(container, 'A2A Integration tests',
+                    'pending', 'Cannot proceed without WebMCP Bridge');
+                return false;
+            }
+
+            // Test 3: Bridge methods exist
+            const bridge = window.webmcpBridge;
+            const hasGetAgentA2AClient = typeof bridge.getAgentA2AClient === 'function';
+            const hasGetAgentsWithA2A = typeof bridge.getAgentsWithA2A === 'function';
+            const hasGetAgentInfo = typeof bridge.getAgentInfo === 'function';
+            const hasSpawnAreaAgent = typeof bridge.spawnAreaAgent !== 'undefined'; // tool name
+
+            addResult(container, 'getAgentA2AClient method exists',
+                hasGetAgentA2AClient ? 'pass' : 'fail',
+                hasGetAgentA2AClient ? 'Method available' : 'Method NOT found');
+
+            addResult(container, 'getAgentsWithA2A method exists',
+                hasGetAgentsWithA2A ? 'pass' : 'fail',
+                hasGetAgentsWithA2A ? 'Method available' : 'Method NOT found');
+
+            addResult(container, 'getAgentInfo method exists',
+                hasGetAgentInfo ? 'pass' : 'fail',
+                hasGetAgentInfo ? 'Method available' : 'Method NOT found');
+
+            // Test 4: spawn_area_agent tool registered
+            const status = bridge.getStatus?.();
+            const spawnToolRegistered = status?.tools?.includes('spawn_area_agent');
+
+            addResult(container, 'spawn_area_agent tool registered',
+                spawnToolRegistered ? 'pass' : 'fail',
+                spawnToolRegistered ? 'Tool available' : 'Tool NOT registered');
+
+            return hasGetAgentA2AClient && hasGetAgentsWithA2A && spawnToolRegistered;
+        }
+
+        // ===== Helper Methods Tests =====
+        async function testHelperMethods() {
+            const container = 'helper-results';
+            clearContainer(container);
+
+            const bridge = window.webmcpBridge;
+
+            // Test 1: getAgentsWithA2A returns array
+            const agentsList = bridge.getAgentsWithA2A();
+            const isArray = Array.isArray(agentsList);
+
+            addResult(container, 'getAgentsWithA2A() returns array',
+                isArray ? 'pass' : 'fail',
+                isArray ? `Type: ${typeof agentsList}, Length: ${agentsList.length}` : `Type: ${typeof agentsList}`);
+
+            // Test 2: getAgentA2AClient returns null for non-existent agent
+            const nullResult = bridge.getAgentA2AClient('nonexistent-agent');
+            addResult(container, 'getAgentA2AClient() returns null for unknown agent',
+                nullResult === null ? 'pass' : 'fail',
+                `Result: ${nullResult === null ? 'null' : typeof nullResult}`);
+
+            // Test 3: getAgentInfo returns null for non-existent agent
+            const infoNullResult = bridge.getAgentInfo('another-nonexistent');
+            addResult(container, 'getAgentInfo() returns null for unknown agent',
+                infoNullResult === null ? 'pass' : 'fail',
+                `Result: ${infoNullResult === null ? 'null' : typeof infoNullResult}`);
+
+            return isArray && nullResult === null && infoNullResult === null;
+        }
+
+        // ===== Spawn Agent with A2A Tests =====
+        async function testSpawnAgentWithA2A() {
+            const container = 'spawn-results';
+            clearContainer(container);
+
+            const bridge = window.webmcpBridge;
+
+            // Test 1: Call spawn_area_agent (will likely fail without backend, but we test the API)
+            addResult(container, 'spawn_area_agent API structure',
+                'pending', 'Requires backend - tests tool interface');
+
+            // In a real test environment with backend:
+            // const result = await navigator.modelContext.callTool({
+            //     name: 'spawn_area_agent',
+            //     arguments: {
+            //         agent_type: 'monitor',
+            //         region: { x: 0, y: 0, width: 100, height: 100 },
+            //         a2a_config: { enabled: true }
+            //     }
+            // });
+
+            return true;
+        }
+
+        // ===== A2A Client Registration Tests =====
+        async function testA2ARegistration() {
+            const container = 'registration-results';
+            clearContainer(container);
+
+            const bridge = window.webmcpBridge;
+
+            // Test 1: Verify #agentA2AClients private field exists (indirectly)
+            // We can't directly access private fields, but we can infer from behavior
+
+            // Test 2: After spawning an agent, getAgentsWithA2A should include it
+            addResult(container, 'Agent registration tracking',
+                'pending', 'Requires agent spawn (backend needed)');
+
+            // Test 3: getAgentA2AClient should return router for A2A-enabled agent
+            addResult(container, 'A2A client retrieval',
+                'pending', 'Requires A2A-enabled agent spawn');
+
+            // Test 4: getAgentInfo should include a2aEnabled field
+            addResult(container, 'Agent info includes A2A status',
+                'pending', 'Requires agent spawn to verify');
+
+            return true;
+        }
+
+        // ===== Integration Validation Tests =====
+        async function testIntegrationValidation() {
+            const container = 'integration-results';
+            clearContainer(container);
+
+            // Test 1: Multiple agents can be tracked
+            addResult(container, 'Multi-agent tracking',
+                'pending', 'Requires spawning multiple agents');
+
+            // Test 2: A2A message routing between spawned agents
+            addResult(container, 'A2A inter-agent communication',
+                'pending', 'Requires A2A backend (ws://localhost:8766)');
+
+            // Test 3: Agent discovery through A2A registry
+            addResult(container, 'A2A agent discovery',
+                'pending', 'Requires A2A backend');
+
+            // Test 4: Region-based filtering for agents
+            addResult(container, 'Region overlap detection',
+                'pending', 'Requires agents with overlapping regions');
+
+            // Test 5: Type-based filtering for agents
+            addResult(container, 'Agent type filtering',
+                'pending', 'Requires agents of different types');
+
+            return true;
+        }
+
+        // ===== Interactive Functions =====
+
+        async function spawnTestAgent() {
+            const agentType = document.getElementById('test-agent-type').value;
+            const region = {
+                x: parseInt(document.getElementById('test-region-x').value),
+                y: parseInt(document.getElementById('test-region-y').value),
+                width: parseInt(document.getElementById('test-region-width').value),
+                height: parseInt(document.getElementById('test-region-height').value)
+            };
+            const a2aEnabled = document.getElementById('test-a2a-enabled').checked;
+
+            const resultDiv = document.getElementById('spawn-result');
+            resultDiv.innerHTML = '<div class="test-item running"><div class="test-status running">◌</div><div class="test-content">Spawning agent...</div></div>';
+
+            try {
+                // Check if WebMCP context is available
+                if (typeof navigator?.modelContext?.callTool !== 'function') {
+                    throw new Error('WebMCP API not available - requires Chrome 146+');
+                }
+
+                const result = await navigator.modelContext.callTool({
+                    name: 'spawn_area_agent',
+                    arguments: {
+                        agent_type: agentType,
+                        region: region,
+                        a2a_config: a2aEnabled ? {
+                            enabled: true,
+                            auto_discover: true,
+                            wsUrl: 'ws://localhost:8766'
+                        } : null,
+                        auto_start: true
+                    }
+                });
+
+                if (result?.success) {
+                    spawnedAgents.push({
+                        agentId: result.agentId,
+                        agentType,
+                        region,
+                        a2aEnabled,
+                        spawnedAt: Date.now()
+                    });
+
+                    resultDiv.innerHTML = `
+                        <div class="test-item pass">
+                            <div class="test-status pass">✓</div>
+                            <div class="test-content">
+                                <div class="test-name">Agent Spawned Successfully</div>
+                                <div class="test-details">
+                                    Agent ID: ${result.agentId}<br>
+                                    Type: ${agentType}<br>
+                                    Region: ${region.x},${region.y} ${region.width}x${region.height}<br>
+                                    A2A: ${a2aEnabled ? 'Enabled' : 'Disabled'}<br>
+                                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    refreshAgentList();
+                } else {
+                    throw new Error(result?.error || 'Spawn failed');
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `
+                    <div class="test-item fail">
+                        <div class="test-status fail">✗</div>
+                        <div class="test-content">
+                            <div class="test-name">Spawn Failed</div>
+                            <div class="test-details">${err.message}<br>
+                            ${err.message.includes('backend') || err.message.includes('connection')
+                                ? 'Note: Backend daemon must be running' : ''}</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function refreshAgentList() {
+            const container = document.getElementById('agent-registry');
+
+            if (spawnedAgents.length === 0) {
+                container.innerHTML = '<p style="color:#666">No agents spawned yet</p>';
+                return;
+            }
+
+            container.innerHTML = spawnedAgents.map(agent => `
+                <div class="agent-card ${agent.a2aEnabled ? 'a2a-enabled' : ''}">
+                    <strong>${agent.agentId}</strong><br>
+                    <small style="color:#888">
+                        Type: ${agent.agentType} |
+                        Region: ${agent.region.x},${agent.region.y} ${agent.region.width}x${agent.region.height}<br>
+                        A2A: ${agent.a2aEnabled ? '<span style="color:#00ff88">Enabled</span>' : '<span style="color:#666">Disabled</span>'}
+                    </small>
+                </div>
+            `).join('');
+        }
+
+        function clearAllAgents() {
+            spawnedAgents.length = 0;
+            refreshAgentList();
+            document.getElementById('spawn-result').innerHTML = '';
+        }
+
+        async function sendTestMessage() {
+            const targetAgent = document.getElementById('msg-target-agent').value;
+            const msgType = document.getElementById('msg-type').value;
+            const contentStr = document.getElementById('msg-content').value;
+
+            const resultDiv = document.getElementById('msg-result');
+            resultDiv.innerHTML = '<div class="test-item running">Sending message...</div>';
+
+            try {
+                let content;
+                try {
+                    content = JSON.parse(contentStr);
+                } catch (e) {
+                    throw new Error('Invalid JSON in content field');
+                }
+
+                if (typeof navigator?.modelContext?.callTool !== 'function') {
+                    throw new Error('WebMCP API not available');
+                }
+
+                const result = await navigator.modelContext.callTool({
+                    name: 'send_a2a_message',
+                    arguments: {
+                        to_agent: targetAgent,
+                        message_type: msgType,
+                        content: content,
+                        priority: 5
+                    }
+                });
+
+                resultDiv.innerHTML = `
+                    <div class="test-item ${result?.success ? 'pass' : 'fail'}">
+                        <div class="test-status ${result?.success ? 'pass' : 'fail'}">${result?.success ? '✓' : '✗'}</div>
+                        <div class="test-content">
+                            <div class="test-name">${result?.success ? 'Message Sent' : 'Send Failed'}</div>
+                            <div class="test-details"><pre>${JSON.stringify(result, null, 2)}</pre></div>
+                        </div>
+                    </div>
+                `;
+            } catch (err) {
+                resultDiv.innerHTML = `
+                    <div class="test-item fail">
+                        <div class="test-status fail">✗</div>
+                        <div class="test-content">
+                            <div class="test-name">Error</div>
+                            <div class="test-details">${err.message}</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        async function discoverAgents() {
+            const agentType = document.getElementById('discover-type').value;
+            const resultDiv = document.getElementById('discover-result');
+
+            resultDiv.innerHTML = '<div class="test-item running">Discovering agents...</div>';
+
+            try {
+                if (typeof navigator?.modelContext?.callTool !== 'function') {
+                    throw new Error('WebMCP API not available');
+                }
+
+                const args = {};
+                if (agentType) {
+                    args.agent_type = agentType;
+                }
+
+                const result = await navigator.modelContext.callTool({
+                    name: 'discover_a2a_agents',
+                    arguments: args
+                });
+
+                const discovered = result?.agents || [];
+                resultDiv.innerHTML = `
+                    <div class="test-item ${result?.success ? 'pass' : 'fail'}">
+                        <div class="test-status ${result?.success ? 'pass' : 'fail'}">${result?.success ? '✓' : '✗'}</div>
+                        <div class="test-content">
+                            <div class="test-name">Found ${discovered.length} agents</div>
+                            <div class="test-details">
+                                ${discovered.length > 0
+                                    ? discovered.map(a => `<div>${a.agent_id} (${a.agent_type})</div>`).join('')
+                                    : 'No agents discovered'}
+                                <pre>${JSON.stringify(result, null, 2)}</pre>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (err) {
+                resultDiv.innerHTML = `
+                    <div class="test-item fail">
+                        <div class="test-status fail">✗</div>
+                        <div class="test-content">
+                            <div class="test-name">Error</div>
+                            <div class="test-details">${err.message}</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // ===== Run All Tests =====
+        async function runAllTests() {
+            // Reset counters
+            results.passed = 0;
+            results.failed = 0;
+            results.pending = 0;
+            results.running = 0;
+
+            await testPrerequisites();
+            await testHelperMethods();
+            await testSpawnAgentWithA2A();
+            await testA2ARegistration();
+            await testIntegrationValidation();
+
+            updateSummary();
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            setTimeout(runAllTests, 500);
+        });
+    </script>
+</body>
+</html>

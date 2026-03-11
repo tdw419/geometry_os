@@ -1,0 +1,62 @@
+#!/bin/bash
+#
+# Geometry OS Pre-Push Hook
+# Runs full test suite before pushing to remote
+#
+
+set -e
+
+echo "=== Geometry OS Pre-Push Checks ==="
+
+# Run pre-commit checks first
+if [ -f ".git/hooks/pre-commit" ]; then
+    .git/hooks/pre-commit
+fi
+
+# Check we're on a feature branch (not master)
+CURRENT_BRANCH=$(git branch --show-current)
+if [ "$CURRENT_BRANCH" = "master" ] || [ "$CURRENT_BRANCH" = "main" ]; then
+    echo "⚠️  Pushing to main branch - extra checks enabled"
+    
+    # Require all tests pass
+    echo "🧪 Running full test suite..."
+    
+    # Python tests
+    if [ -d "ai_project_management" ]; then
+        cd ai_project_management
+        uv run pytest tests/ -v --tb=short || {
+            echo "❌ Python tests failed"
+            exit 1
+        }
+        cd ..
+    fi
+    
+    # Visual regression (if Chrome available)
+    if command -v google-chrome &> /dev/null; then
+        if [ -f "systems/visual_shell/web/visual_regression.py" ]; then
+            echo "🖼️  Running visual regression tests..."
+            python3 systems/visual_shell/web/visual_regression.py compare || {
+                echo "⚠️  Visual changes detected - review before merge"
+            }
+        fi
+    fi
+fi
+
+# Check for large files
+LARGE_FILES=$(find . -type f -size +10M -not -path "./.git/*" -not -path "./node_modules/*" -not -path "./.venv/*" 2>/dev/null | head -5)
+if [ -n "$LARGE_FILES" ]; then
+    echo "⚠️  Large files detected:"
+    echo "$LARGE_FILES"
+    echo "Consider using Git LFS"
+fi
+
+# Check for secrets (basic scan)
+if grep -r "api_key\|secret\|password\|token" --include="*.js" --include="*.py" --include="*.env" . 2>/dev/null | grep -v "node_modules" | grep -v ".env.example" | head -5; then
+    echo "⚠️  Potential secrets detected - please review"
+fi
+
+echo ""
+echo "✅ Pre-push checks passed!"
+echo "   Branch: $CURRENT_BRANCH"
+echo "   Remote: $1"
+exit 0

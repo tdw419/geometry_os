@@ -1,0 +1,27 @@
+; Fibonacci Sequence Template
+; Computes the nth Fibonacci number
+;
+; Input: R0 = n (which Fibonacci number to compute)
+; Output: R1 = result
+
+LOAD R1, 0       ; Fib(n-2)
+LOAD R2, 1       ; Fib(n-1)
+LOAD R3, 0       ; Current result
+
+loop:
+    ; Add previous two numbers
+    MOV R4, R1   ; Temp = Fib(n-2)
+    ADD R3, R1   ; Current += Fib(n-2)
+    ADD R3, R2   ; Current += Fib(n-1)
+
+    ; Shift: Fib(n-2) = Fib(n-1), Fib(n-1) = Current
+    MOV R1, R2
+    MOV R2, R3
+
+    ; Decrement counter
+    SUB R0, 1
+
+    ; Continue if not zero
+    JNZ R0, loop
+
+RET R1           ; Return result ( Fib(n-2) which is now the result)

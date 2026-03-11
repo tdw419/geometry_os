@@ -1,0 +1,196 @@
+{
+  "_meta": {
+    "language": "Spanish",
+    "native": "Español",
+    "version": "1.0.0",
+    "author": "Geometry OS Team"
+  },
+  "app": {
+    "name": "CLI de GeoASM",
+    "description": "Herramientas para el Lenguaje Ensamblador de Geometry OS",
+    "version": "Versión {version}"
+  },
+  "greeting": {
+    "welcome": "Bienvenido a GeoASM CLI",
+    "goodbye": "¡Hasta luego!",
+    "help": "Escribe 'help' para ver los comandos disponibles"
+  },
+  "commands": {
+    "run": "Ejecutar un programa GeoASM",
+    "build": "Compilar a binario",
+    "debug": "Depurador interactivo",
+    "profile": "Análisis de rutas calientes",
+    "validate": "Verificar errores",
+    "disasm": "Desensamlar binario",
+    "opcodes": "Listar códigos de operación disponibles"
+  },
+  "errors": {
+    "file_not_found": "Archivo no encontrado: '{file}'",
+    "invalid_file": "Archivo inválido: '{file}'",
+    "assembly_failed": "Error de ensamblaje",
+    "unknown_opcode": "Código de operación desconocido: '{opcode}'",
+    "invalid_register": "Registro inválido: '{register}'",
+    "out_of_bounds": "Fuera de límites: {index}",
+    "memory_error": "Error de memoria en la dirección {address}",
+    "stack_overflow": "Desbordamiento de pila",
+    "stack_underflow": "Subdesbordamiento de pila",
+    "division_by_zero": "División por cero",
+    "invalid_operand": "Operando inválido: {operand}",
+    "label_not_found": "Etiqueta no encontrada: '{label}'",
+    "parse_error": "Error de análisis en la línea {line}: {message}",
+    "execution_error": "Error de ejecución: {message}",
+    "permission_denied": "Permiso denegado: '{path}'",
+    "io_error": "Error de E/S: {message}",
+    "timeout": "Operación agotada después de {seconds} segundos",
+    "invalid_coordinates": "Las coordenadas deben ser no negativas: ({x}, {y})",
+    "glyph_not_found": "Glifo no encontrado: '{glyph_id}'",
+    "substrate_overflow": "Desbordamiento de sustrato: posición ({x}, {y}) excede el tamaño {size}",
+    "unsupported_format": "Formato no soportado: '{format}'",
+    "missing_dependency": "Dependencia faltante: '{dependency}'"
+  },
+  "warnings": {
+    "no_halt": "Advertencia: El programa no tiene instrucción HALT (puede ejecutarse indefinidamente)",
+    "unreachable_code": "Advertencia: Código inalcanzable en la dirección {address}",
+    "deprecated_opcode": "Advertencia: El código de operación '{opcode}' está obsoleto",
+    "low_memory": "Advertencia: Memoria baja ({percent}% disponible)",
+    "performance": "Advertencia: Degradación de rendimiento detectada",
+    "experimental": "Advertencia: La función '{feature}' es experimental"
+  },
+  "info": {
+    "assembling": "Ensamblando '{file}'...",
+    "assembled": "Programa ensamblado exitosamente",
+    "running": "Ejecutando '{file}'...",
+    "building": "Construyendo '{input}' -> '{output}'",
+    "validating": "Validando '{file}'...",
+    "loading_glyph": "Cargando glifo: '{glyph_id}'",
+    "rendering": "Renderizando {count} glifos",
+    "evicting_cache": "Expulsando {count} entradas de la caché",
+    "checkpoint_saved": "Punto de control guardado: {path}",
+    "checkpoint_restored": "Punto de control restaurado desde: {path}"
+  },
+  "success": {
+    "build_complete": "Construcción completa: {output}",
+    "validation_passed": "✓ {file} es válido",
+    "execution_complete": "Ejecución completada exitosamente",
+    "tests_passed": "Todas las {count} pruebas pasaron",
+    "file_saved": "Archivo guardado: '{path}'"
+  },
+  "opcodes": {
+    "nop": "Sin operación",
+    "halt": "Detener ejecución",
+    "jmp": "Saltar a dirección",
+    "jeq": "Saltar si es igual",
+    "jne": "Saltar si no es igual",
+    "jlt": "Saltar si es menor que",
+    "jgt": "Saltar si es mayor que",
+    "jle": "Saltar si es menor o igual",
+    "jge": "Saltar si es mayor o igual",
+    "call": "Llamar función",
+    "ret": "Retornar de función",
+    "push": "Empujar registro a la pila",
+    "pop": "Sacar de la pila al registro",
+    "ldr": "Cargar desde memoria",
+    "str": "Almacenar en memoria",
+    "movi": "Mover inmediato",
+    "add": "Sumar registros",
+    "sub": "Restar registros",
+    "mul": "Multiplicar registros",
+    "div": "Dividir registros",
+    "and": "AND bit a bit",
+    "or": "OR bit a bit",
+    "xor": "XOR bit a bit",
+    "not": "NOT bit a bit",
+    "set_color": "Establecer color de dibujo",
+    "draw_char": "Dibujar carácter",
+    "draw_line": "Dibujar línea",
+    "draw_rect": "Dibujar rectángulo",
+    "fill_rect": "Rellenar rectángulo",
+    "glyph_define": "Registrar mapa de bits de glifo",
+    "glyph_blit": "Renderizar glifo al framebuffer",
+    "glyph_transform": "Aplicar matriz de rotación/escala",
+    "glyph_composite": "Superponer múltiples glifos",
+    "glyph_cache_evict": "Expulsar glifo más antiguo de la caché",
+    "orb": "Dibujar orbe (visualización de archivo)",
+    "panel": "Dibujar panel de cristal",
+    "panel_title": "Establecer barra de título del panel",
+    "panel_border": "Dibujar borde del panel",
+    "heatmap_cell": "Dibujar celda de mapa de calor",
+    "embed": "Buscar embedding de token",
+    "attend": "Auto-atención vía kernel WGSL",
+    "project": "Proyección FFN vía kernel WGSL",
+    "sample": "Muestrear token desde logits",
+    "llm_prompt": "Llamar LLM externo",
+    "kv_append": "Añadir a textura de caché KV",
+    "thought_pulse": "Emitir pulso de glifo visual"
+  },
+  "glyph": {
+    "cache_hit": "Acierto de caché para glifo '{id}'",
+    "cache_miss": "Fallo de caché para glifo '{id}'",
+    "cache_full": "Caché de glifos llena, expulsando entradas LRU",
+    "defined": "Glifo '{id}' definido ({width}x{height})",
+    "blitted": "Glifo '{id}' transferido a ({x}, {y})",
+    "transformed": "Glifo '{id}' transformado",
+    "composited": "Compuestos {count} glifos en '{id}'"
+  },
+  "orb": {
+    "visualizing": "Visualizando archivo: '{path}'",
+    "visualized": "Archivo visualizado: {bytes} bytes -> sustrato {size}x{size}",
+    "too_large": "Archivo demasiado grande: {bytes} bytes (máx: {max_bytes})",
+    "empty": "Archivo vacío, nada que visualizar"
+  },
+  "panel": {
+    "created": "Panel creado en ({x}, {y}) con tamaño {width}x{height}",
+    "title_set": "Título del panel {id} establecido como: '{title}'",
+    "border_set": "Estilo de borde del panel {id} establecido como: {style}"
+  },
+  "heatmap": {
+    "cell_added": "Celda de mapa de calor añadida en ({x}, {y}) con valor {value}",
+    "rendered": "Mapa de calor renderizado con {count} celdas"
+  },
+  "debug": {
+    "breakpoint_set": "Punto de interrupción establecido en la dirección {address}",
+    "breakpoint_hit": "Punto de interrupción alcanzado en la dirección {address}",
+    "step": "Pasando por instrucción en {address}",
+    "register_state": "Estado de registros: {state}",
+    "memory_dump": "Volcado de memoria desde {start} hasta {end}"
+  },
+  "help": {
+    "usage": "Uso: geoasm <comando> [opciones]",
+    "commands_header": "Comandos:",
+    "options_header": "Opciones:",
+    "examples_header": "Ejemplos:",
+    "run_help": "Ejecutar un programa GeoASM",
+    "build_help": "Construir GeoASM a binario",
+    "validate_help": "Validar un programa GeoASM",
+    "disasm_help": "Desensamblar binario a GeoASM",
+    "opcodes_help": "Listar todos los códigos de operación disponibles",
+    "option_file": "Archivo GeoASM a procesar",
+    "option_output": "Ruta del archivo de salida",
+    "option_verbose": "Habilitar salida verbosa",
+    "option_locale": "Establecer idioma (ej., en, es, fr, de, ja, zh)"
+  },
+  "examples": {
+    "run": "geoasm run programa.geoasm",
+    "build": "geoasm build programa.geoasm -o programa.bin",
+    "validate": "geoasm validate programa.geoasm",
+    "disasm": "geoasm disasm programa.bin",
+    "opcodes": "geoasm opcodes"
+  },
+  "item": {
+    "count_one": "{count} elemento",
+    "count_other": "{count} elementos",
+    "processed": "Procesados {count} elementos",
+    "remaining": "{count} elementos restantes"
+  },
+  "time": {
+    "elapsed": "Tiempo transcurrido: {seconds:.3f}s",
+    "remaining": "Tiempo estimado restante: {seconds:.0f}s",
+    "started": "Iniciado a las {time}",
+    "completed": "Completado a las {time}"
+  },
+  "locale": {
+    "changed": "Idioma cambiado a: {locale}",
+    "unsupported": "Idioma no soportado: '{locale}'. Usando '{fallback}' en su lugar.",
+    "available": "Idiomas disponibles: {locales}"
+  }
+}

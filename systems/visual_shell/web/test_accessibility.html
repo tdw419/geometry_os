@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accessibility Testing - Visual Shell</title>
+    <link rel="stylesheet" href="css/accessibility.css">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #0a0a14;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: #1a1a2e;
+            padding: 16px 0;
+            border-bottom: 1px solid #333;
+        }
+        
+        header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            gap: 20px;
+        }
+        
+        nav a {
+            color: #ffffff;
+            text-decoration: none;
+        }
+        
+        nav a:hover {
+            color: #0066cc;
+        }
+        
+        main {
+            padding: 40px 0;
+        }
+        
+        h1 {
+            font-size: 32px;
+            margin: 0 0 24px 0;
+        }
+        
+        h2 {
+            font-size: 24px;
+            margin: 32px 0 16px 0;
+            border-bottom: 2px solid #333;
+            padding-bottom: 8px;
+        }
+        
+        h3 {
+            font-size: 18px;
+            margin: 24px 0 12px 0;
+        }
+        
+        p {
+            margin: 0 0 16px 0;
+            color: #cccccc;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+        }
+        
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+        
+        .demo-card {
+            background-color: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .demo-card h3 {
+            margin-top: 0;
+        }
+        
+        /* Status bar */
+        #status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #1a1a2e;
+            border-top: 1px solid #333;
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        /* Test controls */
+        .test-controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        
+        /* Tile grid demo */
+        .tile-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin: 20px 0;
+        }
+        
+        .tile {
+            aspect-ratio: 1;
+            background-color: #2a2a3e;
+            border: 1px solid #444;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .tile:hover {
+            background-color: #3a3a4e;
+        }
+        
+        .tile:focus {
+            outline: 3px solid #0066cc;
+            outline-offset: 2px;
+        }
+        
+        .tile[aria-selected="true"] {
+            background-color: rgba(0, 102, 204, 0.3);
+            border-color: #0066cc;
+        }
+        
+        /* Tabs demo */
+        .demo-tabs {
+            margin: 20px 0;
+        }
+        
+        .demo-tabpanels {
+            background-color: #1a1a2e;
+            border: 1px solid #333;
+            border-top: none;
+            padding: 20px;
+            border-radius: 0 0 4px 4px;
+        }
+        
+        /* Form demo */
+        .demo-form {
+            max-width: 400px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            background-color: #0a0a14;
+            border: 2px solid #444;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: #0066cc;
+            outline: none;
+        }
+        
+        /* List demo */
+        .demo-list {
+            background-color: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .demo-list-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #333;
+        }
+        
+        .demo-list-item:last-child {
+            border-bottom: none;
+        }
+        
+        .demo-list-item:hover {
+            background-color: rgba(0, 102, 204, 0.1);
+        }
+        
+        .demo-list-item:focus {
+            background-color: rgba(0, 102, 204, 0.15);
+            outline: none;
+        }
+        
+        /* Status indicators */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 12px;
+            background-color: rgba(0, 255, 0, 0.1);
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        
+        .status-indicator::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #00ff00;
+        }
+        
+        /* Test results */
+        .test-results {
+            background-color: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .test-result {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid #333;
+        }
+        
+        .test-result:last-child {
+            border-bottom: none;
+        }
+        
+        .test-result-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        .test-result-icon.pass {
+            background-color: rgba(0, 255, 0, 0.2);
+            color: #00ff00;
+        }
+        
+        .test-result-icon.fail {
+            background-color: rgba(255, 0, 0, 0.2);
+            color: #ff0000;
+        }
+        
+        .test-result-icon.pending {
+            background-color: rgba(255, 255, 0, 0.2);
+            color: #ffff00;
+        }
+        
+        /* Checklist */
+        .checklist {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+        
+        .checklist li {
+            padding: 8px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        
+        .checklist input[type="checkbox"] {
+            margin-top: 4px;
+            width: 18px;
+            height: 18px;
+        }
+        
+        footer {
+            background-color: #1a1a2e;
+            padding: 20px 0;
+            border-top: 1px solid #333;
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+        }
+        
+        /* Live region demo */
+        #live-region-demo {
+            background-color: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .announcement-log {
+            background-color: #0a0a14;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 12px;
+            margin-top: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .announcement-log-item {
+            padding: 4px 0;
+            border-bottom: 1px solid #333;
+        }
+        
+        .announcement-log-item:last-child {
+            border-bottom: none;
+        }
+        
+        .announcement-log-time {
+            color: #888;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Skip Links (created by accessibility.js) -->
+    
+    <header role="banner">
+        <div class="container">
+            <div class="logo">Visual Shell</div>
+            <nav role="navigation" aria-label="Main navigation">
+                <ul>
+                    <li><a href="#keyboard">Keyboard Navigation</a></li>
+                    <li><a href="#screen-reader">Screen Reader</a></li>
+                    <li><a href="#testing">Testing</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    
+    <main id="main-content" role="main">
+        <div class="container">
+            <h1>Accessibility Testing Suite</h1>
+            <p>
+                This page provides comprehensive testing for keyboard navigation and screen reader 
+                compatibility across all Visual Shell user interfaces. Press <kbd>?</kbd> at any time 
+                to view available keyboard shortcuts.
+            </p>
+            
+            <div class="test-controls">
+                <button class="a11y-btn" onclick="runAllTests()">Run All Tests</button>
+                <button class="a11y-btn a11y-btn-secondary" onclick="a11y.showHelp()">
+                    View Keyboard Shortcuts
+                </button>
+                <button class="a11y-btn a11y-btn-secondary" onclick="a11y.toggleHighContrast()">
+                    Toggle High Contrast
+                </button>
+                <button class="a11y-btn a11y-btn-secondary" onclick="a11y.toggleReducedMotion()">
+                    Toggle Reduced Motion
+                </button>
+            </div>
+            
+            <!-- Test Results -->
+            <section id="test-results-section" class="section" style="display: none;">
+                <h2>Test Results</h2>
+                <div id="test-results" class="test-results">
+                    <!-- Results will be populated by JavaScript -->
+                </div>
+            </section>
+            
+            <!-- Keyboard Navigation Tests -->
+            <section id="keyboard" class="section">
+                <h2>Keyboard Navigation</h2>
+                <p>Test keyboard navigation across different UI components.</p>
+                
+                <div class="demo-grid">
+                    <!-- Tile Grid Demo -->
+                    <div class="demo-card">
+                        <h3>Tile Grid Navigation</h3>
+                        <p>Use arrow keys to navigate, Enter to select.</p>
+                        <div class="tile-grid" role="grid" aria-label="Demo tile grid" tabindex="0">
+                            <div role="gridcell" class="tile" tabindex="0" aria-label="Tile 1">1</div>
+                            <div role="gridcell" class="tile" tabindex="-1" aria-label="Tile 2">2</div>
+                            <div role="gridcell" class="tile" tabindex="-1" aria-label="Tile 3">3</div>
+                            <div role="gridcell" class="tile" tabindex="-1" aria-label="Tile 4">4</div>
+                            <div role="gridcell" class="tile" tabindex="-1" aria-label="Tile 5">5</div>
+                            <div role="gridcell" class="tile" tabindex="-1" aria-label="Tile 6">6</div>
+                            <div role="gridcell" class="tile" tabindex="-1" aria-label="Tile 7">7</div>
+                            <div role="gridcell" class="tile" tabindex="-1" aria-label="Tile 8">8</div>
+                            <div role="gridcell" class="tile" tabindex="-1" aria-label="Tile 9">9</div>
+                            <div role="gridcell" class="tile" tabindex="-1" aria-label="Tile 10">10</div>
+                            <div role="gridcell" class="tile" tabindex="-1" aria-label="Tile 11">11</div>
+                            <div role="gridcell" class="tile" tabindex="-1" aria-label="Tile 12">12</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab List Demo -->
+                    <div class="demo-card">
+                        <h3>Tab Navigation</h3>
+                        <p>Use left/right arrows to navigate tabs.</p>
+                        <div class="demo-tabs">
+                            <div role="tablist" aria-label="Demo tabs">
+                                <button role="tab" aria-selected="true" aria-controls="panel-1" id="tab-1">Overview</button>
+                                <button role="tab" aria-selected="false" aria-controls="panel-2" id="tab-2" tabindex="-1">Details</button>
+                                <button role="tab" aria-selected="false" aria-controls="panel-3" id="tab-3" tabindex="-1">Settings</button>
+                            </div>
+                            <div class="demo-tabpanels">
+                                <div role="tabpanel" id="panel-1" aria-labelledby="tab-1">
+                                    Overview panel content. Press Tab to navigate here.
+                                </div>
+                                <div role="tabpanel" id="panel-2" aria-labelledby="tab-2" hidden>
+                                    Details panel content.
+                                </div>
+                                <div role="tabpanel" id="panel-3" aria-labelledby="tab-3" hidden>
+                                    Settings panel content.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- List Demo -->
+                    <div class="demo-card">
+                        <h3>List Navigation</h3>
+                        <p>Use up/down arrows to navigate list items.</p>
+                        <div class="demo-list" role="listbox" aria-label="Demo list">
+                            <div role="option" class="demo-list-item" tabindex="0" aria-selected="false">
+                                Peer: node-alpha-01
+                            </div>
+                            <div role="option" class="demo-list-item" tabindex="-1" aria-selected="false">
+                                Peer: node-beta-02
+                            </div>
+                            <div role="option" class="demo-list-item" tabindex="-1" aria-selected="false">
+                                Peer: node-gamma-03
+                            </div>
+                            <div role="option" class="demo-list-item" tabindex="-1" aria-selected="false">
+                                Peer: node-delta-04
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Form Demo -->
+                    <div class="demo-card">
+                        <h3>Form Navigation</h3>
+                        <p>Use Tab to navigate between form elements.</p>
+                        <form class="demo-form" onsubmit="return false;">
+                            <div class="form-group">
+                                <label for="demo-name">Name</label>
+                                <input type="text" id="demo-name" class="a11y-input" placeholder="Enter your name">
+                            </div>
+                            <div class="form-group">
+                                <label for="demo-email">Email</label>
+                                <input type="email" id="demo-email" class="a11y-input" placeholder="Enter your email">
+                            </div>
+                            <div class="form-group">
+                                <label for="demo-message">Message</label>
+                                <textarea id="demo-message" class="a11y-input" rows="3" placeholder="Enter your message"></textarea>
+                            </div>
+                            <button type="submit" class="a11y-btn">Submit</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Screen Reader Tests -->
+            <section id="screen-reader" class="section">
+                <h2>Screen Reader Compatibility</h2>
+                <p>Test screen reader announcements and ARIA attributes.</p>
+                
+                <div class="demo-grid">
+                    <!-- Live Region Demo -->
+                    <div class="demo-card" style="grid-column: 1 / -1;">
+                        <h3>Live Region Announcements</h3>
+                        <p>Click buttons to trigger announcements. Screen readers will announce these messages.</p>
+                        <div id="live-region-demo">
+                            <div class="test-controls">
+                                <button class="a11y-btn" onclick="announcePolite()">
+                                    Polite Announcement
+                                </button>
+                                <button class="a11y-btn a11y-btn-secondary" onclick="announceAssertive()">
+                                    Assertive Announcement
+                                </button>
+                                <button class="a11y-btn a11y-btn-secondary" onclick="announceStatus()">
+                                    Status Update
+                                </button>
+                            </div>
+                            <div class="announcement-log" id="announcement-log">
+                                <div class="announcement-log-item">
+                                    <span class="announcement-log-time">--:--:--</span>
+                                    Announcements will appear here...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ARIA States Demo -->
+                    <div class="demo-card">
+                        <h3>ARIA States</h3>
+                        <p>Interactive elements with ARIA state attributes.</p>
+                        
+                        <div style="margin: 16px 0;">
+                            <button role="button" 
+                                    aria-pressed="false" 
+                                    class="a11y-btn"
+                                    onclick="togglePressed(this)">
+                                Toggle Button (Not Pressed)
+                            </button>
+                        </div>
+                        
+                        <div style="margin: 16px 0;">
+                            <div role="checkbox" 
+                                 aria-checked="false" 
+                                 tabindex="0"
+                                 class="demo-list-item"
+                                 onclick="toggleChecked(this)"
+                                 onkeydown="handleCheckboxKey(event, this)">
+                                Checkbox Item
+                            </div>
+                        </div>
+                        
+                        <div style="margin: 16px 0;">
+                            <button aria-expanded="false" 
+                                    aria-controls="expandable-content"
+                                    class="a11y-btn"
+                                    onclick="toggleExpanded(this)">
+                                Expand Content
+                            </button>
+                            <div id="expandable-content" 
+                                 style="display: none; margin-top: 8px; padding: 12px; background: #0a0a14; border-radius: 4px;">
+                                This content is now expanded!
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Semantic Structure Demo -->
+                    <div class="demo-card">
+                        <h3>Semantic Structure</h3>
+                        <p>Proper heading hierarchy and landmarks.</p>
+                        
+                        <div role="region" aria-label="Demo region">
+                            <h4 style="margin-top: 0;">Region with Label</h4>
+                            <p>This region has an accessible name via aria-label.</p>
+                            
+                            <figure role="figure" aria-label="Sample chart">
+                                <div style="width: 100%; height: 80px; background: linear-gradient(to right, #0066cc, #00ccff); border-radius: 4px;"></div>
+                                <figcaption style="font-size: 12px; color: #888; margin-top: 4px;">
+                                    Sample visualization chart
+                                </figcaption>
+                            </figure>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Testing Checklist -->
+            <section id="testing" class="section">
+                <h2>Usability Testing Checklist</h2>
+                <p>Complete these tests with assistive technology users.</p>
+                
+                <ul class="checklist">
+                    <li>
+                        <input type="checkbox" id="test-1">
+                        <label for="test-1">
+                            <strong>Keyboard-only navigation:</strong> Can complete all tasks using only keyboard?
+                        </label>
+                    </li>
+                    <li>
+                        <input type="checkbox" id="test-2">
+                        <label for="test-2">
+                            <strong>Screen reader compatibility:</strong> NVDA/JAWS/VoiceOver can access all content?
+                        </label>
+                    </li>
+                    <li>
+                        <input type="checkbox" id="test-3">
+                        <label for="test-3">
+                            <strong>Focus visibility:</strong> Focus indicator is always visible and clear?
+                        </label>
+                    </li>
+                    <li>
+                        <input type="checkbox" id="test-4">
+                        <label for="test-4">
+                            <strong>Skip links:</strong> Can skip to main content and key regions?
+                        </label>
+                    </li>
+                    <li>
+                        <input type="checkbox" id="test-5">
+                        <label for="test-5">
+                            <strong>Heading structure:</strong> Logical heading hierarchy (h1-h6)?
+                        </label>
+                    </li>
+                    <li>
+                        <input type="checkbox" id="test-6">
+                        <label for="test-6">
+                            <strong>ARIA labels:</strong> All interactive elements have accessible names?
+                        </label>
+                    </li>
+                    <li>
+                        <input type="checkbox" id="test-7">
+                        <label for="test-7">
+                            <strong>Error handling:</strong> Errors are announced and easy to understand?
+                        </label>
+                    </li>
+                    <li>
+                        <input type="checkbox" id="test-8">
+                        <label for="test-8">
+                            <strong>High contrast mode:</strong> UI is usable in high contrast mode?
+                        </label>
+                    </li>
+                    <li>
+                        <input type="checkbox" id="test-9">
+                        <label for="test-9">
+                            <strong>Reduced motion:</strong> Animations don't cause issues when reduced?
+                        </label>
+                    </li>
+                    <li>
+                        <input type="checkbox" id="test-10">
+                        <label for="test-10">
+                            <strong>Touch accessibility:</strong> All targets are at least 44x44 pixels?
+                        </label>
+                    </li>
+                </ul>
+            </section>
+        </div>
+    </main>
+    
+    <div id="status-bar" role="contentinfo" aria-label="Status bar">
+        <div class="status-indicator">Accessibility Enabled</div>
+        <div id="status-message">Ready</div>
+    </div>
+    
+    <footer role="contentinfo">
+        <div class="container">
+            <p>
+                Visual Shell Accessibility Testing Suite | 
+                <a href="https://www.w3.org/WAI/WCAG21/quickref/" target="_blank" rel="noopener">
+                    WCAG 2.1 Guidelines
+                </a>
+            </p>
+        </div>
+    </footer>
+    
+    <!-- Load Accessibility Scripts -->
+    <script src="accessibility_enhanced.js"></script>
+    <script>
+        // Initialize accessibility manager
+        let a11y;
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            a11y = new EnhancedAccessibilityManager({
+                rootElement: document.body,
+                enabled: true,
+                debugMode: true,
+                announceChanges: true
+            });
+            a11y.initialize();
+            
+            // Make available globally
+            window.a11y = a11y;
+            
+            // Initialize tab functionality
+            initTabs();
+            
+            // Initialize list functionality
+            initList();
+            
+            // Initialize grid functionality
+            initGrid();
+            
+            console.log('Accessibility testing suite initialized');
+        });
+        
+        // Tab functionality
+        function initTabs() {
+            const tabs = document.querySelectorAll('[role="tab"]');
+            const panels = document.querySelectorAll('[role="tabpanel"]');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Deselect all tabs
+                    tabs.forEach(t => {
+                        t.setAttribute('aria-selected', 'false');
+                        t.setAttribute('tabindex', '-1');
+                    });
+                    
+                    // Hide all panels
+                    panels.forEach(p => p.hidden = true);
+                    
+                    // Select clicked tab
+                    tab.setAttribute('aria-selected', 'true');
+                    tab.setAttribute('tabindex', '0');
+                    
+                    // Show corresponding panel
+                    const panelId = tab.getAttribute('aria-controls');
+                    const panel = document.getElementById(panelId);
+                    if (panel) panel.hidden = false;
+                    
+                    // Announce
+                    a11y.announce(`Tab ${tab.textContent} selected`, 'polite');
+                });
+                
+                // Keyboard navigation
+                tab.addEventListener('keydown', (e) => {
+                    const tabList = Array.from(tabs);
+                    const index = tabList.indexOf(tab);
+                    
+                    if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        const next = tabList[(index + 1) % tabList.length];
+                        next.focus();
+                        next.click();
+                    } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        const prev = tabList[(index - 1 + tabList.length) % tabList.length];
+                        prev.focus();
+                        prev.click();
+                    }
+                });
+            });
+        }
+        
+        // List functionality
+        function initList() {
+            const items = document.querySelectorAll('[role="option"]');
+            
+            items.forEach(item => {
+                item.addEventListener('click', () => {
+                    // Deselect all
+                    items.forEach(i => {
+                        i.setAttribute('aria-selected', 'false');
+                        i.setAttribute('tabindex', '-1');
+                    });
+                    
+                    // Select clicked
+                    item.setAttribute('aria-selected', 'true');
+                    item.setAttribute('tabindex', '0');
+                    
+                    // Announce
+                    a11y.announce(`Selected ${item.textContent.trim()}`, 'polite');
+                });
+                
+                // Keyboard navigation
+                item.addEventListener('keydown', (e) => {
+                    const itemList = Array.from(items);
+                    const index = itemList.indexOf(item);
+                    
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        const next = itemList[(index + 1) % itemList.length];
+                        next.focus();
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        const prev = itemList[(index - 1 + itemList.length) % itemList.length];
+                        prev.focus();
+                    } else if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        item.click();
+                    }
+                });
+            });
+        }
+        
+        // Grid functionality
+        function initGrid() {
+            const cells = document.querySelectorAll('[role="gridcell"]');
+            const grid = document.querySelector('[role="grid"]');
+            const cols = 4;
+            
+            cells.forEach(cell => {
+                cell.addEventListener('click', () => {
+                    // Deselect all
+                    cells.forEach(c => c.setAttribute('aria-selected', 'false'));
+                    
+                    // Select clicked
+                    cell.setAttribute('aria-selected', 'true');
+                    
+                    // Announce
+                    a11y.announce(`Tile ${cell.textContent} selected`, 'polite');
+                });
+                
+                // Keyboard navigation
+                cell.addEventListener('keydown', (e) => {
+                    const cellList = Array.from(cells);
+                    const index = cellList.indexOf(cell);
+                    let nextIndex = index;
+                    
+                    if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        nextIndex = (index + 1) % cells.length;
+                    } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        nextIndex = (index - 1 + cells.length) % cells.length;
+                    } else if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        nextIndex = (index + cols) % cells.length;
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        nextIndex = (index - cols + cells.length) % cells.length;
+                    } else if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        cell.click();
+                        return;
+                    }
+                    
+                    // Update tabindex and focus
+                    cells.forEach(c => c.setAttribute('tabindex', '-1'));
+                    cellList[nextIndex].setAttribute('tabindex', '0');
+                    cellList[nextIndex].focus();
+                });
+            });
+        }
+        
+        // Announcement functions
+        function announcePolite() {
+            const message = 'This is a polite announcement. It will be spoken when the screen reader is idle.';
+            a11y.announce(message, 'polite');
+            logAnnouncement(message, 'polite');
+        }
+        
+        function announceAssertive() {
+            const message = 'This is an assertive announcement. It will interrupt the screen reader immediately.';
+            a11y.announce(message, 'assertive');
+            logAnnouncement(message, 'assertive');
+        }
+        
+        function announceStatus() {
+            const message = 'Status: All systems operational. 4 peers connected.';
+            a11y.announce(message, 'polite');
+            logAnnouncement(message, 'status');
+        }
+        
+        function logAnnouncement(message, type) {
+            const log = document.getElementById('announcement-log');
+            const time = new Date().toLocaleTimeString();
+            const item = document.createElement('div');
+            item.className = 'announcement-log-item';
+            item.innerHTML = `<span class="announcement-log-time">${time}</span>[${type}] ${message}`;
+            log.insertBefore(item, log.firstChild);
+        }
+        
+        // ARIA state functions
+        function togglePressed(button) {
+            const pressed = button.getAttribute('aria-pressed') === 'true';
+            button.setAttribute('aria-pressed', String(!pressed));
+            button.textContent = `Toggle Button (${!pressed ? 'Pressed' : 'Not Pressed'})`;
+            a11y.announce(`Button ${!pressed ? 'pressed' : 'not pressed'}`, 'polite');
+        }
+        
+        function toggleChecked(element) {
+            const checked = element.getAttribute('aria-checked') === 'true';
+            element.setAttribute('aria-checked', String(!checked));
+            a11y.announce(`${!checked ? 'Checked' : 'Unchecked'}: ${element.textContent.trim()}`, 'polite');
+        }
+        
+        function handleCheckboxKey(event, element) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                toggleChecked(element);
+            }
+        }
+        
+        function toggleExpanded(button) {
+            const expanded = button.getAttribute('aria-expanded') === 'true';
+            const content = document.getElementById('expandable-content');
+            
+            button.setAttribute('aria-expanded', String(!expanded));
+            content.style.display = !expanded ? 'block' : 'none';
+            button.textContent = !expanded ? 'Collapse Content' : 'Expand Content';
+            
+            a11y.announce(`Content ${!expanded ? 'expanded' : 'collapsed'}`, 'polite');
+        }
+        
+        // Test runner
+        function runAllTests() {
+            const results = document.getElementById('test-results');
+            const section = document.getElementById('test-results-section');
+            section.style.display = 'block';
+            
+            const tests = [
+                { name: 'Accessibility Manager Loaded', test: () => typeof a11y !== 'undefined' },
+                { name: 'Live Regions Created', test: () => document.getElementById('a11y-live-polite') !== null },
+                { name: 'Skip Links Present', test: () => document.getElementById('a11y-skip-links') !== null },
+                { name: 'Keyboard Shortcuts Registered', test: () => a11y.shortcuts.size > 0 },
+                { name: 'Focus Manager Active', test: () => a11y.focusManager !== null },
+                { name: 'Grid Navigation Working', test: () => document.querySelectorAll('[role="gridcell"]').length > 0 },
+                { name: 'Tab List Accessible', test: () => document.querySelectorAll('[role="tab"]').length > 0 },
+                { name: 'Form Labels Present', test: () => {
+                    const inputs = document.querySelectorAll('input, textarea');
+                    let valid = true;
+                    inputs.forEach(input => {
+                        const label = document.querySelector(`label[for="${input.id}"]`);
+                        if (!label && !input.getAttribute('aria-label')) valid = false;
+                    });
+                    return valid;
+                }},
+                { name: 'ARIA Landmarks Present', test: () => {
+                    return document.querySelector('[role="main"]') !== null &&
+                           document.querySelector('[role="banner"]') !== null &&
+                           document.querySelector('[role="contentinfo"]') !== null;
+                }},
+                { name: 'Heading Hierarchy', test: () => {
+                    const h1s = document.querySelectorAll('h1');
+                    return h1s.length === 1;
+                }}
+            ];
+            
+            let html = '';
+            let passed = 0;
+            let failed = 0;
+            
+            tests.forEach(test => {
+                let result;
+                try {
+                    result = test.test();
+                } catch (e) {
+                    result = false;
+                }
+                
+                if (result) {
+                    passed++;
+                    html += `
+                        <div class="test-result">
+                            <span class="test-result-icon pass">✓</span>
+                            <span>${test.name}</span>
+                        </div>
+                    `;
+                } else {
+                    failed++;
+                    html += `
+                        <div class="test-result">
+                            <span class="test-result-icon fail">✗</span>
+                            <span>${test.name}</span>
+                        </div>
+                    `;
+                }
+            });
+            
+            html = `
+                <div class="test-result">
+                    <span class="test-result-icon ${failed === 0 ? 'pass' : 'pending'}">
+                        ${failed === 0 ? '✓' : '!'}
+                    </span>
+                    <strong>${passed}/${tests.length} tests passed</strong>
+                </div>
+            ` + html;
+            
+            results.innerHTML = html;
+            
+            a11y.announce(`Tests complete. ${passed} of ${tests.length} passed.`, 
+                         failed === 0 ? 'polite' : 'assertive');
+            
+            // Scroll to results
+            section.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Track keyboard navigation state
+        document.addEventListener('keydown', () => {
+            document.body.classList.add('a11y-keyboard-nav');
+        });
+        
+        document.addEventListener('mousedown', () => {
+            document.body.classList.remove('a11y-keyboard-nav');
+        });
+    </script>
+</body>
+</html>

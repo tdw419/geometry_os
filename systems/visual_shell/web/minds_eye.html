@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mind's Eye - Token Stream Visualization</title>
+    <style>
+        body {
+            margin: 0;
+            background: #050505;
+            color: #00ffff;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border: 1px solid #00ffff;
+            pointer-events: none;
+        }
+        #token-display {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            height: 100px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ffff;
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 14px;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+        }
+        .token {
+            margin-right: 5px;
+            transition: all 0.5s;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <h2>Mind's Eye v1.0</h2>
+        <p>Token Stream Status: <span id="status">Connecting...</span></p>
+        <p>Current Pattern: <span id="pattern">Idle</span></p>
+    </div>
+    <canvas id="minds-eye-canvas"></canvas>
+    <div id="token-display"></div>
+
+    <script src="hilbert_lut.js"></script>
+    <script>
+        const canvas = document.getElementById('minds-eye-canvas');
+        const ctx = canvas.getContext('2d');
+        const tokenDisplay = document.getElementById('token-display');
+        const statusEl = document.getElementById('status');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const order = 8;
+        const gridSize = 2 ** order;
+        const hilbert = new HilbertLUTBuilder(order);
+        
+        let tokens = [];
+        const maxTokens = 500;
+        const lifespan = 3000; // 3 seconds
+
+        function connect() {
+            const ws = new WebSocket('ws://localhost:3002/ws/v1/tokens');
+            
+            ws.onopen = () => {
+                statusEl.textContent = "Live";
+                statusEl.style.color = "#00ff00";
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.msg_type === "Token") {
+                    addToken(data.payload);
+                }
+            };
+            
+            ws.onclose = () => {
+                statusEl.textContent = "Offline (Reconnecting...)";
+                statusEl.style.color = "#ff0000";
+                setTimeout(connect, 5000);
+            };
+        }
+
+        function addToken(tokenData) {
+            const { content, x, y, color, token_type } = tokenData;
+            
+            // Add to visualization
+            tokens.push({
+                content,
+                x, y,
+                color: `rgba(${color[0]*255}, ${color[1]*255}, ${color[2]*255}, 1)`,
+                startTime: Date.now(),
+                type: token_type
+            });
+            
+            if (tokens.length > maxTokens) tokens.shift();
+            
+            // Add to display
+            const el = document.createElement('span');
+            el.className = 'token';
+            el.textContent = content;
+            el.style.color = `rgba(${color[0]*255}, ${color[1]*255}, ${color[2]*255}, 1)`;
+            tokenDisplay.appendChild(el);
+            tokenDisplay.scrollTop = tokenDisplay.scrollHeight;
+            
+            // Clean up old elements
+            if (tokenDisplay.children.length > 200) {
+                tokenDisplay.removeChild(tokenDisplay.firstChild);
+            }
+        }
+
+        function render() {
+            const now = Date.now();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const sx = canvas.width / gridSize;
+            const sy = canvas.height / gridSize;
+            
+            tokens = tokens.filter(t => now - t.startTime < lifespan);
+            
+            tokens.forEach(t => {
+                const age = now - t.startTime;
+                const alpha = 1.0 - (age / lifespan);
+                const pulse = 0.5 + 0.5 * Math.sin(now / 100);
+                
+                ctx.beginPath();
+                ctx.arc(t.x * sx, t.y * sy, 2 + 8 * pulse * alpha, 0, Math.PI * 2);
+                ctx.fillStyle = t.color.replace('1)', `${alpha})`);
+                ctx.fill();
+                
+                // Glow
+                ctx.shadowBlur = 15 * alpha;
+                ctx.shadowColor = t.color;
+            });
+            
+            requestAnimationFrame(render);
+        }
+
+        connect();
+        render();
+
+        window.onresize = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        };
+    </script>
+</body>
+</html>

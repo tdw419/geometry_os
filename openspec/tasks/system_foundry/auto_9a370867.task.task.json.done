@@ -1,0 +1,7 @@
+{
+  "task_id": "auto-9a370867",
+  "type": "analyze_system",
+  "source": "/home/jericho/zion/projects/geometry_os/geometry_os/openspec/changes/archive/2026-01-20-add-rts-pixel-applications",
+  "intent": "Define `RTS_PNG_v1` spec (Manifest schema, Chunk layout).",
+  "auto_generated": true
+}

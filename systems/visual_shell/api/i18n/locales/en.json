@@ -1,0 +1,218 @@
+{
+  "window": {
+    "buttons": {
+      "close": "Close",
+      "minimize": "Minimize",
+      "maximize": "Maximize",
+      "restore": "Restore"
+    },
+    "title": {
+      "default": "Untitled Window",
+      "main": "Main Window",
+      "tools": "Tools",
+      "terminal": "Terminal",
+      "settings": "Settings"
+    },
+    "states": {
+      "normal": "Normal",
+      "minimized": "Minimized",
+      "maximized": "Maximized",
+      "dragging": "Dragging",
+      "closing": "Closing"
+    }
+  },
+  "panel": {
+    "title_bar": {
+      "default": "Panel",
+      "focused": "Active Panel"
+    },
+    "resize": {
+      "top": "Resize from top",
+      "bottom": "Resize from bottom",
+      "left": "Resize from left",
+      "right": "Resize from right",
+      "top_left": "Resize from top-left corner",
+      "top_right": "Resize from top-right corner",
+      "bottom_left": "Resize from bottom-left corner",
+      "bottom_right": "Resize from bottom-right corner"
+    },
+    "actions": {
+      "snap_to_grid": "Snap to Grid",
+      "snap_enabled": "Snap Enabled",
+      "snap_disabled": "Snap Disabled"
+    }
+  },
+  "notifications": {
+    "system": {
+      "initialized": "System initialized successfully!",
+      "error": "System error occurred",
+      "warning": "Warning",
+      "info": "Information"
+    },
+    "window": {
+      "created": "Window created: {title}",
+      "closed": "Window closed: {title}",
+      "focused": "Window focused: {title}"
+    },
+    "renderer": {
+      "switched": "Renderer switched to {type}",
+      "native_enabled": "Native renderer enabled",
+      "pixijs_deprecated": "PixiJS renderer is deprecated"
+    }
+  },
+  "errors": {
+    "window": {
+      "not_found": "Window not found: {id}",
+      "already_exists": "Window already exists: {id}",
+      "invalid_state": "Invalid window state: {state}"
+    },
+    "renderer": {
+      "unknown_type": "Unknown renderer type: {type}",
+      "initialization_failed": "Renderer initialization failed",
+      "frame_failed": "Frame rendering failed"
+    },
+    "localization": {
+      "not_found": "Translation not found: {key}",
+      "missing_variable": "Missing variable in translation: {variable}",
+      "unsupported_language": "Unsupported language: {code}"
+    },
+    "file": {
+      "not_found": "File not found: {path}",
+      "load_failed": "Failed to load file: {path}",
+      "save_failed": "Failed to save file: {path}"
+    }
+  },
+  "menu": {
+    "file": {
+      "label": "File",
+      "new": "New",
+      "open": "Open...",
+      "save": "Save",
+      "save_as": "Save As...",
+      "close": "Close"
+    },
+    "edit": {
+      "label": "Edit",
+      "undo": "Undo",
+      "redo": "Redo",
+      "cut": "Cut",
+      "copy": "Copy",
+      "paste": "Paste",
+      "select_all": "Select All"
+    },
+    "view": {
+      "label": "View",
+      "zoom_in": "Zoom In",
+      "zoom_out": "Zoom Out",
+      "reset_zoom": "Reset Zoom",
+      "fullscreen": "Toggle Fullscreen"
+    },
+    "window": {
+      "label": "Window",
+      "minimize_all": "Minimize All",
+      "restore_all": "Restore All",
+      "cascade": "Cascade Windows",
+      "tile": "Tile Windows"
+    },
+    "help": {
+      "label": "Help",
+      "about": "About",
+      "documentation": "Documentation",
+      "shortcuts": "Keyboard Shortcuts",
+      "report_bug": "Report a Bug"
+    }
+  },
+  "dialogs": {
+    "confirm": {
+      "close_window": "Are you sure you want to close this window?",
+      "unsaved_changes": "You have unsaved changes. Continue?",
+      "delete_item": "Are you sure you want to delete this item?"
+    },
+    "buttons": {
+      "ok": "OK",
+      "cancel": "Cancel",
+      "yes": "Yes",
+      "no": "No",
+      "apply": "Apply",
+      "save": "Save",
+      "discard": "Discard"
+    }
+  },
+  "settings": {
+    "language": {
+      "label": "Language",
+      "current": "Current Language: {language}",
+      "change": "Change Language"
+    },
+    "renderer": {
+      "label": "Renderer",
+      "native": "Native (Recommended)",
+      "pixijs": "PixiJS (Deprecated)",
+      "auto": "Automatic"
+    },
+    "appearance": {
+      "label": "Appearance",
+      "theme": "Theme",
+      "theme_light": "Light",
+      "theme_dark": "Dark",
+      "grid_size": "Grid Size",
+      "snap_threshold": "Snap Threshold"
+    },
+    "performance": {
+      "label": "Performance",
+      "fps_target": "Target FPS",
+      "quality": "Quality",
+      "quality_low": "Low",
+      "quality_medium": "Medium",
+      "quality_high": "High"
+    }
+  },
+  "tooltips": {
+    "window": {
+      "drag": "Drag to move window",
+      "resize": "Drag to resize window",
+      "close": "Close window",
+      "minimize": "Minimize window",
+      "maximize": "Maximize window"
+    },
+    "panel": {
+      "snap": "Enable/disable snap to grid",
+      "focus": "Click to focus panel"
+    }
+  },
+  "accessibility": {
+    "window": {
+      "focused": "Window {title} is focused",
+      "minimized": "Window {title} is minimized",
+      "maximized": "Window {title} is maximized"
+    },
+    "button": {
+      "close": "Close button for {title}",
+      "minimize": "Minimize button for {title}",
+      "maximize": "Maximize button for {title}"
+    }
+  },
+  "debug": {
+    "renderer": {
+      "fps": "FPS: {value}",
+      "frame_time": "Frame Time: {ms}ms",
+      "entity_count": "Entities: {count}",
+      "panel_count": "Panels: {count}"
+    },
+    "memory": {
+      "used": "Memory Used: {mb}MB",
+      "available": "Memory Available: {mb}MB"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "processing": "Processing...",
+    "ready": "Ready",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "refresh": "Refresh"
+  }
+}

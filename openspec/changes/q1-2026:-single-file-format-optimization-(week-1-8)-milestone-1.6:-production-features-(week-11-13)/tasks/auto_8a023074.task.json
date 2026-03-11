@@ -1,0 +1,10 @@
+{
+  "task_id": "task-6",
+  "type": "implement",
+  "source": "",
+  "intent": "Monitoring dashboard with <100ms metric latency",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}

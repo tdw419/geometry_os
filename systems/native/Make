@@ -1,0 +1,7 @@
+CC = gcc
+CFLAGS = -O3 -fPIC -Wall -Wextra
+
+all: libhilbert.so
+
+.PHONY: all clean test
+

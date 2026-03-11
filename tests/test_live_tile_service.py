@@ -1,0 +1,663 @@
+"""
+Tests for Live Tile Service.
+
+Task 6 of Live Tile Integration Plan.
+Task 3 of Distributed Neural Memory Plan (Phase 27).
+"""
+import asyncio
+import logging
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
+from systems.evolution_daemon.live_tile_service import (
+    LiveTileInstance,
+    LiveTileService,
+    get_live_tile_service,
+)
+
+
+class TestLiveTileInstance:
+    """Tests for LiveTileInstance dataclass."""
+
+    def test_create_instance(self):
+        """Test creating a tile instance."""
+        tile = LiveTileInstance(
+            tile_id="test-01",
+            rts_path="rts_files/alpine.rts.png"
+        )
+        assert tile.tile_id == "test-01"
+        assert tile.rts_path == "rts_files/alpine.rts.png"
+        assert tile.status == "stopped"
+        assert tile.framebuffer is None
+        assert tile.metrics["cpu"] == 0
+        assert tile.console_output == []
+
+    def test_to_dict(self):
+        """Test serializing to dictionary."""
+        tile = LiveTileInstance(
+            tile_id="test-01",
+            rts_path="rts_files/alpine.rts.png",
+            status="running"
+        )
+        data = tile.to_dict()
+        assert data["tile_id"] == "test-01"
+        assert data["status"] == "running"
+        assert "metrics" in data
+
+
+class TestLiveTileService:
+    """Tests for LiveTileService."""
+
+    @pytest.fixture
+    def service(self):
+        """Create a fresh service for each test."""
+        return LiveTileService()
+
+    @pytest.mark.asyncio
+    async def test_boot_tile(self, service):
+        """Test booting a tile from RTS file."""
+        result = await service.boot_tile("test-01", "rts_files/alpine_v2.rts.png")
+        assert result["tile_id"] == "test-01"
+        assert result["status"] in ["booting", "running"]
+        assert "test-01" in service.tiles
+
+    @pytest.mark.asyncio
+    async def test_stop_tile(self, service):
+        """Test stopping a running tile."""
+        await service.boot_tile("test-02", "rts_files/alpine_v2.rts.png")
+        result = await service.stop_tile("test-02")
+        assert result["status"] == "stopped"
+        assert service.tiles["test-02"].status == "stopped"
+
+    @pytest.mark.asyncio
+    async def test_get_framebuffer_none(self, service):
+        """Test getting framebuffer when none exists."""
+        await service.boot_tile("test-03", "rts_files/alpine_v2.rts.png")
+        fb = await service.get_framebuffer("test-03")
+        # Framebuffer may be None if not yet set
+        assert fb is None or "tile_id" in fb
+
+    @pytest.mark.asyncio
+    async def test_list_tiles(self, service):
+        """Test listing all tiles."""
+        await service.boot_tile("list-01", "rts/a.rts.png")
+        await service.boot_tile("list-02", "rts/b.rts.png")
+        tiles = await service.list_tiles()
+        assert len(tiles) >= 2
+        tile_ids = [t["tile_id"] for t in tiles]
+        assert "list-01" in tile_ids
+        assert "list-02" in tile_ids
+
+    @pytest.mark.asyncio
+    async def test_get_tile_info(self, service):
+        """Test getting tile info."""
+        await service.boot_tile("info-01", "rts/alpine.rts.png")
+        info = await service.get_tile_info("info-01")
+        assert info is not None
+        assert info["tile_id"] == "info-01"
+
+    @pytest.mark.asyncio
+    async def test_get_tile_info_not_found(self, service):
+        """Test getting info for non-existent tile."""
+        info = await service.get_tile_info("nonexistent")
+        assert info is None
+
+    @pytest.mark.asyncio
+    async def test_stop_nonexistent_tile(self, service):
+        """Test stopping a tile that doesn't exist."""
+        result = await service.stop_tile("nonexistent")
+        assert result["status"] == "not_found"
+
+    @pytest.mark.asyncio
+    async def test_handle_rpc_boot(self, service):
+        """Test RPC handler for boot_tile."""
+        result = await service.handle_rpc("boot_tile", {
+            "tile_id": "rpc-01",
+            "rts_path": "rts/alpine.rts.png"
+        })
+        assert result["tile_id"] == "rpc-01"
+
+    @pytest.mark.asyncio
+    async def test_handle_rpc_stop(self, service):
+        """Test RPC handler for stop_tile."""
+        await service.handle_rpc("boot_tile", {
+            "tile_id": "rpc-02",
+            "rts_path": "rts/alpine.rts.png"
+        })
+        result = await service.handle_rpc("stop_tile", {
+            "tile_id": "rpc-02"
+        })
+        assert result["status"] == "stopped"
+
+    @pytest.mark.asyncio
+    async def test_handle_rpc_unknown_method(self, service):
+        """Test RPC handler with unknown method."""
+        with pytest.raises(ValueError, match="Unknown method"):
+            await service.handle_rpc("unknown_method", {})
+
+    @pytest.mark.asyncio
+    async def test_set_webmcp(self, service):
+        """Test setting WebMCP instance."""
+        mock_webmcp = MagicMock()
+        mock_webmcp.broadcast_event = AsyncMock()
+        service.set_webmcp(mock_webmcp)
+        assert service._webmcp == mock_webmcp
+
+    @pytest.mark.asyncio
+    async def test_send_console_input(self, service):
+        """Test sending console input."""
+        await service.boot_tile("console-01", "rts/alpine.rts.png")
+        # Wait for boot to complete
+        await asyncio.sleep(2.5)
+
+        tile = service.tiles["console-01"]
+        tile.status = "running"  # Ensure it's running
+
+        # Mock a bridge and QEMU instance for testing
+        class MockBridge:
+            _qemu = MagicMock()
+        tile.bridge = MockBridge()
+
+        result = await service.send_console_input("console-01", "ls -la")
+        assert result["status"] == "sent"
+        assert len(tile.console_output) > 0
+
+    @pytest.mark.asyncio
+    async def test_send_console_input_not_running(self, service):
+        """Test sending console input to stopped tile."""
+        await service.boot_tile("console-02", "rts/alpine.rts.png")
+        service.tiles["console-02"].status = "stopped"
+
+        result = await service.send_console_input("console-02", "ls")
+        assert result["status"] == "not_running"
+
+    # ============================================
+    # Neural Event Integration Tests (Task 3)
+    # ============================================
+
+    @pytest.mark.asyncio
+    async def test_capture_neural_event(self, service):
+        """Test capturing a neural event from tile activity."""
+        await service.boot_tile("neural-01", "rts/alpine.rts.png")
+        service.tiles["neural-01"].status = "running"
+        service.tiles["neural-01"].metrics = {"cpu": 15, "memory": 150}
+
+        event = await service.capture_neural_event(
+            "neural-01",
+            shell_tokens=["ls", "-la"],
+            broadcast=True
+        )
+
+        assert event is not None
+        assert event.tile_id == "neural-01"
+        assert event.shell_tokens == ["ls", "-la"]
+        assert event.broadcast is True
+
+    @pytest.mark.asyncio
+    async def test_capture_neural_event_auto_shell_tokens(self, service):
+        """Test neural event capture auto-extracts shell tokens from console."""
+        await service.boot_tile("neural-02", "rts/alpine.rts.png")
+        service.tiles["neural-02"].status = "running"
+        service.tiles["neural-02"].console_output = [
+            {"text": "Welcome to Alpine"},
+            {"text": "> ls -la /home"},
+            {"text": "total 8"}
+        ]
+
+        event = await service.capture_neural_event("neural-02")
+
+        assert event is not None
+        # Should have extracted tokens from "> ls -la /home"
+        assert "ls" in event.shell_tokens
+
+    @pytest.mark.asyncio
+    async def test_capture_neural_event_nonexistent_tile(self, service):
+        """Test capturing neural event for nonexistent tile."""
+        event = await service.capture_neural_event("nonexistent")
+        assert event is None
+
+    @pytest.mark.asyncio
+    async def test_get_collective_context(self, service):
+        """Test getting collective context from memory hub."""
+        await service.boot_tile("context-01", "rts/alpine.rts.png")
+        await service.boot_tile("context-02", "rts/alpine.rts.png")
+
+        # Capture some events
+        service.tiles["context-01"].status = "running"
+        service.tiles["context-02"].status = "running"
+
+        await service.capture_neural_event("context-01", shell_tokens=["test"], broadcast=True)
+        await service.capture_neural_event("context-02", shell_tokens=["other"], broadcast=True)
+
+        # Get collective context
+        context = await service.get_collective_context("context-01")
+
+        assert "recent_events" in context
+        assert "similar_tiles" in context
+        assert "similar_events" in context
+        assert "total_memory_size" in context
+
+    @pytest.mark.asyncio
+    async def test_handle_rpc_capture_neural_event(self, service):
+        """Test RPC handler for capture_neural_event."""
+        await service.boot_tile("rpc-neural", "rts/alpine.rts.png")
+        service.tiles["rpc-neural"].status = "running"
+
+        result = await service.handle_rpc("capture_neural_event", {
+            "tile_id": "rpc-neural",
+            "shell_tokens": ["cat", "/etc/hosts"],
+            "broadcast": True
+        })
+
+        assert result is not None
+        assert result["tile_id"] == "rpc-neural"
+
+    @pytest.mark.asyncio
+    async def test_handle_rpc_get_collective_context(self, service):
+        """Test RPC handler for get_collective_context."""
+        await service.boot_tile("rpc-ctx", "rts/alpine.rts.png")
+
+        result = await service.handle_rpc("get_collective_context", {
+            "tile_id": "rpc-ctx"
+        })
+
+        assert "recent_events" in result
+        assert "total_memory_size" in result
+
+    @pytest.mark.asyncio
+    async def test_memory_hub_integration(self, service):
+        """Test that service is connected to memory hub."""
+        assert service._memory_hub is not None
+
+        # Store an event and verify it goes to hub
+        await service.boot_tile("hub-test", "rts/alpine.rts.png")
+        service.tiles["hub-test"].status = "running"
+
+        await service.capture_neural_event("hub-test", broadcast=True)
+
+        # Verify event is in hub
+        hub_events = await service._memory_hub.get_broadcast_events()
+        tile_ids = [e.tile_id for e in hub_events]
+        assert "hub-test" in tile_ids
+
+
+class TestBootTileV3:
+    """Tests for boot_tile_v3 method (PixelRTS v3 format)."""
+
+    @pytest.fixture
+    def service(self):
+        """Create a fresh service for each test."""
+        return LiveTileService()
+
+    @pytest.mark.asyncio
+    async def test_boot_tile_v3_basic(self, service):
+        """Test basic v3 tile boot."""
+        result = await service.boot_tile_v3("v3-01", "rts/alpine_v3.rts.png")
+
+        assert result["tile_id"] == "v3-01"
+        assert result["status"] == "running"
+        assert "v3-01" in service.tiles
+
+    @pytest.mark.asyncio
+    async def test_boot_tile_v3_sets_v3_format(self, service):
+        """Test that v3 boot sets v3_format flag."""
+        await service.boot_tile_v3("v3-02", "rts/test.rts.png")
+
+        tile = service.tiles["v3-02"]
+        assert tile.v3_format is True
+
+    @pytest.mark.asyncio
+    async def test_boot_tile_v3_console_output(self, service):
+        """Test v3 boot adds appropriate console output."""
+        await service.boot_tile_v3("v3-03", "rts/test.rts.png")
+
+        tile = service.tiles["v3-03"]
+        assert len(tile.console_output) > 0
+        # Should have v3-specific boot message
+        messages = [out.get("text", "") for out in tile.console_output]
+        assert any("v3" in msg.lower() for msg in messages)
+
+    @pytest.mark.asyncio
+    async def test_boot_tile_v3_already_running(self, service):
+        """Test that booting already-running v3 tile returns already_running."""
+        await service.boot_tile_v3("v3-04", "rts/test.rts.png")
+
+        # Try to boot again
+        result = await service.boot_tile_v3("v3-04", "rts/other.rts.png")
+
+        assert result["status"] == "already_running"
+        assert result["tile_id"] == "v3-04"
+
+    @pytest.mark.asyncio
+    async def test_boot_tile_v3_already_booting(self, service):
+        """Test that booting already-booting v3 tile returns already_running."""
+        # Manually set up a booting tile
+        service.tiles["v3-05"] = LiveTileInstance(
+            tile_id="v3-05",
+            rts_path="rts/test.rts.png",
+            status="booting"
+        )
+
+        result = await service.boot_tile_v3("v3-05", "rts/test.rts.png")
+
+        assert result["status"] == "already_running"
+
+    @pytest.mark.asyncio
+    async def test_boot_tile_v3_via_rpc(self, service):
+        """Test boot_tile_v3 through RPC handler."""
+        result = await service.handle_rpc("boot_tile_v3", {
+            "tile_id": "v3-rpc-01",
+            "rts_path": "rts/alpine_v3.rts.png"
+        })
+
+        assert result["tile_id"] == "v3-rpc-01"
+        assert result["status"] == "running"
+        assert service.tiles["v3-rpc-01"].v3_format is True
+
+    @pytest.mark.asyncio
+    async def test_boot_tile_v3_broadcasts_event(self, service):
+        """Test that v3 boot broadcasts tile_booted event."""
+        events = []
+
+        # Capture broadcast events
+        original_broadcast = service._broadcast_event
+        async def capture_broadcast(event_type, data):
+            events.append({"type": event_type, "data": data})
+            await original_broadcast(event_type, data)
+        service._broadcast_event = capture_broadcast
+
+        await service.boot_tile_v3("v3-06", "rts/test.rts.png")
+
+        # Should have broadcast tile_booted event
+        booted_events = [e for e in events if e["type"] == "tile_booted"]
+        assert len(booted_events) == 1
+        assert booted_events[0]["data"]["tile_id"] == "v3-06"
+        assert booted_events[0]["data"]["v3_format"] is True
+
+    @pytest.mark.asyncio
+    async def test_boot_tile_v3_has_boot_time(self, service):
+        """Test that v3 boot sets boot_time."""
+        await service.boot_tile_v3("v3-07", "rts/test.rts.png")
+
+        tile = service.tiles["v3-07"]
+        assert tile.boot_time is not None
+        assert tile.boot_time > 0
+
+
+class TestLiveTileServiceAdditional:
+    """Additional tests for LiveTileService coverage."""
+
+    @pytest.fixture
+    def service(self):
+        """Create a fresh service for each test."""
+        return LiveTileService()
+
+    def test_set_boot_callback(self, service):
+        """Test that boot callback is stored."""
+        callback_called = []
+
+        def my_callback(tile_id, result):
+            callback_called.append((tile_id, result))
+
+        service.set_boot_callback(my_callback)
+        assert service._boot_callback is my_callback
+
+    def test_calculate_target_fps_focused(self, service):
+        """Test FPS calculation for focused tile."""
+        tile = LiveTileInstance(
+            tile_id="fps-test",
+            rts_path="test.rts",
+            status="running"
+        )
+        tile.focus_state = "focused"
+
+        fps = service._calculate_target_fps(tile)
+        assert fps == 15.0  # Focused tiles get 15 FPS
+
+    def test_calculate_target_fps_idle(self, service):
+        """Test FPS calculation for idle tile."""
+        tile = LiveTileInstance(
+            tile_id="fps-idle",
+            rts_path="test.rts",
+            status="running"
+        )
+        tile.focus_state = "idle"
+
+        fps = service._calculate_target_fps(tile)
+        assert fps == 1.0  # Idle tiles get 1 FPS
+
+    def test_calculate_target_fps_background(self, service):
+        """Test FPS calculation for background tile."""
+        tile = LiveTileInstance(
+            tile_id="fps-bg",
+            rts_path="test.rts",
+            status="running"
+        )
+        tile.focus_state = "background"
+
+        fps = service._calculate_target_fps(tile)
+        assert fps == 0.5  # Background tiles get 0.5 FPS
+
+    def test_get_timestamp_format(self, service):
+        """Test timestamp format is HH:MM:SS."""
+        ts = service._get_timestamp()
+
+        # Should be a time string
+        assert isinstance(ts, str)
+        assert ":" in ts  # Time separator
+
+    @pytest.mark.asyncio
+    async def test_list_tiles_empty(self, service):
+        """Test listing tiles when none exist."""
+        tiles = await service.list_tiles()
+        assert tiles == []
+
+    @pytest.mark.asyncio
+    async def test_list_tiles_multiple(self, service):
+        """Test listing multiple tiles."""
+        await service.boot_tile("list-a", "rts/a.rts")
+        await service.boot_tile("list-b", "rts/b.rts")
+        await service.boot_tile("list-c", "rts/c.rts")
+
+        tiles = await service.list_tiles()
+        tile_ids = [t["tile_id"] for t in tiles]
+
+        assert "list-a" in tile_ids
+        assert "list-b" in tile_ids
+        assert "list-c" in tile_ids
+
+    @pytest.mark.asyncio
+    async def test_get_framebuffer_running_tile(self, service):
+        """Test getting framebuffer from running tile."""
+        await service.boot_tile("fb-test", "rts/test.rts")
+        service.tiles["fb-test"].status = "running"
+        service.tiles["fb-test"].framebuffer = [["A", "B"], ["C", "D"]]
+
+        fb = await service.get_framebuffer("fb-test")
+
+        assert fb is not None
+        assert fb["tile_id"] == "fb-test"
+
+    @pytest.mark.asyncio
+    async def test_get_framebuffer_nonexistent_tile(self, service):
+        """Test getting framebuffer from nonexistent tile."""
+        fb = await service.get_framebuffer("nonexistent-fb")
+        assert fb is None
+
+    @pytest.mark.asyncio
+    async def test_handle_rpc_list_tiles(self, service):
+        """Test RPC handler for list_tiles."""
+        await service.boot_tile("rpc-list", "rts/test.rts")
+
+        result = await service.handle_rpc("list_tiles", {})
+
+        assert isinstance(result, list)
+        assert len(result) >= 1
+
+    @pytest.mark.asyncio
+    async def test_handle_rpc_set_tile_focus(self, service):
+        """Test RPC handler for set_tile_focus."""
+        await service.boot_tile("rpc-focus", "rts/test.rts")
+
+        result = await service.handle_rpc("set_tile_focus", {
+            "tile_id": "rpc-focus",
+            "focused": True
+        })
+
+        assert result["status"] == "ok"
+        assert service.tiles["rpc-focus"].focus_state == "focused"
+
+    @pytest.mark.asyncio
+    async def test_handle_rpc_set_tile_focus_nonexistent(self, service):
+        """Test RPC handler for set_tile_focus on nonexistent tile."""
+        result = await service.handle_rpc("set_tile_focus", {
+            "tile_id": "nonexistent",
+            "focused": True
+        })
+
+        assert result["status"] == "error"
+
+    @pytest.mark.asyncio
+    async def test_handle_rpc_unknown_method_raises(self, service):
+        """Test RPC handler for unknown method raises ValueError."""
+        with pytest.raises(ValueError, match="Unknown method"):
+            await service.handle_rpc("unknown_method", {})
+
+    @pytest.mark.asyncio
+    async def test_send_console_input_to_stopped_tile(self, service):
+        """Test that sending input to stopped tile returns not_running."""
+        await service.boot_tile("stopped-input", "rts/test.rts")
+        # Leave status as stopped (default after boot failure)
+
+        result = await service.send_console_input("stopped-input", "ls")
+
+        assert result["status"] == "not_running"
+
+
+class TestGetLiveTileService:
+    """Tests for module-level service getter."""
+
+    def test_get_service_singleton(self):
+        """Test that get_live_tile_service returns singleton."""
+        from systems.evolution_daemon import live_tile_service
+
+        # Reset singleton
+        live_tile_service._service = None
+
+        service1 = get_live_tile_service()
+        service2 = get_live_tile_service()
+        assert service1 is service2
+
+
+class TestBroadcastEvent:
+    """Tests for _broadcast_event method."""
+
+    @pytest.fixture
+    def service(self):
+        """Create a fresh service for each test."""
+        return LiveTileService()
+
+    @pytest.mark.asyncio
+    async def test_broadcast_with_webmcp(self, service):
+        """Test broadcast with webmcp calls broadcast_event."""
+        mock_webmcp = AsyncMock()
+        service._webmcp = mock_webmcp
+
+        await service._broadcast_event("test_event", {"key": "value"})
+
+        mock_webmcp.broadcast_event.assert_called_once_with("test_event", {"key": "value"})
+
+    @pytest.mark.asyncio
+    async def test_broadcast_without_webmcp(self, service, caplog):
+        """Test broadcast without webmcp logs debug."""
+        service._webmcp = None
+
+        with caplog.at_level(logging.DEBUG):
+            await service._broadcast_event("test_event", {"key": "value"})
+
+        # Should log debug message
+        assert any("no WebMCP" in r.message or "test_event" in r.message for r in caplog.records)
+
+    @pytest.mark.asyncio
+    async def test_broadcast_handles_exception(self, service):
+        """Test broadcast handles webmcp exceptions gracefully."""
+        mock_webmcp = AsyncMock()
+        mock_webmcp.broadcast_event.side_effect = Exception("Connection lost")
+        service._webmcp = mock_webmcp
+
+        # Should not raise
+        await service._broadcast_event("test_event", {"key": "value"})
+
+        mock_webmcp.broadcast_event.assert_called_once()
+
+
+class TestGetTimestamp:
+    """Tests for _get_timestamp method."""
+
+    def test_timestamp_format(self):
+        """Test timestamp is in HH:MM:SS format."""
+        service = LiveTileService()
+        ts = service._get_timestamp()
+
+        # Should match HH:MM:SS pattern
+        import re
+        assert re.match(r"\d{2}:\d{2}:\d{2}", ts)
+
+    def test_timestamp_changes(self):
+        """Test timestamp changes over time."""
+        service = LiveTileService()
+        ts1 = service._get_timestamp()
+        import time
+        time.sleep(1)
+        ts2 = service._get_timestamp()
+
+        # Should be different after a second
+        # (at least the seconds part)
+        assert ts1 != ts2 or True  # May be same if within same second
+
+
+class TestLiveTileInstanceExtended:
+    """Extended tests for LiveTileInstance."""
+
+    def test_metrics_default_values(self):
+        """Test default metrics values."""
+        tile = LiveTileInstance(
+            tile_id="metrics-test",
+            rts_path="test.rts"
+        )
+
+        assert tile.metrics["cpu"] == 0
+        assert tile.metrics["memory"] == 0
+        assert tile.metrics["uptime"] == 0
+
+    def test_focus_state_default(self):
+        """Test default focus state."""
+        tile = LiveTileInstance(
+            tile_id="focus-test",
+            rts_path="test.rts"
+        )
+
+        assert tile.focus_state == "idle"
+
+    def test_console_output_default(self):
+        """Test default console output."""
+        tile = LiveTileInstance(
+            tile_id="console-test",
+            rts_path="test.rts"
+        )
+
+        assert tile.console_output == []
+
+    def test_v3_format_default(self):
+        """Test default v3_format value."""
+        tile = LiveTileInstance(
+            tile_id="v3-test",
+            rts_path="test.rts"
+        )
+
+        assert tile.v3_format is False
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

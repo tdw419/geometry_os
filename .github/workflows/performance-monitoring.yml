@@ -1,0 +1,218 @@
+name: Performance Monitoring
+
+on:
+  schedule:
+    # Run performance monitoring weekly
+    - cron: '0 3 * * 1'  # Every Monday at 3 AM UTC
+  workflow_dispatch:
+    inputs:
+      baseline_update:
+        description: 'Update performance baselines'
+        required: false
+        type: boolean
+        default: false
+      detailed_report:
+        description: 'Generate detailed performance report'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  performance-baseline:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        apt-get update
+        apt-get install -y \
+          python3 \
+          python3-pip \
+          build-essential \
+          cmake \
+          git
+
+    - name: Install Python packages
+      run: |
+        pip3 install matplotlib numpy pyyaml requests
+
+    - name: Build VectorOS components
+      run: |
+        chmod +x build/*.sh
+        ./build/build_runner.sh
+
+    - name: Update performance baselines
+      if: github.event.inputs.baseline_update == 'true' || github.event.schedule == '0 3 * * 1'
+      run: |
+        ./run_performance_benchmarks.sh --baseline
+
+    - name: Run performance benchmarks
+      run: |
+        ./run_performance_benchmarks.sh --ci
+
+    - name: Upload performance results
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-results-${{ github.run_number }}
+        path: |
+          benchmark_results/
+          test_results/
+
+  performance-regression-analysis:
+    runs-on: ubuntu-latest
+    needs: performance-baseline
+    container:
+      image: ubuntu:22.04
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download performance results
+      uses: actions/download-artifact@v3
+      with:
+        name: performance-results-${{ github.run_number }}
+        path: benchmark_results/
+
+    - name: Install analysis tools
+      run: |
+        apt-get update
+        apt-get install -y python3 python3-pip jq curl
+        pip3 install matplotlib numpy pandas scipy
+
+    - name: Analyze performance regressions
+      run: |
+        python3 -c "
+        import os
+        import json
+        import glob
+        from datetime import datetime
+
+        # Find latest performance report
+        reports = glob.glob('benchmark_results/performance_report_*.md')
+        if not reports:
+            print('No performance reports found')
+            exit(1)
+
+        latest_report = max(reports, key=os.path.getctime)
+        print(f'Analyzing: {latest_report}')
+
+        # Check for regressions
+        with open(latest_report, 'r') as f:
+            content = f.read()
+
+        if 'REGRESSION DETECTED' in content:
+            print('🚨 Performance regressions detected!')
+            # Extract regression details
+            lines = content.split('\n')
+            regressions = [line for line in lines if 'REGRESSION' in line]
+            for reg in regressions:
+                print(f'  {reg}')
+            exit(1)
+        else:
+            print('✅ No performance regressions detected')
+        "
+
+    - name: Generate performance trend report
+      if: github.event.inputs.detailed_report == 'true' || github.event.schedule == '0 3 * * 1'
+      run: |
+        python3 -c "
+        import os
+        import glob
+        import json
+        from datetime import datetime
+
+        # Collect all performance reports
+        reports = glob.glob('benchmark_results/performance_report_*.md')
+        reports.sort(key=os.path.getctime, reverse=True)
+
+        if len(reports) < 2:
+            print('Not enough reports for trend analysis')
+            exit(0)
+
+        print(f'Found {len(reports)} performance reports')
+
+        # Generate trend summary
+        trend_data = []
+        for report in reports[:10]:  # Last 10 reports
+            timestamp = os.path.basename(report).replace('performance_report_', '').replace('.md', '')
+            trend_data.append({
+                'timestamp': timestamp,
+                'file': report
+            })
+
+        with open('benchmark_results/performance_trend.json', 'w') as f:
+            json.dump(trend_data, f, indent=2)
+
+        print('Performance trend data saved')
+        "
+
+    - name: Upload trend analysis
+      uses: actions/upload-artifact@v3
+      if: github.event.inputs.detailed_report == 'true' || github.event.schedule == '0 3 * * 1'
+      with:
+        name: performance-trends-${{ github.run_number }}
+        path: |
+          benchmark_results/performance_trend.json
+
+  performance-alert:
+    runs-on: ubuntu-latest
+    needs: performance-regression-analysis
+    if: failure()
+
+    steps:
+    - name: Create performance regression issue
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const title = `Performance Regression Detected - ${new Date().toISOString().split('T')[0]}`;
+          const body = `
+          ## 🚨 Performance Regression Alert
+
+          A performance regression has been detected in the latest CI run.
+
+          **Run Details:**
+          - Workflow: ${{ github.workflow }}
+          - Run: #${{ github.run_number }}
+          - Commit: ${{ github.sha }}
+          - Branch: ${{ github.ref }}
+
+          **Actions Required:**
+          1. Review the performance benchmark results
+          2. Identify the cause of the regression
+          3. Fix the performance issue or update baselines if acceptable
+          4. Re-run performance tests
+
+          **Artifacts:**
+          - [Performance Results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+          This issue was automatically created by the performance monitoring system.
+          `;
+
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: title,
+            body: body,
+            labels: ['performance', 'regression', 'automated']
+          });
+
+  performance-notification:
+    runs-on: ubuntu-latest
+    needs: [performance-baseline, performance-regression-analysis]
+    if: always()
+
+    steps:
+    - name: Notify performance results
+      run: |
+        if [ "${{ needs.performance-regression-analysis.result }}" = "failure" ]; then
+          echo "Performance regression detected - notification sent via issue creation"
+        else
+          echo "Performance monitoring completed successfully"
+          # Add success notification logic here (Slack, Discord, etc.)
+        fi

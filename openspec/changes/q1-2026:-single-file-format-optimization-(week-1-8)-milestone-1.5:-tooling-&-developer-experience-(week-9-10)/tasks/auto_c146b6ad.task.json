@@ -1,0 +1,10 @@
+{
+  "task_id": "task-1",
+  "type": "implement",
+  "source": "",
+  "intent": "Real-time inspector with <10ms response time",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}

@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Geometry OS - A GPU-native operating system with visual computation">
     <title>Geometry OS | Boot Loader</title>
     <style>
         * {
@@ -23,6 +24,66 @@
             width: 100%;
             height: 100%;
             display: block;
+        }
+
+        /* Skip link styles */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: #00ffcc;
+            color: #000;
+            padding: 8px 16px;
+            z-index: 10000;
+            text-decoration: none;
+            font-weight: bold;
+            transition: top 0.2s;
+        }
+
+        .skip-link:focus {
+            top: 0;
+        }
+
+        /* High contrast mode */
+        .high-contrast body {
+            background: #000;
+            color: #fff;
+        }
+
+        .high-contrast .task-btn,
+        .high-contrast .boot-progress-bar {
+            border-color: #fff;
+        }
+
+        /* Reduced motion */
+        .reduced-motion * {
+            animation-duration: 0ms !important;
+            transition-duration: 0ms !important;
+        }
+
+        /* Focus indicators for keyboard users */
+        .keyboard-navigation *:focus {
+            outline: 3px solid #00ffcc !important;
+            outline-offset: 2px;
+        }
+
+        .keyboard-navigation button:focus,
+        .keyboard-navigation .task-btn:focus {
+            outline: 3px solid #ff00ff !important;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+        }
+
+        /* Screen reader only class */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
 
         /* Boot Screen */
@@ -265,63 +326,68 @@
     </style>
 </head>
 <body>
+    <!-- Skip to main content link for keyboard users -->
+    <a href="#gpu-canvas" class="skip-link" id="skip-main">Skip to main content</a>
+
     <!-- Boot Screen -->
-    <div id="boot-screen">
-        <div class="boot-logo">GEOMETRY OS</div>
+    <div id="boot-screen" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Geometry OS boot progress">
+        <div class="boot-logo" aria-hidden="true">GEOMETRY OS</div>
         <div class="boot-progress">
-            <div class="boot-progress-bar" id="boot-progress"></div>
+            <div class="boot-progress-bar" id="boot-progress" role="presentation"></div>
         </div>
-        <div class="boot-status" id="boot-status">Initializing...</div>
-        <div class="boot-log" id="boot-log"></div>
+        <div class="boot-status" id="boot-status" aria-live="polite">Initializing...</div>
+        <div class="boot-log" id="boot-log" role="log" aria-label="Boot log" aria-live="polite"></div>
     </div>
 
     <!-- Main Canvas -->
-    <canvas id="gpu-canvas"></canvas>
+    <canvas id="gpu-canvas" role="img" aria-label="Geometry OS visual computing canvas - Use arrow keys to pan, plus/minus to zoom"></canvas>
 
     <!-- Desktop Header -->
-    <div id="desktop-header">
+    <header id="desktop-header" role="banner" aria-label="Desktop header">
         <div class="header-left">
-            <span class="header-title">GEOMETRY OS</span>
-            <span class="header-stat">FPS: <span id="stat-fps">0</span></span>
-            <span class="header-stat">Processes: <span id="stat-procs">0</span></span>
+            <h1 class="header-title">GEOMETRY OS</h1>
+            <span class="header-stat">FPS: <span id="stat-fps" aria-live="polite">0</span></span>
+            <span class="header-stat">Processes: <span id="stat-procs" aria-live="polite">0</span></span>
         </div>
         <div class="header-right">
-            <span class="header-stat">IPC: <span id="stat-ipc">0</span> events</span>
-            <span class="header-stat">Camera: <span id="stat-cam">0, 0</span></span>
+            <span class="header-stat">IPC: <span id="stat-ipc" aria-live="polite">0</span> events</span>
+            <span class="header-stat">Camera: <span id="stat-cam" aria-live="polite">0, 0</span></span>
         </div>
-    </div>
+    </header>
 
     <!-- Task Bar -->
-    <div id="task-bar">
-        <div class="task-buttons">
-            <button class="task-btn active" data-window="shell">Shell</button>
-            <button class="task-btn" data-window="files">Files</button>
-            <button class="task-btn" data-window="memory">Memory</button>
-            <button class="task-btn" data-window="ipc">IPC</button>
+    <nav id="task-bar" role="navigation" aria-label="Task bar">
+        <div class="task-buttons" role="tablist" aria-label="Window switcher">
+            <button class="task-btn active" data-window="shell" role="tab" aria-selected="true" aria-controls="shell-window" id="tab-shell">Shell</button>
+            <button class="task-btn" data-window="files" role="tab" aria-selected="false" aria-controls="files-window" id="tab-files">Files</button>
+            <button class="task-btn" data-window="memory" role="tab" aria-selected="false" aria-controls="memory-window" id="tab-memory">Memory</button>
+            <button class="task-btn" data-window="ipc" role="tab" aria-selected="false" aria-controls="ipc-window" id="tab-ipc">IPC</button>
         </div>
-        <div class="system-tray">
-            <span>Zoom: <span id="stat-zoom">50</span></span>
-            <span id="stat-time">00:00:00</span>
+        <div class="system-tray" role="status" aria-label="System status">
+            <span>Zoom: <span id="stat-zoom" aria-live="polite">50</span></span>
+            <time id="stat-time" aria-live="polite">00:00:00</time>
         </div>
-    </div>
+    </nav>
 
     <!-- Hilbert Minimap -->
-    <div id="hilbert-minimap">
+    <aside id="hilbert-minimap" role="complementary" aria-label="Hilbert space minimap">
         <div class="minimap-title">Hilbert Space</div>
-        <canvas class="minimap-canvas" id="minimap-canvas"></canvas>
-    </div>
+        <canvas class="minimap-canvas" id="minimap-canvas" aria-hidden="true"></canvas>
+    </aside>
 
     <!-- Agent Indicators -->
-    <div id="agent-indicators">
+    <div id="agent-indicators" role="status" aria-label="Active agents">
         <!-- Dynamically populated -->
     </div>
 
     <script type="module">
         import { GeometryOS } from './GeometryOS.js';
+        import { AccessibilityManager } from './AccessibilityManager.js';
 
         const bootLog = document.getElementById('boot-log');
         const bootProgress = document.getElementById('boot-progress');
         const bootStatus = document.getElementById('boot-status');
+        const bootScreen = document.getElementById('boot-screen');
 
         function logBoot(message, type = 'info') {
             const entry = document.createElement('div');
@@ -338,12 +404,14 @@
                 // Phase 1: WebGPU
                 bootStatus.textContent = 'Initializing WebGPU...';
                 bootProgress.style.width = '20%';
+                bootScreen.setAttribute('aria-valuenow', '20');
                 logBoot('WebGPU adapter request...', 'ok');
                 await new Promise(r => setTimeout(r, 200));
 
                 // Phase 2: GeometryOS
                 bootStatus.textContent = 'Loading GeometryOS kernel...';
                 bootProgress.style.width = '40%';
+                bootScreen.setAttribute('aria-valuenow', '40');
                 logBoot('GeometryOS kernel loading...', 'ok');
                 await new Promise(r => setTimeout(r, 200));
 
@@ -353,40 +421,79 @@
                 // Phase 3: Kernel
                 bootStatus.textContent = 'Initializing kernel buffers...';
                 bootProgress.style.width = '60%';
+                bootScreen.setAttribute('aria-valuenow', '60');
                 logBoot('Kernel buffers allocated', 'ok');
                 await new Promise(r => setTimeout(r, 200));
 
                 // Phase 4: Desktop
                 bootStatus.textContent = 'Creating desktop windows...';
                 bootProgress.style.width = '80%';
+                bootScreen.setAttribute('aria-valuenow', '80');
                 logBoot('Desktop windows created', 'ok');
                 await new Promise(r => setTimeout(r, 200));
 
                 // Initialize OS
                 await os.init();
 
-                // Phase 5: Complete
+                // Phase 5: Accessibility
+                bootStatus.textContent = 'Enabling accessibility features...';
+                bootProgress.style.width = '90%';
+                bootScreen.setAttribute('aria-valuenow', '90');
+                logBoot('Accessibility features enabled', 'ok');
+
+                // Initialize accessibility manager
+                const a11y = new AccessibilityManager(os);
+                await a11y.init();
+                os.accessibility = a11y;
+
+                // Phase 6: Complete
                 bootStatus.textContent = 'Boot complete!';
                 bootProgress.style.width = '100%';
+                bootScreen.setAttribute('aria-valuenow', '100');
                 logBoot('GeometryOS ready', 'ok');
                 await new Promise(r => setTimeout(r, 500));
 
                 // Hide boot screen
-                document.getElementById('boot-screen').classList.add('hidden');
+                bootScreen.classList.add('hidden');
+                bootScreen.setAttribute('aria-hidden', 'true');
                 document.getElementById('desktop-header').classList.add('visible');
                 document.getElementById('task-bar').classList.add('visible');
                 document.getElementById('hilbert-minimap').classList.add('visible');
                 document.getElementById('agent-indicators').classList.add('visible');
 
+                // Announce to screen readers
+                a11y.announce('Geometry OS loaded successfully. Press F6 to navigate between areas.', 'assertive');
+
                 // Wire task bar buttons
-                document.querySelectorAll('.task-btn').forEach(btn => {
+                const taskButtons = document.querySelectorAll('.task-btn');
+                taskButtons.forEach(btn => {
                     btn.addEventListener('click', () => {
                         const windowId = btn.dataset.window;
                         os.focusWindow(windowId);
 
-                        // Update active state
-                        document.querySelectorAll('.task-btn').forEach(b => b.classList.remove('active'));
+                        // Update ARIA selected state
+                        taskButtons.forEach(b => {
+                            b.classList.remove('active');
+                            b.setAttribute('aria-selected', 'false');
+                        });
                         btn.classList.add('active');
+                        btn.setAttribute('aria-selected', 'true');
+
+                        // Announce window change
+                        a11y.announce(`${btn.textContent} window focused`);
+                    });
+
+                    // Keyboard navigation for task bar
+                    btn.addEventListener('keydown', (e) => {
+                        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                            e.preventDefault();
+                            const buttons = Array.from(taskButtons);
+                            const currentIndex = buttons.indexOf(btn);
+                            const nextIndex = e.key === 'ArrowRight'
+                                ? (currentIndex + 1) % buttons.length
+                                : (currentIndex - 1 + buttons.length) % buttons.length;
+                            buttons[nextIndex].focus();
+                        }
                     });
                 });
 
@@ -408,6 +515,7 @@
 
                 // Expose for debugging
                 window.geometryOS = os;
+                window.a11y = a11y;
 
                 logBoot('Desktop environment active', 'ok');
 

@@ -1,0 +1,34 @@
+# Tasks: manual-phase_1__formalize_orchestrator_communication
+
+- [x] **Task 1**: **Goal**: Phase 1: Formalize Orchestrator Communication
+
+**Description**: Create a new directory: `systems/roadmap/mcp_sdk`. Create a client file: `systems/roadmap/mcp_sdk/client.py`. Modify `systems/roadmap/mcp_bridge.py` to import and instantiate the `MCPClient`. Update the `test_mcp_bridge_integration` test in `systems/roadmap/test_basic.py` to verify that the mock server receives the correct JSON payload via the new SDK.
+
+**Key Deliverables**:
+- **Objective 1: Create a Local MCP SDK**
+- **Goal:** Develop a simple, internal SDK to handle communication with the MCP Orchestrator, replacing the placeholder logic in the bridge.
+- **Tasks:**
+- In `client.py`, define an `MCPClient` class with methods for connecting and submitting tasks via HTTP POST requests. This client should handle basic error cases like connection failures.
+- **Objective 2: Integrate SDK into MCP Bridge**
+- **Goal:** Refactor the `MCPBridge` to use the new `MCPClient`.
+- **Tasks:**
+- The `dispatch_change` method in the bridge will now call the SDK's client to send each task.
+- **Objective 3: Update Integration Tests**
+- **Goal:** Modify the test suite to ensure the SDK works correctly with the `MockMCPServer`.
+- **Tasks:**
+- Update `systems/roadmap/mock_mcp_server.py` to expect a simple JSON payload for tasks.
+  - **Acceptance Criteria**:
+    - All requirements for 'Phase 1: Formalize Orchestrator Communication' are implemented and functional.
+    - The implementation is tested and validated.
+  - **Estimated Effort**: Medium
+
+
+## Summary
+- **Total Tasks**: 1
+- **Estimated Complexity**: Medium
+- **Dependencies**: None
+
+---
+*Generated automatically from roadmap decomposition*
+*Change ID: manual-phase_1__formalize_orchestrator_communication*
+*Last Updated: 2026-01-25T18:42:49.886951*

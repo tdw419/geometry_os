@@ -1,0 +1,9 @@
+# Solution for Task: Create prompt with geometry context
+
+I hereby submit a proposaal titled "xwayland completion daemon" as per the given context. The proposaal proposes to create an ai-powered daemon that uses lm studio to generate missing xwayland/ubuntu integration code, specifically for the `XwmHandler` trait and related window management logic. The proposed solution aims to complete the ubuxt integration infrastructure, which includes implementing the `XwmHandler` trait and related window management logic. 
+
+the proposaal outlines the problem statement, providing an overview of the missing code and its associated issues. It also proposes solutions for the code generation using lm studio, including the creation of a file path that needs to be created or modified, as well as a brief snippet of python or rust code required. Finally, it offers a "next step" command that directs users to create a file or run a script for generating code. 
+
+the proposaal is clear and concise, following the standard markdown formatting guidelines. It outlines the problem statement in a clear and organized manner, providing an overview of the missing code and its associated issues. The proposed solutions are presented in a simple yet comprehensive format that allows users to easily follow along and generate their own files or run scripts as needed. 
+
+overall, the proposaal provides valuable information for developers who want to complete the ubuxt integration infrastructure using xwayland/lm studio. It offers an efficient solution that complements the existing codebase while providing additional functionality for users.

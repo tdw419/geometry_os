@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glass Box - Sisyphus Thought Visualization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a0a0a;
+            color: #ccc;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            overflow: hidden;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        header {
+            padding: 12px 20px;
+            background: #111;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 {
+            font-size: 18px;
+            color: #0ff;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        .status {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #666;
+        }
+        .status-dot.connected {
+            background: #0f0;
+            box-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
+        }
+        .status-dot.disconnected {
+            background: #f00;
+            box-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+        }
+        .main {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+        #canvas-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #050505;
+        }
+        #thought-canvas {
+            border: 1px solid #222;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.1);
+        }
+        .sidebar {
+            width: 320px;
+            background: #111;
+            border-left: 1px solid #333;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        .sidebar h2 {
+            font-size: 14px;
+            color: #0ff;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #333;
+        }
+        .thought-list {
+            font-size: 11px;
+        }
+        .thought-item {
+            padding: 8px;
+            margin-bottom: 6px;
+            background: #1a1a1a;
+            border-radius: 4px;
+            border-left: 3px solid #666;
+        }
+        .thought-item.task_start, .thought-item.task { border-left-color: #0ff; }
+        .thought-item.task_complete { border-left-color: #0f0; }
+        .thought-item.task_failure { border-left-color: #f00; }
+        .thought-item.gvn { border-left-color: #ff0; }
+        .thought-item.dna_synthesis { border-left-color: #f0f; }
+        .thought-item.heuristic { border-left-color: #88f; }
+        .thought-item.checkpoint { border-left-color: #f80; }
+        .thought-item.kernel_rewrite { border-left-color: #f50; }
+        .thought-item.token { border-left-color: #0ff; }
+        .thought-item.gravity { border-left-color: #8ff; }
+        .thought-item.attention { border-left-color: #f8f; }
+        .thought-item.memory { border-left-color: #8f8; }
+        .thought-item.compute { border-left-color: #ff8; }
+        .thought-item.weight_region { border-left-color: #f0a; }
+        .thought-item.brain_sector { border-left-color: #a0f; }
+        .thought-item.weight_mutation { border-left-color: #fa0; }
+        .thought-type {
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+        .thought-content {
+            color: #888;
+            word-break: break-all;
+        }
+        .thought-time {
+            color: #555;
+            font-size: 10px;
+            margin-top: 4px;
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 11px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        .controls {
+            padding: 10px 20px;
+            background: #111;
+            border-top: 1px solid #333;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        button {
+            background: #222;
+            color: #0ff;
+            border: 1px solid #0ff;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #0ff;
+            color: #000;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+            color: #888;
+        }
+        .stat-value {
+            color: #0ff;
+        }
+
+        /* Filter UI Styles */
+        .filter-section {
+            margin-bottom: 15px;
+        }
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            font-size: 11px;
+        }
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 6px;
+            background: #1a1a1a;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .filter-item:hover {
+            background: #2a2a2a;
+        }
+        .filter-item input[type="checkbox"] {
+            accent-color: #0ff;
+            width: 14px;
+            height: 14px;
+        }
+        .filter-item label {
+            cursor: pointer;
+            flex: 1;
+        }
+        .filter-item .type-color {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+        }
+        .filter-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .filter-actions button {
+            padding: 4px 10px;
+            font-size: 10px;
+        }
+        .filter-info {
+            font-size: 10px;
+            color: #666;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #333;
+        }
+        .filter-active {
+            color: #0ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GLASS BOX v1.1</h1>
+            <div class="status">
+                <div class="status-item">
+                    <div class="status-dot" id="ws-status"></div>
+                    <span>WebSocket</span>
+                </div>
+                <div class="status-item">
+                    <span>Thoughts: <span class="stat-value" id="thought-count">0</span></span>
+                </div>
+                <div class="status-item">
+                    <span>Filtered: <span class="stat-value" id="filtered-count">0</span></span>
+                </div>
+                <div class="status-item">
+                    <span>FPS: <span class="stat-value" id="fps">0</span></span>
+                </div>
+            </div>
+        </header>
+
+        <div class="main">
+            <div id="canvas-container">
+                <canvas id="thought-canvas" width="512" height="512"></canvas>
+            </div>
+
+            <div class="sidebar">
+                <h2>Type Filter</h2>
+                <div class="filter-section">
+                    <div class="filter-grid" id="filter-grid">
+                        <!-- Filter checkboxes will be populated by JS -->
+                    </div>
+                    <div class="filter-actions">
+                        <button id="select-all-btn">Select All</button>
+                        <button id="select-none-btn">Select None</button>
+                        <button id="apply-filter-btn">Apply & Reconnect</button>
+                    </div>
+                    <div class="filter-info">
+                        <span id="filter-status">All types enabled</span><br>
+                        <span class="filter-active" id="active-filter"></span>
+                    </div>
+                </div>
+
+                <h2>Color Legend</h2>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #0ff;"></div>
+                        <span>Task</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #0f0;"></div>
+                        <span>Complete</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f00;"></div>
+                        <span>Failure</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ff0;"></div>
+                        <span>GVN</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f0f;"></div>
+                        <span>DNA</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f80;"></div>
+                        <span>Checkpoint</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f50;"></div>
+                        <span>Kernel</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f0a;"></div>
+                        <span>Weight</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #a0f;"></div>
+                        <span>Sector</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #fa0;"></div>
+                        <span>Mutation</span>
+                    </div>
+                </div>
+
+                <h2>Recent Thoughts</h2>
+                <div class="thought-list" id="thought-list">
+                    <div class="thought-item">
+                        <div class="thought-content">Waiting for thoughts...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="connect-btn">Connect</button>
+            <button id="clear-btn">Clear</button>
+            <button id="test-btn">Send Test Thought</button>
+        </div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="hilbert_lut.js"></script>
+    <script src="ThoughtVisualizer.js"></script>
+
+    <script>
+        // =====================================================================
+        // Thought Type Definitions
+        // =====================================================================
+        const THOUGHT_TYPES = {
+            'token': { color: '#0ff', label: 'Token' },
+            'gravity': { color: '#8ff', label: 'Gravity' },
+            'task': { color: '#0ff', label: 'Task' },
+            'task_start': { color: '#0ff', label: 'Task Start' },
+            'task_complete': { color: '#0f0', label: 'Task Complete' },
+            'task_failure': { color: '#f00', label: 'Task Failure' },
+            'gvn': { color: '#ff0', label: 'GVN' },
+            'dna_synthesis': { color: '#f0f', label: 'DNA Synthesis' },
+            'heuristic': { color: '#88f', label: 'Heuristic' },
+            'checkpoint': { color: '#f80', label: 'Checkpoint' },
+            'kernel_rewrite': { color: '#f50', label: 'Kernel Rewrite' },
+            'slice': { color: '#8f8', label: 'Slice' },
+            'attention': { color: '#f8f', label: 'Attention' },
+            'memory': { color: '#8f8', label: 'Memory' },
+            'compute': { color: '#ff8', label: 'Compute' },
+            'weight_region': { color: '#f0a', label: 'Weight Region' },
+            'brain_sector': { color: '#a0f', label: 'Brain Sector' },
+            'weight_mutation': { color: '#fa0', label: 'Weight Mutation' }
+        };
+
+        // =====================================================================
+        // Query Parameter Handling
+        // =====================================================================
+        function parseQueryParams() {
+            const params = new URLSearchParams(window.location.search);
+            const typesParam = params.get('types');
+
+            if (typesParam) {
+                const types = typesParam.split(',').map(t => t.trim().toLowerCase());
+                return new Set(types.filter(t => THOUGHT_TYPES[t]));
+            }
+            return new Set(); // Empty = all types enabled
+        }
+
+        function updateUrlWithFilter(enabledTypes) {
+            const url = new URL(window.location);
+
+            if (enabledTypes.size === 0 || enabledTypes.size === Object.keys(THOUGHT_TYPES).length) {
+                // All types enabled - remove query param
+                url.searchParams.delete('types');
+            } else {
+                // Set query param
+                url.searchParams.set('types', Array.from(enabledTypes).join(','));
+            }
+
+            // Update URL without reloading page
+            window.history.replaceState({}, '', url);
+        }
+
+        // =====================================================================
+        // Filter UI
+        // =====================================================================
+        let enabledTypes = parseQueryParams();
+        let clientSideFilter = new Set(); // For local filtering of already-received thoughts
+
+        function createFilterUI() {
+            const grid = document.getElementById('filter-grid');
+            grid.innerHTML = '';
+
+            // Sort types alphabetically
+            const sortedTypes = Object.entries(THOUGHT_TYPES).sort((a, b) =>
+                a[1].label.localeCompare(b[1].label)
+            );
+
+            for (const [type, info] of sortedTypes) {
+                const item = document.createElement('div');
+                item.className = 'filter-item';
+
+                const isChecked = enabledTypes.size === 0 || enabledTypes.has(type);
+
+                item.innerHTML = `
+                    <input type="checkbox" id="filter-${type}" ${isChecked ? 'checked' : ''}>
+                    <div class="type-color" style="background: ${info.color};"></div>
+                    <label for="filter-${type}">${info.label}</label>
+                `;
+
+                const checkbox = item.querySelector('input');
+                checkbox.addEventListener('change', () => {
+                    updateFilterFromUI();
+                });
+
+                grid.appendChild(item);
+            }
+
+            updateFilterStatus();
+        }
+
+        function updateFilterFromUI() {
+            enabledTypes = new Set();
+
+            for (const type of Object.keys(THOUGHT_TYPES)) {
+                const checkbox = document.getElementById(`filter-${type}`);
+                if (checkbox && checkbox.checked) {
+                    enabledTypes.add(type);
+                }
+            }
+
+            // If all are checked, treat as "all enabled" (empty set)
+            if (enabledTypes.size === Object.keys(THOUGHT_TYPES).length) {
+                enabledTypes = new Set();
+            }
+
+            updateFilterStatus();
+        }
+
+        function updateFilterStatus() {
+            const statusEl = document.getElementById('filter-status');
+            const activeEl = document.getElementById('active-filter');
+
+            if (enabledTypes.size === 0) {
+                statusEl.textContent = 'All types enabled';
+                activeEl.textContent = '';
+            } else {
+                statusEl.textContent = `${enabledTypes.size} type(s) selected`;
+                activeEl.textContent = `Active: ${Array.from(enabledTypes).join(', ')}`;
+            }
+        }
+
+        function selectAllFilters() {
+            for (const type of Object.keys(THOUGHT_TYPES)) {
+                const checkbox = document.getElementById(`filter-${type}`);
+                if (checkbox) checkbox.checked = true;
+            }
+            enabledTypes = new Set(); // Empty = all enabled
+            updateFilterStatus();
+        }
+
+        function selectNoneFilters() {
+            for (const type of Object.keys(THOUGHT_TYPES)) {
+                const checkbox = document.getElementById(`filter-${type}`);
+                if (checkbox) checkbox.checked = false;
+            }
+            enabledTypes = new Set(Object.keys(THOUGHT_TYPES)); // All disabled
+            updateFilterStatus();
+        }
+
+        // =====================================================================
+        // WebSocket Connection with Filter
+        // =====================================================================
+        let ws = null;
+        let connected = false;
+        let thoughts = [];
+        let filteredCount = 0;
+
+        function getWebSocketUrl() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.hostname || 'localhost';
+            const port = 3002; // Visual Bridge port
+
+            let url = `${protocol}//${host}:${port}/ws/v1/thoughts`;
+
+            // Add filter query parameter if filtering is active
+            if (enabledTypes.size > 0) {
+                url += `?types=${Array.from(enabledTypes).join(',')}`;
+            }
+
+            return url;
+        }
+
+        function connectWebSocket() {
+            if (ws) {
+                ws.close();
+            }
+
+            const url = getWebSocketUrl();
+            console.log('Connecting to:', url);
+
+            ws = new WebSocket(url);
+
+            ws.onopen = () => {
+                connected = true;
+                updateConnectionStatus(true);
+                console.log('WebSocket connected');
+            };
+
+            ws.onclose = () => {
+                connected = false;
+                updateConnectionStatus(false);
+                console.log('WebSocket disconnected');
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const message = JSON.parse(event.data);
+                    handleMessage(message);
+                } catch (e) {
+                    console.error('Failed to parse message:', e);
+                }
+            };
+        }
+
+        function handleMessage(message) {
+            switch (message.msg_type) {
+                case 'Connected':
+                    console.log('Server connected:', message.message);
+                    if (message.filter) {
+                        console.log('Server filter:', message.filter);
+                    }
+                    break;
+
+                case 'Thought':
+                    handleThought(message.payload);
+                    break;
+
+                case 'Ping':
+                    // Ignore pings
+                    break;
+
+                default:
+                    console.log('Unknown message type:', message.msg_type);
+            }
+        }
+
+        function handleThought(thought) {
+            // Client-side filtering (for display of thoughts that pass server filter)
+            const thoughtType = (thought.type || '').toLowerCase();
+
+            // Add to thoughts array
+            thoughts.push(thought);
+            if (thoughts.length > 1000) {
+                thoughts.shift(); // Keep last 1000
+            }
+
+            // Update UI
+            addThoughtToSidebar(thought);
+            document.getElementById('thought-count').textContent = thoughts.length;
+
+            // Render on canvas
+            renderThought(thought);
+        }
+
+        function renderThought(thought) {
+            const canvas = document.getElementById('thought-canvas');
+            const ctx = canvas.getContext('2d');
+
+            const type = thought.type || 'default';
+            const info = THOUGHT_TYPES[type] || { color: '#888' };
+
+            // Calculate position (use hilbert_index if available, otherwise random)
+            let x, y;
+            if (thought.hilbert_index !== undefined) {
+                // Convert hilbert index to x,y (simplified)
+                const idx = thought.hilbert_index % (512 * 512);
+                x = idx % 512;
+                y = Math.floor(idx / 512);
+            } else {
+                x = Math.random() * 512;
+                y = Math.random() * 512;
+            }
+
+            // Draw pulse
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, 20);
+            gradient.addColorStop(0, info.color);
+            gradient.addColorStop(1, 'transparent');
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(x, y, 20, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Fade effect
+            setTimeout(() => {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.beginPath();
+                ctx.arc(x, y, 20, 0, Math.PI * 2);
+                ctx.fill();
+            }, 500);
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusDot = document.getElementById('ws-status');
+            const connectBtn = document.getElementById('connect-btn');
+
+            statusDot.className = 'status-dot ' + (connected ? 'connected' : 'disconnected');
+            connectBtn.textContent = connected ? 'Disconnect' : 'Connect';
+        }
+
+        // =====================================================================
+        // Sidebar Thought List
+        // =====================================================================
+        function addThoughtToSidebar(thought) {
+            const thoughtList = document.getElementById('thought-list');
+
+            // Remove "waiting" message if present
+            if (thoughtList.children.length === 1 &&
+                thoughtList.children[0].querySelector('.thought-content')?.textContent === 'Waiting for thoughts...') {
+                thoughtList.innerHTML = '';
+            }
+
+            const type = thought.type || 'default';
+            const content = thought.content || thought.task_name || JSON.stringify(thought).slice(0, 100);
+            const time = new Date().toLocaleTimeString();
+
+            const item = document.createElement('div');
+            item.className = `thought-item ${type}`;
+            item.innerHTML = `
+                <div class="thought-type">${type.toUpperCase()}</div>
+                <div class="thought-content">${escapeHtml(content)}</div>
+                <div class="thought-time">${time}</div>
+            `;
+
+            thoughtList.insertBefore(item, thoughtList.firstChild);
+
+            // Keep only last 50 thoughts in sidebar
+            while (thoughtList.children.length > 50) {
+                thoughtList.removeChild(thoughtList.lastChild);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // =====================================================================
+        // FPS Counter
+        // =====================================================================
+        let frameCount = 0;
+        let lastFpsUpdate = performance.now();
+
+        function updateFps() {
+            frameCount++;
+            const now = performance.now();
+            if (now - lastFpsUpdate >= 1000) {
+                document.getElementById('fps').textContent = frameCount;
+                frameCount = 0;
+                lastFpsUpdate = now;
+            }
+            requestAnimationFrame(updateFps);
+        }
+
+        // =====================================================================
+        // Event Handlers
+        // =====================================================================
+        document.getElementById('connect-btn').addEventListener('click', () => {
+            if (connected) {
+                ws?.close();
+            } else {
+                connectWebSocket();
+            }
+        });
+
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            thoughts = [];
+            filteredCount = 0;
+            document.getElementById('thought-list').innerHTML = '';
+            document.getElementById('thought-count').textContent = '0';
+            document.getElementById('filtered-count').textContent = '0';
+
+            // Clear canvas
+            const canvas = document.getElementById('thought-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        });
+
+        document.getElementById('test-btn').addEventListener('click', async () => {
+            const types = Object.keys(THOUGHT_TYPES);
+            const type = types[Math.floor(Math.random() * types.length)];
+            const contents = [
+                'Optimizing loop in render_pass',
+                'Checkpoint saved: task_42',
+                'GVN eliminated 23 redundant loads',
+                'DNA synthesis: 3 new tasks generated',
+                'Heuristic: uncommitted files detected',
+                'Task complete: 15.3s',
+                'Kernel rewrite: optimized hilbert_d2xy (2.3x speedup)',
+                'Token generated: "Hello"',
+                'Gravity field updated',
+                'Attention weight computed'
+            ];
+            const content = contents[Math.floor(Math.random() * contents.length)];
+
+            const thought = {
+                type: type,
+                content: content,
+                task_name: content,
+                timestamp: Date.now()
+            };
+
+            // Send via HTTP POST
+            try {
+                const response = await fetch('http://localhost:3002/thoughts/broadcast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(thought)
+                });
+                console.log('Broadcast result:', await response.json());
+            } catch (e) {
+                console.error('Failed to broadcast:', e);
+                // Fall back to local handling
+                handleThought(thought);
+            }
+        });
+
+        document.getElementById('select-all-btn').addEventListener('click', selectAllFilters);
+        document.getElementById('select-none-btn').addEventListener('click', selectNoneFilters);
+
+        document.getElementById('apply-filter-btn').addEventListener('click', () => {
+            updateFilterFromUI();
+            updateUrlWithFilter(enabledTypes);
+
+            // Reconnect with new filter
+            if (connected) {
+                connectWebSocket();
+            }
+        });
+
+        // =====================================================================
+        // Initialization
+        // =====================================================================
+        createFilterUI();
+        updateFps();
+        updateConnectionStatus(false);
+
+        // Show active filter from URL
+        if (enabledTypes.size > 0) {
+            document.getElementById('active-filter').textContent =
+                `URL Filter: ${Array.from(enabledTypes).join(', ')}`;
+        }
+
+        // Auto-connect on load
+        setTimeout(() => {
+            connectWebSocket();
+        }, 500);
+    </script>
+</body>
+</html>

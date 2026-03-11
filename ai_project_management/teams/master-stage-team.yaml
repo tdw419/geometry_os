@@ -1,0 +1,151 @@
+# Master Stage Evolution Team
+#
+# A specialized team for implementing and executing the first autonomous
+# self-evolution of Geometry OS - the AI modifying its own perception system.
+
+name: master-stage-evolution
+description: |
+  Agent team for the Master Stage V14 - autonomous self-evolution.
+
+  This team executes the first real self-modification where the AI
+  adds 'notification_badge' as a RELAXED criticality type to its
+  VisualVerificationService.
+
+  Plan: docs/plans/2026-02-18-first-autonomous-evolution.md
+
+selection_policy: best_fit
+scaling_policy: fixed
+failure_policy: retry
+
+max_retries: 2
+retry_delay: 5.0
+
+# Team communication
+enable_event_bus: true
+enable_health_monitoring: true
+health_check_interval: 30.0
+
+# Team constraints
+max_concurrent_tasks: 3
+task_timeout: 300.0
+
+# Shared context
+shared_memory: true
+
+metadata:
+  project: geometry-os
+  component: evolution-daemon
+  phase: master-stage-v14
+  plan_file: docs/plans/2026-02-18-first-autonomous-evolution.md
+  evolution_target: notification_badge
+  target_files:
+    - scripts/first_autonomous_evolution.py
+    - systems/evolution_daemon/tests/test_first_evolution.py
+    - systems/evolution_daemon/visual_verification_service.py
+
+agents:
+  # ============================================
+  # SCRIPT BUILDER - Creates the evolution runner
+  # ============================================
+  - agent_id: script-builder
+    name: Script Builder
+    agent_type: specialist
+    capabilities:
+      - python
+      - asyncio
+      - script_development
+      - logging
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 100
+    metadata:
+      role: Create the first_autonomous_evolution.py runner script
+      tasks:
+        - Task 1: Create evolution runner script
+      key_elements:
+        - Import EvolutionDaemon and related classes
+        - Create EvolutionTask for notification_badge
+        - Execute safe_evolve pipeline
+        - Log and verify results
+
+  # ============================================
+  # TEST VERIFIER - Creates verification tests
+  # ============================================
+  - agent_id: test-verifier
+    name: Test Verifier
+    agent_type: specialist
+    capabilities:
+      - python
+      - pytest
+      - tdd
+      - verification
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 95
+    metadata:
+      role: Create verification tests for the evolution scenario
+      tasks:
+        - Task 2: Create evolution verification test
+      key_tests:
+        - test_notification_badge_intent_creation
+        - test_evolution_task_creation
+        - test_notification_badge_classification
+
+  # ============================================
+  # EVOLUTION EXECUTOR - Runs and documents evolution
+  # ============================================
+  - agent_id: evolution-executor
+    name: Evolution Executor
+    agent_type: specialist
+    capabilities:
+      - python
+      - execution
+      - documentation
+      - verification
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 90
+    metadata:
+      role: Execute the evolution run and document results
+      tasks:
+        - Task 3: Run and document the first evolution
+      key_outputs:
+        - Execution log
+        - Verification results
+        - Updated plan documentation
+
+# Task routing
+task_routing:
+  - pattern: "Task 1.*|script.*runner"
+    assign_to: script-builder
+
+  - pattern: "Task 2.*|test.*verification"
+    assign_to: test-verifier
+
+  - pattern: "Task 3.*|execute.*document"
+    assign_to: evolution-executor
+
+# Task dependencies (sequential execution)
+task_dependencies:
+  - task_id: "Task 1"
+    depends_on: []
+  - task_id: "Task 2"
+    depends_on: ["Task 1"]
+  - task_id: "Task 3"
+    depends_on: ["Task 1", "Task 2"]
+
+# Success criteria
+completion_criteria:
+  - "All 3 tasks completed with commits"
+  - "scripts/first_autonomous_evolution.py created and working"
+  - "test_first_evolution.py with 3+ passing tests"
+  - "Evolution run executed and documented"
+  - "notification_badge classification verified"
+
+# Metrics to track
+metrics:
+  - tasks_completed
+  - tests_written
+  - tests_passing
+  - commits_made
+  - evolution_success

@@ -9,7 +9,6 @@ This is the "libc" of Geometry OS.
 """
 
 import struct
-from typing import List, Tuple
 
 # Library function IDs
 LIBGEO_FUNCTIONS = {
@@ -94,8 +93,6 @@ class LibGeoBuilder:
 
     def _build_function(self, name: str, func_id: int):
         """Build a single library function."""
-        start_offset = len(self.words)
-
         if name.startswith('VEC2_'):
             self._build_vec2_function(name)
         elif name.startswith('VEC3_'):

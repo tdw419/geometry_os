@@ -1,0 +1,90 @@
+name: WebMCP Builder Tests
+
+on:
+  # Trigger on push to main branches
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'systems/visual_shell/web/webmcp_bridge.js'
+      - 'systems/visual_shell/web/BuilderPanel.js'
+      - 'systems/visual_shell/web/builder_tools_test.html'
+      - 'run_builder_tests.py'
+      - '.github/workflows/webmcp-builder-tests.yml'
+
+  # Trigger on pull requests
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - 'systems/visual_shell/web/webmcp_bridge.js'
+      - 'systems/visual_shell/web/BuilderPanel.js'
+      - 'systems/visual_shell/web/builder_tools_test.html'
+      - 'run_builder_tests.py'
+      - '.github/workflows/webmcp-builder-tests.yml'
+
+  # Allow manual workflow dispatch
+  workflow_dispatch:
+
+jobs:
+  webmcp-builder-tests:
+    name: WebMCP Phase F - AI Visual Builder Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache .venv
+        uses: actions/cache@v4
+        id: venv-cache
+        with:
+          path: .venv
+          key: ${{ runner.os }}-venv-${{ hashFiles('**/run_builder_tests.py') }}
+
+      - name: Install dependencies
+        if: steps.venv-cache.outputs.cache-hit != 'true'
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/pip install playwright
+          .venv/bin/playwright install --with-deps chromium
+
+      - name: Run WebMCP Builder Tests
+        id: builder_tests
+        run: |
+          .venv/bin/python run_builder_tests.py
+        continue-on-error: false
+
+      - name: Upload test artifacts (screenshots on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: webmcp-builder-test-failure-${{ github.run_number }}
+          path: |
+            debug_*.png
+            /tmp/debug_*.png
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "## WebMCP Builder Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Tests verify:" >> $GITHUB_STEP_SUMMARY
+          echo "- builder_place_tile - Human-in-the-loop confirmation" >> $GITHUB_STEP_SUMMARY
+          echo "- builder_load_shader - WGSL shader loading" >> $GITHUB_STEP_SUMMARY
+          echo "- builder_evolve_shader - Genetic algorithm evolution" >> $GITHUB_STEP_SUMMARY
+          echo "- builder_assemble_cartridge - Cartridge assembly" >> $GITHUB_STEP_SUMMARY
+          echo "- builder_preview - Preview capture" >> $GITHUB_STEP_SUMMARY
+          echo "- builder_get_state - State retrieval" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "W3C WebMCP Spec Compliance: agent.requestUserInteraction()" >> $GITHUB_STEP_SUMMARY

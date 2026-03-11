@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural IDE Builder Demo</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0f;
+            color: #00ff88;
+            padding: 20px;
+            margin: 0;
+        }
+        h1 {
+            color: #00ff88;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #00ff88;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        button {
+            font-family: 'Courier New', monospace;
+            background: #1a1a2e;
+            color: #00ff88;
+            border: 2px solid #00ff88;
+            padding: 12px 24px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        button:hover {
+            background: #00ff88;
+            color: #0a0a0f;
+            box-shadow: 0 0 15px #00ff88;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #1a1a2e;
+            border: 1px solid #00ff88;
+            border-radius: 4px;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #00ffff;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+        }
+        .log-container {
+            background: #0f0f1a;
+            border: 1px solid #00ff88;
+            border-radius: 4px;
+            height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+        }
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 2px;
+            border-left: 3px solid #00ff88;
+        }
+        .log-entry.success {
+            border-left-color: #00ff00;
+        }
+        .log-entry.info {
+            border-left-color: #00ffff;
+        }
+        .log-entry.preview {
+            border-left-color: #ff88ff;
+            background: #1a0f2e;
+        }
+        .timestamp {
+            color: #666;
+            font-size: 11px;
+        }
+        .message {
+            margin-top: 4px;
+        }
+        .highlight {
+            color: #ffff00;
+        }
+        .connection-type {
+            color: #ff88ff;
+        }
+        .tile-type {
+            color: #00ffff;
+        }
+    </style>
+</head>
+<body>
+    <h1>Neural IDE Builder Demo</h1>
+
+    <div class="controls">
+        <button id="runFull">Run Full Demo</button>
+        <button id="stepThrough">Step Through</button>
+        <button id="reset">Reset</button>
+    </div>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-value" id="tileCount">0</div>
+            <div class="stat-label">Tiles Placed</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="connectionCount">0</div>
+            <div class="stat-label">Connections Made</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="stepCount">0</div>
+            <div class="stat-label">Steps Completed</div>
+        </div>
+    </div>
+
+    <div class="log-container" id="logContainer"></div>
+
+    <!-- Load all required scripts -->
+    <script src="tile_connections.js"></script>
+    <script src="ide_tile_types.js"></script>
+    <script src="ide_tile_renderer.js"></script>
+    <script src="ide_semantic_overlay.js"></script>
+    <script src="ide_assembly_engine.js"></script>
+
+    <script>
+        // DOM elements
+        const logContainer = document.getElementById('logContainer');
+        const tileCountEl = document.getElementById('tileCount');
+        const connectionCountEl = document.getElementById('connectionCount');
+        const stepCountEl = document.getElementById('stepCount');
+        const runFullBtn = document.getElementById('runFull');
+        const stepThroughBtn = document.getElementById('stepThrough');
+        const resetBtn = document.getElementById('reset');
+
+        // Component instances
+        let connectionManager = null;
+        let tileRenderer = null;
+        let semanticOverlay = null;
+        let assemblyEngine = null;
+
+        // Demo state
+        let currentStep = 0;
+        let tileIds = {};
+        let isRunning = false;
+
+        // Demo steps configuration
+        const demoSteps = [
+            {
+                name: 'Place Code Editor',
+                action: () => {
+                    const result = assemblyEngine.placeIDETile('code_editor', 100, 100, {
+                        content: '// Welcome to Neural IDE\nfunction hello() {\n  console.log("Hello, World!");\n}',
+                        openFiles: ['main.js', 'utils.js']
+                    });
+                    if (result.success) {
+                        tileIds.editor = result.tile_id;
+                        log('success', `Placed <span class="tile-type">Code Editor</span> at (100, 100)`);
+                        log('info', `Tile ID: ${result.tile_id}`);
+                    }
+                    return result.success;
+                }
+            },
+            {
+                name: 'Place File Browser',
+                action: () => {
+                    const result = assemblyEngine.placeIDETile('file_browser', 400, 100, {
+                        content: { root: '/project', files: ['main.js', 'utils.js', 'package.json'] }
+                    });
+                    if (result.success) {
+                        tileIds.browser = result.tile_id;
+                        log('success', `Placed <span class="tile-type">File Browser</span> at (400, 100)`);
+                        log('info', `Tile ID: ${result.tile_id}`);
+                    }
+                    return result.success;
+                }
+            },
+            {
+                name: 'Connect Browser to Editor',
+                action: () => {
+                    const result = assemblyEngine.connectIDETiles(
+                        tileIds.browser,
+                        tileIds.editor,
+                        'data_flow'
+                    );
+                    if (result.success) {
+                        log('success', `Connected Browser -> Editor (<span class="connection-type">data_flow</span>)`);
+                        log('info', `Connection ID: ${result.connection_id}`);
+                    }
+                    return result.success;
+                }
+            },
+            {
+                name: 'Place Terminal',
+                action: () => {
+                    const result = assemblyEngine.placeIDETile('terminal', 100, 350, {
+                        content: '$ npm start\n> Server running on port 3000'
+                    });
+                    if (result.success) {
+                        tileIds.terminal = result.tile_id;
+                        log('success', `Placed <span class="tile-type">Terminal</span> at (100, 350)`);
+                        log('info', `Tile ID: ${result.tile_id}`);
+                    }
+                    return result.success;
+                }
+            },
+            {
+                name: 'Connect Editor to Terminal',
+                action: () => {
+                    const result = assemblyEngine.connectIDETiles(
+                        tileIds.editor,
+                        tileIds.terminal,
+                        'command_flow'
+                    );
+                    if (result.success) {
+                        log('success', `Connected Editor -> Terminal (<span class="connection-type">command_flow</span>)`);
+                        log('info', `Connection ID: ${result.connection_id}`);
+                    }
+                    return result.success;
+                }
+            },
+            {
+                name: 'Place Debugger',
+                action: () => {
+                    const result = assemblyEngine.placeIDETile('debugger', 400, 350, {
+                        content: { breakpoints: [5, 12], variables: { count: 42, name: '"test"' } }
+                    });
+                    if (result.success) {
+                        tileIds.debugger = result.tile_id;
+                        log('success', `Placed <span class="tile-type">Debugger</span> at (400, 350)`);
+                        log('info', `Tile ID: ${result.tile_id}`);
+                    }
+                    return result.success;
+                }
+            },
+            {
+                name: 'Connect Editor to Debugger',
+                action: () => {
+                    const result = assemblyEngine.connectIDETiles(
+                        tileIds.editor,
+                        tileIds.debugger,
+                        'debug_flow'
+                    );
+                    if (result.success) {
+                        log('success', `Connected Editor -> Debugger (<span class="connection-type">debug_flow</span>)`);
+                        log('info', `Connection ID: ${result.connection_id}`);
+                    }
+                    return result.success;
+                }
+            },
+            {
+                name: 'Preview Assembly',
+                action: () => {
+                    const preview = assemblyEngine.preview();
+                    log('preview', '=== Assembly Preview ===');
+                    log('info', `Total Tiles: <span class="highlight">${preview.tile_count}</span>`);
+                    log('info', `Total Connections: <span class="highlight">${preview.connection_count}</span>`);
+                    log('info', 'Tile Types: ' + preview.tiles.map(t => `<span class="tile-type">${t.type}</span>`).join(', '));
+                    log('info', 'Connection Types: ' + preview.connections.map(c => `<span class="connection-type">${c.type}</span>`).join(', '));
+                    return true;
+                }
+            }
+        ];
+
+        /**
+         * Log a message to the log container
+         */
+        function log(type, message) {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+
+            const timestamp = document.createElement('div');
+            timestamp.className = 'timestamp';
+            timestamp.textContent = new Date().toLocaleTimeString();
+
+            const msg = document.createElement('div');
+            msg.className = 'message';
+            msg.innerHTML = message;
+
+            entry.appendChild(timestamp);
+            entry.appendChild(msg);
+            logContainer.appendChild(entry);
+
+            // Auto-scroll to bottom
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        /**
+         * Update the stats display
+         */
+        function updateStats() {
+            const preview = assemblyEngine.preview();
+            tileCountEl.textContent = preview.tile_count;
+            connectionCountEl.textContent = preview.connection_count;
+            stepCountEl.textContent = currentStep;
+        }
+
+        /**
+         * Initialize all components
+         */
+        function initializeComponents() {
+            // Create TileConnectionManager
+            connectionManager = new TileConnectionManager();
+            log('info', 'TileConnectionManager initialized');
+
+            // Create IDETileRenderer (without PixiJS for demo)
+            tileRenderer = new IDETileRenderer(null, null);
+            log('info', 'IDETileRenderer initialized');
+
+            // Create IDESemanticOverlay
+            semanticOverlay = new IDESemanticOverlay(connectionManager, tileRenderer);
+            log('info', 'IDESemanticOverlay initialized');
+
+            // Create IDEAssemblyEngine
+            assemblyEngine = new IDEAssemblyEngine(
+                null,  // BuilderPanel (not needed for demo)
+                connectionManager,
+                semanticOverlay,
+                tileRenderer
+            );
+            log('info', 'IDEAssemblyEngine initialized');
+
+            updateStats();
+        }
+
+        /**
+         * Run a single demo step
+         */
+        function runStep(stepIndex) {
+            if (stepIndex >= demoSteps.length) {
+                log('success', 'Demo complete!');
+                isRunning = false;
+                runFullBtn.disabled = false;
+                stepThroughBtn.disabled = false;
+                return false;
+            }
+
+            const step = demoSteps[stepIndex];
+            log('info', `--- Step ${stepIndex + 1}: ${step.name} ---`);
+
+            const success = step.action();
+            currentStep++;
+            updateStats();
+
+            return success;
+        }
+
+        /**
+         * Run the full demo with delays
+         */
+        async function runFullDemo() {
+            if (isRunning) return;
+
+            isRunning = true;
+            runFullBtn.disabled = true;
+            stepThroughBtn.disabled = true;
+
+            for (let i = currentStep; i < demoSteps.length; i++) {
+                if (!isRunning) break;
+
+                runStep(i);
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            isRunning = false;
+            runFullBtn.disabled = false;
+            stepThroughBtn.disabled = false;
+        }
+
+        /**
+         * Run a single step
+         */
+        function runSingleStep() {
+            if (isRunning || currentStep >= demoSteps.length) return;
+
+            runStep(currentStep);
+
+            if (currentStep >= demoSteps.length) {
+                stepThroughBtn.disabled = true;
+            }
+        }
+
+        /**
+         * Reset all state
+         */
+        function resetDemo() {
+            isRunning = false;
+            currentStep = 0;
+            tileIds = {};
+
+            // Clear components
+            if (assemblyEngine) {
+                assemblyEngine.clear();
+            }
+
+            // Clear log
+            logContainer.innerHTML = '';
+
+            // Re-initialize
+            log('info', '=== Neural IDE Builder Demo Reset ===');
+            initializeComponents();
+
+            // Reset buttons
+            runFullBtn.disabled = false;
+            stepThroughBtn.disabled = false;
+
+            log('info', 'Ready. Click "Run Full Demo" or "Step Through" to begin.');
+        }
+
+        // Event listeners
+        runFullBtn.addEventListener('click', runFullDemo);
+        stepThroughBtn.addEventListener('click', runSingleStep);
+        resetBtn.addEventListener('click', resetDemo);
+
+        // Initialize on load
+        log('info', '=== Neural IDE Builder Demo ===');
+        log('info', 'Phase J.2: Neural IDE Visual Builder');
+        log('info', '---');
+        initializeComponents();
+        log('info', 'Ready. Click "Run Full Demo" or "Step Through" to begin.');
+
+        // Log available tile types
+        const tileTypes = assemblyEngine.getValidTileTypes();
+        log('info', `Available tile types: ${tileTypes.map(t => `<span class="tile-type">${t}</span>`).join(', ')}`);
+    </script>
+</body>
+</html>

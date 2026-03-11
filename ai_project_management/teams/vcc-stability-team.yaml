@@ -1,0 +1,228 @@
+# VCC Stability Visualization Team
+#
+# Specialized team for adding VCC (Visual Consistency Contract) stability
+# visualization to Neural City buildings.
+
+name: vcc-stability
+description: |
+  Agent team for VCC Stability Visualization implementation.
+
+  This team adds PAS (Pixel Alignment Score) stability indicators:
+  - Stability bars above buildings (green/yellow/red)
+  - Critical state effects (tremor, glitch, alert)
+  - Glass Box integration with stability section
+
+  Plan: docs/plans/2026-02-19-vcc-stability-visualization.md
+
+  Key Outcomes:
+  - CityOrchestrator stability model
+  - MockAgentData PAS generation
+  - NeuralCityEngine stability bars
+  - Critical state visual effects
+  - Glass Box stability section
+
+selection_policy: best_fit
+scaling_policy: fixed
+failure_policy: retry
+
+max_retries: 2
+retry_delay: 5.0
+
+# Team communication
+enable_event_bus: true
+enable_health_monitoring: true
+health_check_interval: 30.0
+
+# Team constraints
+max_concurrent_tasks: 4
+task_timeout: 300.0
+
+# Shared context
+shared_memory: true
+
+metadata:
+  project: geometry-os
+  component: visual-shell
+  phase: vcc-stability-v1
+  plan_file: docs/plans/2026-02-19-vcc-stability-visualization.md
+  total_tasks: 4
+  total_tests: 5
+  target_files:
+    - systems/visual_shell/web/js/CityOrchestrator.js
+    - systems/visual_shell/web/js/MockAgentData.js
+    - systems/visual_shell/web/js/NeuralCityEngine.js
+    - systems/visual_shell/web/js/AgentDataPanel.js
+    - systems/visual_shell/web/js/GlassBoxOverlay.js
+    - systems/visual_shell/web/neural_city_demo.html
+    - systems/visual_shell/web/tests/test_city_orchestrator.js
+    - systems/visual_shell/web/tests/test_neural_city_engine.js
+
+agents:
+  # ============================================
+  # DATA MODEL BUILDER - Task 1
+  # ============================================
+  - agent_id: data-model-builder
+    name: Data Model Builder
+    agent_type: specialist
+    capabilities:
+      - javascript
+      - data_structures
+      - testing
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 100
+    metadata:
+      role: Add stability to building data model (Task 1)
+      tasks:
+        - Task 1: Add Stability to Building Data Model
+      key_elements:
+        - stability.pas field in buildings
+        - updateStability() method
+        - _classifyStability() helper
+        - MockAgentData.generatePAS()
+      test_file: systems/visual_shell/web/tests/test_city_orchestrator.js
+      source_files:
+        - systems/visual_shell/web/js/CityOrchestrator.js
+        - systems/visual_shell/web/js/MockAgentData.js
+
+  # ============================================
+  # STABILITY BAR RENDERER - Task 2
+  # ============================================
+  - agent_id: stability-renderer
+    name: Stability Bar Renderer
+    agent_type: specialist
+    capabilities:
+      - javascript
+      - pixijs
+      - graphics
+      - testing
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 95
+    metadata:
+      role: Render stability bars above buildings (Task 2)
+      tasks:
+        - Task 2: Render Stability Bars Above Buildings
+      key_elements:
+        - _getStabilityColor() helper
+        - Stability bar in _renderBuilding()
+        - Update bar in _updateBuildingRender()
+      test_file: systems/visual_shell/web/tests/test_neural_city_engine.js
+      source_file: systems/visual_shell/web/js/NeuralCityEngine.js
+
+  # ============================================
+  # CRITICAL EFFECTS BUILDER - Task 3
+  # ============================================
+  - agent_id: critical-effects-builder
+    name: Critical Effects Builder
+    agent_type: specialist
+    capabilities:
+      - javascript
+      - css
+      - animation
+      - pixijs
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 90
+    metadata:
+      role: Implement critical state effects (Task 3)
+      tasks:
+        - Task 3: Implement Critical State Effects
+      key_elements:
+        - Tremor animation (±2px at 5Hz)
+        - Visual glitch (pivot offset, alpha flicker)
+        - System alert HUD
+        - CSS animations
+      source_files:
+        - systems/visual_shell/web/js/NeuralCityEngine.js
+        - systems/visual_shell/web/neural_city_demo.html
+
+  # ============================================
+  # GLASS BOX INTEGRATOR - Task 4
+  # ============================================
+  - agent_id: glass-box-integrator
+    name: Glass Box Integrator
+    agent_type: specialist
+    capabilities:
+      - javascript
+      - integration
+      - ui_components
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 85
+    metadata:
+      role: Add stability to Glass Box (Task 4)
+      tasks:
+        - Task 4: Add Stability to Glass Box Panel
+      key_elements:
+        - Stability section in AgentDataPanel
+        - setStability() method
+        - Update setAllData() to include stability
+      source_files:
+        - systems/visual_shell/web/js/AgentDataPanel.js
+        - systems/visual_shell/web/js/GlassBoxOverlay.js
+
+  # ============================================
+  # ORCHESTRATOR - Team coordination
+  # ============================================
+  - agent_id: orchestrator
+    name: VCC Stability Team Orchestrator
+    agent_type: orchestrator
+    capabilities:
+      - orchestration
+      - monitoring
+      - task_execution
+      - git_operations
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 100
+    metadata:
+      role: Coordinate team execution and ensure quality
+      focuses:
+        - Task sequencing (1→2→3, 4 depends on 1)
+        - Test verification
+        - Commit management
+        - Progress tracking
+
+# Task routing
+task_routing:
+  - pattern: "Task 1|Data Model|CityOrchestrator.*stability|MockAgentData.*PAS"
+    assign_to: data-model-builder
+
+  - pattern: "Task 2|Stability Bar|render.*stability|_getStabilityColor"
+    assign_to: stability-renderer
+
+  - pattern: "Task 3|Critical.*Effect|tremor|glitch|alert"
+    assign_to: critical-effects-builder
+
+  - pattern: "Task 4|Glass Box.*stability|AgentDataPanel.*stability"
+    assign_to: glass-box-integrator
+
+# Task dependencies
+task_dependencies:
+  - task_id: "Task 1"
+    depends_on: []
+  - task_id: "Task 2"
+    depends_on: ["Task 1"]
+  - task_id: "Task 3"
+    depends_on: ["Task 1"]
+  - task_id: "Task 4"
+    depends_on: ["Task 1"]
+
+# Success criteria
+completion_criteria:
+  - "All 4 tasks completed with commits"
+  - "CityOrchestrator has stability model"
+  - "Buildings show stability bars (green/yellow/red)"
+  - "Critical buildings tremor and glitch"
+  - "Alert HUD shows when agents critical"
+  - "Glass Box displays stability section"
+  - "All 5 tests passing"
+
+# Metrics to track
+metrics:
+  - tasks_completed
+  - tests_written
+  - tests_passing
+  - commits_made
+  - critical_alerts_work

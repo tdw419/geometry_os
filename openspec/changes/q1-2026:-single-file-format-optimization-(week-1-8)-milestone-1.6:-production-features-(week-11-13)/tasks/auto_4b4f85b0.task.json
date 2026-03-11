@@ -1,0 +1,10 @@
+{
+  "task_id": "task-3",
+  "type": "implement",
+  "source": "",
+  "intent": "Cache hit rate >80% for hot metadata",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}

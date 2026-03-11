@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "genes": [
+    {
+      "id": "g1",
+      "type": "function",
+      "name": "add",
+      "sequence": "ATCGATCG",
+      "parameters": [
+        {"name": "a", "type": "i32"},
+        {"name": "b", "type": "i32"}
+      ],
+      "return_type": "i32",
+      "body": {
+        "type": "binary_op",
+        "operator": "+",
+        "left": {"type": "variable", "name": "a"},
+        "right": {"type": "variable", "name": "b"}
+      }
+    }
+  ],
+  "regulatory_regions": {
+    "promoters": ["g1"],
+    "enhancers": [],
+    "suppressors": []
+  },
+  "author": "Geometry OS Team",
+  "description": "Simple example genome with an add function",
+  "generation": 0
+}

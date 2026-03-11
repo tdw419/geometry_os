@@ -1,0 +1,23 @@
+# hello_world.geoscript
+# "The first morphological program"
+
+# Define spatial variable map
+assign(0, 0, x1)
+assign(1, 0, x2)
+assign(2, 0, x3)
+
+# Initial values
+# x1 = 5
+paint(0, 0, CRIMSON)
+
+# x2 = 7
+paint(1, 0, CRIMSON)
+
+# Operation: acc = x1 + x2
+paint(2, 0, AZURE)
+
+# Output: Write result (x3) to console
+paint(3, 0, LIME_GREEN)
+
+# Halt: Stop execution
+paint(4, 0, BLACK)

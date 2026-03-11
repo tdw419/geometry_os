@@ -1,0 +1,259 @@
+# Tectonic Evolution Team
+#
+# Specialized team for integrating TectonicStage into EvolutionDaemon,
+# enabling autonomous shader substrate optimization.
+
+name: tectonic-evolution
+description: |
+  Agent team for Tectonic EvolutionDaemon Integration (Task 5).
+
+  This team implements the complete integration of TectonicStage
+  into the EvolutionDaemon V15 pipeline, enabling agents to
+  autonomously optimize their WGSL shader substrate when
+  performance bottlenecks are detected.
+
+  Plan: docs/plans/2026-02-18-tectonic-daemon-integration.md
+
+  Key Outcomes:
+  - TectonicStage class for generational optimization
+  - EvolutionDaemon integration with visual feedback
+  - MetabolismMonitor IPC degradation detection
+  - MasterStage ↔ TectonicStage wiring
+  - 13 passing tests
+
+selection_policy: best_fit
+scaling_policy: fixed
+failure_policy: retry
+
+max_retries: 2
+retry_delay: 5.0
+
+# Team communication
+enable_event_bus: true
+enable_health_monitoring: true
+health_check_interval: 30.0
+
+# Team constraints
+max_concurrent_tasks: 6
+task_timeout: 300.0
+
+# Shared context
+shared_memory: true
+
+metadata:
+  project: geometry-os
+  component: evolution-daemon
+  phase: tectonic-v15
+  plan_file: docs/plans/2026-02-18-tectonic-daemon-integration.md
+  total_tasks: 6
+  total_tests: 13
+  target_files:
+    - systems/evolution_daemon/stages/tectonic_stage.py
+    - systems/evolution_daemon/evolution_daemon.py
+    - systems/evolution_daemon/safety/metabolism_monitor.py
+    - systems/evolution_daemon/stages/master_stage.py
+    - tests/test_tectonic_stage.py
+    - tests/test_tectonic_integration.py
+    - tests/test_tectonic_metabolism.py
+    - tests/test_master_tectonic_wire.py
+    - tests/test_tectonic_e2e.py
+
+agents:
+  # ============================================
+  # TECTONIC BUILDER - Creates TectonicStage class
+  # ============================================
+  - agent_id: tectonic-builder
+    name: Tectonic Stage Builder
+    agent_type: specialist
+    capabilities:
+      - python
+      - asyncio
+      - class_design
+      - dataclasses
+      - evolution_daemon
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 100
+    metadata:
+      role: Create TectonicStage class (Task 1)
+      tasks:
+        - Task 1: Create TectonicStage class
+      key_elements:
+        - TectonicShiftResult dataclass
+        - TectonicStage.__init__, initialize, trigger_tectonic_shift
+        - should_trigger_shift for degradation detection
+        - get_stats for monitoring
+      test_file: tests/test_tectonic_stage.py
+      source_file: systems/evolution_daemon/stages/tectonic_stage.py
+
+  # ============================================
+  # DAEMON INTEGRATOR - Wires into EvolutionDaemon
+  # ============================================
+  - agent_id: daemon-integrator
+    name: Daemon Integration Specialist
+    agent_type: specialist
+    capabilities:
+      - python
+      - integration
+      - evolution_daemon
+      - visual_feedback
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 95
+    metadata:
+      role: Integrate TectonicStage into EvolutionDaemon (Tasks 2-3)
+      tasks:
+        - Task 2: Integrate TectonicStage into EvolutionDaemon
+        - Task 3: Add tectonic visual feedback
+      key_elements:
+        - Add tectonic_stage import and initialization
+        - visualize_tectonic_shift() method
+        - WebMCP broadcast events
+      test_file: tests/test_tectonic_integration.py
+      source_file: systems/evolution_daemon/evolution_daemon.py
+
+  # ============================================
+  # METABOLISM SPECIALIST - IPC degradation detection
+  # ============================================
+  - agent_id: metabolism-specialist
+    name: Metabolism Monitor Specialist
+    agent_type: specialist
+    capabilities:
+      - python
+      - monitoring
+      - performance_analysis
+      - threshold_detection
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 90
+    metadata:
+      role: Add IPC degradation detection to MetabolismMonitor (Task 4)
+      tasks:
+        - Task 4: Add automatic trigger from MetabolismMonitor
+      key_elements:
+        - record_ipc() method
+        - is_ipc_degraded() method
+        - substrate_ipc_history tracking
+        - degradation_threshold configuration
+      test_file: tests/test_tectonic_metabolism.py
+      source_file: systems/evolution_daemon/safety/metabolism_monitor.py
+
+  # ============================================
+  # MASTER WIRER - Connects MasterStage to TectonicStage
+  # ============================================
+  - agent_id: master-wirer
+    name: Master Stage Wiring Specialist
+    agent_type: specialist
+    capabilities:
+      - python
+      - integration
+      - master_stage
+      - shader_safety
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 85
+    metadata:
+      role: Wire MasterStage to TectonicStage (Task 5)
+      tasks:
+        - Task 5: Wire MasterStage to TectonicStage
+      key_elements:
+        - propose_from_tectonic_result() method
+        - validate_shader_safety() method
+        - _create_ipc_verification_intent() helper
+      test_file: tests/test_master_tectonic_wire.py
+      source_file: systems/evolution_daemon/stages/master_stage.py
+
+  # ============================================
+  # E2E TESTER - End-to-end validation
+  # ============================================
+  - agent_id: e2e-tester
+    name: End-to-End Test Specialist
+    agent_type: specialist
+    capabilities:
+      - python
+      - pytest
+      - asyncio
+      - mocking
+      - integration_testing
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 80
+    metadata:
+      role: Create E2E integration tests (Task 6)
+      tasks:
+        - Task 6: End-to-End Integration Test
+      key_tests:
+        - test_full_tectonic_pipeline
+        - test_tectonic_autonomous_healing
+      test_file: tests/test_tectonic_e2e.py
+
+  # ============================================
+  # ORCHESTRATOR - Team coordination
+  # ============================================
+  - agent_id: orchestrator
+    name: Tectonic Team Orchestrator
+    agent_type: orchestrator
+    capabilities:
+      - orchestration
+      - monitoring
+      - task_execution
+      - git_operations
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 100
+    metadata:
+      role: Coordinate team execution and ensure quality
+      focuses:
+        - Task sequencing
+        - Test verification
+        - Commit management
+        - Progress tracking
+
+# Task routing
+task_routing:
+  - pattern: "Task 1|TectonicStage|tectonic_stage.py"
+    assign_to: tectonic-builder
+
+  - pattern: "Task 2|Task 3|EvolutionDaemon|evolution_daemon.py"
+    assign_to: daemon-integrator
+
+  - pattern: "Task 4|MetabolismMonitor|metabolism_monitor.py"
+    assign_to: metabolism-specialist
+
+  - pattern: "Task 5|MasterStage|master_stage.py"
+    assign_to: master-wirer
+
+  - pattern: "Task 6|E2E|end-to-end"
+    assign_to: e2e-tester
+
+# Task dependencies (sequential with some parallel)
+task_dependencies:
+  - task_id: "Task 1"
+    depends_on: []
+  - task_id: "Task 2"
+    depends_on: ["Task 1"]
+  - task_id: "Task 3"
+    depends_on: ["Task 2"]
+  - task_id: "Task 4"
+    depends_on: []  # Can run in parallel with Task 1
+  - task_id: "Task 5"
+    depends_on: ["Task 1"]
+  - task_id: "Task 6"
+    depends_on: ["Task 1", "Task 2", "Task 3", "Task 4", "Task 5"]
+
+# Success criteria
+completion_criteria:
+  - "All 6 tasks completed with commits"
+  - "systems/evolution_daemon/stages/tectonic_stage.py created"
+  - "EvolutionDaemon has tectonic_stage attribute"
+  - "MetabolismMonitor tracks IPC degradation"
+  - "MasterStage can create proposals from tectonic results"
+  - "All 13 tests passing"
+
+# Metrics to track
+metrics:
+  - tasks_completed
+  - tests_written
+  - tests_passing
+  - commits_made
+  - integration_verified

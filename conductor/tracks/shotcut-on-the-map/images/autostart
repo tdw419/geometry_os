@@ -1,0 +1,3 @@
+#!/bin/sh
+# Auto-start Shotcut on X login
+shotcut &

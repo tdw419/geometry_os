@@ -1,0 +1,46 @@
+# Ruff configuration for Geometry OS
+# https://docs.astral.sh/ruff/configuration/
+
+# General settings
+line-length = 100
+target-version = "py311"
+
+# Source code organization
+src = ["systems", "pixelrts_v2", "wordpress_zone", "geoasm-cli", "apps"]
+
+[lint]
+# Enable recommended rules
+select = [
+    "E",      # pycodestyle errors
+    "F",      # Pyflakes
+    "W",      # pycodestyle warnings
+    "I",      # isort
+    "N",      # pep8-naming
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "SIM",    # flake8-simplify
+    "TCH",    # flake8-type-checking
+]
+
+# Ignore rules that conflict with existing codebase patterns
+ignore = [
+    "E501",   # line-too-long (handled by formatter)
+    "B008",   # function-call-in-default-argument (common pattern in this codebase)
+    "SIM108", # ternary-operator (sometimes less readable)
+]
+
+# Per-file ignores
+[lint.per-file-ignores]
+"tests/*" = ["B011"]  # assert False is fine in tests
+"**/__init__.py" = ["F401"]  # unused imports OK in __init__.py
+
+# isort configuration
+[lint.isort]
+known-first-party = ["systems", "geometry_os", "pixelrts_v2"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
+# Naming conventions (PEP 8)
+[lint.pep8-naming]
+# Allow PascalCase for class attributes that act as constants
+classmethod-decorators = ["classmethod", "pydantic.validator"]

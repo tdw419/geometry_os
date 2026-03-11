@@ -1,0 +1,196 @@
+{
+  "_meta": {
+    "language": "German",
+    "native": "Deutsch",
+    "version": "1.0.0",
+    "author": "Geometry OS Team"
+  },
+  "app": {
+    "name": "GeoASM CLI",
+    "description": "Werkzeuge für Geometry OS Assemblersprache",
+    "version": "Version {version}"
+  },
+  "greeting": {
+    "welcome": "Willkommen bei GeoASM CLI",
+    "goodbye": "Auf Wiedersehen!",
+    "help": "Geben Sie 'help' für verfügbare Befehle ein"
+  },
+  "commands": {
+    "run": "Ein GeoASM-Programm ausführen",
+    "build": "Zu Binärdatei kompilieren",
+    "debug": "Interaktiver Debugger",
+    "profile": "Hot-Path-Analyse",
+    "validate": "Auf Fehler prüfen",
+    "disasm": "Binärdatei disassemblieren",
+    "opcodes": "Verfügbare Opcodes auflisten"
+  },
+  "errors": {
+    "file_not_found": "Datei nicht gefunden: '{file}'",
+    "invalid_file": "Ungültige Datei: '{file}'",
+    "assembly_failed": "Assemblierung fehlgeschlagen",
+    "unknown_opcode": "Unbekannter Opcode: '{opcode}'",
+    "invalid_register": "Ungültiges Register: '{register}'",
+    "out_of_bounds": "Außerhalb des Bereichs: {index}",
+    "memory_error": "Speicherfehler bei Adresse {address}",
+    "stack_overflow": "Stapelüberlauf",
+    "stack_underflow": "Stapelunterlauf",
+    "division_by_zero": "Division durch Null",
+    "invalid_operand": "Ungültiger Operand: {operand}",
+    "label_not_found": "Marke nicht gefunden: '{label}'",
+    "parse_error": "Parsing-Fehler in Zeile {line}: {message}",
+    "execution_error": "Ausführungsfehler: {message}",
+    "permission_denied": "Zugriff verweigert: '{path}'",
+    "io_error": "E/A-Fehler: {message}",
+    "timeout": "Vorgang nach {seconds} Sekunden abgelaufen",
+    "invalid_coordinates": "Koordinaten müssen nicht-negativ sein: ({x}, {y})",
+    "glyph_not_found": "Glyph nicht gefunden: '{glyph_id}'",
+    "substrate_overflow": "Substrat-Überlauf: Position ({x}, {y}) überschreitet Größe {size}",
+    "unsupported_format": "Nicht unterstütztes Format: '{format}'",
+    "missing_dependency": "Fehlende Abhängigkeit: '{dependency}'"
+  },
+  "warnings": {
+    "no_halt": "Warnung: Programm hat keine HALT-Anweisung (kann ewig laufen)",
+    "unreachable_code": "Warnung: Unerreichbarer Code bei Adresse {address}",
+    "deprecated_opcode": "Warnung: Opcode '{opcode}' ist veraltet",
+    "low_memory": "Warnung: Wenig Speicher ({percent}% verfügbar)",
+    "performance": "Warnung: Leistungsbeeinträchtigung erkannt",
+    "experimental": "Warnung: Funktion '{feature}' ist experimentell"
+  },
+  "info": {
+    "assembling": "Assembliere '{file}'...",
+    "assembled": "Programm erfolgreich assembliert",
+    "running": "Führe '{file}' aus...",
+    "building": "Erstelle '{input}' -> '{output}'",
+    "validating": "Validiere '{file}'...",
+    "loading_glyph": "Lade Glyph: '{glyph_id}'",
+    "rendering": "Rendere {count} Glyphen",
+    "evicting_cache": "Entferne {count} Einträge aus dem Cache",
+    "checkpoint_saved": "Checkpoint gespeichert: {path}",
+    "checkpoint_restored": "Checkpoint wiederhergestellt von: {path}"
+  },
+  "success": {
+    "build_complete": "Build abgeschlossen: {output}",
+    "validation_passed": "✓ {file} ist gültig",
+    "execution_complete": "Ausführung erfolgreich abgeschlossen",
+    "tests_passed": "Alle {count} Tests bestanden",
+    "file_saved": "Datei gespeichert: '{path}'"
+  },
+  "opcodes": {
+    "nop": "Keine Operation",
+    "halt": "Ausführung anhalten",
+    "jmp": "Zu Adresse springen",
+    "jeq": "Springen wenn gleich",
+    "jne": "Springen wenn ungleich",
+    "jlt": "Springen wenn kleiner als",
+    "jgt": "Springen wenn größer als",
+    "jle": "Springen wenn kleiner oder gleich",
+    "jge": "Springen wenn größer oder gleich",
+    "call": "Funktion aufrufen",
+    "ret": "Aus Funktion zurückkehren",
+    "push": "Register auf Stapel legen",
+    "pop": "Vom Stapel in Register holen",
+    "ldr": "Aus Speicher laden",
+    "str": "In Speicher speichern",
+    "movi": "Sofortwert verschieben",
+    "add": "Register addieren",
+    "sub": "Register subtrahieren",
+    "mul": "Register multiplizieren",
+    "div": "Register dividieren",
+    "and": "Bitweises UND",
+    "or": "Bitweises ODER",
+    "xor": "Bitweises XOR",
+    "not": "Bitweises NICHT",
+    "set_color": "Zeichenfarbe setzen",
+    "draw_char": "Zeichen zeichnen",
+    "draw_line": "Linie zeichnen",
+    "draw_rect": "Rechteck zeichnen",
+    "fill_rect": "Rechteck füllen",
+    "glyph_define": "Glyph-Bitmap registrieren",
+    "glyph_blit": "Glyph zum Framebuffer rendern",
+    "glyph_transform": "Rotations/Skalierungs-Matrix anwenden",
+    "glyph_composite": "Mehrere Glyphen überlagern",
+    "glyph_cache_evict": "Ältesten Glyph aus Cache entfernen",
+    "orb": "Orb zeichnen (Dateivisualisierung)",
+    "panel": "Glas-Panel zeichnen",
+    "panel_title": "Panel-Titelleiste setzen",
+    "panel_border": "Panel-Rahmen zeichnen",
+    "heatmap_cell": "Heatmap-Zelle zeichnen",
+    "embed": "Token-Embedding nachschlagen",
+    "attend": "Selbstaufmerksamkeit via WGSL-Kernel",
+    "project": "FFN-Projektion via WGSL-Kernel",
+    "sample": "Token aus Logits sampeln",
+    "llm_prompt": "Externes LLM aufrufen",
+    "kv_append": "An KV-Cache-Textur anhängen",
+    "thought_pulse": "Visuellen Glyph-Impuls senden"
+  },
+  "glyph": {
+    "cache_hit": "Cache-Treffer für Glyph '{id}'",
+    "cache_miss": "Cache-Fehler für Glyph '{id}'",
+    "cache_full": "Glyph-Cache voll, entferne LRU-Einträge",
+    "defined": "Glyph '{id}' definiert ({width}x{height})",
+    "blitted": "Glyph '{id}' nach ({x}, {y}) blitted",
+    "transformed": "Glyph '{id}' transformiert",
+    "composited": "{count} Glyphen in '{id}' zusammengesetzt"
+  },
+  "orb": {
+    "visualizing": "Visualisiere Datei: '{path}'",
+    "visualized": "Datei visualisiert: {bytes} Bytes -> {size}x{size} Substrat",
+    "too_large": "Datei zu groß: {bytes} Bytes (max: {max_bytes})",
+    "empty": "Leere Datei, nichts zu visualisieren"
+  },
+  "panel": {
+    "created": "Panel erstellt bei ({x}, {y}) mit Größe {width}x{height}",
+    "title_set": "Panel {id} Titel gesetzt auf: '{title}'",
+    "border_set": "Panel {id} Rahmenstil gesetzt auf: {style}"
+  },
+  "heatmap": {
+    "cell_added": "Heatmap-Zelle hinzugefügt bei ({x}, {y}) mit Wert {value}",
+    "rendered": "Heatmap mit {count} Zellen gerendert"
+  },
+  "debug": {
+    "breakpoint_set": "Haltepunkt bei Adresse {address} gesetzt",
+    "breakpoint_hit": "Haltepunkt bei Adresse {address} erreicht",
+    "step": "Schritt durch Anweisung bei {address}",
+    "register_state": "Registerzustand: {state}",
+    "memory_dump": "Speicherauszug von {start} bis {end}"
+  },
+  "help": {
+    "usage": "Verwendung: geoasm <Befehl> [Optionen]",
+    "commands_header": "Befehle:",
+    "options_header": "Optionen:",
+    "examples_header": "Beispiele:",
+    "run_help": "Ein GeoASM-Programm ausführen",
+    "build_help": "GeoASM zu Binärdatei erstellen",
+    "validate_help": "Ein GeoASM-Programm validieren",
+    "disasm_help": "Binärdatei zu GeoASM disassemblieren",
+    "opcodes_help": "Alle verfügbaren Opcodes auflisten",
+    "option_file": "Zu verarbeitende GeoASM-Datei",
+    "option_output": "Ausgabedateipfad",
+    "option_verbose": "Ausführliche Ausgabe aktivieren",
+    "option_locale": "Sprache festlegen (z.B., en, es, fr, de, ja, zh)"
+  },
+  "examples": {
+    "run": "geoasm run programm.geoasm",
+    "build": "geoasm build programm.geoasm -o programm.bin",
+    "validate": "geoasm validate programm.geoasm",
+    "disasm": "geoasm disasm programm.bin",
+    "opcodes": "geoasm opcodes"
+  },
+  "item": {
+    "count_one": "{count} Element",
+    "count_other": "{count} Elemente",
+    "processed": "{count} Elemente verarbeitet",
+    "remaining": "{count} Elemente verbleibend"
+  },
+  "time": {
+    "elapsed": "Verstrichene Zeit: {seconds:.3f}s",
+    "remaining": "Geschätzte verbleibende Zeit: {seconds:.0f}s",
+    "started": "Gestartet um {time}",
+    "completed": "Abgeschlossen um {time}"
+  },
+  "locale": {
+    "changed": "Sprache geändert zu: {locale}",
+    "unsupported": "Nicht unterstützte Sprache: '{locale}'. Verwende '{fallback}' stattdessen.",
+    "available": "Verfügbare Sprachen: {locales}"
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "version": "1.0.0",
+  "timestamp": 1772945458899,
+  "vm": {
+    "status": "running",
+    "ip": 0,
+    "tick": 0,
+    "instructionsExecuted": 0,
+    "registers": {
+      "used": 0,
+      "modified": []
+    }
+  },
+  "memory": {
+    "regions": {
+      "TASK_LIST": {
+        "base": 12288,
+        "size": 4096,
+        "used": 0,
+        "free": 4096
+      },
+      "EVOLUTION_LOG": {
+        "base": 16384,
+        "size": 4096,
+        "entries": 0,
+        "capacity": 256
+      },
+      "FITNESS_HISTORY": {
+        "base": 20480,
+        "size": 4096,
+        "entries": 0
+      },
+      "BACKUP_BUFFER": {
+        "base": 24576,
+        "size": 4096,
+        "active": false
+      },
+      "FEATURES": {
+        "base": 28672,
+        "size": 4096,
+        "flags": 0
+      }
+    },
+    "totalUsed": 0,
+    "totalFree": 16777216
+  },
+  "fitness": {
+    "current": 0,
+    "previous": 0,
+    "trend": "stable",
+    "history": [],
+    "lastPatch": null
+  },
+  "selfImprovement": {
+    "cycles": 0,
+    "patchesApplied": 0,
+    "patchesRolledBack": 0,
+    "opcodesDiscovered": 0,
+    "avgCycleTimeMs": 0
+  },
+  "health": {
+    "status": "healthy",
+    "diskUsage": 0,
+    "memoryPressure": "low",
+    "gpuBuffers": {
+      "active": 0,
+      "leaked": 0
+    },
+    "errors": [],
+    "warnings": []
+  },
+  "syscalls": {
+    "llm_prompt": {
+      "calls": 4,
+      "totalLatencyMs": 204.3053690000005,
+      "avgLatencyMs": 51.076342250000124
+    },
+    "analyze_hot_paths": {
+      "calls": 2,
+      "totalLatencyMs": 0.9432679999990796,
+      "avgLatencyMs": 0.4716339999995398
+    },
+    "read_string": {
+      "calls": 0,
+      "totalLatencyMs": 0,
+      "avgLatencyMs": 0
+    },
+    "write_string": {
+      "calls": 0,
+      "totalLatencyMs": 0,
+      "avgLatencyMs": 0
+    },
+    "cross_language_verify": {
+      "calls": 0,
+      "totalLatencyMs": 0,
+      "avgLatencyMs": 0
+    }
+  },
+  "debugger": {
+    "mode": "running",
+    "breakpoints": [],
+    "lastIp": 0,
+    "callStack": []
+  }
+}

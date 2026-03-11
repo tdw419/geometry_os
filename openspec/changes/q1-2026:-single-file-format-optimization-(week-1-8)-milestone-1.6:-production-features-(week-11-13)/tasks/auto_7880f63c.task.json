@@ -1,0 +1,10 @@
+{
+  "task_id": "task-5",
+  "type": "implement",
+  "source": "",
+  "intent": "Process isolation with <5% performance overhead",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}

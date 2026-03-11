@@ -1,0 +1,53 @@
+{
+  "format": "PixelRTS-2.0",
+  "version": 2,
+  "grid_size": 8192,
+  "encoding": {
+    "type": "RGBA-dense",
+    "bytes_per_pixel": 4,
+    "description": "4 consecutive raw bytes packed into RGBA channels",
+    "mapping": "Hilbert space-filling curve (precomputed LUT)"
+  },
+  "offsets": {
+    "macromedia_zip": {
+      "start": 0,
+      "end": 225004746,
+      "size": 225004746,
+      "sha256": "d4873ba391aff039ac27de65cfc2f63b1b95f1f89b0a97549c88f06d4e9c095e"
+    }
+  },
+  "entropy": {
+    "block_size": 16384,
+    "mean_entropy": 212.88262939453125,
+    "max_entropy": 254,
+    "min_entropy": 0,
+    "entropy_histogram": [
+      43417600,
+      0,
+      0,
+      16384,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      225001472
+    ]
+  },
+  "hashes": {
+    "macromedia_zip": "d4873ba391aff039ac27de65cfc2f63b1b95f1f89b0a97549c88f06d4e9c095e"
+  },
+  "original_rts": {
+    "version": "2.0",
+    "arch": "x86 (Legacy Wine)",
+    "bootable": false,
+    "kernel_cmdline": null,
+    "boot_method": null
+  }
+}

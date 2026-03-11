@@ -1,0 +1,6 @@
+- [ ] Verify `apps/linux/tiny_core.iso` availability
+- [ ] Create `systems/vectorland/embed_linux_to_rts.py` (The Converter Tool)
+- [ ] Implement ISO Extraction logic
+- [ ] Implement Initrd Remastering (Injection) logic
+- [ ] Implement PixelRTS Integration
+- [ ] Verify generated `antigravity.pixelrts.png` size and metadata

@@ -1,0 +1,25 @@
+[Unit]
+Description=Geometry OS Directive Polling Daemon
+After=network.target
+
+[Service]
+Type=simple
+User=%USER%
+WorkingDirectory=%WORKDIR%
+ExecStart=/usr/bin/python3 %WORKDIR%/scripts/directive_daemon.py
+Restart=on-failure
+RestartSec=10
+
+# Environment
+Environment="WP_URL=http://localhost:8080/ai-publisher.php"
+Environment="POLL_INTERVAL=5"
+Environment="USE_LLM=false"
+# Environment="LLM_ENDPOINT=http://localhost:11434/api/generate"
+# Environment="LLM_MODEL=qwen2.5:7b"
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

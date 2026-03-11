@@ -1,0 +1,281 @@
+name: Health Check
+
+on:
+  # Trigger on push to main branches
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'geometry_os/**'
+      - '.github/workflows/health-check.yml'
+
+  # Trigger on pull requests
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - 'geometry_os/**'
+      - '.github/workflows/health-check.yml'
+
+  # Trigger daily at 00:00 UTC
+  schedule:
+    - cron: '0 0 * * *'
+
+  # Allow manual workflow dispatch
+  workflow_dispatch:
+    inputs:
+      verbose:
+        description: 'Run with verbose output'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  health-check:
+    name: System Health Check
+    runs-on: ubuntu-latest
+
+    # Don't block on forks
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      # ============================================================================
+      # Checkout repository
+      # ============================================================================
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for better analysis
+
+      # ============================================================================
+      # Set up Python
+      # ============================================================================
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'  # Cache pip dependencies
+
+      # ============================================================================
+      # Set up Rust toolchain
+      # ============================================================================
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      # ============================================================================
+      # Cache Rust dependencies
+      # ============================================================================
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            geometry_os/systems/infinite_map_rs/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      # ============================================================================
+      # Install Python dependencies
+      # ============================================================================
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install numpy aiohttp requests
+          # Optional: install test dependencies
+          pip install pytest pytest-asyncio || true
+
+      # ============================================================================
+      # Run health check
+      # ============================================================================
+      - name: Run health check
+        id: health_check
+        run: |
+          chmod +x geometry_os/scripts/health_check.sh
+
+          # Run with verbose flag if requested
+          if [ "${{ github.event.inputs.verbose }}" = "true" ]; then
+            ./geometry_os/scripts/health_check.sh --verbose
+          else
+            ./geometry_os/scripts/health_check.sh
+          fi
+
+      # ============================================================================
+      # Generate health report
+      # ============================================================================
+      - name: Generate health report
+        if: always()
+        run: |
+          mkdir -p /tmp/health-reports
+
+          # Create timestamped report
+          cat > /tmp/health-reports/report-${{ github.run_number }}.txt <<EOF
+          Geometry OS Health Check Report
+          =================================
+          Run: #${{ github.run_number }}
+          Event: ${{ github.event_name }}
+          Branch: ${{ github.ref_name }}
+          Commit: ${{ github.sha }}
+          Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          Actor: ${{ github.actor }}
+
+          Health Check Exit Code: ${{ steps.health_check.outcome }}
+          EOF
+
+          cat /tmp/health-reports/report-${{ github.run_number }}.txt
+
+      # ============================================================================
+      # Upload logs as artifacts
+      # ============================================================================
+      - name: Upload health check results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-check-results-${{ github.run_number }}
+          path: |
+            /tmp/geometry_os_health_status
+            /tmp/health-reports/
+          retention-days: 30
+
+      # ============================================================================
+      # Upload compositor logs if they exist
+      # ============================================================================
+      - name: Upload compositor logs
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: compositor-logs-${{ github.run_number }}
+          path: |
+            /tmp/compositor.log
+            /tmp/shm_debug.log
+          retention-days: 7
+
+      # ============================================================================
+      # Upload SHM report if it exists
+      # ============================================================================
+      - name: Upload SHM report
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: shm-report-${{ github.run_number }}
+          path: |
+            geometry_os/shm_report.json
+          retention-days: 30
+
+      # ============================================================================
+      # Create status badge
+      # ============================================================================
+      - name: Update status badge
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        run: |
+          # This step would update a status badge in the README
+          # Implementation depends on your badge hosting strategy
+          echo "Health check completed with status: ${{ steps.health_check.outcome }}"
+
+      # ============================================================================
+      # Notify on failure
+      # ============================================================================
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::warning::Health check failed!"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Event: ${{ github.event_name }}"
+
+      # ============================================================================
+      # Send Slack notification on failure (if configured)
+      # ============================================================================
+      - name: Send Slack notification on failure
+        if: failure() && vars.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook: ${{ vars.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "Health Check Failed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":rotating_light: *Health Check Failed*\n\n*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Commit:* ${{ github.sha }}\n*Event:* ${{ github.event_name }}\n*Actor:* ${{ github.actor }}\n*Workflow:* ${{ github.workflow }}"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Workflow Run"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }
+
+      # ============================================================================
+      # Create GitHub issue on scheduled failure
+      # ============================================================================
+      - name: Create issue on scheduled failure
+        if: failure() && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Health Check Failed - ${new Date().toISOString().split('T')[0]}`,
+              body: `## Scheduled Health Check Failed\n\n- **Workflow Run:** #${{ github.run_number }}\n- **Branch:** ${{ github.ref_name }}\n- **Commit:** ${{ github.sha }}\n- **Date:** ${new Date().toISOString()}\n\nThe health check workflow has failed. Please review the logs and artifacts for details.\n\n[View Workflow Run](${{ github.server_url }}/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.run_id }})\n\n[Artifacts](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${{ github.run_id }})`,
+              labels: ['health-check', 'bug', 'automated']
+            });
+
+            console.log(`Created issue #${issue.data.number}`);
+
+  # ============================================================================
+  # Optional: Separate job for detailed diagnostics
+  # ============================================================================
+  health-check-detailed:
+    name: Detailed Diagnostics
+    runs-on: ubuntu-latest
+    needs: health-check
+    if: failure()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: |
+          pip install numpy aiohttp requests
+
+      - name: Run SHM with verbose output
+        run: |
+          python3 geometry_os/systems/health/software_shm.py > /tmp/shm_detailed.log 2>&1 || true
+
+      - name: Upload detailed diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: detailed-diagnostics-${{ github.run_number }}
+          path: /tmp/shm_detailed.log
+          retention-days: 30

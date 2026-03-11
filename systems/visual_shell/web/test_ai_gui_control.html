@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI GUI Control - End-to-End Pipeline Test</title>
+    <style>
+        /* Geometry OS Dark Theme */
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, monospace;
+            background: #0f0f1a;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        /* Summary Cards */
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            background: #1a1a2e;
+            border: 1px solid #2a2a3e;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        .summary-card.passed { border-color: #4CAF50; }
+        .summary-card.failed { border-color: #f44336; }
+        .summary-card.pending { border-color: #666; }
+        .summary-card.running { border-color: #ff9800; }
+        .summary-value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+        .summary-card.passed .summary-value { color: #4CAF50; }
+        .summary-card.failed .summary-value { color: #f44336; }
+        .summary-card.pending .summary-value { color: #666; }
+        .summary-card.running .summary-value { color: #ff9800; }
+        .summary-label {
+            font-size: 0.9em;
+            color: #888;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            background: #1a1a2e;
+            border-radius: 4px;
+            height: 24px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .progress-bar.running {
+            background: linear-gradient(90deg, #ff9800, #ffb74d);
+        }
+        .progress-bar.failed {
+            background: linear-gradient(90deg, #f44336, #e57373);
+        }
+
+        /* Test Sections */
+        .section {
+            background: #1a1a2e;
+            border: 1px solid #2a2a3e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            margin: 0 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #2a2a3e;
+            color: #64b5f6;
+        }
+
+        /* Prerequisites Grid */
+        .prereq-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .prereq-item {
+            background: #0f0f23;
+            border: 1px solid #2a2a3e;
+            border-radius: 4px;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .prereq-status {
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        .prereq-status.ok { color: #4CAF50; }
+        .prereq-status.error { color: #f44336; }
+        .prereq-status.pending { color: #ff9800; }
+
+        /* Test Results */
+        .test-grid {
+            display: grid;
+            gap: 10px;
+        }
+        .test-item {
+            background: #0f0f23;
+            border: 1px solid #2a2a3e;
+            border-radius: 4px;
+            padding: 12px;
+            display: grid;
+            grid-template-columns: 30px 1fr auto;
+            gap: 15px;
+            align-items: start;
+        }
+        .test-item.pass { border-left: 3px solid #4CAF50; }
+        .test-item.fail { border-left: 3px solid #f44336; }
+        .test-item.pending { border-left: 3px solid #666; }
+        .test-item.running { border-left: 3px solid #ff9800; }
+
+        .test-number {
+            font-weight: bold;
+            color: #666;
+        }
+        .test-content {
+            flex: 1;
+        }
+        .test-name {
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        .test-description {
+            color: #888;
+            font-size: 0.9em;
+        }
+        .test-detail {
+            margin-top: 8px;
+            padding: 8px;
+            background: #000;
+            border-radius: 4px;
+            font-size: 0.85em;
+            white-space: pre-wrap;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .test-time {
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        /* Status Icons */
+        .icon { font-size: 1.2em; }
+        .icon.pass { color: #4CAF50; }
+        .icon.fail { color: #f44336; }
+        .icon.pending { color: #666; }
+        .icon.running { color: #ff9800; }
+
+        /* Buttons */
+        .controls {
+            margin-bottom: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: background 0.2s;
+        }
+        button:hover:not(:disabled) {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #444;
+            cursor: not-allowed;
+        }
+        button.secondary {
+            background: #2196F3;
+        }
+        button.secondary:hover:not(:disabled) {
+            background: #0b7dda;
+        }
+        button.warning {
+            background: #ff9800;
+        }
+        button.warning:hover:not(:disabled) {
+            background: #e68900;
+        }
+
+        /* Canvas Area */
+        .canvas-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .canvas-panel {
+            background: #0f0f23;
+            border: 1px solid #2a2a3e;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .canvas-panel h3 {
+            margin: 0 0 10px 0;
+            color: #81c784;
+            font-size: 1em;
+        }
+        canvas {
+            border: 2px solid #2a2a3e;
+            background: #000;
+            display: block;
+            width: 100%;
+            max-width: 500px;
+        }
+        .canvas-controls {
+            margin-top: 10px;
+        }
+        .canvas-controls button {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        /* Output Log */
+        .output {
+            background: #0f0f23;
+            border: 1px solid #2a2a3e;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .output .info { color: #64b5f6; }
+        .output .success { color: #4CAF50; }
+        .output .error { color: #f44336; }
+        .output .warn { color: #ff9800; }
+        .output .dim { color: #666; }
+
+        /* E2E Demo Section */
+        .demo-flow {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .flow-step {
+            background: #0f0f23;
+            border: 1px solid #2a2a3e;
+            border-radius: 4px;
+            padding: 15px;
+            text-align: center;
+        }
+        .flow-step.active {
+            border-color: #4CAF50;
+            background: #1a2e1a;
+        }
+        .flow-step-icon {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+        .flow-step-label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .flow-step-detail {
+            font-size: 0.85em;
+            color: #888;
+        }
+
+        /* Responsive */
+        @media (max-width: 800px) {
+            .summary { grid-template-columns: repeat(2, 1fr); }
+            .canvas-container { grid-template-columns: 1fr; }
+            .demo-flow { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI GUI Control - End-to-End Pipeline Test</h1>
+        <p class="subtitle">Vision → Decision → Input: Complete AI-to-GUI verification</p>
+
+        <!-- Summary Cards -->
+        <div class="summary">
+            <div class="summary-card pending" id="card-passed">
+                <div class="summary-value">0</div>
+                <div class="summary-label">Passed</div>
+            </div>
+            <div class="summary-card pending" id="card-failed">
+                <div class="summary-value">0</div>
+                <div class="summary-label">Failed</div>
+            </div>
+            <div class="summary-card pending" id="card-pending">
+                <div class="summary-value">12</div>
+                <div class="summary-label">Pending</div>
+            </div>
+            <div class="summary-card pending" id="card-time">
+                <div class="summary-value">--</div>
+                <div class="summary-label">Duration</div>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar">0%</div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button id="btn-init" onclick="initializeSystem()">1. Initialize System</button>
+            <button id="btn-prereq" onclick="checkPrerequisites()" disabled>2. Check Prerequisites</button>
+            <button id="btn-run" onclick="runAllTests()" disabled>3. Run All Tests</button>
+            <button id="btn-e2e" onclick="runE2EDemo()" disabled class="warning">4. E2E Demo: Click "Login"</button>
+            <button id="btn-reset" onclick="resetTests()" class="secondary">Reset</button>
+        </div>
+
+        <!-- Prerequisites Section -->
+        <div class="section">
+            <h2>Prerequisites</h2>
+            <div class="prereq-grid" id="prereq-grid">
+                <div class="prereq-item">
+                    <span>VisionCortex Class</span>
+                    <span class="prereq-status pending" id="prereq-vision">Checking...</span>
+                </div>
+                <div class="prereq-item">
+                    <span>MockHypervisor</span>
+                    <span class="prereq-status pending" id="prereq-hypervisor">Checking...</span>
+                </div>
+                <div class="prereq-item">
+                    <span>WebMCP Bridge</span>
+                    <span class="prereq-status pending" id="prereq-bridge">Checking...</span>
+                </div>
+                <div class="prereq-item">
+                    <span>Tool Handlers</span>
+                    <span class="prereq-status pending" id="prereq-tools">Checking...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Canvas Section -->
+        <div class="section">
+            <h2>Simulated Framebuffer</h2>
+            <div class="canvas-container">
+                <div class="canvas-panel">
+                    <h3>Input: GUI Canvas</h3>
+                    <canvas id="guiCanvas" width="400" height="300"></canvas>
+                    <div class="canvas-controls">
+                        <button onclick="drawLoginScreen()">Login Screen</button>
+                        <button onclick="drawTerminalScreen()">Terminal</button>
+                        <button onclick="drawSettingsScreen()">Settings</button>
+                        <button onclick="clearCanvas()">Clear</button>
+                    </div>
+                </div>
+                <div class="canvas-panel">
+                    <h3>Output: Vision Overlay</h3>
+                    <canvas id="overlayCanvas" width="400" height="300"></canvas>
+                    <div class="canvas-controls">
+                        <button onclick="clearOverlay()">Clear Overlay</button>
+                        <button onclick="showDetectedElements()">Show Detected</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- E2E Demo Flow -->
+        <div class="section">
+            <h2>End-to-End Demo Flow</h2>
+            <div class="demo-flow" id="demo-flow">
+                <div class="flow-step" id="step-see">
+                    <div class="flow-step-icon">👁️</div>
+                    <div class="flow-step-label">SEE</div>
+                    <div class="flow-step-detail">hypervisor_frame</div>
+                </div>
+                <div class="flow-step" id="step-read">
+                    <div class="flow-step-icon">📖</div>
+                    <div class="flow-step-label">READ</div>
+                    <div class="flow-step-detail">hypervisor_read_text</div>
+                </div>
+                <div class="flow-step" id="step-find">
+                    <div class="flow-step-icon">🔍</div>
+                    <div class="flow-step-label">FIND</div>
+                    <div class="flow-step-detail">hypervisor_find_element</div>
+                </div>
+                <div class="flow-step" id="step-click">
+                    <div class="flow-step-icon">👆</div>
+                    <div class="flow-step-label">CLICK</div>
+                    <div class="flow-step-detail">hypervisor_input</div>
+                </div>
+            </div>
+            <div class="output" id="demo-output">Click "E2E Demo" to run the complete AI GUI control loop.</div>
+        </div>
+
+        <!-- Test Results Section -->
+        <div class="section">
+            <h2>Test Results</h2>
+            <div class="test-grid" id="test-grid">
+                <!-- Tests will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Dependencies -->
+    <script src="VisionCortex.js"></script>
+    <script>
+        // ============================================
+        // TEST FRAMEWORK
+        // ============================================
+
+        const tests = [
+            // Phase 1: Prerequisites
+            { id: 1, name: 'VisionCortex Available', description: 'VisionCortex class is defined', phase: 'prereq', fn: testVisionCortexAvailable },
+            { id: 2, name: 'VisionCortex Instantiable', description: 'Can create VisionCortex instance', phase: 'prereq', fn: testVisionCortexInstantiable },
+            { id: 3, name: 'MockHypervisor Created', description: 'MockHypervisor is available', phase: 'prereq', fn: testMockHypervisorCreated },
+            { id: 4, name: 'Tool Handlers Registered', description: 'All 4 GUI tools are registered', phase: 'prereq', fn: testToolHandlersRegistered },
+
+            // Phase 2: Vision Tests
+            { id: 5, name: 'OCR Text Recognition', description: 'VisionCortex can read text from canvas', phase: 'vision', fn: testOCRTextRecognition },
+            { id: 6, name: 'Element Detection', description: 'hypervisor_find_element finds buttons', phase: 'vision', fn: testElementDetection },
+            { id: 7, name: 'Semantic Frame', description: 'hypervisor_frame returns structured UI data', phase: 'vision', fn: testSemanticFrame },
+
+            // Phase 3: Input Tests
+            { id: 8, name: 'Mouse Input Injection', description: 'hypervisor_input mouse works', phase: 'input', fn: testMouseInput },
+            { id: 9, name: 'Keyboard Input Injection', description: 'hypervisor_input keyboard works', phase: 'input', fn: testKeyboardInput },
+            { id: 10, name: 'Text Input Injection', description: 'hypervisor_input text works', phase: 'input', fn: testTextInput },
+
+            // Phase 4: E2E Integration
+            { id: 11, name: 'E2E: See-Read-Find-Click', description: 'Complete AI GUI loop works', phase: 'e2e', fn: testE2ELoop },
+            { id: 12, name: 'E2E: Click Target Verified', description: 'Click coordinates match found element', phase: 'e2e', fn: testClickTargetVerified }
+        ];
+
+        let results = { pass: 0, fail: 0, pending: tests.length, running: false };
+        let startTime = null;
+
+        // Global state
+        let visionCortex = null;
+        let mockHypervisor = null;
+        let toolHandlers = {};
+        let lastFoundElement = null;
+        let lastClickCoords = null;
+
+        const guiCanvas = document.getElementById('guiCanvas');
+        const overlayCanvas = document.getElementById('overlayCanvas');
+        const guiCtx = guiCanvas.getContext('2d');
+        const overlayCtx = overlayCanvas.getContext('2d');
+
+        // ============================================
+        // MOCK HYPERVISOR
+        // ============================================
+
+        class MockHypervisorSystem {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.inputLog = [];
+            }
+
+            async captureFrame(kernelId) {
+                // Return canvas as base64
+                return this.canvas.toDataURL('image/png').split(',')[1];
+            }
+
+            async injectInput(kernelId, type, data) {
+                this.inputLog.push({ kernelId, type, data, timestamp: Date.now() });
+
+                if (type === 'mouse') {
+                    // Draw click indicator on overlay
+                    if (data.pressed) {
+                        overlayCtx.fillStyle = '#ff0000';
+                        overlayCtx.beginPath();
+                        overlayCtx.arc(data.x, data.y, 5, 0, Math.PI * 2);
+                        overlayCtx.fill();
+                        lastClickCoords = { x: data.x, y: data.y };
+                    }
+                }
+
+                return { success: true };
+            }
+
+            getInputLog() {
+                return this.inputLog;
+            }
+
+            clearLog() {
+                this.inputLog = [];
+            }
+        }
+
+        // ============================================
+        // CANVAS DRAWING
+        // ============================================
+
+        function drawLoginScreen() {
+            // Background
+            guiCtx.fillStyle = '#2d2d44';
+            guiCtx.fillRect(0, 0, guiCanvas.width, guiCanvas.height);
+
+            // Window
+            guiCtx.fillStyle = '#3d3d5c';
+            guiCtx.fillRect(50, 40, 300, 220);
+            guiCtx.strokeStyle = '#5d5d7c';
+            guiCtx.lineWidth = 2;
+            guiCtx.strokeRect(50, 40, 300, 220);
+
+            // Title bar
+            guiCtx.fillStyle = '#4d4d6c';
+            guiCtx.fillRect(50, 40, 300, 35);
+            guiCtx.fillStyle = '#fff';
+            guiCtx.font = 'bold 16px sans-serif';
+            guiCtx.fillText('Login', 65, 63);
+
+            // Labels
+            guiCtx.fillStyle = '#ccc';
+            guiCtx.font = '14px sans-serif';
+            guiCtx.fillText('Username:', 70, 105);
+            guiCtx.fillText('Password:', 70, 155);
+
+            // Input fields
+            guiCtx.fillStyle = '#1a1a2e';
+            guiCtx.fillRect(160, 88, 170, 26);
+            guiCtx.fillRect(160, 138, 170, 26);
+            guiCtx.strokeStyle = '#555';
+            guiCtx.strokeRect(160, 88, 170, 26);
+            guiCtx.strokeRect(160, 138, 170, 26);
+
+            // Login button
+            guiCtx.fillStyle = '#4CAF50';
+            guiCtx.fillRect(100, 190, 90, 35);
+            guiCtx.fillStyle = '#fff';
+            guiCtx.font = 'bold 14px sans-serif';
+            guiCtx.fillText('Login', 120, 213);
+
+            // Cancel button
+            guiCtx.fillStyle = '#f44336';
+            guiCtx.fillRect(210, 190, 90, 35);
+            guiCtx.fillStyle = '#fff';
+            guiCtx.fillText('Cancel', 225, 213);
+
+            clearOverlay();
+        }
+
+        function drawTerminalScreen() {
+            guiCtx.fillStyle = '#000';
+            guiCtx.fillRect(0, 0, guiCanvas.width, guiCanvas.height);
+
+            guiCtx.fillStyle = '#00ff00';
+            guiCtx.font = '12px monospace';
+
+            const lines = [
+                '$ whoami',
+                'user',
+                '',
+                '$ pwd',
+                '/home/user',
+                '',
+                '$ ls -la',
+                'total 16',
+                'drwxr-xr-x 2 user user 4096 Feb 16 .',
+                'drwxr-xr-x 3 root root 4096 Feb 15 ..',
+                '-rw-r--r-- 1 user user  220 Feb 15 .bashrc',
+                '',
+                '$ _'
+            ];
+
+            lines.forEach((line, i) => {
+                guiCtx.fillText(line, 15, 25 + i * 18);
+            });
+
+            clearOverlay();
+        }
+
+        function drawSettingsScreen() {
+            guiCtx.fillStyle = '#1e1e2e';
+            guiCtx.fillRect(0, 0, guiCanvas.width, guiCanvas.height);
+
+            // Title
+            guiCtx.fillStyle = '#fff';
+            guiCtx.font = 'bold 18px sans-serif';
+            guiCtx.fillText('Settings', 170, 35);
+
+            // Options
+            guiCtx.font = '14px sans-serif';
+
+            const options = [
+                { label: 'General', y: 80 },
+                { label: 'Display', y: 120 },
+                { label: 'Network', y: 160 },
+                { label: 'Security', y: 200 },
+                { label: 'About', y: 240 }
+            ];
+
+            options.forEach(opt => {
+                guiCtx.fillStyle = '#3d3d5c';
+                guiCtx.fillRect(50, opt.y - 18, 300, 30);
+                guiCtx.fillStyle = '#fff';
+                guiCtx.fillText(opt.label, 70, opt.y + 2);
+            });
+
+            // OK button
+            guiCtx.fillStyle = '#4CAF50';
+            guiCtx.fillRect(280, 260, 70, 30);
+            guiCtx.fillStyle = '#fff';
+            guiCtx.font = 'bold 12px sans-serif';
+            guiCtx.fillText('OK', 300, 280);
+
+            clearOverlay();
+        }
+
+        function clearCanvas() {
+            guiCtx.fillStyle = '#000';
+            guiCtx.fillRect(0, 0, guiCanvas.width, guiCanvas.height);
+            clearOverlay();
+        }
+
+        function clearOverlay() {
+            overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+        }
+
+        function showDetectedElements() {
+            if (!visionCortex) {
+                alert('Initialize VisionCortex first');
+                return;
+            }
+            testElementDetection();
+        }
+
+        // ============================================
+        // TEST FUNCTIONS
+        // ============================================
+
+        async function testVisionCortexAvailable() {
+            const available = typeof VisionCortex !== 'undefined';
+            return {
+                pass: available,
+                detail: available ? 'VisionCortex class found in global scope' : 'VisionCortex class not found - check script loading'
+            };
+        }
+
+        async function testVisionCortexInstantiable() {
+            try {
+                const vc = new VisionCortex({ lazyLoad: true });
+                const instantiable = vc instanceof VisionCortex;
+                return {
+                    pass: instantiable,
+                    detail: instantiable ? 'Successfully created VisionCortex instance' : 'Instance creation failed'
+                };
+            } catch (e) {
+                return { pass: false, detail: `Error: ${e.message}` };
+            }
+        }
+
+        async function testMockHypervisorCreated() {
+            const created = mockHypervisor instanceof MockHypervisorSystem;
+            return {
+                pass: created,
+                detail: created ? `MockHypervisor ready, canvas: ${guiCanvas.width}x${guiCanvas.height}` : 'MockHypervisor not created'
+            };
+        }
+
+        async function testToolHandlersRegistered() {
+            const requiredTools = ['hypervisor_input', 'hypervisor_frame', 'hypervisor_read_text', 'hypervisor_find_element'];
+            const registered = requiredTools.filter(name => typeof toolHandlers[name] === 'function');
+            const missing = requiredTools.filter(name => typeof toolHandlers[name] !== 'function');
+
+            return {
+                pass: registered.length === requiredTools.length,
+                detail: `Registered: ${registered.length}/${requiredTools.length}\nFound: ${registered.join(', ')}\nMissing: ${missing.join(', ') || 'None'}`
+            };
+        }
+
+        async function testOCRTextRecognition() {
+            drawLoginScreen();
+
+            try {
+                const result = await visionCortex.recognize(guiCanvas, null, { scale: 2.0 });
+
+                const hasText = result.text && result.text.length > 0;
+                const hasConfidence = typeof result.confidence === 'number';
+                const hasRegions = Array.isArray(result.regions);
+
+                // Check for expected text
+                const hasLogin = result.text.toLowerCase().includes('login');
+
+                return {
+                    pass: hasText && hasConfidence && hasRegions,
+                    detail: `Text found: ${result.text.length} chars\n` +
+                            `Confidence: ${(result.confidence * 100).toFixed(1)}%\n` +
+                            `Regions: ${result.regions.length}\n` +
+                            `Contains 'Login': ${hasLogin}\n\n` +
+                            `Preview: ${result.text.substring(0, 100)}...`
+                };
+            } catch (e) {
+                return { pass: false, detail: `Error: ${e.message}` };
+            }
+        }
+
+        async function testElementDetection() {
+            drawLoginScreen();
+            clearOverlay();
+
+            try {
+                const result = await visionCortex.findElement('Login', 'any', guiCanvas, { scale: 2.0 });
+
+                if (result.found && result.elements.length > 0) {
+                    // Draw highlights
+                    result.elements.forEach((el, i) => {
+                        const colors = ['#00ff00', '#ffff00', '#00ffff'];
+                        const color = colors[i % colors.length];
+
+                        overlayCtx.strokeStyle = color;
+                        overlayCtx.lineWidth = 2;
+                        overlayCtx.strokeRect(el.bounds.x, el.bounds.y, el.bounds.width, el.bounds.height);
+
+                        overlayCtx.fillStyle = color;
+                        overlayCtx.beginPath();
+                        overlayCtx.arc(el.center.x, el.center.y, 4, 0, Math.PI * 2);
+                        overlayCtx.fill();
+                    });
+
+                    lastFoundElement = result.elements[0];
+
+                    return {
+                        pass: true,
+                        detail: `Found ${result.count} element(s)\n` +
+                                `First: "${result.elements[0].label}"\n` +
+                                `Center: (${result.elements[0].center.x}, ${result.elements[0].center.y})\n` +
+                                `Bounds: ${JSON.stringify(result.elements[0].bounds)}`
+                    };
+                } else {
+                    return {
+                        pass: false,
+                        detail: `Element not found\nSuggestion: ${result.suggestion || 'Try different label'}`
+                    };
+                }
+            } catch (e) {
+                return { pass: false, detail: `Error: ${e.message}` };
+            }
+        }
+
+        async function testSemanticFrame() {
+            drawLoginScreen();
+
+            try {
+                const result = await visionCortex.getSemanticFrame(guiCanvas, { scale: 2.0 });
+
+                const hasScreen = result.screen && result.screen.width > 0;
+                const hasButtons = Array.isArray(result.buttons);
+                const hasText = result.text_content && result.text_content.length > 0;
+
+                return {
+                    pass: hasScreen && hasButtons && hasText,
+                    detail: `Screen: ${result.screen?.width}x${result.screen?.height}\n` +
+                            `Windows: ${result.windows?.length || 0}\n` +
+                            `Buttons: ${result.buttons?.length || 0}\n` +
+                            `Text Fields: ${result.text_fields?.length || 0}\n\n` +
+                            `Buttons found: ${result.buttons?.map(b => b.label).join(', ') || 'none'}`
+                };
+            } catch (e) {
+                return { pass: false, detail: `Error: ${e.message}` };
+            }
+        }
+
+        async function testMouseInput() {
+            mockHypervisor.clearLog();
+            clearOverlay();
+
+            try {
+                const result = await toolHandlers.hypervisor_input({
+                    type: 'mouse',
+                    data: { x: 100, y: 100, action: 'click' }
+                });
+
+                const log = mockHypervisor.getInputLog();
+                const hasClick = log.some(e => e.type === 'mouse' && e.data.pressed);
+
+                return {
+                    pass: result.success && hasClick,
+                    detail: `Result: ${JSON.stringify(result)}\n` +
+                            `Input log entries: ${log.length}\n` +
+                            `Has click event: ${hasClick}`
+                };
+            } catch (e) {
+                return { pass: false, detail: `Error: ${e.message}` };
+            }
+        }
+
+        async function testKeyboardInput() {
+            mockHypervisor.clearLog();
+
+            try {
+                const result = await toolHandlers.hypervisor_input({
+                    type: 'keyboard',
+                    data: { key: 'a', pressed: true }
+                });
+
+                const log = mockHypervisor.getInputLog();
+                const hasKey = log.some(e => e.type === 'keyboard');
+
+                return {
+                    pass: result.success && hasKey,
+                    detail: `Result: ${JSON.stringify(result)}\n` +
+                            `Input log entries: ${log.length}\n` +
+                            `Has keyboard event: ${hasKey}`
+                };
+            } catch (e) {
+                return { pass: false, detail: `Error: ${e.message}` };
+            }
+        }
+
+        async function testTextInput() {
+            mockHypervisor.clearLog();
+
+            try {
+                const result = await toolHandlers.hypervisor_input({
+                    type: 'text',
+                    data: { text: 'hello' }
+                });
+
+                const log = mockHypervisor.getInputLog();
+                const keyEvents = log.filter(e => e.type === 'keyboard');
+
+                return {
+                    pass: result.success && keyEvents.length >= 10, // 5 chars * 2 events (press+release)
+                    detail: `Result: ${JSON.stringify(result)}\n` +
+                            `Typed: ${result.typed} characters\n` +
+                            `Keyboard events: ${keyEvents.length} (expected ~10 for 5 chars)`
+                };
+            } catch (e) {
+                return { pass: false, detail: `Error: ${e.message}` };
+            }
+        }
+
+        async function testE2ELoop() {
+            drawLoginScreen();
+            clearOverlay();
+            mockHypervisor.clearLog();
+
+            try {
+                // Step 1: See (capture frame)
+                const frameResult = await toolHandlers.hypervisor_frame({ format: 'semantic' });
+                if (!frameResult.success) {
+                    return { pass: false, detail: `Frame capture failed: ${frameResult.error}` };
+                }
+
+                // Step 2: Read text
+                const readResult = await toolHandlers.hypervisor_read_text({ scale: 2.0 });
+                if (!readResult.success) {
+                    return { pass: false, detail: `Text read failed: ${readResult.error}` };
+                }
+
+                // Step 3: Find "Login" button
+                const findResult = await toolHandlers.hypervisor_find_element({
+                    label: 'Login',
+                    type: 'any',
+                    scale: 2.0
+                });
+
+                if (!findResult.found || findResult.elements.length === 0) {
+                    return { pass: false, detail: `Login button not found\n${findResult.suggestion || ''}` };
+                }
+
+                const element = findResult.elements[0];
+                lastFoundElement = element;
+
+                // Step 4: Click it
+                const clickResult = await toolHandlers.hypervisor_input({
+                    type: 'mouse',
+                    data: {
+                        x: element.center.x,
+                        y: element.center.y,
+                        action: 'click'
+                    }
+                });
+
+                if (!clickResult.success) {
+                    return { pass: false, detail: `Click failed: ${clickResult.error}` };
+                }
+
+                // Verify
+                const log = mockHypervisor.getInputLog();
+                const clicks = log.filter(e => e.type === 'mouse' && e.data.pressed);
+
+                return {
+                    pass: clicks.length > 0,
+                    detail: `E2E Pipeline Complete!\n\n` +
+                            `1. Frame: ${frameResult.screen?.width}x${frameResult.screen?.height}\n` +
+                            `2. Text: ${readResult.text.length} chars read\n` +
+                            `3. Found: "${element.label}" at (${element.center.x}, ${element.center.y})\n` +
+                            `4. Clicked: ${clicks.length} click event(s)\n\n` +
+                            `Red dot shows click location on overlay canvas`
+                };
+            } catch (e) {
+                return { pass: false, detail: `Error: ${e.message}` };
+            }
+        }
+
+        async function testClickTargetVerified() {
+            if (!lastFoundElement || !lastClickCoords) {
+                return {
+                    pass: false,
+                    detail: 'Run E2E test first to capture element and click coordinates'
+                };
+            }
+
+            const element = lastFoundElement;
+            const click = lastClickCoords;
+
+            // Check if click is within element bounds
+            const inBounds =
+                click.x >= element.bounds.x &&
+                click.x <= element.bounds.x + element.bounds.width &&
+                click.y >= element.bounds.y &&
+                click.y <= element.bounds.y + element.bounds.height;
+
+            const distance = Math.sqrt(
+                Math.pow(click.x - element.center.x, 2) +
+                Math.pow(click.y - element.center.y, 2)
+            );
+
+            return {
+                pass: inBounds && distance < 10,
+                detail: `Element center: (${element.center.x}, ${element.center.y})\n` +
+                        `Click position: (${click.x}, ${click.y})\n` +
+                        `Distance from center: ${distance.toFixed(1)}px\n` +
+                        `Click in bounds: ${inBounds}\n\n` +
+                        `Pass criteria: click within 10px of center and inside bounds`
+            };
+        }
+
+        // ============================================
+        // TEST RUNNER
+        // ============================================
+
+        function updateUI() {
+            // Update summary cards
+            document.getElementById('card-passed').querySelector('.summary-value').textContent = results.pass;
+            document.getElementById('card-failed').querySelector('.summary-value').textContent = results.fail;
+            document.getElementById('card-pending').querySelector('.summary-value').textContent = results.pending;
+
+            // Update card colors
+            const passCard = document.getElementById('card-passed');
+            const failCard = document.getElementById('card-failed');
+
+            passCard.className = 'summary-card ' + (results.pass > 0 ? 'passed' : 'pending');
+            failCard.className = 'summary-card ' + (results.fail > 0 ? 'failed' : 'pending');
+
+            // Update progress bar
+            const total = tests.length;
+            const completed = results.pass + results.fail;
+            const percent = Math.round((completed / total) * 100);
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.style.width = percent + '%';
+            progressBar.textContent = percent + '%';
+
+            if (results.running) {
+                progressBar.className = 'progress-bar running';
+            } else if (results.fail > 0) {
+                progressBar.className = 'progress-bar failed';
+            } else if (results.pass === total) {
+                progressBar.className = 'progress-bar';
+            }
+
+            // Update duration
+            if (startTime) {
+                const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+                document.getElementById('card-time').querySelector('.summary-value').textContent = duration + 's';
+            }
+        }
+
+        function renderTest(test, result) {
+            const grid = document.getElementById('test-grid');
+            const existingEl = document.getElementById(`test-${test.id}`);
+
+            const statusClass = result.status;
+            const icon = result.status === 'pass' ? '✓' : result.status === 'fail' ? '✗' : result.status === 'running' ? '○' : '○';
+
+            const html = `
+                <div class="test-number">${test.id}</div>
+                <div class="test-content">
+                    <div class="test-name">${test.name}</div>
+                    <div class="test-description">${test.description}</div>
+                    ${result.detail ? `<div class="test-detail">${result.detail}</div>` : ''}
+                </div>
+                <div>
+                    <span class="icon ${statusClass}">${icon}</span>
+                    ${result.time ? `<div class="test-time">${result.time}ms</div>` : ''}
+                </div>
+            `;
+
+            if (existingEl) {
+                existingEl.innerHTML = html;
+                existingEl.className = `test-item ${statusClass}`;
+            } else {
+                const el = document.createElement('div');
+                el.id = `test-${test.id}`;
+                el.className = `test-item ${statusClass}`;
+                el.innerHTML = html;
+                grid.appendChild(el);
+            }
+        }
+
+        async function runTest(test) {
+            const startTime = performance.now();
+
+            renderTest(test, { status: 'running' });
+            updateUI();
+
+            try {
+                const result = await test.fn();
+                const time = Math.round(performance.now() - startTime);
+
+                const status = result.pass ? 'pass' : 'fail';
+                results[status]++;
+                results.pending--;
+
+                renderTest(test, { status, detail: result.detail, time });
+            } catch (e) {
+                results.fail++;
+                results.pending--;
+                renderTest(test, { status: 'fail', detail: `Exception: ${e.message}` });
+            }
+
+            updateUI();
+        }
+
+        async function runAllTests() {
+            if (results.running) return;
+            results.running = true;
+            startTime = Date.now();
+
+            // Reset results
+            results = { pass: 0, fail: 0, pending: tests.length, running: true };
+            document.getElementById('test-grid').innerHTML = '';
+            updateUI();
+
+            // Run tests in order
+            for (const test of tests) {
+                await runTest(test);
+            }
+
+            results.running = false;
+            updateUI();
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+
+        async function initializeSystem() {
+            const btn = document.getElementById('btn-init');
+            btn.disabled = true;
+            btn.textContent = 'Initializing...';
+
+            try {
+                // Create mock hypervisor
+                mockHypervisor = new MockHypervisorSystem(guiCanvas);
+                window.hypervisorSystem = mockHypervisor;
+
+                // Create VisionCortex
+                visionCortex = new VisionCortex({
+                    cacheTTL: 60000,
+                    cacheMaxSize: 100,
+                    defaultScale: 2.0,
+                    lazyLoad: true
+                });
+
+                // Initialize VisionCortex (load Tesseract)
+                logDemo('Initializing VisionCortex (loading Tesseract.js)...');
+                await visionCortex.initialize();
+                logDemo('VisionCortex initialized successfully!', 'success');
+
+                // Create tool handlers (simulating WebMCP bridge)
+                toolHandlers = {
+                    hypervisor_input: async (params) => {
+                        const { type, data } = params;
+
+                        if (type === 'text') {
+                            const text = data.text || '';
+                            for (const char of text) {
+                                await mockHypervisor.injectInput('main_cpu', 'keyboard', { key: char, pressed: true });
+                                await new Promise(r => setTimeout(r, 10));
+                                await mockHypervisor.injectInput('main_cpu', 'keyboard', { key: char, pressed: false });
+                                await new Promise(r => setTimeout(r, 30));
+                            }
+                            return { success: true, typed: text.length };
+                        }
+
+                        if (type === 'mouse') {
+                            const action = data.action || 'click';
+
+                            if (action === 'move') {
+                                await mockHypervisor.injectInput('main_cpu', 'mouse', {
+                                    x: data.x, y: data.y, pressed: false, released: false
+                                });
+                            } else if (action === 'click') {
+                                await mockHypervisor.injectInput('main_cpu', 'mouse', {
+                                    x: data.x, y: data.y, pressed: true, released: false
+                                });
+                                await new Promise(r => setTimeout(r, 50));
+                                await mockHypervisor.injectInput('main_cpu', 'mouse', {
+                                    x: data.x, y: data.y, pressed: false, released: true
+                                });
+                            } else if (action === 'down') {
+                                await mockHypervisor.injectInput('main_cpu', 'mouse', {
+                                    x: data.x, y: data.y, pressed: true, released: false
+                                });
+                            } else if (action === 'up') {
+                                await mockHypervisor.injectInput('main_cpu', 'mouse', {
+                                    x: data.x, y: data.y, pressed: false, released: true
+                                });
+                            }
+                            return { success: true, action, x: data.x, y: data.y };
+                        }
+
+                        // Keyboard
+                        await mockHypervisor.injectInput('main_cpu', 'keyboard', {
+                            key: data.key,
+                            pressed: data.pressed !== false
+                        });
+                        return { success: true, key: data.key };
+                    },
+
+                    hypervisor_frame: async (params) => {
+                        const format = params.format || 'semantic';
+                        const scale = params.scale || 1.0;
+
+                        if (format === 'semantic' || format === 'both') {
+                            const semantic = await visionCortex.getSemanticFrame(guiCanvas, { scale });
+                            if (format === 'both') {
+                                const frame = await mockHypervisor.captureFrame('main_cpu');
+                                return { ...semantic, frame_base64: frame };
+                            }
+                            return semantic;
+                        }
+
+                        const frame = await mockHypervisor.captureFrame('main_cpu');
+                        return { success: true, format: 'raw', frame_base64: frame };
+                    },
+
+                    hypervisor_read_text: async (params) => {
+                        const scale = params.scale || 2.0;
+                        return await visionCortex.recognize(guiCanvas, params.region, { scale });
+                    },
+
+                    hypervisor_find_element: async (params) => {
+                        const elementType = params.type || 'any';
+                        const options = { exact: params.exact || false, scale: params.scale };
+                        return await visionCortex.findElement(params.label, elementType, guiCanvas, options);
+                    }
+                };
+
+                btn.textContent = 'Initialized ✓';
+                document.getElementById('btn-prereq').disabled = false;
+
+                // Draw initial canvas
+                drawLoginScreen();
+
+                logDemo('System initialized. Click "Check Prerequisites" to verify setup.', 'success');
+
+            } catch (e) {
+                btn.textContent = 'Failed ✗';
+                btn.disabled = false;
+                logDemo(`Initialization failed: ${e.message}`, 'error');
+                console.error(e);
+            }
+        }
+
+        async function checkPrerequisites() {
+            const prereqs = [
+                { id: 'prereq-vision', check: () => typeof VisionCortex !== 'undefined', label: 'VisionCortex Class' },
+                { id: 'prereq-hypervisor', check: () => mockHypervisor instanceof MockHypervisorSystem, label: 'MockHypervisor' },
+                { id: 'prereq-bridge', check: () => Object.keys(toolHandlers).length > 0, label: 'Tool Handlers' },
+                { id: 'prereq-tools', check: () => {
+                    const required = ['hypervisor_input', 'hypervisor_frame', 'hypervisor_read_text', 'hypervisor_find_element'];
+                    return required.every(name => typeof toolHandlers[name] === 'function');
+                }, label: 'All 4 Tools' }
+            ];
+
+            let allPassed = true;
+
+            for (const prereq of prereqs) {
+                const el = document.getElementById(prereq.id);
+                const passed = prereq.check();
+
+                el.textContent = passed ? 'OK' : 'Error';
+                el.className = 'prereq-status ' + (passed ? 'ok' : 'error');
+
+                if (!passed) allPassed = false;
+            }
+
+            if (allPassed) {
+                document.getElementById('btn-run').disabled = false;
+                document.getElementById('btn-e2e').disabled = false;
+                logDemo('All prerequisites passed! Ready to run tests.', 'success');
+            } else {
+                logDemo('Some prerequisites failed. Check initialization.', 'error');
+            }
+        }
+
+        async function runE2EDemo() {
+            const output = document.getElementById('demo-output');
+            output.innerHTML = '';
+
+            const steps = ['step-see', 'step-read', 'step-find', 'step-click'];
+
+            // Reset flow visualization
+            steps.forEach(id => document.getElementById(id).classList.remove('active'));
+
+            drawLoginScreen();
+            clearOverlay();
+            mockHypervisor.clearLog();
+
+            try {
+                // Step 1: SEE
+                document.getElementById('step-see').classList.add('active');
+                logDemo('[1/4] SEE - Capturing frame...', 'info');
+                const frame = await toolHandlers.hypervisor_frame({ format: 'semantic' });
+                logDemo(`      Screen: ${frame.screen?.width}x${frame.screen?.height}, Buttons: ${frame.buttons?.length}`);
+
+                await new Promise(r => setTimeout(r, 300));
+
+                // Step 2: READ
+                document.getElementById('step-read').classList.add('active');
+                logDemo('[2/4] READ - Running OCR...', 'info');
+                const text = await toolHandlers.hypervisor_read_text({ scale: 2.0 });
+                logDemo(`      Found ${text.text.length} chars, confidence: ${(text.confidence * 100).toFixed(1)}%`);
+
+                await new Promise(r => setTimeout(r, 300));
+
+                // Step 3: FIND
+                document.getElementById('step-find').classList.add('active');
+                logDemo('[3/4] FIND - Locating "Login" button...', 'info');
+                const found = await toolHandlers.hypervisor_find_element({ label: 'Login', scale: 2.0 });
+
+                if (!found.found) {
+                    logDemo(`      ERROR: ${found.suggestion}`, 'error');
+                    return;
+                }
+
+                const element = found.elements[0];
+                logDemo(`      Found "${element.label}" at (${element.center.x}, ${element.center.y})`, 'success');
+
+                // Draw highlight
+                overlayCtx.strokeStyle = '#00ff00';
+                overlayCtx.lineWidth = 2;
+                overlayCtx.strokeRect(element.bounds.x, element.bounds.y, element.bounds.width, element.bounds.height);
+                overlayCtx.fillStyle = '#00ff00';
+                overlayCtx.beginPath();
+                overlayCtx.arc(element.center.x, element.center.y, 4, 0, Math.PI * 2);
+                overlayCtx.fill();
+
+                await new Promise(r => setTimeout(r, 300));
+
+                // Step 4: CLICK
+                document.getElementById('step-click').classList.add('active');
+                logDemo('[4/4] CLICK - Injecting mouse input...', 'info');
+
+                const clickResult = await toolHandlers.hypervisor_input({
+                    type: 'mouse',
+                    data: { x: element.center.x, y: element.center.y, action: 'click' }
+                });
+
+                logDemo(`      Click at (${element.center.x}, ${element.center.y}): ${clickResult.success ? 'SUCCESS' : 'FAILED'}`, clickResult.success ? 'success' : 'error');
+
+                await new Promise(r => setTimeout(r, 300));
+
+                logDemo('\n✓ E2E Demo Complete! Red dot shows click location.', 'success');
+
+            } catch (e) {
+                logDemo(`\n✗ E2E Demo Failed: ${e.message}`, 'error');
+            }
+        }
+
+        function logDemo(msg, type = 'info') {
+            const output = document.getElementById('demo-output');
+            const colorClass = type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warn' ? 'warn' : 'info';
+            output.innerHTML += `<span class="${colorClass}">${msg}</span>\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function resetTests() {
+            results = { pass: 0, fail: 0, pending: tests.length, running: false };
+            startTime = null;
+
+            document.getElementById('test-grid').innerHTML = '';
+            document.getElementById('demo-output').innerHTML = 'Click "E2E Demo" to run the complete AI GUI control loop.';
+
+            // Reset buttons
+            document.getElementById('btn-init').disabled = false;
+            document.getElementById('btn-init').textContent = '1. Initialize System';
+            document.getElementById('btn-prereq').disabled = true;
+            document.getElementById('btn-run').disabled = true;
+            document.getElementById('btn-e2e').disabled = true;
+
+            // Reset flow steps
+            ['step-see', 'step-read', 'step-find', 'step-click'].forEach(id => {
+                document.getElementById(id).classList.remove('active');
+            });
+
+            // Reset prereqs
+            ['prereq-vision', 'prereq-hypervisor', 'prereq-bridge', 'prereq-tools'].forEach(id => {
+                const el = document.getElementById(id);
+                el.textContent = 'Checking...';
+                el.className = 'prereq-status pending';
+            });
+
+            updateUI();
+            drawLoginScreen();
+        }
+
+        // Initialize on load
+        window.onload = () => {
+            drawLoginScreen();
+            updateUI();
+        };
+    </script>
+</body>
+</html>

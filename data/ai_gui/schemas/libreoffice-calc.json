@@ -1,0 +1,87 @@
+{
+  "app": "libreoffice-calc",
+  "version": "7.x",
+  "toolkit": "gtk",
+  "shortcuts": [
+    {"keys": "Ctrl+N", "action": "New", "category": "file", "description": "Create new spreadsheet"},
+    {"keys": "Ctrl+O", "action": "Open", "category": "file", "description": "Open spreadsheet"},
+    {"keys": "Ctrl+S", "action": "Save", "category": "file", "description": "Save spreadsheet"},
+    {"keys": "Ctrl+Shift+S", "action": "Save As", "category": "file", "description": "Save spreadsheet as"},
+    {"keys": "Ctrl+P", "action": "Print", "category": "file", "description": "Print spreadsheet"},
+    {"keys": "Ctrl+Z", "action": "Undo", "category": "edit", "description": "Undo last action"},
+    {"keys": "Ctrl+Y", "action": "Redo", "category": "edit", "description": "Redo last action"},
+    {"keys": "Ctrl+C", "action": "Copy", "category": "edit", "description": "Copy selection"},
+    {"keys": "Ctrl+X", "action": "Cut", "category": "edit", "description": "Cut selection"},
+    {"keys": "Ctrl+V", "action": "Paste", "category": "edit", "description": "Paste clipboard"},
+    {"keys": "Ctrl+Shift+V", "action": "Paste Special", "category": "edit", "description": "Paste with options"},
+    {"keys": "Ctrl+F", "action": "Find", "category": "edit", "description": "Find in spreadsheet"},
+    {"keys": "Ctrl+H", "action": "Find and Replace", "category": "edit", "description": "Find and replace"},
+    {"keys": "Ctrl+A", "action": "Select All", "category": "edit", "description": "Select all cells"},
+    {"keys": "Ctrl+Home", "action": "Go to A1", "category": "navigation", "description": "Go to first cell"},
+    {"keys": "Ctrl+End", "action": "Go to Last Cell", "category": "navigation", "description": "Go to last cell with data"},
+    {"keys": "Ctrl+Page Up", "action": "Previous Sheet", "category": "navigation", "description": "Go to previous sheet"},
+    {"keys": "Ctrl+Page Down", "action": "Next Sheet", "category": "navigation", "description": "Go to next sheet"},
+    {"keys": "Ctrl+B", "action": "Bold", "category": "format", "description": "Toggle bold"},
+    {"keys": "Ctrl+I", "action": "Italic", "category": "format", "description": "Toggle italic"},
+    {"keys": "Ctrl+U", "action": "Underline", "category": "format", "description": "Toggle underline"},
+    {"keys": "Ctrl+D", "action": "Fill Down", "category": "edit", "description": "Fill cells below"},
+    {"keys": "Ctrl+R", "action": "Fill Right", "category": "edit", "description": "Fill cells right"},
+    {"keys": "F2", "action": "Edit Cell", "category": "edit", "description": "Edit active cell"},
+    {"keys": "Ctrl+;", "action": "Insert Date", "category": "insert", "description": "Insert current date"},
+    {"keys": "Ctrl+Shift+;", "action": "Insert Time", "category": "insert", "description": "Insert current time"},
+    {"keys": "Alt+Enter", "action": "Insert Line Break", "category": "edit", "description": "Insert line break in cell"},
+    {"keys": "Ctrl+-", "action": "Delete Cells", "category": "edit", "description": "Delete cells dialog"},
+    {"keys": "Ctrl++", "action": "Insert Cells", "category": "insert", "description": "Insert cells dialog"},
+    {"keys": "Ctrl+1", "action": "Format Cells", "category": "format", "description": "Open format cells dialog"},
+    {"keys": "F9", "action": "Recalculate", "category": "data", "description": "Recalculate formulas"}
+  ],
+  "widgets": {
+    "grid": {
+      "type": "spreadsheet_grid",
+      "label": "Spreadsheet",
+      "description": "Main spreadsheet grid"
+    },
+    "formula_bar": {
+      "type": "entry",
+      "label": "Formula Bar",
+      "description": "Formula input bar"
+    },
+    "cell_reference": {
+      "type": "entry",
+      "label": "Cell Reference",
+      "description": "Shows current cell reference"
+    },
+    "sheets_tab": {
+      "type": "tab_list",
+      "label": "Sheets",
+      "description": "Sheet tabs at bottom"
+    },
+    "toolbar_format": {
+      "type": "toolbar",
+      "label": "Formatting",
+      "description": "Text formatting toolbar"
+    },
+    "sidebar": {
+      "type": "panel",
+      "label": "Sidebar",
+      "description": "Properties sidebar"
+    }
+  },
+  "custom_actions": [
+    "sort_ascending",
+    "sort_descending",
+    "filter_auto",
+    "filter_advanced",
+    "chart_insert",
+    "pivot_table_create",
+    "conditional_format",
+    "data_validation",
+    "goal_seek",
+    "solver"
+  ],
+  "metadata": {
+    "description": "LibreOffice Spreadsheet Application",
+    "category": "office",
+    "url": "https://www.libreoffice.org"
+  }
+}

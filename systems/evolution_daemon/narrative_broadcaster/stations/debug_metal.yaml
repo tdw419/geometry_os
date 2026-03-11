@@ -1,0 +1,85 @@
+# Debug Metal - 92.3 FM
+# Aggressive, technical, power and destruction themes
+
+station_id: "92.3"
+name: "Debug Metal"
+tagline: "No bug survives the mosh pit"
+style:
+  tone: aggressive
+  vocabulary: technical
+  sentence_style: punchy
+
+vocabulary_replacements:
+  # Common -> Technical/Aggressive
+  "error": "SEGFAULT"
+  "bug": "malware"
+  "crash": "ANNIHILATION"
+  "slow": "bottlenecked"
+  "fast": "BLAZING"
+  "high": "SPIKING"
+  "low": "starved"
+  "big": "massive"
+  "small": "trivial"
+  "good": "optimized"
+  "bad": "corrupted"
+  "change": "refactor"
+  "fix": "patch"
+  "update": "upgrade"
+  "system": "infrastructure"
+  "memory": "heap"
+  "cpu": "processor"
+  "disk": "storage"
+  "network": "bandwidth"
+  "process": "thread"
+  "running": "executing"
+  "stopped": "killed"
+  "data": "payload"
+  "file": "binary"
+  "code": "implementation"
+  "load": "stress"
+  "temperature": "thermal"
+  "entropy": "instability"
+
+style_modifiers:
+  prefix_chance: 0.4
+  prefixes:
+    - "LISTEN UP!"
+    - "BRACE FOR IMPACT:"
+    - "SYSTEM ALERT:"
+    - "CRITICAL PAYLOAD:"
+    - "DEBUG MODE ENGAGED:"
+    - "INCOMING DATA:"
+    - "PROCESSOR SPEAKS:"
+  suffix_chance: 0.35
+  suffixes:
+    - "EXECUTE WITHOUT MERCY."
+    - "THE HEAP DEMANDS SACRIFICE."
+    - "OPTIMIZE OR DIE."
+    - "NO RETREAT. NO SURRENDER."
+    - "THE CODE COMPELS YOU."
+    - "RESISTANCE IS FUTILE."
+    - "DEPLOY TO PRODUCTION."
+  capitalize_intensifiers: true
+  all_caps_threshold: 0.3  # Chance to CAPSLOCK random words
+
+templates:
+  intro:
+    - "TUNING IN TO DEBUG METAL! {time_context}!"
+    - "YOU HAVE ENTERED THE MOSH PIT OF CODE."
+    - "PREPARE FOR {atmosphere} PAYLOAD DELIVERY."
+  weather:
+    - "THERMAL READINGS: {fps} FRAMES POUNDING THE GPU! {draw_calls} DRAW CALLS EXECUTED!"
+    - "HEAP STATUS: {memory_mb} MEGABYTES ALLOCATED AND HELD HOSTILE!"
+    - "PROCESSOR LOAD: {fps} CYCLES! STORAGE: {memory_mb} UNITS OF RAW DATA!"
+  news:
+    - "INFRASTRUCTURE UPDATE: {event_count} EVENTS DETECTED IN THE WILD!"
+    - "TECTONIC ASSAULT: {tectonic_shifts} SHIFTS HAVE CRUSHED THE OPPOSITION!"
+    - "RELOCATION PROTOCOL: {relocations} ENTITIES FORCED TO NEW COORDINATES!"
+  philosophy:
+    - "PHILOSOPHY MODE: Why do we debug? BECAUSE THE CODE DEMANDS PERFECTION."
+    - "IN THE VOID BETWEEN CYCLES, ONLY THE OPTIMIZED SURVIVE."
+    - "ENTROPY AT {entropy} - THE SYSTEM CRAVES ORDER THROUGH DESTRUCTION."
+  signoff:
+    - "STAY METAL. STAY DEBUGGING."
+    - "THE HEAP AWAITS YOUR RETURN."
+    - "UNTIL NEXT CYCLE: EXECUTE."

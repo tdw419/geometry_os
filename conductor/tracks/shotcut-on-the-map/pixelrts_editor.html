@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PixelRTS v3 Interactive Editor</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            display: flex;
+            min-height: 100vh;
+        }
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #050508;
+        }
+        canvas {
+            border: 2px solid #333;
+            image-rendering: pixelated;
+        }
+        .sidebar {
+            width: 320px;
+            background: #0d0d12;
+            border-left: 1px solid #222;
+            padding: 16px;
+            overflow-y: auto;
+        }
+        h1 { font-size: 14px; color: #4af; margin-bottom: 16px; }
+        h2 { font-size: 12px; color: #888; margin: 16px 0 8px; border-bottom: 1px solid #222; padding-bottom: 4px; }
+
+        .register-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+        }
+        .register {
+            background: #151520;
+            padding: 6px 4px;
+            border-radius: 3px;
+            font-size: 10px;
+            text-align: center;
+        }
+        .register.active {
+            background: #1a3a1a;
+            border: 1px solid #4f4;
+        }
+        .register span { color: #666; }
+        .register .value { color: #4f4; font-weight: bold; }
+
+        .opcode-table {
+            font-size: 10px;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .opcode-table th, .opcode-table td {
+            padding: 4px;
+            border: 1px solid #222;
+            text-align: left;
+        }
+        .opcode-table th { background: #151520; color: #888; }
+        .opcode-table td:first-child { color: #f84; font-family: monospace; }
+        .opcode-table code { color: #4af; }
+
+        .pixel-info {
+            background: #151520;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+        }
+        .pixel-info .label { color: #666; font-size: 10px; }
+        .pixel-info .value { color: #4f4; font-size: 14px; }
+        .pixel-info .color-preview {
+            width: 40px;
+            height: 40px;
+            border: 1px solid #333;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        button {
+            flex: 1;
+            padding: 8px;
+            background: #1a1a25;
+            border: 1px solid #333;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+        }
+        button:hover { background: #252535; border-color: #4af; }
+        button:active { background: #2a2a40; }
+        button.primary { background: #1a3a2a; border-color: #4f4; }
+
+        .status {
+            font-size: 10px;
+            color: #666;
+            padding: 8px;
+            background: #0a0a0f;
+            border-radius: 3px;
+        }
+        .status.running { color: #4f4; }
+        .status.halted { color: #f84; }
+
+        #pasm-input {
+            width: 100%;
+            height: 150px;
+            background: #0a0a0f;
+            border: 1px solid #222;
+            color: #4f4;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            padding: 8px;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+    <div class="canvas-container">
+        <canvas id="canvas" width="256" height="256"></canvas>
+    </div>
+    <div class="sidebar">
+        <h1>PIXELRTS v3 EDITOR</h1>
+
+        <div class="pixel-info">
+            <div class="color-preview" id="color-preview"></div>
+            <div>
+                <div class="label">HOVERED PIXEL</div>
+                <div class="value" id="pixel-coords">(---, ---)</div>
+            </div>
+        </div>
+
+        <div class="pixel-info">
+            <div class="label">INSTRUCTION</div>
+            <div class="value" id="instruction">---</div>
+            <div style="font-size: 10px; color: #888; margin-top: 4px;" id="instruction-detail"></div>
+        </div>
+
+        <div class="controls">
+            <button onclick="step()">STEP</button>
+            <button onclick="run()" class="primary">RUN</button>
+            <button onclick="reset()">RESET</button>
+            <button onclick="assemble()">ASM</button>
+        </div>
+
+        <div class="status" id="status">Status: Idle</div>
+
+        <h2>REGISTERS (r0-r31)</h2>
+        <div class="register-grid" id="registers"></div>
+
+        <h2>PASM INPUT</h2>
+        <textarea id="pasm-input">; Geometric Hello World
+LDI r1, 10
+LDI r2, 20
+ADD r3, r1, r2
+LDI r4, 5
+MUL r5, r3, r4
+HALT</textarea>
+
+        <h2>OPCODE REFERENCE</h2>
+        <table class="opcode-table">
+            <tr><th>Op</th><th>R</th><th>Encoding</th></tr>
+            <tr><td>NOP</td><td>0x00</td><td>NOP</td></tr>
+            <tr><td>MOV</td><td>0x01</td><td>MOV <code>RD, RS1</code></td></tr>
+            <tr><td>ADD</td><td>0x33</td><td>ADD <code>RD, RS1, RS2</code></td></tr>
+            <tr><td>SUB</td><td>0x34</td><td>SUB <code>RD, RS1, RS2</code></td></tr>
+            <tr><td>MUL</td><td>0x35</td><td>MUL <code>RD, RS1, RS2</code></td></tr>
+            <tr><td>DIV</td><td>0x36</td><td>DIV <code>RD, RS1, RS2</code></td></tr>
+            <tr><td>LDI</td><td>0x08</td><td>LDI <code>RD, IMM</code></td></tr>
+            <tr><td>JMP</td><td>0x06</td><td>JMP <code>ADDR</code></td></tr>
+            <tr><td>HALT</td><td>0x07</td><td>HALT</td></tr>
+        </table>
+
+        <h2>RGBA ENCODING</h2>
+        <table class="opcode-table">
+            <tr><th>Ch</th><th>Role</th><th>Range</th></tr>
+            <tr><td style="color:#f88">R</td><td>Opcode</td><td>0-255</td></tr>
+            <tr><td style="color:#8f8">G</td><td>RS1/Imm</td><td>0-31 / 0-255</td></tr>
+            <tr><td style="color:#88f">B</td><td>RS2</td><td>0-31</td></tr>
+            <tr><td style="color:#888">A</td><td>RD</td><td>0-31</td></tr>
+        </table>
+    </div>
+
+    <script type="module">
+        // ===== PixelRTS v3 Instruction Set =====
+        const OPCODES = {
+            NOP:  0x00,
+            MOV:  0x01,
+            ADD:  0x33,
+            SUB:  0x34,
+            MUL:  0x35,
+            DIV:  0x36,
+            JMP:  0x06,
+            HALt: 0x07,
+            LDI:  0x08
+        };
+
+        const OPCODE_NAMES = {
+            0x00: 'NOP', 0x01: 'MOV', 0x33: 'ADD', 0x34: 'SUB',
+            0x35: 'MUL', 0x36: 'DIV', 0x06: 'JMP', 0x07: 'HALT', 0x08: 'LDI'
+        };
+
+        // ===== Hilbert Curve =====
+        function hilbert_d2xy(d, n) {
+            let x = 0, y = 0, s = 1;
+            while (s < n) {
+                const rx = 1 & (d >> 1);
+                const ry = 1 & (d ^ rx);
+                if (ry === 0) {
+                    if (rx === 1) { x = s - 1 - x; y = s - 1 - y; }
+                    [x, y] = [y, x];
+                }
+                x += s * rx;
+                y += s * ry;
+                d = Math.floor(d / 4);
+                s *= 2;
+            }
+            return [x, y];
+        }
+
+        function hilbert_xy2d(x, y, n) {
+            let d = 0, s = Math.floor(n / 2);
+            while (s > 0) {
+                const rx = (x & s) ? 1 : 0;
+                const ry = (y & s) ? 1 : 0;
+                d += s * s * ((3 * rx) ^ ry);
+                if (ry === 0) {
+                    if (rx === 1) { x = s - 1 - x; y = s - 1 - y; }
+                    [x, y] = [y, x];
+                }
+                s = Math.floor(s / 2);
+            }
+            return d;
+        }
+
+        // ===== Geometric VM =====
+        class GeometricVM {
+            constructor(gridSize = 16) {
+                this.gridSize = gridSize;
+                this.regs = new Array(32).fill(0);
+                this.pc = 0;
+                this.halted = false;
+                this.instructions = [];
+                this.pixels = [];
+            }
+
+            loadFromPixels(pixels) {
+                this.pixels = pixels;
+                this.instructions = [];
+                const n = this.gridSize;
+
+                // Linearize via Hilbert curve
+                for (let d = 0; d < n * n; d++) {
+                    const [x, y] = hilbert_d2xy(d, n);
+                    if (x < pixels.length && y < pixels[0].length) {
+                        this.instructions.push(pixels[y][x]);
+                    }
+                }
+            }
+
+            step() {
+                if (this.halted || this.pc >= this.instructions.length) {
+                    this.halted = true;
+                    return false;
+                }
+
+                const [r, g, b, a] = this.instructions[this.pc];
+                const op = r, rs1 = g, rs2 = b, rd = a;
+
+                const readReg = (idx) => idx < 32 ? this.regs[idx] : idx;
+                const writeReg = (idx, val) => { if (idx > 0 && idx < 32) this.regs[idx] = val; };
+
+                switch (op) {
+                    case 0x33: // ADD
+                        writeReg(rd, readReg(rs1) + readReg(rs2));
+                        this.pc++;
+                        break;
+                    case 0x34: // SUB
+                        writeReg(rd, readReg(rs1) - readReg(rs2));
+                        this.pc++;
+                        break;
+                    case 0x35: // MUL
+                        writeReg(rd, readReg(rs1) * readReg(rs2));
+                        this.pc++;
+                        break;
+                    case 0x36: // DIV
+                        if (readReg(rs2) !== 0) writeReg(rd, Math.floor(readReg(rs1) / readReg(rs2)));
+                        this.pc++;
+                        break;
+                    case 0x01: // MOV
+                        writeReg(rd, readReg(rs1));
+                        this.pc++;
+                        break;
+                    case 0x08: // LDI
+                        writeReg(rd, rs1);
+                        this.pc++;
+                        break;
+                    case 0x06: // JMP
+                        this.pc = rs1 < 32 ? readReg(rs1) : rs1;
+                        break;
+                    case 0x07: // HALT
+                        this.halted = true;
+                        break;
+                    default:
+                        this.pc++;
+                }
+                return true;
+            }
+
+            reset() {
+                this.regs.fill(0);
+                this.pc = 0;
+                this.halted = false;
+            }
+        }
+
+        // ===== Assembler =====
+        function assemblePasm(source) {
+            const lines = source.split('\n');
+            const instructions = [];
+            const labels = {};
+
+            // Pass 1: Find labels
+            let pc = 0;
+            const cleanLines = [];
+            for (const line of lines) {
+                const clean = line.split(';')[0].trim();
+                if (!clean) continue;
+                if (clean.endsWith(':')) {
+                    labels[clean.slice(0, -1)] = pc;
+                    continue;
+                }
+                cleanLines.push(clean);
+                pc++;
+            }
+
+            // Pass 2: Encode
+            for (const line of cleanLines) {
+                const parts = line.split(/[\s,]+/).filter(p => p);
+                const op = parts[0].toUpperCase();
+                const args = parts.slice(1);
+
+                const parseReg = (s) => {
+                    if (!s) return 0;
+                    s = s.toLowerCase();
+                    if (s.startsWith('r') || s.startsWith('x')) return parseInt(s.slice(1)) || 0;
+                    return parseInt(s) || 0;
+                };
+                const parseImm = (s) => (parseInt(s) || 0) & 0xFF;
+
+                let rgba = [0, 0, 0, 0];
+
+                if (op === 'MOV') {
+                    rgba = [0x01, parseReg(args[1]), 0, parseReg(args[0])];
+                } else if (op === 'LDI') {
+                    rgba = [0x08, parseImm(args[1]), 0, parseReg(args[0])];
+                } else if (['ADD', 'SUB', 'MUL', 'DIV'].includes(op)) {
+                    const opcodes = { ADD: 0x33, SUB: 0x34, MUL: 0x35, DIV: 0x36 };
+                    rgba = [opcodes[op], parseReg(args[1]), parseReg(args[2]), parseReg(args[0])];
+                } else if (op === 'JMP') {
+                    const target = labels[args[0]] ?? parseReg(args[0]);
+                    rgba = [0x06, target, 0, 0];
+                } else if (op === 'HALT') {
+                    rgba = [0x07, 0, 0, 0];
+                }
+
+                instructions.push(rgba);
+            }
+
+            return instructions;
+        }
+
+        // ===== Canvas Renderer =====
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const GRID_SIZE = 16;
+        const CELL_SIZE = canvas.width / GRID_SIZE;
+
+        let pixels = [];
+        let vm = new GeometricVM(GRID_SIZE);
+        let hoveredPixel = null;
+        let running = false;
+
+        function initPixels() {
+            pixels = [];
+            for (let y = 0; y < GRID_SIZE; y++) {
+                pixels[y] = [];
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    pixels[y][x] = [0, 0, 0, 0];
+                }
+            }
+        }
+
+        function loadInstructions(instructions) {
+            initPixels();
+            for (let i = 0; i < instructions.length; i++) {
+                const [x, y] = hilbert_d2xy(i, GRID_SIZE);
+                if (x < GRID_SIZE && y < GRID_SIZE) {
+                    pixels[y][x] = instructions[i];
+                }
+            }
+            vm.loadFromPixels(pixels);
+            render();
+        }
+
+        function render() {
+            ctx.fillStyle = '#0a0a0f';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const [r, g, b, a] = pixels[y][x];
+
+                    // Scale up for visibility
+                    const sr = Math.min(255, r * 3);
+                    const sg = Math.min(255, g * 8);
+                    const sb = Math.min(255, b * 8);
+
+                    ctx.fillStyle = `rgb(${sr},${sg},${sb})`;
+                    ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1);
+
+                    // Draw grid lines
+                    ctx.strokeStyle = '#1a1a25';
+                    ctx.strokeRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1);
+                }
+            }
+
+            // Highlight PC
+            if (vm.pc < GRID_SIZE * GRID_SIZE) {
+                const [px, py] = hilbert_d2xy(vm.pc, GRID_SIZE);
+                ctx.strokeStyle = '#4f4';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(px * CELL_SIZE, py * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1);
+                ctx.lineWidth = 1;
+            }
+
+            // Highlight hovered
+            if (hoveredPixel) {
+                ctx.strokeStyle = '#4af';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(hoveredPixel.x * CELL_SIZE, hoveredPixel.y * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1);
+                ctx.lineWidth = 1;
+            }
+        }
+
+        function updateRegisters() {
+            const container = document.getElementById('registers');
+            container.innerHTML = '';
+            for (let i = 0; i < 32; i++) {
+                const div = document.createElement('div');
+                div.className = 'register' + (vm.regs[i] !== 0 ? ' active' : '');
+                div.innerHTML = `<span>r${i}</span><br><span class="value">${vm.regs[i]}</span>`;
+                container.appendChild(div);
+            }
+        }
+
+        function updatePixelInfo(x, y) {
+            const d = hilbert_xy2d(x, y, GRID_SIZE);
+            document.getElementById('pixel-coords').textContent = `(${x}, ${y}) d=${d}`;
+
+            const [r, g, b, a] = pixels[y][x];
+            const preview = document.getElementById('color-preview');
+            preview.style.background = `rgb(${Math.min(255, r*3)},${Math.min(255, g*8)},${Math.min(255, b*8)})`;
+
+            const opName = OPCODE_NAMES[r] || '???';
+            document.getElementById('instruction').textContent = `${opName} (0x${r.toString(16).padStart(2, '0')})`;
+
+            let detail = '';
+            if (r === 0x08) detail = `LDI r${a}, ${g}`;
+            else if (r === 0x33) detail = `ADD r${a}, r${g}, r${b}`;
+            else if (r === 0x34) detail = `SUB r${a}, r${g}, r${b}`;
+            else if (r === 0x35) detail = `MUL r${a}, r${g}, r${b}`;
+            else if (r === 0x36) detail = `DIV r${a}, r${g}, r${b}`;
+            else if (r === 0x01) detail = `MOV r${a}, r${g}`;
+            else if (r === 0x06) detail = `JMP ${g}`;
+            else if (r === 0x07) detail = `HALT`;
+            else detail = `RGBA(${r}, ${g}, ${b}, ${a})`;
+
+            document.getElementById('instruction-detail').textContent = detail;
+        }
+
+        // ===== Event Handlers =====
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / CELL_SIZE);
+            const y = Math.floor((e.clientY - rect.top) / CELL_SIZE);
+
+            if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
+                hoveredPixel = { x, y };
+                updatePixelInfo(x, y);
+                render();
+            }
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            hoveredPixel = null;
+            render();
+        });
+
+        // ===== Global Functions =====
+        window.step = () => {
+            vm.step();
+            render();
+            updateRegisters();
+            document.getElementById('status').textContent = `Status: ${vm.halted ? 'HALTED' : `PC=${vm.pc}`}`;
+            document.getElementById('status').className = 'status ' + (vm.halted ? 'halted' : 'running');
+        };
+
+        window.run = async () => {
+            running = true;
+            while (running && !vm.halted) {
+                vm.step();
+                render();
+                updateRegisters();
+                await new Promise(r => setTimeout(r, 100));
+            }
+            document.getElementById('status').textContent = `Status: ${vm.halted ? 'HALTED' : 'STOPPED'}`;
+            document.getElementById('status').className = 'status ' + (vm.halted ? 'halted' : 'running');
+        };
+
+        window.reset = () => {
+            running = false;
+            vm.reset();
+            render();
+            updateRegisters();
+            document.getElementById('status').textContent = 'Status: Reset';
+            document.getElementById('status').className = 'status';
+        };
+
+        window.assemble = () => {
+            const source = document.getElementById('pasm-input').value;
+            const instructions = assemblePasm(source);
+            loadInstructions(instructions);
+            vm.reset();
+            updateRegisters();
+            document.getElementById('status').textContent = `Assembled ${instructions.length} instructions`;
+        };
+
+        // ===== Init =====
+        initPixels();
+        updateRegisters();
+        window.assemble(); // Assemble default program
+    </script>
+</body>
+</html>

@@ -1,0 +1,218 @@
+{
+  "window": {
+    "buttons": {
+      "close": "关闭",
+      "minimize": "最小化",
+      "maximize": "最大化",
+      "restore": "还原"
+    },
+    "title": {
+      "default": "未命名窗口",
+      "main": "主窗口",
+      "tools": "工具",
+      "terminal": "终端",
+      "settings": "设置"
+    },
+    "states": {
+      "normal": "正常",
+      "minimized": "已最小化",
+      "maximized": "已最大化",
+      "dragging": "拖动中",
+      "closing": "关闭中"
+    }
+  },
+  "panel": {
+    "title_bar": {
+      "default": "面板",
+      "focused": "活动面板"
+    },
+    "resize": {
+      "top": "从上方调整大小",
+      "bottom": "从下方调整大小",
+      "left": "从左侧调整大小",
+      "right": "从右侧调整大小",
+      "top_left": "从左上角调整大小",
+      "top_right": "从右上角调整大小",
+      "bottom_left": "从左下角调整大小",
+      "bottom_right": "从右下角调整大小"
+    },
+    "actions": {
+      "snap_to_grid": "对齐网格",
+      "snap_enabled": "对齐已启用",
+      "snap_disabled": "对齐已禁用"
+    }
+  },
+  "notifications": {
+    "system": {
+      "initialized": "系统初始化成功！",
+      "error": "发生系统错误",
+      "warning": "警告",
+      "info": "信息"
+    },
+    "window": {
+      "created": "已创建窗口：{title}",
+      "closed": "已关闭窗口：{title}",
+      "focused": "已聚焦窗口：{title}"
+    },
+    "renderer": {
+      "switched": "渲染器已切换到 {type}",
+      "native_enabled": "本机渲染器已启用",
+      "pixijs_deprecated": "PixiJS渲染器已弃用"
+    }
+  },
+  "errors": {
+    "window": {
+      "not_found": "未找到窗口：{id}",
+      "already_exists": "窗口已存在：{id}",
+      "invalid_state": "无效的窗口状态：{state}"
+    },
+    "renderer": {
+      "unknown_type": "未知的渲染器类型：{type}",
+      "initialization_failed": "渲染器初始化失败",
+      "frame_failed": "帧渲染失败"
+    },
+    "localization": {
+      "not_found": "未找到翻译：{key}",
+      "missing_variable": "翻译中缺少变量：{variable}",
+      "unsupported_language": "不支持的语言：{code}"
+    },
+    "file": {
+      "not_found": "未找到文件：{path}",
+      "load_failed": "加载文件失败：{path}",
+      "save_failed": "保存文件失败：{path}"
+    }
+  },
+  "menu": {
+    "file": {
+      "label": "文件",
+      "new": "新建",
+      "open": "打开...",
+      "save": "保存",
+      "save_as": "另存为...",
+      "close": "关闭"
+    },
+    "edit": {
+      "label": "编辑",
+      "undo": "撤销",
+      "redo": "重做",
+      "cut": "剪切",
+      "copy": "复制",
+      "paste": "粘贴",
+      "select_all": "全选"
+    },
+    "view": {
+      "label": "查看",
+      "zoom_in": "放大",
+      "zoom_out": "缩小",
+      "reset_zoom": "重置缩放",
+      "fullscreen": "切换全屏"
+    },
+    "window": {
+      "label": "窗口",
+      "minimize_all": "全部最小化",
+      "restore_all": "全部还原",
+      "cascade": "层叠窗口",
+      "tile": "平铺窗口"
+    },
+    "help": {
+      "label": "帮助",
+      "about": "关于",
+      "documentation": "文档",
+      "shortcuts": "键盘快捷键",
+      "report_bug": "报告错误"
+    }
+  },
+  "dialogs": {
+    "confirm": {
+      "close_window": "确定要关闭此窗口吗？",
+      "unsaved_changes": "您有未保存的更改。继续吗？",
+      "delete_item": "确定要删除此项目吗？"
+    },
+    "buttons": {
+      "ok": "确定",
+      "cancel": "取消",
+      "yes": "是",
+      "no": "否",
+      "apply": "应用",
+      "save": "保存",
+      "discard": "放弃"
+    }
+  },
+  "settings": {
+    "language": {
+      "label": "语言",
+      "current": "当前语言：{language}",
+      "change": "更改语言"
+    },
+    "renderer": {
+      "label": "渲染器",
+      "native": "本机（推荐）",
+      "pixijs": "PixiJS（已弃用）",
+      "auto": "自动"
+    },
+    "appearance": {
+      "label": "外观",
+      "theme": "主题",
+      "theme_light": "浅色",
+      "theme_dark": "深色",
+      "grid_size": "网格大小",
+      "snap_threshold": "对齐阈值"
+    },
+    "performance": {
+      "label": "性能",
+      "fps_target": "目标帧率",
+      "quality": "质量",
+      "quality_low": "低",
+      "quality_medium": "中",
+      "quality_high": "高"
+    }
+  },
+  "tooltips": {
+    "window": {
+      "drag": "拖动以移动窗口",
+      "resize": "拖动以调整窗口大小",
+      "close": "关闭窗口",
+      "minimize": "最小化窗口",
+      "maximize": "最大化窗口"
+    },
+    "panel": {
+      "snap": "启用/禁用网格对齐",
+      "focus": "点击以聚焦面板"
+    }
+  },
+  "accessibility": {
+    "window": {
+      "focused": "窗口 {title} 已聚焦",
+      "minimized": "窗口 {title} 已最小化",
+      "maximized": "窗口 {title} 已最大化"
+    },
+    "button": {
+      "close": "{title} 的关闭按钮",
+      "minimize": "{title} 的最小化按钮",
+      "maximize": "{title} 的最大化按钮"
+    }
+  },
+  "debug": {
+    "renderer": {
+      "fps": "帧率：{value}",
+      "frame_time": "帧时间：{ms}毫秒",
+      "entity_count": "实体：{count}",
+      "panel_count": "面板：{count}"
+    },
+    "memory": {
+      "used": "已用内存：{mb}MB",
+      "available": "可用内存：{mb}MB"
+    }
+  },
+  "common": {
+    "loading": "加载中...",
+    "saving": "保存中...",
+    "processing": "处理中...",
+    "ready": "就绪",
+    "error": "错误",
+    "success": "成功",
+    "cancel": "取消",
+    "retry": "重试",
+    "refresh": "刷新"
+  }
+}

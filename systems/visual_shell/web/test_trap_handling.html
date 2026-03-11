@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trap Handling Test Page</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { color: #4CAF50; }
+        .section {
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        button {
+            background: #4CAF50;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #45a049; }
+        .output {
+            background: #0f0f23;
+            border: 1px solid #0f3460;
+            padding: 10px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🪤 Trap Handling Test Page</h1>
+
+        <div class="section">
+            <h2>1. Hypervisor Status</h2>
+            <button onclick="checkHypervisor()">Check Status</button>
+            <div id="statusOutput" class="output">Click to check...</div>
+        </div>
+
+        <div class="section">
+            <h2>2. CSR Registers</h2>
+            <button onclick="readCSRs()">Read Trap CSRs</button>
+            <div id="csrOutput" class="output">Click to read CSRs...</div>
+        </div>
+
+        <div class="section">
+            <h2>3. Trap Test: Page Fault</h2>
+            <p>Attempt to access invalid address to trigger page fault trap</p>
+            <button onclick="triggerPageFault()">Trigger Page Fault</button>
+            <div id="faultOutput" class="output">Click to trigger...</div>
+        </div>
+
+        <div class="section">
+            <h2>4. Trap Test: ECALL</h2>
+            <p>Execute ECALL to trigger system call trap</p>
+            <button onclick="triggerEcall()">Trigger ECALL</button>
+            <div id="ecallOutput" class="output">Click to trigger...</div>
+        </div>
+
+        <div class="section">
+            <h2>5. Trap Test: Illegal Instruction</h2>
+            <p>Execute unknown opcode to trigger illegal instruction trap</p>
+            <button onclick="triggerIllegal()">Trigger Illegal Instruction</button>
+            <div id="illegalOutput" class="output">Click to trigger...</div>
+        </div>
+    </div>
+
+    <script>
+        async function checkHypervisor() {
+            const output = document.getElementById('statusOutput');
+            if (!window.hypervisorSystem) {
+                output.textContent = '❌ Hypervisor not running\n\nTo test:\n1. Open test_pixel_cpu_simple.html\n2. Or start the visual shell with GPU execution';
+                return;
+            }
+            const state = await window.hypervisorSystem.readState('main_cpu');
+            if (state) {
+                output.textContent = `✅ Hypervisor Running\n\n` +
+                    `PC: 0x${state.pc.toString(16).padStart(8, '0')}\n` +
+                    `Halted: ${state.halted}\n` +
+                    `Mode: ${state.mode === 0 ? 'User' : 'Supervisor'}\n` +
+                    `STVEC: 0x${(state.stvec || 0).toString(16).padStart(8, '0')}`;
+            }
+        }
+
+        async function readCSRs() {
+            const output = document.getElementById('csrOutput');
+            if (!window.hypervisorSystem) {
+                output.textContent = '❌ Hypervisor not running';
+                return;
+            }
+            const state = await window.hypervisorSystem.readState('main_cpu');
+            if (state) {
+                const causeNames = {
+                    2: 'Illegal instruction',
+                    3: 'Breakpoint',
+                    8: 'Ecall from U-mode',
+                    11: 'Ecall from S-mode',
+                    12: 'Instruction page fault',
+                    13: 'Load page fault',
+                    15: 'Store/AMO page fault'
+                };
+                const causeName = causeNames[state.scause] || `Unknown (${state.scause})`;
+
+                output.textContent = `Trap CSRs:\n\n` +
+                    `SEPC:    0x${(state.sepc || 0).toString(16).padStart(8, '0')}\n` +
+                    `SCAUSE:  ${state.scause} (${causeName})\n` +
+                    `STVAL:   0x${(state.stval || 0).toString(16).padStart(8, '0')}\n` +
+                    `SSTATUS: 0x${(state.sstatus || 0).toString(16).padStart(8, '0')}\n` +
+                    `  SIE:   ${(state.sstatus || 0) & 1 ? 'Enabled' : 'Disabled'}\n` +
+                    `  SPIE:  ${((state.sstatus || 0) >> 1) & 1 ? 'Was enabled' : 'Was disabled'}\n` +
+                    `  SPP:   ${((state.sstatus || 0) >> 8) & 1 ? 'Supervisor' : 'User'}\n` +
+                    `SIE:     0x${(state.sie || 0).toString(16).padStart(8, '0')}\n` +
+                    `SIP:     0x${(state.sip || 0).toString(16).padStart(8, '0')}`;
+            }
+        }
+
+        async function triggerPageFault() {
+            const output = document.getElementById('faultOutput');
+            output.textContent = '⚠️ Manual test required:\n\n' +
+                '1. Load a program that accesses address 0xDEADBEEF\n' +
+                '2. Observe SCAUSE = 13 (Load page fault) or 15 (Store page fault)\n' +
+                '3. STVAL should contain 0xDEADBEEF\n' +
+                '4. PC should jump to STVEC handler';
+        }
+
+        async function triggerEcall() {
+            const output = document.getElementById('ecallOutput');
+            output.textContent = '⚠️ Manual test required:\n\n' +
+                '1. Load a program with ECALL instruction (0x00000073)\n' +
+                '2. Observe SCAUSE = 8 (U-mode) or 11 (S-mode)\n' +
+                '3. SEPC should contain ECALL address\n' +
+                '4. PC should jump to STVEC handler';
+        }
+
+        async function triggerIllegal() {
+            const output = document.getElementById('illegalOutput');
+            output.textContent = '⚠️ Manual test required:\n\n' +
+                '1. Load a program with unknown opcode (e.g., 0xFFFFFFFF)\n' +
+                '2. Observe SCAUSE = 2 (Illegal instruction)\n' +
+                '3. STVAL should contain the instruction\n' +
+                '4. PC should jump to STVEC handler';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "task_id": "auto-840ac570",
+  "type": "analyze_system",
+  "source": "/home/jericho/zion/projects/geometry_os/geometry_os/openspec/changes/add-pixel-linux-learning-system",
+  "intent": "PerformanceMonitor class created",
+  "auto_generated": true
+}

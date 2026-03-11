@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Console I/O Test - Phase 3</title>
+    <style>
+        body {
+            font-family: 'Monaco', 'Consolas', monospace;
+            background-color: #1a1a2e;
+            color: #00ff00;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #00aaff;
+            border-bottom: 2px solid #00aaff;
+            padding-bottom: 10px;
+        }
+
+        .test-section {
+            background-color: #16213e;
+            border: 1px solid #00aaff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background-color: #00aaff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: #00ccff;
+        }
+
+        button:disabled {
+            background-color: #666;
+            cursor: not-allowed;
+        }
+
+        #console-output {
+            background-color: #000;
+            border: 2px solid #00ff00;
+            border-radius: 4px;
+            padding: 10px;
+            height: 400px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 16px;
+        }
+
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .test-result.passed {
+            background-color: rgba(0, 255, 0, 0.1);
+            border-left: 4px solid #00ff00;
+        }
+
+        .test-result.failed {
+            background-color: rgba(255, 0, 0, 0.1);
+            border-left: 4px solid #ff0000;
+        }
+
+        .summary {
+            font-size: 14px;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+
+        .summary.success {
+            background-color: rgba(0, 255, 0, 0.2);
+            border: 2px solid #00ff00;
+        }
+
+        .summary.failure {
+            background-color: rgba(255, 0, 0, 0.2);
+            border: 2px solid #ff0000;
+        }
+
+        .info-box {
+            background-color: rgba(0, 170, 255, 0.1);
+            border: 1px solid #00aaff;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .info-box h3 {
+            margin-top: 0;
+            color: #00aaff;
+        }
+
+        .info-box ul {
+            margin-bottom: 0;
+        }
+
+        .info-box li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🧪 Console I/O Test - Phase 3</h1>
+
+        <div class="info-box">
+            <h3>📋 Test Overview</h3>
+            <p>This test suite verifies the Console I/O implementation for Pixel CPU - PixiJS Integration (Phase 3).</p>
+            <ul>
+                <li><strong>Test 1:</strong> Console Output Mechanism</li>
+                <li><strong>Test 2:</strong> Console Buffer Management</li>
+                <li><strong>Test 3:</strong> Console Tile Styling and Positioning</li>
+                <li><strong>Test 4:</strong> Console Display Performance</li>
+                <li><strong>Test 5:</strong> Console Scroll Functionality</li>
+                <li><strong>Test 6:</strong> Real-time Console Updates</li>
+                <li><strong>Test 7:</strong> Memory-Mapped I/O Verification</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>Test Controls</h2>
+            <div class="test-controls">
+                <button id="run-all-tests" onclick="runAllTests()">Run All Tests</button>
+                <button id="run-single-test" onclick="runSingleTest()">Run Selected Test</button>
+                <button id="clear-output" onclick="clearOutput()">Clear Output</button>
+            </div>
+
+            <div style="margin: 10px 0;">
+                <label for="test-select">Select Test:</label>
+                <select id="test-select"
+                    style="background-color: #16213e; color: #00ff00; border: 1px solid #00aaff; padding: 5px;">
+                    <option value="1">Test 1: Console Output Mechanism</option>
+                    <option value="2">Test 2: Console Buffer Management</option>
+                    <option value="3">Test 3: Console Tile Styling</option>
+                    <option value="4">Test 4: Console Display Performance</option>
+                    <option value="5">Test 5: Console Scroll Functionality</option>
+                    <option value="6">Test 6: Real-time Console Updates</option>
+                    <option value="7">Test 7: Memory-Mapped I/O</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test Output</h2>
+            <div id="console-output"></div>
+            <div id="test-summary"></div>
+        </div>
+    </div>
+
+    <!-- Load required scripts -->
+    <script src="pixel_cpu.js"></script>
+    <script src="pixel_cpu_integration.js"></script>
+    <script src="test_console_io.js"></script>
+
+    <script>
+        const consoleOutput = document.getElementById('console-output');
+        const testSummary = document.getElementById('test-summary');
+
+        // Override console.log to display in the output div
+        const originalLog = console.log;
+        console.log = function (...args) {
+            const message = args.map(arg =>
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+
+            const line = document.createElement('div');
+            line.textContent = message;
+            line.style.color = '#00ff00';
+            consoleOutput.appendChild(line);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+
+            originalLog.apply(console, args);
+        };
+
+        function clearOutput() {
+            consoleOutput.innerHTML = '';
+            testSummary.innerHTML = '';
+        }
+
+        function runAllTests() {
+            clearOutput();
+            console.log('Starting all Console I/O tests...');
+            console.log('='.repeat(60));
+
+            const allPassed = runAllConsoleIOTests();
+
+            // Display summary
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = 'summary ' + (allPassed ? 'success' : 'failure');
+            summaryDiv.innerHTML = `
+                <h3>${allPassed ? '✓ All Tests Passed!' : '✗ Some Tests Failed'}</h3>
+                <p>Phase 3 Console I/O implementation is ${allPassed ? 'complete' : 'incomplete'}.</p>
+            `;
+            testSummary.appendChild(summaryDiv);
+
+            console.log('='.repeat(60));
+            console.log('All tests completed.');
+        }
+
+        function runSingleTest() {
+            clearOutput();
+            const testSelect = document.getElementById('test-select');
+            const testNumber = parseInt(testSelect.value);
+
+            console.log(`Running Test ${testNumber}...`);
+            console.log('='.repeat(60));
+
+            let passed = false;
+
+            switch (testNumber) {
+                case 1:
+                    passed = testConsoleOutputMechanism();
+                    break;
+                case 2:
+                    passed = testConsoleBufferManagement();
+                    break;
+                case 3:
+                    passed = testConsoleTileStyling();
+                    break;
+                case 4:
+                    passed = testConsoleDisplayPerformance();
+                    break;
+                case 5:
+                    passed = testConsoleScrollFunctionality();
+                    break;
+                case 6:
+                    passed = testRealtimeConsoleUpdates();
+                    break;
+                case 7:
+                    passed = testMemoryMappedIO();
+                    break;
+                default:
+                    console.log('Invalid test selection');
+                    return;
+            }
+
+            // Display summary
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = 'summary ' + (passed ? 'success' : 'failure');
+            summaryDiv.innerHTML = `
+                <h3>${passed ? '✓ Test Passed!' : '✗ Test Failed'}</h3>
+                <p>Test ${testNumber} ${passed ? 'passed' : 'failed'}.</p>
+            `;
+            testSummary.appendChild(summaryDiv);
+
+            console.log('='.repeat(60));
+            console.log('Test completed.');
+        }
+
+        // Run tests automatically when page loads
+        window.onload = function () {
+            console.log('Console I/O Test Suite loaded.');
+            console.log('Click "Run All Tests" to begin testing.');
+        };
+    </script>
+</body>
+
+</html>

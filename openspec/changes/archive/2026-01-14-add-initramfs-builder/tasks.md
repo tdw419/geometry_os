@@ -1,0 +1,13 @@
+- [ ] Create `systems/infinite_map_rs/scripts/create_initramfs.sh`
+    - [ ] Implement `ldd` dependency copying
+    - [ ] Implement Busybox integration
+    - [ ] Write `/init` shell script
+    - [ ] Implement CPIO packing
+- [ ] Create `systems/infinite_map_rs/scripts/qemu_test.sh`
+    - [ ] Configure QEMU with virtio-gpu and KVM
+- [ ] Verify `infinite_map_rs` compilation
+    - [ ] Ensure `cargo build --release` works
+- [ ] Dry Run
+    - [ ] Generate initramfs
+    - [ ] Boot in QEMU
+    - [ ] Verify logs show successful Init, Udev, and Session startup

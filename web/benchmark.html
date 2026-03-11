@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry OS | Performance Benchmarks</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #00ffcc;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #00ff88;
+        }
+
+        .benchmark-section {
+            background: rgba(0, 30, 30, 0.5);
+            border: 1px solid #00ffcc44;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .benchmark-title {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #00ffcc;
+        }
+
+        .benchmark-result {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #00ffcc22;
+        }
+
+        .stat-label {
+            color: #888;
+        }
+
+        .stat-value {
+            color: #00ff88;
+        }
+
+        .stat-value.improved {
+            color: #00ff00;
+        }
+
+        .stat-value.worse {
+            color: #ff4444;
+        }
+
+        .btn {
+            background: rgba(0, 100, 100, 0.3);
+            border: 1px solid #00ffcc;
+            color: #00ffcc;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            border-radius: 4px;
+            margin-right: 10px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: rgba(0, 150, 150, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .progress {
+            width: 100%;
+            height: 4px;
+            background: #1a1a1a;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .progress.active {
+            display: block;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffcc, #00ff88);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .comparison-col {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        .comparison-col h3 {
+            margin-bottom: 10px;
+            color: #888;
+        }
+
+        #comparison-output {
+            background: rgba(0, 50, 50, 0.3);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .improvement-summary {
+            background: rgba(0, 100, 0, 0.3);
+            border: 1px solid #00ff00;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Geometry OS Performance Benchmarks</h1>
+
+    <div class="benchmark-section">
+        <div class="benchmark-title">Benchmark Controls</div>
+        <button class="btn" id="run-before">Run Before Benchmarks</button>
+        <button class="btn" id="run-after" disabled>Run After Benchmarks</button>
+        <button class="btn" id="compare" disabled>Compare Results</button>
+        <div class="progress" id="progress">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+    </div>
+
+    <div class="benchmark-section">
+        <div class="benchmark-title">Before Optimization</div>
+        <div class="benchmark-result" id="before-results">
+            Click "Run Before Benchmarks" to start...
+        </div>
+    </div>
+
+    <div class="benchmark-section">
+        <div class="benchmark-title">After Optimization</div>
+        <div class="benchmark-result" id="after-results">
+            Run before benchmarks first, then optimize and run after...
+        </div>
+    </div>
+
+    <div class="benchmark-section hidden" id="comparison-section">
+        <div class="benchmark-title">Performance Comparison</div>
+        <div id="comparison-output"></div>
+    </div>
+
+    <script type="module">
+        import { PerformanceBenchmark } from './benchmarks/performance_benchmark.js';
+
+        const benchmark = new PerformanceBenchmark();
+        const progressBar = document.getElementById('progress-bar');
+        const progressContainer = document.getElementById('progress');
+        const beforeResults = document.getElementById('before-results');
+        const afterResults = document.getElementById('after-results');
+        const comparisonSection = document.getElementById('comparison-section');
+        const comparisonOutput = document.getElementById('comparison-output');
+
+        let beforeBtn = document.getElementById('run-before');
+        let afterBtn = document.getElementById('run-after');
+        let compareBtn = document.getElementById('compare');
+
+        function formatResult(result, indent = 0) {
+            let output = '';
+            const prefix = '  '.repeat(indent);
+
+            if (result.name) {
+                output += `${prefix}[${result.name}]\n`;
+            }
+
+            for (const [key, value] of Object.entries(result)) {
+                if (key === 'name') continue;
+
+                if (typeof value === 'object' && value !== null) {
+                    output += `${prefix}  ${key}:\n`;
+                    for (const [k, v] of Object.entries(value)) {
+                        if (typeof v === 'number') {
+                            output += `${prefix}    ${k}: ${v.toFixed(4)}\n`;
+                        } else {
+                            output += `${prefix}    ${k}: ${v}\n`;
+                        }
+                    }
+                } else if (typeof value === 'number') {
+                    output += `${prefix}  ${key}: ${value.toFixed(4)}\n`;
+                } else {
+                    output += `${prefix}  ${key}: ${value}\n`;
+                }
+            }
+
+            return output;
+        }
+
+        async function runBenchmark(phase) {
+            const results = await benchmark.runAll(phase);
+            const output = Object.values(results).map(r => formatResult(r)).join('\n');
+
+            if (phase === 'before') {
+                beforeResults.textContent = output;
+                beforeBtn.disabled = true;
+                afterBtn.disabled = false;
+            } else {
+                afterResults.textContent = output;
+                afterBtn.disabled = true;
+                compareBtn.disabled = false;
+            }
+
+            return results;
+        }
+
+        beforeBtn.addEventListener('click', async () => {
+            progressContainer.classList.add('active');
+            progressBar.style.width = '0%';
+
+            // Animate progress
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                progressBar.style.width = `${Math.min(progress, 90)}%`;
+            }, 200);
+
+            await runBenchmark('before');
+
+            clearInterval(interval);
+            progressBar.style.width = '100%';
+            setTimeout(() => {
+                progressContainer.classList.remove('active');
+            }, 500);
+        });
+
+        afterBtn.addEventListener('click', async () => {
+            progressContainer.classList.add('active');
+            progressBar.style.width = '0%';
+
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                progressBar.style.width = `${Math.min(progress, 90)}%`;
+            }, 200);
+
+            await runBenchmark('after');
+
+            clearInterval(interval);
+            progressBar.style.width = '100%';
+            setTimeout(() => {
+                progressContainer.classList.remove('active');
+            }, 500);
+        });
+
+        compareBtn.addEventListener('click', () => {
+            const before = benchmark.results.before;
+            const after = benchmark.results.after;
+
+            if (!before || !after) {
+                comparisonOutput.textContent = 'Run both before and after benchmarks first.';
+                return;
+            }
+
+            let output = '<h3>Detailed Comparison</h3>';
+            const improvements = [];
+
+            // DOM Creation
+            if (before.domCreate && after.domCreate) {
+                const imp = ((before.domCreate.totalMs - after.domCreate.totalMs) / before.domCreate.totalMs * 100);
+                improvements.push(imp);
+                output += `
+                    <div class="stat-row">
+                        <span class="stat-label">DOM Creation</span>
+                        <span class="stat-value ${imp > 0 ? 'improved' : 'worse'}">
+                            ${before.domCreate.totalMs.toFixed(2)}ms → ${after.domCreate.totalMs.toFixed(2)}ms
+                            (${imp > 0 ? '+' : ''}${imp.toFixed(1)}%)
+                        </span>
+                    </div>
+                `;
+            }
+
+            // DOM Update (textContent method)
+            if (before.domUpdate?.textContent && after.domUpdate?.textContent) {
+                const imp = ((before.domUpdate.textContent.totalMs - after.domUpdate.textContent.totalMs) / before.domUpdate.textContent.totalMs * 100);
+                improvements.push(imp);
+                output += `
+                    <div class="stat-row">
+                        <span class="stat-label">DOM Update (textContent)</span>
+                        <span class="stat-value ${imp > 0 ? 'improved' : 'worse'}">
+                            ${before.domUpdate.textContent.totalMs.toFixed(2)}ms → ${after.domUpdate.textContent.totalMs.toFixed(2)}ms
+                            (${imp > 0 ? '+' : ''}${imp.toFixed(1)}%)
+                        </span>
+                    </div>
+                `;
+            }
+
+            // DOM Query (cached)
+            if (before.domQuery?.cached && after.domQuery?.cached) {
+                const imp = ((before.domQuery.cached.totalMs - after.domQuery.cached.totalMs) / before.domQuery.cached.totalMs * 100);
+                improvements.push(imp);
+                output += `
+                    <div class="stat-row">
+                        <span class="stat-label">DOM Query (cached)</span>
+                        <span class="stat-value ${imp > 0 ? 'improved' : 'worse'}">
+                            ${before.domQuery.cached.totalMs.toFixed(2)}ms → ${after.domQuery.cached.totalMs.toFixed(2)}ms
+                            (${imp > 0 ? '+' : ''}${imp.toFixed(1)}%)
+                        </span>
+                    </div>
+                `;
+            }
+
+            // State Sync
+            if (before.stateSync && after.stateSync) {
+                const imp = ((before.stateSync.naive.totalMs - after.stateSync.optimized.totalMs) / before.stateSync.naive.totalMs * 100);
+                improvements.push(imp);
+                output += `
+                    <div class="stat-row">
+                        <span class="stat-label">State Sync</span>
+                        <span class="stat-value ${imp > 0 ? 'improved' : 'worse'}">
+                            ${before.stateSync.naive.totalMs.toFixed(2)}ms → ${after.stateSync.optimized.totalMs.toFixed(2)}ms
+                            (${imp > 0 ? '+' : ''}${imp.toFixed(1)}%)
+                        </span>
+                    </div>
+                `;
+            }
+
+            // Average improvement
+            const avgImp = improvements.reduce((a, b) => a + b, 0) / improvements.length;
+            output += `
+                <div class="improvement-summary">
+                    <strong>Average Performance Improvement: ${avgImp > 0 ? '+' : ''}${avgImp.toFixed(1)}%</strong>
+                    <p>Based on ${improvements.length} metrics</p>
+                </div>
+            `;
+
+            comparisonOutput.innerHTML = output;
+            comparisonSection.classList.remove('hidden');
+        });
+
+        // Expose benchmark for console access
+        window.benchmark = benchmark;
+        console.log('Benchmark loaded. Use: window.benchmark.runAll("before") or click buttons.');
+    </script>
+</body>
+</html>

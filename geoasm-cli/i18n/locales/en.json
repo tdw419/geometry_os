@@ -1,0 +1,196 @@
+{
+  "_meta": {
+    "language": "English",
+    "native": "English",
+    "version": "1.0.0",
+    "author": "Geometry OS Team"
+  },
+  "app": {
+    "name": "GeoASM CLI",
+    "description": "Tooling for Geometry OS Assembly Language",
+    "version": "Version {version}"
+  },
+  "greeting": {
+    "welcome": "Welcome to GeoASM CLI",
+    "goodbye": "Goodbye!",
+    "help": "Type 'help' for available commands"
+  },
+  "commands": {
+    "run": "Run a GeoASM program",
+    "build": "Compile to binary",
+    "debug": "Interactive debugger",
+    "profile": "Hot path analysis",
+    "validate": "Check for errors",
+    "disasm": "Disassemble binary",
+    "opcodes": "List available opcodes"
+  },
+  "errors": {
+    "file_not_found": "File not found: '{file}'",
+    "invalid_file": "Invalid file: '{file}'",
+    "assembly_failed": "Assembly failed",
+    "unknown_opcode": "Unknown opcode: '{opcode}'",
+    "invalid_register": "Invalid register: '{register}'",
+    "out_of_bounds": "Out of bounds: {index}",
+    "memory_error": "Memory error at address {address}",
+    "stack_overflow": "Stack overflow",
+    "stack_underflow": "Stack underflow",
+    "division_by_zero": "Division by zero",
+    "invalid_operand": "Invalid operand: {operand}",
+    "label_not_found": "Label not found: '{label}'",
+    "parse_error": "Parse error at line {line}: {message}",
+    "execution_error": "Execution error: {message}",
+    "permission_denied": "Permission denied: '{path}'",
+    "io_error": "I/O error: {message}",
+    "timeout": "Operation timed out after {seconds} seconds",
+    "invalid_coordinates": "Coordinates must be non-negative: ({x}, {y})",
+    "glyph_not_found": "Glyph not found: '{glyph_id}'",
+    "substrate_overflow": "Substrate overflow: position ({x}, {y}) exceeds size {size}",
+    "unsupported_format": "Unsupported format: '{format}'",
+    "missing_dependency": "Missing dependency: '{dependency}'"
+  },
+  "warnings": {
+    "no_halt": "Warning: Program has no HALT instruction (may run forever)",
+    "unreachable_code": "Warning: Unreachable code at address {address}",
+    "deprecated_opcode": "Warning: Opcode '{opcode}' is deprecated",
+    "low_memory": "Warning: Low memory ({percent}% available)",
+    "performance": "Warning: Performance degradation detected",
+    "experimental": "Warning: Feature '{feature}' is experimental"
+  },
+  "info": {
+    "assembling": "Assembling '{file}'...",
+    "assembled": "Program assembled successfully",
+    "running": "Running '{file}'...",
+    "building": "Building '{input}' -> '{output}'",
+    "validating": "Validating '{file}'...",
+    "loading_glyph": "Loading glyph: '{glyph_id}'",
+    "rendering": "Rendering {count} glyphs",
+    "evicting_cache": "Evicting {count} entries from cache",
+    "checkpoint_saved": "Checkpoint saved: {path}",
+    "checkpoint_restored": "Checkpoint restored from: {path}"
+  },
+  "success": {
+    "build_complete": "Build complete: {output}",
+    "validation_passed": "✓ {file} is valid",
+    "execution_complete": "Execution completed successfully",
+    "tests_passed": "All {count} tests passed",
+    "file_saved": "File saved: '{path}'"
+  },
+  "opcodes": {
+    "nop": "No operation",
+    "halt": "Stop execution",
+    "jmp": "Jump to address",
+    "jeq": "Jump if equal",
+    "jne": "Jump if not equal",
+    "jlt": "Jump if less than",
+    "jgt": "Jump if greater than",
+    "jle": "Jump if less or equal",
+    "jge": "Jump if greater or equal",
+    "call": "Call function",
+    "ret": "Return from function",
+    "push": "Push register to stack",
+    "pop": "Pop from stack to register",
+    "ldr": "Load from memory",
+    "str": "Store to memory",
+    "movi": "Move immediate",
+    "add": "Add registers",
+    "sub": "Subtract registers",
+    "mul": "Multiply registers",
+    "div": "Divide registers",
+    "and": "Bitwise AND",
+    "or": "Bitwise OR",
+    "xor": "Bitwise XOR",
+    "not": "Bitwise NOT",
+    "set_color": "Set draw color",
+    "draw_char": "Draw character",
+    "draw_line": "Draw line",
+    "draw_rect": "Draw rectangle",
+    "fill_rect": "Fill rectangle",
+    "glyph_define": "Register glyph bitmap",
+    "glyph_blit": "Render glyph to framebuffer",
+    "glyph_transform": "Apply rotation/scale matrix",
+    "glyph_composite": "Layer multiple glyphs",
+    "glyph_cache_evict": "Evict oldest glyph from cache",
+    "orb": "Draw orb (file visualization)",
+    "panel": "Draw glass panel",
+    "panel_title": "Set panel title bar",
+    "panel_border": "Draw panel border",
+    "heatmap_cell": "Draw heatmap cell",
+    "embed": "Lookup token embedding",
+    "attend": "Self-attention via WGSL kernel",
+    "project": "FFN projection via WGSL kernel",
+    "sample": "Sample token from logits",
+    "llm_prompt": "Call external LLM",
+    "kv_append": "Append to KV-cache texture",
+    "thought_pulse": "Emit visual glyph pulse"
+  },
+  "glyph": {
+    "cache_hit": "Cache hit for glyph '{id}'",
+    "cache_miss": "Cache miss for glyph '{id}'",
+    "cache_full": "Glyph cache full, evicting LRU entries",
+    "defined": "Glyph '{id}' defined ({width}x{height})",
+    "blitted": "Glyph '{id}' blitted to ({x}, {y})",
+    "transformed": "Glyph '{id}' transformed",
+    "composited": "Composited {count} glyphs into '{id}'"
+  },
+  "orb": {
+    "visualizing": "Visualizing file: '{path}'",
+    "visualized": "File visualized: {bytes} bytes -> {size}x{size} substrate",
+    "too_large": "File too large: {bytes} bytes (max: {max_bytes})",
+    "empty": "Empty file, nothing to visualize"
+  },
+  "panel": {
+    "created": "Panel created at ({x}, {y}) with size {width}x{height}",
+    "title_set": "Panel {id} title set to: '{title}'",
+    "border_set": "Panel {id} border style set to: {style}"
+  },
+  "heatmap": {
+    "cell_added": "Heatmap cell added at ({x}, {y}) with value {value}",
+    "rendered": "Heatmap rendered with {count} cells"
+  },
+  "debug": {
+    "breakpoint_set": "Breakpoint set at address {address}",
+    "breakpoint_hit": "Breakpoint hit at address {address}",
+    "step": "Stepping through instruction at {address}",
+    "register_state": "Register state: {state}",
+    "memory_dump": "Memory dump from {start} to {end}"
+  },
+  "help": {
+    "usage": "Usage: geoasm <command> [options]",
+    "commands_header": "Commands:",
+    "options_header": "Options:",
+    "examples_header": "Examples:",
+    "run_help": "Run a GeoASM program",
+    "build_help": "Build GeoASM to binary",
+    "validate_help": "Validate a GeoASM program",
+    "disasm_help": "Disassemble binary to GeoASM",
+    "opcodes_help": "List all available opcodes",
+    "option_file": "GeoASM file to process",
+    "option_output": "Output file path",
+    "option_verbose": "Enable verbose output",
+    "option_locale": "Set language (e.g., en, es, fr, de, ja, zh)"
+  },
+  "examples": {
+    "run": "geoasm run program.geoasm",
+    "build": "geoasm build program.geoasm -o program.bin",
+    "validate": "geoasm validate program.geoasm",
+    "disasm": "geoasm disasm program.bin",
+    "opcodes": "geoasm opcodes"
+  },
+  "item": {
+    "count_one": "{count} item",
+    "count_other": "{count} items",
+    "processed": "Processed {count} items",
+    "remaining": "{count} items remaining"
+  },
+  "time": {
+    "elapsed": "Elapsed time: {seconds:.3f}s",
+    "remaining": "Estimated time remaining: {seconds:.0f}s",
+    "started": "Started at {time}",
+    "completed": "Completed at {time}"
+  },
+  "locale": {
+    "changed": "Locale changed to: {locale}",
+    "unsupported": "Unsupported locale: '{locale}'. Using '{fallback}' instead.",
+    "available": "Available locales: {locales}"
+  }
+}

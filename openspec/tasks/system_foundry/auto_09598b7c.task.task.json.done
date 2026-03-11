@@ -1,0 +1,7 @@
+{
+  "task_id": "auto-09598b7c",
+  "type": "analyze_system",
+  "source": "/home/jericho/zion/projects/geometry_os/geometry_os/openspec/changes/archive/2026-01-15-implement-14n-topology",
+  "intent": "Define `Cluster` struct in `thought_geometry.wgsl`.",
+  "auto_generated": true
+}

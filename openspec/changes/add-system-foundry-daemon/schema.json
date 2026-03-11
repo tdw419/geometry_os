@@ -1,0 +1,51 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "FoundryTask",
+    "type": "object",
+    "properties": {
+        "task_id": {
+            "type": "string"
+        },
+        "type": {
+            "enum": [
+                "convert_binary",
+                "convert_directory",
+                "watch_path",
+                "analyze_system",
+                "crystallize_system",
+                "foundry-v2",
+                "scan_kernel_modules"
+            ]
+        },
+        "source": {
+            "type": "string"
+        },
+        "destination": {
+            "type": "string"
+        },
+        "intent": {
+            "type": "string"
+        },
+        "ai_model": {
+            "type": "string",
+            "default": "glm-4-9b-0414"
+        },
+        "texture_size": {
+            "type": "integer",
+            "default": 256
+        },
+        "max_files": {
+            "type": "integer",
+            "default": 50
+        },
+        "auto_generated": {
+            "type": "boolean",
+            "default": false
+        }
+    },
+    "required": [
+        "task_id",
+        "type",
+        "source"
+    ]
+}

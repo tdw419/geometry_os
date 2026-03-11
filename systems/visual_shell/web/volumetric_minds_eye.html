@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volumetric Mind's Eye - 3D Semantic Strata</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0f;
+            color: #fff;
+            font-family: 'JetBrains Mono', monospace;
+            overflow: hidden;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+        }
+        #hud {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 100;
+        }
+        #hud h2 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #00aaff;
+        }
+        #stats {
+            margin-top: 10px;
+        }
+        .stratum-legend {
+            margin-top: 15px;
+        }
+        .stratum-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .stratum-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        #controls-help {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 11px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+
+    <div id="hud">
+        <h2>Volumetric Mind's Eye</h2>
+        <div id="stats">
+            <div>Tokens: <span id="token-count">0</span></div>
+            <div>File Orbs: <span id="orb-count">0</span></div>
+            <div>FPS: <span id="fps">60</span></div>
+        </div>
+        <div class="stratum-legend">
+            <div class="stratum-item">
+                <div class="stratum-color" style="background: #ff3333;"></div>
+                <span>Z=255: Architecture</span>
+            </div>
+            <div class="stratum-item">
+                <div class="stratum-color" style="background: #ff9933;"></div>
+                <span>Z=192: APIs</span>
+            </div>
+            <div class="stratum-item">
+                <div class="stratum-color" style="background: #ffff33;"></div>
+                <span>Z=128: Logic</span>
+            </div>
+            <div class="stratum-item">
+                <div class="stratum-color" style="background: #33ff66;"></div>
+                <span>Z=64: Implementation</span>
+            </div>
+            <div class="stratum-item">
+                <div class="stratum-color" style="background: #3366ff;"></div>
+                <span>Z=0: Hardware</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="controls-help">
+        Drag: Rotate | Scroll: Zoom | Double-click: Focus
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import { VolumetricMindEye } from './VolumetricMindEye.js';
+
+        // Initialize
+        const viz = new VolumetricMindEye('container');
+
+        // Update stats
+        setInterval(() => {
+            document.getElementById('token-count').textContent = viz.tokenOrbs.length;
+            document.getElementById('orb-count').textContent = viz.orbs.size;
+        }, 500);
+
+        // FPS counter
+        let frameCount = 0;
+        let lastTime = performance.now();
+        function countFrames() {
+            frameCount++;
+            const now = performance.now();
+            if (now - lastTime >= 1000) {
+                document.getElementById('fps').textContent = frameCount;
+                frameCount = 0;
+                lastTime = now;
+            }
+            requestAnimationFrame(countFrames);
+        }
+        countFrames();
+    </script>
+</body>
+</html>

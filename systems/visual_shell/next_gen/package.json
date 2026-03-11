@@ -1,0 +1,17 @@
+{
+  "name": "@geometry-os/shell-next",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "pixi.js": "^8.0.0",
+    "@geometry-os/ui": "../../sdk/packages/ui"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}

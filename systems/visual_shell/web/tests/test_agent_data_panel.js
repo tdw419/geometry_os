@@ -1,0 +1,286 @@
+/**
+ * Tests for AgentDataPanel - Seven-section data display for Glass Box introspection.
+ *
+ * Phase 27: Added Collective Context section for distributed neural memory.
+ */
+
+describe('AgentDataPanel', () => {
+    it('should create panel with 7 data sections', () => {
+        const panel = new AgentDataPanel();
+        assert.ok(panel.element);
+        assert.equal(panel.element.querySelectorAll('.data-section').length, 7);
+    });
+
+    it('should have correct section IDs', () => {
+        const panel = new AgentDataPanel();
+        const sections = panel.element.querySelectorAll('.data-section');
+        const ids = Array.from(sections).map(s => s.id);
+        assert.deepEqual(ids, [
+            'stability-section',
+            'thought-stream',
+            'intent-map',
+            'metabolic-pulse',
+            'collective-context',
+            'substrate-view',
+            'communication-log'
+        ]);
+    });
+
+    it('should render VCC stability section', () => {
+        const panel = new AgentDataPanel();
+        panel.setStability({ pas: 0.85, state: 'stable' });
+        assert.ok(panel.element.innerHTML.includes('PAS'));
+        assert.ok(panel.element.innerHTML.includes('0.85'));
+    });
+
+    it('should render thought stream with timestamps', () => {
+        const panel = new AgentDataPanel();
+        panel.setThoughts([
+            { time: '14:32:01', text: 'Analyzing request', type: 'inference' },
+            { time: '14:32:02', text: 'Querying knowledge base', type: 'inference' }
+        ]);
+        assert.ok(panel.element.innerHTML.includes('Analyzing request'));
+        assert.ok(panel.element.innerHTML.includes('14:32:01'));
+    });
+
+    it('should color thought items by type', () => {
+        const panel = new AgentDataPanel();
+        panel.setThoughts([
+            { time: '14:32:01', text: 'Executing action', type: 'action' },
+            { time: '14:32:02', text: 'Making inference', type: 'inference' }
+        ]);
+        assert.ok(panel.element.querySelector('.thought-item.type-action'));
+        assert.ok(panel.element.querySelector('.thought-item.type-inference'));
+    });
+
+    it('should render intent map with goal and trajectory', () => {
+        const panel = new AgentDataPanel();
+        panel.setIntent({
+            goal: 'Optimize rendering',
+            steps: [
+                { text: 'Profile FPS', complete: true },
+                { text: 'Find bottleneck', complete: false }
+            ]
+        });
+        assert.ok(panel.element.innerHTML.includes('Optimize rendering'));
+        assert.ok(panel.element.innerHTML.includes('Profile FPS'));
+    });
+
+    it('should show checkmarks for completed intent steps', () => {
+        const panel = new AgentDataPanel();
+        panel.setIntent({
+            goal: 'Test goal',
+            steps: [
+                { text: 'Complete step', complete: true },
+                { text: 'Incomplete step', complete: false }
+            ]
+        });
+        const html = panel.element.innerHTML;
+        assert.ok(html.includes('✓') || html.includes('check'));
+        assert.ok(html.includes('○') || html.querySelector('.complete'));
+    });
+
+    it('should render metabolic pulse with IPC metric', () => {
+        const panel = new AgentDataPanel();
+        panel.setMetabolism({
+            ipc: 0.78,
+            memory: { used: 248, total: 512 },
+            activity: 0.85
+        });
+        assert.ok(panel.element.innerHTML.includes('0.78'));
+    });
+
+    it('should render metabolic pulse with memory metric', () => {
+        const panel = new AgentDataPanel();
+        panel.setMetabolism({
+            ipc: 0.5,
+            memory: { used: 256, total: 512 },
+            activity: 0.5
+        });
+        assert.ok(panel.element.innerHTML.includes('256'));
+        assert.ok(panel.element.innerHTML.includes('512'));
+    });
+
+    // ============================================
+    // Collective Context Tests (Phase 27)
+    // ============================================
+
+    it('should have collective context section', () => {
+        const panel = new AgentDataPanel();
+        const section = panel.element.querySelector('#collective-context');
+        assert.ok(section);
+        assert.ok(section.innerHTML.includes('Collective Context'));
+    });
+
+    it('should render collective context with similar tiles', () => {
+        const panel = new AgentDataPanel();
+        panel.setCollectiveContext({
+            recentEvents: [],
+            similarTiles: ['tile-001', 'tile-002', 'tile-003'],
+            similarEvents: [],
+            total_memory_size: 10
+        });
+        const content = panel.element.querySelector('.collective-content');
+        assert.ok(content.innerHTML.includes('tile-001'));
+        assert.ok(content.querySelector('.tile-tag'));
+    });
+
+    it('should render collective context with shared wisdom events', () => {
+        const panel = new AgentDataPanel();
+        panel.setCollectiveContext({
+            recentEvents: [
+                { tile_id: 'tile-001', event_type: 'CODE_DISCOVERY' },
+                { tile_id: 'tile-002', event_type: 'RESOURCE_PRESSURE' }
+            ],
+            similarTiles: [],
+            similarEvents: [],
+            total_memory_size: 5
+        });
+        const content = panel.element.querySelector('.collective-content');
+        assert.ok(content.innerHTML.includes('tile-001'));
+        assert.ok(content.innerHTML.includes('CODE_DISCOVERY'));
+        assert.ok(content.querySelector('.wisdom-item'));
+    });
+
+    it('should show memory size in collective context', () => {
+        const panel = new AgentDataPanel();
+        panel.setCollectiveContext({
+            recentEvents: [],
+            similarTiles: [],
+            similarEvents: [],
+            total_memory_size: 42
+        });
+        const content = panel.element.querySelector('.collective-content');
+        assert.ok(content.innerHTML.includes('42'));
+    });
+
+    it('should show empty state when no collective context', () => {
+        const panel = new AgentDataPanel();
+        panel.setCollectiveContext({
+            recentEvents: [],
+            similarTiles: [],
+            similarEvents: [],
+            total_memory_size: 0
+        });
+        const content = panel.element.querySelector('.collective-content');
+        assert.ok(content.innerHTML.includes('No collective context'));
+    });
+
+    it('should color wisdom items by event type', () => {
+        const panel = new AgentDataPanel();
+        panel.setCollectiveContext({
+            recentEvents: [
+                { tile_id: 'tile-cyan', event_type: 'CODE_DISCOVERY' },
+                { tile_id: 'tile-orange', event_type: 'RESOURCE_PRESSURE' },
+                { tile_id: 'tile-violet', event_type: 'DISTRICT_SYNC' }
+            ],
+            similarTiles: [],
+            similarEvents: [],
+            total_memory_size: 3
+        });
+        const content = panel.element.querySelector('.collective-content');
+        // Check that event types are rendered
+        assert.ok(content.innerHTML.includes('CODE_DISCOVERY'));
+        assert.ok(content.innerHTML.includes('RESOURCE_PRESSURE'));
+        assert.ok(content.innerHTML.includes('DISTRICT_SYNC'));
+    });
+
+    it('should include collective context in setAllData', () => {
+        const panel = new AgentDataPanel();
+        panel.setAllData({
+            stability: { pas: 0.9, state: 'stable' },
+            thoughts: [{ time: '12:00:00', text: 'Test thought', type: 'inference' }],
+            intent: { goal: 'Test goal', steps: [] },
+            metabolism: { ipc: 0.5, memory: { used: 100, total: 512 }, activity: 0.3 },
+            collectiveContext: {
+                recentEvents: [{ tile_id: 'other-tile', event_type: 'CODE_DISCOVERY' }],
+                similarTiles: ['related-tile'],
+                similarEvents: [],
+                total_memory_size: 5
+            },
+            communications: []
+        });
+        assert.ok(panel.element.innerHTML.includes('Test thought'));
+        assert.ok(panel.element.innerHTML.includes('Test goal'));
+        assert.ok(panel.element.innerHTML.includes('other-tile'));
+        assert.ok(panel.element.innerHTML.includes('related-tile'));
+    });
+
+    // ============================================
+    // Communication Tests
+    // ============================================
+
+    it('should render communication log with direction arrows', () => {
+        const panel = new AgentDataPanel();
+        panel.setCommunications([
+            { direction: 'out', target: 'agent-2', type: 'request' },
+            { direction: 'in', target: 'agent-3', type: 'response' }
+        ]);
+        assert.ok(panel.element.innerHTML.includes('agent-2'));
+        assert.ok(panel.element.querySelector('.comm-item'));
+    });
+
+    it('should show outbound arrow for outgoing messages', () => {
+        const panel = new AgentDataPanel();
+        panel.setCommunications([
+            { direction: 'out', target: 'agent-2', type: 'request' }
+        ]);
+        const html = panel.element.innerHTML;
+        assert.ok(html.includes('→') || html.includes('out'));
+    });
+
+    it('should show inbound arrow for incoming messages', () => {
+        const panel = new AgentDataPanel();
+        panel.setCommunications([
+            { direction: 'in', target: 'agent-1', type: 'response' }
+        ]);
+        const html = panel.element.innerHTML;
+        assert.ok(html.includes('←') || html.includes('in'));
+    });
+
+    it('should set all data at once via setAllData', () => {
+        const panel = new AgentDataPanel();
+        panel.setAllData({
+            thoughts: [{ time: '12:00:00', text: 'Test thought', type: 'inference' }],
+            intent: { goal: 'Test goal', steps: [] },
+            metabolism: { ipc: 0.5, memory: { used: 100, total: 512 }, activity: 0.3 },
+            communications: []
+        });
+        assert.ok(panel.element.innerHTML.includes('Test thought'));
+        assert.ok(panel.element.innerHTML.includes('Test goal'));
+    });
+
+    it('should handle empty data gracefully', () => {
+        const panel = new AgentDataPanel();
+        assert.doesNotThrow(() => {
+            panel.setStability({ pas: 1.0, state: 'stable' });
+            panel.setThoughts([]);
+            panel.setIntent({ goal: '', steps: [] });
+            panel.setMetabolism({ ipc: 0, memory: { used: 0, total: 0 }, activity: 0 });
+            panel.setCollectiveContext({ recentEvents: [], similarTiles: [], similarEvents: [], total_memory_size: 0 });
+            panel.setCommunications([]);
+        });
+    });
+
+    it('should update existing data when methods called again', () => {
+        const panel = new AgentDataPanel();
+        panel.setThoughts([{ time: '12:00:00', text: 'First thought', type: 'inference' }]);
+        assert.ok(panel.element.innerHTML.includes('First thought'));
+
+        panel.setThoughts([{ time: '12:00:01', text: 'Second thought', type: 'action' }]);
+        assert.ok(panel.element.innerHTML.includes('Second thought'));
+        // First thought should be replaced
+        assert.ok(!panel.element.innerHTML.includes('First thought') ||
+                  panel.element.querySelectorAll('.thought-item').length === 1);
+    });
+
+    it('should return current data via getData', () => {
+        const panel = new AgentDataPanel();
+        panel.setStability({ pas: 0.5, state: 'degraded' });
+        const data = panel.getData();
+        assert.equal(data.stability.pas, 0.5);
+        assert.equal(data.stability.state, 'degraded');
+        assert.ok(Array.isArray(data.thoughts));
+        assert.ok(data.collectiveContext);
+    });
+});

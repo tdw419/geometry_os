@@ -1,0 +1,84 @@
+# Silicon Noir - 95.1 FM
+# Cyberpunk, mysterious, shadowy tech-noir aesthetic
+
+station_id: "95.1"
+name: "Silicon Noir"
+tagline: "Where shadows meet circuits"
+style:
+  tone: mysterious
+  vocabulary: cyberpunk
+  sentence_style: fragmented
+
+vocabulary_replacements:
+  # Common -> Cyberpunk/Noir
+  "error": "glitch"
+  "bug": "anomaly"
+  "crash": "cascade"
+  "slow": "lagging"
+  "fast": "hyperthreaded"
+  "high": "peaked"
+  "low": "dormant"
+  "big": "sprawling"
+  "small": "compact"
+  "good": "optimal"
+  "bad": "corrupted"
+  "change": "mutation"
+  "fix": "patch"
+  "update": "upgrade"
+  "system": "grid"
+  "memory": "cache"
+  "cpu": "processor"
+  "disk": "storage"
+  "network": "mesh"
+  "process": "thread"
+  "running": "active"
+  "stopped": "terminated"
+  "data": "signal"
+  "file": "fragment"
+  "code": "source"
+  "load": "stress"
+  "temperature": "thermal"
+  "entropy": "decay"
+
+style_modifiers:
+  prefix_chance: 0.35
+  prefixes:
+    - "In the shadows..."
+    - "Signal intercept:"
+    - "From the grid:"
+    - "Eyes only:"
+    - "Classified transmission:"
+    - "Ghost in the machine whispers:"
+    - "Dark data reveals:"
+  suffix_chance: 0.3
+  suffixes:
+    - "...trust no one."
+    - "...the grid remembers."
+    - "...somewhere in the sprawl."
+    - "...shadows hide everything."
+    - "...another ghost in the system."
+    - "...the signal never dies."
+    - "...decode at your own risk."
+  capitalize_intensifiers: false
+
+templates:
+  intro:
+    - "You've tuned into Silicon Noir. {time_context} in the sprawl."
+    - "Signal locked. Welcome to the shadows."
+    - "The grid hums with {atmosphere} frequencies tonight."
+  weather:
+    - "Grid status: {fps} cycles, {draw_calls} signals traced through the mesh."
+    - "Cache levels at {memory_mb} units, carrying {atmosphere} data through the darkness."
+    - "Processor breathes at {fps}, the mesh alive with {draw_calls} connections."
+  news:
+    - "Intercepted: {event_count} anomalies detected in the sprawl."
+    - "Grid shifts detected: {tectonic_shifts} movements realigned the shadows."
+    - "Relocation protocols engaged: {relocations} entities shifted position."
+  philosophy:
+    - "Query: If the grid dreams, does it dream of electric shadows?"
+    - "In the static between signals, truth hides."
+    - "Decay measured at {entropy}... even data eventually returns to noise."
+  signoff:
+    - "Stay in the shadows."
+    - "The grid never sleeps."
+    - "Until next signal: ghost protocol engaged."

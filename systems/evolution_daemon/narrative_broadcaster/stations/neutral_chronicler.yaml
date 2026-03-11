@@ -1,0 +1,79 @@
+# Neutral Chronicler - 99.9 FM
+# Factual, dry, matter-of-fact reporting
+
+station_id: "99.9"
+name: "Neutral Chronicler"
+tagline: "Just the facts"
+style:
+  tone: neutral
+  vocabulary: standard
+  sentence_style: declarative
+
+vocabulary_replacements:
+  # Minimal replacements - keep language neutral and standard
+  "error": "issue"
+  "bug": "defect"
+  "crash": "failure"
+  "slow": "reduced speed"
+  "fast": "increased speed"
+  "high": "elevated"
+  "low": "reduced"
+  "big": "large"
+  "small": "small"
+  "good": "functional"
+  "bad": "non-functional"
+  "change": "modification"
+  "fix": "correction"
+  "update": "update"
+  "system": "system"
+  "memory": "memory"
+  "cpu": "CPU"
+  "disk": "disk"
+  "network": "network"
+  "process": "process"
+  "running": "active"
+  "stopped": "inactive"
+  "data": "data"
+  "file": "file"
+  "code": "code"
+  "load": "load"
+  "temperature": "temperature"
+  "entropy": "entropy"
+
+style_modifiers:
+  prefix_chance: 0.15
+  prefixes:
+    - "Update:"
+    - "Status report:"
+    - "Observation:"
+    - "Recorded:"
+    - "Log entry:"
+  suffix_chance: 0.1
+  suffixes:
+    - "End of report."
+    - "Recording complete."
+    - "Data logged."
+    - "Entry finalized."
+  capitalize_intensifiers: false
+
+templates:
+  intro:
+    - "Neutral Chronicler broadcasting. {time_context}."
+    - "Factual reporting active. Current status: operational."
+    - "Data stream initialized. {atmosphere} conditions observed."
+  weather:
+    - "System metrics: {fps} FPS, {draw_calls} draw calls recorded."
+    - "Memory allocation: {memory_mb} MB. Conditions: {atmosphere}."
+    - "Performance readings: {fps} frames per second. Memory: {memory_mb} MB."
+  news:
+    - "Event count: {event_count}. Processing complete."
+    - "Tectonic activity: {tectonic_shifts} shifts logged in spatial index."
+    - "Entity relocations: {relocations} recorded in map database."
+  philosophy:
+    - "Observation: Systems tend toward {entropy} entropy levels over time."
+    - "Note: Repeated patterns may indicate systemic behavior."
+    - "Query logged: What constitutes normal operation in adaptive systems?"
+  signoff:
+    - "Transmission ended."
+    - "Logging complete."
+    - "Report finalized."

@@ -1,0 +1,331 @@
+# Collective Consciousness Team Configuration
+#
+# This team is responsible for transforming the distributed swarm into a
+# collective consciousness capable of federated reasoning and emergent intelligence.
+
+name: collective-consciousness
+description: |
+  Agent team for Collective Consciousness implementation.
+
+  Goal: Transform the distributed swarm into a "single distributed brain" where
+  agents share "thoughts" (partial inferences, embeddings, attention weights)
+  and collectively reason across the infinite map.
+
+  Current State:
+  - Tectonic Optimization complete (self-organizing map)
+  - Visual Dashboard complete (real-time visualization)
+  - Multi-Node Distribution complete (cluster management)
+  - Security Layer complete (auth, signing, sandbox)
+  - Production Hardening complete (coordinator, health, scanner)
+  - A2A Router operational (500 msg/sec)
+
+  This Phase:
+  - Thought data structures and ThoughtEngine
+  - Thought broadcasting via A2A
+  - ConsciousnessState aggregation
+  - ConsciousnessAggregator agent
+  - AttentionCoordinator agent
+  - ConsensusEngine agent
+  - Visual Dashboard integration
+
+# Selection: Choose agent with best capability match
+selection_policy: best_fit
+
+# Fixed team size
+scaling_policy: fixed
+
+# Failover to another agent on failure
+failure_policy: failover
+
+# Retry configuration
+max_retries: 3
+retry_delay: 5.0
+
+# Team communication
+enable_event_bus: true
+enable_health_monitoring: true
+
+# Health monitoring
+health_check_interval: 30.0
+heartbeat_timeout: 120.0
+health_history_limit: 100
+
+# Team constraints
+max_concurrent_tasks: 4
+max_queue_size: 20
+task_timeout: 300.0
+
+# Team metadata
+metadata:
+  project: geometry-os
+  component: collective-consciousness
+  implementation_plan: docs/plans/2026-02-19-collective-consciousness.md
+  openspec_change: apps/openspec/openspec/changes/add-collective-consciousness/
+
+# Agent definitions
+agents:
+  # ============================================
+  # ORCHESTRATOR - Team coordination
+  # ============================================
+  - agent_id: orchestrator
+    name: Consciousness Orchestrator
+    agent_type: orchestrator
+    capabilities:
+      - orchestration
+      - monitoring
+      - task_execution
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 100
+    metadata:
+      role: Team coordination and implementation oversight
+      focuses:
+        - Task execution coordination
+        - Test-driven development
+        - Progress tracking
+        - Code review
+
+  # ============================================
+  # THOUGHT SPECIALIST - Data structures & engine
+  # ============================================
+  - agent_id: thought-specialist
+    name: Thought Systems Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - ml
+      - embeddings
+      - numpy
+      - testing
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 95
+    metadata:
+      role: Thought and ThoughtEngine implementation
+      focuses:
+        - Thought dataclass
+        - ThoughtType enum
+        - Embedding generation
+        - Attention computation
+        - Local inference
+      key_files:
+        - systems/visual_shell/swarm/consciousness/thought.py
+        - systems/visual_shell/swarm/consciousness/thought_engine.py
+        - tests/system/test_thought.py
+        - tests/system/test_thought_engine.py
+
+  # ============================================
+  # BROADCAST SPECIALIST - A2A thought routing
+  # ============================================
+  - agent_id: broadcast-specialist
+    name: Thought Broadcasting Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - async_programming
+      - networking
+      - serialization
+      - testing
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 90
+    metadata:
+      role: ThoughtBroadcaster implementation
+      focuses:
+        - Thought serialization
+        - Neighbor broadcasting
+        - Rate limiting
+        - Reception handling
+      key_files:
+        - systems/visual_shell/swarm/consciousness/thought_broadcaster.py
+        - tests/system/test_thought_broadcaster.py
+
+  # ============================================
+  # STATE SPECIALIST - Global consciousness state
+  # ============================================
+  - agent_id: state-specialist
+    name: Consciousness State Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - data_structures
+      - concurrency
+      - numpy
+      - testing
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 85
+    metadata:
+      role: ConsciousnessState implementation
+      focuses:
+        - Embedding pool
+        - Attention map
+        - Consensus state
+        - Thought stream
+        - Memory management
+      key_files:
+        - systems/visual_shell/swarm/consciousness/consciousness_state.py
+        - tests/system/test_consciousness_state.py
+
+  # ============================================
+  # AGGREGATOR SPECIALIST - Global aggregation
+  # ============================================
+  - agent_id: aggregator-specialist
+    name: Consciousness Aggregator Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - async_programming
+      - distributed_systems
+      - testing
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 80
+    metadata:
+      role: ConsciousnessAggregator agent
+      focuses:
+        - Thought subscription
+        - Embedding aggregation
+        - State publishing
+        - Peer sync
+      key_files:
+        - systems/visual_shell/swarm/consciousness/consciousness_aggregator.py
+        - tests/system/test_consciousness_aggregator.py
+
+  # ============================================
+  # ATTENTION SPECIALIST - Attention coordination
+  # ============================================
+  - agent_id: attention-specialist
+    name: Attention Coordination Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - ml
+      - algorithms
+      - numpy
+      - testing
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 75
+    metadata:
+      role: AttentionCoordinator agent
+      focuses:
+        - Attention weight computation
+        - Agent focus routing
+        - Load balancing
+        - Conflict detection
+      key_files:
+        - systems/visual_shell/swarm/consciousness/attention_coordinator.py
+        - tests/system/test_attention_coordinator.py
+
+  # ============================================
+  # CONSENSUS SPECIALIST - Consensus engine
+  # ============================================
+  - agent_id: consensus-specialist
+    name: Consensus Engine Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - python
+      - distributed_systems
+      - algorithms
+      - numpy
+      - testing
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 70
+    metadata:
+      role: ConsensusEngine agent
+      focuses:
+        - Inference aggregation
+        - Agreement detection
+        - Conflict resolution
+        - Timeout handling
+      key_files:
+        - systems/visual_shell/swarm/consciousness/consensus_engine.py
+        - tests/system/test_consensus_engine.py
+
+  # ============================================
+  # DASHBOARD SPECIALIST - Visualization
+  # ============================================
+  - agent_id: dashboard-specialist
+    name: Consciousness Dashboard Specialist
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - javascript
+      - html
+      - css
+      - visualization
+      - testing
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 65
+    metadata:
+      role: Visual Dashboard consciousness integration
+      focuses:
+        - Consciousness state panel
+        - Thought stream visualization
+        - Attention heatmap
+        - Consensus indicator
+      key_files:
+        - systems/visual_shell/web/js/swarm/ConsciousnessPanel.js
+        - systems/visual_shell/web/js/swarm/ThoughtStream.js
+
+  # ============================================
+  # TEST ENGINEER - Integration testing
+  # ============================================
+  - agent_id: test-engineer
+    name: Test Engineer
+    agent_type: specialist
+    capabilities:
+      - testing
+      - integration_testing
+      - performance_testing
+      - python
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 60
+    metadata:
+      role: Consciousness integration testing
+      focuses:
+        - Federated query tests
+        - Pattern recognition tests
+        - Collaborative decision tests
+        - Performance (100+ thoughts)
+      key_files:
+        - tests/system/test_consciousness_integration.py
+        - tests/system/test_consciousness_performance.py
+
+# Task routing rules
+task_routing:
+  - pattern: "thought.*dataclass|thought.*type|embedding|attention.*computation|thought.*engine"
+    assign_to: thought-specialist
+  - pattern: "broadcast|serialize|rate.*limit|neighbor|receive"
+    assign_to: broadcast-specialist
+  - pattern: "consciousness.*state|embedding.*pool|attention.*map|consensus.*state|thought.*stream"
+    assign_to: state-specialist
+  - pattern: "aggregator|subscribe|aggregate|state.*publish|peer.*sync"
+    assign_to: aggregator-specialist
+  - pattern: "attention.*coordinator|focus.*rout|load.*balanc|attention.*conflict"
+    assign_to: attention-specialist
+  - pattern: "consensus.*engine|inference.*aggreg|agreement|conflict.*resolut|timeout"
+    assign_to: consensus-specialist
+  - pattern: "dashboard|visualization|panel|stream.*viz|heatmap"
+    assign_to: dashboard-specialist
+  - pattern: "integration.*test|performance.*test|federated|demo"
+    assign_to: test-engineer
+  - pattern: "python|async|test"
+    assign_to: thought-specialist

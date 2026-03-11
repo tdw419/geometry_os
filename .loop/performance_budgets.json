@@ -1,0 +1,81 @@
+{
+  "$schema": "./performance_budgets.schema.json",
+  "version": "1.0.0",
+  "description": "Performance budgets for GeoASM kernel benchmarks",
+  "budgets": [
+    {
+      "kernel": "*",
+      "maxFrameTimeMs": 16.67,
+      "minInstructionsPerSecond": 1000000,
+      "maxSyscallLatencyP99": 100,
+      "maxGpuMemoryMb": 512,
+      "comment": "Global baseline - 60fps minimum"
+    },
+    {
+      "kernel": "matrix_multiply",
+      "maxFrameTimeMs": 8.0,
+      "minInstructionsPerSecond": 5000000,
+      "maxSyscallLatencyP99": 50,
+      "maxGpuMemoryMb": 256,
+      "customMetrics": {
+        "flops": { "min": 1000000000 }
+      }
+    },
+    {
+      "kernel": "vector_add",
+      "maxFrameTimeMs": 2.0,
+      "minInstructionsPerSecond": 10000000,
+      "maxSyscallLatencyP99": 20,
+      "maxGpuMemoryMb": 128
+    },
+    {
+      "kernel": "conv2d",
+      "maxFrameTimeMs": 10.0,
+      "minInstructionsPerSecond": 3000000,
+      "maxSyscallLatencyP99": 80,
+      "maxGpuMemoryMb": 384
+    },
+    {
+      "kernel": "ray_trace",
+      "maxFrameTimeMs": 16.67,
+      "minInstructionsPerSecond": 500000,
+      "maxSyscallLatencyP99": 100,
+      "maxGpuMemoryMb": 1024
+    },
+    {
+      "kernel": "memory_copy",
+      "maxFrameTimeMs": 1.0,
+      "minInstructionsPerSecond": 20000000,
+      "maxSyscallLatencyP99": 10,
+      "maxGpuMemoryMb": 64
+    },
+    {
+      "kernel": "fibonacci",
+      "maxFrameTimeMs": 5.0,
+      "minInstructionsPerSecond": 2000000,
+      "maxSyscallLatencyP99": 50,
+      "maxGpuMemoryMb": 32
+    },
+    {
+      "kernel": "syscall_batch",
+      "maxFrameTimeMs": 4.0,
+      "minInstructionsPerSecond": 4000000,
+      "maxSyscallLatencyP99": 30,
+      "maxGpuMemoryMb": 64
+    }
+  ],
+  "regressionThresholds": {
+    "criticalPercent": 15.0,
+    "moderatePercent": 7.0,
+    "minorPercent": 3.0,
+    "pValueThreshold": 0.01,
+    "minSampleSize": 5
+  },
+  "ciGates": {
+    "failOnCriticalRegression": true,
+    "failOnModerateRegression": true,
+    "failOnMinorRegression": false,
+    "failOnBudgetViolation": true,
+    "requireAllKernelsPass": true
+  }
+}

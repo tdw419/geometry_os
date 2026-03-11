@@ -1,0 +1,82 @@
+# Healer Agent Team
+# Self-Healing UI - V16 Reaction Loop
+#
+# Consumes DIAGNOSTIC_PULSE events from Perceptual Bridge V16
+# and autonomously responds to CRITICAL anomalies within 1 second.
+
+team:
+  name: healer-agent-team
+  description: Autonomous healing system for Geometry OS substrate
+  version: "1.0.0"
+
+agents:
+  # Primary healing specialist
+  - id: healer-specialist
+    role: HealerAgent Implementation
+    type: developer
+    capabilities:
+      - WebSocket subscription
+      - Event-driven architecture
+      - Pattern-based decision logic
+      - WordPress audit publishing
+    focus_areas:
+      - systems/visual_shell/swarm/healer_agent.py
+      - tests/system/test_healer_agent.py
+      - tests/system/test_healer_integration.py
+
+  # Test verification specialist
+  - id: healing-qa
+    role: Healing Verification
+    type: tester
+    capabilities:
+      - Async test patterns
+      - Mock WebSocket events
+      - Integration testing
+    focus_areas:
+      - tests/system/test_healer_agent.py
+      - tests/system/test_healer_integration.py
+
+  # Documentation specialist
+  - id: healing-docs
+    role: Documentation
+    type: documenter
+    capabilities:
+      - API documentation
+      - Architecture diagrams
+      - Usage examples
+    focus_areas:
+      - docs/healer_agent.md
+
+coordination:
+  workflow: sequential
+  phases:
+    - name: tests
+      agents: [healer-specialist, healing-qa]
+      description: Write tests first (TDD)
+    - name: implementation
+      agents: [healer-specialist]
+      description: Implement HealerAgent core
+    - name: integration
+      agents: [healing-qa]
+      description: Integration tests
+    - name: documentation
+      agents: [healing-docs]
+      description: Document the feature
+
+dependencies:
+  - perceptual-bridge-v16  # DIAGNOSTIC_PULSE events
+  - visual-bridge          # WebSocket routing (port 8768)
+  - wordpress-district     # Audit trail publishing
+
+specs:
+  - ./specs/self-healing-ui/requirements.md
+  - ./specs/self-healing-ui/design.md
+  - ./specs/self-healing-ui/tasks.md
+
+success_criteria:
+  - HealerAgent subscribes to DIAGNOSTIC_PULSE events
+  - Reacts to CRITICAL status within 1 second
+  - Supports analyze/quarantine/reboot actions
+  - Logs all healing actions to WordPress
+  - auto_reboot disabled by default (safety)
+  - All 16+ tests passing

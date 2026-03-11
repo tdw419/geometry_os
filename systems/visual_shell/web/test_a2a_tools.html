@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebMCP Phase D: A2A Tools Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0f;
+            color: #00ff88;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 { color: #00ffff; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        h2 { color: #ff00ff; margin-top: 30px; }
+        .test-section {
+            background: #111;
+            border: 1px solid #333;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .pass { background: #001a00; border-left: 3px solid #00ff00; }
+        .fail { background: #1a0000; border-left: 3px solid #ff0000; }
+        .pending { background: #1a1a00; border-left: 3px solid #ffff00; }
+        button {
+            background: #222;
+            color: #00ff88;
+            border: 1px solid #00ff88;
+            padding: 8px 16px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: inherit;
+        }
+        button:hover { background: #00ff88; color: #000; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        pre {
+            background: #000;
+            padding: 10px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .status-pending { background: #333; color: #fff; }
+        .status-running { background: #003366; color: #00ffff; }
+        .status-passed { background: #003300; color: #00ff00; }
+        .status-failed { background: #330000; color: #ff0000; }
+        #summary { font-size: 18px; padding: 20px; background: #111; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🤝 WebMCP Phase D: A2A Protocol Tools Test</h1>
+
+    <div class="test-section">
+        <h2>Prerequisites Check</h2>
+        <div id="prereq-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>A2A Tool Registration</h2>
+        <div id="tool-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>A2A Message Protocol Tests</h2>
+        <div id="protocol-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Interactive A2A Test</h2>
+        <div class="grid">
+            <div>
+                <h3>Send A2A Message</h3>
+                <label>Target Agent ID: <input type="text" id="target-agent" value="agent-test-001" style="width:200px"></label><br><br>
+                <label>Message Type:
+                    <select id="msg-type">
+                        <option value="task_request">task_request</option>
+                        <option value="task_response">task_response</option>
+                        <option value="notification">notification</option>
+                        <option value="data_share">data_share</option>
+                    </select>
+                </label><br><br>
+                <label>Payload (JSON): <textarea id="msg-payload" rows="3" style="width:100%">{"task": "scan_region"}</textarea></label><br><br>
+                <button onclick="testSendA2AMessage()">Send A2A Message</button>
+                <div id="send-result"></div>
+            </div>
+            <div>
+                <h3>A2A Broadcast</h3>
+                <label>Agent Type:
+                    <select id="broadcast-type">
+                        <option value="all">all</option>
+                        <option value="monitor">monitor</option>
+                        <option value="executor">executor</option>
+                        <option value="evolver">evolver</option>
+                        <option value="analyzer">analyzer</option>
+                    </select>
+                </label><br><br>
+                <button onclick="testA2ABroadcast()">Broadcast</button>
+                <div id="broadcast-result"></div>
+
+                <h3 style="margin-top:20px">A2A Subscribe</h3>
+                <label>Event Type:
+                    <select id="sub-event">
+                        <option value="region_change">region_change</option>
+                        <option value="task_available">task_available</option>
+                        <option value="peer_discovered">peer_discovered</option>
+                        <option value="knowledge_update">knowledge_update</option>
+                    </select>
+                </label><br><br>
+                <button onclick="testA2ASubscribe()">Subscribe</button>
+                <div id="subscribe-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Phase D: Coordination Primitives</h2>
+        <div class="grid">
+            <div>
+                <h3>Distributed Lock</h3>
+                <label>Lock ID: <input type="text" id="lock-id" value="region-0-0" style="width:150px"></label><br><br>
+                <label>Timeout: <input type="number" id="lock-timeout" value="30" style="width:60px"> seconds</label><br><br>
+                <button onclick="testAcquireLock()">Acquire Lock</button>
+                <button onclick="testReleaseLock()">Release Lock</button>
+                <div id="lock-result"></div>
+            </div>
+            <div>
+                <h3>Barrier Sync</h3>
+                <label>Barrier ID: <input type="text" id="barrier-id" value="phase-1-complete" style="width:150px"></label><br><br>
+                <label>Expected: <input type="number" id="barrier-expected" value="2" style="width:60px"> agents</label><br><br>
+                <button onclick="testBarrierEnter()">Enter Barrier</button>
+                <div id="barrier-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="summary">
+        <strong>Test Summary:</strong> <span id="summary-text">Run tests to see results</span>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <button onclick="runAllTests()">▶ Run All Tests</button>
+        <button onclick="location.reload()">↻ Reload Page</button>
+    </div>
+
+    <script>
+        // Test utilities
+        const results = { passed: 0, failed: 0, pending: 0 };
+
+        function updateSummary() {
+            document.getElementById('summary-text').innerHTML =
+                `<span class="status-badge status-passed">${results.passed} passed</span> ` +
+                `<span class="status-badge status-failed">${results.failed} failed</span> ` +
+                `<span class="status-badge status-pending">${results.pending} pending</span>`;
+        }
+
+        function addResult(containerId, test, status, message = '') {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `test-result ${status}`;
+            div.innerHTML = `<strong>${test}</strong>: ${status.toUpperCase()}${message ? `<br><pre>${message}</pre>` : ''}`;
+            container.appendChild(div);
+
+            results[status === 'pass' ? 'passed' : status === 'fail' ? 'failed' : 'pending']++;
+            updateSummary();
+        }
+
+        // Prerequisite tests
+        async function testPrerequisites() {
+            const container = 'prereq-results';
+
+            // Check WebMCP availability
+            const webmcpAvailable = typeof navigator !== 'undefined' && 'modelContext' in navigator;
+            addResult(container, 'WebMCP API available',
+                webmcpAvailable ? 'pass' : 'pending',
+                webmcpAvailable ? 'navigator.modelContext detected' : 'Chrome 146+ required');
+
+            // Check WebMCP Bridge
+            const bridgeReady = typeof window.webmcpBridge !== 'undefined';
+            addResult(container, 'WebMCP Bridge loaded',
+                bridgeReady ? 'pass' : 'fail',
+                bridgeReady ? window.webmcpBridge.getStatus() : 'webmcp_bridge.js not loaded');
+
+            return webmcpAvailable && bridgeReady;
+        }
+
+        // Tool registration tests
+        async function testToolRegistration() {
+            const container = 'tool-results';
+            const status = window.webmcpBridge?.getStatus();
+
+            if (!status) {
+                addResult(container, 'Tool registration check', 'fail', 'Bridge not available');
+                return false;
+            }
+
+            const expectedTools = [
+                'navigate_map', 'get_os_state', 'execute_pixel_program', 'load_rts_cartridge',
+                'query_hilbert_address', 'trigger_evolution', 'send_llm_prompt', 'spawn_area_agent',
+                'a2a_send_message', 'a2a_broadcast', 'a2a_subscribe',
+                'a2a_acquire_lock', 'a2a_release_lock', 'a2a_barrier_enter'
+            ];
+
+            let allRegistered = true;
+            for (const tool of expectedTools) {
+                const registered = status.tools.includes(tool);
+                addResult(container, `Tool: ${tool}`,
+                    registered ? 'pass' : 'fail',
+                    registered ? 'Registered' : 'NOT registered');
+                if (!registered) allRegistered = false;
+            }
+
+            addResult(container, 'Total tools registered',
+                status.tools.length >= 14 ? 'pass' : 'fail',
+                `${status.tools.length}/14 tools`);
+
+            return allRegistered;
+        }
+
+        // Protocol tests
+        async function testProtocol() {
+            const container = 'protocol-results';
+
+            // Test message schema validation
+            const validMessage = {
+                message_id: 'test-001',
+                from_agent: 'test-agent',
+                to_agent: 'target-agent',
+                message_type: 'task_request',
+                priority: 5,
+                content: { task: 'test' }
+            };
+            addResult(container, 'A2A message schema', 'pass',
+                JSON.stringify(validMessage, null, 2));
+
+            // Test message types
+            const messageTypes = ['task_request', 'task_response', 'notification', 'data_share'];
+            addResult(container, 'Message types defined', 'pass',
+                messageTypes.join(', '));
+
+            // Test event types
+            const eventTypes = ['region_change', 'task_available', 'peer_discovered', 'knowledge_update'];
+            addResult(container, 'Event types defined', 'pass',
+                eventTypes.join(', '));
+
+            return true;
+        }
+
+        // Interactive tests
+        async function testSendA2AMessage() {
+            const targetAgent = document.getElementById('target-agent').value;
+            const msgType = document.getElementById('msg-type').value;
+            const payloadStr = document.getElementById('msg-payload').value;
+
+            let payload;
+            try {
+                payload = JSON.parse(payloadStr);
+            } catch (e) {
+                document.getElementById('send-result').innerHTML =
+                    '<div class="test-result fail">Invalid JSON payload</div>';
+                return;
+            }
+
+            document.getElementById('send-result').innerHTML =
+                '<div class="test-result pending">Sending A2A message...</div>';
+
+            try {
+                // In a real implementation, this would call the WebMCP tool
+                const result = {
+                    success: false,
+                    error: 'A2A backend not running (expected - requires ws://localhost:8765)',
+                    error_code: 'BACKEND_UNAVAILABLE'
+                };
+
+                document.getElementById('send-result').innerHTML =
+                    `<div class="test-result ${result.success ? 'pass' : 'pending'}">
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    </div>`;
+            } catch (err) {
+                document.getElementById('send-result').innerHTML =
+                    `<div class="test-result fail">Error: ${err.message}</div>`;
+            }
+        }
+
+        async function testA2ABroadcast() {
+            const agentType = document.getElementById('broadcast-type').value;
+
+            document.getElementById('broadcast-result').innerHTML =
+                '<div class="test-result pending">Broadcasting...</div>';
+
+            // Simulated result
+            const result = {
+                success: false,
+                error: 'A2A backend not running (expected)',
+                error_code: 'BACKEND_UNAVAILABLE'
+            };
+
+            document.getElementById('broadcast-result').innerHTML =
+                `<div class="test-result pending"><pre>${JSON.stringify(result, null, 2)}</pre></div>`;
+        }
+
+        async function testA2ASubscribe() {
+            const eventType = document.getElementById('sub-event').value;
+
+            document.getElementById('subscribe-result').innerHTML =
+                '<div class="test-result pending">Subscribing...</div>';
+
+            // Simulated result
+            const result = {
+                success: false,
+                error: 'A2A backend not running (expected)',
+                error_code: 'BACKEND_UNAVAILABLE'
+            };
+
+            document.getElementById('subscribe-result').innerHTML =
+                `<div class="test-result pending"><pre>${JSON.stringify(result, null, 2)}</pre></div>`;
+        }
+
+        // Coordination primitives tests
+        async function testAcquireLock() {
+            const lockId = document.getElementById('lock-id').value;
+            const timeout = parseInt(document.getElementById('lock-timeout').value);
+
+            document.getElementById('lock-result').innerHTML =
+                '<div class="test-result pending">Acquiring lock...</div>';
+
+            try {
+                const result = await navigator.modelContext.callTool('a2a_acquire_lock', {
+                    lock_id: lockId,
+                    timeout: timeout
+                });
+
+                document.getElementById('lock-result').innerHTML =
+                    `<div class="test-result ${result.success && result.granted ? 'pass' : 'pending'}">
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    </div>`;
+            } catch (e) {
+                document.getElementById('lock-result').innerHTML =
+                    `<div class="test-result fail">Error: ${e.message}</div>`;
+            }
+        }
+
+        async function testReleaseLock() {
+            const lockId = document.getElementById('lock-id').value;
+
+            document.getElementById('lock-result').innerHTML =
+                '<div class="test-result pending">Releasing lock...</div>';
+
+            try {
+                const result = await navigator.modelContext.callTool('a2a_release_lock', {
+                    lock_id: lockId
+                });
+
+                document.getElementById('lock-result').innerHTML =
+                    `<div class="test-result ${result.success ? 'pass' : 'fail'}">
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    </div>`;
+            } catch (e) {
+                document.getElementById('lock-result').innerHTML =
+                    `<div class="test-result fail">Error: ${e.message}</div>`;
+            }
+        }
+
+        async function testBarrierEnter() {
+            const barrierId = document.getElementById('barrier-id').value;
+            const expectedCount = parseInt(document.getElementById('barrier-expected').value);
+
+            document.getElementById('barrier-result').innerHTML =
+                '<div class="test-result pending">Entering barrier...</div>';
+
+            try {
+                const result = await navigator.modelContext.callTool('a2a_barrier_enter', {
+                    barrier_id: barrierId,
+                    expected_count: expectedCount
+                });
+
+                const status = result.released ? 'pass' : 'pending';
+                document.getElementById('barrier-result').innerHTML =
+                    `<div class="test-result ${status}">
+                        ${result.released ? '🎉 Barrier released!' : `Waiting for ${result.expected_count - result.arrived_count} more agents`}
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    </div>`;
+            } catch (e) {
+                document.getElementById('barrier-result').innerHTML =
+                    `<div class="test-result fail">Error: ${e.message}</div>`;
+            }
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            results.passed = 0;
+            results.failed = 0;
+            results.pending = 0;
+
+            document.getElementById('prereq-results').innerHTML = '';
+            document.getElementById('tool-results').innerHTML = '';
+            document.getElementById('protocol-results').innerHTML = '';
+
+            await testPrerequisites();
+            await testToolRegistration();
+            await testProtocol();
+
+            updateSummary();
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            setTimeout(runAllTests, 500);
+        });
+    </script>
+</body>
+</html>

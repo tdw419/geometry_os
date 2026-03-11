@@ -1,0 +1,62 @@
+// systems/infinite_map_rs/src/alpine_vm_extension.rs
+// Helper for char to qcode mapping
+
+pub fn char_to_qcode(c: char) -> Option<(&'static str, bool)> {
+    match c {
+        'a' => Some(("a", false)), 'A' => Some(("a", true)),
+        'b' => Some(("b", false)), 'B' => Some(("b", true)),
+        'c' => Some(("c", false)), 'C' => Some(("c", true)),
+        'd' => Some(("d", false)), 'D' => Some(("d", true)),
+        'e' => Some(("e", false)), 'E' => Some(("e", true)),
+        'f' => Some(("f", false)), 'F' => Some(("f", true)),
+        'g' => Some(("g", false)), 'G' => Some(("g", true)),
+        'h' => Some(("h", false)), 'H' => Some(("h", true)),
+        'i' => Some(("i", false)), 'I' => Some(("i", true)),
+        'j' => Some(("j", false)), 'J' => Some(("j", true)),
+        'k' => Some(("k", false)), 'K' => Some(("k", true)),
+        'l' => Some(("l", false)), 'L' => Some(("l", true)),
+        'm' => Some(("m", false)), 'M' => Some(("m", true)),
+        'n' => Some(("n", false)), 'N' => Some(("n", true)),
+        'o' => Some(("o", false)), 'O' => Some(("o", true)),
+        'p' => Some(("p", false)), 'P' => Some(("p", true)),
+        'q' => Some(("q", false)), 'Q' => Some(("q", true)),
+        'r' => Some(("r", false)), 'R' => Some(("r", true)),
+        's' => Some(("s", false)), 'S' => Some(("s", true)),
+        't' => Some(("t", false)), 'T' => Some(("t", true)),
+        'u' => Some(("u", false)), 'U' => Some(("u", true)),
+        'v' => Some(("v", false)), 'V' => Some(("v", true)),
+        'w' => Some(("w", false)), 'W' => Some(("w", true)),
+        'x' => Some(("x", false)), 'X' => Some(("x", true)),
+        'y' => Some(("y", false)), 'Y' => Some(("y", true)),
+        'z' => Some(("z", false)), 'Z' => Some(("z", true)),
+        
+        '0' => Some(("0", false)), ')' => Some(("0", true)),
+        '1' => Some(("1", false)), '!' => Some(("1", true)),
+        '2' => Some(("2", false)), '@' => Some(("2", true)),
+        '3' => Some(("3", false)), '#' => Some(("3", true)),
+        '4' => Some(("4", false)), '$' => Some(("4", true)),
+        '5' => Some(("5", false)), '%' => Some(("5", true)),
+        '6' => Some(("6", false)), '^' => Some(("6", true)),
+        '7' => Some(("7", false)), '&' => Some(("7", true)),
+        '8' => Some(("8", false)), '*' => Some(("8", true)),
+        '9' => Some(("9", false)), '(' => Some(("9", true)),
+        
+        '-' => Some(("minus", false)), '_' => Some(("minus", true)),
+        '=' => Some(("equal", false)), '+' => Some(("equal", true)),
+        '[' => Some(("bracket_left", false)), '{' => Some(("bracket_left", true)),
+        ']' => Some(("bracket_right", false)), '}' => Some(("bracket_right", true)),
+        ';' => Some(("semicolon", false)), ':' => Some(("semicolon", true)),
+        '\'' => Some(("apostrophe", false)), '"' => Some(("apostrophe", true)),
+        '`' => Some(("grave_accent", false)), '~' => Some(("grave_accent", true)),
+        '\\' => Some(("backslash", false)), '|' => Some(("backslash", true)),
+        ',' => Some(("comma", false)), '<' => Some(("comma", true)),
+        '.' => Some(("dot", false)), '>' => Some(("dot", true)),
+        '/' => Some(("slash", false)), '?' => Some(("slash", true)),
+        
+        ' ' => Some(("spc", false)),
+        '\n' => Some(("ret", false)),
+        '\t' => Some(("tab", false)),
+        
+        _ => None,
+    }
+}

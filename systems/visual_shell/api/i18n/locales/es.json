@@ -1,0 +1,218 @@
+{
+  "window": {
+    "buttons": {
+      "close": "Cerrar",
+      "minimize": "Minimizar",
+      "maximize": "Maximizar",
+      "restore": "Restaurar"
+    },
+    "title": {
+      "default": "Ventana sin título",
+      "main": "Ventana Principal",
+      "tools": "Herramientas",
+      "terminal": "Terminal",
+      "settings": "Configuración"
+    },
+    "states": {
+      "normal": "Normal",
+      "minimized": "Minimizada",
+      "maximized": "Maximizada",
+      "dragging": "Arrastrando",
+      "closing": "Cerrando"
+    }
+  },
+  "panel": {
+    "title_bar": {
+      "default": "Panel",
+      "focused": "Panel Activo"
+    },
+    "resize": {
+      "top": "Redimensionar desde arriba",
+      "bottom": "Redimensionar desde abajo",
+      "left": "Redimensionar desde la izquierda",
+      "right": "Redimensionar desde la derecha",
+      "top_left": "Redimensionar desde esquina superior izquierda",
+      "top_right": "Redimensionar desde esquina superior derecha",
+      "bottom_left": "Redimensionar desde esquina inferior izquierda",
+      "bottom_right": "Redimensionar desde esquina inferior derecha"
+    },
+    "actions": {
+      "snap_to_grid": "Ajustar a la Cuadrícula",
+      "snap_enabled": "Ajuste Activado",
+      "snap_disabled": "Ajuste Desactivado"
+    }
+  },
+  "notifications": {
+    "system": {
+      "initialized": "¡Sistema inicializado exitosamente!",
+      "error": "Ocurrió un error del sistema",
+      "warning": "Advertencia",
+      "info": "Información"
+    },
+    "window": {
+      "created": "Ventana creada: {title}",
+      "closed": "Ventana cerrada: {title}",
+      "focused": "Ventana enfocada: {title}"
+    },
+    "renderer": {
+      "switched": "Renderizador cambiado a {type}",
+      "native_enabled": "Renderizador nativo activado",
+      "pixijs_deprecated": "El renderizador PixiJS está obsoleto"
+    }
+  },
+  "errors": {
+    "window": {
+      "not_found": "Ventana no encontrada: {id}",
+      "already_exists": "La ventana ya existe: {id}",
+      "invalid_state": "Estado de ventana inválido: {state}"
+    },
+    "renderer": {
+      "unknown_type": "Tipo de renderizador desconocido: {type}",
+      "initialization_failed": "Fallo en la inicialización del renderizador",
+      "frame_failed": "Fallo en la renderización del frame"
+    },
+    "localization": {
+      "not_found": "Traducción no encontrada: {key}",
+      "missing_variable": "Variable faltante en traducción: {variable}",
+      "unsupported_language": "Idioma no soportado: {code}"
+    },
+    "file": {
+      "not_found": "Archivo no encontrado: {path}",
+      "load_failed": "Fallo al cargar archivo: {path}",
+      "save_failed": "Fallo al guardar archivo: {path}"
+    }
+  },
+  "menu": {
+    "file": {
+      "label": "Archivo",
+      "new": "Nuevo",
+      "open": "Abrir...",
+      "save": "Guardar",
+      "save_as": "Guardar Como...",
+      "close": "Cerrar"
+    },
+    "edit": {
+      "label": "Editar",
+      "undo": "Deshacer",
+      "redo": "Rehacer",
+      "cut": "Cortar",
+      "copy": "Copiar",
+      "paste": "Pegar",
+      "select_all": "Seleccionar Todo"
+    },
+    "view": {
+      "label": "Ver",
+      "zoom_in": "Acercar",
+      "zoom_out": "Alejar",
+      "reset_zoom": "Restablecer Zoom",
+      "fullscreen": "Pantalla Completa"
+    },
+    "window": {
+      "label": "Ventana",
+      "minimize_all": "Minimizar Todo",
+      "restore_all": "Restaurar Todo",
+      "cascade": "Ventanas en Cascada",
+      "tile": "Mosaico de Ventanas"
+    },
+    "help": {
+      "label": "Ayuda",
+      "about": "Acerca de",
+      "documentation": "Documentación",
+      "shortcuts": "Atajos de Teclado",
+      "report_bug": "Reportar un Error"
+    }
+  },
+  "dialogs": {
+    "confirm": {
+      "close_window": "¿Está seguro de que desea cerrar esta ventana?",
+      "unsaved_changes": "Tiene cambios sin guardar. ¿Continuar?",
+      "delete_item": "¿Está seguro de que desea eliminar este elemento?"
+    },
+    "buttons": {
+      "ok": "Aceptar",
+      "cancel": "Cancelar",
+      "yes": "Sí",
+      "no": "No",
+      "apply": "Aplicar",
+      "save": "Guardar",
+      "discard": "Descartar"
+    }
+  },
+  "settings": {
+    "language": {
+      "label": "Idioma",
+      "current": "Idioma Actual: {language}",
+      "change": "Cambiar Idioma"
+    },
+    "renderer": {
+      "label": "Renderizador",
+      "native": "Nativo (Recomendado)",
+      "pixijs": "PixiJS (Obsoleto)",
+      "auto": "Automático"
+    },
+    "appearance": {
+      "label": "Apariencia",
+      "theme": "Tema",
+      "theme_light": "Claro",
+      "theme_dark": "Oscuro",
+      "grid_size": "Tamaño de Cuadrícula",
+      "snap_threshold": "Umbral de Ajuste"
+    },
+    "performance": {
+      "label": "Rendimiento",
+      "fps_target": "FPS Objetivo",
+      "quality": "Calidad",
+      "quality_low": "Baja",
+      "quality_medium": "Media",
+      "quality_high": "Alta"
+    }
+  },
+  "tooltips": {
+    "window": {
+      "drag": "Arrastrar para mover ventana",
+      "resize": "Arrastrar para redimensionar ventana",
+      "close": "Cerrar ventana",
+      "minimize": "Minimizar ventana",
+      "maximize": "Maximizar ventana"
+    },
+    "panel": {
+      "snap": "Activar/desactivar ajuste a cuadrícula",
+      "focus": "Clic para enfocar panel"
+    }
+  },
+  "accessibility": {
+    "window": {
+      "focused": "La ventana {title} está enfocada",
+      "minimized": "La ventana {title} está minimizada",
+      "maximized": "La ventana {title} está maximizada"
+    },
+    "button": {
+      "close": "Botón cerrar para {title}",
+      "minimize": "Botón minimizar para {title}",
+      "maximize": "Botón maximizar para {title}"
+    }
+  },
+  "debug": {
+    "renderer": {
+      "fps": "FPS: {value}",
+      "frame_time": "Tiempo de Frame: {ms}ms",
+      "entity_count": "Entidades: {count}",
+      "panel_count": "Paneles: {count}"
+    },
+    "memory": {
+      "used": "Memoria Usada: {mb}MB",
+      "available": "Memoria Disponible: {mb}MB"
+    }
+  },
+  "common": {
+    "loading": "Cargando...",
+    "saving": "Guardando...",
+    "processing": "Procesando...",
+    "ready": "Listo",
+    "error": "Error",
+    "success": "Éxito",
+    "cancel": "Cancelar",
+    "retry": "Reintentar",
+    "refresh": "Actualizar"
+  }
+}

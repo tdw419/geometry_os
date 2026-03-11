@@ -1,0 +1,10 @@
+{
+  "task_id": "task-5",
+  "type": "implement",
+  "source": "",
+  "intent": "RTO: Recovery Time Objective, time to restore service after failure",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}

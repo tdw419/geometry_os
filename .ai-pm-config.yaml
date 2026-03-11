@@ -1,0 +1,82 @@
+# AI PM Configuration for Geometry OS
+# PixelRTS Single-File Optimization
+
+# ----------------------------------------------------------------------
+# Roadmap Configuration
+# ----------------------------------------------------------------------
+roadmap_path: PIXELRTS_SINGLE_FILE_ROADMAP.md
+implementation_plan: PIXELRTS_IMPLEMENTATION_PLAN.md
+
+# ----------------------------------------------------------------------
+# OpenSpec Output Directory
+# ----------------------------------------------------------------------
+openspec_output_dir: .ai-pm-artifacts
+
+# ----------------------------------------------------------------------
+# Iteration Configuration
+# ----------------------------------------------------------------------
+iteration_mode: until_complete
+max_iterations: 50
+convergence_threshold: 0.95
+state_file: .ai-pm-state.json
+
+# ----------------------------------------------------------------------
+# LLM Autocomplete
+# ----------------------------------------------------------------------
+llm_autocomplete_enabled: true
+bridge_type: auto
+policy: manual_review
+confidence_threshold: 0.7
+lm_studio_url: http://localhost:1234
+zai_model: GLM-4.7
+
+# ----------------------------------------------------------------------
+# Questioning Configuration
+# ----------------------------------------------------------------------
+questioning_enabled: true
+questioning_strategy: deferred
+research_path: .ai-pm-research
+question_db: .ai-pm-questions.db
+
+# ----------------------------------------------------------------------
+# Improvement Configuration
+# ----------------------------------------------------------------------
+improvement_enabled: true
+recursive_self_improvement: true
+recursive_improvement_min_confidence: 0.7
+recursive_improvement_min_priority: MEDIUM
+telemetry_path: .ai-pm-telemetry
+knowledge_base_path: .ai-pm-knowledge
+
+# ----------------------------------------------------------------------
+# Research Configuration
+# ----------------------------------------------------------------------
+research_enabled: true
+research_interval_seconds: 300
+research_output_file: .ai-pm-research-findings.json
+max_tasks_per_cycle: 50
+min_priority: HIGH
+
+# ----------------------------------------------------------------------
+# Safety Configuration
+# ----------------------------------------------------------------------
+protected_branches:
+  - main
+  - master
+max_tasks_per_hour: 20
+max_consecutive_failures: 3
+cooldown_seconds: 300
+auto_rollback: true
+require_clean_workspace: false
+
+# ----------------------------------------------------------------------
+# Logging
+# ----------------------------------------------------------------------
+log_level: INFO
+
+# ----------------------------------------------------------------------
+# MCP Configuration
+# ----------------------------------------------------------------------
+mcp_enabled: true
+mcp_workers: 4
+mcp_servers: []

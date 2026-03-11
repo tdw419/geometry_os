@@ -1,0 +1,7 @@
+- [x] **Define Selection Enums**: Update `Selection` struct in `terminal_emulator.rs` to support `SelectionType::Block`, `SelectionType::Word`, `SelectionType::Line`.
+- [x] **Implement Click Timing**: Update `InputManager` or `TerminalEmulator` to detect `ClickCount` (1, 2, 3) based on `const DOUBLE_CLICK_THRESHOLD_MS = 500`.
+- [x] **Implement Word Boundary Logic**: Add `find_word_boundaries(col, row)` helper.
+- [x] **Implement Block Selection Logic**: Handle `Alt` modifier in `mouse_input` to toggle `SelectionType::Block`.
+- [x] **Update Copy Function**: Ensure `get_selected_text()` respects `Block` mode (joining lines with `\n` but only the selected columns).
+- [x] **Update Renderer**: Modify `vm_texture_manager.rs` -> `render_terminal_buffer` to highlight geometric regions correctly for block mode.
+- [x] **Verify**: Test double-click, triple-click, and alt-drag selection.

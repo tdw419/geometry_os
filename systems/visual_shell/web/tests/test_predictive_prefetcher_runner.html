@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PredictivePrefetcher Test Runner</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .pass { background: #2e7d32; }
+        .fail { background: #c62828; }
+        .info { color: #00d9ff; }
+    </style>
+</head>
+<body>
+    <h1>PredictivePrefetcher Test Runner</h1>
+    <div id="results"></div>
+
+    <!-- Test Framework -->
+    <script src="neural_heatmap_test_framework.js"></script>
+
+    <!-- Module Under Test -->
+    <script src="../predictive_prefetcher.js"></script>
+
+    <!-- Tests -->
+    <script src="test_predictive_prefetcher.js"></script>
+
+    <script>
+        async function runTests() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="info">Running tests...</div>';
+
+            const tests = new PredictivePrefetcherTests();
+
+            try {
+                await tests.execute();
+                results.innerHTML = '<div class="test-result pass">All PredictivePrefetcher tests passed! ✅</div>';
+                console.log('All tests passed!');
+            } catch (error) {
+                results.innerHTML = `<div class="test-result fail">Test failed: ${error.message}</div>`;
+                console.error('Test failed:', error);
+            }
+        }
+
+        // Run on load
+        window.addEventListener('DOMContentLoaded', runTests);
+    </script>
+</body>
+</html>

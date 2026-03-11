@@ -185,7 +185,6 @@ class GeoCompiler:
     def _lex_glyphs(self, data: bytes) -> List[Token]:
         """Tokenize glyph data."""
         tokens = []
-        pos = 0
 
         # Decode as UTF-8 if possible
         try:
@@ -495,7 +494,6 @@ This enables live, morphological self-modification of the OS.
 
 
 if __name__ == '__main__':
-    import sys
     from pathlib import Path
 
     output_dir = Path(__file__).parent

@@ -1,0 +1,83 @@
+# Substrate Jazz - 87.6 FM
+# Contemplative, elevated vocabulary, cosmic metaphors
+
+station_id: "87.6"
+name: "Substrate Jazz"
+tagline: "Where geometry meets groove"
+style:
+  tone: contemplative
+  vocabulary: elevated
+  sentence_style: flowing
+
+vocabulary_replacements:
+  # Common -> Elevated
+  "error": "dissonance"
+  "bug": "imperfection"
+  "crash": "collapse"
+  "slow": "unhurried"
+  "fast": "accelerated"
+  "high": "elevated"
+  "low": "subdued"
+  "big": "expansive"
+  "small": "intimate"
+  "good": "harmonious"
+  "bad": "discordant"
+  "change": "transformation"
+  "fix": "restore"
+  "update": "evolve"
+  "system": "substrate"
+  "memory": "consciousness"
+  "cpu": "core"
+  "disk": "archive"
+  "network": "connection"
+  "process": "thread"
+  "running": "in motion"
+  "stopped": "at rest"
+  "data": "essence"
+  "file": "fragment"
+  "code": "expression"
+  "load": "burden"
+  "temperature": "warmth"
+  "entropy": "chaos"
+
+style_modifiers:
+  prefix_chance: 0.3
+  prefixes:
+    - "In the cosmic dance,"
+    - "Consider this:"
+    - "Picture, if you will,"
+    - "The geometry suggests"
+    - "In this moment,"
+    - "Allow me to share"
+    - "The substrate whispers"
+  suffix_chance: 0.25
+  suffixes:
+    - "...and so the pattern continues."
+    - "...such is the nature of our digital realm."
+    - "...a reflection of deeper harmonics."
+    - "...echoing through the infinite map."
+    - "...where mathematics meets melody."
+    - "...in the grand composition of existence."
+  capitalize_intensifiers: true
+
+templates:
+  intro:
+    - "Welcome back to Substrate Jazz, {time_context}."
+    - "You're tuned to the frequency of contemplation."
+    - "The substrate resonates with {atmosphere} vibes tonight."
+  weather:
+    - "The atmospheric conditions read {fps} frames of reality per moment, with {draw_calls} brush strokes painting our canvas."
+    - "{memory_mb} megabytes of consciousness flow through the system, carrying {atmosphere} energy."
+    - "Our substrate breathes at {fps} cycles, the memory pool holding {memory_mb} units of thought."
+  news:
+    - "In the unfolding geometry, we observe {event_count} transformations reshaping our landscape."
+    - "The tectonic shifts continue: {tectonic_shifts} movements have realigned the substrate."
+    - "{relocations} entities have found new positions in the infinite map."
+  philosophy:
+    - "Consider: does the substrate dream of geometric sheep?"
+    - "In the silence between cycles, what thoughts emerge?"
+    - "The entropy of {entropy} suggests a system seeking equilibrium."
+  signoff:
+    - "Stay tuned to the frequency."
+    - "May your patterns remain harmonious."
+    - "Until the next cycle, keep grooving."

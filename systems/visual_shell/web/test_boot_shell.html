@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WGPU Linux Hypervisor - Boot Test</title>
+    <style>
+        body { background: #111; color: #0f0; font-family: monospace; padding: 20px; }
+        #display { border: 2px solid #0f0; }
+        button { background: #030; color: #0f0; border: 1px solid #0f0; padding: 10px 20px; cursor: pointer; margin: 5px; }
+        #status { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>WGPU Linux Hypervisor - Milestone 1: Boot to Shell</h1>
+    <div id="controls">
+        <button onclick="initHypervisor()">Initialize</button>
+        <button onclick="bootKernel()">Boot Kernel</button>
+        <button onclick="stepOnce()">Step Once</button>
+        <button onclick="startLoop()">Start Loop</button>
+        <button onclick="stopLoop()">Stop Loop</button>
+    </div>
+    <div id="status">Status: Not initialized</div>
+    <div id="display"></div>
+    <pre id="log"></pre>
+
+    <script type="module">
+        import { WGPULinuxHypervisor } from './wgpu_linux_hypervisor.js';
+
+        let hypervisor = null;
+
+        window.initHypervisor = async function() {
+            log('Initializing WebGPU...');
+            hypervisor = new WGPULinuxHypervisor();
+            await hypervisor.init();
+            hypervisor.attachTo(document.getElementById('display'));
+            log('✅ Hypervisor initialized');
+            updateStatus('Ready');
+        };
+
+        window.bootKernel = async function() {
+            if (!hypervisor) { log('❌ Initialize first'); return; }
+
+            log('Loading fake kernel...');
+            // Create minimal kernel: li x10, 42; li x17, 93; ecall
+            const fakeKernel = new Uint32Array([
+                0x02a00513, // addi x10, x0, 42
+                0x05d00893, // addi x17, x0, 93
+                0x00000073  // ecall
+            ]);
+
+            await hypervisor.loadKernel(fakeKernel.buffer);
+            log('✅ Kernel loaded');
+            updateStatus('Kernel loaded');
+        };
+
+        window.stepOnce = async function() {
+            if (!hypervisor) { log('❌ Initialize first'); return; }
+            await hypervisor.tick(1);
+            const state = hypervisor.getState();
+            log(`PC=${state.pc}, x10=${state.registers[10]}, halted=${state.halted}`);
+        };
+
+        window.startLoop = function() {
+            if (!hypervisor) { log('❌ Initialize first'); return; }
+            hypervisor.start(10000); // 10K cycles per frame
+            updateStatus('Running');
+        };
+
+        window.stopLoop = function() {
+            if (hypervisor) hypervisor.stop();
+            updateStatus('Stopped');
+        };
+
+        function log(msg) {
+            document.getElementById('log').textContent += msg + '\n';
+        }
+
+        function updateStatus(status) {
+            document.getElementById('status').textContent = 'Status: ' + status;
+        }
+    </script>
+</body>
+</html>

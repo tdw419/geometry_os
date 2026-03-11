@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Project Manager - Improvement Dashboard</title>
+    <link rel="stylesheet" href="improvement_dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-title">
+                <h1>AI Project Manager</h1>
+                <span class="subtitle">Autonomous Improvement Dashboard</span>
+            </div>
+            <div class="status-indicators">
+                <div class="status-badge" id="pmServerStatus">
+                    <span class="status-dot"></span>
+                    <span class="status-text">PM Server</span>
+                </div>
+                <div class="status-badge" id="cartridgeStatus">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Cartridge</span>
+                </div>
+                <div class="status-badge" id="serviceStatus">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Service</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <!-- Service Control Panel -->
+            <section class="panel service-control-panel">
+                <h2>Service Control</h2>
+                <div class="control-buttons">
+                    <button id="startBtn" class="btn btn-primary" disabled>Start Service</button>
+                    <button id="stopBtn" class="btn btn-danger" disabled>Stop Service</button>
+                    <button id="cycleBtn" class="btn btn-success" disabled>Run Cycle</button>
+                    <button id="refreshBtn" class="btn btn-secondary">Refresh Status</button>
+                </div>
+                <div class="service-info">
+                    <div class="info-row">
+                        <span class="info-label">Service URL:</span>
+                        <span class="info-value" id="serviceUrl">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Current Cartridge:</span>
+                        <span class="info-value" id="currentCartridge">-</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Cycle Status Panel -->
+            <section class="panel cycle-status-panel">
+                <h2>Cycle Status</h2>
+                <div class="cycle-metrics">
+                    <div class="metric">
+                        <span class="metric-label">Cycle Count</span>
+                        <span class="metric-value" id="cycleCount">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Last Cycle</span>
+                        <span class="metric-value" id="lastCycleTime">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Improvements Made</span>
+                        <span class="metric-value" id="improvementsCount">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Cycle State</span>
+                        <span class="metric-value state-badge" id="cycleState">Idle</span>
+                    </div>
+                </div>
+                <div class="neuromodulation-display">
+                    <h3>Neuromodulation Levels</h3>
+                    <div class="neuro-bar">
+                        <span class="neuro-label">Dopamine</span>
+                        <div class="neuro-track">
+                            <div class="neuro-fill dopamine" id="dopamineLevel" style="width: 50%"></div>
+                        </div>
+                        <span class="neuro-value" id="dopamineValue">50%</span>
+                    </div>
+                    <div class="neuro-bar">
+                        <span class="neuro-label">Urgency</span>
+                        <div class="neuro-track">
+                            <div class="neuro-fill urgency" id="urgencyLevel" style="width: 30%"></div>
+                        </div>
+                        <span class="neuro-value" id="urgencyValue">30%</span>
+                    </div>
+                    <div class="neuro-bar">
+                        <span class="neuro-label">Acetylcholine</span>
+                        <div class="neuro-track">
+                            <div class="neuro-fill acetylcholine" id="acetylcholineLevel" style="width: 40%"></div>
+                        </div>
+                        <span class="neuro-value" id="acetylcholineValue">40%</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recommendations Panel -->
+            <section class="panel recommendations-panel">
+                <h2>Active Recommendations</h2>
+                <div class="panel-content" id="recommendationsList">
+                    <p class="empty-state">No active recommendations</p>
+                </div>
+            </section>
+
+            <!-- Deployed Cartridges Panel -->
+            <section class="panel cartridges-panel">
+                <h2>Deployed Cartridges</h2>
+                <div class="panel-content" id="cartridgesList">
+                    <p class="empty-state">No cartridges deployed</p>
+                </div>
+            </section>
+
+            <!-- Cycle History Panel -->
+            <section class="panel history-panel">
+                <h2>Cycle History</h2>
+                <div class="panel-content" id="cycleHistory">
+                    <p class="empty-state">No cycle history</p>
+                </div>
+            </section>
+
+            <!-- Activity Log Panel -->
+            <section class="panel activity-log-panel">
+                <h2>Activity Log</h2>
+                <div class="panel-content scrollable" id="activityLog">
+                    <p class="empty-state">No activity yet</p>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="dashboard-footer">
+            <span class="footer-text">Last updated: <span id="lastUpdate">-</span></span>
+            <span class="footer-version">v1.0.0</span>
+        </footer>
+    </div>
+
+    <script type="module" src="improvement_dashboard.js"></script>
+</body>
+</html>

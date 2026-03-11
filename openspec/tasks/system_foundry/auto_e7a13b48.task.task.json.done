@@ -1,0 +1,7 @@
+{
+  "task_id": "auto-e7a13b48",
+  "type": "analyze_system",
+  "source": "/home/jericho/zion/projects/geometry_os/geometry_os/openspec/changes/add-pixi-improvement-daemon",
+  "intent": "Implement fade-in/fade-out animations for tile loading",
+  "auto_generated": true
+}

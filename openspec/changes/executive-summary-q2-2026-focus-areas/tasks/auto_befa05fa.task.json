@@ -1,0 +1,10 @@
+{
+  "task_id": "task-2",
+  "type": "implement",
+  "source": "",
+  "intent": "Developer Experience - Unified CLI, SDK improvements, documentation",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}

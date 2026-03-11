@@ -1,0 +1,7 @@
+{
+  "task_id": "auto-3bb1140b",
+  "type": "analyze_system",
+  "source": "/home/jericho/zion/projects/geometry_os/geometry_os/openspec/changes/archive/2026-01-13-update-daemon-rts-integration",
+  "intent": "Check for `rts_rs` binary at `systems/rts_fuse/rts_rs/target/release/rts_rs`",
+  "auto_generated": true
+}

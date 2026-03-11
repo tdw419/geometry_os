@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry OS: RISC-V Geometric Demo</title>
+    <style>
+        body { margin: 0; padding: 0; background: #0a0a0a; color: #00ffff; font-family: 'Courier New', monospace; overflow: hidden; }
+        #ui { position: absolute; top: 10px; left: 10px; z-index: 1000; background: rgba(0, 0, 0, 0.8); padding: 15px; border: 1px solid #00ffff; border-radius: 5px; max-width: 300px; }
+        .stat { margin-bottom: 5px; font-size: 13px; }
+        #canvas-container { width: 100vw; height: 100vh; }
+        #log { margin-top: 10px; height: 150px; overflow-y: auto; font-size: 11px; border-top: 1px solid #004444; padding-top: 5px; }
+        .highlight { color: #ffffff; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <div class="stat"><span class="highlight">GEOMETRY OS</span> | RISC-V SUBSTRATE</div>
+        <hr/>
+        <div class="stat">Program: <span id="prog-name">geometric_counter.brick</span></div>
+        <div class="stat">PC: <span id="pc">0x0000</span></div>
+        <div class="stat">Cycles: <span id="cycles">0</span></div>
+        <div class="stat">Status: <span id="status">Ready</span></div>
+        <div id="log"></div>
+    </div>
+    <div id="canvas-container"></div>
+
+    <!-- PixiJS v8 -->
+    <script src="lib/pixi.min.js"></script>
+    
+    <!-- Geometry OS Kernel -->
+    <script src="brick_loader.js"></script>
+    <script src="pixel_cpu.js"></script>
+    <script src="pixel_cpu_integration.js"></script>
+    
+    <script>
+        async function start() {
+            const container = document.getElementById('canvas-container');
+            const logElement = document.getElementById('log');
+            
+            function log(msg) {
+                const entry = document.createElement('div');
+                entry.textContent = `> ${msg}`;
+                logElement.appendChild(entry);
+                logElement.scrollTop = logElement.scrollHeight;
+            }
+
+            log("Initializing PixiJS v8...");
+            const app = new PIXI.Application();
+            await app.init({
+                resizeTo: window,
+                backgroundColor: 0x0a0a0a,
+                antialias: true
+            });
+            container.appendChild(app.canvas);
+
+            log("Setting up World Container...");
+            const world = new PIXI.Container();
+            app.stage.addChild(world);
+
+            // Mock InfiniteMap implementation for Integration
+            const mockMap = {
+                world: world,
+                config: { gridSize: 100 }
+            };
+
+            log("Initializing Pixel CPU Integration...");
+            const integration = new PixelCPUIntegration(mockMap, {
+                cyclesPerFrame: 1, // Slow for visualization
+                framebufferWidth: 640,
+                framebufferHeight: 480
+            });
+
+            // Override writeConsole to show in our UI log
+            const originalWrite = integration.writeConsole.bind(integration);
+            integration.writeConsole = (char) => {
+                const s = String.fromCharCode(char);
+                if (s === '!') log("Counter TICK: !");
+                originalWrite(char);
+            };
+
+            log("Loading RISC-V .brick file...");
+            try {
+                // Point to the brick file we just created
+                await integration.loadBrick('/builder/queue/geometric_counter.brick');
+                log("RISC-V Brick Loaded Successfully (V1 Header)");
+                
+                document.getElementById('status').textContent = "Running";
+            } catch (e) {
+                log(`Error: ${e.message}`);
+                // Fallback attempt if path layout differs in browser
+                log("Trying local path...");
+                await integration.loadBrick('geometric_counter.brick');
+            }
+
+            app.ticker.add(() => {
+                integration.executeFrame();
+                
+                // Update UI
+                const state = integration.getState();
+                document.getElementById('pc').textContent = `0x${state.pc.toString(16).padStart(4, '0')}`;
+                document.getElementById('cycles').textContent = state.cycles;
+                
+                if (state.halted) {
+                    document.getElementById('status').textContent = "Halted";
+                    document.getElementById('status').style.color = "#ff4444";
+                }
+            });
+
+            log("Geometry OS Substrate Active.");
+        }
+
+        window.onload = start;
+    </script>
+</body>
+</html>

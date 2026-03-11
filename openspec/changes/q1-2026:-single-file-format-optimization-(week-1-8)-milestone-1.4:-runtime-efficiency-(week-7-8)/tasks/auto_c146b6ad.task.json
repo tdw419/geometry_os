@@ -1,0 +1,10 @@
+{
+  "task_id": "task-1",
+  "type": "implement",
+  "source": "",
+  "intent": "Memory copies reduced by 80% for hot data",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}

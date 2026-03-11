@@ -1,0 +1,282 @@
+; ============================================
+; GeoASM Glyph Library - Native Visual Shell
+; ============================================
+;
+; Core rendering primitives for the native visual shell.
+; These functions bridge GeoASM logic to Hilbert-mapped VRAM.
+;
+; Opcodes used:
+;   0xC0 SET_COLOR   - Set drawing color
+;   0xC3 DRAW_RECT   - Draw rectangle outline
+;   0xC4 FILL_RECT   - Fill rectangle
+;   0xCF DRAW_PIXEL  - Draw single pixel
+;   0xF8 PY_CALL     - FFI Bridge to Python (Layout/Math)
+;
+; ============================================
+
+; === Global State Initialization ===
+; R255 is reserved as ZERO register
+; R254 is Stack Pointer (SP)
+
+INIT_SYSTEM:
+    MOVI R255, 0      ; R255 = 0
+    RET
+
+; ============================================
+; HILBERT UTILITIES
+; ============================================
+
+; Convert (x, y) to Hilbert index
+; Args: R0=x, R1=y, R2=order
+; Returns: R0=index
+HILBERT_XY_TO_INDEX:
+    ; Pack arguments (u32 words)
+    STR_IMM R0, 4096  ; Word 1024 (byte 4096)
+    STR_IMM R1, 4097
+    STR_IMM R2, 4098
+    
+    ; Call Python FFI
+    MOVI R4, 310      ; FFI_HILBERT_XY_TO_INDEX
+    MOVI R5, 4096     ; args_ptr (word)
+    MOVI R6, 4100     ; ret_ptr (word)
+    PY_CALL R4, R5, R6
+    
+    ; Load result
+    LDR R0, 4100
+    RET
+
+; Convert index to (x, y)
+; Args: R0=index, R1=order
+; Returns: R0=x, R1=y
+HILBERT_INDEX_TO_XY:
+    STR_IMM R0, 4096
+    STR_IMM R1, 4097
+    
+    MOVI R4, 311      ; FFI_HILBERT_INDEX_TO_XY
+    MOVI R5, 4096
+    MOVI R6, 4100
+    PY_CALL R4, R5, R6
+    
+    LDR R0, 4100      ; x
+    LDR R1, 4101      ; y
+    RET
+
+; ============================================
+; SHAPE PRIMITIVES (GeoASM Native)
+; ============================================
+
+; Set active drawing color
+; Args: R0=R, R1=G, R2=B, R3=A
+GLYPH_SET_COLOR:
+    SET_COLOR R0, R1, R2
+    ; Alpha handling (R253 is alpha in hypervisor)
+    ADD R253, R3, R255 ; Move R3 to R253
+    RET
+
+; Draw a solid rectangle
+; Args: R0=x, R1=y, R2=w, R3=h
+GLYPH_FILL_RECT:
+    ; Correct calling convention for FILL_RECT Rx, Ry, Rw (uses R0 for Rh)
+    PUSH R4
+    ADD R4, R0, R255  ; Save x to R4
+    ADD R0, R3, R255  ; Move h to R0
+    FILL_RECT R4, R1, R2
+    POP R4
+    RET
+
+; Draw an orb (circle with glow)
+; Args: R0=x, R1=y, R2=radius
+GLYPH_DRAW_ORB:
+    PUSH R0
+    PUSH R1
+    PUSH R2
+    
+    ADD R2, R2, 2     ; glow_radius = r + 2
+    MOVI R3, 80       ; alpha 0.3ish
+    CALL GLYPH_DRAW_CIRCLE
+    
+    POP R2
+    POP R1
+    POP R0
+    MOVI R3, 255      ; full alpha
+    CALL GLYPH_DRAW_CIRCLE
+    RET
+
+; Draw a circle (Simplified for PoC)
+; Args: R0=cx, R1=cy, R2=radius, R3=alpha
+GLYPH_DRAW_CIRCLE:
+    SUB R0, R0, R2    ; x = cx - r
+    SUB R1, R1, R2    ; y = cy - r
+    MUL R2, R2, 2     ; w = 2r
+    ADD R3, R2, R255  ; h = 2r
+    CALL GLYPH_FILL_RECT
+    RET
+
+; Draw a glass panel with title bar and borders
+; Args: R0=x, R1=y, R2=w, R3=h
+GLYPH_RENDER_PANEL:
+    PUSH R0
+    PUSH R1
+    PUSH R2
+    PUSH R3
+    
+    ; 1. Draw main background
+    MOVI R4, 20
+    MOVI R5, 20
+    MOVI R6, 35
+    MOVI R7, 180      ; semi-transparent
+    PUSH R0
+    PUSH R1
+    PUSH R2
+    PUSH R3
+    ADD R0, R4, R255
+    ADD R1, R5, R255
+    ADD R2, R6, R255
+    ADD R3, R7, R255
+    CALL GLYPH_SET_COLOR
+    POP R3
+    POP R2
+    POP R1
+    POP R0
+    CALL GLYPH_FILL_RECT
+    
+    ; 2. Draw title bar (top 24 pixels)
+    MOVI R4, 40
+    MOVI R5, 40
+    MOVI R6, 60
+    MOVI R7, 220
+    PUSH R0
+    PUSH R1
+    PUSH R2
+    PUSH R3
+    ADD R0, R4, R255
+    ADD R1, R5, R255
+    ADD R2, R6, R255
+    ADD R3, R7, R255
+    CALL GLYPH_SET_COLOR
+    POP R3
+    POP R2
+    POP R1
+    POP R0
+    PUSH R3           ; Save full height
+    MOVI R3, 24       ; Title height
+    CALL GLYPH_FILL_RECT
+    POP R3
+    
+    ; 3. Draw border
+    MOVI R4, 100
+    MOVI R5, 100
+    MOVI R6, 150
+    MOVI R7, 255
+    PUSH R0
+    PUSH R1
+    PUSH R2
+    PUSH R3
+    ADD R0, R4, R255
+    ADD R1, R5, R255
+    ADD R2, R6, R255
+    ADD R3, R7, R255
+    CALL GLYPH_SET_COLOR
+    POP R3
+    POP R2
+    POP R1
+    POP R0
+    ; DRAW_RECT opcode expects R0=x, R1=y, R2=w, R0 used for h
+    PUSH R4
+    ADD R4, R0, R255
+    ADD R0, R3, R255
+    DRAW_RECT R4, R1, R2
+    POP R4
+    
+    POP R3
+    POP R2
+    POP R1
+    POP R0
+    RET
+
+; Render the entire desktop substrate
+GLYPH_RENDER_DESKTOP:
+    ; 1. Clear background
+    MOVI R0, 5
+    MOVI R1, 5
+    MOVI R2, 10
+    MOVI R3, 255
+    CALL GLYPH_SET_COLOR
+    
+    MOVI R0, 0
+    MOVI R1, 0
+    MOVI R2, 1024
+    MOVI R3, 1024
+    CALL GLYPH_FILL_RECT
+    
+    ; 2. Render some orbs via spiral layout
+    ; (Conceptual - would use actual entity buffer)
+    
+    RET
+
+; Draw a single character (stub for now)
+; Args: R0=x, R1=y, R2=char_code
+GLYPH_DRAW_CHAR:
+    ; Placeholder: draw a small rect for the char
+    PUSH R2
+    MOVI R2, 8
+    MOVI R3, 16
+    CALL GLYPH_FILL_RECT
+    POP R2
+    RET
+
+; ================= ===========================
+; LAYOUT ENGINE
+; ============================================
+
+; Generate spiral positions for N entities
+; Args: R0=count, R1=spacing, R2=target_mem_ptr
+GLYPH_LAYOUT_SPIRAL:
+    STR_IMM R0, 4096  ; count
+    STR_IMM R1, 4097  ; spacing
+    
+    MOVI R4, 300      ; FFI_LAYOUT_SPIRAL
+    MOVI R5, 4096
+    ADD R6, R2, R255  ; Move R2 to R6
+    PY_CALL R4, R5, R6
+    RET
+
+; ============================================
+; MAIN ENTRY POINT
+; ============================================
+
+START:
+    CALL INIT_SYSTEM
+
+    ; 1. Render desktop
+    CALL GLYPH_RENDER_DESKTOP
+    
+    ; 2. Draw a test panel
+    MOVI R0, 100
+    MOVI R1, 100
+    MOVI R2, 400
+    MOVI R3, 300
+    CALL GLYPH_RENDER_PANEL
+    
+    ; 3. Draw a file orb on top of the panel
+    MOVI R0, 200
+    MOVI R1, 200
+    MOVI R2, 15
+    
+    PUSH R0
+    PUSH R1
+    PUSH R2
+    
+    ; Set orb color (Gold)
+    MOVI R0, 255
+    MOVI R1, 215
+    MOVI R2, 0
+    MOVI R3, 255
+    CALL GLYPH_SET_COLOR
+    
+    POP R2
+    POP R1
+    POP R0
+    CALL GLYPH_DRAW_ORB
+    
+    HALT

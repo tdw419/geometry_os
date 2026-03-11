@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural IDE Builder - Integration Tests</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #00ff88;
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #16213e;
+            border-radius: 10px;
+        }
+
+        .status-item {
+            text-align: center;
+        }
+
+        .status-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .status-label {
+            font-size: 0.8rem;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .status-passed .status-value {
+            color: #00ff88;
+        }
+
+        .status-failed .status-value {
+            color: #ff4444;
+        }
+
+        .status-total .status-value {
+            color: #00ffff;
+        }
+
+        .tests-container {
+            background: #16213e;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .test-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #0f0f23;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .test-item:last-child {
+            border-bottom: none;
+        }
+
+        .test-item.passed {
+            background: rgba(0, 255, 136, 0.05);
+        }
+
+        .test-item.failed {
+            background: rgba(255, 68, 68, 0.05);
+        }
+
+        .test-icon {
+            font-size: 1.2rem;
+            width: 30px;
+            text-align: center;
+        }
+
+        .test-item.passed .test-icon {
+            color: #00ff88;
+        }
+
+        .test-item.failed .test-icon {
+            color: #ff4444;
+        }
+
+        .test-info {
+            flex: 1;
+        }
+
+        .test-name {
+            font-weight: 500;
+            margin-bottom: 3px;
+        }
+
+        .test-duration {
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .test-error {
+            margin-top: 8px;
+            padding: 10px;
+            background: rgba(255, 68, 68, 0.1);
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #ff6b6b;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .summary {
+            margin-top: 30px;
+            padding: 20px;
+            background: #16213e;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .summary.all-passed {
+            border: 2px solid #00ff88;
+        }
+
+        .summary.has-failures {
+            border: 2px solid #ff4444;
+        }
+
+        .summary-title {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        .summary.all-passed .summary-title {
+            color: #00ff88;
+        }
+
+        .summary.has-failures .summary-title {
+            color: #ff4444;
+        }
+
+        .summary-text {
+            color: #888;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #888;
+        }
+
+        .loading::after {
+            content: '';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .console-output {
+            margin-top: 30px;
+            padding: 15px;
+            background: #0f0f23;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .console-title {
+            color: #888;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .console-line {
+            color: #aaa;
+            margin-bottom: 3px;
+        }
+
+        .console-line.error {
+            color: #ff4444;
+        }
+
+        .console-line.success {
+            color: #00ff88;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Neural IDE Builder Integration Tests</h1>
+        <p class="subtitle">Phase J.2 - Task 7.1: Comprehensive Integration Test Suite</p>
+
+        <div class="status-bar">
+            <div class="status-item status-passed">
+                <div class="status-value" id="passed-count">-</div>
+                <div class="status-label">Passed</div>
+            </div>
+            <div class="status-item status-failed">
+                <div class="status-value" id="failed-count">-</div>
+                <div class="status-label">Failed</div>
+            </div>
+            <div class="status-item status-total">
+                <div class="status-value" id="total-count">-</div>
+                <div class="status-label">Total</div>
+            </div>
+        </div>
+
+        <div class="tests-container" id="tests-container">
+            <div class="loading">Running tests</div>
+        </div>
+
+        <div class="summary" id="summary" style="display: none;">
+            <div class="summary-title" id="summary-title"></div>
+            <div class="summary-text" id="summary-text"></div>
+        </div>
+
+        <div class="console-output" id="console-output">
+            <div class="console-title">Console Output</div>
+            <div id="console-lines"></div>
+        </div>
+    </div>
+
+    <!-- Load Dependencies -->
+    <script src="ide_tile_types.js"></script>
+    <script src="ide_tile_renderer.js"></script>
+    <script src="tile_connections.js"></script>
+    <script src="ide_semantic_overlay.js"></script>
+    <script src="ide_assembly_engine.js"></script>
+    <script src="test_ide_builder_integration.js"></script>
+
+    <script>
+        // Console capture
+        const consoleLines = document.getElementById('console-lines');
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        function addConsoleLine(message, type = '') {
+            const line = document.createElement('div');
+            line.className = 'console-line ' + type;
+            line.textContent = message;
+            consoleLines.appendChild(line);
+            consoleLines.scrollTop = consoleLines.scrollHeight;
+        }
+
+        console.log = function(...args) {
+            const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+            const type = message.includes('✗') ? 'error' : (message.includes('✓') ? 'success' : '');
+            addConsoleLine(message, type);
+            originalLog.apply(console, args);
+        };
+
+        console.error = function(...args) {
+            addConsoleLine(args.join(' '), 'error');
+            originalError.apply(console, args);
+        };
+
+        console.warn = function(...args) {
+            addConsoleLine(args.join(' '), 'error');
+            originalWarn.apply(console, args);
+        };
+
+        // Test runner
+        async function runTests() {
+            const testsContainer = document.getElementById('tests-container');
+            const passedEl = document.getElementById('passed-count');
+            const failedEl = document.getElementById('failed-count');
+            const totalEl = document.getElementById('total-count');
+            const summaryEl = document.getElementById('summary');
+            const summaryTitleEl = document.getElementById('summary-title');
+            const summaryTextEl = document.getElementById('summary-text');
+
+            // Create test suite
+            const testSuite = new IDEIntegrationTests();
+
+            // Run all tests
+            let summary;
+            try {
+                summary = await testSuite.runAll();
+            } catch (error) {
+                console.error('Test suite error:', error);
+                testsContainer.innerHTML = `
+                    <div class="test-item failed">
+                        <div class="test-icon">✗</div>
+                        <div class="test-info">
+                            <div class="test-name">Test Suite Error</div>
+                            <div class="test-error">${error.message}\n${error.stack}</div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Update status bar
+            passedEl.textContent = summary.passed;
+            failedEl.textContent = summary.failed;
+            totalEl.textContent = summary.total;
+
+            // Render test results
+            testsContainer.innerHTML = '';
+            for (const result of summary.results) {
+                const testItem = document.createElement('div');
+                testItem.className = `test-item ${result.status}`;
+
+                let html = `
+                    <div class="test-icon">${result.status === 'passed' ? '✓' : '✗'}</div>
+                    <div class="test-info">
+                        <div class="test-name">${result.name}</div>
+                        <div class="test-duration">${result.duration}ms</div>
+                `;
+
+                if (result.error) {
+                    html += `<div class="test-error">${result.error}</div>`;
+                }
+
+                html += '</div>';
+                testItem.innerHTML = html;
+                testsContainer.appendChild(testItem);
+            }
+
+            // Show summary
+            summaryEl.style.display = 'block';
+            summaryEl.className = `summary ${summary.allPassed ? 'all-passed' : 'has-failures'}`;
+
+            if (summary.allPassed) {
+                summaryTitleEl.textContent = 'All Tests Passed!';
+                summaryTextEl.textContent = `Completed ${summary.total} tests in ${summary.results.reduce((sum, r) => sum + r.duration, 0).toFixed(2)}ms`;
+            } else {
+                summaryTitleEl.textContent = `${summary.failed} Test${summary.failed > 1 ? 's' : ''} Failed`;
+                summaryTextEl.textContent = `${summary.passed} of ${summary.total} tests passed`;
+            }
+        }
+
+        // Run tests when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Small delay to ensure all scripts are loaded
+            setTimeout(runTests, 100);
+        });
+    </script>
+</body>
+</html>

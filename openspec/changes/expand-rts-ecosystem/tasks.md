@@ -1,0 +1,12 @@
+- [x] **Define Specs**: Create strict schemas for `.clip.rts`, `.net.rts`, and `.hive.rts`.
+- [x] **Clipboard Prototype**: 
+    - [x] Create `clipboard_rts_encoder.py` using `PixelRTSv2Converter` logic.
+    - [x] Modify `ClipboardManager` to dump data to `latest.clip.rts`.
+- [x] **Network Prototype**:
+    - [x] Create simple packet sniffer (pcap) -> WGSL buffer mapper.
+    - [x] Render basic traffic density texture.
+- [x] **Process Hive Prototype**:
+    - [x] Parse `/proc` -> `Vec<ProcessInfo>`.
+    - [x] Map PIDs to Hilbert coordinates.
+    - [x] Update texture every 100ms.
+- [x] **Integration**: Mount these visual filesystems via FUSE or direct Shared Memory.

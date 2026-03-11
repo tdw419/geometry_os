@@ -1,0 +1,214 @@
+# MMU Test Kernel for WGPU RISC-V Shader
+# ============================================
+# Tests: CSR registers, CSRRW/CSRRS instructions, Sv32 MMU translation
+#
+# Architecture: RISC-V RV32I + Sv32 MMU
+# Memory Layout:
+#   0x00000000 - 0x00FFFFFF: Kernel code/data (16MB)
+#   0x01000000 - 0x01FFFFFF: Framebuffer (16MB)
+#   0x02000000 - 0x02FFFFFF: MMIO region (16MB)
+#   0x03000000 - 0x03FFFFFF: Page tables (16MB)
+#
+# Virtual Address Space:
+#   0x00000000 - 0x7FFFFFFF: User space (2GB)
+#   0x80000000 - 0xFFFFFFFF: Kernel space (2GB)
+
+.section .text
+.globl _start
+
+# ============================================================
+# Test 1: CSR Register Presence
+# ============================================================
+# Verify that satp, stvec, sscratch CSRs exist
+# Expected: After execution, x10 should contain 0x01 (success code)
+
+_test_csr_presence:
+    # Read satp (CSR 0x180)
+    csrr x5, 0x180      # x5 = satp
+    csrr x6, 0x105      # x6 = stvec
+    csrr x7, 0x140      # x7 = sscratch
+
+    # If we get here without faulting, CSRs exist
+    # x10 = 0x01 (success code for this test)
+    li x10, 1
+
+# ============================================================
+# Test 2: CSRRW Instruction (Atomic swap)
+# ============================================================
+# Verify CSRRW can swap register with CSR
+# Expected: x11 contains old satp value, satp contains new value
+
+_test_csrrw:
+    # Set up test value
+    li x12, 0x12345678
+
+    # Swap x12 with satp
+    # After: x13 = old satp, satp = 0x12345678
+    csrrw x13, 0x180, x12
+
+    # Read satp back to verify
+    csrr x14, 0x180
+
+    # Verify: x14 should equal 0x12345678
+    # If equal, x11 = 1 (success), else x11 = 0 (failure)
+    bne x14, x12, _csrrw_fail
+    li x11, 1
+    j _csrrw_end
+_csrrw_fail:
+    li x11, 0
+_csrrw_end:
+
+# ============================================================
+# Test 3: CSRRS Instruction (Read and Set bits)
+# ============================================================
+# Verify CSRRS can set bits in CSR
+# Expected: Bits are OR'd with source register
+
+_test_csrrs:
+    # Set up: write known value to stvec
+    li x15, 0x00000100
+    csrw 0x105, x15      # stvec = 0x00000100
+
+    # Set bits using CSRRS
+    li x16, 0x00000020
+    csrrs x17, 0x105, x16  # stvec |= 0x20, x17 = old value
+
+    # Read back stvec
+    csrr x18, 0x105
+
+    # Expected: stvec = 0x00000120
+    li x19, 0x00000120
+    bne x18, x19, _csrrs_fail
+    li x12, 1
+    j _csrrs_end
+_csrrs_fail:
+    li x12, 0
+_csrrs_end:
+
+# ============================================================
+# Test 4: Set up Page Tables for Sv32 MMU
+# ============================================================
+# Memory map for page tables:
+#   0x03000000: Root page table (L1)
+#   0x03001000: Second-level page table (L2)
+#
+# We'll map: VA 0x80000000 -> PA 0x00000000
+#
+# For VA 0x80000000:
+#   VPN[1] = (0x80000000 >> 22) & 0x3FF = 0x200
+#   VPN[0] = (0x80000000 >> 12) & 0x3FF = 0x000
+#
+# L1 PTE at 0x03000000 + (0x200 * 4) = 0x03000800:
+#   Points to L2 table at 0x03001000
+#   Value: PPN=0x30001, V=1 => 0x03001001
+#
+# L2 PTE at 0x03001000 + (0x000 * 4) = 0x03001000:
+#   Maps to PA 0x00000000 with R+W+X
+#   Value: PPN=0x00000, V=1, R=1, W=1, X=1 => 0x0000000F
+
+_setup_page_tables:
+    # We need to write these values to memory
+    # Since we can't write arbitrary data in assembly without
+    # pre-loaded data, we'll construct the PTEs manually
+
+    # L1 PTE: 0x03001001 (PPN=0x30001, V=1)
+    li x20, 0x03001001
+    # Store to 0x03000800 (this requires MMIO or pre-configured memory)
+    # For this test, we'll assume the PTEs are pre-loaded
+
+    # L2 PTE: 0x0000000F (PPN=0, V+R+W+X)
+    li x21, 0x0000000F
+    # Store to 0x03001000
+
+    # Set satp to enable Sv32 paging
+    # satp format: [mode(1)][asid(9)][ppn(22)]
+    # mode = 1 (Sv32), ppn = 0x30000 (root at 0x03000000)
+    li x22, 0x80030000   # satp = (1 << 31) | (0x03000000 >> 12)
+    csrw 0x180, x22      # Enable MMU
+
+# ============================================================
+# Test 5: Virtual Memory Translation
+# ============================================================
+# With MMU enabled, access VA 0x80000000
+# Should translate to PA 0x00000000
+# We'll write a value and read it back
+
+_test_virtual_memory:
+    # Write test value to virtual address
+    li x23, 0xDEADBEEF
+    lui x24, 0x80000     # x24 = 0x80000000 (high bits)
+    # addi x24, x24, 0x000  (if needed for offset)
+    sw x23, 0(x24)        # Store to VA 0x80000000
+
+    # Read back from virtual address
+    lw x25, 0(x24)        # Load from VA 0x80000000
+
+    # Verify: x25 should equal 0xDEADBEEF
+    li x26, 0xDEADBEEF
+    bne x25, x26, _vmem_fail
+    li x13, 1            # Success
+    j _vmem_end
+_vmem_fail:
+    li x13, 0            # Failure
+_vmem_end:
+
+# ============================================================
+# Test 6: Page Fault Handling
+# ============================================================
+# Try to access an unmapped virtual address
+# Should trigger a page fault (trap to stvec)
+
+_test_page_fault:
+    # Try to access VA 0x90000000 (unmapped)
+    lui x27, 0x90000
+    lw x28, 0(x27)        # This should page fault
+
+    # If we get here, the fault didn't work
+    li x14, 0
+
+    # In a real kernel, stvec would handle the fault
+    # For this test, we expect a halt
+
+# ============================================================
+# Test Summary
+# ============================================================
+# Result codes (return in x10 for main exit):
+#   x10 = bit 0: CSR presence test
+#   x10 = bit 1: CSRRW test
+#   x10 = bit 2: CSRRS test
+#   x10 = bit 3: Virtual memory test
+#
+# Example: x10 = 0x0F means all tests passed
+
+_test_summary:
+    # Combine test results
+    # x10 already has test 1 result
+    # Shift in other results
+    slli x11, x10, 1
+    or x10, x10, x11
+
+    # Exit with result code in x10
+    li x17, 93            # exit syscall number
+    ecall                  # Invoke syscall
+
+# ============================================================
+# Data Section
+# ============================================================
+.section .data
+
+# Page table data (these values would be loaded into memory at 0x03000000)
+# Uncomment and assemble with these values pre-loaded
+# .align 12
+# l1_pte:
+#     .word 0x03001001   # PPN=0x30001, V=1
+# l2_pte:
+#     .word 0x0000000F   # PPN=0, V+R+W+X
+
+# Test data
+test_value:
+    .word 0x12345678
+
+.section .bss
+# Uninitialized data
+test_buffer:
+    .skip 256

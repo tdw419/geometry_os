@@ -1,0 +1,19 @@
+{
+  "format": "PixelRTS-2.0",
+  "format_version": 2,
+  "grid_size": 64,
+  "encoding": {
+    "type": "RGBA-dense",
+    "bytes_per_pixel": 4,
+    "mapping": "Hilbert space-filling curve"
+  },
+  "offsets": {},
+  "hashes": {},
+  "encoding_mode": "RGBA-dense",
+  "type": "test_cartridge",
+  "name": "test_cartridge_64x64",
+  "description": "Test cartridge for integration testing",
+  "generation": 0,
+  "data_hash": "7213cdeaa0f3718a7b0d03fa08dadfd95a27ed905fb60c8651a44eeca9831e3c",
+  "data_size": 16384
+}

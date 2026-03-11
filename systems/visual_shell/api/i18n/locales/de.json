@@ -1,0 +1,218 @@
+{
+  "window": {
+    "buttons": {
+      "close": "Schließen",
+      "minimize": "Minimieren",
+      "maximize": "Maximieren",
+      "restore": "Wiederherstellen"
+    },
+    "title": {
+      "default": "Unbenanntes Fenster",
+      "main": "Hauptfenster",
+      "tools": "Werkzeuge",
+      "terminal": "Terminal",
+      "settings": "Einstellungen"
+    },
+    "states": {
+      "normal": "Normal",
+      "minimized": "Minimiert",
+      "maximized": "Maximiert",
+      "dragging": "Wird verschoben",
+      "closing": "Wird geschlossen"
+    }
+  },
+  "panel": {
+    "title_bar": {
+      "default": "Panel",
+      "focused": "Aktives Panel"
+    },
+    "resize": {
+      "top": "Von oben skalieren",
+      "bottom": "Von unten skalieren",
+      "left": "Von links skalieren",
+      "right": "Von rechts skalieren",
+      "top_left": "Von oben links skalieren",
+      "top_right": "Von oben rechts skalieren",
+      "bottom_left": "Von unten links skalieren",
+      "bottom_right": "Von unten rechts skalieren"
+    },
+    "actions": {
+      "snap_to_grid": "Am Raster ausrichten",
+      "snap_enabled": "Einrasten aktiviert",
+      "snap_disabled": "Einrasten deaktiviert"
+    }
+  },
+  "notifications": {
+    "system": {
+      "initialized": "System erfolgreich initialisiert!",
+      "error": "Systemfehler aufgetreten",
+      "warning": "Warnung",
+      "info": "Information"
+    },
+    "window": {
+      "created": "Fenster erstellt: {title}",
+      "closed": "Fenster geschlossen: {title}",
+      "focused": "Fenster fokussiert: {title}"
+    },
+    "renderer": {
+      "switched": "Renderer gewechselt zu {type}",
+      "native_enabled": "Nativer Renderer aktiviert",
+      "pixijs_deprecated": "PixiJS-Renderer ist veraltet"
+    }
+  },
+  "errors": {
+    "window": {
+      "not_found": "Fenster nicht gefunden: {id}",
+      "already_exists": "Fenster existiert bereits: {id}",
+      "invalid_state": "Ungültiger Fensterstatus: {state}"
+    },
+    "renderer": {
+      "unknown_type": "Unbekannter Renderer-Typ: {type}",
+      "initialization_failed": "Renderer-Initialisierung fehlgeschlagen",
+      "frame_failed": "Frame-Rendering fehlgeschlagen"
+    },
+    "localization": {
+      "not_found": "Übersetzung nicht gefunden: {key}",
+      "missing_variable": "Fehlende Variable in Übersetzung: {variable}",
+      "unsupported_language": "Nicht unterstützte Sprache: {code}"
+    },
+    "file": {
+      "not_found": "Datei nicht gefunden: {path}",
+      "load_failed": "Laden der Datei fehlgeschlagen: {path}",
+      "save_failed": "Speichern der Datei fehlgeschlagen: {path}"
+    }
+  },
+  "menu": {
+    "file": {
+      "label": "Datei",
+      "new": "Neu",
+      "open": "Öffnen...",
+      "save": "Speichern",
+      "save_as": "Speichern unter...",
+      "close": "Schließen"
+    },
+    "edit": {
+      "label": "Bearbeiten",
+      "undo": "Rückgängig",
+      "redo": "Wiederholen",
+      "cut": "Ausschneiden",
+      "copy": "Kopieren",
+      "paste": "Einfügen",
+      "select_all": "Alles auswählen"
+    },
+    "view": {
+      "label": "Ansicht",
+      "zoom_in": "Vergrößern",
+      "zoom_out": "Verkleinern",
+      "reset_zoom": "Zoom zurücksetzen",
+      "fullscreen": "Vollbild umschalten"
+    },
+    "window": {
+      "label": "Fenster",
+      "minimize_all": "Alle minimieren",
+      "restore_all": "Alle wiederherstellen",
+      "cascade": "Fenster staffeln",
+      "tile": "Fenster nebeneinander"
+    },
+    "help": {
+      "label": "Hilfe",
+      "about": "Über",
+      "documentation": "Dokumentation",
+      "shortcuts": "Tastenkombinationen",
+      "report_bug": "Fehler melden"
+    }
+  },
+  "dialogs": {
+    "confirm": {
+      "close_window": "Sind Sie sicher, dass Sie dieses Fenster schließen möchten?",
+      "unsaved_changes": "Sie haben ungespeicherte Änderungen. Fortfahren?",
+      "delete_item": "Sind Sie sicher, dass Sie dieses Element löschen möchten?"
+    },
+    "buttons": {
+      "ok": "OK",
+      "cancel": "Abbrechen",
+      "yes": "Ja",
+      "no": "Nein",
+      "apply": "Anwenden",
+      "save": "Speichern",
+      "discard": "Verwerfen"
+    }
+  },
+  "settings": {
+    "language": {
+      "label": "Sprache",
+      "current": "Aktuelle Sprache: {language}",
+      "change": "Sprache ändern"
+    },
+    "renderer": {
+      "label": "Renderer",
+      "native": "Nativ (Empfohlen)",
+      "pixijs": "PixiJS (Veraltet)",
+      "auto": "Automatisch"
+    },
+    "appearance": {
+      "label": "Erscheinungsbild",
+      "theme": "Design",
+      "theme_light": "Hell",
+      "theme_dark": "Dunkel",
+      "grid_size": "Rastergröße",
+      "snap_threshold": "Einrast-Schwellenwert"
+    },
+    "performance": {
+      "label": "Leistung",
+      "fps_target": "Ziel-FPS",
+      "quality": "Qualität",
+      "quality_low": "Niedrig",
+      "quality_medium": "Mittel",
+      "quality_high": "Hoch"
+    }
+  },
+  "tooltips": {
+    "window": {
+      "drag": "Ziehen zum Verschieben des Fensters",
+      "resize": "Ziehen zum Skalieren des Fensters",
+      "close": "Fenster schließen",
+      "minimize": "Fenster minimieren",
+      "maximize": "Fenster maximieren"
+    },
+    "panel": {
+      "snap": "Einrasten am Raster aktivieren/deaktivieren",
+      "focus": "Klicken um Panel zu fokussieren"
+    }
+  },
+  "accessibility": {
+    "window": {
+      "focused": "Fenster {title} ist fokussiert",
+      "minimized": "Fenster {title} ist minimiert",
+      "maximized": "Fenster {title} ist maximiert"
+    },
+    "button": {
+      "close": "Schließen-Button für {title}",
+      "minimize": "Minimieren-Button für {title}",
+      "maximize": "Maximieren-Button für {title}"
+    }
+  },
+  "debug": {
+    "renderer": {
+      "fps": "FPS: {value}",
+      "frame_time": "Frame-Zeit: {ms}ms",
+      "entity_count": "Entitäten: {count}",
+      "panel_count": "Panels: {count}"
+    },
+    "memory": {
+      "used": "Verwendeter Speicher: {mb}MB",
+      "available": "Verfügbarer Speicher: {mb}MB"
+    }
+  },
+  "common": {
+    "loading": "Laden...",
+    "saving": "Speichern...",
+    "processing": "Verarbeiten...",
+    "ready": "Bereit",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "cancel": "Abbrechen",
+    "retry": "Erneut versuchen",
+    "refresh": "Aktualisieren"
+  }
+}

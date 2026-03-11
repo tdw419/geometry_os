@@ -1,0 +1,10 @@
+{
+  "task_id": "task-2",
+  "type": "implement",
+  "source": "",
+  "intent": "Hot code execution 2× faster (JIT enabled)",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}

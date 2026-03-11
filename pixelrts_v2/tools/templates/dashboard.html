@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
+</head>
+<body class="theme-{{ theme }}">
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="logo">🎨</span>
+            <span class="brand-text">PixelRTS v2</span>
+        </div>
+        <div class="nav-links">
+            <a href="/" class="nav-link {% if section == 'home' %}active{% endif %}">Dashboard</a>
+            <a href="/upload" class="nav-link {% if section == 'upload' %}active{% endif %}">Upload</a>
+            <a href="/visualize" class="nav-link {% if section == 'visualize' %}active{% endif %}">Visualize</a>
+            <a href="/analyze" class="nav-link {% if section == 'analyze' %}active{% endif %}">Analyze</a>
+        </div>
+        <div class="nav-actions">
+            <button id="theme-toggle" class="btn btn-icon" title="Toggle theme">
+                <span class="icon">🌓</span>
+            </button>
+            <button id="feedback-btn" class="btn btn-secondary">Feedback</button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Status Bar -->
+        <div class="status-bar" id="status-bar">
+            <div class="status-item">
+                <span class="status-label">Status:</span>
+                <span class="status-value" id="connection-status">Connecting...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Version:</span>
+                <span class="status-value">2.0</span>
+            </div>
+        </div>
+
+        <!-- Section: Home/Dashboard -->
+        {% if section == 'home' or section is not defined %}
+        <section class="section-dashboard">
+            <h1>Welcome to PixelRTS v2</h1>
+            <p class="subtitle">Binary to PNG encoder using Hilbert curve mapping</p>
+            
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <div class="action-card" onclick="showUpload()">
+                    <div class="action-icon">📤</div>
+                    <div class="action-title">Upload File</div>
+                    <div class="action-desc">Convert binary to .rts.png</div>
+                </div>
+                <div class="action-card" onclick="showVisualize()">
+                    <div class="action-icon">🔍</div>
+                    <div class="action-title">Visualize</div>
+                    <div class="action-desc">Explore Hilbert curves</div>
+                </div>
+                <div class="action-card" onclick="showAnalyze()">
+                    <div class="action-icon">📊</div>
+                    <div class="action-title">Analyze</div>
+                    <div class="action-desc">View file statistics</div>
+                </div>
+            </div>
+
+            <!-- Recent Files -->
+            <div class="recent-files">
+                <h2>Recent Files</h2>
+                <div class="file-list" id="recent-files-list">
+                    <div class="empty-state">
+                        <span class="empty-icon">📁</span>
+                        <p>No recent files. Upload a file to get started.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Getting Started -->
+            <div class="getting-started">
+                <h2>Getting Started</h2>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>Upload or Drag a File</h3>
+                            <p>Drop any binary file onto the upload area, or click to browse.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>Configure Encoding</h3>
+                            <p>Set grid size, encoding mode, and add metadata.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>Download .rts.png</h3>
+                            <p>Your encoded file is ready with embedded metadata.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Section: Upload -->
+        {% if section == 'upload' %}
+        <section class="section-upload">
+            <h1>Upload & Encode</h1>
+            
+            <!-- Drop Zone -->
+            <div class="drop-zone" id="drop-zone">
+                <div class="drop-zone-content">
+                    <div class="drop-icon">📤</div>
+                    <p class="drop-text">Drag and drop your file here</p>
+                    <p class="drop-subtext">or click to browse</p>
+                    <input type="file" id="file-input" hidden>
+                </div>
+                <div class="drop-zone-progress" id="drop-zone-progress" hidden>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <p class="progress-text" id="progress-text">Uploading...</p>
+                </div>
+            </div>
+
+            <!-- Encoding Options -->
+            <div class="encoding-options" id="encoding-options" hidden>
+                <h2>Encoding Options</h2>
+                
+                <div class="form-group">
+                    <label for="grid-size">Grid Size</label>
+                    <select id="grid-size">
+                        <option value="auto" selected>Auto (recommended)</option>
+                        <option value="256">256 × 256 (256 KB max)</option>
+                        <option value="512">512 × 512 (1 MB max)</option>
+                        <option value="1024">1024 × 1024 (4 MB max)</option>
+                        <option value="2048">2048 × 2048 (16 MB max)</option>
+                        <option value="4096">4096 × 4096 (64 MB max)</option>
+                    </select>
+                    <span class="form-hint" id="capacity-hint"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="encoding-mode">Encoding Mode</label>
+                    <select id="encoding-mode">
+                        <option value="standard" selected>Standard</option>
+                        <option value="code">Code (optimized for executables)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="content-type">Content Type</label>
+                    <select id="content-type">
+                        <option value="binary" selected>Binary</option>
+                        <option value="kernel">Kernel</option>
+                        <option value="wasm">WebAssembly</option>
+                        <option value="model">ML Model</option>
+                        <option value="data">Data</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="content-name">Name (optional)</label>
+                    <input type="text" id="content-name" placeholder="My File">
+                </div>
+
+                <div class="form-group">
+                    <label for="content-version">Version (optional)</label>
+                    <input type="text" id="content-version" placeholder="1.0.0">
+                </div>
+
+                <div class="form-group">
+                    <label for="content-description">Description (optional)</label>
+                    <textarea id="content-description" placeholder="Brief description..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn btn-secondary" onclick="resetUpload()">Cancel</button>
+                    <button class="btn btn-primary" onclick="encodeFile()">
+                        <span class="btn-icon">🎨</span>
+                        Encode to .rts.png
+                    </button>
+                </div>
+            </div>
+
+            <!-- Result -->
+            <div class="encoding-result" id="encoding-result" hidden>
+                <h2>Encoding Complete!</h2>
+                <div class="result-preview">
+                    <img id="result-image" alt="Encoded image">
+                </div>
+                <div class="result-info">
+                    <div class="info-row">
+                        <span class="info-label">Original Size:</span>
+                        <span class="info-value" id="result-original-size"></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Grid Size:</span>
+                        <span class="info-value" id="result-grid-size"></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">SHA256:</span>
+                        <span class="info-value code" id="result-hash"></span>
+                    </div>
+                </div>
+                <div class="result-actions">
+                    <button class="btn btn-primary" onclick="downloadResult()">
+                        <span class="btn-icon">💾</span>
+                        Download .rts.png
+                    </button>
+                    <button class="btn btn-secondary" onclick="visualizeResult()">
+                        <span class="btn-icon">🔍</span>
+                        Visualize
+                    </button>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Section: Visualize -->
+        {% if section == 'visualize' %}
+        <section class="section-visualize">
+            <h1>Visualize</h1>
+            
+            <div class="visualize-container">
+                <div class="visualize-canvas" id="visualize-canvas">
+                    <div class="empty-state">
+                        <span class="empty-icon">🖼️</span>
+                        <p>Load an .rts.png file to visualize the Hilbert curve encoding</p>
+                        <button class="btn btn-primary" onclick="loadForVisualization()">Load File</button>
+                    </div>
+                </div>
+                
+                <div class="visualize-controls">
+                    <h3>Controls</h3>
+                    <div class="control-group">
+                        <label>Zoom</label>
+                        <input type="range" id="zoom-level" min="1" max="100" value="50">
+                    </div>
+                    <div class="control-group">
+                        <label>Show Trace</label>
+                        <input type="checkbox" id="show-trace" checked>
+                    </div>
+                    <div class="control-group">
+                        <label>Show Grid</label>
+                        <input type="checkbox" id="show-grid">
+                    </div>
+                    <div class="control-group">
+                        <label>Animation Speed</label>
+                        <input type="range" id="animation-speed" min="1" max="10" value="5">
+                    </div>
+                    <div class="control-actions">
+                        <button class="btn btn-secondary" onclick="playAnimation()">▶ Play</button>
+                        <button class="btn btn-secondary" onclick="pauseAnimation()">⏸ Pause</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Section: Analyze -->
+        {% if section == 'analyze' %}
+        <section class="section-analyze">
+            <h1>Analyze</h1>
+            
+            <div class="analyze-upload">
+                <div class="drop-zone-small" id="analyze-drop-zone">
+                    <span class="drop-icon-small">📊</span>
+                    <p>Drop .rts.png file to analyze</p>
+                    <input type="file" id="analyze-input" hidden>
+                </div>
+            </div>
+
+            <div class="analyze-results" id="analyze-results" hidden>
+                <div class="results-grid">
+                    <!-- File Info -->
+                    <div class="result-card">
+                        <h3>File Information</h3>
+                        <div class="info-list" id="file-info"></div>
+                    </div>
+                    
+                    <!-- Byte Distribution -->
+                    <div class="result-card">
+                        <h3>Byte Distribution</h3>
+                        <div class="chart-container" id="byte-distribution-chart"></div>
+                    </div>
+                    
+                    <!-- Entropy Analysis -->
+                    <div class="result-card">
+                        <h3>Entropy Analysis</h3>
+                        <div class="entropy-meter">
+                            <div class="entropy-bar" id="entropy-bar"></div>
+                            <span class="entropy-value" id="entropy-value">0.00</span>
+                        </div>
+                        <p class="entropy-desc" id="entropy-desc"></p>
+                    </div>
+                    
+                    <!-- Metadata -->
+                    <div class="result-card full-width">
+                        <h3>Metadata</h3>
+                        <pre class="metadata-json" id="metadata-json"></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+    </main>
+
+    <!-- Feedback Modal -->
+    <div class="modal" id="feedback-modal" hidden>
+        <div class="modal-backdrop" onclick="closeFeedback()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Share Your Feedback</h2>
+                <button class="btn btn-icon" onclick="closeFeedback()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="rating-stars">
+                    <span class="star" data-rating="1">☆</span>
+                    <span class="star" data-rating="2">☆</span>
+                    <span class="star" data-rating="3">☆</span>
+                    <span class="star" data-rating="4">☆</span>
+                    <span class="star" data-rating="5">☆</span>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="feedback-category">
+                        <option value="general">General Feedback</option>
+                        <option value="bug">Bug Report</option>
+                        <option value="feature">Feature Request</option>
+                        <option value="confusion">Something Was Confusing</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Your Feedback</label>
+                    <textarea id="feedback-text" placeholder="Tell us what you think..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Email (optional, for follow-up)</label>
+                    <input type="email" id="feedback-email" placeholder="you@example.com">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeFeedback()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitFeedback()">Submit Feedback</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

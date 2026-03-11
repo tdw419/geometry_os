@@ -1,0 +1,49 @@
+[Unit]
+Description=Geometry OS Evolution Daemon - Continuous Self-Improvement
+Documentation=https://github.com/geometry-os/geometry_os
+After=network.target
+
+[Service]
+Type=simple
+User=jericho
+Group=jericho
+WorkingDirectory=/home/jericho/zion/projects/geometry_os/geometry_os
+
+# Main execution
+ExecStart=/usr/bin/python3 /home/jericho/zion/projects/geometry_os/geometry_os/systems/visual_shell/swarm/evolution/evolution_daemon.py \
+    --interval 300 \
+    --max-per-hour 10 \
+    --cooldown 300 \
+    --target-dir /home/jericho/zion/projects/geometry_os/geometry_os/systems/visual_shell/swarm/
+
+# Graceful shutdown
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+# Restart policy
+Restart=on-failure
+RestartSec=60
+
+# Resource limits
+MemoryMax=1G
+CPUQuota=50%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=evolution-daemon
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/jericho/zion/projects/geometry_os/geometry_os
+
+# Environment
+Environment=PYTHONUNBUFFERED=1
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=multi-user.target

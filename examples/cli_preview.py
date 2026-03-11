@@ -12,7 +12,6 @@ Renders text with GOS styling:
 import os
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
-from pathlib import Path
 
 GLYPH_SIZE = 16
 

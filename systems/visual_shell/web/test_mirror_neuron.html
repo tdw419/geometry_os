@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mirror Neuron Test</title>
+    <style>
+        body {
+            background: #0a0a1a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+        }
+        #output {
+            background: #111;
+            padding: 15px;
+            border: 1px solid #00ff88;
+            white-space: pre-wrap;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mirror Neuron Test</h1>
+    <div id="output">Loading...</div>
+
+    <!-- Load the WebMCP Bridge -->
+    <script src="webmcp_bridge.js"></script>
+
+    <script>
+        const output = document.getElementById('output');
+
+        function log(msg) {
+            output.textContent += msg + '\n';
+            console.log(msg);
+        }
+
+        async function runTest() {
+            log('=== Mirror Neuron Test ===\n');
+
+            // Wait a moment for bridge to initialize
+            await new Promise(r => setTimeout(r, 2000));
+
+            // Check if bridge exists
+            if (typeof window.webmcpBridge === 'undefined') {
+                log('ERROR: window.webmcpBridge is undefined');
+                log('Checking WebMCPBridge class: ' + (typeof WebMCPBridge));
+
+                if (typeof WebMCPBridge !== 'undefined') {
+                    log('Creating new WebMCPBridge instance with mock mode...');
+                    try {
+                        window.webmcpBridge = new WebMCPBridge(null, { allowMock: true });
+                        // Wait for registration to complete
+                        await new Promise(r => setTimeout(r, 2000));
+                        log('Bridge initialized with mock mode');
+                    } catch (e) {
+                        log('Failed to initialize: ' + e.message + '\n' + e.stack);
+                    }
+                }
+            }
+
+            if (typeof window.webmcpBridge === 'undefined') {
+                log('FAIL: Could not create webmcpBridge');
+                return;
+            }
+
+            const status = window.webmcpBridge.getStatus();
+            log('Bridge Status:');
+            log(JSON.stringify(status, null, 2));
+            log('');
+
+            // Check if render_visual_layout is registered
+            const hasTool = status.tools.includes('render_visual_layout');
+            log('render_visual_layout registered: ' + (hasTool ? 'YES' : 'NO'));
+            log('');
+
+            // Try to invoke the tool
+            if (typeof window.invokeWebMCPTool === 'function') {
+                log('Invoking render_visual_layout via invokeWebMCPTool...\n');
+                try {
+                    const result = await window.invokeWebMCPTool('render_visual_layout', {
+                        detail_level: 'standard',
+                        scale_factor: 10
+                    });
+                    log('SUCCESS! Result:\n');
+                    log(result);
+                } catch (e) {
+                    log('ERROR: ' + e.message);
+                }
+            } else if (window.mockTools && window.mockTools['render_visual_layout']) {
+                log('Invoking render_visual_layout via mockTools...\n');
+                try {
+                    const toolEntry = window.mockTools['render_visual_layout'];
+                    const handler = toolEntry.execute || toolEntry.handler;
+                    const result = await handler({ detail_level: 'standard', scale_factor: 10 });
+                    log('SUCCESS! Result:\n');
+                    log(result);
+                } catch (e) {
+                    log('ERROR: ' + e.message + '\n' + e.stack);
+                }
+            } else {
+                log('No tool invocation method available');
+                log('Available mock tools: ' + (window.mockTools ? Object.keys(window.mockTools).join(', ') : 'none'));
+            }
+        }
+
+        // Run after page load
+        window.addEventListener('load', () => {
+            setTimeout(runTest, 1000);
+        });
+    </script>
+</body>
+</html>

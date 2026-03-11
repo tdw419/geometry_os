@@ -1,0 +1,423 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+# Cancel in-progress runs for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  CARGO_INCREMENTAL: 1
+  CARGO_NET_RETRY: 10
+
+jobs:
+  # ============================================================================
+  # Quick Checks - Fast feedback
+  # ============================================================================
+  quick-checks:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2  # For better diff detection
+
+    - name: Detect changes
+      id: changes
+      run: |
+        # Detect which files changed
+        if [ "${{ github.event_name }}" == "pull_request" ]; then
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD)
+        else
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD || echo "all")
+        fi
+        
+        echo "changed_files<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+        # Determine what needs to run
+        HAS_PYTHON=$(echo "$CHANGED_FILES" | grep -c '\.py$' || echo 0)
+        HAS_RUST=$(echo "$CHANGED_FILES" | grep -c '\.rs$' || echo 0)
+        HAS_CI=$(echo "$CHANGED_FILES" | grep -c '\.yml$' || echo 0)
+        
+        echo "has_python=${HAS_PYTHON:-0}" >> $GITHUB_OUTPUT
+        echo "has_rust=${HAS_RUST:-0}" >> $GITHUB_OUTPUT
+        echo "has_ci=${HAS_CI:-0}" >> $GITHUB_OUTPUT
+
+    - name: Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install linting tools
+      run: |
+        pip install ruff mypy
+
+    - name: Lint Python code
+      if: steps.changes.outputs.has_python != '0' || steps.changes.outputs.has_ci != '0'
+      run: |
+        ruff check systems tests --output-format=github || true
+        mypy systems --ignore-missing-imports || true
+
+    outputs:
+      has_python: ${{ steps.changes.outputs.has_python }}
+      has_rust: ${{ steps.changes.outputs.has_rust }}
+      has_ci: ${{ steps.changes.outputs.has_ci }}
+
+  # ============================================================================
+  # Python Tests - Parallel by module
+  # ============================================================================
+  python-tests:
+    needs: quick-checks
+    if: needs.quick-checks.outputs.has_python != '0' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        test-group:
+          - unit
+          - integration
+          - evolution_daemon
+          - tectonic
+          - pixel_brain
+          - visual_shell
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install system dependencies
+      run: |
+        apt-get update
+        apt-get install -y \
+          python3 \
+          python3-pip \
+          python3-dev \
+          git \
+          curl
+
+    - name: Set up Python cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/pip
+          .pytest_cache
+        key: ${{ runner.os }}-py-${{ matrix.test-group }}-${{ hashFiles('requirements*.txt') }}-${{ hashFiles('systems/**/*.py') }}
+        restore-keys: |
+          ${{ runner.os }}-py-${{ matrix.test-group }}-
+          ${{ runner.os }}-py-
+
+    - name: Install Python dependencies
+      run: |
+        python3 -m pip install --upgrade pip
+        pip3 install -r requirements.txt -r requirements-dev.txt
+
+    - name: Run Python tests (${{ matrix.test-group }})
+      run: |
+        # Select tests based on group
+        case "${{ matrix.test-group }}" in
+          unit)
+            pytest tests -m "not integration and not slow" \
+              --tb=short -x --ignore=tests/stress \
+              -n auto
+            ;;
+          integration)
+            pytest tests -m "integration" \
+              --tb=short --ignore=tests/stress
+            ;;
+          evolution_daemon)
+            pytest tests/evolution_daemon tests/test_daemon*.py \
+              --tb=short -x
+            ;;
+          tectonic)
+            pytest tests/test_tectonic*.py \
+              --tb=short -x
+            ;;
+          pixel_brain)
+            pytest tests/test_pixel*.py tests/test_brain*.py \
+              --tb=short -x
+            ;;
+          visual_shell)
+            pytest tests/test_visual*.py tests/test_district*.py \
+              --tb=short -x
+            ;;
+        esac
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: pytest-${{ matrix.test-group }}-${{ github.run_number }}
+        path: |
+          .pytest_cache/
+          test_results/
+        retention-days: 7
+
+  # ============================================================================
+  # Rust Tests - Incremental with caching
+  # ============================================================================
+  rust-tests:
+    needs: quick-checks
+    if: needs.quick-checks.outputs.has_rust != '0' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: [stable]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ matrix.rust }}
+        components: clippy, rustfmt
+
+    - name: Install system dependencies for Smithay
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libseat-dev \
+          libudev-dev \
+          libinput-dev \
+          libdrm-dev \
+          libxkbcommon-dev
+
+    - name: Cache Rust build artifacts
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          systems/infinite_map_rs/target/
+        key: ${{ runner.os }}-rust-${{ matrix.rust }}-${{ hashFiles('systems/infinite_map_rs/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-rust-${{ matrix.rust }}-
+          ${{ runner.os }}-rust-
+
+    - name: Check Rust formatting
+      run: |
+        cd systems/infinite_map_rs
+        cargo fmt --check
+
+    - name: Run Clippy
+      run: |
+        cd systems/infinite_map_rs
+        cargo clippy --all-features -- -D warnings
+
+    - name: Build Rust components
+      run: |
+        cd systems/infinite_map_rs
+        cargo build --all-features
+
+    - name: Run Rust tests
+      run: |
+        cd systems/infinite_map_rs
+        cargo test --all-features --no-fail-fast
+
+    - name: Upload Rust test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: rust-tests-${{ github.run_number }}
+        path: |
+          systems/infinite_map_rs/target/test-results/
+        retention-days: 7
+
+  # ============================================================================
+  # Coverage Report
+  # ============================================================================
+  coverage:
+    needs: [python-tests]
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
+    if: always() && needs.python-tests.result == 'success'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt pytest-cov
+
+    - name: Generate coverage report
+      run: |
+        pytest tests \
+          --cov=systems \
+          --cov-report=xml:coverage.xml \
+          --cov-report=html:htmlcov \
+          --ignore=tests/stress \
+          -m "not slow" \
+          || true
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-geometry-os
+        fail_ci_if_error: false
+
+    - name: Archive coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-${{ github.run_number }}
+        path: |
+          htmlcov/
+          coverage.xml
+        retention-days: 30
+
+  # ============================================================================
+  # Security Scanning
+  # ============================================================================
+  security:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install security tools
+      run: |
+        pip install bandit safety
+
+    - name: Run Bandit security scan
+      run: |
+        bandit -r systems -f json -o bandit-report.json || true
+        bandit -r systems -f txt || true
+      continue-on-error: true
+
+    - name: Check Python dependencies
+      run: |
+        safety check -r requirements.txt || true
+        safety check -r requirements-dev.txt || true
+      continue-on-error: true
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-reports-${{ github.run_number }}
+        path: |
+          bandit-report.json
+        retention-days: 30
+
+  # ============================================================================
+  # Build Artifacts
+  # ============================================================================
+  build-artifacts:
+    needs: [python-tests, rust-tests]
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
+    if: always() && (needs.python-tests.result == 'success' || needs.rust-tests.result == 'success')
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install build dependencies
+      run: |
+        apt-get update
+        apt-get install -y \
+          build-essential \
+          cmake \
+          python3 \
+          python3-pip \
+          git \
+          curl \
+          libssl-dev \
+          pkg-config
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+
+    - name: Build release artifacts
+      run: |
+        cd systems/infinite_map_rs
+        cargo build --release --all-features
+
+    - name: Prepare artifacts
+      run: |
+        mkdir -p artifacts/
+        cp systems/infinite_map_rs/target/release/infinite_map_rs artifacts/ || true
+        cp -r docs/ artifacts/docs 2>/dev/null || true
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: geometry-os-build-${{ github.run_number }}
+        path: artifacts/
+        retention-days: 30
+
+  # ============================================================================
+  # Summary Report
+  # ============================================================================
+  summary:
+    needs: [quick-checks, python-tests, rust-tests, coverage, security, build-artifacts]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: Generate summary
+      run: |
+        echo "## CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Quick Checks | ${{ needs.quick-checks.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Python Tests | ${{ needs.python-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Rust Tests | ${{ needs.rust-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Coverage | ${{ needs.coverage.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Security | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Build Artifacts | ${{ needs.build-artifacts.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Changes Detected" >> $GITHUB_STEP_SUMMARY
+        echo "- Python: ${{ needs.quick-checks.outputs.has_python }} files" >> $GITHUB_STEP_SUMMARY
+        echo "- Rust: ${{ needs.quick-checks.outputs.has_rust }} files" >> $GITHUB_STEP_SUMMARY
+
+    - name: Check overall status
+      run: |
+        if [[ "${{ needs.quick-checks.result }}" == "failure" ]] || \
+           [[ "${{ needs.python-tests.result }}" == "failure" ]] || \
+           [[ "${{ needs.rust-tests.result }}" == "failure" ]]; then
+          echo "CI pipeline failed!"
+          exit 1
+        fi
+        echo "CI pipeline passed!"

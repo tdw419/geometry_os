@@ -1,0 +1,7 @@
+; Hello World Template
+; Simple return value example
+;
+; Output: R0 = 42 (the answer to everything)
+
+LOAD R0, 42
+RET R0

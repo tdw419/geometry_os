@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PerformanceHUD Tests</title>
+    <style>
+        body {
+            font-family: 'Monaco', 'Consolas', 'Monospace', monospace;
+            background: #1a1a2e;
+            color: #eee;
+            margin: 0;
+            padding: 20px;
+        }
+        #test-output {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #16213e;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            color: #00aaff;
+            border-bottom: 2px solid #00aaff;
+            padding-bottom: 10px;
+        }
+        button {
+            background: #00aaff;
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            font-family: inherit;
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #0088cc;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .test-pass {
+            color: #00ff00;
+        }
+        .test-fail {
+            color: #ff4444;
+        }
+        .results {
+            background: #0f0f23;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        .results summary {
+            cursor: pointer;
+            color: #00aaff;
+            font-weight: bold;
+        }
+        .hud-demo {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #0a0a0a;
+            border: 1px solid #00aaff;
+            border-radius: 8px;
+            padding: 10px;
+            font-family: 'Monaco', 'Consolas', 'Monospace', monospace;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div id="test-output">
+        <h1>PerformanceHUD Tests</h1>
+
+        <button id="run-tests">Run Tests</button>
+        <button id="run-demo">Run Demo</button>
+
+        <div id="test-log"></div>
+
+        <details class="results" id="results-details">
+            <summary>Results (click to expand)</summary>
+            <pre id="results-content"></pre>
+        </details>
+
+        <details class="results">
+            <summary>HUD Demo (click to expand)</summary>
+            <div id="hud-demo-area">
+                <p>Demonstrates the PerformanceHUD in action.</p>
+                <p>The HUD tracks FPS, frame time breakdown, and memory usage.</p>
+                <p>Press F1 to toggle visibility.</p>
+            </div>
+        </details>
+    </div>
+
+    <script src="../perf_hud.js"></script>
+    <script src="test_perf_hud.js"></script>
+    <script>
+        const runButton = document.getElementById('run-tests');
+        const demoButton = document.getElementById('run-demo');
+        const testLog = document.getElementById('test-log');
+        const resultsContent = document.getElementById('results-content');
+
+        let hudDemo = null;
+        let demoRunning = false;
+        let demoFrameId = null;
+
+        function log(message, type = 'info') {
+            const line = document.createElement('div');
+            line.className = type === 'pass' ? 'test-pass' : (type === 'fail' ? 'test-fail' : '');
+            line.textContent = message;
+            testLog.appendChild(line);
+        }
+
+        async function runTests() {
+            runButton.disabled = true;
+            testLog.innerHTML = '';
+            resultsContent.textContent = '';
+
+            log('Starting PerformanceHUD tests...');
+
+            try {
+                const results = await runPerformanceHUDTests();
+
+                // Display summary
+                const passed = results.filter(r => r.status === 'PASS').length;
+                const failed = results.filter(r => r.status === 'FAIL').length;
+                const total = results.length;
+
+                log(`Tests complete: ${passed}/${total} passed`, failed === 0 ? 'pass' : 'fail');
+
+                // Update results
+                resultsContent.textContent = JSON.stringify(results, null, 2);
+
+            } catch (error) {
+                log(`Error running tests: ${error.message}`, 'fail');
+                console.error(error);
+            }
+
+            runButton.disabled = false;
+        }
+
+        function runDemo() {
+            if (demoRunning) {
+                stopDemo();
+                return;
+            }
+
+            demoRunning = true;
+            demoButton.textContent = 'Stop Demo';
+
+            // Create HUD
+            hudDemo = new PerformanceHUD({
+                enabled: true,
+                showFpsGraph: true,
+                showFrameTimeBreakdown: true,
+                showMemory: true
+            });
+            hudDemo.init();
+
+            log('Demo started. The HUD should be visible in the top-left corner.');
+            log('Simulating frame updates with subsystem breakdown...');
+
+            // Simulate frame updates
+            let frameCount = 0;
+            const maxFrames = 300; // Run for 5 seconds at 60fps
+
+            function demoFrame() {
+                if (!demoRunning || frameCount >= maxFrames) {
+                    stopDemo();
+                    return;
+                }
+
+                // Simulate frame lifecycle
+                hudDemo.beginFrame();
+
+                // Simulate saccade processing (1-3ms)
+                hudDemo.beginSaccade();
+                setTimeout(() => {
+                    hudDemo.endSaccade();
+
+                    // Simulate LOD (0.5-2ms)
+                    setTimeout(() => {
+                        hudDemo.endLOD();
+
+                        // Simulate prefetch (0.5-2ms)
+                        setTimeout(() => {
+                            hudDemo.endPrefetch();
+
+                            // Simulate render (2-8ms)
+                            setTimeout(() => {
+                                hudDemo.endRender();
+                                hudDemo.update(performance.now());
+
+                                frameCount++;
+                                demoFrameId = requestAnimationFrame(demoFrame);
+                            }, 2 + Math.random() * 6);
+                        }, 0.5 + Math.random() * 1.5);
+                    }, 0.5 + Math.random() * 1.5);
+                }, 1 + Math.random() * 2);
+            }
+
+            demoFrame();
+        }
+
+        function stopDemo() {
+            demoRunning = false;
+            demoButton.textContent = 'Run Demo';
+
+            if (hudDemo) {
+                hudDemo.destroy();
+                hudDemo = null;
+            }
+
+            if (demoFrameId) {
+                cancelAnimationFrame(demoFrameId);
+                demoFrameId = null;
+            }
+
+            log('Demo stopped.');
+        }
+
+        runButton.addEventListener('click', runTests);
+        demoButton.addEventListener('click', runDemo);
+
+        // Check for dependencies
+        window.addEventListener('load', () => {
+            if (typeof PerformanceHUD === 'undefined') {
+                log('ERROR: PerformanceHUD not loaded. Check file path.', 'fail');
+                runButton.disabled = true;
+            } else {
+                log('PerformanceHUD loaded successfully. Ready to run tests.', 'pass');
+            }
+        });
+    </script>
+</body>
+</html>

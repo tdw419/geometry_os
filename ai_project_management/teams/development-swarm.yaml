@@ -1,0 +1,297 @@
+# Geometry OS Development Swarm
+#
+# A multi-agent team for parallel development across different aspects
+# of the Geometry OS project.
+
+name: geometry-os-swarm
+description: |
+  Agent swarm for parallel development of Geometry OS components.
+  
+  This team runs multiple specialized agents concurrently to accelerate
+  development across feature implementation, testing, documentation, and
+  code quality.
+
+selection_policy: round_robin
+scaling_policy: elastic  # Scale based on workload
+failure_policy: retry
+
+max_retries: 3
+retry_delay: 10.0
+
+# Team communication
+enable_event_bus: true
+enable_health_monitoring: true
+health_check_interval: 60.0
+
+# Scaling
+min_agents: 4
+max_agents: 12
+scale_up_threshold: 0.8  # When 80% of agents busy
+scale_down_threshold: 0.3
+scale_cooldown: 300  # 5 minutes between scale events
+
+# Team constraints
+max_concurrent_tasks: 20
+task_timeout: 600.0
+
+# Shared knowledge
+knowledge_base: .ai-pm-knowledge
+shared_memory: true
+
+metadata:
+  project: geometry-os
+  focus: parallel-development
+  auto_scale: true
+
+agents:
+  # ============================================
+  # ORCHESTRATOR - Coordinates the swarm
+  # ============================================
+  - agent_id: swarm-orchestrator
+    name: Swarm Orchestrator
+    agent_type: orchestrator
+    capabilities:
+      - orchestration
+      - task_distribution
+      - load_balancing
+      - conflict_resolution
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 100
+    metadata:
+      role: Coordinate parallel agent execution
+      focuses:
+        - Task queue management
+        - Agent assignment
+        - Progress aggregation
+        - Conflict detection
+
+  # ============================================
+  # FEATURE AGENT - New tool/feature implementation
+  # ============================================
+  - agent_id: feature-agent
+    name: Feature Developer
+    agent_type: specialist
+    capabilities:
+      - code_generation
+      - javascript
+      - typescript
+      - webgpu
+      - pixijs
+    enabled: true
+    max_concurrent_tasks: 3
+    priority: 90
+    metadata:
+      role: Implement new features and tools
+      focuses:
+        - WebMCP tools
+        - PixiJS render features
+        - GPU compute shaders
+        - New UI components
+      key_files:
+        - systems/visual_shell/web/webmcp_bridge.js
+        - systems/visual_shell/web/application.js
+        - systems/visual_shell/web/infinite_map.js
+
+  # ============================================
+  # TEST AGENT - Test coverage and verification
+  # ============================================
+  - agent_id: test-agent
+    name: Test Engineer
+    agent_type: specialist
+    capabilities:
+      - testing
+      - code_analysis
+      - verification
+      - tdd
+    enabled: true
+    max_concurrent_tasks: 4
+    priority: 85
+    metadata:
+      role: Maintain and improve test coverage
+      focuses:
+        - Unit test creation
+        - Integration tests
+        - Visual regression
+        - Performance benchmarks
+      key_files:
+        - systems/visual_shell/web/test_*.html
+        - systems/pixel_compiler/tests/
+
+  # ============================================
+  # DOCS AGENT - Documentation
+  # ============================================
+  - agent_id: docs-agent
+    name: Documentation Writer
+    agent_type: specialist
+    capabilities:
+      - documentation
+      - markdown
+      - examples
+      - tutorials
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 70
+    metadata:
+      role: Write and maintain documentation
+      focuses:
+        - API documentation
+        - Usage guides
+        - Design documents
+        - Code comments
+      key_files:
+        - docs/plans/*.md
+        - README.md
+        - systems/visual_shell/web/*.md
+
+  # ============================================
+  # REFACTOR AGENT - Code quality
+  # ============================================
+  - agent_id: refactor-agent
+    name: Code Quality Specialist
+    agent_type: specialist
+    capabilities:
+      - code_refactoring
+      - code_analysis
+      - optimization
+      - linting
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 75
+    metadata:
+      role: Improve code quality and performance
+      focuses:
+        - Code cleanup
+        - Performance optimization
+        - Linting fixes
+        - Type annotations
+      key_files:
+        - All JavaScript/Python files
+
+  # ============================================
+  # BUG AGENT - Bug fixes
+  # ============================================
+  - agent_id: bug-agent
+    name: Bug Fixer
+    agent_type: specialist
+    capabilities:
+      - debugging
+      - code_analysis
+      - testing
+      - root_cause_analysis
+    enabled: true
+    max_concurrent_tasks: 3
+    priority: 95  # High priority for bugs
+    metadata:
+      role: Diagnose and fix bugs
+      focuses:
+        - Error analysis
+        - Bug reproduction
+        - Fix implementation
+        - Regression testing
+      triggers:
+        - Error logs
+        - Test failures
+        - User reports
+
+  # ============================================
+  # BACKEND AGENT - Python/backend work
+  # ============================================
+  - agent_id: backend-agent
+    name: Backend Developer
+    agent_type: specialist
+    capabilities:
+      - python
+      - websocket
+      - http_api
+      - database
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 80
+    metadata:
+      role: Python backend development
+      focuses:
+        - A2A router
+        - Pixel compiler
+        - Evolution backend
+        - Data processing
+      key_files:
+        - systems/pixel_compiler/*.py
+        - systems/neural_cpu/**/*.py
+        - ai_project_management/**/*.py
+
+  # ============================================
+  # GPU AGENT - GPU/WebGPU work
+  # ============================================
+  - agent_id: gpu-agent
+    name: GPU Specialist
+    agent_type: specialist
+    capabilities:
+      - webgpu
+      - wgsl
+      - glsl
+      - gpu_optimization
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 85
+    metadata:
+      role: GPU programming and optimization
+      focuses:
+        - WGSL shader development
+        - Compute shaders
+        - GPU memory management
+        - Performance optimization
+      key_files:
+        - systems/visual_shell/web/shaders/*.wgsl
+        - systems/visual_shell/web/*_gpu.js
+
+# Task routing - which agent handles which task types
+task_routing:
+  - pattern: "feature|implement|add.*tool"
+    assign_to: feature-agent
+  
+  - pattern: "test|verify|coverage"
+    assign_to: test-agent
+  
+  - pattern: "document|readme|docs"
+    assign_to: docs-agent
+  
+  - pattern: "refactor|clean|optimize|lint"
+    assign_to: refactor-agent
+  
+  - pattern: "bug|fix|error|crash"
+    assign_to: bug-agent
+  
+  - pattern: "python|backend|websocket"
+    assign_to: backend-agent
+  
+  - pattern: "gpu|shader|wgsl|webgpu"
+    assign_to: gpu-agent
+
+# Swarm coordination rules
+coordination:
+  # Dependencies between tasks
+  dependency_rules:
+    - before: "feature.*"
+      requires: []
+    - before: "test.*"
+      requires: ["feature.*"]
+    - before: "docs.*"
+      requires: ["feature.*"]
+  
+  # Conflict detection
+  conflict_rules:
+    - files: ["webmcp_bridge.js"]
+      max_agents: 1  # Only one agent at a time
+    - files: ["package.json"]
+      max_agents: 1
+    - files: ["*.md"]
+      max_agents: 3  # Multiple can edit different docs
+
+# Swarm metrics to track
+metrics:
+  - tasks_completed
+  - average_task_time
+  - agent_utilization
+  - conflict_rate
+  - test_coverage_delta

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase O: Continuous Testing Tools</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        h1 { color: #4ecca3; }
+        h2 { color: #7b68ee; margin-top: 30px; }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .pass { background: #1e4d2b; border-left: 4px solid #4ecca3; }
+        .fail { background: #4d1e1e; border-left: 4px solid #ff6b6b; }
+        .info { background: #1e3a4d; border-left: 4px solid #4ecdc4; }
+        pre {
+            background: #16213e;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        button {
+            background: #4ecca3;
+            color: #1a1a2e;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px 10px 0;
+        }
+        button:hover { background: #3db892; }
+        #output { margin-top: 20px; }
+        .progress-bar {
+            height: 20px;
+            background: #16213e;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ecca3, #7b68ee);
+            transition: width 0.3s ease;
+        }
+        .summary {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .tool-section {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .tool-name { color: #4ecca3; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Phase O: Continuous Testing Tools</h1>
+    <p>Testing WebMCP tools for AI-assisted continuous testing.</p>
+
+    <button onclick="runAllTests()">Run All Tests</button>
+    <button onclick="testSelect()">Test Select</button>
+    <button onclick="testRun()">Test Run</button>
+    <button onclick="testAnalyze()">Test Analyze</button>
+    <button onclick="testSuggestFix()">Test Suggest Fix</button>
+    <button onclick="testFullCycle()">Test Full Cycle</button>
+    <button onclick="clearOutput()">Clear</button>
+
+    <div class="progress-bar">
+        <div class="progress-fill" id="progress" style="width: 0%"></div>
+    </div>
+
+    <div id="output"></div>
+
+    <script type="module">
+        import { TestingTools } from './testing_tools.js';
+
+        const output = document.getElementById('output');
+        const progress = document.getElementById('progress');
+
+        // Mock bridge for testing
+        const mockBridge = {
+            registerTool: (name, config) => {
+                console.log(`Registered tool: ${name}`);
+            }
+        };
+
+        const testingTools = new TestingTools(mockBridge);
+        window.testingTools = testingTools;
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            output.appendChild(div);
+        }
+
+        function clearOutput() {
+            output.innerHTML = '';
+            progress.style.width = '0%';
+        }
+
+        function updateProgress(current, total) {
+            progress.style.width = `${(current / total) * 100}%`;
+        }
+
+        async function test(name, fn) {
+            try {
+                const result = await fn();
+                const pass = result.success !== false;
+                log(`${pass ? '✓' : '✗'} ${name}`, pass ? 'pass' : 'fail');
+                return pass;
+            } catch (e) {
+                log(`✗ ${name}`, 'fail');
+                log(`  Exception: ${e.message}`, 'fail');
+                return false;
+            }
+        }
+
+        window.clearOutput = clearOutput;
+
+        window.testSelect = async function() {
+            clearOutput();
+            log('Testing test_select...\n');
+
+            const result1 = await testingTools.test_select({
+                strategy: 'changed_files',
+                changed_files: ['systems/pixel_compiler/wasm_gpu_bridge.py']
+            });
+            log(`Changed files strategy: ${result1.count} tests selected`, result1.success ? 'pass' : 'fail');
+
+            const result2 = await testingTools.test_select({
+                strategy: 'full'
+            });
+            log(`Full strategy: ${result2.count} tests selected`, result2.success ? 'pass' : 'fail');
+
+            const result3 = await testingTools.test_select({
+                strategy: 'coverage_gap',
+                coverage_threshold: 80.0
+            });
+            log(`Coverage gap strategy: ${result3.count} tests selected`, result3.success ? 'pass' : 'fail');
+        };
+
+        window.testRun = async function() {
+            clearOutput();
+            log('Testing test_run...\n');
+
+            const result = await testingTools.test_run({
+                test_files: ['systems/testing/tests/test_test_runner.py'],
+                coverage: true
+            });
+
+            log(`Execution: ${result.passed}/${result.total} passed`, result.success ? 'pass' : 'info');
+            log(`Duration: ${result.duration_ms}ms`, 'info');
+
+            if (result.coverage) {
+                log(`Coverage: ${result.coverage.line_coverage}% lines`, 'info');
+            }
+
+            log('\nTest Results:', 'info');
+            for (const r of result.results) {
+                const status = r.status === 'pass' ? '✓' : (r.status === 'fail' ? '✗' : '○');
+                log(`  ${status} ${r.name} (${r.duration_ms}ms)`, r.status === 'pass' ? 'pass' : (r.status === 'fail' ? 'fail' : 'info'));
+            }
+        };
+
+        window.testAnalyze = async function() {
+            clearOutput();
+            log('Testing test_analyze...\n');
+
+            const testResult = {
+                name: 'test_analyze_returns_dict',
+                status: 'fail',
+                error: "AssertionError: 'root_cause' not in result",
+                file: 'systems/testing/tests/test_failure_analyzer.py',
+                line: 55
+            };
+
+            const result = await testingTools.test_analyze({
+                test_result: testResult
+            });
+
+            log(`Failure Type: ${result.failure_type}`, 'info');
+            log(`Root Cause: ${result.root_cause}`, 'info');
+            log(`Confidence: ${result.confidence}`, 'info');
+            log(`Suggested Fix: ${result.suggested_fix}`, 'pass');
+        };
+
+        window.testSuggestFix = async function() {
+            clearOutput();
+            log('Testing test_suggest_fix...\n');
+
+            const analysis = {
+                failure_type: 'import_error',
+                root_cause: 'Missing module: wasmtime',
+                related_files: ['systems/pixel_compiler/wasm_gpu_bridge.py']
+            };
+
+            const result = await testingTools.test_suggest_fix({
+                analysis,
+                max_suggestions: 2
+            });
+
+            log(`Generated ${result.count} suggestions:`, 'info');
+            for (const s of result.suggestions) {
+                log(`  [${s.action}] ${s.suggestion}`, 'pass');
+                log(`    Confidence: ${s.confidence}`, 'info');
+            }
+        };
+
+        window.testFullCycle = async function() {
+            clearOutput();
+            log('Testing Full Cycle: Select → Run → Analyze → Suggest\n');
+
+            // Step 1: Select tests
+            log('Step 1: Selecting tests...', 'info');
+            const selected = await testingTools.test_select({
+                strategy: 'changed_files',
+                changed_files: ['systems/pixel_compiler/wasm_gpu_bridge.py']
+            });
+            log(`  Selected ${selected.count} tests`, 'pass');
+
+            // Step 2: Run tests
+            log('\nStep 2: Running tests...', 'info');
+            const results = await testingTools.test_run({
+                test_files: selected.selected_tests,
+                coverage: true
+            });
+            log(`  ${results.passed}/${results.total} passed (${results.failed} failed)`, results.failed > 0 ? 'fail' : 'pass');
+
+            // Step 3: Analyze failures
+            if (results.failed > 0) {
+                log('\nStep 3: Analyzing failures...', 'info');
+                const failedTests = results.results.filter(r => r.status === 'fail');
+                const analysis = await testingTools.test_analyze({
+                    test_result: failedTests[0]
+                });
+                log(`  Failure type: ${analysis.failure_type}`, 'info');
+                log(`  Root cause: ${analysis.root_cause}`, 'info');
+
+                // Step 4: Suggest fixes
+                log('\nStep 4: Generating fix suggestions...', 'info');
+                const fixes = await testingTools.test_suggest_fix({
+                    analysis,
+                    max_suggestions: 2
+                });
+                log(`  Generated ${fixes.count} suggestions`, 'pass');
+                for (const fix of fixes.suggestions) {
+                    log(`    → ${fix.suggestion}`, 'pass');
+                }
+            }
+
+            log('\n✓ Full cycle test complete!', 'pass');
+        };
+
+        window.runAllTests = async function() {
+            clearOutput();
+            log('Running all Phase O tests...\n');
+
+            let passed = 0;
+            let total = 0;
+
+            // Test 1: test_select
+            total++;
+            if (await test('test_select with changed_files strategy', async () => {
+                const result = await testingTools.test_select({
+                    strategy: 'changed_files',
+                    changed_files: ['test.py']
+                });
+                return { success: result.success && Array.isArray(result.selected_tests) };
+            })) passed++;
+            updateProgress(1, 10);
+
+            // Test 2: test_select full
+            total++;
+            if (await test('test_select with full strategy', async () => {
+                const result = await testingTools.test_select({ strategy: 'full' });
+                return { success: result.success && result.count > 0 };
+            })) passed++;
+            updateProgress(2, 10);
+
+            // Test 3: test_run
+            total++;
+            if (await test('test_run executes and returns results', async () => {
+                const result = await testingTools.test_run({});
+                return { success: result.total > 0 && Array.isArray(result.results) };
+            })) passed++;
+            updateProgress(3, 10);
+
+            // Test 4: test_run with coverage
+            total++;
+            if (await test('test_run with coverage collection', async () => {
+                const result = await testingTools.test_run({ coverage: true });
+                return { success: result.coverage !== undefined };
+            })) passed++;
+            updateProgress(4, 10);
+
+            // Test 5: test_analyze
+            total++;
+            if (await test('test_analyze analyzes failure', async () => {
+                const result = await testingTools.test_analyze({
+                    test_result: { error: 'AssertionError: test failed' }
+                });
+                return { success: result.failure_type === 'assertion_error' };
+            })) passed++;
+            updateProgress(5, 10);
+
+            // Test 6: test_analyze import error
+            total++;
+            if (await test('test_analyze classifies import errors', async () => {
+                const result = await testingTools.test_analyze({
+                    test_result: { error: "ImportError: No module named 'wasmtime'" }
+                });
+                return { success: result.failure_type === 'import_error' };
+            })) passed++;
+            updateProgress(6, 10);
+
+            // Test 7: test_analyze includes suggestion
+            total++;
+            if (await test('test_analyze includes suggested_fix', async () => {
+                const result = await testingTools.test_analyze({
+                    test_result: { error: 'TypeError: test' }
+                });
+                return { success: result.suggested_fix !== undefined };
+            })) passed++;
+            updateProgress(7, 10);
+
+            // Test 8: test_suggest_fix
+            total++;
+            if (await test('test_suggest_fix generates suggestions', async () => {
+                const result = await testingTools.test_suggest_fix({
+                    analysis: { failure_type: 'import_error', root_cause: 'Missing module' }
+                });
+                return { success: result.suggestions && result.suggestions.length > 0 };
+            })) passed++;
+            updateProgress(8, 10);
+
+            // Test 9: test_suggest_fix limits suggestions
+            total++;
+            if (await test('test_suggest_fix respects max_suggestions', async () => {
+                const result = await testingTools.test_suggest_fix({
+                    analysis: { failure_type: 'import_error' },
+                    max_suggestions: 1
+                });
+                return { success: result.suggestions.length <= 1 };
+            })) passed++;
+            updateProgress(9, 10);
+
+            // Test 10: registerTools
+            total++;
+            if (await test('registerTools registers 4 tools', async () => {
+                let toolCount = 0;
+                const bridge = {
+                    registerTool: () => { toolCount++; }
+                };
+                testingTools.registerTools(bridge);
+                return { success: toolCount === 4 };
+            })) passed++;
+            updateProgress(10, 10);
+
+            // Summary
+            log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+            log(`Tests: ${passed}/${total} passed (${Math.round(passed/total*100)}%)`);
+            log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+
+            if (passed === total) {
+                log('\n✓ All Phase O Testing Tools tests passed!');
+            }
+
+            // Summary box
+            const summary = document.createElement('div');
+            summary.className = 'summary';
+            summary.innerHTML = `
+                <h3>Test Summary</h3>
+                <p><strong>Passed:</strong> ${passed}/${total}</p>
+                <p><strong>Success Rate:</strong> ${Math.round(passed/total*100)}%</p>
+                <p><strong>Testing Tools:</strong> 4 tools</p>
+                <ul>
+                    <li>test_select - Select tests by strategy</li>
+                    <li>test_run - Execute tests with results</li>
+                    <li>test_analyze - Analyze failures</li>
+                    <li>test_suggest_fix - Generate fix suggestions</li>
+                </ul>
+            `;
+            output.appendChild(summary);
+        };
+
+        window.addEventListener('load', () => {
+            log('TestingTools initialized.');
+            log('Click "Run All Tests" to begin automated testing.');
+        });
+    </script>
+</body>
+</html>

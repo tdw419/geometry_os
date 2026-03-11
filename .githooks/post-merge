@@ -1,0 +1,51 @@
+#!/bin/bash
+#
+# Geometry OS Post-Merge Hook
+# Runs after git pull/merge to update dependencies and regenerate artifacts
+#
+
+set -e
+
+echo "=== Geometry OS Post-Merge Updates ==="
+
+# Check if package.json changed
+if git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD | grep -q "package.json\|package-lock.json"; then
+    echo "📦 package.json changed, running npm install..."
+    npm install
+fi
+
+# Check if Python requirements changed
+if git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD | grep -q "requirements.txt\|pyproject.toml\|uv.lock"; then
+    echo "🐍 Python deps changed, running uv sync..."
+    cd ai_project_management && uv sync
+fi
+
+# Regenerate docs if needed
+if git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD | grep -qE "(README|docs/|\.md$)"; then
+    echo "📚 Documentation changed, updating index..."
+    # Update doc index if it exists
+    if [ -f "scripts/update_doc_index.sh" ]; then
+        ./scripts/update_doc_index.sh
+    fi
+fi
+
+# Check WebMCP tools
+if git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD | grep -q "webmcp_bridge.js"; then
+    echo "🔧 WebMCP changed, validating tools..."
+    node -e "
+        const fs = require('fs');
+        const bridge = fs.readFileSync('systems/visual_shell/web/webmcp_bridge.js', 'utf8');
+        const tools = bridge.match(/name:\s*['\"]([a-z_]+)['\"]/g) || [];
+        console.log('Registered ' + tools.length + ' WebMCP tools');
+    "
+fi
+
+# Notify AI PM daemon if running
+if pgrep -f "ai-pm daemon" > /dev/null; then
+    echo "🤖 Notifying AI PM daemon of updates..."
+    touch .ai-pm-knowledge/repo-updated
+fi
+
+echo ""
+echo "✅ Post-merge updates complete!"
+exit 0

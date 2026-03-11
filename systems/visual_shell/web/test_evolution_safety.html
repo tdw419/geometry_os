@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry OS - Evolution Safety Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #111;
+            color: #ddd;
+            padding: 20px;
+        }
+
+        .log {
+            background: #222;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #444;
+        }
+
+        .success {
+            color: #8f8;
+        }
+
+        .error {
+            color: #f88;
+        }
+
+        .info {
+            color: #88f;
+        }
+
+        button {
+            padding: 8px 16px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Milestone 4: Evolution Safety System</h1>
+
+    <div style="margin-bottom: 20px;">
+        <button onclick="runTest('safe')">Test Safe Code</button>
+        <button onclick="runTest('infinite')">Test Infinite Loop</button>
+        <button onclick="runTest('crash')">Test Syntax Error</button>
+        <button onclick="runTest('forbidden')">Test Forbidden API</button>
+        <button onclick="runTest('slow')">Test Performance Regression</button>
+    </div>
+
+    <div id="log" class="log">Ready...</div>
+
+    <script type="module">
+        import { EvolutionSafetySystem } from './evolution_safety.js';
+
+        const sys = new EvolutionSafetySystem();
+        window.sys = sys; // For debug
+
+        async function runTest(type) {
+            const logEl = document.getElementById('log');
+            const log = (msg, type = '') => {
+                logEl.innerHTML += `<div class="${type}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+                console.log(msg);
+            };
+
+            log(`Running Test: ${type}...`, 'info');
+
+            let code = '';
+            if (type === 'safe') {
+                code = 'return 42;';
+            } else if (type === 'infinite') {
+                code = 'while(true) {}; return 0;';
+            } else if (type === 'crash') {
+                code = 'retun 42;'; // Syntax error
+            } else if (type === 'forbidden') {
+                code = 'eval("alert(1)"); return 1;';
+            } else if (type === 'slow') {
+                code = '/* slow */ return 42;'; // trigger mock slow check
+            }
+
+            try {
+                const result = await sys.evaluate(code);
+
+                if (result.accepted) {
+                    if (type === 'safe') {
+                        log(`✅ Safe code accepted (v${result.version})`, 'success');
+                    } else {
+                        log(`❌ FAILURE: Unsafe Code (${type}) was accepted!`, 'error');
+                    }
+                } else {
+                    if (type === 'safe') {
+                        log(`❌ FAILURE: Safe code rejected: ${result.reason}`, 'error');
+                    } else {
+                        log(`✅ Safety Catch: ${result.reason}`, 'success');
+                    }
+                }
+
+            } catch (e) {
+                log(`System Error: ${e.message}`, 'error');
+            }
+        }
+
+        window.runTest = runTest;
+    </script>
+</body>
+
+</html>

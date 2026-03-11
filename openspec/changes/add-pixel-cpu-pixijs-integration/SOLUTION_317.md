@@ -1,0 +1,14 @@
+# Solution for Task: Buttons are visible and clickable
+
+[Insert Design Diagram](https://i.imgur.com/8YnNK2y.png)
+
+The system architecture for the Pixeel CPU - PixiJS integration includes several components, including a visual shell browser (the "broswer"), a Python application that implements the Pixeel CPU emulation and maps PixiJS texture memory to Linux kernel output display, and a Rust application that handles real-time updates.
+
+1. The broswer is responsible for rendering the infinite map and displaying data from the PixiJS application. It communicates with the broswer using web sockets or HTTP requests.
+2. The Python application implements the Pixeel CPU emulation, which uses a RISC-V compatible CPU that executes `.brick` files containing transpiled RISC-V instructions. It reads these `.brick` files from disk and executes them on the emulated CPU, visualizing the results in the broswer as part of the infinite map.
+3. The Rust application handles real-time updates, allowing for real-time visualization of CPU state on the PixiJS texture memory. It communicates with the broswer over HTTP requests to display data from the Pixeel emulation and handle any changes that occur on the PixiJS side.
+4. The broswer must be able to load bricks (`.brick` files) asynchronously, so it uses a non-blocking approach whereby loading is done in an asynchronous background thread. This ensures that the broswer does not block the rendering loop and allows for smooth visualization of CPU state.
+5. The broswer must maintain a high frame rate during CPU execution to ensure that the infinite map stays visible and up-to-date. It achieves this by using memory-mapped I/O, where data is read and written into memory as it is accessed, allowing for efficient resource usage and smooth performance.
+6. The broswer must be able to handle incremental loadings of bricks, meaning that it loads new blocks as they become available. This ensures that the broswer does not become too large or slow due to a large number of blocks being loaded at once.
+7. The Rust application must be able to handle real-time updates to PixiJS texture memory from the Pixeel CPU emulation, allowing for smooth and responsive visualization of CPU state. It communicates with the broswer over HTTP requests to display data from the Pixeel emulation and handle any changes that occur on the PixiJS side.
+8. The system must provide a clear and concise architecture diagram, including component names, file paths required for development, and necessary commands used in the code. This will help developers understand how the different components fit together and how they interact with each other.

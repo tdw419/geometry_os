@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry OS: Task DAG Visualization Test</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
+            font-family: 'Courier New', monospace;
+            color: #00ffff;
+            overflow: hidden;
+        }
+        #header {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid #00ffff33;
+        }
+        #header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        #header p {
+            margin: 5px 0 0 0;
+            color: #888;
+            font-size: 14px;
+        }
+        #status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 10px;
+            background: #00000055;
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background: linear-gradient(135deg, #00ffff 0%, #0088ff 100%);
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 255, 255, 0.5);
+        }
+        button:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        button.fail {
+            background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+            color: #fff;
+        }
+        button.burst {
+            background: linear-gradient(135deg, #ffaa00 0%, #ff6600 100%);
+            color: #000;
+        }
+        #log-panel {
+            position: fixed;
+            bottom: 100px;
+            left: 20px;
+            width: 500px;
+            height: 200px;
+            background: #000000aa;
+            border: 1px solid #00ffff33;
+            border-radius: 8px;
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 4px 0;
+            padding: 4px 8px;
+            border-radius: 3px;
+            border-left: 3px solid #00ffff;
+        }
+        .log-entry.submit { border-color: #00ff00; }
+        .log-entry.assign { border-color: #00aaff; }
+        .log-entry.complete { border-color: #44ff44; }
+        .log-entry.fail { border-color: #ff4444; }
+        .log-entry.burst { border-color: #ffaa00; }
+        .log-entry .timestamp {
+            color: #888;
+            font-size: 10px;
+        }
+        #task-stats {
+            position: fixed;
+            top: 120px;
+            right: 20px;
+            width: 300px;
+            background: #000000aa;
+            border: 1px solid #00ffff33;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        #task-stats h3 {
+            margin: 0 0 10px 0;
+            color: #00ffff;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #333;
+        }
+        .stat-value {
+            font-weight: bold;
+        }
+        .stat-value.pending { color: #888; }
+        .stat-value.assigned { color: #00aaff; }
+        .stat-value.running { color: #ffaa00; }
+        .stat-value.completed { color: #00ff00; }
+        .stat-value.failed { color: #ff4444; }
+        #instructions {
+            position: fixed;
+            top: 120px;
+            left: 20px;
+            width: 350px;
+            background: #000000aa;
+            border: 1px solid #00ffff33;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 12px;
+        }
+        #instructions h3 {
+            margin: 0 0 10px 0;
+            color: #00ffff;
+        }
+        #instructions code {
+            background: #222;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #ffff00;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>Task DAG Visualization Test</h1>
+        <p>Test page for distributed task graph visualization overlay</p>
+    </div>
+    <div id="status-bar">
+        <div class="status-item">
+            <span id="status-message">Ready</span>
+        </div>
+    </div>
+
+    <div id="instructions">
+        <h3>Instructions</h3>
+        <p>Use the buttons below to simulate task events.</p>
+        <p>Press <code>Ctrl+Shift+V</code> to toggle the HUD overlay.</p>
+        <p>The Task DAG overlay will visualize task dependencies and execution status.</p>
+    </div>
+
+    <div id="task-stats">
+        <h3>Task Statistics</h3>
+        <div class="stat-row">
+            <span>Pending:</span>
+            <span class="stat-value pending" id="stat-pending">0</span>
+        </div>
+        <div class="stat-row">
+            <span>Assigned:</span>
+            <span class="stat-value assigned" id="stat-assigned">0</span>
+        </div>
+        <div class="stat-row">
+            <span>Running:</span>
+            <span class="stat-value running" id="stat-running">0</span>
+        </div>
+        <div class="stat-row">
+            <span>Completed:</span>
+            <span class="stat-value completed" id="stat-completed">0</span>
+        </div>
+        <div class="stat-row">
+            <span>Failed:</span>
+            <span class="stat-value failed" id="stat-failed">0</span>
+        </div>
+        <div class="stat-row" style="border: none; margin-top: 10px;">
+            <span><strong>Total:</strong></span>
+            <span class="stat-value" id="stat-total">0</span>
+        </div>
+    </div>
+
+    <div id="log-panel">
+        <div style="color: #00ffff; margin-bottom: 10px;">Event Log:</div>
+    </div>
+
+    <div id="controls">
+        <button id="btn-submit">Submit Task</button>
+        <button id="btn-assign">Assign Task</button>
+        <button id="btn-complete">Complete Task</button>
+        <button id="btn-fail" class="fail">Fail Task</button>
+        <button id="btn-burst" class="burst">Burst (5 tasks)</button>
+    </div>
+
+    <script>
+        // Task DAG Test Controller
+        (function() {
+            'use strict';
+
+            // Initialize overlay task state if not exists
+            if (!window.overlay) {
+                window.overlay = {};
+            }
+            if (!window.overlay.taskDag) {
+                window.overlay.taskDag = {
+                    tasks: {},
+                    edges: [],
+                    stats: {
+                        pending: 0,
+                        assigned: 0,
+                        running: 0,
+                        completed: 0,
+                        failed: 0
+                    }
+                };
+            }
+
+            let taskIdCounter = 1;
+            const logPanel = document.getElementById('log-panel');
+            const statusMessage = document.getElementById('status-message');
+
+            // Task types for random generation
+            const taskTypes = ['compile', 'test', 'deploy', 'analyze', 'transform', 'validate'];
+            const agents = ['agent-alpha', 'agent-beta', 'agent-gamma', 'agent-delta'];
+
+            /**
+             * Generate a unique task ID
+             */
+            function generateTaskId() {
+                return `task-${Date.now()}-${taskIdCounter++}`;
+            }
+
+            /**
+             * Get random item from array
+             */
+            function randomChoice(arr) {
+                return arr[Math.floor(Math.random() * arr.length)];
+            }
+
+            /**
+             * Format timestamp for logging
+             */
+            function getTimestamp() {
+                return new Date().toLocaleTimeString('en-US', { hour12: false });
+            }
+
+            /**
+             * Log an event to the panel
+             */
+            function logEvent(type, message) {
+                const entry = document.createElement('div');
+                entry.className = `log-entry ${type}`;
+                entry.innerHTML = `<span class="timestamp">[${getTimestamp()}]</span> ${message}`;
+                logPanel.appendChild(entry);
+                logPanel.scrollTop = logPanel.scrollHeight;
+            }
+
+            /**
+             * Update statistics display
+             */
+            function updateStats() {
+                const stats = window.overlay.taskDag.stats;
+                document.getElementById('stat-pending').textContent = stats.pending;
+                document.getElementById('stat-assigned').textContent = stats.assigned;
+                document.getElementById('stat-running').textContent = stats.running;
+                document.getElementById('stat-completed').textContent = stats.completed;
+                document.getElementById('stat-failed').textContent = stats.failed;
+                document.getElementById('stat-total').textContent =
+                    stats.pending + stats.assigned + stats.running + stats.completed + stats.failed;
+            }
+
+            /**
+             * Update status message
+             */
+            function setStatus(message) {
+                statusMessage.textContent = message;
+            }
+
+            /**
+             * Submit a new task
+             */
+            function submitTask() {
+                const taskId = generateTaskId();
+                const taskType = randomChoice(taskTypes);
+
+                const task = {
+                    id: taskId,
+                    type: taskType,
+                    status: 'pending',
+                    createdAt: Date.now(),
+                    dependencies: [],
+                    agent: null,
+                    progress: 0
+                };
+
+                // Add to task DAG
+                window.overlay.taskDag.tasks[taskId] = task;
+                window.overlay.taskDag.stats.pending++;
+
+                // Dispatch event
+                window.dispatchEvent(new CustomEvent('TASK_DAG_UPDATE', {
+                    detail: {
+                        action: 'submit',
+                        task: task
+                    }
+                }));
+
+                logEvent('submit', `Submitted task <strong>${taskId}</strong> (type: ${taskType})`);
+                setStatus(`Task ${taskId} submitted`);
+                updateStats();
+            }
+
+            /**
+             * Assign a pending task to an agent
+             */
+            function assignTask() {
+                const tasks = Object.values(window.overlay.taskDag.tasks);
+                const pendingTask = tasks.find(t => t.status === 'pending');
+
+                if (!pendingTask) {
+                    logEvent('assign', 'No pending tasks to assign');
+                    setStatus('No pending tasks');
+                    return;
+                }
+
+                const agent = randomChoice(agents);
+                pendingTask.status = 'assigned';
+                pendingTask.agent = agent;
+                pendingTask.assignedAt = Date.now();
+
+                window.overlay.taskDag.stats.pending--;
+                window.overlay.taskDag.stats.assigned++;
+
+                // Dispatch event
+                window.dispatchEvent(new CustomEvent('TASK_DAG_UPDATE', {
+                    detail: {
+                        action: 'assign',
+                        task: pendingTask,
+                        agent: agent
+                    }
+                }));
+
+                logEvent('assign', `Assigned task <strong>${pendingTask.id}</strong> to <em>${agent}</em>`);
+                setStatus(`Task ${pendingTask.id} assigned to ${agent}`);
+                updateStats();
+            }
+
+            /**
+             * Complete an assigned task
+             */
+            function completeTask() {
+                const tasks = Object.values(window.overlay.taskDag.tasks);
+                const assignedTask = tasks.find(t => t.status === 'assigned');
+
+                if (!assignedTask) {
+                    logEvent('complete', 'No assigned tasks to complete');
+                    setStatus('No assigned tasks');
+                    return;
+                }
+
+                assignedTask.status = 'completed';
+                assignedTask.completedAt = Date.now();
+                assignedTask.progress = 100;
+
+                window.overlay.taskDag.stats.assigned--;
+                window.overlay.taskDag.stats.completed++;
+
+                // Dispatch event
+                window.dispatchEvent(new CustomEvent('TASK_DAG_UPDATE', {
+                    detail: {
+                        action: 'complete',
+                        task: assignedTask,
+                        result: 'success'
+                    }
+                }));
+
+                logEvent('complete', `Completed task <strong>${assignedTask.id}</strong>`);
+                setStatus(`Task ${assignedTask.id} completed`);
+                updateStats();
+            }
+
+            /**
+             * Fail an assigned task
+             */
+            function failTask() {
+                const tasks = Object.values(window.overlay.taskDag.tasks);
+                const assignedTask = tasks.find(t => t.status === 'assigned');
+
+                if (!assignedTask) {
+                    logEvent('fail', 'No assigned tasks to fail');
+                    setStatus('No assigned tasks');
+                    return;
+                }
+
+                assignedTask.status = 'failed';
+                assignedTask.failedAt = Date.now();
+                assignedTask.error = 'Simulated failure for testing';
+
+                window.overlay.taskDag.stats.assigned--;
+                window.overlay.taskDag.stats.failed++;
+
+                // Dispatch event
+                window.dispatchEvent(new CustomEvent('TASK_DAG_UPDATE', {
+                    detail: {
+                        action: 'fail',
+                        task: assignedTask,
+                        error: assignedTask.error
+                    }
+                }));
+
+                logEvent('fail', `Failed task <strong>${assignedTask.id}</strong>: ${assignedTask.error}`);
+                setStatus(`Task ${assignedTask.id} failed`);
+                updateStats();
+            }
+
+            /**
+             * Submit a burst of 5 tasks
+             */
+            function burstTasks() {
+                logEvent('burst', 'Starting burst of 5 tasks...');
+
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        submitTask();
+                    }, i * 100);
+                }
+
+                setStatus('Burst submitted');
+            }
+
+            // Bind button events
+            document.getElementById('btn-submit').addEventListener('click', submitTask);
+            document.getElementById('btn-assign').addEventListener('click', assignTask);
+            document.getElementById('btn-complete').addEventListener('click', completeTask);
+            document.getElementById('btn-fail').addEventListener('click', failTask);
+            document.getElementById('btn-burst').addEventListener('click', burstTasks);
+
+            // Keyboard shortcuts info
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.shiftKey && e.key === 'V') {
+                    logEvent('system', 'Toggling HUD overlay (Ctrl+Shift+V)');
+                }
+            });
+
+            // Initial log
+            logEvent('system', 'Task DAG Test Controller initialized');
+            logEvent('system', 'Press buttons to simulate task events');
+            updateStats();
+
+            console.log('Task DAG Test Controller loaded');
+            console.log('Access task state at: window.overlay.taskDag');
+        })();
+    </script>
+</body>
+</html>

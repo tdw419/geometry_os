@@ -1,0 +1,34 @@
+{
+  "swarm_name": "geometry-os-swarm",
+  "join_url": "http://10.42.0.1:8080",
+  "api_base": "http://10.42.0.1:8080/wp-json/geoos/v1",
+  "sync_endpoint": "http://10.42.0.1:8080/?rest_route=/geoos/v1/sync",
+  "plugin_required": "geometry-os-swarm-node",
+  "node_to_add": {
+    "node_id": "swarm-node-10.42.0.1",
+    "url": "http://10.42.0.1:8080",
+    "api_url": "http://10.42.0.1:8080/?rest_route=/geoos/v1",
+    "enabled": true
+  },
+  "instructions": [
+    "1. Copy the geometry-os-swarm-node plugin to your WordPress:",
+    "   mkdir -p /path/to/wordpress/wp-content/plugins/geometry-os-swarm-node",
+    "",
+    "2. Add this config to your remote_nodes.json:",
+    "   {",
+    "     \"nodes\": [{",
+    "       \"node_id\": \"swarm-node-10.42.0.1\",",
+    "       \"url\": \"http://10.42.0.1:8080\",",
+    "       \"api_url\": \"http://10.42.0.1:8080/?rest_route=/geoos/v1\",",
+    "       \"enabled\": true",
+    "     }]",
+    "   }",
+    "",
+    "3. Start your sync daemon:",
+    "   python3 systems/swarm/wp_discovery_daemon.py -f",
+    "",
+    "4. Test the connection:",
+    "   curl \"http://10.42.0.1:8080/?rest_route=/geoos/v1/swarm/info\""
+  ],
+  "plugin_download": "Available at: geometry_os/wordpress_zone/wordpress/wp-content/plugins/geometry-os-swarm-node/"
+}

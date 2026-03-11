@@ -1,0 +1,100 @@
+[2026-03-08T04:50:33.941Z] [ERROR] Failed to log system halt to evolution log {"error":"Cannot read properties of null (reading 'thresholdAdjustment')"}
+Stack trace:
+    at Logger.error (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/Logger.js:83:92)
+    at SyscallManager._handleUnrecoverableContextLoss (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:1118:20)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at SyscallManager.handleContextLoss (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:1069:13)
+[2026-03-08T04:50:33.941Z] [INFO] SystemLifecycle: Starting graceful shutdown...
+[2026-03-08T04:50:33.942Z] [INFO] SystemLifecycle: Shutdown complete
+[2026-03-08T04:50:33.942Z] [INFO] BenchmarkRegressionDetector disposed
+[2026-03-08T04:50:33.942Z] [INFO] PatchManager disposed
+[2026-03-08T04:50:33.944Z] [INFO] Feature flag ENABLE_LLMOPTIMIZATION registered at address 0x7000
+[2026-03-08T04:50:33.944Z] [INFO] Feature flag ENABLE_AUTO_OPTIMIZATION registered at address 0x7001
+[2026-03-08T04:50:33.944Z] [INFO] Feature flag ENABLE_OPCODE_EXPANSION registered at address 0x7002
+[2026-03-08T04:50:33.944Z] [INFO] Feature flag ENABLE_CODE_QUALITY_IMPROVEMENT registered at address 0x7003
+[2026-03-08T04:50:33.944Z] [INFO] Feature flag ENABLE_MUTATION_TESTING registered at address 0x7004
+[2026-03-08T04:50:33.945Z] [ERROR] WebGPU context lost in OpcodeDiscovery {"type":"gpu_context_loss","timestamp":"2026-03-08T04:50:33.945Z","reason":"destroyed","message":"Test context","lossCount":1,"component":"OpcodeDiscovery"}
+[2026-03-08T04:50:33.945Z] [ERROR] WebGPU context lost in SyscallManager {"type":"gpu_context_loss","timestamp":"2026-03-08T04:50:33.945Z","reason":"destroyed","message":"Test context","lossCount":1,"component":"SyscallManager"}
+[2026-03-08T04:50:33.945Z] [ERROR] Failed to log context loss to evolution log {"error":"Cannot read properties of null (reading 'thresholdAdjustment')"}
+Stack trace:
+    at Logger.error (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/Logger.js:83:92)
+    at SyscallManager._logContextLossToEvolution (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:1093:20)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at SyscallManager.handleContextLoss (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:1065:9)
+[2026-03-08T04:50:33.945Z] [ERROR] Context was explicitly destroyed, cannot recover
+[2026-03-08T04:50:33.945Z] [ERROR] Unrecoverable context loss, halting execution
+[2026-03-08T04:50:33.945Z] [ERROR] Failed to log system halt to evolution log {"error":"Cannot read properties of null (reading 'thresholdAdjustment')"}
+Stack trace:
+    at Logger.error (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/Logger.js:83:92)
+    at SyscallManager._handleUnrecoverableContextLoss (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:1118:20)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at SyscallManager.handleContextLoss (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:1069:13)
+[2026-03-08T04:50:33.945Z] [INFO] SystemLifecycle: Starting graceful shutdown...
+[2026-03-08T04:50:33.945Z] [INFO] SystemLifecycle: Shutdown complete
+[2026-03-08T04:50:33.946Z] [INFO] BenchmarkRegressionDetector disposed
+[2026-03-08T04:50:33.946Z] [INFO] PatchManager disposed
+[2026-03-08T04:50:33.947Z] [INFO] Feature flag ENABLE_LLMOPTIMIZATION registered at address 0x7000
+[2026-03-08T04:50:33.947Z] [INFO] Feature flag ENABLE_AUTO_OPTIMIZATION registered at address 0x7001
+[2026-03-08T04:50:33.947Z] [INFO] Feature flag ENABLE_OPCODE_EXPANSION registered at address 0x7002
+[2026-03-08T04:50:33.947Z] [INFO] Feature flag ENABLE_CODE_QUALITY_IMPROVEMENT registered at address 0x7003
+[2026-03-08T04:50:33.947Z] [INFO] Feature flag ENABLE_MUTATION_TESTING registered at address 0x7004
+[2026-03-08T04:50:33.947Z] [WARN] Could not initialize memory leak detector: "Cannot set properties of undefined (setting '#leakReportCallback')"
+[2026-03-08T04:50:33.947Z] [ERROR] WebGPU context lost in OpcodeDiscovery {"type":"gpu_context_loss","timestamp":"2026-03-08T04:50:33.947Z","reason":"destroyed","message":"Test context","lossCount":1,"component":"OpcodeDiscovery"}
+[2026-03-08T04:50:33.948Z] [ERROR] WebGPU context lost in SyscallManager {"type":"gpu_context_loss","timestamp":"2026-03-08T04:50:33.948Z","reason":"destroyed","message":"Test context","lossCount":1,"component":"SyscallManager"}
+[2026-03-08T04:50:33.948Z] [ERROR] Failed to log context loss to evolution log {"error":"Cannot read properties of null (reading 'thresholdAdjustment')"}
+Stack trace:
+    at Logger.error (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/Logger.js:83:92)
+    at SyscallManager._logContextLossToEvolution (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:1093:20)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at SyscallManager.handleContextLoss (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:1065:9)
+[2026-03-08T04:50:33.948Z] [ERROR] Context was explicitly destroyed, cannot recover
+[2026-03-08T04:50:33.948Z] [ERROR] Unrecoverable context loss, halting execution
+[2026-03-08T04:50:33.948Z] [ERROR] Failed to log system halt to evolution log {"error":"Cannot read properties of null (reading 'thresholdAdjustment')"}
+Stack trace:
+    at Logger.error (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/Logger.js:83:92)
+    at SyscallManager._handleUnrecoverableContextLoss (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:1118:20)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at SyscallManager.handleContextLoss (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:1069:13)
+[2026-03-08T04:50:33.948Z] [INFO] SystemLifecycle: Starting graceful shutdown...
+[2026-03-08T04:50:33.942Z] [INFO] Feature flag ENABLE_LLMOPTIMIZATION registered at address 0x7000
+[2026-03-08T04:50:33.942Z] [INFO] Feature flag ENABLE_AUTO_OPTIMIZATION registered at address 0x7001
+[2026-03-08T04:50:33.942Z] [INFO] Feature flag ENABLE_OPCODE_EXPANSION registered at address 0x7002
+[2026-03-08T04:50:33.942Z] [INFO] Feature flag ENABLE_CODE_QUALITY_IMPROVEMENT registered at address 0x7003
+[2026-03-08T04:50:33.942Z] [INFO] Feature flag ENABLE_MUTATION_TESTING registered at address 0x7004
+[2026-03-08T04:50:33.942Z] [ERROR] WebGPU context lost in OpcodeDiscovery {"type":"gpu_context_loss","timestamp":"2026-03-08T04:50:33.942Z","reason":"test","message":"Test context loss","lossCount":1,"component":"OpcodeDiscovery"}
+[2026-03-08T04:50:33.943Z] [ERROR] WebGPU context lost in SyscallManager {"type":"gpu_context_loss","timestamp":"2026-03-08T04:50:33.943Z","reason":"test","message":"Test context loss","lossCount":1,"component":"SyscallManager"}
+[2026-03-08T04:50:33.943Z] [ERROR] Failed to log context loss to evolution log {"error":"Cannot read properties of null (reading 'thresholdAdjustment')"}
+Stack trace:
+    at Logger.error (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/Logger.js:83:92)
+    at SyscallManager._logContextLossToEvolution (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:1093:20)
+    at SyscallManager.handleContextLoss (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:1065:9)
+[2026-03-08T04:50:33.943Z] [INFO] Attempting context loss recovery...
+[2026-03-08T04:50:33.943Z] [INFO] Recreating GPU resources after context loss...
+[2026-03-08T04:50:34.043Z] [WARN] SyscallManager cannot process syscalls: GPU context is lost
+[2026-03-08T04:50:34.046Z] [INFO] GPU resources recreated successfully
+[2026-03-08T04:50:34.046Z] [INFO] Context loss recovery completed successfully
+[2026-03-08T04:50:34.103Z] [WARN] LLM API attempt 2/3 failed {"error":"Network error"}
+[2026-03-08T04:50:34.657Z] [ERROR] WebGPU context lost in OpcodeDiscovery {"type":"gpu_context_loss","timestamp":"2026-03-08T04:50:34.657Z","reason":"test","message":"Test context loss","lossCount":1,"component":"OpcodeDiscovery"}
+[2026-03-08T04:50:34.758Z] [ERROR] WebGPU context lost in OpcodeDiscovery {"type":"gpu_context_loss","timestamp":"2026-03-08T04:50:34.758Z","reason":"test","message":"Test context loss","lossCount":1,"component":"OpcodeDiscovery"}
+[2026-03-08T04:50:34.959Z] [ERROR] WebGPU context lost in OpcodeDiscovery {"type":"gpu_context_loss","timestamp":"2026-03-08T04:50:34.959Z","reason":"test","message":"Test context loss","lossCount":1,"component":"OpcodeDiscovery"}
+[2026-03-08T04:50:35.066Z] [ERROR] WebGPU context lost in OpcodeDiscovery {"type":"gpu_context_loss","timestamp":"2026-03-08T04:50:35.066Z","reason":"test","message":"Test context loss","lossCount":1,"component":"OpcodeDiscovery"}
+[2026-03-08T04:50:35.166Z] [ERROR] WebGPU context lost in OpcodeDiscovery {"type":"gpu_context_loss","timestamp":"2026-03-08T04:50:35.166Z","reason":"test","message":"Test context loss","lossCount":1,"component":"OpcodeDiscovery"}
+[2026-03-08T04:50:35.268Z] [ERROR] WebGPU context lost in OpcodeDiscovery {"type":"gpu_context_loss","timestamp":"2026-03-08T04:50:35.268Z","reason":"test","message":"Test context loss","lossCount":1,"component":"OpcodeDiscovery"}
+[2026-03-08T04:50:35.470Z] [INFO] Feature flag ENABLE_LLMOPTIMIZATION registered at address 0x7000
+[2026-03-08T04:50:35.470Z] [INFO] Feature flag ENABLE_AUTO_OPTIMIZATION registered at address 0x7001
+[2026-03-08T04:50:35.470Z] [INFO] Feature flag ENABLE_OPCODE_EXPANSION registered at address 0x7002
+[2026-03-08T04:50:35.470Z] [INFO] Feature flag ENABLE_CODE_QUALITY_IMPROVEMENT registered at address 0x7003
+[2026-03-08T04:50:35.470Z] [INFO] Feature flag ENABLE_MUTATION_TESTING registered at address 0x7004
+[2026-03-08T04:50:35.470Z] [ERROR] WebGPU context lost in OpcodeDiscovery {"type":"gpu_context_loss","timestamp":"2026-03-08T04:50:35.470Z","reason":"test","message":"Simulated GPU crash","lossCount":1,"component":"OpcodeDiscovery"}
+[2026-03-08T04:50:35.470Z] [ERROR] WebGPU context lost in SyscallManager {"type":"gpu_context_loss","timestamp":"2026-03-08T04:50:35.470Z","reason":"test","message":"Simulated GPU crash","lossCount":1,"component":"SyscallManager"}
+[2026-03-08T04:50:35.470Z] [ERROR] Failed to log context loss to evolution log {"error":"Cannot read properties of null (reading 'thresholdAdjustment')"}
+Stack trace:
+    at Logger.error (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/Logger.js:83:92)
+    at SyscallManager._logContextLossToEvolution (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:1093:20)
+    at SyscallManager.handleContextLoss (/home/jericho/zion/projects/geometry_os/geometry_os/visual-vm/SyscallManager.js:1065:9)
+[2026-03-08T04:50:35.470Z] [INFO] Attempting context loss recovery...
+[2026-03-08T04:50:35.470Z] [INFO] Recreating GPU resources after context loss...
+[2026-03-08T04:50:35.571Z] [INFO] GPU resources recreated successfully
+[2026-03-08T04:50:35.571Z] [INFO] Context loss recovery completed successfully
+[2026-03-08T04:50:35.770Z] [INFO] Feature flag ENABLE_LLMOPTIMIZATION registered at address 0x7000
+[2026-03-08T04:50:35.770Z] [INFO] Feature flag ENABLE_AUTO_OPTIMIZATION registered at address 0x7001

@@ -1,0 +1,10 @@
+- [ ] Initialize Rust project `systems/rts_fuse/rts_rs`
+- [ ] Implement `HilbertEngine` in Rust (`src/hilbert.rs`)
+- [ ] Implement `RTSFilesystem` struct with `fuser` (`src/fs.rs`)
+- [ ] Implement `getattr` operation
+- [ ] Implement `readdir` operation
+- [ ] Implement `read` operation (mapped to pixels)
+- [ ] Implement `write` operation (mapped to pixels)
+- [ ] Implement `create` and `mkdir` operations
+- [ ] Add CLI for mounting (`src/main.rs`)
+- [ ] Verify functionality with `demo_rts_workflow.py` (adapted) or manual test

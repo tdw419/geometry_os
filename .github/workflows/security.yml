@@ -1,0 +1,239 @@
+name: Security Scan
+
+on:
+  schedule:
+    # Run security scans daily
+    - cron: '0 4 * * *'  # Daily at 4 AM UTC
+  push:
+    branches: [ main, develop ]
+    paths:
+      - '**/*.py'
+      - '**/*.cpp'
+      - '**/*.h'
+      - 'requirements.txt'
+      - 'pyproject.toml'
+      - 'package.json'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - '**/*.py'
+      - '**/*.cpp'
+      - '**/*.h'
+      - 'requirements.txt'
+      - 'pyproject.toml'
+      - 'package.json'
+  workflow_dispatch:
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Install security tools
+      run: |
+        apt-get update
+        apt-get install -y \
+          python3 \
+          python3-pip \
+          curl \
+          wget \
+          git
+
+    - name: Install Python security packages
+      run: |
+        pip3 install \
+          bandit \
+          safety \
+          semgrep \
+          trivy
+
+    - name: Run Bandit (Python security)
+      run: |
+        echo "Running Bandit security scan..."
+        bandit -r . -f json -o bandit_report.json --exclude "test_*","tests","build",".venv" || echo "Bandit found security issues"
+        bandit -r . --exclude "test_*","tests","build",".venv" || echo "Bandit completed with issues"
+
+    - name: Run Safety (dependency vulnerability scan)
+      run: |
+        echo "Running Safety dependency scan..."
+        safety check --json > safety_report.json 2>/dev/null || echo "Safety scan completed"
+        cat safety_report.json | jq '.' || echo "No safety issues found or unable to parse"
+
+    - name: Run Semgrep (semantic code analysis)
+      run: |
+        echo "Running Semgrep analysis..."
+        semgrep --config auto --json > semgrep_report.json 2>/dev/null || echo "Semgrep scan completed"
+        semgrep --config auto --verbose || echo "Semgrep found issues"
+
+    - name: Run Trivy (container vulnerability scan)
+      run: |
+        echo "Running Trivy filesystem scan..."
+        trivy filesystem --format json --output trivy_report.json . || echo "Trivy scan completed"
+
+    - name: Run additional security checks
+      run: |
+        echo "Running additional security checks..."
+
+        # Check for hardcoded secrets
+        echo "Checking for potential hardcoded secrets..."
+        grep -r -i "password\|secret\|key\|token" --include="*.py" --include="*.cpp" --include="*.h" . | \
+          grep -v "test" | grep -v "__pycache__" | grep -v ".git" | head -10 || echo "No obvious secrets found"
+
+        # Check file permissions
+        echo "Checking file permissions..."
+        find . -type f \( -name "*.py" -o -name "*.sh" \) -executable | head -10
+
+    - name: Generate security summary
+      run: |
+        echo "Generating security summary..."
+
+        # Create summary report
+        cat > security_summary.md << 'EOF'
+        # Security Scan Summary
+        Generated: $(date)
+
+        ## Scan Results
+
+        ### Bandit (Python Security)
+        EOF
+
+        if [ -f "bandit_report.json" ]; then
+          echo "\`\`\`json" >> security_summary.md
+          cat bandit_report.json | jq '.results // empty' >> security_summary.md 2>/dev/null || echo "No results" >> security_summary.md
+          echo "\`\`\`" >> security_summary.md
+        else
+          echo "No Bandit report generated" >> security_summary.md
+        fi
+
+        cat >> security_summary.md << 'EOF'
+
+        ### Safety (Dependencies)
+        EOF
+
+        if [ -f "safety_report.json" ]; then
+          echo "\`\`\`json" >> security_summary.md
+          cat safety_report.json >> security_summary.md
+          echo "\`\`\`" >> security_summary.md
+        else
+          echo "No Safety report generated" >> security_summary.md
+        fi
+
+        cat >> security_summary.md << 'EOF'
+
+        ### Semgrep (Code Analysis)
+        EOF
+
+        if [ -f "semgrep_report.json" ]; then
+          echo "\`\`\`json" >> security_summary.md
+          cat semgrep_report.json | jq '.results // empty' >> security_summary.md 2>/dev/null || echo "No results" >> security_summary.md
+          echo "\`\`\`" >> security_summary.md
+        else
+          echo "No Semgrep report generated" >> security_summary.md
+        fi
+
+        cat >> security_summary.md << 'EOF'
+
+        ### Trivy (Vulnerabilities)
+        EOF
+
+        if [ -f "trivy_report.json" ]; then
+          echo "\`\`\`json" >> security_summary.md
+          cat trivy_report.json | jq '.Results // empty' >> security_summary.md 2>/dev/null || echo "No results" >> security_summary.md
+          echo "\`\`\`" >> security_summary.md
+        else
+          echo "No Trivy report generated" >> security_summary.md
+        fi
+
+        echo "" >> security_summary.md
+        echo "---" >> security_summary.md
+        echo "*Security scan completed*" >> security_summary.md
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports-${{ github.run_number }}
+        path: |
+          bandit_report.json
+          safety_report.json
+          semgrep_report.json
+          trivy_report.json
+          security_summary.md
+
+    - name: Check for critical vulnerabilities
+      run: |
+        # Check for critical issues
+        critical_found=false
+
+        # Check Bandit for high severity
+        if [ -f "bandit_report.json" ]; then
+          high_count=$(cat bandit_report.json | jq '.metrics._totals."CONFIDENCE.HIGH" // 0' 2>/dev/null || echo "0")
+          if [ "$high_count" -gt 0 ]; then
+            echo "🚨 High confidence security issues found in Bandit scan"
+            critical_found=true
+          fi
+        fi
+
+        # Check Safety for vulnerabilities
+        if [ -f "safety_report.json" ]; then
+          vuln_count=$(cat safety_report.json | jq 'length' 2>/dev/null || echo "0")
+          if [ "$vuln_count" -gt 0 ]; then
+            echo "🚨 Dependency vulnerabilities found"
+            critical_found=true
+          fi
+        fi
+
+        if [ "$critical_found" = true ]; then
+          echo "Critical security issues detected"
+          exit 1
+        else
+          echo "No critical security issues found"
+        fi
+
+  security-alert:
+    runs-on: ubuntu-latest
+    needs: security-scan
+    if: failure()
+
+    steps:
+    - name: Create security issue
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const title = `Security Issues Detected - ${new Date().toISOString().split('T')[0]}`;
+          const body = `
+          ## 🚨 Security Alert
+
+          Critical security issues have been detected in the latest security scan.
+
+          **Run Details:**
+          - Workflow: ${{ github.workflow }}
+          - Run: #${{ github.run_number }}
+          - Commit: ${{ github.sha }}
+          - Branch: ${{ github.ref }}
+
+          **Actions Required:**
+          1. Review the security scan reports
+          2. Address the identified vulnerabilities
+          3. Update dependencies if necessary
+          4. Re-run security scans
+
+          **Artifacts:**
+          - [Security Reports](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+          This issue was automatically created by the security scanning system.
+          `;
+
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: title,
+            body: body,
+            labels: ['security', 'vulnerability', 'automated']
+          });

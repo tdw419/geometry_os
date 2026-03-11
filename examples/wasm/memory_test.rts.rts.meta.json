@@ -1,0 +1,10 @@
+{
+  "format": "pixelrts_v2",
+  "version": "2.0",
+  "width": 256,
+  "height": 256,
+  "embedded_type": "wasm",
+  "wasm_size": 52,
+  "encoding": "linear_rgb",
+  "source_file": "memory_test.wasm"
+}

@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaboration Manager - Test Suite</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        #test-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #header {
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border-bottom: 2px solid #00ffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #header h1 {
+            font-size: 20px;
+            color: #00ffff;
+        }
+
+        #controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+        }
+
+        .btn.active {
+            background: rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .btn.danger {
+            border-color: #ff4444;
+            color: #ff4444;
+        }
+
+        .btn.danger:hover {
+            background: rgba(255, 68, 68, 0.2);
+        }
+
+        #main-area {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0a0a15;
+        }
+
+        #sidebar {
+            width: 320px;
+            background: rgba(0, 0, 0, 0.7);
+            border-left: 1px solid #333;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .panel {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+
+        .panel h3 {
+            font-size: 14px;
+            color: #00ffff;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 12px;
+        }
+
+        .stat-label {
+            color: #888;
+        }
+
+        .stat-value {
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+        }
+
+        .log-entry {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            padding: 3px 0;
+            border-bottom: 1px solid #222;
+        }
+
+        .log-info { color: #888; }
+        .log-success { color: #00ff88; }
+        .log-warning { color: #ffaa00; }
+        .log-error { color: #ff4444; }
+
+        .input-group {
+            margin: 10px 0;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .peer-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .peer-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+
+        .peer-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .peer-cursor {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .peer-name {
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .peer-role {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .role-admin { background: rgba(255, 0, 0, 0.3); }
+        .role-editor { background: rgba(0, 255, 0, 0.3); }
+        .role-viewer { background: rgba(128, 128, 128, 0.3); }
+
+        #presence-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        .session-url {
+            word-break: break-all;
+            font-size: 10px;
+            color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .recording-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff0000;
+            animation: pulse 1s infinite;
+            margin-right: 5px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div id="test-container">
+        <div id="header">
+            <h1>🤝 Collaboration Manager - Test Suite</h1>
+            <div id="controls">
+                <button class="btn" id="init-btn">Initialize</button>
+                <button class="btn" id="create-btn" disabled>Create Session</button>
+                <button class="btn" id="join-btn" disabled>Join Session</button>
+                <button class="btn" id="leave-btn" disabled>Leave</button>
+                <button class="btn" id="record-btn" disabled>Record</button>
+                <button class="btn" id="playback-btn" disabled>Playback</button>
+            </div>
+        </div>
+
+        <div id="main-area">
+            <div id="canvas-container">
+                <canvas id="test-canvas" width="800" height="600"></canvas>
+                <canvas id="presence-canvas" width="800" height="600"></canvas>
+            </div>
+
+            <div id="sidebar">
+                <div class="panel">
+                    <h3>Session</h3>
+                    <div class="stat-row">
+                        <span class="stat-label">Session ID:</span>
+                        <span class="stat-value" id="stat-session">None</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">User ID:</span>
+                        <span class="stat-value" id="stat-user">None</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Role:</span>
+                        <span class="stat-value" id="stat-role">None</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Status:</span>
+                        <span class="stat-value" id="stat-status">Disconnected</span>
+                    </div>
+                    <div id="session-url-container"></div>
+                </div>
+
+                <div class="panel">
+                    <h3>Connected Peers</h3>
+                    <div class="peer-list" id="peer-list">
+                        <div style="color: #888; font-size: 12px; text-align: center; padding: 20px;">
+                            No peers connected
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>Shared State</h3>
+                    <div class="input-group">
+                        <label>Key</label>
+                        <input type="text" id="state-key" placeholder="e.g., filter">
+                    </div>
+                    <div class="input-group">
+                        <label>Value (JSON)</label>
+                        <input type="text" id="state-value" placeholder='e.g., {"mode": "thermal"}'>
+                    </div>
+                    <button class="btn" id="share-btn" disabled style="width: 100%; margin-top: 10px;">
+                        Share State
+                    </button>
+                </div>
+
+                <div class="panel">
+                    <h3>Test Log</h3>
+                    <div id="test-log" style="max-height: 200px; overflow-y: auto;">
+                        <div class="log-entry log-info">[INFO] Test suite initialized</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load collaboration manager -->
+    <script src="collaboration_manager.js"></script>
+
+    <script>
+        /**
+         * Test Runner for CollaborationManager
+         */
+        class CollaborationTestRunner {
+            constructor() {
+                this.collaboration = null;
+                this.testCanvas = null;
+                this.presenceCanvas = null;
+                this.presenceCtx = null;
+                this.isRecording = false;
+
+                this.init();
+            }
+
+            async init() {
+                this.log('Initializing test suite...', 'info');
+
+                // Setup canvases
+                this.testCanvas = document.getElementById('test-canvas');
+                this.presenceCanvas = document.getElementById('presence-canvas');
+                this.presenceCtx = this.presenceCanvas.getContext('2d');
+
+                // Draw test pattern
+                this._drawTestPattern();
+
+                // Setup controls
+                this._setupControls();
+
+                // Check for session in URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const sessionParam = urlParams.get('session');
+                if (sessionParam) {
+                    document.getElementById('join-btn').textContent = `Join: ${sessionParam.slice(0, 12)}...`;
+                }
+
+                this.log('Test suite ready', 'success');
+            }
+
+            _drawTestPattern() {
+                const ctx = this.testCanvas.getContext('2d');
+                const gradient = ctx.createLinearGradient(0, 0, 800, 600);
+                gradient.addColorStop(0, '#0a0a1a');
+                gradient.addColorStop(0.5, '#1a1a3a');
+                gradient.addColorStop(1, '#0a0a1a');
+
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, 800, 600);
+
+                // Draw grid
+                ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+                ctx.lineWidth = 1;
+
+                for (let x = 0; x < 800; x += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, 600);
+                    ctx.stroke();
+                }
+
+                for (let y = 0; y < 600; y += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(800, y);
+                    ctx.stroke();
+                }
+
+                // Draw heatmap visualization
+                for (let i = 0; i < 50; i++) {
+                    const x = Math.random() * 800;
+                    const y = Math.random() * 600;
+                    const radius = Math.random() * 50 + 20;
+                    const alpha = Math.random() * 0.3 + 0.1;
+
+                    const hue = Math.random() * 60 + 180; // Cyan to blue
+                    ctx.fillStyle = `hsla(${hue}, 100%, 50%, ${alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            _setupControls() {
+                // Initialize button
+                document.getElementById('init-btn').onclick = async () => {
+                    await this.initializeCollaboration();
+                };
+
+                // Create session button
+                document.getElementById('create-btn').onclick = async () => {
+                    await this.createSession();
+                };
+
+                // Join session button
+                document.getElementById('join-btn').onclick = async () => {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const sessionParam = urlParams.get('session');
+                    if (sessionParam) {
+                        await this.joinSession(sessionParam);
+                    } else {
+                        const sessionId = prompt('Enter Session ID:');
+                        if (sessionId) {
+                            await this.joinSession(sessionId);
+                        }
+                    }
+                };
+
+                // Leave session button
+                document.getElementById('leave-btn').onclick = async () => {
+                    await this.leaveSession();
+                };
+
+                // Record button
+                document.getElementById('record-btn').onclick = () => {
+                    this.toggleRecording();
+                };
+
+                // Playback button
+                document.getElementById('playback-btn').onclick = () => {
+                    this.startPlayback();
+                };
+
+                // Share state button
+                document.getElementById('share-btn').onclick = () => {
+                    this.shareState();
+                };
+
+                // Mouse tracking for presence
+                this.presenceCanvas.addEventListener('mousemove', (e) => {
+                    const rect = this.presenceCanvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+
+                    if (this.collaboration && this.collaboration.isConnected) {
+                        this.collaboration.updatePresence({ x, y });
+                    }
+                });
+            }
+
+            async initializeCollaboration() {
+                try {
+                    this.log('Initializing CollaborationManager...', 'info');
+
+                    this.collaboration = new CollaborationManager({
+                        signalingServer: 'ws://localhost:8080',
+                        autoReconnect: true
+                    });
+
+                    await this.collaboration.init();
+
+                    // Setup event listeners
+                    this._setupEventListeners();
+
+                    // Update UI
+                    document.getElementById('stat-user').textContent = this.collaboration.userId.slice(0, 12) + '...';
+                    document.getElementById('init-btn').disabled = true;
+                    document.getElementById('create-btn').disabled = false;
+                    document.getElementById('join-btn').disabled = false;
+
+                    this.log('CollaborationManager initialized', 'success');
+                } catch (error) {
+                    this.log(`Initialization failed: ${error.message}`, 'error');
+                    console.error(error);
+                }
+            }
+
+            _setupEventListeners() {
+                this.collaboration.on('sessionCreated', (data) => {
+                    this.log(`Session created: ${data.sessionId}`, 'success');
+                    this.updateSessionInfo(data);
+                });
+
+                this.collaboration.on('sessionJoined', (data) => {
+                    this.log(`Joined session with ${data.peerCount} peers`, 'success');
+                    this.updateSessionInfo(data);
+                });
+
+                this.collaboration.on('sessionLeft', (data) => {
+                    this.log('Left session', 'info');
+                    this.resetSessionInfo();
+                });
+
+                this.collaboration.on('peerJoined', (data) => {
+                    this.log(`${data.userName} joined the session`, 'success');
+                    this.updatePeerList();
+                });
+
+                this.collaboration.on('peerLeft', (data) => {
+                    this.log(`Peer ${data.userId} left`, 'info');
+                    this.updatePeerList();
+                });
+
+                this.collaboration.on('stateChanged', (data) => {
+                    this.log(`State changed: ${data.key} = ${JSON.stringify(data.value)}`, 'info');
+                });
+
+                this.collaboration.on('cursorMoved', (data) => {
+                    this.drawRemoteCursor(data.userId, data.cursor, data.userName);
+                });
+
+                this.collaboration.on('presenceChanged', (data) => {
+                    this.drawRemoteCursor(data.userId, data.presence);
+                });
+
+                this.collaboration.on('recordingStarted', (data) => {
+                    this.log('Recording started', 'info');
+                    document.getElementById('record-btn').textContent = 'Stop Recording';
+                    document.getElementById('record-btn').classList.add('danger');
+                });
+
+                this.collaboration.on('recordingStopped', (data) => {
+                    this.log(`Recording stopped (${data.recording.length} events)`, 'success');
+                    document.getElementById('record-btn').textContent = 'Record';
+                    document.getElementById('record-btn').classList.remove('danger');
+                    document.getElementById('playback-btn').disabled = false;
+                    this.lastRecording = data.recording;
+                });
+            }
+
+            async createSession() {
+                try {
+                    const session = await this.collaboration.createSession({
+                        sessionName: 'Neural Heatmap Test Session',
+                        maxParticipants: 10
+                    });
+
+                    this.log('Session created successfully!', 'success');
+
+                    // Enable controls
+                    document.getElementById('leave-btn').disabled = false;
+                    document.getElementById('record-btn').disabled = false;
+                    document.getElementById('share-btn').disabled = false;
+
+                    // Start presence animation
+                    this._startPresenceAnimation();
+                } catch (error) {
+                    this.log(`Failed to create session: ${error.message}`, 'error');
+                }
+            }
+
+            async joinSession(sessionId) {
+                try {
+                    const session = await this.collaboration.joinSession(sessionId, {
+                        userName: 'Test User'
+                    });
+
+                    this.log('Joined session successfully!', 'success');
+
+                    // Enable controls
+                    document.getElementById('leave-btn').disabled = false;
+                    document.getElementById('share-btn').disabled = !this.collaboration._canEdit();
+
+                    // Start presence animation
+                    this._startPresenceAnimation();
+                } catch (error) {
+                    this.log(`Failed to join session: ${error.message}`, 'error');
+                }
+            }
+
+            async leaveSession() {
+                try {
+                    await this.collaboration.leaveSession();
+                    this.log('Left session', 'info');
+                } catch (error) {
+                    this.log(`Failed to leave session: ${error.message}`, 'error');
+                }
+            }
+
+            toggleRecording() {
+                if (this.isRecording) {
+                    this.lastRecording = this.collaboration.stopRecording();
+                    this.isRecording = false;
+                } else {
+                    this.collaboration.startRecording();
+                    this.isRecording = true;
+                }
+            }
+
+            startPlayback() {
+                if (this.lastRecording) {
+                    this.collaboration.startPlayback(this.lastRecording, { speed: 1 });
+                    this.log('Starting playback...', 'info');
+                } else {
+                    this.log('No recording to play', 'warning');
+                }
+            }
+
+            shareState() {
+                const key = document.getElementById('state-key').value;
+                const valueStr = document.getElementById('state-value').value;
+
+                if (!key) {
+                    this.log('Please enter a key', 'warning');
+                    return;
+                }
+
+                let value;
+                try {
+                    value = valueStr ? JSON.parse(valueStr) : null;
+                } catch (error) {
+                    this.log('Invalid JSON value', 'error');
+                    return;
+                }
+
+                const success = this.collaboration.share(key, value);
+                if (success) {
+                    this.log(`Shared state: ${key}`, 'success');
+                } else {
+                    this.log('Failed to share state', 'error');
+                }
+            }
+
+            updateSessionInfo(data) {
+                document.getElementById('stat-session').textContent = data.sessionId.slice(0, 12) + '...';
+                document.getElementById('stat-role').textContent = data.role;
+                document.getElementById('stat-status').textContent = 'Connected';
+                document.getElementById('stat-status').style.color = '#00ff88';
+
+                if (data.joinUrl) {
+                    const container = document.getElementById('session-url-container');
+                    container.innerHTML = `
+                        <div class="session-url">
+                            <strong>Share URL:</strong><br>
+                            <a href="${data.joinUrl}" style="color: #00ff88;">${data.joinUrl}</a>
+                        </div>
+                    `;
+                }
+            }
+
+            resetSessionInfo() {
+                document.getElementById('stat-session').textContent = 'None';
+                document.getElementById('stat-role').textContent = 'None';
+                document.getElementById('stat-status').textContent = 'Disconnected';
+                document.getElementById('stat-status').style.color = '#ff4444';
+                document.getElementById('session-url-container').innerHTML = '';
+
+                document.getElementById('leave-btn').disabled = true;
+                document.getElementById('record-btn').disabled = true;
+                document.getElementById('share-btn').disabled = true;
+            }
+
+            updatePeerList() {
+                const peers = this.collaboration.getPeers();
+                const container = document.getElementById('peer-list');
+
+                if (peers.length === 0) {
+                    container.innerHTML = `
+                        <div style="color: #888; font-size: 12px; text-align: center; padding: 20px;">
+                            No peers connected
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = peers.map(peer => `
+                    <div class="peer-item">
+                        <div class="peer-info">
+                            <div class="peer-cursor" style="background: ${this._getPeerColor(peer.userId)};"></div>
+                            <span class="peer-name">${peer.userName}</span>
+                        </div>
+                        <span class="peer-role role-${peer.role}">${peer.role}</span>
+                    </div>
+                `).join('');
+            }
+
+            _getPeerColor(userId) {
+                const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
+                let hash = 0;
+                for (let i = 0; i < userId.length; i++) {
+                    hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                return colors[Math.abs(hash) % colors.length];
+            }
+
+            drawRemoteCursor(userId, cursor, userName) {
+                const color = this._getPeerColor(userId);
+                const ctx = this.presenceCtx;
+
+                ctx.clearRect(0, 0, 800, 600);
+
+                // Draw cursor
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(cursor.x, cursor.y, 8, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw name tag
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(cursor.x + 12, cursor.y - 8, ctx.measureText(userName || 'User').width + 8, 16);
+                ctx.fillStyle = color;
+                ctx.font = '12px monospace';
+                ctx.fillText(userName || 'User', cursor.x + 16, cursor.y + 4);
+            }
+
+            _startPresenceAnimation() {
+                const animate = () => {
+                    if (!this.collaboration.isConnected) return;
+
+                    const presence = this.collaboration.getPresence();
+
+                    // Clear and redraw all cursors
+                    this.presenceCtx.clearRect(0, 0, 800, 600);
+
+                    for (const [userId, data] of presence) {
+                        if (data.visible) {
+                            this.drawRemoteCursor(userId, data, `User_${userId.slice(0, 6)}`);
+                        }
+                    }
+
+                    requestAnimationFrame(animate);
+                };
+
+                animate();
+            }
+
+            log(message, type = 'info') {
+                const logContainer = document.getElementById('test-log');
+                const entry = document.createElement('div');
+                entry.className = `log-entry log-${type}`;
+                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                logContainer.appendChild(entry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+        }
+
+        // Initialize test runner when page loads
+        let testRunner;
+        document.addEventListener('DOMContentLoaded', () => {
+            testRunner = new CollaborationTestRunner();
+        });
+    </script>
+</body>
+</html>

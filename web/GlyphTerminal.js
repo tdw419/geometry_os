@@ -94,21 +94,33 @@ export class GlyphTerminal {
     _createUI() {
         this.element = document.createElement('div');
         this.element.className = 'glyph-terminal';
+        this.element.setAttribute('role', 'application');
+        this.element.setAttribute('aria-label', 'Glyph Terminal - Command line interface');
         this.element.innerHTML = `
-            <div class="terminal-header">
-                <span class="terminal-title">Glyph Terminal</span>
-                <span class="terminal-controls">
-                    <button class="term-btn" id="term-clear">Clear</button>
-                    <button class="term-btn" id="term-export">Export</button>
+            <div class="terminal-header" role="banner">
+                <span class="terminal-title" id="terminal-title">Glyph Terminal</span>
+                <span class="terminal-controls" role="toolbar" aria-label="Terminal controls">
+                    <button class="term-btn" id="term-clear" aria-label="Clear terminal output">Clear</button>
+                    <button class="term-btn" id="term-export" aria-label="Export terminal log">Export</button>
                 </span>
             </div>
-            <div class="terminal-output" id="terminal-output"></div>
+            <div class="terminal-output" id="terminal-output"
+                 role="log"
+                 aria-label="Terminal output"
+                 aria-live="polite"
+                 aria-labelledby="terminal-title"></div>
             <div class="terminal-input-line">
-                <span class="terminal-prompt">$</span>
+                <span class="terminal-prompt" aria-hidden="true">$</span>
+                <label for="terminal-input" class="sr-only">Command input</label>
                 <input type="text" class="terminal-input" id="terminal-input"
-                       autofocus autocomplete="off" spellcheck="false">
+                       autofocus
+                       autocomplete="off"
+                       spellcheck="false"
+                       aria-label="Enter command"
+                       aria-describedby="terminal-help">
+                <span id="terminal-help" class="sr-only">Type a command and press Enter. Press Tab for autocomplete. Arrow up/down for history.</span>
             </div>
-            <div class="terminal-status">
+            <div class="terminal-status" role="status" aria-label="Terminal status">
                 <span id="term-cursor">1:1</span>
                 <span id="term-mode">INSERT</span>
                 <span id="term-processes">0 processes</span>

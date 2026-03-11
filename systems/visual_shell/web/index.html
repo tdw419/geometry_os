@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry OS - Visual Shell</title>
+    <script src="https://pixijs.download/v8.0.0/pixi.min.js"></script>
+    <link rel="stylesheet" href="css/districts.css">
+    <style>
+        body, html { margin: 0; padding: 0; background: #050505; color: #00FFCC; font-family: 'Courier New', Courier, monospace; overflow: hidden; height: 100vh; }
+        #canvas-container { width: 100vw; height: 100vh; cursor: crosshair; }
+        #overlay { position: absolute; top: 10px; left: 10px; pointer-events: none; }
+        .stats { background: rgba(0, 0, 0, 0.7); padding: 10px; border: 1px solid #00FFCC; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div id="overlay">
+        <div class="stats" id="main-stats">
+            GEOMETRY OS: Phase 49 Neural Districts<br>
+            ORGANISMS: <span id="org-count">0</span><br>
+            DISTRICTS: <span id="district-count">0</span><br>
+            FFI FUNCTIONS: <span id="ffi-count">0</span><br>
+            STATUS: <span id="status">CONNECTING...</span>
+        </div>
+    </div>
+
+    <script type="module">
+        import { NeuralCityEngine } from './js/NeuralCityEngine.js';
+        import { DistrictOverlay } from './js/DistrictOverlay.js';
+
+        async function init() {
+            const app = new PIXI.Application();
+            await app.init({
+                background: '#050505',
+                resizeTo: window,
+                antialias: true
+            });
+            document.getElementById('canvas-container').appendChild(app.canvas);
+
+            const engine = new NeuralCityEngine({ app });
+            await engine.start();
+            engine.connectFFI(); // Connect to FFI Bridge for CV/Analysis
+
+            // Initialize District Overlay
+            const districtOverlay = new DistrictOverlay(app, {
+                ghostDepth: 60,
+                showLabels: true,
+                borderGlowIntensity: 0.8
+            });
+
+            // Add district overlay to engine world
+            engine.world.addChild(districtOverlay.container);
+
+            // Connect to district server
+            districtOverlay.connect('ws://localhost:8773');
+
+            // Handle district selection events
+            document.addEventListener('districtSelected', (event) => {
+                const district = event.detail.district;
+                console.log('[Main] District selected:', district.name);
+                // Could trigger GlassBoxOverlay or other UI here
+            });
+
+            // Update overlay stats with district count
+            setInterval(() => {
+                const count = engine.orchestrator.buildings.size;
+                document.getElementById('org-count').innerText = count;
+                const status = engine.running
+                    ? (engine.isFFIConnected ? "ONLINE" : "PARTIAL")
+                    : "OFFLINE";
+                document.getElementById('status').innerText = status;
+
+                // Show FFI functions count
+                const ffiCount = engine.ffiFunctions.length;
+                const ffiEl = document.getElementById('ffi-count');
+                if (ffiEl) ffiEl.innerText = ffiCount;
+
+                // Update district count if available
+                const districtCount = districtOverlay.getAllDistricts().size;
+                const districtEl = document.getElementById('district-count');
+                if (districtEl) districtEl.innerText = districtCount;
+            }, 1000);
+
+            // Animation loop for district overlay
+            app.ticker.add((ticker) => {
+                districtOverlay.update(ticker.deltaTime);
+            });
+
+            // Handle window resizing
+            window.addEventListener('resize', () => {
+                app.renderer.resize(window.innerWidth, window.innerHeight);
+            });
+
+            // Zoom/Pan logic (Simple implementation)
+            let isDragging = false;
+            let lastPos = { x: 0, y: 0 };
+
+            app.canvas.addEventListener('mousedown', (e) => {
+                if (e.button === 1 || (e.button === 0 && e.altKey)) {
+                    isDragging = true;
+                    lastPos = { x: e.clientX, y: e.y };
+                }
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const dx = e.clientX - lastPos.x;
+                    const dy = e.clientY - lastPos.y;
+                    engine.world.x += dx;
+                    engine.world.y += dy;
+                    lastPos = { x: e.clientX, y: e.clientY };
+                }
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            app.canvas.addEventListener('wheel', (e) => {
+                const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+                engine.world.scale.x *= zoomFactor;
+                engine.world.scale.y *= zoomFactor;
+            });
+
+            // Cleanup on page unload
+            window.addEventListener('beforeunload', () => {
+                districtOverlay.destroy();
+            });
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

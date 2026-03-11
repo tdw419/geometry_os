@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Geometry OS Visual Shell - Interactive process manager for GPU-native computing">
+    <meta name="theme-color" content="#000000">
     <title>Geometry OS | Visual Shell</title>
     <style>
         * {
@@ -19,6 +21,81 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
+        }
+
+        /* Accessibility: Skip link */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: #00ffcc;
+            color: #000;
+            padding: 8px 16px;
+            z-index: 10000;
+            text-decoration: none;
+            font-weight: bold;
+            transition: top 0.2s;
+        }
+
+        .skip-link:focus {
+            top: 0;
+        }
+
+        /* Accessibility: Screen reader only */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Accessibility: Focus indicators for keyboard users */
+        .keyboard-navigation *:focus {
+            outline: 3px solid #00ffcc !important;
+            outline-offset: 2px;
+        }
+
+        .keyboard-navigation button:focus,
+        .keyboard-navigation .btn:focus {
+            outline: 3px solid #ff00ff !important;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+        }
+
+        .keyboard-navigation .process-item:focus {
+            outline: 2px solid #ff00ff !important;
+            background: rgba(255, 0, 255, 0.2);
+        }
+
+        /* Accessibility: High contrast mode */
+        .high-contrast body {
+            background: #000;
+            color: #fff;
+        }
+
+        .high-contrast .panel,
+        .high-contrast #header-bar {
+            border-color: #fff;
+        }
+
+        .high-contrast .btn {
+            border-color: #fff;
+            color: #fff;
+        }
+
+        .high-contrast .btn:hover {
+            background: #fff;
+            color: #000;
+        }
+
+        /* Accessibility: Reduced motion */
+        .reduced-motion * {
+            animation-duration: 0ms !important;
+            transition-duration: 0ms !important;
         }
 
         canvas {
@@ -371,19 +448,42 @@
     </style>
 </head>
 <body>
-    <div id="loading-screen">
-        <div class="spinner"></div>
-        <p>Igniting Geometry Kernel...</p>
+    <!-- Skip navigation links for keyboard users -->
+    <a href="#gpu-canvas" class="skip-link" id="skip-main">Skip to main canvas</a>
+    <a href="#spawner-panel" class="skip-link" id="skip-spawner" style="left: 150px;">Skip to process spawner</a>
+    <a href="#dashboard-panel" class="skip-link" id="skip-dashboard" style="left: 300px;">Skip to dashboard</a>
+
+    <!-- Screen reader announcements -->
+    <div id="a11y-announcements" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+    <div id="a11y-status" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Loading Geometry Kernel">
+        <div class="spinner" aria-hidden="true"></div>
+        <p aria-live="polite" id="loading-message">Igniting Geometry Kernel...</p>
     </div>
 
-    <div id="header-bar">
+    <!-- Header Bar -->
+    <header id="header-bar" role="banner" aria-label="Visual Shell header">
         <h1>Geometry OS Visual Shell</h1>
-        <div class="header-actions">
+        <div class="header-actions" role="status" aria-label="Application information">
             <span style="font-size: 11px; opacity: 0.6;">WebGPU Process Manager</span>
         </div>
-    </div>
+    </header>
 
-    <canvas id="gpu-canvas"></canvas>
+    <!-- Main Canvas with enhanced ARIA -->
+    <main id="main-content" role="main" aria-label="Main application area">
+        <canvas id="gpu-canvas"
+                role="img"
+                tabindex="0"
+                aria-label="Visual shell canvas - Process visualization area"
+                aria-describedby="canvas-help"></canvas>
+        <div id="canvas-help" class="sr-only">
+            Interactive GPU memory visualization showing running processes.
+            Keyboard controls: Arrow keys to pan, Plus and Minus to zoom, Home to reset view.
+            Press F6 to switch between application areas.
+        </div>
+    </main>
 
     <!-- Spawner Panel (dynamically created by VisualShell.js) -->
     <!-- Dashboard Panel (dynamically created by VisualShell.js) -->
@@ -391,25 +491,95 @@
     <script type="module">
         import { VisualShell } from './VisualShell.js';
         import { GeometryKernel } from './GeometryKernel.js';
+        import { AccessibilityManager } from './AccessibilityManager.js';
 
         async function init() {
             const canvas = document.getElementById('gpu-canvas');
+            const loadingScreen = document.getElementById('loading-screen');
+            const loadingMessage = document.getElementById('loading-message');
 
-            // Create kernel first
-            const kernel = new GeometryKernel();
-
-            // Create visual shell with kernel
-            const shell = new VisualShell(canvas, { kernel });
+            // Update loading status for screen readers
+            const updateLoadingStatus = (message, progress) => {
+                loadingMessage.textContent = message;
+                loadingScreen.setAttribute('aria-valuenow', progress);
+            };
 
             try {
+                updateLoadingStatus('Initializing WebGPU kernel...', 20);
+
+                // Create kernel first
+                const kernel = new GeometryKernel();
+
+                // Create visual shell with kernel
+                const shell = new VisualShell(canvas, { kernel });
+
+                updateLoadingStatus('Loading visual shell components...', 40);
                 await shell.init();
-                document.getElementById('loading-screen').style.display = 'none';
+
+                updateLoadingStatus('Enabling accessibility features...', 70);
+
+                // Initialize accessibility manager
+                const a11y = new AccessibilityManager(shell);
+                await a11y.init();
+                shell.accessibility = a11y;
+
+                updateLoadingStatus('Application ready!', 100);
+
+                // Hide loading screen
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                    loadingScreen.setAttribute('aria-hidden', 'true');
+
+                    // Announce to screen readers
+                    a11y.announce(
+                        'Geometry OS Visual Shell loaded successfully. ' +
+                        'Press H for keyboard shortcuts help, ' +
+                        'F6 to navigate between areas, ' +
+                        'or Tab to begin exploring.',
+                        'assertive'
+                    );
+
+                    // Focus the canvas for immediate interaction
+                    canvas.focus();
+                }, 500);
+
+                // Expose for debugging
+                window.geometryShell = shell;
+                window.a11y = a11y;
+
+                console.log('[VisualShell] Ready with full accessibility support');
+
+            } catch (err) {
+                loadingMessage.textContent = `Error: ${err.message}`;
+                loadingMessage.style.color = '#ff4444';
+                console.error('Failed to initialize shell:', err);
+
+                // Announce error to screen readers
+                const errorAnnouncement = document.getElementById('a11y-announcements');
+                if (errorAnnouncement) {
+                    errorAnnouncement.textContent = `Failed to load application: ${err.message}. Please check console for details.`;
+                }
+            }
+        }
+
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+
+                loadingScreen.style.display = 'none';
+                loadingScreen.setAttribute('aria-hidden', 'true');
+
+                // Announce to screen readers
+                a11y.announce('Visual Shell loaded. Use F6 to navigate between panels. Press H for help.', 'assertive');
 
                 console.log('[VisualShell] OS Interface ready');
             } catch (err) {
                 console.error('Failed to ignite shell:', err);
-                document.getElementById('loading-screen').innerHTML =
-                    `<p style="color: red;">ERROR: ${err.message}</p>
+                loadingScreen.innerHTML =
+                    `<p style="color: red;" role="alert">ERROR: ${err.message}</p>
                      <p style="font-size: 12px; color: #888;">Check console for details</p>`;
             }
         }

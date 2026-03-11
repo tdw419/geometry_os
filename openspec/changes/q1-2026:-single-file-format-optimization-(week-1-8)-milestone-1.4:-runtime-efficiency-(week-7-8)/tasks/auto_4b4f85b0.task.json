@@ -1,0 +1,10 @@
+{
+  "task_id": "task-3",
+  "type": "implement",
+  "source": "",
+  "intent": "Memory allocation latency <100ns for hot objects",
+  "auto_generated": true,
+  "status": "pending",
+  "dependencies": [],
+  "metadata": {}
+}

@@ -1,0 +1,450 @@
+# PixelRTS Boot Improvement
+
+## What This Is
+
+A production-ready OS boot and distribution system using PixelRTS PNG containers. Users can analyze, boot, install, and visually manage OS containers through CLI and web interfaces.
+
+## Core Value
+
+**Booting an OS should be as visual and intuitive as opening an image file.**
+
+If everything else fails, users must be able to:
+1. Drag an `.rts.png` file to boot
+2. See what OS they're about to boot (visual preview)
+3. Trust the container (vision-based verification)
+
+## Requirements
+
+### Validated
+
+✓ **PixelRTS v2 encoding/decoding** — v1.0
+  - `systems/pixel_compiler/pixelrts_v2_core.py` - PNG ↔ binary conversion
+  - Hilbert curve spatial mapping
+  - Metadata in PNG tEXt chunks
+
+✓ **Kernel/initrd extraction** — v1.0
+  - `systems/pixel_compiler/pixelrts_v2_extractor.py` - CLI extraction tool
+  - JSON/RTS format parsing
+  - SHA256 hash verification
+
+✓ **Basic QEMU boot** — v1.0
+  - Direct kernel boot with `-kernel`/`-initrd`
+  - Serial console output
+  - Disk image support (qcow2)
+
+✓ **VISION-01**: Vision model identifies OS containers — v1.0
+  - `pixelrts analyze <file.png>` command
+  - OCR-based verification loop
+
+✓ **DIRECT-01**: Boot .rts.png without extraction — v1.0
+  - `pixelrts boot <file.png>` command
+  - FUSE mount with automatic cleanup
+
+✓ **DIRECT-02**: FUSE filesystem presents PNG as kernel/initrd — v1.0
+  - `systems/pixel_compiler/boot/mount_helper.py`
+  - `systems/pixel_compiler/boot/boot_bridge.py`
+
+✓ **INSTALL-01**: Install OS to disk with visual progress — v1.0
+  - `pixelrts install <file.png> <target>` command
+  - InstallProgress with TTY-aware output
+
+✓ **CATALOG-01**: Visual manager with thumbnails — v1.0
+  - `pixelrts catalog` command
+  - CatalogScanner, ThumbnailCache, CatalogServer
+
+✓ **CATALOG-02**: One-click boot from catalog — v1.0
+  - HTML gallery with boot buttons
+  - SpatialLayoutManager for drag-and-drop
+
+✓ **VISUAL-01**: User can compare two .rts.png files and see visual diff — v1.1
+  - `pixelrts diff <old.png> <new.png>` command
+  - Byte-level comparison with Hilbert region highlighting
+
+✓ **VISUAL-02**: Diff highlights changed regions in Hilbert-encoded pixel space — v1.1
+  - scipy.ndimage.label for connected component detection
+  - Hilbert coordinate mapping (pixel_idx = byte_idx // 4)
+
+✓ **VISUAL-03**: Byte-level statistics (added, removed, changed) — v1.1
+  - Per-channel RGBA breakdown
+  - Rich terminal output with plain text fallback
+
+✓ **VISUAL-04**: CLI command `pixelrts diff <old.png> <new.png>` — v1.1
+  - Exit codes: 0=identical, 1=different, 2=missing, 3=invalid
+  - JSON export with --json flag
+
+✓ **NETWORK-01**: User can boot PixelRTS containers over network via PXE — v1.2
+  - `pixelrts serve <file.png>` command
+  - Proxy DHCP mode on port 4011
+  - TFTP server for legacy PXE boot
+
+✓ **NETWORK-02**: NBD block export for .rts.png files — v1.2
+  - nbdkit Python plugin with range decoding
+  - Memory-efficient serving of large containers
+
+✓ **NETWORK-03**: HTTP boot via iPXE for faster transfers — v1.2
+  - HTTPBootServer with byte-range support
+  - Chainload from TFTP to HTTP
+
+✓ **DELTA-01**: Delta manifest generation between versions — v1.2
+  - `pixelrts delta <old.png> <new.png>` command
+  - SHA-256 checksums per region
+
+✓ **DELTA-02**: Delta patch application — v1.2
+  - `pixelrts patch <base.png> <manifest.json>` command
+  - `pixelrts update <file.png> --server <url>` for remote updates
+
+✓ **DELTA-03**: Delta server integration — v1.2
+  - /delta/list and /delta/<file>.json endpoints
+  - DeltaHTTPHandler wired to HTTPBootServer
+
+### Validated (v1.3)
+
+✓ **MULTI-01**: Boot multiple containers simultaneously — v1.3
+  - `pixelrts boot a.rts.png b.rts.png` command
+  - MultiBootManager with concurrent boot orchestration
+  - ResourceAllocator for VNC ports and socket paths
+
+✓ **MULTI-02**: Network connectivity between containers — v1.3
+  - VirtualNetwork class for QEMU socket netdev
+  - NetworkMode.SOCKET_MCAST for multicast mesh
+  - Graceful fallback to USER mode on failure
+
+✓ **ORDER-01**: Primary/helper container designation — v1.3
+  - ContainerRole enum (PRIMARY/HELPER)
+  - --primary CLI flag
+  - Ordered boot with primary first, helpers wait
+
+✓ **ORDER-02**: Ordered shutdown — v1.3
+  - stop_all_ordered() for reverse-order shutdown
+  - Helpers stop first, primary last
+
+✓ **ORDER-03**: Boot progress visibility — v1.3
+  - progress_callback for ordered boot events
+  - CLI output shows boot order progress
+
+✓ **STATUS-01**: Container status command — v1.3
+  - `pixelrts ps` shows running containers
+  - Table output with NAME/STATE/VNC/PID columns
+
+✓ **STATUS-02**: Container state tracking — v1.3
+  - ContainerState enum (IDLE/LAUNCHING/RUNNING/STOPPED/ERROR)
+  - State file at /tmp/pixelrts/containers.json
+
+### Validated (v1.4)
+
+✓ **SNAP-01**: Create snapshot of running container — v1.4
+  - VMSnapshotManager with QEMU savevm command
+  - Dynamic timeout based on VM memory size
+
+✓ **SNAP-02**: Snapshot captures full container state — v1.4
+  - QEMU savevm captures memory, CPU, device state
+  - Linear timeout scaling (2GB = 5s baseline)
+
+✓ **SNAP-03**: Snapshot creation is fast — v1.4
+  - Timeout formula: (memory_gb / 2) * 5 seconds
+
+✓ **SNAP-04**: Multiple snapshots per container — v1.4
+  - No limit on snapshots per container
+  - Tracked in ContainerInfo.snapshots
+
+✓ **RESTORE-01**: Restore container to snapshot state — v1.4
+  - VMSnapshotManager.restore_snapshot() with QEMU loadvm
+
+✓ **RESTORE-02**: Restore preserves container identity — v1.4
+  - RestoreResult.identity_preserved tracks name/VNC port
+
+✓ **RESTORE-03**: Restore handles running container — v1.4
+  - VM stays running through restore
+  - Post-restore verification
+
+✓ **MGMT-01**: List all snapshots — v1.4
+  - `pixelrts snapshots` lists across all containers
+
+✓ **MGMT-02**: Delete snapshot — v1.4
+  - `pixelrts snapshot delete <container> <tag>`
+
+✓ **MGMT-03**: Snapshots stored in standard location — v1.4
+  - /tmp/pixelrts/snapshots/<container>/metadata.json
+
+✓ **CLI-SNAP-01**: `pixelrts snapshot create <container>` — v1.4
+  - Timestamp-based default naming
+
+✓ **CLI-SNAP-02**: `pixelrts snapshot restore <container> <tag>` — v1.4
+  - Verbose output with identity/network status
+
+✓ **CLI-SNAP-03**: Timestamp-based naming — v1.4
+  - Format: snap-YYYYMMDD-HHMMSS
+
+### Validated (v1.5)
+
+✓ **COMMIT-01**: Commit running container to new .rts.png file — v1.5
+  - `pixelrts commit <container> <output.rts.png>` command
+  - SnapshotExporter with PixelRTS encoding
+
+✓ **COMMIT-02**: Committed file preserves disk changes — v1.5
+  - `qemu-img convert -l <snapshot_tag>` extraction
+  - QemuImgWrapper for snapshot extraction
+
+✓ **COMMIT-03**: Committed file includes VM memory state — v1.5
+  - SnapshotCommitter with VM pause/resume orchestration
+  - VMSnapshotManager.create_snapshot() integration
+
+✓ **COMMIT-04**: Commit shows progress — v1.5
+  - ExportStage enum (COMMITTING, ENCODING, VERIFYING, COMPLETE, FAILED)
+  - Progress callback with stage tracking
+
+✓ **BOOT-COMMIT-01**: Committed file boots with existing command — v1.5
+  - CommittedFileBooter for vm-snapshot type
+  - CLI boot command auto-detection routing
+
+✓ **BOOT-COMMIT-02**: Committed file preserves kernel/initrd — v1.5
+  - Combined data encoding with offset metadata
+  - _extract_kernel() / _extract_initrd() methods
+
+✓ **BOOT-COMMIT-03**: Changes visible after boot — v1.5
+  - disk_size trimming for qcow2 extraction
+  - Binary extraction with hash verification
+
+✓ **CLI-COMMIT-01**: `pixelrts commit <container> <output>` command — v1.5
+  - cmd_commit() with container validation via MultiBootManager
+  - 11 unit tests for commit command
+
+✓ **CLI-COMMIT-02**: `--snapshot <tag>` flag — v1.5
+  - Passes specific snapshot tag to exporter
+
+✓ **CLI-COMMIT-03**: `--no-verify` flag — v1.5
+  - Skips boot verification for faster commits
+
+### Validated (v1.6)
+
+✓ **EPHEM-01**: Boot container with `--ephemeral` flag — v1.6
+  - EphemeralBooter class with temp file management
+  - `pixelrts boot --ephemeral file.rts.png`
+
+✓ **EPHEM-02**: Changes discarded on exit — v1.6
+  - Temp copy used for boot, original unchanged
+  - Cleanup on stop() or context exit
+
+✓ **EPHEM-03**: Original .rts.png file unchanged — v1.6
+  - original_path property preserves original
+  - Temp file in /tmp/pixelrts-ephemeral-*
+
+✓ **EPHEM-04**: Works with all boot types — v1.6
+  - Container type detection (bootable, vm-snapshot)
+  - Delegation to BootBridge/CommittedFileBooter
+
+✓ **EPHEM-05**: Multi-container ephemeral boot — v1.6
+  - boot_all() ephemeral parameter
+  - CLI passes flag to MultiBootManager
+
+✓ **EPHEM-06**: `pixelrts ps` shows [E] indicator — v1.6
+  - EPHEM column in table output
+  - is_ephemeral field in JSON
+
+✓ **EPHEM-07**: Crash cleanup via atexit — v1.6
+  - atexit.register(_cleanup_temp_dir)
+  - Signal handler delegation
+
+✓ **EPHEM-08**: Commit saves ephemeral changes — v1.6
+  - `pixelrts commit <ephemeral-container> <output>`
+  - Informational message shown
+
+### Validated (v1.7)
+
+✓ **VERIFY-01**: User can verify PNG structure integrity — v1.7
+  - StructureVerifier validates PNG signature, chunks, grid size
+  - VerificationStep composable pattern
+
+✓ **VERIFY-02**: User can verify hash consistency — v1.7
+  - ConsistencyVerifier checks SHA256 against metadata
+  - Graceful SKIP for missing hash metadata
+
+✓ **VERIFY-03**: User can verify segment integrity via range decode — v1.7
+  - SegmentIntegrityChecker with decode_range() for efficiency
+  - ~5000x faster than full decode for large files
+
+✓ **CRYPTO-01**: User can verify Ed25519 signature — v1.7
+  - SignatureVerifier for cryptographic authenticity
+  - PIXELRTS_PUBLIC_KEY env var override
+
+✓ **CRYPTO-02**: User can sign .rts.png file with private key — v1.7
+  - FileSigner with PKCS8 PEM key format
+  - Self-contained signatures with embedded public key
+
+✓ **CLI-01**: `pixelrts verify <file.png>` with exit codes — v1.7
+  - Exit 0 for PASS/WARNING, 1 for FAIL
+  - CI/CD compatible
+
+✓ **CLI-02**: JSON output via `--json` flag — v1.7
+  - Machine-parseable for automation
+
+✓ **CLI-03**: Verbose output via `--verbose` flag — v1.7
+  - Step-by-step verification details
+
+### Active (v1.8)
+
+(None planned - ready for next milestone definition)
+
+### Future
+
+(None planned)
+
+### Out of Scope
+
+- **Cloud provider integration** — Focus on local/boot scenarios first
+- **Mobile apps** — Web/desktop interface only
+- **Container formats beyond PNG** — PixelRTS v2 is fixed
+- **Non-x86 architectures** — x86_64 only (RISC-V later)
+- **Full OS installation from scratch** — Building on existing Alpine/Ubuntu bases
+
+## Context
+
+**Shipped v1.0 (2026-03-08):**
+- 4 phases, 22 plans completed
+- CLI commands: analyze, boot, install, catalog
+- 90+ unit tests across boot, install, catalog
+
+**Shipped v1.1 (2026-03-08):**
+- 1 phase, 4 plans completed
+- CLI command: diff
+- 23 tests passing
+
+**Shipped v1.3 (2026-03-09):**
+- 3 phases (9, 10, 11), 12 plans completed
+- CLI commands: boot (multi), ps
+- 62+ tests passing (multi_boot_manager, 28+ tests passing (virtual_network)
+- Multi-container boot with ordered primary/helper pattern
+- Virtual networking without root privileges
+
+**Shipped v1.4 (2026-03-09):**
+- 3 phases (12, 13, 14), 10 plans completed
+- CLI commands: snapshot (create/restore/list/delete), snapshots
+- 162 tests passing (snapshot functionality)
+- Live VM snapshots via QEMU monitor commands
+- Persistent metadata storage for stopped VMs
+
+**Shipped v1.5 (2026-03-09):**
+- 3 phases (15, 16, 17), 9 plans completed
+- CLI command: commit
+- 88+ tests passing (commit functionality)
+- Complete container lifecycle: boot → modify → commit → boot again
+- VM pause/resume during commit for state consistency
+- Combined data encoding with offset metadata
+
+**Shipped v1.6 (2026-03-09):**
+- 1 phase (18), 8 plans completed
+- CLI flag: --ephemeral
+- 50+ tests passing (ephemeral boot)
+- Ephemeral boot with automatic cleanup
+- Crash recovery via atexit
+
+**Shipped v1.7 (2026-03-09):**
+- 4 phases (19-22), 7 plans completed
+- CLI command: verify
+- 88 tests passing (verification)
+- Composable verification pattern
+- Ed25519 cryptographic signatures
+- Range-based segment verification
+
+**Tech Stack:**
+- Python 3.12+
+- QEMU virtualization
+- FUSE (fuse3, fusepy)
+- FastAPI for catalog server
+- Rich for terminal output
+- PIL for image processing
+
+**Key Files:**
+- `systems/pixel_compiler/boot/` - Boot infrastructure (MountHelper, BootBridge, BootProgress)
+- `systems/pixel_compiler/install/` - Install infrastructure (InstallProgress, DiskWriter, InstallEngine)
+- `systems/pixel_compiler/catalog/` - Catalog infrastructure (CatalogScanner, ThumbnailCache, CatalogServer)
+- `bin/pixelrts` - CLI entry point
+
+## Constraints
+
+- **Python 3.12+** - Primary implementation language
+- **QEMU** - Virtualization platform for testing
+- **Existing PixelRTS v2 format** - Must maintain backward compatibility
+- **Vision model access** - Need Claude/VLM API for image analysis
+- **Performance** - Boot overhead <10% vs traditional ISO boot
+
+## Key Decisions
+
+| Decision | Rationale | Outcome |
+|----------|-----------|---------|
+| use existing PixelRTS v2 format | Leverage invested work, maintain compatibility | ✓ Good |
+| FUSE filesystem for direct boot | Clean integration with existing tools | ✓ Good |
+| Vision model for verification | Unique advantage of visual format | ✓ Good |
+| Phase 1: Vision analysis first | Demonstrates core differentiator | ✓ Good |
+| MountHelper context manager pattern | RAII-style cleanup | ✓ Good |
+| Lazy unmount with fusermount -uz | Stuck mount recovery | ✓ Good |
+| Rich library for terminal output | Graceful fallback to plain text | ✓ Good |
+| MD5 hash of path for catalog IDs | Stable, collision-resistant | ✓ Good |
+| scipy.ndimage.label for regions | Connected component detection | ✓ Good |
+| RGBA channel mapping via (byte_idx % 4) | Simple channel extraction | ✓ Good |
+| Output limited to 20 regions | Prevent terminal flood | ✓ Good |
+| Proxy DHCP mode (port 4011) | Avoid DHCP conflicts | ✓ Good |
+| Range decoding in decoder class | Memory-efficient serving | ✓ Good |
+| Async orchestrator pattern | Service coordination | ✓ Good |
+| Handler interface `handle(path, headers, writer) -> bool` | Clean extensibility | ✓ Good |
+| ByteFetcher protocol | Remote region fetching | ✓ Good |
+| Decode/encode cycle for checksums | Data integrity | ✓ Good |
+| VNC port range 5900-5999 (100 ports) | Thread-safe allocation, UUID5 deterministic IDs | ✓ Good |
+| asyncio.gather for concurrent boot | Parallel startup efficiency | ✓ Good |
+| run_in_executor for sync-to-async bridge | Clean async integration | ✓ Good |
+| ContainerState enum for lifecycle | Clear state machine | ✓ Good |
+| Compensating transaction cleanup | Atomic cleanup on failure | ✓ Good |
+| cleanup_on_failure=True by default | Safe default | ✓ Good |
+| State file at /tmp/pixelrts/containers.json | Persistent state | ✓ Good |
+| table output with NAME/STATE/VNC/PID columns | Clear status display | ✓ Good |
+| CLI multi-file boot via nargs='+' | Intuitive UX | ✓ Good |
+| ContainerRole enum (PRIMARY/HELPER) | Clear ordered boot semantics | ✓ Good |
+| Ordered boot pattern (primary first, helpers wait) | Predictable startup order | ✓ Good |
+| Ordered shutdown pattern (helpers first, primary last) | Graceful teardown | ✓ Good |
+| Progress callback for ordered boot visibility | User feedback | ✓ Good |
+| VirtualNetwork class with QEMU socket netdev | No-root networking | ✓ Good |
+| NetworkMode enum extension (SOCKET_MCAST, SOCKET_STREAM) | Flexible network modes | ✓ Good |
+| Graceful network fallback to USER mode | Robust error handling | ✓ Good |
+| VMSnapshotManager via QemuBoot.send_monitor_command() | Reuse existing socket infrastructure | ✓ Good |
+| Linear timeout scaling: (memory_gb / 2) * 5 | SNAP-03 requirement for fast snapshots | ✓ Good |
+| RestoreState enum for progress tracking | Clear state machine for restore | ✓ Good |
+| RestoreResult dataclass with identity_preserved | Verify container identity after restore | ✓ Good |
+| SnapshotMetadata separate from VMSnapshotMetadata | Persistence needs differ from runtime | ✓ Good |
+| JSON per-container storage at /tmp/pixelrts/snapshots/ | Human-readable, easy to debug | ✓ Good |
+| Dual-source listing (VM or storage) | List snapshots even when VM stopped | ✓ Good |
+| Timestamp-based naming: snap-YYYYMMDD-HHMMSS | Consistent, sortable snapshot names | ✓ Good |
+| Global `pixelrts snapshots` command | Easy listing across all containers | ✓ Good |
+| qemu-img convert -l for snapshot extraction | Preserves disk state at snapshot time | ✓ Good |
+| VM pause/resume during commit | State consistency guarantee | ✓ Good |
+| Combined data encoding (qcow2 + kernel + initrd) | Single-file portability | ✓ Good |
+| ContainerType enum (BOOTABLE, VM_SNAPSHOT) | Clean boot routing | ✓ Good |
+| CLI boot auto-detection | Seamless user experience | ✓ Good |
+| Binary kernel/initrd extraction with offsets | No external file dependencies | ✓ Good |
+| EphemeralBooter delegation pattern | Clean separation, reusable | ✓ Good |
+| Temp copy on init, cleanup on stop | Simple lifecycle management | ✓ Good |
+| atexit + signal handler cleanup | Crash recovery | ✓ Good |
+| ContainerInfo.is_ephemeral field | State tracking | ✓ Good |
+| ps [E] indicator | Visual identification | ✓ Good |
+| VerificationStep composable pattern | Reusable verification steps | ✓ Good |
+| Lazy loading in VerificationContext | Efficient I/O across steps | ✓ Good |
+| SKIP status for unsigned files | Graceful degradation | ✓ Good |
+| Sign hash (32 bytes) not full data | Efficient Ed25519 signing | ✓ Good |
+| PIXELRTS_PUBLIC_KEY env var override | Key rotation without re-signing | ✓ Good |
+| Range-based decode for segment verification | ~5000x speedup | ✓ Good |
+| Run all verifiers in sequence | Complete picture on failure | ✓ Good |
+
+## Current Milestone: v1.8 Network Boot Substrate
+
+**Goal:** Enable distributed Geometry OS nodes to discover peers and sync tectonic state across the mesh.
+
+**Target features:**
+- UDP multicast peer discovery (MeshBroadcaster)
+- Peer registry with health tracking (PeerRegistry)
+- WebSocket tectonic sync (TectonicSync)
+- Unified NetworkBoot orchestrator
+- CLI command for mesh status
+
+---
+*Last updated: 2026-03-09 after v1.7 milestone*
+
+

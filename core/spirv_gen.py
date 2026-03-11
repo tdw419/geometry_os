@@ -5,7 +5,6 @@ Generates a universal font as a SPIR-V binary module.
 This replaces the .rts.png format for high-performance GPU-native rendering.
 """
 
-import os
 import json
 import struct
 import numpy as np

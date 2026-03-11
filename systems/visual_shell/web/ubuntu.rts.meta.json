@@ -1,0 +1,60 @@
+{
+  "format": "PixelRTS-2.0",
+  "version": 2,
+  "grid_size": 4096,
+  "encoding": {
+    "type": "RGBA-dense",
+    "bytes_per_pixel": 4,
+    "description": "4 consecutive raw bytes packed into RGBA channels",
+    "mapping": "Hilbert space-filling curve (precomputed LUT)"
+  },
+  "offsets": {
+    "kernel": {
+      "start": 0,
+      "end": 10342208,
+      "size": 10342208,
+      "sha256": "255b9bcfd69050aa86f780c64349bfb8b95749c5d869cc67f41809241286f001"
+    },
+    "initrd": {
+      "start": 10342208,
+      "end": 23484110,
+      "size": 13141902,
+      "sha256": "00a1a1765538f0e65b1e83df7d57174a6cffeb7bd9826a097bc6e48a43a9d55d"
+    }
+  },
+  "entropy": {
+    "block_size": 16384,
+    "mean_entropy": 88.695556640625,
+    "max_entropy": 254,
+    "min_entropy": 0,
+    "entropy_histogram": [
+      43614208,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      16384,
+      0,
+      0,
+      0,
+      0,
+      65536,
+      16384,
+      32768,
+      23363584
+    ]
+  },
+  "hashes": {
+    "kernel": "255b9bcfd69050aa86f780c64349bfb8b95749c5d869cc67f41809241286f001",
+    "initrd": "00a1a1765538f0e65b1e83df7d57174a6cffeb7bd9826a097bc6e48a43a9d55d"
+  },
+  "original_rts": {
+    "version": "1.0",
+    "arch": "x86_64",
+    "bootable": true,
+    "kernel_cmdline": "console=ttyS0 boot=live user=tc quiet disable_vmx=1",
+    "boot_method": "qemu-direct"
+  }
+}
