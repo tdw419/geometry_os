@@ -249,6 +249,21 @@ async def list_tools() -> list[Tool]:
                 "required": ["test_file"]
             }
         ),
+        # G-Shell Perception Tools
+        Tool(
+            name="read_terminal_state",
+            description="Read the current state of the G-Shell terminal (GNB screen buffer)",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "raw": {
+                        "type": "boolean",
+                        "description": "Return raw ASCII instead of structured summary",
+                        "default": False
+                    }
+                }
+            }
+        ),
     ]
 
 
@@ -308,6 +323,9 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[types.Content]
                 arguments["test_file"],
                 arguments.get("headless", True)
             )
+
+        elif name == "read_terminal_state":
+            result = await _read_terminal_state(arguments.get("raw", False))
 
         else:
             result = ToolResult(False, None, f"Unknown tool: {name}")
@@ -502,6 +520,46 @@ const puppeteer = require('puppeteer');
             return ToolResult(True, {"output": result.stdout})
     else:
         return ToolResult(False, None, result.stderr)
+
+
+async def _read_terminal_state(raw: bool) -> ToolResult:
+    """Read the current G-Shell terminal state (GNB)."""
+    # Check multiple possible state locations
+    gnb_path = GEOMETRY_OS_ROOT / ".geometry" / "gnb_state.ascii"
+    terminal_fragment_path = GEOMETRY_OS_ROOT / ".geometry" / "ascii_scene" / "terminal_fragment.ascii"
+
+    # Prefer terminal fragment if it exists (G-Shell native output)
+    if terminal_fragment_path.exists():
+        gnb_path = terminal_fragment_path
+
+    if not gnb_path.exists():
+        return ToolResult(False, None, "G-Shell state file not found. Ensure G-Shell is running.")
+        
+    try:
+        content = gnb_path.read_text()
+        
+        if raw:
+            return ToolResult(True, content)
+            
+        # Parse basic summary
+        lines = content.splitlines()
+        summary = {
+            "is_running": True,
+            "gnb_path": str(gnb_path),
+            "line_count": len(lines),
+            "last_output": lines[-5:] if len(lines) >= 5 else lines
+        }
+        
+        # Look for GNB header metadata
+        if lines and "GEOMETRIC NEURAL BUFFER" in lines[0]:
+            summary["header"] = lines[0:4]
+            summary["content"] = "\n".join(lines[4:])
+        else:
+            summary["content"] = content
+            
+        return ToolResult(True, summary)
+    except Exception as e:
+        return ToolResult(False, None, f"Failed to read terminal state: {str(e)}")
 
 
 # ============================================
