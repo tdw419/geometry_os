@@ -34,11 +34,39 @@ import signal
 import fcntl
 import struct
 import re
+import logging
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Any, Callable
 from enum import Enum
 from collections import deque
+
+# ============================================================================
+# Logging Configuration
+# ============================================================================
+
+# Create logger for this module
+logger = logging.getLogger("glyph_shell")
+
+# Configure logging if not already configured
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+        '%(asctime)s | %(levelname)-8s | %(name)s | %(message)s',
+        datefmt='%H:%M:%S'
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+
+# Log file for persistent debugging
+_log_dir = Path(".geometry/logs")
+_log_dir.mkdir(parents=True, exist_ok=True)
+_file_handler = logging.FileHandler(_log_dir / "glyph_shell.log")
+_file_handler.setFormatter(logging.Formatter(
+    '%(asctime)s | %(levelname)-8s | %(name)s | %(funcName)s:%(lineno)d | %(message)s'
+))
+logger.addHandler(_file_handler)
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -687,16 +715,22 @@ class EnhancedGlyphShell:
     """
 
     def __init__(self, shell: str = "/bin/bash"):
+        init_start = time.time()
+        logger.info(f"Initializing Enhanced Glyph Shell with shell: {shell}")
+        
         self.shell = shell
         self.rows, self.cols = self._get_terminal_size()
         self.fd = None
+        logger.debug(f"Terminal size: {self.cols}x{self.rows}")
 
         # UI Components
+        logger.debug("Initializing UI components...")
         self.status_bar = StatusBar()
         self.command_palette = CommandPalette()
         self.help_overlay = HelpOverlay()
         self.history = CommandHistory()
         self.formatter = OutputFormatter()
+        logger.debug(f"UI components initialized ({len(self.command_palette.commands)} commands registered)")
 
         # UI State
         self.ui_state = UIState.NORMAL
@@ -706,12 +740,15 @@ class EnhancedGlyphShell:
         self.fps = 60.0
 
         # Geometry OS Native State
+        logger.debug("Connecting to Geometric Terminal Bridge...")
         try:
             self.bridge = GeometricTerminalBridge()
             self.config = TerminalTextureConfig(cols=self.cols, rows=self.rows)
             self.tile_id = self.bridge.spawn_geometric_terminal(self.config)
             self.status_bar.update(tile_count=1, connection="connected")
+            logger.info(f"Geometric terminal spawned successfully (tile_id: {self.tile_id})")
         except Exception as e:
+            logger.warning(f"Geometric terminal not available: {e}")
             print(f"Warning: Geometric terminal not available: {e}")
             self.bridge = None
             self.tile_id = None
@@ -719,10 +756,14 @@ class EnhancedGlyphShell:
         # State paths
         self.texture_path = Path(f".geometry/tectonic/textures/enhanced_terminal_{id(self)}.rts.png")
         self.texture_path.parent.mkdir(parents=True, exist_ok=True)
+        logger.debug(f"Texture path: {self.texture_path}")
 
         # Performance tracking
         self.last_frame_time = time.time()
         self.frame_times: deque[float] = deque(maxlen=60)
+        
+        init_time = (time.time() - init_start) * 1000
+        logger.info(f"Enhanced Glyph Shell initialized in {init_time:.2f}ms")
 
     def _get_terminal_size(self) -> tuple[int, int]:
         """Get the current terminal size."""
@@ -745,6 +786,7 @@ class EnhancedGlyphShell:
         """Handle terminal resize signal."""
         new_rows, new_cols = self._get_terminal_size()
         if (new_rows, new_cols) != (self.rows, self.cols):
+            logger.info(f"Terminal resized: {self.cols}x{self.rows} → {new_cols}x{new_rows}")
             self.rows, self.cols = new_rows, new_cols
             self._set_terminal_size(self.rows, self.cols)
 
@@ -784,24 +826,36 @@ class EnhancedGlyphShell:
     def _update_fps(self):
         """Update FPS calculation."""
         now = time.time()
-        self.frame_times.append(now - self.last_frame_time)
+        frame_time = now - self.last_frame_time
+        self.frame_times.append(frame_time)
         self.last_frame_time = now
         if self.frame_times:
             avg_frame_time = sum(self.frame_times) / len(self.frame_times)
             self.fps = 1.0 / avg_frame_time if avg_frame_time > 0 else 60.0
             self.status_bar.update(fps=self.fps)
+            
+            # Log performance warnings
+            if self.fps < 30:
+                logger.warning(f"Low FPS detected: {self.fps:.1f} (avg frame time: {avg_frame_time*1000:.2f}ms)")
+            elif logger.isEnabledFor(logging.DEBUG) and self.frame_count % 60 == 0:
+                logger.debug(f"FPS: {self.fps:.1f}, avg frame time: {avg_frame_time*1000:.2f}ms")
 
     def _handle_special_input(self, char: str, char_byte: int) -> bool:
         """Handle special keyboard input. Returns True if handled."""
+        start_time = time.time()
+        
         # Check for Ctrl+P (command palette)
         if char_byte == 16:  # Ctrl+P
             if self.ui_state == UIState.COMMAND_PALETTE:
+                logger.debug("Closing command palette")
                 self.command_palette.close()
                 self.ui_state = UIState.NORMAL
             else:
+                logger.debug("Opening command palette")
                 self.command_palette.open()
                 self.ui_state = UIState.COMMAND_PALETTE
             self._render_ui()
+            logger.debug(f"Command palette toggle took {(time.time() - start_time)*1000:.2f}ms")
             return True
 
         # Check for ? (help)
@@ -876,6 +930,9 @@ class EnhancedGlyphShell:
 
     def _handle_geos_command(self, cmd_line: str) -> bool:
         """Handle Geometry OS specific commands. Returns True if handled."""
+        cmd_start = time.time()
+        logger.debug(f"Processing command: {cmd_line}")
+        
         parts = cmd_line.strip().split()
         if not parts:
             return False
@@ -887,6 +944,7 @@ class EnhancedGlyphShell:
                 return True
 
             subcmd = parts[1]
+            logger.info(f"Executing Geometry OS command: g {subcmd}")
 
             if subcmd == "help":
                 self._show_geos_help()
@@ -895,22 +953,27 @@ class EnhancedGlyphShell:
                 if len(parts) >= 4:
                     try:
                         x, y = int(parts[2]), int(parts[3])
+                        logger.info(f"Map pan to coordinates: ({x}, {y})")
                         print(f"\r\n{self.formatter.format_success(f'Map focal point → ({x}, {y})')}\r")
                         self.status_bar.set_message(f"Map centered at ({x}, {y})", "success")
-                    except ValueError:
+                    except ValueError as e:
+                        logger.error(f"Invalid map coordinates: {parts[2]} {parts[3]} - {e}")
                         print(f"\r\n{self.formatter.format_error('Invalid coordinates')}\r")
                 else:
                     print(f"\r\n{self.formatter.format_info('Usage: g map <x> <y>')}\r")
 
             elif subcmd == "spawn":
+                logger.info(f"Spawning new terminal tile (current count: {self.status_bar.tile_count})")
                 print(f"\r\n{self.formatter.format_success('New terminal tile spawned')}\r")
                 self.status_bar.update(tile_count=self.status_bar.tile_count + 1)
                 self.status_bar.set_message("Terminal tile spawned", "success")
 
             elif subcmd == "gls":
                 path = parts[2] if len(parts) > 2 else "."
+                logger.debug(f"Spatial file listing for: {path}")
                 print(f"\r\n{self.formatter.format_info(f'Spatial file listing for {path}:')}\r")
                 try:
+                    file_count = 0
                     for f in sorted(os.listdir(path))[:20]:
                         f_path = os.path.join(path, f)
                         if os.path.isfile(f_path):
@@ -918,24 +981,32 @@ class EnhancedGlyphShell:
                             is_rts = f.endswith(".rts.png")
                             tag = f"{Colors.MAGENTA}[RTS]{Colors.RESET}" if is_rts else "     "
                             print(f"  {tag} {f:20} {Colors.DIM}{size/1024:.1f}KB{Colors.RESET}\r")
+                            file_count += 1
+                    logger.debug(f"Listed {file_count} files in {path}")
                 except Exception as e:
+                    logger.error(f"Failed to list directory {path}: {e}")
                     print(f"\r\n{self.formatter.format_error(str(e))}\r")
 
             elif subcmd == "ai":
                 prompt = " ".join(parts[2:]) if len(parts) > 2 else "Analyze current state"
+                logger.info(f"AI analysis request: {prompt}")
                 print(f"\r\n{self.formatter.format_info(f'AI request: {prompt}')}\r")
                 print(f"{Colors.DIM}Context synced to GNB...{Colors.RESET}\r")
                 self.status_bar.set_message("AI analysis requested", "info")
 
             else:
+                logger.warning(f"Unknown Geometry OS command: g {subcmd}")
                 print(f"\r\n{self.formatter.format_warning(f'Unknown command: g {subcmd}')}\r")
                 print(f"{Colors.DIM}Type 'g help' for available commands{Colors.RESET}\r")
 
+            cmd_time = (time.time() - cmd_start) * 1000
+            logger.debug(f"Command 'g {subcmd}' completed in {cmd_time:.2f}ms")
             self.history.add(cmd_line, success=True)
             return True
 
         # Handle built-in commands
         elif parts[0] == "status":
+            logger.debug("Showing system status")
             self._show_status()
             return True
 
@@ -977,6 +1048,8 @@ class EnhancedGlyphShell:
 
     def run(self):
         """Run the enhanced shell."""
+        logger.info("Starting Enhanced Glyph Shell main loop")
+        
         # Print welcome message
         print(f"{Colors.BOLD}{Colors.CYAN}═══════════════════════════════════════════════════════════{Colors.RESET}")
         print(f"{Colors.BOLD}{Colors.WHITE}        Enhanced Glyph Shell - Geometry OS{Colors.RESET}")
@@ -990,17 +1063,22 @@ class EnhancedGlyphShell:
         print(f"\r")
 
         # Start the PTY
+        logger.debug(f"Forking PTY with shell: {self.shell}")
         pid, self.fd = pty.fork()
+        logger.debug(f"PTY forked (pid: {pid}, fd: {self.fd})")
 
         if pid == 0:
             # Child process: Execute the shell
+            logger.debug(f"Child process executing shell: {self.shell}")
             os.execvpe(self.shell, [self.shell], os.environ)
 
         # Parent process: Main loop
+        logger.info(f"Parent process entering main loop (child pid: {pid})")
         old_settings = termios.tcgetattr(sys.stdin)
 
         # Setup SIGWINCH handler
         signal.signal(signal.SIGWINCH, self._handle_winch)
+        logger.debug("SIGWINCH handler registered")
 
         try:
             tty.setraw(sys.stdin)
@@ -1010,6 +1088,7 @@ class EnhancedGlyphShell:
 
             while True:
                 self._update_fps()
+                self.frame_count += 1
 
                 # Periodically update status bar
                 now = time.time()
@@ -1021,6 +1100,9 @@ class EnhancedGlyphShell:
 
                 if sys.stdin in r:
                     data = os.read(sys.stdin.fileno(), 1024)
+                    
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug(f"stdin read: {len(data)} bytes")
 
                     for char_byte in data:
                         char = chr(char_byte)
@@ -1048,19 +1130,27 @@ class EnhancedGlyphShell:
                 if self.fd in r:
                     try:
                         data = os.read(self.fd, 1024)
-                    except OSError:
+                    except OSError as e:
+                        logger.info(f"PTY read error (child likely exited): {e}")
                         break
                     if not data:
+                        logger.info("PTY returned empty data, child process exited")
                         break
 
                     # Format output with syntax highlighting
                     formatted = self.formatter.format(data.decode('utf-8', errors='replace'))
                     os.write(sys.stdout.fileno(), formatted.encode('utf-8'))
 
+        except Exception as e:
+            logger.error(f"Error in main loop: {e}", exc_info=True)
+            raise
         finally:
+            logger.info("Cleaning up and exiting Enhanced Glyph Shell")
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
             if self.bridge and self.tile_id is not None:
+                logger.debug(f"Rendering final texture to: {self.texture_path}")
                 self.bridge.render_to_texture(self.tile_id, str(self.texture_path))
+            logger.info(f"Session stats: {self.frame_count} frames, {len(self.history.entries)} commands, final FPS: {self.fps:.1f}")
 
 
 def main():

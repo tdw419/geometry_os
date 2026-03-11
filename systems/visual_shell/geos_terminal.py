@@ -189,10 +189,18 @@ class GeosShell:
             while True:
                 self._sync_gnb()
                 
-                r, w, e = select.select([sys.stdin, self.fd], [], [], 0.1)
+                try:
+                    r, w, e = select.select([sys.stdin, self.fd], [], [], 0.1)
+                except (select.error, OSError):
+                    continue
                 
                 if sys.stdin in r:
-                    data = os.read(sys.stdin.fileno(), 1024)
+                    try:
+                        data = os.read(sys.stdin.fileno(), 1024)
+                    except OSError:
+                        break
+                    if not data:
+                        break
                     
                     for char_byte in data:
                         char = chr(char_byte)
@@ -213,11 +221,12 @@ class GeosShell:
                                 
                             input_buffer = ""
                         elif char_byte == 127: # Backspace
-                            input_buffer = input_buffer[:-1]
-                            os.write(self.fd, data)
+                            if len(input_buffer) > 0:
+                                input_buffer = input_buffer[:-1]
+                            os.write(self.fd, bytes([char_byte]))
                         else:
                             input_buffer += char
-                            os.write(self.fd, data)
+                            os.write(self.fd, bytes([char_byte]))
                 
                 if self.fd in r:
                     try:

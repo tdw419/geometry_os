@@ -10,8 +10,27 @@ Key optimizations:
 """
 
 from functools import lru_cache
+import logging
+import time
 
 import numpy as np
+
+# ============================================================================
+# Logging Configuration
+# ============================================================================
+
+logger = logging.getLogger("glyph_ops")
+
+# Only configure if not already configured
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+        '%(asctime)s | %(levelname)-8s | %(name)s | %(message)s',
+        datefmt='%H:%M:%S'
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
 
 # ============================================================================
 # Optimized Color Operations
@@ -32,6 +51,11 @@ def blend_colors_batch(fg: np.ndarray, bg: np.ndarray) -> np.ndarray:
     Returns:
         Blended colors (N, 4) as float32
     """
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(f"Blending {len(fg)} colors (batch)")
+    
+    start = time.time()
+    
     a_fg = fg[:, 3:4]
     a_bg = bg[:, 3:4]
 
@@ -42,6 +66,10 @@ def blend_colors_batch(fg: np.ndarray, bg: np.ndarray) -> np.ndarray:
     result = np.empty_like(fg)
     result[:, :3] = (fg[:, :3] * a_fg + bg[:, :3] * a_bg * (1.0 - a_fg)) / out_a
     result[:, 3] = out_a.ravel()
+    
+    elapsed = (time.time() - start) * 1000
+    if elapsed > 1.0:  # Log slow operations
+        logger.debug(f"Color blending took {elapsed:.2f}ms for {len(fg)} pixels")
 
     return result
 
@@ -90,9 +118,14 @@ class HilbertCurveOptimized:
         self._lut_xy = None
         self._lut_xy_flat = None
 
+        logger.debug(f"Initializing HilbertCurve (order={order}, size={self.size})")
+        
         # Only build LUT for reasonable sizes
         if order <= 10:  # Up to 1024x1024 = 1M entries
+            start = time.time()
             self._build_lut()
+            elapsed = (time.time() - start) * 1000
+            logger.debug(f"Hilbert LUT built in {elapsed:.2f}ms ({self.size * self.size} entries)")
 
     def _build_lut(self):
         """Build the lookup tables."""
@@ -149,21 +182,32 @@ class HilbertCurveOptimized:
         Returns:
             Coordinates array (N, 2) as uint16
         """
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f"Batch converting {len(indices)} Hilbert indices")
+        
+        start = time.time()
+        
         if self._lut_xy is not None:
             # Ensure indices are in bounds
             indices = np.clip(indices, 0, len(self._lut_xy) - 1)
-            return self._lut_xy[indices].copy()
-
-        # Fallback to computation
-        result = np.zeros((len(indices), 2), dtype=np.uint16)
-        for i, d in enumerate(indices):
-            result[i] = self._d2xy_compute(d)
+            result = self._lut_xy[indices].copy()
+        else:
+            # Fallback to computation
+            result = np.zeros((len(indices), 2), dtype=np.uint16)
+            for i, d in enumerate(indices):
+                result[i] = self._d2xy_compute(d)
+        
+        elapsed = (time.time() - start) * 1000
+        if elapsed > 5.0:  # Log slow batch operations
+            logger.debug(f"Hilbert batch conversion took {elapsed:.2f}ms for {len(indices)} indices")
+        
         return result
 
     @classmethod
     def get_cached(cls, order: int = 8) -> "HilbertCurveOptimized":
         """Get or create a cached Hilbert curve instance."""
         if order not in cls._lut_cache:
+            logger.info(f"Creating new HilbertCurve cache for order {order}")
             cls._lut_cache[order] = cls(order)
         return cls._lut_cache[order]
 
@@ -256,6 +300,7 @@ class FoveatedRendererOptimized:
         self.parafoveal_r_sq = parafoveal_radius ** 2
         self.foveal_r = foveal_radius
         self.parafoveal_r = parafoveal_radius
+        logger.debug(f"FoveatedRenderer initialized (foveal={foveal_radius}px, parafoveal={parafoveal_radius}px)")
 
     def classify_region(self, x: float, y: float, fx: float, fy: float) -> int:
         """
@@ -286,6 +331,9 @@ class FoveatedRendererOptimized:
             Region classification (N,) as uint8 (0, 1, or 2)
         """
         fx, fy = focus
+        
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f"Classifying {len(points)} points (focus: {fx}, {fy})")
 
         # Vectorized distance calculation
         dx = points[:, 0] - fx
@@ -296,6 +344,13 @@ class FoveatedRendererOptimized:
         regions = np.full(len(points), 2, dtype=np.uint8)  # Default: peripheral
         regions[dist_sq <= self.parafoveal_r_sq] = 1       # Parafoveal
         regions[dist_sq <= self.foveal_r_sq] = 0           # Foveal
+        
+        # Log distribution if debug is enabled
+        if logger.isEnabledFor(logging.DEBUG):
+            foveal_count = np.sum(regions == 0)
+            parafoveal_count = np.sum(regions == 1)
+            peripheral_count = np.sum(regions == 2)
+            logger.debug(f"Region distribution: foveal={foveal_count}, parafoveal={parafoveal_count}, peripheral={peripheral_count}")
 
         return regions
 
@@ -310,13 +365,20 @@ class FoveatedRendererOptimized:
         Returns:
             Tuple of (foveal_indices, parafoveal_indices, peripheral_indices)
         """
+        start = time.time()
         regions = self.classify_batch(points, focus)
-
-        return (
+        
+        result = (
             np.where(regions == 0)[0],
             np.where(regions == 1)[0],
             np.where(regions == 2)[0],
         )
+        
+        elapsed = (time.time() - start) * 1000
+        if elapsed > 2.0:
+            logger.debug(f"Detail level classification took {elapsed:.2f}ms")
+        
+        return result
 
 
 # ============================================================================
@@ -336,6 +398,7 @@ class GlyphCacheOptimized:
         self.max_size = max_size
         self._cache: dict[int, np.ndarray] = {}
         self._access_count: dict[int, int] = {}
+        logger.debug(f"GlyphCache initialized (max_size={max_size})")
 
     def _make_key(self, char: str, fg: int, bg: int, attrs: int = 0) -> int:
         """Create a packed key from glyph attributes."""
@@ -347,27 +410,39 @@ class GlyphCacheOptimized:
         key = self._make_key(char, fg, bg, attrs)
         if key in self._cache:
             self._access_count[key] = self._access_count.get(key, 0) + 1
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Glyph cache HIT: '{char}' (fg={fg}, bg={bg})")
             return self._cache[key]
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f"Glyph cache MISS: '{char}' (fg={fg}, bg={bg})")
         return None
 
     def put(self, char: str, fg: int, bg: int, attrs: int, glyph: np.ndarray) -> None:
         """Store a glyph in the cache."""
         if len(self._cache) >= self.max_size:
+            logger.debug(f"Glyph cache full ({len(self._cache)}/{self.max_size}), evicting...")
             self._evict()
 
         key = self._make_key(char, fg, bg, attrs)
         self._cache[key] = glyph
         self._access_count[key] = 1
+        
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f"Glyph cached: '{char}' (total cached: {len(self._cache)})")
 
     def _evict(self) -> None:
         """Evict least recently used entries."""
         # Remove bottom 25% of entries by access count
         items = sorted(self._access_count.items(), key=lambda x: x[1])
         to_remove = len(items) // 4
+        
+        logger.debug(f"Evicting {to_remove} glyphs from cache")
 
         for key, _ in items[:to_remove]:
             del self._cache[key]
             del self._access_count[key]
+        
+        logger.debug(f"Cache size after eviction: {len(self._cache)}")
 
 
 # ============================================================================
@@ -385,12 +460,20 @@ def create_optimized_pipeline(width: int, height: int) -> dict:
     Returns:
         Dictionary with optimized rendering components
     """
-    return {
+    start = time.time()
+    logger.info(f"Creating optimized pipeline for {width}x{height} terminal")
+    
+    pipeline = {
         "hilbert": HilbertCurveOptimized.get_cached(order=8),
         "foveated": FoveatedRendererOptimized(),
         "glyph_cache": GlyphCacheOptimized(max_size=width * height),
         "pixel_buffer": np.zeros((width * height, 4), dtype=np.uint8),
     }
+    
+    elapsed = (time.time() - start) * 1000
+    logger.info(f"Optimized pipeline created in {elapsed:.2f}ms")
+    
+    return pipeline
 
 
 # ============================================================================
@@ -481,6 +564,7 @@ class FastGlyphCache:
         self._cache: dict[int, np.ndarray] = {}
         self._access: dict[int, int] = {}
         self._max_size = max_glyphs
+        logger.debug(f"FastGlyphCache initialized (max_glyphs={max_glyphs})")
 
     @staticmethod
     def _pack_key(char_code: int, fg: int, bg: int) -> int:
@@ -499,17 +583,23 @@ class FastGlyphCache:
     def put(self, char_code: int, fg: int, bg: int, glyph: np.ndarray) -> None:
         """Store a glyph in the cache."""
         if len(self._cache) >= self._max_size:
+            logger.debug(f"FastGlyphCache full ({len(self._cache)}/{self._max_size}), evicting...")
             self._evict()
 
         key = self._pack_key(char_code, fg, bg)
         self._cache[key] = glyph
         self._access[key] = 1
+        
+        if logger.isEnabledFor(logging.DEBUG) and len(self._cache) % 50 == 0:
+            logger.debug(f"FastGlyphCache size: {len(self._cache)}/{self._max_size}")
 
     def _evict(self) -> None:
         """Evict least recently used entries."""
         # Remove bottom 25% by access count
         items = sorted(self._access.items(), key=lambda x: x[1])
         to_remove = len(items) // 4
+        
+        logger.debug(f"Evicting {to_remove} glyphs from FastGlyphCache")
 
         for key, _ in items[:to_remove]:
             del self._cache[key]
@@ -517,5 +607,6 @@ class FastGlyphCache:
 
     def clear(self) -> None:
         """Clear the cache."""
+        logger.debug(f"Clearing FastGlyphCache ({len(self._cache)} entries)")
         self._cache.clear()
         self._access.clear()

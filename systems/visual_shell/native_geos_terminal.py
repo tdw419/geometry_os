@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 # Geometry OS Components
 from systems.visual_shell.api.geometric_terminal_bridge import GeometricTerminalBridge, TerminalTextureConfig
 from systems.visual_shell.api.vat_manager import VATManager
+from systems.visual_shell.geos_commands import GeosCommands
 
 class NativeGeosShell:
     """
@@ -46,6 +47,9 @@ class NativeGeosShell:
         self.bridge = GeometricTerminalBridge()
         self.config = TerminalTextureConfig(cols=self.cols, rows=self.rows)
         self.tile_id = self.bridge.spawn_geometric_terminal(self.config)
+        
+        # Command Handlers
+        self.commands = GeosCommands(self.bridge.vat_bridge, self.bridge.vat_bridge.vat_manager, None)
         
         # State paths
         self.texture_path = Path(f".geometry/tectonic/textures/native_terminal_{self.tile_id}.rts.png")
@@ -156,27 +160,43 @@ class NativeGeosShell:
         try:
             tty.setraw(sys.stdin)
             while True:
-                r, w, e = select.select([sys.stdin, self.fd], [], [], 0.05)
+                try:
+                    r, w, e = select.select([sys.stdin, self.fd], [], [], 0.05)
+                except (select.error, OSError):
+                    # Handle interrupted system calls (e.g. SIGWINCH)
+                    continue
                 
                 if sys.stdin in r:
-                    data = os.read(sys.stdin.fileno(), 1024)
+                    try:
+                        data = os.read(sys.stdin.fileno(), 1024)
+                    except OSError:
+                        break
+                    if not data:
+                        break
+                        
                     for char_byte in data:
                         char = chr(char_byte)
                         if char == '\r' or char == '\n':
-                            # AI Command Injection
+                            # 1. AI Command Injection
                             injected_cmd = self._intercept_ai_command(input_buffer)
                             if injected_cmd:
                                 os.write(sys.stdout.fileno(), b"\r" + b" " * (len(input_buffer) + 2) + b"\r")
                                 os.write(self.fd, injected_cmd.encode())
+                            # 2. Geometry Command Intercept
+                            elif input_buffer.startswith("g "):
+                                os.write(sys.stdout.fileno(), b"\r\n")
+                                self.commands.handle(input_buffer)
+                                os.write(self.fd, bytes([char_byte]))
                             else:
                                 os.write(self.fd, bytes([char_byte]))
                             input_buffer = ""
                         elif char_byte == 127: # Backspace
-                            input_buffer = input_buffer[:-1]
-                            os.write(self.fd, data)
+                            if len(input_buffer) > 0:
+                                input_buffer = input_buffer[:-1]
+                            os.write(self.fd, bytes([char_byte]))
                         else:
                             input_buffer += char
-                            os.write(self.fd, data)
+                            os.write(self.fd, bytes([char_byte]))
                 
                 if self.fd in r:
                     try:

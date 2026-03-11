@@ -6,13 +6,39 @@ usability features:
 - Resize handles on corners and edges
 - Snap-to-grid for cleaner layouts
 - Visual feedback during interactions
+
+Logging:
+    This module logs critical operations for debugging:
+    - Panel state changes (minimize, restore, close)
+    - Drag operations with snap-to-grid feedback
+    - Resize operations with handle tracking
+    - Z-index changes
 """
 
+import logging
+import time
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .native_api import NativeVisualShellAPI
+
+# ============================================================================
+# Logging Configuration
+# ============================================================================
+
+logger = logging.getLogger("native_panel")
+
+# Ensure logging is configured if not already
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+        '%(asctime)s | %(levelname)-8s | %(name)s | %(message)s',
+        datefmt='%H:%M:%S'
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
 
 # Import layout utilities for enhanced usability
 try:

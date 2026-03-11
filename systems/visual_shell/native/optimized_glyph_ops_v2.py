@@ -9,8 +9,28 @@ Key optimizations over v1:
 4. Eliminated Python object overhead
 """
 
+import logging
+import time
+
 import numpy as np
 from numba import jit, njit, prange, uint8, uint16, uint32, int32, float32, bool_, void
+
+# ============================================================================
+# Logging Configuration
+# ============================================================================
+
+logger = logging.getLogger("glyph_ops_v2")
+
+# Only configure if not already configured
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+        '%(asctime)s | %(levelname)-8s | %(name)s | %(message)s',
+        datefmt='%H:%M:%S'
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
 
 # ============================================================================
 # Numba-Accelerated Color Operations
@@ -172,9 +192,14 @@ class HilbertCurveV2:
         self.size = 1 << order
         self._lut = None
         
+        logger.debug(f"Initializing HilbertCurveV2 (order={order}, size={self.size})")
+        
         # Build LUT for reasonable sizes
         if order <= 10:
+            start = time.time()
             self._lut = build_hilbert_lut_compact(order)
+            elapsed = (time.time() - start) * 1000
+            logger.debug(f"HilbertCurveV2 LUT built in {elapsed:.2f}ms ({self.size * self.size} entries)")
     
     def d_to_xy(self, d: int) -> tuple[int, int]:
         """Convert single index to coordinates."""
@@ -187,6 +212,8 @@ class HilbertCurveV2:
         n = len(indices)
         result = np.zeros((n, 2), dtype=np.uint16)
         
+        start = time.time()
+        
         if self._lut is not None:
             # Use LUT with bounds checking
             safe_indices = np.clip(indices, 0, len(self._lut) - 1).astype(np.int32)
@@ -195,12 +222,17 @@ class HilbertCurveV2:
             # Use batch computation
             hilbert_d2xy_batch(self.size, indices.astype(np.int32), result[:, 0], result[:, 1])
         
+        elapsed = (time.time() - start) * 1000
+        if elapsed > 5.0 or logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f"HilbertCurveV2 batch conversion: {n} indices in {elapsed:.2f}ms")
+        
         return result
     
     @classmethod
     def get_cached(cls, order: int = 8) -> "HilbertCurveV2":
         """Get or create a cached instance."""
         if order not in cls._cache:
+            logger.info(f"Creating new HilbertCurveV2 cache for order {order}")
             cls._cache[order] = cls(order)
         return cls._cache[order]
 
@@ -352,27 +384,48 @@ class FoveatedRendererV2:
         self.parafoveal_r_sq = parafoveal_radius ** 2
         self.foveal_r = foveal_radius
         self.parafoveal_r = parafoveal_radius
+        logger.debug(f"FoveatedRendererV2 initialized (foveal={foveal_radius}px, parafoveal={parafoveal_radius}px)")
     
     def classify_batch(self, points: np.ndarray, focus: tuple[float, float]) -> np.ndarray:
         """Classify batch of points."""
         fx, fy = focus
-        return classify_regions_numba(
+        
+        start = time.time()
+        result = classify_regions_numba(
             points.astype(np.float32),
             np.float32(fx),
             np.float32(fy),
             np.float32(self.foveal_r_sq),
             np.float32(self.parafoveal_r_sq)
         )
+        
+        elapsed = (time.time() - start) * 1000
+        if elapsed > 2.0 or logger.isEnabledFor(logging.DEBUG):
+            foveal = np.sum(result == 0)
+            parafoveal = np.sum(result == 1)
+            peripheral = np.sum(result == 2)
+            logger.debug(f"Foveated classification: {len(points)} points in {elapsed:.2f}ms "
+                        f"(foveal={foveal}, parafoveal={parafoveal}, peripheral={peripheral})")
+        
+        return result
     
     def get_foveal_points(self, points: np.ndarray, focus: tuple[float, float]) -> np.ndarray:
         """Get indices of foveal points."""
         fx, fy = focus
-        return get_foveal_indices(
+        
+        start = time.time()
+        result = get_foveal_indices(
             points.astype(np.float32),
             np.float32(fx),
             np.float32(fy),
             np.float32(self.foveal_r_sq)
         )
+        
+        elapsed = (time.time() - start) * 1000
+        if elapsed > 2.0 or logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f"Found {len(result)} foveal points in {elapsed:.2f}ms")
+        
+        return result
 
 
 # ============================================================================
@@ -406,16 +459,27 @@ def create_optimized_pipeline_v2(width: int, height: int) -> dict:
     Returns:
         Dictionary with optimized rendering components
     """
-    return {
+    start = time.time()
+    logger.info(f"Creating optimized pipeline v2 for {width}x{height} terminal")
+    
+    pipeline = {
         "hilbert": HilbertCurveV2.get_cached(order=8),
         "foveated": FoveatedRendererV2(),
         "pixel_buffer": np.zeros((width * height, 4), dtype=np.uint8),
     }
+    
+    elapsed = (time.time() - start) * 1000
+    logger.info(f"Optimized pipeline v2 created in {elapsed:.2f}ms")
+    
+    return pipeline
 
 
 # Pre-compile Numba functions on module load
 def _warmup_numba():
     """Pre-compile Numba functions for consistent benchmark timing."""
+    logger.info("Warming up Numba JIT functions...")
+    start = time.time()
+    
     # Color blending
     blend_colors_packed(0xFF8080FF, 0x8080FFFF)
     
@@ -439,6 +503,9 @@ def _warmup_numba():
     # Foveated
     points = np.array([[100.0, 200.0]], dtype=np.float32)
     classify_regions_numba(points, 50.0, 50.0, 2500.0, 22500.0)
+    
+    elapsed = (time.time() - start) * 1000
+    logger.info(f"Numba warmup complete in {elapsed:.2f}ms")
 
 
 # Run warmup on import
