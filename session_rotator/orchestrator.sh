@@ -33,6 +33,10 @@ trap cleanup SIGTERM SIGINT SIGQUIT
 # Ensure session directory exists
 mkdir -p "$SESSION_DIR/logs"
 
+# Clear old logs from previous runs
+rm -f "$SESSION_DIR/logs"/*.log 2>/dev/null
+rm -f "$SESSION_DIR/state.json" 2>/dev/null
+
 while [ $SESSION_COUNT -lt $MAX_SESSIONS ]; do
   echo "=== Starting session $SESSION_COUNT ==="
 
