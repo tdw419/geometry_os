@@ -2,6 +2,8 @@
 
 Manages Claude Code CLI sessions with automatic rotation when context limits approach.
 
+> **Full documentation:** See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed explanations, data flow diagrams, and usage patterns.
+
 ## Quick Start
 
 ```bash
