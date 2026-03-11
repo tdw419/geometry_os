@@ -26,10 +26,14 @@ struct AttentionConfig {
     k_start: u32,        // K weights start
     v_start: u32,        // V weights start
     o_start: u32,        // O weights start
+    q_b_start: u32,      // Q bias start
+    k_b_start: u32,      // K bias start
+    v_b_start: u32,      // V bias start
     o_b_start: u32,      // O bias start
     seq_len: u32,
     ln_w_start: u32,     // LayerNorm weight start
-    ln_b_start: u32      // LayerNorm bias start
+    ln_b_start: u32,     // LayerNorm bias start
+    _pad: u32
 }
 @group(0) @binding(3) var<uniform> config: AttentionConfig;
 
@@ -99,7 +103,7 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
     }
     workgroupBarrier();
 
-    // 2. Projections Q, K, V
+    // 2. Projections Q, K, V with biases
     // Q is HIDDEN_DIM x HIDDEN_DIM
     for (var row = 0u; row < HIDDEN_DIM; row++) {
         var dot = 0.0;
@@ -112,12 +116,13 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
         if (tid == 0u) {
             var row_sum = 0.0;
             for (var i = 0u; i < 64u; i++) { row_sum += shared_f32[i]; }
-            q_vec[row] = row_sum;
+            let q_bias = load_weight_value(config.q_b_start + row);
+            q_vec[row] = row_sum + q_bias;
         }
         workgroupBarrier();
     }
 
-    // K is HIDDEN_DIM x HIDDEN_DIM, starts at config.k_start (accounts for Q bias gap)
+    // K is HIDDEN_DIM x HIDDEN_DIM, starts at config.k_start
     for (var row = 0u; row < HIDDEN_DIM; row++) {
         var dot = 0.0;
         let row_offset = config.k_start + row * HIDDEN_DIM;
@@ -129,12 +134,13 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
         if (tid == 0u) {
             var row_sum = 0.0;
             for (var i = 0u; i < 64u; i++) { row_sum += shared_f32[i]; }
-            k_vec[row] = row_sum;
+            let k_bias = load_weight_value(config.k_b_start + row);
+            k_vec[row] = row_sum + k_bias;
         }
         workgroupBarrier();
     }
 
-    // V is HIDDEN_DIM x HIDDEN_DIM, starts at config.v_start (accounts for K bias gap)
+    // V is HIDDEN_DIM x HIDDEN_DIM, starts at config.v_start
     for (var row = 0u; row < HIDDEN_DIM; row++) {
         var dot = 0.0;
         let row_offset = config.v_start + row * HIDDEN_DIM;
@@ -146,7 +152,8 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
         if (tid == 0u) {
             var row_sum = 0.0;
             for (var i = 0u; i < 64u; i++) { row_sum += shared_f32[i]; }
-            v_vec[row] = row_sum;
+            let v_bias = load_weight_value(config.v_b_start + row);
+            v_vec[row] = row_sum + v_bias;
         }
         workgroupBarrier();
     }
@@ -159,9 +166,11 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
         kv_cache[v_offset + i] = v_vec[i];
     }
     workgroupBarrier();
+    storageBarrier();  // CRITICAL: Ensure KV cache writes are visible before reading for attention
 
     // 4. Attention for each head
-    let scale = 1.0 / sqrt(f32(HEAD_DIM));
+    // NOTE: GPT-Neo does NOT use the standard 1/sqrt(head_dim) scaling in attention
+    // The scaling is baked into the Q projection weights during training
     for (var h = 0u; h < NUM_HEADS; h++) {
         let head_offset = h * HEAD_DIM;
         
@@ -177,7 +186,7 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
             if (tid == 0u) {
                 var total_dot = 0.0;
                 for (var i = 0u; i < 64u; i++) { total_dot += shared_f32[i]; }
-                scores[j] = total_dot * scale;
+                scores[j] = total_dot;  // No scaling - GPT-Neo doesn't use 1/sqrt(head_dim)
             }
             workgroupBarrier();
         }
