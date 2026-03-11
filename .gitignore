@@ -47,6 +47,7 @@ build/
 *.img
 *.cpio
 *.pid
+.loop/checkpoint.json
 
 # Temporary files
 *.tmp
