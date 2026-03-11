@@ -16,6 +16,11 @@ import sys
 import struct
 from pathlib import Path
 
+import pytest
+
+# Skip all tests in this module if geometry_os_spirv is not available
+pytest.importorskip("geometry_os_spirv")
+
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from geometry_os_spirv.scripts.emit_spirv import (

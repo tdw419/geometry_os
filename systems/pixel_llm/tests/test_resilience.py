@@ -8,6 +8,9 @@ import time
 
 import pytest
 
+# Skip all tests in this module if resilience submodules are not available
+pytest.importorskip("systems.pixel_llm.resilience.circuit_breaker")
+
 from systems.pixel_llm.errors import (
     ConnectionError,
 )

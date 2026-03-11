@@ -415,7 +415,7 @@ impl FileTensorFolder {
         // Load compute shader
         let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("File Fold Compute Shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/file_fold.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(include_str!("shaders/file_fold.wgsl").into()),
         });
         
         // Create bind group layout

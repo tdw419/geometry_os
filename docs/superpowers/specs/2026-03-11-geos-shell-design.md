@@ -188,9 +188,66 @@ if command.startswith(("gemini", "claude")):
 5. `g spawn` creates a terminal tile on the visual shell
 6. `.geometry/gnb_state.ascii` reflects current terminal state
 
+## Visual Integration (Phase 2)
+
+### Terminal WebSocket Bridge
+
+The terminal connects to the PixiJS Infinite Map via WebSocket:
+
+```
+┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
+│ G-Shell         │ ──► │ terminal_fragment    │ ──► │ WebSocket       │
+│ (PTY output)    │     │ .ascii               │     │ Bridge :8766    │
+└─────────────────┘     └──────────────────────┘     └─────────────────┘
+                                                              │
+                                                              ▼
+                                                      ┌─────────────────┐
+                                                      │ PixiJS Infinite │
+                                                      │ Map (Terminal   │
+                                                      │  Tile w/ glow)  │
+                                                      └─────────────────┘
+```
+
+### Files
+
+| File | Purpose |
+|------|---------|
+| `terminal_websocket_bridge.py` | WebSocket server that watches terminal state and broadcasts to clients |
+| `web/TerminalTile.js` | PixiJS component that renders terminal as a glowing tile |
+| `terminal_bridge_starter.py` | Convenience script to start the bridge |
+
+### WebSocket Protocol
+
+**Client → Server:**
+```json
+{"action": "get_terminal_state"}
+```
+
+**Server → Client:**
+```json
+{
+  "action": "terminal_content",
+  "content": "...",
+  "timestamp": 1234567890.0
+}
+```
+
+### Start Commands
+
+```bash
+# Start the WebSocket bridge
+python3 systems/visual_shell/terminal_bridge_starter.py
+
+# Start PixiJS frontend
+python3 systems/visual_shell/server/infinite_desktop_server.py
+
+# Start G-Shell
+python3 geometry_os_cli.py shell --native
+```
+
 ## Future Enhancements
 
 - Hilbert-curve file navigation (`g cd`)
-- Live tile output (commands render to PixiJS tiles)
 - Multi-terminal coordination via VAT
 - GPU-accelerated screen rendering via WGSL
+- Two-way input (send commands from map to terminal)

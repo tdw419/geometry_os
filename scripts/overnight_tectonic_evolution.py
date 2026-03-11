@@ -170,6 +170,9 @@ class OvernightEvolutionRunner:
         logger.info("🛑 Overnight Runner stopped")
 
 if __name__ == "__main__":
-    runner = OvernightEvolutionRunner(mutation_budget=100)
-    asyncio.run(runner.initialize())
-    asyncio.run(runner.run())
+    async def main():
+        runner = OvernightEvolutionRunner(mutation_budget=100)
+        if await runner.initialize():
+            await runner.run()
+            
+    asyncio.run(main())

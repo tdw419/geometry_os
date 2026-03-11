@@ -99,7 +99,7 @@ pub struct Renderer<'a> {
     pub terminal_renderer: Option<crate::terminal_clone::TerminalRenderer>,
 
     // Phase 42: Compilation Visual Feedback
-    compilation_status: crate::app::CompilationStatus,
+    compilation_status: crate::CompilationStatus,
     compilation_status_time: Option<std::time::Instant>,
     border_pipeline: wgpu::RenderPipeline,
     border_bind_group_layout: wgpu::BindGroupLayout,
@@ -815,7 +815,7 @@ impl<'a> Renderer<'a> {
             terminal_renderer,
 
             // Phase 42: Compilation Visual Feedback
-            compilation_status: crate::app::CompilationStatus::None,
+            compilation_status: crate::CompilationStatus::None,
             compilation_status_time: None,
             border_pipeline,
             border_bind_group_layout,
@@ -888,7 +888,7 @@ impl<'a> Renderer<'a> {
         encoder: &mut wgpu::CommandEncoder,
         view: &wgpu::TextureView,
     ) {
-        use crate::app::CompilationStatus;
+        use crate::CompilationStatus;
 
         // Early return if no compilation status
         if self.compilation_status == CompilationStatus::None {
@@ -967,13 +967,13 @@ impl<'a> Renderer<'a> {
     }
 
     // Phase 42: Set compilation status for visual feedback
-    pub fn set_compilation_status(&mut self, status: crate::app::CompilationStatus) {
+    pub fn set_compilation_status(&mut self, status: crate::CompilationStatus) {
         self.compilation_status = status;
         self.compilation_status_time = Some(std::time::Instant::now());
     }
 
     // Phase 42: Get current compilation status
-    pub fn get_compilation_status(&self) -> crate::app::CompilationStatus {
+    pub fn get_compilation_status(&self) -> crate::CompilationStatus {
         self.compilation_status
     }
 
@@ -981,7 +981,7 @@ impl<'a> Renderer<'a> {
     pub fn maybe_reset_compilation_status(&mut self) {
         if let Some(instant) = self.compilation_status_time {
             if instant.elapsed() > std::time::Duration::from_secs(1) {
-                self.compilation_status = crate::app::CompilationStatus::None;
+                self.compilation_status = crate::CompilationStatus::None;
                 self.compilation_status_time = None;
             }
         }
@@ -1061,7 +1061,7 @@ impl<'a> Renderer<'a> {
         // Create terrain shader
         let terrain_shader = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Neural Terrain Shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/neural_terrain.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(include_str!("shaders/neural_terrain.wgsl").into()),
         });
 
         // Create terrain bind group layout (2 groups: camera+config, texture+sampler)

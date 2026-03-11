@@ -30,6 +30,8 @@ pub const TERRAIN_HEIGHTMAP_SIZE: usize = 256;
 pub struct EvolutionGenome {
     /// RGBA pixel data (32x32 = 1024 pixels)
     pub pixels: Vec<u8>,
+    /// Backwards compatibility alias for pixels or raw data
+    pub data: Vec<u8>,
     /// Generation number
     pub generation: u64,
     /// Fitness score (0.0 - 1.0)
@@ -38,8 +40,12 @@ pub struct EvolutionGenome {
     pub species: String,
     /// Position on the infinite map
     pub map_position: (i32, i32),
+    /// Alias for map_position
+    pub position: (i32, i32),
     /// Unique genome ID
     pub id: String,
+    /// Metadata for the genome
+    pub metadata: serde_json::Value,
 }
 
 impl EvolutionGenome {
@@ -48,13 +54,19 @@ impl EvolutionGenome {
         assert_eq!(pixels.len(), EVOLUTION_CANVAS_SIZE * EVOLUTION_CANVAS_SIZE * 4,
             "Pixel data must be 32x32 RGBA");
         
+        let id = format!("gen{}_{}", generation, uuid::Uuid::new_v4().to_string()[..8].to_string());
+        let map_position = (0, 0);
+        
         Self {
-            pixels,
+            pixels: pixels.clone(),
+            data: pixels,
             generation,
             fitness,
             species: "unknown".to_string(),
-            map_position: (0, 0),
-            id: format!("gen{}_{}", generation, uuid::Uuid::new_v4().to_string()[..8].to_string()),
+            map_position,
+            position: map_position,
+            id,
+            metadata: serde_json::json!({}),
         }
     }
     
@@ -72,13 +84,18 @@ impl EvolutionGenome {
             }
         }
         
+        let map_position = (0, 0);
+        
         Self {
-            pixels,
+            pixels: pixels.clone(),
+            data: pixels,
             generation,
             fitness: 0.5,
             species: "grayscale".to_string(),
-            map_position: (0, 0),
+            map_position,
+            position: map_position,
             id: format!("gen{}_gray", generation),
+            metadata: serde_json::json!({}),
         }
     }
     
@@ -536,13 +553,18 @@ impl EvolutionTerrainBridge {
             }
         }
         
+        let map_position = (0, 0);
+        
         EvolutionGenome {
-            pixels,
+            pixels: pixels.clone(),
+            data: pixels,
             generation: 1,
             fitness: 0.75,
             species: "demo_pattern".to_string(),
-            map_position: (0, 0),
+            map_position,
+            position: map_position,
             id: "demo_001".to_string(),
+            metadata: serde_json::json!({}),
         }
     }
 }

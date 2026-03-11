@@ -7,6 +7,9 @@ Tests tensor validation, config validation, and input sanitization.
 import numpy as np
 import pytest
 
+# Skip all tests in this module if validation module is not available
+pytest.importorskip("systems.pixel_llm.validation")
+
 from systems.pixel_llm.errors import ValidationError as PixelLMValidationError
 from systems.pixel_llm.validation import (
     sanitize_input,

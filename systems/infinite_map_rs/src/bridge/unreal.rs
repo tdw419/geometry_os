@@ -103,7 +103,7 @@ impl UnrealBridge {
             let data_ptr = ptr.add(offset);
             
             // Serialize packet header
-            let encoded_packet = bincode::serialize(&packet).unwrap_or_default();
+            let encoded_packet = bincode::serde::encode_to_vec(&packet, bincode::config::standard()).unwrap_or_default();
             std::ptr::copy_nonoverlapping(encoded_packet.as_ptr(), data_ptr, encoded_packet.len());
             
             // Serialize payload immediately after

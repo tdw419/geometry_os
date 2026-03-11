@@ -1,28 +1,8 @@
 {
   "hooks": {
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 .claude/hooks/meta-prompter-pixelbrain.py"
-          }
-        ]
-      }
-    ],
     "Notification": [
       {
         "matcher": "idle_prompt",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 .claude/hooks/meta-prompter-pixelbrain.py"
-          }
-        ]
-      },
-      {
-        "matcher": "permission_prompt",
         "hooks": [
           {
             "type": "command",

@@ -264,33 +264,81 @@ def is_valid_prompt(text: str) -> bool:
     return True
 
 
-def analyze_with_cli_fallback(context: str, history: str) -> str | None:
-    """Fallback to CLI if PixelBrain unavailable."""
+def analyze_with_cli(context: str, history: str, project_dir: Path) -> str | None:
+    """Use Claude CLI to analyze conversation history and suggest next prompt."""
     import subprocess
+    import os
 
-    prompt = f"""You are a meta-cognitive assistant. Determine the NEXT prompt.
+    # Find recent conversation files for additional context
+    recent_sessions = []
+    try:
+        session_files = sorted(
+            project_dir.glob("*.jsonl"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True
+        )[:3]  # Get 3 most recent
 
-CONTEXT: {context}
-RECENT: {history[:2000]}
+        for sf in session_files:
+            stat = sf.stat()
+            recent_sessions.append(f"- {sf.name} ({stat.st_size} bytes, modified {datetime.fromtimestamp(stat.st_mtime).strftime('%H:%M')})")
+    except Exception as e:
+        log(f"Error listing sessions: {e}")
 
-Output ONLY a single prompt (max 2 sentences) or "WAIT" or "STUCK: reason"."""
+    prompt = f"""You are a meta-cognitive assistant analyzing a Claude Code session.
+Determine what the user should work on NEXT based on the conversation context.
+
+PROJECT: geometry_os (Geometry OS - autonomous on-screen entity)
+SESSION CONTEXT: {context}
+
+RECENT CONVERSATION:
+{history[:2500]}
+
+RECENT SESSIONS IN PROJECT:
+{chr(10).join(recent_sessions) if recent_sessions else 'No session files found'}
+
+RULES:
+- Output ONLY a single actionable prompt (max 2 sentences)
+- If the session just completed work, suggest verification or next logical step
+- If idle, suggest checking status or continuing pending work
+- Output "WAIT" if nothing should be done (user is in control)
+- Output "STUCK: reason" if blocked
+
+PROMPT:"""
 
     try:
+        # Unset CLAUDECODE to allow nested CLI calls
+        env = os.environ.copy()
+        env.pop("CLAUDECODE", None)
+
         result = subprocess.run(
             ["claude", "--print", "--dangerously-skip-permissions", prompt],
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=10,
+            env=env
         )
-        return result.stdout.strip()[:500] if result.returncode == 0 else None
+        if result.returncode == 0:
+            output = result.stdout.strip()
+            # Validate output
+            if output and len(output) > 3 and len(set(output)) > 3:
+                return output[:500]
+        log(f"CLI returned invalid: {result.returncode}, stdout[:100]={result.stdout[:100] if result.stdout else 'empty'}")
+        return None
+    except subprocess.TimeoutExpired:
+        log("CLI timeout (20s)")
+        return None
     except Exception as e:
-        log(f"CLI fallback error: {e}")
+        log(f"CLI error: {e}")
         return None
 
 
 async def main():
     # Read hook input from stdin
-    input_data = json.load(sys.stdin)
+    try:
+        input_data = json.load(sys.stdin)
+    except json.JSONDecodeError:
+        log("Error: Could not decode JSON from stdin")
+        sys.exit(0)
 
     event = input_data.get("hook_event_name", "")
     session_id = input_data.get("session_id", "")
@@ -336,28 +384,50 @@ async def main():
         log("Could not extract history")
         sys.exit(0)
 
-    # Try PixelBrain first, then CLI fallback
-    next_prompt = await analyze_with_pixel_brain(context, history)
+    # Fast path: Skip for very short/trivial history if not idle
+    if event == "Stop" and len(history.split("\n")) < 3:
+        log("Trivial history, skipping analysis")
+        sys.exit(0)
 
-    # Validate PixelBrain output - fall back to CLI if garbage
-    if next_prompt is None or not is_valid_prompt(next_prompt):
-        if next_prompt:
-            log(f"PixelBrain produced invalid output: {next_prompt[:50]}")
-        log("Using CLI fallback")
-        next_prompt = analyze_with_cli_fallback(context, history)
+    is_idle = "idle" in context.lower()
+    next_prompt = None
 
+    # PixelBrain disabled - blocking I/O inside async causes hangs
+    # TODO: Fix PixelBrain to be truly async, then re-enable with 3s timeout
+    # try:
+    #     log("Analyzing with PixelBrain (fast path)...")
+    #     next_prompt = await asyncio.wait_for(analyze_with_pixel_brain(context, history), timeout=3.0)
+    #     if next_prompt and is_valid_prompt(next_prompt):
+    #         log(f"PixelBrain success: {next_prompt[:50]}")
+    #     else:
+    #         next_prompt = None
+    # except Exception as e:
+    #     log(f"PixelBrain skipped or failed: {e}")
+    #     next_prompt = None
+
+    # Try Claude CLI only for idle notifications (Slow, High Quality)
+    # Skip CLI during active work to avoid 10s latency
+    if is_idle:
+        try:
+            log("Analyzing with Claude CLI (idle deep analysis)...")
+            next_prompt = analyze_with_cli(context, history, HISTORY_DIR)
+        except Exception as e:
+            log(f"CLI analysis failed: {e}")
+            next_prompt = None
+
+    # Fallback logic
     if not next_prompt:
-        log("No prompt generated - using sensible default")
-        # Provide a sensible default prompt based on context
-        if "idle" in context.lower():
-            # Session is idle - check for obvious next steps
-            next_prompt = "check git status and continue with any pending work"
-        elif "completed a turn" in context.lower():
-            # Just finished something - suggest verification
-            next_prompt = "run tests to verify recent changes work correctly"
+        if is_idle:
+            # Idle with no prompt - let user drive
+            log("Idle - no auto-prompt generated")
+            sys.exit(0)
+        elif event == "Stop":
+            # Active work - use fast sensible default
+            log("Using fast default for active work")
+            next_prompt = "🤖 meta-prompter: run tests to verify recent changes work correctly"
         else:
-            # Generic fallback
-            next_prompt = "what should we work on next?"
+            log(f"Unhandled context: {context}")
+            sys.exit(0)
 
     log(f"Generated prompt: {next_prompt}")
 
@@ -373,15 +443,18 @@ async def main():
         # Track this prompt for evolution
         evolution_hook = get_evolution_hook()
         if evolution_hook:
-            evolution_hook.on_meta_prompt_generated(next_prompt, event)
-            log("Registered prompt with evolution hook")
+            try:
+                evolution_hook.on_meta_prompt_generated(next_prompt, event)
+                log("Registered prompt with evolution hook")
+            except Exception as e:
+                log(f"Evolution hook error: {e}")
 
         # Save state for PostToolUse tracking
         save_prompt_state(next_prompt, event)
 
         # Feed prompt to main session
         log(f"OUTPUT: {next_prompt}")
-        print(next_prompt)
+        print(next_prompt, flush=True)
         sys.exit(0)
 
 

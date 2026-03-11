@@ -55,7 +55,7 @@ use crate::antigravity_watcher::AntigravityWatcher;
 use crate::tectonic_simulator::TectonicSimulator;
 use crate::gpu::geometric_vm::GeometricVM;
 use visual_shell::VisualShellIntegration;
-use crate::bridge::unreal::UnrealBridge;
+// use crate::bridge::unreal::UnrealBridge;
 use crate::neural_console::ConsoleAction;
 
 pub struct Config {
@@ -138,7 +138,7 @@ pub struct InfiniteMapApp<'a> {
     visual_command_rx: Option<tokio::sync::mpsc::Receiver<crate::glass_ram::bridge::VisualCommand>>,
     
     // Phase 34.5: Diagnostic Overlay
-    pub diagnostic_overlay: crate::diagnostic::DiagnosticOverlay,
+    pub diagnostic_overlay: Option<bool>,
     diagnostic_window_id: Option<usize>,
     
     // Phase 2: Tool Integration Layer
@@ -181,7 +181,7 @@ pub struct InfiniteMapApp<'a> {
     introspection_tx: tokio::sync::mpsc::Sender<(usize, String)>,
     
     // Phase 40: Unreal Engine Bridge
-    pub unreal_bridge: Option<UnrealBridge>,
+    // pub unreal_bridge: Option<UnrealBridge>,
 
     // Phase 41: Neural Console
     pub neural_console: Option<crate::neural_console::NeuralConsole>,
@@ -296,7 +296,7 @@ pub struct InfiniteMapApp<'a> {
     pub terminal_clone_manager: Option<crate::terminal_clone::TerminalCloneManager>,
 
     // Shader Execution Zone: Compositor for drag-and-drop WGSL .rts.png files
-    pub compositor: Option<infinite_map_rs::Compositor>,
+    pub compositor: Option<crate::Compositor>,
 
     // Phase 48: GPU Capabilities for i64 support detection
     pub gpu_caps: crate::gpu_capabilities::GpuCapabilities,
@@ -376,7 +376,7 @@ impl<'a> InfiniteMapApp<'a> {
             frame_count: 0,
             visual_command_rx: None,
 
-            diagnostic_overlay: crate::diagnostic::DiagnosticOverlay::new(),
+            diagnostic_overlay: None,
             diagnostic_window_id: None,
             // Phase 2: Initialize tool manager
             tool_manager: None,
@@ -408,7 +408,7 @@ impl<'a> InfiniteMapApp<'a> {
 
             terrain_raycaster: None,
             // Phase 40: Initialize Unreal Bridge (The Glass Monitor)
-            unreal_bridge: UnrealBridge::new(),
+            // unreal_bridge: UnrealBridge::new(),
             // Phase 41: Neural Console
             neural_console: None, // Initialized later
             neural_console_window_id: None,
@@ -2442,7 +2442,7 @@ impl<'a> InfiniteMapApp<'a> {
         let device = self.renderer.get_device();
 
         // Create the compositor with the device
-        let compositor = infinite_map_rs::Compositor::new(device);
+        let compositor = crate::Compositor::new(device);
 
         self.compositor = Some(compositor);
 

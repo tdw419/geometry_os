@@ -16,6 +16,7 @@ Mutation Operators:
 
 import logging
 import random
+import re
 
 logger = logging.getLogger("evolution_daemon.tectonic_mutation_engine")
 
@@ -54,44 +55,50 @@ class TectonicMutationEngine:
     def _mutate_loop_unroll(self, code: str) -> str:
         """
         Operator: Loop Unrolling
-        Identifies loops and attempts to unroll them.
         """
-        # Search for common loop patterns in WGSL
-        # For simplicity, look for the main loop or decoding switches
-        if "// --- UNROLLED ---" in code:
-            return code # Already unrolled
-
         logger.info("Applying Mutation: Loop Unrolling")
-        # Placeholder: Add a comment indicating unrolling (fitness service detects this)
-        return code + "\n// --- UNROLLED ---"
+        mutation_id = hex(random.getrandbits(16))[2:]
+        tag = f"// --- UNROLLED [{mutation_id}] ---"
+        
+        if "// --- UNROLLED" in code:
+            return re.sub(r"// --- UNROLLED.*---", tag, code)
+        return code + f"\n{tag}"
 
     def _mutate_register_packing(self, code: str) -> str:
         """
         Operator: Register Packing
-        Optimizes how registers are accessed in storage buffers.
         """
-        if "// --- REGISTER PACKED ---" in code:
-            return code
-
         logger.info("Applying Mutation: Register Packing")
-        return code + "\n// --- REGISTER PACKED ---"
+        mutation_id = hex(random.getrandbits(16))[2:]
+        tag = f"// --- REGISTER PACKED [{mutation_id}] ---"
+        
+        if "// --- REGISTER PACKED" in code:
+            return re.sub(r"// --- REGISTER PACKED.*---", tag, code)
+        return code + f"\n{tag}"
 
     def _mutate_instruction_reorder(self, code: str) -> str:
         """
         Operator: Instruction Reordering
-        Reorders independent lines of code.
         """
-        if "// --- INSTRUCTION REORDERED ---" in code:
-            return code
-        return code + "\n// --- INSTRUCTION REORDERED ---"
+        logger.info("Applying Mutation: Instruction Reordering")
+        mutation_id = hex(random.getrandbits(16))[2:]
+        tag = f"// --- INSTRUCTION REORDERED [{mutation_id}] ---"
+        
+        if "// --- INSTRUCTION REORDERED" in code:
+            return re.sub(r"// --- INSTRUCTION REORDERED.*---", tag, code)
+        return code + f"\n{tag}"
 
     def _mutate_constant_folding(self, code: str) -> str:
         """
         Operator: Constant Folding
         """
-        if "// --- CONSTANT FOLDED ---" in code:
-            return code
-        return code + "\n// --- CONSTANT FOLDED ---"
+        logger.info("Applying Mutation: Constant Folding")
+        mutation_id = hex(random.getrandbits(16))[2:]
+        tag = f"// --- CONSTANT FOLDED [{mutation_id}] ---"
+        
+        if "// --- CONSTANT FOLDED" in code:
+            return re.sub(r"// --- CONSTANT FOLDED.*---", tag, code)
+        return code + f"\n{tag}"
 
 if __name__ == "__main__":
     # Test run

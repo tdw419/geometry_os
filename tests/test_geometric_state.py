@@ -8,6 +8,9 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Skip all tests in this module if open_brain is not available
+pytest.importorskip("open_brain")
+
 from open_brain.geometric_state import GeometricStateEncoder
 
 

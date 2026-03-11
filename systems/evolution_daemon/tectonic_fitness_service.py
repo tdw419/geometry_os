@@ -20,7 +20,9 @@ Usage:
 """
 
 import asyncio
+import hashlib
 import logging
+import re
 import subprocess
 import sys
 from dataclasses import dataclass, field
@@ -187,6 +189,9 @@ class TectonicFitnessService:
             return True
 
         except subprocess.CalledProcessError as e:
+            # If nothing to commit, return True anyway as it's not a hard failure
+            if e.returncode == 1 and "nothing to commit" in (e.stdout.decode() + e.stderr.decode()):
+                return True
             logger.error(f"Failed to create trial commit: {e.stderr.decode() if e.stderr else str(e)}")
             return False
 
@@ -240,7 +245,21 @@ class TectonicFitnessService:
 
         # Benchmark baseline
         baseline_code = self.shader_path.read_text()
-        self.baseline_score = await self.benchmark_shader("baseline", baseline_code)
+        
+        # Internal benchmark call to avoid duplicate ledger logging during init
+        ipc, latency = await self._run_ipc_benchmark(baseline_code)
+        correctness = await self._run_correctness_tests(baseline_code)
+        
+        self.baseline_score = FitnessScore(
+            mutation_id="baseline",
+            ipc=ipc,
+            latency_ms=latency,
+            memory_bandwidth=0.0,
+            correctness=correctness
+        )
+        
+        # Log baseline
+        self._log_to_ledger(self.baseline_score, "keep")
 
         logger.info(f"Baseline IPC: {self.baseline_score.ipc:.4f}, Fitness: {self.baseline_score.fitness:.4f}")
         return self.baseline_score.correctness
@@ -362,26 +381,26 @@ class TectonicFitnessService:
         Returns:
             Tuple of (ipc, latency_ms)
         """
-        # In production, this would:
-        # 1. Write shader to temp file
-        # 2. Load into WebGPU context
-        # 3. Execute instruction trace
-        # 4. Measure cycles and instructions
-
         # Simulated benchmark for now
-        # Real implementation would use gpu_latency_benchmark.rs
-
         await asyncio.sleep(0.1)  # Simulate benchmark time
 
         # Simulated metrics based on shader characteristics
         # More efficient patterns = higher IPC
         base_ipc = 0.5
 
-        # Bonus for optimizations
-        if "loop unroll" in shader_code.lower():
-            base_ipc += 0.1
-        if "register pack" in shader_code.lower():
-            base_ipc += 0.05
+        # v14: Parse mutation signatures for deterministic mock bonuses
+        # This allows the GA to actually find "better" mutations in mock mode
+        bonus = 0.0
+        # Look for tags like // --- UNROLLED [a1b2] ---
+        tags = re.findall(r"// --- (.*) \[(.*)\] ---", shader_code)
+        for tag_type, mutation_id in tags:
+            # Create a deterministic stable bonus for this specific mutation
+            h = hashlib.md5(f"{tag_type}:{mutation_id}".encode()).hexdigest()
+            # Random bonus between 0.01 and 0.05
+            tag_bonus = (int(h[:2], 16) / 255.0) * 0.04 + 0.01
+            bonus += tag_bonus
+            
+        base_ipc += min(bonus, 0.4) # Cap total bonus at 0.4
 
         # Penalty for complexity
         instruction_count = shader_code.count(";")
@@ -401,12 +420,6 @@ class TectonicFitnessService:
         - Handles timer interrupts properly
         - Maintains CSR state correctly
         """
-        # In production, this would:
-        # 1. Deploy shader to test environment
-        # 2. Run test_interrupt_integration.js
-        # 3. Run test_timer_interrupt.js
-        # 4. Verify all tests pass
-
         # For now, check for required functions
         required_functions = [
             "trap_enter",

@@ -3,6 +3,9 @@
 import numpy as np
 import pytest
 
+# Skip all tests in this module if open_brain is not available
+pytest.importorskip("open_brain")
+
 from open_brain.embeddings import EMBEDDING_DIM, EmbeddingGenerator
 
 

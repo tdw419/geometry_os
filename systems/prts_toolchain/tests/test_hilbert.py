@@ -1,6 +1,18 @@
 import unittest
 
-from prts_toolchain.hilbert import HilbertCurve
+import pytest
+
+# Skip all tests in this module if prts_toolchain is not available
+try:
+    import prts_toolchain
+    PRTS_AVAILABLE = True
+except ImportError:
+    PRTS_AVAILABLE = False
+
+pytestmark = pytest.mark.skipif(not PRTS_AVAILABLE, reason="prts_toolchain module not available")
+
+if PRTS_AVAILABLE:
+    from prts_toolchain.hilbert import HilbertCurve
 
 
 class TestHilbertCurve(unittest.TestCase):

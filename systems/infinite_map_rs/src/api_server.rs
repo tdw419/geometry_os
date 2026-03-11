@@ -1,14 +1,14 @@
 use axum::{
     extract::{Path, Query, State},
     response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::{get, post, delete},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tower_http::cors::{Any, CorsLayer};
-use http::{header, Method, HeaderValue};
+use axum::http::{header, Method, HeaderValue};
 use image::{ImageBuffer, Rgba};
 use std::io::Cursor;
 use crate::map_loader::MapLoader;
@@ -33,7 +33,7 @@ pub struct TerminalResizeRequest {
     pub cols: usize,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct RuntimeState {
     pub focused_id: Option<String>, // "Alpine_VM" or brick name
     pub mouse_pos: (f32, f32),
@@ -55,6 +55,23 @@ pub struct RuntimeState {
     pub pending_terminal_spawns: Vec<TerminalSpawnRequest>,
     pub pending_terminal_resizes: Vec<TerminalResizeRequest>,
     pub pending_terminal_destroys: Vec<i64>, // tile_ids to destroy
+}
+
+impl Default for RuntimeState {
+    fn default() -> Self {
+        Self {
+            focused_id: None,
+            mouse_pos: (0.0, 0.0),
+            screenshot_params: None,
+            screenshot_data: None,
+            pending_load: None,
+            pending_synaptic_actions: Vec::new(),
+            pending_genomes: Vec::new(),
+            pending_terminal_spawns: Vec::new(),
+            pending_terminal_resizes: Vec::new(),
+            pending_terminal_destroys: Vec::new(),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -1068,6 +1085,8 @@ async fn handle_terminal_spawn(
     let rows = payload.rows.min(MAX_TERMINAL_ROWS).max(1);
     let cols = payload.cols.min(MAX_TERMINAL_COLS).max(1);
     
+    log::info!("Terminal spawn queued: tile_id={}, shell={}", payload.tile_id, payload.shell);
+    
     let request = TerminalSpawnRequest {
         tile_id: payload.tile_id,
         rows,
@@ -1081,7 +1100,6 @@ async fn handle_terminal_spawn(
         rs.pending_terminal_spawns.push(request);
     }
 
-    log::info!("Terminal spawn queued: tile_id={}, shell={}", payload.tile_id, payload.shell);
     Json(TerminalSpawnResponse {
         success: true,
         message: "Terminal spawn request queued".to_string(),

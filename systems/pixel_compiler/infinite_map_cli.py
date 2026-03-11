@@ -22,9 +22,10 @@ try:
         VisualAllocationTable,
     )
     from systems.pixel_compiler.vat_parser import VATInspector, VATParser
+    INFINITE_MAP_AVAILABLE = True
 except ImportError as e:
-    print(f"[!] Import error: {e}", file=sys.stderr)
-    sys.exit(1)
+    INFINITE_MAP_AVAILABLE = False
+    _import_error = e
 
 
 class InfiniteMapCLI:

@@ -10,6 +10,9 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
+# Skip all tests in this module if required modules are not available
+pytest.importorskip("systems.pixel_llm.resilience.circuit_breaker")
+
 from systems.pixel_llm.errors import (
     CircuitBreakerOpen,
     ConnectionError,

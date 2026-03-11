@@ -19,7 +19,7 @@ use crate::compositor_state::GeometryCompositorState;
 use smithay::reexports::wayland_server::Display;
 
 pub struct WinitBackend {
-    pub backend: WinitGraphicsBackend<GlesRenderer>,
+    pub backend: Option<WinitGraphicsBackend<GlesRenderer>>,
     event_loop: Option<WinitEventLoop>,
 }
 
@@ -28,12 +28,12 @@ impl WinitBackend {
         let (backend, event_loop) = winit::init().expect("Failed to create Winit backend");
         
         WinitBackend {
-            backend,
+            backend: Some(backend),
             event_loop: Some(event_loop),
         }
     }
     
-    pub fn run<F>(mut self, mut display: Display<GeometryCompositorState>, mut state: GeometryCompositorState, mut callback: F)
+    pub fn run<F>(&mut self, mut display: Display<GeometryCompositorState>, mut state: GeometryCompositorState, mut callback: F)
     where
         F: FnMut(&mut GeometryCompositorState, &mut WinitGraphicsBackend<GlesRenderer>, winit::WinitEvent) + 'static,
     {
@@ -41,7 +41,8 @@ impl WinitBackend {
         let loop_handle = calloop.handle();
         
         let winit_loop = self.event_loop.take().expect("Event loop already consumed");
-        let mut backend = self.backend;
+        let mut backend = self.backend.take().expect("Backend already consumed");
+
         
         // Wayland Socket - try multiple names to avoid conflicts
         let mut socket = None;

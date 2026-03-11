@@ -761,7 +761,7 @@ class InfiniteMapBuilderV2:
         output_path: str,
         grid_size: int = 2048,
         hot_file_overrides: dict[str, int] = None,
-        rs_config: ReedSolomonConfig | None = None,
+        rs_config: "ReedSolomonConfig | None" = None,
         enable_rs: bool = True,
         snapshot_storage_dir: str = ".snapshots"
     ):

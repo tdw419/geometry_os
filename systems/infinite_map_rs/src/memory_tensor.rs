@@ -653,7 +653,7 @@ impl MemoryTensorFolder {
         // Load compute shader
         let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Memory Fold Compute Shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/memory_fold.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(include_str!("shaders/memory_fold.wgsl").into()),
         });
         
         // Create bind group layout

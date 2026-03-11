@@ -37,6 +37,7 @@ import sys
 import time
 import traceback
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
