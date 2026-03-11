@@ -2,7 +2,10 @@
 """build_prompt.py - Build session prompt from handoff and history"""
 
 import json
+import os
+import re
 from pathlib import Path
+from typing import List, Dict, Any
 
 def load_handoff(handoff_file: Path) -> str:
     """Load handoff context."""
@@ -10,38 +13,80 @@ def load_handoff(handoff_file: Path) -> str:
         return handoff_file.read_text()
     return ""
 
-def search_history(query: str, limit: int = 5) -> list[str]:
+def search_history(query: str, limit: int = 10) -> List[str]:
     """Search recent conversation history for relevant context."""
-    claude_home = Path.home() / ".claude" / "projects"
-    if not claude_home.exists():
-        return []
-
-    try:
-        project_dirs = sorted(claude_home.iterdir(), key=lambda d: d.stat().st_mtime, reverse=True)
-    except (PermissionError, OSError):
-        return []
-
+    # Support both Claude and Gemini/Pi CLI paths
+    home = Path.home()
+    search_paths = [
+        home / ".claude" / "projects",
+        home / ".pi" / "agent" / "sessions"
+    ]
+    
     results = []
-    for project_dir in project_dirs[:1]:
-        try:
-            jsonl_files = sorted(project_dir.glob("*.jsonl"), key=lambda f: f.stat().st_mtime, reverse=True)
-        except (PermissionError, OSError):
+    seen_hashes = set()
+
+    for base_path in search_paths:
+        if not base_path.exists():
             continue
-        for jsonl_file in jsonl_files[:1]:
-            try:
-                for line in jsonl_file.read_text().splitlines()[-50:]:
-                    try:
-                        obj = json.loads(line)
-                        msg = obj.get("message", {})
-                        content = msg.get("content", "")
-                        if isinstance(content, list):
-                            content = " ".join(b.get("text", "") for b in content if isinstance(b, dict))
-                        if query.lower() in content.lower():
-                            results.append(content[:500])
-                    except (json.JSONDecodeError, KeyError, AttributeError):
-                        continue
-            except (OSError, PermissionError):
-                continue
+
+        try:
+            # Recursively find all .jsonl files, sorted by mtime
+            jsonl_files = []
+            for root, _, files in os.walk(base_path):
+                for f in files:
+                    if f.endswith(".jsonl"):
+                        p = Path(root) / f
+                        jsonl_files.append((p, p.stat().st_mtime))
+            
+            jsonl_files.sort(key=lambda x: x[1], reverse=True)
+            
+            # Search through the most recent 20 files
+            for jsonl_file, _ in jsonl_files[:20]:
+                try:
+                    with open(jsonl_file, 'r', encoding='utf-8', errors='ignore') as f:
+                        lines = f.readlines()
+                        
+                        # Process in reverse to get most recent context first
+                        for line in reversed(lines):
+                            try:
+                                obj = json.loads(line)
+                                msg = obj.get("message", {})
+                                content = ""
+                                
+                                # Handle different JSON structures
+                                if "content" in msg:
+                                    c = msg["content"]
+                                    if isinstance(c, list):
+                                        content = " ".join(b.get("text", "") for b in c if isinstance(b, dict))
+                                    else:
+                                        content = str(c)
+                                elif "text" in obj:
+                                    content = obj["text"]
+                                
+                                if not content:
+                                    continue
+
+                                if query.lower() in content.lower():
+                                    # Create a snippet and avoid duplicates
+                                    snippet = content.strip()
+                                    snippet_hash = hash(snippet[:200])
+                                    
+                                    if snippet_hash not in seen_hashes:
+                                        results.append(snippet)
+                                        seen_hashes.add(snippet_hash)
+                                        
+                                    if len(results) >= limit:
+                                        break
+                            except (json.JSONDecodeError, KeyError, AttributeError):
+                                continue
+                except (OSError, PermissionError):
+                    continue
+                
+                if len(results) >= limit:
+                    break
+        except Exception as e:
+            # Fallback for search errors
+            continue
 
     return results[:limit]
 
@@ -50,24 +95,41 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--handoff", type=str, required=True)
     parser.add_argument("--search", type=str, default="")
+    parser.add_argument("--limit", type=int, default=5)
     args = parser.parse_args()
 
     handoff = load_handoff(Path(args.handoff))
     prompt_parts = []
 
+    # 1. CORE HANDOFF
     if handoff:
-        prompt_parts.append("## Session Continuation\n")
-        prompt_parts.append("You are continuing from a previous session. Here's the handoff context:\n")
+        prompt_parts.append("# Session Continuation\n\n")
+        prompt_parts.append("You are continuing from a previous session. Use the following context to resume progress immediately.\n\n")
+        prompt_parts.append("## Handoff Context\n\n")
         prompt_parts.append(handoff)
-        prompt_parts.append("\n## Instructions\n")
-        prompt_parts.append("Continue working on the task above. Do not summarize - just continue the work.\n")
+        prompt_parts.append("\n\n")
 
+    # 2. SEMANTIC HISTORY SEARCH
     if args.search:
-        history = search_history(args.search)
-        if history:
-            prompt_parts.append("\n## Relevant History\n")
-            for h in history:
-                prompt_parts.append(f"- {h[:200]}...\n")
+        history_snippets = search_history(args.search, limit=args.limit)
+        if history_snippets:
+            prompt_parts.append("## Relevant Historical Context\n\n")
+            prompt_parts.append(f"Searching history for: '{args.search}'\n\n")
+            for i, snippet in enumerate(history_snippets):
+                # Clean and truncate snippet for prompt injection
+                clean_snippet = re.sub(r'\s+', ' ', snippet).strip()
+                if len(clean_snippet) > 1000:
+                    clean_snippet = clean_snippet[:1000] + "... [truncated]"
+                
+                prompt_parts.append(f"### Context Block {i+1}\n")
+                prompt_parts.append(f"```text\n{clean_snippet}\n```\n\n")
+
+    # 3. DIRECTIVE
+    prompt_parts.append("## Executive Directive\n\n")
+    prompt_parts.append("- Continue the implementation/verification described in the handoff.\n")
+    prompt_parts.append("- Do NOT provide summaries or meta-commentary about the session rotation.\n")
+    prompt_parts.append("- If you have completed the task, include 'TASK COMPLETE' in your final response.\n")
+    prompt_parts.append("- Use tools as needed to verify state before proceeding.\n")
 
     print("".join(prompt_parts))
 

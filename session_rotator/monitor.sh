@@ -7,8 +7,15 @@ echo "=== Session Rotator Monitor ==="
 echo "Press Ctrl+C to exit"
 echo
 
-# Check if running
-if [ -f "$SESSION_DIR/state.json" ]; then
+# Check if orchestrator process is running
+ORCH_PID=$(pgrep -f "orchestrator.sh" | head -1)
+CHILD_PID=$(pgrep -f " --print" | head -1)
+
+if [ -n "$ORCH_PID" ]; then
+    echo "Status: RUNNING"
+    echo "Orchestrator PID: $ORCH_PID"
+    [ -n "$CHILD_PID" ] && echo "CLI PID: $CHILD_PID"
+elif [ -f "$SESSION_DIR/state.json" ]; then
     echo "Status: $(cat $SESSION_DIR/state.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','unknown').upper())")"
 else
     echo "Status: NOT RUNNING"
@@ -16,8 +23,12 @@ else
 fi
 
 # Show session count
-SESSION_COUNT=$(cat $SESSION_DIR/state.json 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('session_count',0))")
-echo "Sessions rotated: $SESSION_COUNT"
+if [ -f "$SESSION_DIR/state.json" ]; then
+    SESSION_COUNT=$(cat $SESSION_DIR/state.json 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('session_count',0))" 2>/dev/null || echo "0")
+    echo "Sessions rotated: $SESSION_COUNT"
+else
+    echo "Sessions rotated: 0"
+fi
 
 # Show latest log
 LATEST_LOG=$(ls -t $SESSION_DIR/logs/*.log 2>/dev/null | head -1)

@@ -4,6 +4,7 @@
 set -e
 
 # Configuration (override via environment)
+CLI_COMMAND="${CLI_COMMAND:-claude}"
 HANDOFF_FILE="${HANDOFF_FILE:-.session/handoff.md}"
 MAX_SESSIONS="${MAX_SESSIONS:-50}"
 TOKEN_LIMIT="${TOKEN_LIMIT:-150000}"
@@ -17,7 +18,7 @@ CLAUDE_PID=""
 cleanup() {
     echo "Shutting down orchestrator..."
     if [ -n "$CLAUDE_PID" ] && kill -0 "$CLAUDE_PID" 2>/dev/null; then
-        echo "Terminating Claude session $CLAUDE_PID"
+        echo "Terminating session $CLAUDE_PID"
         kill "$CLAUDE_PID" 2>/dev/null || true
         wait "$CLAUDE_PID" 2>/dev/null || true
     fi
@@ -43,8 +44,8 @@ while [ $SESSION_COUNT -lt $MAX_SESSIONS ]; do
     PROMPT=$(python3 "$SCRIPT_DIR/build_prompt.py" --handoff "$HANDOFF_FILE")
   fi
 
-  # Launch Claude session
-  claude --print "$PROMPT" 2>&1 | tee "$SESSION_DIR/logs/session_$SESSION_COUNT.log" &
+  # Launch session (unbuffered for real-time logging)
+  stdbuf -oL -eL "$CLI_COMMAND" --print "$PROMPT" > "$SESSION_DIR/logs/session_$SESSION_COUNT.log" 2>&1 &
   CLAUDE_PID=$!
 
   # Monitor for events
