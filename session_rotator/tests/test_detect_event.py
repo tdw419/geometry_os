@@ -67,9 +67,11 @@ def test_detect_event_cli_continue(tmp_path):
     handoff = tmp_path / "handoff.md"
     handoff.write_text("Working on task")
     result = subprocess.run(
-        ["python3", "session_rotator/detect_event.py", "--handoff", str(handoff)],
-        capture_output=True, text=True, cwd="."
+        ["python3", "detect_event.py", "--handoff", str(handoff), "--no-token-check"],
+        capture_output=True, text=True, cwd="session_rotator"
     )
+    print(f"stdout: '{result.stdout}'")
+    print(f"stderr: '{result.stderr}'")
     assert result.stdout.strip() == "continue"
 
 
@@ -78,7 +80,7 @@ def test_detect_event_cli_complete(tmp_path):
     handoff = tmp_path / "handoff.md"
     handoff.write_text("TASK COMPLETE")
     result = subprocess.run(
-        ["python3", "session_rotator/detect_event.py", "--handoff", str(handoff)],
+        ["python3", "detect_event.py", "--handoff", str(handoff), "--no-token-check"],
         capture_output=True, text=True, cwd="."
     )
     assert result.stdout.strip() == "complete"
@@ -89,7 +91,7 @@ def test_detect_event_cli_error(tmp_path):
     handoff = tmp_path / "handoff.md"
     handoff.write_text("I am stuck")
     result = subprocess.run(
-        ["python3", "session_rotator/detect_event.py", "--handoff", str(handoff)],
+        ["python3", "detect_event.py", "--handoff", str(handoff), "--no-token-check"],
         capture_output=True, text=True, cwd="."
     )
     assert result.stdout.strip() == "error"

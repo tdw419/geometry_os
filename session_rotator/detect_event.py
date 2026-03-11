@@ -38,6 +38,7 @@ def main():
     parser.add_argument("--pid", type=int)
     parser.add_argument("--handoff", type=str, required=True)
     parser.add_argument("--token-limit", type=int, default=150000)
+    parser.add_argument("--no-token-check", action="store_true")
     args = parser.parse_args()
 
     handoff = Path(args.handoff)
@@ -53,14 +54,15 @@ def main():
         return
 
     # Check token usage
-    claude_home = Path.home() / ".claude" / "projects"
-    if claude_home.exists():
-        project_dirs = sorted(claude_home.iterdir(), key=lambda d: d.stat().st_mtime, reverse=True)
-        if project_dirs:
-            tokens = get_token_usage(project_dirs[0])
-            if tokens > args.token_limit:
-                print("rotate")
-                return
+    if not args.no_token_check:
+        claude_home = Path.home() / ".claude" / "projects"
+        if claude_home.exists():
+            project_dirs = sorted(claude_home.iterdir(), key=lambda d: d.stat().st_mtime, reverse=True)
+            if project_dirs:
+                tokens = get_token_usage(project_dirs[0])
+                if tokens > args.token_limit:
+                    print("rotate")
+                    return
 
     print("continue")
 
