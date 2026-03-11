@@ -1,5 +1,8 @@
 import pytest
 from pathlib import Path
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from detect_event import get_token_usage, detect_errors, detect_completion
 import subprocess
 
@@ -70,8 +73,6 @@ def test_detect_event_cli_continue(tmp_path):
         ["python3", "detect_event.py", "--handoff", str(handoff), "--no-token-check"],
         capture_output=True, text=True, cwd="session_rotator"
     )
-    print(f"stdout: '{result.stdout}'")
-    print(f"stderr: '{result.stderr}'")
     assert result.stdout.strip() == "continue"
 
 
@@ -81,7 +82,7 @@ def test_detect_event_cli_complete(tmp_path):
     handoff.write_text("TASK COMPLETE")
     result = subprocess.run(
         ["python3", "detect_event.py", "--handoff", str(handoff), "--no-token-check"],
-        capture_output=True, text=True, cwd="."
+        capture_output=True, text=True, cwd="session_rotator"
     )
     assert result.stdout.strip() == "complete"
 
@@ -92,6 +93,6 @@ def test_detect_event_cli_error(tmp_path):
     handoff.write_text("I am stuck")
     result = subprocess.run(
         ["python3", "detect_event.py", "--handoff", str(handoff), "--no-token-check"],
-        capture_output=True, text=True, cwd="."
+        capture_output=True, text=True, cwd="session_rotator"
     )
     assert result.stdout.strip() == "error"
