@@ -30,3 +30,40 @@ def detect_completion(handoff_file: Path) -> bool:
         return False
     content = handoff_file.read_text().lower()
     return "task complete" in content
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--pid", type=int)
+    parser.add_argument("--handoff", type=str, required=True)
+    parser.add_argument("--token-limit", type=int, default=150000)
+    args = parser.parse_args()
+
+    handoff = Path(args.handoff)
+
+    # Check completion first
+    if detect_completion(handoff):
+        print("complete")
+        return
+
+    # Check errors
+    if detect_errors(handoff):
+        print("error")
+        return
+
+    # Check token usage
+    claude_home = Path.home() / ".claude" / "projects"
+    if claude_home.exists():
+        project_dirs = sorted(claude_home.iterdir(), key=lambda d: d.stat().st_mtime, reverse=True)
+        if project_dirs:
+            tokens = get_token_usage(project_dirs[0])
+            if tokens > args.token_limit:
+                print("rotate")
+                return
+
+    print("continue")
+
+
+if __name__ == "__main__":
+    main()
