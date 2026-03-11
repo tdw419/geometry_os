@@ -27,10 +27,14 @@ Usage:
     terminal.render_to_texture("output.rts.png")
 """
 
+import logging
 from dataclasses import dataclass
 
 import numpy as np
 from PIL import Image
+
+# Configure logging
+logger = logging.getLogger("pixelrts_v3.geometric_terminal")
 
 # Extended Terminal Opcodes
 TERMINAL_OPCODES = {
@@ -267,7 +271,7 @@ class GeometricTerminal:
                     pixels[x, y] = cell.to_rgba()
 
         img.save(output_path)
-        print(f"Saved geometric terminal to {output_path} ({self.grid_size}x{self.grid_size})")
+        logger.debug(f"Saved geometric terminal to {output_path} ({self.grid_size}x{self.grid_size})")
 
     def render_to_visual_texture(self, output_path: str, cell_width: int = 8, cell_height: int = 16) -> None:
         """Render terminal to visual PNG (for human viewing, not execution)."""
@@ -314,7 +318,7 @@ class GeometricTerminal:
                             pixels[x, y] = bg_color
 
         img.save(output_path)
-        print(f"Saved visual terminal to {output_path} ({width}x{height})")
+        logger.debug(f"Saved visual terminal to {output_path} ({width}x{height})")
 
     def get_cell_at(self, row: int, col: int) -> TerminalCell | None:
         """Get cell at position."""
