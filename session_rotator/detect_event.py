@@ -98,8 +98,11 @@ def main():
     handoff = Path(args.handoff)
     log = Path(args.log) if args.log else None
 
-    # 1. Check completion signal (highest priority)
-    if detect_completion(handoff, log):
+    # Check for continuous mode (skip completion detection)
+    continuous_mode = os.environ.get("CONTINUOUS_MODE", "").strip() == "1"
+
+    # 1. Check completion signal (highest priority, unless continuous mode)
+    if not continuous_mode and detect_completion(handoff, log):
         print("complete")
         return
 

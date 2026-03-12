@@ -37,12 +37,14 @@ class Orchestrator:
                  cli_command: str = "claude",
                  max_sessions: int = 50,
                  token_limit: int = 150000,
-                 search_query: Optional[str] = None):
+                 search_query: Optional[str] = None,
+                 continuous: bool = False):
         self.session_dir = Path(session_dir)
         self.cli_command = cli_command
         self.max_sessions = max_sessions
         self.token_limit = token_limit
         self.search_query = search_query
+        self.continuous = continuous
         self.state = SessionState()
         self._process: Optional[subprocess.Popen] = None
 
@@ -135,6 +137,8 @@ class Orchestrator:
         env["SESSION_DIR"] = str(self.session_dir)
         if self.search_query:
             env["SEARCH_QUERY"] = self.search_query
+        if self.continuous:
+            env["CONTINUOUS_MODE"] = "1"
 
         self._process = subprocess.Popen(
             [str(orchestrator_script)],
@@ -173,15 +177,23 @@ class Orchestrator:
 
     def get_status(self) -> Dict[str, Any]:
         """Get current orchestrator status."""
-        # Check if process is actually running
-        if self.state.current_pid:
+        # Load state from file first (most reliable)
+        state_file = self.session_dir / "state.json"
+        if state_file.exists():
             try:
-                os.kill(self.state.current_pid, 0)
-            except OSError:
-                self.state.status = SessionStatus.IDLE
-                self.state.current_pid = None
+                data = json.loads(state_file.read_text())
+                self.state.session_count = data.get("session_count", 0)
+                file_status = data.get("status", "idle")
+                if file_status == "complete":
+                    self.state.status = SessionStatus.COMPLETE
+                elif file_status == "running":
+                    self.state.status = SessionStatus.RUNNING
+                else:
+                    self.state.status = SessionStatus.IDLE
+            except (json.JSONDecodeError, KeyError):
+                pass
 
-        # Also check via pgrep
+        # Check if orchestrator process is running
         result = subprocess.run(
             ["pgrep", "-f", "orchestrator.sh"],
             capture_output=True, text=True
@@ -190,18 +202,8 @@ class Orchestrator:
             self.state.status = SessionStatus.RUNNING
             self.state.orchestrator_pid = int(result.stdout.strip().split()[0])
         elif self.state.status == SessionStatus.RUNNING:
+            # Process died but state wasn't updated
             self.state.status = SessionStatus.IDLE
-
-        # Load state from file if exists
-        state_file = self.session_dir / "state.json"
-        if state_file.exists():
-            try:
-                data = json.loads(state_file.read_text())
-                self.state.session_count = data.get("session_count", 0)
-                if data.get("status") == "complete":
-                    self.state.status = SessionStatus.COMPLETE
-            except (json.JSONDecodeError, KeyError):
-                pass
 
         return {
             "status": self.state.status.value,

@@ -106,8 +106,9 @@ def cli(ctx, session_dir, json_output):
 @click.option("--token-limit", "-t", default=150000, help="Token limit for rotation")
 @click.option("--cli-command", "-c", default="claude", help="CLI command to run")
 @click.option("--handoff", "-h", type=click.Path(), help="Handoff file path")
+@click.option("--continuous", "-C", is_flag=True, help="Continuous mode - ignore TASK COMPLETE")
 @click.pass_context
-def start(ctx, search_query, max_sessions, token_limit, cli_command, handoff):
+def start(ctx, search_query, max_sessions, token_limit, cli_command, handoff, continuous):
     """Start the session rotator."""
     orch = Orchestrator(
         session_dir=ctx.obj["session_dir"],
