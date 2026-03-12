@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural City Live - Phases 40-50</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #050508;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        .app {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            height: 100vh;
+        }
+
+        .visualization {
+            position: relative;
+            background: #0a0a12;
+        }
+
+        #mainCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .status-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .status-badge.connected {
+            background: rgba(0, 200, 100, 0.2);
+            border: 1px solid #00c864;
+            color: #00c864;
+        }
+
+        .status-badge.disconnected {
+            background: rgba(200, 50, 50, 0.2);
+            border: 1px solid #c83232;
+            color: #c83232;
+        }
+
+        .dream-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 1s;
+        }
+
+        .dream-overlay.rem {
+            background: radial-gradient(ellipse at center, rgba(100, 0, 150, 0.3) 0%, transparent 70%);
+            opacity: 1;
+        }
+
+        .dream-overlay.deep {
+            background: radial-gradient(ellipse at center, rgba(0, 0, 100, 0.4) 0%, transparent 70%);
+            opacity: 1;
+        }
+
+        .control-panel {
+            background: #0d0d14;
+            border-left: 1px solid #1a1a2e;
+            padding: 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .section {
+            background: #12121a;
+            border: 1px solid #1f1f2e;
+            border-radius: 6px;
+            padding: 10px;
+        }
+
+        .section h3 {
+            color: #6a6aff;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #1f1f2e;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .stat {
+            background: #0a0a0f;
+            padding: 6px 8px;
+            border-radius: 4px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 8px;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .btn {
+            background: #1a1a2e;
+            border: 1px solid #2a2a4e;
+            color: #ccc;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 10px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #2a2a4e;
+            color: #fff;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .dream-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px;
+            background: #0a0a0f;
+            border-radius: 4px;
+        }
+
+        .dream-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dream-dot.awake { background: #00ff88; }
+        .dream-dot.drowsy { background: #ffff00; animation: pulse 2s infinite; }
+        .dream-dot.rem { background: #ff00ff; animation: pulse 0.5s infinite; }
+        .dream-dot.deep { background: #0044ff; animation: pulse 3s infinite; }
+        .dream-dot.lucid { background: #ff8800; animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.9); }
+        }
+
+        .meter {
+            height: 6px;
+            background: #1a1a2e;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .meter-fill {
+            height: 100%;
+            transition: width 0.3s;
+        }
+
+        .meter-fill.consciousness {
+            background: linear-gradient(90deg, #ff4444, #ffff44, #44ff44);
+        }
+
+        .symbols {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+        }
+
+        .symbol {
+            background: #1a1a2e;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .log {
+            background: #08080c;
+            border: 1px solid #1a1a2e;
+            border-radius: 4px;
+            height: 100px;
+            overflow-y: auto;
+            padding: 6px;
+            font-size: 9px;
+        }
+
+        .log-entry {
+            color: #666;
+            margin-bottom: 2px;
+        }
+
+        .log-entry.dream { color: #aa88ff; }
+        .log-entry.lang { color: #88ffaa; }
+        .log-entry.con { color: #ffaa88; }
+        .log-entry.err { color: #ff4444; }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            font-size: 9px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="visualization">
+            <canvas id="mainCanvas"></canvas>
+            <div class="dream-overlay" id="dreamOverlay"></div>
+            <div class="status-badge disconnected" id="statusBadge">Disconnected</div>
+        </div>
+
+        <div class="control-panel">
+            <!-- Connection -->
+            <div class="section">
+                <h3>Connection</h3>
+                <input type="text" id="wsUrl" value="ws://localhost:8765"
+                    style="width:100%;background:#0a0a0f;border:1px solid #2a2a4e;color:#e0e0e0;padding:4px;border-radius:3px;font-family:inherit;font-size:10px;">
+                <div class="btn-group" style="margin-top:6px;">
+                    <button class="btn" onclick="connect()">Connect</button>
+                    <button class="btn" onclick="initCity()">Init City</button>
+                    <button class="btn" onclick="toggleTick()">Auto Tick</button>
+                </div>
+            </div>
+
+            <!-- City Stats -->
+            <div class="section">
+                <h3>City (Phase 42-47)</h3>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-label">Population</div>
+                        <div class="stat-value" id="population">0</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Active</div>
+                        <div class="stat-value" id="active">0</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Tick</div>
+                        <div class="stat-value" id="tick">0</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Energy</div>
+                        <div class="stat-value" id="energy">0.0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dream Engine -->
+            <div class="section">
+                <h3>Dream Engine (Phase 48)</h3>
+                <div class="dream-indicator">
+                    <div class="dream-dot awake" id="dreamDot"></div>
+                    <span id="dreamState">AWAKE</span>
+                </div>
+                <div class="stats" style="margin-top:6px;">
+                    <div class="stat">
+                        <div class="stat-label">Activity</div>
+                        <div class="stat-value" id="activity">100%</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Dreams</div>
+                        <div class="stat-value" id="dreamCount">0</div>
+                    </div>
+                </div>
+                <div class="btn-group" style="margin-top:6px;">
+                    <button class="btn" onclick="forceDream('REM')">REM</button>
+                    <button class="btn" onclick="forceDream('DEEP')">Deep</button>
+                    <button class="btn" onclick="wake()">Wake</button>
+                </div>
+            </div>
+
+            <!-- Language -->
+            <div class="section">
+                <h3>Language (Phase 49)</h3>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-label">Symbols</div>
+                        <div class="stat-value" id="symbols">0</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Utterances</div>
+                        <div class="stat-value" id="utterances">0</div>
+                    </div>
+                </div>
+                <div style="margin-top:6px;">
+                    <div class="stat-label">Top Symbols</div>
+                    <div class="symbols" id="symbolCloud"></div>
+                </div>
+            </div>
+
+            <!-- Consciousness -->
+            <div class="section">
+                <h3>Consciousness (Phase 50)</h3>
+                <div class="stat-label">Avg Level</div>
+                <div class="meter">
+                    <div class="meter-fill consciousness" id="conMeter" style="width:0%"></div>
+                </div>
+                <div class="stat-value" id="conLevel">0.0</div>
+                <div class="stats" style="margin-top:6px;">
+                    <div class="stat">
+                        <div class="stat-label">Thoughts</div>
+                        <div class="stat-value" id="thoughts">0</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Phi</div>
+                        <div class="stat-value" id="phi">0.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="section">
+                <h3>Legend</h3>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-dot" style="background:#ff4444"></div>Attention</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#44ff44"></div>Memory</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#4444ff"></div>Logic</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#ffff44"></div>Substrate</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#ff44ff"></div>Intent</div>
+                </div>
+            </div>
+
+            <!-- Log -->
+            <div class="section" style="flex:1;">
+                <h3>Log</h3>
+                <div class="log" id="log"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const guildColors = {
+            attention: '#ff4444',
+            memory: '#44ff44',
+            logic: '#4444ff',
+            substrate: '#ffff44',
+            intent: '#ff44ff',
+            unknown: '#888888'
+        };
+
+        let ws = null;
+        let autoTick = false;
+        let tickInterval = null;
+        let cityData = { citizens: [], tick: 0, stats: {} };
+        let dreamState = 'awake';
+
+        function resize() {
+            const parent = canvas.parentElement;
+            canvas.width = parent.clientWidth;
+            canvas.height = parent.clientHeight;
+            render();
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function log(msg, type = '') {
+            const el = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            el.appendChild(entry);
+            el.scrollTop = el.scrollHeight;
+            while (el.children.length > 50) el.removeChild(el.firstChild);
+        }
+
+        function connect() {
+            const url = document.getElementById('wsUrl').value;
+            log(`Connecting to ${url}...`);
+            ws = new WebSocket(url);
+            ws.onopen = () => {
+                log('Connected!', 'con');
+                document.getElementById('statusBadge').className = 'status-badge connected';
+                document.getElementById('statusBadge').textContent = 'Connected';
+            };
+            ws.onclose = () => {
+                log('Disconnected', 'err');
+                document.getElementById('statusBadge').className = 'status-badge disconnected';
+                document.getElementById('statusBadge').textContent = 'Disconnected';
+                stopTick();
+            };
+            ws.onerror = () => log('WebSocket error', 'err');
+            ws.onmessage = (e) => handle(JSON.parse(e.data));
+        }
+
+        function send(data) {
+            if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data));
+            else log('Not connected', 'err');
+        }
+
+        function initCity() {
+            log('Initializing city...');
+            send({ type: 'INIT_CITY', width: 512, height: 512 });
+        }
+
+        function toggleTick() {
+            autoTick = !autoTick;
+            if (autoTick) {
+                tickInterval = setInterval(() => send({ type: 'CITY_TICK' }), 200);
+                log('Auto-tick ON');
+            } else stopTick();
+        }
+
+        function stopTick() {
+            if (tickInterval) clearInterval(tickInterval);
+            tickInterval = null;
+            autoTick = false;
+        }
+
+        function forceDream(state) {
+            send({ type: 'DREAM_CONTROL', action: 'force_dream', state });
+            log(`Forcing ${state} dream`, 'dream');
+        }
+
+        function wake() {
+            send({ type: 'DREAM_CONTROL', action: 'wake' });
+            log('Waking city', 'dream');
+        }
+
+        function handle(data) {
+            switch (data.type) {
+                case 'CITY_INITIALIZED':
+                    log(`City ready (${data.width}x${data.height})`, 'con');
+                    send({ type: 'CITY_TICK' });
+                    break;
+                case 'CITY_TICK_RESULT':
+                case 'CITY_STATUS':
+                    updateCity(data);
+                    if ((data.tick || 0) % 5 === 0) {
+                        send({ type: 'DREAM_CONTROL', action: 'status' });
+                        send({ type: 'LANGUAGE_QUERY', action: 'report' });
+                        send({ type: 'CONSCIOUSNESS_QUERY', action: 'report' });
+                    }
+                    break;
+                case 'DREAM_STATUS':
+                    updateDream(data);
+                    break;
+                case 'LANGUAGE_REPORT':
+                    updateLanguage(data);
+                    break;
+                case 'CONSCIOUSNESS_REPORT':
+                    updateConsciousness(data);
+                    break;
+                case 'ERROR':
+                    log(data.error, 'err');
+                    break;
+            }
+        }
+
+        function updateCity(data) {
+            cityData = data;
+            document.getElementById('population').textContent = data.stats?.population || 0;
+            document.getElementById('active').textContent = data.stats?.active_citizens || 0;
+            document.getElementById('tick').textContent = data.tick || 0;
+            document.getElementById('energy').textContent = (data.stats?.total_energy || 0).toFixed(1);
+            render();
+        }
+
+        function updateDream(data) {
+            dreamState = data.current_state || 'awake';
+            document.getElementById('dreamState').textContent = dreamState.toUpperCase();
+            document.getElementById('dreamDot').className = `dream-dot ${dreamState}`;
+            document.getElementById('activity').textContent = ((data.activity_level || 1) * 100).toFixed(0) + '%';
+            document.getElementById('dreamCount').textContent = data.stats?.total_dreams || 0;
+
+            const overlay = document.getElementById('dreamOverlay');
+            overlay.className = 'dream-overlay';
+            if (dreamState === 'rem') overlay.classList.add('rem');
+            else if (dreamState === 'deep') overlay.classList.add('deep');
+        }
+
+        function updateLanguage(data) {
+            document.getElementById('symbols').textContent = data.total_symbols || 0;
+            document.getElementById('utterances').textContent = data.stats?.total_utterances || 0;
+
+            const cloud = document.getElementById('symbolCloud');
+            cloud.innerHTML = '';
+            (data.top_symbols || []).slice(0, 8).forEach(s => {
+                const span = document.createElement('span');
+                span.className = 'symbol';
+                span.textContent = s.pattern;
+                span.title = s.meaning;
+                cloud.appendChild(span);
+            });
+        }
+
+        function updateConsciousness(data) {
+            const level = data.avg_consciousness_level || 0;
+            document.getElementById('conLevel').textContent = level.toFixed(2);
+            document.getElementById('conMeter').style.width = `${level * 20}%`;
+            document.getElementById('thoughts').textContent = data.total_thoughts || 0;
+            document.getElementById('phi').textContent = (data.phi_score || 0).toFixed(3);
+        }
+
+        function render() {
+            const w = canvas.width, h = canvas.height;
+
+            // Background
+            const grad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w/2);
+            grad.addColorStop(0, '#1a1a2e');
+            grad.addColorStop(1, '#050508');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+
+            // Grid
+            ctx.strokeStyle = '#1a1a2e';
+            ctx.lineWidth = 0.5;
+            for (let x = 0; x < w; x += 32) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+            }
+            for (let y = 0; y < h; y += 32) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+            }
+
+            if (!cityData.citizens?.length) return;
+
+            const sx = w / 512, sy = h / 512;
+
+            // Territories
+            cityData.citizens.forEach(c => {
+                const x = c.x * sx, y = c.y * sy, r = (c.territory_radius || 16) * sx;
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fillStyle = guildColors[c.guild] || guildColors.unknown;
+                ctx.globalAlpha = 0.08;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            });
+
+            // Connections
+            ctx.strokeStyle = 'rgba(100,100,255,0.15)';
+            ctx.lineWidth = 1;
+            cityData.citizens.forEach(c => {
+                const x1 = c.x * sx, y1 = c.y * sy;
+                cityData.citizens.forEach(o => {
+                    if (c.id !== o.id) {
+                        const d = Math.hypot(c.x - o.x, c.y - o.y);
+                        if (d < 64) {
+                            ctx.beginPath();
+                            ctx.moveTo(x1, y1);
+                            ctx.lineTo(o.x * sx, o.y * sy);
+                            ctx.stroke();
+                        }
+                    }
+                });
+            });
+
+            // Citizens
+            cityData.citizens.forEach(c => {
+                const x = c.x * sx, y = c.y * sy;
+                const color = guildColors[c.guild] || guildColors.unknown;
+                const size = 3 + (c.energy || 0.5) * 4;
+
+                // Glow
+                const g = ctx.createRadialGradient(x, y, 0, x, y, size * 3);
+                g.addColorStop(0, color);
+                g.addColorStop(1, 'transparent');
+                ctx.beginPath();
+                ctx.arc(x, y, size * 3, 0, Math.PI * 2);
+                ctx.fillStyle = g;
+                ctx.globalAlpha = 0.4;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+
+                // Core
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+
+                // State ring
+                if (c.state === 'trading') {
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                } else if (c.state === 'reproducing') {
+                    ctx.strokeStyle = '#ff88ff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            });
+
+            // Dream particles
+            if (dreamState === 'rem') {
+                for (let i = 0; i < 15; i++) {
+                    const px = Math.random() * w, py = Math.random() * h;
+                    ctx.beginPath();
+                    ctx.arc(px, py, Math.random() * 2 + 1, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(200,100,255,${Math.random() * 0.4})`;
+                    ctx.fill();
+                }
+            }
+        }
+
+        function animate() {
+            render();
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        setTimeout(connect, 500);
+    </script>
+</body>
+</html>
