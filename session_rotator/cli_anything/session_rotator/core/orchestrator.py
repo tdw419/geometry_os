@@ -119,6 +119,8 @@ class Orchestrator:
             script_dir.parent.parent / "orchestrator.sh",  # session_rotator/orchestrator.sh
             script_dir / "orchestrator.sh",
             Path.cwd() / "orchestrator.sh",
+            Path(__file__).parent.parent.parent.parent / "orchestrator.sh",  # geometry_os/session_rotator/orchestrator.sh
+            Path(__file__).parent.parent.parent.parent.parent / "session_rotator" / "orchestrator.sh",
         ]
 
         orchestrator_script = None
