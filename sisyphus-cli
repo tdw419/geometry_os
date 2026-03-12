@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+"""
+Sisyphus CLI Entry Point
+
+Install with: pip install -e systems/sisyphus/cli/
+
+Or run directly: ./sisyphus-cli [command]
+
+Usage:
+    ./sisyphus-cli status           # Human-readable status
+    ./sisyphus-cli --json status    # JSON output for agents
+    ./sisyphus-cli tasks -n 10      # List 10 pending tasks
+    ./sisyphus-cli health           # Check daemon health
+    ./sisyphus-cli repl             # Interactive REPL mode
+"""
+
+import sys
+from pathlib import Path
+
+# Ensure project root in path
+_PROJECT_ROOT = Path(__file__).parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+from systems.sisyphus.cli.core.main import cli
+
+if __name__ == '__main__':
+    cli()
