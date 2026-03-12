@@ -453,6 +453,106 @@
                          <div>HALT</div>
                      </div>
                 </div>
+
+                <h3 style="margin-top: 15px;">Math (LOGIC)</h3>
+                <div class="palette-grid">
+                    <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'ADD')">
+                        <div class="stratum">LOGIC</div>
+                        <div>ADD</div>
+                    </div>
+                    <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'SUB')">
+                        <div class="stratum">LOGIC</div>
+                        <div>SUB</div>
+                    </div>
+                    <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'MUL')">
+                        <div class="stratum">LOGIC</div>
+                        <div>MUL</div>
+                    </div>
+                    <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'DIV')">
+                        <div class="stratum">LOGIC</div>
+                        <div>DIV</div>
+                    </div>
+                    <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'MOD')">
+                        <div class="stratum">LOGIC</div>
+                        <div>MOD</div>
+                    </div>
+                    <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'NEG')">
+                        <div class="stratum">LOGIC</div>
+                        <div>NEG</div>
+                    </div>
+                    <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'ABS')">
+                        <div class="stratum">LOGIC</div>
+                        <div>ABS</div>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 15px;">Compare (LOGIC)</h3>
+                <div class="palette-grid">
+                    <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'EQ')">
+                        <div class="stratum">LOGIC</div>
+                        <div>EQ</div>
+                    </div>
+                    <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'NE')">
+                        <div class="stratum">LOGIC</div>
+                        <div>NE</div>
+                    </div>
+                    <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'LT')">
+                        <div class="stratum">LOGIC</div>
+                        <div>LT</div>
+                    </div>
+                    <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'LE')">
+                        <div class="stratum">LOGIC</div>
+                        <div>LE</div>
+                    </div>
+                    <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'GT')">
+                        <div class="stratum">LOGIC</div>
+                        <div>GT</div>
+                    </div>
+                    <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'GE')">
+                        <div class="stratum">LOGIC</div>
+                        <div>GE</div>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 15px;">String (LOGIC)</h3>
+                <div class="palette-grid">
+                    <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'CONCAT')">
+                        <div class="stratum">LOGIC</div>
+                        <div>CONCAT</div>
+                    </div>
+                    <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'LEN')">
+                        <div class="stratum">LOGIC</div>
+                        <div>LEN</div>
+                    </div>
+                    <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'SUBSTR')">
+                        <div class="stratum">LOGIC</div>
+                        <div>SUBSTR</div>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 15px;">Array (MEM/LOGIC)</h3>
+                <div class="palette-grid">
+                    <div class="palette-item MEMORY" onclick="addGlyph('MEMORY', 'PUSH')">
+                        <div class="stratum">MEMORY</div>
+                        <div>PUSH</div>
+                    </div>
+                    <div class="palette-item MEMORY" onclick="addGlyph('MEMORY', 'POP')">
+                        <div class="stratum">MEMORY</div>
+                        <div>POP</div>
+                    </div>
+                    <div class="palette-item LOGIC" onclick="addGlyph('LOGIC', 'ARRAYLEN')">
+                        <div class="stratum">LOGIC</div>
+                        <div>ARRAYLEN</div>
+                    </div>
+                    <div class="palette-item MEMORY" onclick="addGlyph('MEMORY', 'GET')">
+                        <div class="stratum">MEMORY</div>
+                        <div>GET</div>
+                    </div>
+                    <div class="palette-item MEMORY" onclick="addGlyph('MEMORY', 'SET')">
+                        <div class="stratum">MEMORY</div>
+                        <div>SET</div>
+                    </div>
+                </div>
                 <h3 style="margin-top: 15px;">Layout Algorithm</h3>
                 <select id="layout-type" style="width: 100%; padding: 6px; background: #21262d; border: 1px solid #30363d; border-radius: 4px; color: #c9d1d9; font-size: 11px;">
                     <option value="layered">Layered (by stratum)</option>
@@ -894,9 +994,9 @@
             if (atlasReady && positionsReady && fontPositions[d.opcode]) {
                 const [x, y, width, height] = fontPositions[d.opcode];
                 // Calculate position to center the text in the node
-                const textureX = d.x - 12; // Adjust to center in 25px radius circle (approx)
-                const textureY = d.y - 12;
-                
+                const textureX = d.x - width / 2;
+                const textureY = d.y - height / 2;
+
                 node.append("image")
                     .attr("xlink:href", fontAtlas.src)
                     .attr("x", textureX)

@@ -446,7 +446,7 @@ impl GlyphStratumEngine {
     pub fn generate_ai_summary(&self) -> String {
         let mut summary = String::new();
         summary.push_str("GlyphStratum Program Summary:\n");
-        
+
         for y in 0..self.dimensions.1 {
             let row = self.get_row_program(y);
             if !row.is_empty() {
@@ -459,6 +459,119 @@ impl GlyphStratumEngine {
         }
         summary
     }
+
+    /// Repair a corrupted glyph at the given coordinates
+    /// Returns true if corruption was detected and repaired
+    pub fn repair_glyph(&mut self, x: u32, y: u32, expected: Opcode) -> Result<RepairResult, String> {
+        if x >= self.dimensions.0 || y >= self.dimensions.1 {
+            return Err(format!("Coordinates out of bounds: ({}, {})", x, y));
+        }
+
+        let current = self.get_glyph(x, y);
+
+        match current {
+            None => {
+                log::warn!("🔧 Repair: No glyph at ({}, {}), placing expected {:?}", x, y, expected);
+                let ch = expected.to_char();
+                let stratum = Self::default_stratum_for_opcode(expected);
+                self.place_glyph(x, y, ch, stratum, None)?;
+                Ok(RepairResult::MissingGlyphRepaired)
+            }
+            Some(glyph) => {
+                let current_opcode = glyph.opcode();
+                if current_opcode != expected {
+                    log::warn!(
+                        "🔧 Repair: Corruption detected at ({}, {}): expected {:?}, found {:?}",
+                        x, y, expected, current_opcode
+                    );
+                    // Remove the corrupted glyph and replace with correct one
+                    let ch = expected.to_char();
+                    let stratum = glyph.stratum();
+                    let metadata = glyph.metadata.clone();
+
+                    // Place new glyph (will overwrite the grid position)
+                    self.place_glyph(x, y, ch, stratum, Some(metadata))?;
+                    Ok(RepairResult::CorruptionRepaired { was: current_opcode, expected })
+                } else {
+                    log::debug!("✓ Repair: Glyph at ({}, {}) is healthy: {:?}", x, y, current_opcode);
+                    Ok(RepairResult::Healthy)
+                }
+            }
+        }
+    }
+
+    /// Scan the entire grid for corruptions by comparing to expected opcodes
+    pub fn scan_for_corruptions(&self, expected_grid: &HashMap<(u32, u32), Opcode>) -> Vec<CorruptionReport> {
+        let mut corruptions = Vec::new();
+
+        for ((x, y), expected) in expected_grid {
+            if let Some(glyph) = self.get_glyph(*x, *y) {
+                if glyph.opcode() != *expected {
+                    corruptions.push(CorruptionReport {
+                        x: *x,
+                        y: *y,
+                        expected: *expected,
+                        found: glyph.opcode(),
+                        corruption_type: CorruptionType::OpcodeMismatch,
+                    });
+                }
+            } else {
+                corruptions.push(CorruptionReport {
+                    x: *x,
+                    y: *y,
+                    expected: *expected,
+                    found: Opcode::Nop,
+                    corruption_type: CorruptionType::MissingGlyph,
+                });
+            }
+        }
+
+        corruptions
+    }
+
+    /// Get the default stratum for an opcode
+    fn default_stratum_for_opcode(opcode: Opcode) -> Stratum {
+        match opcode {
+            Opcode::Alloc | Opcode::Free | Opcode::Load | Opcode::Store => Stratum::Memory,
+            Opcode::Loop | Opcode::Branch | Opcode::Call | Opcode::Return => Stratum::Logic,
+            Opcode::Data => Stratum::Substrate,
+            Opcode::Type | Opcode::Ptr | Opcode::Struct => Stratum::Spec,
+            Opcode::Module | Opcode::Export | Opcode::Import => Stratum::Intent,
+            Opcode::Nop | Opcode::Halt => Stratum::Substrate,
+        }
+    }
+}
+
+/// Result of a repair operation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum RepairResult {
+    /// Glyph was healthy, no repair needed
+    Healthy,
+    /// Missing glyph was created
+    MissingGlyphRepaired,
+    /// Corrupted opcode was fixed
+    CorruptionRepaired { was: Opcode, expected: Opcode },
+}
+
+/// Report of a detected corruption
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CorruptionReport {
+    pub x: u32,
+    pub y: u32,
+    pub expected: Opcode,
+    pub found: Opcode,
+    pub corruption_type: CorruptionType,
+}
+
+/// Type of visual corruption detected
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CorruptionType {
+    /// Opcode doesn't match expected value
+    OpcodeMismatch,
+    /// Glyph is missing entirely
+    MissingGlyph,
+    /// Visual pixels don't match expected text (detected by VLM)
+    VisualCorruption,
 }
 
 #[cfg(test)]

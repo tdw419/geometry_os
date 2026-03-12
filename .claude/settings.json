@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/hooks/meta-prompter-pixelbrain.py"
+            "command": "python3 /home/jericho/zion/projects/geometry_os/geometry_os/.claude/hooks/meta-prompter-pixelbrain.py"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/hooks/track-tool-outcome.py"
+            "command": "python3 /home/jericho/zion/projects/geometry_os/geometry_os/.claude/hooks/track-tool-outcome.py"
           }
         ]
       }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/hooks/track-tool-outcome.py"
+            "command": "python3 /home/jericho/zion/projects/geometry_os/geometry_os/.claude/hooks/track-tool-outcome.py"
           }
         ]
       }

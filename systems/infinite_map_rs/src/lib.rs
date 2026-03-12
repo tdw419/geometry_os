@@ -36,7 +36,7 @@ pub mod alpine_vm_extension;
 pub mod antigravity_watcher;
 pub mod api_server;
 pub mod glyph_stratum;
-// pub mod app;
+pub mod app;
 pub mod audio_manager;
 pub mod backend;
 pub mod bootable_cartridge;

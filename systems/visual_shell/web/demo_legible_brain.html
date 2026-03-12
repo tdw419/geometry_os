@@ -40,20 +40,26 @@
 <body>
     <div id="ui-overlay">
         <div>Legible Brain v1.0</div>
-        <div style="font-size: 10px; opacity: 0.6;">Morphological Substrate Exploration</div>
+        <div style="font-size: 10px; opacity: 0.6;">Semantic Morphological Introspection</div>
         <hr style="border: 0; border-top: 1px solid #00d4ff; margin: 10px 0;">
-        <div id="stratum-4" class="stratum-indicator">STRATUM 4: INTENT (◈)</div>
-        <div id="stratum-3" class="stratum-indicator">STRATUM 3: SPEC (⌬)</div>
-        <div id="stratum-2" class="stratum-indicator">STRATUM 2: LOGIC (λ)</div>
-        <div id="stratum-1" class="stratum-indicator">STRATUM 1: MEMORY ([])</div>
-        <div id="stratum-0" class="stratum-indicator">STRATUM 0: SUBSTRATE (·)</div>
+        <div id="sector-head" class="stratum-indicator">EMISSION: [EXPORT] (◈)</div>
+        <div id="sector-norm" class="stratum-indicator">SIGNAL: [TYPE] (⌬)</div>
+        <div id="sector-ffn" class="stratum-indicator">MEMORY: [LOAD] ([])</div>
+        <div id="sector-attn" class="stratum-indicator">SYNAPTIC: [CALL] (λ)</div>
+        <div id="sector-embed" class="stratum-indicator">INPUT: [DATA] (·)</div>
         <hr style="border: 0; border-top: 1px solid #00d4ff; margin: 10px 0;">
         <div style="font-size: 10px;">ZOOM: <span id="zoom-val">1.0</span>x</div>
         <div style="font-size: 10px;">ENTROPY JITTER: <span id="jitter-val">ACTIVE</span></div>
+        <hr style="border: 0; border-top: 1px solid #00d4ff; margin: 10px 0;">
+        <div id="query-panel" style="display:none;">
+            <div style="font-size: 10px; color: #fff;">PROBE RESULT: <span id="query-sector"></span></div>
+            <pre id="query-dag" style="font-size: 9px; color: #00ff00; background: rgba(0,0,0,0.5); padding: 5px; overflow: hidden;"></pre>
+        </div>
     </div>
 
     <script src="LegibleBrainFilter.js"></script>
     <script src="LegibleBrainRenderer.js"></script>
+    <script src="SynapticClient.js"></script>
     <script>
         async function start() {
             const app = new PIXI.Application();
@@ -65,44 +71,119 @@
             });
             document.body.appendChild(app.canvas);
 
-            // 1. Create Synthetic Brain Atlas (for the demo)
-            // In production, this is the actual model weights texture
+            // 1. Create Synthetic Brain Atlas with Functional Districts
             const atlasSize = 1024;
             const canvas = document.createElement('canvas');
             canvas.width = atlasSize;
             canvas.height = atlasSize;
             const ctx = canvas.getContext('2d');
             
-            // Generate some "neural clusters"
             const imageData = ctx.createImageData(atlasSize, atlasSize);
             for (let i = 0; i < imageData.data.length; i += 4) {
                 const x = (i/4) % atlasSize;
                 const y = Math.floor((i/4) / atlasSize);
                 
-                // R: Activation (Noise with some high-density blobs)
-                const distToCenter = Math.sqrt((x-512)**2 + (y-512)**2);
-                const noise = Math.random();
-                const activation = Math.max(0, 1.0 - distToCenter/600) * noise;
+                // Sector ID (B channel) - Horizontal districts
+                const sectorVal = x / atlasSize;
                 
-                imageData.data[i] = activation * 255;     // Activation (Stratum)
-                imageData.data[i+1] = (Math.sin(x/10) * Math.cos(y/10) * 0.5 + 0.5) * 255; // Entropy (Jitter)
-                imageData.data[i+2] = (x / atlasSize) * 255; // Cluster ID
-                imageData.data[i+3] = 255;                // Confidence
+                // R: Activation (Noise pulsing in the center of the sector)
+                const sectorCenter = (Math.floor(sectorVal * 5) + 0.5) / 5 * atlasSize;
+                const distToSectorCenter = Math.abs(x - sectorCenter);
+                const activation = Math.max(0, 1.0 - distToSectorCenter/100) * Math.random();
+                
+                imageData.data[i] = activation * 255;
+                imageData.data[i+1] = (Math.sin(y/20) * 0.5 + 0.5) * 255; // Entropy
+                imageData.data[i+2] = sectorVal * 255; // Sector ID
+                imageData.data[i+3] = 255;
             }
             ctx.putImageData(imageData, 0, 0);
             const brainAtlas = PIXI.Texture.from(canvas);
 
             // 2. Initialize Legible Brain Renderer
-            // We use a fallback font atlas if the main one isn't available
             const renderer = new LegibleBrainRenderer(app, {
                 brainAtlasPath: brainAtlas,
-                fontAtlasPath: 'https://webgpu.github.io/webgpu-samples/assets/img/font.png' // Fallback for demo
+                fontAtlasPath: 'https://webgpu.github.io/webgpu-samples/assets/img/font.png'
             });
 
             const brainContainer = await renderer.initialize();
             app.stage.addChild(brainContainer);
 
-            // 3. Interaction State
+            // 2.5 Initialize Synaptic Client (Python Bridge)
+            const synapticClient = new SynapticClient({ url: 'ws://localhost:8765' });
+
+            // Try to connect, fall back to simulation if unavailable
+            synapticClient.connect().then(() => {
+                console.log('🧠 Connected to Synaptic Bridge - Live execution enabled');
+                document.getElementById('jitter-val').innerText = 'LIVE';
+            }).catch((e) => {
+                console.warn('Synaptic Bridge unavailable, using simulation:', e.message);
+                document.getElementById('jitter-val').innerText = 'SIMULATION';
+            });
+
+            // Handle execution results from the bridge
+            synapticClient.on('execution_result', (result) => {
+                console.log('📊 Execution result:', result);
+
+                const panel = document.getElementById('query-panel');
+                const existing = panel.querySelector('.exec-result');
+                if (existing) existing.remove();
+
+                const outputDiv = document.createElement('div');
+                outputDiv.className = 'exec-result';
+                outputDiv.style.color = result.success ? '#00ff00' : '#ff0000';
+                outputDiv.style.fontSize = '10px';
+                outputDiv.style.marginTop = '5px';
+
+                const statusBadge = result.simulated ? 'SIMULATED' : 'LIVE';
+                const confidence = result.status?.output?.[0] || 'N/A';
+
+                outputDiv.innerHTML = `
+                    EXECUTION OUTPUT [${statusBadge}]:<br>
+                    Result: ${result.result || 'None'}<br>
+                    Confidence: ${confidence}<br>
+                    Glyphs: ${result.registry?.glyph_count || 0}<br>
+                    Status: ${result.success ? '✅ VALIDATED' : '❌ FAILED'}
+                `;
+                panel.appendChild(outputDiv);
+            });
+
+            // 3. Handle Synaptic Query Results
+            window.addEventListener('SYNAPTIC_QUERY_RESULT', async (e) => {
+                const panel = document.getElementById('query-panel');
+                const sectorSpan = document.getElementById('query-sector');
+                const dagPre = document.getElementById('query-dag');
+
+                panel.style.display = 'block';
+                sectorSpan.innerText = e.detail.sector;
+                dagPre.innerText = JSON.stringify(e.detail.dag, null, 2);
+
+                // --- Send to Synaptic Bridge for Real Execution ---
+                try {
+                    const result = await synapticClient.probe(e.detail.dag, e.detail.coords);
+                    // Result is handled by the 'execution_result' event listener above
+                    console.log(`🔷 GlyphStratum DAG executed for ${e.detail.sector}`);
+                } catch (err) {
+                    console.error('Bridge execution failed:', err);
+
+                    // Fallback to local simulation
+                    const activation = e.detail.activation;
+                    const entropy = e.detail.entropy;
+                    const confidence = (activation * (1.0 - entropy * 0.2)).toFixed(6);
+
+                    const existing = panel.querySelector('.exec-result');
+                    if (existing) existing.remove();
+
+                    const outputDiv = document.createElement('div');
+                    outputDiv.className = 'exec-result';
+                    outputDiv.style.color = '#ff00ff';
+                    outputDiv.style.fontSize = '10px';
+                    outputDiv.style.marginTop = '5px';
+                    outputDiv.innerHTML = `EXECUTION OUTPUT [FALLBACK]:<br>Confidence: ${confidence}<br>Status: ${activation > 0.5 ? 'VALIDATED' : 'SPECULATIVE'}`;
+                    panel.appendChild(outputDiv);
+                }
+            });
+
+            // 4. Interaction State
             let zoom = 1.0;
             let cameraPos = [0, 0];
             let isPanning = false;
@@ -119,6 +200,28 @@
             window.addEventListener('mousedown', (e) => {
                 isPanning = true;
                 lastMouse = { x: e.clientX, y: e.clientY };
+
+                // --- Live Topology Sampling (Replicating synthetic atlas logic) ---
+                const rect = app.canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const atlasSize = 1024;
+                const atlasX = (x / window.innerWidth) * atlasSize;
+                const atlasY = (y / window.innerHeight) * atlasSize;
+                
+                const sectorVal = atlasX / atlasSize;
+                const sectorCenter = (Math.floor(sectorVal * 5) + 0.5) / 5 * atlasSize;
+                const distToSectorCenter = Math.abs(atlasX - sectorCenter);
+                
+                // Deterministic sampling for the specific pixel
+                const activation = Math.max(0, 1.0 - distToSectorCenter/100);
+                const entropy = (Math.sin(atlasY/20) * 0.5 + 0.5);
+                
+                const sampledData = { r: activation, g: entropy, b: sectorVal };
+                
+                // Trigger the Live Synaptic Query
+                renderer.handleSynapticQuery({ global: { x: x, y: y } }, sampledData);
             });
 
             window.addEventListener('mouseup', () => isPanning = false);
@@ -132,20 +235,25 @@
                 }
             });
 
-            // 4. Update Loop
+            // 5. Update Loop
             app.ticker.add((ticker) => {
                 const time = ticker.lastTime / 1000;
                 renderer.filter.update(time, zoom, cameraPos);
                 
-                // Update UI based on "center" activation
-                // (Simulated for the demo)
-                const currentStratum = Math.floor((Math.sin(time) * 0.5 + 0.5) * 5);
+                const centerX = (cameraPos[0] + window.innerWidth/2 / zoom) / (atlasSize);
+                const currentSector = Math.floor(clamp(centerX, 0.0, 0.99) * 5);
+                
+                const sectors = ["embed", "attn", "ffn", "norm", "head"];
                 for(let i=0; i<5; i++) {
-                    const el = document.getElementById(`stratum-${i}`);
-                    if (i === currentStratum) el.classList.add('active');
+                    const el = document.getElementById(`sector-${sectors[i]}`);
+                    if (i === currentSector) el.classList.add('active');
                     else el.classList.remove('active');
                 }
             });
+
+            function clamp(val, min, max) {
+                return Math.max(min, Math.min(max, val));
+            }
 
             console.log("🚀 Legible Brain Demo Active");
         }

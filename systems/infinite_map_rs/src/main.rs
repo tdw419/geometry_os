@@ -22,6 +22,26 @@ async fn main() -> Result<()> {
 
     log::info!("🪟 Window created, entering main loop...");
 
+    // Phase 41.5: Initialize and Start GlyphStratum API Server
+    let runtime_state = std::sync::Arc::new(std::sync::Mutex::new(infinite_map_rs::api_server::RuntimeState::default()));
+    let synaptic_layer = std::sync::Arc::new(std::sync::Mutex::new(infinite_map_rs::synapse::SynapticLayer::new()));
+    let glyph_stratum_engine = std::sync::Arc::new(std::sync::Mutex::new(infinite_map_rs::glyph_stratum::GlyphStratumEngine::new(80, 40)));
+
+    let rs_clone = std::sync::Arc::clone(&runtime_state);
+    let sl_clone = std::sync::Arc::clone(&synaptic_layer);
+    let ge_clone = std::sync::Arc::clone(&glyph_stratum_engine);
+    
+    tokio::spawn(async move {
+        infinite_map_rs::api_server::start_api_server(
+            3000,
+            std::path::PathBuf::from("maps/default"),
+            rs_clone,
+            sl_clone,
+            ge_clone
+        ).await;
+    });
+    log::info!("🚀 GlyphStratum API Server active on port 3000");
+
     // 4. Run the loop
     // The actual rendering happens in WinitBackend::run via the calloop idle callback
     // and the compositor state's render logic

@@ -7,7 +7,7 @@ import sys
 import os
 import json
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from systems.fonts.font_renderer import FontRenderer, find_system_font
 
@@ -43,22 +43,25 @@ def generate_opcode_atlas():
             raise RuntimeError("No font files found")
 
     # GlyphStratum opcodes
-    opcodes = [
-        "DATA",
-        "LOAD",
-        "STORE",
-        "ALLOC",
-        "FREE",
-        "CALL",
-        "BRANCH",
-        "LOOP",
-        "RETURN",
-        "EXPORT",
-        "TYPE",
-        "MODULE",
-        "NOP",
-        "HALT",
+    core_opcodes = [
+        "DATA", "LOAD", "STORE", "ALLOC", "FREE", "CALL", "BRANCH",
+        "LOOP", "RETURN", "EXPORT", "TYPE", "MODULE", "NOP", "HALT",
     ]
+    
+    math_opcodes = ["ADD", "SUB", "MUL", "DIV", "MOD", "NEG", "ABS"]
+    compare_opcodes = ["EQ", "NE", "LT", "LE", "GT", "GE"]
+    string_opcodes = ["CONCAT", "LEN", "SUBSTR"]
+    array_opcodes = ["PUSH", "POP", "ARRAYLEN", "GET", "SET"]
+
+    # Microcode opcodes (200-215 range)
+    micro_opcodes = [
+        "ADD_M", "SUB_M", "MUL_M", "DIV_M",  # 200-203
+        "LD", "ST", "MOV", "CLR",            # 204-207
+        "JMP", "JZ", "CALL_M", "RET_M",      # 208-211
+        "HALT_M", "SYNC", "INT", "DRAW"      # 212-215
+    ]
+    
+    opcodes = core_opcodes + math_opcodes + compare_opcodes + string_opcodes + array_opcodes + micro_opcodes
 
     # Create atlas
     atlas_width = 512

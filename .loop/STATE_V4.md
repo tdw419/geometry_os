@@ -332,4 +332,4 @@
 - [x] 221. **Heuristic Task**: Batch Commit Modified Files: 41 modified files need commits. Group by feature and commit with descriptive messages. - **Verification**: Run relevant tests
 - [x] 222. **Heuristic Task**: Fix Test Collection Errors: 7 test files have collection errors. Add missing imports or skip conditions. - **Verification**: Run relevant tests
 - [x] 223. **Heuristic Task**: Address TODO Comment: Found in systems/pixel_compiler/pixel_rts_decoder.py. Review and implement or document. - **Verification**: Run relevant tests
-- [ ] 224. **cognitive_restoration**: Critical brain fitness collapse (Fitness: 0.50). Emergency weight sector restoration required. - **Verification**: Check fitness/performance metrics
+- [→] 224. **cognitive_restoration**: Critical brain fitness collapse (Fitness: 0.50). Emergency weight sector restoration required. - **Verification**: Check fitness/performance metrics

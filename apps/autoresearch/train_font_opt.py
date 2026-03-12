@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Geometry OS Font Performance Researcher
-Autonomous loop to optimize MSDF font shaders for 60 FPS.
+Geometry OS Terminal Performance Researcher
+Autonomous loop to optimize terminal_renderer.wgsl for 60 FPS.
 """
 
 import subprocess
@@ -10,8 +10,9 @@ import re
 import os
 import sys
 
-SHADER_PATH = "systems/infinite_map_rs/src/shaders/msdf_font.wgsl"
-COMPOSITOR_CMD = ["xvfb-run", "-a", "cargo", "run", "--release", "--manifest-path", "systems/infinite_map_rs/Cargo.toml", "--bin", "infinite_map_rs", "--", "--benchmark-text"]
+SHADER_PATH = "systems/infinite_map_rs/src/shaders/terminal_renderer.wgsl"
+BINARY_PATH = "/home/jericho/zion/projects/geometry_os/geometry_os/systems/infinite_map_rs/target/release/infinite_map_rs"
+COMPOSITOR_CMD = ["xvfb-run", "-a", BINARY_PATH, "--benchmark-text"]
 
 def get_current_fps(duration=15):
     """Run the compositor and extract average FPS from logs."""
@@ -59,20 +60,39 @@ def get_current_fps(duration=15):
     return avg_fps
 
 def apply_optimization(name, shader_content):
-    """Apply a specific shader optimization."""
-    if name == "remove_discard":
-        # Replacing discard with transparent return can sometimes be faster depending on GPU
-        return shader_content.replace("discard;", "return vec4<f32>(0.0, 0.0, 0.0, 0.0);")
-    elif name == "simplify_median":
-        # Simplified median if channels are similar (risky)
+    """Apply a specific terminal shader optimization."""
+    if name == "lift_d2xy":
+        # Lift Hilbert calculation outside the per-pixel logic (MAJOR GAIN)
+        # This replaces the per-pixel d2xy call with a more efficient lookup if we can, 
+        # or simply optimizes the existing structure.
+        # Here we just optimize the d2xy loop slightly as a first pass.
         return shader_content.replace(
-            "return max(min(msdf.r, msdf.g), min(max(msdf.r, msdf.g), msdf.b));",
-            "return (msdf.r + msdf.g + msdf.b) / 3.0;"
+            "let rx = 1u & (d / 2u);",
+            "let rx = (d >> 1u) & 1u;"
+        ).replace(
+            "d /= 4u;",
+            "d >>= 2u;"
+        )
+    elif name == "branchless_cursor":
+        # Remove if for cursor
+        return shader_content.replace(
+            """    var is_at_cursor = (cell_x == uniforms.cursor_x && cell_y == uniforms.cursor_y);
+    if (is_at_cursor && uniforms.cursor_visible != 0u) {
+        // Simple invert cursor for now
+        let temp = fg;
+        fg = bg;
+        bg = temp;
+    }""",
+            """    let is_at_cursor = u32(cell_x == uniforms.cursor_x && cell_y == uniforms.cursor_y && uniforms.cursor_visible != 0u);
+    let final_fg = mix(fg, bg, f32(is_at_cursor));
+    let final_bg = mix(bg, fg, f32(is_at_cursor));
+    fg = final_fg;
+    bg = final_bg;"""
         )
     return shader_content
 
 def main():
-    print("=== Geometry OS Font Performance Researcher ===")
+    print("=== Geometry OS Terminal Performance Researcher ===")
     
     # 1. Baseline
     baseline_fps = get_current_fps()
@@ -88,7 +108,7 @@ def main():
     with open(SHADER_PATH, "r") as f:
         original_shader = f.read()
         
-    optimizations = ["remove_discard", "simplify_median"]
+    optimizations = ["lift_d2xy", "branchless_cursor"]
     
     for opt in optimizations:
         print(f"\nTesting optimization: {opt}")
@@ -97,14 +117,14 @@ def main():
         with open(SHADER_PATH, "w") as f:
             f.write(optimized_shader)
             
-        time.sleep(1) # Wait for hot-reload if running, but we restart here
+        time.sleep(1) 
         
         current_fps = get_current_fps()
         
-        if current_fps > best_fps:
+        if current_fps > best_fps * 1.01: # 1% threshold
             print(f"✅ Improvement detected! {best_fps:.2f} -> {current_fps:.2f}")
             best_fps = current_fps
-            # Keep the change
+            original_shader = optimized_shader # Base further opts on this
         else:
             print(f"❌ Regression or no improvement. Reverting.")
             with open(SHADER_PATH, "w") as f:
@@ -112,7 +132,8 @@ def main():
 
     print("\n=== Research Complete ===")
     print(f"Final FPS: {best_fps:.2f}")
-    print(f"Improvement: {((best_fps - baseline_fps) / baseline_fps * 100):.1f}%")
+    if baseline_fps > 0:
+        print(f"Improvement: {((best_fps - baseline_fps) / baseline_fps * 100):.1f}%")
 
 if __name__ == "__main__":
     main()

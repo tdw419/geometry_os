@@ -57,21 +57,31 @@ class LegibleBrainFilter extends PIXI.Filter {
             @group(0) @binding(4) var uFontSampler: sampler;
             @group(0) @binding(5) var<storage, read> uGlyphMetrics: array<GlyphMetrics>;
 
-            fn get_glyph_id(activation: f32, entropy: f32, cluster: f32) -> u32 {
-                // Stratum mapping:
-                // 0: Substrate (simple)
-                // 1: Memory
-                // 2: Logic
-                // 3: Spec
-                // 4: Intent (complex)
+            fn get_glyph_id(activation: f32, entropy: f32, sector_type: f32) -> u32 {
+                // Stratum determines the complexity and "energy" level
                 let stratum = clamp(u32(activation * 5.0), 0u, 4u);
-                let base_offset = stratum * 32u;
                 
-                // Use entropy to select variation within stratum
-                let entropy_idx = u32(entropy * 31.0);
-                
-                // Return ASCII 32 + offset (starting from space)
-                return 32u + (base_offset + entropy_idx) % 224u;
+                // Semantic Mapping: Map Sector (B channel) to GlyphStratum Opcodes
+                // 0.0-0.2: Embedding (DATA), 0.2-0.4: Attention (CALL), 0.4-0.6: FFN (LOAD),
+                // 0.6-0.8: Norm (TYPE), 0.8-1.0: Head (EXPORT)
+                var opcode: u32 = 0u;
+                if (sector_type < 0.2) {
+                    opcode = 9u; // DATA (Substrate)
+                } else if (sector_type < 0.4) {
+                    opcode = 7u; // CALL (Logic) - Synaptic Jump
+                } else if (sector_type < 0.6) {
+                    opcode = 3u; // LOAD (Memory) - Weight Retrieval
+                } else if (sector_type < 0.8) {
+                    opcode = 10u; // TYPE (Spec) - Normalization Constraint
+                } else {
+                    opcode = 14u; // EXPORT (Intent) - Final Prediction
+                }
+
+                // Map opcode to glyph index. 
+                // We use ASCII 32 + (opcode * 8) + (entropy jitter)
+                // This creates "families" of glyphs for each opcode.
+                let entropy_jitter = u32(entropy * 7.0);
+                return 32u + (opcode * 8u) + entropy_jitter;
             }
 
             @fragment

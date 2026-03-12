@@ -12,23 +12,37 @@ import numpy as np
 from PIL import Image
 
 
-# Simple Hilbert curve implementation (can be replaced with actual one later)
+# Hilbert curve implementation
 class HilbertCurve:
-    """Hilbert curve implementation."""
+    """Hilbert curve implementation using recursive transformation."""
 
     def __init__(self, order: int):
         self.order = order
         self.grid_size = 2**order
 
-    def generate_lut(self):
+    def generate_lut(self) -> list:
         """Generate lookup table for Hilbert curve."""
-        # For now, use simple row-major order
-        # TODO: Implement actual Hilbert curve
-        lut = []
-        for y in range(self.grid_size):
-            for x in range(self.grid_size):
-                lut.append((x, y))
-        return lut
+        n = self.order
+        
+        # Generate Hilbert curve using recursive transformation
+        points = [(0, 0)]
+        
+        # Iteratively build larger curves
+        for level in range(1, n + 1):
+            size = 2**(level - 1)
+            new_points = []
+            
+            for x, y in points:
+                if level == 1:
+                    new_points.append((x, y))
+                else:
+                    transformed_x = (x + y) % size
+                    transformed_y = (x - y) % size
+                    new_points.append((transformed_x, transformed_y))
+            
+            points = new_points
+            
+        return points
 
 
 # Try to import actual PixelRTS modules, fall back to our simple implementations

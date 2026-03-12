@@ -16,6 +16,29 @@ struct TerminalUniforms {
 @group(0) @binding(2) var<storage, read> font_atlas: array<u32>; // 95 * 16 u32s
 @group(0) @binding(3) var output_texture: texture_storage_2d<rgba8unorm, write>;
 
+// ANSI 16-color palette
+fn get_color(idx: u32) -> vec4<f32> {
+    switch (idx) {
+        case 0u: { return vec4<f32>(0.0, 0.0, 0.0, 1.0); }      // Black
+        case 1u: { return vec4<f32>(0.66, 0.0, 0.0, 1.0); }     // Red
+        case 2u: { return vec4<f32>(0.0, 0.66, 0.0, 1.0); }     // Green
+        case 3u: { return vec4<f32>(0.66, 0.33, 0.0, 1.0); }    // Yellow
+        case 4u: { return vec4<f32>(0.0, 0.0, 0.66, 1.0); }     // Blue
+        case 5u: { return vec4<f32>(0.66, 0.0, 0.66, 1.0); }    // Magenta
+        case 6u: { return vec4<f32>(0.0, 0.66, 0.66, 1.0); }    // Cyan
+        case 7u: { return vec4<f32>(0.66, 0.66, 0.66, 1.0); }   // White
+        case 8u: { return vec4<f32>(0.33, 0.33, 0.33, 1.0); }   // Bright Black
+        case 9u: { return vec4<f32>(1.0, 0.33, 0.33, 1.0); }    // Bright Red
+        case 10u: { return vec4<f32>(0.33, 1.0, 0.33, 1.0); }   // Bright Green
+        case 11u: { return vec4<f32>(1.0, 1.0, 0.33, 1.0); }    // Bright Yellow
+        case 12u: { return vec4<f32>(0.33, 0.33, 1.0, 1.0); }   // Bright Blue
+        case 13u: { return vec4<f32>(1.0, 0.33, 1.0, 1.0); }    // Bright Magenta
+        case 14u: { return vec4<f32>(0.33, 1.0, 1.0, 1.0); }    // Bright Cyan
+        case 15u: { return vec4<f32>(1.0, 1.0, 1.0, 1.0); }     // Bright White
+        default: { return vec4<f32>(0.0, 0.0, 0.0, 1.0); }
+    }
+}
+
 // Hilbert curve helper (d to xy)
 fn d2xy(n: u32, d_in: u32) -> vec2<u32> {
     var x = 0u;

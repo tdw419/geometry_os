@@ -182,6 +182,8 @@ use tower_http::services::ServeDir;
         .route("/api/glyph-stratum/place", post(handle_glyph_place))
         .route("/api/glyph-stratum/query", get(handle_glyph_query))
         .route("/api/glyph-stratum/summary", get(handle_glyph_summary))
+        .route("/api/glyph-stratum/repair", post(handle_glyph_repair))
+        .route("/api/glyph-stratum/scan", post(handle_glyph_scan))
         // Phase 3: Terminal Clone Integration
         .route("/api/terminal/spawn", post(handle_terminal_spawn))
         .route("/api/terminal/{id}/resize", post(handle_terminal_resize))
@@ -306,6 +308,111 @@ pub async fn handle_glyph_summary(
     let engine = state.glyph_stratum_engine.lock().unwrap();
     state.runtime_state.lock().unwrap().pending_synaptic_actions.push("GLYPH_SUMMARY_REQUEST".to_string());
     engine.generate_ai_summary()
+}
+
+#[derive(Deserialize)]
+pub struct GlyphRepairRequest {
+    pub x: u32,
+    pub y: u32,
+    pub expected_opcode: String, // e.g., "Alloc", "Halt", "Loop"
+}
+
+#[derive(Serialize)]
+pub struct GlyphRepairResponse {
+    pub success: bool,
+    pub result: String,
+    pub repair_outcome: Option<String>,
+}
+
+/// Repair a corrupted glyph - VLM detects visual corruption, triggers this endpoint
+pub async fn handle_glyph_repair(
+    State(state): State<AppState>,
+    Json(payload): Json<GlyphRepairRequest>,
+) -> impl IntoResponse {
+    let expected = match crate::glyph_stratum::Opcode::from_value(
+        match payload.expected_opcode.as_str() {
+            "Alloc" => 1, "Free" => 2, "Load" => 3, "Store" => 4,
+            "Loop" => 5, "Branch" => 6, "Call" => 7, "Return" => 8,
+            "Data" => 9, "Type" => 10, "Ptr" => 11, "Struct" => 12,
+            "Module" => 13, "Export" => 14, "Import" => 15,
+            "Halt" => 255, _ => 0,
+        }
+    ) {
+        Some(op) => op,
+        None => return Json(GlyphRepairResponse {
+            success: false,
+            result: format!("Unknown opcode: {}", payload.expected_opcode),
+            repair_outcome: None,
+        }),
+    };
+
+    let mut engine = state.glyph_stratum_engine.lock().unwrap();
+
+    match engine.repair_glyph(payload.x, payload.y, expected) {
+        Ok(repair_result) => {
+            let outcome = format!("{:?}", repair_result);
+            Json(GlyphRepairResponse {
+                success: true,
+                result: format!("Repair completed at ({}, {})", payload.x, payload.y),
+                repair_outcome: Some(outcome),
+            })
+        }
+        Err(e) => Json(GlyphRepairResponse {
+            success: false,
+            result: e,
+            repair_outcome: None,
+        }),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct GlyphScanRequest {
+    pub expected_grid: std::collections::HashMap<String, String>, // "x,y" -> "Opcode"
+}
+
+#[derive(Serialize)]
+pub struct GlyphScanResponse {
+    pub corruptions_found: usize,
+    pub corruptions: Vec<crate::glyph_stratum::CorruptionReport>,
+}
+
+/// Scan for visual corruptions - VLM can call this to check entire grid
+pub async fn handle_glyph_scan(
+    State(state): State<AppState>,
+    Json(payload): Json<GlyphScanRequest>,
+) -> impl IntoResponse {
+    use std::collections::HashMap;
+
+    let engine = state.glyph_stratum_engine.lock().unwrap();
+
+    // Convert string keys to coordinate tuples
+    let mut expected_grid: HashMap<(u32, u32), crate::glyph_stratum::Opcode> = HashMap::new();
+    for (coord, opcode_name) in payload.expected_grid {
+        let parts: Vec<&str> = coord.split(',').collect();
+        if parts.len() == 2 {
+            if let (Ok(x), Ok(y)) = (parts[0].parse::<u32>(), parts[1].parse::<u32>()) {
+                if let Some(opcode) = crate::glyph_stratum::Opcode::from_value(
+                    match opcode_name.as_str() {
+                        "Alloc" => 1, "Free" => 2, "Load" => 3, "Store" => 4,
+                        "Loop" => 5, "Branch" => 6, "Call" => 7, "Return" => 8,
+                        "Data" => 9, "Type" => 10, "Ptr" => 11, "Struct" => 12,
+                        "Module" => 13, "Export" => 14, "Import" => 15,
+                        "Halt" => 255, _ => 0,
+                    }
+                ) {
+                    expected_grid.insert((x, y), opcode);
+                }
+            }
+        }
+    }
+
+    let corruptions = engine.scan_for_corruptions(&expected_grid);
+    let count = corruptions.len();
+
+    Json(GlyphScanResponse {
+        corruptions_found: count,
+        corruptions,
+    })
 }
 
 async fn health_check() -> impl IntoResponse {

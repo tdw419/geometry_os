@@ -138,7 +138,7 @@ pub struct InfiniteMapApp<'a> {
     visual_command_rx: Option<tokio::sync::mpsc::Receiver<crate::glass_ram::bridge::VisualCommand>>,
     
     // Phase 34.5: Diagnostic Overlay
-    pub diagnostic_overlay: Option<bool>,
+    pub diagnostic_overlay: crate::diagnostic::DiagnosticOverlay,
     diagnostic_window_id: Option<usize>,
     
     // Phase 2: Tool Integration Layer
@@ -376,7 +376,7 @@ impl<'a> InfiniteMapApp<'a> {
             frame_count: 0,
             visual_command_rx: None,
 
-            diagnostic_overlay: None,
+            diagnostic_overlay: crate::diagnostic::DiagnosticOverlay::new(),
             diagnostic_window_id: None,
             // Phase 2: Initialize tool manager
             tool_manager: None,
@@ -533,6 +533,11 @@ impl<'a> InfiniteMapApp<'a> {
         // Phase 101: Benchmark Mode
         if std::env::args().any(|arg| arg == "--benchmark-text") {
             log::info!("🚀 ENTERING BENCHMARK MODE (Text Engine)...");
+            // Ensure text engine is enabled for benchmarking
+            if app.renderer.text_engine.is_none() {
+                app.renderer.enable_text_engine();
+            }
+            let queue = app.renderer.get_queue();
             if let Some(ref mut text_engine) = app.renderer.text_engine {
                 let mut rng = 42u32; // Deterministic seed
                 for i in 0..(80 * 40) {
@@ -542,7 +547,7 @@ impl<'a> InfiniteMapApp<'a> {
                 }
                 text_engine.local_stats.length = 80 * 40;
                 text_engine.local_stats.dirty = 1;
-                text_engine.sync_gpu(&app.renderer.get_queue());
+                text_engine.sync_gpu(&queue);
             }
         }
 
@@ -4594,11 +4599,13 @@ impl<'a> InfiniteMapApp<'a> {
         // Phase 42: Update Alpine Linux VM framebuffer
         self.update_alpine_vm();
         
+        /*
         // Phase 40: Unreal Bridge Broadcast (Heartbeat)
         if let Some(ref mut bridge) = self.unreal_bridge {
             // Broadcasting a heartbeat with empty payload for now
             bridge.broadcast_update(0, 0, &[]);
         }
+        */
 
         let current_time = self.current_time();
         
