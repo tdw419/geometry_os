@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Shell WASM Demo</title>
+    <style>
+        body {
+            background: #0a0a1a;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            margin: 0;
+        }
+        h1 { color: #00c8ff; margin-bottom: 10px; }
+        h2 { color: #8888ff; margin-top: 20px; }
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        .canvas-container {
+            border: 2px solid #2a2a4e;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            background: #0a0a1a;
+        }
+        .controls {
+            background: #1a1a2e;
+            border: 1px solid #2a2a4e;
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 200px;
+        }
+        button {
+            background: #00c8ff;
+            color: #000;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px 0;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            width: 100%;
+        }
+        button:hover { background: #00a8d0; }
+        .stats {
+            margin-top: 15px;
+            padding: 10px;
+            background: #0a0a1a;
+            border-radius: 4px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+        .stat-value { color: #00ff88; }
+        .good { color: #00ff88; }
+        .warning { color: #ffff00; }
+        .bad { color: #ff4444; }
+        .log {
+            background: #0a0a1a;
+            border: 1px solid #2a2a4e;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 20px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .log-entry { margin: 2px 0; }
+    </style>
+</head>
+<body>
+    <h1>Visual Shell WASM Demo</h1>
+
+    <div class="container">
+        <div>
+            <div class="canvas-container">
+                <canvas id="canvas" width="800" height="600"></canvas>
+            </div>
+        </div>
+
+        <div class="controls">
+            <h2>Controls</h2>
+            <button onclick="addRandomTiles(10)">Add 10 Tiles</button>
+            <button onclick="addRandomTiles(100)">Add 100 Tiles</button>
+            <button onclick="clearTiles()">Clear Tiles</button>
+            <button onclick="resetViewport()">Reset Viewport</button>
+
+            <h2>Neural City</h2>
+            <button onclick="addCitizens(10)">Add 10 Citizens</button>
+            <button onclick="addCitizens(100)">Add 100 Citizens</button>
+            <button onclick="clearCitizens()">Clear Citizens</button>
+
+            <div class="stats">
+                <h3>Performance</h3>
+                <div class="stat-row">
+                    <span>FPS:</span>
+                    <span class="stat-value" id="fps">0</span>
+                </div>
+                <div class="stat-row">
+                    <span>Tiles:</span>
+                    <span class="stat-value" id="tileCount">0</span>
+                </div>
+                <div class="stat-row">
+                    <span>Citizens:</span>
+                    <span class="stat-value" id="citizenCount">0</span>
+                </div>
+                <div class="stat-row">
+                    <span>Visible:</span>
+                    <span class="stat-value" id="visibleCount">0</span>
+                </div>
+                <div class="stat-row">
+                    <span>WASM:</span>
+                    <span class="stat-value" id="wasmStatus">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="log" id="log"></div>
+
+    <script type="module">
+        import { VisualShellRenderer } from './visual_shell_wasm.js';
+
+        // Initialize
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const TILE_SIZE = 64;
+
+        let renderer = new VisualShellRenderer(canvas.width, canvas.height, TILE_SIZE);
+        let running = false;
+        let lastTime = 0;
+
+        // Citizen colors by guild
+        const GUILD_COLORS = [
+            '#ff6b6b', // ATTENTION - red
+            '#4ecdc4', // MEMORY - cyan
+            '#ffe66d', // LOGIC - yellow
+            '#95e1d3', // SUBSTRATE - green
+            '#dda0dd'  // INTENT - purple
+        ];
+
+        // Log function
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        // Initialize WASM
+        async function init() {
+            const wasmReady = await renderer.initWasm();
+            document.getElementById('wasmStatus').textContent = wasmReady ? 'Enabled' : 'JS Fallback';
+            document.getElementById('wasmStatus').className = wasmReady ? 'stat-value good' : 'stat-value warning';
+            log(wasmReady ? 'WASM initialized successfully' : 'Using JavaScript fallback');
+
+            // Start render loop
+            running = true;
+            requestAnimationFrame(render);
+        }
+
+        // Render loop
+        function render(timestamp) {
+            if (!running) return;
+
+            // Tick
+            const result = renderer.tick(timestamp);
+
+            // Clear
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid
+            drawGrid();
+
+            // Draw tiles
+            drawTiles();
+
+            // Draw citizens
+            drawCitizens();
+
+            // Update stats
+            document.getElementById('fps').textContent = result.fps.toFixed(1);
+            document.getElementById('fps').className = result.fps >= 60 ? 'stat-value good' :
+                                                        result.fps >= 30 ? 'stat-value warning' : 'stat-value bad';
+            document.getElementById('tileCount').textContent = renderer.tileCount();
+            document.getElementById('citizenCount').textContent = renderer.getCitizens().length;
+            document.getElementById('visibleCount').textContent = renderer.getVisibleTileCoords().length;
+
+            requestAnimationFrame(render);
+        }
+
+        function drawGrid() {
+            const viewport = renderer.getViewport();
+            ctx.strokeStyle = '#1a1a2e';
+            ctx.lineWidth = 1;
+
+            const startX = Math.floor(viewport.x / TILE_SIZE) * TILE_SIZE - viewport.x;
+            const startY = Math.floor(viewport.y / TILE_SIZE) * TILE_SIZE - viewport.y;
+
+            for (let x = startX; x < canvas.width; x += TILE_SIZE * viewport.zoom) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+
+            for (let y = startY; y < canvas.height; y += TILE_SIZE * viewport.zoom) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+        }
+
+        function drawTiles() {
+            const viewport = renderer.getViewport();
+            const coords = renderer.getVisibleTileCoords();
+
+            ctx.fillStyle = '#2a2a4e';
+            ctx.strokeStyle = '#3a3a5e';
+            ctx.lineWidth = 2;
+
+            for (const { x, y } of coords.slice(0, 100)) { // Limit for performance
+                const screenX = (x * TILE_SIZE - viewport.x) * viewport.zoom + canvas.width / 2;
+                const screenY = (y * TILE_SIZE - viewport.y) * viewport.zoom + canvas.height / 2;
+                const size = TILE_SIZE * viewport.zoom;
+
+                if (screenX + size < 0 || screenX > canvas.width ||
+                    screenY + size < 0 || screenY > canvas.height) continue;
+
+                ctx.fillRect(screenX, screenY, size, size);
+                ctx.strokeRect(screenX, screenY, size, size);
+            }
+        }
+
+        function drawCitizens() {
+            const viewport = renderer.getViewport();
+            const citizens = renderer.getCitizens();
+
+            for (const citizen of citizens) {
+                const screenX = (citizen.x - viewport.x) * viewport.zoom + canvas.width / 2;
+                const screenY = (citizen.y - viewport.y) * viewport.zoom + canvas.height / 2;
+
+                if (screenX < -10 || screenX > canvas.width + 10 ||
+                    screenY < -10 || screenY > canvas.height + 10) continue;
+
+                // Draw citizen as circle
+                ctx.fillStyle = GUILD_COLORS[citizen.guild] || '#ffffff';
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, 5 * viewport.zoom, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Energy ring
+                ctx.strokeStyle = `rgba(255, 255, 255, ${citizen.energy})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, 7 * viewport.zoom, 0, Math.PI * 2 * citizen.energy);
+                ctx.stroke();
+            }
+        }
+
+        // Global functions for buttons
+        window.addRandomTiles = function(n) {
+            for (let i = 0; i < n; i++) {
+                const x = Math.floor(Math.random() * 20) - 10;
+                const y = Math.floor(Math.random() * 20) - 10;
+                const data = new Uint8Array(64);
+                for (let j = 0; j < 64; j++) {
+                    data[j] = Math.floor(Math.random() * 256);
+                }
+                renderer.setTile(x, y, 1, data);
+            }
+            log(`Added ${n} random tiles`);
+        };
+
+        window.clearTiles = function() {
+            const count = renderer.tileCount();
+            // Note: Full clear not implemented in WASM, would need to add
+            log(`Would clear ${count} tiles`);
+        };
+
+        window.resetViewport = function() {
+            renderer.viewport = { x: 0, y: 0, zoom: 1.0 };
+            if (renderer.wasm) {
+                // Recreate renderer to reset
+            }
+            log('Viewport reset');
+        };
+
+        window.addCitizens = function(n) {
+            for (let i = 0; i < n; i++) {
+                const id = Date.now() + i;
+                const x = (Math.random() - 0.5) * 500;
+                const y = (Math.random() - 0.5) * 500;
+                const guild = Math.floor(Math.random() * 5);
+                const energy = 0.5 + Math.random() * 0.5;
+                renderer.addCitizen(id, x, y, guild, energy, 1);
+            }
+            log(`Added ${n} citizens`);
+        };
+
+        window.clearCitizens = function() {
+            renderer.citizens.clear();
+            log('Cleared all citizens');
+        };
+
+        // Mouse controls
+        let isDragging = false;
+        let lastMouseX, lastMouseY;
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const dx = e.clientX - lastMouseX;
+                const dy = e.clientY - lastMouseY;
+                renderer.pan(-dx, -dy);
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const centerX = e.clientX - rect.left;
+            const centerY = e.clientY - rect.top;
+
+            const factor = e.deltaY > 0 ? 0.9 : 1.1;
+            renderer.zoom(factor, centerX, centerY);
+        });
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
