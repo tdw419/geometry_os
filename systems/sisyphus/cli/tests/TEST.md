@@ -93,8 +93,34 @@ pytest systems/sisyphus/cli/tests/test_e2e.py -v
 
 ## Test Results
 
-_Tests pending execution._
+### Unit Tests (test_core.py)
+```
+============================= 21 passed in 2.10s ==============================
+```
+
+All unit tests pass:
+- ✅ JSON output formatting
+- ✅ Task-to-dict conversion
+- ✅ Daemon status serialization
+- ✅ CLI commands (status, tasks, show, health)
+- ✅ JSON mode flag
+- ✅ Help commands
+- ✅ Task state filtering
+- ✅ Edge cases (empty lists, missing router)
+
+### E2E Tests (test_e2e.py)
+```
+Requires PYTHONPATH setup - tests verify CLI subprocess invocation
+```
+
+E2E tests verify:
+- CLI installation and help
+- Status command output
+- Tasks command output
+- Show command for specific tasks
+- Health command
+- JSON output mode
 
 ---
 
-*Last updated: 2024-01-11*
+*Last updated: 2026-03-11*
