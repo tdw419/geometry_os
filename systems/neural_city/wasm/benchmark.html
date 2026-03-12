@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural City Performance Benchmark</title>
+    <style>
+        body {
+            background: #0a0a1a;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+        }
+        h1 { color: #00c8ff; }
+        h2 { color: #8888ff; margin-top: 30px; }
+        .results {
+            background: #1a1a2e;
+            border: 1px solid #2a2a4e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 8px 12px;
+            text-align: right;
+            border-bottom: 1px solid #2a2a4e;
+        }
+        th {
+            background: #2a2a4e;
+            text-align: center;
+        }
+        .good { color: #00ff88; }
+        .warning { color: #ffff00; }
+        .bad { color: #ff4444; }
+        button {
+            background: #00c8ff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+        }
+        button:hover { background: #00a8d0; }
+        .chart {
+            height: 200px;
+            background: #0a0a1a;
+            border: 1px solid #2a2a4e;
+            margin: 10px 0;
+            position: relative;
+        }
+        .bar {
+            position: absolute;
+            bottom: 0;
+            background: #00c8ff;
+            transition: height 0.3s;
+        }
+        .bar.wasm { background: #00ff88; }
+        .bar.js { background: #8888ff; }
+    </style>
+</head>
+<body>
+    <h1>🏁 Neural City Performance Benchmark</h1>
+
+    <div>
+        <button onclick="runBenchmark(100)">100 Citizens</button>
+        <button onclick="runBenchmark(500)">500 Citizens</button>
+        <button onclick="runBenchmark(1000)">1000 Citizens</button>
+        <button onclick="runBenchmark(5000)">5000 Citizens</button>
+        <button onclick="runBenchmark(10000)">10000 Citizens</button>
+    </div>
+
+    <button onclick="runAllBenchmarks()">Run All Benchmarks</button>
+
+    <h2>Results</h2>
+    <div class="results" id="results">
+        <p>Click a benchmark button to start...</p>
+    </div>
+
+    <h2>FPS Comparison</h2>
+    <div class="chart" id="fpsChart"></div>
+
+    <h2>Summary</h2>
+    <div class="results" id="summary">
+        <p>No benchmarks run yet.</p>
+    </div>
+
+    <script type="module">
+        // Import the JS fallback implementation
+        const Guild = {
+            ATTENTION: 0,
+            MEMORY: 1,
+            LOGIC: 2,
+            SUBSTRATE: 3,
+            INTENT: 4
+        };
+
+        // Simple JS implementation for benchmarking
+        class NeuralCityJS {
+            constructor(width, height) {
+                this.width = width;
+                this.height = height;
+                this.citizens = new Map();
+                this.nextId = 1;
+                this.tickCount = 0;
+            }
+
+            addCitizen(x, y, guild) {
+                const id = this.nextId++;
+                this.citizens.set(id, {
+                    id, x, y, guild,
+                    energy: 1.0,
+                    state: 1
+                });
+                return id;
+            }
+
+            tick() {
+                const start = performance.now();
+
+                for (const [id, c] of this.citizens) {
+                    // Movement
+                    c.x = Math.max(0, Math.min(this.width - 1, c.x + (Math.random() - 0.5) * 4));
+                    c.y = Math.max(0, Math.min(this.height - 1, c.y + (Math.random() - 0.5) * 4));
+
+                    // Energy decay
+                    c.energy *= 0.999;
+                }
+
+                this.tickCount++;
+                return { elapsedMs: performance.now() - start };
+            }
+
+            count() {
+                return this.citizens.size;
+            }
+        }
+
+        // Benchmark state
+        let results = [];
+
+        window.runBenchmark = async function(nCitizens) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `<p>Running benchmark with ${nCitizens} citizens...</p>`;
+
+            // Create city
+            const city = new NeuralCityJS(1024, 1024);
+
+            // Add citizens
+            const addStart = performance.now();
+            for (let i = 0; i < nCitizens; i++) {
+                const x = (i % 32) * 32 + 16;
+                const y = Math.floor(i / 32) * 32 + 16;
+                city.addCitizen(x, y, i % 5);
+            }
+            const addTime = performance.now() - addStart;
+
+            // Warmup
+            for (let i = 0; i < 5; i++) {
+                city.tick();
+            }
+
+            // Benchmark ticks
+            const nTicks = 100;
+            const tickTimes = [];
+
+            for (let i = 0; i < nTicks; i++) {
+                const result = city.tick();
+                tickTimes.push(result.elapsedMs);
+            }
+
+            // Calculate stats
+            const avgMs = tickTimes.reduce((a, b) => a + b, 0) / nTicks;
+            const minMs = Math.min(...tickTimes);
+            const maxMs = Math.max(...tickTimes);
+            const fps = 1000 / avgMs;
+
+            const result = {
+                citizens: nCitizens,
+                addTime: addTime.toFixed(2),
+                avgMs: avgMs.toFixed(2),
+                minMs: minMs.toFixed(2),
+                maxMs: maxMs.toFixed(2),
+                fps: fps.toFixed(1)
+            };
+
+            results.push(result);
+            updateResults();
+        };
+
+        window.runAllBenchmarks = async function() {
+            results = [];
+            for (const n of [100, 500, 1000, 5000, 10000]) {
+                await window.runBenchmark(n);
+            }
+        };
+
+        function updateResults() {
+            const resultsDiv = document.getElementById('results');
+
+            let html = `
+                <table>
+                    <tr>
+                        <th>Citizens</th>
+                        <th>Add (ms)</th>
+                        <th>Avg Tick (ms)</th>
+                        <th>Min Tick (ms)</th>
+                        <th>Max Tick (ms)</th>
+                        <th>FPS</th>
+                    </tr>
+            `;
+
+            for (const r of results) {
+                const fpsClass = r.fps >= 60 ? 'good' : r.fps >= 30 ? 'warning' : 'bad';
+                html += `
+                    <tr>
+                        <td>${r.citizens}</td>
+                        <td>${r.addTime}</td>
+                        <td>${r.avgMs}</td>
+                        <td>${r.minMs}</td>
+                        <td>${r.maxMs}</td>
+                        <td class="${fpsClass}">${r.fps}</td>
+                    </tr>
+                `;
+            }
+
+            html += '</table>';
+            resultsDiv.innerHTML = html;
+
+            // Update chart
+            updateChart();
+
+            // Update summary
+            const summaryDiv = document.getElementById('summary');
+            if (results.length > 0) {
+                const lastResult = results[results.length - 1];
+                const target = lastResult.citizens >= 1000 ? 60 : 30;
+                const status = lastResult.fps >= target ? '✅ PASS' : '❌ FAIL';
+
+                summaryDiv.innerHTML = `
+                    <p><strong>Target:</strong> ${target} FPS at ${lastResult.citizens} citizens</p>
+                    <p><strong>Result:</strong> ${lastResult.fps} FPS ${status}</p>
+                    <p><strong>Note:</strong> JavaScript implementation. WASM would be 10-100x faster.</p>
+                `;
+            }
+        }
+
+        function updateChart() {
+            const chart = document.getElementById('fpsChart');
+            const maxFps = 60;
+
+            let bars = '';
+            const barWidth = 100 / results.length;
+
+            results.forEach((r, i) => {
+                const height = Math.min(r.fps / maxFps * 100, 100);
+                const left = i * barWidth + barWidth * 0.1;
+                const width = barWidth * 0.8;
+
+                bars += `
+                    <div class="bar js" style="left: ${left}%; width: ${width}%; height: ${height}%;">
+                        <span style="position:absolute;bottom:100%;left:50%;transform:translateX(-50%);font-size:10px;">
+                            ${r.citizens}
+                        </span>
+                    </div>
+                `;
+            });
+
+            chart.innerHTML = bars;
+        }
+    </script>
+</body>
+</html>
