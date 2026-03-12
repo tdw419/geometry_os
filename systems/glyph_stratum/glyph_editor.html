@@ -990,27 +990,22 @@
                 .attr("r", 25)
                 .attr("class", d => `stratum-${d.stratum}`);
 
-            // Render opcode using GEOS font atlas if available, otherwise fallback to text
-            if (atlasReady && positionsReady && fontPositions[d.opcode]) {
-                const [x, y, width, height] = fontPositions[d.opcode];
-                // Calculate position to center the text in the node
-                const textureX = d.x - width / 2;
-                const textureY = d.y - height / 2;
+            // Render opcode using GEOS font atlas if available
+            node.filter(d => atlasReady && positionsReady && fontPositions[d.opcode])
+                .append("image")
+                .attr("xlink:href", fontAtlas.src)
+                .attr("x", d => -fontPositions[d.opcode][2] / 2)
+                .attr("y", d => -fontPositions[d.opcode][3] / 2)
+                .attr("width", d => fontPositions[d.opcode][2])
+                .attr("height", d => fontPositions[d.opcode][3])
+                .attr("preserveAspectRatio", "none");
 
-                node.append("image")
-                    .attr("xlink:href", fontAtlas.src)
-                    .attr("x", textureX)
-                    .attr("y", textureY)
-                    .attr("width", width)
-                    .attr("height", height)
-                    .attr("preserveAspectRatio", "none");
-            } else {
-                // Fallback to text rendering
-                node.append("text")
-                    .attr("dy", 4)
-                    .attr("text-anchor", "middle")
-                    .text(d => d.opcode);
-            }
+            // Fallback to text rendering if atlas is not available for this opcode
+            node.filter(d => !(atlasReady && positionsReady && fontPositions[d.opcode]))
+                .append("text")
+                .attr("dy", 4)
+                .attr("text-anchor", "middle")
+                .text(d => d.opcode);
 
             // Update glyph list
             updateGlyphList();
