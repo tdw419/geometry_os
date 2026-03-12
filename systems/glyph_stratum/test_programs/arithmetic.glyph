@@ -1,34 +1,46 @@
 {
-  "name": "Simple Arithmetic",
+  "name": "Simple Addition",
   "description": "Computes 3 + 4 = 7",
   "glyphs": {
     "0": {
-      "stratum_name": "INTENT",
-      "opcode_name": "MODULE",
-      "rationale": "Calculate sum",
-      "dependencies": [1],
-      "invariants": {}
+      "index": 0,
+      "stratum": "INTENT",
+      "opcode": "MODULE",
+      "metadata": {
+        "dependencies": [1],
+        "invariants": {},
+        "rationale": "Add two numbers"
+      }
     },
     "1": {
-      "stratum_name": "SPEC",
-      "opcode_name": "CALL",
-      "rationale": "+",
-      "dependencies": [2, 3],
-      "invariants": {}
+      "index": 1,
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "metadata": {
+        "dependencies": [2, 3],
+        "invariants": {},
+        "rationale": "+"
+      }
     },
     "2": {
-      "stratum_name": "MEMORY",
-      "opcode_name": "DATA",
-      "rationale": "First operand",
-      "dependencies": [],
-      "invariants": {"value": 3}
+      "index": 2,
+      "stratum": "MEMORY",
+      "opcode": "DATA",
+      "metadata": {
+        "dependencies": [],
+        "invariants": {"value": 3},
+        "rationale": "First operand"
+      }
     },
     "3": {
-      "stratum_name": "MEMORY",
-      "opcode_name": "DATA",
-      "rationale": "Second operand",
-      "dependencies": [],
-      "invariants": {"value": 4}
+      "index": 3,
+      "stratum": "MEMORY",
+      "opcode": "DATA",
+      "metadata": {
+        "dependencies": [],
+        "invariants": {"value": 4},
+        "rationale": "Second operand"
+      }
     }
   }
 }

@@ -15,8 +15,14 @@ class Stratum(IntEnum):
     INTENT = 4     # Goals, requirements, rationale
 
     @classmethod
-    def from_value(cls, value: int) -> Optional["Stratum"]:
-        """Convert from numeric value."""
+    def from_value(cls, value) -> Optional["Stratum"]:
+        """Convert from numeric value or string name."""
+        if isinstance(value, str):
+            # Handle string name
+            try:
+                return cls[value.upper()]
+            except KeyError:
+                return None
         try:
             return cls(value)
         except ValueError:
@@ -66,8 +72,14 @@ class Opcode(IntEnum):
     HALT = 255   # Program termination
 
     @classmethod
-    def from_value(cls, value: int) -> Optional["Opcode"]:
-        """Convert from numeric value."""
+    def from_value(cls, value) -> Optional["Opcode"]:
+        """Convert from numeric value or string name."""
+        if isinstance(value, str):
+            # Handle string name
+            try:
+                return cls[value.upper()]
+            except KeyError:
+                return None
         try:
             return cls(value)
         except ValueError:
@@ -180,11 +192,34 @@ class GlyphInfo:
 
     @classmethod
     def from_dict(cls, data: dict) -> "GlyphInfo":
+        # Handle both formats: nested metadata or flat structure
+        index = data.get("index", 0)
+
+        # Get stratum - try multiple keys
+        stratum_val = data.get("stratum") or data.get("stratum_name")
+        stratum = Stratum.from_value(stratum_val) or Stratum.SUBSTRATE
+
+        # Get opcode - try multiple keys
+        opcode_val = data.get("opcode") or data.get("opcode_name")
+        opcode = Opcode.from_value(opcode_val) or Opcode.NOP
+
+        # Build metadata - handle both nested and flat formats
+        if "metadata" in data:
+            metadata = GlyphMetadata.from_dict(data["metadata"])
+        else:
+            # Flat format: dependencies/invariants/rationale at top level
+            metadata = GlyphMetadata(
+                dependencies=data.get("dependencies", []),
+                invariants=data.get("invariants", {}),
+                rationale=data.get("rationale", ""),
+                provenance=ProvenanceInfo()
+            )
+
         return cls(
-            index=data["index"],
-            stratum=Stratum.from_value(data["stratum"]) or Stratum.SUBSTRATE,
-            opcode=Opcode.from_value(data["opcode"]) or Opcode.NOP,
-            metadata=GlyphMetadata.from_dict(data.get("metadata", {})),
+            index=index,
+            stratum=stratum,
+            opcode=opcode,
+            metadata=metadata,
             x=data.get("x", 0),
             y=data.get("y", 0),
             width=data.get("width", 32),

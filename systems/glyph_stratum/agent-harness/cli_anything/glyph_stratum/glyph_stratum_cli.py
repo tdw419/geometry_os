@@ -116,6 +116,8 @@ def repl(ctx):
             handle_render(args)
         elif cmd == "validate":
             handle_validate(ctx.obj["json"])
+        elif cmd == "run":
+            handle_run(args, ctx.obj["json"])
         elif cmd == "undo":
             if session_manager.undo():
                 click.echo("Undone")
@@ -328,6 +330,27 @@ def handle_validate(use_json: bool):
                 click.echo(f"  - {error}")
         else:
             click.echo("Program is valid")
+
+
+def handle_run(args, use_json: bool):
+    """Handle run command."""
+    from .core.executor import run_program
+
+    # Parse optional entry point
+    entry = int(args[0]) if args else None
+
+    result = run_program(session_manager.state.registry, entry)
+
+    if use_json:
+        output_json(result)
+    else:
+        click.echo(f"Result: {result['result']}")
+        status = result['status']
+        click.echo(f"Halted: {status['halted']}")
+        if status['error']:
+            click.echo(f"Error: {status['error']}")
+        if status['output']:
+            click.echo(f"Output: {status['output']}")
 
 
 # Subcommands for one-shot CLI usage

@@ -38,7 +38,12 @@ class SessionManager:
         return self.state
 
     def load(self, path: str) -> SessionState:
-        """Load session from file."""
+        """Load session from file.
+
+        Supports two formats:
+        - Session format: {"registry": {"glyphs": {...}}, ...}
+        - Program format: {"glyphs": {...}, "name": "..."}
+        """
         p = Path(path)
         if not p.exists():
             raise FileNotFoundError(f"File not found: {path}")
@@ -46,10 +51,21 @@ class SessionManager:
         with open(p, 'r') as f:
             data = json.load(f)
 
-        registry = GlyphRegistry.from_dict(data.get("registry", {}))
+        # Handle both session format and simple program format
+        if "registry" in data:
+            # Session format
+            registry = GlyphRegistry.from_dict(data["registry"])
+            session_id = data.get("session_id", str(uuid.uuid4())[:8])
+            created_at = data.get("created_at", datetime.utcnow().isoformat())
+        else:
+            # Simple program format - wrap in registry structure
+            registry = GlyphRegistry.from_dict({"glyphs": data.get("glyphs", {})})
+            session_id = str(uuid.uuid4())[:8]
+            created_at = datetime.utcnow().isoformat()
+
         self.state = SessionState(
-            session_id=data.get("session_id", str(uuid.uuid4())[:8]),
-            created_at=data.get("created_at", datetime.utcnow().isoformat()),
+            session_id=session_id,
+            created_at=created_at,
             modified=False,
             current_file=str(p.absolute()),
             registry=registry,

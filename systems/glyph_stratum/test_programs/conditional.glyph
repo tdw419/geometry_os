@@ -1,0 +1,76 @@
+{
+  "name": "Conditional Expression",
+  "description": "Tests branching: if 5 > 3 then return 100 else return 200",
+  "glyphs": {
+    "0": {
+      "index": 0,
+      "stratum": "INTENT",
+      "opcode": "MODULE",
+      "metadata": {
+        "dependencies": [1],
+        "invariants": {},
+        "rationale": "Test conditional logic"
+      }
+    },
+    "1": {
+      "index": 1,
+      "stratum": "LOGIC",
+      "opcode": "BRANCH",
+      "metadata": {
+        "dependencies": [2, 3, 4],
+        "invariants": {},
+        "rationale": "if 5 > 3"
+      }
+    },
+    "2": {
+      "index": 2,
+      "stratum": "LOGIC",
+      "opcode": "CALL",
+      "metadata": {
+        "dependencies": [5, 6],
+        "invariants": {},
+        "rationale": ">"
+      }
+    },
+    "3": {
+      "index": 3,
+      "stratum": "MEMORY",
+      "opcode": "DATA",
+      "metadata": {
+        "dependencies": [],
+        "invariants": {"value": 100},
+        "rationale": "Then branch: 100"
+      }
+    },
+    "4": {
+      "index": 4,
+      "stratum": "MEMORY",
+      "opcode": "DATA",
+      "metadata": {
+        "dependencies": [],
+        "invariants": {"value": 200},
+        "rationale": "Else branch: 200"
+      }
+    },
+    "5": {
+      "index": 5,
+      "stratum": "MEMORY",
+      "opcode": "DATA",
+      "metadata": {
+        "dependencies": [],
+        "invariants": {"value": 5},
+        "rationale": "Left operand"
+      }
+    },
+    "6": {
+      "index": 6,
+      "stratum": "MEMORY",
+      "opcode": "DATA",
+      "metadata": {
+        "dependencies": [],
+        "invariants": {"value": 3},
+        "rationale": "Right operand"
+      }
+    }
+  }
+}
