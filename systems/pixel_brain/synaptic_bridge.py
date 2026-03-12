@@ -31,8 +31,14 @@ import struct
 import time
 from dataclasses import dataclass
 
-# Add project root to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+# Add project root and GlyphStratum core to path
+root_path = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(root_path))
+
+# Handle the hyphenated 'agent-harness' directory
+glyph_stratum_path = root_path / "systems" / "glyph_stratum" / "agent-harness" / "cli_anything"
+if glyph_stratum_path.exists():
+    sys.path.insert(0, str(glyph_stratum_path))
 
 try:
     import websockets
@@ -46,11 +52,22 @@ except ImportError:
     import websockets
     from websockets.server import serve
 
-from systems.glyph_stratum.agent_harness.cli_anything.glyph_stratum.core.stratum import (
-    Stratum, Opcode, GlyphInfo, GlyphMetadata, ProvenanceInfo
-)
-from systems.glyph_stratum.agent_harness.cli_anything.glyph_stratum.core.glyph_registry import GlyphRegistry
-from systems.glyph_stratum.agent_harness.cli_anything.glyph_stratum.core.executor import GlyphStratumExecutor
+# Optional glyph_stratum imports - may not be available
+try:
+    from glyph_stratum.core.stratum import (
+        Stratum, Opcode, GlyphInfo, GlyphMetadata, ProvenanceInfo
+    )
+    from glyph_stratum.core.glyph_registry import GlyphRegistry
+    from glyph_stratum.core.executor import GlyphStratumExecutor
+    HAS_GLYPH_STRATUM = True
+except ImportError:
+    HAS_GLYPH_STRATUM = False
+    Stratum = None
+    GlyphRegistry = None
+    GlyphStratumExecutor = None
+    logging.warning("glyph_stratum not available - running in degraded mode")
+
+from systems.neural_city.districts.syntactic_district import SyntacticDistrict
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("SynapticBridge")
