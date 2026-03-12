@@ -441,5 +441,25 @@ def validate(ctx):
     output_result({"valid": len(errors) == 0, "errors": errors}, ctx.obj["json"])
 
 
+@cli.command()
+@click.option("--entry", "-e", type=int, default=None, help="Entry point glyph index")
+@click.pass_context
+def run(ctx, entry):
+    """Execute the program."""
+    from .core.executor import run_program
+
+    result = run_program(session_manager.state.registry, entry)
+    if ctx.obj["json"]:
+        output_json(result)
+    else:
+        status = result["status"]
+        click.echo(f"Result: {result['result']}")
+        click.echo(f"Halted: {status['halted']}")
+        if status['error']:
+            click.echo(f"Error: {status['error']}")
+        if status['output']:
+            click.echo(f"Output: {status['output']}")
+
+
 if __name__ == "__main__":
     cli()
