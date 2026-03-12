@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from .citizen import NeuralCitizen, CitizenState, GuildType
 from .spawner import CitizenSpawner
 from .territory import TerritoryMapper, Territory
+from .citizen_writer import CitizenWriter
 
 logger = logging.getLogger("NeuralCity")
 
@@ -69,7 +70,8 @@ class NeuralCity:
         # Core components
         self.spawner = CitizenSpawner()
         self.territory_mapper = TerritoryMapper(width, height)
-        
+        self.writer = None  # CitizenWriter (set via set_substrate_writer)
+
         # City state
         self.tick_count = 0
         self.last_update = time.time()
@@ -165,6 +167,10 @@ class NeuralCity:
         # Phase 44: Process evolution (natural selection)
         evolution = self._process_evolution()
         events['evolution'] = evolution
+
+        # Phase 47: Process citizen writes (the closed loop)
+        writes = self._process_citizen_writes()
+        events['writes'] = writes
 
         # Update neighbors
         self._update_neighbors()
@@ -508,3 +514,99 @@ class NeuralCity:
                     self.stats.total_born += 1
 
         return {'deaths': deaths, 'births': births}
+
+    def set_substrate_writer(self, writer) -> bool:
+        """
+        Phase 47: Set the substrate writer for citizen writes.
+
+        Args:
+            writer: Object with write_pixel(x, y, r, g, b) method
+        """
+        self.writer = CitizenWriter(writer)
+        return True
+
+    def _process_citizen_writes(self) -> List[Dict]:
+        """
+        Phase 47: Process citizens writing back to the substrate.
+
+        High-energy citizens can write mutations to their territory,
+        completing the Ouroboros loop.
+        """
+        writes = []
+
+        if not self.writer:
+            return writes
+
+        citizens = list(self.spawner.citizens.values())
+
+        for citizen in citizens:
+            # Only active, high-energy citizens can write
+            if citizen.state != CitizenState.ACTIVE:
+                continue
+            if citizen.energy < 0.7:
+                continue
+            if random.random() > 0.1:  # 10% chance per tick
+                continue
+
+            # Choose write action based on guild
+            guild = citizen.guild.value
+
+            if guild == 'attention':
+                # Boost activation around citizen
+                success = self.writer.write_activation_boost(
+                    citizen.x, citizen.y, radius=8, boost=0.2,
+                    current_r=citizen.energy, current_g=citizen.entropy
+                )
+                if success:
+                    writes.append({
+                        'citizen': citizen.id,
+                        'type': 'activation_boost',
+                        'location': (citizen.x, citizen.y)
+                    })
+
+            elif guild == 'logic':
+                # Write neural pathway to a neighbor
+                neighbors = [c for c in citizens if citizen.is_neighbor(c) and c.id != citizen.id]
+                if neighbors:
+                    target = random.choice(neighbors)
+                    success = self.writer.write_neural_pathway(
+                        citizen.x, citizen.y, target.x, target.y,
+                        citizen.opcode
+                    )
+                    if success:
+                        writes.append({
+                            'citizen': citizen.id,
+                            'type': 'neural_pathway',
+                            'from': (citizen.x, citizen.y),
+                            'to': (target.x, target.y)
+                        })
+
+            elif guild == 'intent':
+                # Write guild territory pattern
+                success = self.writer.write_guild_territory(
+                    citizen.x, citizen.y, radius=12, guild=guild
+                )
+                if success:
+                    writes.append({
+                        'citizen': citizen.id,
+                        'type': 'guild_territory',
+                        'guild': guild,
+                        'location': (citizen.x, citizen.y)
+                    })
+
+            elif guild == 'memory':
+                # Write creative pattern occasionally
+                if random.random() < 0.3:
+                    pattern = random.choice(['spiral', 'web', 'crystal'])
+                    success = self.writer.write_creative_pattern(
+                        citizen.x, citizen.y, pattern_type=pattern, seed=citizen.generation
+                    )
+                    if success:
+                        writes.append({
+                            'citizen': citizen.id,
+                            'type': 'creative_pattern',
+                            'pattern': pattern,
+                            'location': (citizen.x, citizen.y)
+                        })
+
+        return writes
