@@ -33,19 +33,27 @@ trap cleanup SIGTERM SIGINT SIGQUIT
 # Ensure session directory exists
 mkdir -p "$SESSION_DIR/logs"
 
-# Clear old logs from previous runs
+# Clear old logs and handoff from previous runs
 rm -f "$SESSION_DIR/logs"/*.log 2>/dev/null
 rm -f "$SESSION_DIR/state.json" 2>/dev/null
+rm -f "$HANDOFF_FILE" 2>/dev/null
 
 while [ $SESSION_COUNT -lt $MAX_SESSIONS ]; do
   echo "=== Starting session $SESSION_COUNT ==="
 
-  # Build prompt from handoff + optional history search
+  # Build prompt from history (auto) or handoff file
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  if [ -n "$SEARCH_QUERY" ]; then
-    PROMPT=$(python3 "$SCRIPT_DIR/build_prompt.py" --handoff "$HANDOFF_FILE" --search "$SEARCH_QUERY")
+
+  if [ -f "$HANDOFF_FILE" ] && [ -s "$HANDOFF_FILE" ]; then
+    # Use handoff file if it exists and has content
+    if [ -n "$SEARCH_QUERY" ]; then
+      PROMPT=$(python3 "$SCRIPT_DIR/build_prompt.py" --handoff "$HANDOFF_FILE" --search "$SEARCH_QUERY")
+    else
+      PROMPT=$(python3 "$SCRIPT_DIR/build_prompt.py" --handoff "$HANDOFF_FILE")
+    fi
   else
-    PROMPT=$(python3 "$SCRIPT_DIR/build_prompt.py" --handoff "$HANDOFF_FILE")
+    # Auto-detect task from conversation history
+    PROMPT=$(python3 "$SCRIPT_DIR/build_prompt.py" --auto ${SEARCH_QUERY:+--search "$SEARCH_QUERY"})
   fi
 
   # Launch session (unbuffered for real-time logging)
