@@ -19,6 +19,7 @@ from .citizen import NeuralCitizen, CitizenState, GuildType
 from .spawner import CitizenSpawner
 from .territory import TerritoryMapper, Territory
 from .citizen_writer import CitizenWriter
+from .dream_engine import DreamEngine, DreamState
 
 logger = logging.getLogger("NeuralCity")
 
@@ -71,6 +72,7 @@ class NeuralCity:
         self.spawner = CitizenSpawner()
         self.territory_mapper = TerritoryMapper(width, height)
         self.writer = None  # CitizenWriter (set via set_substrate_writer)
+        self.dream_engine = None  # DreamEngine (Phase 48)
 
         # City state
         self.tick_count = 0
@@ -171,6 +173,10 @@ class NeuralCity:
         # Phase 47: Process citizen writes (the closed loop)
         writes = self._process_citizen_writes()
         events['writes'] = writes
+
+        # Phase 48: Process dreaming
+        dreams = self._process_dreaming()
+        events['dreams'] = dreams
 
         # Update neighbors
         self._update_neighbors()
@@ -610,3 +616,35 @@ class NeuralCity:
                         })
 
         return writes
+
+    def set_dream_engine(self) -> bool:
+        """
+        Phase 48: Initialize the dream engine.
+
+        The dream engine manages sleep cycles and memory consolidation.
+        """
+        self.dream_engine = DreamEngine(self, self.writer)
+        return True
+
+    def _process_dreaming(self) -> Dict:
+        """
+        Phase 48: Process dreaming during low-activity periods.
+
+        Returns dream activity summary.
+        """
+        if not self.dream_engine:
+            return {'state': 'awake', 'activity': 1.0}
+
+        # Record current events for dream replay
+        if self.dream_engine.state == DreamState.AWAKE:
+            # Record significant events
+            for citizen in list(self.spawner.citizens.values())[:5]:
+                if citizen.energy > 0.8:
+                    self.dream_engine.record_event({
+                        'type': 'high_energy',
+                        'citizen_id': citizen.id,
+                        'location': (citizen.x, citizen.y),
+                        'guild': citizen.guild.value
+                    })
+
+        return self.dream_engine.tick()
