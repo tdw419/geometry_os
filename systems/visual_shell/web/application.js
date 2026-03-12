@@ -238,6 +238,15 @@ class GeometryOSApplication {
             console.log("🔥 Heatmap Overlay initialized (Ctrl+Shift+M to toggle)");
         }
 
+        // --- GlyphStratum: AI-Native Visual Programming Language ---
+        if (typeof GlyphStratumRenderer !== 'undefined') {
+            this.glyphStratumContainer = new PIXI.Container();
+            this.worldContainer.addChild(this.glyphStratumContainer);
+            this.glyphStratumRenderer = new GlyphStratumRenderer(this.app, this.glyphStratumContainer);
+            this._setupGlyphStratumKeyboard();
+            console.log("🔷 GlyphStratum Renderer initialized (Ctrl+Shift+G to toggle, Ctrl+Shift+L for demo)");
+        }
+
         // 4b. Initialize Creative Layers
         this.drawingLayer = new PIXI.Graphics();
         this.worldContainer.addChild(this.drawingLayer);
@@ -3066,6 +3075,179 @@ class GeometryOSApplication {
         });
 
         console.log('🔥 Heatmap keyboard shortcuts configured (Ctrl+Shift+M to toggle)');
+    }
+
+    /**
+     * Setup keyboard shortcuts for GlyphStratum.
+     * Ctrl+Shift+G: Toggle GlyphStratum overlay
+     * Ctrl+Shift+L: Load sample program
+     */
+    _setupGlyphStratumKeyboard() {
+        if (!this.glyphStratumRenderer) return;
+
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Shift+G: Toggle GlyphStratum visibility
+            if (e.ctrlKey && e.shiftKey && (e.key === 'G' || e.key === 'g')) {
+                e.preventDefault();
+                this.glyphStratumContainer.visible = !this.glyphStratumContainer.visible;
+                console.log(`🔷 GlyphStratum overlay: ${this.glyphStratumContainer.visible ? 'visible' : 'hidden'}`);
+            }
+            // Ctrl+Shift+L: Load demo program
+            if (e.ctrlKey && e.shiftKey && (e.key === 'L' || e.key === 'l')) {
+                e.preventDefault();
+                this.loadDemoGlyphProgram();
+            }
+        });
+
+        console.log('🔷 GlyphStratum keyboard shortcuts configured (Ctrl+Shift+G to toggle, Ctrl+Shift+L for demo)');
+    }
+
+    /**
+     * Load a GlyphStratum program from JSON data.
+     * @param {Object|string} programData - The program JSON or URL to fetch
+     */
+    async loadGlyphProgram(programData) {
+        if (!this.glyphStratumRenderer) {
+            console.warn('GlyphStratumRenderer not initialized');
+            return;
+        }
+
+        let data = programData;
+
+        // If string, treat as URL and fetch
+        if (typeof programData === 'string') {
+            try {
+                const response = await fetch(programData);
+                data = await response.json();
+            } catch (e) {
+                console.error('Failed to load GlyphStratum program:', e);
+                return;
+            }
+        }
+
+        this.glyphStratumRenderer.loadProgram(data);
+        this.glyphStratumContainer.visible = true;
+        console.log(`🔷 Loaded GlyphStratum program with ${Object.keys(data.glyphs || {}).length} glyphs`);
+    }
+
+    /**
+     * Clear the current GlyphStratum program display.
+     */
+    clearGlyphProgram() {
+        if (this.glyphStratumRenderer) {
+            this.glyphStratumRenderer.clear();
+        }
+    }
+
+    /**
+     * Load a demo GlyphStratum program for testing.
+     */
+    loadDemoGlyphProgram() {
+        const demoProgram = {
+            name: "Demo: Factorial Calculator",
+            glyphs: {
+                0: {
+                    stratum_name: "INTENT",
+                    opcode_name: "MODULE",
+                    rationale: "Calculate factorial of a number",
+                    dependencies: [1, 4],
+                    invariants: {}
+                },
+                1: {
+                    stratum_name: "SPEC",
+                    opcode_name: "CALL",
+                    rationale: "factorial(n)",
+                    dependencies: [2, 3],
+                    invariants: {}
+                },
+                2: {
+                    stratum_name: "LOGIC",
+                    opcode_name: "BRANCH",
+                    rationale: "if n <= 1 return 1 else recurse",
+                    dependencies: [5, 6, 7],
+                    invariants: {}
+                },
+                3: {
+                    stratum_name: "LOGIC",
+                    opcode_name: "LOOP",
+                    rationale: "Iterative factorial calculation",
+                    dependencies: [8, 9, 10],
+                    invariants: {}
+                },
+                4: {
+                    stratum_name: "SPEC",
+                    opcode_name: "RETURN",
+                    rationale: "Return result",
+                    dependencies: [11],
+                    invariants: {}
+                },
+                5: {
+                    stratum_name: "MEMORY",
+                    opcode_name: "LOAD",
+                    rationale: "Load n",
+                    dependencies: [12],
+                    invariants: {}
+                },
+                6: {
+                    stratum_name: "MEMORY",
+                    opcode_name: "DATA",
+                    rationale: "Constant: 1",
+                    dependencies: [],
+                    invariants: {"value": 1}
+                },
+                7: {
+                    stratum_name: "LOGIC",
+                    opcode_name: "CALL",
+                    rationale: "Recursive call factorial(n-1)",
+                    dependencies: [13],
+                    invariants: {}
+                },
+                8: {
+                    stratum_name: "LOGIC",
+                    opcode_name: "DATA",
+                    rationale: "Condition: n > 1",
+                    dependencies: [5],
+                    invariants: {}
+                },
+                9: {
+                    stratum_name: "MEMORY",
+                    opcode_name: "STORE",
+                    rationale: "result = result * n",
+                    dependencies: [11, 5],
+                    invariants: {}
+                },
+                10: {
+                    stratum_name: "MEMORY",
+                    opcode_name: "DATA",
+                    rationale: "Initial: result = 1",
+                    dependencies: [],
+                    invariants: {"value": 1}
+                },
+                11: {
+                    stratum_name: "MEMORY",
+                    opcode_name: "ALLOC",
+                    rationale: "Memory for result",
+                    dependencies: [],
+                    invariants: {"size": 4}
+                },
+                12: {
+                    stratum_name: "SUBSTRATE",
+                    opcode_name: "DATA",
+                    rationale: "Input parameter n",
+                    dependencies: [],
+                    invariants: {}
+                },
+                13: {
+                    stratum_name: "LOGIC",
+                    opcode_name: "CALL",
+                    rationale: "n - 1",
+                    dependencies: [5, 6],
+                    invariants: {}
+                }
+            }
+        };
+
+        this.loadGlyphProgram(demoProgram);
     }
 
     /**

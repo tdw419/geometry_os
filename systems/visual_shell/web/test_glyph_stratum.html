@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlyphStratum - AI-Native Visual Programming</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a0a0a;
+            color: #ccc;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            overflow: hidden;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        header {
+            padding: 12px 20px;
+            background: #111;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 {
+            font-size: 18px;
+            color: #0ff;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background: #1a1a1a;
+            border: 1px solid #444;
+            color: #0ff;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #2a2a2a;
+            border-color: #0ff;
+        }
+        .main {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+        #canvas-container {
+            flex: 1;
+            background: #050505;
+        }
+        .sidebar {
+            width: 350px;
+            background: #111;
+            border-left: 1px solid #333;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        .sidebar h2 {
+            font-size: 14px;
+            color: #0ff;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #333;
+        }
+        .legend {
+            margin-bottom: 20px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        .legend-color.substrate { background: #404040; }
+        .legend-color.memory { background: #4a90d9; }
+        .legend-color.logic { background: #2a5f2a; }
+        .legend-color.spec { background: #f5a53d; }
+        .legend-color.intent { background: #c7a5f3; }
+
+        .glyph-info {
+            background: #1a1a1a;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+        .glyph-info h3 {
+            color: #0ff;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        .glyph-info p {
+            font-size: 11px;
+            color: #888;
+            line-height: 1.5;
+        }
+        .glyph-info .deps {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #333;
+            font-size: 10px;
+            color: #666;
+        }
+
+        .keyboard-shortcuts {
+            background: #1a1a1a;
+            border-radius: 4px;
+            padding: 12px;
+            font-size: 11px;
+        }
+        .keyboard-shortcuts h3 {
+            color: #0ff;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+        .shortcut {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .key {
+            color: #f5a53d;
+        }
+
+        .status {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GlyphStratum - AI-Native Visual Programming</h1>
+            <div class="controls">
+                <button id="btn-demo">Load Demo</button>
+                <button id="btn-clear">Clear</button>
+                <button id="btn-toggle">Toggle Overlay</button>
+            </div>
+        </header>
+        <div class="main">
+            <div id="canvas-container"></div>
+            <div class="sidebar">
+                <h2>Strata Legend</h2>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color intent"></div>
+                        <span>INTENT (4) - High-level goals</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color spec"></div>
+                        <span>SPEC (3) - Specifications</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color logic"></div>
+                        <span>LOGIC (2) - Control flow</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color memory"></div>
+                        <span>MEMORY (1) - Data storage</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color substrate"></div>
+                        <span>SUBSTRATE (0) - Foundation</span>
+                    </div>
+                </div>
+
+                <h2>Selected Glyph</h2>
+                <div class="glyph-info" id="glyph-info">
+                    <p>Click a glyph to see its details</p>
+                </div>
+
+                <h2>Keyboard Shortcuts</h2>
+                <div class="keyboard-shortcuts">
+                    <div class="shortcut">
+                        <span>Toggle overlay</span>
+                        <span class="key">Ctrl+Shift+G</span>
+                    </div>
+                    <div class="shortcut">
+                        <span>Load demo</span>
+                        <span class="key">Ctrl+Shift+L</span>
+                    </div>
+                </div>
+
+                <h2 style="margin-top: 20px;">About</h2>
+                <div class="glyph-info">
+                    <p>GlyphStratum is an AI-native visual programming language designed to solve "the AI coding problem" - where AI starts strong but gets lost in complexity as programs grow.</p>
+                    <p style="margin-top: 8px;">Features:</p>
+                    <ul style="margin-left: 15px; margin-top: 4px; font-size: 10px;">
+                        <li>5 stratified layers (bottom-up design)</li>
+                        <li>Explicit dependency tracking</li>
+                        <li>Self-reflection via queries</li>
+                        <li>Human AND AI readable</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="status" id="status">Ready</div>
+
+    <!-- Load PixiJS -->
+    <script src="https://pixijs.download/v8.0.0/pixi.min.js"></script>
+
+    <!-- Load GlyphStratum Renderer -->
+    <script src="glyph-stratum-renderer.js"></script>
+
+    <script>
+        let app;
+        let glyphRenderer;
+        let glyphContainer;
+
+        async function init() {
+            // Initialize PixiJS
+            app = new PIXI.Application();
+            await app.init({
+                resizeTo: document.getElementById('canvas-container'),
+                backgroundColor: 0x050505,
+                antialias: true,
+                resolution: window.devicePixelRatio || 1,
+                autoDensity: true
+            });
+            document.getElementById('canvas-container').appendChild(app.canvas);
+
+            // Create container for glyphs
+            glyphContainer = new PIXI.Container();
+            app.stage.addChild(glyphContainer);
+
+            // Initialize GlyphStratum Renderer
+            glyphRenderer = new GlyphStratumRenderer(app, glyphContainer);
+
+            // Center the view
+            glyphContainer.x = window.innerWidth / 2 - 200;
+            glyphContainer.y = window.innerHeight / 2;
+
+            // Setup button handlers
+            document.getElementById('btn-demo').addEventListener('click', loadDemo);
+            document.getElementById('btn-clear').addEventListener('click', clearProgram);
+            document.getElementById('btn-toggle').addEventListener('click', toggleOverlay);
+
+            // Setup keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.shiftKey && (e.key === 'G' || e.key === 'g')) {
+                    e.preventDefault();
+                    toggleOverlay();
+                }
+                if (e.ctrlKey && e.shiftKey && (e.key === 'L' || e.key === 'l')) {
+                    e.preventDefault();
+                    loadDemo();
+                }
+            });
+
+            // Auto-load demo
+            loadDemo();
+
+            updateStatus('GlyphStratum initialized');
+        }
+
+        function loadDemo() {
+            const demoProgram = {
+                name: "Demo: Factorial Calculator",
+                glyphs: {
+                    0: {
+                        stratum_name: "INTENT",
+                        opcode_name: "MODULE",
+                        rationale: "Calculate factorial of a number",
+                        dependencies: [1, 4],
+                        invariants: {}
+                    },
+                    1: {
+                        stratum_name: "SPEC",
+                        opcode_name: "CALL",
+                        rationale: "factorial(n)",
+                        dependencies: [2, 3],
+                        invariants: {}
+                    },
+                    2: {
+                        stratum_name: "LOGIC",
+                        opcode_name: "BRANCH",
+                        rationale: "if n <= 1 return 1 else recurse",
+                        dependencies: [5, 6, 7],
+                        invariants: {}
+                    },
+                    3: {
+                        stratum_name: "LOGIC",
+                        opcode_name: "LOOP",
+                        rationale: "Iterative factorial calculation",
+                        dependencies: [8, 9, 10],
+                        invariants: {}
+                    },
+                    4: {
+                        stratum_name: "SPEC",
+                        opcode_name: "RETURN",
+                        rationale: "Return result",
+                        dependencies: [11],
+                        invariants: {}
+                    },
+                    5: {
+                        stratum_name: "MEMORY",
+                        opcode_name: "LOAD",
+                        rationale: "Load n",
+                        dependencies: [12],
+                        invariants: {}
+                    },
+                    6: {
+                        stratum_name: "MEMORY",
+                        opcode_name: "DATA",
+                        rationale: "Constant: 1",
+                        dependencies: [],
+                        invariants: {"value": 1}
+                    },
+                    7: {
+                        stratum_name: "LOGIC",
+                        opcode_name: "CALL",
+                        rationale: "Recursive call factorial(n-1)",
+                        dependencies: [13],
+                        invariants: {}
+                    },
+                    8: {
+                        stratum_name: "LOGIC",
+                        opcode_name: "DATA",
+                        rationale: "Condition: n > 1",
+                        dependencies: [5],
+                        invariants: {}
+                    },
+                    9: {
+                        stratum_name: "MEMORY",
+                        opcode_name: "STORE",
+                        rationale: "result = result * n",
+                        dependencies: [11, 5],
+                        invariants: {}
+                    },
+                    10: {
+                        stratum_name: "MEMORY",
+                        opcode_name: "DATA",
+                        rationale: "Initial: result = 1",
+                        dependencies: [],
+                        invariants: {"value": 1}
+                    },
+                    11: {
+                        stratum_name: "MEMORY",
+                        opcode_name: "ALLOC",
+                        rationale: "Memory for result",
+                        dependencies: [],
+                        invariants: {"size": 4}
+                    },
+                    12: {
+                        stratum_name: "SUBSTRATE",
+                        opcode_name: "DATA",
+                        rationale: "Input parameter n",
+                        dependencies: [],
+                        invariants: {}
+                    },
+                    13: {
+                        stratum_name: "LOGIC",
+                        opcode_name: "CALL",
+                        rationale: "n - 1",
+                        dependencies: [5, 6],
+                        invariants: {}
+                    }
+                }
+            };
+
+            glyphRenderer.loadProgram(demoProgram);
+            updateStatus(`Loaded: ${demoProgram.name} (${Object.keys(demoProgram.glyphs).length} glyphs)`);
+        }
+
+        function clearProgram() {
+            glyphRenderer.clear();
+            updateStatus('Cleared');
+        }
+
+        function toggleOverlay() {
+            glyphContainer.visible = !glyphContainer.visible;
+            updateStatus(glyphContainer.visible ? 'Overlay visible' : 'Overlay hidden');
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        // Handle glyph selection
+        document.addEventListener('glyphSelected', (e) => {
+            const glyph = e.detail;
+            const infoEl = document.getElementById('glyph-info');
+            infoEl.innerHTML = `
+                <h3>[${glyph.index}] ${glyph.stratum_name}.${glyph.opcode_name}</h3>
+                <p>${glyph.rationale || 'No rationale provided'}</p>
+                ${glyph.dependencies && glyph.dependencies.length > 0 ? `
+                    <div class="deps">
+                        Dependencies: ${glyph.dependencies.join(', ')}
+                    </div>
+                ` : ''}
+            `;
+        });
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

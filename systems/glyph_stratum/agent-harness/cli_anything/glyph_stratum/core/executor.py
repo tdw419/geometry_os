@@ -104,11 +104,13 @@ class GlyphStratumExecutor:
         return False
 
     def execute_glyph(self, glyph: GlyphInfo, args: List[Any] = None) -> Any:
-        """Execute a single glyph."""
+        """Execute a single glyph, resolving dependencies first."""
         if self.state.halted:
             return None
 
-        args = args or []
+        # If no explicit args, resolve dependencies
+        if args is None:
+            args = self._resolve_dependencies(glyph)
 
         try:
             if glyph.opcode == Opcode.NOP:
@@ -133,65 +135,51 @@ class GlyphStratumExecutor:
                 return False
 
             elif glyph.opcode == Opcode.LOOP:
-                # Execute body while condition
-                # args: [condition_fn, body_fn, initial_state]
-                if len(args) >= 3:
-                    condition, body, state = args[0], args[1], args[2]
-                    iterations = 0
-                    max_iterations = 10000
-                    while condition(state) and iterations < max_iterations:
-                        state = body(state)
-                        iterations += 1
-                    return state
-                return None
+                return self._execute_loop(glyph, args)
 
             elif glyph.opcode == Opcode.BRANCH:
-                # args: [condition, then_fn, else_fn]
-                if len(args) >= 2:
-                    condition = args[0]
-                    if condition:
-                        return args[1]() if callable(args[1]) else args[1]
-                    elif len(args) >= 3:
-                        return args[2]() if callable(args[2]) else args[2]
-                return None
+                return self._execute_branch(glyph, args)
 
             elif glyph.opcode == Opcode.CALL:
-                # Call a function by name or glyph index
-                if args:
-                    fn = args[0]
-                    fn_args = args[1:] if len(args) > 1 else []
-                    if isinstance(fn, str) and fn in self.builtins:
-                        return self.builtins[fn](*fn_args)
-                    elif callable(fn):
-                        return fn(*fn_args)
-                return None
+                return self._execute_call(glyph, args)
 
             elif glyph.opcode == Opcode.RETURN:
-                # Return value from current frame
                 value = args[0] if args else None
                 return value
 
             elif glyph.opcode == Opcode.DATA:
-                # Return literal data
-                if args:
-                    return args[0]
-                # Check invariants for stored data
+                # Return literal data from invariants or args
                 if "value" in glyph.metadata.invariants:
                     return glyph.metadata.invariants["value"]
+                if args:
+                    return args[0]
                 return None
 
             elif glyph.opcode == Opcode.TYPE:
-                # Type declaration - returns type info
                 return {"type": "declaration", "name": glyph.metadata.rationale}
 
+            elif glyph.opcode == Opcode.STRUCT:
+                return self._execute_struct(glyph, args)
+
+            elif glyph.opcode == Opcode.PTR:
+                # Pointer - return reference to value
+                if args:
+                    return ("ptr", args[0])
+                return None
+
             elif glyph.opcode == Opcode.MODULE:
-                # Module - execute all dependencies in order
-                results = {}
-                for dep_idx in glyph.metadata.dependencies:
-                    dep = self.registry.get(dep_idx)
-                    if dep:
-                        results[dep_idx] = self.execute_glyph(dep, [])
-                return results
+                return self._execute_module(glyph)
+
+            elif glyph.opcode == Opcode.EXPORT:
+                # Export - just return the value
+                return args[0] if args else None
+
+            elif glyph.opcode == Opcode.IMPORT:
+                # Import - resolve by name from rationale
+                name = glyph.metadata.rationale
+                if name in self.builtins:
+                    return self.builtins[name]
+                return None
 
             elif glyph.opcode == Opcode.HALT:
                 self.state.halted = True
@@ -204,6 +192,123 @@ class GlyphStratumExecutor:
         except Exception as e:
             self.state.error = str(e)
             return None
+
+    def _resolve_dependencies(self, glyph: GlyphInfo) -> List[Any]:
+        """Execute all dependencies and return their results as args."""
+        results = []
+        for dep_idx in glyph.metadata.dependencies:
+            dep = self.registry.get(dep_idx)
+            if dep:
+                result = self.execute_glyph(dep)
+                results.append(result)
+        return results
+
+    def _execute_loop(self, glyph: GlyphInfo, args: List[Any]) -> Any:
+        """Execute a loop: dependencies are [init, condition, body]."""
+        deps = glyph.metadata.dependencies
+        if len(deps) < 3:
+            return None
+
+        # Get glyphs
+        init_glyph = self.registry.get(deps[0])
+        cond_glyph = self.registry.get(deps[1])
+        body_glyph = self.registry.get(deps[2])
+
+        if not all([init_glyph, cond_glyph, body_glyph]):
+            return None
+
+        # Execute init
+        state = self.execute_glyph(init_glyph)
+
+        iterations = 0
+        max_iterations = 10000
+
+        while iterations < max_iterations:
+            # Check condition with current state
+            cond_result = self.execute_glyph(cond_glyph, [state])
+            if not cond_result:
+                break
+
+            # Execute body with state
+            state = self.execute_glyph(body_glyph, [state])
+            iterations += 1
+
+        return state
+
+    def _execute_branch(self, glyph: GlyphInfo, args: List[Any]) -> Any:
+        """Execute a branch: deps are [condition, then, else?]."""
+        deps = glyph.metadata.dependencies
+        if len(deps) < 2:
+            return None
+
+        cond_glyph = self.registry.get(deps[0])
+        then_glyph = self.registry.get(deps[1])
+        else_glyph = self.registry.get(deps[2]) if len(deps) > 2 else None
+
+        if not cond_glyph or not then_glyph:
+            return None
+
+        # Execute condition
+        cond_result = self.execute_glyph(cond_glyph)
+
+        if cond_result:
+            return self.execute_glyph(then_glyph)
+        elif else_glyph:
+            return self.execute_glyph(else_glyph)
+
+        return None
+
+    def _execute_call(self, glyph: GlyphInfo, args: List[Any]) -> Any:
+        """Execute a function call."""
+        # Rationale contains function name or expression
+        fn_name = glyph.metadata.rationale.strip()
+
+        # Check builtins first
+        if fn_name in self.builtins:
+            return self.builtins[fn_name](*args)
+
+        # Try to evaluate as expression
+        try:
+            # Safe eval with only builtins and args
+            safe_dict = {"args": args}
+            safe_dict.update(self.builtins)
+
+            # Handle simple arithmetic
+            if all(c in "0123456789+-*/(). " for c in fn_name):
+                return eval(fn_name, {"__builtins__": {}}, safe_dict)
+
+            # Handle function call syntax: fn(arg1, arg2)
+            if "(" in fn_name:
+                # Parse function name
+                parts = fn_name.split("(")
+                func = parts[0].strip()
+                if func in self.builtins:
+                    return self.builtins[func](*args)
+
+        except Exception:
+            pass
+
+        # If args are provided, try using first arg as function
+        if args and callable(args[0]):
+            return args[0](*args[1:])
+
+        return None
+
+    def _execute_struct(self, glyph: GlyphInfo, args: List[Any]) -> Any:
+        """Execute a struct - create a dict from fields."""
+        fields = glyph.metadata.invariants.get("fields", [])
+        if isinstance(fields, list) and args:
+            return dict(zip(fields, args))
+        return {"_struct": glyph.metadata.rationale, "values": args}
+
+    def _execute_module(self, glyph: GlyphInfo) -> Any:
+        """Execute a module - run all dependencies in order."""
+        results = {}
+        for dep_idx in glyph.metadata.dependencies:
+            dep = self.registry.get(dep_idx)
+            if dep:
+                results[dep_idx] = self.execute_glyph(dep)
+        return results
 
     def run(self, entry_point: Optional[int] = None) -> Any:
         """Run the entire program from entry point."""
