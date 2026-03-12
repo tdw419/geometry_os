@@ -69,6 +69,9 @@ python3 -m http.server 8000
 # Then open: http://localhost:8000/glyph_editor.html
 ```
 
+**GEOS Font Integration:**
+The editor uses Geometry OS's native font system for high-quality opcode rendering. For details on how this is implemented via pre-rendered texture atlases, see the [Font Integration Design Doc](docs/font_integration.md).
+
 **Controls:**
 - **Double-click canvas** - Add new glyph
 - **Click palette** - Add glyph by stratum
